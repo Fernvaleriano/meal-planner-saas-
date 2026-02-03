@@ -1,7 +1,7 @@
-// Text-based food analysis using Claude Haiku (better accuracy than Gemini for food analysis)
-const Anthropic = require('@anthropic-ai/sdk');
+// Text-based food analysis using GPT-4o Mini (fast and accurate)
+const OpenAI = require('openai');
 
-const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 // Helper function to strip markdown formatting from text
 function stripMarkdown(text) {
@@ -43,12 +43,12 @@ exports.handler = async (event, context) => {
             };
         }
 
-        if (!ANTHROPIC_API_KEY) {
-            console.error('ANTHROPIC_API_KEY is not configured');
+        if (!OPENAI_API_KEY) {
+            console.error('OPENAI_API_KEY is not configured');
             return {
                 statusCode: 500,
                 headers,
-                body: JSON.stringify({ error: 'AI analysis is not configured. Please add ANTHROPIC_API_KEY to environment variables.' })
+                body: JSON.stringify({ error: 'AI analysis is not configured. Please add OPENAI_API_KEY to environment variables.' })
             };
         }
 
@@ -101,22 +101,23 @@ Guidelines:
 
 Return ONLY the JSON array, nothing else.`;
 
-        // Call Claude Haiku API
-        console.log('🤖 Calling Claude Haiku for text food analysis...');
+        // Call GPT-4o Mini API
+        console.log('🤖 Calling GPT-4o Mini for text food analysis...');
 
-        let message;
+        let completion;
         try {
-            const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
-            message = await anthropic.messages.create({
-                model: 'claude-3-haiku-20240307',
-                max_tokens: 1024,
+            const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
+            completion = await openai.chat.completions.create({
+                model: 'gpt-4o-mini',
                 messages: [{
                     role: 'user',
                     content: prompt
-                }]
+                }],
+                max_tokens: 1024,
+                temperature: 0.3
             });
         } catch (apiError) {
-            console.error('Claude API error:', apiError);
+            console.error('OpenAI API error:', apiError);
             return {
                 statusCode: 500,
                 headers,
@@ -127,8 +128,8 @@ Return ONLY the JSON array, nothing else.`;
             };
         }
 
-        const content = message.content?.[0]?.text || '';
-        console.log('Claude Haiku response:', content);
+        const content = completion.choices?.[0]?.message?.content || '';
+        console.log('GPT-4o Mini response:', content);
 
         // Parse the response
         let foods = [];
@@ -147,7 +148,7 @@ Return ONLY the JSON array, nothing else.`;
             if (jsonMatch) {
                 foods = JSON.parse(jsonMatch[0]);
             } else {
-                console.error('Could not parse Claude response:', trimmedContent);
+                console.error('Could not parse GPT response:', trimmedContent);
             }
         }
 
