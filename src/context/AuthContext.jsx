@@ -307,16 +307,21 @@ export function AuthProvider({ children }) {
 
   const logout = useCallback(async () => {
     try {
-      await supabase.auth.signOut();
-      setUser(null);
-      setClientData(null);
-      // Clear cached client data on logout
-      localStorage.removeItem('cachedClientData');
-      // Clear API session cache
-      clearSessionCache();
+      // Use local scope to avoid network delays and 403 errors
+      // This only clears the local session without making a server request
+      await supabase.auth.signOut({ scope: 'local' });
     } catch (err) {
       console.error('Logout error:', err);
+      // Continue to clear local state even if signOut fails
     }
+
+    // Always clear local state regardless of signOut result
+    setUser(null);
+    setClientData(null);
+    // Clear cached client data on logout
+    localStorage.removeItem('cachedClientData');
+    // Clear API session cache
+    clearSessionCache();
   }, []);
 
   const refreshClientData = useCallback(async () => {
