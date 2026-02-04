@@ -3837,9 +3837,33 @@
         let _allPriorityAlerts = [];
         let _dismissedFromDb = new Set(); // Alert IDs that are dismissed in database
         let _currentCoachId = null; // Set during loadPriorityAlerts
+        let _dbAvailable = true; // Track if database is working
 
-        // Load dismissed alerts from database
+        const DISMISSED_STORAGE_KEY = 'dismissedPriorityAlerts';
+
+        // localStorage helpers for fallback
+        function getLocalDismissed() {
+            try {
+                const stored = localStorage.getItem(DISMISSED_STORAGE_KEY);
+                return stored ? new Set(JSON.parse(stored)) : new Set();
+            } catch (e) {
+                return new Set();
+            }
+        }
+
+        function saveLocalDismissed(dismissed) {
+            try {
+                localStorage.setItem(DISMISSED_STORAGE_KEY, JSON.stringify([...dismissed]));
+            } catch (e) {
+                console.warn('Could not save to localStorage:', e);
+            }
+        }
+
+        // Load dismissed alerts from database with localStorage fallback
         async function loadDismissedAlertsFromDb(coachId) {
+            // Always load localStorage as baseline
+            const localDismissed = getLocalDismissed();
+
             try {
                 const { data, error } = await supabaseClient
                     .from('dismissed_activity_items')
@@ -3848,8 +3872,12 @@
 
                 if (error) {
                     console.warn('Could not load dismissed items:', error.message);
-                    return new Set();
+                    _dbAvailable = false;
+                    // Fall back to localStorage
+                    return localDismissed;
                 }
+
+                _dbAvailable = true;
 
                 // Build a set of alert IDs that match our format
                 const dismissed = new Set();
@@ -3868,10 +3896,18 @@
                         dismissed.add(`${prefix}-${item.related_checkin_id}`);
                     }
                 });
+
+                // Merge with localStorage (in case there are items saved while DB was down)
+                localDismissed.forEach(id => dismissed.add(id));
+
+                // Sync localStorage with DB state
+                saveLocalDismissed(dismissed);
+
                 return dismissed;
             } catch (e) {
                 console.warn('Error loading dismissed alerts:', e);
-                return new Set();
+                _dbAvailable = false;
+                return localDismissed;
             }
         }
 
@@ -3904,11 +3940,12 @@
             const isDismissed = _dismissedFromDb.has(alertId);
 
             if (isDismissed) {
-                // Un-dismiss: remove from database
+                // Un-dismiss: remove from local state and localStorage
                 _dismissedFromDb.delete(alertId);
+                saveLocalDismissed(_dismissedFromDb); // Always save locally
                 renderPriorityAlertSections();
 
-                // Call backend to restore
+                // Try to sync with backend (best effort - don't revert if fails)
                 try {
                     const response = await fetch('/.netlify/functions/dismiss-activity', {
                         method: 'DELETE',
@@ -3920,24 +3957,22 @@
                             relatedCheckinId: alert.relatedCheckinId
                         })
                     });
-                    const result = await response.json();
-                    if (!response.ok || result.error) {
-                        console.warn('Could not restore item:', result.error || response.statusText);
-                        // Revert optimistic update
-                        _dismissedFromDb.add(alertId);
-                        renderPriorityAlertSections();
+                    if (!response.ok) {
+                        console.warn('Could not sync restore to database (saved locally)');
+                        _dbAvailable = false;
+                    } else {
+                        _dbAvailable = true;
                     }
-                } catch (e) {
-                    console.warn('Could not restore item:', e);
-                    // Revert optimistic update on network error
-                    _dismissedFromDb.add(alertId);
-                    renderPriorityAlertSections();
+                } catch (err) {
+                    console.warn('Could not sync restore to database (saved locally):', err);
+                    _dbAvailable = false;
                 }
             } else {
-                // Dismiss: add to database
+                // Dismiss: add to local state and localStorage immediately
                 _dismissedFromDb.add(alertId);
+                saveLocalDismissed(_dismissedFromDb); // Always save locally first
 
-                const alertRow = el.closest('.priority-alert');
+                const alertRow = el ? el.closest('.priority-alert') : null;
                 if (alertRow) {
                     alertRow.style.maxHeight = alertRow.offsetHeight + 'px';
                     requestAnimationFrame(() => alertRow.classList.add('priority-alert--fadeout'));
@@ -3946,7 +3981,7 @@
                     renderPriorityAlertSections();
                 }
 
-                // Call backend to persist dismissal
+                // Try to sync with backend (best effort - don't revert if fails)
                 try {
                     const response = await fetch('/.netlify/functions/dismiss-activity', {
                         method: 'POST',
@@ -3958,24 +3993,15 @@
                             relatedCheckinId: alert.relatedCheckinId
                         })
                     });
-                    const result = await response.json();
-                    // Check if this was a fake success due to missing table
-                    if (result.pendingMigration) {
-                        console.warn('Dismissal not persisted - database migration pending');
-                        // Revert optimistic update since it won't persist
-                        _dismissedFromDb.delete(alertId);
-                        renderPriorityAlertSections();
-                    } else if (!response.ok || result.error) {
-                        console.warn('Could not persist dismissal:', result.error || response.statusText);
-                        // Revert optimistic update
-                        _dismissedFromDb.delete(alertId);
-                        renderPriorityAlertSections();
+                    if (!response.ok) {
+                        console.warn('Could not sync dismissal to database (saved locally)');
+                        _dbAvailable = false;
+                    } else {
+                        _dbAvailable = true;
                     }
-                } catch (e) {
-                    console.warn('Could not persist dismissal:', e);
-                    // Revert optimistic update on network error
-                    _dismissedFromDb.delete(alertId);
-                    renderPriorityAlertSections();
+                } catch (err) {
+                    console.warn('Could not sync dismissal to database (saved locally):', err);
+                    _dbAvailable = false;
                 }
             }
         }
@@ -4028,6 +4054,7 @@
             const alert = _allPriorityAlerts.find(a => a.id === alertId);
             if (alert && !_dismissedFromDb.has(alertId)) {
                 _dismissedFromDb.add(alertId);
+                saveLocalDismissed(_dismissedFromDb); // Save locally immediately
                 // Fire-and-forget the backend call - don't wait for it
                 fetch('/.netlify/functions/dismiss-activity', {
                     method: 'POST',
@@ -4038,7 +4065,7 @@
                         reason: alert.reason,
                         relatedCheckinId: alert.relatedCheckinId
                     })
-                }).catch(e => console.warn('Could not auto-archive:', e));
+                }).catch(e => console.warn('Could not auto-archive (saved locally):', e));
             }
             // Navigate to the target page
             window.location.href = url;
