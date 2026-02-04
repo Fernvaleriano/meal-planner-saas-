@@ -3888,8 +3888,11 @@
             return _dismissedFromDb.has(alertId);
         }
 
-        async function dismissPriorityAlert(alertId, el) {
-            event.stopPropagation();
+        async function dismissPriorityAlert(e, alertId, el) {
+            if (e) {
+                e.stopPropagation();
+                e.preventDefault();
+            }
 
             // Find the alert metadata
             const alert = _allPriorityAlerts.find(a => a.id === alertId);
@@ -4014,9 +4017,31 @@
         }
 
         function checkboxHtml(alertId, isDismissed) {
-            return `<span class="priority-checkbox${isDismissed ? ' checked' : ''}" onclick="dismissPriorityAlert('${alertId}', this)" title="${isDismissed ? 'Restore to active' : 'Mark as handled'}">
+            return `<span class="priority-checkbox${isDismissed ? ' checked' : ''}" onclick="dismissPriorityAlert(event, '${alertId}', this)" title="${isDismissed ? 'Restore to active' : 'Mark as handled'}">
                 <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 6l3 3 5-5"/></svg>
             </span>`;
+        }
+
+        // Auto-archive and navigate when clicking Review/View links
+        function reviewAndArchive(alertId, url) {
+            // Find the alert and auto-dismiss it
+            const alert = _allPriorityAlerts.find(a => a.id === alertId);
+            if (alert && !_dismissedFromDb.has(alertId)) {
+                _dismissedFromDb.add(alertId);
+                // Fire-and-forget the backend call - don't wait for it
+                fetch('/.netlify/functions/dismiss-activity', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        coachId: _currentCoachId,
+                        clientId: alert.clientId,
+                        reason: alert.reason,
+                        relatedCheckinId: alert.relatedCheckinId
+                    })
+                }).catch(e => console.warn('Could not auto-archive:', e));
+            }
+            // Navigate to the target page
+            window.location.href = url;
         }
 
         function renderPriorityAlertSections() {
@@ -4107,6 +4132,8 @@
 
                 const weekAgo = new Date();
                 weekAgo.setDate(weekAgo.getDate() - 7);
+                const twoWeeksAgo = new Date();
+                twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
                 const todayStart = new Date();
                 todayStart.setHours(0, 0, 0, 0);
 
@@ -4137,6 +4164,7 @@
                             .select('id, client_id, stress_level, energy_level, created_at')
                             .eq('coach_id', coachId)
                             .is('coach_responded_at', null)
+                            .gte('created_at', twoWeeksAgo.toISOString())
                             .order('created_at', { ascending: false })
                             .limit(20)
                     ]);
@@ -4153,8 +4181,9 @@
                     shown.forEach(c => {
                         const name = clientMap[c.client_id] || 'Unknown Client';
                         const aid = 'stress-' + c.id;
+                        const url = `client-profile.html?clientId=${c.client_id}#checkin-${c.id}`;
                         addAlert(aid, `
-                            <div class="priority-alert priority-alert--clickable" onclick="window.location.href='client-profile.html?clientId=${c.client_id}#checkin-${c.id}'">
+                            <div class="priority-alert priority-alert--clickable" onclick="reviewAndArchive('${aid}', '${url}')">
                                 __CHECKBOX__
                                 <span class="priority-dot priority-dot--red"></span>
                                 <span>
@@ -4176,8 +4205,9 @@
                     shown.forEach(c => {
                         const name = clientMap[c.client_id] || 'Unknown Client';
                         const aid = 'energy-' + c.id;
+                        const url = `client-profile.html?clientId=${c.client_id}#checkin-${c.id}`;
                         addAlert(aid, `
-                            <div class="priority-alert priority-alert--clickable" onclick="window.location.href='client-profile.html?clientId=${c.client_id}#checkin-${c.id}'">
+                            <div class="priority-alert priority-alert--clickable" onclick="reviewAndArchive('${aid}', '${url}')">
                                 __CHECKBOX__
                                 <span class="priority-dot priority-dot--red"></span>
                                 <span>
@@ -4201,8 +4231,9 @@
                     todayOnes.slice(0, MAX_SHOWN).forEach(c => {
                         const name = clientMap[c.client_id] || 'Unknown Client';
                         const aid = 'checkin-' + c.id;
+                        const url = `client-profile.html?clientId=${c.client_id}#checkin-${c.id}`;
                         addAlert(aid, `
-                            <div class="priority-alert priority-alert--clickable" onclick="window.location.href='client-profile.html?clientId=${c.client_id}#checkin-${c.id}'">
+                            <div class="priority-alert priority-alert--clickable" onclick="reviewAndArchive('${aid}', '${url}')">
                                 __CHECKBOX__
                                 <span class="priority-dot priority-dot--amber"></span>
                                 <span>
@@ -4217,8 +4248,9 @@
                     olderOnes.slice(0, MAX_SHOWN).forEach(c => {
                         const name = clientMap[c.client_id] || 'Unknown Client';
                         const aid = 'checkin-' + c.id;
+                        const url = `client-profile.html?clientId=${c.client_id}#checkin-${c.id}`;
                         addAlert(aid, `
-                            <div class="priority-alert priority-alert--clickable" onclick="window.location.href='client-profile.html?clientId=${c.client_id}#checkin-${c.id}'">
+                            <div class="priority-alert priority-alert--clickable" onclick="reviewAndArchive('${aid}', '${url}')">
                                 __CHECKBOX__
                                 <span class="priority-dot priority-dot--amber"></span>
                                 <span>
@@ -4252,8 +4284,9 @@
                             const daysLeft = Math.ceil((new Date(p.end_date) - new Date()) / 86400000);
                             const urgency = daysLeft <= 1 ? 'Expires tomorrow' : `Expires in ${daysLeft} days`;
                             const aid = 'plan-' + p.id;
+                            const url = `client-profile.html?clientId=${p.client_id}`;
                             addAlert(aid, `
-                                <div class="priority-alert priority-alert--clickable" onclick="window.location.href='client-profile.html?clientId=${p.client_id}'">
+                                <div class="priority-alert priority-alert--clickable" onclick="reviewAndArchive('${aid}', '${url}')">
                                     __CHECKBOX__
                                     <span class="priority-dot priority-dot--amber"></span>
                                     <span>
@@ -4283,10 +4316,10 @@
                     if (prNotifications && prNotifications.length > 0) {
                         prNotifications.slice(0, MAX_SHOWN).forEach(pr => {
                             const name = clientMap[pr.related_client_id] || '';
-                            const clientLink = pr.related_client_id ? `client-profile.html?clientId=${pr.related_client_id}` : '#';
+                            const url = pr.related_client_id ? `client-profile.html?clientId=${pr.related_client_id}` : '#';
                             const aid = 'pr-' + pr.id;
                             addAlert(aid, `
-                                <div class="priority-alert priority-alert--clickable" onclick="window.location.href='${clientLink}'">
+                                <div class="priority-alert priority-alert--clickable" onclick="reviewAndArchive('${aid}', '${url}')">
                                     __CHECKBOX__
                                     <span class="priority-dot priority-dot--green"></span>
                                     <span>
