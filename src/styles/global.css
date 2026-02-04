@@ -13728,16 +13728,20 @@ a.nav-left {
 /* Rest Day Action Buttons */
 .rest-day-actions {
     display: flex;
+    flex-direction: column;
     gap: 12px;
     margin-top: 32px;
-    justify-content: center;
-    flex-wrap: wrap;
+    align-items: center;
+    width: 100%;
+    padding: 0 20px;
 }
 
 .rest-day-add-btn,
-.rest-day-create-btn {
+.rest-day-create-btn,
+.rest-day-club-btn {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 8px;
     padding: 14px 20px;
     border-radius: 12px;
@@ -13746,6 +13750,8 @@ a.nav-left {
     cursor: pointer;
     transition: all 0.2s;
     border: none;
+    width: 100%;
+    max-width: 280px;
 }
 
 .rest-day-add-btn {
@@ -13777,16 +13783,6 @@ a.nav-left {
 }
 
 .rest-day-club-btn {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 14px 20px;
-    border-radius: 12px;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-    border: none;
     background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
     color: white;
     box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
