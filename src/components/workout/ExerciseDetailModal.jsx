@@ -311,51 +311,6 @@ function ExerciseDetailModal({
     };
   }, []);
 
-  // Show fallback UI if exercise data is invalid - don't just return null
-  // This prevents the black screen issue where overlay renders but content doesn't
-  if (!exercise || !exercise.id) {
-    return (
-      <div className="exercise-modal-overlay-v2" key={`fallback-${resumeKey}`} onClick={forceClose}>
-        <div className="exercise-modal-v2 modal-v3" onClick={(e) => e.stopPropagation()}>
-          <div className="modal-header-v3">
-            <button className="close-btn" onClick={forceClose} type="button">
-              <ChevronLeft size={24} />
-            </button>
-            <h2 className="header-title">Exercise</h2>
-            <div className="header-actions"></div>
-          </div>
-          <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '60px 20px',
-            textAlign: 'center',
-            color: '#94a3b8'
-          }}>
-            <AlertCircle size={48} style={{ marginBottom: '16px', color: '#f59e0b' }} />
-            <h3 style={{ color: 'white', marginBottom: '8px' }}>Unable to load exercise</h3>
-            <p style={{ marginBottom: '24px' }}>The exercise data could not be loaded.</p>
-            <button
-              onClick={forceClose}
-              style={{
-                padding: '12px 24px',
-                background: '#0d9488',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontSize: '16px'
-              }}
-            >
-              Go Back
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   // Use refs for callbacks to prevent recreation
   const callbackRefs = useRef({
     onClose,
@@ -2677,6 +2632,52 @@ function ExerciseDetailModal({
     }
     return `${seconds}s`;
   };
+
+  // Show fallback UI if exercise data is invalid - don't just return null
+  // This prevents the black screen issue where overlay renders but content doesn't
+  // IMPORTANT: This check must be AFTER all hooks are declared to avoid React hooks violation
+  if (!exercise || !exercise.id) {
+    return (
+      <div className="exercise-modal-overlay-v2" key={`fallback-${resumeKey}`} onClick={forceClose}>
+        <div className="exercise-modal-v2 modal-v3" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-header-v3">
+            <button className="close-btn" onClick={forceClose} type="button">
+              <ChevronLeft size={24} />
+            </button>
+            <h2 className="header-title">Exercise</h2>
+            <div className="header-actions"></div>
+          </div>
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '60px 20px',
+            textAlign: 'center',
+            color: '#94a3b8'
+          }}>
+            <AlertCircle size={48} style={{ marginBottom: '16px', color: '#f59e0b' }} />
+            <h3 style={{ color: 'white', marginBottom: '8px' }}>Unable to load exercise</h3>
+            <p style={{ marginBottom: '24px' }}>The exercise data could not be loaded.</p>
+            <button
+              onClick={forceClose}
+              style={{
+                padding: '12px 24px',
+                background: '#0d9488',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '16px'
+              }}
+            >
+              Go Back
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="exercise-modal-overlay-v2" key={`modal-${resumeKey}`} onClick={handleClose}>
