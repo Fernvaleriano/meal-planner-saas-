@@ -825,6 +825,8 @@ function ExerciseDetailModal({
 
   // Load client note/voice note state from exercise data when exercise changes
   useEffect(() => {
+    let cancelled = false;
+
     // Restore saved notes from exercise data (merged from exercise_logs)
     const savedNote = exercise?.clientNotes || '';
     const savedVoicePath = exercise?.clientVoiceNotePath || null;
@@ -842,13 +844,19 @@ function ExerciseDetailModal({
       voiceNotePathRef.current = savedVoicePath;
       apiPost('/.netlify/functions/get-signed-urls', { filePaths: [savedVoicePath] })
         .then(res => {
+          if (cancelled || !isMountedRef.current) return;
           const urls = res?.signedUrls || {};
           setVoiceNoteUrl(urls[savedVoicePath] || savedVoicePath);
         })
-        .catch(() => setVoiceNoteUrl(savedVoicePath));
+        .catch(() => {
+          if (cancelled || !isMountedRef.current) return;
+          setVoiceNoteUrl(savedVoicePath);
+        });
     } else {
       setVoiceNoteUrl(savedVoicePath);
     }
+
+    return () => { cancelled = true; };
   }, [exercise?.id, exercise?.clientNotes, exercise?.clientVoiceNotePath]);
 
   // Keep refs in sync so auto-save can access current values without extra deps
@@ -2368,16 +2376,23 @@ function ExerciseDetailModal({
     };
 
     recognition.onresult = (event) => {
+      // Guard: Check array bounds before accessing
+      if (!event.results || !event.results[0] || !event.results[0][0]) {
+        setVoiceError('No speech detected');
+        return;
+      }
       const transcript = event.results[0][0].transcript;
       setLastTranscript(transcript);
 
       markSetsChanged();
+
+      // Parse voice input OUTSIDE of setState to avoid side effects in updater
       setSets(prevSets => {
-        // Use new smart parser with current sets context
         const parsed = parseVoiceInput(transcript, prevSets);
 
         if (!parsed.understood) {
-          setVoiceError('Could not understand. Try: "12 reps 50 kg" or "done"');
+          // Schedule error message outside of this updater
+          setTimeout(() => setVoiceError('Could not understand. Try: "12 reps 50 kg" or "done"'), 0);
           return prevSets;
         }
 
@@ -2403,15 +2418,19 @@ function ExerciseDetailModal({
           }
         }
 
-        // Show feedback for bulk updates
+        // Schedule feedback and callback outside of updater
         if (parsed.bulk) {
-          setVoiceError(`Updated ${parsed.sets.length} sets`);
-          setTimeout(() => setVoiceError(null), 2000);
+          setTimeout(() => {
+            setVoiceError(`Updated ${parsed.sets.length} sets`);
+            setTimeout(() => setVoiceError(null), 2000);
+          }, 0);
         }
 
-        // Persist to backend
+        // Schedule backend persist outside of updater
         if (callbackRefs.current.onUpdateExercise && exercise) {
-          callbackRefs.current.onUpdateExercise({ ...exercise, sets: newSets });
+          setTimeout(() => {
+            callbackRefs.current.onUpdateExercise({ ...exercise, sets: newSets });
+          }, 0);
         }
 
         return newSets;

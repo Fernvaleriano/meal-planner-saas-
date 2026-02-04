@@ -355,6 +355,10 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelec
     recognition.onstart = () => setIsListening(true);
 
     recognition.onresult = (event) => {
+      // Guard: Check array bounds before accessing
+      if (!event.results || !event.results[0] || !event.results[0][0]) {
+        return;
+      }
       const transcript = event.results[0][0].transcript;
       setInputValue(transcript);
       setSearchQuery(transcript);

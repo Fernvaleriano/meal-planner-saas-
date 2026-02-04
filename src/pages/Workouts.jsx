@@ -2752,7 +2752,7 @@ function Workouts() {
       )}
 
       {/* Exercise Detail Modal - Wrapped in ErrorBoundary */}
-      {selectedExercise && (
+      {selectedExercise && selectedExercise.id && (
         <ErrorBoundary>
           <ExerciseDetailModal
             exercise={selectedExercise}
