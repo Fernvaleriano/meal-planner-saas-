@@ -293,9 +293,9 @@ function GuidedWorkoutModal({
             exerciseId: exercise.id,
             exerciseName: exercise.name || 'Unknown',
             order: exIndex + 1,
-            setsData,
+            sets: setsData,
             clientNotes: noteText || undefined,
-            voiceNotePath: voiceNotePathsRef.current[exIndex] || undefined
+            clientVoiceNotePath: voiceNotePathsRef.current[exIndex] || undefined
           }]
         });
 
