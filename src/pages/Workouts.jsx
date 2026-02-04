@@ -243,6 +243,83 @@ function ReadinessCheckModal({ onComplete, onSkip }) {
   );
 }
 
+// Confirmation modal after readiness check — user decides when to start guided workout
+function WorkoutReadyConfirmation({ readinessData, workoutName, exerciseCount, onStart, onCancel }) {
+  // Get readiness labels based on values
+  const getEnergyLabel = (val) => {
+    if (val === 1) return { emoji: '\u{1F634}', label: 'Low' };
+    if (val === 2) return { emoji: '\u{1F610}', label: 'Normal' };
+    if (val === 3) return { emoji: '\u{1F4AA}', label: 'Great' };
+    return null;
+  };
+
+  const getSorenessLabel = (val) => {
+    if (val === 3) return { emoji: '\u{1F7E2}', label: 'Fresh' };
+    if (val === 2) return { emoji: '\u{1F7E1}', label: 'A little sore' };
+    if (val === 1) return { emoji: '\u{1F534}', label: 'Very sore' };
+    return null;
+  };
+
+  const getSleepLabel = (val) => {
+    if (val === 1) return { emoji: '\u{1F62B}', label: 'Poorly' };
+    if (val === 2) return { emoji: '\u{1F634}', label: 'Okay' };
+    if (val === 3) return { emoji: '\u{1F31F}', label: 'Great' };
+    return null;
+  };
+
+  const energy = readinessData ? getEnergyLabel(readinessData.energy) : null;
+  const soreness = readinessData ? getSorenessLabel(readinessData.soreness) : null;
+  const sleep = readinessData ? getSleepLabel(readinessData.sleep) : null;
+
+  return (
+    <div className="workout-ready-overlay" onClick={onCancel}>
+      <div className="workout-ready-modal" onClick={e => e.stopPropagation()}>
+        <div className="workout-ready-icon">
+          <Play size={48} fill="white" />
+        </div>
+        <h2 className="workout-ready-title">Ready to Start?</h2>
+        <p className="workout-ready-subtitle">{workoutName || 'Workout'}</p>
+        <p className="workout-ready-info">{exerciseCount} exercise{exerciseCount !== 1 ? 's' : ''}</p>
+
+        {readinessData && (
+          <div className="workout-ready-summary">
+            <div className="workout-ready-summary-title">Your Check-in</div>
+            <div className="workout-ready-summary-items">
+              {energy && (
+                <div className="workout-ready-item">
+                  <span className="workout-ready-emoji">{energy.emoji}</span>
+                  <span className="workout-ready-label">Energy: {energy.label}</span>
+                </div>
+              )}
+              {soreness && (
+                <div className="workout-ready-item">
+                  <span className="workout-ready-emoji">{soreness.emoji}</span>
+                  <span className="workout-ready-label">Soreness: {soreness.label}</span>
+                </div>
+              )}
+              {sleep && (
+                <div className="workout-ready-item">
+                  <span className="workout-ready-emoji">{sleep.emoji}</span>
+                  <span className="workout-ready-label">Sleep: {sleep.label}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        <button className="workout-ready-start-btn" onClick={onStart}>
+          <Play size={20} fill="white" />
+          <span>Begin Workout</span>
+        </button>
+
+        <button className="workout-ready-cancel-btn" onClick={onCancel}>
+          Not yet
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // Extract completed exercise IDs from workout_data's exercise objects + localStorage fallback
 function getCompletedFromWorkoutData(workoutData, dayIndex = 0, workoutId = null) {
   let exercises = [];
@@ -328,6 +405,7 @@ function Workouts() {
   const [completedExercises, setCompletedExercises] = useState(new Set());
   const [showReadinessCheck, setShowReadinessCheck] = useState(false);
   const [readinessData, setReadinessData] = useState(null); // { energy: 1-3, soreness: 1-3, sleep: 1-3 }
+  const [showWorkoutReadyConfirm, setShowWorkoutReadyConfirm] = useState(false); // Confirmation after readiness check
 
   // New states for menu, summary, and history
   const [showMenu, setShowMenu] = useState(false);
@@ -1656,7 +1734,7 @@ function Workouts() {
     setReadinessData(readiness);
     setWorkoutStarted(true);
     setWorkoutStartTime(prev => prev || new Date());
-    setShowGuidedWorkout(true);
+    setShowWorkoutReadyConfirm(true); // Show confirmation instead of directly opening play mode
 
     if (!workoutLog && clientData?.id && todayWorkout?.id) {
       // No existing log — create one with readiness data
@@ -1696,6 +1774,12 @@ function Workouts() {
       }
     }
   }, [workoutLog, clientData?.id, todayWorkout, selectedDate]);
+
+  // Called when user clicks "Begin Workout" on the confirmation screen
+  const handleStartGuidedWorkout = useCallback(() => {
+    setShowWorkoutReadyConfirm(false);
+    setShowGuidedWorkout(true);
+  }, []);
 
   // Complete workout - saves exercise_logs with all sets/reps/weight data
   const handleCompleteWorkout = useCallback(async () => {
@@ -2782,6 +2866,17 @@ function Workouts() {
         <ReadinessCheckModal
           onComplete={handleReadinessComplete}
           onSkip={() => handleReadinessComplete(null)}
+        />
+      )}
+
+      {/* Workout Ready Confirmation - shows after readiness check */}
+      {showWorkoutReadyConfirm && (
+        <WorkoutReadyConfirmation
+          readinessData={readinessData}
+          workoutName={todayWorkout?.name}
+          exerciseCount={exercises.length}
+          onStart={handleStartGuidedWorkout}
+          onCancel={() => setShowWorkoutReadyConfirm(false)}
         />
       )}
 
