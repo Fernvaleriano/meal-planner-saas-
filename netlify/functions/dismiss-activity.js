@@ -127,16 +127,16 @@ exports.handler = async (event, context) => {
             }
 
             if (error) {
-                // Table likely doesn't exist yet - return success for UI anyway
-                // Once migration is run, this will work properly
-                console.log('Dismiss error (table may not exist):', error.message);
+                // Database error - return error status so frontend knows to revert
+                console.log('Dismiss error:', error.message);
                 return {
-                    statusCode: 200,
+                    statusCode: 500,
                     headers: corsHeaders,
                     body: JSON.stringify({
-                        success: true,
-                        message: 'Activity marked as done',
-                        pendingMigration: true
+                        success: false,
+                        error: 'Could not save dismissal',
+                        message: error.message,
+                        pendingMigration: error.message.includes('does not exist')
                     })
                 };
             }
@@ -182,12 +182,16 @@ exports.handler = async (event, context) => {
             const { error } = await query;
 
             if (error) {
-                // Table likely doesn't exist - return success anyway
-                console.log('Restore error (table may not exist):', error.message);
+                // Database error - return error status so frontend knows to revert
+                console.log('Restore error:', error.message);
                 return {
-                    statusCode: 200,
+                    statusCode: 500,
                     headers: corsHeaders,
-                    body: JSON.stringify({ success: true, message: 'Activity restored' })
+                    body: JSON.stringify({
+                        success: false,
+                        error: 'Could not restore item',
+                        message: error.message
+                    })
                 };
             }
 
@@ -267,12 +271,12 @@ exports.handler = async (event, context) => {
             if (error) {
                 console.log('Pin/unpin error:', error.message);
                 return {
-                    statusCode: 200,
+                    statusCode: 500,
                     headers: corsHeaders,
                     body: JSON.stringify({
-                        success: true,
-                        message: isPinning ? 'Item pinned' : 'Item unpinned',
-                        pendingMigration: true
+                        success: false,
+                        error: isPinning ? 'Could not pin item' : 'Could not unpin item',
+                        message: error.message
                     })
                 };
             }
