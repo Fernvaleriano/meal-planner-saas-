@@ -131,6 +131,8 @@ function GuidedWorkoutModal({
   const clientNoteTimerRef = useRef(null);
   const voiceNotePathsRef = useRef({}); // { exIndex: filePath }
   const workoutLogIdRef = useRef(workoutLogId);
+  const isMountedRef = useRef(true);
+  const exerciseIndexAtRecordStartRef = useRef(null);
 
   // Keep refs in sync
   useEffect(() => { phaseRef.current = phase; }, [phase]);
@@ -320,6 +322,11 @@ function GuidedWorkoutModal({
   // Voice note recording
   const startVoiceNoteRecording = useCallback(async () => {
     try {
+      // Store current exercise index to detect if user switches during recording
+      const recordingExIndex = currentExIndex;
+      const recordingExercise = exercises[recordingExIndex];
+      exerciseIndexAtRecordStartRef.current = recordingExIndex;
+
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const isWebm = MediaRecorder.isTypeSupported('audio/webm');
       const mimeType = isWebm ? 'audio/webm' : 'audio/mp4';
@@ -334,13 +341,21 @@ function GuidedWorkoutModal({
 
       mediaRecorder.onstop = async () => {
         stream.getTracks().forEach(track => track.stop());
+
+        // Guard: Don't process if component unmounted
+        if (!isMountedRef.current) {
+          console.log('Voice note: Component unmounted, skipping save');
+          return;
+        }
+
         const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
         const blobUrl = URL.createObjectURL(audioBlob);
         setVoiceNoteUrl(blobUrl);
         setVoiceNoteUploading(true);
 
         try {
-          const exercise = exercises[currentExIndex];
+          // Use the exercise from when recording started, not current
+          const exercise = recordingExercise;
           const fileName = `note_${exercise?.id}_${Date.now()}.${fileExt}`;
           let filePath = null;
           let signedDownloadUrl = null;
@@ -397,20 +412,30 @@ function GuidedWorkoutModal({
             }
           }
 
+          // Guard: Check if still mounted before state updates
+          if (!isMountedRef.current) {
+            URL.revokeObjectURL(blobUrl);
+            return;
+          }
+
           if (signedDownloadUrl) {
             URL.revokeObjectURL(blobUrl);
             setVoiceNoteUrl(signedDownloadUrl);
           }
 
           if (filePath) {
-            voiceNotePathsRef.current[currentExIndex] = filePath;
-            // Auto-save the note
-            saveClientNote(clientNotes[currentExIndex] || '');
+            // Use the index from when recording started
+            voiceNotePathsRef.current[recordingExIndex] = filePath;
+            // Auto-save the note using saveClientNote with the correct index
+            saveClientNote(clientNotes[recordingExIndex] || '', recordingExIndex);
           }
         } catch (uploadErr) {
           console.error('Voice note upload error:', uploadErr);
         } finally {
-          setVoiceNoteUploading(false);
+          // Guard: Only update state if still mounted
+          if (isMountedRef.current) {
+            setVoiceNoteUploading(false);
+          }
         }
       };
 
@@ -431,6 +456,7 @@ function GuidedWorkoutModal({
   // Clean up recording on unmount
   useEffect(() => {
     return () => {
+      isMountedRef.current = false;
       if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
         mediaRecorderRef.current.stop();
       }
