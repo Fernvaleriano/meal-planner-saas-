@@ -4394,7 +4394,7 @@
                             `)
                             .in('workout_logs.client_id', clientIds)
                             .gte('created_at', weekAgo.toISOString())
-                            .or('client_notes.neq.null,client_voice_note_path.neq.null')
+                            .or('client_notes.not.is.null,client_voice_note_path.not.is.null')
                             .order('created_at', { ascending: false })
                             .limit(10);
 

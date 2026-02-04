@@ -301,6 +301,7 @@ function ExerciseDetailModal({
     const unsubSuspend = onAppSuspend(stopRecordingResources);
 
     return () => {
+      isMountedRef.current = false;
       unsubSuspend();
       // Also clean up on unmount
       stopRecordingResources();
@@ -361,6 +362,8 @@ function ExerciseDetailModal({
   const clientNoteTimerRef = useRef(null);
   const clientNoteRef = useRef('');
   const voiceNotePathRef = useRef(null);
+  const isMountedRef = useRef(true);
+  const exerciseIdAtRecordStartRef = useRef(null);
 
   // AI Tips state
   const [tips, setTips] = useState([]);
@@ -946,6 +949,10 @@ function ExerciseDetailModal({
   // Voice note recording
   const startVoiceNoteRecording = useCallback(async () => {
     try {
+      // Store current exercise ID to detect if user switches exercises during recording
+      const recordingExerciseId = exercise?.id;
+      exerciseIdAtRecordStartRef.current = recordingExerciseId;
+
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const isWebm = MediaRecorder.isTypeSupported('audio/webm');
       const mimeType = isWebm ? 'audio/webm' : 'audio/mp4';
@@ -962,6 +969,13 @@ function ExerciseDetailModal({
 
       mediaRecorder.onstop = async () => {
         stream.getTracks().forEach(track => track.stop());
+
+        // Guard: Don't process if component unmounted or exercise changed
+        if (!isMountedRef.current) {
+          console.log('Voice note: Component unmounted, skipping save');
+          return;
+        }
+
         const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
 
         // Show blob URL for immediate playback while uploading
@@ -1030,6 +1044,12 @@ function ExerciseDetailModal({
             }
           }
 
+          // Guard: Check if still mounted before state updates
+          if (!isMountedRef.current) {
+            URL.revokeObjectURL(blobUrl);
+            return;
+          }
+
           // Update playback URL if we got a signed download URL
           if (signedDownloadUrl) {
             URL.revokeObjectURL(blobUrl);
@@ -1039,6 +1059,13 @@ function ExerciseDetailModal({
           // Save voice note path to the exercise log
           if (filePath) {
             voiceNotePathRef.current = filePath;
+
+            // Guard: Skip database save if exercise changed during recording
+            if (exerciseIdAtRecordStartRef.current !== recordingExerciseId) {
+              console.log('Voice note: Exercise changed during recording, skipping save');
+              setVoiceNoteUploading(false);
+              return;
+            }
 
             let logId = workoutLogIdRef.current;
             if (!logId) {
@@ -1110,7 +1137,10 @@ function ExerciseDetailModal({
         } catch (err) {
           console.error('Error uploading voice note:', err);
         } finally {
-          setVoiceNoteUploading(false);
+          // Guard: Only update state if still mounted
+          if (isMountedRef.current) {
+            setVoiceNoteUploading(false);
+          }
         }
       };
 
