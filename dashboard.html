@@ -494,6 +494,11 @@
             box-shadow: 0 0 6px rgba(34, 197, 94, 0.3);
         }
 
+        .priority-dot--purple {
+            background: #8b5cf6;
+            box-shadow: 0 0 6px rgba(139, 92, 246, 0.4);
+        }
+
         .priority-dot--muted {
             background: var(--gray-400);
         }
@@ -525,6 +530,14 @@
 
         [data-theme="dark"] .priority-label--positive {
             color: #4ade80;
+        }
+
+        .priority-label--note {
+            color: #8b5cf6;
+        }
+
+        [data-theme="dark"] .priority-label--note {
+            color: #a78bfa;
         }
 
         .action-center-link {
@@ -3888,7 +3901,8 @@
                         'low_energy': 'energy',
                         'pending_checkin': 'checkin',
                         'expiring_plan': 'plan',
-                        'client_pr': 'pr'
+                        'client_pr': 'pr',
+                        'workout_note': 'workout-note'
                     };
                     const prefix = prefixMap[item.reason];
                     // Use explicit null check - related_checkin_id could be 0 (falsy but valid)
@@ -4361,6 +4375,61 @@
                     }
                 } catch (e) {
                     console.warn('Could not check PRs:', e);
+                }
+
+                // --- CLIENT WORKOUT NOTES (Voice & Text) ---
+                try {
+                    const clientIds = (allClients || []).map(c => c.id);
+                    if (clientIds.length > 0) {
+                        // Query exercise_logs that have client notes (text or voice)
+                        const { data: exerciseNotes } = await supabaseClient
+                            .from('exercise_logs')
+                            .select(`
+                                id,
+                                exercise_name,
+                                client_notes,
+                                client_voice_note_path,
+                                created_at,
+                                workout_logs!inner(id, client_id, workout_name, workout_date)
+                            `)
+                            .in('workout_logs.client_id', clientIds)
+                            .gte('created_at', weekAgo.toISOString())
+                            .or('client_notes.neq.null,client_voice_note_path.neq.null')
+                            .order('created_at', { ascending: false })
+                            .limit(10);
+
+                        if (exerciseNotes && exerciseNotes.length > 0) {
+                            exerciseNotes.slice(0, MAX_SHOWN).forEach(note => {
+                                const clientId = note.workout_logs?.client_id;
+                                const name = clientMap[clientId] || 'Unknown Client';
+                                const workoutName = note.workout_logs?.workout_name || 'Workout';
+                                const exerciseName = note.exercise_name || 'Exercise';
+                                const hasVoice = !!note.client_voice_note_path;
+                                const hasText = !!note.client_notes;
+                                const noteIcon = hasVoice ? '🎙️' : '📝';
+                                const noteType = hasVoice ? 'Voice Note' : 'Text Note';
+                                const aid = 'workout-note-' + note.id;
+                                const workoutId = note.workout_logs?.id;
+                                // Link to client profile with workout tab and specific workout
+                                const url = `client-profile.html?clientId=${clientId}&tab=workouts&workoutId=${workoutId}`;
+
+                                addAlert(aid, `
+                                    <div class="priority-alert priority-alert--clickable" onclick="reviewAndArchive('${aid}', '${url}')">
+                                        __CHECKBOX__
+                                        <span class="priority-dot priority-dot--purple"></span>
+                                        <span>
+                                            <span class="priority-label priority-label--note">${noteIcon} ${noteType}:</span>
+                                            <strong>${name}</strong> on ${exerciseName}
+                                            <span class="priority-alert-detail">· ${workoutName} · ${timeAgo(note.created_at)}</span>
+                                            <span class="priority-alert-link">Review →</span>
+                                        </span>
+                                    </div>
+                                `, clientId, 'workout_note', note.id);
+                            });
+                        }
+                    }
+                } catch (e) {
+                    console.warn('Could not check workout notes:', e);
                 }
 
                 // --- WORKOUT ACTIVITY (informational, no checkbox) ---
