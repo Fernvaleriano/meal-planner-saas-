@@ -3863,7 +3863,8 @@
                         'client_pr': 'pr'
                     };
                     const prefix = prefixMap[item.reason];
-                    if (prefix && item.related_checkin_id) {
+                    // Use explicit null check - related_checkin_id could be 0 (falsy but valid)
+                    if (prefix && item.related_checkin_id != null) {
                         dismissed.add(`${prefix}-${item.related_checkin_id}`);
                     }
                 });
@@ -3906,7 +3907,7 @@
 
                 // Call backend to restore
                 try {
-                    await fetch('/.netlify/functions/dismiss-activity', {
+                    const response = await fetch('/.netlify/functions/dismiss-activity', {
                         method: 'DELETE',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -3916,8 +3917,18 @@
                             relatedCheckinId: alert.relatedCheckinId
                         })
                     });
+                    const result = await response.json();
+                    if (!response.ok || result.error) {
+                        console.warn('Could not restore item:', result.error || response.statusText);
+                        // Revert optimistic update
+                        _dismissedFromDb.add(alertId);
+                        renderPriorityAlertSections();
+                    }
                 } catch (e) {
                     console.warn('Could not restore item:', e);
+                    // Revert optimistic update on network error
+                    _dismissedFromDb.add(alertId);
+                    renderPriorityAlertSections();
                 }
             } else {
                 // Dismiss: add to database
@@ -3934,7 +3945,7 @@
 
                 // Call backend to persist dismissal
                 try {
-                    await fetch('/.netlify/functions/dismiss-activity', {
+                    const response = await fetch('/.netlify/functions/dismiss-activity', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -3944,8 +3955,24 @@
                             relatedCheckinId: alert.relatedCheckinId
                         })
                     });
+                    const result = await response.json();
+                    // Check if this was a fake success due to missing table
+                    if (result.pendingMigration) {
+                        console.warn('Dismissal not persisted - database migration pending');
+                        // Revert optimistic update since it won't persist
+                        _dismissedFromDb.delete(alertId);
+                        renderPriorityAlertSections();
+                    } else if (!response.ok || result.error) {
+                        console.warn('Could not persist dismissal:', result.error || response.statusText);
+                        // Revert optimistic update
+                        _dismissedFromDb.delete(alertId);
+                        renderPriorityAlertSections();
+                    }
                 } catch (e) {
                     console.warn('Could not persist dismissal:', e);
+                    // Revert optimistic update on network error
+                    _dismissedFromDb.delete(alertId);
+                    renderPriorityAlertSections();
                 }
             }
         }
