@@ -269,7 +269,7 @@ function MealCard({ meal, coachId, onUpdate }) {
 }
 
 // Workout feed card component - shows workout completions
-function WorkoutFeedCard({ workout, coachId, onUpdate }) {
+function WorkoutFeedCard({ workout, coachId, onUpdate, weightUnit = 'lbs' }) {
   const [showComments, setShowComments] = useState(false);
   const [showReactions, setShowReactions] = useState(false);
   const [exercisesExpanded, setExercisesExpanded] = useState(workout.hasClientNotes || false);
@@ -415,7 +415,7 @@ function WorkoutFeedCard({ workout, coachId, onUpdate }) {
           {workout.totalVolume != null && (
             <div className="workout-feed-stat">
               <Zap size={14} />
-              <span>{workout.totalVolume.toLocaleString()} lbs volume</span>
+              <span>{workout.totalVolume.toLocaleString()} {weightUnit} volume</span>
             </div>
           )}
           {workout.totalSets != null && (
@@ -616,6 +616,9 @@ function WorkoutFeedCard({ workout, coachId, onUpdate }) {
 function Feed() {
   const { user, clientData } = useAuth();
   const navigate = useNavigate();
+
+  // Get user's preferred weight unit (default to lbs)
+  const weightUnit = clientData?.unit_preference === 'metric' ? 'kg' : 'lbs';
   const [meals, setMeals] = useState([]);
   const [workoutFeed, setWorkoutFeed] = useState([]);
   const [activeTab, setActiveTab] = useState('all');
@@ -1075,6 +1078,7 @@ function Feed() {
               workout={workout}
               coachId={coachId}
               onUpdate={() => fetchAll(true)}
+              weightUnit={weightUnit}
             />
           ))}
 
@@ -1092,6 +1096,7 @@ function Feed() {
                 workout={item.data}
                 coachId={coachId}
                 onUpdate={() => fetchAll(true)}
+                weightUnit={weightUnit}
               />
             )
           ))}

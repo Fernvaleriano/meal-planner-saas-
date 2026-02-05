@@ -5411,6 +5411,11 @@ a.nav-left {
     color: #3b82f6;
 }
 
+.settings-icon-box.green {
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+}
+
 /* Gender Select Dropdown */
 .gender-select-wrapper {
     flex-shrink: 0;
