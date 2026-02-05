@@ -239,7 +239,9 @@ function GuidedWorkoutModal({
 
   // Input edit state — which field is being edited
   const [editingField, setEditingField] = useState(null); // 'reps' or 'weight'
+  const [editingRecField, setEditingRecField] = useState(null); // 'reps' or 'weight' for recommendation card
   const inputRef = useRef(null);
+  const recInputRef = useRef(null);
 
   const intervalRef = useRef(null);
   const elapsedRef = useRef(null);
@@ -893,6 +895,40 @@ function GuidedWorkoutModal({
     }
   }, [editingField]);
 
+  // Focus recommendation input when editing
+  useEffect(() => {
+    if (editingRecField && recInputRef.current) {
+      recInputRef.current.focus();
+      recInputRef.current.select();
+    }
+  }, [editingRecField]);
+
+  // Update recommendation value and apply to all sets
+  const updateRecommendationValue = useCallback((field, value) => {
+    const numValue = field === 'weight' ? parseFloat(value) || 0 : parseInt(value) || 0;
+
+    // Update the recommendation
+    setAiRecommendations(prev => ({
+      ...prev,
+      [currentExIndex]: {
+        ...prev[currentExIndex],
+        [field]: numValue
+      }
+    }));
+
+    // Also update all set logs with the new value
+    setSetLogs(prev => {
+      const updated = { ...prev };
+      if (updated[currentExIndex]) {
+        updated[currentExIndex] = updated[currentExIndex].map(set => ({
+          ...set,
+          [field]: numValue
+        }));
+      }
+      return updated;
+    });
+  }, [currentExIndex]);
+
   // --- Persist set data to parent when exercise changes or completes ---
   const persistExerciseData = useCallback((exIdx) => {
     if (!onUpdateExercise) return;
@@ -1233,16 +1269,51 @@ function GuidedWorkoutModal({
                 <span className="ai-rec-value-label">sets</span>
               </div>
               <span className="ai-rec-value-divider">x</span>
-              <div className="ai-rec-value-item">
-                <span className="ai-rec-value-number">{aiRecommendations[currentExIndex].reps}</span>
+              <div
+                className={`ai-rec-value-item ${acceptedRecommendation[currentExIndex] ? 'editable' : ''} ${editingRecField === 'reps' ? 'editing' : ''}`}
+                onClick={() => acceptedRecommendation[currentExIndex] && setEditingRecField('reps')}
+              >
+                {editingRecField === 'reps' ? (
+                  <input
+                    ref={recInputRef}
+                    type="number"
+                    inputMode="numeric"
+                    className="ai-rec-input"
+                    value={aiRecommendations[currentExIndex].reps || ''}
+                    onChange={(e) => updateRecommendationValue('reps', e.target.value)}
+                    onBlur={() => setEditingRecField(null)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') setEditingRecField(null); }}
+                  />
+                ) : (
+                  <span className="ai-rec-value-number">{aiRecommendations[currentExIndex].reps}</span>
+                )}
                 <span className="ai-rec-value-label">reps</span>
               </div>
               <span className="ai-rec-value-divider">@</span>
-              <div className="ai-rec-value-item">
-                <span className="ai-rec-value-number">{aiRecommendations[currentExIndex].weight || '—'}</span>
+              <div
+                className={`ai-rec-value-item ${acceptedRecommendation[currentExIndex] ? 'editable' : ''} ${editingRecField === 'weight' ? 'editing' : ''}`}
+                onClick={() => acceptedRecommendation[currentExIndex] && setEditingRecField('weight')}
+              >
+                {editingRecField === 'weight' ? (
+                  <input
+                    ref={recInputRef}
+                    type="number"
+                    inputMode="decimal"
+                    className="ai-rec-input"
+                    value={aiRecommendations[currentExIndex].weight || ''}
+                    onChange={(e) => updateRecommendationValue('weight', e.target.value)}
+                    onBlur={() => setEditingRecField(null)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') setEditingRecField(null); }}
+                  />
+                ) : (
+                  <span className="ai-rec-value-number">{aiRecommendations[currentExIndex].weight || '—'}</span>
+                )}
                 <span className="ai-rec-value-label">kg</span>
               </div>
             </div>
+            {acceptedRecommendation[currentExIndex] && (
+              <p className="ai-rec-edit-hint">Tap values to edit</p>
+            )}
 
             <p className="ai-rec-reasoning">{aiRecommendations[currentExIndex].reasoning}</p>
 
