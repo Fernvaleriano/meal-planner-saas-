@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Play, Pause, SkipForward, ChevronRight, Check, Volume2, VolumeX, Mic, MessageSquare, Square, Send, ChevronUp, ChevronDown, MessageCircle, Bot, Loader2, Sparkles } from 'lucide-react';
+import { X, Play, Pause, SkipForward, SkipBack, ChevronRight, ChevronLeft, Check, Volume2, VolumeX, Mic, MessageSquare, Square, Send, ChevronUp, ChevronDown, MessageCircle, Bot, Loader2, Sparkles } from 'lucide-react';
 import SmartThumbnail from './SmartThumbnail';
 import { apiGet, apiPost, apiPut } from '../../utils/api';
 import { onAppResume } from '../../hooks/useAppLifecycle';
@@ -1074,6 +1074,21 @@ function GuidedWorkoutModal({
     }
   };
 
+  // --- Go Back to previous exercise ---
+  const handleBack = () => {
+    if (currentExIndex <= 0) return; // Already at first exercise
+
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    setEditingField(null);
+
+    // Go to previous exercise
+    const prevIdx = currentExIndex - 1;
+    setCurrentExIndex(prevIdx);
+    setCurrentSetIndex(0);
+    setPhase('get-ready');
+    setTimer(5); // Short get-ready countdown
+  };
+
   // Rep-based: user taps Done
   const handleSetDone = () => {
     doMarkSetDone(currentExIndex, currentSetIndex, info);
@@ -1453,25 +1468,49 @@ function GuidedWorkoutModal({
       {/* Action buttons - fixed at bottom */}
       <div className="guided-actions">
         {phase === 'get-ready' ? (
-          <button className="guided-skip-btn" onClick={handleSkip}>
-            Skip <ChevronRight size={18} />
-          </button>
+          <div className="guided-nav-controls">
+            {currentExIndex > 0 && (
+              <button className="guided-back-btn" onClick={handleBack}>
+                <SkipBack size={18} /> Back
+              </button>
+            )}
+            <button className="guided-skip-btn" onClick={handleSkip}>
+              Skip <ChevronRight size={18} />
+            </button>
+          </div>
         ) : phase === 'rest' ? (
-          <button className="guided-skip-btn" onClick={handleSkip}>
-            Skip Rest <ChevronRight size={18} />
-          </button>
+          <div className="guided-nav-controls">
+            {currentExIndex > 0 && (
+              <button className="guided-back-btn" onClick={handleBack}>
+                <SkipBack size={18} /> Back
+              </button>
+            )}
+            <button className="guided-skip-btn" onClick={handleSkip}>
+              Skip Rest <ChevronRight size={18} />
+            </button>
+          </div>
         ) : phase === 'exercise' && !info.isTimed ? (
           <div className="guided-exercise-actions">
+            {currentExIndex > 0 && (
+              <button className="guided-back-btn" onClick={handleBack}>
+                <SkipBack size={18} /> Back
+              </button>
+            )}
             <button className="guided-done-btn" onClick={handleSetDone}>
               <Check size={22} />
               Done
             </button>
             <button className="guided-skip-btn-small" onClick={handleSkip}>
-              Skip Exercise
+              Skip
             </button>
           </div>
         ) : phase === 'exercise' && info.isTimed ? (
           <div className="guided-timer-controls">
+            {currentExIndex > 0 && (
+              <button className="guided-back-btn" onClick={handleBack}>
+                <SkipBack size={18} /> Back
+              </button>
+            )}
             <button className="guided-pause-btn" onClick={() => setIsPaused(!isPaused)}>
               {isPaused ? <Play size={22} /> : <Pause size={22} />}
               {isPaused ? 'Resume' : 'Pause'}

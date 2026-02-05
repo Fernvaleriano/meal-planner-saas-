@@ -17491,6 +17491,8 @@ a.nav-left {
     display: flex;
     gap: 8px;
     padding: 16px;
+    /* Account for bottom nav bar (~80px) plus safe area */
+    padding-bottom: calc(80px + max(env(safe-area-inset-bottom, 16px), 16px));
     border-top: 1px solid rgba(255, 255, 255, 0.1);
     background: #111;
     flex-shrink: 0;
@@ -25387,7 +25389,8 @@ a.nav-left {
     display: flex;
     justify-content: center;
     gap: 12px;
-    padding-bottom: max(env(safe-area-inset-bottom, 24px), 24px);
+    /* Account for bottom nav bar (~80px) plus safe area */
+    padding-bottom: calc(80px + max(env(safe-area-inset-bottom, 24px), 24px));
 }
 
 .guided-done-btn {
@@ -25434,6 +25437,31 @@ a.nav-left {
     gap: 12px;
 }
 
+.guided-nav-controls {
+    display: flex;
+    gap: 12px;
+}
+
+.guided-back-btn {
+    background: rgba(255,255,255,0.08);
+    border: none;
+    color: rgba(255,255,255,0.6);
+    padding: 14px 20px;
+    border-radius: 14px;
+    font-size: 14px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.guided-back-btn:active {
+    background: rgba(255,255,255,0.15);
+    color: rgba(255,255,255,0.9);
+}
+
 .guided-pause-btn {
     background: rgba(255,255,255,0.1);
     border: none;
@@ -25456,7 +25484,8 @@ a.nav-left {
 .guided-up-next {
     text-align: center;
     padding: 0 24px 16px;
-    padding-bottom: max(env(safe-area-inset-bottom, 16px), 16px);
+    /* Account for bottom nav bar (~80px) plus safe area */
+    padding-bottom: calc(80px + max(env(safe-area-inset-bottom, 16px), 16px));
 }
 
 .guided-up-next-label {
