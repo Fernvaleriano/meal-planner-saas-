@@ -337,8 +337,8 @@ export default function WorkoutHistory() {
   const [searchParams] = useSearchParams();
   const { user, clientData } = useAuth();
 
-  // Get user's preferred weight unit
-  const weightUnit = clientData?.unit_preference === 'imperial' ? 'lbs' : 'kg';
+  // Get user's preferred weight unit (default to lbs)
+  const weightUnit = clientData?.unit_preference === 'metric' ? 'kg' : 'lbs';
 
   // Determine which client to load data for
   const resolvedClientId = searchParams.get('clientId') || clientData?.id || null;

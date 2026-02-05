@@ -44,7 +44,7 @@ function Settings() {
 
   // Weight unit preference states
   const [unitPref, setUnitPref] = useState(
-    clientData?.unit_preference || 'metric'
+    clientData?.unit_preference || 'imperial'
   );
   const [unitPrefLoading, setUnitPrefLoading] = useState(false);
 

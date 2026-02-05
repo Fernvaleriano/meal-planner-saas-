@@ -54,7 +54,7 @@ const speak = (text, enabled) => {
 };
 
 // Ask AI Chat Modal Component
-function AskAIChatModal({ messages, loading, onSend, onClose, exerciseName, recommendation, onAccept, weightUnit = 'kg' }) {
+function AskAIChatModal({ messages, loading, onSend, onClose, exerciseName, recommendation, onAccept, weightUnit = 'lbs' }) {
   const [input, setInput] = useState('');
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -180,7 +180,7 @@ function GuidedWorkoutModal({
   coachId,
   workoutLogId,
   selectedDate,
-  weightUnit = 'kg'
+  weightUnit = 'lbs'
 }) {
   const [currentExIndex, setCurrentExIndex] = useState(0);
   const [currentSetIndex, setCurrentSetIndex] = useState(0);

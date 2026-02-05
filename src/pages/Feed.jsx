@@ -269,7 +269,7 @@ function MealCard({ meal, coachId, onUpdate }) {
 }
 
 // Workout feed card component - shows workout completions
-function WorkoutFeedCard({ workout, coachId, onUpdate, weightUnit = 'kg' }) {
+function WorkoutFeedCard({ workout, coachId, onUpdate, weightUnit = 'lbs' }) {
   const [showComments, setShowComments] = useState(false);
   const [showReactions, setShowReactions] = useState(false);
   const [exercisesExpanded, setExercisesExpanded] = useState(workout.hasClientNotes || false);
@@ -617,8 +617,8 @@ function Feed() {
   const { user, clientData } = useAuth();
   const navigate = useNavigate();
 
-  // Get user's preferred weight unit
-  const weightUnit = clientData?.unit_preference === 'imperial' ? 'lbs' : 'kg';
+  // Get user's preferred weight unit (default to lbs)
+  const weightUnit = clientData?.unit_preference === 'metric' ? 'kg' : 'lbs';
   const [meals, setMeals] = useState([]);
   const [workoutFeed, setWorkoutFeed] = useState([]);
   const [activeTab, setActiveTab] = useState('all');

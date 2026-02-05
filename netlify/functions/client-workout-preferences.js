@@ -66,7 +66,7 @@ exports.handler = async (event) => {
               preferences: {
                 client_id: parseInt(clientId),
                 preferred_exercise_gender: 'all',
-                unit_preference: 'metric'
+                unit_preference: 'imperial'
               },
               needsMigration: true
             })

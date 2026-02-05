@@ -2900,7 +2900,7 @@ function Workouts() {
             coachId={clientData?.coach_id}
             workoutLogId={workoutLog?.id}
             selectedDate={selectedDate}
-            weightUnit={clientData?.unit_preference === 'imperial' ? 'lbs' : 'kg'}
+            weightUnit={clientData?.unit_preference === 'metric' ? 'kg' : 'lbs'}
           />
         </ErrorBoundary>
       )}

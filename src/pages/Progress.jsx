@@ -44,8 +44,8 @@ function Progress() {
   const navigate = useNavigate();
   const { clientData } = useAuth();
 
-  // Get user's preferred weight unit
-  const weightUnit = clientData?.unit_preference === 'imperial' ? 'lbs' : 'kg';
+  // Get user's preferred weight unit (default to lbs)
+  const weightUnit = clientData?.unit_preference === 'metric' ? 'kg' : 'lbs';
 
   const [activeTab, setActiveTab] = useState('measurements');
   const [measurements, setMeasurements] = useState([]);
