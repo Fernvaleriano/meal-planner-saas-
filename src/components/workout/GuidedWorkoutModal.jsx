@@ -1529,9 +1529,8 @@ function GuidedWorkoutModal({
           />
         ))}
       </div>
-      </div>{/* End scrollable content area */}
 
-      {/* Action buttons - fixed at bottom */}
+      {/* Action buttons - now inside scroll area */}
       <div className="guided-actions">
         {phase === 'get-ready' ? (
           <div className="guided-nav-controls">
@@ -1603,6 +1602,7 @@ function GuidedWorkoutModal({
           <span className="guided-up-next-name">{nextExercise.name}</span>
         </div>
       )}
+      </div>{/* End scrollable content area */}
 
       {/* Ask AI Chat Modal */}
       {showAskAI && (

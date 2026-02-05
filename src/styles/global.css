@@ -25122,7 +25122,7 @@ a.nav-left {
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
     min-height: 0; /* Important for flex children to shrink */
-    padding-bottom: 20px;
+    padding-bottom: calc(70px + env(safe-area-inset-bottom, 8px));
 }
 
 /* Top bar */
@@ -25429,7 +25429,7 @@ a.nav-left {
 /* Action buttons */
 .guided-actions {
     padding: 16px 24px;
-    padding-bottom: calc(56px + env(safe-area-inset-bottom, 8px));
+    padding-bottom: 24px;
     display: flex;
     justify-content: center;
     gap: 12px;
