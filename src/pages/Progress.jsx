@@ -44,6 +44,9 @@ function Progress() {
   const navigate = useNavigate();
   const { clientData } = useAuth();
 
+  // Get user's preferred weight unit
+  const weightUnit = clientData?.unit_preference === 'imperial' ? 'lbs' : 'kg';
+
   const [activeTab, setActiveTab] = useState('measurements');
   const [measurements, setMeasurements] = useState([]);
   const [photos, setPhotos] = useState([]);
@@ -306,12 +309,12 @@ function Progress() {
               <h3 className="section-title">Current Stats</h3>
               <div className="stats-grid">
                 <div className="stat-card">
-                  <div className="stat-value">{currentWeight ? `${currentWeight} lbs` : '--'}</div>
+                  <div className="stat-value">{currentWeight ? `${currentWeight} ${weightUnit}` : '--'}</div>
                   <div className="stat-label">Current Weight</div>
                 </div>
                 <div className="stat-card">
                   <div className={`stat-value ${weightChange && weightChange < 0 ? 'negative' : weightChange && weightChange > 0 ? 'positive' : ''}`}>
-                    {weightChange ? `${weightChange > 0 ? '+' : ''}${weightChange} lbs` : '--'}
+                    {weightChange ? `${weightChange > 0 ? '+' : ''}${weightChange} ${weightUnit}` : '--'}
                   </div>
                   <div className="stat-label">Total Change</div>
                 </div>
@@ -340,7 +343,7 @@ function Progress() {
                           {new Date(m.measured_date).toLocaleDateString()}
                         </span>
                         <span className="measurement-primary">
-                          {m.weight && <span>{m.weight} lbs</span>}
+                          {m.weight && <span>{m.weight} {weightUnit}</span>}
                           {m.body_fat_percentage && <span> | {m.body_fat_percentage}% BF</span>}
                         </span>
                       </div>
@@ -416,11 +419,11 @@ function Progress() {
 
                 <div className="form-row">
                   <div className="form-group">
-                    <label>Weight (lbs)</label>
+                    <label>Weight ({weightUnit})</label>
                     <input
                       type="number"
                       step="0.1"
-                      placeholder="150.0"
+                      placeholder={weightUnit === 'kg' ? '68.0' : '150.0'}
                       value={measurementForm.weight}
                       onChange={(e) => handleMeasurementChange('weight', e.target.value)}
                     />

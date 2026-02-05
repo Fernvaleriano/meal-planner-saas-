@@ -337,6 +337,9 @@ export default function WorkoutHistory() {
   const [searchParams] = useSearchParams();
   const { user, clientData } = useAuth();
 
+  // Get user's preferred weight unit
+  const weightUnit = clientData?.unit_preference === 'imperial' ? 'lbs' : 'kg';
+
   // Determine which client to load data for
   const resolvedClientId = searchParams.get('clientId') || clientData?.id || null;
 
@@ -525,7 +528,7 @@ export default function WorkoutHistory() {
             height={200}
             color="#6366f1"
             label="Volume"
-            unit="lbs"
+            unit={weightUnit}
           />
         </div>
       </div>
@@ -611,13 +614,13 @@ export default function WorkoutHistory() {
             <div className="workout-history-drilldown-stat">
               <span className="workout-history-drilldown-stat-label">All-Time Max</span>
               <span className="workout-history-drilldown-stat-value">
-                {exerciseStats.allTimeMaxWeight || 0} lbs
+                {exerciseStats.allTimeMaxWeight || 0} {weightUnit}
               </span>
             </div>
             <div className="workout-history-drilldown-stat">
               <span className="workout-history-drilldown-stat-label">Recent Max</span>
               <span className="workout-history-drilldown-stat-value">
-                {exerciseStats.recentMaxWeight || 0} lbs
+                {exerciseStats.recentMaxWeight || 0} {weightUnit}
               </span>
             </div>
             <div className="workout-history-drilldown-stat">
@@ -646,7 +649,7 @@ export default function WorkoutHistory() {
               height={150}
               color="#10b981"
               label="Max Weight"
-              unit="lbs"
+              unit={weightUnit}
             />
           </div>
         )}
@@ -744,7 +747,7 @@ export default function WorkoutHistory() {
           {workoutDetail.total_volume > 0 && (
             <div className="workout-history-detail-metric">
               <Dumbbell size={14} />
-              {workoutDetail.total_volume.toLocaleString()} lbs
+              {workoutDetail.total_volume.toLocaleString()} {weightUnit}
             </div>
           )}
           {workoutDetail.total_sets > 0 && (
@@ -789,7 +792,7 @@ export default function WorkoutHistory() {
                       </span>
                       <span className="workout-history-exercise-summary">
                         {exercise.total_sets || '--'} sets
-                        {exercise.max_weight ? ` | ${exercise.max_weight} lbs max` : ''}
+                        {exercise.max_weight ? ` | ${exercise.max_weight} ${weightUnit} max` : ''}
                         {exercise.is_pr && (
                           <span className="workout-history-pr-badge" style={{ marginLeft: '6px' }}>
                             PR
@@ -868,7 +871,7 @@ export default function WorkoutHistory() {
                   {workout.total_volume > 0 && (
                     <div className="workout-history-card-volume">
                       {formatVolume(workout.total_volume)}
-                      <span className="workout-history-card-volume-label">lbs</span>
+                      <span className="workout-history-card-volume-label">{weightUnit}</span>
                     </div>
                   )}
                   {workout.workout_rating && (
