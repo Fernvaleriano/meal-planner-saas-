@@ -18595,6 +18595,8 @@ a.nav-left {
     flex-direction: column;
     overflow: hidden;
     animation: slideUp 0.3s ease;
+    /* Account for bottom nav bar */
+    padding-bottom: calc(70px + env(safe-area-inset-bottom, 16px));
 }
 
 @keyframes slideUp {
