@@ -52,7 +52,7 @@ exports.handler = async (event) => {
 
       const { data, error } = await supabase
         .from('clients')
-        .select('id, preferred_exercise_gender')
+        .select('id, preferred_exercise_gender, unit_preference')
         .eq('id', clientId)
         .single();
 
@@ -65,7 +65,8 @@ exports.handler = async (event) => {
             body: JSON.stringify({
               preferences: {
                 client_id: parseInt(clientId),
-                preferred_exercise_gender: 'all'
+                preferred_exercise_gender: 'all',
+                unit_preference: 'metric'
               },
               needsMigration: true
             })
@@ -80,7 +81,8 @@ exports.handler = async (event) => {
         body: JSON.stringify({
           preferences: {
             client_id: data.id,
-            preferred_exercise_gender: data.preferred_exercise_gender || 'all'
+            preferred_exercise_gender: data.preferred_exercise_gender || 'all',
+            unit_preference: data.unit_preference || 'metric'
           }
         })
       };
@@ -89,7 +91,7 @@ exports.handler = async (event) => {
     // POST - Update client workout preferences
     if (event.httpMethod === 'POST') {
       const body = JSON.parse(event.body || '{}');
-      const { clientId, preferredExerciseGender } = body;
+      const { clientId, preferredExerciseGender, unitPreference } = body;
 
       if (!clientId) {
         return {
@@ -111,9 +113,24 @@ exports.handler = async (event) => {
         };
       }
 
+      // Validate unitPreference value
+      const validUnits = ['metric', 'imperial'];
+      if (unitPreference && !validUnits.includes(unitPreference)) {
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({
+            error: 'Invalid unitPreference. Must be: metric or imperial'
+          })
+        };
+      }
+
       const updateData = {};
       if (preferredExerciseGender !== undefined) {
         updateData.preferred_exercise_gender = preferredExerciseGender;
+      }
+      if (unitPreference !== undefined) {
+        updateData.unit_preference = unitPreference;
       }
 
       if (Object.keys(updateData).length === 0) {
@@ -128,7 +145,7 @@ exports.handler = async (event) => {
         .from('clients')
         .update(updateData)
         .eq('id', clientId)
-        .select('id, preferred_exercise_gender')
+        .select('id, preferred_exercise_gender, unit_preference')
         .single();
 
       if (error) {
@@ -154,7 +171,8 @@ exports.handler = async (event) => {
           success: true,
           preferences: {
             client_id: data.id,
-            preferred_exercise_gender: data.preferred_exercise_gender || 'all'
+            preferred_exercise_gender: data.preferred_exercise_gender || 'all',
+            unit_preference: data.unit_preference || 'metric'
           }
         })
       };

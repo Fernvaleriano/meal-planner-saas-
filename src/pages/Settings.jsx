@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Moon, Camera, Lock, LogOut, ChevronRight, Loader, Dumbbell, Users } from 'lucide-react';
+import { Moon, Camera, Lock, LogOut, ChevronRight, Loader, Dumbbell, Users, Scale } from 'lucide-react';
 import { apiGet, apiPost } from '../utils/api';
 import { supabase } from '../utils/supabase';
 
@@ -42,6 +42,12 @@ function Settings() {
   );
   const [exerciseGenderLoading, setExerciseGenderLoading] = useState(false);
 
+  // Weight unit preference states
+  const [unitPref, setUnitPref] = useState(
+    clientData?.unit_preference || 'metric'
+  );
+  const [unitPrefLoading, setUnitPrefLoading] = useState(false);
+
   // Scroll to top on mount
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -53,6 +59,13 @@ function Settings() {
       setExerciseGenderPref(clientData.preferred_exercise_gender);
     }
   }, [clientData?.preferred_exercise_gender]);
+
+  // Sync unit preference when clientData loads
+  useEffect(() => {
+    if (clientData?.unit_preference) {
+      setUnitPref(clientData.unit_preference);
+    }
+  }, [clientData?.unit_preference]);
 
   // Load coach data with caching
   useEffect(() => {
@@ -228,6 +241,35 @@ function Settings() {
     }
   };
 
+  // Handle weight unit preference change
+  const handleUnitPrefChange = async (newValue) => {
+    if (!clientData?.id || unitPrefLoading) return;
+
+    setUnitPrefLoading(true);
+    const previousValue = unitPref;
+    setUnitPref(newValue); // Optimistic update
+
+    try {
+      const response = await apiPost('/.netlify/functions/client-workout-preferences', {
+        clientId: clientData.id,
+        unitPreference: newValue
+      });
+
+      if (response.success) {
+        // Refresh client data to update the context
+        await refreshClientData();
+      } else {
+        throw new Error(response.error || 'Failed to update preference');
+      }
+    } catch (err) {
+      console.error('Error updating weight unit preference:', err);
+      setUnitPref(previousValue); // Revert on error
+      alert('Failed to update preference. Please try again.');
+    } finally {
+      setUnitPrefLoading(false);
+    }
+  };
+
   return (
     <div className="settings-page">
       {/* Hidden file input for photo upload */}
@@ -356,6 +398,36 @@ function Settings() {
                 <option value="all">All</option>
                 <option value="male">Male</option>
                 <option value="female">Female</option>
+              </select>
+            )}
+          </div>
+        </div>
+
+        <div className="settings-divider"></div>
+
+        {/* Weight Unit Preference */}
+        <div className="settings-item">
+          <div className="settings-item-left">
+            <div className="settings-icon-box green">
+              <Scale size={20} />
+            </div>
+            <div className="settings-item-text">
+              <div className="settings-item-title">Weight Unit</div>
+              <div className="settings-item-subtitle">Kilograms or pounds</div>
+            </div>
+          </div>
+          <div className="gender-select-wrapper">
+            {unitPrefLoading ? (
+              <Loader size={20} className="spin" style={{ color: 'var(--gray-400)' }} />
+            ) : (
+              <select
+                value={unitPref}
+                onChange={(e) => handleUnitPrefChange(e.target.value)}
+                className="gender-select"
+                disabled={unitPrefLoading}
+              >
+                <option value="metric">kg</option>
+                <option value="imperial">lbs</option>
               </select>
             )}
           </div>

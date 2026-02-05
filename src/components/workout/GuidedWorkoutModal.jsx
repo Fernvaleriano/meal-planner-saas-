@@ -54,7 +54,7 @@ const speak = (text, enabled) => {
 };
 
 // Ask AI Chat Modal Component
-function AskAIChatModal({ messages, loading, onSend, onClose, exerciseName, recommendation, onAccept }) {
+function AskAIChatModal({ messages, loading, onSend, onClose, exerciseName, recommendation, onAccept, weightUnit = 'kg' }) {
   const [input, setInput] = useState('');
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -95,7 +95,7 @@ function AskAIChatModal({ messages, loading, onSend, onClose, exerciseName, reco
           <span>{exerciseName}</span>
           {recommendation && (
             <span className="ask-ai-current-rec">
-              Current: {recommendation.sets}x{recommendation.reps} @ {recommendation.weight || '—'}kg
+              Current: {recommendation.sets}x{recommendation.reps} @ {recommendation.weight || '—'}{weightUnit}
             </span>
           )}
         </div>
@@ -161,7 +161,7 @@ function AskAIChatModal({ messages, loading, onSend, onClose, exerciseName, reco
         {recommendation && (
           <button className="ask-ai-accept-btn" onClick={onAccept}>
             <Check size={16} />
-            <span>Accept Recommendation ({recommendation.sets}x{recommendation.reps} @ {recommendation.weight || '—'}kg)</span>
+            <span>Accept Recommendation ({recommendation.sets}x{recommendation.reps} @ {recommendation.weight || '—'}{weightUnit})</span>
           </button>
         )}
       </div>
@@ -179,7 +179,8 @@ function GuidedWorkoutModal({
   clientId,
   coachId,
   workoutLogId,
-  selectedDate
+  selectedDate,
+  weightUnit = 'kg'
 }) {
   const [currentExIndex, setCurrentExIndex] = useState(0);
   const [currentSetIndex, setCurrentSetIndex] = useState(0);
@@ -393,7 +394,7 @@ function GuidedWorkoutModal({
               type: 'progress',
               icon: '📈',
               title: 'Keep progressing',
-              message: `On ${dateLabel}: ${lastMaxReps} reps @ ${lastMaxWeight} kg.`,
+              message: `On ${dateLabel}: ${lastMaxReps} reps @ ${lastMaxWeight} ${weightUnit}.`,
               lastSession: { reps: lastMaxReps, weight: lastMaxWeight, sets: lastNumSets, date: dateLabel }
             }
           }));
@@ -452,7 +453,7 @@ function GuidedWorkoutModal({
       role: 'assistant',
       content: `Hi! I'm here to help with your ${currentExercise?.name || 'exercise'}. ${
         tip?.lastSession
-          ? `Last session you did ${tip.lastSession.reps} reps at ${tip.lastSession.weight}kg.`
+          ? `Last session you did ${tip.lastSession.reps} reps at ${tip.lastSession.weight}${weightUnit}.`
           : "This looks like your first time with this exercise!"
       } ${rec?.reasoning || ''}\n\nHow can I help? You can ask me things like:\n- "I'm feeling tired today"\n- "Should I go heavier?"\n- "My shoulder hurts a bit"`
     };
@@ -550,7 +551,7 @@ function GuidedWorkoutModal({
           setNumber: i + 1,
           reps: s.reps || 0,
           weight: s.weight || 0,
-          weightUnit: 'kg'
+          weightUnit: weightUnit
         }));
 
         await apiPut('/.netlify/functions/workout-logs', {
@@ -1303,7 +1304,7 @@ function GuidedWorkoutModal({
                 ) : (
                   <span className="ai-rec-value-number">{aiRecommendations[currentExIndex].weight || '—'}</span>
                 )}
-                <span className="ai-rec-value-label">kg</span>
+                <span className="ai-rec-value-label">{weightUnit}</span>
               </div>
             </div>
             {acceptedRecommendation[currentExIndex] && (
@@ -1314,7 +1315,7 @@ function GuidedWorkoutModal({
 
             {progressTips[currentExIndex]?.lastSession && (
               <div className="ai-rec-last-session">
-                <span>Last: {progressTips[currentExIndex].lastSession.reps} reps @ {progressTips[currentExIndex].lastSession.weight}kg</span>
+                <span>Last: {progressTips[currentExIndex].lastSession.reps} reps @ {progressTips[currentExIndex].lastSession.weight}{weightUnit}</span>
                 <span className="ai-rec-last-date">{progressTips[currentExIndex].lastSession.date}</span>
               </div>
             )}
@@ -1509,7 +1510,7 @@ function GuidedWorkoutModal({
                 ) : (
                   <span className="guided-input-value">{currentSetLog.weight || 0}</span>
                 )}
-                <span className="guided-input-label">lbs</span>
+                <span className="guided-input-label">{weightUnit}</span>
               </div>
             </div>
             <p className="guided-input-hint">Tap to edit</p>
@@ -1617,6 +1618,7 @@ function GuidedWorkoutModal({
             handleAcceptRecommendation();
             setShowAskAI(false);
           }}
+          weightUnit={weightUnit}
         />
       )}
     </div>
