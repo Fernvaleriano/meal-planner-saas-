@@ -2336,7 +2336,9 @@ function ExerciseDetailModal({
       setCoachingCues(staticData.cues);
     }
     setTipsLoading(false);
-  }, [exercise?.id, exercise?.name, exercise?.muscle_group, exercise?.muscleGroup, exercise?.form_tips, exercise?.common_mistakes, exercise?.coaching_cues]);
+  // NOTE: Only depend on exercise?.id to avoid infinite re-renders from array reference changes
+  // (form_tips, common_mistakes, coaching_cues are arrays that can trigger false positives)
+  }, [exercise?.id]);
 
   // Stable close handler - uses requestAnimationFrame for mobile Safari
   // Falls back to forceClose if the callback fails
@@ -2678,7 +2680,9 @@ function ExerciseDetailModal({
       reasoning,
       lastSession: { reps: lastMaxReps, weight: lastMaxWeight, sets: lastNumSets, date: dateLabel }
     });
-  }, [historyData, exercise?.sets, exercise?.reps]);
+  // NOTE: Using exercise?.id instead of exercise?.sets/exercise?.reps to avoid
+  // infinite re-renders when sets is an array (reference comparison issue)
+  }, [historyData, exercise?.id]);
 
   // Handle accepting coaching recommendation - applies to all sets
   const handleAcceptCoachingRec = useCallback(() => {
