@@ -2781,13 +2781,14 @@ function Workouts() {
             </button>
           </div>
 
-          {/* Track Heart Rate Button */}
+          {/* Track Heart Rate Button - Hidden until implementation is ready
           <div className="track-heart-rate-section">
             <button className="track-heart-btn">
               <Heart size={20} />
               <span>Track heart rate</span>
             </button>
           </div>
+          */}
 
           {/* Exercise List */}
           <div className={`workout-content ${isRefreshing ? 'refreshing' : ''}`}>
