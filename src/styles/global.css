@@ -25385,12 +25385,10 @@ a.nav-left {
 
 /* Action buttons */
 .guided-actions {
-    padding: 16px 24px 24px;
+    padding: 16px 24px 20px;
     display: flex;
     justify-content: center;
     gap: 12px;
-    /* Account for bottom nav bar (~80px) plus safe area */
-    padding-bottom: calc(80px + max(env(safe-area-inset-bottom, 24px), 24px));
 }
 
 .guided-done-btn {
@@ -25484,8 +25482,8 @@ a.nav-left {
 .guided-up-next {
     text-align: center;
     padding: 0 24px 16px;
-    /* Account for bottom nav bar (~80px) plus safe area */
-    padding-bottom: calc(80px + max(env(safe-area-inset-bottom, 16px), 16px));
+    /* Account for bottom nav bar plus safe area */
+    padding-bottom: calc(60px + env(safe-area-inset-bottom, 16px));
 }
 
 .guided-up-next-label {
