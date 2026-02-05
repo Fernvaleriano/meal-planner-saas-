@@ -25428,7 +25428,8 @@ a.nav-left {
 
 /* Action buttons */
 .guided-actions {
-    padding: 16px 24px 20px;
+    padding: 16px 24px;
+    padding-bottom: calc(80px + env(safe-area-inset-bottom, 20px));
     display: flex;
     justify-content: center;
     gap: 12px;
