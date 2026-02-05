@@ -26356,3 +26356,193 @@ a.nav-left {
     padding: 14px 20px;
     border-radius: 14px;
 }
+
+/* ========================================
+   GUIDED WORKOUT MODAL - LIGHT MODE
+   ======================================== */
+
+[data-theme="light"] .guided-workout-overlay {
+    background: #f8fafc;
+    color: #111827;
+}
+
+[data-theme="light"] .guided-close-btn {
+    background: #e5e7eb;
+    color: #374151;
+}
+
+[data-theme="light"] .guided-close-btn:hover {
+    background: #d1d5db;
+}
+
+[data-theme="light"] .guided-workout-name {
+    color: #374151;
+}
+
+[data-theme="light"] .guided-elapsed {
+    color: #6b7280;
+}
+
+[data-theme="light"] .guided-progress-bar {
+    background: #e5e7eb;
+}
+
+[data-theme="light"] .guided-exercise-name {
+    color: #111827;
+}
+
+[data-theme="light"] .guided-exercise-meta {
+    color: #6b7280;
+}
+
+[data-theme="light"] .guided-set-indicator {
+    color: #9ca3af;
+}
+
+[data-theme="light"] .guided-exercise-visual .smart-thumbnail,
+[data-theme="light"] .guided-exercise-visual .guided-thumbnail {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+}
+
+[data-theme="light"] .guided-timer-track {
+    stroke: #e5e7eb;
+}
+
+[data-theme="light"] .guided-timer-label {
+    color: #6b7280;
+}
+
+[data-theme="light"] .guided-timer-value {
+    color: #111827;
+}
+
+[data-theme="light"] .guided-rep-label {
+    color: #6b7280;
+}
+
+[data-theme="light"] .guided-set-dot {
+    background: #d1d5db;
+}
+
+[data-theme="light"] .guided-set-dot.current {
+    background: #0d9488;
+    box-shadow: 0 0 8px rgba(13, 148, 136, 0.4);
+}
+
+[data-theme="light"] .guided-skip-btn {
+    background: #e5e7eb;
+    color: #374151;
+}
+
+[data-theme="light"] .guided-skip-btn:active {
+    background: #d1d5db;
+}
+
+[data-theme="light"] .guided-pause-btn {
+    background: #e5e7eb;
+    color: #374151;
+}
+
+[data-theme="light"] .guided-pause-btn:active {
+    background: #d1d5db;
+}
+
+[data-theme="light"] .guided-back-btn {
+    background: #f3f4f6;
+    color: #6b7280;
+}
+
+[data-theme="light"] .guided-back-btn:active {
+    background: #e5e7eb;
+    color: #374151;
+}
+
+[data-theme="light"] .guided-up-next-label {
+    color: #9ca3af;
+}
+
+[data-theme="light"] .guided-up-next-name {
+    color: #6b7280;
+}
+
+[data-theme="light"] .guided-complete-screen h2 {
+    color: #111827;
+}
+
+[data-theme="light"] .guided-complete-stats {
+    color: #6b7280;
+}
+
+[data-theme="light"] .guided-voice-toggle {
+    color: #9ca3af;
+}
+
+[data-theme="light"] .guided-text-note {
+    background: rgba(59, 130, 246, 0.08);
+}
+
+[data-theme="light"] .guided-text-note p {
+    color: #374151;
+}
+
+[data-theme="light"] .guided-progress-tip {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(5, 150, 105, 0.05) 100%);
+    border-color: rgba(16, 185, 129, 0.2);
+}
+
+[data-theme="light"] .guided-progress-tip .progress-tip-message {
+    color: #374151;
+}
+
+[data-theme="light"] .guided-client-note-textarea {
+    background: #ffffff;
+    border-color: rgba(147, 51, 234, 0.2);
+    color: #111827;
+}
+
+[data-theme="light"] .guided-client-note-textarea::placeholder {
+    color: #9ca3af;
+}
+
+[data-theme="light"] .guided-client-note-char-count {
+    color: #9ca3af;
+}
+
+[data-theme="light"] .guided-client-voice-note-preview {
+    background: #f3f4f6;
+}
+
+[data-theme="light"] .guided-input-box {
+    background: #ffffff;
+    border-color: #e5e7eb;
+}
+
+[data-theme="light"] .guided-input-box.editing {
+    background: rgba(13, 148, 136, 0.05);
+}
+
+[data-theme="light"] .guided-input-value {
+    color: #111827;
+}
+
+[data-theme="light"] .guided-input-field {
+    color: #111827;
+}
+
+[data-theme="light"] .guided-input-label {
+    color: #6b7280;
+}
+
+[data-theme="light"] .guided-input-divider {
+    color: #d1d5db;
+}
+
+[data-theme="light"] .guided-input-hint {
+    color: #9ca3af;
+}
+
+[data-theme="light"] .guided-skip-btn-small {
+    background: #f3f4f6;
+    color: #6b7280;
+}
