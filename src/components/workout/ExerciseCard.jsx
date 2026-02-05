@@ -1003,12 +1003,12 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
           </div>
         )}
 
-        {/* Coach Voice Note */}
+        {/* Coach's Voice Note */}
         {exercise.voiceNoteUrl && (
           <div className="coach-voice-note">
             <span className="note-label">
               <Mic size={14} />
-              Coach Tip:
+              Coach's Voice Note:
             </span>
             <audio
               controls

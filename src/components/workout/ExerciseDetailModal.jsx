@@ -3351,7 +3351,7 @@ function ExerciseDetailModal({
           </button>
         </div>
 
-        {/* Client Note for Coach */}
+        {/* Message Coach */}
         <div className="client-note-for-coach-section">
           <button
             className="client-note-toggle"
@@ -3360,7 +3360,7 @@ function ExerciseDetailModal({
           >
             <div className="client-note-toggle-left">
               <MessageCircle size={16} />
-              <span>Note for Coach</span>
+              <span>Message Coach</span>
             </div>
             {clientNoteSaved && <span className="note-saved-badge">Saved</span>}
             {showNoteInput ? <ChevronUp size={16} /> : <ChevronDown size={16} />}

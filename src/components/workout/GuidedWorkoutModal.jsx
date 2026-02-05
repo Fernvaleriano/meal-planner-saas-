@@ -64,11 +64,6 @@ function AskAIChatModal({ messages, loading, onSend, onClose, exerciseName, reco
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Focus input on mount
-  useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
-
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!input.trim() || loading) return;
@@ -1226,7 +1221,7 @@ function GuidedWorkoutModal({
                 onClick={handlePlayVoiceNote}
               >
                 <Mic size={16} />
-                <span>{playingVoiceNote ? 'Tap to stop' : 'Coach Tip'}</span>
+                <span>{playingVoiceNote ? 'Tap to stop' : "Coach's Voice Note"}</span>
               </button>
             )}
             {currentExercise.notes && (
@@ -1339,7 +1334,7 @@ function GuidedWorkoutModal({
           </div>
         )}
 
-        {/* Client Note for Coach */}
+        {/* Message Coach */}
         <div className="guided-client-note-section">
           <button
             className="guided-client-note-toggle"
@@ -1348,7 +1343,7 @@ function GuidedWorkoutModal({
           >
             <div className="guided-client-note-toggle-left">
               <MessageCircle size={16} />
-              <span>Note for Coach</span>
+              <span>Message Coach</span>
             </div>
             {clientNoteSaved[currentExIndex] && <span className="note-saved-badge">Saved</span>}
             {showClientNoteInput ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
