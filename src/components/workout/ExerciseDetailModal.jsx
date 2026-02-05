@@ -2628,80 +2628,115 @@ function ExerciseDetailModal({
     setAcceptedCoachingRec(false);
   }, [exercise?.id]);
 
-  // Generate coaching recommendation based on history
+  // Generate coaching recommendation - fetches its own history data
   useEffect(() => {
-    if (!historyData || historyData.length === 0) {
-      // First time - use default from exercise
-      const defaultSets = typeof exercise?.sets === 'number' ? exercise.sets : 3;
-      const defaultReps = exercise?.reps || 12;
-      setCoachingRecommendation({
-        sets: defaultSets,
-        reps: defaultReps,
-        weight: 0,
-        reasoning: "First time with this exercise! Start with a comfortable weight to learn proper form.",
-        isFirstTime: true
-      });
-      return;
-    }
-
-    // Get today's date string to exclude current session
-    const today = new Date();
-    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-
-    // Filter out today's session
-    const previousSessions = historyData.filter(s => s.workoutDate !== todayStr);
-    if (previousSessions.length === 0) {
+    if (!clientId || !exercise?.id) {
       setCoachingRecommendation(null);
       return;
     }
 
-    // Get the most recent previous session
-    const lastSession = previousSessions[0];
-    const lastSets = typeof lastSession.setsData === 'string'
-      ? JSON.parse(lastSession.setsData)
-      : (lastSession.setsData || []);
+    let cancelled = false;
 
-    const lastMaxWeight = Math.max(...lastSets.map(s => s.weight || 0), 0);
-    const lastMaxReps = Math.max(...lastSets.map(s => s.reps || 0), 0);
-    const lastNumSets = lastSets.length || 3;
-    const dateLabel = new Date(lastSession.workoutDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const generateRecommendation = async () => {
+      try {
+        // Fetch history for this exercise
+        let res = await apiGet(
+          `/.netlify/functions/exercise-history?clientId=${clientId}&exerciseId=${exercise.id}&limit=10`
+        );
+        // Fall back to exercise name if no history by ID
+        if ((!res?.history || res.history.length === 0) && exercise?.name) {
+          res = await apiGet(
+            `/.netlify/functions/exercise-history?clientId=${clientId}&exerciseName=${encodeURIComponent(exercise.name)}&limit=10`
+          );
+        }
 
-    if (lastMaxWeight <= 0 && lastMaxReps <= 0) {
-      setCoachingRecommendation(null);
-      return;
-    }
+        if (cancelled) return;
 
-    // Generate recommendation based on progressive overload logic
-    let recommendedReps = lastMaxReps;
-    let recommendedWeight = lastMaxWeight;
-    let recommendedSets = lastNumSets;
-    let reasoning = '';
+        const history = res?.history || [];
 
-    if (lastMaxReps >= 12) {
-      // Hit 12+ reps, time to increase weight
-      recommendedWeight = lastMaxWeight + 2.5;
-      recommendedReps = 8;
-      reasoning = `You hit ${lastMaxReps} reps last time. Let's increase weight and drop to 8 reps to build strength.`;
-    } else if (lastMaxReps < 8) {
-      // Under 8 reps, keep same weight and aim to increase reps
-      recommendedReps = lastMaxReps + 1;
-      reasoning = `Working on building up to 8+ reps. Try for ${recommendedReps} this time.`;
-    } else {
-      // 8-11 reps, progressive increase
-      recommendedReps = lastMaxReps + 1;
-      reasoning = `Good progress! Aim for one more rep than last session.`;
-    }
+        if (history.length === 0) {
+          // First time - use default from exercise
+          const currentExercise = exerciseRef.current;
+          const defaultSets = typeof currentExercise?.sets === 'number' ? currentExercise.sets : 3;
+          const defaultReps = currentExercise?.reps || 12;
+          setCoachingRecommendation({
+            sets: defaultSets,
+            reps: defaultReps,
+            weight: 0,
+            reasoning: "First time with this exercise! Start with a comfortable weight to learn proper form.",
+            isFirstTime: true
+          });
+          return;
+        }
 
-    setCoachingRecommendation({
-      sets: recommendedSets,
-      reps: recommendedReps,
-      weight: recommendedWeight,
-      reasoning,
-      lastSession: { reps: lastMaxReps, weight: lastMaxWeight, sets: lastNumSets, date: dateLabel }
-    });
-  // NOTE: Using exercise?.id instead of exercise?.sets/exercise?.reps to avoid
-  // infinite re-renders when sets is an array (reference comparison issue)
-  }, [historyData, exercise?.id]);
+        // Get today's date string to exclude current session
+        const today = new Date();
+        const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+        // Filter out today's session
+        const previousSessions = history.filter(s => s.workoutDate !== todayStr);
+        if (previousSessions.length === 0) {
+          setCoachingRecommendation(null);
+          return;
+        }
+
+        // Get the most recent previous session
+        const lastSession = previousSessions[0];
+        const lastSets = typeof lastSession.setsData === 'string'
+          ? JSON.parse(lastSession.setsData)
+          : (lastSession.setsData || []);
+
+        const lastMaxWeight = Math.max(...lastSets.map(s => s.weight || 0), 0);
+        const lastMaxReps = Math.max(...lastSets.map(s => s.reps || 0), 0);
+        const lastNumSets = lastSets.length || 3;
+        const dateLabel = new Date(lastSession.workoutDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+        if (lastMaxWeight <= 0 && lastMaxReps <= 0) {
+          setCoachingRecommendation(null);
+          return;
+        }
+
+        // Generate recommendation based on progressive overload logic
+        let recommendedReps = lastMaxReps;
+        let recommendedWeight = lastMaxWeight;
+        let recommendedSets = lastNumSets;
+        let reasoning = '';
+
+        if (lastMaxReps >= 12) {
+          // Hit 12+ reps, time to increase weight
+          recommendedWeight = lastMaxWeight + 2.5;
+          recommendedReps = 8;
+          reasoning = `You hit ${lastMaxReps} reps @ ${lastMaxWeight}kg on ${dateLabel}. Increase weight, drop to 8 reps.`;
+        } else if (lastMaxReps < 8) {
+          // Under 8 reps, keep same weight and aim to increase reps
+          recommendedReps = lastMaxReps + 1;
+          reasoning = `Last session: ${lastMaxReps} reps @ ${lastMaxWeight}kg. Aim for ${recommendedReps} reps.`;
+        } else {
+          // 8-11 reps, progressive increase
+          recommendedReps = lastMaxReps + 1;
+          reasoning = `On ${dateLabel}: ${lastMaxReps} reps @ ${lastMaxWeight}kg. Aim for ${recommendedReps} reps.`;
+        }
+
+        if (cancelled) return;
+
+        setCoachingRecommendation({
+          sets: recommendedSets,
+          reps: recommendedReps,
+          weight: recommendedWeight,
+          reasoning,
+          lastSession: { reps: lastMaxReps, weight: lastMaxWeight, sets: lastNumSets, date: dateLabel }
+        });
+      } catch (err) {
+        console.error('Error generating coaching recommendation:', err);
+        if (!cancelled) {
+          setCoachingRecommendation(null);
+        }
+      }
+    };
+
+    generateRecommendation();
+    return () => { cancelled = true; };
+  }, [clientId, exercise?.id]);
 
   // Handle accepting coaching recommendation - applies to all sets
   const handleAcceptCoachingRec = useCallback(() => {
@@ -2966,17 +3001,6 @@ function ExerciseDetailModal({
             </button>
           )}
         </div>
-
-        {/* Progressive Overload Tip */}
-        {progressTip && (
-          <div className={`progress-tip-banner progress-tip-${progressTip.type}`}>
-            <div className="progress-tip-header">
-              <span className="progress-tip-icon">{progressTip.icon}</span>
-              <span className="progress-tip-title">{progressTip.title}</span>
-            </div>
-            <p className="progress-tip-message">{progressTip.message}</p>
-          </div>
-        )}
 
         {/* Voice feedback */}
         {(isListening || lastTranscript || voiceError) && (
