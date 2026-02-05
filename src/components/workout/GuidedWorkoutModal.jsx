@@ -1474,6 +1474,10 @@ function GuidedWorkoutModal({
                 <SkipBack size={18} /> Back
               </button>
             )}
+            <button className="guided-pause-btn" onClick={() => setIsPaused(!isPaused)}>
+              {isPaused ? <Play size={18} /> : <Pause size={18} />}
+              {isPaused ? 'Resume' : 'Pause'}
+            </button>
             <button className="guided-skip-btn" onClick={handleSkip}>
               Skip <ChevronRight size={18} />
             </button>
@@ -1485,6 +1489,10 @@ function GuidedWorkoutModal({
                 <SkipBack size={18} /> Back
               </button>
             )}
+            <button className="guided-pause-btn" onClick={() => setIsPaused(!isPaused)}>
+              {isPaused ? <Play size={18} /> : <Pause size={18} />}
+              {isPaused ? 'Resume' : 'Pause'}
+            </button>
             <button className="guided-skip-btn" onClick={handleSkip}>
               Skip Rest <ChevronRight size={18} />
             </button>
