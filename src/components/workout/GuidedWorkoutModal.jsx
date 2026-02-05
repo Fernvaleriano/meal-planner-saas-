@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Play, Pause, SkipForward, ChevronRight, Check, Volume2, VolumeX, Mic, MessageSquare, Square, Send, ChevronUp, ChevronDown, MessageCircle, Bot, Loader2 } from 'lucide-react';
+import { X, Play, Pause, SkipForward, ChevronRight, Check, Volume2, VolumeX, Mic, MessageSquare, Square, Send, ChevronUp, ChevronDown, MessageCircle, Bot, Loader2, Sparkles } from 'lucide-react';
 import SmartThumbnail from './SmartThumbnail';
 import { apiGet, apiPost, apiPut } from '../../utils/api';
 import { onAppResume } from '../../hooks/useAppLifecycle';
@@ -1196,13 +1196,13 @@ function GuidedWorkoutModal({
           </div>
         )}
 
-        {/* AI Recommendation Card */}
+        {/* Coaching Recommendation Card */}
         {aiRecommendations[currentExIndex] && !info.isTimed && (
           <div className={`ai-recommendation-card ${acceptedRecommendation[currentExIndex] ? 'accepted' : ''}`}>
             <div className="ai-rec-header">
               <div className="ai-rec-badge">
-                <Bot size={14} />
-                <span>AI Recommendation</span>
+                <Sparkles size={14} />
+                <span>Coaching Recommendation</span>
               </div>
               {acceptedRecommendation[currentExIndex] && (
                 <span className="ai-rec-accepted-badge">

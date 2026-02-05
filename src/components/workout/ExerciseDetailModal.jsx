@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
-import { X, Check, Plus, ChevronLeft, Play, Timer, BarChart3, ArrowLeftRight, Trash2, Mic, MicOff, Lightbulb, MessageCircle, Loader2, AlertCircle, History, TrendingUp, Award, ChevronDown, ChevronUp, Send, Square } from 'lucide-react';
+import { X, Check, Plus, ChevronLeft, Play, Timer, BarChart3, ArrowLeftRight, Trash2, Mic, MicOff, Lightbulb, MessageCircle, Loader2, AlertCircle, History, TrendingUp, Award, ChevronDown, ChevronUp, Send, Square, Sparkles } from 'lucide-react';
 import { apiGet, apiPost, apiPut } from '../../utils/api';
 import { onAppSuspend, onAppResume } from '../../hooks/useAppLifecycle';
 import Portal from '../Portal';
@@ -349,6 +349,10 @@ function ExerciseDetailModal({
   const [progressTip, setProgressTip] = useState(null);
   const allTimeMaxWeightRef = useRef(0); // Track all-time max weight for real-time PR detection
   const allTimeBestRepsRef = useRef({}); // Track best reps at each weight: { weight -> maxReps }
+
+  // Coaching recommendation state
+  const [coachingRecommendation, setCoachingRecommendation] = useState(null);
+  const [acceptedCoachingRec, setAcceptedCoachingRec] = useState(false);
 
   // Client note for coach state
   const [clientNote, setClientNote] = useState('');
@@ -2599,7 +2603,95 @@ function ExerciseDetailModal({
     setHistoryData(null);
     setHistoryStats(null);
     setShowHistory(false);
+    setCoachingRecommendation(null);
+    setAcceptedCoachingRec(false);
   }, [exercise?.id]);
+
+  // Generate coaching recommendation based on history
+  useEffect(() => {
+    if (!historyData || historyData.length === 0) {
+      // First time - use default from exercise
+      const defaultSets = typeof exercise?.sets === 'number' ? exercise.sets : 3;
+      const defaultReps = exercise?.reps || 12;
+      setCoachingRecommendation({
+        sets: defaultSets,
+        reps: defaultReps,
+        weight: 0,
+        reasoning: "First time with this exercise! Start with a comfortable weight to learn proper form.",
+        isFirstTime: true
+      });
+      return;
+    }
+
+    // Get today's date string to exclude current session
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+    // Filter out today's session
+    const previousSessions = historyData.filter(s => s.workoutDate !== todayStr);
+    if (previousSessions.length === 0) {
+      setCoachingRecommendation(null);
+      return;
+    }
+
+    // Get the most recent previous session
+    const lastSession = previousSessions[0];
+    const lastSets = typeof lastSession.setsData === 'string'
+      ? JSON.parse(lastSession.setsData)
+      : (lastSession.setsData || []);
+
+    const lastMaxWeight = Math.max(...lastSets.map(s => s.weight || 0), 0);
+    const lastMaxReps = Math.max(...lastSets.map(s => s.reps || 0), 0);
+    const lastNumSets = lastSets.length || 3;
+    const dateLabel = new Date(lastSession.workoutDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+    if (lastMaxWeight <= 0 && lastMaxReps <= 0) {
+      setCoachingRecommendation(null);
+      return;
+    }
+
+    // Generate recommendation based on progressive overload logic
+    let recommendedReps = lastMaxReps;
+    let recommendedWeight = lastMaxWeight;
+    let recommendedSets = lastNumSets;
+    let reasoning = '';
+
+    if (lastMaxReps >= 12) {
+      // Hit 12+ reps, time to increase weight
+      recommendedWeight = lastMaxWeight + 2.5;
+      recommendedReps = 8;
+      reasoning = `You hit ${lastMaxReps} reps last time. Let's increase weight and drop to 8 reps to build strength.`;
+    } else if (lastMaxReps < 8) {
+      // Under 8 reps, keep same weight and aim to increase reps
+      recommendedReps = lastMaxReps + 1;
+      reasoning = `Working on building up to 8+ reps. Try for ${recommendedReps} this time.`;
+    } else {
+      // 8-11 reps, progressive increase
+      recommendedReps = lastMaxReps + 1;
+      reasoning = `Good progress! Aim for one more rep than last session.`;
+    }
+
+    setCoachingRecommendation({
+      sets: recommendedSets,
+      reps: recommendedReps,
+      weight: recommendedWeight,
+      reasoning,
+      lastSession: { reps: lastMaxReps, weight: lastMaxWeight, sets: lastNumSets, date: dateLabel }
+    });
+  }, [historyData, exercise?.sets, exercise?.reps]);
+
+  // Handle accepting coaching recommendation - applies to all sets
+  const handleAcceptCoachingRec = useCallback(() => {
+    if (!coachingRecommendation) return;
+
+    setSets(prevSets => prevSets.map(set => ({
+      ...set,
+      reps: coachingRecommendation.reps,
+      weight: coachingRecommendation.weight
+    })));
+
+    setAcceptedCoachingRec(true);
+  }, [coachingRecommendation]);
 
   // Calculate estimated 1RM using Epley formula: weight * (1 + reps/30)
   const calculate1RM = (weight, reps) => {
@@ -2879,6 +2971,59 @@ function ExerciseDetailModal({
             )}
             {voiceError && (
               <div className="voice-error">{voiceError}</div>
+            )}
+          </div>
+        )}
+
+        {/* Coaching Recommendation Card */}
+        {coachingRecommendation && !isTimedExercise && (
+          <div className={`coaching-rec-card ${acceptedCoachingRec ? 'accepted' : ''}`}>
+            <div className="coaching-rec-header">
+              <div className="coaching-rec-badge">
+                <Sparkles size={14} />
+                <span>Coaching Recommendation</span>
+              </div>
+              {acceptedCoachingRec && (
+                <span className="coaching-rec-accepted-badge">
+                  <Check size={12} />
+                  Applied
+                </span>
+              )}
+            </div>
+
+            <div className="coaching-rec-values">
+              <div className="coaching-rec-value-item">
+                <span className="coaching-rec-value-number">{coachingRecommendation.sets}</span>
+                <span className="coaching-rec-value-label">sets</span>
+              </div>
+              <span className="coaching-rec-value-divider">x</span>
+              <div className="coaching-rec-value-item">
+                <span className="coaching-rec-value-number">{coachingRecommendation.reps}</span>
+                <span className="coaching-rec-value-label">reps</span>
+              </div>
+              <span className="coaching-rec-value-divider">@</span>
+              <div className="coaching-rec-value-item">
+                <span className="coaching-rec-value-number">{coachingRecommendation.weight || '—'}</span>
+                <span className="coaching-rec-value-label">kg</span>
+              </div>
+            </div>
+
+            <p className="coaching-rec-reasoning">{coachingRecommendation.reasoning}</p>
+
+            {coachingRecommendation.lastSession && (
+              <div className="coaching-rec-last-session">
+                <span>Last: {coachingRecommendation.lastSession.reps} reps @ {coachingRecommendation.lastSession.weight}kg</span>
+                <span className="coaching-rec-last-date">{coachingRecommendation.lastSession.date}</span>
+              </div>
+            )}
+
+            {!acceptedCoachingRec && (
+              <div className="coaching-rec-actions">
+                <button className="coaching-rec-btn accept" onClick={handleAcceptCoachingRec}>
+                  <Check size={16} />
+                  <span>Accept</span>
+                </button>
+              </div>
             )}
           </div>
         )}
