@@ -12067,22 +12067,22 @@ a.nav-left {
 
 /* Light mode beta banner */
 [data-theme="light"] .beta-banner {
-    background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(249, 115, 22, 0.1));
-    border-color: rgba(245, 158, 11, 0.4);
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(249, 115, 22, 0.12));
+    border-color: rgba(217, 119, 6, 0.5);
 }
 
 [data-theme="light"] .beta-banner-content p {
-    color: #78350f;
+    color: #92400e;
 }
 
 [data-theme="light"] .beta-banner-close {
-    background: rgba(0, 0, 0, 0.05);
-    color: #78350f;
+    background: rgba(217, 119, 6, 0.15);
+    color: #b45309;
 }
 
 [data-theme="light"] .beta-banner-close:hover {
-    background: rgba(0, 0, 0, 0.1);
-    color: #451a03;
+    background: rgba(217, 119, 6, 0.25);
+    color: #92400e;
 }
 
 /* Nav Menu Container and Dropdown */
