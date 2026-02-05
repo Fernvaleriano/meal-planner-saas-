@@ -15545,6 +15545,309 @@ a.nav-left {
 }
 
 /* ========================================
+   WORKOUTS PAGE - LIGHT MODE
+   ======================================== */
+
+/* Main page background */
+[data-theme="light"] .workouts-page-v2 {
+    background: #f8fafc;
+}
+
+/* Top navigation */
+[data-theme="light"] .workout-top-nav {
+    background: #ffffff;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+[data-theme="light"] .workout-top-nav .nav-back-btn,
+[data-theme="light"] .workout-top-nav .nav-menu-btn {
+    color: #374151;
+}
+
+[data-theme="light"] .workout-top-nav .nav-title {
+    color: #111827;
+}
+
+/* Week calendar */
+[data-theme="light"] .week-calendar-v2 {
+    background: #ffffff;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+[data-theme="light"] .calendar-header .month-label {
+    color: #111827;
+}
+
+[data-theme="light"] .week-nav-btn {
+    color: #6b7280;
+    background: #f3f4f6;
+}
+
+[data-theme="light"] .week-nav-btn:hover {
+    background: #e5e7eb;
+}
+
+[data-theme="light"] .day-pill {
+    background: #f3f4f6;
+    color: #374151;
+}
+
+[data-theme="light"] .day-pill:hover {
+    background: #e5e7eb;
+}
+
+[data-theme="light"] .day-pill.selected {
+    background: #0d9488;
+    color: white;
+}
+
+[data-theme="light"] .day-pill .day-name {
+    color: #6b7280;
+}
+
+[data-theme="light"] .day-pill.selected .day-name {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+/* Workout cards view */
+[data-theme="light"] .workout-cards-container {
+    background: #f8fafc;
+}
+
+[data-theme="light"] .workout-card {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+}
+
+[data-theme="light"] .workout-card:hover {
+    border-color: #d1d5db;
+}
+
+[data-theme="light"] .workout-card .card-title {
+    color: #111827;
+}
+
+[data-theme="light"] .workout-card .card-subtitle {
+    color: #6b7280;
+}
+
+[data-theme="light"] .workout-card .card-meta {
+    color: #6b7280;
+}
+
+/* Hero section in detail view */
+[data-theme="light"] .workout-hero-v2 {
+    background: linear-gradient(135deg, #f0fdfa 0%, #e0f2fe 100%);
+}
+
+[data-theme="light"] .workout-hero-v2 .hero-title {
+    color: #111827;
+}
+
+[data-theme="light"] .workout-hero-v2 .hero-subtitle {
+    color: #6b7280;
+}
+
+[data-theme="light"] .workout-hero-v2 .meta-item {
+    color: #374151;
+}
+
+/* Exercise cards - comprehensive light mode */
+[data-theme="light"] .exercise-card-v2 {
+    background: #ffffff;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+[data-theme="light"] .exercise-card-v2:hover {
+    background: #f9fafb;
+}
+
+[data-theme="light"] .exercise-card-v2.completed::after {
+    background: linear-gradient(90deg, transparent, rgba(34, 197, 94, 0.08));
+}
+
+[data-theme="light"] .exercise-card-v2 .equipment-subtitle {
+    color: #6b7280;
+}
+
+[data-theme="light"] .exercise-card-v2 .time-box.add-box {
+    background: #f3f4f6;
+    color: #6b7280;
+}
+
+[data-theme="light"] .exercise-card-v2 .time-box.add-box:hover {
+    background: #e5e7eb;
+    color: #374151;
+}
+
+[data-theme="light"] .exercise-card-v2 .rest-box {
+    background: #f3f4f6;
+    color: #6b7280;
+}
+
+[data-theme="light"] .exercise-card-v2 .rest-box svg {
+    color: #9ca3af;
+}
+
+[data-theme="light"] .exercise-card-v2 .exercise-thumb {
+    background: #e0f2fe;
+}
+
+[data-theme="light"] .exercise-card-v2 .progress-ring-bg {
+    stroke: #e5e7eb;
+}
+
+[data-theme="light"] .exercise-card-v2 .ring-text {
+    color: #374151;
+}
+
+[data-theme="light"] .exercise-card-v2 .sets-panel {
+    border-top: 1px solid #e5e7eb;
+}
+
+[data-theme="light"] .exercise-card-v2 .sets-toggle {
+    color: #6b7280;
+}
+
+[data-theme="light"] .exercise-card-v2 .sets-toggle:hover {
+    color: #374151;
+}
+
+[data-theme="light"] .exercise-card-v2 .set-item {
+    background: #f9fafb;
+}
+
+[data-theme="light"] .exercise-card-v2 .set-item.done {
+    background: rgba(34, 197, 94, 0.08);
+}
+
+[data-theme="light"] .exercise-card-v2 .set-label {
+    color: #6b7280;
+}
+
+[data-theme="light"] .exercise-card-v2 .weight-btn {
+    background: #e5e7eb;
+    color: #374151;
+}
+
+[data-theme="light"] .exercise-card-v2 .set-input {
+    background: #f3f4f6;
+    border-color: #e5e7eb;
+    color: #111827;
+}
+
+[data-theme="light"] .exercise-card-v2 .set-input:focus {
+    background: #eff6ff;
+    border-color: #3b82f6;
+}
+
+[data-theme="light"] .exercise-card-v2 .set-input-group label {
+    color: #6b7280;
+}
+
+[data-theme="light"] .exercise-card-v2 .weight-adjust-btn {
+    background: #e5e7eb;
+    color: #6b7280;
+}
+
+[data-theme="light"] .exercise-card-v2 .weight-adjust-btn:active {
+    background: #d1d5db;
+}
+
+[data-theme="light"] .exercise-card-v2 .rest-unit {
+    color: #6b7280;
+}
+
+[data-theme="light"] .exercise-card-v2 .rest-timer-overlay {
+    background: rgba(255, 255, 255, 0.95);
+}
+
+[data-theme="light"] .exercise-card-v2 .rest-timer-label {
+    color: #6b7280;
+}
+
+[data-theme="light"] .exercise-card-v2 .skip-rest-btn {
+    background: #f3f4f6;
+    border-color: #e5e7eb;
+    color: #374151;
+}
+
+[data-theme="light"] .exercise-card-v2 .skip-rest-btn:active {
+    background: #e5e7eb;
+}
+
+/* Section titles */
+[data-theme="light"] .exercises-section .section-title {
+    color: #111827;
+}
+
+/* Loading state */
+[data-theme="light"] .loading-state-v2 span {
+    color: #6b7280;
+}
+
+/* Empty state */
+[data-theme="light"] .empty-state-v2 {
+    background: #ffffff;
+}
+
+[data-theme="light"] .empty-state-v2 h3 {
+    color: #111827;
+}
+
+[data-theme="light"] .empty-state-v2 p {
+    color: #6b7280;
+}
+
+/* Action buttons at bottom */
+[data-theme="light"] .workout-actions-row {
+    background: #ffffff;
+    border-top: 1px solid #e5e7eb;
+}
+
+[data-theme="light"] .action-btn-secondary {
+    background: #f3f4f6;
+    color: #374151;
+    border-color: #e5e7eb;
+}
+
+[data-theme="light"] .action-btn-secondary:hover {
+    background: #e5e7eb;
+}
+
+/* Voice note player */
+[data-theme="light"] .voice-note-player {
+    background: #f3f4f6;
+}
+
+[data-theme="light"] .voice-note-label {
+    color: #0d9488;
+}
+
+/* Nav dropdown menu */
+[data-theme="light"] .nav-dropdown-menu {
+    background: #ffffff;
+    border-color: #e5e7eb;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .nav-dropdown-menu .menu-item {
+    color: #374151;
+}
+
+[data-theme="light"] .nav-dropdown-menu .menu-item:hover {
+    background: #f3f4f6;
+}
+
+[data-theme="light"] .nav-dropdown-menu .menu-item.exit {
+    color: #dc2626;
+}
+
+[data-theme="light"] .nav-dropdown-menu .menu-item.exit:hover {
+    background: #fef2f2;
+}
+
+/* ========================================
    EXERCISE DETAIL MODAL V2
    ======================================== */
 
