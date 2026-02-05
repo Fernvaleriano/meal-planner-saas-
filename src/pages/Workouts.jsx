@@ -406,6 +406,7 @@ function Workouts() {
   const [showReadinessCheck, setShowReadinessCheck] = useState(false);
   const [readinessData, setReadinessData] = useState(null); // { energy: 1-3, soreness: 1-3, sleep: 1-3 }
   const [showWorkoutReadyConfirm, setShowWorkoutReadyConfirm] = useState(false); // Confirmation after readiness check
+  const [pendingExerciseOpen, setPendingExerciseOpen] = useState(null); // Exercise to open after readiness check
 
   // New states for menu, summary, and history
   const [showMenu, setShowMenu] = useState(false);
@@ -1715,26 +1716,21 @@ function Workouts() {
     setShowReadinessCheck(true);
   }, []);
 
-  // Show readiness check when auto-resuming a workout that has no readiness data yet
-  const readinessShownRef = useRef(false);
-  useEffect(() => {
-    if (workoutStarted && !readinessData && !readinessShownRef.current && workoutLog) {
-      // Workout was auto-resumed but no readiness data — prompt the user
-      const hasReadiness = workoutLog.energy_level || workoutLog.soreness_level || workoutLog.sleep_quality;
-      if (!hasReadiness) {
-        readinessShownRef.current = true;
-        setShowReadinessCheck(true);
-      }
-    }
-  }, [workoutStarted, readinessData, workoutLog]);
-
   // Called after readiness check is completed (or skipped)
   const handleReadinessComplete = useCallback(async (readiness) => {
     setShowReadinessCheck(false);
     setReadinessData(readiness);
     setWorkoutStarted(true);
     setWorkoutStartTime(prev => prev || new Date());
-    setShowWorkoutReadyConfirm(true); // Show confirmation instead of directly opening play mode
+
+    // If user was trying to open an exercise card, open it now
+    if (pendingExerciseOpen) {
+      setSelectedExercise(pendingExerciseOpen);
+      setPendingExerciseOpen(null);
+    } else {
+      // Otherwise show workout confirmation (for play button flow)
+      setShowWorkoutReadyConfirm(true);
+    }
 
     if (!workoutLog && clientData?.id && todayWorkout?.id) {
       // No existing log — create one with readiness data
@@ -1773,7 +1769,7 @@ function Workouts() {
         console.error('Error updating readiness data:', err);
       }
     }
-  }, [workoutLog, clientData?.id, todayWorkout, selectedDate]);
+  }, [workoutLog, clientData?.id, todayWorkout, selectedDate, pendingExerciseOpen]);
 
   // Called when user clicks "Begin Workout" on the confirmation screen
   const handleStartGuidedWorkout = useCallback(() => {
@@ -2406,12 +2402,18 @@ function Workouts() {
     }
   }, [weekDates]);
 
-  // Handle exercise selection safely
+  // Handle exercise selection safely - show readiness check first if not done yet
   const handleExerciseClick = useCallback((exercise) => {
-    if (exercise) {
+    if (!exercise) return;
+
+    // If readiness check hasn't been done yet, show it first
+    if (!readinessData && !workoutStarted) {
+      setPendingExerciseOpen(exercise);
+      setShowReadinessCheck(true);
+    } else {
       setSelectedExercise(exercise);
     }
-  }, []);
+  }, [readinessData, workoutStarted]);
 
   // Close modal with requestAnimationFrame for mobile Safari stability
   const handleCloseModal = useCallback(() => {

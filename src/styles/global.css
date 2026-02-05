@@ -18630,7 +18630,7 @@ a.nav-left {
     background: #1a1a2e;
     width: 100%;
     max-width: 500px;
-    max-height: 85vh;
+    max-height: 92vh;
     border-radius: 24px 24px 0 0;
     display: flex;
     flex-direction: column;
@@ -18709,8 +18709,8 @@ a.nav-left {
     display: flex;
     flex-direction: column;
     gap: 12px;
-    min-height: 200px;
-    max-height: 40vh;
+    min-height: 250px;
+    max-height: 55vh;
 }
 
 .ask-ai-message {
