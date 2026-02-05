@@ -349,6 +349,8 @@ function ExerciseDetailModal({
   const [progressTip, setProgressTip] = useState(null);
   const allTimeMaxWeightRef = useRef(0); // Track all-time max weight for real-time PR detection
   const allTimeBestRepsRef = useRef({}); // Track best reps at each weight: { weight -> maxReps }
+  const readinessDataRef = useRef(readinessData); // Ref to avoid re-running effect when object reference changes
+  readinessDataRef.current = readinessData; // Keep ref in sync
 
   // Coaching recommendation state
   const [coachingRecommendation, setCoachingRecommendation] = useState(null);
@@ -368,6 +370,8 @@ function ExerciseDetailModal({
   const voiceNotePathRef = useRef(null);
   const isMountedRef = useRef(true);
   const exerciseIdAtRecordStartRef = useRef(null);
+  const exerciseRef = useRef(exercise); // Ref to avoid re-creating callbacks when exercise object reference changes
+  exerciseRef.current = exercise; // Keep ref in sync
 
   // AI Tips state
   const [tips, setTips] = useState([]);
@@ -433,7 +437,8 @@ function ExerciseDetailModal({
     setProgressTip(null);
     // Reset auto-save flag so switching exercises doesn't trigger a stale save
     setsChangedRef.current = false;
-  }, [exercise?.id, initialSets]);
+  // NOTE: initialSets is memoized with [exercise?.id], so we only need exercise?.id here
+  }, [exercise?.id]);
 
   // Fetch last session and generate progressive overload tip
   // Uses readiness data (energy, soreness, sleep) + performance history for smarter suggestions
@@ -545,9 +550,11 @@ function ExerciseDetailModal({
 
         // ── Readiness score (1-3 scale: 1=low, 2=normal, 3=high) ──
         // Combines energy, soreness (inverted: 1=very sore, 3=fresh), sleep
-        const energy = readinessData?.energy || 2;
-        const soreness = readinessData?.soreness || 2; // 1=very sore, 2=a little, 3=fresh
-        const sleepQ = readinessData?.sleep || 2;
+        // Use ref to avoid re-running effect when readinessData object reference changes
+        const currentReadiness = readinessDataRef.current;
+        const energy = currentReadiness?.energy || 2;
+        const soreness = currentReadiness?.soreness || 2; // 1=very sore, 2=a little, 3=fresh
+        const sleepQ = currentReadiness?.sleep || 2;
         // readinessScore: 3-9 range → bucket into low(3-4), normal(5-6), high(7-9)
         const readinessScore = energy + soreness + sleepQ;
         const readiness = readinessScore <= 4 ? 'low' : readinessScore >= 7 ? 'high' : 'normal';
@@ -682,7 +689,8 @@ function ExerciseDetailModal({
 
     generateTip();
     return () => { cancelled = true; };
-  }, [clientId, exercise?.id, exercise?.name, exercise?.trackingType, exercise?.exercise_type, exercise?.duration, readinessData]);
+  // NOTE: readinessData accessed via ref to prevent infinite re-renders from object reference changes
+  }, [clientId, exercise?.id]);
 
   // Auto-save exercise_log to database when sets change (debounced)
   // Uses workoutLogId prop if available, otherwise checks for existing log for selectedDate, then creates one
@@ -861,7 +869,8 @@ function ExerciseDetailModal({
     }
 
     return () => { cancelled = true; };
-  }, [exercise?.id, exercise?.clientNotes, exercise?.clientVoiceNotePath]);
+  // NOTE: Only depend on exercise?.id - clientNotes/clientVoiceNotePath accessed inside effect
+  }, [exercise?.id]);
 
   // Keep refs in sync so auto-save can access current values without extra deps
   // Note: voiceNotePathRef stores the STORAGE PATH (not signed URL) for saving to DB
@@ -2432,10 +2441,11 @@ function ExerciseDetailModal({
           }, 0);
         }
 
-        // Schedule backend persist outside of updater
-        if (callbackRefs.current.onUpdateExercise && exercise) {
+        // Schedule backend persist outside of updater - use ref to avoid stale closure
+        if (callbackRefs.current.onUpdateExercise && exerciseRef.current) {
+          const currentExercise = exerciseRef.current;
           setTimeout(() => {
-            callbackRefs.current.onUpdateExercise({ ...exercise, sets: newSets });
+            callbackRefs.current.onUpdateExercise({ ...currentExercise, sets: newSets });
           }, 0);
         }
 
@@ -2461,7 +2471,8 @@ function ExerciseDetailModal({
 
     recognitionRef.current = recognition;
     recognition.start();
-  }, [exercise]);
+  // NOTE: exercise accessed via exerciseRef to prevent callback recreation on object reference change
+  }, []);
 
   // Stop voice recognition
   const stopVoiceInput = useCallback(() => {
@@ -2485,17 +2496,19 @@ function ExerciseDetailModal({
     // Close swap modal first
     setShowSwapModal(false);
 
-    // Then trigger swap callback in next frame
+    // Then trigger swap callback in next frame - use ref to avoid stale closure
     requestAnimationFrame(() => {
       try {
-        if (newExercise && exercise) {
-          callbackRefs.current.onSwapExercise?.(exercise, newExercise);
+        const currentExercise = exerciseRef.current;
+        if (newExercise && currentExercise) {
+          callbackRefs.current.onSwapExercise?.(currentExercise, newExercise);
         }
       } catch (e) {
         console.error('Error swapping exercise:', e);
       }
     });
-  }, [exercise]);
+  // NOTE: exercise accessed via exerciseRef to prevent callback recreation
+  }, []);
 
   // Stable exercise select handler
   const handleExerciseSelect = useCallback((ex) => {
@@ -2519,10 +2532,11 @@ function ExerciseDetailModal({
       const lastSet = prev[prev.length - 1] || { reps: 12, weight: 0, restSeconds: 60 };
       const newSets = [...prev, { ...lastSet, completed: false }];
 
-      // Persist to backend via parent callback
-      if (callbackRefs.current.onUpdateExercise && exercise) {
+      // Persist to backend via parent callback - use ref to avoid stale closure
+      const currentExercise = exerciseRef.current;
+      if (callbackRefs.current.onUpdateExercise && currentExercise) {
         const updatedExercise = {
-          ...exercise,
+          ...currentExercise,
           sets: newSets
         };
         callbackRefs.current.onUpdateExercise(updatedExercise);
@@ -2530,7 +2544,8 @@ function ExerciseDetailModal({
 
       return newSets;
     });
-  }, [exercise]);
+  // NOTE: exercise accessed via exerciseRef to prevent callback recreation
+  }, []);
 
   // Save sets handler - updates local state AND persists to backend
   const handleSaveSets = useCallback((newSets, editMode) => {
@@ -2539,31 +2554,35 @@ function ExerciseDetailModal({
     // Update local state
     setSets(newSets);
 
-    // Persist to backend via parent callback
-    if (callbackRefs.current.onUpdateExercise && exercise) {
+    // Persist to backend via parent callback - use ref to avoid stale closure
+    const currentExercise = exerciseRef.current;
+    if (callbackRefs.current.onUpdateExercise && currentExercise) {
       const updatedExercise = {
-        ...exercise,
+        ...currentExercise,
         sets: newSets,
         // Persist the exercise type so time-based mode is remembered
-        exercise_type: editMode === 'time' ? 'timed' : (exercise.exercise_type || 'strength')
+        exercise_type: editMode === 'time' ? 'timed' : (currentExercise.exercise_type || 'strength')
       };
       callbackRefs.current.onUpdateExercise(updatedExercise);
     }
-  }, [exercise]);
+  // NOTE: exercise accessed via exerciseRef to prevent callback recreation
+  }, []);
 
   // Delete exercise handler - uses requestAnimationFrame for mobile Safari
   const handleDeleteExercise = useCallback(() => {
     setShowDeleteConfirm(false);
     requestAnimationFrame(() => {
       try {
-        if (exercise) {
-          callbackRefs.current.onDeleteExercise?.(exercise);
+        const currentExercise = exerciseRef.current;
+        if (currentExercise) {
+          callbackRefs.current.onDeleteExercise?.(currentExercise);
         }
       } catch (e) {
         console.error('Error deleting exercise:', e);
       }
     });
-  }, [exercise]);
+  // NOTE: exercise accessed via exerciseRef to prevent callback recreation
+  }, []);
 
   // Fetch exercise history
   const fetchExerciseHistory = useCallback(async () => {
