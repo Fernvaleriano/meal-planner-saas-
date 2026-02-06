@@ -511,7 +511,7 @@ function Workouts() {
       if (heroMenuRef.current && !heroMenuRef.current.contains(event.target)) {
         setShowHeroMenu(false);
       }
-      if (cardMenuWorkoutId && !event.target.closest('.workout-card-menu')) {
+      if (cardMenuWorkoutId && !event.target?.closest?.('.workout-card-menu')) {
         setCardMenuWorkoutId(null);
       }
     };
@@ -2819,7 +2819,7 @@ function Workouts() {
             <div className="exercises-list-v2">
               {exercises.map((exercise, index) => (
                 exercise && exercise.id ? (
-                  <ErrorBoundary key={exercise.id || `exercise-${index}`}>
+                  <ErrorBoundary key={exercise.id || `exercise-${index}`} compact>
                     <ExerciseCard
                       exercise={exercise}
                       index={index}
