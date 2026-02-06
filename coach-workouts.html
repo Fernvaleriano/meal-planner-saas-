@@ -3117,6 +3117,31 @@
                     <!-- Will be populated dynamically -->
                 </div>
 
+                <!-- AI-Powered Suggestions Section -->
+                <div class="ai-swap-suggestions-section" style="margin-bottom: 20px; border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 10px; padding: 16px; background: rgba(16, 185, 129, 0.05);">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                        <h4 style="margin: 0; display: flex; align-items: center; gap: 8px; color: #10b981; font-size: 14px;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2">
+                                <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            AI Suggested Swaps
+                        </h4>
+                        <button class="btn btn-sm" onclick="fetchAISwapSuggestions()" id="aiSwapFetchBtn"
+                            style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: #10b981; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                            </svg>
+                            Get AI Suggestions
+                        </button>
+                    </div>
+                    <p style="font-size: 12px; color: var(--text-muted); margin: 0 0 12px 0;">
+                        AI analyzes movement patterns, muscle groups, and biomechanics to suggest the best alternatives. Click to add any suggestion.
+                    </p>
+                    <div id="aiSwapSuggestionsContainer" style="min-height: 40px;">
+                        <p style="color: var(--text-muted); font-size: 13px; text-align: center; padding: 12px 0;">Click "Get AI Suggestions" to see smart alternatives</p>
+                    </div>
+                </div>
+
                 <!-- Add More Section -->
                 <div class="add-recommended-section">
                     <h4>Add Recommended Swaps</h4>
@@ -6151,6 +6176,110 @@
             showToast(`Removed "${removed[0].name}" from recommendations`, 'success');
             renderCurrentRecommendedSwaps();
             renderRecommendedExerciseOptions(recommendedSwapsCache);
+        }
+
+        // AI-Powered Swap Suggestions for Coach
+        async function fetchAISwapSuggestions() {
+            if (recommendedSwapsDayIndex === null || recommendedSwapsExIndex === null) return;
+
+            const currentExercise = workoutDays[recommendedSwapsDayIndex].exercises[recommendedSwapsExIndex];
+            const container = document.getElementById('aiSwapSuggestionsContainer');
+            const btn = document.getElementById('aiSwapFetchBtn');
+
+            // Show loading state
+            btn.disabled = true;
+            btn.innerHTML = `<svg width="14" height="14" class="spin-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg> Analyzing...`;
+            container.innerHTML = '<div style="text-align: center; padding: 16px;"><div class="loading-spinner" style="border: 2px solid rgba(16,185,129,0.2); border-top: 2px solid #10b981; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; margin: 0 auto 8px;"></div><p style="color: var(--text-muted); font-size: 13px; margin: 0;">AI is analyzing movement patterns...</p></div>';
+
+            try {
+                // Get all exercises currently in the workout day
+                const workoutExercises = workoutDays[recommendedSwapsDayIndex].exercises.map(ex => ({
+                    id: ex.id,
+                    name: ex.name
+                }));
+
+                const response = await fetch('/.netlify/functions/ai-swap-exercise', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${currentSession.access_token}`
+                    },
+                    body: JSON.stringify({
+                        exercise: {
+                            id: currentExercise.id,
+                            name: currentExercise.name,
+                            muscle_group: currentExercise.muscle_group || currentExercise.muscleGroup || '',
+                            equipment: currentExercise.equipment || '',
+                            secondary_muscles: currentExercise.secondary_muscles || [],
+                            difficulty: currentExercise.difficulty || '',
+                            exercise_type: currentExercise.exercise_type || ''
+                        },
+                        workoutExercises: workoutExercises
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.suggestions && data.suggestions.length > 0) {
+                    const currentSwapIds = (currentExercise.recommendedSwaps || []).map(s => s.id);
+                    const filteredSuggestions = data.suggestions.filter(s => !currentSwapIds.includes(s.id));
+
+                    if (filteredSuggestions.length === 0) {
+                        container.innerHTML = '<p style="color: var(--text-muted); font-size: 13px; text-align: center; padding: 12px 0;">All AI suggestions are already in your recommended swaps!</p>';
+                    } else {
+                        container.innerHTML = filteredSuggestions.map(ex => `
+                            <div class="recommended-exercise-option" onclick="addRecommendedSwapFromAI(${ex.id}, '${(ex.name || '').replace(/'/g, "\\'")}', '${(ex.thumbnail_url || '').replace(/'/g, "\\'")}', '${(ex.animation_url || '').replace(/'/g, "\\'")}', '${(ex.muscle_group || '').replace(/'/g, "\\'")}', '${(ex.equipment || '').replace(/'/g, "\\'")}')" style="cursor: pointer;">
+                                <img class="option-thumb" src="${ex.thumbnail_url || ex.animation_url || '/img/exercise-placeholder.svg'}"
+                                     alt="${ex.name}" onerror="this.src='/img/exercise-placeholder.svg'">
+                                <div class="option-info">
+                                    <div class="option-name">${ex.name}</div>
+                                    <div class="option-equipment">${ex.equipment || ex.muscle_group || ''}</div>
+                                    ${ex.ai_reason ? `<div style="font-size: 11px; color: #10b981; margin-top: 2px;">${ex.ai_reason}</div>` : ''}
+                                </div>
+                                <svg width="20" height="20" fill="none" stroke="var(--brand-primary)" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                </svg>
+                            </div>
+                        `).join('');
+                    }
+                } else {
+                    container.innerHTML = '<p style="color: var(--text-muted); font-size: 13px; text-align: center; padding: 12px 0;">No AI suggestions available for this exercise.</p>';
+                }
+            } catch (err) {
+                console.error('AI swap suggestions error:', err);
+                container.innerHTML = '<p style="color: #ef4444; font-size: 13px; text-align: center; padding: 12px 0;">Failed to get AI suggestions. Try again.</p>';
+            }
+
+            // Reset button
+            btn.disabled = false;
+            btn.innerHTML = `<svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg> Refresh Suggestions`;
+        }
+
+        function addRecommendedSwapFromAI(id, name, thumbnailUrl, animationUrl, muscleGroup, equipment) {
+            const currentExercise = workoutDays[recommendedSwapsDayIndex].exercises[recommendedSwapsExIndex];
+
+            if (!currentExercise.recommendedSwaps) {
+                currentExercise.recommendedSwaps = [];
+            }
+
+            if (currentExercise.recommendedSwaps.some(s => s.id === id)) {
+                showToast('This exercise is already recommended', 'error');
+                return;
+            }
+
+            currentExercise.recommendedSwaps.push({
+                id: id,
+                name: name,
+                thumbnail_url: thumbnailUrl,
+                animation_url: animationUrl,
+                muscle_group: muscleGroup,
+                equipment: equipment
+            });
+
+            showToast(`Added "${name}" as recommended swap`, 'success');
+            renderCurrentRecommendedSwaps();
+            // Refresh AI suggestions to remove the one just added
+            fetchAISwapSuggestions();
         }
 
         // AI Modal
