@@ -1,6 +1,7 @@
 const { createClient } = require("@supabase/supabase-js");
-const OpenAI = require('openai');
+const Anthropic = require("@anthropic-ai/sdk");
 
+const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 const supabase = createClient(
@@ -8,8 +9,398 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_KEY
 );
 
+// ─── Movement Pattern Detection ───────────────────────────────────────────────
+// Comprehensive pattern detection that covers edge cases like "Close Grip Press",
+// "Hammer Strength Row", etc. Order matters - specific patterns before generic ones.
+
+const MOVEMENT_PATTERNS = [
+  // === SHOULDERS (check specific shoulder patterns before generic) ===
+  { pattern: 'UPRIGHT_ROW', muscle: 'SHOULDERS', test: (n) => n.includes('upright row') },
+  { pattern: 'FACE_PULL', muscle: 'SHOULDERS', test: (n) => n.includes('face pull') },
+  { pattern: 'LATERAL_RAISE', muscle: 'SHOULDERS', test: (n) => n.includes('lateral raise') || n.includes('side raise') || n.includes('side lateral') || n.includes('lateral delt') },
+  { pattern: 'FRONT_RAISE', muscle: 'SHOULDERS', test: (n) => n.includes('front raise') || n.includes('front delt raise') },
+  { pattern: 'REVERSE_FLY', muscle: 'SHOULDERS', test: (n) => (n.includes('reverse') || n.includes('rear')) && (n.includes('fly') || n.includes('flye') || n.includes('delt')) },
+  { pattern: 'SHOULDER_PRESS', muscle: 'SHOULDERS', test: (n) =>
+    n.includes('shoulder press') || n.includes('overhead press') || n.includes('military press') ||
+    n.includes('ohp') || n.includes('arnold press') || n.includes('push press') ||
+    n.includes('seated press') || n.includes('standing press') ||
+    (n.includes('dumbbell press') && (n.includes('shoulder') || n.includes('seated') || n.includes('standing')))
+  },
+
+  // === TRAPS ===
+  { pattern: 'SHRUG', muscle: 'TRAPS', test: (n) => n.includes('shrug') },
+
+  // === BACK (check specific before generic) ===
+  { pattern: 'VERTICAL_PULL', muscle: 'BACK', test: (n) =>
+    n.includes('pulldown') || n.includes('pull-down') || n.includes('pull down') ||
+    n.includes('pullup') || n.includes('pull-up') || n.includes('pull up') ||
+    n.includes('chin-up') || n.includes('chinup') || n.includes('chin up')
+  },
+  { pattern: 'PULLOVER', muscle: 'BACK', test: (n) => n.includes('pullover') || n.includes('pull-over') || n.includes('pull over') },
+  { pattern: 'ROW', muscle: 'BACK', test: (n) =>
+    n.includes('row') && !n.includes('upright') // upright row already caught above
+  },
+
+  // === CHEST (check specific press types before generic) ===
+  { pattern: 'CHEST_PRESS', muscle: 'CHEST', isTricepRelated: true, test: (n) =>
+    n.includes('bench press') || n.includes('chest press') || n.includes('incline press') ||
+    n.includes('decline press') || n.includes('floor press') || n.includes('close grip press') ||
+    n.includes('close-grip press') || n.includes('close grip bench') || n.includes('close-grip bench') ||
+    n.includes('board press') || n.includes('pin press') || n.includes('spoto press') ||
+    n.includes('larsen press') || n.includes('jm press') ||
+    // "Dumbbell Press" without shoulder context = chest press
+    (n.includes('dumbbell press') && !n.includes('shoulder') && !n.includes('seated') && !n.includes('standing'))
+  },
+  { pattern: 'FLY', muscle: 'CHEST', test: (n) =>
+    (n.includes('fly') || n.includes('flye') || n.includes('flys') || n.includes('flies')) &&
+    !n.includes('reverse') && !n.includes('rear') // reverse fly caught above
+  },
+
+  // === LEGS (check specific before generic) ===
+  { pattern: 'LEG_PRESS', muscle: 'LEGS', test: (n) => n.includes('leg press') },
+  { pattern: 'HACK_SQUAT', muscle: 'LEGS', test: (n) => n.includes('hack squat') || n.includes('hack machine') || n.includes('v-squat') || n.includes('v squat') },
+  { pattern: 'SQUAT', muscle: 'LEGS', test: (n) =>
+    n.includes('squat') && !n.includes('split squat') && !n.includes('hack squat') && !n.includes('v squat') && !n.includes('v-squat')
+  },
+  { pattern: 'LUNGE', muscle: 'LEGS', test: (n) =>
+    n.includes('lunge') || n.includes('step up') || n.includes('step-up') ||
+    n.includes('split squat') || n.includes('bulgarian')
+  },
+  { pattern: 'LEG_CURL', muscle: 'LEGS', test: (n) =>
+    n.includes('leg curl') || n.includes('hamstring curl') || n.includes('nordic curl') ||
+    n.includes('nordic') || n.includes('glute ham raise') || n.includes('ghr') ||
+    ((n.includes('lying curl') || n.includes('seated curl') || n.includes('standing curl')) &&
+     (n.includes('leg') || n.includes('hamstring')))
+  },
+  { pattern: 'LEG_EXTENSION', muscle: 'LEGS', test: (n) =>
+    (n.includes('leg extension') || n.includes('quad extension') || n.includes('knee extension'))
+  },
+  { pattern: 'HIP_ADDUCTION', muscle: 'LEGS', test: (n) =>
+    n.includes('adduct') || n.includes('inner thigh') || n.includes('copenhagen')
+  },
+  { pattern: 'HIP_ABDUCTION', muscle: 'LEGS', test: (n) =>
+    n.includes('abduct') || n.includes('outer thigh') || n.includes('clamshell') || n.includes('clam shell')
+  },
+
+  // === DEADLIFT / HIP HINGE ===
+  { pattern: 'DEADLIFT', muscle: 'POSTERIOR_CHAIN', test: (n) =>
+    n.includes('deadlift') || n.includes('rdl') || n.includes('romanian') ||
+    n.includes('good morning') || n.includes('rack pull') || n.includes('block pull') ||
+    n.includes('kettlebell swing') || n.includes('kb swing') ||
+    n.includes('pull through') || n.includes('pull-through') ||
+    n.includes('hip hinge') || n.includes('stiff leg') || n.includes('stiff-leg')
+  },
+
+  // === GLUTES ===
+  { pattern: 'GLUTE', muscle: 'GLUTES', test: (n) =>
+    n.includes('glute') || n.includes('hip thrust') || n.includes('glute bridge') ||
+    n.includes('donkey kick') || n.includes('fire hydrant') || n.includes('frog pump')
+  },
+
+  // === CALVES ===
+  { pattern: 'CALF_RAISE', muscle: 'CALVES', test: (n) =>
+    n.includes('calf raise') || n.includes('calf press') || n.includes('calf') || n.includes('calves')
+  },
+
+  // === ARMS - Forearms (before bicep/tricep) ===
+  { pattern: 'WRIST_CURL', muscle: 'FOREARMS', test: (n) =>
+    n.includes('wrist curl') || n.includes('wrist extension') || n.includes('forearm curl') ||
+    n.includes('reverse curl') || n.includes('forearm')
+  },
+
+  // === ARMS - Biceps ===
+  { pattern: 'CURL', muscle: 'BICEPS', isBicep: true, test: (n) =>
+    n.includes('curl') || n.includes('bicep') || n.includes('biceps') ||
+    n.includes('preacher') || n.includes('concentration') ||
+    (n.includes('hammer') && !n.includes('hammer strength'))
+  },
+
+  // === ARMS - Triceps ===
+  { pattern: 'TRICEP_EXTENSION', muscle: 'TRICEPS', isTricep: true, test: (n) =>
+    n.includes('tricep') || n.includes('triceps') || n.includes('pushdown') || n.includes('push-down') ||
+    n.includes('skull') || n.includes('skullcrusher') || n.includes('skull crusher') ||
+    n.includes('close grip') || // close grip = tricep emphasis
+    (n.includes('kickback') && !n.includes('glute')) ||
+    (n.includes('extension') && !n.includes('back') && !n.includes('leg') && !n.includes('hip') && !n.includes('knee') && !n.includes('quad'))
+  },
+
+  // === CHEST - Dips (can be chest or tricep) ===
+  { pattern: 'DIP', muscle: 'CHEST', test: (n) => n.includes('dip') },
+
+  // === CORE ===
+  { pattern: 'CORE_FLEXION', muscle: 'CORE', test: (n) =>
+    n.includes('crunch') || n.includes('sit-up') || n.includes('sit up') || n.includes('situp') ||
+    n.includes('ab roll') || n.includes('ab wheel')
+  },
+  { pattern: 'CORE_ROTATION', muscle: 'CORE', test: (n) =>
+    n.includes('russian twist') || n.includes('woodchop') || n.includes('wood chop') ||
+    n.includes('pallof') || n.includes('rotation')
+  },
+  { pattern: 'CORE_STABILITY', muscle: 'CORE', test: (n) =>
+    n.includes('plank') || n.includes('dead bug') || n.includes('bird dog') ||
+    n.includes('hollow') || n.includes('anti-rotation')
+  },
+  { pattern: 'LEG_RAISE', muscle: 'CORE', test: (n) =>
+    n.includes('leg raise') || n.includes('hanging raise') || n.includes('knee raise') ||
+    n.includes('toes to bar') || n.includes('toes-to-bar')
+  },
+];
+
+// ─── Sub-Pattern Detection (angle, grip, stance) ─────────────────────────────
+// Used for finer-grained scoring: incline bench → incline bench > flat bench > decline bench
+
+function detectSubPatterns(name) {
+  const n = name.toLowerCase();
+  const sub = {};
+
+  // Angle
+  if (n.includes('incline')) sub.angle = 'incline';
+  else if (n.includes('decline')) sub.angle = 'decline';
+  else if (n.includes('flat') || n.includes('bench press') || n.includes('floor press')) sub.angle = 'flat';
+
+  // Grip width
+  if (n.includes('close grip') || n.includes('close-grip') || n.includes('narrow')) sub.grip = 'narrow';
+  else if (n.includes('wide grip') || n.includes('wide-grip') || n.includes('wide')) sub.grip = 'wide';
+  else if (n.includes('neutral grip') || n.includes('neutral-grip') || n.includes('parallel')) sub.grip = 'neutral';
+  else if (n.includes('supinated') || n.includes('underhand')) sub.grip = 'supinated';
+  else if (n.includes('pronated') || n.includes('overhand')) sub.grip = 'pronated';
+
+  // Position
+  if (n.includes('seated') || n.includes('sitting')) sub.position = 'seated';
+  else if (n.includes('standing')) sub.position = 'standing';
+  else if (n.includes('lying') || n.includes('prone') || n.includes('supine')) sub.position = 'lying';
+  else if (n.includes('incline')) sub.position = 'incline';
+
+  // Laterality
+  if (n.includes('single arm') || n.includes('single-arm') || n.includes('one arm') || n.includes('one-arm') ||
+      n.includes('single leg') || n.includes('single-leg') || n.includes('one leg') || n.includes('one-leg') ||
+      n.includes('unilateral')) {
+    sub.unilateral = true;
+  }
+
+  // Implement type (barbell sub-types)
+  if (n.includes('ez bar') || n.includes('ez-bar') || n.includes('ez curl')) sub.implement = 'ez_bar';
+  else if (n.includes('trap bar') || n.includes('hex bar')) sub.implement = 'trap_bar';
+  else if (n.includes('swiss bar') || n.includes('football bar')) sub.implement = 'swiss_bar';
+  else if (n.includes('smith')) sub.implement = 'smith';
+
+  return sub;
+}
+
+// Detect movement pattern for an exercise name
+function detectMovement(exerciseName) {
+  const name = (exerciseName || '').toLowerCase();
+
+  for (const mp of MOVEMENT_PATTERNS) {
+    if (mp.test(name)) {
+      return {
+        pattern: mp.pattern,
+        muscle: mp.muscle,
+        isBicep: !!mp.isBicep,
+        isTricep: !!mp.isTricep,
+        isTricepRelated: !!mp.isTricepRelated,
+        subPatterns: detectSubPatterns(name),
+      };
+    }
+  }
+
+  // Fallback - try to detect muscle from generic keywords
+  let muscle = '';
+  if (name.includes('chest') || name.includes('pec')) muscle = 'CHEST';
+  else if (name.includes('back') || name.includes('lat ') || name.includes('lats')) muscle = 'BACK';
+  else if (name.includes('shoulder') || name.includes('delt')) muscle = 'SHOULDERS';
+  else if (name.includes('bicep')) muscle = 'BICEPS';
+  else if (name.includes('tricep')) muscle = 'TRICEPS';
+  else if (name.includes('leg') || name.includes('quad') || name.includes('hamstring')) muscle = 'LEGS';
+  else if (name.includes('core') || name.includes('ab ') || name.includes('abs')) muscle = 'CORE';
+  else if (name.includes('glute')) muscle = 'GLUTES';
+
+  return {
+    pattern: null,
+    muscle,
+    isBicep: name.includes('bicep') || name.includes('curl'),
+    isTricep: name.includes('tricep'),
+    isTricepRelated: false,
+    subPatterns: detectSubPatterns(name),
+  };
+}
+
+// ─── Scoring Engine ───────────────────────────────────────────────────────────
+// Multi-dimensional scoring for exercise similarity
+
+function scoreAlternative(original, alt, origMovement, altMovement) {
+  let score = 0;
+  const reasons = [];
+
+  // 1. MOVEMENT PATTERN MATCH (+100) - Highest priority
+  if (origMovement.pattern && altMovement.pattern && origMovement.pattern === altMovement.pattern) {
+    score += 100;
+    reasons.push('same_movement');
+  }
+  // Related movement patterns (+60)
+  else if (origMovement.pattern && altMovement.pattern) {
+    const related = getRelatedPatterns(origMovement.pattern);
+    if (related.includes(altMovement.pattern)) {
+      score += 60;
+      reasons.push('related_movement');
+    }
+  }
+
+  // 2. SUB-PATTERN MATCHES (+15 each, up to +45)
+  const origSub = origMovement.subPatterns;
+  const altSub = altMovement.subPatterns;
+  if (origSub.angle && altSub.angle && origSub.angle === altSub.angle) {
+    score += 15;
+    reasons.push('same_angle');
+  }
+  if (origSub.grip && altSub.grip && origSub.grip === altSub.grip) {
+    score += 15;
+    reasons.push('same_grip');
+  }
+  if (origSub.position && altSub.position && origSub.position === altSub.position) {
+    score += 10;
+    reasons.push('same_position');
+  }
+
+  // 3. SECONDARY MUSCLE OVERLAP (+25)
+  const origSecondary = parseSecondaryMuscles(original.secondary_muscles);
+  const altSecondary = parseSecondaryMuscles(alt.secondary_muscles);
+  if (origSecondary.length > 0 && altSecondary.length > 0) {
+    const overlap = origSecondary.filter(m => altSecondary.includes(m));
+    if (overlap.length > 0) {
+      score += Math.min(overlap.length * 12, 25);
+      reasons.push('secondary_overlap');
+    }
+  }
+
+  // 4. COMPOUND/ISOLATION MATCH (+20)
+  const origCompound = original.is_compound;
+  const altCompound = alt.is_compound;
+  if (origCompound !== undefined && altCompound !== undefined && origCompound === altCompound) {
+    score += 20;
+    reasons.push('same_type');
+  }
+
+  // 5. EQUIPMENT MATCH (+15)
+  if (original.equipment && alt.equipment) {
+    if (alt.equipment.toLowerCase() === original.equipment.toLowerCase()) {
+      score += 15;
+      reasons.push('same_equipment');
+    }
+  }
+
+  // 6. DIFFICULTY MATCH (+5)
+  if (original.difficulty && alt.difficulty === original.difficulty) {
+    score += 5;
+    reasons.push('same_difficulty');
+  }
+
+  return { score, reasons };
+}
+
+function parseSecondaryMuscles(secondary) {
+  if (!secondary) return [];
+  if (Array.isArray(secondary)) return secondary.map(m => (m || '').toLowerCase().trim()).filter(Boolean);
+  if (typeof secondary === 'string') {
+    try {
+      const parsed = JSON.parse(secondary);
+      if (Array.isArray(parsed)) return parsed.map(m => (m || '').toLowerCase().trim()).filter(Boolean);
+    } catch { /* ignore */ }
+    return secondary.split(',').map(m => m.toLowerCase().trim()).filter(Boolean);
+  }
+  return [];
+}
+
+// Related movement patterns - for "nearby" movement suggestions
+function getRelatedPatterns(pattern) {
+  const relations = {
+    'ROW': ['VERTICAL_PULL', 'FACE_PULL', 'PULLOVER'],
+    'VERTICAL_PULL': ['ROW', 'PULLOVER'],
+    'PULLOVER': ['VERTICAL_PULL', 'ROW'],
+    'CHEST_PRESS': ['DIP', 'FLY'],
+    'FLY': ['CHEST_PRESS'],
+    'DIP': ['CHEST_PRESS', 'TRICEP_EXTENSION'],
+    'SHOULDER_PRESS': ['LATERAL_RAISE', 'FRONT_RAISE', 'UPRIGHT_ROW'],
+    'LATERAL_RAISE': ['SHOULDER_PRESS', 'FRONT_RAISE', 'UPRIGHT_ROW'],
+    'FRONT_RAISE': ['SHOULDER_PRESS', 'LATERAL_RAISE'],
+    'UPRIGHT_ROW': ['SHOULDER_PRESS', 'LATERAL_RAISE', 'SHRUG'],
+    'REVERSE_FLY': ['FACE_PULL', 'ROW'],
+    'FACE_PULL': ['REVERSE_FLY', 'ROW'],
+    'SQUAT': ['LEG_PRESS', 'HACK_SQUAT', 'LUNGE'],
+    'LEG_PRESS': ['SQUAT', 'HACK_SQUAT'],
+    'HACK_SQUAT': ['SQUAT', 'LEG_PRESS'],
+    'LUNGE': ['SQUAT', 'LEG_PRESS'],
+    'LEG_CURL': ['DEADLIFT', 'GLUTE'],
+    'LEG_EXTENSION': ['SQUAT', 'LEG_PRESS'],
+    'DEADLIFT': ['LEG_CURL', 'GLUTE', 'ROW'],
+    'GLUTE': ['DEADLIFT', 'LEG_CURL', 'LUNGE'],
+    'CURL': ['CURL'], // biceps only swap with biceps
+    'TRICEP_EXTENSION': ['DIP', 'CHEST_PRESS'],
+    'CALF_RAISE': ['CALF_RAISE'],
+    'SHRUG': ['UPRIGHT_ROW'],
+    'WRIST_CURL': ['WRIST_CURL'],
+    'CORE_FLEXION': ['CORE_STABILITY', 'LEG_RAISE'],
+    'CORE_ROTATION': ['CORE_STABILITY'],
+    'CORE_STABILITY': ['CORE_FLEXION', 'CORE_ROTATION'],
+    'LEG_RAISE': ['CORE_FLEXION', 'CORE_STABILITY'],
+    'HIP_ADDUCTION': ['HIP_ABDUCTION', 'LUNGE'],
+    'HIP_ABDUCTION': ['HIP_ADDUCTION', 'GLUTE'],
+  };
+  return relations[pattern] || [];
+}
+
+// ─── Filter Logic ─────────────────────────────────────────────────────────────
+
+function shouldExcludeAlternative(original, alt, origMovement) {
+  const altName = (alt.name || '').toLowerCase();
+  const origName = (original.name || '').toLowerCase();
+
+  // Exclude current exercise
+  if (String(alt.id) === String(original.id)) return true;
+
+  // Filter out stretches/warmups for strength exercises
+  const isStretchOrWarmup = altName.includes('stretch') || altName.includes('warmup') || altName.includes('warm up') || altName.includes('mobility') || altName.includes('foam roll');
+  const originalIsStrength = !origName.includes('stretch') && !origName.includes('warmup') && !origName.includes('mobility');
+  if (originalIsStrength && isStretchOrWarmup) return true;
+
+  // BICEP exercise: exclude tricep, chest exercises
+  if (origMovement.isBicep) {
+    const altMovement = detectMovement(altName);
+    if (altMovement.isTricep || altMovement.isTricepRelated) return true;
+    // Only allow exercises that are clearly bicep-related
+    const isBicepAlt = altName.includes('bicep') || altName.includes('biceps') || altName.includes('curl') ||
+                       (altName.includes('hammer') && !altName.includes('hammer strength')) ||
+                       altName.includes('preacher') || altName.includes('concentration');
+    if (!isBicepAlt) return true;
+  }
+
+  // TRICEP exercise: exclude bicep, non-tricep exercises
+  if (origMovement.isTricep) {
+    const altMovement = detectMovement(altName);
+    if (altMovement.isBicep) return true;
+    // Only allow exercises that are clearly tricep-related (including close grip press, dips)
+    const isTricepAlt = altName.includes('tricep') || altName.includes('triceps') ||
+                        altName.includes('pushdown') || altName.includes('push-down') ||
+                        altName.includes('skull') || altName.includes('skullcrusher') ||
+                        altName.includes('close grip') || altName.includes('close-grip') ||
+                        altName.includes('dip') || altName.includes('jm press') ||
+                        (altName.includes('kickback') && !altName.includes('glute')) ||
+                        (altName.includes('extension') && !altName.includes('back') && !altName.includes('leg') && !altName.includes('hip') && !altName.includes('knee'));
+    if (!isTricepAlt) return true;
+  }
+
+  // TRICEP-RELATED press (close grip press): also exclude bicep exercises
+  if (origMovement.isTricepRelated) {
+    const altMovement = detectMovement(altName);
+    if (altMovement.isBicep) return true;
+  }
+
+  return false;
+}
+
+// ─── Main Handler ─────────────────────────────────────────────────────────────
+
 exports.handler = async (event) => {
-  // CORS headers
   const headers = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Headers": "Content-Type, Authorization",
@@ -22,197 +413,32 @@ exports.handler = async (event) => {
   }
 
   if (event.httpMethod !== "POST") {
-    return {
-      statusCode: 405,
-      headers,
-      body: JSON.stringify({ error: "Method not allowed" }),
-    };
+    return { statusCode: 405, headers, body: JSON.stringify({ error: "Method not allowed" }) };
   }
 
   try {
-    const { exercise, workoutExercises = [], userEquipment = [], reason = "", equipment = "" } = JSON.parse(event.body);
+    const { exercise, workoutExercises = [], equipment = "" } = JSON.parse(event.body);
 
     if (!exercise) {
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({ error: "Exercise is required" }),
-      };
+      return { statusCode: 400, headers, body: JSON.stringify({ error: "Exercise is required" }) };
     }
 
-    // Get the muscle group to filter alternatives
     const muscleGroup = exercise.muscle_group || exercise.muscleGroup || "";
-    const exerciseId = exercise.id;
-    const exerciseName = (exercise.name || '').toLowerCase();
+    const exerciseName = exercise.name || "";
 
-    // Detect specific muscle AND movement pattern EARLY for smart filtering
-    let specificMuscle = '';
-    let movementPattern = ''; // row, press, squat, curl, fly, pulldown, lunge, deadlift, etc.
-    let isBicepExercise = false;
-    let isTricepExercise = false;
+    // Detect movement pattern for the original exercise
+    const origMovement = detectMovement(exerciseName);
 
-    // MOVEMENT PATTERN DETECTION - This is the key for smart swaps
-    // Upright row - MUST be before generic row! (shoulders/traps, not back)
-    if (exerciseName.includes('upright row')) {
-      movementPattern = 'UPRIGHT_ROW';
-      specificMuscle = 'SHOULDERS';
-    }
-    // Rows (horizontal pull)
-    else if (exerciseName.includes('row')) {
-      movementPattern = 'ROW';
-      specificMuscle = 'BACK';
-    }
-    // Pulldowns/Pullups (vertical pull)
-    else if (exerciseName.includes('pulldown') || exerciseName.includes('pull-down') ||
-             exerciseName.includes('pullup') || exerciseName.includes('pull-up') ||
-             exerciseName.includes('chin-up') || exerciseName.includes('chinup')) {
-      movementPattern = 'VERTICAL_PULL';
-      specificMuscle = 'BACK';
-    }
-    // Squats
-    else if (exerciseName.includes('squat')) {
-      movementPattern = 'SQUAT';
-      specificMuscle = 'LEGS';
-    }
-    // Lunges / Single-leg movements
-    else if (exerciseName.includes('lunge') || exerciseName.includes('step up') || exerciseName.includes('step-up') ||
-             exerciseName.includes('split squat') || exerciseName.includes('bulgarian')) {
-      movementPattern = 'LUNGE';
-      specificMuscle = 'LEGS';
-    }
-    // Leg Press
-    else if (exerciseName.includes('leg press')) {
-      movementPattern = 'LEG_PRESS';
-      specificMuscle = 'LEGS';
-    }
-    // Deadlifts / Hip Hinge movements
-    else if (exerciseName.includes('deadlift') || exerciseName.includes('rdl') || exerciseName.includes('romanian') ||
-             exerciseName.includes('good morning') || exerciseName.includes('rack pull') || exerciseName.includes('block pull') ||
-             exerciseName.includes('kettlebell swing') || exerciseName.includes('kb swing') ||
-             exerciseName.includes('pull through') || exerciseName.includes('pull-through')) {
-      movementPattern = 'DEADLIFT';
-      specificMuscle = 'BACK'; // or could be LEGS
-    }
-    // Bench Press / Chest Press (including incline, decline, floor press)
-    else if (exerciseName.includes('bench press') || exerciseName.includes('chest press') ||
-             exerciseName.includes('incline press') || exerciseName.includes('decline press') ||
-             exerciseName.includes('floor press') ||
-             (exerciseName.includes('dumbbell press') && !exerciseName.includes('shoulder'))) {
-      movementPattern = 'CHEST_PRESS';
-      specificMuscle = 'CHEST';
-    }
-    // Reverse Fly / Rear Delt Fly - MUST be before regular fly check!
-    else if ((exerciseName.includes('fly') || exerciseName.includes('flye')) &&
-             (exerciseName.includes('reverse') || exerciseName.includes('rear'))) {
-      movementPattern = 'REVERSE_FLY';
-      specificMuscle = 'SHOULDERS';
-    }
-    // Flys (chest)
-    else if (exerciseName.includes('fly') || exerciseName.includes('flye')) {
-      movementPattern = 'FLY';
-      specificMuscle = 'CHEST';
-    }
-    // Shoulder Press / Overhead Press
-    else if (exerciseName.includes('shoulder press') || exerciseName.includes('overhead press') ||
-             exerciseName.includes('military press') || exerciseName.includes('ohp') ||
-             exerciseName.includes('arnold press') || exerciseName.includes('push press') ||
-             (exerciseName.includes('dumbbell press') && exerciseName.includes('shoulder'))) {
-      movementPattern = 'SHOULDER_PRESS';
-      specificMuscle = 'SHOULDERS';
-    }
-    // Front Raises
-    else if (exerciseName.includes('front raise') || exerciseName.includes('front delt')) {
-      movementPattern = 'FRONT_RAISE';
-      specificMuscle = 'SHOULDERS';
-    }
-    // Lateral Raises
-    else if (exerciseName.includes('lateral raise') || exerciseName.includes('side raise')) {
-      movementPattern = 'LATERAL_RAISE';
-      specificMuscle = 'SHOULDERS';
-    }
-    // Shrugs (traps)
-    else if (exerciseName.includes('shrug')) {
-      movementPattern = 'SHRUG';
-      specificMuscle = 'TRAPS';
-    }
-    // Face pulls (rear delts/upper back)
-    else if (exerciseName.includes('face pull')) {
-      movementPattern = 'FACE_PULL';
-      specificMuscle = 'SHOULDERS';
-    }
-    // Calf raises (also match just "calf" for exercises like "Standing Calf", "Seated Calf")
-    else if (exerciseName.includes('calf raise') || exerciseName.includes('calf press') ||
-             exerciseName.includes('calf') || exerciseName.includes('calves')) {
-      movementPattern = 'CALF_RAISE';
-      specificMuscle = 'CALVES';
-    }
-    // Leg curls - MUST be before bicep curls check!
-    // Nordic curl is also a hamstring exercise!
-    else if (exerciseName.includes('leg curl') || exerciseName.includes('hamstring curl') ||
-             exerciseName.includes('nordic curl') || exerciseName.includes('nordic') ||
-             ((exerciseName.includes('lying curl') || exerciseName.includes('seated curl')) &&
-              (exerciseName.includes('leg') || exerciseName.includes('hamstring')))) {
-      movementPattern = 'LEG_CURL';
-      specificMuscle = 'LEGS';
-    }
-    // Leg extensions
-    else if (exerciseName.includes('leg extension') || exerciseName.includes('quad extension')) {
-      movementPattern = 'LEG_EXTENSION';
-      specificMuscle = 'LEGS';
-    }
-    // Wrist curls - MUST be before bicep curls! (forearms, not biceps)
-    else if (exerciseName.includes('wrist curl') || exerciseName.includes('wrist extension')) {
-      movementPattern = 'WRIST_CURL';
-      specificMuscle = 'FOREARMS';
-    }
-    // Curls (bicep) - after leg curl and wrist curl checks
-    // Exclude "hammer strength" machines - those are equipment names, not hammer curls!
-    else if (exerciseName.includes('curl') || exerciseName.includes('bicep') ||
-             (exerciseName.includes('hammer') && !exerciseName.includes('hammer strength'))) {
-      movementPattern = 'CURL';
-      specificMuscle = 'BICEPS';
-      isBicepExercise = true;
-    }
-    // Tricep extensions/pushdowns
-    // Exclude 'glute kickback' from tricep - must be tricep kickback
-    else if (exerciseName.includes('tricep') || exerciseName.includes('pushdown') ||
-             exerciseName.includes('skull') ||
-             (exerciseName.includes('kickback') && !exerciseName.includes('glute')) ||
-             (exerciseName.includes('extension') && !exerciseName.includes('back') && !exerciseName.includes('leg') && !exerciseName.includes('hip'))) {
-      movementPattern = 'TRICEP_EXTENSION';
-      specificMuscle = 'TRICEPS';
-      isTricepExercise = true;
-    }
-    // Glute exercises (kickbacks, bridges, thrusts)
-    else if (exerciseName.includes('glute') || exerciseName.includes('hip thrust') ||
-             exerciseName.includes('glute bridge') || exerciseName.includes('donkey kick')) {
-      movementPattern = 'GLUTE';
-      specificMuscle = 'GLUTES';
-    }
-    // Dips (can be chest or tricep)
-    else if (exerciseName.includes('dip')) {
-      movementPattern = 'DIP';
-      specificMuscle = exerciseName.includes('tricep') ? 'TRICEPS' : 'CHEST';
-      if (exerciseName.includes('tricep')) isTricepExercise = true;
-    }
-    // Generic fallbacks for muscle detection
-    else if (exerciseName.includes('chest') || exerciseName.includes('pec')) {
-      specificMuscle = 'CHEST';
-    }
-    else if (exerciseName.includes('back') || exerciseName.includes('lat')) {
-      specificMuscle = 'BACK';
-    }
-    else if (exerciseName.includes('shoulder') || exerciseName.includes('delt')) {
-      specificMuscle = 'SHOULDERS';
-    }
+    console.log("AI Swap - Exercise:", exerciseName, "| Muscle:", muscleGroup,
+      "| Pattern:", origMovement.pattern, "| Specific:", origMovement.muscle,
+      "| Sub:", JSON.stringify(origMovement.subPatterns),
+      "| Equipment filter:", equipment);
 
-    console.log("AI Swap - Looking for alternatives to:", exercise.name, "Muscle group:", muscleGroup, "Specific:", specificMuscle, "Movement:", movementPattern, "Equipment filter:", equipment);
-
-    // Fetch potential alternatives from database (same muscle group)
+    // Fetch potential alternatives from database - increased limit for better candidates
     let query = supabase
       .from("exercises")
-      .select("id, name, muscle_group, secondary_muscles, equipment, difficulty, exercise_type, description, thumbnail_url, animation_url, video_url")
-      .limit(50);
+      .select("id, name, muscle_group, secondary_muscles, equipment, difficulty, exercise_type, description, thumbnail_url, animation_url, video_url, is_compound, is_unilateral")
+      .limit(200);
 
     // Filter by muscle group if provided
     if (muscleGroup) {
@@ -223,296 +449,170 @@ exports.handler = async (event) => {
 
     if (dbError) {
       console.error("Database error:", dbError);
-      return {
-        statusCode: 500,
-        headers,
-        body: JSON.stringify({ error: "Failed to fetch exercises", details: dbError.message }),
-      };
+      return { statusCode: 500, headers, body: JSON.stringify({ error: "Failed to fetch exercises", details: dbError.message }) };
     }
 
-    console.log("AI Swap - Found", alternatives?.length || 0, "potential alternatives");
-
     if (!alternatives || alternatives.length === 0) {
-      return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify({
-          suggestions: [],
-          message: "No alternative exercises found in this muscle group"
-        }),
-      };
+      return { statusCode: 200, headers, body: JSON.stringify({ suggestions: [], message: "No alternative exercises found in this muscle group" }) };
     }
 
     // Get exercise IDs already in the workout to exclude them
-    const workoutExerciseIds = workoutExercises.map(ex => ex.id).filter(Boolean);
+    const workoutExerciseIds = new Set(workoutExercises.map(ex => String(ex.id)).filter(Boolean));
 
-    // Filter out current exercise and exercises already in workout
-    // Also filter out stretches and warmups for strength exercises
-    // CRITICAL: Pre-filter to remove conflicting muscle groups (biceps vs triceps)
-    const filteredAlternatives = alternatives.filter(alt => {
-      const altId = String(alt.id);
-      const currentId = String(exerciseId);
-      const isCurrentExercise = altId === currentId;
-      const isInWorkout = workoutExerciseIds.some(id => String(id) === altId);
+    // Filter, score, and sort alternatives
+    const scored = [];
+    for (const alt of alternatives) {
+      // Skip exercises already in workout
+      if (workoutExerciseIds.has(String(alt.id))) continue;
 
-      // Filter out stretches/warmups if original exercise is strength
-      const altName = (alt.name || '').toLowerCase();
-      const isStretchOrWarmup = altName.includes('stretch') || altName.includes('warmup') || altName.includes('warm up');
-      const originalIsStrength = !exerciseName.includes('stretch') && !exerciseName.includes('warmup');
+      // Apply exclusion rules (bicep/tricep conflicts, stretches, etc.)
+      if (shouldExcludeAlternative(exercise, alt, origMovement)) continue;
 
-      if (originalIsStrength && isStretchOrWarmup) {
-        return false;
-      }
-
-      // CRITICAL: If swapping a BICEP exercise, exclude ALL tricep exercises
-      if (isBicepExercise) {
-        const isTricepAlt = altName.includes('tricep') || altName.includes('pushdown') ||
-                           altName.includes('skull') || altName.includes('kickback') ||
-                           (altName.includes('extension') && !altName.includes('back') && !altName.includes('leg'));
-        if (isTricepAlt) {
-          console.log("AI Swap - Excluding tricep exercise for bicep swap:", alt.name);
-          return false;
-        }
-        // Also exclude chest exercises (bench press, fly, etc.)
-        const isChestAlt = altName.includes('bench') || altName.includes('chest') ||
-                          altName.includes('fly') || altName.includes('flye') ||
-                          altName.includes('pec') || altName.includes('press');
-        // But allow preacher curl (has "press" pattern) - check for curl first
-        if (isChestAlt && !altName.includes('curl') && !altName.includes('bicep')) {
-          console.log("AI Swap - Excluding chest exercise for bicep swap:", alt.name);
-          return false;
-        }
-        // Only include exercises that are clearly bicep-related
-        // Exclude "hammer strength" machines - those are equipment names, not hammer curls!
-        const isBicepAlt = altName.includes('bicep') || altName.includes('curl') ||
-                          (altName.includes('hammer') && !altName.includes('hammer strength')) ||
-                          altName.includes('preacher') || altName.includes('concentration');
-        if (!isBicepAlt) {
-          console.log("AI Swap - Excluding non-bicep exercise for bicep swap:", alt.name);
-          return false;
-        }
-      }
-
-      // CRITICAL: If swapping a TRICEP exercise, exclude ALL bicep/curl exercises
-      if (isTricepExercise) {
-        // Exclude "hammer strength" machines - those are equipment names, not hammer curls!
-        const isBicepAlt = altName.includes('bicep') || altName.includes('curl') ||
-                          (altName.includes('hammer') && !altName.includes('hammer strength'));
-        if (isBicepAlt) {
-          console.log("AI Swap - Excluding bicep exercise for tricep swap:", alt.name);
-          return false;
-        }
-        // Also exclude chest exercises that aren't tricep-focused
-        const isChestAlt = (altName.includes('bench') || altName.includes('chest') ||
-                          altName.includes('fly') || altName.includes('flye') ||
-                          altName.includes('pec')) && !altName.includes('close grip') && !altName.includes('tricep');
-        if (isChestAlt) {
-          console.log("AI Swap - Excluding chest exercise for tricep swap:", alt.name);
-          return false;
-        }
-        // Only include exercises that are clearly tricep-related
-        const isTricepAlt = altName.includes('tricep') || altName.includes('pushdown') ||
-                           altName.includes('skull') || altName.includes('kickback') ||
-                           altName.includes('close grip') || altName.includes('dip') ||
-                           (altName.includes('extension') && !altName.includes('back') && !altName.includes('leg'));
-        if (!isTricepAlt) {
-          console.log("AI Swap - Excluding non-tricep exercise for tricep swap:", alt.name);
-          return false;
-        }
-      }
-
-      // Filter by equipment if specified
+      // Apply equipment filter if specified
       if (equipment) {
         const altEquip = (alt.equipment || '').toLowerCase();
-        if (!altEquip.includes(equipment.toLowerCase())) {
-          return false;
-        }
+        if (!altEquip.includes(equipment.toLowerCase())) continue;
       }
 
-      return !isCurrentExercise && !isInWorkout;
-    });
+      // Detect alt movement pattern and score
+      const altMovement = detectMovement(alt.name);
+      const { score, reasons } = scoreAlternative(exercise, alt, origMovement, altMovement);
 
-    // Score and sort alternatives by movement pattern similarity
-    // This ensures same-movement exercises appear first
-    const scoredAlternatives = filteredAlternatives.map(alt => {
-      const altName = (alt.name || '').toLowerCase();
-      let score = 0;
+      scored.push({ ...alt, _score: score, _reasons: reasons, _altMovement: altMovement });
+    }
 
-      // HIGHEST PRIORITY: Same movement pattern
-      if (movementPattern) {
-        if (movementPattern === 'ROW' && altName.includes('row')) score += 100;
-        else if (movementPattern === 'VERTICAL_PULL' && (altName.includes('pulldown') || altName.includes('pull-down') || altName.includes('pullup') || altName.includes('pull-up') || altName.includes('chin'))) score += 100;
-        else if (movementPattern === 'SQUAT' && altName.includes('squat')) score += 100;
-        else if (movementPattern === 'LUNGE' && (altName.includes('lunge') || altName.includes('step up') || altName.includes('step-up') || altName.includes('split squat') || altName.includes('bulgarian'))) score += 100;
-        else if (movementPattern === 'LEG_PRESS' && altName.includes('leg press')) score += 100;
-        else if (movementPattern === 'DEADLIFT' && (altName.includes('deadlift') || altName.includes('rdl') || altName.includes('romanian') || altName.includes('good morning') || altName.includes('rack pull') || altName.includes('block pull') || altName.includes('kettlebell swing') || altName.includes('kb swing') || altName.includes('pull through') || altName.includes('pull-through'))) score += 100;
-        else if (movementPattern === 'CHEST_PRESS' && (altName.includes('bench press') || altName.includes('chest press') || altName.includes('incline press') || altName.includes('decline press') || altName.includes('floor press') || altName.includes('dumbbell press'))) score += 100;
-        else if (movementPattern === 'FLY' && (altName.includes('fly') || altName.includes('flye'))) score += 100;
-        else if (movementPattern === 'SHOULDER_PRESS' && (altName.includes('shoulder press') || altName.includes('overhead press') || altName.includes('military') || altName.includes('arnold') || altName.includes('push press'))) score += 100;
-        else if (movementPattern === 'UPRIGHT_ROW' && altName.includes('upright row')) score += 100;
-        else if (movementPattern === 'FRONT_RAISE' && (altName.includes('front raise') || altName.includes('front delt'))) score += 100;
-        else if (movementPattern === 'SHRUG' && altName.includes('shrug')) score += 100;
-        else if (movementPattern === 'FACE_PULL' && altName.includes('face pull')) score += 100;
-        else if (movementPattern === 'WRIST_CURL' && (altName.includes('wrist curl') || altName.includes('wrist extension') || altName.includes('forearm'))) score += 100;
-        else if (movementPattern === 'LATERAL_RAISE' && (altName.includes('lateral raise') || altName.includes('side raise'))) score += 100;
-        else if (movementPattern === 'CURL' && (altName.includes('curl') || altName.includes('bicep') || (altName.includes('hammer') && !altName.includes('hammer strength')))) score += 100;
-        else if (movementPattern === 'TRICEP_EXTENSION' && (altName.includes('tricep') || altName.includes('pushdown') || altName.includes('skull') || altName.includes('extension'))) score += 100;
-        else if (movementPattern === 'DIP' && altName.includes('dip')) score += 100;
-        else if (movementPattern === 'LEG_EXTENSION' && altName.includes('extension') && altName.includes('leg')) score += 100;
-        else if (movementPattern === 'LEG_CURL' && (altName.includes('nordic') || (altName.includes('curl') && (altName.includes('leg') || altName.includes('hamstring'))))) score += 100;
-        else if (movementPattern === 'CALF_RAISE' && (altName.includes('calf') || altName.includes('calves'))) score += 100;
-        else if (movementPattern === 'REVERSE_FLY' && (altName.includes('reverse') || altName.includes('rear')) && (altName.includes('fly') || altName.includes('flye') || altName.includes('delt'))) score += 100;
-        else if (movementPattern === 'GLUTE' && (altName.includes('glute') || altName.includes('hip thrust') || altName.includes('bridge') || altName.includes('kickback'))) score += 100;
-      }
-
-      // MEDIUM PRIORITY: Same equipment
-      if (exercise.equipment && alt.equipment) {
-        if (alt.equipment.toLowerCase() === exercise.equipment.toLowerCase()) score += 20;
-      }
-
-      // LOW PRIORITY: Same difficulty
-      if (exercise.difficulty && alt.difficulty === exercise.difficulty) score += 5;
-
-      return { ...alt, _score: score };
-    });
-
-    // Sort by score (highest first), then by name
-    scoredAlternatives.sort((a, b) => {
+    // Sort by score descending, then alphabetically
+    scored.sort((a, b) => {
       if (b._score !== a._score) return b._score - a._score;
       return (a.name || '').localeCompare(b.name || '');
     });
 
-    // Remove the score field and use sorted list
-    const sortedAlternatives = scoredAlternatives.map(({ _score, ...rest }) => rest);
+    // Clean internal fields for the sorted list
+    const sortedAlternatives = scored.map(({ _score, _reasons, _altMovement, ...rest }) => rest);
 
-    console.log("AI Swap - After filtering:", sortedAlternatives.length, "available, top matches:", sortedAlternatives.slice(0,3).map(a => a.name));
+    console.log("AI Swap - After filtering:", sortedAlternatives.length,
+      "| Top 5:", scored.slice(0, 5).map(a => `${a.name} (${a._score})`));
 
     if (sortedAlternatives.length === 0) {
-      return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify({
-          suggestions: [],
-          message: "No alternative exercises available"
-        }),
-      };
+      return { statusCode: 200, headers, body: JSON.stringify({ suggestions: [], message: "No alternative exercises available" }) };
     }
 
-    // Try AI-powered suggestions with GPT-4o Mini, fallback to simple list if AI fails
+    // ─── AI-Powered Ranking with Claude ─────────────────────────────────────
     let aiSuggestions = [];
 
     try {
-      // Check if OpenAI API key is available
-      if (!OPENAI_API_KEY) {
-        throw new Error("OPENAI_API_KEY not configured");
+      if (!ANTHROPIC_API_KEY) {
+        throw new Error("ANTHROPIC_API_KEY not configured - falling back to OpenAI");
       }
 
-      // Build the prompt - exercises are already pre-filtered and sorted by movement pattern
-      const exerciseListForAI = sortedAlternatives.slice(0, 25).map(ex => ({
+      const topCandidates = scored.slice(0, 20).map(ex => ({
         id: ex.id,
         name: ex.name,
         muscle_group: ex.muscle_group,
         equipment: ex.equipment,
         difficulty: ex.difficulty,
-        exercise_type: ex.exercise_type
+        score: ex._score,
+        match_reasons: ex._reasons,
       }));
 
-      // Format specific muscle for prompt (already detected earlier)
-      let specificMuscleDesc = '';
-      if (specificMuscle === 'BICEPS') {
-        specificMuscleDesc = 'BICEPS (elbow flexion exercises like curls)';
-      } else if (specificMuscle === 'TRICEPS') {
-        specificMuscleDesc = 'TRICEPS (elbow extension exercises like pushdowns, extensions)';
-      } else if (specificMuscle === 'CHEST') {
-        specificMuscleDesc = 'CHEST (pressing and fly movements)';
-      } else if (specificMuscle === 'BACK') {
-        specificMuscleDesc = 'BACK (pulling movements like rows and pulldowns)';
-      } else if (specificMuscle === 'SHOULDERS') {
-        specificMuscleDesc = 'SHOULDERS (raises and presses)';
-      }
+      // Build a context-rich prompt
+      const movementDesc = origMovement.pattern ?
+        `Movement: ${origMovement.pattern.replace(/_/g, ' ')}` : 'Movement: unclassified';
+      const subDesc = Object.entries(origMovement.subPatterns)
+        .map(([k, v]) => `${k}: ${v}`).join(', ');
 
-      // Movement pattern description for prompt
-      let movementDesc = '';
-      if (movementPattern === 'ROW') movementDesc = 'ROW (horizontal pulling movement)';
-      else if (movementPattern === 'VERTICAL_PULL') movementDesc = 'VERTICAL PULL (pulldowns/pullups)';
-      else if (movementPattern === 'SQUAT') movementDesc = 'SQUAT (knee-dominant compound)';
-      else if (movementPattern === 'LUNGE') movementDesc = 'LUNGE (single-leg movement)';
-      else if (movementPattern === 'DEADLIFT') movementDesc = 'DEADLIFT/HINGE (hip-dominant)';
-      else if (movementPattern === 'CHEST_PRESS') movementDesc = 'CHEST PRESS (horizontal push)';
-      else if (movementPattern === 'FLY') movementDesc = 'FLY (chest isolation)';
-      else if (movementPattern === 'SHOULDER_PRESS') movementDesc = 'SHOULDER PRESS (vertical push)';
-      else if (movementPattern === 'LATERAL_RAISE') movementDesc = 'LATERAL RAISE (shoulder isolation)';
-      else if (movementPattern === 'CURL') movementDesc = 'CURL (bicep/elbow flexion)';
-      else if (movementPattern === 'TRICEP_EXTENSION') movementDesc = 'TRICEP EXTENSION (elbow extension)';
-      else if (movementPattern === 'REVERSE_FLY') movementDesc = 'REVERSE FLY (rear delt isolation)';
-      else if (movementPattern === 'GLUTE') movementDesc = 'GLUTE (hip extension/kickback)';
-      else if (movementPattern === 'LEG_CURL') movementDesc = 'LEG CURL (hamstring isolation)';
-      else if (movementPattern === 'LEG_EXTENSION') movementDesc = 'LEG EXTENSION (quad isolation)';
-      else if (movementPattern === 'CALF_RAISE') movementDesc = 'CALF RAISE (ankle plantar flexion)';
-      else if (movementPattern === 'UPRIGHT_ROW') movementDesc = 'UPRIGHT ROW (shoulder/trap pull)';
-      else if (movementPattern === 'FRONT_RAISE') movementDesc = 'FRONT RAISE (front delt isolation)';
-      else if (movementPattern === 'SHRUG') movementDesc = 'SHRUG (trap isolation)';
-      else if (movementPattern === 'FACE_PULL') movementDesc = 'FACE PULL (rear delt/external rotation)';
-      else if (movementPattern === 'WRIST_CURL') movementDesc = 'WRIST CURL (forearm isolation)';
+      const prompt = `You are an expert strength & conditioning coach. Select the 5 best exercise substitutions.
 
-      const prompt = `You are an expert strength coach selecting exercise substitutions. MOVEMENT PATTERN is the #1 priority.
-
-EXERCISE TO REPLACE: "${exercise.name}"
-- Muscle Group: ${muscleGroup}
+REPLACING: "${exerciseName}"
+- Muscle group: ${muscleGroup}
 - Equipment: ${exercise.equipment || "bodyweight"}
-${movementDesc ? `- MOVEMENT PATTERN: ${movementDesc} - PRIORITIZE exercises with the SAME movement!` : ''}
-${specificMuscleDesc ? `- SPECIFIC MUSCLE: ${specificMuscleDesc}` : ''}
+- ${movementDesc}${subDesc ? ` (${subDesc})` : ''}
 
-CRITICAL RULE: The exercises are listed in ORDER OF RELEVANCE. The first exercises are the BEST matches (same movement pattern). Pick from the TOP of the list first!
+RANKING RULES (strict priority order):
+1. SAME MOVEMENT PATTERN — A row must swap with another row. A squat with another squat. A curl with another curl. This is non-negotiable.
+2. SIMILAR BIOMECHANICS — Same joint angles, same planes of motion. Incline press → incline press > flat press > decline press.
+3. SIMILAR TRAINING STIMULUS — Compound ↔ compound, isolation ↔ isolation. Don't swap a squat for a leg extension.
+4. EQUIPMENT PREFERENCE — Matching equipment is nice but is the LOWEST priority.
 
-SWAP PRIORITY (in exact order):
-1. **SAME MOVEMENT PATTERN** - Row → another Row variation. Squat → another Squat variation. Curl → another Curl.
-2. **Same muscle, different movement** - Only if no same-movement options. Row → Pulldown (both back, different pattern).
-3. **Equipment matching** - Nice but LOWEST priority.
+NEVER recommend:
+- An antagonist muscle exercise (bicep curl for a tricep exercise, or vice versa)
+- A completely different movement pattern (pulldown for a row, fly for a press)
+- An isolation exercise to replace a compound exercise (unless no compounds are available)
 
-GOOD SWAPS (same movement):
-- Barbell Row → Dumbbell Row, Cable Row, T-Bar Row, Seated Row (all ROWS)
-- Back Squat → Front Squat, Goblet Squat, Hack Squat (all SQUATS)
-- Bench Press → Incline Press, Dumbbell Press (all PRESSING)
-- Bicep Curl → Hammer Curl, Preacher Curl, Cable Curl (all CURLS)
+CANDIDATES (pre-scored, ordered by algorithmic match — prefer higher-scored candidates):
+${JSON.stringify(topCandidates, null, 1)}
 
-BAD SWAPS (different movement):
-- Barbell Row → Lat Pulldown (WRONG! Row is horizontal, pulldown is vertical)
-- Squat → Leg Extension (WRONG! Compound vs isolation)
-- Bench Press → Cable Fly (WRONG! Press vs fly pattern)
+Return EXACTLY this JSON — no markdown, no explanation:
+{"suggestions":[{"id":123,"name":"Exercise Name","reason":"Coaching reason in 10 words max"}]}
 
-AVAILABLE EXERCISES (ordered by relevance - TOP = best match):
-${JSON.stringify(exerciseListForAI, null, 2)}
+Select 5 exercises. STRONGLY prefer candidates from the top of the list (highest score). Only deviate if you have strong biomechanical justification.`;
 
-Select 3-5 exercises. STRONGLY prefer exercises from the TOP of the list as they match the movement pattern.
-
-RESPOND IN THIS EXACT JSON FORMAT ONLY (no markdown, no code blocks):
-{"suggestions":[{"id":"exercise_id","name":"Exercise Name","reason":"Brief coaching reason (8 words max)"}]}`;
-
-      const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
-      const completion = await openai.chat.completions.create({
-        model: 'gpt-4o-mini',
-        messages: [{ role: 'user', content: prompt }],
+      const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
+      const message = await anthropic.messages.create({
+        model: 'claude-haiku-4-20250414',
         max_tokens: 512,
-        temperature: 0.3
+        messages: [{ role: 'user', content: prompt }],
       });
 
-      const responseText = completion.choices?.[0]?.message?.content || '';
-
-      // Parse JSON from response
+      const responseText = message.content?.[0]?.text || '';
       const jsonMatch = responseText.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         const parsed = JSON.parse(jsonMatch[0]);
         aiSuggestions = parsed.suggestions || [];
-        console.log("AI Swap - Got", aiSuggestions.length, "AI suggestions");
+        console.log("AI Swap - Claude returned", aiSuggestions.length, "suggestions");
       }
-    } catch (aiError) {
-      console.error("AI suggestion failed, using fallback:", aiError.message);
-      // Fallback: return top alternatives (already sorted by movement pattern)
-      aiSuggestions = sortedAlternatives.slice(0, 5).map(ex => ({
+    } catch (claudeError) {
+      console.error("Claude failed, trying OpenAI fallback:", claudeError.message);
+
+      // Fallback to OpenAI if Claude fails
+      try {
+        if (!OPENAI_API_KEY) throw new Error("No OpenAI key either");
+
+        const OpenAI = require('openai');
+        const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
+
+        const topCandidates = scored.slice(0, 20).map(ex => ({
+          id: ex.id,
+          name: ex.name,
+          muscle_group: ex.muscle_group,
+          equipment: ex.equipment,
+          score: ex._score,
+        }));
+
+        const fallbackPrompt = `Expert strength coach: pick the 5 best exercise substitutions for "${exerciseName}" (${muscleGroup}, ${exercise.equipment || "bodyweight"}).
+Movement pattern: ${origMovement.pattern || 'unknown'}. SAME movement pattern is #1 priority. NEVER suggest antagonist muscles.
+
+Candidates (ordered by match quality): ${JSON.stringify(topCandidates)}
+
+Return JSON only: {"suggestions":[{"id":123,"name":"Name","reason":"Brief reason"}]}`;
+
+        const completion = await openai.chat.completions.create({
+          model: 'gpt-4o',
+          messages: [{ role: 'user', content: fallbackPrompt }],
+          max_tokens: 512,
+          temperature: 0.2,
+        });
+
+        const responseText = completion.choices?.[0]?.message?.content || '';
+        const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          aiSuggestions = parsed.suggestions || [];
+          console.log("AI Swap - OpenAI fallback returned", aiSuggestions.length, "suggestions");
+        }
+      } catch (openaiError) {
+        console.error("OpenAI fallback also failed:", openaiError.message);
+      }
+    }
+
+    // If AI completely failed, use rule-based fallback
+    if (aiSuggestions.length === 0) {
+      aiSuggestions = scored.slice(0, 5).map(ex => ({
         id: ex.id,
         name: ex.name,
-        reason: `Similar ${ex.muscle_group} exercise${ex.equipment ? ` using ${ex.equipment}` : ""}`
+        reason: ex._reasons.includes('same_movement') ?
+          `Same ${origMovement.pattern?.replace(/_/g, ' ').toLowerCase() || 'movement'} pattern` :
+          `Similar ${ex.muscle_group} exercise${ex.equipment ? ` with ${ex.equipment}` : ""}`
       }));
     }
 
@@ -520,18 +620,15 @@ RESPOND IN THIS EXACT JSON FORMAT ONLY (no markdown, no code blocks):
     const enrichedSuggestions = aiSuggestions.map(suggestion => {
       const fullExercise = sortedAlternatives.find(
         ex => String(ex.id) === String(suggestion.id) ||
-              ex.name.toLowerCase() === suggestion.name.toLowerCase()
+              ex.name.toLowerCase() === (suggestion.name || '').toLowerCase()
       );
       if (fullExercise) {
-        return {
-          ...fullExercise,
-          ai_reason: suggestion.reason
-        };
+        return { ...fullExercise, ai_reason: suggestion.reason };
       }
       return null;
     }).filter(Boolean);
 
-    // If AI matching failed, just return top alternatives
+    // If enrichment failed, use scored fallback
     if (enrichedSuggestions.length === 0) {
       const fallbackSuggestions = sortedAlternatives.slice(0, 5).map(ex => ({
         ...ex,
@@ -541,28 +638,18 @@ RESPOND IN THIS EXACT JSON FORMAT ONLY (no markdown, no code blocks):
       return {
         statusCode: 200,
         headers,
-        body: JSON.stringify({
-          suggestions: fallbackSuggestions,
-          message: `Found ${fallbackSuggestions.length} alternatives`
-        }),
+        body: JSON.stringify({ suggestions: fallbackSuggestions, message: `Found ${fallbackSuggestions.length} alternatives` }),
       };
     }
 
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify({
-        suggestions: enrichedSuggestions,
-        message: `Found ${enrichedSuggestions.length} smart alternatives`
-      }),
+      body: JSON.stringify({ suggestions: enrichedSuggestions, message: `Found ${enrichedSuggestions.length} smart alternatives` }),
     };
 
   } catch (error) {
     console.error("AI Swap Error:", error);
-    return {
-      statusCode: 500,
-      headers,
-      body: JSON.stringify({ error: "Failed to generate swap suggestions", details: error.message }),
-    };
+    return { statusCode: 500, headers, body: JSON.stringify({ error: "Failed to generate swap suggestions", details: error.message }) };
   }
 };
