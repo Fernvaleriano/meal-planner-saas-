@@ -846,9 +846,6 @@ function GuidedWorkoutModal({
     return () => { document.body.style.overflow = orig; };
   }, []);
 
-  // State for forcing re-render on app resume
-  const [resumeKey, setResumeKey] = useState(0);
-
   // Handle app resume: restore scroll lock and force re-layout
   // This fixes blank screen / frozen UI on iOS Safari when returning from background
   useEffect(() => {
@@ -857,10 +854,18 @@ function GuidedWorkoutModal({
       document.body.style.overflow = 'hidden';
       document.documentElement.style.overflow = 'hidden';
 
-      // Force a re-render to fix any stale layout on iOS Safari
-      // This triggers React to recalculate and repaint the component
+      // Force a lightweight repaint on iOS Safari without destroying the DOM tree.
+      // Changing a React key would unmount/remount the entire child tree, which
+      // combined with the timer interval creates a render storm that freezes the UI.
+      // Instead, toggle a CSS property to trigger a compositor repaint.
       if (backgroundMs > 2000) {
-        setResumeKey(k => k + 1);
+        const el = document.querySelector('.guided-workout-overlay');
+        if (el) {
+          el.style.willChange = 'transform';
+          requestAnimationFrame(() => {
+            if (el) el.style.willChange = '';
+          });
+        }
       }
     });
 
@@ -1075,7 +1080,7 @@ function GuidedWorkoutModal({
       } else {
         setTimer(remaining);
       }
-    }, 250);
+    }, 1000);
 
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
@@ -1179,7 +1184,7 @@ function GuidedWorkoutModal({
   // --- Complete screen ---
   if (phase === 'complete') {
     return (
-      <div className="guided-workout-overlay" key={`complete-${resumeKey}`}>
+      <div className="guided-workout-overlay">
         <div className="guided-complete-screen">
           <div className="guided-complete-icon">
             <Check size={48} />
@@ -1197,7 +1202,7 @@ function GuidedWorkoutModal({
   }
 
   return (
-    <div className="guided-workout-overlay" key={`workout-${resumeKey}`}>
+    <div className="guided-workout-overlay">
       {/* Top bar */}
       <div className="guided-top-bar">
         <button className="guided-close-btn" onClick={onClose}>
