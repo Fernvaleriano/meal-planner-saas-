@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, memo } from 'react';
 import { Check, Plus, Clock, ChevronRight, Minus, Play, Timer, Zap, Flame, Leaf, RotateCcw, ArrowLeftRight, Trash2, ChevronUp, ChevronDown, GripVertical, Mic, MicOff } from 'lucide-react';
 import SmartThumbnail from './SmartThumbnail';
 import { onAppResume, onAppSuspend } from '../../hooks/useAppLifecycle';
@@ -129,11 +129,6 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
   // Early return if exercise is invalid
   if (!exercise || typeof exercise !== 'object') {
     return null;
-  }
-
-  // Debug: Log equipment field on render (remove after debugging)
-  if (process.env.NODE_ENV === 'development') {
-    console.log(`[ExerciseCard] ${exercise.name}: equipment="${exercise.equipment || 'MISSING'}"`);
   }
 
   // Check for special exercise types - with defensive checks
@@ -1046,4 +1041,4 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
   );
 }
 
-export default ExerciseCard;
+export default memo(ExerciseCard);

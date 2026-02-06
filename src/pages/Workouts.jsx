@@ -471,10 +471,17 @@ function Workouts() {
 
   // On app resume: close all modals/overlays and clean up body scroll lock
   // This prevents the "frozen screen" where an overlay blocks all touch events
+  // IMPORTANT: Skip cleanup when GuidedWorkoutModal is open — it manages its own
+  // scroll lock and DOM state. Forcefully clearing it here causes the guided
+  // workout view to freeze because the scroll lock gets removed out from under it.
   useEffect(() => {
     const unsubResume = onAppResume((backgroundMs) => {
       // Only do full cleanup if backgrounded for more than 3 seconds
       if (backgroundMs < 3000) return;
+
+      // If the guided workout modal is open, let it handle its own resume logic.
+      // Clearing scroll locks or closing modals here would conflict with it.
+      if (showGuidedWorkout) return;
 
       // Close the exercise detail modal (this also triggers its body scroll lock cleanup)
       setSelectedExercise(null);
@@ -500,7 +507,7 @@ function Workouts() {
     });
 
     return () => unsubResume();
-  }, []);
+  }, [showGuidedWorkout]);
 
   // Close menus when clicking outside
   useEffect(() => {

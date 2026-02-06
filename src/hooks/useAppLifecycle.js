@@ -86,9 +86,16 @@ async function triggerResume(backgroundMs) {
     }
   }
 
-  // Clean up any stuck scroll locks
+  // Clean up any stuck scroll locks — but only if no full-screen overlay
+  // (like GuidedWorkoutModal) is actively managing the lock.
+  // GuidedWorkoutModal re-applies overflow:hidden in its own resume handler,
+  // but if we clear it first there's a brief window where touch events can
+  // scroll the body on iOS Safari, causing the viewport to freeze.
   if (backgroundMs > 3000) {
-    cleanupStuckScrollLock();
+    const guidedOverlay = document.querySelector('.guided-workout-overlay');
+    if (!guidedOverlay) {
+      cleanupStuckScrollLock();
+    }
   }
 
   // Notify all resume subscribers with how long we were away
@@ -181,7 +188,14 @@ export function useAppLifecycle() {
 
     // ── WATCHDOG: Detect stuck scroll locks on first touch ──
     // Even after heartbeat fires, the first touch/click is a safety net.
+    // Throttled to run at most once per 2 seconds to avoid running an
+    // expensive querySelector on every single touch/click event.
+    let lastWatchdogRun = 0;
     const handleTouchStart = () => {
+      const now = Date.now();
+      if (now - lastWatchdogRun < 2000) return;
+      lastWatchdogRun = now;
+
       const hasScrollLock =
         document.body.style.overflow === 'hidden' ||
         document.documentElement.style.overflow === 'hidden' ||
