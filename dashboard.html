@@ -3158,6 +3158,180 @@
             border-color: #7c3aed;
             color: #c4b5fd;
         }
+
+        /* Extended Stats Row */
+        .stats-grid-extended {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-top: 16px;
+        }
+        .stat-mini {
+            background: #fff;
+            border-radius: 14px;
+            padding: 16px;
+            border: 1px solid #e2e8f0;
+            text-align: center;
+            transition: all 0.2s ease;
+        }
+        .stat-mini:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        .stat-mini-number {
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: #1e293b;
+            line-height: 1;
+        }
+        .stat-mini-label {
+            font-size: 11px;
+            color: #64748b;
+            margin-top: 4px;
+            font-weight: 500;
+        }
+        .stat-mini-trend {
+            font-size: 11px;
+            font-weight: 600;
+            margin-top: 4px;
+        }
+        .stat-mini-trend.up { color: #16a34a; }
+        .stat-mini-trend.down { color: #dc2626; }
+        .stat-mini-trend.neutral { color: #94a3b8; }
+        [data-theme="dark"] .stat-mini {
+            background: #1e293b;
+            border-color: #334155;
+        }
+        [data-theme="dark"] .stat-mini-number { color: #f1f5f9; }
+        [data-theme="dark"] .stat-mini-label { color: #94a3b8; }
+
+        /* Client Activity Grid */
+        .cag-section {
+            margin-top: 20px;
+            background: #fff;
+            border-radius: 16px;
+            border: 1px solid #e2e8f0;
+            overflow: hidden;
+        }
+        .cag-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 18px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .cag-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #1e293b;
+        }
+        .cag-subtitle {
+            font-size: 12px;
+            color: #94a3b8;
+            font-weight: 500;
+        }
+        .cag-list {
+            max-height: 420px;
+            overflow-y: auto;
+        }
+        .cag-row {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            align-items: center;
+            padding: 12px 18px;
+            border-bottom: 1px solid #f8fafc;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .cag-row:hover {
+            background: #f8fafc;
+        }
+        .cag-row:last-child {
+            border-bottom: none;
+        }
+        .cag-client-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 0;
+        }
+        .cag-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #14b8a6, #0d9488);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 13px;
+            flex-shrink: 0;
+        }
+        .cag-avatar.inactive {
+            background: linear-gradient(135deg, #94a3b8, #64748b);
+        }
+        .cag-name {
+            font-weight: 600;
+            font-size: 14px;
+            color: #1e293b;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .cag-detail {
+            font-size: 12px;
+            color: #64748b;
+            margin-top: 2px;
+        }
+        .cag-badges {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+        .cag-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 3px 8px;
+            border-radius: 20px;
+            white-space: nowrap;
+        }
+        .cag-badge.green { background: #dcfce7; color: #16a34a; }
+        .cag-badge.amber { background: #fef3c7; color: #d97706; }
+        .cag-badge.red { background: #fee2e2; color: #dc2626; }
+        .cag-badge.purple { background: #ede9fe; color: #7c3aed; }
+        .cag-badge.blue { background: #dbeafe; color: #2563eb; }
+        .cag-badge.gray { background: #f1f5f9; color: #64748b; }
+        .cag-trend-up { color: #16a34a; }
+        .cag-trend-down { color: #dc2626; }
+        .cag-trend-flat { color: #94a3b8; }
+        .cag-empty {
+            padding: 32px 16px;
+            text-align: center;
+            color: #94a3b8;
+        }
+        [data-theme="dark"] .cag-section { background: #1e293b; border-color: #334155; }
+        [data-theme="dark"] .cag-header { border-color: #334155; }
+        [data-theme="dark"] .cag-title { color: #f1f5f9; }
+        [data-theme="dark"] .cag-row { border-color: #1e293b; }
+        [data-theme="dark"] .cag-row:hover { background: #334155; }
+        [data-theme="dark"] .cag-name { color: #f1f5f9; }
+        [data-theme="dark"] .cag-detail { color: #94a3b8; }
+        [data-theme="dark"] .cag-badge.green { background: #052e16; color: #4ade80; }
+        [data-theme="dark"] .cag-badge.amber { background: #451a03; color: #fbbf24; }
+        [data-theme="dark"] .cag-badge.red { background: #450a0a; color: #f87171; }
+        [data-theme="dark"] .cag-badge.purple { background: #2e1065; color: #a78bfa; }
+        [data-theme="dark"] .cag-badge.blue { background: #172554; color: #60a5fa; }
+        [data-theme="dark"] .cag-badge.gray { background: #334155; color: #94a3b8; }
+
+        @media (max-width: 768px) {
+            .stats-grid-extended {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
     </style>
     <link rel="stylesheet" href="/css/coach-layout.css">
     <script src="https://unpkg.com/lucide@0.312.0/dist/umd/lucide.min.js" onload="lucide.createIcons()"></script>
@@ -3420,6 +3594,39 @@
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
                         </div>
                     </div>
+                </div>
+
+                <!-- Extended Stats Row -->
+                <div class="stats-grid-extended" id="extendedStats">
+                    <div class="stat-mini">
+                        <div class="stat-mini-number" id="statWorkouts">-</div>
+                        <div class="stat-mini-label">Workouts This Week</div>
+                    </div>
+                    <div class="stat-mini">
+                        <div class="stat-mini-number" id="statPRs">-</div>
+                        <div class="stat-mini-label">PRs This Week</div>
+                    </div>
+                    <div class="stat-mini">
+                        <div class="stat-mini-number" id="statAdherence">-</div>
+                        <div class="stat-mini-label">Avg Adherence</div>
+                    </div>
+                    <div class="stat-mini">
+                        <div class="stat-mini-number" id="statActiveRate">-</div>
+                        <div class="stat-mini-label">Clients Active</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Client Activity At-a-Glance -->
+            <div class="cag-section" id="clientActivityGrid">
+                <div class="cag-header">
+                    <div>
+                        <div class="cag-title">Client Activity</div>
+                        <div class="cag-subtitle">All clients at a glance — last 7 days</div>
+                    </div>
+                </div>
+                <div class="cag-list" id="cagList">
+                    <div class="cag-empty">Loading client activity...</div>
                 </div>
             </div>
 
@@ -3998,7 +4205,9 @@
                         'pending_checkin': 'checkin',
                         'expiring_plan': 'plan',
                         'client_pr': 'pr',
-                        'workout_note': 'workout-note'
+                        'workout_note': 'workout-note',
+                        'ghost_client': 'ghost',
+                        'plateau': 'plateau'
                     };
                     const prefix = prefixMap[item.reason];
                     // Use explicit null check - related_checkin_id could be 0 (falsy but valid)
@@ -4571,6 +4780,116 @@
                     console.warn('Could not check workout notes:', e);
                 }
 
+                // --- GHOST / INACTIVE CLIENTS ---
+                try {
+                    const clientIds = (allClients || []).map(c => c.id);
+                    if (clientIds.length > 0) {
+                        // Find clients with NO workout logs in the past 7 days
+                        const { data: activeWorkouts } = await supabaseClient
+                            .from('workout_logs')
+                            .select('client_id')
+                            .in('client_id', clientIds)
+                            .gte('created_at', weekAgo.toISOString());
+
+                        const activeClientIds = new Set((activeWorkouts || []).map(w => w.client_id));
+                        const ghostClients = clientIds.filter(id => !activeClientIds.has(id));
+
+                        // Also check for no check-ins in 14 days
+                        const { data: recentCheckins } = await supabaseClient
+                            .from('client_checkins')
+                            .select('client_id')
+                            .eq('coach_id', coachId)
+                            .in('client_id', ghostClients)
+                            .gte('created_at', twoWeeksAgo.toISOString());
+
+                        const checkinClientIds = new Set((recentCheckins || []).map(c => c.client_id));
+                        // Truly ghost: no workouts this week AND no check-ins in 2 weeks
+                        const trulyGhost = ghostClients.filter(id => !checkinClientIds.has(id));
+
+                        trulyGhost.slice(0, MAX_SHOWN).forEach(gId => {
+                            const name = clientMap[gId] || 'Unknown Client';
+                            const aid = 'ghost-' + gId;
+                            const url = `client-profile.html?clientId=${gId}`;
+                            addAlert(aid, `
+                                <div class="priority-alert priority-alert--clickable" onclick="reviewAndArchive('${aid}', '${url}')">
+                                    __CHECKBOX__
+                                    <span class="priority-dot priority-dot--amber"></span>
+                                    <span>
+                                        <span class="priority-label priority-label--pending">👻 Inactive:</span>
+                                        <strong>${name}</strong> — no workouts or check-ins recently
+                                        <span class="priority-alert-link">Reach out →</span>
+                                    </span>
+                                </div>
+                            `, gId, 'ghost_client', gId);
+                        });
+                    }
+                } catch (e) {
+                    console.warn('Could not check ghost clients:', e);
+                }
+
+                // --- PLATEAU DETECTION ---
+                try {
+                    const clientIds = (allClients || []).map(c => c.id);
+                    if (clientIds.length > 0) {
+                        // Look for exercises where the max_weight hasn't changed across 3+ recent sessions
+                        const thirtyDaysAgo = new Date();
+                        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                        const { data: recentExLogs } = await supabaseClient
+                            .from('exercise_logs')
+                            .select(`
+                                exercise_name,
+                                max_weight,
+                                created_at,
+                                workout_logs!inner(client_id)
+                            `)
+                            .in('workout_logs.client_id', clientIds)
+                            .gte('created_at', thirtyDaysAgo.toISOString())
+                            .gt('max_weight', 0)
+                            .order('created_at', { ascending: false })
+                            .limit(500);
+
+                        if (recentExLogs && recentExLogs.length > 0) {
+                            // Group by client+exercise
+                            const groups = {};
+                            recentExLogs.forEach(log => {
+                                const cId = log.workout_logs?.client_id;
+                                const key = `${cId}::${log.exercise_name}`;
+                                if (!groups[key]) groups[key] = { clientId: cId, exercise: log.exercise_name, weights: [] };
+                                groups[key].weights.push(log.max_weight);
+                            });
+
+                            // Find plateaus: same weight for 3+ consecutive sessions
+                            let plateauCount = 0;
+                            Object.values(groups).forEach(g => {
+                                if (g.weights.length >= 3) {
+                                    const last3 = g.weights.slice(0, 3);
+                                    if (last3.every(w => w === last3[0])) {
+                                        if (plateauCount < MAX_SHOWN) {
+                                            const name = clientMap[g.clientId] || 'Unknown Client';
+                                            const aid = `plateau-${g.clientId}-${g.exercise.replace(/\s/g,'-')}`;
+                                            const url = `client-profile.html?clientId=${g.clientId}&tab=workouts`;
+                                            addAlert(aid, `
+                                                <div class="priority-alert priority-alert--clickable" onclick="reviewAndArchive('${aid}', '${url}')">
+                                                    __CHECKBOX__
+                                                    <span class="priority-dot priority-dot--amber"></span>
+                                                    <span>
+                                                        <span class="priority-label priority-label--pending">📊 Plateau:</span>
+                                                        <strong>${name}</strong> stuck at ${last3[0]} kg on ${g.exercise} (3+ sessions)
+                                                        <span class="priority-alert-link">Review →</span>
+                                                    </span>
+                                                </div>
+                                            `, g.clientId, 'plateau', `${g.clientId}-${g.exercise}`);
+                                        }
+                                        plateauCount++;
+                                    }
+                                }
+                            });
+                        }
+                    }
+                } catch (e) {
+                    console.warn('Could not check plateaus:', e);
+                }
+
                 // --- WORKOUT ACTIVITY (informational, no checkbox) ---
                 try {
                     const clientIds = (allClients || []).map(c => c.id);
@@ -4848,6 +5167,9 @@
 
                 // Fetch and display quick stats
                 await loadQuickStats(user.id);
+
+                // Load client activity grid (non-blocking)
+                loadClientActivityGrid(user.id);
 
                 // Load notifications
                 loadNotifications(user.id);
@@ -5721,6 +6043,194 @@
                 loadMyStories();
             }
         }, 2000);
+
+        // --- Client Activity Grid ---
+        async function loadClientActivityGrid(coachId) {
+            const listEl = document.getElementById('cagList');
+            if (!listEl) return;
+
+            try {
+                // Fetch all clients
+                const { data: clients } = await supabaseClient
+                    .from('clients')
+                    .select('id, client_name')
+                    .eq('coach_id', coachId);
+
+                if (!clients || clients.length === 0) {
+                    listEl.innerHTML = '<div class="cag-empty">No clients yet. Add your first client to see activity here.</div>';
+                    return;
+                }
+
+                const clientIds = clients.map(c => c.id);
+                const weekAgo = new Date();
+                weekAgo.setDate(weekAgo.getDate() - 7);
+                const prevWeekStart = new Date(weekAgo);
+                prevWeekStart.setDate(prevWeekStart.getDate() - 7);
+
+                // Fetch this week's workout logs
+                const { data: thisWeekWorkouts } = await supabaseClient
+                    .from('workout_logs')
+                    .select('id, client_id, total_volume, created_at, status')
+                    .in('client_id', clientIds)
+                    .gte('created_at', weekAgo.toISOString());
+
+                // Fetch last week's workout logs for comparison
+                const { data: lastWeekWorkouts } = await supabaseClient
+                    .from('workout_logs')
+                    .select('id, client_id, total_volume')
+                    .in('client_id', clientIds)
+                    .gte('created_at', prevWeekStart.toISOString())
+                    .lt('created_at', weekAgo.toISOString());
+
+                // Fetch PRs this week
+                const { data: prNotifs } = await supabaseClient
+                    .from('notifications')
+                    .select('related_client_id')
+                    .eq('user_id', coachId)
+                    .eq('type', 'client_pr')
+                    .gte('created_at', weekAgo.toISOString());
+
+                // Fetch recent check-ins this week
+                const { data: recentCheckins } = await supabaseClient
+                    .from('client_checkins')
+                    .select('client_id, created_at')
+                    .eq('coach_id', coachId)
+                    .in('client_id', clientIds)
+                    .gte('created_at', weekAgo.toISOString());
+
+                // Fetch notes this week
+                const { data: noteLogs } = await supabaseClient
+                    .from('exercise_logs')
+                    .select('workout_logs!inner(client_id)')
+                    .in('workout_logs.client_id', clientIds)
+                    .gte('created_at', weekAgo.toISOString())
+                    .or('client_notes.not.is.null,client_voice_note_path.not.is.null');
+
+                // Build per-client data
+                const clientData = {};
+                clients.forEach(c => {
+                    clientData[c.id] = {
+                        name: c.client_name || 'Client',
+                        workouts: 0,
+                        volumeThisWeek: 0,
+                        volumeLastWeek: 0,
+                        prs: 0,
+                        checkedIn: false,
+                        hasNotes: false,
+                        lastWorkout: null
+                    };
+                });
+
+                // This week workouts
+                (thisWeekWorkouts || []).forEach(w => {
+                    if (clientData[w.client_id]) {
+                        clientData[w.client_id].workouts++;
+                        clientData[w.client_id].volumeThisWeek += (w.total_volume || 0);
+                        const d = new Date(w.created_at);
+                        if (!clientData[w.client_id].lastWorkout || d > clientData[w.client_id].lastWorkout) {
+                            clientData[w.client_id].lastWorkout = d;
+                        }
+                    }
+                });
+
+                // Last week workouts for volume comparison
+                (lastWeekWorkouts || []).forEach(w => {
+                    if (clientData[w.client_id]) {
+                        clientData[w.client_id].volumeLastWeek += (w.total_volume || 0);
+                    }
+                });
+
+                // PRs
+                (prNotifs || []).forEach(p => {
+                    if (p.related_client_id && clientData[p.related_client_id]) {
+                        clientData[p.related_client_id].prs++;
+                    }
+                });
+
+                // Check-ins
+                (recentCheckins || []).forEach(c => {
+                    if (clientData[c.client_id]) clientData[c.client_id].checkedIn = true;
+                });
+
+                // Notes
+                (noteLogs || []).forEach(n => {
+                    const cId = n.workout_logs?.client_id;
+                    if (cId && clientData[cId]) clientData[cId].hasNotes = true;
+                });
+
+                // Update extended stats
+                const totalWorkouts = (thisWeekWorkouts || []).length;
+                const totalPRs = (prNotifs || []).length;
+                const activeClients = Object.values(clientData).filter(c => c.workouts > 0).length;
+                const totalClients = clients.length;
+                const activeRate = totalClients > 0 ? Math.round((activeClients / totalClients) * 100) : 0;
+
+                document.getElementById('statWorkouts').textContent = totalWorkouts;
+                document.getElementById('statPRs').textContent = totalPRs;
+                document.getElementById('statActiveRate').textContent = activeRate + '%';
+
+                // Calculate adherence (workouts done vs rough expected of 3-5/week)
+                // Simple: active clients / total as a percentage
+                document.getElementById('statAdherence').textContent = activeRate + '%';
+
+                // Sort: active clients first (by workouts desc), then inactive
+                const sorted = Object.entries(clientData).sort((a, b) => {
+                    if (b[1].workouts !== a[1].workouts) return b[1].workouts - a[1].workouts;
+                    return a[1].name.localeCompare(b[1].name);
+                });
+
+                // Render grid
+                listEl.innerHTML = sorted.map(([cId, d]) => {
+                    const initials = d.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+                    const isActive = d.workouts > 0;
+
+                    // Volume trend
+                    let trendHtml = '';
+                    if (d.volumeThisWeek > 0 && d.volumeLastWeek > 0) {
+                        const pct = Math.round(((d.volumeThisWeek - d.volumeLastWeek) / d.volumeLastWeek) * 100);
+                        if (pct > 0) trendHtml = `<span class="cag-badge green">↑ ${pct}% vol</span>`;
+                        else if (pct < 0) trendHtml = `<span class="cag-badge red">↓ ${Math.abs(pct)}% vol</span>`;
+                        else trendHtml = `<span class="cag-badge gray">— same vol</span>`;
+                    }
+
+                    // Badges
+                    let badges = [];
+                    if (isActive) {
+                        badges.push(`<span class="cag-badge green">${d.workouts} workout${d.workouts !== 1 ? 's' : ''}</span>`);
+                    } else {
+                        badges.push('<span class="cag-badge red">No activity</span>');
+                    }
+                    if (d.prs > 0) badges.push(`<span class="cag-badge purple">${d.prs} PR${d.prs !== 1 ? 's' : ''}</span>`);
+                    if (d.hasNotes) badges.push('<span class="cag-badge blue">💬</span>');
+                    if (trendHtml) badges.push(trendHtml);
+
+                    // Detail text
+                    let detail = '';
+                    if (d.lastWorkout) {
+                        detail = 'Last workout ' + timeAgo(d.lastWorkout.toISOString());
+                    } else {
+                        detail = 'No workouts this week';
+                    }
+                    if (d.checkedIn) detail += ' · Checked in';
+
+                    return `
+                        <div class="cag-row" onclick="window.location.href='client-profile.html?clientId=${cId}'">
+                            <div class="cag-client-info">
+                                <div class="cag-avatar${isActive ? '' : ' inactive'}">${initials}</div>
+                                <div>
+                                    <div class="cag-name">${d.name}</div>
+                                    <div class="cag-detail">${detail}</div>
+                                </div>
+                            </div>
+                            <div class="cag-badges">${badges.join('')}</div>
+                        </div>`;
+                }).join('');
+
+            } catch (err) {
+                console.error('Error loading client activity grid:', err);
+                listEl.innerHTML = '<div class="cag-empty">Could not load client activity</div>';
+            }
+        }
 
         // Load dashboard on page load
         loadDashboard();
