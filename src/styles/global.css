@@ -14072,11 +14072,49 @@ a.nav-left {
     text-align: left;
     width: 100%;
     font-family: inherit;
+    position: relative;
+    overflow: hidden;
+}
+
+.club-workout-card.has-image {
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    min-height: 140px;
+    padding: 0;
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.club-workout-card-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        to bottom,
+        rgba(0, 0, 0, 0.3) 0%,
+        rgba(0, 0, 0, 0.55) 40%,
+        rgba(0, 0, 0, 0.85) 100%
+    );
+    z-index: 1;
+}
+
+.club-workout-card-inner {
+    position: relative;
+    z-index: 2;
+    padding: 16px;
+}
+
+.club-workout-card:not(.has-image) .club-workout-card-inner {
+    padding: 0;
 }
 
 .club-workout-card:hover {
     border-color: #8b5cf6;
     transform: translateY(-1px);
+}
+
+.club-workout-card.has-image:hover {
+    border-color: rgba(139, 92, 246, 0.6);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
 }
 
 .club-workout-card:active {
@@ -14096,9 +14134,19 @@ a.nav-left {
     color: #f8fafc;
 }
 
+.club-workout-card.has-image .club-workout-card-header h3 {
+    font-size: 18px;
+    font-weight: 700;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+}
+
 .club-workout-card-header svg {
     color: #64748b;
     flex-shrink: 0;
+}
+
+.club-workout-card.has-image .club-workout-card-header svg {
+    color: rgba(255, 255, 255, 0.7);
 }
 
 .club-workout-card-desc {
@@ -14111,10 +14159,29 @@ a.nav-left {
     overflow: hidden;
 }
 
+.club-workout-card.has-image .club-workout-card-desc {
+    color: rgba(255, 255, 255, 0.8);
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+
 .club-workout-card-footer {
     display: flex;
     align-items: center;
     justify-content: space-between;
+}
+
+.club-workout-card.has-image .club-workout-card-stats {
+    color: rgba(255, 255, 255, 0.75);
+}
+
+.club-workout-card.has-image .club-workout-badge {
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.club-workout-card.has-image .club-workout-badge.category {
+    color: #e0d4ff;
 }
 
 .club-workout-card-badges {
@@ -14157,6 +14224,20 @@ a.nav-left {
 }
 
 /* Workout Detail View */
+.club-workout-detail-hero {
+    width: 100%;
+    height: 180px;
+    overflow: hidden;
+    border-radius: 12px;
+    margin-bottom: 16px;
+}
+
+.club-workout-detail-hero img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
 .club-workout-detail-info {
     margin-bottom: 20px;
 }
