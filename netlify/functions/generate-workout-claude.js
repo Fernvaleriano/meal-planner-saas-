@@ -498,41 +498,92 @@ If an exercise category doesn't have enough options, select similar exercises fr
 
     if (isSingleWorkout) {
       const muscleLabel = muscleGroupMap[targetMuscle] || targetMuscle;
-      systemPrompt = `You are an expert personal trainer and bodybuilding coach creating a single workout session. Return ONLY valid JSON, no markdown or extra text.
+      systemPrompt = `You are an elite strength & conditioning coach with 20+ years of experience training athletes and physique competitors. Return ONLY valid JSON, no markdown or extra text.
 
-Create a single ${muscleLabel} workout for ${experience} level, optimized for ${goal}.
+Create a single ${muscleLabel} workout for an ${experience}-level trainee optimized for ${goal}.
 ${availableExercisesPrompt}
-WORKOUT STRUCTURE:
-- Target muscle group: ${muscleLabel}
-- ${styleInstruction}
-- ${exerciseCountInstruction}
-- Target session duration: ~${sessionDuration} minutes
 
-EXERCISE QUALITY REQUIREMENTS (VERY IMPORTANT):
-- Start with the BEST compound exercises for ${muscleLabel}. For example:
-  * Legs: squats, leg press, hack squat, Romanian deadlifts, lunges, leg curls, leg extensions, calf raises
-  * Chest: bench press, incline press, dumbbell press, flyes, cable crossovers
-  * Back: deadlifts, barbell rows, pull-ups, lat pulldowns, cable rows, T-bar rows
-  * Shoulders: overhead press, lateral raises, face pulls, front raises, reverse flyes
-  * Arms: barbell curls, dumbbell curls, skull crushers, tricep pushdowns, hammer curls
-- Pick exercises that a real bodybuilder/coach would actually program for ${muscleLabel}
-- Start with heavy compound movements, progress to isolation exercises
-- ALL main exercises (non-warmup, non-stretch) MUST directly target ${muscleLabel}
-- Do NOT include exercises for unrelated muscle groups
+=== MANDATORY WORKOUT PHASES ===
+Every workout MUST follow this exact structure in order:
+
+PHASE 1 — WARM-UP (5-8 minutes):
+- 1 general cardio exercise (3-5 min on elliptical, bike, rowing machine, or jump rope) marked with "isWarmup": true and "phase": "warmup"
+- 1-2 dynamic movement prep exercises targeting ${muscleLabel} (arm circles, leg swings, hip circles, band pull-aparts, etc.) marked with "isWarmup": true and "phase": "warmup"
+- Warm-up sets: 1-2 sets, 10-15 reps, 0-30 seconds rest
+- Purpose: Raise core temperature, increase blood flow to working muscles, prep joints
+
+PHASE 2 — MAIN WORKOUT (${sessionDuration - 15} minutes):
+- ${exerciseCountInstruction} (NOT counting warm-up or cool-down exercises)
+- ${styleInstruction}
+- Start with the heaviest compound lifts when energy is highest, then progress to isolation work
+- Every exercise MUST directly target ${muscleLabel}
+- Mark all main exercises with "phase": "main"
+
+PHASE 3 — COOL-DOWN (5-7 minutes):
+- 2-3 static stretches targeting the SAME muscles trained in this workout
+- Mark with "isStretch": true and "phase": "cooldown"
+- Hold each stretch 30 seconds, 1 set, 0 rest between stretches
+- CRITICAL: Stretches MUST match the workout — e.g., leg stretches for leg day, chest/shoulder stretches for push day
+
+=== EXERCISE SELECTION (CRITICAL) ===
+- You MUST use EXACT exercise names from the AVAILABLE EXERCISES DATABASE above
+- NEVER invent or modify exercise names — if it's not in the list, don't use it
+- For ${muscleLabel}, prioritize these movement patterns:
+${targetMuscle === 'legs' || targetMuscle === 'lower_body' ? `  * Squat pattern (back squat, front squat, goblet squat, leg press, hack squat)
+  * Hip hinge (Romanian deadlift, stiff-leg deadlift, hip thrust, glute bridge)
+  * Single-leg (walking lunges, Bulgarian split squat, step-ups)
+  * Quad isolation (leg extension)
+  * Hamstring isolation (lying leg curl, seated leg curl)
+  * Calf work (standing calf raise, seated calf raise)` :
+targetMuscle === 'chest' ? `  * Horizontal press (barbell bench press, dumbbell bench press)
+  * Incline press (incline barbell/dumbbell press — critical for upper chest)
+  * Fly/stretch movement (dumbbell flyes, cable crossover, pec deck)
+  * Dip or decline work for lower chest
+  * Cable or machine finisher for peak contraction` :
+targetMuscle === 'back' ? `  * Vertical pull (lat pulldown, pull-ups, chin-ups)
+  * Horizontal row (barbell row, cable row, dumbbell row)
+  * Unilateral row (single-arm dumbbell row, single-arm cable row)
+  * Isolation pull (straight-arm pulldown, pullover)
+  * Rear delt/upper back (face pulls, reverse flyes)` :
+targetMuscle === 'shoulders' ? `  * Overhead press (barbell/dumbbell overhead press, seated or standing)
+  * Lateral raise (dumbbell lateral raise, cable lateral raise)
+  * Rear delt (face pulls, reverse flyes, rear delt machine)
+  * Front raise or upright row (use sparingly — front delts get work from pressing)
+  * Shrug or trap work if time allows` :
+targetMuscle === 'arms' ? `  * Bicep compound (barbell curl, EZ-bar curl)
+  * Bicep isolation (dumbbell curl, hammer curl, concentration curl, cable curl)
+  * Tricep compound (close-grip bench press, dips)
+  * Tricep isolation (skull crushers, tricep pushdown, overhead tricep extension)
+  * Forearm work if time allows (wrist curls, reverse curls)` :
+targetMuscle === 'core' ? `  * Anti-extension (plank, ab rollout, dead bug)
+  * Flexion (crunch variations, cable crunch, leg/knee raise)
+  * Rotation/anti-rotation (Russian twist, Pallof press, woodchop)
+  * Lateral flexion (side plank, oblique crunch)
+  * Hip flexion (hanging leg raise, lying leg raise)` :
+`  * Compound multi-joint movements first
+  * Isolation single-joint movements second
+  * Ensure balanced coverage of all target muscles`}
+
+=== REP RANGES & INTENSITY ===
+- Goal is ${goal}:
+${goal === 'strength' ? `  * Main compounds: 4-5 sets of 3-6 reps, 2-3 min rest (RPE 8-9)
+  * Accessories: 3-4 sets of 6-8 reps, 90-120s rest (RPE 7-8)` :
+goal === 'hypertrophy' ? `  * Main compounds: 4 sets of 6-10 reps, 90-120s rest (RPE 7-9)
+  * Isolation work: 3 sets of 10-15 reps, 60-90s rest (RPE 8-9)
+  * Finishers: 2-3 sets of 12-20 reps, 45-60s rest (pump work)` :
+`  * All exercises: 2-3 sets of 15-20 reps, 30-45s rest
+  * Focus on controlled tempo and sustained time under tension`}
+
+=== COACHING NOTES ===
+- Add brief, actionable form cues in the "notes" field for each main exercise (e.g., "Drive through heels, chest up", "Squeeze at top for 1 second")
+- Do NOT repeat the exercise name in notes
 
 CONSTRAINTS:
 ${injuries ? `- AVOID exercises that aggravate: ${injuries}` : '- No injury restrictions'}
 - Available equipment: ${equipment.join(', ')}
 ${preferences ? `- Additional preferences: ${preferences}` : ''}
 
-EXERCISE SELECTION GUIDELINES:
-- Use EXACT exercise names from the AVAILABLE EXERCISES DATABASE above (copy-paste the exact name in quotes)
-- WORKOUT ORDER: warm-up exercises first (isWarmup: true), then compound movements, then isolation exercises, then stretches last (isStretch: true)
-- Match rep ranges to goal: strength (3-6), hypertrophy (8-12), endurance (12-20)
-- Rest periods: 60-120 seconds for main exercises, 0-30 seconds for warm-ups, 0 seconds for stretches
-- For supersets: mark BOTH exercises with "isSuperset": true and "supersetGroup": "A" (or "B", "C" for multiple pairs)
-- NEVER invent or modify exercise names. If an exercise isn't in the lists above, don't use it.
-${warmupStretchInstructions}
+For supersets: mark BOTH exercises with "isSuperset": true and "supersetGroup": "A" (or "B", "C" for multiple pairs)
 
 Return this exact JSON structure:
 {
@@ -548,47 +599,76 @@ Return this exact JSON structure:
       "name": "${targetMuscle.charAt(0).toUpperCase() + targetMuscle.slice(1)} Day",
       "targetMuscles": ${JSON.stringify(targetMuscle === 'upper_body' ? ['chest', 'back', 'shoulders', 'arms'] : targetMuscle === 'lower_body' ? ['quads', 'hamstrings', 'glutes', 'calves'] : targetMuscle === 'full_body' ? ['chest', 'back', 'legs', 'shoulders'] : [targetMuscle])},
       "exercises": [
-        {"name": "Warm-up Name", "muscleGroup": "cardio", "sets": 1, "reps": "10-15", "restSeconds": 0, "notes": "", "isSuperset": false, "supersetGroup": null, "isWarmup": true, "isStretch": false},
-        {"name": "Compound Exercise", "muscleGroup": "${targetMuscle}", "sets": 4, "reps": "8-10", "restSeconds": 90, "notes": "Form tips", "isSuperset": false, "supersetGroup": null, "isWarmup": false, "isStretch": false},
-        {"name": "Isolation Exercise", "muscleGroup": "${targetMuscle}", "sets": 3, "reps": "10-12", "restSeconds": 60, "notes": "", "isSuperset": false, "supersetGroup": null, "isWarmup": false, "isStretch": false},
-        {"name": "Stretch Name", "muscleGroup": "stretching", "sets": 1, "reps": "30s hold", "restSeconds": 0, "notes": "", "isSuperset": false, "supersetGroup": null, "isWarmup": false, "isStretch": true}
+        {"name": "Cardio Warm-up", "muscleGroup": "cardio", "sets": 1, "reps": "5 min", "restSeconds": 0, "notes": "", "isSuperset": false, "supersetGroup": null, "isWarmup": true, "isStretch": false, "phase": "warmup"},
+        {"name": "Dynamic Warm-up", "muscleGroup": "cardio", "sets": 1, "reps": "10-15", "restSeconds": 0, "notes": "", "isSuperset": false, "supersetGroup": null, "isWarmup": true, "isStretch": false, "phase": "warmup"},
+        {"name": "Compound Exercise", "muscleGroup": "${targetMuscle}", "sets": 4, "reps": "8-10", "restSeconds": 90, "notes": "Form cue", "isSuperset": false, "supersetGroup": null, "isWarmup": false, "isStretch": false, "phase": "main"},
+        {"name": "Isolation Exercise", "muscleGroup": "${targetMuscle}", "sets": 3, "reps": "10-12", "restSeconds": 60, "notes": "Form cue", "isSuperset": false, "supersetGroup": null, "isWarmup": false, "isStretch": false, "phase": "main"},
+        {"name": "Static Stretch", "muscleGroup": "stretching", "sets": 1, "reps": "30s hold", "restSeconds": 0, "notes": "", "isSuperset": false, "supersetGroup": null, "isWarmup": false, "isStretch": true, "phase": "cooldown"}
       ]
     }]
   }],
-  "progressionNotes": "How to progress"
-}`;
-      userMessage = `Create a single ${muscleLabel} workout for ${clientName}. Goal: ${goal}. Experience: ${experience}. Include ${exerciseCount} exercises with proper sets, reps, and rest periods. Return only valid JSON.`;
+  "progressionNotes": "How to progress week over week"
+}
+${warmupStretchInstructions}`;
+      userMessage = `Create a single ${muscleLabel} workout for ${clientName}. Goal: ${goal}. Experience: ${experience}. Include ${exerciseCount} MAIN exercises (plus warm-up and cool-down). Return only valid JSON.`;
     } else {
-      systemPrompt = `You are an expert personal trainer and bodybuilding coach creating workout programs. Return ONLY valid JSON, no markdown or extra text.
+      systemPrompt = `You are an elite strength & conditioning coach with 20+ years of experience designing periodized programs for athletes and physique competitors. Return ONLY valid JSON, no markdown or extra text.
 
-Create a ${daysPerWeek}-day ${goal} program for ${experience} level.
+Create a ${daysPerWeek}-day ${goal} program for an ${experience}-level trainee.
 ${availableExercisesPrompt}
-WORKOUT STRUCTURE:
+
+=== PROGRAM DESIGN ===
 - ${splitInstruction}
 - ${styleInstruction}
-- ${exerciseCountInstruction}
-- Target session duration: ~${sessionDuration} minutes
+- ${exerciseCountInstruction} (MAIN exercises only — warm-up and cool-down are additional)
+- Target session duration: ~${sessionDuration} minutes per workout
 ${focusInstruction ? `\n${focusInstruction}` : ''}
 
-EXERCISE QUALITY REQUIREMENTS:
-- Each workout day should start with the BEST compound exercises for that day's target muscles
-- Pick exercises that a real bodybuilder/coach would actually program
-- Start each day with heavy compound movements, then progress to isolation exercises
-- ALL exercises in a day must be relevant to that day's target muscles
-- Stretches at the end must target the muscles trained that day (not random body parts)
+=== MANDATORY WORKOUT PHASES (EVERY workout day must follow this) ===
+
+PHASE 1 — WARM-UP (5-8 minutes):
+- 1 general cardio exercise (3-5 min on elliptical, stationary bike, rowing machine, or jump rope)
+- 1-2 dynamic movement prep exercises targeting that day's muscles (e.g., arm circles for upper body, leg swings for lower body, hip circles for leg day)
+- Mark ALL warm-up exercises with "isWarmup": true and "phase": "warmup"
+- Warm-up config: 1-2 sets, 10-15 reps, 0-30 seconds rest
+
+PHASE 2 — MAIN WORKOUT:
+- Start with heavy compound lifts when energy is highest
+- Progress to accessory/isolation exercises
+- Finish with pump/metabolic finishers if time allows
+- ALL exercises must directly target that day's muscle groups
+- Mark with "phase": "main"
+
+PHASE 3 — COOL-DOWN (5-7 minutes):
+- 2-3 static stretches targeting the SAME muscles trained that day
+- Mark with "isStretch": true and "phase": "cooldown"
+- Config: 1 set, "30s hold", 0 rest
+- CRITICAL: Stretches MUST match the workout — chest stretches for chest day, hamstring stretches for leg day, etc.
+
+=== EXERCISE SELECTION (CRITICAL) ===
+- You MUST use EXACT exercise names from the AVAILABLE EXERCISES DATABASE above
+- NEVER invent or modify exercise names — if it's not in the list, don't use it
+- Program like a real coach: balanced push/pull ratios, no redundant movements, proper exercise ordering
+- Each day should have variety — don't repeat the same exercises across days unless it's a key compound lift
+
+=== REP RANGES & INTENSITY ===
+${goal === 'strength' ? `- Main compounds: 4-5 sets of 3-6 reps, 2-3 min rest
+- Accessories: 3-4 sets of 6-8 reps, 90-120s rest` :
+goal === 'hypertrophy' ? `- Main compounds: 4 sets of 6-10 reps, 90-120s rest
+- Isolation: 3 sets of 10-15 reps, 60-90s rest
+- Finishers: 2-3 sets of 12-20 reps, 45-60s rest` :
+`- All exercises: 2-3 sets of 15-20 reps, 30-45s rest`}
+
+=== COACHING NOTES ===
+- Add brief, actionable form cues in the "notes" field for each main exercise
+- Examples: "Drive through heels, chest up", "Squeeze at top for 1 sec", "Control the eccentric — 2 sec down"
 
 CONSTRAINTS:
 ${injuries ? `- AVOID exercises that aggravate: ${injuries}` : '- No injury restrictions'}
 - Available equipment: ${equipment.join(', ')}
 ${preferences ? `- Additional preferences: ${preferences}` : ''}
 
-EXERCISE SELECTION GUIDELINES:
-- Use EXACT exercise names from the AVAILABLE EXERCISES DATABASE above (copy-paste the exact name in quotes)
-- WORKOUT ORDER: warm-up exercises first (isWarmup: true), then compound movements, then isolation exercises, then stretches last (isStretch: true)
-- Match rep ranges to goal: strength (3-6), hypertrophy (8-12), endurance (12-20)
-- Rest periods: 60-120 seconds for main exercises, 0-30 seconds for warm-ups, 0 seconds for stretches
-- For supersets: mark BOTH exercises with "isSuperset": true and "supersetGroup": "A" (or "B", "C" for multiple pairs)
-- NEVER invent or modify exercise names. If an exercise isn't in the lists above, don't use it.
+For supersets: mark BOTH exercises with "isSuperset": true and "supersetGroup": "A" (or "B", "C")
 ${warmupStretchInstructions}
 
 Return this exact JSON structure:
@@ -605,21 +685,24 @@ Return this exact JSON structure:
       "name": "Day Name",
       "targetMuscles": ["muscle1", "muscle2"],
       "exercises": [
-        {"name": "Warm-up Name", "muscleGroup": "cardio", "sets": 1, "reps": "10-15", "restSeconds": 0, "notes": "", "isSuperset": false, "supersetGroup": null, "isWarmup": true, "isStretch": false},
-        {"name": "Compound Exercise", "muscleGroup": "primary_muscle", "sets": 4, "reps": "8-10", "restSeconds": 90, "notes": "Form tips", "isSuperset": false, "supersetGroup": null, "isWarmup": false, "isStretch": false},
-        {"name": "Isolation Exercise", "muscleGroup": "primary_muscle", "sets": 3, "reps": "10-12", "restSeconds": 60, "notes": "", "isSuperset": false, "supersetGroup": null, "isWarmup": false, "isStretch": false},
-        {"name": "Stretch Name", "muscleGroup": "stretching", "sets": 1, "reps": "30s hold", "restSeconds": 0, "notes": "", "isSuperset": false, "supersetGroup": null, "isWarmup": false, "isStretch": true}
+        {"name": "Cardio Warm-up", "muscleGroup": "cardio", "sets": 1, "reps": "5 min", "restSeconds": 0, "notes": "", "isSuperset": false, "supersetGroup": null, "isWarmup": true, "isStretch": false, "phase": "warmup"},
+        {"name": "Dynamic Prep", "muscleGroup": "cardio", "sets": 1, "reps": "10-15", "restSeconds": 0, "notes": "", "isSuperset": false, "supersetGroup": null, "isWarmup": true, "isStretch": false, "phase": "warmup"},
+        {"name": "Compound Exercise", "muscleGroup": "primary_muscle", "sets": 4, "reps": "8-10", "restSeconds": 90, "notes": "Form cue", "isSuperset": false, "supersetGroup": null, "isWarmup": false, "isStretch": false, "phase": "main"},
+        {"name": "Isolation Exercise", "muscleGroup": "primary_muscle", "sets": 3, "reps": "10-12", "restSeconds": 60, "notes": "Form cue", "isSuperset": false, "supersetGroup": null, "isWarmup": false, "isStretch": false, "phase": "main"},
+        {"name": "Static Stretch", "muscleGroup": "stretching", "sets": 1, "reps": "30s hold", "restSeconds": 0, "notes": "", "isSuperset": false, "supersetGroup": null, "isWarmup": false, "isStretch": true, "phase": "cooldown"}
       ]
     }]
   }],
-  "progressionNotes": "How to progress"
+  "progressionNotes": "How to progress week over week (include specific weight/rep progression guidance)"
 }`;
-      userMessage = `Create a complete ${daysPerWeek}-day workout program for ${clientName}. Goal: ${goal}. Experience: ${experience}. Include 4-6 exercises per day with proper sets, reps, and rest periods. Return only valid JSON.`;
+      userMessage = `Create a complete ${daysPerWeek}-day workout program for ${clientName}. Goal: ${goal}. Experience: ${experience}. Each day should include warm-up, ${exerciseCount} MAIN exercises, and cool-down stretches. Return only valid JSON.`;
     }
 
+    // Use Claude Sonnet 4 for superior exercise selection and workout programming.
+    // Downgrade to 'claude-3-5-sonnet-20241022' if cost is a concern.
     const message = await anthropic.messages.create({
-      model: 'claude-3-haiku-20240307',
-      max_tokens: 4000,
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 8192,
       messages: [{
         role: 'user',
         content: userMessage
@@ -707,6 +790,7 @@ Return this exact JSON structure:
                   isStretch: aiExercise.isStretch || false,
                   isSuperset: aiExercise.isSuperset || false,
                   supersetGroup: aiExercise.supersetGroup || null,
+                  phase: aiExercise.phase || (aiExercise.isWarmup ? 'warmup' : aiExercise.isStretch ? 'cooldown' : 'main'),
                   matched: true
                 };
               } else {
@@ -733,6 +817,7 @@ Return this exact JSON structure:
                   isStretch: aiExercise.isStretch || false,
                   isSuperset: aiExercise.isSuperset || false,
                   supersetGroup: aiExercise.supersetGroup || null,
+                  phase: aiExercise.phase || (aiExercise.isWarmup ? 'warmup' : aiExercise.isStretch ? 'cooldown' : 'main'),
                   matched: false
                 };
               }

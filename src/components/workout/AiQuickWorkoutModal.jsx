@@ -51,6 +51,79 @@ const FALLBACK_EXERCISES = {
   stretch: ['Cat-Cow Stretch', 'Child\'s Pose', 'Downward Dog', 'Pigeon Pose', 'Hip Flexor Stretch', 'Hamstring Stretch', 'Quad Stretch', 'Shoulder Stretch', 'Chest Stretch', 'Lat Stretch']
 };
 
+// Warm-up exercises by workout type (general cardio + dynamic movements for that muscle group)
+const WARMUP_EXERCISES = {
+  full_body: [
+    { name: 'Jumping Jacks', sets: 1, reps: '60 sec', restSeconds: 0, isWarmup: true, phase: 'warmup' },
+    { name: 'Arm Circles', sets: 1, reps: '15 each direction', restSeconds: 0, isWarmup: true, phase: 'warmup' },
+    { name: 'Leg Swings', sets: 1, reps: '10 each leg', restSeconds: 0, isWarmup: true, phase: 'warmup' }
+  ],
+  upper_body: [
+    { name: 'Jumping Jacks', sets: 1, reps: '60 sec', restSeconds: 0, isWarmup: true, phase: 'warmup' },
+    { name: 'Arm Circles', sets: 1, reps: '15 each direction', restSeconds: 0, isWarmup: true, phase: 'warmup' },
+    { name: 'Band Pull-Aparts', sets: 1, reps: '15', restSeconds: 0, isWarmup: true, phase: 'warmup' }
+  ],
+  lower_body: [
+    { name: 'High Knees', sets: 1, reps: '60 sec', restSeconds: 0, isWarmup: true, phase: 'warmup' },
+    { name: 'Leg Swings', sets: 1, reps: '10 each leg', restSeconds: 0, isWarmup: true, phase: 'warmup' },
+    { name: 'Bodyweight Squats', sets: 1, reps: '15', restSeconds: 0, isWarmup: true, phase: 'warmup' }
+  ],
+  push: [
+    { name: 'Jumping Jacks', sets: 1, reps: '60 sec', restSeconds: 0, isWarmup: true, phase: 'warmup' },
+    { name: 'Arm Circles', sets: 1, reps: '15 each direction', restSeconds: 0, isWarmup: true, phase: 'warmup' },
+    { name: 'Push-ups (light)', sets: 1, reps: '10', restSeconds: 0, isWarmup: true, phase: 'warmup' }
+  ],
+  pull: [
+    { name: 'Jump Rope', sets: 1, reps: '60 sec', restSeconds: 0, isWarmup: true, phase: 'warmup' },
+    { name: 'Band Pull-Aparts', sets: 1, reps: '15', restSeconds: 0, isWarmup: true, phase: 'warmup' },
+    { name: 'Scapular Retractions', sets: 1, reps: '12', restSeconds: 0, isWarmup: true, phase: 'warmup' }
+  ],
+  core: [
+    { name: 'Jumping Jacks', sets: 1, reps: '60 sec', restSeconds: 0, isWarmup: true, phase: 'warmup' },
+    { name: 'Cat-Cow Stretch', sets: 1, reps: '10', restSeconds: 0, isWarmup: true, phase: 'warmup' }
+  ],
+  cardio: [],
+  stretch: []
+};
+
+// Cool-down stretches by workout type (target the muscles trained)
+const COOLDOWN_STRETCHES = {
+  full_body: [
+    { name: 'Hamstring Stretch', sets: 1, reps: '30s hold each', restSeconds: 0, isStretch: true, phase: 'cooldown' },
+    { name: 'Chest Doorway Stretch', sets: 1, reps: '30s hold', restSeconds: 0, isStretch: true, phase: 'cooldown' },
+    { name: 'Child\'s Pose', sets: 1, reps: '30s hold', restSeconds: 0, isStretch: true, phase: 'cooldown' }
+  ],
+  upper_body: [
+    { name: 'Chest Doorway Stretch', sets: 1, reps: '30s hold each', restSeconds: 0, isStretch: true, phase: 'cooldown' },
+    { name: 'Cross-Body Shoulder Stretch', sets: 1, reps: '30s hold each', restSeconds: 0, isStretch: true, phase: 'cooldown' },
+    { name: 'Tricep Overhead Stretch', sets: 1, reps: '30s hold each', restSeconds: 0, isStretch: true, phase: 'cooldown' }
+  ],
+  lower_body: [
+    { name: 'Quad Stretch', sets: 1, reps: '30s hold each', restSeconds: 0, isStretch: true, phase: 'cooldown' },
+    { name: 'Hamstring Stretch', sets: 1, reps: '30s hold each', restSeconds: 0, isStretch: true, phase: 'cooldown' },
+    { name: 'Pigeon Pose', sets: 1, reps: '30s hold each', restSeconds: 0, isStretch: true, phase: 'cooldown' }
+  ],
+  push: [
+    { name: 'Chest Doorway Stretch', sets: 1, reps: '30s hold each', restSeconds: 0, isStretch: true, phase: 'cooldown' },
+    { name: 'Shoulder Stretch', sets: 1, reps: '30s hold each', restSeconds: 0, isStretch: true, phase: 'cooldown' },
+    { name: 'Tricep Overhead Stretch', sets: 1, reps: '30s hold each', restSeconds: 0, isStretch: true, phase: 'cooldown' }
+  ],
+  pull: [
+    { name: 'Lat Stretch', sets: 1, reps: '30s hold each', restSeconds: 0, isStretch: true, phase: 'cooldown' },
+    { name: 'Bicep Wall Stretch', sets: 1, reps: '30s hold each', restSeconds: 0, isStretch: true, phase: 'cooldown' },
+    { name: 'Child\'s Pose', sets: 1, reps: '30s hold', restSeconds: 0, isStretch: true, phase: 'cooldown' }
+  ],
+  core: [
+    { name: 'Cobra Stretch', sets: 1, reps: '30s hold', restSeconds: 0, isStretch: true, phase: 'cooldown' },
+    { name: 'Child\'s Pose', sets: 1, reps: '30s hold', restSeconds: 0, isStretch: true, phase: 'cooldown' }
+  ],
+  cardio: [
+    { name: 'Hamstring Stretch', sets: 1, reps: '30s hold each', restSeconds: 0, isStretch: true, phase: 'cooldown' },
+    { name: 'Quad Stretch', sets: 1, reps: '30s hold each', restSeconds: 0, isStretch: true, phase: 'cooldown' }
+  ],
+  stretch: []
+};
+
 
 function AiQuickWorkoutModal({ onClose, onGenerateWorkout, selectedDate }) {
   const [selectedType, setSelectedType] = useState(null);
@@ -441,8 +514,28 @@ function AiQuickWorkoutModal({ onClose, onGenerateWorkout, selectedDate }) {
         }));
       }
 
-      // Build workout from database exercises only (no hardcoded warmups/cooldowns)
-      const allExercises = [...mainExercises];
+      // Build structured workout: warm-up -> main -> cool-down
+      const warmups = (WARMUP_EXERCISES[selectedType.id] || []).map((ex, idx) => ({
+        ...ex,
+        id: `warmup-${Date.now()}-${idx}`,
+        muscle_group: 'cardio',
+        equipment: 'Bodyweight'
+      }));
+
+      // Add phase: 'main' to all main exercises
+      const mainWithPhase = mainExercises.map(ex => ({
+        ...ex,
+        phase: 'main'
+      }));
+
+      const cooldowns = (COOLDOWN_STRETCHES[selectedType.id] || []).map((ex, idx) => ({
+        ...ex,
+        id: `cooldown-${Date.now()}-${idx}`,
+        muscle_group: 'flexibility',
+        equipment: 'Bodyweight'
+      }));
+
+      const allExercises = [...warmups, ...mainWithPhase, ...cooldowns];
 
       const workoutData = {
         name: `${selectedType.name} - Quick Workout`,

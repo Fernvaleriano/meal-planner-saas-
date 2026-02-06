@@ -2817,9 +2817,35 @@ function Workouts() {
           {/* Exercise List */}
           <div className={`workout-content ${isRefreshing ? 'refreshing' : ''}`}>
             <div className="exercises-list-v2">
-              {exercises.map((exercise, index) => (
-                exercise && exercise.id ? (
+              {exercises.map((exercise, index) => {
+                if (!exercise || !exercise.id) return null;
+
+                // Determine phase for section headers
+                const phase = exercise.phase || (exercise.isWarmup ? 'warmup' : exercise.isStretch ? 'cooldown' : 'main');
+                const prevExercise = index > 0 ? exercises[index - 1] : null;
+                const prevPhase = prevExercise ? (prevExercise.phase || (prevExercise.isWarmup ? 'warmup' : prevExercise.isStretch ? 'cooldown' : 'main')) : null;
+                const showPhaseHeader = phase !== prevPhase;
+
+                return (
                   <ErrorBoundary key={exercise.id || `exercise-${index}`} compact>
+                    {showPhaseHeader && phase === 'warmup' && (
+                      <div className="workout-phase-divider warmup">
+                        <span className="phase-divider-icon">&#x1F525;</span>
+                        <span className="phase-divider-label">Warm-Up</span>
+                      </div>
+                    )}
+                    {showPhaseHeader && phase === 'main' && index > 0 && (
+                      <div className="workout-phase-divider main">
+                        <span className="phase-divider-icon">&#x1F4AA;</span>
+                        <span className="phase-divider-label">Main Workout</span>
+                      </div>
+                    )}
+                    {showPhaseHeader && phase === 'cooldown' && (
+                      <div className="workout-phase-divider cooldown">
+                        <span className="phase-divider-icon">&#x1F9CA;</span>
+                        <span className="phase-divider-label">Cool-Down</span>
+                      </div>
+                    )}
                     <ExerciseCard
                       exercise={exercise}
                       index={index}
@@ -2836,8 +2862,8 @@ function Workouts() {
                       onUpdateExercise={handleUpdateExercise}
                     />
                   </ErrorBoundary>
-                ) : null
-              ))}
+                );
+              })}
 
               {/* Add Activity Button */}
               <div className="add-activity-section">

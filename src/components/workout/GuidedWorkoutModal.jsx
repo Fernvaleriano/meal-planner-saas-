@@ -1205,7 +1205,28 @@ function GuidedWorkoutModal({
 
       {/* Scrollable content area */}
       <div className="guided-scroll-content">
-        {/* Exercise info */}
+        {/* Phase indicator banner */}
+        {(() => {
+          const phase = currentExercise?.phase || (currentExercise?.isWarmup ? 'warmup' : currentExercise?.isStretch ? 'cooldown' : 'main');
+          if (phase === 'warmup') {
+            return (
+              <div className="guided-phase-banner warmup">
+                <span className="guided-phase-icon">&#x1F525;</span>
+                <span className="guided-phase-label">Warm-Up</span>
+              </div>
+            );
+          } else if (phase === 'cooldown') {
+            return (
+              <div className="guided-phase-banner cooldown">
+                <span className="guided-phase-icon">&#x1F9CA;</span>
+                <span className="guided-phase-label">Cool-Down</span>
+              </div>
+            );
+          }
+          return null;
+        })()}
+
+      {/* Exercise info */}
         <div className="guided-exercise-info">
         <div className="guided-exercise-number">
           Exercise {currentExIndex + 1} of {exercises.length}
