@@ -6326,6 +6326,125 @@
                 grid-template-columns: repeat(3, 1fr);
             }
         }
+
+        /* Client Notes & Voice Notes Section */
+        .cn-section {
+            margin-top: 12px;
+        }
+        .cn-empty {
+            text-align: center;
+            padding: 24px 16px;
+            color: #94a3b8;
+            font-size: 14px;
+        }
+        .cn-empty-icon {
+            font-size: 36px;
+            margin-bottom: 8px;
+        }
+        .cn-note-card {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 10px;
+        }
+        .cn-note-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+        .cn-note-exercise {
+            font-weight: 600;
+            font-size: 14px;
+            color: #1e293b;
+        }
+        .cn-note-meta {
+            font-size: 12px;
+            color: #94a3b8;
+        }
+        .cn-note-workout {
+            font-size: 12px;
+            color: #64748b;
+            margin-bottom: 8px;
+        }
+        .cn-text-note {
+            background: #f5f3ff;
+            border-left: 3px solid #7c3aed;
+            padding: 10px 12px;
+            border-radius: 0 8px 8px 0;
+            font-size: 13px;
+            color: #4c1d95;
+            line-height: 1.5;
+            margin-bottom: 8px;
+        }
+        .cn-voice-note {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #f8f7ff;
+            border: 1px solid #e9e5f5;
+            border-radius: 10px;
+            padding: 10px 12px;
+        }
+        .cn-voice-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #7c3aed;
+            white-space: nowrap;
+        }
+        .cn-voice-note audio {
+            height: 34px;
+            width: 100%;
+            max-width: 280px;
+        }
+        .cn-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 3px 8px;
+            border-radius: 20px;
+        }
+        .cn-badge--voice {
+            background: #ede9fe;
+            color: #7c3aed;
+        }
+        .cn-badge--text {
+            background: #f0f9ff;
+            color: #0369a1;
+        }
+        [data-theme="dark"] .cn-note-card {
+            background: #1e293b;
+            border-color: #334155;
+        }
+        [data-theme="dark"] .cn-note-exercise {
+            color: #f1f5f9;
+        }
+        [data-theme="dark"] .cn-note-workout {
+            color: #94a3b8;
+        }
+        [data-theme="dark"] .cn-text-note {
+            background: #1e1033;
+            border-color: #7c3aed;
+            color: #c4b5fd;
+        }
+        [data-theme="dark"] .cn-voice-note {
+            background: #1e1033;
+            border-color: #2d2050;
+        }
+        [data-theme="dark"] .cn-voice-label {
+            color: #a78bfa;
+        }
+        [data-theme="dark"] .cn-badge--voice {
+            background: #2d1b69;
+            color: #a78bfa;
+        }
+        [data-theme="dark"] .cn-badge--text {
+            background: #0c2d48;
+            color: #7dd3fc;
+        }
     </style>
     <script src="https://unpkg.com/lucide@0.312.0/dist/umd/lucide.min.js" onload="lucide.createIcons()"></script>
     <style>body{-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;overscroll-behavior:none;-webkit-overflow-scrolling:touch;}</style>
@@ -6840,6 +6959,24 @@
                     <span style="font-size: 32px;">🏋️</span>
                     <p>No workout logs for this period</p>
                     <span style="color: #6b7280; font-size: 13px;">When your client logs sets and reps, they'll appear here.</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Client Notes & Voice Notes Section -->
+        <div class="client-notes-section">
+            <div class="section-header collapsible-header" onclick="toggleSection('clientNotes')" style="cursor: pointer;">
+                <h2 class="section-title">🎙️ Client Notes & Voice Notes</h2>
+                <button class="section-toggle-btn" type="button">
+                    <span class="toggle-icon" id="clientNotesToggleIcon">▼</span>
+                </button>
+            </div>
+            <div id="clientNotesContent" class="collapsible-content">
+                <div id="clientNotesContainer" class="cn-section">
+                    <div class="loading skeleton-loading">
+                        <div class="skeleton" style="height: 60px; margin-bottom: 10px; border-radius: 10px;"></div>
+                        <div class="skeleton" style="height: 60px; margin-bottom: 10px; border-radius: 10px;"></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -7375,7 +7512,7 @@
         // Restore collapsed states on load
         // Default collapsed sections: plans, protocols, favorites, photos, measurements, checkins
         (function restoreCollapsedStates() {
-            const defaultCollapsed = ['plans', 'protocols', 'favorites', 'photos', 'measurements', 'checkins', 'workouts', 'workoutCalendar', 'workoutPrograms'];
+            const defaultCollapsed = ['plans', 'protocols', 'favorites', 'photos', 'measurements', 'checkins', 'workouts', 'workoutCalendar', 'workoutPrograms', 'clientNotes'];
             const savedStates = JSON.parse(localStorage.getItem('clientProfileCollapsed') || '{}');
 
             defaultCollapsed.forEach(section => {
@@ -7631,7 +7768,8 @@
                 loadFoodDiary(clientId),
                 loadWorkoutLogs(clientId),
                 loadWorkoutCalendar(clientId),
-                loadWorkoutPrograms(clientId)
+                loadWorkoutPrograms(clientId),
+                loadClientNotes(clientId)
             ]);
 
             console.log('Data refreshed successfully');
@@ -11323,6 +11461,107 @@
         }
 
         // ============ WORKOUT PROGRESS FUNCTIONS ============
+
+        // --- Client Notes & Voice Notes Section ---
+        async function loadClientNotes(cId) {
+            if (!cId) return;
+            const container = document.getElementById('clientNotesContainer');
+            if (!container) return;
+
+            try {
+                const res = await fetch(`/.netlify/functions/coach-workout-feed?coachId=${window.coachUserId || ''}&clientId=${cId}&limit=100`);
+                const data = await res.json();
+                const workouts = data.feed || [];
+
+                // Collect all notes (text and voice) across all workouts
+                const notes = [];
+                workouts.forEach(w => {
+                    (w.exercises || []).forEach(ex => {
+                        if (ex.clientNotes || ex.clientVoiceNotePath) {
+                            notes.push({
+                                exerciseName: ex.exerciseName || 'Exercise',
+                                workoutName: w.workoutName || 'Workout',
+                                workoutDate: w.workoutDate,
+                                clientNotes: ex.clientNotes,
+                                clientVoiceNotePath: ex.clientVoiceNotePath
+                            });
+                        }
+                    });
+                });
+
+                if (notes.length === 0) {
+                    container.innerHTML = `
+                        <div class="cn-empty">
+                            <div class="cn-empty-icon">🎙️</div>
+                            <p>No client notes yet</p>
+                            <span style="font-size: 13px;">When your client leaves text or voice notes during workouts, they'll appear here.</span>
+                        </div>`;
+                    return;
+                }
+
+                // Fetch signed URLs for all voice notes
+                const voicePaths = notes.filter(n => n.clientVoiceNotePath).map(n => n.clientVoiceNotePath);
+                let voiceUrls = {};
+                if (voicePaths.length > 0) {
+                    try {
+                        const urlRes = await fetch('/.netlify/functions/get-signed-urls', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ filePaths: voicePaths, coachId: window.coachUserId || '' })
+                        });
+                        const urlData = await urlRes.json();
+                        voiceUrls = urlData.signedUrls || {};
+                    } catch (e) {
+                        console.warn('Could not fetch voice URLs for notes section:', e);
+                    }
+                }
+
+                // Render notes
+                container.innerHTML = notes.map(note => {
+                    const dateStr = note.workoutDate
+                        ? new Date(note.workoutDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                        : '';
+
+                    let textHtml = '';
+                    if (note.clientNotes && note.clientNotes.trim()) {
+                        textHtml = `<div class="cn-text-note">💬 ${escapeHtml(note.clientNotes)}</div>`;
+                    }
+
+                    let voiceHtml = '';
+                    if (note.clientVoiceNotePath) {
+                        const url = voiceUrls[note.clientVoiceNotePath];
+                        voiceHtml = url
+                            ? `<div class="cn-voice-note">
+                                <span class="cn-voice-label">🎙️ Voice Note</span>
+                                <audio controls preload="metadata" src="${url}"></audio>
+                              </div>`
+                            : `<div class="cn-voice-note">
+                                <span class="cn-voice-label">🎙️ Voice Note</span>
+                                <em style="color: #94a3b8; font-size: 13px;">Unable to load</em>
+                              </div>`;
+                    }
+
+                    const badges = [];
+                    if (note.clientVoiceNotePath) badges.push('<span class="cn-badge cn-badge--voice">🎙️ Voice</span>');
+                    if (note.clientNotes && note.clientNotes.trim()) badges.push('<span class="cn-badge cn-badge--text">💬 Text</span>');
+
+                    return `
+                        <div class="cn-note-card">
+                            <div class="cn-note-header">
+                                <span class="cn-note-exercise">${escapeHtml(note.exerciseName)}</span>
+                                <span class="cn-note-meta">${dateStr}</span>
+                            </div>
+                            <div class="cn-note-workout">${escapeHtml(note.workoutName)} ${badges.join(' ')}</div>
+                            ${textHtml}
+                            ${voiceHtml}
+                        </div>`;
+                }).join('');
+
+            } catch (err) {
+                console.error('Error loading client notes:', err);
+                container.innerHTML = '<p style="color: #ef4444; padding: 12px;">Failed to load notes</p>';
+            }
+        }
 
         let workoutDateOffset = 0;
         let allFeedWorkouts = []; // cache all fetched workouts for cross-week comparison
