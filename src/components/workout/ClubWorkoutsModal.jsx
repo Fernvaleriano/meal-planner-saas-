@@ -177,6 +177,17 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, coachId }) {
           </div>
 
           <div className="club-workouts-content">
+            {/* Hero Image */}
+            {(selectedWorkout.image_url || selectedWorkout.workout_data?.image_url) && (
+              <div className="club-workout-detail-hero">
+                <img
+                  src={selectedWorkout.image_url || selectedWorkout.workout_data?.image_url}
+                  alt={selectedWorkout.name}
+                  onError={(e) => { e.target.parentElement.style.display = 'none'; }}
+                />
+              </div>
+            )}
+
             {/* Workout Info */}
             <div className="club-workout-detail-info">
               <div className="club-workout-detail-badges">
@@ -357,38 +368,44 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, coachId }) {
                 const estMinutes = workout.workout_data?.estimatedMinutes ||
                   Math.ceil(exerciseCount * 4);
 
+                const heroImage = workout.image_url || workout.workout_data?.image_url || null;
+
                 return (
                   <button
                     key={workout.id}
-                    className="club-workout-card"
+                    className={`club-workout-card ${heroImage ? 'has-image' : ''}`}
                     onClick={() => setSelectedWorkout(workout)}
+                    style={heroImage ? { backgroundImage: `url(${heroImage})` } : undefined}
                   >
-                    <div className="club-workout-card-header">
-                      <h3>{workout.name}</h3>
-                      <ChevronRight size={20} />
-                    </div>
-                    {workout.description && (
-                      <p className="club-workout-card-desc">{workout.description}</p>
-                    )}
-                    <div className="club-workout-card-footer">
-                      <div className="club-workout-card-badges">
-                        {workout.category && (
-                          <span className="club-workout-badge category small">
-                            {CATEGORY_ICONS[workout.category]} {CATEGORY_LABELS[workout.category] || workout.category}
-                          </span>
-                        )}
-                        {workout.difficulty && (
-                          <span
-                            className="club-workout-badge difficulty small"
-                            style={{ color: DIFFICULTY_COLORS[workout.difficulty] }}
-                          >
-                            {workout.difficulty}
-                          </span>
-                        )}
+                    {heroImage && <div className="club-workout-card-overlay" />}
+                    <div className="club-workout-card-inner">
+                      <div className="club-workout-card-header">
+                        <h3>{workout.name}</h3>
+                        <ChevronRight size={20} />
                       </div>
-                      <div className="club-workout-card-stats">
-                        <span><Dumbbell size={14} /> {exerciseCount}</span>
-                        <span><Clock size={14} /> {estMinutes}m</span>
+                      {workout.description && (
+                        <p className="club-workout-card-desc">{workout.description}</p>
+                      )}
+                      <div className="club-workout-card-footer">
+                        <div className="club-workout-card-badges">
+                          {workout.category && (
+                            <span className="club-workout-badge category small">
+                              {CATEGORY_ICONS[workout.category]} {CATEGORY_LABELS[workout.category] || workout.category}
+                            </span>
+                          )}
+                          {workout.difficulty && (
+                            <span
+                              className="club-workout-badge difficulty small"
+                              style={{ color: DIFFICULTY_COLORS[workout.difficulty] }}
+                            >
+                              {workout.difficulty}
+                            </span>
+                          )}
+                        </div>
+                        <div className="club-workout-card-stats">
+                          <span><Dumbbell size={14} /> {exerciseCount}</span>
+                          <span><Clock size={14} /> {estMinutes}m</span>
+                        </div>
                       </div>
                     </div>
                   </button>
