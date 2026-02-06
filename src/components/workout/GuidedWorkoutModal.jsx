@@ -536,6 +536,7 @@ function GuidedWorkoutModal({
       if (!logId) {
         const logRes = await apiPost('/.netlify/functions/workout-logs', {
           clientId,
+          coachId,
           workoutDate: dateStr,
           workoutName: workoutName || 'Workout',
           status: 'in_progress'
@@ -572,7 +573,7 @@ function GuidedWorkoutModal({
     } catch (err) {
       console.error('Error saving client note:', err);
     }
-  }, [clientId, exercises, currentExIndex, getWorkoutDateStr, workoutName, setLogs]);
+  }, [clientId, coachId, exercises, currentExIndex, getWorkoutDateStr, workoutName, setLogs]);
 
   // Handle client note change with auto-save debounce
   const handleClientNoteChange = useCallback((text) => {
