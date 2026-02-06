@@ -3067,6 +3067,97 @@
         [data-theme="dark"] .coach-nav-item.coach-nav-logout {
             color: #f87171;
         }
+
+        /* Pull-to-refresh */
+        .ptr-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 0;
+            overflow: hidden;
+            transition: height 0.2s ease;
+            background: linear-gradient(180deg, #f0fdfa 0%, transparent 100%);
+        }
+        .ptr-indicator.pulling {
+            transition: none;
+        }
+        .ptr-indicator .ptr-spinner {
+            width: 28px;
+            height: 28px;
+            border: 3px solid #e2e8f0;
+            border-top-color: #14b8a6;
+            border-radius: 50%;
+        }
+        .ptr-indicator.refreshing .ptr-spinner {
+            animation: ptr-spin 0.7s linear infinite;
+        }
+        .ptr-indicator .ptr-text {
+            margin-left: 10px;
+            font-size: 13px;
+            color: #64748b;
+            font-weight: 500;
+        }
+        @keyframes ptr-spin {
+            to { transform: rotate(360deg); }
+        }
+        [data-theme="dark"] .ptr-indicator {
+            background: linear-gradient(180deg, #0f172a 0%, transparent 100%);
+        }
+        [data-theme="dark"] .ptr-indicator .ptr-spinner {
+            border-color: #334155;
+            border-top-color: #2dd4bf;
+        }
+        [data-theme="dark"] .ptr-indicator .ptr-text {
+            color: #94a3b8;
+        }
+
+        /* Inline voice note player in priority alerts */
+        .priority-voice-player {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 8px;
+            padding: 8px 10px;
+            background: #f5f3ff;
+            border-radius: 8px;
+            border: 1px solid #e9e5f5;
+        }
+        .priority-voice-player audio {
+            height: 32px;
+            width: 100%;
+            max-width: 220px;
+        }
+        .priority-voice-player .pvp-label {
+            font-size: 12px;
+            color: #7c3aed;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .priority-text-note {
+            margin-top: 6px;
+            padding: 6px 10px;
+            background: #f5f3ff;
+            border-left: 3px solid #7c3aed;
+            border-radius: 0 6px 6px 0;
+            font-size: 13px;
+            color: #4c1d95;
+            line-height: 1.4;
+            max-height: 60px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        [data-theme="dark"] .priority-voice-player {
+            background: #1e1033;
+            border-color: #2d2050;
+        }
+        [data-theme="dark"] .priority-voice-player .pvp-label {
+            color: #a78bfa;
+        }
+        [data-theme="dark"] .priority-text-note {
+            background: #1e1033;
+            border-color: #7c3aed;
+            color: #c4b5fd;
+        }
     </style>
     <link rel="stylesheet" href="/css/coach-layout.css">
     <script src="https://unpkg.com/lucide@0.312.0/dist/umd/lucide.min.js" onload="lucide.createIcons()"></script>
@@ -3181,7 +3272,12 @@
     </div>
 
     <!-- Main Content -->
-    <main class="main-content">
+    <main class="main-content" id="mainContent">
+        <!-- Pull-to-refresh indicator -->
+        <div class="ptr-indicator" id="ptrIndicator">
+            <div class="ptr-spinner"></div>
+            <span class="ptr-text">Pull to refresh</span>
+        </div>
         <header class="main-header">
             <button class="mobile-menu-btn" id="mobileMenuBtn">
                 <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -4399,6 +4495,25 @@
                             .limit(10);
 
                         if (exerciseNotes && exerciseNotes.length > 0) {
+                            // Fetch signed URLs for any voice notes
+                            const voicePaths = exerciseNotes
+                                .filter(n => n.client_voice_note_path)
+                                .map(n => n.client_voice_note_path);
+                            let voiceUrls = {};
+                            if (voicePaths.length > 0) {
+                                try {
+                                    const urlRes = await fetch('/.netlify/functions/get-signed-urls', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ filePaths: voicePaths, coachId })
+                                    });
+                                    const urlData = await urlRes.json();
+                                    voiceUrls = urlData.signedUrls || {};
+                                } catch (e) {
+                                    console.warn('Could not fetch voice note URLs:', e);
+                                }
+                            }
+
                             exerciseNotes.slice(0, MAX_SHOWN).forEach(note => {
                                 const clientId = note.workout_logs?.client_id;
                                 const name = clientMap[clientId] || 'Unknown Client';
@@ -4413,6 +4528,28 @@
                                 // Link to client profile with workout tab and specific workout
                                 const url = `client-profile.html?clientId=${clientId}&tab=workouts&workoutId=${workoutId}`;
 
+                                // Build inline voice player if voice note exists
+                                let voicePlayerHtml = '';
+                                if (hasVoice) {
+                                    const signedUrl = voiceUrls[note.client_voice_note_path];
+                                    if (signedUrl) {
+                                        voicePlayerHtml = `
+                                            <div class="priority-voice-player" onclick="event.stopPropagation()">
+                                                <span class="pvp-label">🎙️ Play</span>
+                                                <audio controls preload="metadata" src="${signedUrl}"></audio>
+                                            </div>`;
+                                    }
+                                }
+
+                                // Build inline text note preview
+                                let textNoteHtml = '';
+                                if (hasText && note.client_notes.trim()) {
+                                    const preview = note.client_notes.length > 120
+                                        ? note.client_notes.substring(0, 120) + '...'
+                                        : note.client_notes;
+                                    textNoteHtml = `<div class="priority-text-note" onclick="event.stopPropagation()">💬 ${preview}</div>`;
+                                }
+
                                 addAlert(aid, `
                                     <div class="priority-alert priority-alert--clickable" onclick="reviewAndArchive('${aid}', '${url}')">
                                         __CHECKBOX__
@@ -4422,6 +4559,8 @@
                                             <strong>${name}</strong> on ${exerciseName}
                                             <span class="priority-alert-detail">· ${workoutName} · ${timeAgo(note.created_at)}</span>
                                             <span class="priority-alert-link">Review →</span>
+                                            ${voicePlayerHtml}
+                                            ${textNoteHtml}
                                         </span>
                                     </div>
                                 `, clientId, 'workout_note', note.id);
@@ -5585,6 +5724,57 @@
 
         // Load dashboard on page load
         loadDashboard();
+
+        // --- Pull-to-refresh ---
+        (function initPullToRefresh() {
+            const mainEl = document.getElementById('mainContent');
+            const ptrEl = document.getElementById('ptrIndicator');
+            if (!mainEl || !ptrEl) return;
+
+            let startY = 0;
+            let pulling = false;
+            const THRESHOLD = 70;
+
+            mainEl.addEventListener('touchstart', (e) => {
+                if (mainEl.scrollTop <= 0 && !isLoading) {
+                    startY = e.touches[0].clientY;
+                    pulling = true;
+                    ptrEl.classList.add('pulling');
+                    ptrEl.classList.remove('refreshing');
+                }
+            }, { passive: true });
+
+            mainEl.addEventListener('touchmove', (e) => {
+                if (!pulling) return;
+                const dy = e.touches[0].clientY - startY;
+                if (dy > 0 && mainEl.scrollTop <= 0) {
+                    const h = Math.min(dy * 0.5, 80);
+                    ptrEl.style.height = h + 'px';
+                    ptrEl.querySelector('.ptr-text').textContent = h >= THRESHOLD * 0.5 ? 'Release to refresh' : 'Pull to refresh';
+                } else {
+                    ptrEl.style.height = '0px';
+                }
+            }, { passive: true });
+
+            mainEl.addEventListener('touchend', () => {
+                if (!pulling) return;
+                pulling = false;
+                ptrEl.classList.remove('pulling');
+                const h = parseInt(ptrEl.style.height) || 0;
+                if (h >= THRESHOLD * 0.5) {
+                    ptrEl.style.height = '50px';
+                    ptrEl.classList.add('refreshing');
+                    ptrEl.querySelector('.ptr-text').textContent = 'Refreshing...';
+                    isLoading = false; // Allow loadDashboard to run
+                    loadDashboard().finally(() => {
+                        ptrEl.classList.remove('refreshing');
+                        ptrEl.style.height = '0px';
+                    });
+                } else {
+                    ptrEl.style.height = '0px';
+                }
+            }, { passive: true });
+        })();
     </script>
 
     <!-- PWA Service Worker Registration -->
