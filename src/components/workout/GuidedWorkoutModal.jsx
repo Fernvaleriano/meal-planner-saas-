@@ -260,12 +260,12 @@ function GuidedWorkoutModal({
   const isMountedRef = useRef(true);
   const exerciseIndexAtRecordStartRef = useRef(null);
 
-  // Keep refs in sync
-  useEffect(() => { phaseRef.current = phase; }, [phase]);
-  useEffect(() => { currentExIndexRef.current = currentExIndex; }, [currentExIndex]);
-  useEffect(() => { currentSetIndexRef.current = currentSetIndex; }, [currentSetIndex]);
-  useEffect(() => { completedSetsRef.current = completedSets; }, [completedSets]);
-  useEffect(() => { setLogsRef.current = setLogs; }, [setLogs]);
+  // Keep refs in sync (single effect to avoid re-render cascade)
+  phaseRef.current = phase;
+  currentExIndexRef.current = currentExIndex;
+  currentSetIndexRef.current = currentSetIndex;
+  completedSetsRef.current = completedSets;
+  setLogsRef.current = setLogs;
   const currentExercise = exercises[currentExIndex];
 
   // Get exercise info helper
@@ -810,12 +810,16 @@ function GuidedWorkoutModal({
     setShowVideo(false);
   }, [currentExIndex]);
 
-  // Elapsed time tracker
+  // Elapsed time tracker - uses functional updater to avoid stale closures
   useEffect(() => {
-    elapsedRef.current = setInterval(() => {
+    const id = setInterval(() => {
       setTotalElapsed(prev => prev + 1);
     }, 1000);
-    return () => clearInterval(elapsedRef.current);
+    elapsedRef.current = id;
+    return () => {
+      clearInterval(id);
+      elapsedRef.current = null;
+    };
   }, []);
 
   // Lock body scroll
@@ -1027,7 +1031,8 @@ function GuidedWorkoutModal({
     }
   }, [exercises]);
 
-  // Timer effect
+  // Timer effect - only re-create interval when phase or pause state changes
+  // NOT when exercise/set index changes (those are tracked via refs)
   useEffect(() => {
     if (intervalRef.current) clearInterval(intervalRef.current);
     if (isPaused) return;
@@ -1038,6 +1043,7 @@ function GuidedWorkoutModal({
       (phase === 'exercise' && info.isTimed);
 
     if (!needsTimer) return;
+    if (!timer || timer <= 0) return; // Guard against zero/NaN timers
 
     phaseMaxTimeRef.current = timer; // Track initial max for progress ring
     endTimeRef.current = Date.now() + timer * 1000;
@@ -1048,7 +1054,7 @@ function GuidedWorkoutModal({
         clearInterval(intervalRef.current);
         intervalRef.current = null;
         setTimer(0);
-        onTimerComplete();
+        if (onTimerCompleteRef.current) onTimerCompleteRef.current();
       } else {
         setTimer(remaining);
       }
@@ -1057,7 +1063,7 @@ function GuidedWorkoutModal({
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [phase, isPaused, currentExIndex, currentSetIndex]);
+  }, [phase, isPaused]);
 
   // --- Update set log values ---
   const updateSetLog = (field, value) => {

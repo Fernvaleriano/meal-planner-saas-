@@ -175,6 +175,7 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
   const [isHeaderSwiping, setIsHeaderSwiping] = useState(false);
   const headerTouchStartX = useRef(0);
   const headerTouchStartY = useRef(0);
+  const headerSwipeRaf = useRef(null); // RAF handle for batched swipe updates
 
   // Swipe-right state for COMPLETE toggle
   const [completeSwipeOffset, setCompleteSwipeOffset] = useState(0);
@@ -188,6 +189,7 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
   const [isSetsSwiping, setIsSetsSwiping] = useState(false);
   const setsTouchStartX = useRef(0);
   const setsTouchStartY = useRef(0);
+  const setsSwipeRaf = useRef(null); // RAF handle for batched sets swipe updates
 
   const cardRef = useRef(null);
   const swipeThreshold = 60;
@@ -239,6 +241,15 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
       if (restTimerRef.current) {
         clearInterval(restTimerRef.current);
         restTimerRef.current = null;
+      }
+      // Cancel any pending RAF frames to prevent setState on unmounted component
+      if (headerSwipeRaf.current) {
+        cancelAnimationFrame(headerSwipeRaf.current);
+        headerSwipeRaf.current = null;
+      }
+      if (setsSwipeRaf.current) {
+        cancelAnimationFrame(setsSwipeRaf.current);
+        setsSwipeRaf.current = null;
       }
     };
   }, []);
@@ -425,28 +436,34 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
 
     if (diffY > Math.abs(diffX) && !isHeaderSwiping && !isCompleteSwiping) return;
 
-    if (diffX > 10) {
-      // Swipe LEFT → show swap/delete actions
-      if (completeSwipeOffset > 0) {
-        setIsCompleteSwiping(true);
-        setCompleteSwipeOffset(0);
-        return;
-      }
-      setIsHeaderSwiping(true);
-      e.preventDefault();
-      setHeaderSwipeOffset(Math.min(Math.max(0, diffX), headerMaxSwipe));
-    } else if (diffX < -10) {
-      // Swipe RIGHT → show complete action (or close header swipe)
-      if (headerSwipeOffset > 0) {
+    // Batch state updates in a single RAF to prevent flooding React with setState calls
+    if (headerSwipeRaf.current) cancelAnimationFrame(headerSwipeRaf.current);
+    headerSwipeRaf.current = requestAnimationFrame(() => {
+      if (diffX > 10) {
+        // Swipe LEFT → show swap/delete actions
+        if (completeSwipeOffset > 0) {
+          setIsCompleteSwiping(true);
+          setCompleteSwipeOffset(0);
+          return;
+        }
         setIsHeaderSwiping(true);
-        setHeaderSwipeOffset(Math.max(0, headerSwipeOffset + diffX));
-        return;
+        setHeaderSwipeOffset(Math.min(Math.max(0, diffX), headerMaxSwipe));
+      } else if (diffX < -10) {
+        // Swipe RIGHT → show complete action (or close header swipe)
+        if (headerSwipeOffset > 0) {
+          setIsHeaderSwiping(true);
+          setHeaderSwipeOffset(Math.max(0, headerSwipeOffset + diffX));
+          return;
+        }
+        if (workoutStarted) {
+          setIsCompleteSwiping(true);
+          setCompleteSwipeOffset(Math.min(Math.abs(diffX), completeMaxSwipe));
+        }
       }
-      if (workoutStarted) {
-        setIsCompleteSwiping(true);
-        e.preventDefault();
-        setCompleteSwipeOffset(Math.min(Math.abs(diffX), completeMaxSwipe));
-      }
+    });
+
+    if (diffX > 10 || (diffX < -10 && workoutStarted)) {
+      e.preventDefault();
     }
   };
 
@@ -489,14 +506,20 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
 
     if (diffY > Math.abs(diffX) && !isSetsSwiping) return;
 
-    if (diffX > 10) {
-      setIsSetsSwiping(true);
-      e.preventDefault();
-      setSetsSwipeOffset(Math.min(Math.max(0, diffX), setsMaxSwipe));
-    } else if (diffX < -10 && setsSwipeOffset > 0) {
-      setIsSetsSwiping(true);
-      setSetsSwipeOffset(Math.max(0, setsSwipeOffset + diffX));
-    }
+    const shouldPrevent = diffX > 10 || (diffX < -10 && setsSwipeOffset > 0);
+    if (shouldPrevent) e.preventDefault();
+
+    // Batch state updates in a single RAF
+    if (setsSwipeRaf.current) cancelAnimationFrame(setsSwipeRaf.current);
+    setsSwipeRaf.current = requestAnimationFrame(() => {
+      if (diffX > 10) {
+        setIsSetsSwiping(true);
+        setSetsSwipeOffset(Math.min(Math.max(0, diffX), setsMaxSwipe));
+      } else if (diffX < -10 && setsSwipeOffset > 0) {
+        setIsSetsSwiping(true);
+        setSetsSwipeOffset(Math.max(0, setsSwipeOffset + diffX));
+      }
+    });
   };
 
   const handleSetsTouchEnd = (e) => {

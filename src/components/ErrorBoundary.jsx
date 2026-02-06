@@ -14,8 +14,43 @@ class ErrorBoundary extends Component {
     console.error('Error caught by boundary:', error, errorInfo);
   }
 
+  handleRetry = () => {
+    this.setState({ hasError: false, error: null });
+  };
+
   render() {
     if (this.state.hasError) {
+      if (this.props.fallback) {
+        return this.props.fallback;
+      }
+      if (this.props.compact) {
+        return (
+          <div style={{
+            padding: '16px',
+            textAlign: 'center',
+            background: '#1f1f1f',
+            borderRadius: '12px',
+            margin: '8px 0',
+            color: '#9ca3af'
+          }}>
+            <p style={{ margin: '0 0 8px', fontSize: '14px' }}>Failed to load</p>
+            <button
+              onClick={this.handleRetry}
+              style={{
+                padding: '6px 16px',
+                background: '#374151',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '13px'
+              }}
+            >
+              Retry
+            </button>
+          </div>
+        );
+      }
       return (
         <div style={{
           padding: '40px 20px',
