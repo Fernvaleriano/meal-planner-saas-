@@ -147,6 +147,19 @@ exports.handler = async (event) => {
         };
       }
 
+      // Auto-derive coach_id from client record if not provided
+      let resolvedCoachId = coachId;
+      if (!resolvedCoachId) {
+        const { data: clientRecord } = await supabase
+          .from('clients')
+          .select('coach_id')
+          .eq('id', clientId)
+          .maybeSingle();
+        if (clientRecord?.coach_id) {
+          resolvedCoachId = clientRecord.coach_id;
+        }
+      }
+
       const resolvedDate = getDefaultDate(workoutDate, timezone);
 
       // Check if a workout log already exists for this client + date
@@ -158,6 +171,14 @@ exports.handler = async (event) => {
         .limit(1);
 
       if (existingLogs && existingLogs.length > 0) {
+        // Backfill coach_id if missing on existing log
+        if (!existingLogs[0].coach_id && resolvedCoachId) {
+          await supabase
+            .from('workout_logs')
+            .update({ coach_id: resolvedCoachId })
+            .eq('id', existingLogs[0].id);
+          existingLogs[0].coach_id = resolvedCoachId;
+        }
         // Return existing log instead of creating a duplicate
         return {
           statusCode: 200,
@@ -169,7 +190,7 @@ exports.handler = async (event) => {
       // Create workout log
       const insertData = {
         client_id: clientId,
-        coach_id: coachId,
+        coach_id: resolvedCoachId,
         workout_date: resolvedDate,
         workout_name: workoutName,
         started_at: new Date().toISOString(),
@@ -236,6 +257,22 @@ exports.handler = async (event) => {
         .select('client_id, coach_id')
         .eq('id', workoutId)
         .single();
+
+      // Backfill coach_id if missing
+      if (workoutLogData && !workoutLogData.coach_id && workoutLogData.client_id) {
+        const { data: clientRec } = await supabase
+          .from('clients')
+          .select('coach_id')
+          .eq('id', workoutLogData.client_id)
+          .maybeSingle();
+        if (clientRec?.coach_id) {
+          await supabase
+            .from('workout_logs')
+            .update({ coach_id: clientRec.coach_id })
+            .eq('id', workoutId);
+          workoutLogData.coach_id = clientRec.coach_id;
+        }
+      }
 
       const prNotifications = []; // Collect PRs to notify coach
 

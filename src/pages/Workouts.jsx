@@ -1740,6 +1740,7 @@ function Workouts() {
       try {
         const postData = {
           clientId: clientData.id,
+          coachId: clientData.coach_id,
           assignmentId: todayWorkout.is_adhoc ? null : todayWorkout.id,
           workoutDate: formatDate(selectedDate),
           workoutName: todayWorkout?.name || 'Workout',
@@ -2355,6 +2356,7 @@ function Workouts() {
       if (!workoutLog && clientData?.id && todayWorkout?.id) {
         const postData = {
           clientId: clientData.id,
+          coachId: clientData.coach_id,
           assignmentId: todayWorkout.is_adhoc ? null : todayWorkout.id,
           workoutDate: formatDate(selectedDate),
           workoutName: todayWorkout?.name || 'Workout',
