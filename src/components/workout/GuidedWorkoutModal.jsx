@@ -305,14 +305,31 @@ function GuidedWorkoutModal({
     if (!clientId || !currentExercise?.id) return;
     if (progressTips[currentExIndex] !== undefined) return; // Already fetched
 
-    // Skip progress tips for timed/cardio exercises - doesn't make sense to suggest "more reps"
+    // Skip progress tips for exercises where progressive overload doesn't apply:
+    // warm-ups, stretches, cardio machines, timed exercises
+    const isWarmupOrStretch = currentExercise.isWarmup || currentExercise.isStretch ||
+      currentExercise.phase === 'warmup' || currentExercise.phase === 'cooldown';
+
     const isTimed = currentExercise.trackingType === 'time' ||
       currentExercise.exercise_type === 'timed' ||
       currentExercise.exercise_type === 'cardio' ||
       currentExercise.exercise_type === 'interval' ||
       !!currentExercise.duration;
 
-    if (isTimed) {
+    // Cardio equipment where reps/weight progression doesn't make sense
+    const cardioMachineKeywords = [
+      'elliptical', 'stairmaster', 'stair master', 'stepper', 'stair climber',
+      'bike', 'bicycle', 'cycling', 'stationary bike', 'recumbent',
+      'treadmill', 'rowing', 'rower', 'jump rope', 'skipping rope',
+      'walking', 'jogging', 'running', 'sprints',
+      'jumping jacks', 'high knees', 'butt kicks', 'mountain climbers'
+    ];
+    const exerciseNameLower = (currentExercise.name || '').toLowerCase();
+    const muscleGroupLower = (currentExercise.muscle_group || '').toLowerCase();
+    const isCardioEquipment = cardioMachineKeywords.some(kw => exerciseNameLower.includes(kw)) ||
+      muscleGroupLower === 'cardio';
+
+    if (isTimed || isWarmupOrStretch || isCardioEquipment) {
       setProgressTips(prev => ({ ...prev, [currentExIndex]: null }));
       setAiRecommendations(prev => ({ ...prev, [currentExIndex]: null }));
       return;
@@ -1271,8 +1288,8 @@ function GuidedWorkoutModal({
           </div>
         )}
 
-        {/* Coaching Recommendation Card */}
-        {aiRecommendations[currentExIndex] && !info.isTimed && (
+        {/* Coaching Recommendation Card - hidden for warm-ups, stretches, and cardio equipment */}
+        {aiRecommendations[currentExIndex] && !info.isTimed && !currentExercise?.isWarmup && !currentExercise?.isStretch && currentExercise?.phase !== 'warmup' && currentExercise?.phase !== 'cooldown' && (
           <div className={`ai-recommendation-card ${acceptedRecommendation[currentExIndex] ? 'accepted' : ''}`}>
             <div className="ai-rec-header">
               <div className="ai-rec-badge">
