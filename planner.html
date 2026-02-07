@@ -1730,7 +1730,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
                 </svg>
             </button>
-            <h1 class="main-header-title" style="color: white;">🍽️ AI Meal Planner</h1>
+            <h1 class="main-header-title" style="color: white;"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:6px;"><path d="M3 2l1.578 17.824A2 2 0 0 0 6.556 21.5h10.888a2 2 0 0 0 1.978-1.676L21 2"/><path d="M8 2v3a4 4 0 0 0 8 0V2"/><path d="M12 14v4"/><path d="M9 18h6"/></svg>AI Meal Planner</h1>
             <div class="main-header-actions">
                 <button id="backToClientBtn" onclick="goBackToClient()" style="display: none; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500; transition: all 0.2s;">
                     ← Back to Client
@@ -1758,11 +1758,13 @@
             <!-- Planner Mode Toggle -->
             <div class="flex justify-center items-center gap-3 mb-6 p-3 rounded-xl" style="background: #f1f5f9; border: 1px solid #e2e8f0;">
                 <div class="flex gap-3 w-full">
-                    <button id="mode-client" class="flex-1 py-3 px-4 rounded-lg font-bold text-sm transition-all" style="background: #0d9488; color: white; border: none; box-shadow: 0 2px 8px rgba(13,148,136,0.3);" onclick="setPlannerMode('client')">
-                        👤 Build for Client
+                    <button id="mode-client" class="flex-1 py-3 px-4 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2" style="background: #0d9488; color: white; border: none; box-shadow: 0 2px 8px rgba(13,148,136,0.3);" onclick="setPlannerMode('client')">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        Build for Client
                     </button>
-                    <button id="mode-template" class="flex-1 py-3 px-4 rounded-lg font-bold text-sm transition-all" style="background: transparent; color: #64748b; border: none;" onclick="setPlannerMode('template')">
-                        📋 Create Template
+                    <button id="mode-template" class="flex-1 py-3 px-4 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2" style="background: transparent; color: #64748b; border: none;" onclick="setPlannerMode('template')">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                        Create Template
                     </button>
                 </div>
             </div>
@@ -1770,7 +1772,7 @@
             <div class="space-y-4">
                 <!-- Client Selector Section (hidden in template mode) -->
                 <div id="client-selector-section" class="p-4 bg-teal-50 border-2 border-teal-400 rounded-lg">
-                    <label class="font-bold text-teal-900 block mb-2">👤 Select Client</label>
+                    <label class="font-bold text-teal-900 block mb-2"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:text-bottom;margin-right:4px;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Select Client</label>
                     <div class="grid grid-cols-1 gap-3">
                         <select id="dp_client_selector" class="input-field border-2 border-teal-500" required>
                             <option value="">Loading clients...</option>
@@ -1789,7 +1791,7 @@
                 <!-- Client Details - Collapsible -->
                 <div class="border-2 border-gray-200 rounded-lg overflow-hidden">
                     <button type="button" onclick="toggleSection('client-details')" class="w-full p-3 bg-gray-50 flex justify-between items-center hover:bg-gray-100 transition-colors">
-                        <span class="font-bold text-gray-700">📋 Client Details</span>
+                        <span class="font-bold text-gray-700"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:text-bottom;margin-right:4px;"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><line x1="16" y1="10" x2="8" y2="10"/><line x1="16" y1="14" x2="8" y2="14"/><line x1="16" y1="18" x2="12" y2="18"/></svg>Client Details</span>
                         <span id="client-details-arrow" class="text-gray-500 transition-transform">▼</span>
                     </button>
                     <div id="client-details-content" class="p-4 border-t border-gray-200">
@@ -1810,7 +1812,7 @@
                 <!-- Plan Preferences - Collapsible -->
                 <div class="border-2 border-gray-200 rounded-lg overflow-hidden">
                     <button type="button" onclick="toggleSection('plan-preferences')" class="w-full p-3 bg-gray-50 flex justify-between items-center hover:bg-gray-100 transition-colors">
-                        <span class="font-bold text-gray-700">⚙️ Plan Preferences</span>
+                        <span class="font-bold text-gray-700"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:text-bottom;margin-right:4px;"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Plan Preferences</span>
                         <span id="plan-preferences-arrow" class="text-gray-500 transition-transform">▼</span>
                     </button>
                     <div id="plan-preferences-content" class="p-4 border-t border-gray-200">
@@ -1832,7 +1834,7 @@
                 <div class="p-4 bg-amber-50 border-2 border-amber-400 rounded-lg">
                     <div class="flex items-center mb-3">
                         <input type="checkbox" id="dp_custom_targets" class="mr-2 h-5 w-5">
-                        <label for="dp_custom_targets" class="font-bold text-amber-900">🎯 Set Custom Targets</label>
+                        <label for="dp_custom_targets" class="font-bold text-amber-900"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:text-bottom;margin-right:4px;"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>Set Custom Targets</label>
                     </div>
                     <p class="text-sm text-amber-700 mb-3">Override the calculated targets with your own specific macros.</p>
                     <div id="custom-targets-fields" class="hidden">
@@ -1895,20 +1897,20 @@
                         <input type="hidden" id="dp_custom_carbs" value="">
                         <input type="hidden" id="dp_custom_fat" value="">
 
-                        <p class="text-xs text-amber-600 mt-3">💡 Enter calories and any 2 percentages - the 3rd will auto-fill to reach 100%.</p>
+                        <p class="text-xs text-amber-600 mt-3">Enter calories and any 2 percentages - the 3rd will auto-fill to reach 100%.</p>
                     </div>
                 </div>
 
                 <!-- Advanced Options - Collapsible (collapsed by default) -->
                 <div class="border-2 border-gray-200 rounded-lg overflow-hidden">
                     <button type="button" onclick="toggleSection('advanced-options')" class="w-full p-3 bg-gray-50 flex justify-between items-center hover:bg-gray-100 transition-colors">
-                        <span class="font-bold text-gray-700">🔧 Advanced Options</span>
+                        <span class="font-bold text-gray-700"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:text-bottom;margin-right:4px;"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>Advanced Options</span>
                         <span id="advanced-options-arrow" class="text-gray-500 transition-transform rotate-[-90deg]">▼</span>
                     </button>
                     <div id="advanced-options-content" class="hidden p-4 border-t border-gray-200 space-y-4">
                         <!-- Cooking Equipment -->
                         <div class="p-3 bg-teal-50 border border-teal-300 rounded-lg">
-                            <label class="font-semibold text-teal-900 block mb-2 text-sm">🍳 Cooking Equipment</label>
+                            <label class="font-semibold text-teal-900 block mb-2 text-sm">Cooking Equipment</label>
                             <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
                                 <label class="flex items-center text-sm"><input type="checkbox" id="equip_stove" value="Stove" class="mr-2 h-4 w-4" checked> Stove</label>
                                 <label class="flex items-center text-sm"><input type="checkbox" id="equip_oven" value="Oven" class="mr-2 h-4 w-4" checked> Oven</label>
@@ -1923,7 +1925,7 @@
                         <div class="flex items-center p-3 bg-purple-50 border border-purple-300 rounded-lg">
                             <input type="checkbox" id="dp_use_branded_foods" class="mr-2 h-5 w-5">
                             <div>
-                                <label for="dp_use_branded_foods" class="font-semibold text-purple-900 text-sm">🏋️ Use Branded Fitness Foods</label>
+                                <label for="dp_use_branded_foods" class="font-semibold text-purple-900 text-sm">Use Branded Fitness Foods</label>
                                 <p class="text-xs text-purple-700">Quest Bars, Premier Protein, Fairlife, etc.</p>
                             </div>
                         </div>
@@ -1932,7 +1934,7 @@
                         <div class="flex items-center p-3 bg-slate-50 border border-slate-300 rounded-lg">
                             <input type="checkbox" id="dp_start_from_scratch" class="mr-2 h-5 w-5">
                             <div>
-                                <label for="dp_start_from_scratch" class="font-semibold text-slate-900 text-sm">📝 DIY Meal Plan</label>
+                                <label for="dp_start_from_scratch" class="font-semibold text-slate-900 text-sm">DIY Meal Plan</label>
                                 <p class="text-xs text-slate-600">Blank template - add meals manually</p>
                             </div>
                         </div>
@@ -1941,15 +1943,15 @@
                         <div class="p-3 bg-purple-50 border border-purple-300 rounded-lg">
                             <div class="flex items-center mb-2">
                                 <input type="checkbox" id="dp_use_template" class="mr-2 h-5 w-5">
-                                <label for="dp_use_template" class="font-semibold text-purple-900 text-sm">📋 Use Plan Template</label>
+                                <label for="dp_use_template" class="font-semibold text-purple-900 text-sm">Use Plan Template</label>
                             </div>
                             <div id="template-selector-fields" class="hidden">
                                 <div class="flex gap-2 items-center">
                                     <select id="dp_template_select" class="input-field border-purple-400 flex-1 text-sm">
                                         <option value="">Select a template...</option>
                                     </select>
-                                    <button id="edit-template-btn" onclick="editSelectedTemplate()" class="btn" style="background: #7c3aed; color: white; padding: 6px 10px; font-size: 11px;" title="Edit template" disabled>✏️</button>
-                                    <button id="delete-template-btn" onclick="deleteSelectedTemplate()" class="btn" style="background: #dc2626; color: white; padding: 6px 10px; font-size: 11px;" title="Delete template" disabled>🗑️</button>
+                                    <button id="edit-template-btn" onclick="editSelectedTemplate()" class="btn" style="background: #7c3aed; color: white; padding: 6px 10px; font-size: 11px;" title="Edit template" disabled><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+                                    <button id="delete-template-btn" onclick="deleteSelectedTemplate()" class="btn" style="background: #dc2626; color: white; padding: 6px 10px; font-size: 11px;" title="Delete template" disabled><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
                                 </div>
                                 <div id="template-preview" class="mt-2 text-sm text-purple-600 hidden"></div>
                             </div>
@@ -1959,11 +1961,11 @@
 
                 <!-- Plan Name - Right before generate -->
                 <div class="p-4 bg-purple-50 border-2 border-purple-400 rounded-lg">
-                    <label class="font-bold text-purple-900 block mb-2">📝 Plan Name <span class="text-red-500">*</span></label>
+                    <label class="font-bold text-purple-900 block mb-2">Plan Name <span class="text-red-500">*</span></label>
                     <input type="text" id="dp_plan_name" class="input-field border-2 border-purple-500" placeholder="e.g., John's Cutting Phase, Week 1 Meal Prep..." required>
                 </div>
 
-                <button data-action="generate-plan" id="generate-plan-btn" class="btn btn-primary w-full text-lg">✨ Create Diet Plan</button>
+                <button data-action="generate-plan" id="generate-plan-btn" class="btn btn-primary w-full text-lg">Create Diet Plan</button>
             </div>
         </div>
         <div id="diet-plan-result"></div>
@@ -1984,14 +1986,14 @@
     <div id="share-modal" class="modal-overlay hidden">
         <div class="card w-11/12 md:max-w-2xl">
             <div class="flex justify-between items-center mb-4">
-                <h3 class="text-2xl font-bold text-blue-600">🔗 Share Meal Plan</h3>
+                <h3 class="text-2xl font-bold text-blue-600"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:6px;"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>Share Meal Plan</h3>
                 <button data-action="close-share-modal" class="text-2xl font-bold">&times;</button>
             </div>
             <p class="text-gray-600 mb-4">Share this link with your client. They'll be able to view, change, and revise meals.</p>
             <div class="bg-blue-50 p-4 rounded-lg mb-4 break-all">
                 <div id="share-link-text" class="text-blue-600 font-semibold">Generating link...</div>
             </div>
-            <button data-action="copy-share-link" class="btn btn-primary w-full mb-2">📋 Copy Link</button>
+            <button data-action="copy-share-link" class="btn btn-primary w-full mb-2"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy Link</button>
             <button data-action="close-share-modal" class="btn btn-secondary w-full">Close</button>
         </div>
     </div>
@@ -2000,17 +2002,17 @@
     <div id="image-prompt-modal" class="modal-overlay hidden">
         <div class="card w-11/12 md:max-w-lg">
             <div class="flex justify-between items-center mb-4">
-                <h3 class="text-xl font-bold text-purple-600">📷 Customize Image</h3>
+                <h3 class="text-xl font-bold text-purple-600"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:6px;"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Customize Image</h3>
                 <button onclick="closeImagePromptModal()" class="text-2xl font-bold">&times;</button>
             </div>
             <p class="text-gray-600 mb-2">Meal: <strong id="image-prompt-meal-name"></strong></p>
             <p class="text-gray-600 mb-3">Describe how you want the image to look:</p>
             <input type="text" id="custom-image-prompt" class="input-field w-full mb-3"
                    placeholder="e.g., Shaker cup with protein shake and a banana on the side">
-            <p class="text-xs text-gray-500 mb-4">💡 Tip: Be specific - mention shaker cups, plates, bowls, arrangement, etc.</p>
+            <p class="text-xs text-gray-500 mb-4">Tip: Be specific - mention shaker cups, plates, bowls, arrangement, etc.</p>
             <div class="flex gap-2">
                 <button onclick="closeImagePromptModal()" class="btn btn-secondary flex-1">Cancel</button>
-                <button onclick="submitCustomImagePrompt()" id="generate-custom-image-btn" class="btn btn-primary flex-1">🎨 Generate</button>
+                <button onclick="submitCustomImagePrompt()" id="generate-custom-image-btn" class="btn btn-primary flex-1"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><circle cx="13.5" cy="6.5" r="2.5"/><circle cx="6" cy="12" r="2.5" fill="currentColor" opacity="0.3"/><circle cx="18" cy="16" r="2.5"/><path d="M17 2l-4 4M6 9.5V4M18 13.5V22"/></svg>Generate</button>
             </div>
         </div>
     </div>
@@ -2019,7 +2021,7 @@
     <div id="image-styling-modal" class="modal-overlay hidden">
         <div class="card w-11/12 md:max-w-lg">
             <div class="flex justify-between items-center mb-4">
-                <h3 class="text-xl font-bold text-purple-600">🎨 Style Your Image</h3>
+                <h3 class="text-xl font-bold text-purple-600"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:6px;"><circle cx="13.5" cy="6.5" r="2.5"/><circle cx="6" cy="12" r="2.5" fill="currentColor" opacity="0.3"/><circle cx="18" cy="16" r="2.5"/><path d="M17 2l-4 4M6 9.5V4M18 13.5V22"/></svg>Style Your Image</h3>
                 <button onclick="closeImageStylingModal()" class="text-2xl font-bold">&times;</button>
             </div>
             <p class="text-gray-600 mb-4">Meal: <strong id="styling-meal-name"></strong></p>
@@ -2042,7 +2044,7 @@
             <!-- Action Buttons -->
             <div class="flex gap-2 mt-4">
                 <button onclick="closeImageStylingModal()" class="btn btn-secondary flex-1">Cancel</button>
-                <button onclick="generateStyledImage()" id="generate-styled-image-btn" class="btn btn-primary flex-1" disabled>🎨 Generate Image</button>
+                <button onclick="generateStyledImage()" id="generate-styled-image-btn" class="btn btn-primary flex-1" disabled><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><circle cx="13.5" cy="6.5" r="2.5"/><circle cx="6" cy="12" r="2.5" fill="currentColor" opacity="0.3"/><circle cx="18" cy="16" r="2.5"/><path d="M17 2l-4 4M6 9.5V4M18 13.5V22"/></svg>Generate Image</button>
             </div>
         </div>
     </div>
@@ -2051,7 +2053,7 @@
     <div id="custom-image-gallery-modal" class="modal-overlay hidden">
         <div class="card w-11/12 md:max-w-2xl max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-center mb-4">
-                <h3 class="text-xl font-bold text-purple-600">📷 Custom Meal Image</h3>
+                <h3 class="text-xl font-bold text-purple-600"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:6px;"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Custom Meal Image</h3>
                 <button onclick="closeCustomImageGalleryModal()" class="text-2xl font-bold">&times;</button>
             </div>
             <p class="text-gray-600 mb-2">Meal: <strong id="gallery-meal-name"></strong></p>
@@ -2061,14 +2063,14 @@
                 <label class="block text-sm font-semibold text-gray-700 mb-2">Describe how you want the image to look:</label>
                 <input type="text" id="gallery-image-prompt" class="input-field w-full"
                        placeholder="e.g., Grilled chicken on a white plate with colorful vegetables">
-                <p class="text-xs text-gray-500 mt-1">💡 Be specific - mention plates, bowls, arrangement, cooking style, etc.</p>
+                <p class="text-xs text-gray-500 mt-1">Be specific - mention plates, bowls, arrangement, cooking style, etc.</p>
             </div>
 
             <!-- Tries Counter -->
             <div class="flex items-center justify-between mb-4 p-3 bg-purple-50 rounded-lg">
                 <span class="text-sm text-purple-700">Generations remaining: <strong id="gallery-tries-left">3</strong>/3</span>
                 <button onclick="generateCustomGalleryImage()" id="gallery-generate-btn" class="btn text-sm" style="background: #8b5cf6; color: white;">
-                    🎨 Generate Image
+                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><circle cx="13.5" cy="6.5" r="2.5"/><circle cx="6" cy="12" r="2.5" fill="currentColor" opacity="0.3"/><circle cx="18" cy="16" r="2.5"/><path d="M17 2l-4 4M6 9.5V4M18 13.5V22"/></svg>Generate Image
                 </button>
             </div>
 
@@ -2101,7 +2103,7 @@
             <div class="flex gap-2">
                 <button onclick="closeCustomImageGalleryModal()" class="btn btn-secondary flex-1">Cancel</button>
                 <button onclick="confirmGallerySelection()" id="gallery-confirm-btn" class="btn btn-primary flex-1" disabled>
-                    ✅ Use Selected Image
+                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><polyline points="20 6 9 17 4 12"/></svg>Use Selected Image
                 </button>
             </div>
         </div>
@@ -2111,7 +2113,7 @@
     <div id="meal-prep-modal" class="modal-overlay hidden">
         <div class="card w-11/12 md:max-w-4xl max-h-[85vh] overflow-y-auto">
             <div class="flex justify-between items-center mb-6">
-                <h3 class="text-3xl font-bold text-gray-800">📋 Meal Prep Guide</h3>
+                <h3 class="text-3xl font-bold text-gray-800"><svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:6px;"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M9 12h6M9 16h6"/></svg>Meal Prep Guide</h3>
                 <button data-action="close-meal-prep-modal" class="text-2xl font-bold">&times;</button>
             </div>
             <div id="meal-prep-content" class="text-gray-700 space-y-6">
@@ -2132,22 +2134,22 @@
 <div id="customMealModal" class="custom-meal-overlay">
     <div class="custom-meal-modal">
         <div class="custom-meal-header">
-            <h2>🎯 Custom Meal</h2>
+            <h2><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:6px;"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>Custom Meal</h2>
             <p style="color: #666; margin: 0;">Create your own meal</p>
         </div>
 
         <!-- Tabs -->
         <div class="custom-meal-tabs">
             <div class="custom-meal-tab active" onclick="switchCustomMealTab('calculate')">
-                <span class="custom-meal-tab-icon">🧮</span>
+                <span class="custom-meal-tab-icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8M8 10h2M8 14h2M8 18h2M14 10h2M14 14h2M14 18h2"/></svg></span>
                 <span class="custom-meal-tab-label">Calculate</span>
             </div>
             <div class="custom-meal-tab" onclick="switchCustomMealTab('manual')">
-                <span class="custom-meal-tab-icon">✏️</span>
+                <span class="custom-meal-tab-icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></span>
                 <span class="custom-meal-tab-label">Manual</span>
             </div>
             <div class="custom-meal-tab" onclick="switchCustomMealTab('saved')">
-                <span class="custom-meal-tab-icon">📚</span>
+                <span class="custom-meal-tab-icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></span>
                 <span class="custom-meal-tab-label">My Saved</span>
             </div>
         </div>
@@ -2157,7 +2159,7 @@
             <!-- Quick Add Section -->
             <div class="quick-add-section">
                 <div class="quick-add-header">
-                    <span>⚡ Quick Add</span>
+                    <span><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>Quick Add</span>
                     <span class="quick-add-hint">AI-powered - describe your meal</span>
                 </div>
                 <textarea
@@ -2203,7 +2205,7 @@
 
             <!-- Calculated Totals -->
             <div class="calculated-totals">
-                <div class="totals-header">📊 Calculated Totals</div>
+                <div class="totals-header"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>Calculated Totals</div>
                 <div class="totals-grid">
                     <div class="total-item">
                         <div class="total-value" id="totalCalories">0</div>
@@ -2243,18 +2245,18 @@
 
             <div class="save-for-later-row">
                 <input type="checkbox" id="saveCalculatedForLater">
-                <label for="saveCalculatedForLater">💾 Save this meal for future use</label>
+                <label for="saveCalculatedForLater">Save this meal for future use</label>
             </div>
 
             <button class="btn-submit-custom" onclick="submitCalculatedMeal()" id="createCalculatedMealBtn" disabled>
-                🧮 Create Meal
+                Create Meal
             </button>
         </div>
 
         <!-- Manual Panel -->
         <div id="manualPanel" class="custom-meal-panel">
             <div class="custom-meal-hint">
-                💡 Enter the meal name and macros directly. Use nutrition labels or apps like MyFitnessPal.
+                Enter the meal name and macros directly. Use nutrition labels or apps like MyFitnessPal.
             </div>
             <input
                 type="text"
@@ -2290,18 +2292,18 @@
 
             <div class="save-for-later-row">
                 <input type="checkbox" id="saveManualForLater">
-                <label for="saveManualForLater">💾 Save this meal for future use</label>
+                <label for="saveManualForLater">Save this meal for future use</label>
             </div>
 
             <button class="btn-submit-custom" onclick="submitManualMeal()">
-                ✅ Create Meal
+                Create Meal
             </button>
         </div>
 
         <!-- Saved Meals Panel -->
         <div id="savedPanel" class="custom-meal-panel">
             <div class="custom-meal-hint">
-                📚 Your saved custom meals. Click "Use" to add to your plan.
+                Your saved custom meals. Click "Use" to add to your plan.
             </div>
             <div id="savedMealsList" class="saved-meals-list">
                 <div class="no-saved-meals">No saved meals yet. Create a meal and check "Save for future use" to add it here.</div>
@@ -2316,7 +2318,7 @@
 <div id="adjustPortionsModal" class="custom-meal-overlay">
     <div class="custom-meal-modal" style="max-width: 480px;">
         <div class="custom-meal-header">
-            <h2>⚖️ Adjust Portions</h2>
+            <h2><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:6px;"><path d="M12 3v18M3 12l3-3 3 3M15 9l3-3 3 3M3 12h3M18 12h3"/><circle cx="6" cy="15" r="2"/><circle cx="18" cy="15" r="2"/></svg>Adjust Portions</h2>
             <p style="color: #666; margin: 0;">Adjust each ingredient individually or scale the whole meal</p>
         </div>
 
@@ -2514,7 +2516,7 @@ function setPlannerMode(mode) {
         if (clientDetailsArrow) clientDetailsArrow.style.transform = 'rotate(0deg)';
 
         // Update button
-        if (generateBtn) generateBtn.innerHTML = '📋 Create Template';
+        if (generateBtn) generateBtn.innerHTML = 'Create Template';
     } else {
         // Highlight client button
         clientBtn.style.background = '#0d9488';
@@ -2531,7 +2533,7 @@ function setPlannerMode(mode) {
         if (planNameSection) planNameSection.style.display = 'block';
 
         // Restore button
-        if (generateBtn) generateBtn.innerHTML = '✨ Create Diet Plan';
+        if (generateBtn) generateBtn.innerHTML = 'Create Diet Plan';
     }
 }
 
@@ -2717,10 +2719,10 @@ function updateSaveButtonState() {
     if (!saveBtn) return;
 
     if (hasUnsavedChanges) {
-        saveBtn.innerHTML = '💾 Save Changes*';
+        saveBtn.innerHTML = '<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>Save Changes*';
         saveBtn.style.background = '#f59e0b'; // Orange for unsaved
     } else {
-        saveBtn.innerHTML = '💾 Saved';
+        saveBtn.innerHTML = '<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><polyline points="20 6 9 17 4 12"/></svg>Saved';
         saveBtn.style.background = '#10b981'; // Green for saved
     }
 }
@@ -3523,7 +3525,7 @@ async function generateDietPlan() {
 
     if (!isTemplateMode) {
         if (!selectedValue || selectedValue === "") {
-            alert('⚠️ Please select a client from the dropdown before generating a plan.');
+            alert('Please select a client from the dropdown before generating a plan.');
             button.disabled = false;
             resultDiv.innerHTML = '';
             return;
@@ -3531,7 +3533,7 @@ async function generateDietPlan() {
 
         clientId = parseInt(selectedValue);
         if (isNaN(clientId) || clientId <= 0) {
-            alert('⚠️ Invalid client selection. Please select a valid client from the dropdown.');
+            alert('Invalid client selection. Please select a valid client from the dropdown.');
             button.disabled = false;
             resultDiv.innerHTML = '';
             return;
@@ -3539,7 +3541,7 @@ async function generateDietPlan() {
 
         const client = clientsList.find(c => c.id === clientId);
         if (!client) {
-            alert('⚠️ Selected client not found. Please refresh the page and try again.');
+            alert('Selected client not found. Please refresh the page and try again.');
             button.disabled = false;
             resultDiv.innerHTML = '';
             return;
@@ -3554,7 +3556,7 @@ async function generateDietPlan() {
     const planNameInput = document.getElementById('dp_plan_name');
     const planName = planNameInput ? planNameInput.value.trim() : '';
     if (!isTemplateMode && !planName) {
-        alert('⚠️ Please enter a name for this meal plan (e.g., "' + clientName + '\'s Cutting Plan").');
+        alert('Please enter a name for this meal plan (e.g., "' + clientName + '\'s Cutting Plan").');
         planNameInput?.focus();
         button.disabled = false;
         resultDiv.innerHTML = '';
@@ -4726,12 +4728,12 @@ function displayDietPlan(multiDayData) {
         planHTML += `
             <div class="day-divider" style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1rem;">
                 <span>Day ${dayData.day}</span>
-                <button data-action="regenerate-day" data-day-index="${dayIndex}" class="btn btn-secondary text-xs" style="background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3); padding: 0.5rem 1rem;">🔄 Regenerate Day</button>
+                <button data-action="regenerate-day" data-day-index="${dayIndex}" class="btn btn-secondary text-xs" style="background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3); padding: 0.5rem 1rem;"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:3px;"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>Regenerate Day</button>
             </div>
             ${(() => {
                 const reminders = [];
                 if (lastPlanQuery.preference && lastPlanQuery.preference.toLowerCase() !== 'omnivore') {
-                    const icon = lastPlanQuery.preference.toLowerCase() === 'vegan' ? '🌱' : lastPlanQuery.preference.toLowerCase() === 'vegetarian' ? '🥬' : lastPlanQuery.preference.toLowerCase() === 'keto' ? '🥑' : '🍽️';
+                    const icon = '';
                     reminders.push('<span style="background:#065f46;color:#d1fae5;padding:2px 8px;border-radius:9999px;font-size:11px;font-weight:600;">' + icon + ' ' + lastPlanQuery.preference + '</span>');
                 }
                 if (lastPlanQuery.allergies) {
@@ -4746,7 +4748,7 @@ function displayDietPlan(multiDayData) {
                 }
                 if (reminders.length === 0) return '';
                 return '<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:6px 12px;background:linear-gradient(135deg,#1e293b,#334155);border-radius:8px;margin:4px 8px 8px;">' +
-                    '<span style="font-size:11px;color:#94a3b8;font-weight:700;margin-right:4px;">⚡ Dietary Reminders</span>' +
+                    '<span style="font-size:11px;color:#94a3b8;font-weight:700;margin-right:4px;">Dietary Reminders</span>' +
                     reminders.join('') + '</div>';
             })()}
             <div class="mb-3 p-3 bg-gray-50 rounded-lg">
@@ -4816,12 +4818,12 @@ function displayDietPlan(multiDayData) {
                 <div class="meal-card">
                     <div style="display: flex; flex-direction: column; align-items: center; gap: 6px;">
                         <div class="meal-card-image-placeholder" id="${mealImageId}" data-meal-name="${htmlAttrMealName}" onclick="showMealImageLarge(this)">
-                            🍽️
+                            <svg width="24" height="24" fill="none" stroke="#94a3b8" stroke-width="1.5" viewBox="0 0 24 24"><path d="M3 2l1.578 17.824A2 2 0 0 0 6.556 21.5h10.888a2 2 0 0 0 1.978-1.676L21 2"/><path d="M8 2v3a4 4 0 0 0 8 0V2"/><path d="M12 14v4"/><path d="M9 18h6"/></svg>
                         </div>
                         <!-- Generate Image button under image -->
                         ${isCustomMeal
-                            ? `<button data-action="custom-image-modal" data-image-id="${mealImageId}" data-meal-name="${htmlAttrMealName}" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn" style="background: #8b5cf6; color: white; padding: 4px 8px; font-size: 10px; border-radius: 4px; width: 100%;">📷 Image</button>`
-                            : `<button data-action="generate-meal-image" data-image-id="${mealImageId}" data-meal-name="${htmlAttrMealName}" class="btn" style="background: #8b5cf6; color: white; padding: 4px 8px; font-size: 10px; border-radius: 4px; width: 100%;">📷 Image</button>`
+                            ? `<button data-action="custom-image-modal" data-image-id="${mealImageId}" data-meal-name="${htmlAttrMealName}" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn" style="background: #8b5cf6; color: white; padding: 4px 8px; font-size: 10px; border-radius: 4px; width: 100%;"><svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:2px;"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Image</button>`
+                            : `<button data-action="generate-meal-image" data-image-id="${mealImageId}" data-meal-name="${htmlAttrMealName}" class="btn" style="background: #8b5cf6; color: white; padding: 4px 8px; font-size: 10px; border-radius: 4px; width: 100%;"><svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:2px;"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Image</button>`
                         }
                     </div>
                     <div class="meal-card-content">
@@ -4830,7 +4832,7 @@ function displayDietPlan(multiDayData) {
                                 <h4 class="font-bold text-lg capitalize">${meal.type}</h4>
                                 <p class="text-blue-700" style="font-size: 14px;">${meal.name}</p>
                             </div>
-                            ${hasUndoState ? `<button data-action="undo-meal" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn" style="background: #fee2e2; color: #dc2626; padding: 4px 8px; font-size: 11px; border-radius: 4px;" title="Undo last change">↩️</button>` : ''}
+                            ${hasUndoState ? `<button data-action="undo-meal" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn" style="background: #fee2e2; color: #dc2626; padding: 4px 8px; font-size: 11px; border-radius: 4px;" title="Undo last change"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg></button>` : ''}
                         </div>
                         <div class="grid grid-cols-4 gap-1 text-xs text-gray-600 mb-2">
                             <span>${meal.calories} cal</span>
@@ -4840,23 +4842,23 @@ function displayDietPlan(multiDayData) {
                         </div>
 
                         <!-- Recipe button -->
-                        <button data-action="get-recipe" data-meal-name="${meal.name}" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn btn-secondary text-xs w-full mb-2">📖 Recipe & Ingredients</button>
+                        <button data-action="get-recipe" data-meal-name="${meal.name}" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn btn-secondary text-xs w-full mb-2"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:3px;"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>Recipe & Ingredients</button>
 
                         <!-- AI Chat - Always Visible -->
                         <div class="ai-chat-section" style="background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%); border: 2px solid #c4b5fd; border-radius: 8px; overflow: hidden;">
                             <!-- Quick Actions + Build Custom -->
                             <div style="padding: 8px 10px; border-bottom: 1px solid #ddd6fe; display: flex; flex-wrap: wrap; gap: 4px;">
-                                <button data-action="ai-quick-action" data-quick-action="alternatives" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="ai-quick-btn" style="padding: 4px 8px; font-size: 10px; background: #8b5cf6; color: white; border: none; border-radius: 4px; cursor: pointer;">🔄 Swap</button>
-                                <button data-action="ai-quick-action" data-quick-action="higher-protein" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="ai-quick-btn" style="padding: 4px 8px; font-size: 10px; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer;">💪 +Protein</button>
-                                <button data-action="ai-quick-action" data-quick-action="lower-carb" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="ai-quick-btn" style="padding: 4px 8px; font-size: 10px; background: #22c55e; color: white; border: none; border-radius: 4px; cursor: pointer;">🥗 -Carbs</button>
-                                <button data-action="ai-quick-action" data-quick-action="simpler" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="ai-quick-btn" style="padding: 4px 8px; font-size: 10px; background: #f59e0b; color: white; border: none; border-radius: 4px; cursor: pointer;">✨ Simpler</button>
-                                <button data-action="adjust-portions" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="ai-quick-btn" style="padding: 4px 8px; font-size: 10px; background: #6366f1; color: white; border: none; border-radius: 4px; cursor: pointer;">⚖️ Adjust</button>
-                                <button data-action="custom-meal" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="ai-quick-btn" style="padding: 4px 8px; font-size: 10px; background: #7c3aed; color: white; border: none; border-radius: 4px; cursor: pointer;">🎯 Custom</button>
-                                <button data-action="save-meal-to-library" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="ai-quick-btn" style="padding: 4px 8px; font-size: 10px; background: #ec4899; color: white; border: none; border-radius: 4px; cursor: pointer;">💾 Save</button>
+                                <button data-action="ai-quick-action" data-quick-action="alternatives" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="ai-quick-btn" style="padding: 4px 8px; font-size: 10px; background: #8b5cf6; color: white; border: none; border-radius: 4px; cursor: pointer;"><svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:2px;"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>Swap</button>
+                                <button data-action="ai-quick-action" data-quick-action="higher-protein" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="ai-quick-btn" style="padding: 4px 8px; font-size: 10px; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer;"><svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:2px;"><path d="M12 22V8M5 12l7-4 7 4"/><path d="M5 16l7-4 7 4"/></svg>+Protein</button>
+                                <button data-action="ai-quick-action" data-quick-action="lower-carb" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="ai-quick-btn" style="padding: 4px 8px; font-size: 10px; background: #22c55e; color: white; border: none; border-radius: 4px; cursor: pointer;"><svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:2px;"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><path d="M8 12h8"/></svg>-Carbs</button>
+                                <button data-action="ai-quick-action" data-quick-action="simpler" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="ai-quick-btn" style="padding: 4px 8px; font-size: 10px; background: #f59e0b; color: white; border: none; border-radius: 4px; cursor: pointer;"><svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:2px;"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/></svg>Simpler</button>
+                                <button data-action="adjust-portions" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="ai-quick-btn" style="padding: 4px 8px; font-size: 10px; background: #6366f1; color: white; border: none; border-radius: 4px; cursor: pointer;"><svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:2px;"><path d="M12 3v18M3 12l3-3 3 3M15 9l3-3 3 3"/></svg>Adjust</button>
+                                <button data-action="custom-meal" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="ai-quick-btn" style="padding: 4px 8px; font-size: 10px; background: #7c3aed; color: white; border: none; border-radius: 4px; cursor: pointer;"><svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:2px;"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>Custom</button>
+                                <button data-action="save-meal-to-library" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="ai-quick-btn" style="padding: 4px 8px; font-size: 10px; background: #ec4899; color: white; border: none; border-radius: 4px; cursor: pointer;"><svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:2px;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>Save</button>
                             </div>
                             <!-- Chat Messages -->
                             <div id="ai-chat-messages-${dayIndex}-${mealIndex}" class="ai-chat-messages" style="max-height: 150px; overflow-y: auto; padding: 8px 10px; min-height: 40px;">
-                                <p style="font-size: 11px; color: #7c3aed; font-style: italic;">💬 Describe a meal or ask for changes...</p>
+                                <p style="font-size: 11px; color: #7c3aed; font-style: italic;">Describe a meal or ask for changes...</p>
                             </div>
                             <!-- Chat Input -->
                             <div style="padding: 8px 10px; border-top: 1px solid #ddd6fe; display: flex; gap: 6px;">
@@ -4873,17 +4875,17 @@ function displayDietPlan(multiDayData) {
 
                         <!-- Note for Client - Collapsible -->
                         <details style="margin-top: 10px;">
-                            <summary style="font-size: 11px; color: #92400e; cursor: pointer; padding: 6px; background: #fef3c7; border-radius: 6px;">📝 Add Note for Client ${voiceNoteUrl ? '🎤' : ''}</summary>
+                            <summary style="font-size: 11px; color: #92400e; cursor: pointer; padding: 6px; background: #fef3c7; border-radius: 6px;"><svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:3px;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Add Note for Client ${voiceNoteUrl ? '<svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-left:3px;"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>' : ''}</summary>
                             <div style="background: #fef3c7; padding: 10px; border-radius: 0 0 6px 6px; border: 1px solid #fcd34d; border-top: none;">
                                 <textarea id="${mealNoteId}" style="width: 100%; min-height: 50px; padding: 6px; border: 1px solid #fcd34d; border-radius: 4px; font-size: 12px; resize: vertical; color: #333; background: white;" placeholder="Add a note about this meal...">${existingNote}</textarea>
                                 <div style="display: flex; gap: 8px; margin-top: 6px; align-items: center; flex-wrap: wrap;">
                                     <button data-action="save-meal-note" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn" style="background: #f59e0b; color: white; padding: 4px 12px; font-size: 11px; border-radius: 4px;">Save Note</button>
-                                    <button id="voice-btn-${dayIndex}-${mealIndex}" onclick="toggleMealVoiceRecording(${dayIndex}, ${mealIndex})" style="background: #7c3aed; color: white; padding: 4px 12px; font-size: 11px; border-radius: 4px; border: none; cursor: pointer;">🎤 Record Voice</button>
+                                    <button id="voice-btn-${dayIndex}-${mealIndex}" onclick="toggleMealVoiceRecording(${dayIndex}, ${mealIndex})" style="background: #7c3aed; color: white; padding: 4px 12px; font-size: 11px; border-radius: 4px; border: none; cursor: pointer;"><svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:2px;"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>Record Voice</button>
                                 </div>
                                 ${voiceNoteUrl ? `
                                 <div style="margin-top: 10px; padding: 8px; background: #ecfdf5; border-radius: 6px; border: 1px solid #6ee7b7;">
                                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                                        <span style="font-weight: 600; color: #047857; font-size: 11px;">🎤 Voice Message:</span>
+                                        <span style="font-weight: 600; color: #047857; font-size: 11px;"><svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:2px;"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>Voice Message:</span>
                                         <button onclick="deleteMealVoiceNote(${dayIndex}, ${mealIndex})" style="background: #dc2626; color: white; padding: 2px 8px; font-size: 10px; border-radius: 4px; border: none; cursor: pointer;">Delete</button>
                                     </div>
                                     <audio controls src="${voiceNoteUrl}" style="width: 100%; height: 32px;"></audio>
@@ -4901,7 +4903,7 @@ function displayDietPlan(multiDayData) {
     planHTML += `
         <div class="coach-notes-section" style="margin-top: 20px; padding: 16px; background: #f0f9ff; border-radius: 8px; border: 1px solid #bae6fd;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                <h4 style="margin: 0; color: #0369a1; font-size: 14px; font-weight: 600;">📝 Coach Notes for Client</h4>
+                <h4 style="margin: 0; color: #0369a1; font-size: 14px; font-weight: 600;"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Coach Notes for Client</h4>
                 <button id="saveNotesBtn" data-action="save-coach-notes" class="btn btn-secondary" style="font-size: 12px; padding: 6px 12px;">Save Notes</button>
             </div>
             <textarea id="coachNotesInput" placeholder="Add personalized notes, tips, or instructions for your client..." style="width: 100%; min-height: 80px; padding: 10px; border: 1px solid #cbd5e0; border-radius: 6px; font-size: 14px; resize: vertical; color: #333; background: white;"></textarea>
@@ -4915,7 +4917,7 @@ function displayDietPlan(multiDayData) {
             <div id="plan-status-banner" class="plan-status-section" style="margin-top: 20px; padding: 16px; background: #ede9fe; border-radius: 8px; border: 2px solid #8b5cf6;">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <div>
-                        <span style="font-size: 14px; font-weight: 600; color: #5b21b6;">📋 Template Mode</span>
+                        <span style="font-size: 14px; font-weight: 600; color: #5b21b6;"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Template Mode</span>
                         <p style="margin: 4px 0 0 0; font-size: 12px; color: #5b21b6;">Edit meals as needed, then scroll down and hit "Save as Template" when you're ready.</p>
                     </div>
                 </div>
@@ -4926,11 +4928,11 @@ function displayDietPlan(multiDayData) {
             <div id="plan-status-banner" class="plan-status-section" style="margin-top: 20px; padding: 16px; background: #fef3c7; border-radius: 8px; border: 2px solid #f59e0b;">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <div>
-                        <span style="font-size: 14px; font-weight: 600; color: #92400e;">📝 Status: <span id="plan-status-text" style="background: #f59e0b; color: white; padding: 2px 8px; border-radius: 4px;">Draft</span></span>
+                        <span style="font-size: 14px; font-weight: 600; color: #92400e;"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Status: <span id="plan-status-text" style="background: #f59e0b; color: white; padding: 2px 8px; border-radius: 4px;">Draft</span></span>
                         <p style="margin: 4px 0 0 0; font-size: 12px; color: #92400e;">This plan is saved but not yet visible to your client.</p>
                     </div>
                     <button id="submitToClientBtn" data-action="submit-to-client" class="btn btn-primary" style="background: #10b981; color: white; font-size: 14px; padding: 10px 20px; white-space: nowrap;">
-                        ✅ Submit to Client
+                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><polyline points="20 6 9 17 4 12"/></svg>Submit to Client
                     </button>
                 </div>
             </div>
@@ -4939,11 +4941,11 @@ function displayDietPlan(multiDayData) {
 
     planHTML += `
         <div class="flex gap-2 mt-4 flex-wrap">
-            <button data-action="show-meal-prep-guide" class="btn btn-primary w-full" style="background:#ff6b6b; color:white;">📋 Meal Prep Guide</button>
-            <button data-action="show-grocery-list" class="btn btn-secondary w-full" style="color:white;">📝 Grocery List</button>
-            <button data-action="download-pdf" class="btn btn-primary w-full" style="color:white;">📥 Download PDF</button>
-            <button data-action="share-plan" class="btn btn-primary w-full" style="background:#28a745; color:white;">🔗 Share Plan Link</button>
-            <button data-action="save-as-template" class="btn btn-secondary w-full" style="background:#8b5cf6; color:white;">📋 Save as Template</button>
+            <button data-action="show-meal-prep-guide" class="btn btn-primary w-full" style="background:#ff6b6b; color:white;"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M9 12h6M9 16h6"/></svg>Meal Prep Guide</button>
+            <button data-action="show-grocery-list" class="btn btn-secondary w-full" style="color:white;"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>Grocery List</button>
+            <button data-action="download-pdf" class="btn btn-primary w-full" style="color:white;"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Download PDF</button>
+            <button data-action="share-plan" class="btn btn-primary w-full" style="background:#28a745; color:white;"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>Share Plan Link</button>
+            <button data-action="save-as-template" class="btn btn-secondary w-full" style="background:#8b5cf6; color:white;"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Save as Template</button>
         </div>
     </div>`;
     resultDiv.innerHTML = planHTML;
@@ -5021,7 +5023,7 @@ function showSaveRetryButton() {
         saveBtn.id = 'savePlanBtn';
         saveBtn.className = 'btn btn-primary';
         saveBtn.style.cssText = 'background: #3b82f6; font-size: 14px; padding: 10px 20px; white-space: nowrap;';
-        saveBtn.innerHTML = '💾 Save Plan';
+        saveBtn.innerHTML = '<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>Save Plan';
         saveBtn.onclick = retrySavePlan;
         submitBtn.parentNode.appendChild(saveBtn);
     }
@@ -5040,7 +5042,7 @@ function hideSaveRetryButton() {
 async function retrySavePlan() {
     const saveBtn = document.getElementById('savePlanBtn');
     if (saveBtn) {
-        saveBtn.innerHTML = '💾 Saving...';
+        saveBtn.innerHTML = 'Saving...';
         saveBtn.disabled = true;
     }
 
@@ -5051,11 +5053,11 @@ async function retrySavePlan() {
             // Hide the save button and show normal status
             hideSaveRetryButton();
             updatePlanStatusUI();
-            alert('✅ Plan saved successfully!');
+            alert('Plan saved successfully!');
         } else {
             // Still failed, reset button
             if (saveBtn) {
-                saveBtn.innerHTML = '💾 Save Plan';
+                saveBtn.innerHTML = '<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>Save Plan';
                 saveBtn.disabled = false;
             }
             alert('Failed to save plan. Check the browser console (F12) for details.');
@@ -5063,12 +5065,13 @@ async function retrySavePlan() {
     } catch (error) {
         console.error('Retry save error:', error);
         if (saveBtn) {
-            saveBtn.innerHTML = '💾 Save Plan';
+            saveBtn.innerHTML = '<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>Save Plan';
             saveBtn.disabled = false;
         }
         alert('Save failed: ' + error.message);
     }
 }
+
 
 // PUBLISH PLAN TO CLIENT
 async function publishPlanToClient() {
@@ -5125,19 +5128,19 @@ async function savePlanChanges() {
     if (!saveBtn) return;
 
     const originalText = saveBtn.innerHTML;
-    saveBtn.innerHTML = '💾 Saving...';
+    saveBtn.innerHTML = 'Saving...';
     saveBtn.disabled = true;
 
     try {
         const success = await saveCoachPlan(lastPlanQuery, lastPlanQuery.clientName);
 
         if (success) {
-            saveBtn.innerHTML = '✅ Saved!';
+            saveBtn.innerHTML = '<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><polyline points="20 6 9 17 4 12"/></svg>Saved!';
             saveBtn.style.background = '#10b981';
 
             // Reset button after 2 seconds
             setTimeout(() => {
-                saveBtn.innerHTML = '💾 Save Changes';
+                saveBtn.innerHTML = '<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>Save Changes';
                 saveBtn.style.background = '#3b82f6';
                 saveBtn.disabled = false;
             }, 2000);
@@ -5146,7 +5149,7 @@ async function savePlanChanges() {
         }
     } catch (error) {
         console.error('Error saving plan:', error);
-        saveBtn.innerHTML = '❌ Save Failed';
+        saveBtn.innerHTML = 'Save Failed';
         saveBtn.style.background = '#ef4444';
 
         setTimeout(() => {
@@ -5468,7 +5471,7 @@ async function toggleMealVoiceRecording(dayIndex, mealIndex) {
     if (mediaRecorder && mediaRecorder.state === 'recording') {
         mediaRecorder.stop();
         btn.classList.remove('recording');
-        btn.innerHTML = '🎤 Record';
+        btn.innerHTML = '<svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:2px;"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>Record';
         return;
     }
 
@@ -5742,7 +5745,7 @@ async function sendAiBrainstorm(dayIndex, mealIndex, quickAction = null) {
                         </div>
                         <div style="display: flex; gap: 6px;">
                             <button onclick="applyMealSuggestion(${dayIndex}, ${mealIndex}, this.parentElement.parentElement)" style="flex: 1; background: #7c3aed; color: white; padding: 6px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; border: none; cursor: pointer;">✓ Apply</button>
-                            <button onclick="saveSuggestionToLibrary(this.parentElement.parentElement)" style="background: #ec4899; color: white; padding: 6px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; border: none; cursor: pointer;">💾 Save</button>
+                            <button onclick="saveSuggestionToLibrary(this.parentElement.parentElement)" style="background: #ec4899; color: white; padding: 6px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; border: none; cursor: pointer;"><svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:2px;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>Save</button>
                         </div>
                     </div>`;
             });
@@ -8638,7 +8641,7 @@ function showGroceryList() {
 
     let listHTML = `
         <div class="card mt-4">
-            <h3 class="text-2xl font-bold mb-4">📝 Grocery List</h3>
+            <h3 class="text-2xl font-bold mb-4"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:6px;"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>Grocery List</h3>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-2">`;
 
     groceryList.forEach(item => {
@@ -9808,7 +9811,7 @@ async function fetchMealImage(mealName, imageElementId, forceRegenerate = false)
     } catch (error) {
         console.error('Error fetching meal image:', error);
         imageContainer.classList.remove('loading');
-        imageContainer.innerHTML = '🍽️';
+        imageContainer.innerHTML = '<svg width="24" height="24" fill="none" stroke="#94a3b8" stroke-width="1.5" viewBox="0 0 24 24"><path d="M3 2l1.578 17.824A2 2 0 0 0 6.556 21.5h10.888a2 2 0 0 0 1.978-1.676L21 2"/><path d="M8 2v3a4 4 0 0 0 8 0V2"/><path d="M12 14v4"/><path d="M9 18h6"/></svg>';
     }
 }
 
@@ -9863,7 +9866,7 @@ function updateImageElement(container, imageUrl, mealName) {
         placeholder.id = wrapper.id;
         placeholder.dataset.mealName = mealName;
         placeholder.onclick = () => showMealImageLarge(placeholder);
-        placeholder.innerHTML = '🍽️';
+        placeholder.innerHTML = '<svg width="24" height="24" fill="none" stroke="#94a3b8" stroke-width="1.5" viewBox="0 0 24 24"><path d="M3 2l1.578 17.824A2 2 0 0 0 6.556 21.5h10.888a2 2 0 0 0 1.978-1.676L21 2"/><path d="M8 2v3a4 4 0 0 0 8 0V2"/><path d="M12 14v4"/><path d="M9 18h6"/></svg>';
         placeholder.title = 'Image unavailable - click Generate Image to create one';
         placeholder.style.animation = 'none'; // Stop shimmer on error
         // Replace the wrapper with the placeholder
@@ -10106,7 +10109,7 @@ async function generateStyledImage() {
         alert('Failed to generate image: ' + error.message);
     } finally {
         btn.disabled = false;
-        btn.textContent = '🎨 Generate Image';
+        btn.innerHTML = '<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><circle cx="13.5" cy="6.5" r="2.5"/><circle cx="6" cy="12" r="2.5" fill="currentColor" opacity="0.3"/><circle cx="18" cy="16" r="2.5"/><path d="M17 2l-4 4M6 9.5V4M18 13.5V22"/></svg>Generate Image';
     }
 }
 
@@ -10446,12 +10449,12 @@ async function generateCustomGalleryImage() {
         console.error('Error generating image:', error);
         if (slot) {
             slot.classList.remove('loading');
-            slot.innerHTML = `<div class="gallery-placeholder" style="color: #ef4444;">❌</div>`;
+            slot.innerHTML = `<div class="gallery-placeholder" style="color: #ef4444;"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>`;
         }
         alert('Failed to generate image. Please try again.');
     } finally {
         generateBtn.disabled = galleryState.triesLeft <= 0;
-        generateBtn.textContent = galleryState.triesLeft <= 0 ? 'No tries left' : '🎨 Generate Image';
+        generateBtn.innerHTML = galleryState.triesLeft <= 0 ? 'No tries left' : '<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><circle cx="13.5" cy="6.5" r="2.5"/><circle cx="6" cy="12" r="2.5" fill="currentColor" opacity="0.3"/><circle cx="18" cy="16" r="2.5"/><path d="M17 2l-4 4M6 9.5V4M18 13.5V22"/></svg>Generate Image';
     }
 }
 
