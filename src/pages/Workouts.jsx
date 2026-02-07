@@ -1309,6 +1309,13 @@ function Workouts() {
         workout_data: workoutData,
         is_adhoc: true
       };
+      // Reset stale state from previous workout — without this, the old workoutLog,
+      // completedExercises, and workoutStarted persist, causing the auto-start effect
+      // to skip log creation and stale data to merge with the new workout's exercises.
+      setWorkoutStarted(false);
+      setWorkoutLog(null);
+      setReadinessData(null);
+      setCompletedExercises(new Set());
       setTodayWorkout(newWorkout);
       setTodayWorkouts(prev => [...prev, newWorkout]);
       setExpandedWorkout(true);
@@ -1327,7 +1334,7 @@ function Workouts() {
         const realId = res.workout.id;
         setTodayWorkout(prev => ({ ...prev, id: realId }));
         setTodayWorkouts(prev => prev.map(w =>
-          w.id === `club-${dateStr}-${Date.now()}` || w.id?.toString().startsWith('club-') && w.name === workoutName
+          (w.id?.toString().startsWith('club-') && w.name === workoutName)
             ? { ...w, id: realId } : w
         ));
       }
