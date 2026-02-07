@@ -1053,12 +1053,13 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.5rem;
-            transition: background 0.2s;
+            color: var(--brand-primary);
+            transition: all 0.2s;
         }
 
         .quick-action-tile:hover .quick-action-icon {
             background: rgba(13, 148, 136, 0.1);
+            color: #0a7a70;
         }
 
         .quick-action-label {
@@ -3506,7 +3507,7 @@
                         AI Planner
                     </a>
                     <a href="coach-workouts.html" class="sidebar-nav-item" data-gym-feature style="display:none;">
-                        <span class="sidebar-nav-icon">🏋️</span>
+                        <span class="sidebar-nav-icon"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 5v14"/><path d="M18 5v14"/><path d="M6 9h12"/><path d="M6 15h12"/><rect x="2" y="9" width="4" height="6" rx="1"/><rect x="18" y="9" width="4" height="6" rx="1"/></svg></span>
                         Workouts
                     </a>
                 </div>
@@ -3560,7 +3561,7 @@
     <!-- Subscription Required Modal (blocks dashboard until subscription is resolved) -->
     <div class="subscription-modal-overlay" id="subscriptionModal" style="display: none;">
         <div class="subscription-modal">
-            <div class="subscription-modal-icon" id="modalIcon">🔐</div>
+            <div class="subscription-modal-icon" id="modalIcon"><svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
             <h2 id="modalTitle">Subscription Required</h2>
             <p id="modalMessage">Your subscription has expired or is inactive. Please subscribe to continue using the dashboard.</p>
 
@@ -3662,7 +3663,7 @@
             <!-- Subscription Warning Banner -->
             <div class="subscription-warning" id="subscriptionWarning">
                 <div class="subscription-warning-content">
-                    <span class="subscription-warning-icon" id="subscriptionWarningIcon">⚠️</span>
+                    <span class="subscription-warning-icon" id="subscriptionWarningIcon"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>
                     <div class="subscription-warning-text">
                         <h3 id="subscriptionWarningTitle">Subscription Issue</h3>
                         <p id="subscriptionWarningMessage">Your subscription needs attention.</p>
@@ -3810,7 +3811,7 @@
             <div class="coach-stories-creator" id="coachStoriesCreator">
                 <div class="stories-creator-header">
                     <div class="stories-creator-title">
-                        <span class="stories-icon">📸</span>
+                        <span class="stories-icon"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></span>
                         <h2>Client Stories</h2>
                     </div>
                     <span class="stories-subtitle">Share updates with all your clients (expires in 24h)</span>
@@ -3818,15 +3819,15 @@
                 <div class="stories-creator-content">
                     <div class="story-type-buttons">
                         <button class="story-type-btn" onclick="openStoryCreator('image')">
-                            <span class="type-icon">🖼️</span>
+                            <span class="type-icon"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></span>
                             <span class="type-label">Photo</span>
                         </button>
                         <button class="story-type-btn" onclick="openStoryCreator('quote')">
-                            <span class="type-icon">💬</span>
+                            <span class="type-icon"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>
                             <span class="type-label">Quote</span>
                         </button>
                         <button class="story-type-btn" onclick="openStoryCreator('link')">
-                            <span class="type-icon">🔗</span>
+                            <span class="type-icon"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></span>
                             <span class="type-label">Link</span>
                         </button>
                     </div>
@@ -3847,7 +3848,7 @@
                         <!-- Image Story Form -->
                         <div class="story-form" id="imageStoryForm" style="display: none;">
                             <div class="image-upload-area" id="storyImageUpload" onclick="document.getElementById('storyImageInput').click()">
-                                <span class="upload-icon">📷</span>
+                                <span class="upload-icon"><svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span>
                                 <span class="upload-text">Click to upload image</span>
                             </div>
                             <input type="file" id="storyImageInput" accept="image/*" style="display: none;" onchange="previewStoryImage(event)">
@@ -3884,7 +3885,7 @@
             <div class="my-stories-section" id="myStoriesSection">
                 <div class="my-stories-header">
                     <div class="my-stories-title">
-                        <span class="stories-icon">📋</span>
+                        <span class="stories-icon"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg></span>
                         <h2>My Stories</h2>
                     </div>
                     <div class="my-stories-actions">
@@ -3942,31 +3943,31 @@
             </div>
             <div class="quick-actions-grid">
                 <a href="manage-clients.html" class="quick-action-tile">
-                    <div class="quick-action-icon">👥</div>
+                    <div class="quick-action-icon"><svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
                     <div class="quick-action-label">My Clients</div>
                 </a>
                 <a href="planner.html" class="quick-action-tile">
-                    <div class="quick-action-icon">✨</div>
+                    <div class="quick-action-icon"><svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></div>
                     <div class="quick-action-label">Meal Planner</div>
                 </a>
                 <a href="coach-workouts.html" class="quick-action-tile" data-gym-feature style="display:none;">
-                    <div class="quick-action-icon">🏋️</div>
+                    <div class="quick-action-icon"><svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M6.5 6.5h11M6.5 17.5h11M2 12h2M20 12h2M6 6.5V4M6 20v-2.5M18 6.5V4M18 20v-2.5M6 6.5a1.5 1.5 0 0 0-1.5 1.5v8A1.5 1.5 0 0 0 6 17.5M18 6.5a1.5 1.5 0 0 1 1.5 1.5v8a1.5 1.5 0 0 1-1.5 1.5"/></svg></div>
                     <div class="quick-action-label">Workouts</div>
                 </a>
                 <a href="supplement-protocols.html" class="quick-action-tile">
-                    <div class="quick-action-icon">💊</div>
+                    <div class="quick-action-icon"><svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M10.5 1.5H8.25A2.25 2.25 0 0 0 6 3.75v16.5a2.25 2.25 0 0 0 2.25 2.25h7.5A2.25 2.25 0 0 0 18 20.25V3.75a2.25 2.25 0 0 0-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3"/></svg></div>
                     <div class="quick-action-label">Supplements</div>
                 </a>
                 <a href="reminder-settings.html" class="quick-action-tile">
-                    <div class="quick-action-icon">🔔</div>
+                    <div class="quick-action-icon"><svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div>
                     <div class="quick-action-label">Reminders</div>
                 </a>
                 <a href="branding-settings.html" class="quick-action-tile" id="brandingTile" style="display: none;">
-                    <div class="quick-action-icon">🎨</div>
+                    <div class="quick-action-icon"><svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><circle cx="13.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="10.5" r="1.5"/><circle cx="8.5" cy="7.5" r="1.5"/><circle cx="6.5" cy="12" r="1.5"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg></div>
                     <div class="quick-action-label">Branding</div>
                 </a>
                 <a href="client-feed.html" class="quick-action-tile">
-                    <div class="quick-action-icon">📊</div>
+                    <div class="quick-action-icon"><svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>
                     <div class="quick-action-label">Client Feed</div>
                 </a>
             </div>
@@ -4078,7 +4079,7 @@
 
             switch(type) {
                 case 'no_session':
-                    modalIcon.textContent = '🔐';
+                    modalIcon.innerHTML = '<svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
                     modalTitle.textContent = 'Please Log In';
                     modalMessage.textContent = 'You need to log in to access your dashboard.';
                     modalBtn.textContent = 'Go to Login';
@@ -4832,7 +4833,7 @@
                                 const exerciseName = note.exercise_name || 'Exercise';
                                 const hasVoice = !!note.client_voice_note_path;
                                 const hasText = !!note.client_notes;
-                                const noteIcon = hasVoice ? '🎙️' : '📝';
+                                const noteIcon = hasVoice ? '<svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>' : '<svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
                                 const noteType = hasVoice ? 'Voice Note' : 'Text Note';
                                 const aid = 'workout-note-' + note.id;
                                 const workoutId = note.workout_logs?.id;
@@ -4846,7 +4847,7 @@
                                     if (signedUrl) {
                                         voicePlayerHtml = `
                                             <div class="priority-voice-player" onclick="event.stopPropagation()">
-                                                <span class="pvp-label">🎙️ Play</span>
+                                                <span class="pvp-label"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:3px;"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>Play</span>
                                                 <audio controls preload="metadata" src="${signedUrl}"></audio>
                                             </div>`;
                                     }
@@ -4858,7 +4859,7 @@
                                     const preview = note.client_notes.length > 120
                                         ? note.client_notes.substring(0, 120) + '...'
                                         : note.client_notes;
-                                    textNoteHtml = `<div class="priority-text-note" onclick="event.stopPropagation()">💬 ${preview}</div>`;
+                                    textNoteHtml = `<div class="priority-text-note" onclick="event.stopPropagation()"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:3px;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>${preview}</div>`;
                                 }
 
                                 addAlert(aid, `
@@ -4975,7 +4976,7 @@
                                                     __CHECKBOX__
                                                     <span class="priority-dot priority-dot--amber"></span>
                                                     <span>
-                                                        <span class="priority-label priority-label--pending">📊 Plateau:</span>
+                                                        <span class="priority-label priority-label--pending"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:3px;"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>Plateau:</span>
                                                         <strong>${name}</strong> stuck at ${last3[0]} kg on ${g.exercise} (3+ sessions)
                                                         <span class="priority-alert-link">Review →</span>
                                                     </span>
@@ -5611,7 +5612,7 @@
             switch (status) {
                 case 'past_due':
                     warningBanner.classList.add('show');
-                    warningIcon.textContent = '⚠️';
+                    warningIcon.innerHTML = '<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
                     warningTitle.textContent = 'Payment Failed';
                     warningMessage.textContent = 'Your last payment failed. Please update your payment method to avoid service interruption.';
                     warningBtn.textContent = 'Update Payment';
@@ -5903,7 +5904,7 @@
                 previewHtml = `<div class="story-card-preview quote-preview"><p>"${escapeHtml(text)}"</p></div>`;
             } else if (story.type === 'link') {
                 const title = story.linkTitle || story.linkUrl || 'Link';
-                previewHtml = `<div class="story-card-preview link-preview"><span class="link-icon">🔗</span><span class="link-title">${escapeHtml(title)}</span></div>`;
+                previewHtml = `<div class="story-card-preview link-preview"><span class="link-icon"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></span><span class="link-title">${escapeHtml(title)}</span></div>`;
             }
 
             // Time remaining
@@ -5919,9 +5920,9 @@
                             <span class="story-time-left ${timeClass}">${timeText}</span>
                         </div>
                         <div class="story-card-stats" onclick="openInteractionsModal('${story.id}')" title="Click to see who interacted">
-                            <span class="story-stat">👁️ ${story.viewCount}</span>
-                            <span class="story-stat">❤️ ${story.reactionCount}</span>
-                            <span class="story-stat">💬 ${story.replyCount}</span>
+                            <span class="story-stat"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> ${story.viewCount}</span>
+                            <span class="story-stat"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg> ${story.reactionCount}</span>
+                            <span class="story-stat"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> ${story.replyCount}</span>
                         </div>
                         <div class="story-card-actions">
                             <button class="story-delete-btn" onclick="openDeleteModal('${story.id}')">Delete</button>
@@ -5986,7 +5987,7 @@
                 renderInteractions(data);
             } catch (error) {
                 console.error('Error loading interactions:', error);
-                body.innerHTML = '<div class="no-interactions"><span class="no-interactions-icon">⚠️</span>Failed to load interactions</div>';
+                body.innerHTML = '<div class="no-interactions"><span class="no-interactions-icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>Failed to load interactions</div>';
             }
         }
 
@@ -6016,7 +6017,7 @@
                 html += `
                     <div class="interactions-section">
                         <div class="interactions-section-title">
-                            <span>👁️</span> Viewed by (${totalViews})
+                            <span><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span> Viewed by (${totalViews})
                         </div>
                         <div class="interaction-list views-list">
                             ${views.map(v => `
@@ -6040,7 +6041,7 @@
                 html += `
                     <div class="interactions-section">
                         <div class="interactions-section-title">
-                            <span>❤️</span> Reactions (${totalReactions})
+                            <span><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></span> Reactions (${totalReactions})
                         </div>
                         <div class="reaction-summary">
                             ${Object.entries(reactionSummary).map(([emoji, names]) => `
@@ -6073,7 +6074,7 @@
                 html += `
                     <div class="interactions-section">
                         <div class="interactions-section-title">
-                            <span>💬</span> Comments (${totalReplies})
+                            <span><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span> Comments (${totalReplies})
                         </div>
                         <div class="interaction-list">
                             ${replies.map(r => `
@@ -6314,7 +6315,7 @@
                         badges.push('<span class="cag-badge red">No activity</span>');
                     }
                     if (d.prs > 0) badges.push(`<span class="cag-badge purple">${d.prs} PR${d.prs !== 1 ? 's' : ''}</span>`);
-                    if (d.hasNotes) badges.push('<span class="cag-badge blue">💬</span>');
+                    if (d.hasNotes) badges.push('<span class="cag-badge blue"><svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>');
                     if (trendHtml) badges.push(trendHtml);
 
                     // Detail text
