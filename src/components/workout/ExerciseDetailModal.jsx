@@ -476,26 +476,13 @@ function ExerciseDetailModal({
         }
         if (cancelled || !res?.history || res.history.length === 0) return;
 
-        // Helper to safely parse setsData which may be a JSON string, array, or null
-        const parseSetsData = (raw) => {
-          if (Array.isArray(raw)) return raw;
-          if (typeof raw === 'string') {
-            try { const parsed = JSON.parse(raw); return Array.isArray(parsed) ? parsed : []; }
-            catch { return []; }
-          }
-          return [];
-        };
-
         // Store all-time bests for real-time PR detection (weight + reps)
-        const allMaxWeights = res.history.map(h => {
-          const sd = parseSetsData(h.setsData);
-          return sd.length > 0 ? sd.reduce((max, s) => Math.max(max, s.weight || 0), 0) : 0;
-        });
-        allTimeMaxWeightRef.current = allMaxWeights.length > 0 ? allMaxWeights.reduce((a, b) => Math.max(a, b), 0) : 0;
+        const allMaxWeights = res.history.map(h => (Array.isArray(h.setsData) ? h.setsData : []).reduce((max, s) => Math.max(max, s.weight || 0), 0));
+        allTimeMaxWeightRef.current = allMaxWeights.reduce((max, w) => Math.max(max, w), 0);
 
         const bestReps = {};
         for (const session of res.history) {
-          for (const s of parseSetsData(session.setsData)) {
+          for (const s of (Array.isArray(session.setsData) ? session.setsData : [])) {
             const w = s.weight || 0;
             const r = s.reps || 0;
             if (r > (bestReps[w] || 0)) bestReps[w] = r;
@@ -509,7 +496,7 @@ function ExerciseDetailModal({
         const sessions = allSessions.filter(s => s.workoutDate !== todayStr);
         if (sessions.length === 0) return;
         const last = sessions[0];
-        const lastSets = parseSetsData(last.setsData);
+        const lastSets = Array.isArray(last.setsData) ? last.setsData : [];
         if (lastSets.length === 0) return;
 
         const lastMaxWeight = lastSets.reduce((max, s) => Math.max(max, s.weight || 0), 0);
@@ -525,7 +512,7 @@ function ExerciseDetailModal({
           : null;
 
         // RPE analysis — average RPE from sets that have it logged
-        const rpeValues = lastSets.map(s => s?.rpe).filter(r => r != null && r >= 6);
+        const rpeValues = lastSets.map(s => s.rpe).filter(r => r != null && r >= 6);
         const hasRpe = rpeValues.length > 0;
         const avgRpe = hasRpe ? Math.round((rpeValues.reduce((a, b) => a + b, 0) / rpeValues.length) * 10) / 10 : null;
 
@@ -543,7 +530,7 @@ function ExerciseDetailModal({
         let isPlateaued = false;
         if (sessions.length >= 3) {
           const recentMaxes = sessions.slice(0, 3).map(s => {
-            const sd = parseSetsData(s.setsData);
+            const sd = Array.isArray(s.setsData) ? s.setsData : [];
             return sd.reduce((max, set) => Math.max(max, set.weight || 0), 0);
           });
           isPlateaued = recentMaxes.every(w => w === recentMaxes[0]) && recentMaxes[0] > 0;
@@ -552,8 +539,8 @@ function ExerciseDetailModal({
           if (isPlateaued) {
             const todaySessions = allSessions.filter(s => s.workoutDate === todayStr);
             if (todaySessions.length > 0) {
-              const todaySets = todaySessions[0].setsData || [];
-              const todayMax = Math.max(...todaySets.map(s => s.weight || 0), 0);
+              const todaySets = Array.isArray(todaySessions[0].setsData) ? todaySessions[0].setsData : [];
+              const todayMax = todaySets.reduce((max, s) => Math.max(max, s.weight || 0), 0);
               if (todayMax > recentMaxes[0]) {
                 isPlateaued = false; // Already broke through
               }
@@ -770,14 +757,14 @@ function ExerciseDetailModal({
 
         if (!logId) return;
 
-        const setsData = sets.filter(Boolean).map((s, i) => ({
+        const setsData = sets.map((s, i) => ({
           setNumber: i + 1,
-          reps: s?.reps || 0,
-          weight: s?.weight || 0,
-          weightUnit: s?.weightUnit || 'kg',
-          rpe: s?.rpe || null,
-          restSeconds: s?.restSeconds || null,
-          isTimeBased: s?.isTimeBased || false
+          reps: s.reps || 0,
+          weight: s.weight || 0,
+          weightUnit: s.weightUnit || 'kg',
+          rpe: s.rpe || null,
+          restSeconds: s.restSeconds || null,
+          isTimeBased: s.isTimeBased || false
         }));
 
         const exercisePayload = {
@@ -796,7 +783,7 @@ function ExerciseDetailModal({
         });
 
         // Real-time PR detection: weight PR + rep PR
-        const currentMaxWeight = setsData.reduce((max, s) => Math.max(max, s?.weight || 0), 0);
+        const currentMaxWeight = setsData.reduce((max, s) => Math.max(max, s.weight || 0), 0);
         const previousMax = allTimeMaxWeightRef.current;
         let prDetected = false;
 
@@ -2695,15 +2682,12 @@ function ExerciseDetailModal({
 
         // Get the most recent previous session
         const lastSession = previousSessions[0];
-        let lastSets;
-        try {
-          lastSets = typeof lastSession.setsData === 'string'
-            ? JSON.parse(lastSession.setsData) : lastSession.setsData;
-        } catch { lastSets = []; }
-        if (!Array.isArray(lastSets)) lastSets = [];
+        const lastSets = typeof lastSession.setsData === 'string'
+          ? JSON.parse(lastSession.setsData)
+          : (lastSession.setsData || []);
 
-        const lastMaxWeight = lastSets.reduce((max, s) => Math.max(max, s?.weight || 0), 0);
-        const lastMaxReps = lastSets.reduce((max, s) => Math.max(max, s?.reps || 0), 0);
+        const lastMaxWeight = lastSets.reduce((max, s) => Math.max(max, s.weight || 0), 0);
+        const lastMaxReps = lastSets.reduce((max, s) => Math.max(max, s.reps || 0), 0);
         const lastNumSets = lastSets.length || 3;
         const dateLabel = new Date(lastSession.workoutDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
@@ -2782,11 +2766,11 @@ function ExerciseDetailModal({
       let setsData;
       try {
         setsData = typeof entry.setsData === 'string'
-          ? JSON.parse(entry.setsData) : entry.setsData;
+          ? JSON.parse(entry.setsData) : (entry.setsData || []);
       } catch { setsData = []; }
       if (!Array.isArray(setsData)) setsData = [];
       for (const s of setsData) {
-        const est = calculate1RM(s?.weight || 0, s?.reps || 0);
+        const est = calculate1RM(s.weight || 0, s.reps || 0);
         if (est > best) best = est;
       }
     }
@@ -3128,10 +3112,10 @@ function ExerciseDetailModal({
                   let setsData;
                   try {
                     setsData = typeof entry.setsData === 'string'
-                      ? JSON.parse(entry.setsData) : entry.setsData;
+                      ? JSON.parse(entry.setsData) : (entry.setsData || []);
                   } catch { setsData = []; }
                   if (!Array.isArray(setsData)) setsData = [];
-                  const maxW = setsData.reduce((max, s) => Math.max(max, s?.weight || 0), 0);
+                  const maxW = setsData.reduce((max, s) => Math.max(max, s.weight || 0), 0);
                   const dateObj = entry.workoutDate ? new Date(entry.workoutDate + 'T12:00:00') : null;
                   return { ...entry, setsData, maxW, dateObj };
                 });
@@ -3141,8 +3125,7 @@ function ExerciseDetailModal({
                   .filter(e => e.maxW > 0 && e.dateObj)
                   .slice(0, 8)
                   .reverse();
-                const chartMax = chartEntries.length > 0
-                  ? chartEntries.reduce((max, e) => Math.max(max, e.maxW), 0) : 0;
+                const chartMax = chartEntries.reduce((max, e) => Math.max(max, e.maxW), 0);
 
                 // Find all-time PR
                 const allTimeMax = historyStats?.allTimeMaxWeight || 0;
@@ -3477,7 +3460,7 @@ function ExerciseDetailModal({
             </div>
             <button
               className={`complete-exercise-btn ${isCompleted ? 'completed' : ''}`}
-              onClick={() => onToggleComplete?.()}
+              onClick={onToggleComplete}
               type="button"
             >
               <Check size={28} />

@@ -3214,38 +3214,32 @@ function Workouts() {
 
       {/* Add Activity Modal */}
       {showAddActivity && (
-        <ErrorBoundary compact>
-          <AddActivityModal
-            onAdd={handleAddExercise}
-            onClose={() => setShowAddActivity(false)}
-            existingExerciseIds={exercises.map(ex => ex?.id).filter(Boolean)}
-            genderPreference={clientData?.preferred_exercise_gender || 'all'}
-            coachId={clientData?.coach_id}
-          />
-        </ErrorBoundary>
+        <AddActivityModal
+          onAdd={handleAddExercise}
+          onClose={() => setShowAddActivity(false)}
+          existingExerciseIds={exercises.map(ex => ex?.id).filter(Boolean)}
+          genderPreference={clientData?.preferred_exercise_gender || 'all'}
+          coachId={clientData?.coach_id}
+        />
       )}
 
       {/* Create Workout Modal */}
       {showCreateWorkout && (
-        <ErrorBoundary compact>
-          <CreateWorkoutModal
-            onClose={() => setShowCreateWorkout(false)}
-            onCreateWorkout={handleCreateWorkout}
-            selectedDate={selectedDate}
-            coachId={clientData?.coach_id}
-          />
-        </ErrorBoundary>
+        <CreateWorkoutModal
+          onClose={() => setShowCreateWorkout(false)}
+          onCreateWorkout={handleCreateWorkout}
+          selectedDate={selectedDate}
+          coachId={clientData?.coach_id}
+        />
       )}
 
       {/* Club Workouts Modal */}
       {showClubWorkouts && (
-        <ErrorBoundary compact>
-          <ClubWorkoutsModal
-            onClose={() => setShowClubWorkouts(false)}
-            onSelectWorkout={handleSelectClubWorkout}
-            coachId={clientData?.coach_id}
-          />
-        </ErrorBoundary>
+        <ClubWorkoutsModal
+          onClose={() => setShowClubWorkouts(false)}
+          onSelectWorkout={handleSelectClubWorkout}
+          coachId={clientData?.coach_id}
+        />
       )}
 
       {/* Reschedule/Duplicate Modal */}
@@ -3305,16 +3299,14 @@ function Workouts() {
 
       {/* Swipe Swap Modal */}
       {swipeSwapExercise && (
-        <ErrorBoundary compact>
-          <SwapExerciseModal
-            exercise={swipeSwapExercise}
-            workoutExercises={exercises}
-            onSwap={handleSwipeSwapSelect}
-            onClose={() => setSwipeSwapExercise(null)}
-            genderPreference={clientData?.preferred_exercise_gender || 'all'}
-            coachId={clientData?.coach_id}
-          />
-        </ErrorBoundary>
+        <SwapExerciseModal
+          exercise={swipeSwapExercise}
+          workoutExercises={exercises}
+          onSwap={handleSwipeSwapSelect}
+          onClose={() => setSwipeSwapExercise(null)}
+          genderPreference={clientData?.preferred_exercise_gender || 'all'}
+          coachId={clientData?.coach_id}
+        />
       )}
 
       {/* Swipe Delete Confirmation Modal */}

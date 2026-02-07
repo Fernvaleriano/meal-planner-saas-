@@ -216,8 +216,8 @@ function AiQuickWorkoutModal({ onClose, onGenerateWorkout, selectedDate }) {
             estimatedMinutes: selectedDuration.minutes,
             estimatedCalories: selectedDuration.minutes * 8
           };
-          onGenerateWorkout?.(workoutData);
-          onClose?.();
+          onGenerateWorkout(workoutData);
+          onClose();
           return;
         }
       } catch (aiError) {
@@ -544,8 +544,8 @@ function AiQuickWorkoutModal({ onClose, onGenerateWorkout, selectedDate }) {
         estimatedCalories: selectedDuration.minutes * 8
       };
 
-      onGenerateWorkout?.(workoutData);
-      onClose?.();
+      onGenerateWorkout(workoutData);
+      onClose();
 
     } catch (err) {
       console.error('Error generating workout:', err);

@@ -377,11 +377,11 @@ function GuidedWorkoutModal({
         const last = sessions[0];
         let lastSets;
         try {
-          lastSets = typeof last.setsData === 'string' ? JSON.parse(last.setsData) : last.setsData;
+          lastSets = typeof last.setsData === 'string' ? JSON.parse(last.setsData) : (last.setsData || []);
         } catch { lastSets = []; }
         if (!Array.isArray(lastSets)) lastSets = [];
-        const lastMaxWeight = lastSets.reduce((max, s) => Math.max(max, s?.weight || 0), 0);
-        const lastMaxReps = lastSets.reduce((max, s) => Math.max(max, s?.reps || 0), 0);
+        const lastMaxWeight = lastSets.reduce((max, s) => Math.max(max, s.weight || 0), 0);
+        const lastMaxReps = lastSets.reduce((max, s) => Math.max(max, s.reps || 0), 0);
         const lastNumSets = lastSets.length || 3;
 
         if (lastMaxWeight > 0 || lastMaxReps > 0) {

@@ -157,10 +157,7 @@ function SetEditorModal({
   isTimedExercise
 }) {
   const [editMode, setEditMode] = useState(isTimedExercise ? 'time' : 'reps');
-  const [localSets, setLocalSets] = useState(() => {
-    const safeSets = Array.isArray(sets) ? sets : [];
-    return safeSets.map(s => ({ ...s, rpe: s?.rpe || null }));
-  });
+  const [localSets, setLocalSets] = useState(sets.map(s => ({ ...s, rpe: s.rpe || null })));
   const [activeSetIndex, setActiveSetIndex] = useState(null);
   const [activeField, setActiveField] = useState(null);
   const [isFirstInput, setIsFirstInput] = useState(true);
@@ -328,9 +325,9 @@ function SetEditorModal({
       return localSets[setIndex]?.weight || 0;
     }
     if (editMode === 'time') {
-      return localSets[setIndex]?.duration || exercise?.duration || 45;
+      return localSets[setIndex]?.duration || exercise.duration || 45;
     }
-    return parseReps(localSets[setIndex]?.reps || exercise?.reps);
+    return parseReps(localSets[setIndex]?.reps || exercise.reps);
   };
 
   // Update value for a specific set
@@ -495,14 +492,14 @@ function SetEditorModal({
         <div className="editor-exercise-info">
           <div className="editor-exercise-thumb">
             <img
-              src={exercise?.thumbnail_url || exercise?.animation_url || '/img/exercise-placeholder.svg'}
-              alt={exercise?.name || 'Exercise'}
+              src={exercise.thumbnail_url || exercise.animation_url || '/img/exercise-placeholder.svg'}
+              alt={exercise.name}
               onError={(e) => { e.target.src = '/img/exercise-placeholder.svg'; }}
             />
           </div>
           <div className="editor-exercise-details">
-            <h3>{exercise?.name || 'Exercise'}</h3>
-            <span className="editor-difficulty">{exercise?.difficulty || 'Novice'}</span>
+            <h3>{exercise.name}</h3>
+            <span className="editor-difficulty">{exercise.difficulty || 'Novice'}</span>
           </div>
         </div>
 
