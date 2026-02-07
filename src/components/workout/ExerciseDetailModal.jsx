@@ -2815,13 +2815,26 @@ function ExerciseDetailModal({
   // Helper to check if URL is an image (not video)
   const isImageUrl = (url) => {
     if (!url) return false;
-    const lower = url.toLowerCase();
+    const lower = url.split('?')[0].toLowerCase(); // strip query params for signed URLs
     return lower.endsWith('.gif') || lower.endsWith('.png') || lower.endsWith('.jpg') ||
            lower.endsWith('.jpeg') || lower.endsWith('.webp') || lower.endsWith('.svg');
   };
 
-  // Get proper thumbnail (don't use video URL as img src)
-  const thumbnailUrl = exercise?.thumbnail_url ||
+  // Helper to check if URL is a video format — AI workout generator sets
+  // thumbnail_url to match.video_url when no real thumbnail exists.
+  // Loading a .mp4 as <img> causes the browser to download the ENTIRE video file,
+  // and after tapping 3-4 exercises, the accumulated downloads freeze iOS.
+  const isVideoUrl = (url) => {
+    if (!url) return false;
+    const lower = url.split('?')[0].toLowerCase();
+    return lower.endsWith('.mp4') || lower.endsWith('.webm') || lower.endsWith('.mov') ||
+           lower.endsWith('.avi') || lower.endsWith('.m4v');
+  };
+
+  // Get proper thumbnail — skip video URLs to avoid loading .mp4 as <img>
+  const safeThumbnailUrl = exercise?.thumbnail_url && !isVideoUrl(exercise.thumbnail_url)
+    ? exercise.thumbnail_url : null;
+  const thumbnailUrl = safeThumbnailUrl ||
     (isImageUrl(exercise?.animation_url) ? exercise?.animation_url : null) ||
     '/img/exercise-placeholder.svg';
 
@@ -2944,8 +2957,10 @@ function ExerciseDetailModal({
           ) : (
             <>
               <div className="image-container single">
-                {/* If we have a proper thumbnail, show it */}
-                {exercise?.thumbnail_url || isImageUrl(exercise?.animation_url) ? (
+                {/* If we have a proper image thumbnail, show it.
+                    Skip video URLs — AI exercises may have thumbnail_url set to
+                    a .mp4 URL, and loading it as <img> downloads the entire video. */}
+                {safeThumbnailUrl || isImageUrl(exercise?.animation_url) ? (
                   <img
                     src={thumbnailUrl}
                     alt={exercise.name || 'Exercise'}
@@ -3283,7 +3298,8 @@ function ExerciseDetailModal({
           </div>
         </div>
 
-        {/* Coach Voice Note */}
+        {/* Coach Voice Note — only one audio element at a time (inside the modal),
+            and preload="none" so it doesn't load until user taps play */}
         {exercise.voiceNoteUrl && (
           <div className="coach-voice-note-section">
             <div className="voice-note-header">
@@ -3294,7 +3310,7 @@ function ExerciseDetailModal({
               controls
               src={exercise.voiceNoteUrl}
               className="voice-note-audio-player"
-              preload="metadata"
+              preload="none"
             />
           </div>
         )}
@@ -3459,7 +3475,7 @@ function ExerciseDetailModal({
             </div>
             <div className="activity-thumbnails">
               {exercises.slice(0, 7).map((ex, idx) => {
-                const exThumb = ex?.thumbnail_url ||
+                const exThumb = (ex?.thumbnail_url && !isVideoUrl(ex?.thumbnail_url) ? ex.thumbnail_url : null) ||
                   (isImageUrl(ex?.animation_url) ? ex?.animation_url : null) ||
                   '/img/exercise-placeholder.svg';
                 return (
