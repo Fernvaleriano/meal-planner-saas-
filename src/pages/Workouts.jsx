@@ -462,11 +462,18 @@ function Workouts() {
   completedExercisesRef.current = completedExercises;
 
   // Sync todayWorkouts array when active workout changes (e.g. exercise toggles)
+  // Returns prev (same reference) when the workout is already the same object,
+  // which tells React "nothing changed" and skips a re-render.
+  // This eliminates one extra render per state cascade — significant when the
+  // cascade has 6+ steps and each render re-creates 15 ExerciseCards.
   useEffect(() => {
     if (!todayWorkout?.id) return;
-    setTodayWorkouts(prev => prev.map(w =>
-      w.id === todayWorkout.id ? todayWorkout : w
-    ));
+    setTodayWorkouts(prev => {
+      const idx = prev.findIndex(w => w.id === todayWorkout.id);
+      if (idx === -1) return prev; // workout not in list, nothing to sync
+      if (prev[idx] === todayWorkout) return prev; // already the same reference
+      return prev.map(w => w.id === todayWorkout.id ? todayWorkout : w);
+    });
   }, [todayWorkout]);
 
   // On app resume: close all modals/overlays and clean up body scroll lock

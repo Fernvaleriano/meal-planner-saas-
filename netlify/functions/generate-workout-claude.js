@@ -778,7 +778,7 @@ Return this exact JSON structure:
                   name: match.name,
                   video_url: match.video_url,
                   animation_url: match.animation_url,
-                  thumbnail_url: match.thumbnail_url || match.video_url,
+                  thumbnail_url: match.thumbnail_url || null,
                   muscle_group: match.muscle_group,
                   equipment: match.equipment,
                   instructions: match.instructions,

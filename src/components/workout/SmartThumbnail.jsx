@@ -26,9 +26,20 @@ function SmartThumbnail({
   // Check if URL is an image format
   const isImageUrl = (url) => {
     if (!url) return false;
-    const lower = url.toLowerCase();
+    const lower = url.split('?')[0].toLowerCase(); // strip query params for signed URLs
     return lower.endsWith('.gif') || lower.endsWith('.png') || lower.endsWith('.jpg') ||
            lower.endsWith('.jpeg') || lower.endsWith('.webp') || lower.endsWith('.svg');
+  };
+
+  // Check if URL is a video format — used to catch the AI workout bug where
+  // thumbnail_url is set to a video URL (match.video_url fallback).
+  // Loading a .mp4 as <img> fails, then falls back to <video>, creating 15+
+  // simultaneous video elements that lock up the main thread on mobile.
+  const isVideoUrl = (url) => {
+    if (!url) return false;
+    const lower = url.split('?')[0].toLowerCase();
+    return lower.endsWith('.mp4') || lower.endsWith('.webm') || lower.endsWith('.mov') ||
+           lower.endsWith('.avi') || lower.endsWith('.m4v');
   };
 
   useEffect(() => {
@@ -44,8 +55,12 @@ function SmartThumbnail({
       setError(false);
       setUseVideoFallback(false);
 
-      // Priority 1: Use thumbnail_url if available
-      if (exercise?.thumbnail_url) {
+      // Priority 1: Use thumbnail_url if available AND it's not a video URL.
+      // AI workout generator (generate-workout-claude.js) sets thumbnail_url to
+      // match.video_url when no real thumbnail exists. Loading a .mp4 as <img>
+      // fails on every card, causing 15+ simultaneous error→video fallback chains
+      // that freeze the main thread on mobile devices.
+      if (exercise?.thumbnail_url && !isVideoUrl(exercise.thumbnail_url)) {
         setThumbnail(exercise.thumbnail_url);
         setLoading(false);
         return;

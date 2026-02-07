@@ -1048,4 +1048,49 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
   );
 }
 
-export default memo(ExerciseCard);
+// Custom comparator: compare exercise data by VALUE (not reference) and skip
+// function props entirely. Without this, memo() is defeated by:
+// 1. Inline arrow functions in the parent (.map() creates new closures every render)
+// 2. New exercise objects from useMemo recalculation (normalization creates new refs)
+// This was the primary cause of AI club workouts freezing — 15 cards × 6 render
+// cascades = 90 full re-renders, locking the main thread on mobile.
+const arePropsEqual = (prev, next) => {
+  // Exercise identity & data that affects rendering
+  if (prev.exercise?.id !== next.exercise?.id) return false;
+  if (prev.exercise?.name !== next.exercise?.name) return false;
+  if (prev.exercise?.reps !== next.exercise?.reps) return false;
+  if (prev.exercise?.duration !== next.exercise?.duration) return false;
+  if (prev.exercise?.restSeconds !== next.exercise?.restSeconds) return false;
+  if (prev.exercise?.completed !== next.exercise?.completed) return false;
+  if (prev.exercise?.notes !== next.exercise?.notes) return false;
+  if (prev.exercise?.voiceNoteUrl !== next.exercise?.voiceNoteUrl) return false;
+  if (prev.exercise?.isWarmup !== next.exercise?.isWarmup) return false;
+  if (prev.exercise?.isStretch !== next.exercise?.isStretch) return false;
+  if (prev.exercise?.phase !== next.exercise?.phase) return false;
+  if (prev.exercise?.thumbnail_url !== next.exercise?.thumbnail_url) return false;
+  if (prev.exercise?.video_url !== next.exercise?.video_url) return false;
+
+  // Sets: compare by value for numbers, by length+reference for arrays
+  const pSets = prev.exercise?.sets;
+  const nSets = next.exercise?.sets;
+  if (Array.isArray(pSets) !== Array.isArray(nSets)) return false;
+  if (Array.isArray(pSets) && Array.isArray(nSets)) {
+    if (pSets.length !== nSets.length) return false;
+    if (pSets !== nSets) return false; // different array reference = data changed
+  } else if (pSets !== nSets) {
+    return false;
+  }
+
+  // Non-exercise props
+  if (prev.index !== next.index) return false;
+  if (prev.isCompleted !== next.isCompleted) return false;
+  if (prev.workoutStarted !== next.workoutStarted) return false;
+  if (prev.isFirst !== next.isFirst) return false;
+  if (prev.isLast !== next.isLast) return false;
+
+  // Skip comparing function props (onToggleComplete, onClick, onSwapExercise, etc.)
+  // — they change reference on every parent render but their behavior is stable
+  return true;
+};
+
+export default memo(ExerciseCard, arePropsEqual);
