@@ -789,7 +789,7 @@ function ExerciseDetailModal({
         });
 
         // Real-time PR detection: weight PR + rep PR
-        const currentMaxWeight = Math.max(...setsData.map(s => s.weight || 0), 0);
+        const currentMaxWeight = setsData.reduce((max, s) => Math.max(max, s.weight || 0), 0);
         const previousMax = allTimeMaxWeightRef.current;
         let prDetected = false;
 
@@ -2688,12 +2688,15 @@ function ExerciseDetailModal({
 
         // Get the most recent previous session
         const lastSession = previousSessions[0];
-        const lastSets = typeof lastSession.setsData === 'string'
-          ? JSON.parse(lastSession.setsData)
-          : (lastSession.setsData || []);
+        let lastSets;
+        try {
+          lastSets = typeof lastSession.setsData === 'string'
+            ? JSON.parse(lastSession.setsData) : (lastSession.setsData || []);
+        } catch { lastSets = []; }
+        if (!Array.isArray(lastSets)) lastSets = [];
 
-        const lastMaxWeight = Math.max(...lastSets.map(s => s.weight || 0), 0);
-        const lastMaxReps = Math.max(...lastSets.map(s => s.reps || 0), 0);
+        const lastMaxWeight = lastSets.reduce((max, s) => Math.max(max, s.weight || 0), 0);
+        const lastMaxReps = lastSets.reduce((max, s) => Math.max(max, s.reps || 0), 0);
         const lastNumSets = lastSets.length || 3;
         const dateLabel = new Date(lastSession.workoutDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 

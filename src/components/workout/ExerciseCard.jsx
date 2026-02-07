@@ -463,6 +463,11 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
   };
 
   const handleHeaderTouchEnd = () => {
+    // Cancel any pending RAF to prevent it from setting stale swipe state
+    if (headerSwipeRaf.current) {
+      cancelAnimationFrame(headerSwipeRaf.current);
+      headerSwipeRaf.current = null;
+    }
     if (isHeaderSwiping) {
       setHeaderSwipeOffset(headerSwipeOffset > swipeThreshold ? headerMaxSwipe : 0);
       setIsHeaderSwiping(false);
@@ -482,6 +487,8 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
   const closeHeaderSwipe = () => {
     setHeaderSwipeOffset(0);
     setCompleteSwipeOffset(0);
+    setIsHeaderSwiping(false);
+    setIsCompleteSwiping(false);
   };
 
   // SETS ROW swipe handlers (for add set)
