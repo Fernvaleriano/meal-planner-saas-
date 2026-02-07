@@ -69,23 +69,14 @@ function SmartThumbnail({
           }
         }, 3000);
 
-        try {
-          const generated = await generateVideoThumbnail(videoUrl);
-          if (!cancelled) {
-            clearTimeout(timeoutRef.current);
-            if (generated) {
-              setThumbnail(generated);
-              setLoading(false);
-            } else {
-              // Generation failed, try video fallback
-              setUseVideoFallback(true);
-              setLoading(false);
-            }
-          }
-        } catch {
-          // Video thumbnail generation threw - fall back to video element
-          if (!cancelled) {
-            clearTimeout(timeoutRef.current);
+        const generated = await generateVideoThumbnail(videoUrl);
+        if (!cancelled) {
+          clearTimeout(timeoutRef.current);
+          if (generated) {
+            setThumbnail(generated);
+            setLoading(false);
+          } else {
+            // Generation failed, try video fallback
             setUseVideoFallback(true);
             setLoading(false);
           }

@@ -102,7 +102,6 @@ function CreateWorkoutModal({ onClose, onCreateWorkout, selectedDate, coachId = 
 
   // Swipe handlers
   const handleTouchStart = (e, index) => {
-    if (!e.touches || e.touches.length === 0) return;
     touchStartX.current = e.touches[0].clientX;
     touchStartY.current = e.touches[0].clientY;
     isSwipingRef.current = false;
@@ -111,7 +110,6 @@ function CreateWorkoutModal({ onClose, onCreateWorkout, selectedDate, coachId = 
 
   const handleTouchMove = (e, index) => {
     if (swipingIndex !== index) return;
-    if (!e.touches || e.touches.length === 0) return;
 
     const deltaX = e.touches[0].clientX - touchStartX.current;
     const deltaY = e.touches[0].clientY - touchStartY.current;
@@ -190,7 +188,7 @@ function CreateWorkoutModal({ onClose, onCreateWorkout, selectedDate, coachId = 
       if (onCreateWorkout) {
         await onCreateWorkout(workoutData);
       }
-      onClose?.();
+      onClose();
     } catch (err) {
       console.error('Error creating workout:', err);
       setSaving(false);
