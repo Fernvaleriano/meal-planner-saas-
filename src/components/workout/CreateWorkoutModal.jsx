@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { X, Plus, Dumbbell, Trash2, Clock, Hash } from 'lucide-react';
 import AddActivityModal from './AddActivityModal';
+import { useScrollLock } from '../../hooks/useScrollLock';
 
 function CreateWorkoutModal({ onClose, onCreateWorkout, selectedDate, coachId = null }) {
   const [workoutName, setWorkoutName] = useState('');
@@ -48,14 +49,8 @@ function CreateWorkoutModal({ onClose, onCreateWorkout, selectedDate, coachId = 
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [forceClose]);
 
-  // Lock body scroll when modal is open
-  useEffect(() => {
-    const originalStyle = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = originalStyle;
-    };
-  }, []);
+  // Prevent background scrolling (centralized ref-counted lock)
+  useScrollLock();
 
   // Handle adding exercises from the AddActivityModal
   // Accepts a single exercise or an array of exercises
