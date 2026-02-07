@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { X, Dumbbell, Clock, Flame, ChevronRight, Search, Filter, Users, Loader2, CalendarPlus } from 'lucide-react';
 import { apiGet } from '../../utils/api';
+import { useScrollLock } from '../../hooks/useScrollLock';
 
 const CATEGORY_LABELS = {
   strength: 'Strength',
@@ -53,31 +54,32 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, coachId }) {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [scheduleDate, setScheduleDate] = useState('');
 
-  // Lock body scroll
-  useEffect(() => {
-    const originalStyle = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = originalStyle;
-    };
-  }, []);
+  // Prevent background scrolling (centralized ref-counted lock)
+  useScrollLock();
 
-  // Handle back button
+  // Handle back button - push history entry ONCE on mount only.
+  // Use refs to avoid re-running the effect (and pushing new history entries)
+  // when selectedWorkout or onClose changes.
+  const selectedWorkoutRef = useRef(selectedWorkout);
+  selectedWorkoutRef.current = selectedWorkout;
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
   useEffect(() => {
     const modalState = { modal: 'club-workouts', timestamp: Date.now() };
     window.history.pushState(modalState, '');
 
     const handlePopState = () => {
-      if (selectedWorkout) {
+      if (selectedWorkoutRef.current) {
         setSelectedWorkout(null);
       } else {
-        onClose();
+        onCloseRef.current();
       }
     };
 
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [onClose, selectedWorkout]);
+  }, []);
 
   // Handle escape key
   useEffect(() => {

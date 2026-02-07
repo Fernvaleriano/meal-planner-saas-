@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
 import { X, Check, Plus, ChevronLeft, Play, Timer, BarChart3, ArrowLeftRight, Trash2, Mic, MicOff, Lightbulb, MessageCircle, Loader2, AlertCircle, History, TrendingUp, Award, ChevronDown, ChevronUp, Send, Square, Sparkles } from 'lucide-react';
 import { apiGet, apiPost, apiPut } from '../../utils/api';
 import { onAppSuspend, onAppResume } from '../../hooks/useAppLifecycle';
+import { useScrollLock } from '../../hooks/useScrollLock';
 import Portal from '../Portal';
 import SetEditorModal from './SetEditorModal';
 import SwapExerciseModal from './SwapExerciseModal';
@@ -233,36 +234,16 @@ function ExerciseDetailModal({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [forceClose]);
 
-  // Prevent background scrolling when modal is open
-  // Uses overflow:hidden instead of position:fixed to avoid the stuck-offset bug
-  // where the body stays shifted up if cleanup doesn't run (e.g., app backgrounded)
-  useEffect(() => {
-    const html = document.documentElement;
-    const body = document.body;
-    // Store originals
-    const origHtmlOverflow = html.style.overflow;
-    const origBodyOverflow = body.style.overflow;
-
-    html.style.overflow = 'hidden';
-    body.style.overflow = 'hidden';
-
-    return () => {
-      html.style.overflow = origHtmlOverflow;
-      body.style.overflow = origBodyOverflow;
-    };
-  }, []);
+  // Prevent background scrolling when modal is open (centralized ref-counted lock)
+  useScrollLock();
 
   // State for forcing re-render on app resume
   const [resumeKey, setResumeKey] = useState(0);
 
   // Handle app resume: restore scroll lock and force re-layout
-  // This fixes blank screen / frozen UI on iOS Safari when returning from background
+  // Handle app resume: force re-render to fix stale layout on iOS Safari
   useEffect(() => {
     const unsubscribe = onAppResume((backgroundMs) => {
-      // Re-ensure body scroll is locked since we're still mounted
-      document.body.style.overflow = 'hidden';
-      document.documentElement.style.overflow = 'hidden';
-
       // Force a re-render to fix any stale layout on iOS Safari
       if (backgroundMs > 2000) {
         setResumeKey(k => k + 1);
