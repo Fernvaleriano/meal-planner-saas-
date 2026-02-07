@@ -4254,7 +4254,9 @@
         // All generated alert HTML gets stored here so we can re-render active vs handled
         // Now includes metadata for database persistence: {id, html, clientId, reason, relatedCheckinId}
         let _allPriorityAlerts = [];
-        let _dismissedFromDb = new Set(); // Alert IDs that are dismissed in database
+        let _dismissedFromDb = new Set(); // Alert IDs that are dismissed (merged DB + localStorage)
+        let _dbDismissedIds = new Set(); // Alert IDs confirmed in database
+        let _localOnlyDismissed = new Set(); // Alert IDs only in localStorage, need DB sync
         let _currentCoachId = null; // Set during loadPriorityAlerts
         let _dbAvailable = true; // Track if database is working
 
@@ -4280,7 +4282,7 @@
 
         // Load dismissed alerts from database with localStorage fallback
         async function loadDismissedAlertsFromDb(coachId) {
-            // Load localStorage as fallback
+            // Load localStorage as fallback and for merge
             const localDismissed = getLocalDismissed();
 
             try {
@@ -4297,8 +4299,8 @@
 
                 _dbAvailable = true;
 
-                // Build a set of alert IDs from database (source of truth)
-                const dismissed = new Set();
+                // Build a set of alert IDs from database
+                const dbDismissed = new Set();
                 (data || []).forEach(item => {
                     const prefixMap = {
                         'high_stress': 'stress',
@@ -4312,14 +4314,31 @@
                     };
                     const prefix = prefixMap[item.reason];
                     if (prefix && item.related_checkin_id != null) {
-                        dismissed.add(`${prefix}-${item.related_checkin_id}`);
+                        dbDismissed.add(`${prefix}-${item.related_checkin_id}`);
                     }
                 });
 
-                // DB is the source of truth - update localStorage to match
-                saveLocalDismissed(dismissed);
+                // Track what came from DB for sync purposes
+                _dbDismissedIds = new Set(dbDismissed);
 
-                return dismissed;
+                // Merge DB + localStorage: keep items from both sources
+                // This ensures dismissals that failed to sync to DB (e.g., sendBeacon failures)
+                // are preserved and can be re-synced
+                const merged = new Set([...dbDismissed, ...localDismissed]);
+
+                // Track items only in localStorage that need to be synced to DB
+                _localOnlyDismissed = new Set(
+                    [...localDismissed].filter(id => !dbDismissed.has(id))
+                );
+
+                if (_localOnlyDismissed.size > 0) {
+                    console.log(`Found ${_localOnlyDismissed.size} locally-dismissed items not in DB, will sync after alerts load`);
+                }
+
+                // Save merged set to localStorage
+                saveLocalDismissed(merged);
+
+                return merged;
             } catch (e) {
                 console.warn('Error loading dismissed alerts:', e);
                 _dbAvailable = false;
@@ -4438,8 +4457,10 @@
             // Get all currently dismissed alerts
             const toRestore = _allPriorityAlerts.filter(a => _dismissedFromDb.has(a.id));
 
-            // Clear local state and sync localStorage
+            // Clear all tracking state and sync localStorage
             _dismissedFromDb.clear();
+            _dbDismissedIds.clear();
+            _localOnlyDismissed.clear();
             saveLocalDismissed(_dismissedFromDb);
             renderPriorityAlertSections();
 
@@ -4460,6 +4481,39 @@
                     // Ignore errors on clear all
                 }
             }
+        }
+
+        // Sync localStorage-only dismissed items to DB in the background
+        // Called after alerts are generated so we have metadata for each alert
+        async function syncLocalDismissalsToDb() {
+            if (!_localOnlyDismissed || _localOnlyDismissed.size === 0 || !_dbAvailable) return;
+
+            for (const alertId of _localOnlyDismissed) {
+                const alert = _allPriorityAlerts.find(a => a.id === alertId);
+                if (!alert) continue; // Alert no longer exists, skip
+
+                try {
+                    const response = await fetch('/.netlify/functions/dismiss-activity', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            coachId: _currentCoachId,
+                            clientId: alert.clientId,
+                            reason: alert.reason,
+                            relatedCheckinId: alert.relatedCheckinId
+                        })
+                    });
+                    if (response.ok) {
+                        _dbDismissedIds.add(alertId);
+                        console.log('Synced local dismissal to DB:', alertId);
+                    } else {
+                        console.warn('Failed to sync dismissal to DB:', alertId);
+                    }
+                } catch (e) {
+                    console.warn('Could not sync local dismissal:', alertId, e);
+                }
+            }
+            _localOnlyDismissed.clear();
         }
 
         function toggleHandledSection() {
@@ -4484,23 +4538,28 @@
             if (alert && !_dismissedFromDb.has(alertId)) {
                 _dismissedFromDb.add(alertId);
                 saveLocalDismissed(_dismissedFromDb);
-                // Sync to backend (use sendBeacon for reliability during navigation)
+                // Sync to backend using fetch with keepalive (more reliable than sendBeacon
+                // because sendBeacon silently fails without any way to detect or retry)
                 const payload = JSON.stringify({
                     coachId: _currentCoachId,
                     clientId: alert.clientId,
                     reason: alert.reason,
                     relatedCheckinId: alert.relatedCheckinId
                 });
-                if (navigator.sendBeacon) {
-                    navigator.sendBeacon('/.netlify/functions/dismiss-activity', new Blob([payload], { type: 'application/json' }));
-                } else {
+                try {
                     fetch('/.netlify/functions/dismiss-activity', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: payload,
                         keepalive: true
                     }).catch(e => console.warn('Could not auto-archive:', e));
+                } catch (e) {
+                    // If fetch with keepalive isn't supported, fall back to sendBeacon
+                    if (navigator.sendBeacon) {
+                        navigator.sendBeacon('/.netlify/functions/dismiss-activity', new Blob([payload], { type: 'application/json' }));
+                    }
                 }
+                // Item is saved in localStorage; syncLocalDismissalsToDb will retry on next load if DB sync failed
             }
             // Navigate to the target page
             window.location.href = url;
@@ -5044,6 +5103,20 @@
 
                 // Render active vs handled sections
                 renderPriorityAlertSections();
+
+                // Clean up stale localStorage entries (dismissed items whose alerts no longer exist)
+                const currentAlertIds = new Set(_allPriorityAlerts.map(a => a.id));
+                const staleCleaned = new Set(
+                    [..._dismissedFromDb].filter(id => currentAlertIds.has(id) || _dbDismissedIds.has(id))
+                );
+                if (staleCleaned.size < _dismissedFromDb.size) {
+                    _dismissedFromDb = staleCleaned;
+                    saveLocalDismissed(_dismissedFromDb);
+                }
+
+                // Background: sync any localStorage-only dismissals to DB
+                // This handles cases where sendBeacon or previous syncs failed
+                syncLocalDismissalsToDb();
 
             } catch (error) {
                 console.error('Error loading priority alerts:', error);
