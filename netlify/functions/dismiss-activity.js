@@ -27,7 +27,10 @@ exports.handler = async (event, context) => {
 
     try {
         const body = JSON.parse(event.body);
-        const { coachId, clientId, reason, relatedCheckinId, notes, action } = body;
+        const { coachId, clientId, reason, notes, action } = body;
+        // Convert relatedCheckinId to string for TEXT column compatibility
+        // (stores IDs from various tables: checkins, notifications, plans, exercise_logs, etc.)
+        const relatedCheckinId = body.relatedCheckinId != null ? String(body.relatedCheckinId) : null;
 
         // Validate required fields
         if (!coachId || !clientId || !reason) {
