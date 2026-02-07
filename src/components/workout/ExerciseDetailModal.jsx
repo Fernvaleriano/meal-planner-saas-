@@ -476,13 +476,26 @@ function ExerciseDetailModal({
         }
         if (cancelled || !res?.history || res.history.length === 0) return;
 
+        // Helper to safely parse setsData which may be a JSON string, array, or null
+        const parseSetsData = (raw) => {
+          if (Array.isArray(raw)) return raw;
+          if (typeof raw === 'string') {
+            try { const parsed = JSON.parse(raw); return Array.isArray(parsed) ? parsed : []; }
+            catch { return []; }
+          }
+          return [];
+        };
+
         // Store all-time bests for real-time PR detection (weight + reps)
-        const allMaxWeights = res.history.map(h => Math.max(...(h.setsData || []).map(s => s.weight || 0), 0));
-        allTimeMaxWeightRef.current = allMaxWeights.length > 0 ? Math.max(...allMaxWeights) : 0;
+        const allMaxWeights = res.history.map(h => {
+          const sd = parseSetsData(h.setsData);
+          return sd.length > 0 ? sd.reduce((max, s) => Math.max(max, s.weight || 0), 0) : 0;
+        });
+        allTimeMaxWeightRef.current = allMaxWeights.length > 0 ? allMaxWeights.reduce((a, b) => Math.max(a, b), 0) : 0;
 
         const bestReps = {};
         for (const session of res.history) {
-          for (const s of (session.setsData || [])) {
+          for (const s of parseSetsData(session.setsData)) {
             const w = s.weight || 0;
             const r = s.reps || 0;
             if (r > (bestReps[w] || 0)) bestReps[w] = r;
@@ -496,11 +509,11 @@ function ExerciseDetailModal({
         const sessions = allSessions.filter(s => s.workoutDate !== todayStr);
         if (sessions.length === 0) return;
         const last = sessions[0];
-        const lastSets = last.setsData || [];
+        const lastSets = parseSetsData(last.setsData);
         if (lastSets.length === 0) return;
 
-        const lastMaxWeight = Math.max(...lastSets.map(s => s.weight || 0), 0);
-        const lastMaxReps = Math.max(...lastSets.map(s => s.reps || 0), 0);
+        const lastMaxWeight = lastSets.reduce((max, s) => Math.max(max, s.weight || 0), 0);
+        const lastMaxReps = lastSets.reduce((max, s) => Math.max(max, s.reps || 0), 0);
         const lastTotalReps = lastSets.reduce((sum, s) => sum + (s.reps || 0), 0);
         const lastTotalSets = lastSets.length;
         const lastDate = last.workoutDate;
@@ -512,7 +525,7 @@ function ExerciseDetailModal({
           : null;
 
         // RPE analysis — average RPE from sets that have it logged
-        const rpeValues = lastSets.map(s => s.rpe).filter(r => r != null && r >= 6);
+        const rpeValues = lastSets.map(s => s?.rpe).filter(r => r != null && r >= 6);
         const hasRpe = rpeValues.length > 0;
         const avgRpe = hasRpe ? Math.round((rpeValues.reduce((a, b) => a + b, 0) / rpeValues.length) * 10) / 10 : null;
 
@@ -530,8 +543,8 @@ function ExerciseDetailModal({
         let isPlateaued = false;
         if (sessions.length >= 3) {
           const recentMaxes = sessions.slice(0, 3).map(s => {
-            const sd = s.setsData || [];
-            return Math.max(...sd.map(set => set.weight || 0), 0);
+            const sd = parseSetsData(s.setsData);
+            return sd.reduce((max, set) => Math.max(max, set.weight || 0), 0);
           });
           isPlateaued = recentMaxes.every(w => w === recentMaxes[0]) && recentMaxes[0] > 0;
 
@@ -757,14 +770,14 @@ function ExerciseDetailModal({
 
         if (!logId) return;
 
-        const setsData = sets.map((s, i) => ({
+        const setsData = sets.filter(Boolean).map((s, i) => ({
           setNumber: i + 1,
-          reps: s.reps || 0,
-          weight: s.weight || 0,
-          weightUnit: s.weightUnit || 'kg',
-          rpe: s.rpe || null,
-          restSeconds: s.restSeconds || null,
-          isTimeBased: s.isTimeBased || false
+          reps: s?.reps || 0,
+          weight: s?.weight || 0,
+          weightUnit: s?.weightUnit || 'kg',
+          rpe: s?.rpe || null,
+          restSeconds: s?.restSeconds || null,
+          isTimeBased: s?.isTimeBased || false
         }));
 
         const exercisePayload = {
@@ -783,7 +796,7 @@ function ExerciseDetailModal({
         });
 
         // Real-time PR detection: weight PR + rep PR
-        const currentMaxWeight = Math.max(...setsData.map(s => s.weight || 0), 0);
+        const currentMaxWeight = setsData.reduce((max, s) => Math.max(max, s?.weight || 0), 0);
         const previousMax = allTimeMaxWeightRef.current;
         let prDetected = false;
 
@@ -2682,12 +2695,15 @@ function ExerciseDetailModal({
 
         // Get the most recent previous session
         const lastSession = previousSessions[0];
-        const lastSets = typeof lastSession.setsData === 'string'
-          ? JSON.parse(lastSession.setsData)
-          : (lastSession.setsData || []);
+        let lastSets;
+        try {
+          lastSets = typeof lastSession.setsData === 'string'
+            ? JSON.parse(lastSession.setsData) : lastSession.setsData;
+        } catch { lastSets = []; }
+        if (!Array.isArray(lastSets)) lastSets = [];
 
-        const lastMaxWeight = Math.max(...lastSets.map(s => s.weight || 0), 0);
-        const lastMaxReps = Math.max(...lastSets.map(s => s.reps || 0), 0);
+        const lastMaxWeight = lastSets.reduce((max, s) => Math.max(max, s?.weight || 0), 0);
+        const lastMaxReps = lastSets.reduce((max, s) => Math.max(max, s?.reps || 0), 0);
         const lastNumSets = lastSets.length || 3;
         const dateLabel = new Date(lastSession.workoutDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
@@ -2763,10 +2779,14 @@ function ExerciseDetailModal({
     if (!historyData || historyData.length === 0) return null;
     let best = 0;
     for (const entry of historyData) {
-      const setsData = typeof entry.setsData === 'string'
-        ? JSON.parse(entry.setsData) : (entry.setsData || []);
+      let setsData;
+      try {
+        setsData = typeof entry.setsData === 'string'
+          ? JSON.parse(entry.setsData) : entry.setsData;
+      } catch { setsData = []; }
+      if (!Array.isArray(setsData)) setsData = [];
       for (const s of setsData) {
-        const est = calculate1RM(s.weight || 0, s.reps || 0);
+        const est = calculate1RM(s?.weight || 0, s?.reps || 0);
         if (est > best) best = est;
       }
     }
@@ -3105,9 +3125,13 @@ function ExerciseDetailModal({
               ) : (() => {
                 // Pre-process history data for chart and grouping
                 const processedEntries = historyData.map(entry => {
-                  const setsData = typeof entry.setsData === 'string'
-                    ? JSON.parse(entry.setsData) : (entry.setsData || []);
-                  const maxW = Math.max(...setsData.map(s => s.weight || 0), 0);
+                  let setsData;
+                  try {
+                    setsData = typeof entry.setsData === 'string'
+                      ? JSON.parse(entry.setsData) : entry.setsData;
+                  } catch { setsData = []; }
+                  if (!Array.isArray(setsData)) setsData = [];
+                  const maxW = setsData.reduce((max, s) => Math.max(max, s?.weight || 0), 0);
                   const dateObj = entry.workoutDate ? new Date(entry.workoutDate + 'T12:00:00') : null;
                   return { ...entry, setsData, maxW, dateObj };
                 });
@@ -3118,7 +3142,7 @@ function ExerciseDetailModal({
                   .slice(0, 8)
                   .reverse();
                 const chartMax = chartEntries.length > 0
-                  ? Math.max(...chartEntries.map(e => e.maxW)) : 0;
+                  ? chartEntries.reduce((max, e) => Math.max(max, e.maxW), 0) : 0;
 
                 // Find all-time PR
                 const allTimeMax = historyStats?.allTimeMaxWeight || 0;
@@ -3223,7 +3247,7 @@ function ExerciseDetailModal({
                                       <Award size={10} /> PR
                                     </span>
                                   )}
-                                  {entry.setsData.map((s, sIdx) => (
+                                  {(Array.isArray(entry.setsData) ? entry.setsData : []).map((s, sIdx) => (
                                     <div key={sIdx} className="history-set-row">
                                       <span className="history-set-num">Set {sIdx + 1}</span>
                                       <span className="history-set-reps">{s.reps || 0} x</span>
@@ -3453,7 +3477,7 @@ function ExerciseDetailModal({
             </div>
             <button
               className={`complete-exercise-btn ${isCompleted ? 'completed' : ''}`}
-              onClick={onToggleComplete}
+              onClick={() => onToggleComplete?.()}
               type="button"
             >
               <Check size={28} />
