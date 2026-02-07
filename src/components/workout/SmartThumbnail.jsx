@@ -82,7 +82,8 @@ function SmartThumbnail({
               setLoading(false);
             }
           }
-        } catch (err) {
+        } catch {
+          // Video thumbnail generation threw - fall back to video element
           if (!cancelled) {
             clearTimeout(timeoutRef.current);
             setUseVideoFallback(true);
@@ -99,7 +100,7 @@ function SmartThumbnail({
       }
     }
 
-    loadThumbnail().catch(() => {});
+    loadThumbnail();
 
     return () => {
       cancelled = true;

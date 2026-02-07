@@ -194,11 +194,7 @@ async function authenticatedFetch(url, options = {}) {
         });
 
         if (retryResponse.ok) {
-          try {
-            return await retryResponse.json();
-          } catch {
-            return {};
-          }
+          return retryResponse.json();
         }
 
         // Still failed after refresh
@@ -216,11 +212,7 @@ async function authenticatedFetch(url, options = {}) {
     throw error;
   }
 
-  try {
-    return await response.json();
-  } catch {
-    return {};
-  }
+  return response.json();
 }
 
 // API helper methods
