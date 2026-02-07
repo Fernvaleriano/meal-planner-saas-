@@ -3,7 +3,6 @@ import { X, Play, Pause, SkipForward, SkipBack, ChevronRight, ChevronLeft, Check
 import SmartThumbnail from './SmartThumbnail';
 import { apiGet, apiPost, apiPut } from '../../utils/api';
 import { onAppResume } from '../../hooks/useAppLifecycle';
-import { useScrollLock } from '../../hooks/useScrollLock';
 
 // Parse reps helper
 const parseReps = (reps) => {
@@ -189,9 +188,7 @@ function GuidedWorkoutModal({
   const [timer, setTimer] = useState(10);
   const [isPaused, setIsPaused] = useState(false);
   const [completedSets, setCompletedSets] = useState({}); // { exIndex: Set([setIndex, ...]) }
-  const totalElapsedRef = useRef(0);
-  const elapsedDomRef = useRef(null);
-  const elapsedDomRef2 = useRef(null);
+  const [totalElapsed, setTotalElapsed] = useState(0);
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const [showVideo, setShowVideo] = useState(false);
   const [playingVoiceNote, setPlayingVoiceNote] = useState(false);
@@ -834,14 +831,10 @@ function GuidedWorkoutModal({
     setShowVideo(false);
   }, [currentExIndex]);
 
-  // Elapsed time tracker - updates DOM directly instead of React state to
-  // avoid re-rendering the entire 1600+ line component every second
+  // Elapsed time tracker - uses functional updater to avoid stale closures
   useEffect(() => {
     const id = setInterval(() => {
-      totalElapsedRef.current += 1;
-      const formatted = formatTime(totalElapsedRef.current);
-      if (elapsedDomRef.current) elapsedDomRef.current.textContent = formatted;
-      if (elapsedDomRef2.current) elapsedDomRef2.current.textContent = formatted;
+      setTotalElapsed(prev => prev + 1);
     }, 1000);
     elapsedRef.current = id;
     return () => {
@@ -850,13 +843,30 @@ function GuidedWorkoutModal({
     };
   }, []);
 
-  // Lock body + html scroll (centralized ref-counted lock)
-  useScrollLock();
+  // Lock body AND html scroll — must lock both for iOS Safari
+  useEffect(() => {
+    const origBody = document.body.style.overflow;
+    const origHtml = document.documentElement.style.overflow;
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = origBody;
+      document.documentElement.style.overflow = origHtml;
+    };
+  }, []);
 
-  // Handle app resume: force re-layout on iOS Safari
+  // Handle app resume: restore scroll lock and force re-layout
+  // This fixes blank screen / frozen UI on iOS Safari when returning from background
   useEffect(() => {
     const unsubscribe = onAppResume((backgroundMs) => {
+      // Re-ensure body scroll is locked since we're still mounted
+      document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
+
       // Force a lightweight repaint on iOS Safari without destroying the DOM tree.
+      // Changing a React key would unmount/remount the entire child tree, which
+      // combined with the timer interval creates a render storm that freezes the UI.
+      // Instead, toggle a CSS property to trigger a compositor repaint.
       if (backgroundMs > 2000) {
         const el = document.querySelector('.guided-workout-overlay');
         if (el) {
@@ -1190,7 +1200,7 @@ function GuidedWorkoutModal({
           </div>
           <h2>Workout Complete!</h2>
           <p className="guided-complete-stats">
-            {exercises.length} exercises &bull; <span ref={elapsedDomRef2}>{formatTime(totalElapsedRef.current)}</span> elapsed
+            {exercises.length} exercises &bull; {formatTime(totalElapsed)} elapsed
           </p>
           <button className="guided-finish-btn" onClick={handleFinishWorkout}>
             Finish
@@ -1215,7 +1225,7 @@ function GuidedWorkoutModal({
           >
             {voiceEnabled ? <Volume2 size={18} /> : <VolumeX size={18} />}
           </button>
-          <div className="guided-elapsed" ref={elapsedDomRef}>{formatTime(totalElapsedRef.current)}</div>
+          <div className="guided-elapsed">{formatTime(totalElapsed)}</div>
         </div>
       </div>
 

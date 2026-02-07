@@ -2,7 +2,6 @@ import { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
 import { X, Check, Plus, ChevronLeft, Play, Timer, BarChart3, ArrowLeftRight, Trash2, Mic, MicOff, Lightbulb, MessageCircle, Loader2, AlertCircle, History, TrendingUp, Award, ChevronDown, ChevronUp, Send, Square, Sparkles } from 'lucide-react';
 import { apiGet, apiPost, apiPut } from '../../utils/api';
 import { onAppSuspend, onAppResume } from '../../hooks/useAppLifecycle';
-import { useScrollLock } from '../../hooks/useScrollLock';
 import Portal from '../Portal';
 import SetEditorModal from './SetEditorModal';
 import SwapExerciseModal from './SwapExerciseModal';
@@ -234,16 +233,36 @@ function ExerciseDetailModal({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [forceClose]);
 
-  // Prevent background scrolling when modal is open (centralized ref-counted lock)
-  useScrollLock();
+  // Prevent background scrolling when modal is open
+  // Uses overflow:hidden instead of position:fixed to avoid the stuck-offset bug
+  // where the body stays shifted up if cleanup doesn't run (e.g., app backgrounded)
+  useEffect(() => {
+    const html = document.documentElement;
+    const body = document.body;
+    // Store originals
+    const origHtmlOverflow = html.style.overflow;
+    const origBodyOverflow = body.style.overflow;
+
+    html.style.overflow = 'hidden';
+    body.style.overflow = 'hidden';
+
+    return () => {
+      html.style.overflow = origHtmlOverflow;
+      body.style.overflow = origBodyOverflow;
+    };
+  }, []);
 
   // State for forcing re-render on app resume
   const [resumeKey, setResumeKey] = useState(0);
 
   // Handle app resume: restore scroll lock and force re-layout
-  // Handle app resume: force re-render to fix stale layout on iOS Safari
+  // This fixes blank screen / frozen UI on iOS Safari when returning from background
   useEffect(() => {
     const unsubscribe = onAppResume((backgroundMs) => {
+      // Re-ensure body scroll is locked since we're still mounted
+      document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
+
       // Force a re-render to fix any stale layout on iOS Safari
       if (backgroundMs > 2000) {
         setResumeKey(k => k + 1);
@@ -458,12 +477,18 @@ function ExerciseDetailModal({
         if (cancelled || !res?.history || res.history.length === 0) return;
 
         // Store all-time bests for real-time PR detection (weight + reps)
-        const allMaxWeights = res.history.map(h => (Array.isArray(h.setsData) ? h.setsData : []).reduce((max, s) => Math.max(max, s.weight || 0), 0));
+        // Helper to safely parse setsData (can be JSON string or array)
+        const safeSets = (sd) => {
+          if (Array.isArray(sd)) return sd;
+          if (typeof sd === 'string') { try { return JSON.parse(sd) || []; } catch { return []; } }
+          return [];
+        };
+        const allMaxWeights = res.history.map(h => safeSets(h.setsData).reduce((max, s) => Math.max(max, s.weight || 0), 0));
         allTimeMaxWeightRef.current = allMaxWeights.reduce((max, w) => Math.max(max, w), 0);
 
         const bestReps = {};
         for (const session of res.history) {
-          for (const s of (Array.isArray(session.setsData) ? session.setsData : [])) {
+          for (const s of safeSets(session.setsData)) {
             const w = s.weight || 0;
             const r = s.reps || 0;
             if (r > (bestReps[w] || 0)) bestReps[w] = r;
@@ -477,7 +502,7 @@ function ExerciseDetailModal({
         const sessions = allSessions.filter(s => s.workoutDate !== todayStr);
         if (sessions.length === 0) return;
         const last = sessions[0];
-        const lastSets = Array.isArray(last.setsData) ? last.setsData : [];
+        const lastSets = safeSets(last.setsData);
         if (lastSets.length === 0) return;
 
         const lastMaxWeight = lastSets.reduce((max, s) => Math.max(max, s.weight || 0), 0);
@@ -511,7 +536,7 @@ function ExerciseDetailModal({
         let isPlateaued = false;
         if (sessions.length >= 3) {
           const recentMaxes = sessions.slice(0, 3).map(s => {
-            const sd = Array.isArray(s.setsData) ? s.setsData : [];
+            const sd = safeSets(s.setsData);
             return sd.reduce((max, set) => Math.max(max, set.weight || 0), 0);
           });
           isPlateaued = recentMaxes.every(w => w === recentMaxes[0]) && recentMaxes[0] > 0;
@@ -520,7 +545,7 @@ function ExerciseDetailModal({
           if (isPlateaued) {
             const todaySessions = allSessions.filter(s => s.workoutDate === todayStr);
             if (todaySessions.length > 0) {
-              const todaySets = Array.isArray(todaySessions[0].setsData) ? todaySessions[0].setsData : [];
+              const todaySets = safeSets(todaySessions[0].setsData);
               const todayMax = todaySets.reduce((max, s) => Math.max(max, s.weight || 0), 0);
               if (todayMax > recentMaxes[0]) {
                 isPlateaued = false; // Already broke through
@@ -764,7 +789,7 @@ function ExerciseDetailModal({
         });
 
         // Real-time PR detection: weight PR + rep PR
-        const currentMaxWeight = setsData.reduce((max, s) => Math.max(max, s.weight || 0), 0);
+        const currentMaxWeight = Math.max(...setsData.map(s => s.weight || 0), 0);
         const previousMax = allTimeMaxWeightRef.current;
         let prDetected = false;
 
@@ -2667,8 +2692,8 @@ function ExerciseDetailModal({
           ? JSON.parse(lastSession.setsData)
           : (lastSession.setsData || []);
 
-        const lastMaxWeight = lastSets.reduce((max, s) => Math.max(max, s.weight || 0), 0);
-        const lastMaxReps = lastSets.reduce((max, s) => Math.max(max, s.reps || 0), 0);
+        const lastMaxWeight = Math.max(...lastSets.map(s => s.weight || 0), 0);
+        const lastMaxReps = Math.max(...lastSets.map(s => s.reps || 0), 0);
         const lastNumSets = lastSets.length || 3;
         const dateLabel = new Date(lastSession.workoutDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
@@ -3211,7 +3236,7 @@ function ExerciseDetailModal({
                                       <Award size={10} /> PR
                                     </span>
                                   )}
-                                  {(Array.isArray(entry.setsData) ? entry.setsData : []).map((s, sIdx) => (
+                                  {entry.setsData.map((s, sIdx) => (
                                     <div key={sIdx} className="history-set-row">
                                       <span className="history-set-num">Set {sIdx + 1}</span>
                                       <span className="history-set-reps">{s.reps || 0} x</span>

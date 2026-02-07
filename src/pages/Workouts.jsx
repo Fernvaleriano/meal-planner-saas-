@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, apiPut, apiDelete, ensureFreshSession } from '../utils/api';
 import { onAppResume } from '../hooks/useAppLifecycle';
-import { forceUnlockScroll } from '../hooks/useScrollLock';
 import ExerciseCard from '../components/workout/ExerciseCard';
 import ExerciseDetailModal from '../components/workout/ExerciseDetailModal';
 import AddActivityModal from '../components/workout/AddActivityModal';
@@ -501,15 +500,20 @@ function Workouts() {
       setShowHeroMenu(false);
       setSwipeSwapExercise(null);
       setSwipeDeleteExercise(null);
+      setCompletingWorkout(false);
+      setShowWorkoutReadyConfirm(false);
+      setCardMenuWorkoutId(null);
 
       // Force-clean scroll lock in case modal cleanup didn't run
-      forceUnlockScroll();
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
     });
 
     return () => unsubResume();
   }, [showGuidedWorkout]);
 
   // Close menus when clicking outside
+  // cardMenuWorkoutId in deps so the closure always sees the current value
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (menuRef.current && !menuRef.current.contains(event.target)) {
@@ -524,7 +528,7 @@ function Workouts() {
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  }, [cardMenuWorkoutId]);
 
   // Scroll to top on mount
   useEffect(() => {
@@ -2857,8 +2861,8 @@ function Workouts() {
                       exercise={exercise}
                       index={index}
                       isCompleted={completedExercises.has(exercise.id)}
-                      onToggleComplete={toggleExerciseComplete}
-                      onClick={handleExerciseClick}
+                      onToggleComplete={() => toggleExerciseComplete(exercise.id)}
+                      onClick={() => handleExerciseClick(exercise)}
                       workoutStarted={workoutStarted}
                       onSwapExercise={handleSwipeSwap}
                       onDeleteExercise={handleSwipeDelete}

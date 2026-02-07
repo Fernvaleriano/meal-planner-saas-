@@ -92,16 +92,15 @@ export function usePullToRefresh(onRefresh, options = {}) {
       const diff = currentY - touchStartRef.current;
 
       if (diff > 0) {
-        // Only preventDefault once the user has pulled down at least 10px.
-        // Without this threshold, even a tiny downward finger movement during
-        // a normal tap kills the browser's click synthesis for that touch,
-        // making exercise cards un-tappable when scrollTop is 0.
-        if (diff > 10) {
-          e.preventDefault();
-        }
         const pulledDistance = Math.min(diff * resistance, threshold * 1.5);
         pullDistanceRef.current = pulledDistance;
         updateIndicatorDOM(pulledDistance);
+        // Only preventDefault after 10px of deliberate pull-down.
+        // Calling it on any 1px movement blocks touch→click synthesis on iOS,
+        // making exercise cards untappable.
+        if (diff > 10) {
+          e.preventDefault();
+        }
       }
     };
 

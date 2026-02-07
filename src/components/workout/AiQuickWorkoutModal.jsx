@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { X, Zap, Clock, Dumbbell, Loader2, ChevronDown, ChevronUp, Settings2 } from 'lucide-react';
 import { apiGet, apiPost } from '../../utils/api';
-import { useScrollLock } from '../../hooks/useScrollLock';
 
 const WORKOUT_TYPES = [
   { id: 'full_body', name: 'Full Body', description: 'Total body workout hitting all major muscle groups', icon: '💪' },
@@ -152,8 +151,14 @@ function AiQuickWorkoutModal({ onClose, onGenerateWorkout, selectedDate }) {
     fetchExercises();
   }, []);
 
-  // Prevent background scrolling (centralized ref-counted lock)
-  useScrollLock();
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    const originalStyle = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = originalStyle;
+    };
+  }, []);
 
   // Toggle equipment selection
   const toggleEquipment = (equipmentId) => {
