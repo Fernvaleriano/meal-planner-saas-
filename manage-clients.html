@@ -264,6 +264,15 @@
             margin-bottom: 24px;
             flex-wrap: wrap;
             gap: 16px;
+            position: sticky;
+            top: calc(72px + env(safe-area-inset-top));
+            z-index: 50;
+            background: var(--gray-50);
+            padding: 16px 0;
+            margin-left: -4px;
+            margin-right: -4px;
+            padding-left: 4px;
+            padding-right: 4px;
         }
 
         .client-count {
@@ -367,31 +376,36 @@
             cursor: pointer;
         }
 
+        .client-card-body {
+            padding: 20px;
+        }
+
         .client-header {
             display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 16px;
-            gap: 16px;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 14px;
         }
 
         .client-header-left {
             display: flex;
-            align-items: flex-start;
+            align-items: center;
             gap: 14px;
+            flex: 1;
+            min-width: 0;
         }
 
         .client-avatar {
-            width: 48px;
-            height: 48px;
-            min-width: 48px;
+            width: 50px;
+            height: 50px;
+            min-width: 50px;
             background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
-            border-radius: 50%;
+            border-radius: 14px;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 18px;
-            font-weight: 600;
+            font-weight: 700;
             color: white;
             overflow: hidden;
         }
@@ -403,26 +417,32 @@
         }
 
         .client-name {
-            font-size: 1.25rem;
+            font-size: 1rem;
             font-weight: 700;
             color: var(--gray-900);
-            margin-bottom: 6px;
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .client-actions {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            min-width: 140px;
-            align-items: flex-end;
-            justify-content: flex-start;
-            min-height: 110px; /* Fixed height to maintain alignment */
+            display: none;
         }
 
         .client-info {
-            color: var(--gray-600);
-            font-size: 14px;
-            margin-bottom: 8px;
+            display: flex;
+            gap: 16px;
+            color: var(--gray-500);
+            font-size: 13px;
+            margin-bottom: 0;
+            padding: 0;
+        }
+
+        .client-info div {
+            display: flex;
+            align-items: center;
+            gap: 4px;
         }
 
         .client-info strong {
@@ -430,13 +450,99 @@
         }
 
         .client-stats {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
             background: var(--gray-50);
-            padding: 14px 16px;
-            border-radius: 12px;
-            margin-top: 16px;
-            font-size: 13px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
             color: var(--gray-600);
             border: 1px solid var(--gray-100);
+            margin-top: 0;
+        }
+
+        .client-card-footer {
+            display: flex;
+            border-top: 1px solid var(--gray-100);
+        }
+
+        .client-card-footer .card-action-btn {
+            flex: 1;
+            padding: 12px 8px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            font-family: inherit;
+            color: var(--gray-600);
+            transition: all 0.15s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .client-card-footer .card-action-btn:not(:last-child) {
+            border-right: 1px solid var(--gray-100);
+        }
+
+        .client-card-footer .card-action-btn:hover {
+            background: var(--gray-50);
+        }
+
+        .client-card-footer .card-action-btn.action-view {
+            color: var(--brand-primary);
+            font-weight: 700;
+        }
+
+        .client-card-footer .card-action-btn.action-view:hover {
+            background: rgba(13, 148, 136, 0.06);
+        }
+
+        .client-card-footer .card-action-btn.action-invite {
+            color: #2563eb;
+        }
+
+        .client-card-footer .card-action-btn.action-invite:hover {
+            background: rgba(37, 99, 235, 0.06);
+        }
+
+        .client-card-footer .card-action-btn.action-edit {
+            color: var(--gray-600);
+        }
+
+        .client-card-footer .card-action-btn.action-archive {
+            color: #d97706;
+        }
+
+        .client-card-footer .card-action-btn.action-archive:hover {
+            background: rgba(217, 119, 6, 0.06);
+        }
+
+        .client-card-footer .card-action-btn.action-restore {
+            color: #059669;
+        }
+
+        .client-card-footer .card-action-btn.action-restore:hover {
+            background: rgba(5, 150, 105, 0.06);
+        }
+
+        .client-card-footer .card-action-btn.action-delete {
+            color: #ef4444;
+        }
+
+        .client-card-footer .card-action-btn.action-delete:hover {
+            background: rgba(239, 68, 68, 0.06);
+        }
+
+        .client-detail-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 10px;
         }
 
         .dietary-tags {
@@ -629,23 +735,25 @@
         /* ===== CLIENTS GRID AND CARDS ===== */
         .clients-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-            gap: 20px;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 16px;
         }
 
         .client-card {
             background: white;
-            border-radius: 20px;
-            padding: 24px;
+            border-radius: 16px;
+            padding: 0;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.03);
             border: 1px solid var(--gray-100);
             transition: all 0.2s ease;
             position: relative;
+            overflow: hidden;
         }
 
         .client-card:hover {
             transform: translateY(-2px);
             box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+            border-color: var(--brand-primary);
         }
 
         .client-card.archived {
@@ -660,9 +768,30 @@
 
         [data-theme="dark"] .client-card:hover {
             box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+            border-color: var(--brand-primary);
         }
 
         [data-theme="dark"] .client-card.archived {
+            background: var(--gray-900);
+        }
+
+        [data-theme="dark"] .client-card-footer {
+            border-top-color: var(--gray-700);
+        }
+
+        [data-theme="dark"] .client-card-footer .card-action-btn {
+            color: var(--gray-400);
+        }
+
+        [data-theme="dark"] .client-card-footer .card-action-btn:not(:last-child) {
+            border-right-color: var(--gray-700);
+        }
+
+        [data-theme="dark"] .client-card-footer .card-action-btn:hover {
+            background: var(--gray-700);
+        }
+
+        [data-theme="dark"] .view-controls {
             background: var(--gray-900);
         }
 
@@ -756,33 +885,37 @@
 
             /* Page Header */
             .page-header {
-                flex-direction: column;
-                gap: 16px;
-                text-align: center;
-                padding: 20px;
-                border-radius: 16px;
-                margin-bottom: 20px;
+                flex-direction: row;
+                gap: 12px;
+                text-align: left;
+                padding: 16px;
+                border-radius: 14px;
+                margin-bottom: 16px;
             }
 
             .page-header h1 {
-                font-size: 1.25rem;
-                flex-direction: column;
-                gap: 8px;
+                font-size: 1.1rem;
+                flex-direction: row;
+                gap: 10px;
             }
 
             .page-title-icon {
-                width: 40px;
-                height: 40px;
-                font-size: 1.25rem;
+                width: 36px;
+                height: 36px;
+                font-size: 1.1rem;
+                border-radius: 10px;
             }
 
             .header-actions {
-                width: 100%;
-                flex-direction: column;
+                width: auto;
+                flex-direction: row;
             }
 
             .header-actions .btn {
-                width: 100%;
+                width: auto;
+                padding: 10px 16px;
+                min-height: 36px;
+                font-size: 0.8125rem;
             }
 
             /* View Controls */
@@ -790,8 +923,13 @@
                 flex-direction: column;
                 align-items: stretch;
                 gap: 12px;
-                padding: 0;
+                padding: 12px 16px;
                 margin-bottom: 16px;
+                top: 0;
+                background: var(--gray-50);
+                margin-left: -16px;
+                margin-right: -16px;
+                border-bottom: 1px solid var(--gray-200);
             }
 
             .view-controls > div {
@@ -849,73 +987,42 @@
 
             /* Client Cards */
             .client-card {
-                padding: 20px;
-                border-radius: 16px;
+                border-radius: 14px;
+            }
+
+            .client-card-body {
+                padding: 16px;
             }
 
             .client-header {
-                flex-direction: column;
-                gap: 16px;
-                align-items: stretch;
-            }
-
-            .client-header-left {
-                flex-direction: column;
-                align-items: center;
-                text-align: center;
+                gap: 12px;
             }
 
             .client-avatar {
-                width: 64px;
-                height: 64px;
-                min-width: 64px;
-                font-size: 24px;
+                width: 46px;
+                height: 46px;
+                min-width: 46px;
+                border-radius: 12px;
+                font-size: 16px;
             }
 
             .client-name {
-                font-size: 1.1rem;
-                word-break: break-word;
+                font-size: 0.9375rem;
             }
 
             .client-meta-row {
-                justify-content: center;
-            }
-
-            .client-last-active {
-                justify-content: center;
-            }
-
-            .client-actions {
-                flex-direction: row;
                 flex-wrap: wrap;
-                justify-content: center;
-                min-width: unset;
-                min-height: unset;
-                gap: 8px;
-            }
-
-            .client-actions .btn {
-                flex: 1 1 auto;
-                min-width: calc(50% - 4px);
-                max-width: calc(50% - 4px);
-                justify-content: center;
-                padding: 10px 12px;
-                font-size: 13px;
-            }
-
-            /* When there are 3 buttons, make them equal width */
-            .client-actions .btn:only-child {
-                min-width: 100%;
-                max-width: 100%;
             }
 
             .client-info {
-                text-align: center;
+                flex-wrap: wrap;
+                gap: 8px;
+                font-size: 12px;
             }
 
-            .client-stats {
-                padding: 12px;
-                text-align: center;
+            .client-card-footer .card-action-btn {
+                padding: 11px 6px;
+                font-size: 12px;
             }
 
             .dietary-tags {
@@ -2661,36 +2768,71 @@
                     `;
                 }
 
+                // Build footer action buttons
+                let footerButtons = '';
+                if (client.is_archived) {
+                    footerButtons = `
+                        <button class="card-action-btn action-restore" onclick="event.stopPropagation(); restoreClient(${client.id}, '${escapeHtml(client.client_name)}')">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+                            Restore
+                        </button>
+                        <button class="card-action-btn action-delete" onclick="event.stopPropagation(); deleteClient(${client.id}, '${escapeHtml(client.client_name)}')">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                            Delete
+                        </button>
+                    `;
+                } else {
+                    footerButtons = `
+                        ${needsInvite ? `<button class="card-action-btn action-invite" onclick="event.stopPropagation(); inviteClient(${client.id}, '${escapeHtml(client.client_name)}')">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                            Invite
+                        </button>` : ''}
+                        <button class="card-action-btn action-view" onclick="event.stopPropagation(); window.location.href='client-profile.html?clientId=${client.id}'">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                            View
+                        </button>
+                        <button class="card-action-btn action-edit" onclick="event.stopPropagation(); editClient(${client.id})">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                            Edit
+                        </button>
+                        <button class="card-action-btn action-archive" onclick="event.stopPropagation(); archiveClient(${client.id}, '${escapeHtml(client.client_name)}')">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><path d="M10 12h4"/></svg>
+                            Archive
+                        </button>
+                    `;
+                }
+
                 card.innerHTML = `
-                    <div class="client-header">
-                        <div class="client-header-left">
-                            <div class="client-avatar">${avatarHtml}</div>
-                            <div>
-                                <div class="client-name">${escapeHtml(client.client_name)}</div>
-                                <div class="client-meta-row">
-                                    ${client.is_archived ? '<span class="archived-badge">Archived</span>' : ''}
-                                    <span class="goal-badge ${goalClass}">${goalDisplay}</span>
-                                    ${needsInvite ? '<span class="invite-badge">Not Invited</span>' : ''}
-                                </div>
-                                <div class="client-last-active ${lastActive.class}">
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <circle cx="12" cy="12" r="10"/>
-                                        <polyline points="12 6 12 12 16 14"/>
-                                    </svg>
-                                    ${lastActive.text}
+                    <div class="client-card-body">
+                        <div class="client-header">
+                            <div class="client-header-left">
+                                <div class="client-avatar">${avatarHtml}</div>
+                                <div style="min-width: 0; flex: 1;">
+                                    <div class="client-name">${escapeHtml(client.client_name)}</div>
+                                    <div class="client-meta-row">
+                                        ${client.is_archived ? '<span class="archived-badge">Archived</span>' : ''}
+                                        <span class="goal-badge ${goalClass}">${goalDisplay}</span>
+                                        ${needsInvite ? '<span class="invite-badge">Not Invited</span>' : ''}
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                        <div class="client-actions">
-                            ${actionButtons}
+                        <div class="client-detail-row">
+                            <div class="client-last-active ${lastActive.class}">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <polyline points="12 6 12 12 16 14"/>
+                                </svg>
+                                ${lastActive.text}
+                            </div>
+                            <div class="client-stats">
+                                <strong>${planCount}</strong> plan${planCount !== 1 ? 's' : ''}
+                            </div>
+                            ${client.email ? `<div class="client-info"><div>${escapeHtml(client.email)}</div></div>` : ''}
                         </div>
                     </div>
-                    <div class="client-info">
-                        ${client.email ? `<div>📧 ${escapeHtml(client.email)}</div>` : ''}
-                        ${client.phone ? `<div>📱 ${escapeHtml(client.phone)}</div>` : ''}
-                    </div>
-                    <div class="client-stats">
-                        <strong>${planCount}</strong> meal plan${planCount !== 1 ? 's' : ''} created
+                    <div class="client-card-footer">
+                        ${footerButtons}
                     </div>
                 `;
 

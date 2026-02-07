@@ -1756,12 +1756,12 @@
             </div>
 
             <!-- Planner Mode Toggle -->
-            <div class="flex justify-center items-center gap-3 mb-6 p-4 rounded-lg" style="background: linear-gradient(135deg, #0f172a, #1e293b); border: 2px solid #334155;">
+            <div class="flex justify-center items-center gap-3 mb-6 p-3 rounded-xl" style="background: #f1f5f9; border: 1px solid #e2e8f0;">
                 <div class="flex gap-3 w-full">
-                    <button id="mode-client" class="flex-1 py-3 px-4 rounded-lg font-bold text-sm transition-all" style="background: #0d9488; color: white; border: 2px solid #14b8a6;" onclick="setPlannerMode('client')">
+                    <button id="mode-client" class="flex-1 py-3 px-4 rounded-lg font-bold text-sm transition-all" style="background: #0d9488; color: white; border: none; box-shadow: 0 2px 8px rgba(13,148,136,0.3);" onclick="setPlannerMode('client')">
                         👤 Build for Client
                     </button>
-                    <button id="mode-template" class="flex-1 py-3 px-4 rounded-lg font-bold text-sm transition-all" style="background: transparent; color: #94a3b8; border: 2px solid #475569;" onclick="setPlannerMode('template')">
+                    <button id="mode-template" class="flex-1 py-3 px-4 rounded-lg font-bold text-sm transition-all" style="background: transparent; color: #64748b; border: none;" onclick="setPlannerMode('template')">
                         📋 Create Template
                     </button>
                 </div>
@@ -2496,10 +2496,12 @@ function setPlannerMode(mode) {
         // Highlight template button
         templateBtn.style.background = '#8b5cf6';
         templateBtn.style.color = 'white';
-        templateBtn.style.borderColor = '#a78bfa';
+        templateBtn.style.border = 'none';
+        templateBtn.style.boxShadow = '0 2px 8px rgba(139,92,246,0.3)';
         clientBtn.style.background = 'transparent';
-        clientBtn.style.color = '#94a3b8';
-        clientBtn.style.borderColor = '#475569';
+        clientBtn.style.color = '#64748b';
+        clientBtn.style.border = 'none';
+        clientBtn.style.boxShadow = 'none';
 
         // Hide client selector and plan name (template is named on save)
         if (clientSection) clientSection.style.display = 'none';
@@ -2517,10 +2519,12 @@ function setPlannerMode(mode) {
         // Highlight client button
         clientBtn.style.background = '#0d9488';
         clientBtn.style.color = 'white';
-        clientBtn.style.borderColor = '#14b8a6';
+        clientBtn.style.border = 'none';
+        clientBtn.style.boxShadow = '0 2px 8px rgba(13,148,136,0.3)';
         templateBtn.style.background = 'transparent';
-        templateBtn.style.color = '#94a3b8';
-        templateBtn.style.borderColor = '#475569';
+        templateBtn.style.color = '#64748b';
+        templateBtn.style.border = 'none';
+        templateBtn.style.boxShadow = 'none';
 
         // Show client selector and plan name
         if (clientSection) clientSection.style.display = 'block';
