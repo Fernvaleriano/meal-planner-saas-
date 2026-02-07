@@ -1351,9 +1351,11 @@ function Workouts() {
 
     // Auto-mark exercise as completed when sets have been edited with actual data
     if (updatedExercise.id && updatedExercise.sets?.length > 0) {
-      const hasEditedSets = updatedExercise.sets.some(s =>
-        (s.reps && s.reps > 0) || (s.weight && s.weight > 0) || s.duration
-      );
+      const hasEditedSets = updatedExercise.sets.some(s => {
+        // reps can be a number (12) or string ("8-10") from AI workouts
+        const repsVal = typeof s.reps === 'string' ? parseInt(s.reps) : s.reps;
+        return (repsVal && repsVal > 0) || (s.weight && s.weight > 0) || s.duration;
+      });
       if (hasEditedSets && !completedExercisesRef.current.has(updatedExercise.id)) {
         // Update ref immediately so the workout_data map below sees it
         completedExercisesRef.current = new Set([...completedExercisesRef.current, updatedExercise.id]);
@@ -2135,9 +2137,24 @@ function Workouts() {
         (ex.name || ex.id)
       );
 
+      // Normalize AI exercise data — AI workouts from generate-workout-claude.js
+      // are missing trackingType/exercise_type and have reps as strings like "8-10".
+      // Ensure all exercises have the fields that ExerciseCard and ExerciseDetailModal expect.
+      const normalized = filtered.map(ex => {
+        if (ex.trackingType && ex.exercise_type) return ex; // Already has required fields
+        const isTimedByDefault = ex.duration || ex.exercise_type === 'cardio' ||
+          ex.exercise_type === 'interval' || ex.exercise_type === 'flexibility' ||
+          ex.phase === 'warmup' || ex.phase === 'cooldown' || ex.isWarmup || ex.isStretch;
+        return {
+          ...ex,
+          trackingType: ex.trackingType || (isTimedByDefault ? 'time' : 'reps'),
+          exercise_type: ex.exercise_type || (isTimedByDefault ? 'cardio' : 'strength')
+        };
+      });
+
       // Merge exercise_logs data (client notes, voice notes) from workoutLog
       const loggedExercises = workoutLog?.exercises || [];
-      const merged = filtered.map(ex => {
+      const merged = normalized.map(ex => {
         const logged = loggedExercises.find(le => le.exercise_id === ex.id);
         if (logged) {
           return {
