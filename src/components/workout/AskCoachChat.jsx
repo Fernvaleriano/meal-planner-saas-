@@ -616,7 +616,7 @@ function AskCoachChat({ exercise, onClose }) {
     } finally {
       setLoading(false);
     }
-  }, [input, loading, exercise]);
+  }, [input, loading, exercise, messages]);
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
