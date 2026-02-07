@@ -1,6 +1,5 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { ensureFreshSession } from '../utils/api';
-import { forceUnlockScroll } from './useScrollLock';
 
 /**
  * App Lifecycle Hook
@@ -52,10 +51,12 @@ export function getBackgroundDuration() {
 function cleanupStuckScrollLock() {
   let cleaned = false;
 
-  if (document.body.style.overflow === 'hidden' ||
-      document.documentElement.style.overflow === 'hidden') {
-    // Use centralized unlock to also reset the ref counter
-    forceUnlockScroll();
+  if (document.body.style.overflow === 'hidden') {
+    document.body.style.overflow = '';
+    cleaned = true;
+  }
+  if (document.documentElement.style.overflow === 'hidden') {
+    document.documentElement.style.overflow = '';
     cleaned = true;
   }
   // Legacy: position:fixed body hack
@@ -85,16 +86,14 @@ async function triggerResume(backgroundMs) {
     }
   }
 
-  // Clean up any stuck scroll locks — but only if no full-screen overlay is open.
-  // With centralized useScrollLock, modals no longer re-apply overflow in their
-  // own resume handlers, so we just check if any overlay is still visible.
+  // Clean up any stuck scroll locks — but only if no full-screen overlay
+  // (like GuidedWorkoutModal) is actively managing the lock.
+  // GuidedWorkoutModal re-applies overflow:hidden in its own resume handler,
+  // but if we clear it first there's a brief window where touch events can
+  // scroll the body on iOS Safari, causing the viewport to freeze.
   if (backgroundMs > 3000) {
-    const activeOverlay = document.querySelector(
-      '.exercise-modal-overlay-v2, .swap-modal-overlay, .guided-workout-overlay, ' +
-      '.club-workouts-overlay, .create-workout-overlay, .ai-workout-overlay, ' +
-      '.readiness-overlay, .workout-summary-overlay, .delete-confirm-overlay'
-    );
-    if (!activeOverlay) {
+    const guidedOverlay = document.querySelector('.guided-workout-overlay');
+    if (!guidedOverlay) {
       cleanupStuckScrollLock();
     }
   }
@@ -208,8 +207,7 @@ export function useAppLifecycle() {
       const activeOverlay = document.querySelector(
         '.exercise-modal-overlay-v2, .swap-modal-overlay, .readiness-overlay, ' +
         '.workout-summary-overlay, .workout-history-overlay, .delete-confirm-overlay, ' +
-        '.rpe-backdrop, .create-workout-overlay, .guided-workout-overlay, ' +
-        '.club-workouts-overlay, .set-editor-overlay, .ai-workout-overlay'
+        '.rpe-backdrop, .add-activity-overlay, .create-workout-overlay, .guided-workout-overlay'
       );
 
       if (!activeOverlay) {

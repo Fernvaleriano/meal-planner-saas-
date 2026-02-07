@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, apiPut, apiDelete, ensureFreshSession } from '../utils/api';
 import { onAppResume } from '../hooks/useAppLifecycle';
-import { forceUnlockScroll } from '../hooks/useScrollLock';
 import ExerciseCard from '../components/workout/ExerciseCard';
 import ExerciseDetailModal from '../components/workout/ExerciseDetailModal';
 import AddActivityModal from '../components/workout/AddActivityModal';
@@ -503,7 +502,8 @@ function Workouts() {
       setSwipeDeleteExercise(null);
 
       // Force-clean scroll lock in case modal cleanup didn't run
-      forceUnlockScroll();
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
     });
 
     return () => unsubResume();
@@ -2857,8 +2857,8 @@ function Workouts() {
                       exercise={exercise}
                       index={index}
                       isCompleted={completedExercises.has(exercise.id)}
-                      onToggleComplete={toggleExerciseComplete}
-                      onClick={handleExerciseClick}
+                      onToggleComplete={() => toggleExerciseComplete(exercise.id)}
+                      onClick={() => handleExerciseClick(exercise)}
                       workoutStarted={workoutStarted}
                       onSwapExercise={handleSwipeSwap}
                       onDeleteExercise={handleSwipeDelete}

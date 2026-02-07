@@ -131,9 +131,6 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
     return null;
   }
 
-  // Wrap onClick to pass exercise — lets parent use a stable callback ref
-  const handleCardClick = () => onClick?.(exercise);
-
   // Check for special exercise types - with defensive checks
   const isSuperset = exercise.isSuperset && exercise.supersetGroup;
   const isWarmup = exercise.isWarmup;
@@ -291,7 +288,7 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
 
     // Check if all sets complete
     if (newSets.every(s => s.completed) && !isCompleted) {
-      onToggleComplete(exercise.id);
+      onToggleComplete();
     }
   };
 
@@ -435,10 +432,9 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
     if (diffY > Math.abs(diffX) && !isHeaderSwiping && !isCompleteSwiping) return;
 
     // Batch state updates in a single RAF to prevent flooding React with setState calls
-    // Use 20px threshold (not 10px) to prevent accidental swipe detection during normal taps
     if (headerSwipeRaf.current) cancelAnimationFrame(headerSwipeRaf.current);
     headerSwipeRaf.current = requestAnimationFrame(() => {
-      if (diffX > 20) {
+      if (diffX > 10) {
         // Swipe LEFT → show swap/delete actions
         if (completeSwipeOffset > 0) {
           setIsCompleteSwiping(true);
@@ -447,7 +443,7 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
         }
         setIsHeaderSwiping(true);
         setHeaderSwipeOffset(Math.min(Math.max(0, diffX), headerMaxSwipe));
-      } else if (diffX < -20) {
+      } else if (diffX < -10) {
         // Swipe RIGHT → show complete action (or close header swipe)
         if (headerSwipeOffset > 0) {
           setIsHeaderSwiping(true);
@@ -461,7 +457,7 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
       }
     });
 
-    if (diffX > 20 || (diffX < -20 && workoutStarted)) {
+    if (diffX > 10 || (diffX < -10 && workoutStarted)) {
       e.preventDefault();
     }
   };
@@ -474,7 +470,7 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
     if (isCompleteSwiping) {
       if (completeSwipeOffset > swipeThreshold) {
         // Trigger complete toggle
-        if (onToggleComplete) onToggleComplete(exercise.id);
+        if (onToggleComplete) onToggleComplete();
         setCompleteSwipeOffset(0);
       } else {
         setCompleteSwipeOffset(0);
@@ -689,7 +685,7 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
             <div className="swipe-actions complete-actions" style={{ left: 0, right: 'auto' }}>
               <button
                 className={`swipe-action-btn complete-action ${isCompleted ? 'undo' : ''}`}
-                onClick={(e) => { e.stopPropagation(); if (onToggleComplete) onToggleComplete(exercise.id); setCompleteSwipeOffset(0); }}
+                onClick={(e) => { e.stopPropagation(); if (onToggleComplete) onToggleComplete(); setCompleteSwipeOffset(0); }}
               >
                 <Check size={20} />
                 <span>{isCompleted ? 'Undo' : 'Done'}</span>
@@ -737,7 +733,7 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
               transform: `translateX(${completeSwipeOffset > 0 ? completeSwipeOffset : -headerSwipeOffset}px)`,
               transition: (isHeaderSwiping || isCompleteSwiping) ? 'none' : 'transform 0.2s ease-out'
             }}
-            onClick={(headerSwipeOffset > 0 || completeSwipeOffset > 0) ? closeHeaderSwipe : handleCardClick}
+            onClick={(headerSwipeOffset > 0 || completeSwipeOffset > 0) ? closeHeaderSwipe : onClick}
             onTouchStart={handleHeaderTouchStart}
             onTouchMove={handleHeaderTouchMove}
             onTouchEnd={handleHeaderTouchEnd}
@@ -837,7 +833,7 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
               transform: `translateX(-${setsSwipeOffset}px)`,
               transition: isSetsSwiping ? 'none' : 'transform 0.2s ease-out'
             }}
-            onClick={(e) => { e.stopPropagation(); if (setsSwipeOffset > 0) closeSetsSwipe(); else handleCardClick(); }}
+            onClick={(e) => { e.stopPropagation(); if (setsSwipeOffset > 0) closeSetsSwipe(); else onClick?.(); }}
             onTouchStart={handleSetsTouchStart}
             onTouchMove={handleSetsTouchMove}
             onTouchEnd={handleSetsTouchEnd}

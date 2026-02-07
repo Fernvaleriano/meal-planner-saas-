@@ -13728,6 +13728,7 @@ a.nav-left {
 
 .workout-content.refreshing {
     opacity: 0.7;
+    pointer-events: none;
 }
 
 .exercises-section {

@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { X, Loader2, Sparkles, ArrowRight, RefreshCw, ChevronDown, Dumbbell, Search, Star } from 'lucide-react';
 import { apiPost, apiGet } from '../../utils/api';
-import { useScrollLock } from '../../hooks/useScrollLock';
 
 const EQUIPMENT_OPTIONS = [
   { value: '', label: 'All' },
@@ -58,8 +57,22 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
     return () => window.removeEventListener('popstate', handlePopState);
   }, [forceClose]);
 
-  // Prevent background scrolling when modal is open (centralized ref-counted lock)
-  useScrollLock();
+  // Prevent background scrolling when modal is open
+  // Uses overflow:hidden instead of position:fixed to avoid the stuck-offset bug
+  useEffect(() => {
+    const html = document.documentElement;
+    const body = document.body;
+    const origHtmlOverflow = html.style.overflow;
+    const origBodyOverflow = body.style.overflow;
+
+    html.style.overflow = 'hidden';
+    body.style.overflow = 'hidden';
+
+    return () => {
+      html.style.overflow = origHtmlOverflow;
+      body.style.overflow = origBodyOverflow;
+    };
+  }, []);
 
   // Handle escape key press
   useEffect(() => {
