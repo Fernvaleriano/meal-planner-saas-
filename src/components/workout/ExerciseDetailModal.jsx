@@ -397,6 +397,17 @@ function ExerciseDetailModal({
     };
   }, []);
 
+  // Parse reps value — AI workouts use strings like "8-10", "30s hold", "5 min"
+  // Manual workouts use numbers like 12. Normalize to a number for sets initialization.
+  const safeParseReps = (reps) => {
+    if (typeof reps === 'number') return reps;
+    if (typeof reps === 'string') {
+      const match = reps.match(/^(\d+)/);
+      if (match) return parseInt(match[1], 10);
+    }
+    return 12;
+  };
+
   // Initialize sets once
   const initialSets = useMemo(() => {
     try {
@@ -404,7 +415,7 @@ function ExerciseDetailModal({
 
       if (Array.isArray(exercise.sets) && exercise.sets.length > 0) {
         return exercise.sets.filter(Boolean).map(set => ({
-          reps: set?.reps || exercise.reps || 12,
+          reps: safeParseReps(set?.reps || exercise.reps),
           weight: set?.weight || 0,
           completed: set?.completed || false,
           restSeconds: set?.restSeconds || exercise.restSeconds || 60
@@ -413,7 +424,7 @@ function ExerciseDetailModal({
 
       const numSets = typeof exercise.sets === 'number' && exercise.sets > 0 ? exercise.sets : 3;
       return Array.from({ length: numSets }, () => ({
-        reps: exercise.reps || 12,
+        reps: safeParseReps(exercise.reps),
         weight: 0,
         completed: false,
         restSeconds: exercise.restSeconds || 60
@@ -2664,7 +2675,7 @@ function ExerciseDetailModal({
           // First time - use default from exercise
           const currentExercise = exerciseRef.current;
           const defaultSets = typeof currentExercise?.sets === 'number' ? currentExercise.sets : 3;
-          const defaultReps = currentExercise?.reps || 12;
+          const defaultReps = safeParseReps(currentExercise?.reps);
           setCoachingRecommendation({
             sets: defaultSets,
             reps: defaultReps,

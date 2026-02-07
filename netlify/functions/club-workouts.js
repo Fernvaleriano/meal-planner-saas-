@@ -58,7 +58,23 @@ exports.handler = async (event) => {
       // Transform programs into individual day workouts for clients to browse
       const workouts = [];
       for (const program of (programs || [])) {
-        const days = program.program_data?.days || [];
+        // AI-generated programs (generate-workout-claude.js) use weeks[].workouts[] structure
+        // Manual/coach programs use days[] structure. Handle both.
+        let days = program.program_data?.days || [];
+        if (days.length === 0 && Array.isArray(program.program_data?.weeks)) {
+          // Flatten weeks[].workouts[] into a flat days-like array
+          for (const week of program.program_data.weeks) {
+            if (Array.isArray(week.workouts)) {
+              for (const workout of week.workouts) {
+                days.push({
+                  name: workout.name || `Day ${workout.dayNumber || days.length + 1}`,
+                  exercises: workout.exercises || [],
+                  targetMuscles: workout.targetMuscles || []
+                });
+              }
+            }
+          }
+        }
 
         if (days.length === 1) {
           // Single-day program: show as one workout
