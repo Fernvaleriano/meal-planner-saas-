@@ -477,12 +477,18 @@ function ExerciseDetailModal({
         if (cancelled || !res?.history || res.history.length === 0) return;
 
         // Store all-time bests for real-time PR detection (weight + reps)
-        const allMaxWeights = res.history.map(h => Math.max(...(h.setsData || []).map(s => s.weight || 0), 0));
-        allTimeMaxWeightRef.current = allMaxWeights.length > 0 ? Math.max(...allMaxWeights) : 0;
+        // Helper to safely parse setsData (can be JSON string or array)
+        const safeSets = (sd) => {
+          if (Array.isArray(sd)) return sd;
+          if (typeof sd === 'string') { try { return JSON.parse(sd) || []; } catch { return []; } }
+          return [];
+        };
+        const allMaxWeights = res.history.map(h => safeSets(h.setsData).reduce((max, s) => Math.max(max, s.weight || 0), 0));
+        allTimeMaxWeightRef.current = allMaxWeights.reduce((max, w) => Math.max(max, w), 0);
 
         const bestReps = {};
         for (const session of res.history) {
-          for (const s of (session.setsData || [])) {
+          for (const s of safeSets(session.setsData)) {
             const w = s.weight || 0;
             const r = s.reps || 0;
             if (r > (bestReps[w] || 0)) bestReps[w] = r;
@@ -496,11 +502,11 @@ function ExerciseDetailModal({
         const sessions = allSessions.filter(s => s.workoutDate !== todayStr);
         if (sessions.length === 0) return;
         const last = sessions[0];
-        const lastSets = last.setsData || [];
+        const lastSets = safeSets(last.setsData);
         if (lastSets.length === 0) return;
 
-        const lastMaxWeight = Math.max(...lastSets.map(s => s.weight || 0), 0);
-        const lastMaxReps = Math.max(...lastSets.map(s => s.reps || 0), 0);
+        const lastMaxWeight = lastSets.reduce((max, s) => Math.max(max, s.weight || 0), 0);
+        const lastMaxReps = lastSets.reduce((max, s) => Math.max(max, s.reps || 0), 0);
         const lastTotalReps = lastSets.reduce((sum, s) => sum + (s.reps || 0), 0);
         const lastTotalSets = lastSets.length;
         const lastDate = last.workoutDate;
@@ -530,8 +536,8 @@ function ExerciseDetailModal({
         let isPlateaued = false;
         if (sessions.length >= 3) {
           const recentMaxes = sessions.slice(0, 3).map(s => {
-            const sd = s.setsData || [];
-            return Math.max(...sd.map(set => set.weight || 0), 0);
+            const sd = safeSets(s.setsData);
+            return sd.reduce((max, set) => Math.max(max, set.weight || 0), 0);
           });
           isPlateaued = recentMaxes.every(w => w === recentMaxes[0]) && recentMaxes[0] > 0;
 
@@ -539,8 +545,8 @@ function ExerciseDetailModal({
           if (isPlateaued) {
             const todaySessions = allSessions.filter(s => s.workoutDate === todayStr);
             if (todaySessions.length > 0) {
-              const todaySets = todaySessions[0].setsData || [];
-              const todayMax = Math.max(...todaySets.map(s => s.weight || 0), 0);
+              const todaySets = safeSets(todaySessions[0].setsData);
+              const todayMax = todaySets.reduce((max, s) => Math.max(max, s.weight || 0), 0);
               if (todayMax > recentMaxes[0]) {
                 isPlateaued = false; // Already broke through
               }
@@ -2763,8 +2769,12 @@ function ExerciseDetailModal({
     if (!historyData || historyData.length === 0) return null;
     let best = 0;
     for (const entry of historyData) {
-      const setsData = typeof entry.setsData === 'string'
-        ? JSON.parse(entry.setsData) : (entry.setsData || []);
+      let setsData;
+      try {
+        setsData = typeof entry.setsData === 'string'
+          ? JSON.parse(entry.setsData) : (entry.setsData || []);
+      } catch { setsData = []; }
+      if (!Array.isArray(setsData)) setsData = [];
       for (const s of setsData) {
         const est = calculate1RM(s.weight || 0, s.reps || 0);
         if (est > best) best = est;
@@ -3105,9 +3115,13 @@ function ExerciseDetailModal({
               ) : (() => {
                 // Pre-process history data for chart and grouping
                 const processedEntries = historyData.map(entry => {
-                  const setsData = typeof entry.setsData === 'string'
-                    ? JSON.parse(entry.setsData) : (entry.setsData || []);
-                  const maxW = Math.max(...setsData.map(s => s.weight || 0), 0);
+                  let setsData;
+                  try {
+                    setsData = typeof entry.setsData === 'string'
+                      ? JSON.parse(entry.setsData) : (entry.setsData || []);
+                  } catch { setsData = []; }
+                  if (!Array.isArray(setsData)) setsData = [];
+                  const maxW = setsData.reduce((max, s) => Math.max(max, s.weight || 0), 0);
                   const dateObj = entry.workoutDate ? new Date(entry.workoutDate + 'T12:00:00') : null;
                   return { ...entry, setsData, maxW, dateObj };
                 });
@@ -3117,8 +3131,7 @@ function ExerciseDetailModal({
                   .filter(e => e.maxW > 0 && e.dateObj)
                   .slice(0, 8)
                   .reverse();
-                const chartMax = chartEntries.length > 0
-                  ? Math.max(...chartEntries.map(e => e.maxW)) : 0;
+                const chartMax = chartEntries.reduce((max, e) => Math.max(max, e.maxW), 0);
 
                 // Find all-time PR
                 const allTimeMax = historyStats?.allTimeMaxWeight || 0;

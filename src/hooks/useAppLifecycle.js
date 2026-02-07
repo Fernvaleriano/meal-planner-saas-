@@ -92,8 +92,13 @@ async function triggerResume(backgroundMs) {
   // but if we clear it first there's a brief window where touch events can
   // scroll the body on iOS Safari, causing the viewport to freeze.
   if (backgroundMs > 3000) {
-    const guidedOverlay = document.querySelector('.guided-workout-overlay');
-    if (!guidedOverlay) {
+    const activeOverlay = document.querySelector(
+      '.guided-workout-overlay, .exercise-modal-overlay-v2, .swap-modal-overlay, ' +
+      '.workout-summary-overlay, .workout-history-overlay, .club-workouts-overlay, ' +
+      '.create-workout-overlay, .add-activity-overlay, .ai-workout-overlay, ' +
+      '.readiness-overlay, .rpe-backdrop, .set-editor-overlay, .delete-confirm-overlay'
+    );
+    if (!activeOverlay) {
       cleanupStuckScrollLock();
     }
   }

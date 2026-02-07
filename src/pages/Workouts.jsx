@@ -500,6 +500,9 @@ function Workouts() {
       setShowHeroMenu(false);
       setSwipeSwapExercise(null);
       setSwipeDeleteExercise(null);
+      setCompletingWorkout(false);
+      setShowWorkoutReadyConfirm(false);
+      setCardMenuWorkoutId(null);
 
       // Force-clean scroll lock in case modal cleanup didn't run
       document.body.style.overflow = '';
@@ -510,6 +513,7 @@ function Workouts() {
   }, [showGuidedWorkout]);
 
   // Close menus when clicking outside
+  // cardMenuWorkoutId in deps so the closure always sees the current value
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (menuRef.current && !menuRef.current.contains(event.target)) {
@@ -524,7 +528,7 @@ function Workouts() {
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  }, [cardMenuWorkoutId]);
 
   // Scroll to top on mount
   useEffect(() => {

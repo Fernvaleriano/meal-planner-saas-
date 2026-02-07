@@ -434,7 +434,7 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
     // Batch state updates in a single RAF to prevent flooding React with setState calls
     if (headerSwipeRaf.current) cancelAnimationFrame(headerSwipeRaf.current);
     headerSwipeRaf.current = requestAnimationFrame(() => {
-      if (diffX > 10) {
+      if (diffX > 20) {
         // Swipe LEFT → show swap/delete actions
         if (completeSwipeOffset > 0) {
           setIsCompleteSwiping(true);
@@ -443,7 +443,7 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
         }
         setIsHeaderSwiping(true);
         setHeaderSwipeOffset(Math.min(Math.max(0, diffX), headerMaxSwipe));
-      } else if (diffX < -10) {
+      } else if (diffX < -20) {
         // Swipe RIGHT → show complete action (or close header swipe)
         if (headerSwipeOffset > 0) {
           setIsHeaderSwiping(true);
@@ -457,7 +457,7 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
       }
     });
 
-    if (diffX > 10 || (diffX < -10 && workoutStarted)) {
+    if (diffX > 20 || (diffX < -20 && workoutStarted)) {
       e.preventDefault();
     }
   };

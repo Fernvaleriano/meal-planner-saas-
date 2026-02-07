@@ -375,9 +375,13 @@ function GuidedWorkoutModal({
         }
 
         const last = sessions[0];
-        const lastSets = typeof last.setsData === 'string' ? JSON.parse(last.setsData) : (last.setsData || []);
-        const lastMaxWeight = Math.max(...lastSets.map(s => s.weight || 0), 0);
-        const lastMaxReps = Math.max(...lastSets.map(s => s.reps || 0), 0);
+        let lastSets;
+        try {
+          lastSets = typeof last.setsData === 'string' ? JSON.parse(last.setsData) : (last.setsData || []);
+        } catch { lastSets = []; }
+        if (!Array.isArray(lastSets)) lastSets = [];
+        const lastMaxWeight = lastSets.reduce((max, s) => Math.max(max, s.weight || 0), 0);
+        const lastMaxReps = lastSets.reduce((max, s) => Math.max(max, s.reps || 0), 0);
         const lastNumSets = lastSets.length || 3;
 
         if (lastMaxWeight > 0 || lastMaxReps > 0) {
@@ -839,11 +843,16 @@ function GuidedWorkoutModal({
     };
   }, []);
 
-  // Lock body scroll
+  // Lock body AND html scroll — must lock both for iOS Safari
   useEffect(() => {
-    const orig = document.body.style.overflow;
+    const origBody = document.body.style.overflow;
+    const origHtml = document.documentElement.style.overflow;
     document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = orig; };
+    document.documentElement.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = origBody;
+      document.documentElement.style.overflow = origHtml;
+    };
   }, []);
 
   // Handle app resume: restore scroll lock and force re-layout

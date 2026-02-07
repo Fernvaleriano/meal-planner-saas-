@@ -62,11 +62,18 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, coachId }) {
     };
   }, []);
 
-  // Handle back button
+  // Handle back button — push history only once on mount
   useEffect(() => {
     const modalState = { modal: 'club-workouts', timestamp: Date.now() };
     window.history.pushState(modalState, '');
 
+    return () => {
+      // No cleanup pop needed — Workouts.jsx resume handler or browser handles it
+    };
+  }, []);
+
+  // Separate listener so selectedWorkout is always current in the closure
+  useEffect(() => {
     const handlePopState = () => {
       if (selectedWorkout) {
         setSelectedWorkout(null);

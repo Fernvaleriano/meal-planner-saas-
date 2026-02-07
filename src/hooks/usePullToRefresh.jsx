@@ -92,12 +92,15 @@ export function usePullToRefresh(onRefresh, options = {}) {
       const diff = currentY - touchStartRef.current;
 
       if (diff > 0) {
-        // Prevent default browser behavior (back navigation, page refresh)
-        // when actively pulling down at the top of the page
-        e.preventDefault();
         const pulledDistance = Math.min(diff * resistance, threshold * 1.5);
         pullDistanceRef.current = pulledDistance;
         updateIndicatorDOM(pulledDistance);
+        // Only preventDefault after 10px of deliberate pull-down.
+        // Calling it on any 1px movement blocks touch→click synthesis on iOS,
+        // making exercise cards untappable.
+        if (diff > 10) {
+          e.preventDefault();
+        }
       }
     };
 
