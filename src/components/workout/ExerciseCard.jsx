@@ -1028,7 +1028,8 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
           </div>
         )}
 
-        {/* Coach's Voice Note */}
+        {/* Coach's Voice Note — preload="none" prevents 10+ concurrent audio
+            metadata loads that can overwhelm iOS media subsystem */}
         {exercise.voiceNoteUrl && (
           <div className="coach-voice-note">
             <span className="note-label">
@@ -1039,7 +1040,7 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
               controls
               src={exercise.voiceNoteUrl}
               className="voice-note-audio"
-              preload="metadata"
+              preload="none"
             />
           </div>
         )}
