@@ -2657,7 +2657,7 @@ function Workouts() {
             ) : (
               <div className="empty-state-v2">
                 <div className="empty-illustration">
-                  <Dumbbell size={64} />
+                  <Dumbbell size={56} strokeWidth={1.5} />
                 </div>
                 <h3>Rest Day</h3>
                 <p>No workout scheduled for this day. Recovery is part of the process!</p>

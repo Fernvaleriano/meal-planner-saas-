@@ -13220,7 +13220,7 @@ a.nav-left {
 .cards-action-buttons {
     display: flex;
     gap: 10px;
-    padding: 8px 16px 16px;
+    padding: 12px 16px 16px;
 }
 
 .card-action-btn {
@@ -13228,14 +13228,14 @@ a.nav-left {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
-    padding: 12px 14px;
-    background: rgba(255, 255, 255, 0.05);
+    gap: 7px;
+    padding: 13px 14px;
+    background: rgba(255, 255, 255, 0.04);
     border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 12px;
-    color: rgba(255, 255, 255, 0.6);
+    border-radius: 14px;
+    color: rgba(255, 255, 255, 0.65);
     font-size: 13px;
-    font-weight: 500;
+    font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
     -webkit-tap-highlight-color: transparent;
@@ -13248,7 +13248,7 @@ a.nav-left {
 }
 
 .card-action-btn svg {
-    color: rgba(255, 255, 255, 0.4);
+    color: rgba(255, 255, 255, 0.45);
 }
 
 /* Start Workout Button - below cards */
@@ -13447,7 +13447,7 @@ a.nav-left {
 
 /* Week Calendar V2 */
 .week-calendar-v2 {
-    padding: 0 16px 16px;
+    padding: 0 16px 12px;
 }
 
 .week-calendar-v2 .calendar-header {
@@ -13458,24 +13458,30 @@ a.nav-left {
 }
 
 .week-calendar-v2 .month-label {
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 600;
     color: white;
+    letter-spacing: -0.2px;
 }
 
 .week-calendar-v2 .week-nav-btn {
     background: rgba(255, 255, 255, 0.05);
-    border: none;
+    border: 1px solid rgba(255, 255, 255, 0.06);
     color: #94a3b8;
     padding: 8px;
-    border-radius: 8px;
+    border-radius: 10px;
     cursor: pointer;
     transition: all 0.2s;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .week-calendar-v2 .week-nav-btn:hover {
     background: rgba(255, 255, 255, 0.1);
     color: white;
+}
+
+.week-calendar-v2 .week-nav-btn:active {
+    transform: scale(0.94);
 }
 
 .week-calendar-v2 .week-days-strip {
@@ -13498,48 +13504,56 @@ a.nav-left {
     flex-direction: column;
     align-items: center;
     gap: 4px;
-    padding: 10px 8px;
+    padding: 10px 8px 12px;
     background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 14px;
     cursor: pointer;
     transition: all 0.2s;
     position: relative;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .week-calendar-v2 .day-pill:hover {
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.07);
+}
+
+.week-calendar-v2 .day-pill:active {
+    transform: scale(0.96);
 }
 
 .week-calendar-v2 .day-pill.today {
     border-color: rgba(13, 148, 136, 0.3);
+    background: rgba(13, 148, 136, 0.06);
 }
 
 .week-calendar-v2 .day-pill.selected {
-    background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
+    background: linear-gradient(160deg, #0d9488 0%, #0284c7 100%);
     border-color: transparent;
+    box-shadow: 0 4px 14px rgba(13, 148, 136, 0.3);
 }
 
 .week-calendar-v2 .day-pill .day-name {
-    font-size: 11px;
+    font-size: 10.5px;
     text-transform: uppercase;
     color: #64748b;
-    font-weight: 500;
+    font-weight: 600;
+    letter-spacing: 0.3px;
 }
 
 .week-calendar-v2 .day-pill.selected .day-name {
-    color: rgba(255, 255, 255, 0.8);
+    color: rgba(255, 255, 255, 0.85);
 }
 
 .week-calendar-v2 .day-pill .day-number {
     font-size: 16px;
-    font-weight: 600;
+    font-weight: 700;
     color: white;
 }
 
 .week-calendar-v2 .day-pill .today-dot {
     position: absolute;
-    bottom: 6px;
+    bottom: 5px;
     width: 4px;
     height: 4px;
     background: #0d9488;
@@ -13759,65 +13773,95 @@ a.nav-left {
 /* Empty State V2 */
 .empty-state-v2 {
     text-align: center;
-    padding: 60px 20px;
+    padding: 36px 20px 24px;
 }
 
 .empty-state-v2 .empty-illustration {
-    width: 120px;
-    height: 120px;
-    margin: 0 auto 24px;
-    background: linear-gradient(135deg, rgba(13, 148, 136, 0.1) 0%, rgba(2, 132, 199, 0.1) 100%);
+    width: 110px;
+    height: 110px;
+    margin: 0 auto 20px;
+    background: radial-gradient(circle at 40% 40%, rgba(13, 148, 136, 0.2) 0%, rgba(2, 132, 199, 0.08) 70%);
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     color: #0d9488;
+    position: relative;
+    animation: restDayPulse 3s ease-in-out infinite;
+}
+
+.empty-state-v2 .empty-illustration::before {
+    content: '';
+    position: absolute;
+    inset: -6px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(13, 148, 136, 0.12);
+}
+
+@keyframes restDayPulse {
+    0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(13, 148, 136, 0); }
+    50% { transform: scale(1.03); box-shadow: 0 0 24px 4px rgba(13, 148, 136, 0.08); }
 }
 
 .empty-state-v2 h3 {
-    font-size: 24px;
+    font-size: 22px;
     font-weight: 700;
     color: white;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
+    letter-spacing: -0.3px;
 }
 
 .empty-state-v2 p {
     color: #64748b;
-    font-size: 14px;
-    margin-bottom: 24px;
+    font-size: 13.5px;
+    margin-bottom: 20px;
+    line-height: 1.5;
+    max-width: 300px;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 .empty-state-v2 .empty-tips {
     display: flex;
     justify-content: center;
-    gap: 20px;
+    gap: 10px;
+    padding: 0 4px;
 }
 
 .empty-state-v2 .tip {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
+    flex: 1;
+    padding: 14px 8px 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 14px;
+    transition: background 0.2s;
 }
 
 .empty-state-v2 .tip-icon {
-    font-size: 24px;
+    font-size: 22px;
+    line-height: 1;
 }
 
 .empty-state-v2 .tip span:last-child {
-    font-size: 12px;
+    font-size: 11.5px;
     color: #94a3b8;
+    font-weight: 500;
+    letter-spacing: 0.1px;
 }
 
 /* Rest Day Action Buttons */
 .rest-day-actions {
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    margin-top: 32px;
+    gap: 10px;
+    margin-top: 28px;
     align-items: center;
     width: 100%;
-    padding: 0 20px;
+    padding: 0 16px;
 }
 
 .rest-day-add-btn,
@@ -13827,54 +13871,52 @@ a.nav-left {
     align-items: center;
     justify-content: center;
     gap: 8px;
-    padding: 14px 20px;
-    border-radius: 12px;
-    font-size: 0.95rem;
+    padding: 15px 20px;
+    border-radius: 14px;
+    font-size: 0.93rem;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
     border: none;
     width: 100%;
-    max-width: 280px;
+    max-width: 340px;
+    -webkit-tap-highlight-color: transparent;
 }
 
-.rest-day-add-btn {
-    background: rgba(255, 255, 255, 0.1);
-    color: #e2e8f0;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+.rest-day-club-btn {
+    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 50%, #6366f1 100%);
+    color: white;
+    box-shadow: 0 4px 16px rgba(139, 92, 246, 0.35), inset 0 1px 0 rgba(255,255,255,0.1);
 }
 
-.rest-day-add-btn:hover {
-    background: rgba(255, 255, 255, 0.15);
-    transform: translateY(-2px);
+.rest-day-club-btn:hover {
+    box-shadow: 0 6px 20px rgba(139, 92, 246, 0.45), inset 0 1px 0 rgba(255,255,255,0.1);
 }
 
 .rest-day-create-btn {
-    background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
+    background: linear-gradient(135deg, #0d9488 0%, #0891b2 50%, #0284c7 100%);
     color: white;
-    box-shadow: 0 4px 12px rgba(13, 148, 136, 0.4);
+    box-shadow: 0 4px 16px rgba(13, 148, 136, 0.35), inset 0 1px 0 rgba(255,255,255,0.1);
 }
 
 .rest-day-create-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(13, 148, 136, 0.5);
+    box-shadow: 0 6px 20px rgba(13, 148, 136, 0.45), inset 0 1px 0 rgba(255,255,255,0.1);
+}
+
+.rest-day-add-btn {
+    background: rgba(255, 255, 255, 0.06);
+    color: #cbd5e1;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.rest-day-add-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
 }
 
 .rest-day-create-btn:active,
 .rest-day-add-btn:active,
 .rest-day-club-btn:active {
-    transform: translateY(0);
-}
-
-.rest-day-club-btn {
-    background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
-    color: white;
-    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
-}
-
-.rest-day-club-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(139, 92, 246, 0.5);
+    transform: scale(0.98);
 }
 
 /* ============================================ */
@@ -15922,12 +15964,59 @@ a.nav-left {
     background: #ffffff;
 }
 
+[data-theme="light"] .empty-state-v2 .empty-illustration {
+    background: radial-gradient(circle at 40% 40%, rgba(13, 148, 136, 0.12) 0%, rgba(2, 132, 199, 0.06) 70%);
+    color: #0d9488;
+}
+
+[data-theme="light"] .empty-state-v2 .empty-illustration::before {
+    border-color: rgba(13, 148, 136, 0.15);
+}
+
 [data-theme="light"] .empty-state-v2 h3 {
     color: #111827;
 }
 
 [data-theme="light"] .empty-state-v2 p {
     color: #6b7280;
+}
+
+[data-theme="light"] .empty-state-v2 .tip {
+    background: #f8fafc;
+    border-color: #e5e7eb;
+}
+
+[data-theme="light"] .empty-state-v2 .tip span:last-child {
+    color: #6b7280;
+}
+
+[data-theme="light"] .rest-day-add-btn {
+    background: #f3f4f6;
+    color: #374151;
+    border-color: #e5e7eb;
+}
+
+[data-theme="light"] .rest-day-club-btn {
+    box-shadow: 0 4px 14px rgba(139, 92, 246, 0.25);
+}
+
+[data-theme="light"] .rest-day-create-btn {
+    box-shadow: 0 4px 14px rgba(13, 148, 136, 0.25);
+}
+
+[data-theme="light"] .card-action-btn {
+    background: #f3f4f6;
+    color: #6b7280;
+    border-color: #e5e7eb;
+}
+
+[data-theme="light"] .card-action-btn:active {
+    background: #e5e7eb;
+    color: #374151;
+}
+
+[data-theme="light"] .card-action-btn svg {
+    color: #9ca3af;
 }
 
 /* Action buttons at bottom */
