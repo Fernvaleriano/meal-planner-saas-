@@ -2811,8 +2811,7 @@
                                     <div class="client-name">${escapeHtml(client.client_name)}</div>
                                     <div class="client-meta-row">
                                         ${client.is_archived ? '<span class="archived-badge">Archived</span>' : ''}
-                                        <span class="goal-badge ${goalClass}">${goalDisplay}</span>
-                                        ${needsInvite ? '<span class="invite-badge">Not Invited</span>' : ''}
+                                        ${client.default_goal ? `<span class="goal-badge ${goalClass}">${goalDisplay}</span>` : ''}
                                     </div>
                                 </div>
                             </div>
