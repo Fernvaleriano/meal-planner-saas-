@@ -13226,6 +13226,184 @@ a.nav-left {
     background: rgba(239, 68, 68, 0.12);
 }
 
+/* Workout Card Bottom Sheet */
+.card-sheet-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 9998;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    animation: fadeIn 0.15s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.card-sheet {
+    width: 100%;
+    max-width: 500px;
+    background: #1e293b;
+    border-radius: 20px 20px 0 0;
+    padding: 12px 20px max(20px, env(safe-area-inset-bottom, 20px));
+    animation: sheetSlideUp 0.25s ease;
+}
+
+@keyframes sheetSlideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+}
+
+.card-sheet-handle {
+    width: 36px;
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.2);
+    margin: 0 auto 16px;
+}
+
+.card-sheet-title {
+    font-size: 17px;
+    font-weight: 700;
+    color: #f8fafc;
+    margin-bottom: 20px;
+    padding: 0 4px;
+    line-height: 1.3;
+}
+
+.card-sheet-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.card-sheet-btn {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    padding: 15px 12px;
+    background: transparent;
+    border: none;
+    color: #e2e8f0;
+    font-size: 16px;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    border-radius: 12px;
+    transition: background 0.15s;
+    text-align: left;
+}
+
+.card-sheet-btn:hover,
+.card-sheet-btn:active {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.card-sheet-btn svg {
+    color: #94a3b8;
+    flex-shrink: 0;
+}
+
+.card-sheet-btn.delete {
+    color: #ef4444;
+}
+
+.card-sheet-btn.delete svg {
+    color: #ef4444;
+}
+
+.card-sheet-btn.delete:hover,
+.card-sheet-btn.delete:active {
+    background: rgba(239, 68, 68, 0.08);
+}
+
+/* Delete Confirmation Modal */
+.delete-confirm-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: calc(100% - 48px);
+    max-width: 340px;
+    background: #1e293b;
+    border-radius: 20px;
+    padding: 28px 24px 20px;
+    text-align: center;
+    animation: modalPop 0.2s ease;
+    z-index: 9999;
+}
+
+@keyframes modalPop {
+    from { opacity: 0; transform: translate(-50%, -50%) scale(0.95); }
+    to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+.delete-confirm-modal h3 {
+    font-size: 18px;
+    font-weight: 700;
+    color: #f8fafc;
+    margin-bottom: 10px;
+}
+
+.delete-confirm-modal p {
+    font-size: 14px;
+    color: #94a3b8;
+    line-height: 1.5;
+    margin-bottom: 24px;
+}
+
+.delete-confirm-options {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.delete-confirm-btn {
+    width: 100%;
+    padding: 16px;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    color: #ef4444;
+    font-size: 16px;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.delete-confirm-btn:hover,
+.delete-confirm-btn:active {
+    background: rgba(239, 68, 68, 0.08);
+}
+
+.delete-confirm-btn.danger {
+    font-weight: 600;
+}
+
+.delete-confirm-cancel {
+    width: 100%;
+    padding: 16px;
+    background: transparent;
+    border: none;
+    color: #60a5fa;
+    font-size: 16px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.delete-confirm-cancel:hover,
+.delete-confirm-cancel:active {
+    background: rgba(96, 165, 250, 0.08);
+}
+
 /* Action buttons below workout cards */
 .cards-action-buttons {
     display: flex;
