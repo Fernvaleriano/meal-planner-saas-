@@ -23081,6 +23081,8 @@ a.nav-left {
     flex-direction: column;
     /* Prevent children from overflowing incorrectly */
     overflow: hidden;
+    /* Anchor for absolute-positioned footer */
+    position: relative;
 }
 
 [data-theme="dark"] .add-activity-modal {
@@ -23537,9 +23539,11 @@ a.nav-left {
 
 /* Add Selected Footer */
 .add-selected-footer {
-    position: relative;
-    z-index: 10;
-    flex-shrink: 0;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
     padding: 16px 20px;
     padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
     background: var(--gray-50);
