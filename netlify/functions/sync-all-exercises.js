@@ -209,12 +209,14 @@ exports.handler = async (event) => {
     let created = 0, updated = 0, errors = [];
 
     if (!dryRun) {
-      // Batch insert (100 at a time)
-      for (let i = 0; i < toCreate.length; i += 100) {
-        const batch = toCreate.slice(i, i + 100);
-        const { error } = await supabase.from('exercises').insert(batch);
-        if (error) errors.push(error.message);
-        else created += batch.length;
+      // Insert exercises one at a time so one bad record doesn't kill the whole batch
+      for (const exercise of toCreate) {
+        const { error } = await supabase.from('exercises').insert(exercise);
+        if (error) {
+          errors.push(`${exercise.name} (${exercise.gender_variant || 'unisex'}): ${error.message}`);
+        } else {
+          created++;
+        }
       }
 
       // Update existing
