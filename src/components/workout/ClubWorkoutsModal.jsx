@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { X, Dumbbell, Clock, Flame, ChevronRight, Search, Filter, Users, Loader2, CalendarPlus } from 'lucide-react';
+import { X, Dumbbell, Clock, Flame, ChevronRight, Search, Filter, Users, Loader2, CalendarPlus, Layers } from 'lucide-react';
 import { apiGet } from '../../utils/api';
 
 const CATEGORY_LABELS = {
@@ -50,6 +50,7 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, coachId }) {
   const [selectedCategory, setSelectedCategory] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedWorkout, setSelectedWorkout] = useState(null);
+  const [selectedProgram, setSelectedProgram] = useState(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [scheduleDate, setScheduleDate] = useState('');
 
@@ -72,11 +73,18 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, coachId }) {
     };
   }, []);
 
-  // Separate listener so selectedWorkout is always current in the closure
+  // Separate listener so selectedWorkout/selectedProgram are always current in the closure
   useEffect(() => {
     const handlePopState = () => {
       if (selectedWorkout) {
-        setSelectedWorkout(null);
+        // If we came from a program view, go back to it
+        if (selectedProgram) {
+          setSelectedWorkout(null);
+        } else {
+          setSelectedWorkout(null);
+        }
+      } else if (selectedProgram) {
+        setSelectedProgram(null);
       } else {
         onClose();
       }
@@ -84,14 +92,20 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, coachId }) {
 
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [onClose, selectedWorkout]);
+  }, [onClose, selectedWorkout, selectedProgram]);
 
   // Handle escape key
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
         if (selectedWorkout) {
-          setSelectedWorkout(null);
+          if (selectedProgram) {
+            setSelectedWorkout(null);
+          } else {
+            setSelectedWorkout(null);
+          }
+        } else if (selectedProgram) {
+          setSelectedProgram(null);
         } else {
           onClose();
         }
@@ -99,7 +113,7 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, coachId }) {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onClose, selectedWorkout]);
+  }, [onClose, selectedWorkout, selectedProgram]);
 
   // Fetch club workouts
   useEffect(() => {
@@ -162,6 +176,35 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, coachId }) {
     handleUseWorkout(selectedWorkout, scheduleDate);
   }, [scheduleDate, selectedWorkout, handleUseWorkout]);
 
+  // Handle clicking a workout card from the main list
+  const handleCardClick = useCallback((workout) => {
+    if (workout.is_multi_day) {
+      setSelectedProgram(workout);
+    } else {
+      setSelectedWorkout(workout);
+    }
+  }, []);
+
+  // Handle clicking a day from the program days view
+  const handleDayClick = useCallback((program, day) => {
+    setSelectedWorkout({
+      id: `${program.program_id}-${day.day_index}`,
+      program_id: program.program_id,
+      day_index: day.day_index,
+      name: `${program.name} — ${day.name}`,
+      description: program.description,
+      category: program.category,
+      difficulty: program.difficulty,
+      image_url: program.image_url,
+      workout_data: {
+        exercises: day.exercises || [],
+        estimatedMinutes: day.estimatedMinutes,
+        estimatedCalories: day.estimatedCalories,
+        dayName: day.name
+      }
+    });
+  }, []);
+
   // Workout detail view
   if (selectedWorkout) {
     const exercises = selectedWorkout.workout_data?.exercises || [];
@@ -177,6 +220,7 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, coachId }) {
             <button className="club-workouts-back" onClick={() => setSelectedWorkout(null)}>
               <ChevronRight size={24} style={{ transform: 'rotate(180deg)' }} />
             </button>
+
             <h2>{selectedWorkout.name}</h2>
             <button className="club-workouts-close" onClick={onClose}>
               <X size={24} />
@@ -298,6 +342,90 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, coachId }) {
     );
   }
 
+  // Program days view — shows all days within a multi-day program
+  if (selectedProgram) {
+    const program = selectedProgram;
+    const heroImage = program.image_url || null;
+
+    return (
+      <div className="club-workouts-overlay" onClick={onClose}>
+        <div className="club-workouts-modal" onClick={e => e.stopPropagation()}>
+          <div className="club-workouts-header">
+            <button className="club-workouts-back" onClick={() => setSelectedProgram(null)}>
+              <ChevronRight size={24} style={{ transform: 'rotate(180deg)' }} />
+            </button>
+            <h2>{program.name}</h2>
+            <button className="club-workouts-close" onClick={onClose}>
+              <X size={24} />
+            </button>
+          </div>
+
+          <div className="club-workouts-content">
+            {/* Program Header */}
+            {heroImage && (
+              <div className="club-workout-detail-hero">
+                <img
+                  src={heroImage}
+                  alt={program.name}
+                  onError={(e) => { e.target.parentElement.style.display = 'none'; }}
+                />
+              </div>
+            )}
+
+            <div className="club-workout-detail-info">
+              <div className="club-workout-detail-badges">
+                {program.category && (
+                  <span className="club-workout-badge category">
+                    {CATEGORY_ICONS[program.category] || '⚡'} {CATEGORY_LABELS[program.category] || program.category}
+                  </span>
+                )}
+                {program.difficulty && (
+                  <span
+                    className="club-workout-badge difficulty"
+                    style={{ color: DIFFICULTY_COLORS[program.difficulty] }}
+                  >
+                    {program.difficulty}
+                  </span>
+                )}
+                <span className="club-workout-badge category">
+                  <Layers size={14} /> {program.total_days} days
+                </span>
+              </div>
+              {program.description && (
+                <p className="club-workout-detail-desc">{program.description}</p>
+              )}
+            </div>
+
+            {/* Day List */}
+            <div className="club-program-days-list">
+              <h3>Workouts</h3>
+              {program.days.map((day) => (
+                <button
+                  key={day.day_index}
+                  className="club-program-day-card"
+                  onClick={() => handleDayClick(program, day)}
+                >
+                  <div className="club-program-day-number">
+                    {day.day_index + 1}
+                  </div>
+                  <div className="club-program-day-info">
+                    <span className="club-program-day-name">{day.name}</span>
+                    <span className="club-program-day-meta">
+                      <Dumbbell size={13} /> {day.exercises.length} exercises
+                      <span className="club-program-day-sep">·</span>
+                      <Clock size={13} /> {day.estimatedMinutes}m
+                    </span>
+                  </div>
+                  <ChevronRight size={18} className="club-program-day-arrow" />
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Main list view
   return (
     <div className="club-workouts-overlay" onClick={onClose}>
@@ -371,9 +499,13 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, coachId }) {
           ) : (
             <div className="club-workout-list">
               {filteredWorkouts.map(workout => {
-                const exerciseCount = workout.workout_data?.exercises?.length || 0;
-                const estMinutes = workout.workout_data?.estimatedMinutes ||
-                  Math.ceil(exerciseCount * 4);
+                const isMultiDay = workout.is_multi_day;
+                const exerciseCount = isMultiDay
+                  ? workout.total_exercises
+                  : (workout.workout_data?.exercises?.length || 0);
+                const estMinutes = isMultiDay
+                  ? workout.total_estimated_minutes
+                  : (workout.workout_data?.estimatedMinutes || Math.ceil(exerciseCount * 4));
 
                 const heroImage = workout.image_url || workout.workout_data?.image_url || null;
 
@@ -381,7 +513,7 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, coachId }) {
                   <button
                     key={workout.id}
                     className={`club-workout-card ${heroImage ? 'has-image' : ''}`}
-                    onClick={() => setSelectedWorkout(workout)}
+                    onClick={() => handleCardClick(workout)}
                     style={heroImage ? { backgroundImage: `url(${heroImage})` } : undefined}
                   >
                     {heroImage && <div className="club-workout-card-overlay" />}
@@ -406,6 +538,11 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, coachId }) {
                               style={{ color: DIFFICULTY_COLORS[workout.difficulty] }}
                             >
                               {workout.difficulty}
+                            </span>
+                          )}
+                          {isMultiDay && (
+                            <span className="club-workout-badge category small">
+                              <Layers size={12} /> {workout.total_days} days
                             </span>
                           )}
                         </div>
