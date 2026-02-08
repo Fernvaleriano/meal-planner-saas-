@@ -239,20 +239,22 @@ exports.handler = async (event) => {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
     const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
 
-    const systemPrompt = `You are a fitness program parser. Extract structured workout data from the text. Return ONLY valid JSON, no markdown.
+    const systemPrompt = `You are a fitness program parser. Extract ALL workout data from the text. Return ONLY valid JSON, no markdown, no explanation.
+
+CRITICAL: You MUST extract EVERY SINGLE exercise from EVERY SINGLE day. Do NOT stop after the first day. The program has multiple days - parse ALL of them completely.
 
 Rules:
-- Extract EVERY exercise including warm-ups and cool-down stretches
+- Extract EVERY exercise from ALL days (warm-ups, main exercises, cool-down stretches)
 - Preserve exact exercise names from the source
-- Preserve all sets, reps, rest periods, and coaching notes
+- Preserve sets, reps, rest periods, coaching notes
 - Group exercises by workout day
-- Mark warm-up exercises with isWarmup: true
-- Mark cool-down/stretch exercises with isStretch: true
-- Convert rest to seconds (90s→90, 2 min→120, -→0)
-- Keep reps as string if it has ranges or units (e.g. "8-10", "2 min", "30s hold")
+- Mark warm-up exercises: isWarmup=true
+- Mark cool-down/stretch exercises: isStretch=true
+- Rest: convert to seconds (90s=90, 2 min=120, -=0). If no rest column, use 0 for warmups/stretches, 90 for compounds, 60 for isolation.
+- Keep reps as string if ranges or units (e.g. "8-10", "2 min", "30s each")
 
-JSON structure:
-{"programName":"","description":"","goal":"hypertrophy","difficulty":"intermediate","daysPerWeek":5,"days":[{"name":"Day 1: Chest","exercises":[{"originalName":"Bench press","muscleGroup":"chest","sets":4,"reps":"8-10","restSeconds":90,"notes":"Form cue","isWarmup":false,"isStretch":false}]}]}`;
+JSON:
+{"programName":"","description":"","goal":"hypertrophy","difficulty":"intermediate","daysPerWeek":5,"days":[{"name":"Day 1","exercises":[{"originalName":"Exercise name exactly as written","muscleGroup":"chest","sets":4,"reps":"8-10","restSeconds":90,"notes":"coaching note","isWarmup":false,"isStretch":false}]}]}`;
 
     // Run DB fetch and Claude parse in PARALLEL to save time
     const fetchExercisesPromise = (async () => {
@@ -275,12 +277,12 @@ JSON structure:
     })();
 
     const parsePromise = anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-3-5-haiku-20241022',
       max_tokens: 16384,
       system: systemPrompt,
       messages: [{
         role: 'user',
-        content: `Parse this COMPLETE workout program. Extract ALL days and ALL exercises. Return only valid JSON.\n\n${trimmedContent}`
+        content: `Parse this COMPLETE workout program. There are multiple days - you MUST extract ALL days and ALL exercises from each day. Return only valid JSON.\n\n${trimmedContent}`
       }]
     });
 
