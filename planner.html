@@ -9465,10 +9465,20 @@ async function applyImportedDietPlan() {
     const planNameInput = document.getElementById('dp_plan_name');
     const planName = (planNameInput && planNameInput.value.trim()) || plan.planName || 'Imported Diet Plan';
 
-    // Get client info from form
-    const clientSelect = document.getElementById('dp_client');
-    const clientName = clientSelect ? clientSelect.options[clientSelect.selectedIndex]?.text || '' : '';
-    const clientId = clientSelect ? clientSelect.value : '';
+    // Get client info from form (matches generateDietPlan pattern)
+    const clientSelector = document.getElementById('dp_client_selector');
+    const selectedValue = clientSelector ? clientSelector.value : '';
+    let clientId = selectedValue ? parseInt(selectedValue) : null;
+    let clientName = '';
+
+    if (clientId && !isNaN(clientId)) {
+        const client = clientsList.find(c => c.id === clientId);
+        if (client) {
+            clientName = client.client_name;
+        }
+    } else {
+        clientId = null;
+    }
 
     // Set up lastPlanQuery with the imported data
     lastPlanQuery.currentPlan = plan.currentPlan;
@@ -9481,7 +9491,7 @@ async function applyImportedDietPlan() {
     lastPlanQuery.status = 'draft';
     lastPlanQuery.planId = null; // New plan, not updating existing
 
-    if (clientName && clientId) {
+    if (clientId) {
         lastPlanQuery.clientName = clientName;
         lastPlanQuery.clientId = clientId;
     }
