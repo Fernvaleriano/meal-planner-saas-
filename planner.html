@@ -496,6 +496,15 @@
             z-index: 10000;
         }
 
+        /* Editable meal name/type styles */
+        .editable-meal-name:hover,
+        .editable-meal-type:hover {
+            background: rgba(59, 130, 246, 0.08);
+            border-radius: 4px;
+            outline: 1px dashed rgba(59, 130, 246, 0.4);
+            outline-offset: 2px;
+        }
+
         /* Import Diet Plan Styles */
         .import-diet-drop-zone {
             border: 2px dashed #d1d5db;
@@ -5023,8 +5032,13 @@ function displayDietPlan(multiDayData) {
                 // Special styling for supplement items
                 planHTML += `
                 <div class="meal-card" style="background: linear-gradient(135deg, #e0f2fe 0%, #dbeafe 100%); border: 2px solid #0ea5e9;">
-                    <h4 class="font-bold text-lg capitalize" style="color: #0369a1;">💊 Supplement</h4>
-                    <p class="text-blue-700">${meal.name}</p>
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                        <div style="flex: 1; min-width: 0;">
+                            <h4 class="font-bold text-lg capitalize editable-meal-type" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" onclick="editMealType(this, ${dayIndex}, ${mealIndex})" style="color: #0369a1; cursor: pointer;" title="Click to edit meal type">💊 ${meal.type}</h4>
+                            <p class="text-blue-700 editable-meal-name" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" onclick="editMealName(this, ${dayIndex}, ${mealIndex})" style="cursor: pointer;" title="Click to edit meal name">${meal.name}</p>
+                        </div>
+                        <button data-action="delete-meal" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn" style="background: #fee2e2; color: #dc2626; padding: 4px 8px; font-size: 11px; border-radius: 4px; flex-shrink: 0;" title="Delete this meal"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+                    </div>
                     <div class="grid grid-cols-4 gap-1 text-xs text-gray-600 my-2">
                         <span>${meal.calories} cal</span>
                         <span>${meal.protein}g P</span>
@@ -5062,11 +5076,14 @@ function displayDietPlan(multiDayData) {
                     </div>
                     <div class="meal-card-content">
                         <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px;">
-                            <div>
-                                <h4 class="font-bold text-lg capitalize">${meal.type}</h4>
-                                <p class="text-blue-700" style="font-size: 14px;">${meal.name}</p>
+                            <div style="flex: 1; min-width: 0;">
+                                <h4 class="font-bold text-lg capitalize editable-meal-type" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" onclick="editMealType(this, ${dayIndex}, ${mealIndex})" style="cursor: pointer;" title="Click to edit meal type">${meal.type}</h4>
+                                <p class="text-blue-700 editable-meal-name" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" onclick="editMealName(this, ${dayIndex}, ${mealIndex})" style="font-size: 14px; cursor: pointer;" title="Click to edit meal name">${meal.name}</p>
                             </div>
-                            ${hasUndoState ? `<button data-action="undo-meal" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn" style="background: #fee2e2; color: #dc2626; padding: 4px 8px; font-size: 11px; border-radius: 4px;" title="Undo last change"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg></button>` : ''}
+                            <div style="display: flex; gap: 4px; flex-shrink: 0;">
+                                ${hasUndoState ? `<button data-action="undo-meal" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn" style="background: #fee2e2; color: #dc2626; padding: 4px 8px; font-size: 11px; border-radius: 4px;" title="Undo last change"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg></button>` : ''}
+                                <button data-action="delete-meal" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn" style="background: #fee2e2; color: #dc2626; padding: 4px 8px; font-size: 11px; border-radius: 4px;" title="Delete this meal"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+                            </div>
                         </div>
                         <div class="grid grid-cols-4 gap-1 text-xs text-gray-600 mb-2">
                             <span>${meal.calories} cal</span>
@@ -5131,6 +5148,14 @@ function displayDietPlan(multiDayData) {
                 </div>`;
             }
         });
+
+        // Add Meal button at the end of each day
+        planHTML += `
+            <div style="text-align: center; margin: 12px 0 24px;">
+                <button data-action="add-meal" data-day-index="${dayIndex}" class="btn" style="background: #10b981; color: white; padding: 8px 20px; font-size: 13px; border-radius: 8px; font-weight: 600;">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M12 5v14M5 12h14"/></svg>Add Meal
+                </button>
+            </div>`;
     });
 
     // Coach Notes Section
@@ -9279,6 +9304,125 @@ function formatMarkdown(text) {
         .replace(/<\/li>\n<li/g, '</li><li');
 }
 
+// ======== EDIT MEAL NAME / TYPE INLINE ========
+function editMealName(element, dayIndex, mealIndex) {
+    if (element.querySelector('input')) return; // Already editing
+
+    const meal = lastPlanQuery.currentPlan[dayIndex].plan[mealIndex];
+    const currentName = meal.name;
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.value = currentName;
+    input.style.cssText = 'width: 100%; font-size: 14px; color: #1d4ed8; border: 1px solid #93c5fd; border-radius: 4px; padding: 2px 6px; background: white; font-family: inherit;';
+
+    const finishEdit = () => {
+        const newName = input.value.trim();
+        if (newName && newName !== currentName) {
+            meal.name = newName;
+            markUnsavedChanges();
+        }
+        element.textContent = meal.name;
+    };
+
+    input.addEventListener('blur', finishEdit);
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+        if (e.key === 'Escape') { input.value = currentName; input.blur(); }
+    });
+
+    element.textContent = '';
+    element.appendChild(input);
+    input.focus();
+    input.select();
+}
+
+function editMealType(element, dayIndex, mealIndex) {
+    if (element.querySelector('select')) return; // Already editing
+
+    const meal = lastPlanQuery.currentPlan[dayIndex].plan[mealIndex];
+    const currentType = meal.type;
+
+    const select = document.createElement('select');
+    select.style.cssText = 'font-size: 16px; font-weight: 700; color: #1f2937; border: 1px solid #93c5fd; border-radius: 4px; padding: 2px 6px; background: white; font-family: inherit; text-transform: capitalize; cursor: pointer;';
+
+    const types = ['Breakfast', 'Lunch', 'Dinner', 'Snack', 'Pre-Workout', 'Post-Workout', 'Supplement'];
+    types.forEach(t => {
+        const option = document.createElement('option');
+        option.value = t;
+        option.textContent = t;
+        if (t.toLowerCase() === currentType.toLowerCase()) option.selected = true;
+        select.appendChild(option);
+    });
+
+    const finishEdit = () => {
+        const newType = select.value;
+        if (newType !== currentType) {
+            meal.type = newType;
+            markUnsavedChanges();
+        }
+        // Re-render to update the card properly
+        displayDietPlan(lastPlanQuery.currentPlan);
+    };
+
+    select.addEventListener('blur', finishEdit);
+    select.addEventListener('change', finishEdit);
+
+    element.textContent = '';
+    element.appendChild(select);
+    select.focus();
+}
+
+// ======== DELETE MEAL ========
+function deleteMeal(dayIndex, mealIndex) {
+    const day = lastPlanQuery.currentPlan[dayIndex];
+    if (!day || !day.plan) return;
+
+    const meal = day.plan[mealIndex];
+    if (!meal) return;
+
+    if (day.plan.length <= 1) {
+        showToast('Cannot delete the last meal of the day. Use "Regenerate Day" instead.', 'error');
+        return;
+    }
+
+    const confirmed = confirm(`Delete "${meal.name}" from Day ${dayIndex + 1}?`);
+    if (!confirmed) return;
+
+    day.plan.splice(mealIndex, 1);
+    markUnsavedChanges();
+    displayDietPlan(lastPlanQuery.currentPlan);
+    showToast(`Removed "${meal.name}"`);
+}
+
+// ======== ADD MEAL ========
+function addMealToDay(dayIndex) {
+    const day = lastPlanQuery.currentPlan[dayIndex];
+    if (!day || !day.plan) return;
+
+    const newMeal = {
+        name: 'New Meal',
+        type: 'Snack',
+        calories: 0,
+        protein: 0,
+        carbs: 0,
+        fat: 0,
+        ingredients: [],
+        instructions: '',
+        isPlaceholder: true,
+        isCustom: false,
+        image_url: null,
+        coach_note: null,
+        voice_note_url: null,
+        voice_note_path: null
+    };
+
+    day.plan.push(newMeal);
+    markUnsavedChanges();
+    displayDietPlan(lastPlanQuery.currentPlan);
+    showToast('New meal added - click the name and type to edit');
+}
+
 // ======== IMPORT DIET PLAN ========
 let importDietFileContent = null;
 let importedDietPlanData = null;
@@ -9661,6 +9805,17 @@ document.addEventListener('click', function(event) {
         'save-as-template': saveAsTemplate,
         'open-import-diet-plan': openImportDietPlanModal,
         'close-import-diet-plan': closeImportDietPlanModal,
+        'delete-meal': () => {
+            const target = event.target.closest('[data-day-index]');
+            const dayIndex = parseInt(target.dataset.dayIndex);
+            const mealIndex = parseInt(target.dataset.mealIndex);
+            deleteMeal(dayIndex, mealIndex);
+        },
+        'add-meal': () => {
+            const target = event.target.closest('[data-day-index]');
+            const dayIndex = parseInt(target.dataset.dayIndex);
+            addMealToDay(dayIndex);
+        },
         'save-plan': savePlanChanges,
         'toggle-ai-brainstorm': () => {
             const target = event.target.closest('[data-day-index]');
