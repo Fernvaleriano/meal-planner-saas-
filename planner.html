@@ -2130,7 +2130,7 @@
                 <h3 id="recipe-title" class="text-2xl font-bold">Recipe</h3>
                 <button data-action="close-modal" class="text-2xl font-bold">&times;</button>
             </div>
-            <div id="recipe-content" class="text-gray-700 space-y-4 prose"></div>
+            <div id="recipe-content" class="space-y-4 prose" style="color: inherit;"></div>
         </div>
     </div>
 
@@ -6125,16 +6125,16 @@ async function getAIRecipe(mealName, dayIndex = null, mealIndex = null) {
         html += '<p style="color: #059669; font-size: 12px; margin-bottom: 12px; padding: 8px; background: #d1fae5; border-radius: 6px;">✅ Recipe saved with this meal</p>';
 
         // Ingredients
-        html += '<h3 style="color: #1f2937; font-size: 16px; font-weight: 600; margin-bottom: 8px;">🥗 Ingredients</h3>';
+        html += '<h3 style="font-size: 16px; font-weight: 600; margin-bottom: 8px;">🥗 Ingredients</h3>';
         html += '<ul style="list-style-type: disc; padding-left: 20px; margin-bottom: 16px;">';
         storedMeal.ingredients.forEach(ing => {
-            html += `<li style="margin-bottom: 4px; color: #374151;">${ing}</li>`;
+            html += `<li style="margin-bottom: 4px;">${ing}</li>`;
         });
         html += '</ul>';
 
         // Instructions
-        html += '<h3 style="color: #1f2937; font-size: 16px; font-weight: 600; margin-bottom: 8px;">👨‍🍳 Instructions</h3>';
-        html += '<div style="color: #374151; line-height: 1.6;">';
+        html += '<h3 style="font-size: 16px; font-weight: 600; margin-bottom: 8px;">👨‍🍳 Instructions</h3>';
+        html += '<div style="line-height: 1.6;">';
 
         // Format instructions - split by numbered steps if present
         const instructions = storedMeal.instructions;
@@ -6156,13 +6156,13 @@ async function getAIRecipe(mealName, dayIndex = null, mealIndex = null) {
         html += '</div>';
 
         // Macros summary
-        html += '<div style="margin-top: 16px; padding: 12px; background: #f3f4f6; border-radius: 8px;">';
-        html += '<p style="font-weight: 600; color: #1f2937; margin-bottom: 8px;">📊 Nutrition</p>';
+        html += '<div style="margin-top: 16px; padding: 12px; background: rgba(255,255,255,0.1); border-radius: 8px;">';
+        html += '<p style="font-weight: 600; margin-bottom: 8px;">📊 Nutrition</p>';
         html += `<div style="display: flex; gap: 16px; flex-wrap: wrap;">`;
-        html += `<span style="color: #dc2626;"><strong>${storedMeal.calories}</strong> cal</span>`;
-        html += `<span style="color: #2563eb;"><strong>${storedMeal.protein}g</strong> protein</span>`;
-        html += `<span style="color: #16a34a;"><strong>${storedMeal.carbs}g</strong> carbs</span>`;
-        html += `<span style="color: #ca8a04;"><strong>${storedMeal.fat}g</strong> fat</span>`;
+        html += `<span style="color: #f87171;"><strong>${storedMeal.calories}</strong> cal</span>`;
+        html += `<span style="color: #60a5fa;"><strong>${storedMeal.protein}g</strong> protein</span>`;
+        html += `<span style="color: #4ade80;"><strong>${storedMeal.carbs}g</strong> carbs</span>`;
+        html += `<span style="color: #fbbf24;"><strong>${storedMeal.fat}g</strong> fat</span>`;
         html += '</div></div>';
 
         html += '</div>';
