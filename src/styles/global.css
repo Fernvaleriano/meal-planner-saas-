@@ -23401,11 +23401,10 @@ a.nav-left {
     flex: 1;
     overflow-y: auto;
     padding: 8px 0;
-    padding-bottom: calc(20px + env(safe-area-inset-bottom, 20px));
-    /* Ensure proper stacking below filter pills */
+    padding-bottom: 20px;
+    /* Prevent list from overlapping pills */
     position: relative;
     z-index: 1;
-    /* Prevent list from overlapping pills */
     min-height: 0;
 }
 
@@ -23538,15 +23537,17 @@ a.nav-left {
 
 /* Add Selected Footer */
 .add-selected-footer {
-    position: sticky;
-    bottom: 0;
+    position: relative;
+    z-index: 10;
+    flex-shrink: 0;
     padding: 16px 20px;
-    background: linear-gradient(to top, var(--gray-50) 80%, transparent);
+    padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+    background: var(--gray-50);
     border-top: 1px solid var(--gray-200);
 }
 
 [data-theme="dark"] .add-selected-footer {
-    background: linear-gradient(to top, #1e293b 80%, transparent);
+    background: #1e293b;
     border-top-color: #334155;
 }
 
