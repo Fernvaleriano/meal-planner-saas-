@@ -240,6 +240,7 @@ exports.handler = async (event) => {
         updated: dryRun ? toUpdate.length : updated,
         skipped: skipped,
         errors: errors.length,
+        errorMessages: errors.slice(0, 10),
         sample: toCreate.slice(0, 10).map(e => ({
           name: e.name,
           gender: e.gender_variant || 'unisex',
