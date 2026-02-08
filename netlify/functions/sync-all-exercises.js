@@ -55,12 +55,24 @@ function detectEquipment(name) {
   return 'Bodyweight';
 }
 
-function cleanExerciseName(filename) {
-  return filename
-    .replace(/\.(mp4|mov|avi|webm|gif)$/i, '')
+function parseExerciseFilename(filename) {
+  const withoutExt = filename.replace(/\.(mp4|mov|avi|webm|gif)$/i, '');
+
+  // Detect gender variant from _Female, _Male, _female, _male suffix
+  let genderVariant = null;
+  const genderMatch = withoutExt.match(/[_\s](female|male)$/i);
+  if (genderMatch) {
+    genderVariant = genderMatch[1].toLowerCase();
+  }
+
+  // Strip gender suffix, then clean up
+  const name = withoutExt
+    .replace(/[_\s](female|male)$/i, '')
     .replace(/[_-]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
+
+  return { name, genderVariant };
 }
 
 exports.handler = async (event) => {
@@ -135,12 +147,15 @@ exports.handler = async (event) => {
     // Get existing exercises
     const { data: existingExercises } = await supabase
       .from('exercises')
-      .select('id, name, video_url');
+      .select('id, name, video_url, gender_variant');
 
     const exercisesByName = new Map();
     const exercisesByVideo = new Map();
     for (const ex of existingExercises || []) {
-      exercisesByName.set(ex.name.toLowerCase().trim(), ex);
+      const key = ex.gender_variant
+        ? `${ex.name.toLowerCase().trim()}__${ex.gender_variant}`
+        : ex.name.toLowerCase().trim();
+      exercisesByName.set(key, ex);
       if (ex.video_url) exercisesByVideo.set(ex.video_url, ex);
     }
 
@@ -150,7 +165,7 @@ exports.handler = async (event) => {
     let skipped = 0;
 
     for (const video of allVideos) {
-      const exerciseName = cleanExerciseName(video.filename);
+      const { name: exerciseName, genderVariant } = parseExerciseFilename(video.filename);
       const nameLower = exerciseName.toLowerCase().trim();
 
       if (exercisesByVideo.has(video.url)) {
@@ -158,11 +173,21 @@ exports.handler = async (event) => {
         continue;
       }
 
-      const existing = exercisesByName.get(nameLower);
+      // For gender variants, look up by name + gender combo
+      const variantKey = genderVariant ? `${nameLower}__${genderVariant}` : nameLower;
+      const existing = exercisesByName.get(variantKey) || exercisesByName.get(nameLower);
 
-      if (existing) {
+      if (existing && exercisesByVideo.has(existing.video_url)) {
+        // Already has a video linked, skip
+        skipped++;
+        continue;
+      }
+
+      if (existing && !genderVariant) {
+        // Update existing exercise with no gender variant
         toUpdate.push({ id: existing.id, video_url: video.url, animation_url: video.url });
       } else {
+        // Create new exercise (or new gender variant)
         toCreate.push({
           name: exerciseName,
           muscle_group: guessMuscleGroup(video.folder, exerciseName),
@@ -171,12 +196,13 @@ exports.handler = async (event) => {
           difficulty: 'intermediate',
           video_url: video.url,
           animation_url: video.url,
+          gender_variant: genderVariant,
           source: 'storage-sync',
           description: `${exerciseName} exercise`,
           instructions: `Perform the ${exerciseName} with proper form.`,
           is_custom: false
         });
-        exercisesByName.set(nameLower, { name: exerciseName });
+        exercisesByName.set(variantKey, { name: exerciseName });
       }
     }
 
@@ -214,7 +240,11 @@ exports.handler = async (event) => {
         updated: dryRun ? toUpdate.length : updated,
         skipped: skipped,
         errors: errors.length,
-        sample: toCreate.slice(0, 10).map(e => e.name)
+        sample: toCreate.slice(0, 10).map(e => ({
+          name: e.name,
+          gender: e.gender_variant || 'unisex',
+          muscle_group: e.muscle_group
+        }))
       }, null, 2)
     };
 
