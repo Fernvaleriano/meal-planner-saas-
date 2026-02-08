@@ -13248,7 +13248,7 @@ a.nav-left {
     max-width: 500px;
     background: #1e293b;
     border-radius: 20px 20px 0 0;
-    padding: 12px 20px max(20px, env(safe-area-inset-bottom, 20px));
+    padding: 12px 20px calc(80px + env(safe-area-inset-bottom, 20px));
     animation: sheetSlideUp 0.25s ease;
 }
 
