@@ -4202,13 +4202,8 @@
             currentCoachId = session.user.id;
             currentAccessToken = session.access_token;
 
-            // Check gym features
-            const enabled = await initGymFeatures({ email: session.user.email });
-            if (!enabled) {
-                showToast('Gym features not enabled for your account', 'error');
-                setTimeout(() => window.location.href = 'dashboard.html', 2000);
-                return;
-            }
+            // Initialize gym features (enabled for all coaches)
+            await initGymFeatures({ email: session.user.email });
 
             // Load data
             await Promise.all([
