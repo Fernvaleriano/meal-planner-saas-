@@ -2124,74 +2124,97 @@
                     </div>
                 </div>
 
-                <!-- Custom Targets Override -->
-                <div class="p-4 bg-amber-50 border-2 border-amber-400 rounded-lg">
-                    <div class="flex items-center mb-3">
-                        <input type="checkbox" id="dp_custom_targets" class="mr-2 h-5 w-5">
-                        <label for="dp_custom_targets" class="font-bold text-amber-900"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:text-bottom;margin-right:4px;"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>Set Custom Targets</label>
+                <!-- Custom Targets Override - Collapsible -->
+                <div class="border-2 border-gray-200 rounded-lg overflow-hidden">
+                    <button type="button" onclick="toggleSection('custom-targets')" class="w-full p-3 bg-gray-50 flex justify-between items-center hover:bg-gray-100 transition-colors">
+                        <span class="font-bold text-gray-700"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:text-bottom;margin-right:4px;"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>Custom Targets</span>
+                        <span id="custom-targets-arrow" class="text-gray-500 transition-transform rotate-[-90deg]">▼</span>
+                    </button>
+                    <div id="custom-targets-content" class="hidden p-4 border-t border-gray-200">
+                        <div class="flex items-center mb-3">
+                            <input type="checkbox" id="dp_custom_targets" class="mr-2 h-5 w-5">
+                            <label for="dp_custom_targets" class="font-semibold text-gray-700">Override calculated targets with your own specific macros</label>
+                        </div>
+                        <div id="custom-targets-fields" class="hidden">
+                            <!-- Calories Input -->
+                            <div class="mb-4">
+                                <label for="dp_custom_calories" class="text-sm font-semibold text-gray-700">Total Calories</label>
+                                <input type="number" id="dp_custom_calories" class="input-field text-lg font-bold" placeholder="2200">
+                            </div>
+
+                            <!-- Percentage Inputs -->
+                            <div class="grid grid-cols-3 gap-3">
+                                <div class="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                                    <label for="dp_protein_pct" class="text-sm font-semibold text-blue-800">Protein %</label>
+                                    <div class="flex items-center gap-2">
+                                        <input type="number" id="dp_protein_pct" class="input-field border-blue-400 text-center font-bold" placeholder="30" min="0" max="100">
+                                        <span class="text-blue-600 font-bold">%</span>
+                                    </div>
+                                    <div class="mt-2 text-center">
+                                        <span class="text-lg font-bold text-blue-800" id="protein-grams-display">0g</span>
+                                        <div class="text-xs text-blue-600">(<span id="protein-cals-display">0</span> cal)</div>
+                                    </div>
+                                </div>
+                                <div class="bg-green-50 p-3 rounded-lg border border-green-200">
+                                    <label for="dp_carbs_pct" class="text-sm font-semibold text-green-800">Carbs %</label>
+                                    <div class="flex items-center gap-2">
+                                        <input type="number" id="dp_carbs_pct" class="input-field border-green-400 text-center font-bold" placeholder="40" min="0" max="100">
+                                        <span class="text-green-600 font-bold">%</span>
+                                    </div>
+                                    <div class="mt-2 text-center">
+                                        <span class="text-lg font-bold text-green-800" id="carbs-grams-display">0g</span>
+                                        <div class="text-xs text-green-600">(<span id="carbs-cals-display">0</span> cal)</div>
+                                    </div>
+                                </div>
+                                <div class="bg-yellow-50 p-3 rounded-lg border border-yellow-200">
+                                    <label for="dp_fat_pct" class="text-sm font-semibold text-yellow-800">Fat %</label>
+                                    <div class="flex items-center gap-2">
+                                        <input type="number" id="dp_fat_pct" class="input-field border-yellow-400 text-center font-bold" placeholder="30" min="0" max="100">
+                                        <span class="text-yellow-600 font-bold">%</span>
+                                    </div>
+                                    <div class="mt-2 text-center">
+                                        <span class="text-lg font-bold text-yellow-800" id="fat-grams-display">0g</span>
+                                        <div class="text-xs text-yellow-600">(<span id="fat-cals-display">0</span> cal)</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Percentage Status Bar -->
+                            <div id="pct-status-bar" class="mt-3 p-3 rounded-lg bg-gray-100 border border-gray-300">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm font-semibold text-gray-700">Total: <span id="total-pct" class="text-lg">0</span>%</span>
+                                    <span id="pct-status" class="text-sm font-bold"></span>
+                                </div>
+                                <div class="mt-2 h-3 bg-gray-200 rounded-full overflow-hidden">
+                                    <div id="pct-progress-bar" class="h-full transition-all duration-300" style="width: 0%; background: linear-gradient(to right, #3b82f6 0%, #3b82f6 33%, #22c55e 33%, #22c55e 66%, #eab308 66%, #eab308 100%);"></div>
+                                </div>
+                            </div>
+
+                            <!-- Hidden fields for actual gram values (used by generateDietPlan) -->
+                            <input type="hidden" id="dp_custom_protein" value="">
+                            <input type="hidden" id="dp_custom_carbs" value="">
+                            <input type="hidden" id="dp_custom_fat" value="">
+
+                            <p class="text-xs text-gray-500 mt-3">Enter calories and any 2 percentages - the 3rd will auto-fill to reach 100%.</p>
+                        </div>
                     </div>
-                    <p class="text-sm text-amber-700 mb-3">Override the calculated targets with your own specific macros.</p>
-                    <div id="custom-targets-fields" class="hidden">
-                        <!-- Calories Input -->
-                        <div class="mb-4">
-                            <label for="dp_custom_calories" class="text-sm font-semibold text-amber-800">Total Calories</label>
-                            <input type="number" id="dp_custom_calories" class="input-field border-amber-400 text-lg font-bold" placeholder="2200">
+                </div>
+
+                <!-- Cooking Equipment - Collapsible -->
+                <div class="border-2 border-gray-200 rounded-lg overflow-hidden">
+                    <button type="button" onclick="toggleSection('cooking-equipment')" class="w-full p-3 bg-gray-50 flex justify-between items-center hover:bg-gray-100 transition-colors">
+                        <span class="font-bold text-gray-700"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:text-bottom;margin-right:4px;"><path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/><line x1="6" y1="2" x2="6" y2="4"/><line x1="10" y1="2" x2="10" y2="4"/><line x1="14" y1="2" x2="14" y2="4"/></svg>Cooking Equipment</span>
+                        <span id="cooking-equipment-arrow" class="text-gray-500 transition-transform rotate-[-90deg]">▼</span>
+                    </button>
+                    <div id="cooking-equipment-content" class="hidden p-4 border-t border-gray-200">
+                        <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
+                            <label class="flex items-center text-sm"><input type="checkbox" id="equip_stove" value="Stove" class="mr-2 h-4 w-4" checked> Stove</label>
+                            <label class="flex items-center text-sm"><input type="checkbox" id="equip_oven" value="Oven" class="mr-2 h-4 w-4" checked> Oven</label>
+                            <label class="flex items-center text-sm"><input type="checkbox" id="equip_microwave" value="Microwave" class="mr-2 h-4 w-4" checked> Microwave</label>
+                            <label class="flex items-center text-sm"><input type="checkbox" id="equip_airfryer" value="Air Fryer" class="mr-2 h-4 w-4"> Air Fryer</label>
+                            <label class="flex items-center text-sm"><input type="checkbox" id="equip_grill" value="Grill" class="mr-2 h-4 w-4"> Grill</label>
+                            <label class="flex items-center text-sm"><input type="checkbox" id="equip_blender" value="Blender" class="mr-2 h-4 w-4" checked> Blender</label>
                         </div>
-
-                        <!-- Percentage Inputs -->
-                        <div class="grid grid-cols-3 gap-3">
-                            <div class="bg-blue-50 p-3 rounded-lg border border-blue-200">
-                                <label for="dp_protein_pct" class="text-sm font-semibold text-blue-800">Protein %</label>
-                                <div class="flex items-center gap-2">
-                                    <input type="number" id="dp_protein_pct" class="input-field border-blue-400 text-center font-bold" placeholder="30" min="0" max="100">
-                                    <span class="text-blue-600 font-bold">%</span>
-                                </div>
-                                <div class="mt-2 text-center">
-                                    <span class="text-lg font-bold text-blue-800" id="protein-grams-display">0g</span>
-                                    <div class="text-xs text-blue-600">(<span id="protein-cals-display">0</span> cal)</div>
-                                </div>
-                            </div>
-                            <div class="bg-green-50 p-3 rounded-lg border border-green-200">
-                                <label for="dp_carbs_pct" class="text-sm font-semibold text-green-800">Carbs %</label>
-                                <div class="flex items-center gap-2">
-                                    <input type="number" id="dp_carbs_pct" class="input-field border-green-400 text-center font-bold" placeholder="40" min="0" max="100">
-                                    <span class="text-green-600 font-bold">%</span>
-                                </div>
-                                <div class="mt-2 text-center">
-                                    <span class="text-lg font-bold text-green-800" id="carbs-grams-display">0g</span>
-                                    <div class="text-xs text-green-600">(<span id="carbs-cals-display">0</span> cal)</div>
-                                </div>
-                            </div>
-                            <div class="bg-yellow-50 p-3 rounded-lg border border-yellow-200">
-                                <label for="dp_fat_pct" class="text-sm font-semibold text-yellow-800">Fat %</label>
-                                <div class="flex items-center gap-2">
-                                    <input type="number" id="dp_fat_pct" class="input-field border-yellow-400 text-center font-bold" placeholder="30" min="0" max="100">
-                                    <span class="text-yellow-600 font-bold">%</span>
-                                </div>
-                                <div class="mt-2 text-center">
-                                    <span class="text-lg font-bold text-yellow-800" id="fat-grams-display">0g</span>
-                                    <div class="text-xs text-yellow-600">(<span id="fat-cals-display">0</span> cal)</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Percentage Status Bar -->
-                        <div id="pct-status-bar" class="mt-3 p-3 rounded-lg bg-gray-100 border border-gray-300">
-                            <div class="flex justify-between items-center">
-                                <span class="text-sm font-semibold text-gray-700">Total: <span id="total-pct" class="text-lg">0</span>%</span>
-                                <span id="pct-status" class="text-sm font-bold"></span>
-                            </div>
-                            <div class="mt-2 h-3 bg-gray-200 rounded-full overflow-hidden">
-                                <div id="pct-progress-bar" class="h-full transition-all duration-300" style="width: 0%; background: linear-gradient(to right, #3b82f6 0%, #3b82f6 33%, #22c55e 33%, #22c55e 66%, #eab308 66%, #eab308 100%);"></div>
-                            </div>
-                        </div>
-
-                        <!-- Hidden fields for actual gram values (used by generateDietPlan) -->
-                        <input type="hidden" id="dp_custom_protein" value="">
-                        <input type="hidden" id="dp_custom_carbs" value="">
-                        <input type="hidden" id="dp_custom_fat" value="">
-
-                        <p class="text-xs text-amber-600 mt-3">Enter calories and any 2 percentages - the 3rd will auto-fill to reach 100%.</p>
                     </div>
                 </div>
 
@@ -2202,19 +2225,6 @@
                         <span id="advanced-options-arrow" class="text-gray-500 transition-transform rotate-[-90deg]">▼</span>
                     </button>
                     <div id="advanced-options-content" class="hidden p-4 border-t border-gray-200 space-y-4">
-                        <!-- Cooking Equipment -->
-                        <div class="p-3 bg-teal-50 border border-teal-300 rounded-lg">
-                            <label class="font-semibold text-teal-900 block mb-2 text-sm">Cooking Equipment</label>
-                            <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
-                                <label class="flex items-center text-sm"><input type="checkbox" id="equip_stove" value="Stove" class="mr-2 h-4 w-4" checked> Stove</label>
-                                <label class="flex items-center text-sm"><input type="checkbox" id="equip_oven" value="Oven" class="mr-2 h-4 w-4" checked> Oven</label>
-                                <label class="flex items-center text-sm"><input type="checkbox" id="equip_microwave" value="Microwave" class="mr-2 h-4 w-4" checked> Microwave</label>
-                                <label class="flex items-center text-sm"><input type="checkbox" id="equip_airfryer" value="Air Fryer" class="mr-2 h-4 w-4"> Air Fryer</label>
-                                <label class="flex items-center text-sm"><input type="checkbox" id="equip_grill" value="Grill" class="mr-2 h-4 w-4"> Grill</label>
-                                <label class="flex items-center text-sm"><input type="checkbox" id="equip_blender" value="Blender" class="mr-2 h-4 w-4" checked> Blender</label>
-                            </div>
-                        </div>
-
                         <!-- Branded Fitness Foods Preference -->
                         <div class="flex items-center p-3 bg-purple-50 border border-purple-300 rounded-lg">
                             <input type="checkbox" id="dp_use_branded_foods" class="mr-2 h-5 w-5">
