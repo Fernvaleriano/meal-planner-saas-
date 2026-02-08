@@ -308,7 +308,7 @@ exports.handler = async (event) => {
               .neq('workout_log_id', workoutId)
               .order('max_weight', { ascending: false });
 
-            // Build map of exercise_name -> { maxWeight, bestRepsAtWeight }
+            // Build map of exercise_name -> { maxWeight, bestRepsAtWeight, hasPreviousLogs }
             for (const name of exerciseNames) {
               const prevLogs = (allPrevLogs || []).filter(l => l.exercise_name === name);
               const maxWeight = prevLogs.length > 0 ? prevLogs[0].max_weight : 0;
@@ -326,7 +326,7 @@ exports.handler = async (event) => {
                 }
               }
 
-              previousBestMap[name] = { maxWeight, bestRepsAtWeight };
+              previousBestMap[name] = { maxWeight, bestRepsAtWeight, hasPreviousLogs: prevLogs.length > 0 };
             }
           } catch (prBatchError) {
             console.warn('Batch PR lookup failed:', prBatchError.message);
@@ -362,14 +362,15 @@ exports.handler = async (event) => {
           totalReps += exTotalReps;
 
           // PR Detection using pre-fetched data (weight PR + rep PR)
+          // A PR requires previous history — first-time exercises don't count as PRs
           let isPr = ex.isPr || false;
-          if (ex.exerciseName && previousBestMap.hasOwnProperty(ex.exerciseName)) {
+          if (ex.exerciseName && previousBestMap.hasOwnProperty(ex.exerciseName) && previousBestMap[ex.exerciseName].hasPreviousLogs) {
             const prev = previousBestMap[ex.exerciseName];
             const previousBestWeight = prev.maxWeight || 0;
             const unit = setsData.find(s => Number(s.weight) > 0)?.weightUnit || 'kg';
 
-            // Weight PR: lifted heavier than ever before
-            if (exMaxWeight > 0 && exMaxWeight > previousBestWeight) {
+            // Weight PR: lifted heavier than ever before (must have a previous weight to compare against)
+            if (exMaxWeight > 0 && previousBestWeight > 0 && exMaxWeight > previousBestWeight) {
               isPr = true;
               const bestRepsAtWeight = setsData.find(s => Number(s.weight) === exMaxWeight)?.reps || 0;
               prNotifications.push({
