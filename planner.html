@@ -20,6 +20,12 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        if (window.pdfjsLib) {
+            window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        }
+    </script>
     <link rel="stylesheet" href="/css/coach-layout.css">
     <style>
         * {
@@ -488,6 +494,134 @@
             align-items: center;
             justify-content: center;
             z-index: 10000;
+        }
+
+        /* Import Diet Plan Styles */
+        .import-diet-drop-zone {
+            border: 2px dashed #d1d5db;
+            border-radius: 0.75rem;
+            padding: 40px 24px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #f9fafb;
+            margin-bottom: 16px;
+        }
+
+        .import-diet-drop-zone:hover,
+        .import-diet-drop-zone.dragover {
+            border-color: #d97706;
+            background: rgba(245, 158, 11, 0.05);
+        }
+
+        .import-diet-or-divider {
+            text-align: center;
+            color: #9ca3af;
+            font-size: 13px;
+            margin: 16px 0;
+            position: relative;
+        }
+
+        .import-diet-or-divider::before,
+        .import-diet-or-divider::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            width: calc(50% - 30px);
+            height: 1px;
+            background: #e5e7eb;
+        }
+
+        .import-diet-or-divider::before { left: 0; }
+        .import-diet-or-divider::after { right: 0; }
+
+        .import-diet-paste-area {
+            width: 100%;
+            min-height: 150px;
+            background: #f9fafb;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            color: #1f2937;
+            font-family: 'Inter', monospace;
+            font-size: 13px;
+            padding: 12px;
+            resize: vertical;
+        }
+
+        .import-diet-paste-area::placeholder {
+            color: #9ca3af;
+        }
+
+        .import-diet-paste-area:focus {
+            outline: none;
+            border-color: #d97706;
+            box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.1);
+        }
+
+        .import-diet-file-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            background: rgba(245, 158, 11, 0.1);
+            border-radius: 0.5rem;
+            margin-top: 12px;
+            color: #1f2937;
+            font-size: 14px;
+        }
+
+        .import-diet-file-info svg {
+            flex-shrink: 0;
+            color: #d97706;
+        }
+
+        .import-diet-file-info .file-name {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .import-diet-file-info .file-remove {
+            cursor: pointer;
+            opacity: 0.6;
+            transition: opacity 0.2s;
+        }
+
+        .import-diet-file-info .file-remove:hover {
+            opacity: 1;
+        }
+
+        .import-diet-day-preview {
+            margin-bottom: 12px;
+            border-bottom: 1px solid #f3f4f6;
+            padding-bottom: 8px;
+        }
+
+        .import-diet-day-preview:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+
+        .import-diet-day-title {
+            font-weight: 700;
+            font-size: 14px;
+            color: #0d9488;
+            margin-bottom: 6px;
+        }
+
+        .import-diet-meal-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 4px 0;
+            font-size: 13px;
+            color: #374151;
+        }
+
+        .import-diet-meal-item .meal-macros {
+            font-size: 11px;
+            color: #6b7280;
         }
 
         /* Image Gallery Styles */
@@ -1966,6 +2100,15 @@
                 </div>
 
                 <button data-action="generate-plan" id="generate-plan-btn" class="btn btn-primary w-full text-lg">Create Diet Plan</button>
+
+                <div style="text-align: center; color: #6b7280; font-size: 13px; margin: 8px 0; position: relative;">
+                    <span style="background: white; padding: 0 12px; position: relative; z-index: 1;">or</span>
+                    <div style="position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: #e5e7eb;"></div>
+                </div>
+
+                <button data-action="open-import-diet-plan" id="import-diet-plan-btn" class="btn w-full text-lg" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; font-weight: 600;">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:6px;"><path d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>Import Diet Plan
+                </button>
             </div>
         </div>
         <div id="diet-plan-result"></div>
@@ -2124,6 +2267,97 @@
             </div>
             <div class="mt-6 flex justify-end">
                 <button data-action="close-meal-prep-modal" class="btn btn-secondary">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- IMPORT DIET PLAN MODAL -->
+    <div id="import-diet-plan-modal" class="modal-overlay hidden">
+        <div class="card w-11/12 md:max-w-2xl max-h-[85vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-2xl font-bold" style="color: #d97706;">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:8px;">
+                        <path d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                    </svg>Import Diet Plan
+                </h3>
+                <button data-action="close-import-diet-plan" class="text-2xl font-bold">&times;</button>
+            </div>
+
+            <!-- Step 1: Upload/Paste -->
+            <div id="importDietStep1">
+                <p class="text-gray-600 text-sm mb-4" style="line-height: 1.6;">
+                    Upload a diet plan file or paste the text. The AI will extract meals, calories, macros, and ingredients, then load them into your meal planner.
+                </p>
+
+                <div class="import-diet-drop-zone" id="importDietDropZone" onclick="document.getElementById('importDietFileInput').click()">
+                    <div style="margin-bottom: 12px; opacity: 0.5;">
+                        <svg width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                    </div>
+                    <div style="font-size: 14px; color: #6b7280; line-height: 1.6;">
+                        <strong style="color: #d97706; display: block; font-size: 16px; margin-bottom: 4px;">Drop your file here or click to browse</strong>
+                        Supports .txt, .csv, and .pdf files
+                    </div>
+                </div>
+                <input type="file" id="importDietFileInput" accept=".txt,.csv,.pdf,.text" style="display:none" onchange="handleImportDietFile(event)">
+
+                <div id="importDietFileInfo" style="display: none;"></div>
+
+                <div class="import-diet-or-divider">or paste text</div>
+
+                <textarea class="import-diet-paste-area" id="importDietPasteArea" placeholder="Paste your diet plan text here...&#10;&#10;Example:&#10;Day 1: Monday&#10;Breakfast: Oatmeal with Berries - 350 cal, 12g protein, 55g carbs, 8g fat&#10;Lunch: Grilled Chicken Salad - 450 cal, 40g protein, 20g carbs, 22g fat&#10;Dinner: Salmon with Sweet Potato - 550 cal, 38g protein, 45g carbs, 20g fat&#10;..." rows="8"></textarea>
+            </div>
+
+            <!-- Step 2: Processing -->
+            <div id="importDietStep2" style="display: none;">
+                <div style="text-align: center; padding: 40px 20px;">
+                    <div class="loader" style="margin: 0 auto 16px;"><div class="loader-spinner"></div></div>
+                    <p id="importDietProgressText" class="text-gray-600">Parsing your diet plan...</p>
+                </div>
+            </div>
+
+            <!-- Step 3: Results -->
+            <div id="importDietStep3" style="display: none;">
+                <div style="background: #f0fdf4; border: 1px solid #86efac; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+                    <h4 style="font-weight: 700; color: #166534; margin-bottom: 12px;">Import Summary</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                        <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #dcfce7;">
+                            <span style="color: #166534; font-size: 14px;">Days found</span>
+                            <span style="font-weight: 700; color: #166534;" id="importDietStatDays">0</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #dcfce7;">
+                            <span style="color: #166534; font-size: 14px;">Total meals</span>
+                            <span style="font-weight: 700; color: #166534;" id="importDietStatMeals">0</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #dcfce7;">
+                            <span style="color: #166534; font-size: 14px;">Avg calories/day</span>
+                            <span style="font-weight: 700; color: #166534;" id="importDietStatCal">0</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #dcfce7;">
+                            <span style="color: #166534; font-size: 14px;">Avg protein/day</span>
+                            <span style="font-weight: 700; color: #166534;" id="importDietStatProtein">0g</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 6px 0;">
+                            <span style="color: #166534; font-size: 14px;">Avg carbs/day</span>
+                            <span style="font-weight: 700; color: #166534;" id="importDietStatCarbs">0g</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 6px 0;">
+                            <span style="color: #166534; font-size: 14px;">Avg fat/day</span>
+                            <span style="font-weight: 700; color: #166534;" id="importDietStatFat">0g</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="importDietPreview" style="max-height: 300px; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px;"></div>
+            </div>
+
+            <!-- Footer Buttons -->
+            <div class="flex gap-2 mt-4">
+                <button data-action="close-import-diet-plan" class="btn btn-secondary flex-1">Cancel</button>
+                <button id="importDietBtn" onclick="startDietImport()" class="btn flex-1" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; font-weight: 600;">
+                    Import Plan
+                </button>
             </div>
         </div>
     </div>
@@ -9045,6 +9279,267 @@ function formatMarkdown(text) {
         .replace(/<\/li>\n<li/g, '</li><li');
 }
 
+// ======== IMPORT DIET PLAN ========
+let importDietFileContent = null;
+let importedDietPlanData = null;
+
+function openImportDietPlanModal() {
+    document.getElementById('import-diet-plan-modal').classList.remove('hidden');
+    // Reset to step 1
+    document.getElementById('importDietStep1').style.display = '';
+    document.getElementById('importDietStep2').style.display = 'none';
+    document.getElementById('importDietStep3').style.display = 'none';
+    document.getElementById('importDietPasteArea').value = '';
+    document.getElementById('importDietFileInfo').style.display = 'none';
+    importDietFileContent = null;
+    importedDietPlanData = null;
+    const btn = document.getElementById('importDietBtn');
+    btn.textContent = 'Import Plan';
+    btn.onclick = startDietImport;
+    btn.disabled = false;
+}
+
+function closeImportDietPlanModal() {
+    document.getElementById('import-diet-plan-modal').classList.add('hidden');
+}
+
+async function handleImportDietFile(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const infoEl = document.getElementById('importDietFileInfo');
+
+    infoEl.innerHTML = `
+        <div class="import-diet-file-info">
+            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            <span class="file-name">${file.name} (${(file.size / 1024).toFixed(1)} KB)</span>
+            <span class="file-remove" onclick="removeImportDietFile()">
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </span>
+        </div>
+    `;
+    infoEl.style.display = '';
+
+    const isPDF = file.name.toLowerCase().endsWith('.pdf');
+
+    if (isPDF && window.pdfjsLib) {
+        try {
+            infoEl.querySelector('.file-name').textContent = `${file.name} - Extracting text...`;
+            const arrayBuffer = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+            let fullText = '';
+
+            for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const textContent = await page.getTextContent();
+                const pageText = textContent.items.map(item => item.str).join(' ');
+                fullText += pageText + '\n\n';
+            }
+
+            importDietFileContent = fullText.trim();
+            document.getElementById('importDietPasteArea').value = importDietFileContent;
+            infoEl.querySelector('.file-name').textContent = `${file.name} (${(file.size / 1024).toFixed(1)} KB) - ${pdf.numPages} pages extracted`;
+        } catch (err) {
+            console.error('PDF extraction error:', err);
+            showToast('Could not read PDF. Please copy/paste the text instead.', 'error');
+            infoEl.style.display = 'none';
+        }
+    } else {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            importDietFileContent = e.target.result;
+            document.getElementById('importDietPasteArea').value = importDietFileContent;
+        };
+        reader.readAsText(file);
+    }
+}
+
+function removeImportDietFile() {
+    importDietFileContent = null;
+    document.getElementById('importDietFileInfo').style.display = 'none';
+    document.getElementById('importDietFileInput').value = '';
+    document.getElementById('importDietPasteArea').value = '';
+}
+
+async function startDietImport() {
+    const textContent = document.getElementById('importDietPasteArea').value.trim() || (importDietFileContent || '').trim();
+
+    if (!textContent || textContent.length < 20) {
+        showToast('Please upload a file or paste your diet plan text', 'error');
+        return;
+    }
+
+    // Show processing step
+    document.getElementById('importDietStep1').style.display = 'none';
+    document.getElementById('importDietStep2').style.display = '';
+    document.getElementById('importDietStep3').style.display = 'none';
+    document.getElementById('importDietProgressText').textContent = 'Parsing your diet plan...';
+
+    const btn = document.getElementById('importDietBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span style="display:inline-flex;align-items:center;gap:6px;"><span class="loader-spinner" style="width:16px;height:16px;border-width:2px;"></span>Processing...</span>';
+
+    try {
+        const response = await fetch('/.netlify/functions/import-diet-plan', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ fileContent: textContent })
+        });
+
+        const contentType = response.headers.get('content-type') || '';
+        if (!contentType.includes('application/json')) {
+            if (response.status === 504) {
+                throw new Error('The server timed out processing your request. Try pasting a shorter section of the plan, or paste the text from just one or two days at a time.');
+            }
+            throw new Error(`Server error (${response.status}). Please try again.`);
+        }
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+            throw new Error(result.error || 'Failed to parse diet plan');
+        }
+
+        importedDietPlanData = result;
+
+        // Show results
+        document.getElementById('importDietStep2').style.display = 'none';
+        document.getElementById('importDietStep3').style.display = '';
+
+        const stats = result.stats;
+        document.getElementById('importDietStatDays').textContent = stats.daysCount;
+        document.getElementById('importDietStatMeals').textContent = stats.totalMeals;
+        document.getElementById('importDietStatCal').textContent = stats.avgCaloriesPerDay;
+        document.getElementById('importDietStatProtein').textContent = stats.avgProteinPerDay + 'g';
+        document.getElementById('importDietStatCarbs').textContent = stats.avgCarbsPerDay + 'g';
+        document.getElementById('importDietStatFat').textContent = stats.avgFatPerDay + 'g';
+
+        // Show preview of each day
+        const previewEl = document.getElementById('importDietPreview');
+        let previewHTML = '';
+        for (const day of result.plan.currentPlan) {
+            previewHTML += `<div class="import-diet-day-preview">`;
+            previewHTML += `<div class="import-diet-day-title">${day.name || 'Day ' + day.day}</div>`;
+            for (const meal of day.plan) {
+                previewHTML += `<div class="import-diet-meal-item">
+                    <span><strong>${meal.type}:</strong> ${meal.name}</span>
+                    <span class="meal-macros">${meal.calories} cal | P:${meal.protein}g C:${meal.carbs}g F:${meal.fat}g</span>
+                </div>`;
+            }
+            previewHTML += `</div>`;
+        }
+        previewEl.innerHTML = previewHTML;
+
+        // Update button to "Apply to Planner"
+        btn.disabled = false;
+        btn.innerHTML = 'Apply to Planner';
+        btn.onclick = applyImportedDietPlan;
+
+    } catch (error) {
+        console.error('Import diet plan error:', error);
+        showToast(error.message || 'Failed to import diet plan', 'error');
+
+        // Go back to step 1
+        document.getElementById('importDietStep1').style.display = '';
+        document.getElementById('importDietStep2').style.display = 'none';
+        document.getElementById('importDietStep3').style.display = 'none';
+        btn.disabled = false;
+        btn.innerHTML = 'Import Plan';
+        btn.onclick = startDietImport;
+    }
+}
+
+async function applyImportedDietPlan() {
+    if (!importedDietPlanData || !importedDietPlanData.plan) {
+        showToast('No imported data available', 'error');
+        return;
+    }
+
+    const plan = importedDietPlanData.plan;
+
+    // Get the plan name from the form input, or use the imported one
+    const planNameInput = document.getElementById('dp_plan_name');
+    const planName = (planNameInput && planNameInput.value.trim()) || plan.planName || 'Imported Diet Plan';
+
+    // Get client info from form
+    const clientSelect = document.getElementById('dp_client');
+    const clientName = clientSelect ? clientSelect.options[clientSelect.selectedIndex]?.text || '' : '';
+    const clientId = clientSelect ? clientSelect.value : '';
+
+    // Set up lastPlanQuery with the imported data
+    lastPlanQuery.currentPlan = plan.currentPlan;
+    lastPlanQuery.planName = planName;
+    lastPlanQuery.calories = plan.calories;
+    lastPlanQuery.protein = plan.protein;
+    lastPlanQuery.carbs = plan.carbs;
+    lastPlanQuery.fat = plan.fat;
+    lastPlanQuery.goal = plan.goal || lastPlanQuery.goal || '';
+    lastPlanQuery.status = 'draft';
+    lastPlanQuery.planId = null; // New plan, not updating existing
+
+    if (clientName && clientId) {
+        lastPlanQuery.clientName = clientName;
+        lastPlanQuery.clientId = clientId;
+    }
+
+    // Update plan name input
+    if (planNameInput) {
+        planNameInput.value = planName;
+    }
+
+    lastPlanQuery.summary = generatePlanSummary(lastPlanQuery);
+    markUnsavedChanges();
+
+    // Render the plan
+    displayDietPlan(lastPlanQuery.currentPlan);
+
+    // Close modal
+    closeImportDietPlanModal();
+
+    // Auto-save if we have a client
+    const isTemplateMode = plannerMode === 'template';
+    if (lastPlanQuery.clientId || isTemplateMode) {
+        const saveSuccess = await saveCoachPlan(lastPlanQuery, lastPlanQuery.clientName);
+        if (saveSuccess) {
+            showToast(`Diet plan imported and saved! ${importedDietPlanData.stats.totalMeals} meals across ${importedDietPlanData.stats.daysCount} days.`);
+        } else {
+            showToast(`Diet plan imported! ${importedDietPlanData.stats.totalMeals} meals loaded. Don't forget to save.`, 'info');
+        }
+    } else {
+        showToast(`Diet plan imported! ${importedDietPlanData.stats.totalMeals} meals across ${importedDietPlanData.stats.daysCount} days. Select a client and save.`, 'info');
+    }
+}
+
+// Set up drag & drop for diet plan import
+document.addEventListener('DOMContentLoaded', () => {
+    const dropZone = document.getElementById('importDietDropZone');
+    if (dropZone) {
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file) {
+                const input = document.getElementById('importDietFileInput');
+                const dt = new DataTransfer();
+                dt.items.add(file);
+                input.files = dt.files;
+                handleImportDietFile({ target: input });
+            }
+        });
+    }
+});
+
 // UNIT SYSTEM STATE
 let currentUnitSystem = 'imperial';
 
@@ -9154,6 +9649,8 @@ document.addEventListener('click', function(event) {
         },
         'submit-to-client': publishPlanToClient,
         'save-as-template': saveAsTemplate,
+        'open-import-diet-plan': openImportDietPlanModal,
+        'close-import-diet-plan': closeImportDietPlanModal,
         'save-plan': savePlanChanges,
         'toggle-ai-brainstorm': () => {
             const target = event.target.closest('[data-day-index]');
