@@ -24254,6 +24254,107 @@ a.nav-left {
 
 
 /* ========================================
+   ADD FAVORITE CONFIRMATION MODAL
+   ======================================== */
+.add-confirm-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10001;
+    padding: 20px;
+}
+
+.add-confirm-modal {
+    background: #1e293b;
+    border-radius: 16px;
+    padding: 24px;
+    max-width: 320px;
+    width: 100%;
+    text-align: center;
+    animation: modalPop 0.2s ease;
+}
+
+.add-confirm-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: rgba(16, 185, 129, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 16px;
+    color: #10b981;
+}
+
+.add-confirm-modal h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #f1f5f9;
+    margin-bottom: 8px;
+}
+
+.add-confirm-modal p {
+    font-size: 14px;
+    color: #94a3b8;
+    margin-bottom: 24px;
+    line-height: 1.5;
+}
+
+.add-confirm-modal p strong {
+    color: #f1f5f9;
+}
+
+.add-confirm-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.add-cancel-btn {
+    flex: 1;
+    padding: 12px 16px;
+    background: #334155;
+    border: none;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 500;
+    color: #f1f5f9;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.2s ease;
+}
+
+.add-confirm-btn {
+    flex: 1;
+    padding: 12px 16px;
+    background: #10b981;
+    border: none;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    color: white;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.add-confirm-btn:hover,
+.add-confirm-btn:active {
+    background: #059669;
+}
+
+.add-confirm-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+/* ========================================
    SWIPE-TO-REVEAL EXERCISE CARD ACTIONS
    ======================================== */
 .exercise-card-wrapper {

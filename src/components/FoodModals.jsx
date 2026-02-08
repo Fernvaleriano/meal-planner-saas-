@@ -645,6 +645,7 @@ export function FavoritesModal({ isOpen, onClose, mealType, clientData, onFoodLo
   const [loading, setLoading] = useState(!getCachedFavorites().length);
   const [selectedMealType, setSelectedMealType] = useState(mealType);
   const [addingId, setAddingId] = useState(null);
+  const [confirmFavorite, setConfirmFavorite] = useState(null);
   const addingRef = useRef(false); // Ref to prevent duplicate submissions
   const { showError, showSuccess } = useToast();
 
@@ -777,7 +778,7 @@ export function FavoritesModal({ isOpen, onClose, mealType, clientData, onFoodLo
           ) : (
             <div className="favorites-list">
               {favorites.map((fav) => (
-                <div key={fav.id} className="favorite-item" onClick={() => addFavorite(fav)}>
+                <div key={fav.id} className="favorite-item" onClick={() => setConfirmFavorite(fav)}>
                   <div className="favorite-info">
                     <div className="favorite-name">{fav.meal_name}</div>
                     <div className="favorite-type">{fav.meal_type}</div>
@@ -799,6 +800,33 @@ export function FavoritesModal({ isOpen, onClose, mealType, clientData, onFoodLo
             </div>
           )}
         </div>
+
+        {confirmFavorite && (
+          <div className="add-confirm-overlay" onClick={() => setConfirmFavorite(null)}>
+            <div className="add-confirm-modal" onClick={e => e.stopPropagation()}>
+              <div className="add-confirm-icon">
+                <Plus size={32} />
+              </div>
+              <h3>Add to {selectedMealType.charAt(0).toUpperCase() + selectedMealType.slice(1)}?</h3>
+              <p>Add <strong>{confirmFavorite.meal_name}</strong> ({confirmFavorite.calories} cal) to your diary?</p>
+              <div className="add-confirm-actions">
+                <button className="add-cancel-btn" onClick={() => setConfirmFavorite(null)}>
+                  Cancel
+                </button>
+                <button
+                  className="add-confirm-btn"
+                  disabled={addingId === confirmFavorite.id}
+                  onClick={() => {
+                    addFavorite(confirmFavorite);
+                    setConfirmFavorite(null);
+                  }}
+                >
+                  {addingId === confirmFavorite.id ? <Loader size={16} className="spin" /> : 'Add'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
