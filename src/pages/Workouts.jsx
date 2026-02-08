@@ -2169,6 +2169,53 @@ function Workouts() {
     }
   }, [todayWorkout, todayWorkouts, selectedDate, showError]);
 
+  // Handle deleting the entire workout program/assignment (all days)
+  const handleDeleteEntireProgram = useCallback(async (workout) => {
+    if (!workout?.id) return;
+
+    const programName = workout.workout_data?.name || workout.name || 'this program';
+    const confirmed = window.confirm(
+      `Delete entire program "${programName}"?\n\nThis will remove all scheduled workout days for this program. This cannot be undone.`
+    );
+    if (!confirmed) return;
+
+    try {
+      if (workout.is_adhoc) {
+        // Ad-hoc workouts don't have a program - just delete this one
+        const isRealId = workout.id && !String(workout.id).startsWith('adhoc-') && !String(workout.id).startsWith('custom-') && !String(workout.id).startsWith('club-');
+        if (isRealId) {
+          await apiDelete(`/.netlify/functions/adhoc-workouts?workoutId=${workout.id}`);
+        }
+      } else {
+        // Delete the entire assignment
+        await apiDelete(`/.netlify/functions/workout-assignments?assignmentId=${workout.id}`);
+      }
+
+      // Clear all local workout state
+      setTodayWorkouts([]);
+      setTodayWorkout(null);
+      setWorkoutLog(null);
+      setCompletedExercises(new Set());
+      setWorkoutStarted(false);
+      setExpandedWorkout(false);
+      setCardMenuWorkoutId(null);
+
+      if (typeof showSuccess === 'function') {
+        showSuccess(`"${programName}" has been deleted`);
+      }
+    } catch (err) {
+      console.error('Error deleting program:', err);
+      if (err.status === 404 || err.message?.includes('not found')) {
+        // Already deleted - clean up local state
+        setTodayWorkouts([]);
+        setTodayWorkout(null);
+        setCardMenuWorkoutId(null);
+      } else {
+        showError('Failed to delete program: ' + (err.message || 'Unknown error'));
+      }
+    }
+  }, [showError, showSuccess]);
+
   // Calculate workout duration
   const workoutDuration = useMemo(() => {
     if (!workoutStartTime) return 0;
@@ -2676,46 +2723,57 @@ function Workouts() {
                               </span>
                             </div>
                           </div>
-                          <div className="workout-card-menu" onClick={(e) => {
-                            e.stopPropagation();
-                            setCardMenuWorkoutId(cardMenuWorkoutId === workout.id ? null : workout.id);
-                          }}>
-                            <MoreVertical size={20} />
-                            {cardMenuWorkoutId === workout.id && (
-                              <div className="card-dropdown-menu">
-                                <button
-                                  className="menu-item"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    openRescheduleModal('duplicate', workout);
-                                  }}
-                                >
-                                  <Copy size={16} />
-                                  <span>Duplicate</span>
-                                </button>
-                                <button
-                                  className="menu-item"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    openRescheduleModal('reschedule', workout);
-                                  }}
-                                >
-                                  <MoveRight size={16} />
-                                  <span>Move to Day</span>
-                                </button>
-                                <button
-                                  className="menu-item delete"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDeleteCardWorkout(workout);
-                                  }}
-                                >
-                                  <Trash2 size={16} />
-                                  <span>Delete</span>
-                                </button>
-                              </div>
-                            )}
-                          </div>
+                        </div>
+                        <div className="workout-card-menu" onClick={(e) => {
+                          e.stopPropagation();
+                          setCardMenuWorkoutId(cardMenuWorkoutId === workout.id ? null : workout.id);
+                        }}>
+                          <MoreVertical size={20} />
+                          {cardMenuWorkoutId === workout.id && (
+                            <div className="card-dropdown-menu">
+                              <button
+                                className="menu-item"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openRescheduleModal('duplicate', workout);
+                                }}
+                              >
+                                <Copy size={16} />
+                                <span>Duplicate</span>
+                              </button>
+                              <button
+                                className="menu-item"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openRescheduleModal('reschedule', workout);
+                                }}
+                              >
+                                <MoveRight size={16} />
+                                <span>Move to Day</span>
+                              </button>
+                              <button
+                                className="menu-item delete"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteCardWorkout(workout);
+                                }}
+                              >
+                                <SkipForward size={16} />
+                                <span>Skip Today</span>
+                              </button>
+                              <div className="menu-divider" />
+                              <button
+                                className="menu-item delete"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteEntireProgram(workout);
+                                }}
+                              >
+                                <Trash2 size={16} />
+                                <span>Delete Program</span>
+                              </button>
+                            </div>
+                          )}
                         </div>
                       </div>
                     );
