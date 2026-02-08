@@ -2226,122 +2226,12 @@ function ExerciseDetailModal({
       }
 
       // ============================================
-      // MUSCLE GROUP FALLBACKS (if name didn't match)
+      // NO MATCH - return null so we don't show generic advice
+      // for exercises we don't have specific data for
+      // (e.g., "standing quad stretch" shouldn't get weight training tips)
+      // Users can still tap "Ask Coach" for AI-powered guidance
       // ============================================
-
-      // Chest
-      if (muscleGroup.includes('chest') || muscleGroup.includes('pec')) {
-        return {
-          tips: [
-            'Retract shoulder blades and keep them pinched',
-            'Control the descent slowly',
-            'Full range of motion',
-            'Feel the chest stretch at bottom'
-          ],
-          mistakes: ['Flaring elbows to 90 degrees', 'Bouncing weight', 'Losing shoulder position'],
-          cues: ['Shoulders back', 'Chest up', 'Control', 'Squeeze']
-        };
-      }
-
-      // Back
-      if (muscleGroup.includes('back') || muscleGroup.includes('lat')) {
-        return {
-          tips: [
-            'Squeeze shoulder blades together',
-            'Pull with your elbows, not hands',
-            'Keep core engaged',
-            'Full stretch and contraction'
-          ],
-          mistakes: ['Using momentum', 'Rounding back', 'Not squeezing at contraction'],
-          cues: ['Elbows back', 'Squeeze blades', 'Control', 'Full range']
-        };
-      }
-
-      // Shoulders
-      if (muscleGroup.includes('shoulder') || muscleGroup.includes('delt')) {
-        return {
-          tips: [
-            'Control the weight throughout',
-            'Don\'t use momentum',
-            'Keep core tight',
-            'Full range of motion'
-          ],
-          mistakes: ['Using momentum', 'Excessive back arch', 'Partial range'],
-          cues: ['Control', 'Core tight', 'Full range']
-        };
-      }
-
-      // Arms
-      if (muscleGroup.includes('arm') || muscleGroup.includes('bicep') || muscleGroup.includes('tricep')) {
-        return {
-          tips: [
-            'Keep upper arms/elbows stationary',
-            'Full extension and contraction',
-            'Control the negative',
-            'Don\'t swing or use momentum'
-          ],
-          mistakes: ['Using momentum', 'Moving elbows', 'Partial range of motion'],
-          cues: ['Elbows still', 'Full range', 'Squeeze', 'Control']
-        };
-      }
-
-      // Legs/Quads
-      if (muscleGroup.includes('quad') || muscleGroup.includes('leg')) {
-        return {
-          tips: [
-            'Keep knees tracking over toes',
-            'Control the movement',
-            'Full range of motion',
-            'Keep core braced'
-          ],
-          mistakes: ['Knees caving inward', 'Partial range', 'Using momentum'],
-          cues: ['Knees out', 'Control', 'Full depth']
-        };
-      }
-
-      // Glutes/Hamstrings
-      if (muscleGroup.includes('glute') || muscleGroup.includes('hamstring')) {
-        return {
-          tips: [
-            'Focus on mind-muscle connection',
-            'Squeeze target muscle at contraction',
-            'Control the movement',
-            'Full range of motion'
-          ],
-          mistakes: ['Using lower back', 'Rushing through reps', 'Partial range'],
-          cues: ['Squeeze', 'Control', 'Full range']
-        };
-      }
-
-      // Core/Abs
-      if (muscleGroup.includes('core') || muscleGroup.includes('ab')) {
-        return {
-          tips: [
-            'Keep lower back pressed into floor (if applicable)',
-            'Control the movement',
-            'Exhale on exertion',
-            'Maintain tension throughout'
-          ],
-          mistakes: ['Using momentum', 'Pulling on neck', 'Holding breath'],
-          cues: ['Core tight', 'Control', 'Breathe']
-        };
-      }
-
-      // Default - still provide useful general tips
-      return {
-        tips: [
-          'Control the weight through full range of motion',
-          'Focus on the target muscle',
-          'Don\'t use momentum or swing',
-          'Breathe steadily - exhale on exertion'
-        ],
-        mistakes: [
-          'Using momentum instead of muscle',
-          'Partial range of motion',
-          'Going too heavy with poor form'
-        ],
-        cues: ['Control', 'Full range', 'Focus', 'Breathe']
-      };
+      return null;
     };
 
     // Check if exercise has curated coaching data from database
@@ -2356,10 +2246,19 @@ function ExerciseDetailModal({
       setCoachingCues(hasDbCues ? exercise.coaching_cues : []);
     } else {
       // Use static fallbacks - instant, no loading, no API dependency
+      // Returns null for exercises we don't have specific data for
       const staticData = getStaticCoachingData();
-      setTips(staticData.tips);
-      setCommonMistakes(staticData.mistakes);
-      setCoachingCues(staticData.cues);
+      if (staticData) {
+        setTips(staticData.tips);
+        setCommonMistakes(staticData.mistakes);
+        setCoachingCues(staticData.cues);
+      } else {
+        // No specific data for this exercise - hide tips sections
+        // User can still tap "Ask Coach" for AI-powered guidance
+        setTips([]);
+        setCommonMistakes([]);
+        setCoachingCues([]);
+      }
     }
     setTipsLoading(false);
   // NOTE: Only depend on exercise?.id to avoid infinite re-renders from array reference changes
@@ -3328,28 +3227,32 @@ function ExerciseDetailModal({
 
         {/* Coaching Tips Section */}
         <div className="ai-tips-section">
-          {/* Form Tips */}
-          <div className="tips-header">
-            <Lightbulb size={16} />
-            <span>Form Tips</span>
-            {tipsLoading && <Loader2 size={14} className="spin" />}
-          </div>
-          {tips.length > 0 ? (
-            <div className="tips-list">
-              {tips.map((tip, idx) => (
-                <div key={idx} className="tip-item">
-                  <span className="tip-bullet">•</span>
-                  <span className="tip-text">{tip}</span>
+          {/* Form Tips - only show header and content when we have real data */}
+          {(tips.length > 0 || tipsLoading) && (
+            <>
+              <div className="tips-header">
+                <Lightbulb size={16} />
+                <span>Form Tips</span>
+                {tipsLoading && <Loader2 size={14} className="spin" />}
+              </div>
+              {tips.length > 0 ? (
+                <div className="tips-list">
+                  {tips.map((tip, idx) => (
+                    <div key={idx} className="tip-item">
+                      <span className="tip-bullet">•</span>
+                      <span className="tip-text">{tip}</span>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          ) : tipsLoading ? (
-            <div className="tips-loading-placeholder">
-              <div className="tip-skeleton"></div>
-              <div className="tip-skeleton"></div>
-              <div className="tip-skeleton"></div>
-            </div>
-          ) : null}
+              ) : (
+                <div className="tips-loading-placeholder">
+                  <div className="tip-skeleton"></div>
+                  <div className="tip-skeleton"></div>
+                  <div className="tip-skeleton"></div>
+                </div>
+              )}
+            </>
+          )}
 
           {/* Common Mistakes */}
           {commonMistakes.length > 0 && (
