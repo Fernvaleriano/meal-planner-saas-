@@ -275,12 +275,12 @@ JSON structure:
     })();
 
     const parsePromise = anthropic.messages.create({
-      model: 'claude-3-5-haiku-20241022',
-      max_tokens: 4096,
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 16384,
       system: systemPrompt,
       messages: [{
         role: 'user',
-        content: `Parse this workout program. Return only valid JSON.\n\n${trimmedContent}`
+        content: `Parse this COMPLETE workout program. Extract ALL days and ALL exercises. Return only valid JSON.\n\n${trimmedContent}`
       }]
     });
 
