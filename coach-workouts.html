@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Workout Builder - Zique Fitness</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        if (window.pdfjsLib) {
+            window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        }
+    </script>
     <script src="/js/theme.js"></script>
     <script src="/js/gym-features.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -7186,7 +7192,7 @@
             document.getElementById('importModal').classList.remove('active');
         }
 
-        function handleImportFile(event) {
+        async function handleImportFile(event) {
             const file = event.target.files[0];
             if (!file) return;
 
@@ -7208,14 +7214,40 @@
             `;
             infoEl.style.display = '';
 
-            // Read file content
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                importFileContent = e.target.result;
-                // Also put it in the paste area for visibility
-                document.getElementById('importPasteArea').value = importFileContent;
-            };
-            reader.readAsText(file);
+            const isPDF = file.name.toLowerCase().endsWith('.pdf');
+
+            if (isPDF && window.pdfjsLib) {
+                // Extract text from PDF using pdf.js
+                try {
+                    infoEl.querySelector('.file-name').textContent = `${file.name} - Extracting text...`;
+                    const arrayBuffer = await file.arrayBuffer();
+                    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                    let fullText = '';
+
+                    for (let i = 1; i <= pdf.numPages; i++) {
+                        const page = await pdf.getPage(i);
+                        const textContent = await page.getTextContent();
+                        const pageText = textContent.items.map(item => item.str).join(' ');
+                        fullText += pageText + '\n\n';
+                    }
+
+                    importFileContent = fullText.trim();
+                    document.getElementById('importPasteArea').value = importFileContent;
+                    infoEl.querySelector('.file-name').textContent = `${file.name} (${(file.size / 1024).toFixed(1)} KB) - ${pdf.numPages} pages extracted`;
+                } catch (err) {
+                    console.error('PDF extraction error:', err);
+                    showToast('Could not read PDF. Please copy/paste the text instead.', 'error');
+                    infoEl.style.display = 'none';
+                }
+            } else {
+                // Read as plain text for .txt, .csv files
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    importFileContent = e.target.result;
+                    document.getElementById('importPasteArea').value = importFileContent;
+                };
+                reader.readAsText(file);
+            }
         }
 
         function removeImportFile() {
@@ -7275,6 +7307,15 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ fileContent: textContent })
                 });
+
+                // Handle timeout/server errors that return HTML instead of JSON
+                const contentType = response.headers.get('content-type') || '';
+                if (!contentType.includes('application/json')) {
+                    if (response.status === 504) {
+                        throw new Error('The server timed out processing your request. Try pasting a shorter section of the program, or paste the text from just one or two days at a time.');
+                    }
+                    throw new Error(`Server error (${response.status}). Please try again.`);
+                }
 
                 const result = await response.json();
 
