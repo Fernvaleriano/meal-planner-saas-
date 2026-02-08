@@ -393,30 +393,82 @@ function GuidedWorkoutModal({
         const lastMaxReps = lastSets.reduce((max, s) => Math.max(max, s.reps || 0), 0);
         const lastNumSets = lastSets.length || 3;
 
+        // Get the most common effort from last session (if any sets had effort logged)
+        const effortCounts = {};
+        lastSets.forEach(s => {
+          if (s.effort) effortCounts[s.effort] = (effortCounts[s.effort] || 0) + 1;
+        });
+        const lastEffort = Object.keys(effortCounts).length > 0
+          ? Object.entries(effortCounts).sort((a, b) => b[1] - a[1])[0][0]
+          : null;
+
         if (lastMaxWeight > 0 || lastMaxReps > 0) {
           const dateLabel = new Date(last.workoutDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
-          // Generate AI recommendation based on history
+          // Generate AI recommendation based on history + effort
           let recommendedReps = lastMaxReps;
           let recommendedWeight = lastMaxWeight;
           let recommendedSets = lastNumSets;
           let reasoning = '';
 
-          // Progressive overload logic
-          if (lastMaxReps >= 12) {
-            // Hit 12+ reps, time to increase weight
-            recommendedWeight = lastMaxWeight + 2.5;
-            recommendedReps = 8;
-            reasoning = `You hit ${lastMaxReps} reps last time. Let's increase weight and drop to 8 reps to build strength.`;
-          } else if (lastMaxReps < 8) {
-            // Under 8 reps, keep same weight and aim to increase reps
-            recommendedReps = lastMaxReps + 1;
-            reasoning = `Working on building up to 8+ reps. Try for ${recommendedReps} this time.`;
+          // Progressive overload logic factoring in effort
+          if (lastEffort === 'easy') {
+            // They had 4+ reps in reserve — push harder
+            if (lastMaxReps >= 10) {
+              recommendedWeight = lastMaxWeight + 2.5;
+              recommendedReps = Math.max(8, lastMaxReps - 2);
+              reasoning = `Last time felt easy with reps to spare. Let's bump the weight up and aim for ${recommendedReps} reps.`;
+            } else {
+              recommendedReps = lastMaxReps + 2;
+              reasoning = `That was easy last time! Let's push for ${recommendedReps} reps before adding weight.`;
+            }
+          } else if (lastEffort === 'moderate') {
+            // 2-3 reps left — steady progress
+            if (lastMaxReps >= 12) {
+              recommendedWeight = lastMaxWeight + 2.5;
+              recommendedReps = 8;
+              reasoning = `Solid effort last time at ${lastMaxReps} reps. Time to increase weight and build from 8 reps.`;
+            } else {
+              recommendedReps = lastMaxReps + 1;
+              reasoning = `Good challenge last time. Let's add one more rep to keep progressing.`;
+            }
+          } else if (lastEffort === 'hard') {
+            // 1 rep left — near limit, stay or tiny increase
+            if (lastMaxReps >= 12) {
+              recommendedWeight = lastMaxWeight + 2.5;
+              recommendedReps = 8;
+              reasoning = `That was tough at ${lastMaxReps} reps but you're ready for more weight. Drop to 8 reps at the heavier load.`;
+            } else {
+              recommendedReps = lastMaxReps;
+              reasoning = `That was a hard set last time. Let's match it and build consistency before pushing further.`;
+            }
+          } else if (lastEffort === 'maxed') {
+            // 0 reps left — at max, hold steady or back off slightly
+            if (lastMaxReps <= 6) {
+              recommendedWeight = Math.max(0, lastMaxWeight - 2.5);
+              recommendedReps = lastMaxReps + 2;
+              reasoning = `You went all out last time at low reps. Let's drop the weight slightly and aim for more reps with better form.`;
+            } else {
+              recommendedReps = lastMaxReps;
+              reasoning = `You maxed out last session. Let's match those numbers and focus on clean reps before progressing.`;
+            }
           } else {
-            // 8-11 reps, progressive increase
-            recommendedReps = lastMaxReps + 1;
-            reasoning = `Good progress! Aim for one more rep than last session.`;
+            // No effort data — fall back to rep-based logic
+            if (lastMaxReps >= 12) {
+              recommendedWeight = lastMaxWeight + 2.5;
+              recommendedReps = 8;
+              reasoning = `You hit ${lastMaxReps} reps last time. Let's increase weight and drop to 8 reps to build strength.`;
+            } else if (lastMaxReps < 8) {
+              recommendedReps = lastMaxReps + 1;
+              reasoning = `Working on building up to 8+ reps. Try for ${recommendedReps} this time.`;
+            } else {
+              recommendedReps = lastMaxReps + 1;
+              reasoning = `Good progress! Aim for one more rep than last session.`;
+            }
           }
+
+          const effortLabel = lastEffort === 'easy' ? 'felt easy' : lastEffort === 'moderate' ? 'felt moderate' : lastEffort === 'hard' ? 'felt hard' : lastEffort === 'maxed' ? 'went all out' : null;
+          const progressMsg = `On ${dateLabel}: ${lastMaxReps} reps @ ${lastMaxWeight} ${weightUnit}${effortLabel ? ` (${effortLabel})` : ''}.`;
 
           setProgressTips(prev => ({
             ...prev,
@@ -424,8 +476,8 @@ function GuidedWorkoutModal({
               type: 'progress',
               icon: '📈',
               title: 'Keep progressing',
-              message: `On ${dateLabel}: ${lastMaxReps} reps @ ${lastMaxWeight} ${weightUnit}.`,
-              lastSession: { reps: lastMaxReps, weight: lastMaxWeight, sets: lastNumSets, date: dateLabel }
+              message: progressMsg,
+              lastSession: { reps: lastMaxReps, weight: lastMaxWeight, sets: lastNumSets, date: dateLabel, effort: lastEffort }
             }
           }));
 
@@ -436,7 +488,7 @@ function GuidedWorkoutModal({
               reps: recommendedReps,
               weight: recommendedWeight,
               reasoning,
-              lastSession: { reps: lastMaxReps, weight: lastMaxWeight, sets: lastNumSets }
+              lastSession: { reps: lastMaxReps, weight: lastMaxWeight, sets: lastNumSets, effort: lastEffort }
             }
           }));
         } else {
