@@ -1,66 +1,17 @@
-// Generate image styling questions for a meal using Gemini 2.5 Flash
+// Generate image styling questions for a meal using Gemini 2.5 Flash (with Claude fallback)
 const { handleCors, authenticateRequest, corsHeaders } = require('./utils/auth');
+const Anthropic = require('@anthropic-ai/sdk');
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
 const headers = {
     ...corsHeaders,
     'Content-Type': 'application/json'
 };
 
-exports.handler = async (event, context) => {
-    try {
-        // Handle CORS preflight
-        const corsResponse = handleCors(event);
-        if (corsResponse) return corsResponse;
-
-        if (event.httpMethod !== 'POST') {
-            return {
-                statusCode: 405,
-                headers,
-                body: JSON.stringify({ error: 'Method not allowed' })
-            };
-        }
-
-        // Verify authenticated user
-        const { user, error: authError } = await authenticateRequest(event);
-        if (authError) return authError;
-
-        if (!GEMINI_API_KEY) {
-            console.error('GEMINI_API_KEY is not configured');
-            return {
-                statusCode: 500,
-                headers,
-                body: JSON.stringify({ error: 'AI is not configured' })
-            };
-        }
-
-        // Parse body
-        let body;
-        try {
-            body = JSON.parse(event.body || '{}');
-        } catch (parseErr) {
-            return {
-                statusCode: 400,
-                headers,
-                body: JSON.stringify({ error: 'Invalid JSON body' })
-            };
-        }
-
-        const { mealName } = body;
-
-        if (!mealName) {
-            return {
-                statusCode: 400,
-                headers,
-                body: JSON.stringify({ error: 'Meal name is required' })
-            };
-        }
-
-        console.log(`🎨 Generating image styling questions for: ${mealName}`);
-
-        const prompt = `You are a food photography stylist. Given this meal: "${mealName}"
+const STYLE_PROMPT = (mealName) => `You are a food photography stylist. Given this meal: "${mealName}"
 
 Generate exactly 3 questions to help style the food photo. Each question should have 3-4 short button options.
 
@@ -92,49 +43,131 @@ For drinks/shakes: ask about glass type, toppings, garnish placement.
 For bowls: ask about bowl type, ingredient layering, topping arrangement.
 Return ONLY the JSON.`;
 
-        const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{ parts: [{ text: prompt }] }],
-                generationConfig: {
-                    temperature: 0.7,
-                    maxOutputTokens: 512
-                }
-            })
-        });
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error('Gemini API error:', errorText);
-            throw new Error(`Gemini API error: ${response.status}`);
+function parseQuestionsJSON(content) {
+    try {
+        return JSON.parse(content.trim());
+    } catch (e) {
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+            return JSON.parse(jsonMatch[0]);
         }
+        throw new Error('Could not parse AI response');
+    }
+}
 
-        const data = await response.json();
-
-        if (!data.candidates || !data.candidates[0]?.content?.parts?.[0]?.text) {
-            console.error('Invalid Gemini response');
-            throw new Error('Invalid AI response');
-        }
-
-        const content = data.candidates[0].content.parts[0].text.trim();
-
-        // Parse JSON response
-        let result;
-        try {
-            result = JSON.parse(content);
-        } catch (parseError) {
-            // Try to extract JSON from markdown
-            const jsonMatch = content.match(/\{[\s\S]*\}/);
-            if (jsonMatch) {
-                result = JSON.parse(jsonMatch[0]);
-            } else {
-                throw new Error('Could not parse AI response');
+async function generateWithGemini(mealName) {
+    const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            contents: [{ parts: [{ text: STYLE_PROMPT(mealName) }] }],
+            generationConfig: {
+                temperature: 0.7,
+                maxOutputTokens: 512
             }
+        })
+    });
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Gemini API error: ${response.status} - ${errorText.substring(0, 200)}`);
+    }
+
+    const data = await response.json();
+
+    if (!data.candidates || !data.candidates[0]?.content?.parts?.[0]?.text) {
+        throw new Error('Invalid Gemini response');
+    }
+
+    return parseQuestionsJSON(data.candidates[0].content.parts[0].text);
+}
+
+async function generateWithClaude(mealName) {
+    const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
+    const msg = await anthropic.messages.create({
+        model: 'claude-3-5-haiku-20241022',
+        max_tokens: 512,
+        messages: [{
+            role: 'user',
+            content: STYLE_PROMPT(mealName)
+        }]
+    });
+
+    const text = msg.content[0]?.text || '';
+    return parseQuestionsJSON(text);
+}
+
+exports.handler = async (event, context) => {
+    try {
+        // Handle CORS preflight
+        const corsResponse = handleCors(event);
+        if (corsResponse) return corsResponse;
+
+        if (event.httpMethod !== 'POST') {
+            return {
+                statusCode: 405,
+                headers,
+                body: JSON.stringify({ error: 'Method not allowed' })
+            };
+        }
+
+        // Verify authenticated user
+        const { user, error: authError } = await authenticateRequest(event);
+        if (authError) return authError;
+
+        if (!GEMINI_API_KEY && !ANTHROPIC_API_KEY) {
+            console.error('No AI API keys configured');
+            return {
+                statusCode: 500,
+                headers,
+                body: JSON.stringify({ error: 'AI is not configured' })
+            };
+        }
+
+        // Parse body
+        let body;
+        try {
+            body = JSON.parse(event.body || '{}');
+        } catch (parseErr) {
+            return {
+                statusCode: 400,
+                headers,
+                body: JSON.stringify({ error: 'Invalid JSON body' })
+            };
+        }
+
+        const { mealName } = body;
+
+        if (!mealName) {
+            return {
+                statusCode: 400,
+                headers,
+                body: JSON.stringify({ error: 'Meal name is required' })
+            };
+        }
+
+        console.log(`🎨 Generating image styling questions for: ${mealName}`);
+
+        let result;
+
+        // Try Gemini first, fall back to Claude
+        if (GEMINI_API_KEY) {
+            try {
+                result = await generateWithGemini(mealName);
+            } catch (geminiError) {
+                console.warn('Gemini failed, falling back to Claude:', geminiError.message);
+                if (ANTHROPIC_API_KEY) {
+                    result = await generateWithClaude(mealName);
+                } else {
+                    throw geminiError;
+                }
+            }
+        } else if (ANTHROPIC_API_KEY) {
+            result = await generateWithClaude(mealName);
         }
 
         // Validate structure
-        if (!result.questions || !Array.isArray(result.questions)) {
+        if (!result || !result.questions || !Array.isArray(result.questions)) {
             throw new Error('Invalid response structure');
         }
 
