@@ -84,22 +84,22 @@ exports.handler = async (event) => {
 
       // Get assignments for a client
       if (clientId) {
-        // If date is provided, get the specific workout for that date
+        // If date is provided, get workouts for that date from all active assignments
         if (date) {
-          // First get the active assignment - use maybeSingle to avoid errors when no assignment exists
-          const { data: activeAssignment, error: assignmentError } = await supabase
+          // Get all active assignments for this client
+          const { data: activeAssignments, error: assignmentError } = await supabase
             .from('client_workout_assignments')
             .select('*')
             .eq('client_id', clientId)
             .eq('is_active', true)
-            .maybeSingle();
+            .order('created_at', { ascending: false });
 
-          if (assignmentError && assignmentError.code !== 'PGRST116') {
-            console.error('Error fetching active assignment:', assignmentError);
+          if (assignmentError) {
+            console.error('Error fetching active assignments:', assignmentError);
             throw assignmentError;
           }
 
-          if (!activeAssignment) {
+          if (!activeAssignments || activeAssignments.length === 0) {
             // Check for ad-hoc workouts created by the client on this date
             try {
               const { data: adhocWorkout } = await supabase
@@ -139,159 +139,147 @@ exports.handler = async (event) => {
             };
           }
 
-          // Calculate which day of the program this date corresponds to
-          const workoutData = activeAssignment.workout_data || {};
-          const days = workoutData.days || [];
-          const schedule = workoutData.schedule || activeAssignment.schedule || {};
-          const startDate = activeAssignment.start_date ? new Date(activeAssignment.start_date) : new Date(activeAssignment.created_at);
-          const targetDate = new Date(date);
-
-          // Resolve image_url: use assignment's image, or fall back to program's image
-          let resolvedImageUrl = workoutData.image_url || null;
-          if (!resolvedImageUrl && activeAssignment.program_id) {
-            try {
-              const { data: programData } = await supabase
-                .from('workout_programs')
-                .select('program_data')
-                .eq('id', activeAssignment.program_id)
-                .single();
-              resolvedImageUrl = programData?.program_data?.image_url || null;
-            } catch (e) {
-              // Ignore - program may have been deleted
-            }
-          }
-
-          // Get day of week (0=Sunday, 6=Saturday)
-          const targetDayOfWeek = targetDate.getDay();
           const dayNames = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+          const targetDate = new Date(date);
+          const targetDayOfWeek = targetDate.getDay();
           const targetDayName = dayNames[targetDayOfWeek];
 
-          // Check if this day is in the selected days (if schedule exists)
-          const selectedDays = schedule.selectedDays || ['mon', 'tue', 'wed', 'thu', 'fri'];
+          // Process each active assignment to find workouts for this date
+          const todayWorkouts = [];
 
-          // Check for date overrides (reschedule/duplicate/skip)
-          const dateOverrides = workoutData.date_overrides || {};
-          const dateKey = date; // Date string like "2025-12-28"
-          const override = dateOverrides[dateKey];
+          for (const activeAssignment of activeAssignments) {
+            const workoutData = activeAssignment.workout_data || {};
+            const days = workoutData.days || [];
+            const schedule = workoutData.schedule || activeAssignment.schedule || {};
+            const startDate = activeAssignment.start_date ? new Date(activeAssignment.start_date) : new Date(activeAssignment.created_at);
 
-          let todayWorkout = null;
-
-          // If there's an override for this date, use it
-          if (override) {
-            if (override.isRest) {
-              // This date was marked as rest day
-              return {
-                statusCode: 200,
-                headers,
-                body: JSON.stringify({ assignments: [] })
-              };
+            // Resolve image_url: use assignment's image, or fall back to program's image
+            let resolvedImageUrl = workoutData.image_url || null;
+            if (!resolvedImageUrl && activeAssignment.program_id) {
+              try {
+                const { data: programData } = await supabase
+                  .from('workout_programs')
+                  .select('program_data')
+                  .eq('id', activeAssignment.program_id)
+                  .single();
+                resolvedImageUrl = programData?.program_data?.image_url || null;
+              } catch (e) {
+                // Ignore - program may have been deleted
+              }
             }
 
-            if (override.dayIndex !== undefined && days.length > 0) {
-              // Use the overridden day index
-              const dayIndex = override.dayIndex % days.length;
-              // Enrich exercises with equipment data before returning
-              const enrichedExercises = await enrichExercisesWithEquipment(
-                days[dayIndex].exercises || [],
-                supabase
-              );
+            const selectedDays = schedule.selectedDays || ['mon', 'tue', 'wed', 'thu', 'fri'];
 
-              todayWorkout = {
-                id: activeAssignment.id,
-                name: days[dayIndex].name || `Day ${dayIndex + 1}`,
-                day_index: dayIndex,
-                workout_data: {
-                  ...days[dayIndex],
-                  exercises: enrichedExercises,
-                  estimatedMinutes: days[dayIndex].estimatedMinutes || 45,
-                  estimatedCalories: days[dayIndex].estimatedCalories || 300,
-                  image_url: resolvedImageUrl
-                },
-                program_id: activeAssignment.program_id,
-                client_id: activeAssignment.client_id,
-                is_override: true
-              };
+            // Check for date overrides (reschedule/duplicate/skip)
+            const dateOverrides = workoutData.date_overrides || {};
+            const dateKey = date;
+            const override = dateOverrides[dateKey];
 
-              return {
-                statusCode: 200,
-                headers,
-                body: JSON.stringify({
-                  assignments: [todayWorkout]
-                })
-              };
-            }
-          }
+            let todayWorkout = null;
 
-          if (days.length > 0) {
-            // Check if this day of week is a workout day
-            const isWorkoutDay = selectedDays.includes(targetDayName);
-
-            if (isWorkoutDay) {
-              // Calculate which workout day this is
-              // Count workout days from start date to target date
-              let workoutDayCount = 0;
-              const tempDate = new Date(startDate);
-
-              // Safety limit: max 365 days to prevent infinite loops
-              let loopCount = 0;
-              const maxLoops = 365;
-
-              while (tempDate < targetDate && loopCount < maxLoops) {
-                const tempDayName = dayNames[tempDate.getDay()];
-                if (selectedDays.includes(tempDayName)) {
-                  workoutDayCount++;
-                }
-                tempDate.setDate(tempDate.getDate() + 1);
-                loopCount++;
+            // If there's an override for this date, use it
+            if (override) {
+              if (override.isRest) {
+                // This assignment is a rest day on this date, skip it
+                continue;
               }
 
-              // Cycle through program days
-              const dayIndex = workoutDayCount % days.length;
+              if (override.dayIndex !== undefined && days.length > 0) {
+                const dayIndex = override.dayIndex % days.length;
+                const enrichedExercises = await enrichExercisesWithEquipment(
+                  days[dayIndex].exercises || [],
+                  supabase
+                );
 
+                todayWorkout = {
+                  id: activeAssignment.id,
+                  name: days[dayIndex].name || `Day ${dayIndex + 1}`,
+                  day_index: dayIndex,
+                  workout_data: {
+                    ...days[dayIndex],
+                    exercises: enrichedExercises,
+                    estimatedMinutes: days[dayIndex].estimatedMinutes || 45,
+                    estimatedCalories: days[dayIndex].estimatedCalories || 300,
+                    image_url: resolvedImageUrl
+                  },
+                  program_id: activeAssignment.program_id,
+                  client_id: activeAssignment.client_id,
+                  is_override: true
+                };
+                todayWorkouts.push(todayWorkout);
+                continue;
+              }
+            }
+
+            if (days.length > 0) {
+              const isWorkoutDay = selectedDays.includes(targetDayName);
+
+              if (isWorkoutDay) {
+                let workoutDayCount = 0;
+                const tempDate = new Date(startDate);
+
+                let loopCount = 0;
+                const maxLoops = 365;
+
+                while (tempDate < targetDate && loopCount < maxLoops) {
+                  const tempDayName = dayNames[tempDate.getDay()];
+                  if (selectedDays.includes(tempDayName)) {
+                    workoutDayCount++;
+                  }
+                  tempDate.setDate(tempDate.getDate() + 1);
+                  loopCount++;
+                }
+
+                const dayIndex = workoutDayCount % days.length;
+
+                todayWorkout = {
+                  id: activeAssignment.id,
+                  name: days[dayIndex].name || `Day ${dayIndex + 1}`,
+                  day_index: dayIndex,
+                  workout_data: {
+                    ...days[dayIndex],
+                    exercises: days[dayIndex].exercises || [],
+                    estimatedMinutes: days[dayIndex].estimatedMinutes || 45,
+                    estimatedCalories: days[dayIndex].estimatedCalories || 300,
+                    image_url: resolvedImageUrl
+                  },
+                  program_id: activeAssignment.program_id,
+                  client_id: activeAssignment.client_id
+                };
+              }
+            } else if (workoutData.exercises) {
               todayWorkout = {
                 id: activeAssignment.id,
-                name: days[dayIndex].name || `Day ${dayIndex + 1}`,
-                day_index: dayIndex,
+                name: activeAssignment.name || 'Today\'s Workout',
                 workout_data: {
-                  ...days[dayIndex],
-                  exercises: days[dayIndex].exercises || [],
-                  estimatedMinutes: days[dayIndex].estimatedMinutes || 45,
-                  estimatedCalories: days[dayIndex].estimatedCalories || 300,
+                  exercises: workoutData.exercises,
+                  estimatedMinutes: 45,
+                  estimatedCalories: 300,
                   image_url: resolvedImageUrl
                 },
                 program_id: activeAssignment.program_id,
                 client_id: activeAssignment.client_id
               };
             }
-          } else if (workoutData.exercises) {
-            // Fallback: use flat exercises list (for legacy data)
-            todayWorkout = {
-              id: activeAssignment.id,
-              name: activeAssignment.name || 'Today\'s Workout',
-              workout_data: {
-                exercises: workoutData.exercises,
-                estimatedMinutes: 45,
-                estimatedCalories: 300,
-                image_url: resolvedImageUrl
-              },
-              program_id: activeAssignment.program_id,
-              client_id: activeAssignment.client_id
-            };
-          }
 
-          // Enrich exercises with equipment data if missing
-          if (todayWorkout?.workout_data?.exercises) {
-            todayWorkout.workout_data.exercises = await enrichExercisesWithEquipment(
-              todayWorkout.workout_data.exercises,
-              supabase
-            );
+            // Enrich exercises with equipment data if missing
+            if (todayWorkout?.workout_data?.exercises) {
+              todayWorkout.workout_data.exercises = await enrichExercisesWithEquipment(
+                todayWorkout.workout_data.exercises,
+                supabase
+              );
+            }
+
+            if (todayWorkout) {
+              todayWorkouts.push(todayWorkout);
+            }
           }
 
           return {
             statusCode: 200,
             headers,
             body: JSON.stringify({
-              assignments: todayWorkout ? [todayWorkout] : []
+              assignments: todayWorkouts
             })
           };
         }
@@ -383,13 +371,6 @@ exports.handler = async (event) => {
         finalWorkoutData = finalWorkoutData || program.program_data;
         finalName = finalName || program.name;
       }
-
-      // Deactivate any existing active assignments for this client
-      await supabase
-        .from('client_workout_assignments')
-        .update({ is_active: false })
-        .eq('client_id', clientId)
-        .eq('is_active', true);
 
       // Store schedule in workout_data to avoid needing a new column
       const workoutDataWithSchedule = {
