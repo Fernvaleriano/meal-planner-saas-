@@ -4380,7 +4380,7 @@
                 saveLocalDismissed(_dismissedFromDb);
                 renderPriorityAlertSections();
 
-                // Sync with backend - revert if fails
+                // Sync with backend - keep local state if sync fails
                 try {
                     const response = await fetch('/.netlify/functions/dismiss-activity', {
                         method: 'DELETE',
@@ -4393,19 +4393,14 @@
                         })
                     });
                     if (!response.ok) {
-                        console.warn('Could not sync restore to database, reverting');
-                        _dismissedFromDb.add(alertId);
-                        saveLocalDismissed(_dismissedFromDb);
-                        renderPriorityAlertSections();
+                        console.warn('Could not sync restore to database, keeping local state');
                         _dbAvailable = false;
                     } else {
+                        _dbDismissedIds.delete(alertId);
                         _dbAvailable = true;
                     }
                 } catch (err) {
-                    console.warn('Could not sync restore to database, reverting:', err);
-                    _dismissedFromDb.add(alertId);
-                    saveLocalDismissed(_dismissedFromDb);
-                    renderPriorityAlertSections();
+                    console.warn('Could not sync restore to database, keeping local state:', err);
                     _dbAvailable = false;
                 }
             } else {
@@ -4422,7 +4417,7 @@
                     renderPriorityAlertSections();
                 }
 
-                // Sync with backend - revert if fails
+                // Sync with backend - keep local state if sync fails
                 try {
                     const response = await fetch('/.netlify/functions/dismiss-activity', {
                         method: 'POST',
@@ -4435,19 +4430,16 @@
                         })
                     });
                     if (!response.ok) {
-                        console.warn('Could not sync dismissal to database, reverting');
-                        _dismissedFromDb.delete(alertId);
-                        saveLocalDismissed(_dismissedFromDb);
-                        renderPriorityAlertSections();
+                        console.warn('Could not sync dismissal to database, keeping local state');
+                        _localOnlyDismissed.add(alertId);
                         _dbAvailable = false;
                     } else {
+                        _dbDismissedIds.add(alertId);
                         _dbAvailable = true;
                     }
                 } catch (err) {
-                    console.warn('Could not sync dismissal to database, reverting:', err);
-                    _dismissedFromDb.delete(alertId);
-                    saveLocalDismissed(_dismissedFromDb);
-                    renderPriorityAlertSections();
+                    console.warn('Could not sync dismissal to database, keeping local state:', err);
+                    _localOnlyDismissed.add(alertId);
                     _dbAvailable = false;
                 }
             }
