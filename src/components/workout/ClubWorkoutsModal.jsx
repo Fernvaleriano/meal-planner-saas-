@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { X, Dumbbell, Clock, Flame, ChevronRight, Search, Filter, Users, Loader2, CalendarPlus, Layers } from 'lucide-react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { X, Dumbbell, Clock, Flame, ChevronRight, Search, Filter, Users, Loader2, CalendarPlus, Layers, Calendar, Check } from 'lucide-react';
 import { apiGet } from '../../utils/api';
 
 const CATEGORY_LABELS = {
@@ -44,7 +44,17 @@ function formatDuration(seconds) {
   return `${num}s`;
 }
 
-function ClubWorkoutsModal({ onClose, onSelectWorkout, coachId }) {
+const DAY_LABELS = [
+  { key: 'sun', label: 'S', full: 'Sunday' },
+  { key: 'mon', label: 'M', full: 'Monday' },
+  { key: 'tue', label: 'T', full: 'Tuesday' },
+  { key: 'wed', label: 'W', full: 'Wednesday' },
+  { key: 'thu', label: 'T', full: 'Thursday' },
+  { key: 'fri', label: 'F', full: 'Friday' },
+  { key: 'sat', label: 'S', full: 'Saturday' }
+];
+
+function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachId }) {
   const [workouts, setWorkouts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState('');
@@ -53,6 +63,9 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, coachId }) {
   const [selectedProgram, setSelectedProgram] = useState(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [scheduleDate, setScheduleDate] = useState('');
+  const [showScheduling, setShowScheduling] = useState(false);
+  const [scheduleStartDate, setScheduleStartDate] = useState('');
+  const [selectedDays, setSelectedDays] = useState(['mon', 'tue', 'wed', 'thu', 'fri']);
 
   // Lock body scroll
   useEffect(() => {
@@ -76,8 +89,9 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, coachId }) {
   // Separate listener so selectedWorkout/selectedProgram are always current in the closure
   useEffect(() => {
     const handlePopState = () => {
-      if (selectedWorkout) {
-        // If we came from a program view, go back to it
+      if (showScheduling) {
+        setShowScheduling(false);
+      } else if (selectedWorkout) {
         if (selectedProgram) {
           setSelectedWorkout(null);
         } else {
@@ -92,13 +106,15 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, coachId }) {
 
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [onClose, selectedWorkout, selectedProgram]);
+  }, [onClose, selectedWorkout, selectedProgram, showScheduling]);
 
   // Handle escape key
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
-        if (selectedWorkout) {
+        if (showScheduling) {
+          setShowScheduling(false);
+        } else if (selectedWorkout) {
           if (selectedProgram) {
             setSelectedWorkout(null);
           } else {
@@ -113,7 +129,7 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, coachId }) {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onClose, selectedWorkout, selectedProgram]);
+  }, [onClose, selectedWorkout, selectedProgram, showScheduling]);
 
   // Fetch club workouts
   useEffect(() => {
@@ -152,6 +168,38 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, coachId }) {
 
   // Get unique categories from workouts
   const availableCategories = [...new Set(workouts.map(w => w.category).filter(Boolean))];
+
+  // Schedule calculation for multi-day programs
+  const scheduleInfo = useMemo(() => {
+    if (!selectedProgram || !showScheduling) return null;
+    const totalDays = selectedProgram.total_days || selectedProgram.days?.length || 0;
+    const daysPerWeek = selectedDays.length;
+    if (daysPerWeek === 0 || totalDays === 0) return { weeks: 0, totalDays, daysPerWeek: 0 };
+    const weeks = Math.ceil(totalDays / daysPerWeek);
+    return { weeks, totalDays, daysPerWeek };
+  }, [selectedProgram, showScheduling, selectedDays]);
+
+  const toggleDay = useCallback((dayKey) => {
+    setSelectedDays(prev => {
+      if (prev.includes(dayKey)) {
+        if (prev.length <= 1) return prev; // Keep at least 1 day
+        return prev.filter(d => d !== dayKey);
+      }
+      return [...prev, dayKey];
+    });
+  }, []);
+
+  const handleConfirmSchedule = useCallback(() => {
+    if (!selectedProgram || !scheduleStartDate || selectedDays.length === 0) return;
+    if (!onScheduleProgram) return;
+
+    onScheduleProgram({
+      program: selectedProgram,
+      startDate: scheduleStartDate,
+      selectedDays,
+      weeks: scheduleInfo?.weeks || 1
+    });
+  }, [selectedProgram, scheduleStartDate, selectedDays, scheduleInfo, onScheduleProgram]);
 
   // Handle selecting a workout to use (optionally for a specific date)
   const handleUseWorkout = useCallback((workout, forDate) => {
@@ -342,6 +390,105 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, coachId }) {
     );
   }
 
+  // Program scheduling view
+  if (selectedProgram && showScheduling) {
+    const program = selectedProgram;
+    const today = new Date().toISOString().split('T')[0];
+
+    return (
+      <div className="club-workouts-overlay" onClick={onClose}>
+        <div className="club-workouts-modal" onClick={e => e.stopPropagation()}>
+          <div className="club-workouts-header">
+            <button className="club-workouts-back" onClick={() => setShowScheduling(false)}>
+              <ChevronRight size={24} style={{ transform: 'rotate(180deg)' }} />
+            </button>
+            <h2>Schedule Program</h2>
+            <button className="club-workouts-close" onClick={onClose}>
+              <X size={24} />
+            </button>
+          </div>
+
+          <div className="club-workouts-content">
+            {/* Program Summary */}
+            <div className="schedule-program-summary">
+              <h3>{program.name}</h3>
+              <div className="schedule-program-meta">
+                <span><Layers size={14} /> {program.total_days || program.days?.length} workout days</span>
+                <span><Dumbbell size={14} /> {program.total_exercises} exercises</span>
+              </div>
+            </div>
+
+            {/* Start Date */}
+            <div className="schedule-section">
+              <label className="schedule-label">Start Date</label>
+              <input
+                type="date"
+                value={scheduleStartDate}
+                onChange={(e) => setScheduleStartDate(e.target.value)}
+                min={today}
+                className="schedule-date-input"
+              />
+            </div>
+
+            {/* Day of Week Selector */}
+            <div className="schedule-section">
+              <label className="schedule-label">Workout Days</label>
+              <p className="schedule-hint">Select which days of the week to train</p>
+              <div className="schedule-day-toggles">
+                {DAY_LABELS.map(({ key, label, full }) => (
+                  <button
+                    key={key}
+                    className={`schedule-day-btn ${selectedDays.includes(key) ? 'active' : ''}`}
+                    onClick={() => toggleDay(key)}
+                    title={full}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Schedule Summary */}
+            {scheduleInfo && selectedDays.length > 0 && (
+              <div className="schedule-summary">
+                <Calendar size={18} />
+                <div className="schedule-summary-text">
+                  <span className="schedule-summary-main">
+                    {scheduleInfo.daysPerWeek} days/week for {scheduleInfo.weeks} {scheduleInfo.weeks === 1 ? 'week' : 'weeks'}
+                  </span>
+                  <span className="schedule-summary-detail">
+                    {selectedDays.map(d => DAY_LABELS.find(dl => dl.key === d)?.full).filter(Boolean).join(', ')}
+                  </span>
+                  {scheduleStartDate && (
+                    <span className="schedule-summary-detail">
+                      Starting {new Date(scheduleStartDate + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {selectedDays.length === 0 && (
+              <div className="schedule-warning">Select at least one day to continue</div>
+            )}
+          </div>
+
+          {/* Confirm Action */}
+          <div className="club-workout-action">
+            <button
+              className="club-workout-use-btn"
+              onClick={handleConfirmSchedule}
+              disabled={!scheduleStartDate || selectedDays.length === 0}
+            >
+              <Check size={20} />
+              <span>Start Program</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Program days view — shows all days within a multi-day program
   if (selectedProgram) {
     const program = selectedProgram;
@@ -420,6 +567,30 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, coachId }) {
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* Schedule Program Action */}
+          <div className="club-workout-action">
+            <button
+              className="club-workout-use-btn"
+              onClick={() => {
+                setShowScheduling(true);
+                // Default start date to today
+                setScheduleStartDate(new Date().toISOString().split('T')[0]);
+                // Default selected days based on total program days
+                const totalDays = program.total_days || program.days?.length || 5;
+                if (totalDays <= 3) {
+                  setSelectedDays(['mon', 'wed', 'fri']);
+                } else if (totalDays <= 4) {
+                  setSelectedDays(['mon', 'tue', 'thu', 'fri']);
+                } else {
+                  setSelectedDays(['mon', 'tue', 'wed', 'thu', 'fri']);
+                }
+              }}
+            >
+              <Calendar size={20} />
+              <span>Schedule Program</span>
+            </button>
           </div>
         </div>
       </div>

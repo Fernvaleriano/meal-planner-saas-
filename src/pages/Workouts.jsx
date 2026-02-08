@@ -1358,6 +1358,57 @@ function Workouts() {
     }
   }, [clientData?.id, selectedDate, showError, showSuccess]);
 
+  // Handle scheduling a multi-day club workout program
+  const handleScheduleClubProgram = useCallback(async ({ program, startDate, selectedDays, weeks }) => {
+    if (!program || !clientData?.id || !clientData?.coach_id) return;
+
+    setShowClubWorkouts(false);
+
+    try {
+      // Build days array from the program
+      const days = (program.days || []).map(day => ({
+        name: day.name,
+        exercises: day.exercises || [],
+        estimatedMinutes: day.estimatedMinutes,
+        estimatedCalories: day.estimatedCalories
+      }));
+
+      const workoutData = {
+        days,
+        image_url: program.image_url || null,
+        schedule: {
+          selectedDays,
+          startDate,
+          weeks
+        }
+      };
+
+      const res = await apiPost('/.netlify/functions/workout-assignments', {
+        clientId: clientData.id,
+        coachId: clientData.coach_id,
+        programId: program.program_id || null,
+        name: program.name,
+        startDate,
+        workoutData,
+        schedule: { selectedDays, startDate, weeks }
+      });
+
+      if (res?.success) {
+        if (typeof showSuccess === 'function') {
+          const startStr = new Date(startDate + 'T12:00:00').toLocaleDateString(undefined, {
+            weekday: 'short', month: 'short', day: 'numeric'
+          });
+          showSuccess(`"${program.name}" scheduled! Starting ${startStr}, ${selectedDays.length} days/week`);
+        }
+        // Refresh today's workout to pick up the new assignment
+        refreshWorkoutData();
+      }
+    } catch (err) {
+      console.error('Error scheduling program:', err);
+      showError('Failed to schedule program: ' + (err.message || 'Unknown error'));
+    }
+  }, [clientData?.id, clientData?.coach_id, selectedDate, showError, showSuccess, refreshWorkoutData]);
+
   // Handle updating an exercise (sets, reps, weight changes) - use ref for stable callback
   const handleUpdateExercise = useCallback((updatedExercise) => {
     const workout = todayWorkoutRef.current;
@@ -3273,6 +3324,7 @@ function Workouts() {
         <ClubWorkoutsModal
           onClose={() => setShowClubWorkouts(false)}
           onSelectWorkout={handleSelectClubWorkout}
+          onScheduleProgram={handleScheduleClubProgram}
           coachId={clientData?.coach_id}
         />
       )}
