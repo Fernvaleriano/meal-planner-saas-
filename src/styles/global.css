@@ -13359,16 +13359,16 @@ a.nav-left {
 .delete-confirm-options {
     display: flex;
     flex-direction: column;
-    gap: 0;
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    gap: 10px;
+    margin-top: 20px;
 }
 
 .delete-confirm-btn {
     width: 100%;
     padding: 16px;
-    background: transparent;
-    border: none;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.25);
+    border-radius: 14px;
     color: #ef4444;
     font-size: 16px;
     font-weight: 500;
@@ -13379,7 +13379,7 @@ a.nav-left {
 
 .delete-confirm-btn:hover,
 .delete-confirm-btn:active {
-    background: rgba(239, 68, 68, 0.08);
+    background: rgba(239, 68, 68, 0.2);
 }
 
 .delete-confirm-btn.danger {
