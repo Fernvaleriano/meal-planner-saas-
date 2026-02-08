@@ -717,9 +717,21 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelec
         {/* Header */}
         <div className="add-activity-header">
           <h3>Add Activity</h3>
-          <button className="swap-close-btn" onClick={handleClose}>
-            <X size={24} />
-          </button>
+          <div className="add-activity-header-actions">
+            {multiSelect && selectedExercises.length > 0 && (
+              <button
+                className="add-selected-header-btn"
+                onClick={handleAddSelected}
+                disabled={selecting}
+              >
+                <Plus size={18} />
+                <span>Add {selectedExercises.length}</span>
+              </button>
+            )}
+            <button className="swap-close-btn" onClick={handleClose}>
+              <X size={24} />
+            </button>
+          </div>
         </div>
 
         {/* Search with voice input */}
@@ -822,7 +834,7 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelec
         </div>
 
         {/* Exercise List */}
-        <div className="add-exercise-list" style={multiSelect && selectedExercises.length > 0 ? { paddingBottom: 80 } : undefined}>
+        <div className="add-exercise-list">
           {loading ? (
             <div className="swap-loading">
               <Loader2 size={32} className="spin" />
@@ -878,19 +890,6 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelec
           )}
         </div>
 
-        {/* Add Selected Button - only show when exercises are selected */}
-        {multiSelect && selectedExercises.length > 0 && (
-          <div className="add-selected-footer">
-            <button
-              className="add-selected-btn"
-              onClick={handleAddSelected}
-              disabled={selecting}
-            >
-              <Plus size={20} />
-              <span>Add {selectedExercises.length} Exercise{selectedExercises.length > 1 ? 's' : ''}</span>
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );
