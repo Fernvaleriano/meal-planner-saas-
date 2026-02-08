@@ -1,8 +1,16 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Play, Pause, SkipForward, SkipBack, ChevronRight, ChevronLeft, Check, Volume2, VolumeX, Mic, MessageSquare, Square, Send, ChevronUp, ChevronDown, MessageCircle, Bot, Loader2, Sparkles } from 'lucide-react';
+import { X, Play, Pause, SkipForward, SkipBack, ChevronRight, ChevronLeft, Check, Volume2, VolumeX, Mic, MessageSquare, Square, Send, ChevronUp, ChevronDown, MessageCircle, Bot, Loader2, Sparkles, Flame } from 'lucide-react';
 import SmartThumbnail from './SmartThumbnail';
 import { apiGet, apiPost, apiPut } from '../../utils/api';
 import { onAppResume } from '../../hooks/useAppLifecycle';
+
+// Effort level options (user-friendly RIR / RPE)
+const EFFORT_OPTIONS = [
+  { value: 'easy', label: 'Easy', detail: '4+ left', color: '#22c55e' },
+  { value: 'moderate', label: 'Moderate', detail: '2-3 left', color: '#eab308' },
+  { value: 'hard', label: 'Hard', detail: '1 left', color: '#f97316' },
+  { value: 'maxed', label: 'All Out', detail: '0 left', color: '#ef4444' },
+];
 
 // Parse reps helper
 const parseReps = (reps) => {
@@ -226,7 +234,8 @@ function GuidedWorkoutModal({
           reps: existingSet?.reps || defaultReps,
           weight: existingSet?.weight || 0,
           duration: existingSet?.duration || ex.duration || null,
-          restSeconds: existingSet?.restSeconds || ex.restSeconds || ex.rest_seconds || 60
+          restSeconds: existingSet?.restSeconds || ex.restSeconds || ex.rest_seconds || 60,
+          effort: existingSet?.effort || null
         };
       });
     });
@@ -384,30 +393,82 @@ function GuidedWorkoutModal({
         const lastMaxReps = lastSets.reduce((max, s) => Math.max(max, s.reps || 0), 0);
         const lastNumSets = lastSets.length || 3;
 
+        // Get the most common effort from last session (if any sets had effort logged)
+        const effortCounts = {};
+        lastSets.forEach(s => {
+          if (s.effort) effortCounts[s.effort] = (effortCounts[s.effort] || 0) + 1;
+        });
+        const lastEffort = Object.keys(effortCounts).length > 0
+          ? Object.entries(effortCounts).sort((a, b) => b[1] - a[1])[0][0]
+          : null;
+
         if (lastMaxWeight > 0 || lastMaxReps > 0) {
           const dateLabel = new Date(last.workoutDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
-          // Generate AI recommendation based on history
+          // Generate AI recommendation based on history + effort
           let recommendedReps = lastMaxReps;
           let recommendedWeight = lastMaxWeight;
           let recommendedSets = lastNumSets;
           let reasoning = '';
 
-          // Progressive overload logic
-          if (lastMaxReps >= 12) {
-            // Hit 12+ reps, time to increase weight
-            recommendedWeight = lastMaxWeight + 2.5;
-            recommendedReps = 8;
-            reasoning = `You hit ${lastMaxReps} reps last time. Let's increase weight and drop to 8 reps to build strength.`;
-          } else if (lastMaxReps < 8) {
-            // Under 8 reps, keep same weight and aim to increase reps
-            recommendedReps = lastMaxReps + 1;
-            reasoning = `Working on building up to 8+ reps. Try for ${recommendedReps} this time.`;
+          // Progressive overload logic factoring in effort
+          if (lastEffort === 'easy') {
+            // They had 4+ reps in reserve — push harder
+            if (lastMaxReps >= 10) {
+              recommendedWeight = lastMaxWeight + 2.5;
+              recommendedReps = Math.max(8, lastMaxReps - 2);
+              reasoning = `Last time felt easy with reps to spare. Let's bump the weight up and aim for ${recommendedReps} reps.`;
+            } else {
+              recommendedReps = lastMaxReps + 2;
+              reasoning = `That was easy last time! Let's push for ${recommendedReps} reps before adding weight.`;
+            }
+          } else if (lastEffort === 'moderate') {
+            // 2-3 reps left — steady progress
+            if (lastMaxReps >= 12) {
+              recommendedWeight = lastMaxWeight + 2.5;
+              recommendedReps = 8;
+              reasoning = `Solid effort last time at ${lastMaxReps} reps. Time to increase weight and build from 8 reps.`;
+            } else {
+              recommendedReps = lastMaxReps + 1;
+              reasoning = `Good challenge last time. Let's add one more rep to keep progressing.`;
+            }
+          } else if (lastEffort === 'hard') {
+            // 1 rep left — near limit, stay or tiny increase
+            if (lastMaxReps >= 12) {
+              recommendedWeight = lastMaxWeight + 2.5;
+              recommendedReps = 8;
+              reasoning = `That was tough at ${lastMaxReps} reps but you're ready for more weight. Drop to 8 reps at the heavier load.`;
+            } else {
+              recommendedReps = lastMaxReps;
+              reasoning = `That was a hard set last time. Let's match it and build consistency before pushing further.`;
+            }
+          } else if (lastEffort === 'maxed') {
+            // 0 reps left — at max, hold steady or back off slightly
+            if (lastMaxReps <= 6) {
+              recommendedWeight = Math.max(0, lastMaxWeight - 2.5);
+              recommendedReps = lastMaxReps + 2;
+              reasoning = `You went all out last time at low reps. Let's drop the weight slightly and aim for more reps with better form.`;
+            } else {
+              recommendedReps = lastMaxReps;
+              reasoning = `You maxed out last session. Let's match those numbers and focus on clean reps before progressing.`;
+            }
           } else {
-            // 8-11 reps, progressive increase
-            recommendedReps = lastMaxReps + 1;
-            reasoning = `Good progress! Aim for one more rep than last session.`;
+            // No effort data — fall back to rep-based logic
+            if (lastMaxReps >= 12) {
+              recommendedWeight = lastMaxWeight + 2.5;
+              recommendedReps = 8;
+              reasoning = `You hit ${lastMaxReps} reps last time. Let's increase weight and drop to 8 reps to build strength.`;
+            } else if (lastMaxReps < 8) {
+              recommendedReps = lastMaxReps + 1;
+              reasoning = `Working on building up to 8+ reps. Try for ${recommendedReps} this time.`;
+            } else {
+              recommendedReps = lastMaxReps + 1;
+              reasoning = `Good progress! Aim for one more rep than last session.`;
+            }
           }
+
+          const effortLabel = lastEffort === 'easy' ? 'felt easy' : lastEffort === 'moderate' ? 'felt moderate' : lastEffort === 'hard' ? 'felt hard' : lastEffort === 'maxed' ? 'went all out' : null;
+          const progressMsg = `On ${dateLabel}: ${lastMaxReps} reps @ ${lastMaxWeight} ${weightUnit}${effortLabel ? ` (${effortLabel})` : ''}.`;
 
           setProgressTips(prev => ({
             ...prev,
@@ -415,8 +476,8 @@ function GuidedWorkoutModal({
               type: 'progress',
               icon: '📈',
               title: 'Keep progressing',
-              message: `On ${dateLabel}: ${lastMaxReps} reps @ ${lastMaxWeight} ${weightUnit}.`,
-              lastSession: { reps: lastMaxReps, weight: lastMaxWeight, sets: lastNumSets, date: dateLabel }
+              message: progressMsg,
+              lastSession: { reps: lastMaxReps, weight: lastMaxWeight, sets: lastNumSets, date: dateLabel, effort: lastEffort }
             }
           }));
 
@@ -427,7 +488,7 @@ function GuidedWorkoutModal({
               reps: recommendedReps,
               weight: recommendedWeight,
               reasoning,
-              lastSession: { reps: lastMaxReps, weight: lastMaxWeight, sets: lastNumSets }
+              lastSession: { reps: lastMaxReps, weight: lastMaxWeight, sets: lastNumSets, effort: lastEffort }
             }
           }));
         } else {
@@ -573,7 +634,8 @@ function GuidedWorkoutModal({
           setNumber: i + 1,
           reps: s.reps || 0,
           weight: s.weight || 0,
-          weightUnit: weightUnit
+          weightUnit: weightUnit,
+          effort: s.effort || null
         }));
 
         await apiPut('/.netlify/functions/workout-logs', {
@@ -974,7 +1036,8 @@ function GuidedWorkoutModal({
       weight: log.weight,
       completed: completedSetsRef.current[exIdx]?.has(i) || false,
       duration: log.duration,
-      restSeconds: log.restSeconds
+      restSeconds: log.restSeconds,
+      effort: log.effort || null
     }));
 
     onUpdateExercise({ ...ex, sets: updatedSets });
@@ -1573,6 +1636,28 @@ function GuidedWorkoutModal({
               </div>
             </div>
             <p className="guided-input-hint">Tap to edit</p>
+
+            {/* Effort selector */}
+            <div className="guided-effort-section">
+              <p className="guided-effort-label">
+                <Flame size={14} />
+                How did that feel?
+              </p>
+              <div className="guided-effort-pills">
+                {EFFORT_OPTIONS.map(opt => (
+                  <button
+                    key={opt.value}
+                    className={`guided-effort-pill ${currentSetLog.effort === opt.value ? 'selected' : ''}`}
+                    style={currentSetLog.effort === opt.value ? { background: opt.color, borderColor: opt.color } : undefined}
+                    onClick={() => updateSetLog('effort', currentSetLog.effort === opt.value ? null : opt.value)}
+                    type="button"
+                  >
+                    <span className="guided-effort-pill-label">{opt.label}</span>
+                    <span className="guided-effort-pill-detail">{opt.detail}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         )}
       </div>
