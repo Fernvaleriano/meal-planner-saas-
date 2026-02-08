@@ -233,30 +233,48 @@ exports.handler = async (event) => {
     }
 
     // Truncate very long inputs to avoid token limits
-    const trimmedContent = fileContent.length > 15000 ? fileContent.substring(0, 15000) : fileContent;
+    const trimmedContent = fileContent.length > 20000 ? fileContent.substring(0, 20000) : fileContent;
     console.log(`Importing workout program from text (${trimmedContent.length} chars)`);
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
     const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
 
-    const systemPrompt = `You are a fitness program parser. Extract ALL workout data from the text. Return ONLY valid JSON, no markdown, no explanation.
+    // Split text into day chunks for parallel parsing
+    // Look for patterns like "DAY 1:", "DAY 2:", etc.
+    const dayChunks = [];
+    const dayPattern = /(?=DAY\s+\d+[:\s])/i;
+    const parts = trimmedContent.split(dayPattern).filter(p => p.trim().length > 50);
 
-CRITICAL: You MUST extract EVERY SINGLE exercise from EVERY SINGLE day. Do NOT stop after the first day. The program has multiple days - parse ALL of them completely.
+    // Extract program header (everything before Day 1)
+    let programHeader = '';
+    if (parts.length > 0 && !/^DAY\s+\d+/i.test(parts[0].trim())) {
+      programHeader = parts.shift();
+    }
+
+    if (parts.length === 0) {
+      // No day markers found - treat entire text as single day
+      dayChunks.push(trimmedContent);
+    } else {
+      dayChunks.push(...parts);
+    }
+
+    console.log(`Split into ${dayChunks.length} day chunks`);
+
+    const daySystemPrompt = `You are a fitness program parser. Extract workout data from ONE day of a program. Return ONLY valid JSON, no markdown.
 
 Rules:
-- Extract EVERY exercise from ALL days (warm-ups, main exercises, cool-down stretches)
+- Extract EVERY exercise (warm-ups, main exercises, cool-down stretches)
 - Preserve exact exercise names from the source
 - Preserve sets, reps, rest periods, coaching notes
-- Group exercises by workout day
 - Mark warm-up exercises: isWarmup=true
 - Mark cool-down/stretch exercises: isStretch=true
-- Rest: convert to seconds (90s=90, 2 min=120, -=0). If no rest column, use 0 for warmups/stretches, 90 for compounds, 60 for isolation.
+- Rest: convert to seconds (90s=90, 2 min=120, 75s=75, -=0). If no rest column, use 0 for warmups/stretches, 90 for compounds, 60 for isolation.
 - Keep reps as string if ranges or units (e.g. "8-10", "2 min", "30s each")
 
-JSON:
-{"programName":"","description":"","goal":"hypertrophy","difficulty":"intermediate","daysPerWeek":5,"days":[{"name":"Day 1","exercises":[{"originalName":"Exercise name exactly as written","muscleGroup":"chest","sets":4,"reps":"8-10","restSeconds":90,"notes":"coaching note","isWarmup":false,"isStretch":false}]}]}`;
+Return JSON:
+{"name":"Day 1: Push","exercises":[{"originalName":"Bench press","muscleGroup":"chest","sets":4,"reps":"8-10","restSeconds":90,"notes":"coaching note","isWarmup":false,"isStretch":false}]}`;
 
-    // Run DB fetch and Claude parse in PARALLEL to save time
+    // Run DB fetch and ALL day parses in PARALLEL
     const fetchExercisesPromise = (async () => {
       let allExercises = [];
       let offset = 0;
@@ -276,43 +294,54 @@ JSON:
       return allExercises;
     })();
 
-    const parsePromise = anthropic.messages.create({
-      model: 'claude-3-5-haiku-20241022',
-      max_tokens: 16384,
-      system: systemPrompt,
-      messages: [{
-        role: 'user',
-        content: `Parse this COMPLETE workout program. There are multiple days - you MUST extract ALL days and ALL exercises from each day. Return only valid JSON.\n\n${trimmedContent}`
-      }]
-    });
-
-    // Wait for both to complete
-    const [allExercises, message] = await Promise.all([fetchExercisesPromise, parsePromise]);
-    console.log(`Fetched ${allExercises.length} exercises, got Claude response`);
-
-    const responseText = message.content[0]?.text || '';
-    console.log('Parse response length:', responseText.length);
-
-    // Extract JSON from response
-    let parsedProgram;
-    try {
-      parsedProgram = JSON.parse(responseText.trim());
-    } catch (e) {
-      const jsonMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-      if (jsonMatch) {
-        parsedProgram = JSON.parse(jsonMatch[1].trim());
-      } else {
-        const objectMatch = responseText.match(/\{[\s\S]*\}/);
-        if (objectMatch) {
-          parsedProgram = JSON.parse(objectMatch[0]);
-        } else {
-          throw new Error('Could not extract structured data from the program text.');
+    // Parse each day chunk in parallel with Haiku (each fits easily in 4096 tokens)
+    const dayParsePromises = dayChunks.map((chunk, i) =>
+      anthropic.messages.create({
+        model: 'claude-3-5-haiku-20241022',
+        max_tokens: 4096,
+        system: daySystemPrompt,
+        messages: [{
+          role: 'user',
+          content: `Parse ALL exercises from this workout day. Return only valid JSON.\n\n${chunk}`
+        }]
+      }).then(msg => {
+        const text = msg.content[0]?.text || '';
+        try {
+          const parsed = JSON.parse(text.trim());
+          return parsed;
+        } catch (e) {
+          const match = text.match(/\{[\s\S]*\}/);
+          if (match) return JSON.parse(match[0]);
+          console.error(`Failed to parse day ${i + 1}:`, text.substring(0, 200));
+          return null;
         }
-      }
+      }).catch(err => {
+        console.error(`Error parsing day ${i + 1}:`, err.message);
+        return null;
+      })
+    );
+
+    // Also try to extract program metadata from header
+    let programMeta = { programName: 'Imported Program', description: '', goal: 'hypertrophy', difficulty: 'intermediate' };
+    if (programHeader.length > 30) {
+      // Quick extract from header text
+      const nameMatch = programHeader.match(/(?:IRON ARCHITECTURE|PROGRAM|PROTOCOL)[^\n]*/i);
+      if (nameMatch) programMeta.programName = nameMatch[0].trim();
+      if (/hypertrophy/i.test(programHeader)) programMeta.goal = 'hypertrophy';
+      else if (/strength/i.test(programHeader)) programMeta.goal = 'strength';
+      if (/advanced/i.test(programHeader)) programMeta.difficulty = 'advanced';
+      else if (/beginner/i.test(programHeader)) programMeta.difficulty = 'beginner';
     }
 
-    if (!parsedProgram.days || !Array.isArray(parsedProgram.days)) {
-      throw new Error('Could not parse workout days from the document.');
+    // Wait for everything in parallel
+    const [allExercises, ...dayResults] = await Promise.all([fetchExercisesPromise, ...dayParsePromises]);
+    console.log(`Fetched ${allExercises.length} exercises, parsed ${dayResults.filter(Boolean).length}/${dayChunks.length} days`);
+
+    // Combine parsed days
+    const parsedDays = dayResults.filter(Boolean);
+
+    if (parsedDays.length === 0) {
+      throw new Error('Could not parse any workout days from the document.');
     }
 
     // 3. Match each parsed exercise against the database
@@ -326,7 +355,7 @@ JSON:
 
     const resultDays = [];
 
-    for (const day of parsedProgram.days) {
+    for (const day of parsedDays) {
       const resultExercises = [];
 
       for (const ex of (day.exercises || [])) {
@@ -406,11 +435,11 @@ JSON:
       body: JSON.stringify({
         success: true,
         program: {
-          programName: parsedProgram.programName || 'Imported Program',
-          description: parsedProgram.description || '',
-          goal: parsedProgram.goal || 'hypertrophy',
-          difficulty: parsedProgram.difficulty || 'intermediate',
-          daysPerWeek: parsedProgram.daysPerWeek || resultDays.length,
+          programName: programMeta.programName || 'Imported Program',
+          description: programMeta.description || '',
+          goal: programMeta.goal || 'hypertrophy',
+          difficulty: programMeta.difficulty || 'intermediate',
+          daysPerWeek: resultDays.length,
           days: resultDays
         },
         matchStats: {
