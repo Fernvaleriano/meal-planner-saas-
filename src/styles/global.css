@@ -14578,6 +14578,156 @@ a.nav-left {
     transform: translateY(-1px);
 }
 
+/* Program Scheduling UI */
+.schedule-program-summary {
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #334155;
+}
+
+.schedule-program-summary h3 {
+    font-size: 18px;
+    font-weight: 700;
+    color: #f8fafc;
+    margin-bottom: 8px;
+}
+
+.schedule-program-meta {
+    display: flex;
+    gap: 16px;
+    color: #94a3b8;
+    font-size: 13px;
+}
+
+.schedule-program-meta span {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.schedule-section {
+    margin-bottom: 24px;
+}
+
+.schedule-label {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: #e2e8f0;
+    margin-bottom: 8px;
+}
+
+.schedule-hint {
+    font-size: 13px;
+    color: #64748b;
+    margin-bottom: 12px;
+}
+
+.schedule-date-input {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1px solid #334155;
+    background: #1e293b;
+    color: #f8fafc;
+    font-size: 15px;
+    font-family: inherit;
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.schedule-date-input:focus {
+    border-color: #8b5cf6;
+    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.15);
+}
+
+.schedule-day-toggles {
+    display: flex;
+    gap: 8px;
+    justify-content: space-between;
+}
+
+.schedule-day-btn {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    border: 2px solid #334155;
+    background: #0f172a;
+    color: #64748b;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.schedule-day-btn.active {
+    background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+    border-color: #8b5cf6;
+    color: white;
+    box-shadow: 0 2px 8px rgba(139, 92, 246, 0.35);
+}
+
+.schedule-day-btn:hover:not(.active) {
+    border-color: #64748b;
+    color: #94a3b8;
+}
+
+.schedule-summary {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    padding: 16px;
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.08) 0%, rgba(99, 102, 241, 0.08) 100%);
+    border: 1px solid rgba(139, 92, 246, 0.2);
+    border-radius: 14px;
+    margin-bottom: 16px;
+}
+
+.schedule-summary svg {
+    color: #8b5cf6;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.schedule-summary-text {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.schedule-summary-main {
+    font-size: 15px;
+    font-weight: 600;
+    color: #e2e8f0;
+}
+
+.schedule-summary-detail {
+    font-size: 13px;
+    color: #94a3b8;
+    line-height: 1.4;
+}
+
+.schedule-warning {
+    text-align: center;
+    padding: 12px;
+    color: #f59e0b;
+    font-size: 13px;
+    background: rgba(245, 158, 11, 0.1);
+    border-radius: 10px;
+}
+
+.club-workout-use-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
 /* AI Quick Workout Modal */
 .ai-workout-overlay {
     position: fixed;
