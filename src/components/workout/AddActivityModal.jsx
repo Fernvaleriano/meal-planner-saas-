@@ -822,7 +822,7 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelec
         </div>
 
         {/* Exercise List */}
-        <div className="add-exercise-list">
+        <div className="add-exercise-list" style={multiSelect && selectedExercises.length > 0 ? { paddingBottom: 80 } : undefined}>
           {loading ? (
             <div className="swap-loading">
               <Loader2 size={32} className="spin" />
