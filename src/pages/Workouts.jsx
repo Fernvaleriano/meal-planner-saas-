@@ -423,6 +423,8 @@ function Workouts() {
   const [rescheduleAction, setRescheduleAction] = useState(null); // 'reschedule', 'duplicate', 'skip'
   const [showHeroMenu, setShowHeroMenu] = useState(false); // Hero section day options menu
   const [cardMenuWorkoutId, setCardMenuWorkoutId] = useState(null); // Which card's 3-dot menu is open
+  const [cardMenuWorkout, setCardMenuWorkout] = useState(null); // The actual workout object for the bottom sheet
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false); // Delete confirmation dialog
   const cardMenuRef = useRef(null);
   const rescheduleWorkoutRef = useRef(null); // Track which workout is being rescheduled (for card menu context)
   const [swipeSwapExercise, setSwipeSwapExercise] = useState(null); // Exercise to swap from swipe action
@@ -2122,9 +2124,6 @@ function Workouts() {
   const handleDeleteCardWorkout = useCallback(async (workout) => {
     if (!workout?.id) return;
 
-    const confirmed = window.confirm(`Are you sure you want to delete "${workout.workout_data?.name || workout.name || 'this workout'}"?`);
-    if (!confirmed) return;
-
     let deleteSucceeded = false;
     try {
       if (workout.is_adhoc) {
@@ -2174,10 +2173,6 @@ function Workouts() {
     if (!workout?.id) return;
 
     const programName = workout.workout_data?.name || workout.name || 'this program';
-    const confirmed = window.confirm(
-      `Delete entire program "${programName}"?\n\nThis will remove all scheduled workout days for this program. This cannot be undone.`
-    );
-    if (!confirmed) return;
 
     try {
       if (workout.is_adhoc) {
@@ -2726,54 +2721,10 @@ function Workouts() {
                         </div>
                         <div className="workout-card-menu" onClick={(e) => {
                           e.stopPropagation();
-                          setCardMenuWorkoutId(cardMenuWorkoutId === workout.id ? null : workout.id);
+                          setCardMenuWorkout(workout);
+                          setCardMenuWorkoutId(workout.id);
                         }}>
                           <MoreVertical size={20} />
-                          {cardMenuWorkoutId === workout.id && (
-                            <div className="card-dropdown-menu">
-                              <button
-                                className="menu-item"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  openRescheduleModal('duplicate', workout);
-                                }}
-                              >
-                                <Copy size={16} />
-                                <span>Duplicate</span>
-                              </button>
-                              <button
-                                className="menu-item"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  openRescheduleModal('reschedule', workout);
-                                }}
-                              >
-                                <MoveRight size={16} />
-                                <span>Move to Day</span>
-                              </button>
-                              <button
-                                className="menu-item delete"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDeleteCardWorkout(workout);
-                                }}
-                              >
-                                <SkipForward size={16} />
-                                <span>Skip Today</span>
-                              </button>
-                              <div className="menu-divider" />
-                              <button
-                                className="menu-item delete"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDeleteEntireProgram(workout);
-                                }}
-                              >
-                                <Trash2 size={16} />
-                                <span>Delete Program</span>
-                              </button>
-                            </div>
-                          )}
                         </div>
                       </div>
                     );
@@ -3375,6 +3326,93 @@ function Workouts() {
           selectedDate={selectedDate}
           coachId={clientData?.coach_id}
         />
+      )}
+
+      {/* Workout Card Bottom Sheet Menu */}
+      {cardMenuWorkout && !showDeleteConfirm && (
+        <div className="card-sheet-overlay" onClick={() => { setCardMenuWorkout(null); setCardMenuWorkoutId(null); }}>
+          <div className="card-sheet" onClick={e => e.stopPropagation()}>
+            <div className="card-sheet-handle" />
+            <h3 className="card-sheet-title">
+              {cardMenuWorkout.workout_data?.name || cardMenuWorkout.name || 'Workout'}
+            </h3>
+            <div className="card-sheet-actions">
+              <button
+                className="card-sheet-btn"
+                onClick={() => {
+                  const w = cardMenuWorkout;
+                  setCardMenuWorkout(null);
+                  setCardMenuWorkoutId(null);
+                  openRescheduleModal('reschedule', w);
+                }}
+              >
+                <MoveRight size={20} />
+                <span>Move</span>
+              </button>
+              <button
+                className="card-sheet-btn"
+                onClick={() => {
+                  const w = cardMenuWorkout;
+                  setCardMenuWorkout(null);
+                  setCardMenuWorkoutId(null);
+                  openRescheduleModal('duplicate', w);
+                }}
+              >
+                <Copy size={20} />
+                <span>Duplicate</span>
+              </button>
+              <button
+                className="card-sheet-btn delete"
+                onClick={() => setShowDeleteConfirm(true)}
+              >
+                <Trash2 size={20} />
+                <span>Delete</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && cardMenuWorkout && (
+        <div className="card-sheet-overlay" onClick={() => { setShowDeleteConfirm(false); setCardMenuWorkout(null); setCardMenuWorkoutId(null); }}>
+          <div className="delete-confirm-modal" onClick={e => e.stopPropagation()}>
+            <h3>Delete workout plan</h3>
+            <p>Do you want to delete this workout plan? This will remove activities from your calendar associated with this plan.</p>
+            <div className="delete-confirm-options">
+              <button
+                className="delete-confirm-btn"
+                onClick={() => {
+                  const w = cardMenuWorkout;
+                  setShowDeleteConfirm(false);
+                  setCardMenuWorkout(null);
+                  setCardMenuWorkoutId(null);
+                  handleDeleteCardWorkout(w);
+                }}
+              >
+                Delete this day
+              </button>
+              <button
+                className="delete-confirm-btn danger"
+                onClick={() => {
+                  const w = cardMenuWorkout;
+                  setShowDeleteConfirm(false);
+                  setCardMenuWorkout(null);
+                  setCardMenuWorkoutId(null);
+                  handleDeleteEntireProgram(w);
+                }}
+              >
+                Delete all days
+              </button>
+            </div>
+            <button
+              className="delete-confirm-cancel"
+              onClick={() => { setShowDeleteConfirm(false); setCardMenuWorkout(null); setCardMenuWorkoutId(null); }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Club Workouts Modal */}
