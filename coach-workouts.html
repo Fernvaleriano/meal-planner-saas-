@@ -953,6 +953,252 @@
             box-shadow: 0 8px 20px rgba(139, 92, 246, 0.4);
         }
 
+        .sidebar-btn.import-btn {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            border: none;
+            color: white;
+        }
+
+        .sidebar-btn.import-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(245, 158, 11, 0.4);
+        }
+
+        /* Import Modal Styles */
+        .import-drop-zone {
+            border: 2px dashed var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 40px 24px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: var(--bg-tertiary);
+            margin-bottom: 16px;
+        }
+
+        .import-drop-zone:hover,
+        .import-drop-zone.dragover {
+            border-color: var(--warning);
+            background: rgba(245, 158, 11, 0.05);
+        }
+
+        .import-drop-zone-icon {
+            font-size: 40px;
+            margin-bottom: 12px;
+            opacity: 0.6;
+        }
+
+        .import-drop-zone-text {
+            color: var(--text-secondary);
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .import-drop-zone-text strong {
+            color: var(--warning);
+            display: block;
+            font-size: 16px;
+            margin-bottom: 4px;
+        }
+
+        .import-or-divider {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 13px;
+            margin: 16px 0;
+            position: relative;
+        }
+
+        .import-or-divider::before,
+        .import-or-divider::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            width: calc(50% - 20px);
+            height: 1px;
+            background: var(--border-color);
+        }
+
+        .import-or-divider::before { left: 0; }
+        .import-or-divider::after { right: 0; }
+
+        .import-paste-area {
+            width: 100%;
+            min-height: 150px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            font-family: 'Inter', monospace;
+            font-size: 13px;
+            padding: 12px;
+            resize: vertical;
+        }
+
+        .import-paste-area::placeholder {
+            color: var(--text-muted);
+        }
+
+        .import-paste-area:focus {
+            outline: none;
+            border-color: var(--warning);
+        }
+
+        .import-file-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            background: rgba(245, 158, 11, 0.1);
+            border-radius: var(--radius-sm);
+            margin-top: 12px;
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+
+        .import-file-info svg {
+            flex-shrink: 0;
+            color: var(--warning);
+        }
+
+        .import-file-info .file-name {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .import-file-info .file-remove {
+            cursor: pointer;
+            color: var(--text-muted);
+            padding: 4px;
+        }
+
+        .import-file-info .file-remove:hover {
+            color: var(--danger);
+        }
+
+        .import-match-stats {
+            background: var(--bg-tertiary);
+            border-radius: var(--radius-md);
+            padding: 20px;
+            margin-top: 16px;
+        }
+
+        .import-match-stats h4 {
+            margin-bottom: 12px;
+            color: var(--text-primary);
+            font-size: 15px;
+        }
+
+        .import-stat-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 14px;
+        }
+
+        .import-stat-row:last-child {
+            border-bottom: none;
+        }
+
+        .import-stat-label {
+            color: var(--text-secondary);
+        }
+
+        .import-stat-value {
+            font-weight: 600;
+        }
+
+        .import-stat-value.matched {
+            color: var(--success);
+        }
+
+        .import-stat-value.unmatched {
+            color: var(--warning);
+        }
+
+        .import-unmatched-list {
+            margin-top: 12px;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .import-unmatched-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 0;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .import-unmatched-item .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--warning);
+            flex-shrink: 0;
+        }
+
+        .import-filter-toggle {
+            display: flex;
+            gap: 8px;
+            margin-top: 16px;
+        }
+
+        .import-filter-btn {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            background: var(--bg-secondary);
+            color: var(--text-secondary);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+        }
+
+        .import-filter-btn:hover {
+            border-color: var(--text-muted);
+        }
+
+        .import-filter-btn.active {
+            border-color: var(--success);
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+        }
+
+        .import-filter-btn.active-warning {
+            border-color: var(--warning);
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--warning);
+        }
+
+        .import-progress {
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .import-progress .spinner-large {
+            width: 48px;
+            height: 48px;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--warning);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        .import-progress p {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
         /* Builder Area */
         .builder-area {
             flex: 1;
@@ -2844,6 +3090,12 @@
                     </svg>
                     AI Generate
                 </button>
+                <button class="sidebar-btn import-btn" onclick="openImportModal()">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                    </svg>
+                    Import Program
+                </button>
             </div>
         </div>
 
@@ -3608,6 +3860,95 @@
                 <button class="ai-btn ai-btn-cancel" onclick="closeAIModal()">Cancel</button>
                 <button class="ai-btn ai-btn-generate" id="aiGenerateBtn" onclick="generateAIWorkout()">
                     Generate Program
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import Program Modal -->
+    <div class="modal-overlay" id="importModal">
+        <div class="modal" style="max-width: 600px;">
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                    </svg>
+                    Import Workout Program
+                </h3>
+                <button class="modal-close" onclick="closeImportModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="importModalBody">
+                <!-- Step 1: Upload/Paste -->
+                <div id="importStep1">
+                    <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 16px; line-height: 1.5;">
+                        Upload a workout program file or paste the text. The AI will extract exercises, sets, reps, and notes, then match them against your exercise database.
+                    </p>
+
+                    <div class="import-drop-zone" id="importDropZone" onclick="document.getElementById('importFileInput').click()">
+                        <div class="import-drop-zone-icon">
+                            <svg width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="opacity: 0.5;">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            </svg>
+                        </div>
+                        <div class="import-drop-zone-text">
+                            <strong>Drop your file here or click to browse</strong>
+                            Supports .txt, .csv, and .pdf files
+                        </div>
+                    </div>
+                    <input type="file" id="importFileInput" accept=".txt,.csv,.pdf,.text" style="display:none" onchange="handleImportFile(event)">
+
+                    <div id="importFileInfo" style="display: none;"></div>
+
+                    <div class="import-or-divider">or paste text</div>
+
+                    <textarea class="import-paste-area" id="importPasteArea" placeholder="Paste your workout program text here...&#10;&#10;Example:&#10;Day 1: Chest & Triceps&#10;Bench press - Barbell | 4 sets | 8-10 reps | 90s rest&#10;Bench press inclined - DBs | 3 sets | 10-12 reps | 75s rest&#10;..." rows="8"></textarea>
+                </div>
+
+                <!-- Step 2: Processing -->
+                <div id="importStep2" style="display: none;">
+                    <div class="import-progress">
+                        <div class="spinner-large"></div>
+                        <p id="importProgressText">Parsing your workout program...</p>
+                    </div>
+                </div>
+
+                <!-- Step 3: Results -->
+                <div id="importStep3" style="display: none;">
+                    <div class="import-match-stats">
+                        <h4>Match Results</h4>
+                        <div class="import-stat-row">
+                            <span class="import-stat-label">Total exercises found</span>
+                            <span class="import-stat-value" id="importStatTotal">0</span>
+                        </div>
+                        <div class="import-stat-row">
+                            <span class="import-stat-label">Matched to your database</span>
+                            <span class="import-stat-value matched" id="importStatMatched">0</span>
+                        </div>
+                        <div class="import-stat-row">
+                            <span class="import-stat-label">Not found in database</span>
+                            <span class="import-stat-value unmatched" id="importStatUnmatched">0</span>
+                        </div>
+                    </div>
+
+                    <div class="import-filter-toggle">
+                        <button class="import-filter-btn active" id="importFilterAll" onclick="setImportFilter('all')">
+                            Import All
+                        </button>
+                        <button class="import-filter-btn" id="importFilterMatched" onclick="setImportFilter('matched')">
+                            Matched Only
+                        </button>
+                    </div>
+
+                    <div id="importUnmatchedSection" style="margin-top: 16px;">
+                        <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 8px;">Unmatched exercises (will be imported without video/thumbnail):</p>
+                        <div class="import-unmatched-list" id="importUnmatchedList"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" id="importModalFooter">
+                <button class="ai-btn ai-btn-cancel" onclick="closeImportModal()">Cancel</button>
+                <button class="ai-btn ai-btn-generate" id="importBtn" onclick="startImport()" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
+                    Import Program
                 </button>
             </div>
         </div>
@@ -6814,6 +7155,252 @@
                     </svg>
                     Create Exercise
                 `;
+            }
+        }
+
+        // ============================================
+        // Import Program Functions
+        // ============================================
+
+        let importedProgramData = null;
+        let importFilter = 'all'; // 'all' or 'matched'
+        let importFileContent = null;
+
+        function openImportModal() {
+            // Reset state
+            importedProgramData = null;
+            importFilter = 'all';
+            importFileContent = null;
+            document.getElementById('importStep1').style.display = '';
+            document.getElementById('importStep2').style.display = 'none';
+            document.getElementById('importStep3').style.display = 'none';
+            document.getElementById('importPasteArea').value = '';
+            document.getElementById('importFileInfo').style.display = 'none';
+            document.getElementById('importFileInput').value = '';
+            document.getElementById('importBtn').innerHTML = 'Import Program';
+            document.getElementById('importBtn').onclick = startImport;
+            document.getElementById('importModal').classList.add('active');
+        }
+
+        function closeImportModal() {
+            document.getElementById('importModal').classList.remove('active');
+        }
+
+        function handleImportFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const infoEl = document.getElementById('importFileInfo');
+
+            // Show file info
+            infoEl.innerHTML = `
+                <div class="import-file-info">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    <span class="file-name">${file.name} (${(file.size / 1024).toFixed(1)} KB)</span>
+                    <span class="file-remove" onclick="removeImportFile()">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </span>
+                </div>
+            `;
+            infoEl.style.display = '';
+
+            // Read file content
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                importFileContent = e.target.result;
+                // Also put it in the paste area for visibility
+                document.getElementById('importPasteArea').value = importFileContent;
+            };
+            reader.readAsText(file);
+        }
+
+        function removeImportFile() {
+            importFileContent = null;
+            document.getElementById('importFileInfo').style.display = 'none';
+            document.getElementById('importFileInput').value = '';
+            document.getElementById('importPasteArea').value = '';
+        }
+
+        // Set up drag & drop
+        document.addEventListener('DOMContentLoaded', () => {
+            const dropZone = document.getElementById('importDropZone');
+            if (dropZone) {
+                dropZone.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    dropZone.classList.add('dragover');
+                });
+                dropZone.addEventListener('dragleave', () => {
+                    dropZone.classList.remove('dragover');
+                });
+                dropZone.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    dropZone.classList.remove('dragover');
+                    const file = e.dataTransfer.files[0];
+                    if (file) {
+                        const input = document.getElementById('importFileInput');
+                        const dt = new DataTransfer();
+                        dt.items.add(file);
+                        input.files = dt.files;
+                        handleImportFile({ target: input });
+                    }
+                });
+            }
+        });
+
+        async function startImport() {
+            const textContent = document.getElementById('importPasteArea').value.trim() || (importFileContent || '').trim();
+
+            if (!textContent || textContent.length < 20) {
+                showToast('Please upload a file or paste your workout program text', 'error');
+                return;
+            }
+
+            // Show processing step
+            document.getElementById('importStep1').style.display = 'none';
+            document.getElementById('importStep2').style.display = '';
+            document.getElementById('importStep3').style.display = 'none';
+            document.getElementById('importProgressText').textContent = 'Parsing your workout program...';
+
+            const btn = document.getElementById('importBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="generating-text"><span class="spinner"></span>Processing...</span>';
+
+            try {
+                const response = await fetch('/.netlify/functions/import-workout-program', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ fileContent: textContent })
+                });
+
+                const result = await response.json();
+
+                if (!response.ok || !result.success) {
+                    throw new Error(result.error || 'Failed to parse workout program');
+                }
+
+                importedProgramData = result;
+
+                // Show results
+                document.getElementById('importStep2').style.display = 'none';
+                document.getElementById('importStep3').style.display = '';
+
+                const stats = result.matchStats;
+                document.getElementById('importStatTotal').textContent = stats.total;
+                document.getElementById('importStatMatched').textContent = stats.matched;
+                document.getElementById('importStatUnmatched').textContent = stats.unmatched;
+
+                // Show unmatched exercises
+                const unmatchedList = document.getElementById('importUnmatchedList');
+                const unmatchedSection = document.getElementById('importUnmatchedSection');
+
+                if (stats.unmatchedExercises && stats.unmatchedExercises.length > 0) {
+                    unmatchedSection.style.display = '';
+                    unmatchedList.innerHTML = stats.unmatchedExercises.map(ex =>
+                        `<div class="import-unmatched-item">
+                            <span class="dot"></span>
+                            <span>${ex.original} <span style="color:var(--text-muted);">(${ex.day})</span></span>
+                        </div>`
+                    ).join('');
+                } else {
+                    unmatchedSection.style.display = 'none';
+                }
+
+                // Update button to "Apply to Builder"
+                btn.disabled = false;
+                btn.innerHTML = 'Apply to Builder';
+                btn.onclick = applyImportedProgram;
+
+                // Reset filter
+                importFilter = 'all';
+                document.getElementById('importFilterAll').classList.add('active');
+                document.getElementById('importFilterMatched').classList.remove('active', 'active-warning');
+
+            } catch (error) {
+                console.error('Import error:', error);
+                showToast(error.message || 'Failed to import workout program', 'error');
+
+                // Go back to step 1
+                document.getElementById('importStep1').style.display = '';
+                document.getElementById('importStep2').style.display = 'none';
+                document.getElementById('importStep3').style.display = 'none';
+                btn.disabled = false;
+                btn.innerHTML = 'Import Program';
+                btn.onclick = startImport;
+            }
+        }
+
+        function setImportFilter(filter) {
+            importFilter = filter;
+            document.getElementById('importFilterAll').classList.toggle('active', filter === 'all');
+            document.getElementById('importFilterMatched').classList.toggle('active-warning', filter === 'matched');
+            document.getElementById('importFilterAll').classList.remove('active-warning');
+            document.getElementById('importFilterMatched').classList.remove('active');
+        }
+
+        function applyImportedProgram() {
+            if (!importedProgramData || !importedProgramData.program) {
+                showToast('No imported data available', 'error');
+                return;
+            }
+
+            const program = importedProgramData.program;
+
+            // Populate program details
+            document.getElementById('programName').value = program.programName || 'Imported Program';
+            document.getElementById('programType').value = program.goal || 'hypertrophy';
+            document.getElementById('programDifficulty').value = program.difficulty || 'intermediate';
+            document.getElementById('daysPerWeek').value = program.daysPerWeek || program.days.length;
+            document.getElementById('programDescription').value = program.description || '';
+
+            // Convert to workoutDays format
+            workoutDays = [];
+            currentProgramId = null;
+
+            for (const day of program.days) {
+                let exercises = day.exercises || [];
+
+                // Apply filter
+                if (importFilter === 'matched') {
+                    exercises = exercises.filter(ex => ex.matched);
+                }
+
+                workoutDays.push({
+                    name: day.name,
+                    exercises: exercises.map(ex => ({
+                        id: ex.id || null,
+                        name: ex.name,
+                        video_url: ex.video_url || null,
+                        animation_url: ex.animation_url || null,
+                        thumbnail_url: ex.thumbnail_url || null,
+                        muscle_group: ex.muscle_group || ex.muscleGroup,
+                        equipment: ex.equipment || null,
+                        instructions: ex.instructions || null,
+                        sets: ex.sets || 3,
+                        reps: ex.reps || '8-12',
+                        restSeconds: ex.restSeconds != null ? ex.restSeconds : 90,
+                        notes: ex.notes || '',
+                        matched: ex.matched || false,
+                        isSuperset: ex.isSuperset || false,
+                        supersetGroup: ex.supersetGroup || null,
+                        isWarmup: ex.isWarmup || false,
+                        isStretch: ex.isStretch || false
+                    }))
+                });
+            }
+
+            renderWorkoutDays();
+            closeImportModal();
+            updateSaveButtonMode();
+
+            const stats = importedProgramData.matchStats;
+            if (importFilter === 'matched') {
+                showToast(`Program imported! ${stats.matched} matched exercises loaded.`);
+            } else {
+                showToast(`Program imported! ${stats.matched} matched, ${stats.unmatched} unmatched exercises.`);
             }
         }
 
