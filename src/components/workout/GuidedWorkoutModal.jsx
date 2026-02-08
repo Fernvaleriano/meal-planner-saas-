@@ -1,8 +1,16 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Play, Pause, SkipForward, SkipBack, ChevronRight, ChevronLeft, Check, Volume2, VolumeX, Mic, MessageSquare, Square, Send, ChevronUp, ChevronDown, MessageCircle, Bot, Loader2, Sparkles } from 'lucide-react';
+import { X, Play, Pause, SkipForward, SkipBack, ChevronRight, ChevronLeft, Check, Volume2, VolumeX, Mic, MessageSquare, Square, Send, ChevronUp, ChevronDown, MessageCircle, Bot, Loader2, Sparkles, Flame } from 'lucide-react';
 import SmartThumbnail from './SmartThumbnail';
 import { apiGet, apiPost, apiPut } from '../../utils/api';
 import { onAppResume } from '../../hooks/useAppLifecycle';
+
+// Effort level options (user-friendly RIR / RPE)
+const EFFORT_OPTIONS = [
+  { value: 'easy', label: 'Easy', detail: '4+ left', color: '#22c55e' },
+  { value: 'moderate', label: 'Moderate', detail: '2-3 left', color: '#eab308' },
+  { value: 'hard', label: 'Hard', detail: '1 left', color: '#f97316' },
+  { value: 'maxed', label: 'All Out', detail: '0 left', color: '#ef4444' },
+];
 
 // Parse reps helper
 const parseReps = (reps) => {
@@ -226,7 +234,8 @@ function GuidedWorkoutModal({
           reps: existingSet?.reps || defaultReps,
           weight: existingSet?.weight || 0,
           duration: existingSet?.duration || ex.duration || null,
-          restSeconds: existingSet?.restSeconds || ex.restSeconds || ex.rest_seconds || 60
+          restSeconds: existingSet?.restSeconds || ex.restSeconds || ex.rest_seconds || 60,
+          effort: existingSet?.effort || null
         };
       });
     });
@@ -573,7 +582,8 @@ function GuidedWorkoutModal({
           setNumber: i + 1,
           reps: s.reps || 0,
           weight: s.weight || 0,
-          weightUnit: weightUnit
+          weightUnit: weightUnit,
+          effort: s.effort || null
         }));
 
         await apiPut('/.netlify/functions/workout-logs', {
@@ -974,7 +984,8 @@ function GuidedWorkoutModal({
       weight: log.weight,
       completed: completedSetsRef.current[exIdx]?.has(i) || false,
       duration: log.duration,
-      restSeconds: log.restSeconds
+      restSeconds: log.restSeconds,
+      effort: log.effort || null
     }));
 
     onUpdateExercise({ ...ex, sets: updatedSets });
@@ -1573,6 +1584,28 @@ function GuidedWorkoutModal({
               </div>
             </div>
             <p className="guided-input-hint">Tap to edit</p>
+
+            {/* Effort selector */}
+            <div className="guided-effort-section">
+              <p className="guided-effort-label">
+                <Flame size={14} />
+                How did that feel?
+              </p>
+              <div className="guided-effort-pills">
+                {EFFORT_OPTIONS.map(opt => (
+                  <button
+                    key={opt.value}
+                    className={`guided-effort-pill ${currentSetLog.effort === opt.value ? 'selected' : ''}`}
+                    style={currentSetLog.effort === opt.value ? { background: opt.color, borderColor: opt.color } : undefined}
+                    onClick={() => updateSetLog('effort', currentSetLog.effort === opt.value ? null : opt.value)}
+                    type="button"
+                  >
+                    <span className="guided-effort-pill-label">{opt.label}</span>
+                    <span className="guided-effort-pill-detail">{opt.detail}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         )}
       </div>
