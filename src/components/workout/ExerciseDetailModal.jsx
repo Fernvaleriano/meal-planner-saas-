@@ -2571,17 +2571,8 @@ function ExerciseDetailModal({
         const history = res?.history || [];
 
         if (history.length === 0) {
-          // First time - use default from exercise
-          const currentExercise = exerciseRef.current;
-          const defaultSets = typeof currentExercise?.sets === 'number' ? currentExercise.sets : 3;
-          const defaultReps = safeParseReps(currentExercise?.reps);
-          setCoachingRecommendation({
-            sets: defaultSets,
-            reps: defaultReps,
-            weight: 0,
-            reasoning: "First time with this exercise! Start with a comfortable weight to learn proper form.",
-            isFirstTime: true
-          });
+          // No history — don't show recommendation card
+          setCoachingRecommendation(null);
           return;
         }
 
