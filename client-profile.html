@@ -6445,6 +6445,202 @@
             background: #0c2d48;
             color: #7dd3fc;
         }
+
+        /* ===== ACTION BAR ===== */
+        .client-action-bar {
+            display: flex;
+            gap: 8px;
+            padding: 16px 20px;
+            margin-bottom: 20px;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: var(--shadow-sm);
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+        }
+        .client-action-bar::-webkit-scrollbar { display: none; }
+        .action-bar-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            padding: 10px 14px;
+            border: 1px solid var(--gray-200);
+            border-radius: 10px;
+            background: var(--gray-50);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+            min-width: 80px;
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--gray-600);
+        }
+        .action-bar-btn:hover {
+            background: var(--brand-primary);
+            color: #fff;
+            border-color: var(--brand-primary);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(13, 148, 136, 0.3);
+        }
+        .action-bar-btn:hover svg { stroke: #fff; }
+        .action-bar-btn svg {
+            width: 20px;
+            height: 20px;
+            stroke: var(--gray-500);
+            transition: stroke 0.2s;
+        }
+        .action-bar-btn .action-bar-icon {
+            font-size: 18px;
+            line-height: 1;
+        }
+
+        /* ===== DRAWER SYSTEM ===== */
+        /* Hide all drawer sections from normal page flow */
+        [data-drawer] {
+            display: none !important;
+        }
+
+        /* Drawer overlay backdrop */
+        .drawer-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            backdrop-filter: blur(2px);
+            -webkit-backdrop-filter: blur(2px);
+        }
+        .drawer-overlay.active {
+            display: block;
+        }
+
+        /* Drawer panel (the section when opened) */
+        [data-drawer].drawer-open {
+            display: block !important;
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 700px;
+            max-width: 95vw;
+            height: 100vh;
+            height: 100dvh;
+            z-index: 1001;
+            overflow-y: auto;
+            overflow-x: hidden;
+            background: var(--gray-50);
+            padding: 70px 24px 24px;
+            box-shadow: -8px 0 30px rgba(0, 0, 0, 0.15);
+            animation: drawerSlideIn 0.3s ease forwards;
+        }
+
+        @keyframes drawerSlideIn {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+        }
+
+        /* Close button (injected via JS) */
+        .drawer-close-btn {
+            position: fixed;
+            top: 14px;
+            right: 14px;
+            z-index: 1002;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: none;
+            background: var(--gray-200);
+            color: var(--gray-700);
+            font-size: 22px;
+            line-height: 1;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s;
+        }
+        .drawer-close-btn:hover {
+            background: var(--gray-300);
+        }
+
+        /* When inside a drawer, disable collapsible behavior and auto-expand */
+        [data-drawer].drawer-open .collapsible-header {
+            cursor: default;
+            pointer-events: none;
+        }
+        [data-drawer].drawer-open .section-toggle-btn,
+        [data-drawer].drawer-open .toggle-icon {
+            display: none;
+        }
+        [data-drawer].drawer-open .collapsible-content {
+            display: block !important;
+            max-height: none !important;
+        }
+        [data-drawer].drawer-open .collapsible-content.collapsed {
+            display: block !important;
+        }
+
+        /* ===== DARK THEME - Action Bar ===== */
+        [data-theme="dark"] .client-action-bar {
+            background: #1a2332;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+        [data-theme="dark"] .action-bar-btn {
+            background: #0f1923;
+            border-color: #2a3a4e;
+            color: #94a3b8;
+        }
+        [data-theme="dark"] .action-bar-btn svg {
+            stroke: #94a3b8;
+        }
+        [data-theme="dark"] .action-bar-btn:hover {
+            background: var(--brand-primary);
+            color: #fff;
+            border-color: var(--brand-primary);
+        }
+        [data-theme="dark"] .action-bar-btn:hover svg { stroke: #fff; }
+
+        /* ===== DARK THEME - Drawer ===== */
+        [data-theme="dark"] .drawer-overlay {
+            background: rgba(0, 0, 0, 0.7);
+        }
+        [data-theme="dark"] [data-drawer].drawer-open {
+            background: #0f1923;
+            box-shadow: -8px 0 30px rgba(0, 0, 0, 0.5);
+        }
+        [data-theme="dark"] .drawer-close-btn {
+            background: #2a3a4e;
+            color: #e2e8f0;
+        }
+        [data-theme="dark"] .drawer-close-btn:hover {
+            background: #3a4a5e;
+        }
+
+        /* ===== RESPONSIVE - Action Bar ===== */
+        @media (max-width: 768px) {
+            .client-action-bar {
+                padding: 12px;
+                gap: 6px;
+            }
+            .action-bar-btn {
+                min-width: 68px;
+                padding: 8px 10px;
+                font-size: 10px;
+            }
+            .action-bar-btn svg {
+                width: 18px;
+                height: 18px;
+            }
+            [data-drawer].drawer-open {
+                width: 100vw;
+                max-width: 100vw;
+                padding: 60px 16px 16px;
+            }
+        }
     </style>
     <script src="https://unpkg.com/lucide@0.312.0/dist/umd/lucide.min.js" onload="lucide.createIcons()"></script>
     <style>body{-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;overscroll-behavior:none;-webkit-overflow-scrolling:touch;}</style>
@@ -6571,8 +6767,59 @@
             </div>
         </div>
 
+        <!-- Client Action Bar -->
+        <div class="client-action-bar" id="clientActionBar" style="display: none;">
+            <button class="action-bar-btn" onclick="openDrawer('goals')">
+                <span class="action-bar-icon">🎯</span>
+                Goals
+            </button>
+            <button class="action-bar-btn" onclick="openDrawer('ai-coach')">
+                <span class="action-bar-icon">🤖</span>
+                AI Coach
+            </button>
+            <button class="action-bar-btn" onclick="openDrawer('workouts')">
+                <span class="action-bar-icon">🏋️</span>
+                Workouts
+            </button>
+            <button class="action-bar-btn" onclick="openDrawer('notes')">
+                <span class="action-bar-icon">🎙️</span>
+                Notes
+            </button>
+            <button class="action-bar-btn" onclick="openDrawer('programs')">
+                <span class="action-bar-icon">📋</span>
+                Programs
+            </button>
+            <button class="action-bar-btn" onclick="openDrawer('diary')">
+                <span class="action-bar-icon">🍽️</span>
+                Diary
+            </button>
+            <button class="action-bar-btn" onclick="openDrawer('plans')">
+                <span class="action-bar-icon">📄</span>
+                Plans
+            </button>
+            <button class="action-bar-btn" onclick="openDrawer('supplements')">
+                <span class="action-bar-icon">💊</span>
+                Supps
+            </button>
+            <button class="action-bar-btn" onclick="openDrawer('favorites')">
+                <span class="action-bar-icon">❤️</span>
+                Favorites
+            </button>
+            <button class="action-bar-btn" onclick="openDrawer('photos')">
+                <span class="action-bar-icon">📸</span>
+                Photos
+            </button>
+            <button class="action-bar-btn" onclick="openDrawer('measurements')">
+                <span class="action-bar-icon">📊</span>
+                Measures
+            </button>
+        </div>
+
+        <!-- Drawer Overlay -->
+        <div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+
         <!-- Client Goals Section -->
-        <div class="goals-section" id="goalsSection" style="display: none;">
+        <div class="goals-section" id="goalsSection" data-drawer="goals">
             <div class="goals-header">
                 <h2 class="goals-title">🎯 Daily Nutrition Goals</h2>
             </div>
@@ -6741,7 +6988,7 @@
         </div>
 
         <!-- AI Coach Assistant Section -->
-        <div class="ai-assistant-section">
+        <div class="ai-assistant-section" data-drawer="ai-coach">
             <div class="ai-assistant-header">
                 <h2 class="ai-assistant-title">🤖 AI Coach Assistant</h2>
             </div>
@@ -6895,7 +7142,7 @@
         </div>
 
         <!-- Workout Progress Section -->
-        <div class="workout-progress-section">
+        <div class="workout-progress-section" data-drawer="workouts">
             <div class="section-header collapsible-header" onclick="toggleSection('workouts')" style="cursor: pointer;">
                 <h2 class="section-title">🏋️ Workout Progress</h2>
                 <button class="section-toggle-btn" type="button">
@@ -6964,7 +7211,7 @@
         </div>
 
         <!-- Client Notes & Voice Notes Section -->
-        <div class="client-notes-section">
+        <div class="client-notes-section" data-drawer="notes">
             <div class="section-header collapsible-header" onclick="toggleSection('clientNotes')" style="cursor: pointer;">
                 <h2 class="section-title">🎙️ Client Notes & Voice Notes</h2>
                 <button class="section-toggle-btn" type="button">
@@ -6981,33 +7228,8 @@
             </div>
         </div>
 
-        <!-- Workout Calendar Section -->
-        <div class="workout-calendar-section">
-            <div class="section-header collapsible-header" onclick="toggleSection('workoutCalendar')" style="cursor: pointer;">
-                <h2 class="section-title">📅 Workout Calendar</h2>
-                <button class="section-toggle-btn" type="button">
-                    <span class="toggle-icon collapsed" id="workoutCalendarToggleIcon">▼</span>
-                </button>
-            </div>
-            <div id="workoutCalendarContent" class="collapsible-content collapsed">
-                <div class="wc-month-nav">
-                    <button class="workout-nav-btn" onclick="changeCalendarMonth(-1)">‹ Prev</button>
-                    <span class="wc-month-label" id="calendarMonthLabel">January 2026</span>
-                    <button class="workout-nav-btn" onclick="changeCalendarMonth(1)">Next ›</button>
-                </div>
-                <div id="calendarGrid" class="wc-grid"></div>
-                <div class="wc-legend">
-                    <div class="wc-legend-item"><span class="wc-indicator completed"></span> Completed</div>
-                    <div class="wc-legend-item"><span class="wc-indicator scheduled"></span> Scheduled</div>
-                    <div class="wc-legend-item"><span class="wc-indicator missed"></span> Missed</div>
-                    <div class="wc-legend-item"><span class="wc-indicator in-progress"></span> In Progress</div>
-                </div>
-                <div id="calendarDayDetail"></div>
-            </div>
-        </div>
-
         <!-- Workout Programs Section -->
-        <div class="workout-programs-section">
+        <div class="workout-programs-section" data-drawer="programs">
             <div class="section-header collapsible-header" onclick="toggleSection('workoutPrograms')" style="cursor: pointer;">
                 <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
                     <h2 class="section-title">📋 Workout Programs</h2>
@@ -7037,7 +7259,7 @@
         <div id="workoutModalContainer"></div>
 
         <!-- Food Diary Section -->
-        <div class="diary-section">
+        <div class="diary-section" data-drawer="diary">
             <div class="diary-header">
                 <h2 class="diary-title">🍽️ Food Diary</h2>
                 <div class="diary-date-nav">
@@ -7102,7 +7324,7 @@
         </div>
 
         <!-- Plans Section -->
-        <div class="plans-section">
+        <div class="plans-section" data-drawer="plans">
             <div class="section-header collapsible-header" onclick="toggleSection('plans')" style="cursor: pointer;">
                 <h2 class="section-title">📋 Meal Plans</h2>
                 <button class="section-toggle-btn" type="button">
@@ -7141,7 +7363,7 @@
         </div>
 
         <!-- Supplement Protocol Section -->
-        <div class="protocols-section" id="protocolsSection" style="display: none;">
+        <div class="protocols-section" id="protocolsSection" data-drawer="supplements">
             <div class="section-header collapsible-header" onclick="toggleSection('protocols')" style="cursor: pointer;">
                 <h2 class="section-title">💊 Supplement Protocol</h2>
                 <button class="section-toggle-btn" type="button">
@@ -7161,7 +7383,7 @@
         </div>
 
         <!-- Favorites Section -->
-        <div class="favorites-section">
+        <div class="favorites-section" data-drawer="favorites">
             <div class="favorites-header collapsible-header" onclick="toggleSection('favorites')" style="cursor: pointer;">
                 <h2 class="favorites-title">❤️ Favorite Meals</h2>
                 <button class="section-toggle-btn" type="button">
@@ -7206,7 +7428,7 @@
         </div>
 
         <!-- Progress Photos Section -->
-        <div class="photos-section">
+        <div class="photos-section" data-drawer="photos">
             <div class="photos-header collapsible-header" onclick="toggleSection('photos')" style="cursor: pointer;">
                 <h2 class="photos-title">📸 Progress Photos</h2>
                 <div style="display: flex; align-items: center; gap: 10px;">
@@ -7233,7 +7455,7 @@
         </div>
 
         <!-- Measurements Section -->
-        <div class="measurements-section">
+        <div class="measurements-section" data-drawer="measurements">
             <div class="measurements-header collapsible-header" onclick="toggleSection('measurements')" style="cursor: pointer;">
                 <h2 class="measurements-title">📊 Body Measurements</h2>
                 <div style="display: flex; align-items: center; gap: 10px;">
@@ -7274,10 +7496,10 @@
             <div class="checkins-header collapsible-header" onclick="toggleSection('checkins')" style="cursor: pointer;">
                 <h2 class="checkins-title">📝 Check-ins</h2>
                 <button class="section-toggle-btn" type="button">
-                    <span class="toggle-icon collapsed" id="checkinsToggleIcon">▼</span>
+                    <span class="toggle-icon" id="checkinsToggleIcon">▼</span>
                 </button>
             </div>
-            <div id="checkinsContent" class="collapsible-content collapsed">
+            <div id="checkinsContent" class="collapsible-content">
                 <div id="checkinsContainer">
                     <div class="loading skeleton-loading">
                         <div class="skeleton-checkin">
@@ -7512,7 +7734,7 @@
         // Restore collapsed states on load
         // Default collapsed sections: plans, protocols, favorites, photos, measurements, checkins
         (function restoreCollapsedStates() {
-            const defaultCollapsed = ['plans', 'protocols', 'favorites', 'photos', 'measurements', 'checkins', 'workouts', 'workoutCalendar', 'workoutPrograms', 'clientNotes'];
+            const defaultCollapsed = ['plans', 'protocols', 'favorites', 'photos', 'measurements', 'workouts', 'workoutPrograms', 'clientNotes'];
             const savedStates = JSON.parse(localStorage.getItem('clientProfileCollapsed') || '{}');
 
             defaultCollapsed.forEach(section => {
@@ -7531,6 +7753,46 @@
                 }
             });
         })();
+
+        // ===== DRAWER SYSTEM =====
+        function openDrawer(name) {
+            closeDrawer();
+            const section = document.querySelector(`[data-drawer="${name}"]`);
+            if (!section) return;
+            section.classList.add('drawer-open');
+
+            // Add close button if not already there
+            if (!section.querySelector('.drawer-close-btn')) {
+                const closeBtn = document.createElement('button');
+                closeBtn.className = 'drawer-close-btn';
+                closeBtn.innerHTML = '&times;';
+                closeBtn.onclick = function(e) { e.stopPropagation(); closeDrawer(); };
+                section.insertBefore(closeBtn, section.firstChild);
+            }
+
+            // Auto-expand any collapsed content within
+            section.querySelectorAll('.collapsible-content.collapsed').forEach(el => {
+                el.classList.remove('collapsed');
+            });
+            section.querySelectorAll('.toggle-icon.collapsed').forEach(el => {
+                el.classList.remove('collapsed');
+            });
+
+            document.getElementById('drawerOverlay').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeDrawer() {
+            document.querySelectorAll('.drawer-open').forEach(el => el.classList.remove('drawer-open'));
+            const overlay = document.getElementById('drawerOverlay');
+            if (overlay) overlay.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        // Close drawer on Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') closeDrawer();
+        });
 
         // Initialize Supabase client
         const SUPABASE_URL = 'https://qewqcjzlfqamqwbccapr.supabase.co';
@@ -7767,7 +8029,6 @@
                 loadFavorites(clientId),
                 loadFoodDiary(clientId),
                 loadWorkoutLogs(clientId),
-                loadWorkoutCalendar(clientId),
                 loadWorkoutPrograms(clientId),
                 loadClientNotes(clientId)
             ]);
@@ -7848,15 +8109,15 @@
                 .map(item => `<div class="client-meta-item">${item}</div>`)
                 .join('');
 
-            // Show client card
+            // Show client card and action bar
             document.getElementById('clientCard').style.display = 'block';
+            document.getElementById('clientActionBar').style.display = 'flex';
 
             // Load reminder status
             loadReminderStatus(client.id);
 
-            // Load goals and show goals section
+            // Load goals (drawer handles visibility)
             loadClientGoals(client.id);
-            document.getElementById('goalsSection').style.display = 'block';
 
             // Set the can_edit_goals toggle based on client data
             document.getElementById('canEditGoalsToggle').checked = client.can_edit_goals || false;
@@ -12855,14 +13116,12 @@
                 clientProtocols = data.protocols || [];
 
                 if (clientProtocols.length > 0) {
-                    document.getElementById('protocolsSection').style.display = 'block';
                     displayProtocols();
                 } else {
-                    document.getElementById('protocolsSection').style.display = 'none';
+                    document.getElementById('protocolsContainer').innerHTML = '<div class="no-protocols" style="text-align:center;padding:30px;color:#64748b;">No supplement protocols assigned yet.</div>';
                 }
             } catch (error) {
                 console.error('Error loading protocols:', error);
-                document.getElementById('protocolsSection').style.display = 'none';
             }
         }
 
