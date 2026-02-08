@@ -317,7 +317,8 @@ function GuidedWorkoutModal({
     // Skip progress tips for exercises where progressive overload doesn't apply:
     // warm-ups, stretches, cardio machines, timed exercises
     const isWarmupOrStretch = currentExercise.isWarmup || currentExercise.isStretch ||
-      currentExercise.phase === 'warmup' || currentExercise.phase === 'cooldown';
+      currentExercise.phase === 'warmup' || currentExercise.phase === 'cooldown' ||
+      currentExercise.exercise_type === 'stretch';
 
     const isTimed = currentExercise.trackingType === 'time' ||
       currentExercise.exercise_type === 'timed' ||
@@ -359,19 +360,8 @@ function GuidedWorkoutModal({
         }
         if (cancelled || !res?.history || res.history.length === 0) {
           setProgressTips(prev => ({ ...prev, [currentExIndex]: null }));
-          // For new exercises, create a default recommendation
-          const defaultSets = typeof currentExercise.sets === 'number' ? currentExercise.sets : 3;
-          const defaultReps = parseReps(currentExercise.reps);
-          setAiRecommendations(prev => ({
-            ...prev,
-            [currentExIndex]: {
-              sets: defaultSets,
-              reps: defaultReps,
-              weight: 0,
-              reasoning: "First time doing this exercise! Start with a comfortable weight to learn proper form.",
-              isFirstTime: true
-            }
-          }));
+          // No history — don't show recommendation card
+          setAiRecommendations(prev => ({ ...prev, [currentExIndex]: null }));
           return;
         }
 
@@ -380,6 +370,7 @@ function GuidedWorkoutModal({
         const sessions = res.history.filter(s => s.workoutDate !== todayStr);
         if (sessions.length === 0) {
           setProgressTips(prev => ({ ...prev, [currentExIndex]: null }));
+          setAiRecommendations(prev => ({ ...prev, [currentExIndex]: null }));
           return;
         }
 
@@ -1366,7 +1357,7 @@ function GuidedWorkoutModal({
         )}
 
         {/* Coaching Recommendation Card - hidden for warm-ups, stretches, and cardio equipment */}
-        {aiRecommendations[currentExIndex] && !info.isTimed && !currentExercise?.isWarmup && !currentExercise?.isStretch && currentExercise?.phase !== 'warmup' && currentExercise?.phase !== 'cooldown' && (
+        {aiRecommendations[currentExIndex] && !info.isTimed && !currentExercise?.isWarmup && !currentExercise?.isStretch && currentExercise?.exercise_type !== 'stretch' && currentExercise?.phase !== 'warmup' && currentExercise?.phase !== 'cooldown' && (
           <div className={`ai-recommendation-card ${acceptedRecommendation[currentExIndex] ? 'accepted' : ''}`}>
             <div className="ai-rec-header">
               <div className="ai-rec-badge">
