@@ -232,103 +232,64 @@ exports.handler = async (event) => {
       };
     }
 
-    console.log(`Importing workout program from text (${fileContent.length} chars)`);
+    // Truncate very long inputs to avoid token limits
+    const trimmedContent = fileContent.length > 15000 ? fileContent.substring(0, 15000) : fileContent;
+    console.log(`Importing workout program from text (${trimmedContent.length} chars)`);
 
-    // 1. Fetch ALL exercises from database
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
-    let allExercises = [];
-    let offset = 0;
-    const pageSize = 1000;
-
-    while (true) {
-      const { data: exercises, error } = await supabase
-        .from('exercises')
-        .select('id, name, video_url, animation_url, thumbnail_url, muscle_group, equipment, instructions, secondary_muscles')
-        .is('coach_id', null)
-        .range(offset, offset + pageSize - 1);
-
-      if (error) {
-        console.error('Error fetching exercises:', error);
-        break;
-      }
-      if (!exercises || exercises.length === 0) break;
-      allExercises = allExercises.concat(exercises);
-      if (exercises.length < pageSize) break;
-      offset += pageSize;
-    }
-
-    console.log(`Fetched ${allExercises.length} exercises for matching`);
-
-    // Build exercise name list grouped by muscle for the AI prompt
-    const exercisesByMuscle = {};
-    for (const ex of allExercises) {
-      const group = (ex.muscle_group || 'other').toLowerCase();
-      if (!exercisesByMuscle[group]) exercisesByMuscle[group] = [];
-      exercisesByMuscle[group].push(ex.name);
-    }
-
-    const exerciseNameList = Object.entries(exercisesByMuscle)
-      .map(([group, names]) => `${group.toUpperCase()}: ${names.slice(0, 40).join(', ')}`)
-      .join('\n');
-
-    // 2. Use Claude to parse the workout program text
     const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
 
-    const systemPrompt = `You are an expert fitness program parser. You will be given text extracted from a workout program document (PDF, image, etc.).
+    const systemPrompt = `You are a fitness program parser. Extract structured workout data from the text. Return ONLY valid JSON, no markdown.
 
-Your job is to extract the COMPLETE structured workout data from this text.
+Rules:
+- Extract EVERY exercise including warm-ups and cool-down stretches
+- Preserve exact exercise names from the source
+- Preserve all sets, reps, rest periods, and coaching notes
+- Group exercises by workout day
+- Mark warm-up exercises with isWarmup: true
+- Mark cool-down/stretch exercises with isStretch: true
+- Convert rest to seconds (90s→90, 2 min→120, -→0)
+- Keep reps as string if it has ranges or units (e.g. "8-10", "2 min", "30s hold")
 
-IMPORTANT RULES:
-1. Extract EVERY exercise mentioned, including warm-ups and cool-down stretches
-2. Preserve the exact exercise names as written in the source document
-3. Preserve all sets, reps, rest periods, and coaching notes exactly as written
-4. Group exercises by workout day
-5. Identify warm-up exercises (mark isWarmup: true)
-6. Identify cool-down/stretch exercises (mark isStretch: true)
-7. If rest is given as "-" or not specified, use 0
-8. If reps contain a unit like "min", "sec", "each", preserve it (e.g., "2 min", "15 each", "30s")
+JSON structure:
+{"programName":"","description":"","goal":"hypertrophy","difficulty":"intermediate","daysPerWeek":5,"days":[{"name":"Day 1: Chest","exercises":[{"originalName":"Bench press","muscleGroup":"chest","sets":4,"reps":"8-10","restSeconds":90,"notes":"Form cue","isWarmup":false,"isStretch":false}]}]}`;
 
-Return ONLY valid JSON with this structure:
-{
-  "programName": "Name of the program",
-  "description": "Brief description from the document",
-  "goal": "hypertrophy|strength|endurance|weight_loss|general",
-  "difficulty": "beginner|intermediate|advanced",
-  "daysPerWeek": 5,
-  "days": [
-    {
-      "name": "Day 1: Chest & Triceps",
-      "exercises": [
-        {
-          "originalName": "Bench press - Barbell",
-          "muscleGroup": "chest",
-          "sets": 4,
-          "reps": "8-10",
-          "restSeconds": 90,
-          "notes": "Plant feet flat. Control the descent. Full ROM.",
-          "isWarmup": false,
-          "isStretch": false
-        }
-      ]
-    }
-  ]
-}
+    // Run DB fetch and Claude parse in PARALLEL to save time
+    const fetchExercisesPromise = (async () => {
+      let allExercises = [];
+      let offset = 0;
+      const pageSize = 1000;
+      while (true) {
+        const { data: exercises, error } = await supabase
+          .from('exercises')
+          .select('id, name, video_url, animation_url, thumbnail_url, muscle_group, equipment, instructions, secondary_muscles')
+          .is('coach_id', null)
+          .range(offset, offset + pageSize - 1);
+        if (error) { console.error('Error fetching exercises:', error); break; }
+        if (!exercises || exercises.length === 0) break;
+        allExercises = allExercises.concat(exercises);
+        if (exercises.length < pageSize) break;
+        offset += pageSize;
+      }
+      return allExercises;
+    })();
 
-For restSeconds: convert text rest values to seconds (e.g., "90s" → 90, "2 min" → 120, "75s" → 75, "-" → 0).
-For sets/reps: keep reps as a string if it includes ranges or units (e.g., "8-10", "2 min", "15 each", "30s hold", "30s ea").`;
-
-    const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 8192,
+    const parsePromise = anthropic.messages.create({
+      model: 'claude-3-5-haiku-20241022',
+      max_tokens: 4096,
       system: systemPrompt,
       messages: [{
         role: 'user',
-        content: `Parse this workout program and extract all exercises with their details. Return only valid JSON.\n\n---\n${fileContent}\n---`
+        content: `Parse this workout program. Return only valid JSON.\n\n${trimmedContent}`
       }]
     });
 
+    // Wait for both to complete
+    const [allExercises, message] = await Promise.all([fetchExercisesPromise, parsePromise]);
+    console.log(`Fetched ${allExercises.length} exercises, got Claude response`);
+
     const responseText = message.content[0]?.text || '';
-    console.log('Claude parse response length:', responseText.length);
+    console.log('Parse response length:', responseText.length);
 
     // Extract JSON from response
     let parsedProgram;
