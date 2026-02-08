@@ -1970,6 +1970,40 @@
             margin-left: -15px;
         }
 
+        /* Exercise Label Selector */
+        .exercise-label-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 6px;
+        }
+
+        .exercise-label-select {
+            background: var(--card-bg, #1e293b);
+            color: var(--text-color, #e2e8f0);
+            border: 1px solid var(--border-color, #334155);
+            border-radius: 6px;
+            padding: 4px 8px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .exercise-label-select:hover {
+            border-color: var(--primary, #6366f1);
+        }
+
+        .exercise-label-select:focus {
+            border-color: var(--primary, #6366f1);
+            box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+        }
+
+        .label-hint {
+            font-size: 0.65rem;
+            color: var(--text-muted, #94a3b8);
+        }
+
         .modal-footer {
             padding: 20px 28px;
             border-top: 1px solid var(--border-color);
@@ -4075,6 +4109,17 @@
                         <div class="exercise-notes">
                             <input type="text" class="notes-input" value="${exercise.notes || ''}" placeholder="Add notes (e.g., tempo, form tips...)" onchange="updateExercise(${dayIndex}, ${exIndex}, 'notes', this.value)">
                         </div>
+                        <div class="exercise-label-row">
+                            <select class="exercise-label-select" onchange="updateExerciseLabel(${dayIndex}, ${exIndex}, this.value)">
+                                <option value="none" ${!exercise.isWarmup && !exercise.isStretch && !exercise.isSuperset ? 'selected' : ''}>No Label</option>
+                                <option value="warmup" ${exercise.isWarmup ? 'selected' : ''}>🔥 Warm-up</option>
+                                <option value="stretch" ${exercise.isStretch ? 'selected' : ''}>🌿 Stretch</option>
+                                <option value="supersetA" ${exercise.isSuperset && exercise.supersetGroup === 'A' ? 'selected' : ''}>⚡ Superset A</option>
+                                <option value="supersetB" ${exercise.isSuperset && exercise.supersetGroup === 'B' ? 'selected' : ''}>⚡ Superset B</option>
+                                <option value="supersetC" ${exercise.isSuperset && exercise.supersetGroup === 'C' ? 'selected' : ''}>⚡ Superset C</option>
+                            </select>
+                            <span class="label-hint">Label</span>
+                        </div>
                         <div class="voice-note-container" id="voiceNote-${dayIndex}-${exIndex}">
                             ${exercise.voiceNoteUrl ? `
                                 <div class="voice-note-player">
@@ -4158,6 +4203,29 @@
             } else {
                 workoutDays[dayIndex].exercises[exIndex][field] = value;
             }
+        }
+
+        function updateExerciseLabel(dayIndex, exIndex, labelValue) {
+            const exercise = workoutDays[dayIndex].exercises[exIndex];
+            // Reset all label flags
+            exercise.isWarmup = false;
+            exercise.isStretch = false;
+            exercise.isSuperset = false;
+            exercise.supersetGroup = null;
+            exercise.phase = 'main';
+
+            if (labelValue === 'warmup') {
+                exercise.isWarmup = true;
+                exercise.phase = 'warmup';
+            } else if (labelValue === 'stretch') {
+                exercise.isStretch = true;
+                exercise.phase = 'cooldown';
+            } else if (labelValue.startsWith('superset')) {
+                exercise.isSuperset = true;
+                exercise.supersetGroup = labelValue.replace('superset', '');
+                exercise.phase = 'main';
+            }
+            renderWorkoutDays();
         }
 
         function toggleTrackingType(dayIndex, exIndex) {
