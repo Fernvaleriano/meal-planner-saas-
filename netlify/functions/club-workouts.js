@@ -55,7 +55,8 @@ exports.handler = async (event) => {
         };
       }
 
-      // Transform programs into individual day workouts for clients to browse
+      // Transform programs into browseable workouts for clients
+      // Multi-day programs are returned as a single entry with a days array
       const workouts = [];
       for (const program of (programs || [])) {
         // AI-generated programs (generate-workout-claude.js) use weeks[].workouts[] structure
@@ -96,27 +97,36 @@ exports.handler = async (event) => {
             }
           });
         } else {
-          // Multi-day program: each day becomes a separate browseable workout
-          days.forEach((day, index) => {
-            if (day.exercises && day.exercises.length > 0) {
-              workouts.push({
-                id: `${program.id}-${index}`,
-                program_id: program.id,
-                day_index: index,
-                name: `${program.name} — ${day.name || `Day ${index + 1}`}`,
-                description: program.description,
-                category: program.program_type || 'general',
-                difficulty: program.difficulty,
-                image_url: program.program_data?.image_url || null,
-                workout_data: {
-                  exercises: day.exercises || [],
-                  estimatedMinutes: estimateMinutes(day.exercises),
-                  estimatedCalories: estimateCalories(day.exercises),
-                  dayName: day.name || `Day ${index + 1}`
-                }
-              });
-            }
-          });
+          // Multi-day program: return as single grouped entry with all days
+          const validDays = days
+            .map((day, index) => ({
+              day_index: index,
+              name: day.name || `Day ${index + 1}`,
+              exercises: day.exercises || [],
+              estimatedMinutes: estimateMinutes(day.exercises),
+              estimatedCalories: estimateCalories(day.exercises)
+            }))
+            .filter(d => d.exercises.length > 0);
+
+          if (validDays.length > 0) {
+            const totalExercises = validDays.reduce((sum, d) => sum + d.exercises.length, 0);
+            const totalMinutes = validDays.reduce((sum, d) => sum + d.estimatedMinutes, 0);
+
+            workouts.push({
+              id: `${program.id}`,
+              program_id: program.id,
+              name: program.name,
+              description: program.description,
+              category: program.program_type || 'general',
+              difficulty: program.difficulty,
+              image_url: program.program_data?.image_url || null,
+              is_multi_day: true,
+              total_days: validDays.length,
+              total_exercises: totalExercises,
+              total_estimated_minutes: totalMinutes,
+              days: validDays
+            });
+          }
         }
       }
 
