@@ -2752,32 +2752,11 @@ function Workouts() {
             ) : (
               <div className="empty-state-v2">
                 <div className="empty-illustration">
-                  <Dumbbell size={56} strokeWidth={1.5} />
+                  <Dumbbell size={48} strokeWidth={1.5} />
                 </div>
                 <h3>Rest Day</h3>
-                <p>No workout scheduled for this day. Recovery is part of the process!</p>
-                <div className="empty-tips">
-                  <div className="tip">
-                    <span className="tip-icon">💧</span>
-                    <span>Stay hydrated</span>
-                  </div>
-                  <div className="tip">
-                    <span className="tip-icon">🧘</span>
-                    <span>Light stretching</span>
-                  </div>
-                  <div className="tip">
-                    <span className="tip-icon">😴</span>
-                    <span>Get good sleep</span>
-                  </div>
-                </div>
+                <p>No workout scheduled. Recovery is part of the process!</p>
                 <div className="rest-day-actions">
-                  <button
-                    className="rest-day-club-btn"
-                    onClick={() => setShowClubWorkouts(true)}
-                  >
-                    <Users size={18} />
-                    <span>Club Workouts</span>
-                  </button>
                   <button
                     className="rest-day-create-btn"
                     onClick={() => setShowCreateWorkout(true)}
@@ -2785,13 +2764,22 @@ function Workouts() {
                     <PenSquare size={18} />
                     <span>Create Workout</span>
                   </button>
-                  <button
-                    className="rest-day-add-btn"
-                    onClick={() => setShowAddActivity(true)}
-                  >
-                    <Plus size={18} />
-                    <span>Add Activity</span>
-                  </button>
+                  <div className="rest-day-secondary-row">
+                    <button
+                      className="rest-day-club-btn"
+                      onClick={() => setShowClubWorkouts(true)}
+                    >
+                      <Users size={16} />
+                      <span>Club Workouts</span>
+                    </button>
+                    <button
+                      className="rest-day-add-btn"
+                      onClick={() => setShowAddActivity(true)}
+                    >
+                      <Plus size={16} />
+                      <span>Add Activity</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
