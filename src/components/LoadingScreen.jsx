@@ -1,14 +1,49 @@
+import { useMemo } from 'react';
+
+const DEFAULT_LOGO = 'https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/Untitled%20design%20(3).svg';
+const DEFAULT_PRIMARY = '#0d9488';
+
+/**
+ * Get coach branding from sessionStorage cache (set by branding.js or the SPA).
+ * Returns { logoUrl, primaryColor } or defaults.
+ */
+function getCachedBranding() {
+  try {
+    const cached = sessionStorage.getItem('zique_branding');
+    if (!cached) return null;
+    const { branding } = JSON.parse(cached);
+    if (!branding) return null;
+    return {
+      logoUrl: branding.brand_logo_url || null,
+      primaryColor: branding.brand_primary_color || null,
+    };
+  } catch {
+    return null;
+  }
+}
+
 function LoadingScreen() {
+  const branding = useMemo(() => getCachedBranding(), []);
+  const logoUrl = branding?.logoUrl || DEFAULT_LOGO;
+  const primaryColor = branding?.primaryColor || DEFAULT_PRIMARY;
+  const spinnerBorderColor = primaryColor + '33'; // 20% opacity
+
   return (
     <div className="loading-screen">
       <div className="loading-content">
         <img
-          src="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/Untitled%20design%20(3).svg"
-          alt="Zique Fitness"
+          src={logoUrl}
+          alt="Loading"
           className="loading-logo"
         />
         <div className="loading-spinner-container">
-          <div className="loading-spinner-ring"></div>
+          <div
+            className="loading-spinner-ring"
+            style={{
+              borderColor: spinnerBorderColor,
+              borderTopColor: primaryColor,
+            }}
+          />
         </div>
       </div>
 
