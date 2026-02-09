@@ -2256,6 +2256,7 @@
                                     </select>
                                     <button id="edit-template-btn" onclick="editSelectedTemplate()" class="btn" style="background: #7c3aed; color: white; padding: 6px 10px; font-size: 11px;" title="Edit template" disabled><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
                                     <button id="delete-template-btn" onclick="deleteSelectedTemplate()" class="btn" style="background: #dc2626; color: white; padding: 6px 10px; font-size: 11px;" title="Delete template" disabled><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+                                    <button id="bulk-post-template-btn" onclick="bulkPostTemplate()" class="btn" style="background: #7c3aed; color: white; padding: 6px 10px; font-size: 11px;" title="Post template to multiple clients" disabled><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></button>
                                 </div>
                                 <div id="template-preview" class="mt-2 text-sm text-purple-600 hidden"></div>
                             </div>
@@ -5576,16 +5577,46 @@ async function publishPlanToClient() {
 // BULK POST TO MULTIPLE CLIENTS
 // ========================
 
-function openBulkPostModal() {
+// Bulk post a saved template (called from the template selector button)
+function bulkPostTemplate() {
+    const templateSelect = document.getElementById('dp_template_select');
+    const templateId = templateSelect ? templateSelect.value : '';
+
+    if (!templateId) {
+        alert('Please select a template first.');
+        return;
+    }
+
+    const template = cachedTemplates.find(t => t.id == templateId);
+    if (!template || !template.plan_data) {
+        alert('Template data not found. Please try again.');
+        return;
+    }
+
+    // Open the bulk post modal with template data instead of lastPlanQuery
+    openBulkPostModal({
+        planData: template.plan_data,
+        planName: template.name,
+        isTemplate: true
+    });
+}
+
+// Store template override data for use in confirmBulkPost
+let _bulkPostTemplateOverride = null;
+
+function openBulkPostModal(templateOverride) {
     if (!currentCoach) {
         alert('Please log in first.');
         return;
     }
 
-    if (!lastPlanQuery.currentPlan || lastPlanQuery.currentPlan.length === 0) {
+    // If no template override, require a generated plan
+    if (!templateOverride && (!lastPlanQuery.currentPlan || lastPlanQuery.currentPlan.length === 0)) {
         alert('Please generate a plan first.');
         return;
     }
+
+    _bulkPostTemplateOverride = templateOverride || null;
 
     // Remove existing modal if any
     const existing = document.getElementById('bulk-post-modal');
@@ -5621,11 +5652,12 @@ function openBulkPostModal() {
                         <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
                         <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
                     </svg>
-                    Bulk Post Plan
+                    Bulk Post ${_bulkPostTemplateOverride ? 'Template' : 'Plan'}
                 </h3>
                 <button data-action="close-bulk-post" style="background:none;border:none;font-size:22px;cursor:pointer;color:#6b7280;padding:4px;">&times;</button>
             </div>
-            <p style="margin:0 0 12px 0;font-size:13px;color:#6b7280;">Select the clients you want to post this plan to. Each client will get their own independent copy.</p>
+            ${_bulkPostTemplateOverride ? '<p style="margin:0 0 8px 0;font-size:13px;font-weight:600;color:#7c3aed;">Template: ' + _bulkPostTemplateOverride.planName + '</p>' : ''}
+            <p style="margin:0 0 12px 0;font-size:13px;color:#6b7280;">Select the clients you want to post this ${_bulkPostTemplateOverride ? 'template' : 'plan'} to. Each client will get their own independent copy.</p>
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid #e5e7eb;">
                 <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;font-weight:600;color:#7c3aed;">
                     <input type="checkbox" id="bulk-post-select-all" style="width:18px;height:18px;accent-color:#7c3aed;cursor:pointer;">
@@ -5676,6 +5708,7 @@ function openBulkPostModal() {
 function closeBulkPostModal() {
     const modal = document.getElementById('bulk-post-modal');
     if (modal) modal.remove();
+    _bulkPostTemplateOverride = null;
 }
 
 function updateBulkPostCount() {
@@ -5698,7 +5731,10 @@ async function confirmBulkPost() {
         return;
     }
 
-    if (!lastPlanQuery.currentPlan || lastPlanQuery.currentPlan.length === 0) {
+    const isTemplate = !!_bulkPostTemplateOverride;
+
+    // Require either template data or a generated plan
+    if (!isTemplate && (!lastPlanQuery.currentPlan || lastPlanQuery.currentPlan.length === 0)) {
         alert('No plan data available. Please generate a plan first.');
         closeBulkPostModal();
         return;
@@ -5707,8 +5743,8 @@ async function confirmBulkPost() {
     const clientIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
     const clientNames = Array.from(checkboxes).map(cb => cb.dataset.name);
 
-    // Confirm with user
-    const confirmMsg = `Post this plan to ${clientIds.length} client(s)?\n\n${clientNames.join('\n')}\n\nEach client will receive their own copy and it will be published immediately.`;
+    const sourceLabel = isTemplate ? `template "${_bulkPostTemplateOverride.planName}"` : 'this plan';
+    const confirmMsg = `Post ${sourceLabel} to ${clientIds.length} client(s)?\n\n${clientNames.join('\n')}\n\nEach client will receive their own copy and it will be published immediately.`;
     if (!confirm(confirmMsg)) return;
 
     const confirmBtn = document.getElementById('bulk-post-confirm-btn');
@@ -5721,34 +5757,45 @@ async function confirmBulkPost() {
     confirmBtn.textContent = 'Posting...';
     progressDiv.style.display = 'block';
     progressBar.style.width = '30%';
-    progressText.textContent = `Posting plan to ${clientIds.length} client(s)...`;
+    progressText.textContent = `Posting ${isTemplate ? 'template' : 'plan'} to ${clientIds.length} client(s)...`;
 
     try {
-        // Build clean plan data (same structure as saveCoachPlan)
-        const cleanPlanData = {
-            clientName: 'Bulk Post',
-            calories: lastPlanQuery.calories,
-            protein: lastPlanQuery.protein,
-            carbs: lastPlanQuery.carbs,
-            fat: lastPlanQuery.fat,
-            preference: lastPlanQuery.preference,
-            macroPreference: lastPlanQuery.macroPreference,
-            allergies: lastPlanQuery.allergies,
-            dislikedFoods: lastPlanQuery.dislikedFoods,
-            preferredFoods: lastPlanQuery.preferredFoods,
-            budget: lastPlanQuery.budget,
-            equipmentStr: lastPlanQuery.equipmentStr,
-            originalTargets: lastPlanQuery.originalTargets,
-            useBrandedFoods: lastPlanQuery.useBrandedFoods,
-            currentPlan: lastPlanQuery.currentPlan,
-            summary: lastPlanQuery.summary,
-            fromTemplate: lastPlanQuery.fromTemplate,
-            startedFromScratch: lastPlanQuery.startedFromScratch
-        };
+        let cleanPlanData;
+        let planName;
 
-        // Get plan name
-        const planNameInput = document.getElementById('dp_plan_name');
-        const planName = lastPlanQuery.planName || (planNameInput ? planNameInput.value.trim() : '') || null;
+        if (isTemplate) {
+            // Use template data directly
+            cleanPlanData = {
+                clientName: 'Bulk Post',
+                currentPlan: _bulkPostTemplateOverride.planData,
+                fromTemplate: true
+            };
+            planName = _bulkPostTemplateOverride.planName;
+        } else {
+            // Build clean plan data from generated plan (same structure as saveCoachPlan)
+            cleanPlanData = {
+                clientName: 'Bulk Post',
+                calories: lastPlanQuery.calories,
+                protein: lastPlanQuery.protein,
+                carbs: lastPlanQuery.carbs,
+                fat: lastPlanQuery.fat,
+                preference: lastPlanQuery.preference,
+                macroPreference: lastPlanQuery.macroPreference,
+                allergies: lastPlanQuery.allergies,
+                dislikedFoods: lastPlanQuery.dislikedFoods,
+                preferredFoods: lastPlanQuery.preferredFoods,
+                budget: lastPlanQuery.budget,
+                equipmentStr: lastPlanQuery.equipmentStr,
+                originalTargets: lastPlanQuery.originalTargets,
+                useBrandedFoods: lastPlanQuery.useBrandedFoods,
+                currentPlan: lastPlanQuery.currentPlan,
+                summary: lastPlanQuery.summary,
+                fromTemplate: lastPlanQuery.fromTemplate,
+                startedFromScratch: lastPlanQuery.startedFromScratch
+            };
+            const planNameInput = document.getElementById('dp_plan_name');
+            planName = lastPlanQuery.planName || (planNameInput ? planNameInput.value.trim() : '') || null;
+        }
 
         progressBar.style.width = '50%';
 
@@ -10483,17 +10530,20 @@ document.getElementById('dp_template_select').addEventListener('change', functio
     const previewDiv = document.getElementById('template-preview');
     const editBtn = document.getElementById('edit-template-btn');
     const deleteBtn = document.getElementById('delete-template-btn');
+    const bulkPostTemplateBtn = document.getElementById('bulk-post-template-btn');
 
     if (!templateId) {
         previewDiv.classList.add('hidden');
         editBtn.disabled = true;
         deleteBtn.disabled = true;
+        if (bulkPostTemplateBtn) bulkPostTemplateBtn.disabled = true;
         return;
     }
 
     // Enable buttons when a template is selected
     editBtn.disabled = false;
     deleteBtn.disabled = false;
+    if (bulkPostTemplateBtn) bulkPostTemplateBtn.disabled = false;
 
     // Use cached templates from API
     const template = cachedTemplates.find(t => t.id == templateId);
