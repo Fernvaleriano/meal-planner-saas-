@@ -723,6 +723,49 @@
                 placeholder: 'e.g., Shoulder injury, bad knees, diabetes... Type "None" if none.',
                 subtext: 'This helps me design a safe program for you'
             },
+            // Nutrition
+            {
+                id: 'diet_type',
+                type: 'single',
+                question: 'Do you follow a specific diet?',
+                subtext: 'This helps me create meal plans that match your lifestyle',
+                options: ['No preference', 'Vegetarian', 'Vegan', 'Pescatarian', 'Keto', 'Paleo', 'Mediterranean']
+            },
+            {
+                id: 'meals_per_day',
+                type: 'single',
+                question: 'How many meals do you typically eat per day?',
+                subtext: 'There\'s no wrong answer - I\'ll work with your eating pattern',
+                options: ['1-2 meals', '3 meals', '4-5 meals (including snacks)', 'Irregular / I graze throughout the day']
+            },
+            {
+                id: 'cooking_comfort',
+                type: 'single',
+                question: 'How comfortable are you with cooking?',
+                subtext: 'I\'ll match recipes to your skill level',
+                options: ['I don\'t cook at all', 'Basic skills (can follow simple recipes)', 'Intermediate (comfortable in the kitchen)', 'Advanced (I love cooking)']
+            },
+            {
+                id: 'meal_prep_time',
+                type: 'single',
+                question: 'How much time can you spend on meal prep?',
+                subtext: 'I\'ll tailor your plan to fit your schedule',
+                options: ['Minimal (15 min or less per meal)', 'Moderate (15-30 min per meal)', 'Flexible (30-60 min per meal)', 'I enjoy spending time cooking']
+            },
+            {
+                id: 'allergies',
+                type: 'textarea',
+                question: 'Any food allergies or intolerances?',
+                placeholder: 'e.g., Peanuts, dairy, gluten, shellfish... Type "None" if none.',
+                subtext: 'Your safety comes first - I\'ll make sure to avoid these completely'
+            },
+            {
+                id: 'nutrition_challenge',
+                type: 'multi',
+                question: 'What are your biggest nutrition challenges?',
+                subtext: 'Select all that apply - this helps me focus your meal plan',
+                options: ['Eating too much fast food', 'Not eating enough vegetables', 'Skipping meals', 'Late-night snacking', 'Portion control', 'Not drinking enough water', 'Emotional eating', 'Not enough protein']
+            },
             // Final
             {
                 id: 'commitment',
