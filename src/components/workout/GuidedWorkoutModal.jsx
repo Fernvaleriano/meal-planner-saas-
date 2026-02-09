@@ -1,8 +1,39 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Play, Pause, SkipForward, SkipBack, ChevronRight, ChevronLeft, Check, Volume2, VolumeX, Mic, MessageSquare, Square, Send, ChevronUp, ChevronDown, MessageCircle, Bot, Loader2, Sparkles, Flame } from 'lucide-react';
+import { X, Play, Pause, SkipForward, SkipBack, ChevronRight, ChevronLeft, Check, Volume2, VolumeX, Mic, MessageSquare, Square, Send, ChevronUp, ChevronDown, MessageCircle, Bot, Loader2, Sparkles, Flame, Repeat } from 'lucide-react';
 import SmartThumbnail from './SmartThumbnail';
+import SwapExerciseModal from './SwapExerciseModal';
 import { apiGet, apiPost, apiPut } from '../../utils/api';
 import { onAppResume } from '../../hooks/useAppLifecycle';
+
+// --- Resume helpers ---
+const RESUME_STORAGE_KEY = 'guided_workout_resume';
+
+const saveResumeState = (state) => {
+  try {
+    localStorage.setItem(RESUME_STORAGE_KEY, JSON.stringify({
+      ...state,
+      savedAt: Date.now()
+    }));
+  } catch (e) { /* quota exceeded or private mode */ }
+};
+
+const loadResumeState = () => {
+  try {
+    const raw = localStorage.getItem(RESUME_STORAGE_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    // Expire after 12 hours
+    if (Date.now() - data.savedAt > 12 * 60 * 60 * 1000) {
+      localStorage.removeItem(RESUME_STORAGE_KEY);
+      return null;
+    }
+    return data;
+  } catch { return null; }
+};
+
+const clearResumeState = () => {
+  try { localStorage.removeItem(RESUME_STORAGE_KEY); } catch {}
+};
 
 // Effort level options (user-friendly RIR / RPE)
 const EFFORT_OPTIONS = [
@@ -183,12 +214,14 @@ function GuidedWorkoutModal({
   onExerciseComplete,
   onUpdateExercise,
   onWorkoutFinish,
+  onSwapExercise,
   workoutName,
   clientId,
   coachId,
   workoutLogId,
   selectedDate,
-  weightUnit = 'lbs'
+  weightUnit = 'lbs',
+  genderPreference = 'all'
 }) {
   const [currentExIndex, setCurrentExIndex] = useState(0);
   const [currentSetIndex, setCurrentSetIndex] = useState(0);
@@ -219,6 +252,14 @@ function GuidedWorkoutModal({
   const [acceptedRecommendation, setAcceptedRecommendation] = useState({}); // { exIndex: boolean }
   const [aiChatMessages, setAiChatMessages] = useState([]); // Chat messages for Ask AI
   const [aiChatLoading, setAiChatLoading] = useState(false);
+
+  // Swap modal state
+  const [showSwapModal, setShowSwapModal] = useState(false);
+  const wasPausedBeforeSwapRef = useRef(false);
+
+  // Resume prompt state
+  const [showResumePrompt, setShowResumePrompt] = useState(false);
+  const [resumeData, setResumeData] = useState(null);
 
   // Set logging: track actual reps/weight per exercise per set
   // Structure: { exIndex: [{ reps: number, weight: number }, ...] }
@@ -276,6 +317,145 @@ function GuidedWorkoutModal({
   completedSetsRef.current = completedSets;
   setLogsRef.current = setLogs;
   const currentExercise = exercises[currentExIndex];
+
+  // Check for resume state on mount
+  useEffect(() => {
+    const saved = loadResumeState();
+    if (saved && saved.workoutName === workoutName && saved.exerciseCount === exercises.length) {
+      setResumeData(saved);
+      setShowResumePrompt(true);
+      setIsPaused(true); // Pause until user decides
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Handle resume acceptance
+  const handleResumeAccept = useCallback(() => {
+    if (!resumeData) return;
+
+    setCurrentExIndex(resumeData.currentExIndex);
+    setCurrentSetIndex(resumeData.currentSetIndex);
+    setTotalElapsed(resumeData.totalElapsed || 0);
+
+    // Restore completed sets (convert arrays back to Sets)
+    const restoredCompleted = {};
+    if (resumeData.completedSets) {
+      Object.entries(resumeData.completedSets).forEach(([key, arr]) => {
+        restoredCompleted[key] = new Set(arr);
+      });
+    }
+    setCompletedSets(restoredCompleted);
+
+    // Restore set logs
+    if (resumeData.setLogs) {
+      setSetLogs(resumeData.setLogs);
+    }
+
+    // Start at get-ready for the current exercise
+    setPhase('get-ready');
+    setTimer(5);
+    setIsPaused(false);
+    setShowResumePrompt(false);
+    setResumeData(null);
+    clearResumeState();
+  }, [resumeData]);
+
+  // Handle resume decline — start fresh
+  const handleResumeDismiss = useCallback(() => {
+    setShowResumePrompt(false);
+    setResumeData(null);
+    setIsPaused(false);
+    clearResumeState();
+  }, []);
+
+  // Save progress when closing mid-workout (not when completing)
+  const handleCloseWithSave = useCallback(() => {
+    if (phase !== 'complete' && currentExIndex > 0) {
+      // Serialize completedSets (Sets → arrays)
+      const serializedCompleted = {};
+      Object.entries(completedSets).forEach(([key, setObj]) => {
+        serializedCompleted[key] = Array.from(setObj);
+      });
+
+      saveResumeState({
+        workoutName,
+        exerciseCount: exercises.length,
+        currentExIndex,
+        currentSetIndex,
+        totalElapsed,
+        completedSets: serializedCompleted,
+        setLogs,
+        exerciseName: currentExercise?.name
+      });
+    }
+    onClose();
+  }, [phase, currentExIndex, currentSetIndex, totalElapsed, completedSets, setLogs, workoutName, exercises.length, currentExercise?.name, onClose]);
+
+  // --- Swap handlers ---
+  const handleOpenSwap = useCallback(() => {
+    wasPausedBeforeSwapRef.current = isPaused;
+    setIsPaused(true);
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    setShowSwapModal(true);
+  }, [isPaused]);
+
+  const handleSwapSelect = useCallback((newExercise) => {
+    if (!onSwapExercise || !currentExercise) return;
+
+    // Tell parent to swap the exercise in the workout data
+    onSwapExercise(currentExercise, newExercise);
+
+    // Reset local state for this exercise index
+    const numSets = typeof newExercise.sets === 'number' ? newExercise.sets :
+      (Array.isArray(newExercise.sets) ? newExercise.sets.length :
+        (typeof currentExercise.sets === 'number' ? currentExercise.sets : 3));
+    const defaultReps = parseReps(newExercise.reps || currentExercise.reps);
+
+    setSetLogs(prev => ({
+      ...prev,
+      [currentExIndex]: Array.from({ length: numSets }, () => ({
+        reps: defaultReps,
+        weight: 0,
+        duration: newExercise.duration || null,
+        restSeconds: newExercise.restSeconds || newExercise.rest_seconds || 60,
+        effort: null
+      }))
+    }));
+
+    setCompletedSets(prev => {
+      const updated = { ...prev };
+      delete updated[currentExIndex];
+      return updated;
+    });
+
+    // Clear cached tips/recommendations so they re-fetch for new exercise
+    setProgressTips(prev => {
+      const updated = { ...prev };
+      delete updated[currentExIndex];
+      return updated;
+    });
+    setAiRecommendations(prev => {
+      const updated = { ...prev };
+      delete updated[currentExIndex];
+      return updated;
+    });
+    setAcceptedRecommendation(prev => {
+      const updated = { ...prev };
+      delete updated[currentExIndex];
+      return updated;
+    });
+
+    // Reset to beginning of this exercise
+    setCurrentSetIndex(0);
+    setPhase('get-ready');
+    setTimer(10);
+    setShowSwapModal(false);
+    setIsPaused(wasPausedBeforeSwapRef.current);
+  }, [onSwapExercise, currentExercise, currentExIndex]);
+
+  const handleSwapClose = useCallback(() => {
+    setShowSwapModal(false);
+    setIsPaused(wasPausedBeforeSwapRef.current);
+  }, []);
 
   // Get exercise info helper
   const getExerciseInfo = (exIndex) => {
@@ -1221,6 +1401,7 @@ function GuidedWorkoutModal({
   const handleFinishWorkout = () => {
     // Persist any remaining exercise data
     exercises.forEach((_, i) => persistExerciseData(i));
+    clearResumeState(); // Workout finished, no need to resume
     if (onWorkoutFinish) onWorkoutFinish();
     onClose();
   };
@@ -1268,7 +1449,7 @@ function GuidedWorkoutModal({
     <div className="guided-workout-overlay">
       {/* Top bar */}
       <div className="guided-top-bar">
-        <button className="guided-close-btn" onClick={onClose}>
+        <button className="guided-close-btn" onClick={handleCloseWithSave}>
           <X size={24} />
         </button>
         <div className="guided-workout-name">{workoutName || 'Workout'}</div>
@@ -1313,8 +1494,16 @@ function GuidedWorkoutModal({
 
       {/* Exercise info */}
         <div className="guided-exercise-info">
-        <div className="guided-exercise-number">
-          Exercise {currentExIndex + 1} of {exercises.length}
+        <div className="guided-exercise-number-row">
+          <div className="guided-exercise-number">
+            Exercise {currentExIndex + 1} of {exercises.length}
+          </div>
+          {onSwapExercise && (
+            <button className="guided-swap-btn" onClick={handleOpenSwap} type="button">
+              <Repeat size={14} />
+              <span>Swap</span>
+            </button>
+          )}
         </div>
         <h1 className="guided-exercise-name">{currentExercise.name}</h1>
         <div className="guided-exercise-meta">
@@ -1755,6 +1944,45 @@ function GuidedWorkoutModal({
           }}
           weightUnit={weightUnit}
         />
+      )}
+
+      {/* Swap Exercise Modal */}
+      {showSwapModal && (
+        <SwapExerciseModal
+          exercise={currentExercise}
+          workoutExercises={exercises}
+          onSwap={handleSwapSelect}
+          onClose={handleSwapClose}
+          genderPreference={genderPreference}
+          coachId={coachId}
+        />
+      )}
+
+      {/* Resume Prompt */}
+      {showResumePrompt && resumeData && (
+        <div className="guided-resume-overlay" onClick={handleResumeDismiss}>
+          <div className="guided-resume-sheet" onClick={e => e.stopPropagation()}>
+            <div className="guided-resume-icon">
+              <Play size={32} />
+            </div>
+            <h3>Resume Workout?</h3>
+            <p className="guided-resume-detail">
+              You were on <strong>Exercise {resumeData.currentExIndex + 1}</strong> — {resumeData.exerciseName || 'Unknown'}
+            </p>
+            <p className="guided-resume-elapsed">
+              {formatTime(resumeData.totalElapsed || 0)} elapsed
+            </p>
+            <div className="guided-resume-actions">
+              <button className="guided-resume-btn primary" onClick={handleResumeAccept}>
+                <Play size={18} />
+                Resume
+              </button>
+              <button className="guided-resume-btn secondary" onClick={handleResumeDismiss}>
+                Start Over
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -3037,11 +3037,13 @@ function Workouts() {
             }}
             onUpdateExercise={handleUpdateExercise}
             onWorkoutFinish={handleFinishClick}
+            onSwapExercise={handleSwapExercise}
             clientId={clientData?.id}
             coachId={clientData?.coach_id}
             workoutLogId={workoutLog?.id}
             selectedDate={selectedDate}
             weightUnit={clientData?.unit_preference === 'metric' ? 'kg' : 'lbs'}
+            genderPreference={clientData?.preferred_exercise_gender || 'all'}
           />
         </ErrorBoundary>
       )}
