@@ -13960,13 +13960,13 @@ a.nav-left {
 /* Empty State V2 */
 .empty-state-v2 {
     text-align: center;
-    padding: 36px 20px 24px;
+    padding: 28px 20px 20px;
 }
 
 .empty-state-v2 .empty-illustration {
-    width: 110px;
-    height: 110px;
-    margin: 0 auto 20px;
+    width: 88px;
+    height: 88px;
+    margin: 0 auto 16px;
     background: radial-gradient(circle at 40% 40%, rgba(13, 148, 136, 0.2) 0%, rgba(2, 132, 199, 0.08) 70%);
     border-radius: 50%;
     display: flex;
@@ -13980,7 +13980,7 @@ a.nav-left {
 .empty-state-v2 .empty-illustration::before {
     content: '';
     position: absolute;
-    inset: -6px;
+    inset: -5px;
     border-radius: 50%;
     border: 1.5px solid rgba(13, 148, 136, 0.12);
 }
@@ -13991,53 +13991,21 @@ a.nav-left {
 }
 
 .empty-state-v2 h3 {
-    font-size: 22px;
+    font-size: 21px;
     font-weight: 700;
     color: white;
-    margin-bottom: 6px;
+    margin-bottom: 5px;
     letter-spacing: -0.3px;
 }
 
 .empty-state-v2 p {
     color: #64748b;
     font-size: 13.5px;
-    margin-bottom: 20px;
+    margin-bottom: 0;
     line-height: 1.5;
-    max-width: 300px;
+    max-width: 280px;
     margin-left: auto;
     margin-right: auto;
-}
-
-.empty-state-v2 .empty-tips {
-    display: flex;
-    justify-content: center;
-    gap: 10px;
-    padding: 0 4px;
-}
-
-.empty-state-v2 .tip {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    flex: 1;
-    padding: 14px 8px 12px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 14px;
-    transition: background 0.2s;
-}
-
-.empty-state-v2 .tip-icon {
-    font-size: 22px;
-    line-height: 1;
-}
-
-.empty-state-v2 .tip span:last-child {
-    font-size: 11.5px;
-    color: #94a3b8;
-    font-weight: 500;
-    letter-spacing: 0.1px;
 }
 
 /* Rest Day Action Buttons */
@@ -14045,22 +14013,20 @@ a.nav-left {
     display: flex;
     flex-direction: column;
     gap: 10px;
-    margin-top: 28px;
+    margin-top: 24px;
     align-items: center;
     width: 100%;
     padding: 0 16px;
 }
 
-.rest-day-add-btn,
-.rest-day-create-btn,
-.rest-day-club-btn {
+.rest-day-create-btn {
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
     padding: 15px 20px;
     border-radius: 14px;
-    font-size: 0.93rem;
+    font-size: 0.95rem;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
@@ -14068,19 +14034,6 @@ a.nav-left {
     width: 100%;
     max-width: 340px;
     -webkit-tap-highlight-color: transparent;
-}
-
-.rest-day-club-btn {
-    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 50%, #6366f1 100%);
-    color: white;
-    box-shadow: 0 4px 16px rgba(139, 92, 246, 0.35), inset 0 1px 0 rgba(255,255,255,0.1);
-}
-
-.rest-day-club-btn:hover {
-    box-shadow: 0 6px 20px rgba(139, 92, 246, 0.45), inset 0 1px 0 rgba(255,255,255,0.1);
-}
-
-.rest-day-create-btn {
     background: linear-gradient(135deg, #0d9488 0%, #0891b2 50%, #0284c7 100%);
     color: white;
     box-shadow: 0 4px 16px rgba(13, 148, 136, 0.35), inset 0 1px 0 rgba(255,255,255,0.1);
@@ -14090,19 +14043,44 @@ a.nav-left {
     box-shadow: 0 6px 20px rgba(13, 148, 136, 0.45), inset 0 1px 0 rgba(255,255,255,0.1);
 }
 
-.rest-day-add-btn {
-    background: rgba(255, 255, 255, 0.06);
-    color: #cbd5e1;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+.rest-day-create-btn:active {
+    transform: scale(0.98);
 }
 
+.rest-day-secondary-row {
+    display: flex;
+    gap: 10px;
+    width: 100%;
+    max-width: 340px;
+}
+
+.rest-day-club-btn,
+.rest-day-add-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    flex: 1;
+    padding: 13px 12px;
+    border-radius: 12px;
+    font-size: 0.84rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    -webkit-tap-highlight-color: transparent;
+    background: rgba(255, 255, 255, 0.06);
+    color: #94a3b8;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.rest-day-club-btn:hover,
 .rest-day-add-btn:hover {
     background: rgba(255, 255, 255, 0.1);
+    color: #cbd5e1;
 }
 
-.rest-day-create-btn:active,
-.rest-day-add-btn:active,
-.rest-day-club-btn:active {
+.rest-day-club-btn:active,
+.rest-day-add-btn:active {
     transform: scale(0.98);
 }
 
@@ -16544,27 +16522,21 @@ a.nav-left {
     color: #6b7280;
 }
 
-[data-theme="light"] .empty-state-v2 .tip {
-    background: #f8fafc;
-    border-color: #e5e7eb;
-}
-
-[data-theme="light"] .empty-state-v2 .tip span:last-child {
-    color: #6b7280;
-}
-
-[data-theme="light"] .rest-day-add-btn {
-    background: #f3f4f6;
-    color: #374151;
-    border-color: #e5e7eb;
-}
-
-[data-theme="light"] .rest-day-club-btn {
-    box-shadow: 0 4px 14px rgba(139, 92, 246, 0.25);
-}
-
 [data-theme="light"] .rest-day-create-btn {
     box-shadow: 0 4px 14px rgba(13, 148, 136, 0.25);
+}
+
+[data-theme="light"] .rest-day-club-btn,
+[data-theme="light"] .rest-day-add-btn {
+    background: #f3f4f6;
+    color: #6b7280;
+    border-color: #e5e7eb;
+}
+
+[data-theme="light"] .rest-day-club-btn:hover,
+[data-theme="light"] .rest-day-add-btn:hover {
+    background: #e5e7eb;
+    color: #374151;
 }
 
 [data-theme="light"] .card-action-btn {
