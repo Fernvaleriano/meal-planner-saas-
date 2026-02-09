@@ -5363,12 +5363,12 @@ function displayDietPlan(multiDayData) {
     } else {
         planHTML += `
             <div id="plan-status-banner" class="plan-status-section" style="margin-top: 20px; padding: 16px; background: #fef3c7; border-radius: 8px; border: 2px solid #f59e0b;">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
                     <div>
                         <span style="font-size: 14px; font-weight: 600; color: #92400e;"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Status: <span id="plan-status-text" style="background: #f59e0b; color: white; padding: 2px 8px; border-radius: 4px;">Draft</span></span>
                         <p style="margin: 4px 0 0 0; font-size: 12px; color: #92400e;">This plan is saved but not yet visible to your client.</p>
                     </div>
-                    <div style="display: flex; gap: 8px; align-items: center;">
+                    <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
                         <button id="submitToClientBtn" data-action="submit-to-client" class="btn btn-primary" style="background: #10b981; color: white; font-size: 14px; padding: 10px 20px; white-space: nowrap;">
                             <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><polyline points="20 6 9 17 4 12"/></svg>Submit to Client
                         </button>
@@ -5388,6 +5388,7 @@ function displayDietPlan(multiDayData) {
             <button data-action="download-pdf" class="btn btn-primary w-full" style="color:white;"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Download PDF</button>
             <button data-action="share-plan" class="btn btn-primary w-full" style="background:#28a745; color:white;"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>Share Plan Link</button>
             <button data-action="save-as-template" class="btn btn-secondary w-full" style="background:#8b5cf6; color:white;"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Save as Template</button>
+            <button id="bulkPostBtnBottom" data-action="open-bulk-post" class="btn btn-primary w-full" style="background:#7c3aed; color:white;"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Bulk Post to Multiple Clients</button>
         </div>
     </div>`;
     resultDiv.innerHTML = planHTML;
