@@ -630,7 +630,7 @@
                 id: 'welcome',
                 type: 'welcome',
                 title: 'Ready to Transform?',
-                subtitle: 'Take just 60 seconds to tell me about yourself. I\'ll personally reach out within 24 hours!',
+                subtitle: 'Take a couple of minutes to tell me about yourself and your fitness background. I\'ll personally reach out within 24 hours!',
                 buttonText: 'Let\'s Go'
             },
             // Basic Info
@@ -673,6 +673,41 @@
                 type: 'single',
                 question: 'What\'s your primary goal?',
                 options: ['Lose weight', 'Build muscle', 'Tone up', 'Improve overall health', 'Increase energy']
+            },
+            {
+                id: 'fitness_level',
+                type: 'single',
+                question: 'What\'s your current fitness level?',
+                subtext: 'Be honest - this helps me meet you where you are',
+                options: ['Complete beginner', 'Some experience', 'Intermediate', 'Advanced']
+            },
+            {
+                id: 'exercise_frequency',
+                type: 'single',
+                question: 'How often do you currently exercise?',
+                subtext: 'No judgment - I just need to know your starting point',
+                options: ['Not at all right now', '1-2 times per week', '3-4 times per week', '5+ times per week']
+            },
+            {
+                id: 'exercise_types',
+                type: 'multi',
+                question: 'What types of exercise do you enjoy or want to try?',
+                subtext: 'Select all that apply - this helps me build a program you\'ll actually stick with',
+                options: ['Weight training', 'Cardio (running, cycling, etc.)', 'HIIT / Circuit training', 'Yoga / Pilates', 'Group classes', 'Sports / Recreation', 'Walking / Hiking', 'Swimming']
+            },
+            {
+                id: 'equipment_access',
+                type: 'single',
+                question: 'What equipment do you have access to?',
+                subtext: 'This helps me tailor your workouts',
+                options: ['Full gym membership', 'Home gym with equipment', 'Minimal equipment (dumbbells, bands)', 'No equipment (bodyweight only)']
+            },
+            {
+                id: 'workout_duration',
+                type: 'single',
+                question: 'How much time can you commit per workout?',
+                subtext: 'I\'ll design sessions that fit your schedule',
+                options: ['15-30 minutes', '30-45 minutes', '45-60 minutes', '60+ minutes']
             },
             {
                 id: 'barrier',

@@ -532,7 +532,7 @@
         <div id="formContent" style="display: none;">
             <div class="intake-header">
                 <h1>Complete Your Profile</h1>
-                <p>Fill out your information to get started with your nutrition coaching</p>
+                <p>Fill out your information to get started with your nutrition and fitness coaching</p>
                 <div class="coach-info">
                     <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
@@ -545,7 +545,7 @@
                 <div id="formMessage" class="message"></div>
 
                 <div class="info-box">
-                    <strong>Welcome!</strong> Please fill out the form below so your coach can create a personalized nutrition plan for you. Fields marked with <span style="color: #dc2626;">*</span> are required.
+                    <strong>Welcome!</strong> Please fill out the form below so your coach can create a personalized nutrition and fitness plan for you. Fields marked with <span style="color: #dc2626;">*</span> are required.
                 </div>
 
                 <!-- Basic Information -->
@@ -691,6 +691,118 @@
                                 <option value="moderate">Moderate</option>
                                 <option value="premium">Premium</option>
                             </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Fitness & Workout Preferences -->
+                <div class="form-section">
+                    <h2 class="section-title">
+                        <span class="section-icon">
+                            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path d="M18 6L6 18M6 6l12 12"/>
+                                <path d="M6.5 2v4M17.5 18v4M2 6.5h4M18 17.5h4M17.5 2v4M6.5 18v4M2 17.5h4M18 6.5h4"/>
+                            </svg>
+                        </span>
+                        Fitness & Workout Preferences
+                    </h2>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="fitnessLevel">Current Fitness Level <span class="required">*</span></label>
+                            <select id="fitnessLevel" name="fitnessLevel" required>
+                                <option value="">Select your level</option>
+                                <option value="beginner">Complete Beginner</option>
+                                <option value="some_experience">Some Experience</option>
+                                <option value="intermediate">Intermediate</option>
+                                <option value="advanced">Advanced</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="exerciseFrequency">How Often Do You Exercise? <span class="required">*</span></label>
+                            <select id="exerciseFrequency" name="exerciseFrequency" required>
+                                <option value="">Select frequency</option>
+                                <option value="none">Not at all right now</option>
+                                <option value="1-2">1-2 times per week</option>
+                                <option value="3-4">3-4 times per week</option>
+                                <option value="5+">5+ times per week</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="workoutDuration">Preferred Workout Duration <span class="required">*</span></label>
+                            <select id="workoutDuration" name="workoutDuration" required>
+                                <option value="">Select duration</option>
+                                <option value="15-30">15-30 minutes</option>
+                                <option value="30-45">30-45 minutes</option>
+                                <option value="45-60">45-60 minutes</option>
+                                <option value="60+">60+ minutes</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="equipmentAccess">Equipment Access <span class="required">*</span></label>
+                            <select id="equipmentAccess" name="equipmentAccess" required>
+                                <option value="">Select access level</option>
+                                <option value="full_gym">Full Gym Membership</option>
+                                <option value="home_gym">Home Gym with Equipment</option>
+                                <option value="minimal">Minimal Equipment (dumbbells, bands)</option>
+                                <option value="bodyweight">No Equipment (bodyweight only)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 16px;">
+                        <label>Exercise Types You Enjoy</label>
+                        <p style="color: var(--gray-500); font-size: 13px; margin-bottom: 10px;">Select all that apply</p>
+                        <div class="checkbox-group" id="exerciseTypesGroup">
+                            <label class="checkbox-item">
+                                <input type="checkbox" name="exerciseTypes" value="weight_training">
+                                <span>Weight Training</span>
+                            </label>
+                            <label class="checkbox-item">
+                                <input type="checkbox" name="exerciseTypes" value="cardio">
+                                <span>Cardio (running, cycling)</span>
+                            </label>
+                            <label class="checkbox-item">
+                                <input type="checkbox" name="exerciseTypes" value="hiit">
+                                <span>HIIT / Circuit Training</span>
+                            </label>
+                            <label class="checkbox-item">
+                                <input type="checkbox" name="exerciseTypes" value="yoga_pilates">
+                                <span>Yoga / Pilates</span>
+                            </label>
+                            <label class="checkbox-item">
+                                <input type="checkbox" name="exerciseTypes" value="group_classes">
+                                <span>Group Classes</span>
+                            </label>
+                            <label class="checkbox-item">
+                                <input type="checkbox" name="exerciseTypes" value="sports">
+                                <span>Sports / Recreation</span>
+                            </label>
+                            <label class="checkbox-item">
+                                <input type="checkbox" name="exerciseTypes" value="walking_hiking">
+                                <span>Walking / Hiking</span>
+                            </label>
+                            <label class="checkbox-item">
+                                <input type="checkbox" name="exerciseTypes" value="swimming">
+                                <span>Swimming</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="form-row single">
+                        <div class="form-group">
+                            <label for="healthConcerns">Health Concerns, Injuries, or Conditions</label>
+                            <textarea id="healthConcerns" name="healthConcerns" placeholder="e.g., Shoulder injury, bad knees, diabetes... Type 'None' if none."></textarea>
+                        </div>
+                    </div>
+
+                    <div class="form-row single">
+                        <div class="form-group">
+                            <label for="fitnessGoalDetails">Fitness Goals (Optional)</label>
+                            <textarea id="fitnessGoalDetails" name="fitnessGoalDetails" placeholder="Any specific fitness goals? e.g., Run a 5K, do 10 pull-ups, improve flexibility..."></textarea>
                         </div>
                     </div>
                 </div>
@@ -1091,6 +1203,9 @@
                 }
             }
 
+            const exerciseTypes = Array.from(document.querySelectorAll('input[name="exerciseTypes"]:checked'))
+                .map(cb => cb.value);
+
             const formData = {
                 name: document.getElementById('name').value.trim(),
                 email: document.getElementById('email').value.trim(),
@@ -1103,6 +1218,13 @@
                 activityLevel: parseFloat(document.getElementById('activityLevel').value),
                 goal: document.getElementById('goal').value,
                 budget: document.getElementById('budget').value,
+                fitnessLevel: document.getElementById('fitnessLevel').value,
+                exerciseFrequency: document.getElementById('exerciseFrequency').value,
+                workoutDuration: document.getElementById('workoutDuration').value,
+                equipmentAccess: document.getElementById('equipmentAccess').value,
+                exerciseTypes: exerciseTypes.length > 0 ? exerciseTypes : null,
+                healthConcerns: document.getElementById('healthConcerns').value.trim() || null,
+                fitnessGoalDetails: document.getElementById('fitnessGoalDetails').value.trim() || null,
                 dietType: document.getElementById('dietType').value || null,
                 macroPreference: document.getElementById('macroPreference').value || null,
                 mealCount: document.getElementById('mealCount')?.value || null,
