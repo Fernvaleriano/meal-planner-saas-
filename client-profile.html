@@ -907,6 +907,47 @@
             margin-bottom: 16px;
         }
 
+        .ai-time-period-selector {
+            margin-bottom: 16px;
+        }
+
+        .ai-time-period-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #475569;
+            margin-bottom: 8px;
+        }
+
+        .ai-time-period-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .ai-period-btn {
+            background: #f1f5f9;
+            border: 1px solid #e2e8f0;
+            color: #64748b;
+            padding: 6px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .ai-period-btn:hover {
+            background: #e2e8f0;
+            color: #334155;
+        }
+
+        .ai-period-btn.active {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            border-color: #2563eb;
+            color: #fff;
+        }
+
         .ai-quick-questions {
             display: flex;
             flex-wrap: wrap;
@@ -4587,6 +4628,27 @@
             color: #94a3b8;
         }
 
+        [data-theme="dark"] .ai-time-period-label {
+            color: #94a3b8;
+        }
+
+        [data-theme="dark"] .ai-period-btn {
+            background: #334155;
+            border-color: #475569;
+            color: #94a3b8;
+        }
+
+        [data-theme="dark"] .ai-period-btn:hover {
+            background: #475569;
+            color: #e2e8f0;
+        }
+
+        [data-theme="dark"] .ai-period-btn.active {
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            border-color: #3b82f6;
+            color: #fff;
+        }
+
         [data-theme="dark"] .ai-quick-btn {
             background: linear-gradient(135deg, #1e3a5f 0%, #1e3a8a 100%);
             border-color: #3b82f6;
@@ -5729,6 +5791,15 @@
                 font-size: 13px;
             }
 
+            .ai-time-period-buttons {
+                justify-content: center;
+            }
+
+            .ai-period-btn {
+                font-size: 12px;
+                padding: 5px 10px;
+            }
+
             .ai-quick-questions {
                 justify-content: center;
             }
@@ -6072,6 +6143,11 @@
 
             .diary-summary-value {
                 font-size: 18px;
+            }
+
+            .ai-period-btn {
+                font-size: 11px;
+                padding: 4px 8px;
             }
 
             .ai-quick-btn {
@@ -6995,6 +7071,18 @@
             <p class="ai-assistant-description">
                 Ask questions about your client's nutrition data and get instant AI-powered insights.
             </p>
+
+            <!-- Time Period Selector -->
+            <div class="ai-time-period-selector">
+                <label class="ai-time-period-label">Analysis Period:</label>
+                <div class="ai-time-period-buttons">
+                    <button class="ai-period-btn active" data-days="7" onclick="selectTimePeriod(this, 7)">7 Days</button>
+                    <button class="ai-period-btn" data-days="14" onclick="selectTimePeriod(this, 14)">14 Days</button>
+                    <button class="ai-period-btn" data-days="30" onclick="selectTimePeriod(this, 30)">30 Days</button>
+                    <button class="ai-period-btn" data-days="90" onclick="selectTimePeriod(this, 90)">Quarterly</button>
+                    <button class="ai-period-btn" data-days="365" onclick="selectTimePeriod(this, 365)">Yearly</button>
+                </div>
+            </div>
 
             <!-- Quick Question Buttons -->
             <div class="ai-quick-questions">
@@ -10198,6 +10286,15 @@
         // ============ AI COACH ASSISTANT FUNCTIONS ============
         let currentClientName = '';
 
+        // Track selected eating pattern time period (default 7 days)
+        let selectedTimePeriod = 7;
+
+        function selectTimePeriod(btn, days) {
+            selectedTimePeriod = days;
+            document.querySelectorAll('.ai-period-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        }
+
         function askQuickQuestion(question) {
             document.getElementById('aiCoachQuestion').value = question;
             askAICoach();
@@ -10230,7 +10327,8 @@
                     body: JSON.stringify({
                         clientId: clientId,
                         question: question,
-                        clientName: currentClientName
+                        clientName: currentClientName,
+                        timePeriod: selectedTimePeriod
                     })
                 });
 

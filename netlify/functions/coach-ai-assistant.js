@@ -43,7 +43,7 @@ exports.handler = async (event) => {
 
     try {
         const body = JSON.parse(event.body || '{}');
-        const { clientId, question, clientName } = body;
+        const { clientId, question, clientName, timePeriod } = body;
 
         if (!clientId || !question) {
             return {
@@ -53,11 +53,15 @@ exports.handler = async (event) => {
             };
         }
 
+        // Support configurable time periods: 7, 14, 30, 90, 365 days
+        const validPeriods = [7, 14, 30, 90, 365];
+        const days = validPeriods.includes(timePeriod) ? timePeriod : 7;
+
         const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
-        // Get last 7 days of diary entries
+        // Get diary entries for the selected time period
         const endDate = new Date().toISOString().split('T')[0];
-        const startDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
         // Fetch diary entries and goals in parallel
         const [diaryResult, goalsResult] = await Promise.all([
@@ -124,9 +128,14 @@ exports.handler = async (event) => {
             avgFat = Math.round(avgFat / daysLogged);
         }
 
+        // Build period label for display
+        const periodLabel = days === 90 ? 'Last Quarter (90 Days)' :
+                           days === 365 ? 'Last Year (365 Days)' :
+                           `Last ${days} Days`;
+
         // Build context for AI
         const clientContext = `
-CLIENT NUTRITION DATA (Last 7 Days):
+CLIENT NUTRITION DATA (${periodLabel}):
 ${clientName ? `Client Name: ${clientName}` : ''}
 
 DAILY GOALS:
@@ -135,12 +144,12 @@ DAILY GOALS:
 - Carbs Goal: ${goals.carbs_goal}g
 - Fat Goal: ${goals.fat_goal}g
 
-7-DAY AVERAGES:
+${periodLabel.toUpperCase()} AVERAGES:
 - Average Calories: ${avgCalories} cal (${avgCalories > goals.calorie_goal ? 'OVER' : avgCalories < goals.calorie_goal * 0.8 ? 'UNDER' : 'ON TRACK'})
 - Average Protein: ${avgProtein}g (${avgProtein >= goals.protein_goal ? 'MEETING GOAL' : 'BELOW GOAL'})
 - Average Carbs: ${avgCarbs}g
 - Average Fat: ${avgFat}g
-- Days Logged: ${daysLogged} out of 7
+- Days Logged: ${daysLogged} out of ${days}
 
 DAILY BREAKDOWN:
 ${Object.entries(dailyTotals).map(([date, data]) => `
@@ -149,7 +158,7 @@ ${date}:
   Foods: ${data.foods.slice(0, 5).map(f => f.food).join(', ')}${data.foods.length > 5 ? '...' : ''}
 `).join('')}
 
-${entries.length === 0 ? 'NOTE: No food entries logged in the last 7 days.' : ''}
+${entries.length === 0 ? `NOTE: No food entries logged in the ${periodLabel.toLowerCase()}.` : ''}
 `;
 
         // Call Gemini AI
@@ -204,6 +213,8 @@ IMPORTANT: Do NOT use any markdown formatting like **bold**, *italics*, or bulle
                 response: aiResponse,
                 summary: {
                     daysLogged,
+                    totalDays: days,
+                    periodLabel,
                     avgCalories,
                     avgProtein,
                     avgCarbs,
