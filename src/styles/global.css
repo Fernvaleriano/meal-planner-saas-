@@ -27327,6 +27327,179 @@ a.nav-left {
     border-color: rgba(56, 189, 248, 0.3);
 }
 
+/* Swap button in play mode */
+.guided-exercise-number-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.guided-exercise-number-row .guided-exercise-number {
+    margin-bottom: 0;
+}
+
+.guided-swap-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    color: rgba(255,255,255,0.7);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.guided-swap-btn:active {
+    background: rgba(255,255,255,0.15);
+    transform: scale(0.95);
+}
+
+/* Resume workout prompt */
+.guided-resume-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10002;
+    background: rgba(0,0,0,0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.guided-resume-sheet {
+    background: #1e293b;
+    border-radius: 20px;
+    padding: 32px 28px;
+    max-width: 340px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    border: 1px solid rgba(255,255,255,0.1);
+}
+
+.guided-resume-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #0d9488, #0284c7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+    box-shadow: 0 8px 24px rgba(13,148,136,0.35);
+}
+
+.guided-resume-icon svg {
+    color: white;
+    margin-left: 3px;
+}
+
+.guided-resume-sheet h3 {
+    font-size: 22px;
+    font-weight: 700;
+    margin: 0 0 12px;
+    color: #f1f5f9;
+}
+
+.guided-resume-detail {
+    font-size: 14px;
+    color: rgba(255,255,255,0.6);
+    margin: 0 0 6px;
+    line-height: 1.4;
+}
+
+.guided-resume-detail strong {
+    color: #0d9488;
+    font-weight: 600;
+}
+
+.guided-resume-elapsed {
+    font-size: 13px;
+    color: rgba(255,255,255,0.35);
+    margin: 0 0 24px;
+}
+
+.guided-resume-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.guided-resume-btn {
+    border: none;
+    border-radius: 14px;
+    padding: 14px 24px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.2s;
+}
+
+.guided-resume-btn.primary {
+    background: linear-gradient(135deg, #0d9488, #0284c7);
+    color: white;
+    box-shadow: 0 4px 16px rgba(13,148,136,0.35);
+}
+
+.guided-resume-btn.primary:active {
+    transform: scale(0.97);
+}
+
+.guided-resume-btn.secondary {
+    background: rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.6);
+    border: 1px solid rgba(255,255,255,0.1);
+}
+
+.guided-resume-btn.secondary:active {
+    background: rgba(255,255,255,0.12);
+}
+
+/* Light theme overrides for swap and resume */
+[data-theme="light"] .guided-swap-btn {
+    background: rgba(0,0,0,0.05);
+    border-color: rgba(0,0,0,0.1);
+    color: rgba(0,0,0,0.5);
+}
+
+[data-theme="light"] .guided-resume-sheet {
+    background: #ffffff;
+    border-color: rgba(0,0,0,0.08);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+}
+
+[data-theme="light"] .guided-resume-sheet h3 {
+    color: #111827;
+}
+
+[data-theme="light"] .guided-resume-detail {
+    color: #6b7280;
+}
+
+[data-theme="light"] .guided-resume-elapsed {
+    color: #9ca3af;
+}
+
+[data-theme="light"] .guided-resume-btn.secondary {
+    background: #f3f4f6;
+    color: #6b7280;
+    border-color: #e5e7eb;
+}
+
 [data-theme="light"] .guided-workout-overlay {
     background: #f8fafc;
     color: #111827;
