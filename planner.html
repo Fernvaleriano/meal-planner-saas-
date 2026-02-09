@@ -3024,6 +3024,7 @@ const SAVE_PLAN_ENDPOINT = '/.netlify/functions/save-shared-plan';
 const SAVE_COACH_PLAN_ENDPOINT = '/.netlify/functions/save-coach-plan';
 const UPDATE_PLAN_NOTES_ENDPOINT = '/.netlify/functions/update-plan-notes';
 const PUBLISH_PLAN_ENDPOINT = '/.netlify/functions/publish-plan';
+const BULK_POST_PLAN_ENDPOINT = '/.netlify/functions/bulk-post-meal-plan';
 let lastMealQuery = {};
 let lastPlanQuery = {};
 let currentShareUrl = '';
@@ -5367,9 +5368,14 @@ function displayDietPlan(multiDayData) {
                         <span style="font-size: 14px; font-weight: 600; color: #92400e;"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Status: <span id="plan-status-text" style="background: #f59e0b; color: white; padding: 2px 8px; border-radius: 4px;">Draft</span></span>
                         <p style="margin: 4px 0 0 0; font-size: 12px; color: #92400e;">This plan is saved but not yet visible to your client.</p>
                     </div>
-                    <button id="submitToClientBtn" data-action="submit-to-client" class="btn btn-primary" style="background: #10b981; color: white; font-size: 14px; padding: 10px 20px; white-space: nowrap;">
-                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><polyline points="20 6 9 17 4 12"/></svg>Submit to Client
-                    </button>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <button id="submitToClientBtn" data-action="submit-to-client" class="btn btn-primary" style="background: #10b981; color: white; font-size: 14px; padding: 10px 20px; white-space: nowrap;">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><polyline points="20 6 9 17 4 12"/></svg>Submit to Client
+                        </button>
+                        <button id="bulkPostBtn" data-action="open-bulk-post" class="btn btn-primary" style="background: #7c3aed; color: white; font-size: 14px; padding: 10px 20px; white-space: nowrap;">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Bulk Post
+                        </button>
+                    </div>
                 </div>
             </div>
         `;
@@ -5395,6 +5401,8 @@ function updatePlanStatusUI() {
 
     if (!banner || !statusText) return;
 
+    const bulkPostBtn = document.getElementById('bulkPostBtn');
+
     if (lastPlanQuery.status === 'published') {
         banner.style.background = '#d1fae5';
         banner.style.borderColor = '#10b981';
@@ -5406,6 +5414,9 @@ function updatePlanStatusUI() {
         if (submitBtn) {
             submitBtn.style.display = 'none';
         }
+        if (bulkPostBtn) {
+            bulkPostBtn.style.display = 'none';
+        }
     } else {
         banner.style.background = '#fef3c7';
         banner.style.borderColor = '#f59e0b';
@@ -5416,6 +5427,9 @@ function updatePlanStatusUI() {
         banner.querySelector('div > span').style.color = '#92400e';
         if (submitBtn) {
             submitBtn.style.display = 'block';
+        }
+        if (bulkPostBtn) {
+            bulkPostBtn.style.display = 'block';
         }
     }
 }
@@ -5446,10 +5460,14 @@ function showSaveRetryButton() {
         colorSpan.style.color = '#991b1b';
     }
 
-    // Hide submit button, show save button
+    // Hide submit and bulk post buttons, show save button
     const submitBtn = document.getElementById('submitToClientBtn');
     if (submitBtn) {
         submitBtn.style.display = 'none';
+    }
+    const bulkPostBtn2 = document.getElementById('bulkPostBtn');
+    if (bulkPostBtn2) {
+        bulkPostBtn2.style.display = 'none';
     }
 
     // Add or show save retry button
@@ -5550,6 +5568,218 @@ async function publishPlanToClient() {
         alert('Failed to submit plan: ' + error.message);
         submitBtn.innerHTML = originalText;
         submitBtn.disabled = false;
+    }
+}
+
+// ========================
+// BULK POST TO MULTIPLE CLIENTS
+// ========================
+
+function openBulkPostModal() {
+    if (!currentCoach) {
+        alert('Please log in first.');
+        return;
+    }
+
+    if (!lastPlanQuery.currentPlan || lastPlanQuery.currentPlan.length === 0) {
+        alert('Please generate a plan first.');
+        return;
+    }
+
+    // Remove existing modal if any
+    const existing = document.getElementById('bulk-post-modal');
+    if (existing) existing.remove();
+
+    // Build client checkboxes from the already-loaded clientsList
+    let clientCheckboxes = '';
+    if (!clientsList || clientsList.length === 0) {
+        clientCheckboxes = '<p style="color: #6b7280; font-size: 14px;">No clients found. Add clients first.</p>';
+    } else {
+        // Pre-check the currently selected client (if any)
+        const currentClientId = lastPlanQuery.clientId ? String(lastPlanQuery.clientId) : '';
+
+        clientCheckboxes = clientsList.map(client => `
+            <label style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 6px; cursor: pointer; transition: background 0.15s;"
+                   onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='transparent'">
+                <input type="checkbox" class="bulk-post-client-cb" value="${client.id}" data-name="${client.client_name}"
+                       ${String(client.id) === currentClientId ? 'checked' : ''}
+                       style="width: 18px; height: 18px; accent-color: #7c3aed; cursor: pointer;">
+                <span style="font-size: 14px; color: #1f2937;">${client.client_name}</span>
+            </label>
+        `).join('');
+    }
+
+    const modal = document.createElement('div');
+    modal.id = 'bulk-post-modal';
+    modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;';
+    modal.innerHTML = `
+        <div style="background:white;border-radius:12px;padding:24px;max-width:480px;width:90%;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                <h3 style="margin:0;font-size:18px;color:#1f2937;">
+                    <svg width="20" height="20" fill="none" stroke="#7c3aed" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:6px;">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                    </svg>
+                    Bulk Post Plan
+                </h3>
+                <button data-action="close-bulk-post" style="background:none;border:none;font-size:22px;cursor:pointer;color:#6b7280;padding:4px;">&times;</button>
+            </div>
+            <p style="margin:0 0 12px 0;font-size:13px;color:#6b7280;">Select the clients you want to post this plan to. Each client will get their own independent copy.</p>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid #e5e7eb;">
+                <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;font-weight:600;color:#7c3aed;">
+                    <input type="checkbox" id="bulk-post-select-all" style="width:18px;height:18px;accent-color:#7c3aed;cursor:pointer;">
+                    Select All
+                </label>
+                <span id="bulk-post-count" style="margin-left:auto;font-size:12px;color:#6b7280;background:#f3f4f6;padding:2px 8px;border-radius:10px;">0 selected</span>
+            </div>
+            <div style="overflow-y:auto;flex:1;max-height:40vh;margin-bottom:16px;">
+                ${clientCheckboxes}
+            </div>
+            <div id="bulk-post-progress" style="display:none;margin-bottom:12px;">
+                <div style="background:#e5e7eb;border-radius:6px;height:8px;overflow:hidden;">
+                    <div id="bulk-post-progress-bar" style="background:#7c3aed;height:100%;width:0%;transition:width 0.3s;border-radius:6px;"></div>
+                </div>
+                <p id="bulk-post-progress-text" style="font-size:12px;color:#6b7280;margin:6px 0 0 0;">Posting...</p>
+            </div>
+            <button id="bulk-post-confirm-btn" data-action="confirm-bulk-post"
+                    style="width:100%;padding:12px;background:#7c3aed;color:white;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;transition:background 0.15s;"
+                    onmouseover="this.style.background='#6d28d9'" onmouseout="this.style.background='#7c3aed'">
+                Post Plan to Selected Clients
+            </button>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Close on backdrop click
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeBulkPostModal();
+    });
+
+    // Select all toggle
+    document.getElementById('bulk-post-select-all').addEventListener('change', function() {
+        const checkboxes = document.querySelectorAll('.bulk-post-client-cb');
+        checkboxes.forEach(cb => { cb.checked = this.checked; });
+        updateBulkPostCount();
+    });
+
+    // Individual checkbox change
+    modal.querySelectorAll('.bulk-post-client-cb').forEach(cb => {
+        cb.addEventListener('change', updateBulkPostCount);
+    });
+
+    // Initial count
+    updateBulkPostCount();
+}
+
+function closeBulkPostModal() {
+    const modal = document.getElementById('bulk-post-modal');
+    if (modal) modal.remove();
+}
+
+function updateBulkPostCount() {
+    const checked = document.querySelectorAll('.bulk-post-client-cb:checked');
+    const countEl = document.getElementById('bulk-post-count');
+    const confirmBtn = document.getElementById('bulk-post-confirm-btn');
+    if (countEl) countEl.textContent = `${checked.length} selected`;
+    if (confirmBtn) confirmBtn.disabled = checked.length === 0;
+
+    // Update select-all state
+    const all = document.querySelectorAll('.bulk-post-client-cb');
+    const selectAll = document.getElementById('bulk-post-select-all');
+    if (selectAll) selectAll.checked = all.length > 0 && checked.length === all.length;
+}
+
+async function confirmBulkPost() {
+    const checkboxes = document.querySelectorAll('.bulk-post-client-cb:checked');
+    if (checkboxes.length === 0) {
+        alert('Please select at least one client.');
+        return;
+    }
+
+    if (!lastPlanQuery.currentPlan || lastPlanQuery.currentPlan.length === 0) {
+        alert('No plan data available. Please generate a plan first.');
+        closeBulkPostModal();
+        return;
+    }
+
+    const clientIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
+    const clientNames = Array.from(checkboxes).map(cb => cb.dataset.name);
+
+    // Confirm with user
+    const confirmMsg = `Post this plan to ${clientIds.length} client(s)?\n\n${clientNames.join('\n')}\n\nEach client will receive their own copy and it will be published immediately.`;
+    if (!confirm(confirmMsg)) return;
+
+    const confirmBtn = document.getElementById('bulk-post-confirm-btn');
+    const progressDiv = document.getElementById('bulk-post-progress');
+    const progressBar = document.getElementById('bulk-post-progress-bar');
+    const progressText = document.getElementById('bulk-post-progress-text');
+
+    // Show progress
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = 'Posting...';
+    progressDiv.style.display = 'block';
+    progressBar.style.width = '30%';
+    progressText.textContent = `Posting plan to ${clientIds.length} client(s)...`;
+
+    try {
+        // Build clean plan data (same structure as saveCoachPlan)
+        const cleanPlanData = {
+            clientName: 'Bulk Post',
+            calories: lastPlanQuery.calories,
+            protein: lastPlanQuery.protein,
+            carbs: lastPlanQuery.carbs,
+            fat: lastPlanQuery.fat,
+            preference: lastPlanQuery.preference,
+            macroPreference: lastPlanQuery.macroPreference,
+            allergies: lastPlanQuery.allergies,
+            dislikedFoods: lastPlanQuery.dislikedFoods,
+            preferredFoods: lastPlanQuery.preferredFoods,
+            budget: lastPlanQuery.budget,
+            equipmentStr: lastPlanQuery.equipmentStr,
+            originalTargets: lastPlanQuery.originalTargets,
+            useBrandedFoods: lastPlanQuery.useBrandedFoods,
+            currentPlan: lastPlanQuery.currentPlan,
+            summary: lastPlanQuery.summary,
+            fromTemplate: lastPlanQuery.fromTemplate,
+            startedFromScratch: lastPlanQuery.startedFromScratch
+        };
+
+        // Get plan name
+        const planNameInput = document.getElementById('dp_plan_name');
+        const planName = lastPlanQuery.planName || (planNameInput ? planNameInput.value.trim() : '') || null;
+
+        progressBar.style.width = '50%';
+
+        const data = await apiPost(BULK_POST_PLAN_ENDPOINT, {
+            coachId: currentCoach.id,
+            clientIds: clientIds,
+            planData: cleanPlanData,
+            planName: planName
+        });
+
+        progressBar.style.width = '100%';
+        progressText.textContent = `Successfully posted to ${data.created} client(s)!`;
+        progressText.style.color = '#059669';
+
+        confirmBtn.textContent = 'Done!';
+        confirmBtn.style.background = '#10b981';
+
+        // Close modal after a short delay
+        setTimeout(() => {
+            closeBulkPostModal();
+            showToast(`Plan posted to ${data.created} client(s) successfully!`, 'success');
+        }, 1500);
+
+    } catch (error) {
+        console.error('Bulk post error:', error);
+        progressBar.style.width = '100%';
+        progressBar.style.background = '#ef4444';
+        progressText.textContent = 'Failed: ' + error.message;
+        progressText.style.color = '#ef4444';
+        confirmBtn.textContent = 'Retry';
+        confirmBtn.disabled = false;
+        confirmBtn.style.background = '#7c3aed';
     }
 }
 
@@ -9979,6 +10209,9 @@ document.addEventListener('click', function(event) {
             saveMealNote(dayIndex, mealIndex);
         },
         'submit-to-client': publishPlanToClient,
+        'open-bulk-post': openBulkPostModal,
+        'close-bulk-post': closeBulkPostModal,
+        'confirm-bulk-post': confirmBulkPost,
         'save-as-template': saveAsTemplate,
         'open-import-diet-plan': openImportDietPlanModal,
         'close-import-diet-plan': closeImportDietPlanModal,
