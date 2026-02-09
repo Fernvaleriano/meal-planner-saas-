@@ -20,6 +20,21 @@ const setCache = (key, data) => {
   } catch (e) { /* ignore */ }
 };
 
+// Returns ingredient list as the display name for a meal card.
+// If ingredients exist, joins them as a comma-separated string.
+// Falls back to meal.name if no ingredients are available.
+const getMealDisplayName = (meal) => {
+  if (meal.ingredients && Array.isArray(meal.ingredients) && meal.ingredients.length > 0) {
+    return meal.ingredients.map(ing => {
+      if (typeof ing === 'string') return ing;
+      const amount = ing.amount || '';
+      const name = ing.name || ing.food || '';
+      return amount ? `${name} (${amount})` : name;
+    }).join(', ');
+  }
+  return meal.name || meal.title || 'Meal';
+};
+
 // Get today's date in local timezone (NOT UTC)
 const getLocalDateString = () => {
   const now = new Date();
@@ -1571,7 +1586,7 @@ Keep it practical and brief. Format with clear sections.`;
       (day.plan || []).forEach(meal => {
         content += `
           <div class="meal">
-            <div class="meal-name">${meal.type || meal.meal_type || 'Meal'}: ${meal.name}</div>
+            <div class="meal-name">${meal.type || meal.meal_type || 'Meal'}: ${getMealDisplayName(meal)}</div>
             <div class="meal-macros">${meal.calories || 0} cal | P: ${meal.protein || 0}g | C: ${meal.carbs || 0}g | F: ${meal.fat || 0}g</div>
             ${meal.ingredients?.length ? `
               <div class="ingredients">
@@ -1812,7 +1827,7 @@ Keep it practical and brief. Format with clear sections.`;
                         {getMealIcon(meal.meal_type || meal.type)}
                         <span className="meal-card-type">{meal.meal_type || meal.type || `Meal ${idx + 1}`}</span>
                       </div>
-                      <h3 className="meal-card-name">{meal.name || meal.title || 'Meal'}</h3>
+                      <h3 className="meal-card-name">{getMealDisplayName(meal)}</h3>
 
                       {/* Macros inline */}
                       <div className="meal-macros-inline">
@@ -1866,7 +1881,7 @@ Keep it practical and brief. Format with clear sections.`;
                         <span className="meal-card-calories">{meal.calories} cal</span>
                       )}
                     </div>
-                    <h3 className="meal-card-name">{meal.name || meal.title || 'Meal'}</h3>
+                    <h3 className="meal-card-name">{getMealDisplayName(meal)}</h3>
                     {meal.description && (
                       <p className="meal-card-description">{meal.description}</p>
                     )}
@@ -1906,7 +1921,7 @@ Keep it practical and brief. Format with clear sections.`;
                       <Coffee size={18} className="meal-type-icon breakfast" />
                       <span className="meal-card-type">Breakfast</span>
                     </div>
-                    <h3 className="meal-card-name">{currentDay.breakfast.name || currentDay.breakfast}</h3>
+                    <h3 className="meal-card-name">{typeof currentDay.breakfast === 'object' ? getMealDisplayName(currentDay.breakfast) : currentDay.breakfast}</h3>
                     {currentDay.breakfast.description && <p className="meal-card-description">{currentDay.breakfast.description}</p>}
                   </div>
                 </div>
@@ -1918,7 +1933,7 @@ Keep it practical and brief. Format with clear sections.`;
                       <Sun size={18} className="meal-type-icon lunch" />
                       <span className="meal-card-type">Lunch</span>
                     </div>
-                    <h3 className="meal-card-name">{currentDay.lunch.name || currentDay.lunch}</h3>
+                    <h3 className="meal-card-name">{typeof currentDay.lunch === 'object' ? getMealDisplayName(currentDay.lunch) : currentDay.lunch}</h3>
                     {currentDay.lunch.description && <p className="meal-card-description">{currentDay.lunch.description}</p>}
                   </div>
                 </div>
@@ -1930,7 +1945,7 @@ Keep it practical and brief. Format with clear sections.`;
                       <Moon size={18} className="meal-type-icon dinner" />
                       <span className="meal-card-type">Dinner</span>
                     </div>
-                    <h3 className="meal-card-name">{currentDay.dinner.name || currentDay.dinner}</h3>
+                    <h3 className="meal-card-name">{typeof currentDay.dinner === 'object' ? getMealDisplayName(currentDay.dinner) : currentDay.dinner}</h3>
                     {currentDay.dinner.description && <p className="meal-card-description">{currentDay.dinner.description}</p>}
                   </div>
                 </div>
@@ -1944,8 +1959,8 @@ Keep it practical and brief. Format with clear sections.`;
                     </div>
                     <h3 className="meal-card-name">
                       {Array.isArray(currentDay.snacks)
-                        ? currentDay.snacks.map(s => s.name || s).join(', ')
-                        : currentDay.snacks.name || currentDay.snacks
+                        ? currentDay.snacks.map(s => typeof s === 'object' ? getMealDisplayName(s) : s).join(', ')
+                        : typeof currentDay.snacks === 'object' ? getMealDisplayName(currentDay.snacks) : currentDay.snacks
                       }
                     </h3>
                   </div>
@@ -2473,7 +2488,7 @@ Keep it practical and brief. Format with clear sections.`;
                       {savedMeals.map(meal => (
                         <div key={meal.id} className="saved-meal-item">
                           <div className="saved-meal-info">
-                            <div className="saved-meal-name">{meal.name}</div>
+                            <div className="saved-meal-name">{getMealDisplayName(meal)}</div>
                             <div className="saved-meal-macros">
                               {meal.calories} cal | {meal.protein}g P | {meal.carbs}g C | {meal.fat}g F
                             </div>
