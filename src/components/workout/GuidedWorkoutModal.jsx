@@ -332,7 +332,11 @@ function GuidedWorkoutModal({
   const handleResumeAccept = useCallback(() => {
     if (!resumeData) return;
 
-    setCurrentExIndex(resumeData.currentExIndex);
+    // Guard: make sure saved index is still valid
+    const safeExIndex = Math.min(resumeData.currentExIndex, exercises.length - 1);
+    if (safeExIndex < 0) { handleResumeDismiss(); return; }
+
+    setCurrentExIndex(safeExIndex);
     setCurrentSetIndex(resumeData.currentSetIndex);
     setTotalElapsed(resumeData.totalElapsed || 0);
 
@@ -357,7 +361,7 @@ function GuidedWorkoutModal({
     setShowResumePrompt(false);
     setResumeData(null);
     clearResumeState();
-  }, [resumeData]);
+  }, [resumeData, exercises.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Handle resume decline — start fresh
   const handleResumeDismiss = useCallback(() => {
