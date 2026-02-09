@@ -18,9 +18,93 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Inline splash screen - renders before JS loads to prevent white flash */
+        body {
+            margin: 0;
+            padding: 0;
+            background: #0f172a;
+        }
+        .splash-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+        .splash-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 32px;
+        }
+        .splash-logo {
+            width: 100px;
+            height: auto;
+            animation: splashPulse 2s ease-in-out infinite;
+        }
+        @keyframes splashPulse {
+            0%, 100% { opacity: 0.8; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.05); }
+        }
+        .splash-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(13, 148, 136, 0.2);
+            border-top-color: #0d9488;
+            border-radius: 50%;
+            animation: splashSpin 1s linear infinite;
+        }
+        @keyframes splashSpin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
 </head>
 <body>
-    <div id="root"></div>
+    <div id="root">
+        <!-- Inline splash screen - replaced automatically when React mounts -->
+        <div class="splash-screen" id="splash-screen">
+            <div class="splash-content">
+                <img
+                    src="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/Untitled%20design%20(3).svg"
+                    alt="Zique Fitness"
+                    class="splash-logo"
+                    id="splash-logo"
+                />
+                <div class="splash-spinner" id="splash-spinner"></div>
+            </div>
+        </div>
+    </div>
+    <script>
+        // Apply cached coach branding to splash screen instantly (no network calls)
+        (function() {
+            try {
+                var cached = sessionStorage.getItem('zique_branding');
+                if (!cached) return;
+                var parsed = JSON.parse(cached);
+                var b = parsed && parsed.branding;
+                if (!b) return;
+                // Apply custom logo
+                if (b.brand_logo_url) {
+                    var logo = document.getElementById('splash-logo');
+                    if (logo) logo.src = b.brand_logo_url;
+                }
+                // Apply custom primary color to spinner
+                if (b.brand_primary_color) {
+                    var spinner = document.getElementById('splash-spinner');
+                    if (spinner) {
+                        spinner.style.borderColor = b.brand_primary_color + '33';
+                        spinner.style.borderTopColor = b.brand_primary_color;
+                    }
+                }
+            } catch (e) { /* silent fail */ }
+        })();
+    </script>
     <script type="module" src="/src/main.jsx"></script>
 </body>
 </html>
