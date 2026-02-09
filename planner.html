@@ -5069,6 +5069,22 @@ Return JSON: {"type":"${meal.type}","name":"Meal Name with portions","ingredient
     button.disabled = false;
 }
 
+// Returns ingredient list as the display name for a meal card.
+// If ingredients exist, joins them as a comma-separated string (e.g. "5 whole eggs, 150g salmon, Tabasco").
+// Falls back to meal.name if no ingredients are available.
+function getMealDisplayName(meal) {
+    if (meal.ingredients && Array.isArray(meal.ingredients) && meal.ingredients.length > 0) {
+        return meal.ingredients.map(ing => {
+            if (typeof ing === 'string') return ing;
+            // Handle object-format ingredients from Claude API
+            const amount = ing.amount || '';
+            const name = ing.name || ing.food || '';
+            return amount ? `${name} (${amount})` : name;
+        }).join(', ');
+    }
+    return meal.name || 'Meal';
+}
+
 function displayDietPlan(multiDayData) {
     const resultDiv = document.getElementById('diet-plan-result');
     const targets = multiDayData[0].targets;
@@ -5196,7 +5212,7 @@ function displayDietPlan(multiDayData) {
                     <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                         <div style="flex: 1; min-width: 0;">
                             <h4 class="font-bold text-lg capitalize editable-meal-type" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" onclick="editMealType(this, ${dayIndex}, ${mealIndex})" style="color: #0369a1; cursor: pointer;" title="Click to edit meal type">💊 ${meal.type}</h4>
-                            <p class="text-blue-700 editable-meal-name" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" onclick="editMealName(this, ${dayIndex}, ${mealIndex})" style="cursor: pointer;" title="Click to edit meal name">${meal.name}</p>
+                            <p class="text-blue-700 editable-meal-name" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" onclick="editMealName(this, ${dayIndex}, ${mealIndex})" style="cursor: pointer;" title="Click to edit meal name">${getMealDisplayName(meal)}</p>
                         </div>
                         <button data-action="delete-meal" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn" style="background: #fee2e2; color: #dc2626; padding: 4px 8px; font-size: 11px; border-radius: 4px; flex-shrink: 0;" title="Delete this meal"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
                     </div>
@@ -5239,7 +5255,7 @@ function displayDietPlan(multiDayData) {
                         <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px;">
                             <div style="flex: 1; min-width: 0;">
                                 <h4 class="font-bold text-lg capitalize editable-meal-type" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" onclick="editMealType(this, ${dayIndex}, ${mealIndex})" style="cursor: pointer;" title="Click to edit meal type">${meal.type}</h4>
-                                <p class="text-blue-700 editable-meal-name" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" onclick="editMealName(this, ${dayIndex}, ${mealIndex})" style="font-size: 14px; cursor: pointer;" title="Click to edit meal name">${meal.name}</p>
+                                <p class="text-blue-700 editable-meal-name" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" onclick="editMealName(this, ${dayIndex}, ${mealIndex})" style="font-size: 14px; cursor: pointer;" title="Click to edit meal name">${getMealDisplayName(meal)}</p>
                             </div>
                             <div style="display: flex; gap: 4px; flex-shrink: 0;">
                                 ${hasUndoState ? `<button data-action="undo-meal" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn" style="background: #fee2e2; color: #dc2626; padding: 4px 8px; font-size: 11px; border-radius: 4px;" title="Undo last change"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg></button>` : ''}
@@ -7798,7 +7814,7 @@ function renderSavedMeals() {
     container.innerHTML = savedMeals.map(meal => `
         <div class="saved-meal-item">
             <div class="saved-meal-info">
-                <div class="saved-meal-name">${escapeHtmlCustomMeal(meal.name)}</div>
+                <div class="saved-meal-name">${escapeHtmlCustomMeal(getMealDisplayName(meal))}</div>
                 <div class="saved-meal-macros">${meal.calories} cal | ${meal.protein}g P | ${meal.carbs}g C | ${meal.fat}g F</div>
             </div>
             <div class="saved-meal-actions">
@@ -9147,7 +9163,7 @@ function downloadPlanAsPDF() {
             // Meal Name
             pdf.setFontSize(14);
             pdf.setTextColor(102, 126, 234);
-            const mealNameLines = pdf.splitTextToSize(`${meal.type.toUpperCase()}: ${meal.name}`, maxWidth);
+            const mealNameLines = pdf.splitTextToSize(`${meal.type.toUpperCase()}: ${getMealDisplayName(meal)}`, maxWidth);
             pdf.text(mealNameLines, margin, y);
             y += mealNameLines.length * 6;
 
