@@ -1794,10 +1794,15 @@ function Workouts() {
     }
   }, []);
 
-  // Start workout — show readiness check first
+  // Start workout — show readiness check first (only once per session)
   const handleStartWorkout = useCallback(() => {
-    setShowReadinessCheck(true);
-  }, []);
+    if (readinessData || workoutStarted) {
+      // Already completed readiness check this session — go straight to confirmation
+      setShowWorkoutReadyConfirm(true);
+    } else {
+      setShowReadinessCheck(true);
+    }
+  }, [readinessData, workoutStarted]);
 
   // Called after readiness check is completed (or skipped)
   const handleReadinessComplete = useCallback(async (readiness) => {
