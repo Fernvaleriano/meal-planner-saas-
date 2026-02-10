@@ -81,6 +81,20 @@ const formatTime = (seconds) => {
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 };
 
+// Parse a duration value to seconds — handles numbers, "5 min", "30s", "45s hold", etc.
+const parseDurationToSeconds = (value) => {
+  if (typeof value === 'number' && value > 0) return value;
+  if (typeof value === 'string') {
+    const minMatch = value.match(/(\d+)\s*min/i);
+    if (minMatch) return parseInt(minMatch[1], 10) * 60;
+    const secMatch = value.match(/(\d+)\s*s/i);
+    if (secMatch) return parseInt(secMatch[1], 10);
+    const num = parseInt(value, 10);
+    if (!isNaN(num) && num > 0) return num;
+  }
+  return 0;
+};
+
 // Format seconds to readable duration (for exercise info)
 const formatDuration = (seconds) => {
   if (!seconds) return '45s';
@@ -546,15 +560,23 @@ function GuidedWorkoutModal({
   const getExerciseInfo = (exIndex) => {
     const ex = exercises[exIndex];
     if (!ex) return {};
+    const repsStr = typeof ex.reps === 'string' ? ex.reps : '';
+    const repsHasTimeUnit = /\d+\s*min/i.test(repsStr);
     const isTimed = ex.trackingType === 'time' ||
       ex.exercise_type === 'timed' ||
       ex.exercise_type === 'cardio' ||
       ex.exercise_type === 'interval' ||
-      !!ex.duration;
+      !!ex.duration ||
+      repsHasTimeUnit;
     const sets = typeof ex.sets === 'number' ? ex.sets :
       (Array.isArray(ex.sets) ? ex.sets.length : 3);
     const reps = parseReps(ex.reps);
-    const duration = parseInt(ex.duration || ex.reps || 30, 10);
+    // Check exercise-level duration, then set-level duration, then parse reps string for time units
+    const setDuration = Array.isArray(ex.sets) && ex.sets[0]?.duration;
+    const duration = parseDurationToSeconds(ex.duration) ||
+      parseDurationToSeconds(setDuration) ||
+      parseDurationToSeconds(ex.reps) ||
+      30;
     const rest = ex.restSeconds || ex.rest_seconds || 60;
     return { isTimed, sets, reps, duration, rest };
   };
