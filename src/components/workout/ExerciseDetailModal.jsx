@@ -339,6 +339,7 @@ function ExerciseDetailModal({
   const [videoLoading, setVideoLoading] = useState(true);
   const [videoError, setVideoError] = useState(false);
   const [videoKey, setVideoKey] = useState(0);
+  const [videoBlobUrl, setVideoBlobUrl] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showAskCoach, setShowAskCoach] = useState(false);
 
@@ -2741,6 +2742,7 @@ function ExerciseDetailModal({
     setVideoLoading(true);
     setVideoError(false);
     setVideoKey(0);
+    setVideoBlobUrl(null);
     setShowVideo(true);
   }, [exercise?.name, exercise?.video_url, exercise?.animation_url, videoUrl]);
 
@@ -2748,13 +2750,60 @@ function ExerciseDetailModal({
     setShowVideo(false);
     setVideoLoading(true);
     setVideoError(false);
-  }, []);
+    if (videoBlobUrl) {
+      URL.revokeObjectURL(videoBlobUrl);
+      setVideoBlobUrl(null);
+    }
+  }, [videoBlobUrl]);
 
   const handleRetryVideo = useCallback(() => {
     setVideoError(false);
     setVideoLoading(true);
+    if (videoBlobUrl) {
+      URL.revokeObjectURL(videoBlobUrl);
+      setVideoBlobUrl(null);
+    }
     setVideoKey(k => k + 1);
-  }, []);
+  }, [videoBlobUrl]);
+
+  // Fallback: fetch video as blob when direct src fails (fixes URL encoding issues)
+  const handleVideoError = useCallback(async (e) => {
+    const mediaError = e?.target?.error;
+    console.error(`Video load failed for "${exercise?.name}":`, {
+      url: videoUrl,
+      errorCode: mediaError?.code,
+      errorMessage: mediaError?.message
+    });
+
+    // If we already tried the blob fallback, give up
+    if (videoBlobUrl) {
+      setVideoLoading(false);
+      setVideoError(true);
+      return;
+    }
+
+    // Try fetching the video as a blob (bypasses URL encoding issues)
+    if (videoUrl) {
+      try {
+        console.log('Trying blob fallback for video:', videoUrl);
+        const resp = await fetch(videoUrl);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const blob = await resp.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        setVideoBlobUrl(blobUrl);
+        setVideoLoading(true);
+        setVideoError(false);
+        setVideoKey(k => k + 1);
+      } catch (fetchErr) {
+        console.error('Blob fallback also failed:', fetchErr);
+        setVideoLoading(false);
+        setVideoError(true);
+      }
+    } else {
+      setVideoLoading(false);
+      setVideoError(true);
+    }
+  }, [exercise?.name, videoUrl, videoBlobUrl]);
 
   // Parse reps helper
   const parseReps = (reps) => {
@@ -2852,16 +2901,16 @@ function ExerciseDetailModal({
             <div className="video-container-full">
               <video
                 key={videoKey}
-                src={videoUrl}
+                src={videoBlobUrl || videoUrl}
                 loop
                 muted
                 playsInline
                 autoPlay
-                preload="auto"
+                preload="metadata"
                 onCanPlay={() => { setVideoLoading(false); setVideoError(false); }}
                 onPlaying={() => setVideoLoading(false)}
                 onWaiting={() => setVideoLoading(true)}
-                onError={() => { setVideoLoading(false); setVideoError(true); }}
+                onError={handleVideoError}
               />
               {videoLoading && !videoError && (
                 <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.6)', zIndex: 2 }}>
