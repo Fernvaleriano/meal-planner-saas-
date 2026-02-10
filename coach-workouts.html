@@ -1554,6 +1554,16 @@
             gap: 12px;
         }
 
+        .superset-warning {
+            font-size: 11px;
+            color: #f59e0b;
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.25);
+            border-radius: 6px;
+            padding: 4px 10px;
+            margin-top: 4px;
+        }
+
         .config-group {
             display: flex;
             flex-direction: column;
@@ -4309,6 +4319,8 @@
                 workoutDays = program.program_data?.days || [];
                 document.getElementById('isClubWorkout').checked = !!program.is_club_workout;
                 renderWorkoutDays();
+                // Check superset consistency for loaded program
+                workoutDays.forEach((_, d) => checkSupersetWarnings(d));
                 enableAssignButton(); // Enable assign button for existing program
             }
             renderProgramList();
@@ -4411,7 +4423,7 @@
 
             const totalExercises = workoutDays[dayIndex].exercises.length;
             return `
-                <div class="exercise-item ${exercise.isSuperset ? 'superset-exercise' : ''} ${exercise.isWarmup ? 'warmup-exercise' : ''} ${exercise.isStretch ? 'stretch-exercise' : ''}" draggable="true" data-day="${dayIndex}" data-index="${exIndex}" ondragstart="onExDragStart(event)" ondragover="onExDragOver(event)" ondrop="onExDrop(event)" ondragend="onExDragEnd(event)" ondragleave="onExDragLeave(event)">
+                <div id="exercise-card-${dayIndex}-${exIndex}" class="exercise-item ${exercise.isSuperset ? 'superset-exercise' : ''} ${exercise.isWarmup ? 'warmup-exercise' : ''} ${exercise.isStretch ? 'stretch-exercise' : ''}" draggable="true" data-day="${dayIndex}" data-index="${exIndex}" ondragstart="onExDragStart(event)" ondragover="onExDragOver(event)" ondrop="onExDrop(event)" ondragend="onExDragEnd(event)" ondragleave="onExDragLeave(event)">
                     <div class="exercise-drag">
                         ⋮⋮
                         <div class="exercise-move-btns">
@@ -4545,6 +4557,10 @@
             } else {
                 workoutDays[dayIndex].exercises[exIndex][field] = value;
             }
+            // Re-check superset warnings when sets change
+            if (field === 'sets') {
+                checkSupersetWarnings(dayIndex);
+            }
         }
 
         function updateExerciseLabel(dayIndex, exIndex, labelValue) {
@@ -4568,6 +4584,68 @@
                 exercise.phase = 'main';
             }
             renderWorkoutDays();
+            // Show warning if superset sets don't match
+            checkSupersetWarnings(dayIndex);
+        }
+
+        // Check superset groups for mismatched set counts and show inline warnings
+        function checkSupersetWarnings(dayIndex) {
+            const exercises = workoutDays[dayIndex].exercises;
+            const groups = {};
+            exercises.forEach((ex, idx) => {
+                if (ex.isSuperset && ex.supersetGroup) {
+                    if (!groups[ex.supersetGroup]) groups[ex.supersetGroup] = [];
+                    groups[ex.supersetGroup].push({ idx, sets: ex.sets || 3, name: ex.name });
+                }
+            });
+
+            // Clear existing warnings for this day
+            document.querySelectorAll(`.superset-warning[data-day="${dayIndex}"]`).forEach(el => el.remove());
+
+            Object.entries(groups).forEach(([groupKey, members]) => {
+                if (members.length < 2) return;
+                const setCounts = members.map(m => m.sets);
+                const allMatch = setCounts.every(s => s === setCounts[0]);
+                if (allMatch) return;
+
+                // Show warning on each mismatched exercise
+                members.forEach(member => {
+                    const container = document.querySelector(`#exercise-card-${dayIndex}-${member.idx} .exercise-config`);
+                    if (!container) return;
+                    const existing = container.querySelector('.superset-warning');
+                    if (existing) existing.remove();
+                    const warning = document.createElement('div');
+                    warning.className = 'superset-warning';
+                    warning.setAttribute('data-day', dayIndex);
+                    warning.innerHTML = `⚠️ Superset ${groupKey}: sets don't match (${setCounts.join(' vs ')})`;
+                    container.after(warning);
+                });
+            });
+        }
+
+        // Validate all superset groups across all days — returns true if valid
+        function validateSupersets() {
+            for (let d = 0; d < workoutDays.length; d++) {
+                const exercises = workoutDays[d].exercises;
+                const groups = {};
+                exercises.forEach(ex => {
+                    if (ex.isSuperset && ex.supersetGroup) {
+                        if (!groups[ex.supersetGroup]) groups[ex.supersetGroup] = [];
+                        groups[ex.supersetGroup].push(ex);
+                    }
+                });
+                for (const [groupKey, members] of Object.entries(groups)) {
+                    if (members.length < 2) continue;
+                    const setCounts = members.map(m => m.sets || 3);
+                    if (new Set(setCounts).size > 1) {
+                        const dayName = workoutDays[d].name || `Day ${d + 1}`;
+                        const names = members.map(m => m.name).join(', ');
+                        showToast(`Superset ${groupKey} in "${dayName}" has mismatched sets (${setCounts.join(' vs ')}). All exercises in a superset must have the same number of sets. (${names})`, 'error');
+                        return false;
+                    }
+                }
+            }
+            return true;
         }
 
         function toggleTrackingType(dayIndex, exIndex) {
@@ -5756,6 +5834,9 @@
                 showToast('Please add at least one workout day', 'error');
                 return;
             }
+
+            // Validate superset set counts match
+            if (!validateSupersets()) return;
 
             try {
                 let result;
