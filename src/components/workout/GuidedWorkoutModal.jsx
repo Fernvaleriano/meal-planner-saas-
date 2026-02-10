@@ -612,78 +612,6 @@ function GuidedWorkoutModal({
     setTimer(10);
   }, [exercises, completedSets]);
 
-  // Handle "Skip for Good" from deferred review
-  const handleDeferredSkipForGood = useCallback((exIdx) => {
-    // Mark all sets as completed
-    const ex = exercises[exIdx];
-    if (!ex) return;
-    const numSets = typeof ex.sets === 'number' ? ex.sets : (Array.isArray(ex.sets) ? ex.sets.length : 3);
-
-    setCompletedSets(prev => {
-      const updated = { ...prev };
-      updated[exIdx] = new Set(Array.from({ length: numSets }, (_, i) => i));
-      return updated;
-    });
-    persistExerciseData(exIdx);
-    if (onExerciseComplete && exercises[exIdx]?.id) {
-      onExerciseComplete(exercises[exIdx].id);
-    }
-
-    // Remove from queue and check remaining
-    const remaining = skippedQueue.filter(i => i !== exIdx);
-    setSkippedQueue(remaining);
-
-    const activeRemaining = remaining.filter(idx => {
-      const e = exercises[idx];
-      if (!e) return false;
-      const ns = typeof e.sets === 'number' ? e.sets : (Array.isArray(e.sets) ? e.sets.length : 3);
-      const d = completedSets[idx]?.size || 0;
-      return d < ns;
-    });
-
-    if (activeRemaining.length === 0) {
-      if (pendingNextExIdx !== null) {
-        setCurrentExIndex(pendingNextExIdx);
-        setCurrentSetIndex(0);
-        setPhase('get-ready');
-        setTimer(10);
-        setPendingNextExIdx(null);
-      } else {
-        setPhase('complete');
-      }
-    }
-  }, [skippedQueue, pendingNextExIdx, exercises, onExerciseComplete, persistExerciseData, completedSets]);
-
-  // Handle "Skip All & Continue" from deferred review
-  const handleDeferredSkipAll = useCallback(() => {
-    skippedQueue.forEach(exIdx => {
-      const ex = exercises[exIdx];
-      if (!ex) return;
-      const numSets = typeof ex.sets === 'number' ? ex.sets : (Array.isArray(ex.sets) ? ex.sets.length : 3);
-      setCompletedSets(prev => {
-        const updated = { ...prev };
-        updated[exIdx] = new Set(Array.from({ length: numSets }, (_, i) => i));
-        return updated;
-      });
-      persistExerciseData(exIdx);
-      if (onExerciseComplete && exercises[exIdx]?.id) {
-        onExerciseComplete(exercises[exIdx].id);
-      }
-    });
-
-    setSkippedQueue([]);
-
-    if (pendingNextExIdx !== null) {
-      setCurrentExIndex(pendingNextExIdx);
-      setCurrentSetIndex(0);
-      setPhase('get-ready');
-      setTimer(10);
-      setPendingNextExIdx(null);
-    } else {
-      setPhase('complete');
-    }
-  }, [skippedQueue, pendingNextExIdx, exercises, onExerciseComplete, persistExerciseData]);
-
   const info = getExerciseInfo(currentExIndex);
 
   // Current set log values
@@ -1452,6 +1380,78 @@ function GuidedWorkoutModal({
 
     onUpdateExercise({ ...ex, sets: updatedSets });
   }, [exercises, onUpdateExercise]);
+
+  // Handle "Skip for Good" from deferred review
+  const handleDeferredSkipForGood = useCallback((exIdx) => {
+    // Mark all sets as completed
+    const ex = exercises[exIdx];
+    if (!ex) return;
+    const numSets = typeof ex.sets === 'number' ? ex.sets : (Array.isArray(ex.sets) ? ex.sets.length : 3);
+
+    setCompletedSets(prev => {
+      const updated = { ...prev };
+      updated[exIdx] = new Set(Array.from({ length: numSets }, (_, i) => i));
+      return updated;
+    });
+    persistExerciseData(exIdx);
+    if (onExerciseComplete && exercises[exIdx]?.id) {
+      onExerciseComplete(exercises[exIdx].id);
+    }
+
+    // Remove from queue and check remaining
+    const remaining = skippedQueue.filter(i => i !== exIdx);
+    setSkippedQueue(remaining);
+
+    const activeRemaining = remaining.filter(idx => {
+      const e = exercises[idx];
+      if (!e) return false;
+      const ns = typeof e.sets === 'number' ? e.sets : (Array.isArray(e.sets) ? e.sets.length : 3);
+      const d = completedSets[idx]?.size || 0;
+      return d < ns;
+    });
+
+    if (activeRemaining.length === 0) {
+      if (pendingNextExIdx !== null) {
+        setCurrentExIndex(pendingNextExIdx);
+        setCurrentSetIndex(0);
+        setPhase('get-ready');
+        setTimer(10);
+        setPendingNextExIdx(null);
+      } else {
+        setPhase('complete');
+      }
+    }
+  }, [skippedQueue, pendingNextExIdx, exercises, onExerciseComplete, persistExerciseData, completedSets]);
+
+  // Handle "Skip All & Continue" from deferred review
+  const handleDeferredSkipAll = useCallback(() => {
+    skippedQueue.forEach(exIdx => {
+      const ex = exercises[exIdx];
+      if (!ex) return;
+      const numSets = typeof ex.sets === 'number' ? ex.sets : (Array.isArray(ex.sets) ? ex.sets.length : 3);
+      setCompletedSets(prev => {
+        const updated = { ...prev };
+        updated[exIdx] = new Set(Array.from({ length: numSets }, (_, i) => i));
+        return updated;
+      });
+      persistExerciseData(exIdx);
+      if (onExerciseComplete && exercises[exIdx]?.id) {
+        onExerciseComplete(exercises[exIdx].id);
+      }
+    });
+
+    setSkippedQueue([]);
+
+    if (pendingNextExIdx !== null) {
+      setCurrentExIndex(pendingNextExIdx);
+      setCurrentSetIndex(0);
+      setPhase('get-ready');
+      setTimer(10);
+      setPendingNextExIdx(null);
+    } else {
+      setPhase('complete');
+    }
+  }, [skippedQueue, pendingNextExIdx, exercises, onExerciseComplete, persistExerciseData]);
 
   // --- Timer logic ---
   const onTimerComplete = useCallback(() => {
