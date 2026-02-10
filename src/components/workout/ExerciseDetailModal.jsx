@@ -336,6 +336,9 @@ function ExerciseDetailModal({
   const [showSwapModal, setShowSwapModal] = useState(false);
   const [showSetEditor, setShowSetEditor] = useState(false);
   const [showVideo, setShowVideo] = useState(false);
+  const [videoLoading, setVideoLoading] = useState(true);
+  const [videoError, setVideoError] = useState(false);
+  const [videoKey, setVideoKey] = useState(0);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showAskCoach, setShowAskCoach] = useState(false);
 
@@ -2735,8 +2738,23 @@ function ExerciseDetailModal({
       animation_url: exercise?.animation_url,
       using: videoUrl
     });
+    setVideoLoading(true);
+    setVideoError(false);
+    setVideoKey(0);
     setShowVideo(true);
   }, [exercise?.name, exercise?.video_url, exercise?.animation_url, videoUrl]);
+
+  const handleCloseVideo = useCallback(() => {
+    setShowVideo(false);
+    setVideoLoading(true);
+    setVideoError(false);
+  }, []);
+
+  const handleRetryVideo = useCallback(() => {
+    setVideoError(false);
+    setVideoLoading(true);
+    setVideoKey(k => k + 1);
+  }, []);
 
   // Parse reps helper
   const parseReps = (reps) => {
@@ -2833,14 +2851,37 @@ function ExerciseDetailModal({
           {showVideo && videoUrl ? (
             <div className="video-container-full">
               <video
+                key={videoKey}
                 src={videoUrl}
                 loop
                 muted
                 playsInline
                 autoPlay
-                onError={() => setShowVideo(false)}
+                preload="auto"
+                onCanPlay={() => { setVideoLoading(false); setVideoError(false); }}
+                onPlaying={() => setVideoLoading(false)}
+                onWaiting={() => setVideoLoading(true)}
+                onError={() => { setVideoLoading(false); setVideoError(true); }}
               />
-              <button className="close-video-btn" onClick={() => setShowVideo(false)} type="button">
+              {videoLoading && !videoError && (
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.6)', zIndex: 2 }}>
+                  <Loader2 size={36} style={{ color: 'white', animation: 'spin 1s linear infinite' }} />
+                </div>
+              )}
+              {videoError && (
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.7)', zIndex: 2, gap: '12px', color: 'white' }}>
+                  <AlertCircle size={32} style={{ color: '#f59e0b' }} />
+                  <p style={{ margin: 0, fontSize: '14px' }}>Video failed to load</p>
+                  <button
+                    onClick={handleRetryVideo}
+                    type="button"
+                    style={{ padding: '8px 20px', background: '#0d9488', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '14px' }}
+                  >
+                    Retry
+                  </button>
+                </div>
+              )}
+              <button className="close-video-btn" onClick={handleCloseVideo} type="button">
                 <X size={20} />
               </button>
             </div>
@@ -2864,7 +2905,11 @@ function ExerciseDetailModal({
                     playsInline
                     preload="metadata"
                     poster="/img/exercise-placeholder.svg"
-                    onError={(e) => { e.target.style.display = 'none'; }}
+                    onError={(e) => {
+                      // Don't hide - show placeholder instead
+                      e.target.poster = '/img/exercise-placeholder.svg';
+                      e.target.removeAttribute('src');
+                    }}
                   />
                 ) : (
                   <img

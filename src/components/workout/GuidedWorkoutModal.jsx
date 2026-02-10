@@ -253,6 +253,9 @@ function GuidedWorkoutModal({
   const [totalElapsed, setTotalElapsed] = useState(0);
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const [showVideo, setShowVideo] = useState(false);
+  const [guidedVideoLoading, setGuidedVideoLoading] = useState(true);
+  const [guidedVideoError, setGuidedVideoError] = useState(false);
+  const [guidedVideoKey, setGuidedVideoKey] = useState(0);
   const [playingVoiceNote, setPlayingVoiceNote] = useState(false);
   const [showCoachNote, setShowCoachNote] = useState(false); // For text notes popup
 
@@ -1404,6 +1407,9 @@ function GuidedWorkoutModal({
     setPlayingVoiceNote(false);
     setShowCoachNote(false);
     setShowVideo(false);
+    setGuidedVideoLoading(true);
+    setGuidedVideoError(false);
+    setGuidedVideoKey(0);
   }, [currentExIndex]);
 
   // Elapsed time tracker - uses functional updater to avoid stale closures
@@ -2381,19 +2387,49 @@ function GuidedWorkoutModal({
       {/* Exercise thumbnail / video player */}
       <div className="guided-exercise-visual" onClick={() => {
         const videoUrl = currentExercise?.customVideoUrl || currentExercise?.video_url || currentExercise?.animation_url;
-        if (videoUrl) setShowVideo(prev => !prev);
+        if (videoUrl) {
+          if (!showVideo) {
+            setGuidedVideoLoading(true);
+            setGuidedVideoError(false);
+            setGuidedVideoKey(0);
+          }
+          setShowVideo(prev => !prev);
+        }
       }}>
         {showVideo && (currentExercise?.customVideoUrl || currentExercise?.video_url || currentExercise?.animation_url) ? (
-          <div className="guided-video-container">
+          <div className="guided-video-container" style={{ position: 'relative' }}>
             <video
+              key={guidedVideoKey}
               src={currentExercise.customVideoUrl || currentExercise.video_url || currentExercise.animation_url}
               autoPlay
               loop
               muted
               playsInline
-              onError={() => setShowVideo(false)}
+              preload="auto"
+              onCanPlay={() => { setGuidedVideoLoading(false); setGuidedVideoError(false); }}
+              onPlaying={() => setGuidedVideoLoading(false)}
+              onWaiting={() => setGuidedVideoLoading(true)}
+              onError={() => { setGuidedVideoLoading(false); setGuidedVideoError(true); }}
             />
-            <button className="guided-video-close" onClick={(e) => { e.stopPropagation(); setShowVideo(false); }}>
+            {guidedVideoLoading && !guidedVideoError && (
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)', zIndex: 2 }}>
+                <Loader2 size={28} style={{ color: 'white', animation: 'spin 1s linear infinite' }} />
+              </div>
+            )}
+            {guidedVideoError && (
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.7)', zIndex: 2, gap: '8px', color: 'white' }} onClick={(e) => e.stopPropagation()}>
+                <AlertTriangle size={24} style={{ color: '#f59e0b' }} />
+                <p style={{ margin: 0, fontSize: '13px' }}>Video failed to load</p>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setGuidedVideoError(false); setGuidedVideoLoading(true); setGuidedVideoKey(k => k + 1); }}
+                  type="button"
+                  style={{ padding: '6px 16px', background: '#0d9488', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}
+                >
+                  Retry
+                </button>
+              </div>
+            )}
+            <button className="guided-video-close" onClick={(e) => { e.stopPropagation(); setShowVideo(false); setGuidedVideoLoading(true); setGuidedVideoError(false); }}>
               <X size={18} />
             </button>
           </div>
