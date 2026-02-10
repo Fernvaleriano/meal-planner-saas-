@@ -38,9 +38,27 @@ exports.handler = async (event) => {
         genderVariant, // Filter by gender variant: 'male', 'female', or 'all' (default)
         includeSecondary = 'true', // Include exercises where muscle is secondary (default: true)
         isCustom, // Filter to show only custom exercises ('true') or only library ('false')
+        ids, // Comma-separated exercise IDs for bulk video URL lookup
         limit = 100, // Increased default for better "All" results
         offset = 0
       } = event.queryStringParameters || {};
+
+      // Fast path: fetch specific exercises by IDs (for video URL enrichment)
+      if (ids) {
+        const idList = ids.split(',').map(id => parseInt(id, 10)).filter(id => !isNaN(id));
+        if (idList.length > 0) {
+          const { data, error } = await supabase
+            .from('exercises')
+            .select('id, video_url, animation_url, thumbnail_url')
+            .in('id', idList);
+          if (error) throw error;
+          return {
+            statusCode: 200,
+            headers,
+            body: JSON.stringify({ exercises: data || [] })
+          };
+        }
+      }
 
       let query = supabase
         .from('exercises')
