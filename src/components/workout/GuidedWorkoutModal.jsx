@@ -2517,7 +2517,7 @@ function GuidedWorkoutModal({
             </button>
             {!isPlayingDeferred && (
               <button className="guided-later-btn" onClick={handleDeferExercise}>
-                <Clock size={14} /> Later
+                <Clock size={14} /> Busy
               </button>
             )}
             <button className="guided-skip-btn" onClick={handleSkip}>
@@ -2552,7 +2552,7 @@ function GuidedWorkoutModal({
             </button>
             {!isPlayingDeferred && (
               <button className="guided-later-btn" onClick={handleDeferExercise}>
-                <Clock size={14} /> Later
+                <Clock size={14} /> Busy
               </button>
             )}
             <button className="guided-skip-btn-small" onClick={handleSkip}>
@@ -2572,7 +2572,7 @@ function GuidedWorkoutModal({
             </button>
             {!isPlayingDeferred && (
               <button className="guided-later-btn" onClick={handleDeferExercise}>
-                <Clock size={14} /> Later
+                <Clock size={14} /> Busy
               </button>
             )}
             <button className="guided-skip-btn" onClick={handleSkip}>
