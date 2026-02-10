@@ -6456,15 +6456,14 @@
                         if (recorder.state === 'recording') recorder.stop();
                     };
 
-                    // Start recording frames
+                    // Start recording frames — must begin draw loop AFTER play starts
                     recorder.start();
                     function drawFrame() {
                         if (video.paused || video.ended) return;
                         ctx.drawImage(video, 0, 0, width, height);
                         requestAnimationFrame(drawFrame);
                     }
-                    drawFrame();
-                    video.play().catch(() => finish(file));
+                    video.play().then(() => drawFrame()).catch(() => finish(file));
                 };
 
                 video.onerror = () => finish(file);
