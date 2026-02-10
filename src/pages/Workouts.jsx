@@ -2506,7 +2506,7 @@ function Workouts() {
         }
       };
 
-      const logoUrl = coachBranding?.brand_logo_url || 'https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/Untitled%20design%20(3).svg';
+      const logoUrl = coachBranding?.brand_logo_url || 'https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/Untitled%20design%20-%202026-02-10T171903.769.png';
       const logo = new Image();
       logo.crossOrigin = 'anonymous';
       logo.onload = () => renderCard(logo);
@@ -3197,7 +3197,7 @@ function Workouts() {
                 <div className="share-card-overlay" />
                 <div className="share-card-content">
                   <div className="share-card-brand">
-                    <img src={coachBranding?.brand_logo_url || 'https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/Untitled%20design%20(3).svg'} alt={coachBranding?.brand_name || 'Zique Fitness'} className="share-card-logo" />
+                    <img src={coachBranding?.brand_logo_url || 'https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/Untitled%20design%20-%202026-02-10T171903.769.png'} alt={coachBranding?.brand_name || 'Zique Fitness'} className="share-card-logo" />
                   </div>
                   <div className="share-card-stats">
                     {shareToggles.duration && (
