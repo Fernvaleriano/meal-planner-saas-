@@ -356,13 +356,20 @@ function GuidedWorkoutModal({
   pendingNextExIdxRef.current = pendingNextExIdx;
   isPlayingDeferredRef.current = isPlayingDeferred;
   supersetStateRef.current = supersetState;
-  const currentExercise = exercises[currentExIndex];
+
+  // Clamp currentExIndex to valid range to prevent out-of-bounds access after swaps
+  const safeExIndex = exercises.length > 0 ? Math.min(currentExIndex, exercises.length - 1) : 0;
+  if (safeExIndex !== currentExIndex && exercises.length > 0) {
+    // Index went out of bounds (exercises array shortened) — correct it
+    setCurrentExIndex(safeExIndex);
+  }
+  const currentExercise = exercises[safeExIndex];
 
   // Compute superset groups from exercises (consecutive exercises with same supersetGroup)
   const supersetMap = useMemo(() => {
     const groups = {};
     exercises.forEach((ex, idx) => {
-      if (ex.isSuperset && ex.supersetGroup) {
+      if (ex?.isSuperset && ex?.supersetGroup) {
         const key = ex.supersetGroup;
         if (!groups[key]) groups[key] = [];
         groups[key].push(idx);
@@ -473,7 +480,7 @@ function GuidedWorkoutModal({
   }, [isPaused]);
 
   const handleSwapSelect = useCallback((newExercise) => {
-    if (!onSwapExercise || !currentExercise) return;
+    if (!onSwapExercise || !currentExercise || !newExercise) return;
 
     // Tell parent to swap the exercise in the workout data
     onSwapExercise(currentExercise, newExercise);
@@ -570,11 +577,15 @@ function GuidedWorkoutModal({
 
     const totalRounds = Math.max(...group.map(idx => {
       const e = exercises[idx];
+      if (!e) return 3; // Safety fallback for missing exercise
       return typeof e.sets === 'number' ? e.sets : (Array.isArray(e.sets) ? e.sets.length : 3);
     }));
 
+    const currentEx = exercises[currentExIndex];
+    if (!currentEx) return; // Guard against undefined exercise
+
     setSupersetState({
-      groupKey: exercises[currentExIndex].supersetGroup,
+      groupKey: currentEx.supersetGroup,
       groupIndices: group,
       memberPos: 0,
       round: 0,
@@ -2044,6 +2055,27 @@ function GuidedWorkoutModal({
               Skip All &amp; Continue
             </button>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Safety guard: if currentExercise is undefined (exercises empty or index mismatch), show fallback
+  if (!currentExercise && phase !== 'complete' && phase !== 'deferred-review') {
+    return (
+      <div className="guided-workout-overlay">
+        <div className="guided-top-bar">
+          <button className="guided-close-btn" onClick={onClose}>
+            <X size={24} />
+          </button>
+          <div className="guided-workout-name">{workoutName || 'Workout'}</div>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, color: '#94a3b8', padding: '40px 20px', textAlign: 'center' }}>
+          <AlertTriangle size={48} style={{ marginBottom: 16, color: '#f59e0b' }} />
+          <p style={{ marginBottom: 16, fontSize: '16px' }}>Unable to load exercise data.</p>
+          <button onClick={onClose} style={{ padding: '10px 24px', background: '#0d9488', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '15px' }}>
+            Close Workout
+          </button>
         </div>
       </div>
     );
