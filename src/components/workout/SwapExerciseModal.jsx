@@ -115,7 +115,8 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
           id: ex?.id,
           name: ex?.name
         })).filter(ex => ex.id),
-        equipment: equipmentFilter // Pass equipment filter to backend
+        equipment: equipmentFilter, // Pass equipment filter to backend
+        coachId: coachId || null // Include coach's custom exercises in AI suggestions
       });
 
       if (!isMountedRef.current) return;

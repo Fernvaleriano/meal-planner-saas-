@@ -3343,6 +3343,7 @@ function Workouts() {
           existingExerciseIds={exercises.map(ex => ex?.id).filter(Boolean)}
           genderPreference={clientData?.preferred_exercise_gender || 'all'}
           coachId={clientData?.coach_id}
+          isCoach={!!clientData?.is_coach}
         />
       )}
 
@@ -3353,6 +3354,7 @@ function Workouts() {
           onCreateWorkout={handleCreateWorkout}
           selectedDate={selectedDate}
           coachId={clientData?.coach_id}
+          isCoach={!!clientData?.is_coach}
         />
       )}
 
