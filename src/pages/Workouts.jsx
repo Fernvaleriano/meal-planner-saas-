@@ -2406,7 +2406,7 @@ function Workouts() {
         ctx.fillRect(0, 0, width, height);
 
         // Brand name with logo
-        const brandName = coachBranding?.coach_name || 'Zique Fitness';
+        const brandName = coachBranding?.brand_name || 'Zique Fitness';
         const brandColor = coachBranding?.brand_primary_color || '#0d9488';
         ctx.fillStyle = brandColor;
         ctx.font = 'bold 28px -apple-system, BlinkMacSystemFont, sans-serif';
@@ -3209,7 +3209,7 @@ function Workouts() {
                 <div className="share-card-content">
                   <div className="share-card-brand">
                     <img src={coachBranding?.brand_logo_url || 'https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/Untitled%20design%20(7).svg'} alt="" className="share-card-logo" />
-                    <span>{coachBranding?.coach_name || 'Zique Fitness'}</span>
+                    <span>{coachBranding?.brand_name || 'Zique Fitness'}</span>
                   </div>
                   <div className="share-card-stats">
                     {shareToggles.duration && (
