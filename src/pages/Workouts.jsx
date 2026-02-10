@@ -2505,15 +2505,12 @@ function Workouts() {
         }
       };
 
-      if (coachBranding?.brand_logo_url) {
-        const logo = new Image();
-        logo.crossOrigin = 'anonymous';
-        logo.onload = () => renderCard(logo);
-        logo.onerror = () => renderCard(null);
-        logo.src = coachBranding.brand_logo_url;
-      } else {
-        renderCard(null);
-      }
+      const logoUrl = coachBranding?.brand_logo_url || 'https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/Untitled%20design%20(7).svg';
+      const logo = new Image();
+      logo.crossOrigin = 'anonymous';
+      logo.onload = () => renderCard(logo);
+      logo.onerror = () => renderCard(null);
+      logo.src = logoUrl;
     } catch (err) {
       console.error('Error sharing results:', err);
     }
@@ -3199,9 +3196,7 @@ function Workouts() {
                 <div className="share-card-overlay" />
                 <div className="share-card-content">
                   <div className="share-card-brand">
-                    {coachBranding?.brand_logo_url && (
-                      <img src={coachBranding.brand_logo_url} alt="" className="share-card-logo" />
-                    )}
+                    <img src={coachBranding?.brand_logo_url || 'https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/Untitled%20design%20(7).svg'} alt="" className="share-card-logo" />
                     <span>{coachBranding?.coach_name || 'Zique Fitness'}</span>
                   </div>
                   <div className="share-card-stats">
