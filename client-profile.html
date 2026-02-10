@@ -13775,7 +13775,8 @@
                 // ---- Section 1: Intake Questionnaire Data from clients table ----
                 const hasIntakeData = currentClient.age || currentClient.gender || currentClient.weight ||
                     currentClient.diet_type || currentClient.allergies || currentClient.disliked_foods ||
-                    currentClient.preferred_foods || currentClient.cooking_equipment || currentClient.budget;
+                    currentClient.preferred_foods || currentClient.cooking_equipment || currentClient.budget ||
+                    currentClient.fitness_level || currentClient.exercise_frequency || currentClient.health_concerns;
 
                 if (hasIntakeData) {
                     // Personal Info
@@ -13827,6 +13828,83 @@
                     }
 
                     html += '</div>';
+
+                    // Fitness & Exercise
+                    const hasFitness = currentClient.fitness_level || currentClient.exercise_frequency ||
+                        currentClient.workout_duration || currentClient.equipment_access ||
+                        currentClient.exercise_types || currentClient.health_concerns ||
+                        currentClient.fitness_goal_details;
+
+                    if (hasFitness) {
+                        html += '<div class="qa-category">';
+                        html += '<div class="qa-category-title">Fitness & Exercise</div>';
+
+                        if (currentClient.fitness_level) {
+                            const fitnessLabels = {
+                                'beginner': 'Beginner',
+                                'intermediate': 'Intermediate',
+                                'advanced': 'Advanced',
+                                'athlete': 'Athlete'
+                            };
+                            html += qaRow('Fitness Level', fitnessLabels[currentClient.fitness_level] || capitalize(currentClient.fitness_level));
+                        }
+                        if (currentClient.exercise_frequency) {
+                            const freqLabels = {
+                                '0-1': '0-1 days/week',
+                                '2-3': '2-3 days/week',
+                                '4-5': '4-5 days/week',
+                                '6-7': '6-7 days/week'
+                            };
+                            html += qaRow('Exercise Frequency', freqLabels[currentClient.exercise_frequency] || currentClient.exercise_frequency);
+                        }
+                        if (currentClient.workout_duration) {
+                            const durLabels = {
+                                '15-30': '15-30 minutes',
+                                '30-45': '30-45 minutes',
+                                '45-60': '45-60 minutes',
+                                '60-90': '60-90 minutes',
+                                '90+': '90+ minutes'
+                            };
+                            html += qaRow('Workout Duration', durLabels[currentClient.workout_duration] || currentClient.workout_duration);
+                        }
+                        if (currentClient.equipment_access) {
+                            const equipLabels = {
+                                'full_gym': 'Full Gym',
+                                'home_gym': 'Home Gym',
+                                'minimal': 'Minimal Equipment',
+                                'none': 'No Equipment (Bodyweight Only)'
+                            };
+                            html += qaRow('Equipment Access', equipLabels[currentClient.equipment_access] || capitalize(currentClient.equipment_access));
+                        }
+                        if (currentClient.exercise_types) {
+                            let types = currentClient.exercise_types;
+                            if (typeof types === 'string') {
+                                try { types = JSON.parse(types); } catch(e) { types = []; }
+                            }
+                            if (Array.isArray(types) && types.length > 0) {
+                                const typeLabels = {
+                                    'weight_training': 'Weight Training',
+                                    'cardio': 'Cardio',
+                                    'hiit': 'HIIT',
+                                    'yoga_pilates': 'Yoga/Pilates',
+                                    'group_classes': 'Group Classes',
+                                    'sports': 'Sports',
+                                    'walking_hiking': 'Walking/Hiking',
+                                    'swimming': 'Swimming'
+                                };
+                                const formatted = types.map(t => '<span class="qa-tag">' + (typeLabels[t] || capitalize(t)) + '</span>').join('');
+                                html += '<div class="qa-row"><div class="qa-label">Exercise Types</div><div class="qa-value">' + formatted + '</div></div>';
+                            }
+                        }
+                        if (currentClient.health_concerns) {
+                            html += qaRow('Health Concerns', currentClient.health_concerns);
+                        }
+                        if (currentClient.fitness_goal_details) {
+                            html += qaRow('Fitness Goals', currentClient.fitness_goal_details);
+                        }
+
+                        html += '</div>';
+                    }
 
                     // Dietary Preferences
                     const hasDiet = currentClient.diet_type || currentClient.macro_preference ||

@@ -52,7 +52,14 @@ exports.handler = async (event, context) => {
             preferredFoods,
             cookingEquipment,
             password,
-            unitPreference
+            unitPreference,
+            fitnessLevel,
+            exerciseFrequency,
+            workoutDuration,
+            equipmentAccess,
+            exerciseTypes,
+            healthConcerns,
+            fitnessGoalDetails
         } = body;
 
         // Validate required fields
@@ -241,7 +248,14 @@ exports.handler = async (event, context) => {
                 registered_at: new Date().toISOString(),
                 intake_token: null,  // Clear the token after use
                 intake_token_expires_at: null,
-                unit_preference: unitPreference || 'imperial'  // Store client's unit preference
+                unit_preference: unitPreference || 'imperial',  // Store client's unit preference
+                fitness_level: fitnessLevel || null,
+                exercise_frequency: exerciseFrequency || null,
+                workout_duration: workoutDuration || null,
+                equipment_access: equipmentAccess || null,
+                exercise_types: exerciseTypes ? JSON.stringify(exerciseTypes) : '[]',
+                health_concerns: healthConcerns || null,
+                fitness_goal_details: fitnessGoalDetails || null
             })
             .eq('id', client.id);
 
