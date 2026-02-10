@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Play, Pause, SkipForward, SkipBack, ChevronRight, ChevronLeft, Check, Volume2, VolumeX, Mic, MessageSquare, Square, Send, ChevronUp, ChevronDown, MessageCircle, Bot, Loader2, Sparkles, Flame, Repeat } from 'lucide-react';
+import { X, Play, Pause, SkipForward, SkipBack, ChevronRight, ChevronLeft, Check, Volume2, VolumeX, Mic, MessageSquare, Square, Send, ChevronUp, ChevronDown, MessageCircle, Bot, Loader2, Sparkles, Flame, Repeat, Clock } from 'lucide-react';
 import SmartThumbnail from './SmartThumbnail';
 import SwapExerciseModal from './SwapExerciseModal';
 import { apiGet, apiPost, apiPut } from '../../utils/api';
@@ -261,6 +261,11 @@ function GuidedWorkoutModal({
   const [showResumePrompt, setShowResumePrompt] = useState(false);
   const [resumeData, setResumeData] = useState(null);
 
+  // Skip for later (deferred exercises) state
+  const [skippedQueue, setSkippedQueue] = useState([]); // exercise indices deferred for later
+  const [pendingNextExIdx, setPendingNextExIdx] = useState(null); // where to continue after deferred review
+  const [isPlayingDeferred, setIsPlayingDeferred] = useState(false); // currently replaying a deferred exercise
+
   // Set logging: track actual reps/weight per exercise per set
   // Structure: { exIndex: [{ reps: number, weight: number }, ...] }
   const [setLogs, setSetLogs] = useState(() => {
@@ -310,12 +315,20 @@ function GuidedWorkoutModal({
   const isMountedRef = useRef(true);
   const exerciseIndexAtRecordStartRef = useRef(null);
 
+  // Deferred exercise refs
+  const skippedQueueRef = useRef(skippedQueue);
+  const pendingNextExIdxRef = useRef(pendingNextExIdx);
+  const isPlayingDeferredRef = useRef(isPlayingDeferred);
+
   // Keep refs in sync (single effect to avoid re-render cascade)
   phaseRef.current = phase;
   currentExIndexRef.current = currentExIndex;
   currentSetIndexRef.current = currentSetIndex;
   completedSetsRef.current = completedSets;
   setLogsRef.current = setLogs;
+  skippedQueueRef.current = skippedQueue;
+  pendingNextExIdxRef.current = pendingNextExIdx;
+  isPlayingDeferredRef.current = isPlayingDeferred;
   const currentExercise = exercises[currentExIndex];
 
   // Check for resume state on mount
@@ -354,6 +367,10 @@ function GuidedWorkoutModal({
       setSetLogs(resumeData.setLogs);
     }
 
+    // Restore deferred exercise state
+    if (resumeData.skippedQueue) setSkippedQueue(resumeData.skippedQueue);
+    if (resumeData.pendingNextExIdx !== undefined) setPendingNextExIdx(resumeData.pendingNextExIdx);
+
     // Start at get-ready for the current exercise
     setPhase('get-ready');
     setTimer(5);
@@ -388,7 +405,9 @@ function GuidedWorkoutModal({
         totalElapsed,
         completedSets: serializedCompleted,
         setLogs,
-        exerciseName: currentExercise?.name
+        exerciseName: currentExercise?.name,
+        skippedQueue,
+        pendingNextExIdx
       });
     }
     onClose();
@@ -477,6 +496,193 @@ function GuidedWorkoutModal({
     const rest = ex.restSeconds || ex.rest_seconds || 60;
     return { isTimed, sets, reps, duration, rest };
   };
+
+  // Get exercise phase (warmup, main, or cooldown)
+  const getExercisePhase = (exercise) => {
+    return exercise?.phase || (exercise?.isWarmup ? 'warmup' : exercise?.isStretch ? 'cooldown' : 'main');
+  };
+
+  // Advance to next exercise with phase boundary check for deferred exercises
+  const advanceToNextExercise = useCallback((fromExIdx, additionalDeferred = []) => {
+    const nextIdx = fromExIdx + 1;
+    const currentPhase = getExercisePhase(exercises[fromExIdx]);
+    const allDeferred = [...skippedQueueRef.current, ...additionalDeferred];
+
+    // Filter to deferred exercises in the current phase that are still uncompleted
+    const deferredForPhase = allDeferred.filter(idx => {
+      const ex = exercises[idx];
+      if (!ex) return false;
+      const numSets = typeof ex.sets === 'number' ? ex.sets : (Array.isArray(ex.sets) ? ex.sets.length : 3);
+      const done = completedSetsRef.current[idx]?.size || 0;
+      return getExercisePhase(ex) === currentPhase && done < numSets;
+    });
+
+    if (nextIdx >= exercises.length) {
+      // End of workout — check all remaining deferred (any phase)
+      const allActive = allDeferred.filter(idx => {
+        const ex = exercises[idx];
+        if (!ex) return false;
+        const numSets = typeof ex.sets === 'number' ? ex.sets : (Array.isArray(ex.sets) ? ex.sets.length : 3);
+        const done = completedSetsRef.current[idx]?.size || 0;
+        return done < numSets;
+      });
+      if (allActive.length > 0) {
+        setPendingNextExIdx(null); // null = complete after review
+        setPhase('deferred-review');
+      } else {
+        setPhase('complete');
+      }
+    } else {
+      const nextPhase = getExercisePhase(exercises[nextIdx]);
+
+      if (currentPhase !== nextPhase && deferredForPhase.length > 0) {
+        // Phase boundary with pending deferred exercises
+        setPendingNextExIdx(nextIdx);
+        setPhase('deferred-review');
+      } else {
+        setCurrentExIndex(nextIdx);
+        setCurrentSetIndex(0);
+        setPhase('get-ready');
+        setTimer(10);
+      }
+    }
+  }, [exercises]);
+
+  // Return from a completed/skipped deferred exercise to the review screen or advance
+  const returnFromDeferredExercise = useCallback((completedExIdx) => {
+    setSkippedQueue(prev => prev.filter(i => i !== completedExIdx));
+    setIsPlayingDeferred(false);
+
+    const remaining = skippedQueueRef.current.filter(i => i !== completedExIdx);
+    // Filter to actually uncompleted
+    const activeRemaining = remaining.filter(idx => {
+      const ex = exercises[idx];
+      if (!ex) return false;
+      const numSets = typeof ex.sets === 'number' ? ex.sets : (Array.isArray(ex.sets) ? ex.sets.length : 3);
+      const done = completedSetsRef.current[idx]?.size || 0;
+      return done < numSets;
+    });
+
+    if (activeRemaining.length > 0) {
+      setPhase('deferred-review');
+    } else if (pendingNextExIdxRef.current !== null) {
+      setCurrentExIndex(pendingNextExIdxRef.current);
+      setCurrentSetIndex(0);
+      setPhase('get-ready');
+      setTimer(10);
+      setPendingNextExIdx(null);
+    } else {
+      setPhase('complete');
+    }
+  }, [exercises]);
+
+  // Handle "Do Later" — defer exercise to end of phase
+  const handleDeferExercise = useCallback(() => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    setEditingField(null);
+    setSkippedQueue(prev => [...prev, currentExIndex]);
+    advanceToNextExercise(currentExIndex, [currentExIndex]);
+  }, [currentExIndex, advanceToNextExercise]);
+
+  // Handle "Do It Now" from deferred review
+  const handleDeferredDoNow = useCallback((exIdx) => {
+    // Check if already completed (e.g., user went back and did it)
+    const ex = exercises[exIdx];
+    if (!ex) return;
+    const numSets = typeof ex.sets === 'number' ? ex.sets : (Array.isArray(ex.sets) ? ex.sets.length : 3);
+    const done = completedSets[exIdx]?.size || 0;
+    if (done >= numSets) {
+      // Already completed — just remove from queue
+      setSkippedQueue(prev => prev.filter(i => i !== exIdx));
+      return;
+    }
+
+    setIsPlayingDeferred(true);
+    setCurrentExIndex(exIdx);
+
+    // Find first uncompleted set
+    const completed = completedSets[exIdx] || new Set();
+    let startSet = 0;
+    for (let i = 0; i < numSets; i++) {
+      if (!completed.has(i)) { startSet = i; break; }
+    }
+    setCurrentSetIndex(startSet);
+
+    setPhase('get-ready');
+    setTimer(10);
+  }, [exercises, completedSets]);
+
+  // Handle "Skip for Good" from deferred review
+  const handleDeferredSkipForGood = useCallback((exIdx) => {
+    // Mark all sets as completed
+    const ex = exercises[exIdx];
+    if (!ex) return;
+    const numSets = typeof ex.sets === 'number' ? ex.sets : (Array.isArray(ex.sets) ? ex.sets.length : 3);
+
+    setCompletedSets(prev => {
+      const updated = { ...prev };
+      updated[exIdx] = new Set(Array.from({ length: numSets }, (_, i) => i));
+      return updated;
+    });
+    persistExerciseData(exIdx);
+    if (onExerciseComplete && exercises[exIdx]?.id) {
+      onExerciseComplete(exercises[exIdx].id);
+    }
+
+    // Remove from queue and check remaining
+    const remaining = skippedQueue.filter(i => i !== exIdx);
+    setSkippedQueue(remaining);
+
+    const activeRemaining = remaining.filter(idx => {
+      const e = exercises[idx];
+      if (!e) return false;
+      const ns = typeof e.sets === 'number' ? e.sets : (Array.isArray(e.sets) ? e.sets.length : 3);
+      const d = completedSets[idx]?.size || 0;
+      return d < ns;
+    });
+
+    if (activeRemaining.length === 0) {
+      if (pendingNextExIdx !== null) {
+        setCurrentExIndex(pendingNextExIdx);
+        setCurrentSetIndex(0);
+        setPhase('get-ready');
+        setTimer(10);
+        setPendingNextExIdx(null);
+      } else {
+        setPhase('complete');
+      }
+    }
+  }, [skippedQueue, pendingNextExIdx, exercises, onExerciseComplete, persistExerciseData, completedSets]);
+
+  // Handle "Skip All & Continue" from deferred review
+  const handleDeferredSkipAll = useCallback(() => {
+    skippedQueue.forEach(exIdx => {
+      const ex = exercises[exIdx];
+      if (!ex) return;
+      const numSets = typeof ex.sets === 'number' ? ex.sets : (Array.isArray(ex.sets) ? ex.sets.length : 3);
+      setCompletedSets(prev => {
+        const updated = { ...prev };
+        updated[exIdx] = new Set(Array.from({ length: numSets }, (_, i) => i));
+        return updated;
+      });
+      persistExerciseData(exIdx);
+      if (onExerciseComplete && exercises[exIdx]?.id) {
+        onExerciseComplete(exercises[exIdx].id);
+      }
+    });
+
+    setSkippedQueue([]);
+
+    if (pendingNextExIdx !== null) {
+      setCurrentExIndex(pendingNextExIdx);
+      setCurrentSetIndex(0);
+      setPhase('get-ready');
+      setTimer(10);
+      setPendingNextExIdx(null);
+    } else {
+      setPhase('complete');
+    }
+  }, [skippedQueue, pendingNextExIdx, exercises, onExerciseComplete, persistExerciseData]);
 
   const info = getExerciseInfo(currentExIndex);
 
@@ -1009,13 +1215,42 @@ function GuidedWorkoutModal({
         speak('Go!', voiceEnabled);
       } else if (phase === 'rest') {
         speak('Rest.', voiceEnabled);
+      } else if (phase === 'deferred-review') {
+        const count = skippedQueue.length;
+        speak(`You skipped ${count} exercise${count !== 1 ? 's' : ''}. Would you like to go back?`, voiceEnabled);
       } else if (phase === 'complete') {
         speak('Workout complete! Great job.', voiceEnabled);
       }
     };
 
     runVoice().catch(() => {});
-  }, [phase, currentExIndex, voiceEnabled]);
+  }, [phase, currentExIndex, voiceEnabled, skippedQueue.length]);
+
+  // Auto-advance if deferred review has no active exercises (edge case: user went back and completed them)
+  useEffect(() => {
+    if (phase !== 'deferred-review') return;
+
+    const hasActive = skippedQueue.some(idx => {
+      const ex = exercises[idx];
+      if (!ex) return false;
+      const numSets = typeof ex.sets === 'number' ? ex.sets : (Array.isArray(ex.sets) ? ex.sets.length : 3);
+      const done = completedSets[idx]?.size || 0;
+      return done < numSets;
+    });
+
+    if (!hasActive) {
+      setSkippedQueue([]);
+      if (pendingNextExIdx !== null) {
+        setCurrentExIndex(pendingNextExIdx);
+        setCurrentSetIndex(0);
+        setPhase('get-ready');
+        setTimer(10);
+        setPendingNextExIdx(null);
+      } else {
+        setPhase('complete');
+      }
+    }
+  }, [phase, skippedQueue, completedSets, pendingNextExIdx, exercises]);
 
   // --- Play coach voice note (tap to play, pauses timer) ---
   const handlePlayVoiceNote = useCallback(() => {
@@ -1262,8 +1497,13 @@ function GuidedWorkoutModal({
       if (onExerciseComplete && exercises[exIdx]?.id) {
         onExerciseComplete(exercises[exIdx].id);
       }
-      if (exIdx >= exercises.length - 1) {
-        setPhase('complete');
+
+      if (isPlayingDeferredRef.current) {
+        // Finished a deferred exercise — return to review (no inter-exercise rest)
+        returnFromDeferredExercise(exIdx);
+      } else if (exIdx >= exercises.length - 1) {
+        // Last sequential exercise — check for deferred before completing
+        advanceToNextExercise(exIdx);
       } else {
         setPhase('rest');
         setTimer(exInfo.rest);
@@ -1275,19 +1515,16 @@ function GuidedWorkoutModal({
       setCurrentSetIndex(setIdx + 1);
     }
     setEditingField(null);
-  }, [exercises, onExerciseComplete, persistExerciseData]);
+  }, [exercises, onExerciseComplete, persistExerciseData, returnFromDeferredExercise, advanceToNextExercise]);
 
   const doAdvanceAfterRest = useCallback((exIdx, setIdx, exInfo) => {
     const setsDone = completedSetsRef.current[exIdx]?.size || 0;
     if (setsDone >= exInfo.sets) {
-      const nextEx = exIdx + 1;
-      if (nextEx >= exercises.length) {
-        setPhase('complete');
+      // All sets done — advance (with phase boundary / deferred check)
+      if (isPlayingDeferredRef.current) {
+        returnFromDeferredExercise(exIdx);
       } else {
-        setCurrentExIndex(nextEx);
-        setCurrentSetIndex(0);
-        setPhase('get-ready');
-        setTimer(10);
+        advanceToNextExercise(exIdx);
       }
     } else {
       const nextInfo = getExerciseInfo(exIdx);
@@ -1298,7 +1535,7 @@ function GuidedWorkoutModal({
         setPhase('exercise');
       }
     }
-  }, [exercises]);
+  }, [exercises, returnFromDeferredExercise, advanceToNextExercise]);
 
   // Timer effect - only re-create interval when phase or pause state changes
   // NOT when exercise/set index changes (those are tracked via refs)
@@ -1345,7 +1582,7 @@ function GuidedWorkoutModal({
     });
   };
 
-  // --- Skip ---
+  // --- Skip (permanent) ---
   const handleSkip = () => {
     if (intervalRef.current) clearInterval(intervalRef.current);
     setEditingField(null);
@@ -1370,24 +1607,30 @@ function GuidedWorkoutModal({
       if (onExerciseComplete && currentExercise?.id) {
         onExerciseComplete(currentExercise.id);
       }
-      if (currentExIndex >= exercises.length - 1) {
-        setPhase('complete');
+
+      if (isPlayingDeferredRef.current) {
+        // Permanently skipping a deferred exercise — return to review
+        returnFromDeferredExercise(currentExIndex);
       } else {
-        const nextIdx = currentExIndex + 1;
-        setCurrentExIndex(nextIdx);
-        setCurrentSetIndex(0);
-        setPhase('get-ready');
-        setTimer(10);
+        // Normal flow — advance with phase boundary check
+        advanceToNextExercise(currentExIndex);
       }
     }
   };
 
   // --- Go Back to previous exercise ---
   const handleBack = () => {
-    if (currentExIndex <= 0) return; // Already at first exercise
-
     if (intervalRef.current) clearInterval(intervalRef.current);
     setEditingField(null);
+
+    if (isPlayingDeferredRef.current) {
+      // Return to deferred review without completing
+      setIsPlayingDeferred(false);
+      setPhase('deferred-review');
+      return;
+    }
+
+    if (currentExIndex <= 0) return; // Already at first exercise
 
     // Go to previous exercise
     const prevIdx = currentExIndex - 1;
@@ -1449,6 +1692,87 @@ function GuidedWorkoutModal({
     );
   }
 
+  // --- Deferred review screen ---
+  if (phase === 'deferred-review') {
+    const activeDeferredQueue = skippedQueue.filter(idx => {
+      const ex = exercises[idx];
+      if (!ex) return false;
+      const numSets = typeof ex.sets === 'number' ? ex.sets : (Array.isArray(ex.sets) ? ex.sets.length : 3);
+      const done = completedSets[idx]?.size || 0;
+      return done < numSets;
+    });
+
+    return (
+      <div className="guided-workout-overlay">
+        {/* Top bar */}
+        <div className="guided-top-bar">
+          <button className="guided-close-btn" onClick={handleCloseWithSave}>
+            <X size={24} />
+          </button>
+          <div className="guided-workout-name">{workoutName || 'Workout'}</div>
+          <div className="guided-top-right">
+            <div className="guided-elapsed">{formatTime(totalElapsed)}</div>
+          </div>
+        </div>
+        <div className="guided-progress-bar">
+          <div className="guided-progress-fill" style={{ width: `${progressPct}%` }} />
+        </div>
+
+        <div className="guided-scroll-content">
+          <div className="guided-deferred-review">
+            <div className="guided-deferred-icon">
+              <Clock size={32} />
+            </div>
+            <h2 className="guided-deferred-title">Skipped Exercises</h2>
+            <p className="guided-deferred-subtitle">
+              You skipped {activeDeferredQueue.length} exercise{activeDeferredQueue.length !== 1 ? 's' : ''} &mdash; ready to go back?
+            </p>
+
+            {activeDeferredQueue.map((exIdx) => {
+              const ex = exercises[exIdx];
+              const exInfo = getExerciseInfo(exIdx);
+              const exPhase = getExercisePhase(ex);
+              return (
+                <div key={exIdx} className="guided-deferred-card">
+                  <div className="guided-deferred-card-info">
+                    <div className="guided-deferred-card-header">
+                      <h3>{ex.name}</h3>
+                      {exPhase !== 'main' && (
+                        <span className={`guided-deferred-phase-tag ${exPhase}`}>
+                          {exPhase === 'warmup' ? 'Warm-Up' : 'Cool-Down'}
+                        </span>
+                      )}
+                    </div>
+                    <p>
+                      {exInfo.isTimed
+                        ? `${exInfo.sets} set${exInfo.sets !== 1 ? 's' : ''} \u00D7 ${formatDuration(exInfo.duration)}`
+                        : `${exInfo.sets} set${exInfo.sets !== 1 ? 's' : ''} \u00D7 ${exInfo.reps} reps`
+                      }
+                    </p>
+                  </div>
+                  <div className="guided-deferred-card-actions">
+                    <button className="guided-deferred-do-now-btn" onClick={() => handleDeferredDoNow(exIdx)}>
+                      <Play size={16} />
+                      <span>Do It Now</span>
+                    </button>
+                    <button className="guided-deferred-skip-btn" onClick={() => handleDeferredSkipForGood(exIdx)}>
+                      <SkipForward size={14} />
+                      <span>Skip for Good</span>
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+
+            <button className="guided-deferred-continue-btn" onClick={handleDeferredSkipAll}>
+              Skip All &amp; Continue
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="guided-workout-overlay">
       {/* Top bar */}
@@ -1500,6 +1824,7 @@ function GuidedWorkoutModal({
         <div className="guided-exercise-info">
         <div className="guided-exercise-number-row">
           <div className="guided-exercise-number">
+            {isPlayingDeferred && <span className="guided-deferred-badge">Skipped earlier &middot; </span>}
             Exercise {currentExIndex + 1} of {exercises.length}
           </div>
           {onSwapExercise && (
@@ -1863,7 +2188,7 @@ function GuidedWorkoutModal({
       <div className="guided-actions">
         {phase === 'get-ready' ? (
           <div className="guided-nav-controls">
-            {currentExIndex > 0 && (
+            {(currentExIndex > 0 || isPlayingDeferred) && (
               <button className="guided-back-btn" onClick={handleBack}>
                 <SkipBack size={18} /> Back
               </button>
@@ -1872,13 +2197,18 @@ function GuidedWorkoutModal({
               {isPaused ? <Play size={18} /> : <Pause size={18} />}
               {isPaused ? 'Resume' : 'Pause'}
             </button>
+            {!isPlayingDeferred && (
+              <button className="guided-later-btn" onClick={handleDeferExercise}>
+                <Clock size={14} /> Later
+              </button>
+            )}
             <button className="guided-skip-btn" onClick={handleSkip}>
               Skip <ChevronRight size={18} />
             </button>
           </div>
         ) : phase === 'rest' ? (
           <div className="guided-nav-controls">
-            {currentExIndex > 0 && (
+            {(currentExIndex > 0 || isPlayingDeferred) && (
               <button className="guided-back-btn" onClick={handleBack}>
                 <SkipBack size={18} /> Back
               </button>
@@ -1893,7 +2223,7 @@ function GuidedWorkoutModal({
           </div>
         ) : phase === 'exercise' && !info.isTimed ? (
           <div className="guided-exercise-actions">
-            {currentExIndex > 0 && (
+            {(currentExIndex > 0 || isPlayingDeferred) && (
               <button className="guided-back-btn" onClick={handleBack}>
                 <SkipBack size={18} /> Back
               </button>
@@ -1902,13 +2232,18 @@ function GuidedWorkoutModal({
               <Check size={22} />
               Done
             </button>
+            {!isPlayingDeferred && (
+              <button className="guided-later-btn" onClick={handleDeferExercise}>
+                <Clock size={14} /> Later
+              </button>
+            )}
             <button className="guided-skip-btn-small" onClick={handleSkip}>
               Skip
             </button>
           </div>
         ) : phase === 'exercise' && info.isTimed ? (
           <div className="guided-timer-controls">
-            {currentExIndex > 0 && (
+            {(currentExIndex > 0 || isPlayingDeferred) && (
               <button className="guided-back-btn" onClick={handleBack}>
                 <SkipBack size={18} /> Back
               </button>
@@ -1917,6 +2252,11 @@ function GuidedWorkoutModal({
               {isPaused ? <Play size={22} /> : <Pause size={22} />}
               {isPaused ? 'Resume' : 'Pause'}
             </button>
+            {!isPlayingDeferred && (
+              <button className="guided-later-btn" onClick={handleDeferExercise}>
+                <Clock size={14} /> Later
+              </button>
+            )}
             <button className="guided-skip-btn" onClick={handleSkip}>
               Skip <SkipForward size={18} />
             </button>
@@ -1925,7 +2265,7 @@ function GuidedWorkoutModal({
       </div>
 
       {/* Up next */}
-      {nextExercise && phase !== 'get-ready' && (
+      {nextExercise && phase !== 'get-ready' && !isPlayingDeferred && (
         <div className="guided-up-next">
           <span className="guided-up-next-label">Up next:</span>
           <span className="guided-up-next-name">{nextExercise.name}</span>
