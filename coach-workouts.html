@@ -6329,6 +6329,112 @@
             }
         }
 
+        // ============ VIDEO COMPRESSION ============
+        // Compresses video to 720p before upload to prevent large file playback issues
+        async function compressVideo(file) {
+            const MAX_WIDTH = 720;
+            const TARGET_BITRATE = 1500000; // 1.5 Mbps
+            const COMPRESS_THRESHOLD = 2 * 1024 * 1024; // 2MB
+
+            // Skip compression if small enough
+            if (file.size <= COMPRESS_THRESHOLD) {
+                return file;
+            }
+
+            // Check browser support
+            if (typeof MediaRecorder === 'undefined' || !document.createElement('canvas').captureStream) {
+                console.warn('Browser does not support video compression, uploading original');
+                return file;
+            }
+
+            return new Promise((resolve) => {
+                const video = document.createElement('video');
+                video.muted = true;
+                video.playsInline = true;
+                video.preload = 'auto';
+                const objectUrl = URL.createObjectURL(file);
+                let resolved = false;
+
+                function finish(result) {
+                    if (resolved) return;
+                    resolved = true;
+                    clearTimeout(safetyTimeout);
+                    URL.revokeObjectURL(objectUrl);
+                    resolve(result);
+                }
+
+                // Safety timeout: 60s max for compression
+                const safetyTimeout = setTimeout(() => finish(file), 60000);
+
+                video.onloadedmetadata = () => {
+                    let width = video.videoWidth;
+                    let height = video.videoHeight;
+
+                    // Skip if already small resolution
+                    if (width <= MAX_WIDTH && file.size <= COMPRESS_THRESHOLD) {
+                        finish(file);
+                        return;
+                    }
+
+                    if (width > MAX_WIDTH) {
+                        const ratio = MAX_WIDTH / width;
+                        height = Math.round(height * ratio);
+                        width = MAX_WIDTH;
+                    }
+                    // Even dimensions (required by codecs)
+                    width = Math.round(width / 2) * 2;
+                    height = Math.round(height / 2) * 2;
+
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    const stream = canvas.captureStream(24);
+
+                    // Pick best available codec
+                    let mimeType = 'video/webm';
+                    for (const candidate of ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm']) {
+                        if (MediaRecorder.isTypeSupported(candidate)) {
+                            mimeType = candidate;
+                            break;
+                        }
+                    }
+
+                    let recorder;
+                    try {
+                        recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: TARGET_BITRATE });
+                    } catch (e) {
+                        try { recorder = new MediaRecorder(stream); } catch (e2) { finish(file); return; }
+                    }
+
+                    const chunks = [];
+                    recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
+                    recorder.onstop = () => {
+                        const blob = new Blob(chunks, { type: 'video/webm' });
+                        console.log(`Video compressed: ${(file.size/1024/1024).toFixed(1)}MB → ${(blob.size/1024/1024).toFixed(1)}MB (${width}x${height})`);
+                        finish(blob);
+                    };
+
+                    video.onended = () => {
+                        if (recorder.state === 'recording') recorder.stop();
+                    };
+
+                    // Start recording frames
+                    recorder.start();
+                    function drawFrame() {
+                        if (video.paused || video.ended) return;
+                        ctx.drawImage(video, 0, 0, width, height);
+                        requestAnimationFrame(drawFrame);
+                    }
+                    drawFrame();
+                    video.play().catch(() => finish(file));
+                };
+
+                video.onerror = () => finish(file);
+                video.src = objectUrl;
+            });
+        }
+
         // ============ CUSTOM VIDEO FUNCTIONS ============
         let videoMediaRecorder = null;
         let videoChunks = [];
@@ -6438,7 +6544,17 @@
                     return;
                 }
 
-                await uploadCustomVideo(dayIndex, exIndex, file);
+                // Compress video before uploading (reduces 4K/large files to 720p)
+                let videoToUpload = file;
+                if (file.size > 2 * 1024 * 1024) {
+                    showToast('Compressing video for optimal playback...', 'success');
+                    videoToUpload = await compressVideo(file);
+                    if (videoToUpload !== file) {
+                        showToast(`Compressed: ${(file.size/1024/1024).toFixed(1)}MB → ${(videoToUpload.size/1024/1024).toFixed(1)}MB`, 'success');
+                    }
+                }
+
+                await uploadCustomVideo(dayIndex, exIndex, videoToUpload);
             };
 
             video.src = URL.createObjectURL(file);
@@ -7010,6 +7126,16 @@
                 return;
             }
 
+            // Compress video before storing (reduces 4K/large files to 720p)
+            let videoFile = file;
+            if (file.size > 2 * 1024 * 1024) {
+                showToast('Compressing video for optimal playback...', 'success');
+                videoFile = await compressVideo(file);
+                if (videoFile !== file) {
+                    showToast(`Compressed: ${(file.size/1024/1024).toFixed(1)}MB → ${(videoFile.size/1024/1024).toFixed(1)}MB`, 'success');
+                }
+            }
+
             // Convert to base64
             const reader = new FileReader();
             reader.onload = function(e) {
@@ -7017,10 +7143,10 @@
 
                 // Show preview
                 document.getElementById('cePreviewVideo').src = ceVideoData;
-                document.getElementById('ceVideoSize').textContent = `Video ready (${(file.size / 1024 / 1024).toFixed(1)}MB)`;
+                document.getElementById('ceVideoSize').textContent = `Video ready (${(videoFile.size / 1024 / 1024).toFixed(1)}MB)`;
                 document.getElementById('ceVideoPreview').classList.add('visible');
             };
-            reader.readAsDataURL(file);
+            reader.readAsDataURL(videoFile);
 
             // Reset file input
             event.target.value = '';
