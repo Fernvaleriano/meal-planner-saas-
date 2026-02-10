@@ -256,6 +256,7 @@ function GuidedWorkoutModal({
   const [guidedVideoLoading, setGuidedVideoLoading] = useState(true);
   const [guidedVideoError, setGuidedVideoError] = useState(false);
   const [guidedVideoKey, setGuidedVideoKey] = useState(0);
+  const [guidedVideoBlobUrl, setGuidedVideoBlobUrl] = useState(null);
   const [playingVoiceNote, setPlayingVoiceNote] = useState(false);
   const [showCoachNote, setShowCoachNote] = useState(false); // For text notes popup
 
@@ -1410,7 +1411,51 @@ function GuidedWorkoutModal({
     setGuidedVideoLoading(true);
     setGuidedVideoError(false);
     setGuidedVideoKey(0);
+    if (guidedVideoBlobUrl) {
+      URL.revokeObjectURL(guidedVideoBlobUrl);
+      setGuidedVideoBlobUrl(null);
+    }
   }, [currentExIndex]);
+
+  // Fallback: fetch video as blob when direct src fails
+  const handleGuidedVideoError = useCallback(async (e) => {
+    const guidedVideoUrl = currentExercise?.customVideoUrl || currentExercise?.video_url || currentExercise?.animation_url;
+    const mediaError = e?.target?.error;
+    console.error(`Guided video load failed for "${currentExercise?.name}":`, {
+      url: guidedVideoUrl,
+      errorCode: mediaError?.code,
+      errorMessage: mediaError?.message
+    });
+
+    // If we already tried the blob fallback, give up
+    if (guidedVideoBlobUrl) {
+      setGuidedVideoLoading(false);
+      setGuidedVideoError(true);
+      return;
+    }
+
+    // Try fetching the video as a blob
+    if (guidedVideoUrl) {
+      try {
+        console.log('Trying blob fallback for guided video:', guidedVideoUrl);
+        const resp = await fetch(guidedVideoUrl);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const blob = await resp.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        setGuidedVideoBlobUrl(blobUrl);
+        setGuidedVideoLoading(true);
+        setGuidedVideoError(false);
+        setGuidedVideoKey(k => k + 1);
+      } catch (fetchErr) {
+        console.error('Guided video blob fallback also failed:', fetchErr);
+        setGuidedVideoLoading(false);
+        setGuidedVideoError(true);
+      }
+    } else {
+      setGuidedVideoLoading(false);
+      setGuidedVideoError(true);
+    }
+  }, [currentExercise?.name, currentExercise?.customVideoUrl, currentExercise?.video_url, currentExercise?.animation_url, guidedVideoBlobUrl]);
 
   // Elapsed time tracker - uses functional updater to avoid stale closures
   useEffect(() => {
@@ -2400,16 +2445,16 @@ function GuidedWorkoutModal({
           <div className="guided-video-container" style={{ position: 'relative' }}>
             <video
               key={guidedVideoKey}
-              src={currentExercise.customVideoUrl || currentExercise.video_url || currentExercise.animation_url}
+              src={guidedVideoBlobUrl || currentExercise.customVideoUrl || currentExercise.video_url || currentExercise.animation_url}
               autoPlay
               loop
               muted
               playsInline
-              preload="auto"
+              preload="metadata"
               onCanPlay={() => { setGuidedVideoLoading(false); setGuidedVideoError(false); }}
               onPlaying={() => setGuidedVideoLoading(false)}
               onWaiting={() => setGuidedVideoLoading(true)}
-              onError={() => { setGuidedVideoLoading(false); setGuidedVideoError(true); }}
+              onError={handleGuidedVideoError}
             />
             {guidedVideoLoading && !guidedVideoError && (
               <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)', zIndex: 2 }}>
@@ -2421,7 +2466,7 @@ function GuidedWorkoutModal({
                 <AlertTriangle size={24} style={{ color: '#f59e0b' }} />
                 <p style={{ margin: 0, fontSize: '13px' }}>Video failed to load</p>
                 <button
-                  onClick={(e) => { e.stopPropagation(); setGuidedVideoError(false); setGuidedVideoLoading(true); setGuidedVideoKey(k => k + 1); }}
+                  onClick={(e) => { e.stopPropagation(); setGuidedVideoError(false); setGuidedVideoLoading(true); if (guidedVideoBlobUrl) { URL.revokeObjectURL(guidedVideoBlobUrl); setGuidedVideoBlobUrl(null); } setGuidedVideoKey(k => k + 1); }}
                   type="button"
                   style={{ padding: '6px 16px', background: '#0d9488', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}
                 >
@@ -2429,7 +2474,7 @@ function GuidedWorkoutModal({
                 </button>
               </div>
             )}
-            <button className="guided-video-close" onClick={(e) => { e.stopPropagation(); setShowVideo(false); setGuidedVideoLoading(true); setGuidedVideoError(false); }}>
+            <button className="guided-video-close" onClick={(e) => { e.stopPropagation(); setShowVideo(false); setGuidedVideoLoading(true); setGuidedVideoError(false); if (guidedVideoBlobUrl) { URL.revokeObjectURL(guidedVideoBlobUrl); setGuidedVideoBlobUrl(null); } }}>
               <X size={18} />
             </button>
           </div>
