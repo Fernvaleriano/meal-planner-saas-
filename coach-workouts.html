@@ -4435,12 +4435,13 @@
         function renderExerciseItem(exercise, dayIndex, exIndex) {
             const hasVideo = exercise.video_url || exercise.animation_url;
             const videoSrc = exercise.video_url || exercise.animation_url;
-            // Prefer thumbnail_url as static image for reliability; only use <video> if no thumbnail exists
+            // Use <video> with poster for hover-to-play preview; fall back to <img> if no video
             let thumbHtml;
-            if (exercise.thumbnail_url) {
+            if (hasVideo) {
+                const posterAttr = exercise.thumbnail_url ? ` poster="${exercise.thumbnail_url}"` : '';
+                thumbHtml = `<video class="exercise-thumb-video" src="${videoSrc}" muted loop playsinline preload="metadata"${posterAttr} onmouseenter="this.play()" onmouseleave="this.pause();this.currentTime=0" onerror="this.outerHTML='<img class=\\'exercise-thumb\\' src=\\'${exercise.thumbnail_url || '/img/exercise-placeholder.svg'}\\' alt=\\'exercise\\'>'"></video>`;
+            } else if (exercise.thumbnail_url) {
                 thumbHtml = `<img class="exercise-thumb" src="${exercise.thumbnail_url}" alt="${exercise.name}" onerror="this.src='/img/exercise-placeholder.svg'">`;
-            } else if (hasVideo) {
-                thumbHtml = `<video class="exercise-thumb-video" src="${videoSrc}" muted loop playsinline preload="metadata" onmouseenter="this.play()" onmouseleave="this.pause()" onerror="this.outerHTML='<img class=\\'exercise-thumb\\' src=\\'/img/exercise-placeholder.svg\\' alt=\\'exercise\\'>'"></video>`;
             } else {
                 thumbHtml = `<img class="exercise-thumb" src="/img/exercise-placeholder.svg" alt="${exercise.name}">`;
             }
