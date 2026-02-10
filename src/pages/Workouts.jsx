@@ -986,13 +986,25 @@ function Workouts() {
       const workout = todayWorkoutRef.current;
       if (!workout?.workout_data || !oldExercise || !newExercise) return;
 
-      // Create the swapped exercise with preserved config
+      // Create the swapped exercise — start with old exercise properties to preserve
+      // workout-specific fields (phase, supersetGroup, isSuperset, trackingType, etc.),
+      // then overlay the new exercise data, then restore the original programming config.
       const swappedExercise = {
+        ...oldExercise,
         ...newExercise,
+        // Preserve the workout-specific properties from the old exercise
         sets: oldExercise.sets,
         reps: oldExercise.reps,
         restSeconds: oldExercise.restSeconds,
-        notes: oldExercise.notes
+        notes: oldExercise.notes,
+        phase: oldExercise.phase,
+        isWarmup: oldExercise.isWarmup,
+        isStretch: oldExercise.isStretch,
+        supersetGroup: oldExercise.supersetGroup,
+        isSuperset: oldExercise.isSuperset,
+        order: oldExercise.order,
+        trackingType: oldExercise.trackingType,
+        duration: oldExercise.duration,
       };
 
       // Get exercises from either direct array or days structure
@@ -1011,45 +1023,45 @@ function Workouts() {
       if (currentExercises.length === 0) return;
 
       // Update the workout data with the swapped exercise
+      // Use loose equality (==) for ID comparison to handle int/string mismatches
+      const oldId = String(oldExercise.id);
       const updatedExercises = currentExercises.map(ex => {
-        if (ex?.id === oldExercise.id) {
+        if (ex && String(ex.id) === oldId) {
           return swappedExercise;
         }
         return ex;
       });
 
-      // Use requestAnimationFrame to batch state updates for mobile Safari
-      requestAnimationFrame(() => {
-        // Close modal and update workout in same frame
-        setSelectedExercise(null);
-        setTodayWorkout(prev => {
-          if (!prev) return prev;
+      // Close modal and update workout synchronously to avoid timing gaps
+      // (double requestAnimationFrame was causing stale state between frames)
+      setSelectedExercise(null);
+      setTodayWorkout(prev => {
+        if (!prev) return prev;
 
-          if (isUsingDays) {
-            // Update within days structure
-            const updatedDays = [...(prev.workout_data.days || [])];
-            const safeIndex = Math.abs(dayIndex) % updatedDays.length;
-            updatedDays[safeIndex] = {
-              ...updatedDays[safeIndex],
+        if (isUsingDays) {
+          // Update within days structure
+          const updatedDays = [...(prev.workout_data.days || [])];
+          const safeIndex = Math.abs(dayIndex) % updatedDays.length;
+          updatedDays[safeIndex] = {
+            ...updatedDays[safeIndex],
+            exercises: updatedExercises
+          };
+          return {
+            ...prev,
+            workout_data: {
+              ...prev.workout_data,
+              days: updatedDays
+            }
+          };
+        } else {
+          return {
+            ...prev,
+            workout_data: {
+              ...prev.workout_data,
               exercises: updatedExercises
-            };
-            return {
-              ...prev,
-              workout_data: {
-                ...prev.workout_data,
-                days: updatedDays
-              }
-            };
-          } else {
-            return {
-              ...prev,
-              workout_data: {
-                ...prev.workout_data,
-                exercises: updatedExercises
-              }
-            };
-          }
-        });
+            }
+          };
+        }
       });
 
       // Save to backend (fire and forget, errors logged)

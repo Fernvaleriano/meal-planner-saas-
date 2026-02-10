@@ -238,12 +238,11 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
       }
     }, 2000);
 
-    // Use requestAnimationFrame to ensure state updates are processed
-    requestAnimationFrame(() => {
-      if (onSwap) {
-        onSwap(newExercise);
-      }
-    });
+    // Call swap handler directly — rAF wrapping was causing double-frame delays
+    // that led to stale state and crashes on iOS Safari (especially lower-memory devices)
+    if (onSwap) {
+      onSwap(newExercise);
+    }
   }, [selecting, onSwap]);
 
   // Handle close
@@ -350,7 +349,7 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
             <img
               src={exercise.thumbnail_url || exercise.animation_url || '/img/exercise-placeholder.svg'}
               alt={exercise.name || 'Exercise'}
-              onError={(e) => { e.target.src = '/img/exercise-placeholder.svg'; }}
+              onError={(e) => { if (!e.target.dataset.fallback) { e.target.dataset.fallback = '1'; e.target.src = '/img/exercise-placeholder.svg'; } }}
             />
           </div>
           <div className="swap-current-info">
@@ -404,7 +403,7 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
                     <img
                       src={ex.thumbnail_url || ex.animation_url || '/img/exercise-placeholder.svg'}
                       alt={ex.name || 'Exercise'}
-                      onError={(e) => { e.target.src = '/img/exercise-placeholder.svg'; }}
+                      onError={(e) => { if (!e.target.dataset.fallback) { e.target.dataset.fallback = '1'; e.target.src = '/img/exercise-placeholder.svg'; } }}
                     />
                   </div>
                   <div className="swap-exercise-info">
@@ -470,7 +469,7 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
                     <img
                       src={ex.thumbnail_url || ex.animation_url || '/img/exercise-placeholder.svg'}
                       alt={ex.name || 'Exercise'}
-                      onError={(e) => { e.target.src = '/img/exercise-placeholder.svg'; }}
+                      onError={(e) => { if (!e.target.dataset.fallback) { e.target.dataset.fallback = '1'; e.target.src = '/img/exercise-placeholder.svg'; } }}
                     />
                   </div>
                   <div className="swap-exercise-info">
@@ -534,7 +533,7 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
                         <img
                           src={ex.thumbnail_url || ex.animation_url || '/img/exercise-placeholder.svg'}
                           alt={ex.name || 'Exercise'}
-                          onError={(e) => { e.target.src = '/img/exercise-placeholder.svg'; }}
+                          onError={(e) => { if (!e.target.dataset.fallback) { e.target.dataset.fallback = '1'; e.target.src = '/img/exercise-placeholder.svg'; } }}
                         />
                       </div>
                       <div className="swap-exercise-info">
