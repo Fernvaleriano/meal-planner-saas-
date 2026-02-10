@@ -51,10 +51,23 @@ const TYPE_OPTIONS = [
   { key: 'program', label: 'Multi-day program' }
 ];
 
+// Parse a duration value to seconds — handles numbers, "5 min", "30s", "45s hold", etc.
+function parseDurationToSeconds(value) {
+  if (typeof value === 'number' && value > 0) return value;
+  if (typeof value === 'string') {
+    const minMatch = value.match(/(\d+)\s*min/i);
+    if (minMatch) return parseInt(minMatch[1], 10) * 60;
+    const secMatch = value.match(/(\d+)\s*s/i);
+    if (secMatch) return parseInt(secMatch[1], 10);
+    const num = parseInt(value, 10);
+    if (!isNaN(num) && num > 0) return num;
+  }
+  return 0;
+}
+
 function formatDuration(seconds) {
-  if (!seconds) return '30s';
-  const num = typeof seconds === 'string' ? parseInt(seconds, 10) : seconds;
-  if (isNaN(num)) return '30s';
+  const num = parseDurationToSeconds(seconds);
+  if (!num) return '30s';
   if (num > 59) {
     const mins = Math.floor(num / 60);
     const secs = num % 60;
@@ -388,8 +401,8 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
                   <div className="club-exercise-info">
                     <span className="club-exercise-name">{exercise.name}</span>
                     <span className="club-exercise-meta">
-                      {exercise.sets || 3} sets x {exercise.trackingType === 'time'
-                        ? formatDuration(exercise.duration || exercise.reps || 30)
+                      {exercise.sets || 3} sets x {exercise.trackingType === 'time' || exercise.exercise_type === 'cardio' || !!exercise.duration || (typeof exercise.reps === 'string' && /\d+\s*min/i.test(exercise.reps))
+                        ? formatDuration(exercise.duration || (Array.isArray(exercise.sets) && exercise.sets[0]?.duration) || exercise.reps || 30)
                         : `${exercise.reps || '10'} reps`}
                       {exercise.equipment ? ` | ${exercise.equipment}` : ''}
                     </span>
