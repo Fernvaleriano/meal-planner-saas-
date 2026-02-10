@@ -53,7 +53,14 @@ exports.handler = async (event, context) => {
             preferredFoods,
             cookingEquipment,
             password,
-            unitPreference
+            unitPreference,
+            fitnessLevel,
+            exerciseFrequency,
+            workoutDuration,
+            equipmentAccess,
+            exerciseTypes,
+            healthConcerns,
+            fitnessGoalDetails
         } = body;
 
         // Validate required fields
@@ -217,7 +224,14 @@ exports.handler = async (event, context) => {
                 cooking_equipment: cookingEquipment ? JSON.stringify(cookingEquipment) : '[]',
                 registered_at: new Date().toISOString(),
                 unit_preference: unitPreference || 'imperial',
-                is_active: true
+                is_active: true,
+                fitness_level: fitnessLevel || null,
+                exercise_frequency: exerciseFrequency || null,
+                workout_duration: workoutDuration || null,
+                equipment_access: equipmentAccess || null,
+                exercise_types: exerciseTypes ? JSON.stringify(exerciseTypes) : '[]',
+                health_concerns: healthConcerns || null,
+                fitness_goal_details: fitnessGoalDetails || null
             }])
             .select('id')
             .single();
@@ -282,7 +296,9 @@ async function completeExistingClientRegistration(supabase, clientId, coachId, b
     const {
         name, email, phone, age, gender, weight, heightFt, heightIn,
         activityLevel, goal, budget, dietType, macroPreference, mealCount,
-        allergies, dislikedFoods, preferredFoods, cookingEquipment, password, unitPreference
+        allergies, dislikedFoods, preferredFoods, cookingEquipment, password, unitPreference,
+        fitnessLevel, exerciseFrequency, workoutDuration, equipmentAccess,
+        exerciseTypes, healthConcerns, fitnessGoalDetails
     } = body;
 
     // Create auth user
@@ -326,7 +342,14 @@ async function completeExistingClientRegistration(supabase, clientId, coachId, b
             registered_at: new Date().toISOString(),
             unit_preference: unitPreference || 'imperial',
             intake_token: null,
-            intake_token_expires_at: null
+            intake_token_expires_at: null,
+            fitness_level: fitnessLevel || null,
+            exercise_frequency: exerciseFrequency || null,
+            workout_duration: workoutDuration || null,
+            equipment_access: equipmentAccess || null,
+            exercise_types: exerciseTypes ? JSON.stringify(exerciseTypes) : '[]',
+            health_concerns: healthConcerns || null,
+            fitness_goal_details: fitnessGoalDetails || null
         })
         .eq('id', clientId);
 
