@@ -300,10 +300,11 @@ exports.handler = async (event) => {
 
         if (workoutLogData?.client_id && exerciseNames.length > 0) {
           try {
-            // Get all previous exercise logs (not from this workout) in one query
+            // Get all previous exercise logs for THIS CLIENT (not from this workout) in one query
             const { data: allPrevLogs } = await supabase
               .from('exercise_logs')
-              .select('exercise_name, max_weight, sets_data')
+              .select('exercise_name, max_weight, sets_data, workout_logs!inner(client_id)')
+              .eq('workout_logs.client_id', workoutLogData.client_id)
               .in('exercise_name', exerciseNames)
               .neq('workout_log_id', workoutId)
               .order('max_weight', { ascending: false });
@@ -363,8 +364,13 @@ exports.handler = async (event) => {
 
           // PR Detection using pre-fetched data (weight PR + rep PR)
           // A PR requires previous history — first-time exercises don't count as PRs
+          // Skip PR detection for stretches, warmups, and cooldowns
+          const exNameLower = (ex.exerciseName || '').toLowerCase();
+          const isStretchOrWarmup = exNameLower.includes('stretch') || exNameLower.includes('warm up') ||
+            exNameLower.includes('warmup') || exNameLower.includes('cool down') || exNameLower.includes('cooldown') ||
+            exNameLower.includes('foam roll') || exNameLower.includes('mobility');
           let isPr = ex.isPr || false;
-          if (ex.exerciseName && previousBestMap.hasOwnProperty(ex.exerciseName) && previousBestMap[ex.exerciseName].hasPreviousLogs) {
+          if (!isStretchOrWarmup && ex.exerciseName && previousBestMap.hasOwnProperty(ex.exerciseName) && previousBestMap[ex.exerciseName].hasPreviousLogs) {
             const prev = previousBestMap[ex.exerciseName];
             const previousBestWeight = prev.maxWeight || 0;
             const unit = setsData.find(s => Number(s.weight) > 0)?.weightUnit || 'kg';
