@@ -970,6 +970,193 @@
             box-shadow: 0 8px 20px rgba(245, 158, 11, 0.4);
         }
 
+        .sidebar-btn.videos-btn {
+            background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+            border: none;
+            color: white;
+        }
+
+        .sidebar-btn.videos-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(6, 182, 212, 0.4);
+        }
+
+        /* My Videos Modal */
+        .my-videos-modal {
+            width: 95%;
+            max-width: 900px;
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .my-videos-toolbar {
+            display: flex;
+            gap: 10px;
+            padding: 12px 20px;
+            border-bottom: 1px solid var(--border-color);
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .my-videos-search {
+            flex: 1;
+            min-width: 180px;
+            padding: 8px 12px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+            background: var(--card-bg);
+            color: var(--text-primary);
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .my-videos-count {
+            color: var(--text-secondary);
+            font-size: 13px;
+            white-space: nowrap;
+        }
+
+        .my-videos-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 16px;
+            padding: 20px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .my-video-card {
+            background: var(--card-bg);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            transition: all 0.2s ease;
+        }
+
+        .my-video-card:hover {
+            border-color: var(--brand-primary);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        .my-video-preview {
+            width: 100%;
+            aspect-ratio: 16/9;
+            background: #0a0a1a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .my-video-preview video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .my-video-play-btn {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0,0,0,0.3);
+            transition: background 0.2s;
+        }
+
+        .my-video-play-btn:hover {
+            background: rgba(0,0,0,0.1);
+        }
+
+        .my-video-play-btn svg {
+            width: 36px;
+            height: 36px;
+            fill: white;
+            opacity: 0.9;
+        }
+
+        .my-video-card.playing .my-video-play-btn {
+            display: none;
+        }
+
+        .my-video-info {
+            padding: 10px 12px;
+        }
+
+        .my-video-name {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 4px;
+        }
+
+        .my-video-meta {
+            font-size: 11px;
+            color: var(--text-secondary);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .my-video-actions {
+            display: flex;
+            gap: 6px;
+            padding: 0 12px 10px;
+        }
+
+        .my-video-actions button {
+            flex: 1;
+            padding: 6px 0;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border-color);
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s;
+            font-family: inherit;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+        }
+
+        .my-video-actions .replace-btn:hover {
+            border-color: var(--brand-primary);
+            color: var(--brand-primary);
+            background: rgba(13, 148, 136, 0.08);
+        }
+
+        .my-video-actions .delete-btn:hover {
+            border-color: #ef4444;
+            color: #ef4444;
+            background: rgba(239, 68, 68, 0.08);
+        }
+
+        .my-videos-empty {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-secondary);
+        }
+
+        .my-videos-empty svg {
+            margin-bottom: 12px;
+            opacity: 0.4;
+        }
+
+        .my-videos-loading {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-secondary);
+        }
+
         /* Import Modal Styles */
         .import-drop-zone {
             border: 2px dashed var(--border-color);
@@ -3112,6 +3299,12 @@
                     </svg>
                     Import Program
                 </button>
+                <button class="sidebar-btn videos-btn" onclick="openMyVideosModal()">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                    </svg>
+                    My Videos
+                </button>
             </div>
         </div>
 
@@ -4143,6 +4336,33 @@
         </div>
     </div>
 
+    <!-- My Videos Modal -->
+    <div class="modal-overlay" id="myVideosModal">
+        <div class="modal my-videos-modal">
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                    </svg>
+                    My Videos
+                </h3>
+                <button class="modal-close" onclick="closeMyVideosModal()">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="my-videos-toolbar">
+                <input type="text" class="my-videos-search" id="myVideosSearch" placeholder="Search videos..." oninput="filterMyVideos()">
+                <span class="my-videos-count" id="myVideosCount"></span>
+            </div>
+            <div class="my-videos-grid" id="myVideosGrid">
+                <div class="my-videos-loading">Loading videos...</div>
+            </div>
+        </div>
+    </div>
+    <input type="file" id="replaceVideoInput" accept="video/*" style="display:none">
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
         // Initialize Supabase (for auth only)
@@ -4435,12 +4655,13 @@
         function renderExerciseItem(exercise, dayIndex, exIndex) {
             const hasVideo = exercise.video_url || exercise.animation_url;
             const videoSrc = exercise.video_url || exercise.animation_url;
-            // Prefer thumbnail_url as static image for reliability; only use <video> if no thumbnail exists
+            // Use <video> with poster for hover-to-play preview; fall back to <img> if no video
             let thumbHtml;
-            if (exercise.thumbnail_url) {
+            if (hasVideo) {
+                const posterAttr = exercise.thumbnail_url ? ` poster="${exercise.thumbnail_url}"` : '';
+                thumbHtml = `<video class="exercise-thumb-video" src="${videoSrc}" muted loop playsinline preload="metadata"${posterAttr} onmouseenter="this.play().catch(()=>{})" onmouseleave="this.pause();this.currentTime=0" onerror="this.outerHTML='<img class=\\'exercise-thumb\\' src=\\'${exercise.thumbnail_url || '/img/exercise-placeholder.svg'}\\' alt=\\'exercise\\'>'"></video>`;
+            } else if (exercise.thumbnail_url) {
                 thumbHtml = `<img class="exercise-thumb" src="${exercise.thumbnail_url}" alt="${exercise.name}" onerror="this.src='/img/exercise-placeholder.svg'">`;
-            } else if (hasVideo) {
-                thumbHtml = `<video class="exercise-thumb-video" src="${videoSrc}" muted loop playsinline preload="metadata" onmouseenter="this.play()" onmouseleave="this.pause()" onerror="this.outerHTML='<img class=\\'exercise-thumb\\' src=\\'/img/exercise-placeholder.svg\\' alt=\\'exercise\\'>'"></video>`;
             } else {
                 thumbHtml = `<img class="exercise-thumb" src="/img/exercise-placeholder.svg" alt="${exercise.name}">`;
             }
@@ -4833,7 +5054,7 @@
                 const hasVideo = ex.video_url || ex.animation_url;
                 const videoSrc = ex.video_url || ex.animation_url;
                 const thumbHtml = hasVideo
-                    ? `<video class="swap-exercise-thumb" src="${videoSrc}" muted loop playsinline preload="metadata" onmouseenter="this.play()" onmouseleave="this.pause()"></video>`
+                    ? `<video class="swap-exercise-thumb" src="${videoSrc}" muted loop playsinline preload="metadata" onmouseenter="this.play().catch(()=>{})" onmouseleave="this.pause()"></video>`
                     : `<img class="swap-exercise-thumb" src="${ex.thumbnail_url || '/img/exercise-placeholder.svg'}" alt="${ex.name}" onerror="this.src='/img/exercise-placeholder.svg'">`;
                 return `
                     <div class="swap-exercise-item" onclick="selectSwapExercise('${ex.id}')">
@@ -6455,15 +6676,14 @@
                         if (recorder.state === 'recording') recorder.stop();
                     };
 
-                    // Start recording frames
+                    // Start recording frames — must begin draw loop AFTER play starts
                     recorder.start();
                     function drawFrame() {
                         if (video.paused || video.ended) return;
                         ctx.drawImage(video, 0, 0, width, height);
                         requestAnimationFrame(drawFrame);
                     }
-                    drawFrame();
-                    video.play().catch(() => finish(file));
+                    video.play().then(() => drawFrame()).catch(() => finish(file));
                 };
 
                 video.onerror = () => finish(file);
@@ -7682,6 +7902,206 @@
                 showToast(`Program imported! ${stats.matched} matched, ${stats.unmatched} unmatched exercises.`);
             }
         }
+
+        // ============ MY VIDEOS MANAGEMENT ============
+        let myVideosCache = [];
+
+        function openMyVideosModal() {
+            document.getElementById('myVideosModal').classList.add('active');
+            document.getElementById('myVideosSearch').value = '';
+            loadMyVideos();
+        }
+
+        function closeMyVideosModal() {
+            document.getElementById('myVideosModal').classList.remove('active');
+            // Pause any playing videos
+            document.querySelectorAll('#myVideosGrid video').forEach(v => v.pause());
+        }
+
+        async function loadMyVideos() {
+            const grid = document.getElementById('myVideosGrid');
+            grid.innerHTML = '<div class="my-videos-loading"><span class="spinner"></span> Loading videos...</div>';
+            document.getElementById('myVideosCount').textContent = '';
+
+            try {
+                const result = await apiCall('/.netlify/functions/list-coach-videos', {
+                    method: 'POST',
+                    body: JSON.stringify({ coachId: currentCoachId })
+                });
+
+                myVideosCache = result.videos || [];
+                renderMyVideos(myVideosCache);
+            } catch (err) {
+                console.error('Failed to load videos:', err);
+                grid.innerHTML = '<div class="my-videos-empty"><p>Failed to load videos</p></div>';
+            }
+        }
+
+        function filterMyVideos() {
+            const query = document.getElementById('myVideosSearch').value.toLowerCase().trim();
+            if (!query) {
+                renderMyVideos(myVideosCache);
+                return;
+            }
+            const filtered = myVideosCache.filter(v => v.name.toLowerCase().includes(query));
+            renderMyVideos(filtered);
+        }
+
+        function renderMyVideos(videos) {
+            const grid = document.getElementById('myVideosGrid');
+            document.getElementById('myVideosCount').textContent = `${videos.length} video${videos.length !== 1 ? 's' : ''}`;
+
+            if (videos.length === 0) {
+                grid.innerHTML = `
+                    <div class="my-videos-empty">
+                        <svg width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                        </svg>
+                        <p>No custom videos found</p>
+                        <p style="font-size:12px;margin-top:4px">Upload videos from the workout builder using "Record Demo" or "Upload"</p>
+                    </div>`;
+                return;
+            }
+
+            grid.innerHTML = videos.map((v, i) => {
+                const sizeMB = v.size ? (v.size / 1024 / 1024).toFixed(1) + ' MB' : '';
+                const date = v.createdAt ? new Date(v.createdAt).toLocaleDateString() : '';
+                const displayName = v.name.replace(/^custom-video-\d+-?/, '').replace(/\.\w+$/, '') || v.name;
+                return `
+                    <div class="my-video-card" id="my-video-${i}">
+                        <div class="my-video-preview" onclick="toggleMyVideoPlay(${i})">
+                            ${v.signedUrl
+                                ? `<video src="${v.signedUrl}" muted loop playsinline preload="metadata"></video>
+                                   <div class="my-video-play-btn"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>`
+                                : `<svg width="32" height="32" fill="none" stroke="#666" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>`
+                            }
+                        </div>
+                        <div class="my-video-info">
+                            <div class="my-video-name" title="${v.name}">${displayName || v.name}</div>
+                            <div class="my-video-meta">
+                                <span>${sizeMB}</span>
+                                <span>${date}</span>
+                            </div>
+                        </div>
+                        <div class="my-video-actions">
+                            <button class="replace-btn" onclick="replaceMyVideo(${i})" title="Replace with a new video">
+                                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                                Replace
+                            </button>
+                            <button class="delete-btn" onclick="deleteMyVideo(${i})" title="Delete this video">
+                                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                Delete
+                            </button>
+                        </div>
+                    </div>`;
+            }).join('');
+        }
+
+        function toggleMyVideoPlay(index) {
+            const card = document.getElementById(`my-video-${index}`);
+            const video = card?.querySelector('video');
+            if (!video) return;
+
+            if (video.paused) {
+                // Pause all other videos first
+                document.querySelectorAll('#myVideosGrid video').forEach(v => {
+                    v.pause();
+                    v.closest('.my-video-card')?.classList.remove('playing');
+                });
+                video.play();
+                card.classList.add('playing');
+            } else {
+                video.pause();
+                card.classList.remove('playing');
+            }
+        }
+
+        async function deleteMyVideo(index) {
+            const video = myVideosCache[index];
+            if (!video) return;
+
+            if (!confirm(`Delete "${video.name}"?\n\nThis will permanently remove the video file. Any exercises using this video will no longer show it.`)) {
+                return;
+            }
+
+            try {
+                showToast('Deleting video...', 'success');
+                await apiCall('/.netlify/functions/delete-coach-video', {
+                    method: 'POST',
+                    body: JSON.stringify({ coachId: currentCoachId, filePath: video.filePath })
+                });
+
+                myVideosCache.splice(index, 1);
+                filterMyVideos();
+                showToast('Video deleted', 'success');
+            } catch (err) {
+                console.error('Failed to delete video:', err);
+                showToast('Failed to delete video', 'error');
+            }
+        }
+
+        let replaceVideoIndex = null;
+
+        function replaceMyVideo(index) {
+            replaceVideoIndex = index;
+            document.getElementById('replaceVideoInput').click();
+        }
+
+        document.getElementById('replaceVideoInput')?.addEventListener('change', async function(e) {
+            const file = e.target.files?.[0];
+            this.value = '';
+            if (!file || replaceVideoIndex === null) return;
+
+            const video = myVideosCache[replaceVideoIndex];
+            if (!video) return;
+
+            if (file.size > 50 * 1024 * 1024) {
+                showToast('Video must be under 50MB', 'error');
+                return;
+            }
+
+            try {
+                showToast('Compressing & uploading...', 'success');
+
+                // Compress if needed
+                let videoToUpload = file;
+                if (file.size > 2 * 1024 * 1024) {
+                    videoToUpload = await compressVideo(file);
+                }
+
+                // Delete old file
+                await apiCall('/.netlify/functions/delete-coach-video', {
+                    method: 'POST',
+                    body: JSON.stringify({ coachId: currentCoachId, filePath: video.filePath })
+                });
+
+                // Upload new file with same naming convention
+                const ext = videoToUpload.type?.includes('webm') ? 'webm' : 'mp4';
+                const newFileName = `custom-video-${Date.now()}.${ext}`;
+
+                const uploadUrlResult = await apiCall('/.netlify/functions/get-video-upload-url', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        coachId: currentCoachId,
+                        fileName: newFileName,
+                        contentType: videoToUpload.type || 'video/webm',
+                        folder: 'exercise-videos'
+                    })
+                });
+
+                await fetch(uploadUrlResult.uploadUrl, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': videoToUpload.type || 'video/webm' },
+                    body: videoToUpload
+                });
+
+                showToast('Video replaced!', 'success');
+                loadMyVideos(); // Refresh the list
+            } catch (err) {
+                console.error('Failed to replace video:', err);
+                showToast('Failed to replace video', 'error');
+            }
+        });
 
         // Close modals on overlay click
         document.querySelectorAll('.modal-overlay').forEach(overlay => {
