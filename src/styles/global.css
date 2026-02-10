@@ -12588,18 +12588,13 @@ a.nav-left {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 10px;
-    font-size: 22px;
-    font-weight: 700;
-    color: var(--brand-primary, #0d9488);
-    margin-bottom: 32px;
+    margin-bottom: 24px;
 }
 
 .share-card-logo {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    object-fit: cover;
+    height: 60px;
+    width: auto;
+    object-fit: contain;
 }
 
 .share-card-stats {

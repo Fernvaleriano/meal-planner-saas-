@@ -2405,21 +2405,11 @@ function Workouts() {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
         ctx.fillRect(0, 0, width, height);
 
-        // Brand name with logo
-        const brandName = coachBranding?.brand_name || 'Zique Fitness';
-        const brandColor = coachBranding?.brand_primary_color || '#0d9488';
-        ctx.fillStyle = brandColor;
-        ctx.font = 'bold 28px -apple-system, BlinkMacSystemFont, sans-serif';
-        ctx.textAlign = 'center';
+        // Brand logo (full logo image containing icon + name)
         if (logoImg) {
-          const logoSize = 36;
-          const textWidth = ctx.measureText(brandName).width;
-          const totalWidth = logoSize + 10 + textWidth;
-          const startX = (width - totalWidth) / 2;
-          ctx.drawImage(logoImg, startX, 24, logoSize, logoSize);
-          ctx.fillText(brandName, startX + logoSize + 10 + textWidth / 2, 52);
-        } else {
-          ctx.fillText(brandName, width / 2, 50);
+          const logoHeight = 60;
+          const logoWidth = (logoImg.width / logoImg.height) * logoHeight;
+          ctx.drawImage(logoImg, (width - logoWidth) / 2, 12, logoWidth, logoHeight);
         }
 
         // Stats
@@ -3208,8 +3198,7 @@ function Workouts() {
                 <div className="share-card-overlay" />
                 <div className="share-card-content">
                   <div className="share-card-brand">
-                    <img src={coachBranding?.brand_logo_url || 'https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/Untitled%20design%20(7).svg'} alt="" className="share-card-logo" />
-                    <span>{coachBranding?.brand_name || 'Zique Fitness'}</span>
+                    <img src={coachBranding?.brand_logo_url || 'https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/Untitled%20design%20(7).svg'} alt={coachBranding?.brand_name || 'Zique Fitness'} className="share-card-logo" />
                   </div>
                   <div className="share-card-stats">
                     {shareToggles.duration && (
