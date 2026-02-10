@@ -354,6 +354,10 @@ function GuidedWorkoutModal({
       const isConsecutive = indices.every((idx, i) => i === 0 || idx === indices[i - 1] + 1);
       if (isConsecutive) validGroups[key] = indices;
     });
+    // DEBUG: log superset detection
+    console.log('[SUPERSET DEBUG] exercises superset props:', exercises.map((ex, i) => ({ i, name: ex.name, isSuperset: ex.isSuperset, supersetGroup: ex.supersetGroup })).filter(e => e.isSuperset || e.supersetGroup));
+    console.log('[SUPERSET DEBUG] all groups found:', groups);
+    console.log('[SUPERSET DEBUG] valid consecutive groups:', validGroups);
     return validGroups;
   }, [exercises]);
 
@@ -541,10 +545,12 @@ function GuidedWorkoutModal({
 
   // Initialize superset mode when landing on the first member of a superset group
   useEffect(() => {
+    console.log('[SUPERSET DEBUG] init effect: exIdx=', currentExIndex, 'supersetState=', supersetState, 'phase=', phase);
     if (supersetState) return; // Already in a superset
     if (phase === 'complete' || phase === 'deferred-review') return;
 
     const group = getSupersetGroup(currentExIndex);
+    console.log('[SUPERSET DEBUG] getSupersetGroup result:', group, 'for exercise:', exercises[currentExIndex]?.name);
     if (!group || group[0] !== currentExIndex) return; // Only init on first member
 
     const totalRounds = Math.max(...group.map(idx => {
@@ -552,6 +558,7 @@ function GuidedWorkoutModal({
       return typeof e.sets === 'number' ? e.sets : (Array.isArray(e.sets) ? e.sets.length : 3);
     }));
 
+    console.log('[SUPERSET DEBUG] INITIALIZING superset:', { groupKey: exercises[currentExIndex].supersetGroup, groupIndices: group, totalRounds });
     setSupersetState({
       groupKey: exercises[currentExIndex].supersetGroup,
       groupIndices: group,
@@ -1566,6 +1573,7 @@ function GuidedWorkoutModal({
     });
 
     const ss = supersetStateRef.current;
+    console.log('[SUPERSET DEBUG] doMarkSetDone: exIdx=', exIdx, 'setIdx=', setIdx, 'supersetState=', ss);
 
     if (ss) {
       // --- SUPERSET MODE ---
