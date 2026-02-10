@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { X, Play, Pause, SkipForward, SkipBack, ChevronRight, ChevronLeft, Check, Volume2, VolumeX, Mic, MessageSquare, Square, Send, ChevronUp, ChevronDown, MessageCircle, Bot, Loader2, Sparkles, Flame, Repeat, Clock, Zap } from 'lucide-react';
+import { X, Play, Pause, SkipForward, SkipBack, ChevronRight, ChevronLeft, Check, Volume2, VolumeX, Mic, MessageSquare, Square, Send, ChevronUp, ChevronDown, MessageCircle, Bot, Loader2, Sparkles, Flame, Repeat, Clock, Zap, AlertTriangle, TrendingUp } from 'lucide-react';
 import SmartThumbnail from './SmartThumbnail';
 import SwapExerciseModal from './SwapExerciseModal';
 import { apiGet, apiPost, apiPut } from '../../utils/api';
@@ -41,6 +41,27 @@ const EFFORT_OPTIONS = [
   { value: 'moderate', label: 'Moderate', detail: '2-3 left', color: '#eab308' },
   { value: 'hard', label: 'Hard', detail: '1 left', color: '#f97316' },
   { value: 'maxed', label: 'All Out', detail: '0 left', color: '#ef4444' },
+];
+
+// Map effort labels to numeric RIR values for weighted averaging
+const EFFORT_TO_RIR = { easy: 4, moderate: 2.5, hard: 1, maxed: 0 };
+
+// Estimate 1RM using Brzycki formula
+const estimate1RM = (weight, reps) => {
+  if (reps <= 0 || weight <= 0) return 0;
+  if (reps === 1) return weight;
+  return weight * (36 / (37 - Math.min(reps, 36)));
+};
+
+// Common compound exercise name patterns for fallback detection
+const COMPOUND_PATTERNS = [
+  'squat', 'deadlift', 'bench press', 'overhead press', 'military press',
+  'barbell row', 'bent over row', 'pull-up', 'pullup', 'chin-up', 'chinup',
+  'dip', 'lunge', 'leg press', 'hip thrust', 'clean', 'snatch',
+  'push press', 'thruster', 'good morning', 'rack pull', 'front squat',
+  'romanian deadlift', 'rdl', 'sumo deadlift', 'pendlay row', 't-bar row',
+  'incline press', 'decline press', 'close grip bench', 'hack squat',
+  'bulgarian split squat', 'step up', 'farmer', 'turkish get up'
 ];
 
 // Parse reps helper
@@ -771,89 +792,154 @@ function GuidedWorkoutModal({
         const lastMaxReps = lastSets.reduce((max, s) => Math.max(max, s.reps || 0), 0);
         const lastNumSets = lastSets.length || 3;
 
-        // Get the most common effort from last session (if any sets had effort logged)
-        const effortCounts = {};
-        lastSets.forEach(s => {
-          if (s.effort) effortCounts[s.effort] = (effortCounts[s.effort] || 0) + 1;
-        });
-        const lastEffort = Object.keys(effortCounts).length > 0
-          ? Object.entries(effortCounts).sort((a, b) => b[1] - a[1])[0][0]
-          : null;
+        // --- IMPROVEMENT #4: Weighted RIR average (replaces fragile "most common" effort) ---
+        const setsWithEffort = lastSets.filter(s => s.effort && EFFORT_TO_RIR[s.effort] !== undefined);
+        let avgRIR = null;
+        if (setsWithEffort.length > 0) {
+          let totalWeight = 0;
+          let weightedSum = 0;
+          setsWithEffort.forEach((s, idx) => {
+            // Last set counts 1.5x — research shows it's the most accurate effort gauge
+            const w = idx === setsWithEffort.length - 1 ? 1.5 : 1;
+            weightedSum += EFFORT_TO_RIR[s.effort] * w;
+            totalWeight += w;
+          });
+          avgRIR = weightedSum / totalWeight;
+        }
+
+        // Map weighted average RIR back to an effort bucket
+        let effectiveEffort;
+        if (avgRIR === null) {
+          effectiveEffort = null; // no effort data
+        } else if (avgRIR >= 3.5) {
+          effectiveEffort = 'easy';
+        } else if (avgRIR >= 1.75) {
+          effectiveEffort = 'moderate';
+        } else if (avgRIR >= 0.5) {
+          effectiveEffort = 'hard';
+        } else {
+          effectiveEffort = 'maxed';
+        }
+
+        // Keep a simple label for display
+        const lastEffort = effectiveEffort;
+
+        // --- IMPROVEMENT #2: Compound vs isolation detection ---
+        const isCompound = currentExercise.is_compound !== undefined
+          ? !!currentExercise.is_compound
+          : COMPOUND_PATTERNS.some(p => exerciseNameLower.includes(p));
+
+        // Weight increment: compounds get bigger jumps than isolation
+        const weightIncrement = isCompound
+          ? (weightUnit === 'kg' ? 2.5 : 5)
+          : (weightUnit === 'kg' ? 1.25 : 2.5);
+
+        // --- IMPROVEMENT #1: Double progression with rep range ---
+        const prescribedReps = parseReps(currentExercise.reps) || 10;
+        const repRangeBottom = Math.max(1, prescribedReps - 2);
+        const repRangeTop = prescribedReps + 2;
+
+        // --- IMPROVEMENT #3: Plateau detection via estimated 1RM ---
+        let plateauDetected = false;
+        if (sessions.length >= 2) {
+          const session1RMs = sessions.slice(0, 4).map(session => {
+            let sets;
+            try {
+              sets = typeof session.setsData === 'string' ? JSON.parse(session.setsData) : (session.setsData || []);
+            } catch { sets = []; }
+            if (!Array.isArray(sets)) sets = [];
+            return sets.reduce((max, s) => Math.max(max, estimate1RM(s.weight || 0, s.reps || 0)), 0);
+          }).filter(rm => rm > 0);
+
+          if (session1RMs.length >= 3) {
+            // 3+ sessions: plateau if latest 1RM hasn't improved over 2 sessions ago
+            plateauDetected = session1RMs[0] <= session1RMs[2] * 1.02;
+          } else if (session1RMs.length >= 2) {
+            // 2 sessions: plateau if latest is not better than previous
+            plateauDetected = session1RMs[0] <= session1RMs[1] * 1.01;
+          }
+        }
 
         if (lastMaxWeight > 0 || lastMaxReps > 0) {
           const dateLabel = new Date(last.workoutDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
-          // Generate AI recommendation based on history + effort
+          // === PROGRESSIVE OVERLOAD RECOMMENDATION ===
           let recommendedReps = lastMaxReps;
           let recommendedWeight = lastMaxWeight;
           let recommendedSets = lastNumSets;
           let reasoning = '';
 
-          // Progressive overload logic factoring in effort
-          if (lastEffort === 'easy') {
-            // They had 4+ reps in reserve — push harder
-            if (lastMaxReps >= 10) {
-              recommendedWeight = lastMaxWeight + 2.5;
-              recommendedReps = Math.max(8, lastMaxReps - 2);
-              reasoning = `Last time felt easy with reps to spare. Let's bump the weight up and aim for ${recommendedReps} reps.`;
+          if (plateauDetected) {
+            // --- Plateau strategy: add volume or deload ---
+            if (lastNumSets < 5) {
+              recommendedSets = lastNumSets + 1;
+              reasoning = `Your strength hasn't improved recently. Adding an extra set to break through the plateau.`;
             } else {
-              recommendedReps = lastMaxReps + 2;
-              reasoning = `That was easy last time! Let's push for ${recommendedReps} reps before adding weight.`;
+              recommendedWeight = Math.round((lastMaxWeight * 0.9) * 2) / 2; // round to nearest 0.5
+              recommendedReps = repRangeBottom;
+              reasoning = `Plateau detected — time to deload. Drop to ${recommendedWeight}${weightUnit} and rebuild from ${repRangeBottom} reps.`;
             }
-          } else if (lastEffort === 'moderate') {
-            // 2-3 reps left — steady progress
-            if (lastMaxReps >= 12) {
-              recommendedWeight = lastMaxWeight + 2.5;
-              recommendedReps = 8;
-              reasoning = `Solid effort last time at ${lastMaxReps} reps. Time to increase weight and build from 8 reps.`;
+          } else if (effectiveEffort === 'easy') {
+            // 4+ RIR — push harder
+            if (lastMaxReps >= repRangeTop) {
+              recommendedWeight = lastMaxWeight + weightIncrement;
+              recommendedReps = repRangeBottom;
+              reasoning = `Easy at ${lastMaxReps} reps — you've earned a weight increase! Drop to ${repRangeBottom} reps and build back up.`;
+            } else {
+              recommendedReps = Math.min(lastMaxReps + 2, repRangeTop);
+              reasoning = `Felt easy — push for ${recommendedReps} reps. Once you hit ${repRangeTop}, we'll increase the weight.`;
+            }
+          } else if (effectiveEffort === 'moderate') {
+            // 2-3 RIR — steady progress
+            if (lastMaxReps >= repRangeTop) {
+              recommendedWeight = lastMaxWeight + weightIncrement;
+              recommendedReps = repRangeBottom;
+              reasoning = `Hit ${lastMaxReps} reps with room to spare. Time to add +${weightIncrement}${weightUnit} and build from ${repRangeBottom} reps.`;
             } else {
               recommendedReps = lastMaxReps + 1;
-              reasoning = `Good challenge last time. Let's add one more rep to keep progressing.`;
+              reasoning = `Solid effort. Add one more rep — aiming for ${recommendedReps}. Top of range is ${repRangeTop}.`;
             }
-          } else if (lastEffort === 'hard') {
-            // 1 rep left — near limit, stay or tiny increase
-            if (lastMaxReps >= 12) {
-              recommendedWeight = lastMaxWeight + 2.5;
-              recommendedReps = 8;
-              reasoning = `That was tough at ${lastMaxReps} reps but you're ready for more weight. Drop to 8 reps at the heavier load.`;
+          } else if (effectiveEffort === 'hard') {
+            // 1 RIR — near limit
+            if (lastMaxReps >= repRangeTop) {
+              recommendedWeight = lastMaxWeight + weightIncrement;
+              recommendedReps = repRangeBottom;
+              reasoning = `Tough but you hit ${repRangeTop}+ reps. Ready for +${weightIncrement}${weightUnit} — drop to ${repRangeBottom} reps at the new weight.`;
             } else {
               recommendedReps = lastMaxReps;
-              reasoning = `That was a hard set last time. Let's match it and build consistency before pushing further.`;
+              reasoning = `That was challenging. Match ${lastMaxReps} reps and focus on form before pushing further.`;
             }
-          } else if (lastEffort === 'maxed') {
-            // 0 reps left — at max, hold steady or back off slightly
-            if (lastMaxReps <= 6) {
-              recommendedWeight = Math.max(0, lastMaxWeight - 2.5);
+          } else if (effectiveEffort === 'maxed') {
+            // 0 RIR — at failure
+            if (lastMaxReps <= repRangeBottom) {
+              recommendedWeight = Math.max(0, lastMaxWeight - weightIncrement);
               recommendedReps = lastMaxReps + 2;
-              reasoning = `You went all out last time at low reps. Let's drop the weight slightly and aim for more reps with better form.`;
+              reasoning = `You went all out at low reps. Drop ${weightIncrement}${weightUnit} and aim for ${recommendedReps} reps with better control.`;
             } else {
               recommendedReps = lastMaxReps;
-              reasoning = `You maxed out last session. Let's match those numbers and focus on clean reps before progressing.`;
+              reasoning = `You pushed to the max. Hold at ${lastMaxReps} reps until it feels more manageable.`;
             }
           } else {
-            // No effort data — fall back to rep-based logic
-            if (lastMaxReps >= 12) {
-              recommendedWeight = lastMaxWeight + 2.5;
-              recommendedReps = 8;
-              reasoning = `You hit ${lastMaxReps} reps last time. Let's increase weight and drop to 8 reps to build strength.`;
-            } else if (lastMaxReps < 8) {
-              recommendedReps = lastMaxReps + 1;
-              reasoning = `Working on building up to 8+ reps. Try for ${recommendedReps} this time.`;
+            // No effort data — double progression based on rep range
+            if (lastMaxReps >= repRangeTop) {
+              recommendedWeight = lastMaxWeight + weightIncrement;
+              recommendedReps = repRangeBottom;
+              reasoning = `You hit ${lastMaxReps} reps — time to increase weight by +${weightIncrement}${weightUnit} and work from ${repRangeBottom} reps.`;
             } else {
               recommendedReps = lastMaxReps + 1;
-              reasoning = `Good progress! Aim for one more rep than last session.`;
+              reasoning = `Aim for ${recommendedReps} reps. Once you reach ${repRangeTop}, we'll bump the weight.`;
             }
           }
 
           const effortLabel = lastEffort === 'easy' ? 'felt easy' : lastEffort === 'moderate' ? 'felt moderate' : lastEffort === 'hard' ? 'felt hard' : lastEffort === 'maxed' ? 'went all out' : null;
-          const progressMsg = `On ${dateLabel}: ${lastMaxReps} reps @ ${lastMaxWeight} ${weightUnit}${effortLabel ? ` (${effortLabel})` : ''}.`;
+          const progressMsg = `On ${dateLabel}: ${lastMaxReps} reps @ ${lastMaxWeight} ${weightUnit}${effortLabel ? ` (${effortLabel})` : ''}${plateauDetected ? ' — plateau detected' : ''}.`;
 
           setProgressTips(prev => ({
             ...prev,
             [currentExIndex]: {
-              type: 'progress',
-              icon: '📈',
-              title: 'Keep progressing',
+              type: plateauDetected ? 'plateau' : 'progress',
+              icon: plateauDetected ? '⚠️' : '📈',
+              title: plateauDetected ? 'Plateau detected' : 'Keep progressing',
               message: progressMsg,
               lastSession: { reps: lastMaxReps, weight: lastMaxWeight, sets: lastNumSets, date: dateLabel, effort: lastEffort }
             }
@@ -866,6 +952,7 @@ function GuidedWorkoutModal({
               reps: recommendedReps,
               weight: recommendedWeight,
               reasoning,
+              plateau: plateauDetected,
               lastSession: { reps: lastMaxReps, weight: lastMaxWeight, sets: lastNumSets, effort: lastEffort }
             }
           }));
@@ -2095,11 +2182,11 @@ function GuidedWorkoutModal({
 
         {/* Coaching Recommendation Card - hidden for warm-ups, stretches, and cardio equipment */}
         {aiRecommendations[currentExIndex] && !info.isTimed && !currentExercise?.isWarmup && !currentExercise?.isStretch && currentExercise?.exercise_type !== 'stretch' && currentExercise?.phase !== 'warmup' && currentExercise?.phase !== 'cooldown' && (
-          <div className={`ai-recommendation-card ${acceptedRecommendation[currentExIndex] ? 'accepted' : ''}`}>
+          <div className={`ai-recommendation-card ${acceptedRecommendation[currentExIndex] ? 'accepted' : ''} ${aiRecommendations[currentExIndex]?.plateau ? 'plateau' : ''}`}>
             <div className="ai-rec-header">
               <div className="ai-rec-badge">
-                <Sparkles size={14} />
-                <span>Coaching Recommendation</span>
+                {aiRecommendations[currentExIndex]?.plateau ? <AlertTriangle size={14} /> : <Sparkles size={14} />}
+                <span>{aiRecommendations[currentExIndex]?.plateau ? 'Plateau Detected' : 'Coaching Recommendation'}</span>
               </div>
               {acceptedRecommendation[currentExIndex] && (
                 <span className="ai-rec-accepted-badge">
