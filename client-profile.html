@@ -7079,6 +7079,10 @@
                 <span class="action-bar-icon">📊</span>
                 Measures
             </button>
+            <button class="action-bar-btn" onclick="openDrawer('questionnaire')">
+                <span class="action-bar-icon">📋</span>
+                Questionnaire
+            </button>
         </div>
 
         <!-- Drawer Overlay -->
@@ -7304,6 +7308,26 @@
             <div id="aiLoading" class="ai-loading" style="display: none;">
                 <div class="ai-loading-spinner"></div>
                 <span>Analyzing client data...</span>
+            </div>
+        </div>
+
+        <!-- Questionnaire Answers Section -->
+        <div class="questionnaire-section" data-drawer="questionnaire">
+            <div class="questionnaire-header collapsible-header" onclick="toggleSection('questionnaire')" style="cursor: pointer;">
+                <h2 class="questionnaire-title">📋 Questionnaire Answers</h2>
+                <button class="section-toggle-btn" type="button">
+                    <span class="toggle-icon" id="questionnaireToggleIcon">▼</span>
+                </button>
+            </div>
+            <div id="questionnaireContent" class="collapsible-content">
+                <div id="questionnaireContainer">
+                    <div class="loading skeleton-loading">
+                        <div class="skeleton" style="height: 20px; width: 60%; margin-bottom: 12px;"></div>
+                        <div class="skeleton" style="height: 16px; width: 100%; margin-bottom: 8px;"></div>
+                        <div class="skeleton" style="height: 16px; width: 100%; margin-bottom: 8px;"></div>
+                        <div class="skeleton" style="height: 16px; width: 80%; margin-bottom: 8px;"></div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -7793,25 +7817,6 @@
             </div>
         </div>
 
-        <!-- Questionnaire Answers Section -->
-        <div class="questionnaire-section" data-drawer="questionnaire">
-            <div class="questionnaire-header collapsible-header" onclick="toggleSection('questionnaire')" style="cursor: pointer;">
-                <h2 class="questionnaire-title">📋 Questionnaire Answers</h2>
-                <button class="section-toggle-btn" type="button">
-                    <span class="toggle-icon" id="questionnaireToggleIcon">▼</span>
-                </button>
-            </div>
-            <div id="questionnaireContent" class="collapsible-content collapsed">
-                <div id="questionnaireContainer">
-                    <div class="loading skeleton-loading">
-                        <div class="skeleton" style="height: 20px; width: 60%; margin-bottom: 12px;"></div>
-                        <div class="skeleton" style="height: 16px; width: 100%; margin-bottom: 8px;"></div>
-                        <div class="skeleton" style="height: 16px; width: 100%; margin-bottom: 8px;"></div>
-                        <div class="skeleton" style="height: 16px; width: 80%; margin-bottom: 8px;"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
 
     <!-- Measurement Modal -->
@@ -8032,7 +8037,7 @@
         // Restore collapsed states on load
         // Default collapsed sections: plans, protocols, favorites, photos, measurements, checkins
         (function restoreCollapsedStates() {
-            const defaultCollapsed = ['plans', 'protocols', 'favorites', 'photos', 'measurements', 'workouts', 'workoutPrograms', 'clientNotes', 'questionnaire'];
+            const defaultCollapsed = ['plans', 'protocols', 'favorites', 'photos', 'measurements', 'workouts', 'workoutPrograms', 'clientNotes'];
             const savedStates = JSON.parse(localStorage.getItem('clientProfileCollapsed') || '{}');
 
             defaultCollapsed.forEach(section => {
