@@ -26862,6 +26862,189 @@ a.nav-left {
     transform: scale(0.96);
 }
 
+/* --- Deferred Review Screen --- */
+.guided-deferred-review {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 32px 20px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.guided-deferred-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 16px;
+    box-shadow: 0 6px 24px rgba(245, 158, 11, 0.35);
+}
+
+.guided-deferred-icon svg {
+    color: white;
+}
+
+.guided-deferred-title {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 6px;
+}
+
+.guided-deferred-subtitle {
+    font-size: 15px;
+    opacity: 0.6;
+    margin-bottom: 24px;
+    text-align: center;
+}
+
+.guided-deferred-card {
+    width: 100%;
+    max-width: 400px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 12px;
+}
+
+.guided-deferred-card-info {
+    margin-bottom: 12px;
+}
+
+.guided-deferred-card-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.guided-deferred-card-header h3 {
+    font-size: 17px;
+    font-weight: 600;
+    margin: 0;
+}
+
+.guided-deferred-phase-tag {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.guided-deferred-phase-tag.warmup {
+    background: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+}
+
+.guided-deferred-phase-tag.cooldown {
+    background: rgba(56, 189, 248, 0.15);
+    color: #38bdf8;
+}
+
+.guided-deferred-card-info p {
+    font-size: 14px;
+    opacity: 0.55;
+    margin: 0;
+}
+
+.guided-deferred-card-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.guided-deferred-do-now-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    background: linear-gradient(135deg, #0d9488, #0284c7);
+    border: none;
+    color: white;
+    padding: 10px 16px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.1s;
+}
+
+.guided-deferred-do-now-btn:active {
+    transform: scale(0.96);
+}
+
+.guided-deferred-skip-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    background: rgba(255,255,255,0.08);
+    border: none;
+    color: rgba(255,255,255,0.6);
+    padding: 10px 16px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.guided-deferred-skip-btn:active {
+    background: rgba(255,255,255,0.15);
+}
+
+.guided-deferred-continue-btn {
+    margin-top: 16px;
+    background: none;
+    border: 1px solid rgba(255,255,255,0.15);
+    color: rgba(255,255,255,0.5);
+    padding: 12px 32px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.guided-deferred-continue-btn:active {
+    background: rgba(255,255,255,0.05);
+    color: rgba(255,255,255,0.7);
+}
+
+/* "Later" button in action bars */
+.guided-later-btn {
+    background: rgba(245, 158, 11, 0.15);
+    border: none;
+    color: #fbbf24;
+    padding: 10px 16px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.guided-later-btn:active {
+    background: rgba(245, 158, 11, 0.25);
+}
+
+/* "Skipped earlier" badge */
+.guided-deferred-badge {
+    color: #fbbf24;
+    font-weight: 600;
+}
+
 /* Voice toggle button */
 .guided-top-right {
     display: flex;
@@ -27684,4 +27867,59 @@ a.nav-left {
 [data-theme="light"] .guided-skip-btn-small {
     background: #f3f4f6;
     color: #6b7280;
+}
+
+/* --- Light theme: Deferred Review --- */
+[data-theme="light"] .guided-deferred-title {
+    color: #111827;
+}
+
+[data-theme="light"] .guided-deferred-subtitle {
+    color: #6b7280;
+}
+
+[data-theme="light"] .guided-deferred-card {
+    background: #ffffff;
+    border-color: #e5e7eb;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+
+[data-theme="light"] .guided-deferred-card-header h3 {
+    color: #111827;
+}
+
+[data-theme="light"] .guided-deferred-card-info p {
+    color: #6b7280;
+}
+
+[data-theme="light"] .guided-deferred-skip-btn {
+    background: #f3f4f6;
+    color: #6b7280;
+}
+
+[data-theme="light"] .guided-deferred-skip-btn:active {
+    background: #e5e7eb;
+}
+
+[data-theme="light"] .guided-deferred-continue-btn {
+    border-color: #d1d5db;
+    color: #9ca3af;
+}
+
+[data-theme="light"] .guided-deferred-continue-btn:active {
+    background: #f9fafb;
+    color: #6b7280;
+}
+
+[data-theme="light"] .guided-later-btn {
+    background: rgba(245, 158, 11, 0.1);
+    color: #d97706;
+}
+
+[data-theme="light"] .guided-later-btn:active {
+    background: rgba(245, 158, 11, 0.18);
+}
+
+[data-theme="light"] .guided-deferred-badge {
+    color: #d97706;
 }
