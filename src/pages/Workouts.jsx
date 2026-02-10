@@ -448,6 +448,7 @@ function Workouts() {
     prs: true
   });
   const [shareBgImage, setShareBgImage] = useState(null);
+  const [coachBranding, setCoachBranding] = useState(null);
   const shareCardRef = useRef(null);
   const shareBgInputRef = useRef(null);
   const menuRef = useRef(null);
@@ -619,6 +620,14 @@ function Workouts() {
       window.removeEventListener('pagehide', flushPendingSave);
     };
   }, []);
+
+  // Fetch coach branding for share card
+  useEffect(() => {
+    if (!clientData?.coach_id) return;
+    apiGet(`/.netlify/functions/get-coach-branding?coachId=${clientData.coach_id}`)
+      .then(data => setCoachBranding(data))
+      .catch(() => {});
+  }, [clientData?.coach_id]);
 
   // Pull-to-refresh: Refresh workout data
   // Optimized to run API calls in parallel where possible
@@ -2369,7 +2378,7 @@ function Workouts() {
       canvas.height = height;
       const ctx = canvas.getContext('2d');
 
-      const drawCard = () => {
+      const drawCard = (logoImg) => {
         // Background
         if (!shareBgImage) {
           const grad = ctx.createLinearGradient(0, 0, width, height);
@@ -2384,11 +2393,22 @@ function Workouts() {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
         ctx.fillRect(0, 0, width, height);
 
-        // Brand name
-        ctx.fillStyle = '#0d9488';
-        ctx.font = 'bold 24px -apple-system, BlinkMacSystemFont, sans-serif';
+        // Brand name with logo
+        const brandName = coachBranding?.coach_name || 'Zique Fitness';
+        const brandColor = coachBranding?.brand_primary_color || '#0d9488';
+        ctx.fillStyle = brandColor;
+        ctx.font = 'bold 28px -apple-system, BlinkMacSystemFont, sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText('Zique Fitness', width / 2, 50);
+        if (logoImg) {
+          const logoSize = 36;
+          const textWidth = ctx.measureText(brandName).width;
+          const totalWidth = logoSize + 10 + textWidth;
+          const startX = (width - totalWidth) / 2;
+          ctx.drawImage(logoImg, startX, 24, logoSize, logoSize);
+          ctx.fillText(brandName, startX + logoSize + 10 + textWidth / 2, 52);
+        } else {
+          ctx.fillText(brandName, width / 2, 50);
+        }
 
         // Stats
         const dur = formatDuration(workoutDuration || todayWorkout?.workout_data?.estimatedMinutes || 45);
@@ -2430,11 +2450,12 @@ function Workouts() {
           });
         }
 
-        // Footer
-        ctx.fillStyle = '#6b7280';
-        ctx.font = '13px -apple-system, BlinkMacSystemFont, sans-serif';
+        // Footer - larger text
+        const footerBrand = coachBranding?.brand_name || 'Zique Fitness';
+        ctx.fillStyle = '#9ca3af';
+        ctx.font = '18px -apple-system, BlinkMacSystemFont, sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText('Powered by Zique Fitness', width / 2, height - 20);
+        ctx.fillText(`Powered by ${footerBrand}`, width / 2, height - 22);
 
         // Convert and share
         canvas.toBlob(async (blob) => {
@@ -2465,21 +2486,33 @@ function Workouts() {
         }, 'image/png');
       };
 
-      if (shareBgImage) {
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
-        img.onload = () => {
-          // Cover-fit the image
-          const scale = Math.max(width / img.width, height / img.height);
-          const sw = img.width * scale;
-          const sh = img.height * scale;
-          ctx.drawImage(img, (width - sw) / 2, (height - sh) / 2, sw, sh);
-          drawCard();
-        };
-        img.onerror = () => drawCard();
-        img.src = shareBgImage;
+      // Load logo image if available, then draw card
+      const renderCard = (logoImg) => {
+        if (shareBgImage) {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.onload = () => {
+            const scale = Math.max(width / img.width, height / img.height);
+            const sw = img.width * scale;
+            const sh = img.height * scale;
+            ctx.drawImage(img, (width - sw) / 2, (height - sh) / 2, sw, sh);
+            drawCard(logoImg);
+          };
+          img.onerror = () => drawCard(logoImg);
+          img.src = shareBgImage;
+        } else {
+          drawCard(logoImg);
+        }
+      };
+
+      if (coachBranding?.brand_logo_url) {
+        const logo = new Image();
+        logo.crossOrigin = 'anonymous';
+        logo.onload = () => renderCard(logo);
+        logo.onerror = () => renderCard(null);
+        logo.src = coachBranding.brand_logo_url;
       } else {
-        drawCard();
+        renderCard(null);
       }
     } catch (err) {
       console.error('Error sharing results:', err);
@@ -3165,7 +3198,12 @@ function Workouts() {
               <div className="share-card-bg" style={shareBgImage ? { backgroundImage: `url(${shareBgImage})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}>
                 <div className="share-card-overlay" />
                 <div className="share-card-content">
-                  <div className="share-card-brand">Zique Fitness</div>
+                  <div className="share-card-brand">
+                    {coachBranding?.brand_logo_url && (
+                      <img src={coachBranding.brand_logo_url} alt="" className="share-card-logo" />
+                    )}
+                    <span>{coachBranding?.coach_name || 'Zique Fitness'}</span>
+                  </div>
                   <div className="share-card-stats">
                     {shareToggles.duration && (
                       <div className="share-stat">
@@ -3211,7 +3249,7 @@ function Workouts() {
                       ))}
                     </div>
                   )}
-                  <div className="share-card-footer">Powered by Zique Fitness</div>
+                  <div className="share-card-footer">Powered by {coachBranding?.brand_name || 'Zique Fitness'}</div>
                 </div>
               </div>
             </div>
