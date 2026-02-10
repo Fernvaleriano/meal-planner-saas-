@@ -4300,8 +4300,36 @@
             `).join('');
         }
 
+        // Enrich workout day exercises with fresh video URLs from the database
+        async function enrichWorkoutDaysWithVideos(days) {
+            if (!days || days.length === 0) return;
+            // Collect all unique exercise IDs
+            const allIds = new Set();
+            days.forEach(day => {
+                (day.exercises || []).forEach(ex => {
+                    if (ex.id && typeof ex.id === 'number') allIds.add(ex.id);
+                });
+            });
+            if (allIds.size === 0) return;
+            try {
+                const result = await apiCall(`/.netlify/functions/exercises?ids=${[...allIds].join(',')}`);
+                const freshMap = new Map((result.exercises || []).map(ex => [ex.id, ex]));
+                days.forEach(day => {
+                    (day.exercises || []).forEach((ex, i) => {
+                        if (!ex.id || !freshMap.has(ex.id)) return;
+                        const fresh = freshMap.get(ex.id);
+                        if (fresh.video_url && !ex.video_url) day.exercises[i].video_url = fresh.video_url;
+                        if (fresh.animation_url && !ex.animation_url) day.exercises[i].animation_url = fresh.animation_url;
+                        if (fresh.thumbnail_url && !ex.thumbnail_url) day.exercises[i].thumbnail_url = fresh.thumbnail_url;
+                    });
+                });
+            } catch (err) {
+                console.warn('Could not enrich exercises with video URLs:', err);
+            }
+        }
+
         // Select program
-        function selectProgram(programId) {
+        async function selectProgram(programId) {
             currentProgramId = programId;
             const program = programs.find(p => p.id === programId);
             if (program) {
@@ -4317,6 +4345,8 @@
                 pendingHeroImageData = null;
 
                 workoutDays = program.program_data?.days || [];
+                // Enrich exercises with fresh video URLs from the database
+                await enrichWorkoutDaysWithVideos(workoutDays);
                 document.getElementById('isClubWorkout').checked = !!program.is_club_workout;
                 renderWorkoutDays();
                 // Check superset consistency for loaded program

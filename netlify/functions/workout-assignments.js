@@ -10,6 +10,43 @@ const headers = {
   'Content-Type': 'application/json'
 };
 
+// Helper function to enrich exercises with fresh video URLs from the database
+// Workout snapshots may have been created before video_url was set on the exercise
+async function enrichExercisesWithVideos(exercises, supabase) {
+  if (!exercises || exercises.length === 0) return exercises;
+
+  // Collect all exercise IDs (we always want the latest video URLs)
+  const exerciseIds = exercises
+    .filter(ex => ex.id && typeof ex.id === 'number')
+    .map(ex => ex.id);
+
+  if (exerciseIds.length === 0) return exercises;
+
+  const { data: exerciseData, error } = await supabase
+    .from('exercises')
+    .select('id, video_url, animation_url, thumbnail_url')
+    .in('id', exerciseIds);
+
+  if (error || !exerciseData) {
+    console.error('Error fetching video data:', error);
+    return exercises;
+  }
+
+  const videoMap = new Map(exerciseData.map(ex => [ex.id, ex]));
+
+  return exercises.map(ex => {
+    if (!ex.id || !videoMap.has(ex.id)) return ex;
+    const fresh = videoMap.get(ex.id);
+    const updates = {};
+    // Only overwrite if the DB has a value and the snapshot doesn't
+    if (fresh.video_url && !ex.video_url) updates.video_url = fresh.video_url;
+    if (fresh.animation_url && !ex.animation_url) updates.animation_url = fresh.animation_url;
+    if (fresh.thumbnail_url && !ex.thumbnail_url) updates.thumbnail_url = fresh.thumbnail_url;
+    if (Object.keys(updates).length === 0) return ex;
+    return { ...ex, ...updates };
+  });
+}
+
 // Helper function to enrich exercises with equipment data from the database
 // This fixes legacy workouts that may have exercises without equipment info
 async function enrichExercisesWithEquipment(exercises, supabase) {
@@ -111,6 +148,11 @@ exports.handler = async (event) => {
                 .maybeSingle();
 
               if (adhocWorkout) {
+                // Enrich ad-hoc workout exercises with video URLs
+                const adhocData = adhocWorkout.workout_data || {};
+                if (adhocData.exercises) {
+                  adhocData.exercises = await enrichExercisesWithVideos(adhocData.exercises, supabase);
+                }
                 // Return the ad-hoc workout as an assignment
                 return {
                   statusCode: 200,
@@ -120,7 +162,7 @@ exports.handler = async (event) => {
                       id: adhocWorkout.id,
                       name: adhocWorkout.name || 'Custom Workout',
                       day_index: 0,
-                      workout_data: adhocWorkout.workout_data,
+                      workout_data: adhocData,
                       client_id: clientId,
                       is_adhoc: true
                     }]
@@ -186,10 +228,11 @@ exports.handler = async (event) => {
 
               if (override.dayIndex !== undefined && days.length > 0) {
                 const dayIndex = override.dayIndex % days.length;
-                const enrichedExercises = await enrichExercisesWithEquipment(
+                let enrichedExercises = await enrichExercisesWithEquipment(
                   days[dayIndex].exercises || [],
                   supabase
                 );
+                enrichedExercises = await enrichExercisesWithVideos(enrichedExercises, supabase);
 
                 todayWorkout = {
                   id: activeAssignment.id,
@@ -262,9 +305,13 @@ exports.handler = async (event) => {
               };
             }
 
-            // Enrich exercises with equipment data if missing
+            // Enrich exercises with equipment and video data if missing
             if (todayWorkout?.workout_data?.exercises) {
               todayWorkout.workout_data.exercises = await enrichExercisesWithEquipment(
+                todayWorkout.workout_data.exercises,
+                supabase
+              );
+              todayWorkout.workout_data.exercises = await enrichExercisesWithVideos(
                 todayWorkout.workout_data.exercises,
                 supabase
               );
