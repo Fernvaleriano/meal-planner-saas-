@@ -144,6 +144,47 @@ const MOVEMENT_PATTERNS = [
     n.includes('leg raise') || n.includes('hanging raise') || n.includes('knee raise') ||
     n.includes('toes to bar') || n.includes('toes-to-bar')
   },
+
+  // === CARDIO / HIIT ===
+  { pattern: 'STAIR_CLIMB', muscle: 'CARDIO', test: (n) =>
+    n.includes('stairmaster') || n.includes('stair master') || n.includes('stair climb') ||
+    n.includes('stair stepper') || n.includes('step mill') || n.includes('stepmill') ||
+    n.includes('stair mill') || n.includes('stairs')
+  },
+  { pattern: 'CYCLE', muscle: 'CARDIO', test: (n) =>
+    n.includes('bike') || n.includes('cycle') || n.includes('cycling') ||
+    n.includes('spin') || n.includes('assault bike') || n.includes('air bike') ||
+    n.includes('airdyne') || n.includes('echo bike') || n.includes('fan bike') ||
+    n.includes('peloton') || n.includes('stationary bike')
+  },
+  { pattern: 'ROW_CARDIO', muscle: 'CARDIO', test: (n) =>
+    (n.includes('row') && (n.includes('machine') || n.includes('erg') || n.includes('cardio') || n.includes('concept') || n.includes('c2'))) ||
+    n.includes('rowing machine') || n.includes('rower') || n.includes('ergometer')
+  },
+  { pattern: 'RUN', muscle: 'CARDIO', test: (n) =>
+    n.includes('run') || n.includes('sprint') || n.includes('jog') ||
+    n.includes('treadmill') || n.includes('track')
+  },
+  { pattern: 'JUMP', muscle: 'CARDIO', test: (n) =>
+    n.includes('jump') || n.includes('box jump') || n.includes('jump rope') ||
+    n.includes('skipping') || n.includes('skip rope') || n.includes('double under') ||
+    n.includes('jumping jack') || n.includes('star jump') || n.includes('tuck jump') ||
+    n.includes('broad jump') || n.includes('squat jump') || n.includes('lunge jump')
+  },
+  { pattern: 'HIIT_MOVEMENT', muscle: 'CARDIO', test: (n) =>
+    n.includes('burpee') || n.includes('mountain climber') || n.includes('high knee') ||
+    n.includes('butt kick') || n.includes('battle rope') || n.includes('sled') ||
+    n.includes('prowler') || n.includes('farmer') || n.includes('carry') ||
+    n.includes('bear crawl') || n.includes('shuttle') || n.includes('agility') ||
+    n.includes('tabata') || n.includes('amrap') || n.includes('emom') ||
+    n.includes('conditioning') || n.includes('met con') || n.includes('metcon')
+  },
+  { pattern: 'ELLIPTICAL', muscle: 'CARDIO', test: (n) =>
+    n.includes('elliptical') || n.includes('cross trainer') || n.includes('crosstrainer')
+  },
+  { pattern: 'SWIM', muscle: 'CARDIO', test: (n) =>
+    n.includes('swim') || n.includes('pool') || n.includes('lap')
+  },
 ];
 
 // ─── Sub-Pattern Detection (angle, grip, stance) ─────────────────────────────
@@ -214,6 +255,7 @@ function detectMovement(exerciseName) {
   else if (name.includes('leg') || name.includes('quad') || name.includes('hamstring')) muscle = 'LEGS';
   else if (name.includes('core') || name.includes('ab ') || name.includes('abs')) muscle = 'CORE';
   else if (name.includes('glute')) muscle = 'GLUTES';
+  else if (name.includes('cardio') || name.includes('hiit') || name.includes('conditioning') || name.includes('interval')) muscle = 'CARDIO';
 
   return {
     pattern: null,
@@ -345,6 +387,15 @@ function getRelatedPatterns(pattern) {
     'LEG_RAISE': ['CORE_FLEXION', 'CORE_STABILITY'],
     'HIP_ADDUCTION': ['HIP_ABDUCTION', 'LUNGE'],
     'HIP_ABDUCTION': ['HIP_ADDUCTION', 'GLUTE'],
+    // Cardio / HIIT
+    'STAIR_CLIMB': ['CYCLE', 'ELLIPTICAL', 'JUMP', 'HIIT_MOVEMENT', 'RUN'],
+    'CYCLE': ['STAIR_CLIMB', 'ELLIPTICAL', 'RUN', 'ROW_CARDIO'],
+    'ROW_CARDIO': ['CYCLE', 'ELLIPTICAL', 'SWIM', 'HIIT_MOVEMENT'],
+    'RUN': ['CYCLE', 'STAIR_CLIMB', 'JUMP', 'ELLIPTICAL', 'HIIT_MOVEMENT'],
+    'JUMP': ['STAIR_CLIMB', 'RUN', 'HIIT_MOVEMENT', 'CYCLE'],
+    'HIIT_MOVEMENT': ['JUMP', 'STAIR_CLIMB', 'RUN', 'CYCLE', 'ROW_CARDIO'],
+    'ELLIPTICAL': ['STAIR_CLIMB', 'CYCLE', 'RUN', 'ROW_CARDIO'],
+    'SWIM': ['ROW_CARDIO', 'CYCLE', 'ELLIPTICAL'],
   };
   return relations[pattern] || [];
 }
@@ -417,7 +468,7 @@ exports.handler = async (event) => {
   }
 
   try {
-    const { exercise, workoutExercises = [], equipment = "" } = JSON.parse(event.body);
+    const { exercise, workoutExercises = [], equipment = "", coachId = null } = JSON.parse(event.body);
 
     if (!exercise) {
       return { statusCode: 400, headers, body: JSON.stringify({ error: "Exercise is required" }) };
@@ -443,6 +494,14 @@ exports.handler = async (event) => {
     // Filter by muscle group if provided
     if (muscleGroup) {
       query = query.ilike("muscle_group", `%${muscleGroup}%`);
+    }
+
+    // Scope to global exercises + this coach's custom exercises
+    // Without this, the service key bypasses RLS and returns ALL coaches' custom exercises
+    if (coachId) {
+      query = query.or(`coach_id.is.null,coach_id.eq.${coachId}`);
+    } else {
+      query = query.is("coach_id", null);
     }
 
     const { data: alternatives, error: dbError } = await query;

@@ -1,14 +1,16 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Plus, Dumbbell, Trash2, Clock, Hash } from 'lucide-react';
+import { X, Plus, Dumbbell, Trash2, Clock, Hash, ArrowLeftRight } from 'lucide-react';
 import AddActivityModal from './AddActivityModal';
+import SwapExerciseModal from './SwapExerciseModal';
 
-function CreateWorkoutModal({ onClose, onCreateWorkout, selectedDate, coachId = null }) {
+function CreateWorkoutModal({ onClose, onCreateWorkout, selectedDate, coachId = null, isCoach = false }) {
   const [workoutName, setWorkoutName] = useState('');
   const [exercises, setExercises] = useState([]);
   const [showAddExercise, setShowAddExercise] = useState(false);
   const [saving, setSaving] = useState(false);
   const [swipingIndex, setSwipingIndex] = useState(null);
   const [swipeOffset, setSwipeOffset] = useState(0);
+  const [swapExerciseData, setSwapExerciseData] = useState(null); // Exercise being swapped
   const touchStartX = useRef(0);
   const touchStartY = useRef(0);
   const isSwipingRef = useRef(false);
@@ -99,6 +101,29 @@ function CreateWorkoutModal({ onClose, onCreateWorkout, selectedDate, coachId = 
       i === index ? { ...ex, [field]: value } : ex
     ));
   };
+
+  // Handle swapping an exercise via AI recommendations
+  const handleSwapExercise = useCallback((newExercise) => {
+    if (!swapExerciseData || !newExercise) return;
+    setExercises(prev => prev.map(ex => {
+      if (String(ex.id) === String(swapExerciseData.id) && ex === swapExerciseData) {
+        // Preserve workout-specific config, overlay new exercise data
+        const isTimedByDefault = newExercise.duration || newExercise.exercise_type === 'cardio' ||
+          newExercise.exercise_type === 'interval' || newExercise.exercise_type === 'flexibility';
+        return {
+          ...newExercise,
+          sets: ex.sets,
+          reps: ex.reps,
+          duration: ex.duration,
+          trackingType: isTimedByDefault ? 'time' : ex.trackingType,
+          restSeconds: ex.restSeconds,
+          completed: false,
+        };
+      }
+      return ex;
+    }));
+    setSwapExerciseData(null);
+  }, [swapExerciseData]);
 
   // Swipe handlers
   const handleTouchStart = (e, index) => {
@@ -267,7 +292,20 @@ function CreateWorkoutModal({ onClose, onCreateWorkout, selectedDate, coachId = 
                           />
                         </div>
                         <div className="exercise-details">
-                          <span className="exercise-name">{exercise.name || 'Unknown Exercise'}</span>
+                          <div className="exercise-name-row">
+                            <span className="exercise-name">{exercise.name || 'Unknown Exercise'}</span>
+                            <button
+                              className="exercise-swap-btn"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSwapExerciseData(exercise);
+                              }}
+                              title="Smart swap exercise"
+                              type="button"
+                            >
+                              <ArrowLeftRight size={14} />
+                            </button>
+                          </div>
                           <div className="exercise-config">
                             <div className="config-item">
                               <label>SETS</label>
@@ -349,6 +387,18 @@ function CreateWorkoutModal({ onClose, onCreateWorkout, selectedDate, coachId = 
           onAdd={handleAddExercise}
           onClose={() => setShowAddExercise(false)}
           existingExerciseIds={exercises.map(ex => ex?.id).filter(Boolean)}
+          coachId={coachId}
+          isCoach={isCoach}
+        />
+      )}
+
+      {/* AI Swap Modal */}
+      {swapExerciseData && (
+        <SwapExerciseModal
+          exercise={swapExerciseData}
+          workoutExercises={exercises}
+          onSwap={handleSwapExercise}
+          onClose={() => setSwapExerciseData(null)}
           coachId={coachId}
         />
       )}
