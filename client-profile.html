@@ -4327,6 +4327,171 @@
             padding-bottom: 100px;
         }
 
+        /* Questionnaire Answers Section */
+        .questionnaire-section {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            margin-top: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .questionnaire-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 8px;
+            border-radius: 8px;
+            transition: background 0.2s;
+        }
+
+        .questionnaire-header:hover {
+            background: rgba(0,0,0,0.03);
+        }
+
+        [data-theme="dark"] .questionnaire-header:hover {
+            background: rgba(255,255,255,0.05);
+        }
+
+        .questionnaire-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #2d3748;
+        }
+
+        [data-theme="dark"] .questionnaire-title {
+            color: #e2e8f0;
+        }
+
+        .qa-category {
+            margin-bottom: 24px;
+        }
+
+        .qa-category:last-child {
+            margin-bottom: 0;
+        }
+
+        .qa-category-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        [data-theme="dark"] .qa-category-title {
+            color: #94a3b8;
+            border-bottom-color: #334155;
+        }
+
+        .qa-row {
+            display: flex;
+            padding: 10px 0;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .qa-row:last-child {
+            border-bottom: none;
+        }
+
+        [data-theme="dark"] .qa-row {
+            border-bottom-color: #1e293b;
+        }
+
+        .qa-label {
+            width: 40%;
+            font-size: 14px;
+            color: #64748b;
+            font-weight: 500;
+        }
+
+        [data-theme="dark"] .qa-label {
+            color: #94a3b8;
+        }
+
+        .qa-value {
+            width: 60%;
+            font-size: 14px;
+            color: #1e293b;
+            font-weight: 500;
+        }
+
+        [data-theme="dark"] .qa-value {
+            color: #e2e8f0;
+        }
+
+        .qa-value.not-provided {
+            color: #94a3b8;
+            font-style: italic;
+        }
+
+        .qa-tag {
+            display: inline-block;
+            padding: 3px 10px;
+            background: #f0fdfa;
+            color: #0d9488;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin: 2px 4px 2px 0;
+        }
+
+        [data-theme="dark"] .qa-tag {
+            background: rgba(13, 148, 136, 0.15);
+            color: #5eead4;
+        }
+
+        .qa-empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #94a3b8;
+        }
+
+        .qa-empty-state-icon {
+            font-size: 40px;
+            margin-bottom: 12px;
+        }
+
+        .qa-empty-state-text {
+            font-size: 15px;
+            font-weight: 500;
+        }
+
+        .qa-form-response {
+            background: #f8fafc;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 16px;
+            border-left: 4px solid #0284c7;
+        }
+
+        [data-theme="dark"] .qa-form-response {
+            background: #0f172a;
+            border-left-color: #0284c7;
+        }
+
+        .qa-form-response-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .qa-form-response-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: #0284c7;
+        }
+
+        .qa-form-response-date {
+            font-size: 12px;
+            color: #94a3b8;
+        }
+
         /* ===== DARK MODE STYLES ===== */
         [data-theme="dark"] .main-content {
             background: #0f172a;
@@ -4347,7 +4512,8 @@
         [data-theme="dark"] .measurements-section,
         [data-theme="dark"] .photos-section,
         [data-theme="dark"] .diary-section,
-        [data-theme="dark"] .ai-assistant-section {
+        [data-theme="dark"] .ai-assistant-section,
+        [data-theme="dark"] .questionnaire-section {
             background: #1e293b !important;
             border-color: #334155 !important;
             box-shadow: 0 2px 8px rgba(0,0,0,0.3) !important;
@@ -6035,6 +6201,30 @@
                 text-align: center;
             }
 
+            /* Questionnaire Section - Mobile */
+            .questionnaire-section {
+                padding: 20px;
+                margin-top: 16px;
+            }
+
+            .questionnaire-title {
+                font-size: 18px;
+            }
+
+            .qa-row {
+                flex-direction: column;
+                gap: 4px;
+            }
+
+            .qa-label,
+            .qa-value {
+                width: 100%;
+            }
+
+            .qa-label {
+                font-size: 12px;
+            }
+
             .checkin-card {
                 padding: 16px;
             }
@@ -7602,6 +7792,26 @@
                 </div>
             </div>
         </div>
+
+        <!-- Questionnaire Answers Section -->
+        <div class="questionnaire-section" data-drawer="questionnaire">
+            <div class="questionnaire-header collapsible-header" onclick="toggleSection('questionnaire')" style="cursor: pointer;">
+                <h2 class="questionnaire-title">📋 Questionnaire Answers</h2>
+                <button class="section-toggle-btn" type="button">
+                    <span class="toggle-icon" id="questionnaireToggleIcon">▼</span>
+                </button>
+            </div>
+            <div id="questionnaireContent" class="collapsible-content collapsed">
+                <div id="questionnaireContainer">
+                    <div class="loading skeleton-loading">
+                        <div class="skeleton" style="height: 20px; width: 60%; margin-bottom: 12px;"></div>
+                        <div class="skeleton" style="height: 16px; width: 100%; margin-bottom: 8px;"></div>
+                        <div class="skeleton" style="height: 16px; width: 100%; margin-bottom: 8px;"></div>
+                        <div class="skeleton" style="height: 16px; width: 80%; margin-bottom: 8px;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Measurement Modal -->
@@ -7822,7 +8032,7 @@
         // Restore collapsed states on load
         // Default collapsed sections: plans, protocols, favorites, photos, measurements, checkins
         (function restoreCollapsedStates() {
-            const defaultCollapsed = ['plans', 'protocols', 'favorites', 'photos', 'measurements', 'workouts', 'workoutPrograms', 'clientNotes'];
+            const defaultCollapsed = ['plans', 'protocols', 'favorites', 'photos', 'measurements', 'workouts', 'workoutPrograms', 'clientNotes', 'questionnaire'];
             const savedStates = JSON.parse(localStorage.getItem('clientProfileCollapsed') || '{}');
 
             defaultCollapsed.forEach(section => {
@@ -8118,7 +8328,8 @@
                 loadFoodDiary(clientId),
                 loadWorkoutLogs(clientId),
                 loadWorkoutPrograms(clientId),
-                loadClientNotes(clientId)
+                loadClientNotes(clientId),
+                loadQuestionnaireAnswers(clientId)
             ]);
 
             console.log('Data refreshed successfully');
@@ -13534,6 +13745,259 @@
                 updateReminderStatusDisplay();
             }
         }
+        // =============================================
+        // Questionnaire Answers Functions
+        // =============================================
+
+        async function loadQuestionnaireAnswers(clientId) {
+            const container = document.getElementById('questionnaireContainer');
+
+            try {
+                // Wait for currentClient to be loaded
+                let attempts = 0;
+                while (!currentClient && attempts < 20) {
+                    await new Promise(r => setTimeout(r, 200));
+                    attempts++;
+                }
+
+                if (!currentClient) {
+                    container.innerHTML = '<div class="qa-empty-state"><div class="qa-empty-state-icon">📋</div><div class="qa-empty-state-text">No questionnaire data available</div></div>';
+                    return;
+                }
+
+                let html = '';
+
+                // ---- Section 1: Intake Questionnaire Data from clients table ----
+                const hasIntakeData = currentClient.age || currentClient.gender || currentClient.weight ||
+                    currentClient.diet_type || currentClient.allergies || currentClient.disliked_foods ||
+                    currentClient.preferred_foods || currentClient.cooking_equipment || currentClient.budget;
+
+                if (hasIntakeData) {
+                    // Personal Info
+                    html += '<div class="qa-category">';
+                    html += '<div class="qa-category-title">Personal Information</div>';
+
+                    if (currentClient.age) {
+                        html += qaRow('Age', currentClient.age + ' years');
+                    }
+                    if (currentClient.gender) {
+                        html += qaRow('Gender', capitalize(currentClient.gender));
+                    }
+                    if (currentClient.weight) {
+                        const weightDisplay = coachDisplayUnit === 'metric'
+                            ? lbsToKg(currentClient.weight) + ' kg'
+                            : currentClient.weight + ' lbs';
+                        html += qaRow('Weight', weightDisplay);
+                    }
+                    if (currentClient.height_ft || currentClient.height_in) {
+                        const ft = currentClient.height_ft || 0;
+                        const inches = currentClient.height_in || 0;
+                        const heightDisplay = coachDisplayUnit === 'metric'
+                            ? ftInToCm(ft, inches) + ' cm'
+                            : ft + "'" + inches + '"';
+                        html += qaRow('Height', heightDisplay);
+                    }
+                    if (currentClient.activity_level) {
+                        const activityLabels = {
+                            1.2: 'Sedentary',
+                            1.375: 'Lightly Active',
+                            1.55: 'Moderately Active',
+                            1.725: 'Very Active',
+                            1.9: 'Extra Active'
+                        };
+                        html += qaRow('Activity Level', activityLabels[currentClient.activity_level] || currentClient.activity_level);
+                    }
+                    if (currentClient.default_goal) {
+                        const goalLabels = {
+                            'lose_weight': 'Lose Weight',
+                            'lose': 'Lose Weight',
+                            'maintain': 'Maintain Weight',
+                            'gain_muscle': 'Gain Muscle',
+                            'gain': 'Gain Muscle'
+                        };
+                        html += qaRow('Goal', goalLabels[currentClient.default_goal] || capitalize(currentClient.default_goal));
+                    }
+                    if (currentClient.budget) {
+                        html += qaRow('Budget', capitalize(currentClient.budget));
+                    }
+
+                    html += '</div>';
+
+                    // Dietary Preferences
+                    const hasDiet = currentClient.diet_type || currentClient.macro_preference ||
+                        currentClient.meal_count || currentClient.allergies ||
+                        currentClient.disliked_foods || currentClient.preferred_foods;
+
+                    if (hasDiet) {
+                        html += '<div class="qa-category">';
+                        html += '<div class="qa-category-title">Dietary Preferences</div>';
+
+                        if (currentClient.diet_type) {
+                            html += qaRow('Diet Type', formatDietType(currentClient.diet_type));
+                        }
+                        if (currentClient.macro_preference) {
+                            html += qaRow('Macro Preference', capitalize(currentClient.macro_preference));
+                        }
+                        if (currentClient.meal_count) {
+                            html += qaRow('Meal Count', currentClient.meal_count);
+                        }
+                        if (currentClient.allergies) {
+                            html += qaRow('Allergies', currentClient.allergies);
+                        }
+                        if (currentClient.disliked_foods) {
+                            html += qaRow('Disliked Foods', currentClient.disliked_foods);
+                        }
+                        if (currentClient.preferred_foods) {
+                            html += qaRow('Preferred Foods', currentClient.preferred_foods);
+                        }
+
+                        html += '</div>';
+                    }
+
+                    // Cooking Equipment
+                    if (currentClient.cooking_equipment) {
+                        let equipment = currentClient.cooking_equipment;
+                        if (typeof equipment === 'string') {
+                            try { equipment = JSON.parse(equipment); } catch(e) { equipment = []; }
+                        }
+                        if (Array.isArray(equipment) && equipment.length > 0) {
+                            html += '<div class="qa-category">';
+                            html += '<div class="qa-category-title">Cooking Equipment</div>';
+                            html += '<div style="padding: 8px 0;">';
+                            equipment.forEach(item => {
+                                html += '<span class="qa-tag">' + formatEquipment(item) + '</span>';
+                            });
+                            html += '</div></div>';
+                        }
+                    }
+
+                    // Additional fields from client record
+                    if (currentClient.unit_preference) {
+                        html += '<div class="qa-category">';
+                        html += '<div class="qa-category-title">Preferences</div>';
+                        html += qaRow('Unit System', currentClient.unit_preference === 'metric' ? 'Metric (kg/cm)' : 'Imperial (lbs/ft)');
+                        if (currentClient.preferred_exercise_gender) {
+                            html += qaRow('Exercise Demo Preference', capitalize(currentClient.preferred_exercise_gender));
+                        }
+                        html += '</div>';
+                    }
+                }
+
+                // ---- Section 2: Apply Form Responses (from form_responses table) ----
+                try {
+                    if (currentClient.email) {
+                        const { data: formResponses, error: frError } = await supabaseClient
+                            .from('form_responses')
+                            .select('*')
+                            .order('submitted_at', { ascending: false });
+
+                        if (!frError && formResponses && formResponses.length > 0) {
+                            // Filter by client email match
+                            const clientEmail = currentClient.email.toLowerCase();
+                            const matchingResponses = formResponses.filter(r => {
+                                const d = r.response_data || {};
+                                const responseEmail = (d.email || '').toLowerCase();
+                                return responseEmail === clientEmail;
+                            });
+
+                            if (matchingResponses.length > 0) {
+                                html += '<div class="qa-category">';
+                                html += '<div class="qa-category-title">Application Form Responses</div>';
+
+                                matchingResponses.forEach(response => {
+                                    const data = response.response_data || {};
+                                    const submittedDate = response.submitted_at
+                                        ? new Date(response.submitted_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })
+                                        : 'Unknown date';
+
+                                    html += '<div class="qa-form-response">';
+                                    html += '<div class="qa-form-response-header">';
+                                    html += '<span class="qa-form-response-title">Application Submission</span>';
+                                    html += '<span class="qa-form-response-date">' + submittedDate + '</span>';
+                                    html += '</div>';
+
+                                    // Render all non-empty fields from the response
+                                    Object.entries(data).forEach(([key, value]) => {
+                                        if (value !== null && value !== undefined && value !== '' && key !== 'email' && key !== 'password') {
+                                            const label = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                                            const displayValue = Array.isArray(value) ? value.join(', ') : String(value);
+                                            html += qaRow(label, displayValue);
+                                        }
+                                    });
+
+                                    html += '</div>';
+                                });
+
+                                html += '</div>';
+                            }
+                        }
+                    }
+                } catch (formErr) {
+                    console.error('Error loading form responses for client:', formErr);
+                }
+
+                // Render final output
+                if (html) {
+                    container.innerHTML = html;
+                } else {
+                    container.innerHTML = '<div class="qa-empty-state"><div class="qa-empty-state-icon">📋</div><div class="qa-empty-state-text">No questionnaire answers yet.<br>Data will appear here once the client completes their intake form.</div></div>';
+                }
+
+            } catch (error) {
+                console.error('Error loading questionnaire answers:', error);
+                container.innerHTML = '<div class="qa-empty-state"><div class="qa-empty-state-icon">⚠️</div><div class="qa-empty-state-text">Failed to load questionnaire data</div></div>';
+            }
+        }
+
+        // Helper: render a question/answer row
+        function qaRow(label, value) {
+            const displayVal = value ? value : '<span class="not-provided">Not provided</span>';
+            return '<div class="qa-row"><div class="qa-label">' + label + '</div><div class="qa-value">' + displayVal + '</div></div>';
+        }
+
+        // Helper: capitalize first letter
+        function capitalize(str) {
+            if (!str) return '';
+            return str.charAt(0).toUpperCase() + str.slice(1).replace(/_/g, ' ');
+        }
+
+        // Helper: format diet type
+        function formatDietType(type) {
+            const labels = {
+                'standard': 'Standard (No Restrictions)',
+                'vegetarian': 'Vegetarian',
+                'vegan': 'Vegan',
+                'pescatarian': 'Pescatarian',
+                'keto': 'Keto',
+                'paleo': 'Paleo',
+                'mediterranean': 'Mediterranean',
+                'gluten_free': 'Gluten Free',
+                'dairy_free': 'Dairy Free',
+                'halal': 'Halal',
+                'kosher': 'Kosher'
+            };
+            return labels[type] || capitalize(type);
+        }
+
+        // Helper: format cooking equipment name
+        function formatEquipment(item) {
+            const labels = {
+                'stovetop': 'Stovetop',
+                'oven': 'Oven',
+                'microwave': 'Microwave',
+                'air_fryer': 'Air Fryer',
+                'instant_pot': 'Instant Pot',
+                'slow_cooker': 'Slow Cooker',
+                'grill': 'Grill',
+                'blender': 'Blender',
+                'food_processor': 'Food Processor',
+                'rice_cooker': 'Rice Cooker',
+                'toaster_oven': 'Toaster Oven',
+                'griddle': 'Griddle'
+            };
+            return labels[item] || capitalize(item);
+        }
+
         // Mobile menu toggle
         document.getElementById('mobileMenuBtn').addEventListener('click', () => {
             document.querySelector('.sidebar').classList.toggle('open');
