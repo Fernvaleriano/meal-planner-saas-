@@ -12585,11 +12585,21 @@ a.nav-left {
 }
 
 .share-card-brand {
-    text-align: center;
-    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    font-size: 22px;
     font-weight: 700;
     color: var(--brand-primary, #0d9488);
     margin-bottom: 32px;
+}
+
+.share-card-logo {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
 }
 
 .share-card-stats {
@@ -12624,7 +12634,8 @@ a.nav-left {
 
 .share-card-footer {
     text-align: center;
-    font-size: 10px;
+    font-size: 15px;
+    font-weight: 500;
     color: #9ca3af;
     margin-top: 16px;
 }
