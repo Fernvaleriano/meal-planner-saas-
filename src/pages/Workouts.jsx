@@ -2395,9 +2395,16 @@ function Workouts() {
 
         // Brand logo (full logo image containing icon + name)
         if (logoImg) {
-          const logoHeight = 60;
-          const logoWidth = (logoImg.width / logoImg.height) * logoHeight;
-          ctx.drawImage(logoImg, (width - logoWidth) / 2, 12, logoWidth, logoHeight);
+          const maxLogoWidth = width * 0.6;
+          const maxLogoHeight = 80;
+          const aspect = logoImg.width / logoImg.height;
+          let logoWidth = maxLogoWidth;
+          let logoHeight = logoWidth / aspect;
+          if (logoHeight > maxLogoHeight) {
+            logoHeight = maxLogoHeight;
+            logoWidth = logoHeight * aspect;
+          }
+          ctx.drawImage(logoImg, (width - logoWidth) / 2, 10, logoWidth, logoHeight);
         }
 
         // Stats

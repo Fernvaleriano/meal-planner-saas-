@@ -12592,8 +12592,9 @@ a.nav-left {
 }
 
 .share-card-logo {
-    height: 60px;
-    width: auto;
+    height: auto;
+    width: 70%;
+    max-height: 80px;
     object-fit: contain;
 }
 
