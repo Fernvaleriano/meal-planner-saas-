@@ -26691,11 +26691,11 @@ a.nav-left {
 
 /* Action buttons */
 .guided-actions {
-    padding: 16px 24px;
+    padding: 16px 12px;
     padding-bottom: 24px;
     display: flex;
     justify-content: center;
-    gap: 12px;
+    gap: 8px;
 }
 
 .guided-done-btn {
@@ -26722,15 +26722,18 @@ a.nav-left {
     background: rgba(255,255,255,0.1);
     border: none;
     color: rgba(255,255,255,0.7);
-    padding: 14px 28px;
+    padding: 12px 10px;
     border-radius: 14px;
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 600;
     display: flex;
     align-items: center;
-    gap: 6px;
+    justify-content: center;
+    gap: 4px;
     cursor: pointer;
     transition: background 0.15s;
+    flex: 1;
+    min-width: 0;
 }
 
 .guided-skip-btn:active {
@@ -26739,27 +26742,32 @@ a.nav-left {
 
 .guided-timer-controls {
     display: flex;
-    gap: 12px;
+    gap: 8px;
+    width: 100%;
 }
 
 .guided-nav-controls {
     display: flex;
-    gap: 12px;
+    gap: 8px;
+    width: 100%;
 }
 
 .guided-back-btn {
     background: rgba(255,255,255,0.08);
     border: none;
     color: rgba(255,255,255,0.6);
-    padding: 14px 20px;
+    padding: 12px 10px;
     border-radius: 14px;
     font-size: 14px;
     font-weight: 600;
     display: flex;
     align-items: center;
-    gap: 6px;
+    justify-content: center;
+    gap: 4px;
     cursor: pointer;
     transition: all 0.15s;
+    flex: 1;
+    min-width: 0;
 }
 
 .guided-back-btn:active {
@@ -26771,14 +26779,17 @@ a.nav-left {
     background: rgba(255,255,255,0.1);
     border: none;
     color: white;
-    padding: 14px 24px;
+    padding: 12px 10px;
     border-radius: 14px;
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 600;
     display: flex;
     align-items: center;
-    gap: 8px;
+    justify-content: center;
+    gap: 4px;
     cursor: pointer;
+    flex: 1;
+    min-width: 0;
 }
 
 .guided-pause-btn:active {
@@ -27024,15 +27035,18 @@ a.nav-left {
     background: rgba(245, 158, 11, 0.15);
     border: none;
     color: #fbbf24;
-    padding: 10px 16px;
+    padding: 12px 10px;
     border-radius: 12px;
     font-size: 13px;
     font-weight: 600;
     display: flex;
     align-items: center;
-    gap: 5px;
+    justify-content: center;
+    gap: 4px;
     cursor: pointer;
     transition: background 0.15s;
+    flex: 1;
+    min-width: 0;
 }
 
 .guided-later-btn:active {
@@ -27572,7 +27586,8 @@ a.nav-left {
     flex-direction: row;
     align-items: center;
     justify-content: center;
-    gap: 12px;
+    gap: 8px;
+    width: 100%;
 }
 
 .guided-skip-btn-small {
