@@ -27045,6 +27045,96 @@ a.nav-left {
     font-weight: 600;
 }
 
+/* Superset banner */
+.guided-phase-banner.superset {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(99, 102, 241, 0.1));
+    color: #a78bfa;
+    border: 1px solid rgba(139, 92, 246, 0.25);
+}
+
+.guided-superset-zap {
+    color: #a78bfa;
+    flex-shrink: 0;
+}
+
+.guided-superset-round-badge {
+    margin-left: auto;
+    font-size: 11px;
+    font-weight: 600;
+    background: rgba(139, 92, 246, 0.2);
+    padding: 2px 8px;
+    border-radius: 10px;
+    color: #c4b5fd;
+    letter-spacing: 0.5px;
+}
+
+/* Superset member progress indicator */
+.guided-superset-members {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 8px;
+    padding: 8px 12px;
+    background: rgba(139, 92, 246, 0.08);
+    border-radius: 8px;
+    border: 1px solid rgba(139, 92, 246, 0.15);
+}
+
+.guided-superset-member {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.4);
+    transition: color 0.2s, opacity 0.2s;
+}
+
+.guided-superset-member.active {
+    color: #a78bfa;
+    font-weight: 600;
+}
+
+.guided-superset-member.done {
+    color: rgba(255, 255, 255, 0.3);
+    text-decoration: line-through;
+}
+
+.guided-superset-member-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    flex-shrink: 0;
+}
+
+.guided-superset-member.active .guided-superset-member-dot {
+    background: #a78bfa;
+    box-shadow: 0 0 6px rgba(139, 92, 246, 0.5);
+}
+
+.guided-superset-member.done .guided-superset-member-dot {
+    background: #10b981;
+}
+
+/* Superset up-next variant */
+.guided-up-next.superset {
+    border-left-color: #8b5cf6;
+}
+
+.guided-up-next.superset .guided-up-next-label {
+    color: #a78bfa;
+}
+
+/* Deferred card superset variant */
+.guided-deferred-card.superset {
+    border-left-color: #8b5cf6;
+}
+
+.guided-deferred-card.superset .guided-deferred-phase-tag.superset {
+    background: rgba(139, 92, 246, 0.2);
+    color: #a78bfa;
+}
+
 /* Voice toggle button */
 .guided-top-right {
     display: flex;
@@ -27922,4 +28012,63 @@ a.nav-left {
 
 [data-theme="light"] .guided-deferred-badge {
     color: #d97706;
+}
+
+/* Light theme: Superset styles */
+[data-theme="light"] .guided-phase-banner.superset {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(99, 102, 241, 0.06));
+    color: #7c3aed;
+    border-color: rgba(139, 92, 246, 0.2);
+}
+
+[data-theme="light"] .guided-superset-zap {
+    color: #7c3aed;
+}
+
+[data-theme="light"] .guided-superset-round-badge {
+    background: rgba(139, 92, 246, 0.12);
+    color: #6d28d9;
+}
+
+[data-theme="light"] .guided-superset-members {
+    background: rgba(139, 92, 246, 0.05);
+    border-color: rgba(139, 92, 246, 0.12);
+}
+
+[data-theme="light"] .guided-superset-member {
+    color: rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="light"] .guided-superset-member.active {
+    color: #7c3aed;
+}
+
+[data-theme="light"] .guided-superset-member.done {
+    color: rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="light"] .guided-superset-member-dot {
+    background: rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="light"] .guided-superset-member.active .guided-superset-member-dot {
+    background: #7c3aed;
+    box-shadow: 0 0 6px rgba(124, 58, 237, 0.3);
+}
+
+[data-theme="light"] .guided-up-next.superset {
+    border-left-color: #7c3aed;
+}
+
+[data-theme="light"] .guided-up-next.superset .guided-up-next-label {
+    color: #7c3aed;
+}
+
+[data-theme="light"] .guided-deferred-card.superset {
+    border-left-color: #7c3aed;
+}
+
+[data-theme="light"] .guided-deferred-card.superset .guided-deferred-phase-tag.superset {
+    background: rgba(139, 92, 246, 0.1);
+    color: #7c3aed;
 }

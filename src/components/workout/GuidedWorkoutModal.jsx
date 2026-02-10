@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Play, Pause, SkipForward, SkipBack, ChevronRight, ChevronLeft, Check, Volume2, VolumeX, Mic, MessageSquare, Square, Send, ChevronUp, ChevronDown, MessageCircle, Bot, Loader2, Sparkles, Flame, Repeat, Clock } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { X, Play, Pause, SkipForward, SkipBack, ChevronRight, ChevronLeft, Check, Volume2, VolumeX, Mic, MessageSquare, Square, Send, ChevronUp, ChevronDown, MessageCircle, Bot, Loader2, Sparkles, Flame, Repeat, Clock, Zap } from 'lucide-react';
 import SmartThumbnail from './SmartThumbnail';
 import SwapExerciseModal from './SwapExerciseModal';
 import { apiGet, apiPost, apiPut } from '../../utils/api';
@@ -266,6 +266,10 @@ function GuidedWorkoutModal({
   const [pendingNextExIdx, setPendingNextExIdx] = useState(null); // where to continue after deferred review
   const [isPlayingDeferred, setIsPlayingDeferred] = useState(false); // currently replaying a deferred exercise
 
+  // Superset state — tracks cycling through superset group members
+  const [supersetState, setSupersetState] = useState(null);
+  // Shape: { groupKey: 'A', groupIndices: [idx1, idx2], memberPos: 0, round: 0, totalRounds: 3 }
+
   // Set logging: track actual reps/weight per exercise per set
   // Structure: { exIndex: [{ reps: number, weight: number }, ...] }
   const [setLogs, setSetLogs] = useState(() => {
@@ -319,6 +323,7 @@ function GuidedWorkoutModal({
   const skippedQueueRef = useRef(skippedQueue);
   const pendingNextExIdxRef = useRef(pendingNextExIdx);
   const isPlayingDeferredRef = useRef(isPlayingDeferred);
+  const supersetStateRef = useRef(supersetState);
 
   // Keep refs in sync (single effect to avoid re-render cascade)
   phaseRef.current = phase;
@@ -329,7 +334,28 @@ function GuidedWorkoutModal({
   skippedQueueRef.current = skippedQueue;
   pendingNextExIdxRef.current = pendingNextExIdx;
   isPlayingDeferredRef.current = isPlayingDeferred;
+  supersetStateRef.current = supersetState;
   const currentExercise = exercises[currentExIndex];
+
+  // Compute superset groups from exercises (consecutive exercises with same supersetGroup)
+  const supersetMap = useMemo(() => {
+    const groups = {};
+    exercises.forEach((ex, idx) => {
+      if (ex.isSuperset && ex.supersetGroup) {
+        const key = ex.supersetGroup;
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(idx);
+      }
+    });
+    // Only keep groups with 2+ consecutive members
+    const validGroups = {};
+    Object.entries(groups).forEach(([key, indices]) => {
+      if (indices.length < 2) return;
+      const isConsecutive = indices.every((idx, i) => i === 0 || idx === indices[i - 1] + 1);
+      if (isConsecutive) validGroups[key] = indices;
+    });
+    return validGroups;
+  }, [exercises]);
 
   // Check for resume state on mount
   useEffect(() => {
@@ -371,6 +397,9 @@ function GuidedWorkoutModal({
     if (resumeData.skippedQueue) setSkippedQueue(resumeData.skippedQueue);
     if (resumeData.pendingNextExIdx !== undefined) setPendingNextExIdx(resumeData.pendingNextExIdx);
 
+    // Restore superset state
+    if (resumeData.supersetState) setSupersetState(resumeData.supersetState);
+
     // Start at get-ready for the current exercise
     setPhase('get-ready');
     setTimer(5);
@@ -407,11 +436,12 @@ function GuidedWorkoutModal({
         setLogs,
         exerciseName: currentExercise?.name,
         skippedQueue,
-        pendingNextExIdx
+        pendingNextExIdx,
+        supersetState
       });
     }
     onClose();
-  }, [phase, currentExIndex, currentSetIndex, totalElapsed, completedSets, setLogs, workoutName, exercises.length, currentExercise?.name, onClose]);
+  }, [phase, currentExIndex, currentSetIndex, totalElapsed, completedSets, setLogs, workoutName, exercises.length, currentExercise?.name, onClose, skippedQueue, pendingNextExIdx, supersetState]);
 
   // --- Swap handlers ---
   const handleOpenSwap = useCallback(() => {
@@ -502,6 +532,35 @@ function GuidedWorkoutModal({
     return exercise?.phase || (exercise?.isWarmup ? 'warmup' : exercise?.isStretch ? 'cooldown' : 'main');
   };
 
+  // Helper: get superset group indices for an exercise index (null if not in a valid superset)
+  const getSupersetGroup = useCallback((exIdx) => {
+    const ex = exercises[exIdx];
+    if (!ex?.isSuperset || !ex?.supersetGroup) return null;
+    return supersetMap[ex.supersetGroup] || null;
+  }, [exercises, supersetMap]);
+
+  // Initialize superset mode when landing on the first member of a superset group
+  useEffect(() => {
+    if (supersetState) return; // Already in a superset
+    if (phase === 'complete' || phase === 'deferred-review') return;
+
+    const group = getSupersetGroup(currentExIndex);
+    if (!group || group[0] !== currentExIndex) return; // Only init on first member
+
+    const totalRounds = Math.max(...group.map(idx => {
+      const e = exercises[idx];
+      return typeof e.sets === 'number' ? e.sets : (Array.isArray(e.sets) ? e.sets.length : 3);
+    }));
+
+    setSupersetState({
+      groupKey: exercises[currentExIndex].supersetGroup,
+      groupIndices: group,
+      memberPos: 0,
+      round: 0,
+      totalRounds
+    });
+  }, [currentExIndex, exercises, getSupersetGroup, supersetState, phase]);
+
   // Advance to next exercise with phase boundary check for deferred exercises
   const advanceToNextExercise = useCallback((fromExIdx, additionalDeferred = []) => {
     const nextIdx = fromExIdx + 1;
@@ -576,12 +635,22 @@ function GuidedWorkoutModal({
     }
   }, [exercises]);
 
-  // Handle "Do Later" — defer exercise to end of phase
+  // Handle "Do Later" — defer exercise (or entire superset group) to end of phase
   const handleDeferExercise = useCallback(() => {
     if (intervalRef.current) clearInterval(intervalRef.current);
     setEditingField(null);
-    setSkippedQueue(prev => [...prev, currentExIndex]);
-    advanceToNextExercise(currentExIndex, [currentExIndex]);
+
+    const ss = supersetStateRef.current;
+    if (ss) {
+      // Defer entire superset group — store first member index as representative
+      setSkippedQueue(prev => [...prev, ss.groupIndices[0]]);
+      setSupersetState(null);
+      const lastGroupIdx = ss.groupIndices[ss.groupIndices.length - 1];
+      advanceToNextExercise(lastGroupIdx, [ss.groupIndices[0]]);
+    } else {
+      setSkippedQueue(prev => [...prev, currentExIndex]);
+      advanceToNextExercise(currentExIndex, [currentExIndex]);
+    }
   }, [currentExIndex, advanceToNextExercise]);
 
   // Handle "Do It Now" from deferred review
@@ -1135,10 +1204,18 @@ function GuidedWorkoutModal({
     const runVoice = async () => {
       if (phase === 'get-ready' && currentExercise) {
         const exInfo = getExerciseInfo(currentExIndex);
-        const desc = exInfo.isTimed
-          ? `${exInfo.sets} sets, ${formatDuration(exInfo.duration)} each`
-          : `${exInfo.sets} sets of ${exInfo.reps} reps`;
-        await speak(`Get ready. ${currentExercise.name}. ${desc}.`, voiceEnabled);
+        const ss = supersetState;
+        if (ss) {
+          const memberLabel = ss.memberPos === 0 && ss.round === 0
+            ? `Superset ${ss.groupKey}. ${currentExercise.name}. Round 1 of ${ss.totalRounds}.`
+            : `Next up. ${currentExercise.name}.`;
+          await speak(memberLabel, voiceEnabled);
+        } else {
+          const desc = exInfo.isTimed
+            ? `${exInfo.sets} sets, ${formatDuration(exInfo.duration)} each`
+            : `${exInfo.sets} sets of ${exInfo.reps} reps`;
+          await speak(`Get ready. ${currentExercise.name}. ${desc}.`, voiceEnabled);
+        }
       } else if (phase === 'exercise') {
         speak('Go!', voiceEnabled);
       } else if (phase === 'rest') {
@@ -1381,22 +1458,30 @@ function GuidedWorkoutModal({
     onUpdateExercise({ ...ex, sets: updatedSets });
   }, [exercises, onUpdateExercise]);
 
+  // Helper: mark an exercise (or all members of its superset group) as fully complete
+  const markExerciseFullyComplete = useCallback((exIdx) => {
+    const group = getSupersetGroup(exIdx);
+    const indicesToComplete = group || [exIdx];
+
+    indicesToComplete.forEach(idx => {
+      const ex = exercises[idx];
+      if (!ex) return;
+      const ns = typeof ex.sets === 'number' ? ex.sets : (Array.isArray(ex.sets) ? ex.sets.length : 3);
+      setCompletedSets(prev => {
+        const updated = { ...prev };
+        updated[idx] = new Set(Array.from({ length: ns }, (_, i) => i));
+        return updated;
+      });
+      persistExerciseData(idx);
+      if (onExerciseComplete && exercises[idx]?.id) {
+        onExerciseComplete(exercises[idx].id);
+      }
+    });
+  }, [exercises, getSupersetGroup, persistExerciseData, onExerciseComplete]);
+
   // Handle "Skip for Good" from deferred review
   const handleDeferredSkipForGood = useCallback((exIdx) => {
-    // Mark all sets as completed
-    const ex = exercises[exIdx];
-    if (!ex) return;
-    const numSets = typeof ex.sets === 'number' ? ex.sets : (Array.isArray(ex.sets) ? ex.sets.length : 3);
-
-    setCompletedSets(prev => {
-      const updated = { ...prev };
-      updated[exIdx] = new Set(Array.from({ length: numSets }, (_, i) => i));
-      return updated;
-    });
-    persistExerciseData(exIdx);
-    if (onExerciseComplete && exercises[exIdx]?.id) {
-      onExerciseComplete(exercises[exIdx].id);
-    }
+    markExerciseFullyComplete(exIdx);
 
     // Remove from queue and check remaining
     const remaining = skippedQueue.filter(i => i !== exIdx);
@@ -1405,9 +1490,15 @@ function GuidedWorkoutModal({
     const activeRemaining = remaining.filter(idx => {
       const e = exercises[idx];
       if (!e) return false;
-      const ns = typeof e.sets === 'number' ? e.sets : (Array.isArray(e.sets) ? e.sets.length : 3);
-      const d = completedSets[idx]?.size || 0;
-      return d < ns;
+      const group = getSupersetGroup(idx);
+      const indicesToCheck = group || [idx];
+      return indicesToCheck.some(gi => {
+        const ge = exercises[gi];
+        if (!ge) return false;
+        const ns = typeof ge.sets === 'number' ? ge.sets : (Array.isArray(ge.sets) ? ge.sets.length : 3);
+        const d = completedSets[gi]?.size || 0;
+        return d < ns;
+      });
     });
 
     if (activeRemaining.length === 0) {
@@ -1421,25 +1512,11 @@ function GuidedWorkoutModal({
         setPhase('complete');
       }
     }
-  }, [skippedQueue, pendingNextExIdx, exercises, onExerciseComplete, persistExerciseData, completedSets]);
+  }, [skippedQueue, pendingNextExIdx, exercises, completedSets, markExerciseFullyComplete, getSupersetGroup]);
 
   // Handle "Skip All & Continue" from deferred review
   const handleDeferredSkipAll = useCallback(() => {
-    skippedQueue.forEach(exIdx => {
-      const ex = exercises[exIdx];
-      if (!ex) return;
-      const numSets = typeof ex.sets === 'number' ? ex.sets : (Array.isArray(ex.sets) ? ex.sets.length : 3);
-      setCompletedSets(prev => {
-        const updated = { ...prev };
-        updated[exIdx] = new Set(Array.from({ length: numSets }, (_, i) => i));
-        return updated;
-      });
-      persistExerciseData(exIdx);
-      if (onExerciseComplete && exercises[exIdx]?.id) {
-        onExerciseComplete(exercises[exIdx].id);
-      }
-    });
-
+    skippedQueue.forEach(exIdx => markExerciseFullyComplete(exIdx));
     setSkippedQueue([]);
 
     if (pendingNextExIdx !== null) {
@@ -1451,7 +1528,7 @@ function GuidedWorkoutModal({
     } else {
       setPhase('complete');
     }
-  }, [skippedQueue, pendingNextExIdx, exercises, onExerciseComplete, persistExerciseData]);
+  }, [skippedQueue, pendingNextExIdx, markExerciseFullyComplete]);
 
   // --- Timer logic ---
   const onTimerComplete = useCallback(() => {
@@ -1488,39 +1565,91 @@ function GuidedWorkoutModal({
       return updated;
     });
 
-    const prevDone = completedSetsRef.current[exIdx]?.size || 0;
-    const newDone = prevDone + 1;
+    const ss = supersetStateRef.current;
 
-    if (newDone >= exInfo.sets) {
-      // All sets done — persist and notify
-      persistExerciseData(exIdx);
-      if (onExerciseComplete && exercises[exIdx]?.id) {
-        onExerciseComplete(exercises[exIdx].id);
+    if (ss) {
+      // --- SUPERSET MODE ---
+      const nextMemberPos = ss.memberPos + 1;
+
+      if (nextMemberPos < ss.groupIndices.length) {
+        // More members in this round — advance to next member (no rest between members)
+        const nextMemberIdx = ss.groupIndices[nextMemberPos];
+        setSupersetState(prev => prev ? { ...prev, memberPos: nextMemberPos } : prev);
+        setCurrentExIndex(nextMemberIdx);
+        setCurrentSetIndex(ss.round);
+        setPhase('get-ready');
+        setTimer(3); // Brief transition between superset members
+      } else {
+        // Last member in round
+        const nextRound = ss.round + 1;
+        if (nextRound < ss.totalRounds) {
+          // More rounds — rest, then back to first member
+          setSupersetState(prev => prev ? { ...prev, round: nextRound, memberPos: 0 } : prev);
+          setPhase('rest');
+          setTimer(exInfo.rest);
+        } else {
+          // Superset COMPLETE — persist all members
+          ss.groupIndices.forEach(idx => {
+            persistExerciseData(idx);
+            if (onExerciseComplete && exercises[idx]?.id) {
+              onExerciseComplete(exercises[idx].id);
+            }
+          });
+          setSupersetState(null);
+          const lastGroupIdx = ss.groupIndices[ss.groupIndices.length - 1];
+          if (isPlayingDeferredRef.current) {
+            returnFromDeferredExercise(ss.groupIndices[0]);
+          } else {
+            advanceToNextExercise(lastGroupIdx);
+          }
+        }
       }
+    } else {
+      // --- NORMAL MODE ---
+      const prevDone = completedSetsRef.current[exIdx]?.size || 0;
+      const newDone = prevDone + 1;
 
-      if (isPlayingDeferredRef.current) {
-        // Finished a deferred exercise — return to review (no inter-exercise rest)
-        returnFromDeferredExercise(exIdx);
-      } else if (exIdx >= exercises.length - 1) {
-        // Last sequential exercise — check for deferred before completing
-        advanceToNextExercise(exIdx);
+      if (newDone >= exInfo.sets) {
+        // All sets done — persist and notify
+        persistExerciseData(exIdx);
+        if (onExerciseComplete && exercises[exIdx]?.id) {
+          onExerciseComplete(exercises[exIdx].id);
+        }
+
+        if (isPlayingDeferredRef.current) {
+          returnFromDeferredExercise(exIdx);
+        } else if (exIdx >= exercises.length - 1) {
+          advanceToNextExercise(exIdx);
+        } else {
+          setPhase('rest');
+          setTimer(exInfo.rest);
+          setCurrentSetIndex(0);
+        }
       } else {
         setPhase('rest');
         setTimer(exInfo.rest);
-        setCurrentSetIndex(0);
+        setCurrentSetIndex(setIdx + 1);
       }
-    } else {
-      setPhase('rest');
-      setTimer(exInfo.rest);
-      setCurrentSetIndex(setIdx + 1);
     }
     setEditingField(null);
   }, [exercises, onExerciseComplete, persistExerciseData, returnFromDeferredExercise, advanceToNextExercise]);
 
   const doAdvanceAfterRest = useCallback((exIdx, setIdx, exInfo) => {
+    const ss = supersetStateRef.current;
+
+    if (ss) {
+      // --- SUPERSET MODE --- after rest, go to first member of the new round
+      const firstMemberIdx = ss.groupIndices[0];
+      setCurrentExIndex(firstMemberIdx);
+      setCurrentSetIndex(ss.round);
+      setPhase('get-ready');
+      setTimer(3);
+      return;
+    }
+
+    // --- NORMAL MODE ---
     const setsDone = completedSetsRef.current[exIdx]?.size || 0;
     if (setsDone >= exInfo.sets) {
-      // All sets done — advance (with phase boundary / deferred check)
       if (isPlayingDeferredRef.current) {
         returnFromDeferredExercise(exIdx);
       } else {
@@ -1597,23 +1726,48 @@ function GuidedWorkoutModal({
         setPhase('exercise');
       }
     } else if (phase === 'exercise') {
-      // Skip entire exercise — still persist whatever they logged
-      setCompletedSets(prev => {
-        const updated = { ...prev };
-        updated[currentExIndex] = new Set(Array.from({ length: info.sets }, (_, i) => i));
-        return updated;
-      });
-      persistExerciseData(currentExIndex);
-      if (onExerciseComplete && currentExercise?.id) {
-        onExerciseComplete(currentExercise.id);
-      }
+      const ss = supersetStateRef.current;
 
-      if (isPlayingDeferredRef.current) {
-        // Permanently skipping a deferred exercise — return to review
-        returnFromDeferredExercise(currentExIndex);
+      if (ss) {
+        // Skip entire superset group
+        ss.groupIndices.forEach(idx => {
+          const e = exercises[idx];
+          if (!e) return;
+          const ns = typeof e.sets === 'number' ? e.sets : (Array.isArray(e.sets) ? e.sets.length : 3);
+          setCompletedSets(prev => {
+            const updated = { ...prev };
+            updated[idx] = new Set(Array.from({ length: ns }, (_, i) => i));
+            return updated;
+          });
+          persistExerciseData(idx);
+          if (onExerciseComplete && exercises[idx]?.id) {
+            onExerciseComplete(exercises[idx].id);
+          }
+        });
+        setSupersetState(null);
+        const lastGroupIdx = ss.groupIndices[ss.groupIndices.length - 1];
+        if (isPlayingDeferredRef.current) {
+          returnFromDeferredExercise(ss.groupIndices[0]);
+        } else {
+          advanceToNextExercise(lastGroupIdx);
+        }
       } else {
-        // Normal flow — advance with phase boundary check
-        advanceToNextExercise(currentExIndex);
+        // Normal skip — persist whatever they logged
+        setCompletedSets(prev => {
+          const updated = { ...prev };
+          updated[currentExIndex] = new Set(Array.from({ length: info.sets }, (_, i) => i));
+          return updated;
+        });
+        persistExerciseData(currentExIndex);
+        if (onExerciseComplete && currentExercise?.id) {
+          onExerciseComplete(currentExercise.id);
+        }
+
+        if (isPlayingDeferredRef.current) {
+          returnFromDeferredExercise(currentExIndex);
+        } else {
+          advanceToNextExercise(currentExIndex);
+        }
       }
     }
   };
@@ -1623,21 +1777,37 @@ function GuidedWorkoutModal({
     if (intervalRef.current) clearInterval(intervalRef.current);
     setEditingField(null);
 
+    // In superset mode — exit superset and go to exercise before the group
+    const ss = supersetStateRef.current;
+    if (ss) {
+      setSupersetState(null);
+      if (isPlayingDeferredRef.current) {
+        setIsPlayingDeferred(false);
+        setPhase('deferred-review');
+        return;
+      }
+      const firstGroupIdx = ss.groupIndices[0];
+      if (firstGroupIdx <= 0) return;
+      setCurrentExIndex(firstGroupIdx - 1);
+      setCurrentSetIndex(0);
+      setPhase('get-ready');
+      setTimer(5);
+      return;
+    }
+
     if (isPlayingDeferredRef.current) {
-      // Return to deferred review without completing
       setIsPlayingDeferred(false);
       setPhase('deferred-review');
       return;
     }
 
-    if (currentExIndex <= 0) return; // Already at first exercise
+    if (currentExIndex <= 0) return;
 
-    // Go to previous exercise
     const prevIdx = currentExIndex - 1;
     setCurrentExIndex(prevIdx);
     setCurrentSetIndex(0);
     setPhase('get-ready');
-    setTimer(5); // Short get-ready countdown
+    setTimer(5);
   };
 
   // Rep-based: user taps Done
@@ -1732,23 +1902,42 @@ function GuidedWorkoutModal({
               const ex = exercises[exIdx];
               const exInfo = getExerciseInfo(exIdx);
               const exPhase = getExercisePhase(ex);
+              const group = getSupersetGroup(exIdx);
               return (
-                <div key={exIdx} className="guided-deferred-card">
+                <div key={exIdx} className={`guided-deferred-card ${group ? 'superset' : ''}`}>
                   <div className="guided-deferred-card-info">
                     <div className="guided-deferred-card-header">
-                      <h3>{ex.name}</h3>
-                      {exPhase !== 'main' && (
-                        <span className={`guided-deferred-phase-tag ${exPhase}`}>
-                          {exPhase === 'warmup' ? 'Warm-Up' : 'Cool-Down'}
-                        </span>
+                      {group ? (
+                        <>
+                          <h3>
+                            <Zap size={14} className="guided-superset-zap" />
+                            Superset {ex.supersetGroup}
+                          </h3>
+                          <span className="guided-deferred-phase-tag superset">
+                            {group.length} exercises
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <h3>{ex.name}</h3>
+                          {exPhase !== 'main' && (
+                            <span className={`guided-deferred-phase-tag ${exPhase}`}>
+                              {exPhase === 'warmup' ? 'Warm-Up' : 'Cool-Down'}
+                            </span>
+                          )}
+                        </>
                       )}
                     </div>
-                    <p>
-                      {exInfo.isTimed
-                        ? `${exInfo.sets} set${exInfo.sets !== 1 ? 's' : ''} \u00D7 ${formatDuration(exInfo.duration)}`
-                        : `${exInfo.sets} set${exInfo.sets !== 1 ? 's' : ''} \u00D7 ${exInfo.reps} reps`
-                      }
-                    </p>
+                    {group ? (
+                      <p>{group.map(idx => exercises[idx]?.name).filter(Boolean).join(' + ')}</p>
+                    ) : (
+                      <p>
+                        {exInfo.isTimed
+                          ? `${exInfo.sets} set${exInfo.sets !== 1 ? 's' : ''} \u00D7 ${formatDuration(exInfo.duration)}`
+                          : `${exInfo.sets} set${exInfo.sets !== 1 ? 's' : ''} \u00D7 ${exInfo.reps} reps`
+                        }
+                      </p>
+                    )}
                   </div>
                   <div className="guided-deferred-card-actions">
                     <button className="guided-deferred-do-now-btn" onClick={() => handleDeferredDoNow(exIdx)}>
@@ -1800,16 +1989,22 @@ function GuidedWorkoutModal({
       {/* Scrollable content area */}
       <div className="guided-scroll-content">
         {/* Phase indicator banner */}
-        {(() => {
-          const phase = currentExercise?.phase || (currentExercise?.isWarmup ? 'warmup' : currentExercise?.isStretch ? 'cooldown' : 'main');
-          if (phase === 'warmup') {
+        {supersetState ? (
+          <div className="guided-phase-banner superset">
+            <Zap size={16} className="guided-superset-zap" />
+            <span className="guided-phase-label">Superset {supersetState.groupKey}</span>
+            <span className="guided-superset-round-badge">Round {supersetState.round + 1}/{supersetState.totalRounds}</span>
+          </div>
+        ) : (() => {
+          const exPhase = currentExercise?.phase || (currentExercise?.isWarmup ? 'warmup' : currentExercise?.isStretch ? 'cooldown' : 'main');
+          if (exPhase === 'warmup') {
             return (
               <div className="guided-phase-banner warmup">
                 <span className="guided-phase-icon">&#x1F525;</span>
                 <span className="guided-phase-label">Warm-Up</span>
               </div>
             );
-          } else if (phase === 'cooldown') {
+          } else if (exPhase === 'cooldown') {
             return (
               <div className="guided-phase-banner cooldown">
                 <span className="guided-phase-icon">&#x1F9CA;</span>
@@ -1825,9 +2020,12 @@ function GuidedWorkoutModal({
         <div className="guided-exercise-number-row">
           <div className="guided-exercise-number">
             {isPlayingDeferred && <span className="guided-deferred-badge">Skipped earlier &middot; </span>}
-            Exercise {currentExIndex + 1} of {exercises.length}
+            {supersetState
+              ? `Exercise ${supersetState.memberPos + 1} of ${supersetState.groupIndices.length}`
+              : `Exercise ${currentExIndex + 1} of ${exercises.length}`
+            }
           </div>
-          {onSwapExercise && (
+          {onSwapExercise && !supersetState && (
             <button className="guided-swap-btn" onClick={handleOpenSwap} type="button">
               <Repeat size={14} />
               <span>Swap</span>
@@ -1841,9 +2039,30 @@ function GuidedWorkoutModal({
             : `${info.sets} set${info.sets !== 1 ? 's' : ''} × ${info.reps} reps`
           }
         </div>
-        <div className="guided-set-indicator">
-          Set {Math.min(currentSetIndex + 1, info.sets)} of {info.sets}
-        </div>
+        {supersetState ? (
+          <div className="guided-set-indicator">
+            Round {supersetState.round + 1} of {supersetState.totalRounds}
+          </div>
+        ) : (
+          <div className="guided-set-indicator">
+            Set {Math.min(currentSetIndex + 1, info.sets)} of {info.sets}
+          </div>
+        )}
+
+        {/* Superset member progress */}
+        {supersetState && (
+          <div className="guided-superset-members">
+            {supersetState.groupIndices.map((idx, i) => (
+              <div
+                key={idx}
+                className={`guided-superset-member ${i === supersetState.memberPos ? 'active' : i < supersetState.memberPos ? 'done' : ''}`}
+              >
+                <span className="guided-superset-member-dot" />
+                <span>{exercises[idx]?.name}</span>
+              </div>
+            ))}
+          </div>
+        )}
         {/* Coach tip buttons - voice note and/or text note */}
         {(currentExercise.voiceNoteUrl || currentExercise.notes) && (
           <div className="guided-coach-tips">
@@ -2171,24 +2390,36 @@ function GuidedWorkoutModal({
         )}
       </div>
 
-      {/* Set dots */}
+      {/* Set dots (round dots in superset mode) */}
       <div className="guided-set-dots">
-        {Array.from({ length: info.sets }, (_, i) => (
-          <div
-            key={i}
-            className={`guided-set-dot ${
-              completedSets[currentExIndex]?.has(i) ? 'done' :
-              i === currentSetIndex ? 'current' : ''
-            }`}
-          />
-        ))}
+        {supersetState ? (
+          Array.from({ length: supersetState.totalRounds }, (_, i) => (
+            <div
+              key={i}
+              className={`guided-set-dot ${
+                i < supersetState.round ? 'done' :
+                i === supersetState.round ? 'current' : ''
+              }`}
+            />
+          ))
+        ) : (
+          Array.from({ length: info.sets }, (_, i) => (
+            <div
+              key={i}
+              className={`guided-set-dot ${
+                completedSets[currentExIndex]?.has(i) ? 'done' :
+                i === currentSetIndex ? 'current' : ''
+              }`}
+            />
+          ))
+        )}
       </div>
 
       {/* Action buttons - now inside scroll area */}
       <div className="guided-actions">
         {phase === 'get-ready' ? (
           <div className="guided-nav-controls">
-            {(currentExIndex > 0 || isPlayingDeferred) && (
+            {(currentExIndex > 0 || isPlayingDeferred || supersetState) && (
               <button className="guided-back-btn" onClick={handleBack}>
                 <SkipBack size={18} /> Back
               </button>
@@ -2208,7 +2439,7 @@ function GuidedWorkoutModal({
           </div>
         ) : phase === 'rest' ? (
           <div className="guided-nav-controls">
-            {(currentExIndex > 0 || isPlayingDeferred) && (
+            {(currentExIndex > 0 || isPlayingDeferred || supersetState) && (
               <button className="guided-back-btn" onClick={handleBack}>
                 <SkipBack size={18} /> Back
               </button>
@@ -2223,7 +2454,7 @@ function GuidedWorkoutModal({
           </div>
         ) : phase === 'exercise' && !info.isTimed ? (
           <div className="guided-exercise-actions">
-            {(currentExIndex > 0 || isPlayingDeferred) && (
+            {(currentExIndex > 0 || isPlayingDeferred || supersetState) && (
               <button className="guided-back-btn" onClick={handleBack}>
                 <SkipBack size={18} /> Back
               </button>
@@ -2243,7 +2474,7 @@ function GuidedWorkoutModal({
           </div>
         ) : phase === 'exercise' && info.isTimed ? (
           <div className="guided-timer-controls">
-            {(currentExIndex > 0 || isPlayingDeferred) && (
+            {(currentExIndex > 0 || isPlayingDeferred || supersetState) && (
               <button className="guided-back-btn" onClick={handleBack}>
                 <SkipBack size={18} /> Back
               </button>
@@ -2265,12 +2496,30 @@ function GuidedWorkoutModal({
       </div>
 
       {/* Up next */}
-      {nextExercise && phase !== 'get-ready' && !isPlayingDeferred && (
-        <div className="guided-up-next">
-          <span className="guided-up-next-label">Up next:</span>
-          <span className="guided-up-next-name">{nextExercise.name}</span>
-        </div>
-      )}
+      {(() => {
+        if (phase === 'get-ready' || isPlayingDeferred) return null;
+        if (supersetState) {
+          // Show next member in superset, or "Rest" if last member in round
+          const nextMemberPos = supersetState.memberPos + 1;
+          if (nextMemberPos < supersetState.groupIndices.length) {
+            const nextMemberName = exercises[supersetState.groupIndices[nextMemberPos]]?.name;
+            return (
+              <div className="guided-up-next superset">
+                <span className="guided-up-next-label">Next in superset:</span>
+                <span className="guided-up-next-name">{nextMemberName}</span>
+              </div>
+            );
+          }
+          return null;
+        }
+        if (!nextExercise) return null;
+        return (
+          <div className="guided-up-next">
+            <span className="guided-up-next-label">Up next:</span>
+            <span className="guided-up-next-name">{nextExercise.name}</span>
+          </div>
+        );
+      })()}
       </div>{/* End scrollable content area */}
 
       {/* Ask AI Chat Modal */}
