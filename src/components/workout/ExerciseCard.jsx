@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, memo } from 'react';
-import { Check, Plus, Clock, ChevronRight, Minus, Play, Timer, Zap, Flame, Leaf, RotateCcw, ArrowLeftRight, Trash2, ChevronUp, ChevronDown, GripVertical, Mic, MicOff } from 'lucide-react';
+import { Check, Plus, Clock, ChevronRight, Minus, Play, Timer, Zap, Flame, Leaf, RotateCcw, ArrowLeftRight, Trash2, ChevronUp, ChevronDown, GripVertical, Mic, MicOff, ExternalLink } from 'lucide-react';
 import SmartThumbnail from './SmartThumbnail';
 import { onAppResume, onAppSuspend } from '../../hooks/useAppLifecycle';
 
@@ -1044,6 +1044,31 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
             />
           </div>
         )}
+
+        {/* Reference Links */}
+        {exercise.reference_links && exercise.reference_links.length > 0 && (
+          <div className="coach-reference-links">
+            <span className="note-label">
+              <ExternalLink size={14} />
+              Reference Links:
+            </span>
+            <div className="reference-links-list">
+              {exercise.reference_links.map((link, idx) => (
+                <a
+                  key={idx}
+                  href={link.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`reference-link-chip ${link.type || 'generic'}`}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <span className="link-type-icon">{link.type === 'youtube' ? '▶' : link.type === 'instagram' ? '📷' : '🔗'}</span>
+                  <span className="link-title">{link.title || 'Link'}</span>
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1070,6 +1095,7 @@ const arePropsEqual = (prev, next) => {
   if (prev.exercise?.phase !== next.exercise?.phase) return false;
   if (prev.exercise?.thumbnail_url !== next.exercise?.thumbnail_url) return false;
   if (prev.exercise?.video_url !== next.exercise?.video_url) return false;
+  if (prev.exercise?.reference_links !== next.exercise?.reference_links) return false;
 
   // Sets: compare by value for numbers, by length+reference for arrays
   const pSets = prev.exercise?.sets;

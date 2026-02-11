@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
-import { X, Check, Plus, ChevronLeft, Play, Timer, BarChart3, ArrowLeftRight, Trash2, Mic, MicOff, Lightbulb, MessageCircle, Loader2, AlertCircle, History, TrendingUp, Award, ChevronDown, ChevronUp, Send, Square, Sparkles } from 'lucide-react';
+import { X, Check, Plus, ChevronLeft, Play, Timer, BarChart3, ArrowLeftRight, Trash2, Mic, MicOff, Lightbulb, MessageCircle, Loader2, AlertCircle, History, TrendingUp, Award, ChevronDown, ChevronUp, Send, Square, Sparkles, ExternalLink } from 'lucide-react';
 import { apiGet, apiPost, apiPut } from '../../utils/api';
 import { onAppSuspend, onAppResume } from '../../hooks/useAppLifecycle';
 import Portal from '../Portal';
@@ -3307,6 +3307,33 @@ function ExerciseDetailModal({
               <span>Coach Note</span>
             </div>
             <p className="coach-note-text">{exercise.notes}</p>
+          </div>
+        )}
+
+        {/* Reference Links */}
+        {exercise.reference_links && exercise.reference_links.length > 0 && (
+          <div className="coach-reference-links-section">
+            <div className="reference-links-header">
+              <ExternalLink size={16} />
+              <span>Reference Links</span>
+            </div>
+            <div className="reference-links-list-modal">
+              {exercise.reference_links.map((link, idx) => (
+                <a
+                  key={idx}
+                  href={link.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`reference-link-row ${link.type || 'generic'}`}
+                >
+                  <span className={`ref-link-icon ${link.type || 'generic'}`}>
+                    {link.type === 'youtube' ? '▶' : link.type === 'instagram' ? '📷' : '🔗'}
+                  </span>
+                  <span className="ref-link-text">{link.title || link.url}</span>
+                  <ExternalLink size={14} className="ref-link-arrow" />
+                </a>
+              ))}
+            </div>
           </div>
         )}
 
