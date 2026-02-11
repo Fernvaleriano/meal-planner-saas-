@@ -5261,6 +5261,7 @@
         let ceVideoRecorder = null;
         let ceVideoChunks = [];
         let ceVideoData = null;
+        let ceVideoBlob = null;
         let ceRecordingInterval = null;
 
         // Helper for authenticated API calls
@@ -8413,8 +8414,13 @@
 
             // Reset video state
             ceVideoData = null;
+            ceVideoBlob = null;
+            const openPreviewEl = document.getElementById('cePreviewVideo');
+            if (openPreviewEl.src && openPreviewEl.src.startsWith('blob:')) {
+                URL.revokeObjectURL(openPreviewEl.src);
+            }
             document.getElementById('ceVideoPreview').classList.remove('visible');
-            document.getElementById('cePreviewVideo').src = '';
+            openPreviewEl.src = '';
             document.getElementById('ceRecordingIndicator').style.display = 'none';
 
             document.getElementById('customExerciseModal').classList.add('active');
@@ -8464,17 +8470,20 @@
                 }
             }
 
-            // Convert to base64
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                ceVideoData = e.target.result;
+            // Store blob directly (avoids memory-intensive base64 conversion)
+            ceVideoBlob = videoFile;
+            ceVideoData = videoFile.type || 'video/webm';
 
-                // Show preview
-                document.getElementById('cePreviewVideo').src = ceVideoData;
-                document.getElementById('ceVideoSize').textContent = `Video ready (${(videoFile.size / 1024 / 1024).toFixed(1)}MB)`;
-                document.getElementById('ceVideoPreview').classList.add('visible');
-            };
-            reader.readAsDataURL(videoFile);
+            // Revoke previous object URL if any
+            const previewEl = document.getElementById('cePreviewVideo');
+            if (previewEl.src && previewEl.src.startsWith('blob:')) {
+                URL.revokeObjectURL(previewEl.src);
+            }
+
+            // Show preview using efficient object URL
+            previewEl.src = URL.createObjectURL(videoFile);
+            document.getElementById('ceVideoSize').textContent = `Video ready (${(videoFile.size / 1024 / 1024).toFixed(1)}MB)`;
+            document.getElementById('ceVideoPreview').classList.add('visible');
 
             // Reset file input
             event.target.value = '';
@@ -8501,17 +8510,20 @@
 
                     const blob = new Blob(ceVideoChunks, { type: 'video/webm' });
 
-                    // Convert to base64
-                    const reader = new FileReader();
-                    reader.onloadend = () => {
-                        ceVideoData = reader.result;
+                    // Store blob directly (avoids memory-intensive base64 conversion)
+                    ceVideoBlob = blob;
+                    ceVideoData = 'video/webm';
 
-                        // Show preview
-                        document.getElementById('cePreviewVideo').src = ceVideoData;
-                        document.getElementById('ceVideoSize').textContent = `Video ready (${(blob.size / 1024 / 1024).toFixed(1)}MB)`;
-                        document.getElementById('ceVideoPreview').classList.add('visible');
-                    };
-                    reader.readAsDataURL(blob);
+                    // Revoke previous object URL if any
+                    const previewEl = document.getElementById('cePreviewVideo');
+                    if (previewEl.src && previewEl.src.startsWith('blob:')) {
+                        URL.revokeObjectURL(previewEl.src);
+                    }
+
+                    // Show preview using efficient object URL
+                    previewEl.src = URL.createObjectURL(blob);
+                    document.getElementById('ceVideoSize').textContent = `Video ready (${(blob.size / 1024 / 1024).toFixed(1)}MB)`;
+                    document.getElementById('ceVideoPreview').classList.add('visible');
 
                     document.getElementById('ceRecordingIndicator').style.display = 'none';
                 };
@@ -8550,8 +8562,13 @@
 
         function removeCEVideo() {
             ceVideoData = null;
+            ceVideoBlob = null;
+            const removePreviewEl = document.getElementById('cePreviewVideo');
+            if (removePreviewEl.src && removePreviewEl.src.startsWith('blob:')) {
+                URL.revokeObjectURL(removePreviewEl.src);
+            }
             document.getElementById('ceVideoPreview').classList.remove('visible');
-            document.getElementById('cePreviewVideo').src = '';
+            removePreviewEl.src = '';
         }
 
         // Custom exercise reference links (temporary storage during creation)
@@ -8622,11 +8639,12 @@
                 let videoFilePath = null;
 
                 // Upload video if provided (using direct upload to Supabase)
-                if (ceVideoData) {
+                if (ceVideoBlob) {
                     saveBtn.innerHTML = '<span class="spinner"></span> Uploading video...';
 
-                    // Determine file extension and content type
-                    const isWebm = ceVideoData.includes('video/webm');
+                    // Determine file extension and content type from the blob
+                    const blobType = ceVideoBlob.type || ceVideoData || 'video/webm';
+                    const isWebm = blobType.includes('webm');
                     const contentType = isWebm ? 'video/webm' : 'video/mp4';
                     const extension = isWebm ? 'webm' : 'mp4';
                     const fileName = `custom-${Date.now()}.${extension}`;
@@ -8646,30 +8664,21 @@
                         throw new Error(uploadUrlResult.error || 'Failed to get upload URL');
                     }
 
-                    // Step 2: Convert base64 to blob
-                    const base64Data = ceVideoData.split(',')[1];
-                    const byteCharacters = atob(base64Data);
-                    const byteNumbers = new Array(byteCharacters.length);
-                    for (let i = 0; i < byteCharacters.length; i++) {
-                        byteNumbers[i] = byteCharacters.charCodeAt(i);
-                    }
-                    const byteArray = new Uint8Array(byteNumbers);
-                    const blob = new Blob([byteArray], { type: contentType });
-
-                    // Step 3: Upload directly to Supabase
+                    // Step 2: Upload blob directly to Supabase (no base64 conversion needed)
                     const uploadResponse = await fetch(uploadUrlResult.uploadUrl, {
                         method: 'PUT',
                         headers: {
                             'Content-Type': contentType
                         },
-                        body: blob
+                        body: ceVideoBlob
                     });
 
                     if (!uploadResponse.ok) {
-                        throw new Error('Failed to upload video to storage');
+                        const errText = await uploadResponse.text().catch(() => '');
+                        throw new Error(`Failed to upload video to storage${errText ? ': ' + errText : ''}`);
                     }
 
-                    // Step 4: Get a signed view URL
+                    // Step 3: Get a signed view URL
                     const signedUrlResult = await apiCall('/.netlify/functions/get-signed-video-url', {
                         method: 'POST',
                         body: JSON.stringify({
@@ -9203,11 +9212,19 @@
                     })
                 });
 
-                await fetch(uploadUrlResult.uploadUrl, {
+                if (!uploadUrlResult.success) {
+                    throw new Error(uploadUrlResult.error || 'Failed to get upload URL');
+                }
+
+                const replaceResponse = await fetch(uploadUrlResult.uploadUrl, {
                     method: 'PUT',
                     headers: { 'Content-Type': videoToUpload.type || 'video/webm' },
                     body: videoToUpload
                 });
+
+                if (!replaceResponse.ok) {
+                    throw new Error('Failed to upload replacement video');
+                }
 
                 showToast('Video replaced!', 'success');
                 loadMyVideos(); // Refresh the list
