@@ -393,6 +393,7 @@ function SetEditorModal({
       weight: currentWeight
     }));
     setLocalSets(newSets);
+    hideKeyboard();
   };
 
   // Handle save
