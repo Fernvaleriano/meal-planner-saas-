@@ -187,6 +187,13 @@ const MOVEMENT_PATTERNS = [
   },
 ];
 
+// Cardio machine patterns where same-type variants (e.g. different speeds) are NOT valid swaps.
+// If someone wants to swap an Elliptical, they don't want another Elliptical variant —
+// they want a genuinely different machine like a Treadmill or Stationary Bike.
+const CARDIO_MACHINE_PATTERNS = new Set([
+  'STAIR_CLIMB', 'CYCLE', 'ROW_CARDIO', 'RUN', 'ELLIPTICAL', 'SWIM',
+]);
+
 // ─── Sub-Pattern Detection (angle, grip, stance) ─────────────────────────────
 // Used for finer-grained scoring: incline bench → incline bench > flat bench > decline bench
 
@@ -279,11 +286,15 @@ function scoreAlternative(original, alt, origMovement, altMovement) {
     score += 100;
     reasons.push('same_movement');
   }
-  // Related movement patterns (+60)
+  // Related movement patterns (+60, or +90 for cardio machine swaps)
   else if (origMovement.pattern && altMovement.pattern) {
     const related = getRelatedPatterns(origMovement.pattern);
     if (related.includes(altMovement.pattern)) {
-      score += 60;
+      // Cardio machines get a higher related-pattern score since same-pattern
+      // variants are excluded — related machines ARE the best swaps
+      const isCardioSwap = CARDIO_MACHINE_PATTERNS.has(origMovement.pattern) &&
+                           CARDIO_MACHINE_PATTERNS.has(altMovement.pattern);
+      score += isCardioSwap ? 90 : 60;
       reasons.push('related_movement');
     }
   }
@@ -408,6 +419,14 @@ function shouldExcludeAlternative(original, alt, origMovement) {
 
   // Exclude current exercise
   if (String(alt.id) === String(original.id)) return true;
+
+  // Exclude same cardio machine type — different speeds/variants of the same
+  // machine are not useful swaps (e.g. Elliptical Fast ↔ Elliptical Normal).
+  // Instead, the user wants a genuinely different cardio machine.
+  if (origMovement.pattern && CARDIO_MACHINE_PATTERNS.has(origMovement.pattern)) {
+    const altMovement = detectMovement(altName);
+    if (altMovement.pattern === origMovement.pattern) return true;
+  }
 
   // Filter out stretches/warmups for strength exercises
   const isStretchOrWarmup = altName.includes('stretch') || altName.includes('warmup') || altName.includes('warm up') || altName.includes('mobility') || altName.includes('foam roll');
@@ -601,6 +620,7 @@ HARD RULES:
 - NEVER suggest an antagonist muscle exercise (no bicep curl for a tricep exercise)
 - NEVER suggest a completely different movement pattern (no pulldown for a row, no fly for a press)
 - NEVER suggest an isolation exercise to replace a compound (unless no compounds available)
+- For CARDIO MACHINES: suggest a DIFFERENT type of machine, not the same machine. If swapping an elliptical, suggest treadmill, bike, rowing machine, etc. — never another elliptical variant.
 - Prefer candidates with HIGHER algorithmic scores — they were pre-scored for movement pattern match
 
 CANDIDATES (pre-scored by algorithm, best matches first):
