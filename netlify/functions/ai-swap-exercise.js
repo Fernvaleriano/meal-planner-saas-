@@ -556,111 +556,100 @@ exports.handler = async (event) => {
       return { statusCode: 200, headers, body: JSON.stringify({ suggestions: [], message: "No alternative exercises available" }) };
     }
 
-    // ─── AI-Powered Ranking with Claude ─────────────────────────────────────
+    // ─── AI-Powered Ranking with GPT-4o-mini ──────────────────────────────────
     let aiSuggestions = [];
 
-    try {
-      if (!ANTHROPIC_API_KEY) {
-        throw new Error("ANTHROPIC_API_KEY not configured - falling back to OpenAI");
-      }
+    const topCandidates = scored.slice(0, 20).map(ex => ({
+      id: ex.id,
+      name: ex.name,
+      muscle_group: ex.muscle_group,
+      equipment: ex.equipment,
+      difficulty: ex.difficulty,
+      score: ex._score,
+      match_reasons: ex._reasons,
+    }));
 
-      const topCandidates = scored.slice(0, 20).map(ex => ({
-        id: ex.id,
-        name: ex.name,
-        muscle_group: ex.muscle_group,
-        equipment: ex.equipment,
-        difficulty: ex.difficulty,
-        score: ex._score,
-        match_reasons: ex._reasons,
-      }));
+    // Build a context-rich prompt
+    const movementDesc = origMovement.pattern ?
+      `Movement pattern: ${origMovement.pattern.replace(/_/g, ' ')}` : 'Movement pattern: unclassified';
+    const subDesc = Object.entries(origMovement.subPatterns)
+      .map(([k, v]) => `${k}: ${v}`).join(', ');
 
-      // Build a context-rich prompt
-      const movementDesc = origMovement.pattern ?
-        `Movement: ${origMovement.pattern.replace(/_/g, ' ')}` : 'Movement: unclassified';
-      const subDesc = Object.entries(origMovement.subPatterns)
-        .map(([k, v]) => `${k}: ${v}`).join(', ');
+    const rankingPrompt = `You are an expert strength & conditioning coach choosing exercise substitutions for a client's workout.
 
-      const prompt = `You are an expert strength & conditioning coach. Select the 5 best exercise substitutions.
-
-REPLACING: "${exerciseName}"
+EXERCISE BEING REPLACED: "${exerciseName}"
 - Muscle group: ${muscleGroup}
 - Equipment: ${exercise.equipment || "bodyweight"}
 - ${movementDesc}${subDesc ? ` (${subDesc})` : ''}
 
-RANKING RULES (strict priority order):
-1. SAME MOVEMENT PATTERN — A row must swap with another row. A squat with another squat. A curl with another curl. This is non-negotiable.
-2. SIMILAR BIOMECHANICS — Same joint angles, same planes of motion. Incline press → incline press > flat press > decline press.
-3. SIMILAR TRAINING STIMULUS — Compound ↔ compound, isolation ↔ isolation. Don't swap a squat for a leg extension.
-4. EQUIPMENT PREFERENCE — Matching equipment is nice but is the LOWEST priority.
+YOUR TASK: From the candidates below, select the 5 BEST substitutions. A good substitution should feel like a natural swap — the client should be training the same muscles through the same movement with similar difficulty.
 
-NEVER recommend:
-- An antagonist muscle exercise (bicep curl for a tricep exercise, or vice versa)
-- A completely different movement pattern (pulldown for a row, fly for a press)
-- An isolation exercise to replace a compound exercise (unless no compounds are available)
+RANKING RULES (strict priority):
+1. SAME MOVEMENT PATTERN is NON-NEGOTIABLE — A squat must swap with another squat variation. A row with another row. A curl with another curl. A press with another press. If the candidate doesn't match the movement pattern, DO NOT select it.
+2. SIMILAR BIOMECHANICS — Prefer same joint angles and planes of motion. Incline press → incline dumbbell press > flat press > decline press. Barbell squat → goblet squat > leg press > lunge.
+3. SIMILAR TRAINING STIMULUS — Compound ↔ compound, isolation ↔ isolation. Don't replace a squat with a leg extension.
+4. EQUIPMENT is the LOWEST priority — Different equipment is fine if the movement pattern matches.
 
-CANDIDATES (pre-scored, ordered by algorithmic match — prefer higher-scored candidates):
+HARD RULES:
+- NEVER suggest an antagonist muscle exercise (no bicep curl for a tricep exercise)
+- NEVER suggest a completely different movement pattern (no pulldown for a row, no fly for a press)
+- NEVER suggest an isolation exercise to replace a compound (unless no compounds available)
+- Prefer candidates with HIGHER algorithmic scores — they were pre-scored for movement pattern match
+
+CANDIDATES (pre-scored by algorithm, best matches first):
 ${JSON.stringify(topCandidates, null, 1)}
 
-Return EXACTLY this JSON — no markdown, no explanation:
+Return ONLY valid JSON, no markdown fences, no explanation:
 {"suggestions":[{"id":123,"name":"Exercise Name","reason":"Coaching reason in 10 words max"}]}
 
-Select 5 exercises. STRONGLY prefer candidates from the top of the list (highest score). Only deviate if you have strong biomechanical justification.`;
+Select exactly 5.`;
 
-      const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
-      const message = await anthropic.messages.create({
-        model: 'claude-haiku-4-20250414',
+    // Primary: GPT-4o-mini — best balance of quality and speed for exercise ranking
+    try {
+      if (!OPENAI_API_KEY) {
+        throw new Error("OPENAI_API_KEY not configured - falling back to Claude");
+      }
+
+      const OpenAI = require('openai');
+      const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
+
+      const completion = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [{ role: 'user', content: rankingPrompt }],
         max_tokens: 512,
-        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.2,
       });
 
-      const responseText = message.content?.[0]?.text || '';
+      const responseText = completion.choices?.[0]?.message?.content || '';
       const jsonMatch = responseText.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         const parsed = JSON.parse(jsonMatch[0]);
         aiSuggestions = parsed.suggestions || [];
-        console.log("AI Swap - Claude returned", aiSuggestions.length, "suggestions");
+        console.log("AI Swap - GPT-4o-mini returned", aiSuggestions.length, "suggestions");
       }
-    } catch (claudeError) {
-      console.error("Claude failed, trying OpenAI fallback:", claudeError.message);
+    } catch (openaiError) {
+      console.error("GPT-4o-mini failed, trying Claude fallback:", openaiError.message);
 
-      // Fallback to OpenAI if Claude fails
+      // Fallback to Claude if OpenAI fails
       try {
-        if (!OPENAI_API_KEY) throw new Error("No OpenAI key either");
+        if (!ANTHROPIC_API_KEY) throw new Error("No Anthropic key either");
 
-        const OpenAI = require('openai');
-        const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
-
-        const topCandidates = scored.slice(0, 20).map(ex => ({
-          id: ex.id,
-          name: ex.name,
-          muscle_group: ex.muscle_group,
-          equipment: ex.equipment,
-          score: ex._score,
-        }));
-
-        const fallbackPrompt = `Expert strength coach: pick the 5 best exercise substitutions for "${exerciseName}" (${muscleGroup}, ${exercise.equipment || "bodyweight"}).
-Movement pattern: ${origMovement.pattern || 'unknown'}. SAME movement pattern is #1 priority. NEVER suggest antagonist muscles.
-
-Candidates (ordered by match quality): ${JSON.stringify(topCandidates)}
-
-Return JSON only: {"suggestions":[{"id":123,"name":"Name","reason":"Brief reason"}]}`;
-
-        const completion = await openai.chat.completions.create({
-          model: 'gpt-4o',
-          messages: [{ role: 'user', content: fallbackPrompt }],
+        const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
+        const message = await anthropic.messages.create({
+          model: 'claude-haiku-4-20250414',
           max_tokens: 512,
-          temperature: 0.2,
+          messages: [{ role: 'user', content: rankingPrompt }],
         });
 
-        const responseText = completion.choices?.[0]?.message?.content || '';
+        const responseText = message.content?.[0]?.text || '';
         const jsonMatch = responseText.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
           const parsed = JSON.parse(jsonMatch[0]);
           aiSuggestions = parsed.suggestions || [];
-          console.log("AI Swap - OpenAI fallback returned", aiSuggestions.length, "suggestions");
+          console.log("AI Swap - Claude fallback returned", aiSuggestions.length, "suggestions");
         }
-      } catch (openaiError) {
-        console.error("OpenAI fallback also failed:", openaiError.message);
+      } catch (claudeError) {
+        console.error("Claude fallback also failed:", claudeError.message);
       }
     }
 
