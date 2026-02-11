@@ -13,6 +13,9 @@ const headers = {
 // Signed URL expiry: 7 days (in seconds)
 const SIGNED_URL_EXPIRY = 7 * 24 * 60 * 60;
 
+// Max file size for coach voice notes: 5MB (~60 seconds of audio)
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
+
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers, body: '' };
@@ -50,6 +53,15 @@ exports.handler = async (event) => {
     // Extract base64 data from data URL
     const base64Data = audioData.split(',')[1];
     const buffer = Buffer.from(base64Data, 'base64');
+
+    // Enforce file size limit (60-second cap)
+    if (buffer.length > MAX_FILE_SIZE) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: 'Voice note exceeds maximum duration (60 seconds)' })
+      };
+    }
 
     // Upload to Supabase storage (PRIVATE bucket)
     const filePath = `voice-notes/${coachId}/${fileName}`;

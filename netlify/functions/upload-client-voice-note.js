@@ -12,6 +12,9 @@ const headers = {
 
 const SIGNED_URL_EXPIRY = 7 * 24 * 60 * 60; // 7 days
 
+// Max file size for client voice notes: 2.5MB (~30 seconds of audio)
+const MAX_FILE_SIZE = 2.5 * 1024 * 1024;
+
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers, body: '' };
@@ -130,6 +133,15 @@ exports.handler = async (event) => {
     // Extract base64 data and content type from data URL
     const base64Data = audioData.split(',')[1];
     const buffer = Buffer.from(base64Data, 'base64');
+
+    // Enforce file size limit (30-second cap)
+    if (buffer.length > MAX_FILE_SIZE) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: 'Voice note exceeds maximum duration (30 seconds)' })
+      };
+    }
 
     // Detect content type from data URL
     const mimeMatch = audioData.match(/^data:(audio\/[^;]+);/);

@@ -131,6 +131,10 @@
 [functions."send-checkin-reminders"]
   schedule = "@hourly"
 
+# Scheduled function - runs daily at 3am UTC to clean up expired client voice notes (7-day TTL)
+[functions."cleanup-expired-voice-notes"]
+  schedule = "0 3 * * *"
+
 # HTTP Caching Headers for optimal performance
 [[headers]]
   for = "/*.js"

@@ -281,6 +281,7 @@ function GuidedWorkoutModal({
   const [isRecordingVoiceNote, setIsRecordingVoiceNote] = useState(false);
   const [voiceNoteUrl, setVoiceNoteUrl] = useState(null);
   const [voiceNoteUploading, setVoiceNoteUploading] = useState(false);
+  const [voiceNoteCountdown, setVoiceNoteCountdown] = useState(0);
 
   // Progressive overload tip state
   const [progressTips, setProgressTips] = useState({}); // { exIndex: { type, icon, title, message } }
@@ -357,6 +358,8 @@ function GuidedWorkoutModal({
   const workoutLogIdRef = useRef(workoutLogId);
   const isMountedRef = useRef(true);
   const exerciseIndexAtRecordStartRef = useRef(null);
+  const voiceNoteTimerRef = useRef(null);
+  const voiceNoteCountdownRef = useRef(null);
 
   // Deferred exercise refs
   const skippedQueueRef = useRef(skippedQueue);
@@ -1292,6 +1295,24 @@ function GuidedWorkoutModal({
 
       mediaRecorder.start();
       setIsRecordingVoiceNote(true);
+
+      // 30-second recording cap with countdown
+      const MAX_DURATION = 30;
+      setVoiceNoteCountdown(MAX_DURATION);
+      voiceNoteCountdownRef.current = setInterval(() => {
+        setVoiceNoteCountdown(prev => {
+          if (prev <= 1) return 0;
+          return prev - 1;
+        });
+      }, 1000);
+      voiceNoteTimerRef.current = setTimeout(() => {
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+          mediaRecorderRef.current.stop();
+        }
+        setIsRecordingVoiceNote(false);
+        clearInterval(voiceNoteCountdownRef.current);
+        setVoiceNoteCountdown(0);
+      }, MAX_DURATION * 1000);
     } catch (err) {
       console.error('Error starting voice recording:', err);
     }
@@ -1302,6 +1323,9 @@ function GuidedWorkoutModal({
       mediaRecorderRef.current.stop();
     }
     setIsRecordingVoiceNote(false);
+    clearTimeout(voiceNoteTimerRef.current);
+    clearInterval(voiceNoteCountdownRef.current);
+    setVoiceNoteCountdown(0);
   }, []);
 
   // Clean up recording on unmount
@@ -1314,6 +1338,8 @@ function GuidedWorkoutModal({
       if (clientNoteTimerRef.current) {
         clearTimeout(clientNoteTimerRef.current);
       }
+      clearTimeout(voiceNoteTimerRef.current);
+      clearInterval(voiceNoteCountdownRef.current);
     };
   }, []);
 
@@ -2411,7 +2437,7 @@ function GuidedWorkoutModal({
                       type="button"
                     >
                       <Square size={16} />
-                      <span>Stop</span>
+                      <span>{voiceNoteCountdown > 0 ? `Stop (${voiceNoteCountdown}s)` : 'Stop'}</span>
                     </button>
                   ) : (
                     <button
@@ -2421,7 +2447,7 @@ function GuidedWorkoutModal({
                       type="button"
                     >
                       <Mic size={16} />
-                      <span>{voiceNoteUploading ? 'Uploading...' : 'Voice Note'}</span>
+                      <span>{voiceNoteUploading ? 'Uploading...' : 'Voice Note (30s)'}</span>
                     </button>
                   )}
                 </div>

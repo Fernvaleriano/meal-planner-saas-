@@ -286,6 +286,9 @@ function ExerciseDetailModal({
       }
       mediaRecorderRef.current = null;
       setIsRecordingVoiceNote(false);
+      clearTimeout(voiceNoteTimerRef.current);
+      clearInterval(voiceNoteCountdownRef.current);
+      setVoiceNoteCountdown(0);
 
       // Stop voice recognition if active
       if (recognitionRef.current) {
@@ -367,6 +370,7 @@ function ExerciseDetailModal({
   const [isRecordingVoiceNote, setIsRecordingVoiceNote] = useState(false);
   const [voiceNoteUrl, setVoiceNoteUrl] = useState(null);
   const [voiceNoteUploading, setVoiceNoteUploading] = useState(false);
+  const [voiceNoteCountdown, setVoiceNoteCountdown] = useState(0);
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const clientNoteTimerRef = useRef(null);
@@ -374,6 +378,8 @@ function ExerciseDetailModal({
   const voiceNotePathRef = useRef(null);
   const isMountedRef = useRef(true);
   const exerciseIdAtRecordStartRef = useRef(null);
+  const voiceNoteTimerRef = useRef(null);
+  const voiceNoteCountdownRef = useRef(null);
   const exerciseRef = useRef(exercise); // Ref to avoid re-creating callbacks when exercise object reference changes
   exerciseRef.current = exercise; // Keep ref in sync
 
@@ -867,6 +873,9 @@ function ExerciseDetailModal({
     setClientNoteSaved(!!savedNote);
     setShowNoteInput(!!savedNote || !!savedVoicePath);
     setIsRecordingVoiceNote(false);
+    clearTimeout(voiceNoteTimerRef.current);
+    clearInterval(voiceNoteCountdownRef.current);
+    setVoiceNoteCountdown(0);
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       mediaRecorderRef.current.stop();
     }
@@ -1188,6 +1197,24 @@ function ExerciseDetailModal({
 
       mediaRecorder.start();
       setIsRecordingVoiceNote(true);
+
+      // 30-second recording cap with countdown
+      const MAX_DURATION = 30;
+      setVoiceNoteCountdown(MAX_DURATION);
+      voiceNoteCountdownRef.current = setInterval(() => {
+        setVoiceNoteCountdown(prev => {
+          if (prev <= 1) return 0;
+          return prev - 1;
+        });
+      }, 1000);
+      voiceNoteTimerRef.current = setTimeout(() => {
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+          mediaRecorderRef.current.stop();
+        }
+        setIsRecordingVoiceNote(false);
+        clearInterval(voiceNoteCountdownRef.current);
+        setVoiceNoteCountdown(0);
+      }, MAX_DURATION * 1000);
     } catch (err) {
       console.error('Error starting voice recording:', err);
     }
@@ -1198,6 +1225,9 @@ function ExerciseDetailModal({
       mediaRecorderRef.current.stop();
     }
     setIsRecordingVoiceNote(false);
+    clearTimeout(voiceNoteTimerRef.current);
+    clearInterval(voiceNoteCountdownRef.current);
+    setVoiceNoteCountdown(0);
   }, []);
 
   // Coaching data state (from database)
@@ -3443,7 +3473,7 @@ function ExerciseDetailModal({
                       type="button"
                     >
                       <Square size={16} />
-                      <span>Stop</span>
+                      <span>{voiceNoteCountdown > 0 ? `Stop (${voiceNoteCountdown}s)` : 'Stop'}</span>
                     </button>
                   ) : (
                     <button
@@ -3453,7 +3483,7 @@ function ExerciseDetailModal({
                       type="button"
                     >
                       <Mic size={16} />
-                      <span>{voiceNoteUploading ? 'Uploading...' : 'Voice Note'}</span>
+                      <span>{voiceNoteUploading ? 'Uploading...' : 'Voice Note (30s)'}</span>
                     </button>
                   )}
                 </div>
