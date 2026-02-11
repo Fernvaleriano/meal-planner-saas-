@@ -4263,11 +4263,32 @@
                     <p style="margin: 0 0 4px 0; color: var(--text-muted); font-size: 12px;">Current exercise:</p>
                     <p style="margin: 0; font-weight: 600;" id="swapCurrentName">-</p>
                 </div>
-                <div style="margin-bottom: 12px;">
-                    <input type="text" id="swapSearchInput" class="form-input" placeholder="Search for alternative exercises..." oninput="filterSwapExercises(this.value)">
+
+                <!-- AI Smart Suggestions -->
+                <div id="swapAISuggestionsSection" style="margin-bottom: 16px;">
+                    <h4 style="margin: 0 0 10px 0; font-size: 13px; color: #10b981; display: flex; align-items: center; gap: 6px;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2">
+                            <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        Smart Suggestions
+                    </h4>
+                    <div id="swapAISuggestionsList">
+                        <div style="padding: 16px; text-align: center; color: var(--text-muted); font-size: 13px;">
+                            <div class="spinner" style="margin: 0 auto 8px; width: 24px; height: 24px; border: 2px solid var(--border-color); border-top-color: #10b981; border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+                            Finding best alternatives...
+                        </div>
+                    </div>
                 </div>
-                <div id="swapExerciseList" class="swap-exercise-list" style="max-height: 400px; overflow-y: auto;">
-                    <!-- Exercise options will be loaded here -->
+
+                <!-- Browse All Section -->
+                <div style="border-top: 1px solid var(--border-color); padding-top: 12px;">
+                    <h4 style="margin: 0 0 10px 0; font-size: 13px; color: var(--text-secondary);">Browse All</h4>
+                    <div style="margin-bottom: 12px;">
+                        <input type="text" id="swapSearchInput" class="form-input" placeholder="Search exercises..." oninput="filterSwapExercises(this.value)">
+                    </div>
+                    <div id="swapExerciseList" class="swap-exercise-list" style="max-height: 300px; overflow-y: auto;">
+                        <!-- Exercise options will be loaded here -->
+                    </div>
                 </div>
             </div>
         </div>
@@ -5706,10 +5727,9 @@
             document.getElementById('swapCurrentName').textContent = currentExercise.name;
             document.getElementById('swapSearchInput').value = '';
 
-            // Filter exercises by same muscle group
+            // Filter exercises by same muscle group for browse section
             const muscleGroup = currentExercise.muscle_group || currentExercise.muscleGroup || '';
 
-            // Get exercises from the same muscle group (excluding current)
             swapExerciseCache = exercises.filter(ex => {
                 const exMuscle = ex.muscle_group || '';
                 const isMatch = exMuscle.toLowerCase() === muscleGroup.toLowerCase() ||
@@ -5719,7 +5739,82 @@
             });
 
             renderSwapExerciseList(swapExerciseCache);
+
+            // Show loading state for AI suggestions
+            const aiContainer = document.getElementById('swapAISuggestionsList');
+            aiContainer.innerHTML = `
+                <div style="padding: 16px; text-align: center; color: var(--text-muted); font-size: 13px;">
+                    <div style="margin: 0 auto 8px; width: 24px; height: 24px; border: 2px solid var(--border-color); border-top-color: #10b981; border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+                    Finding best alternatives...
+                </div>`;
+
             document.getElementById('swapModal').classList.add('active');
+
+            // Fetch AI-powered swap suggestions
+            fetchSwapAISuggestions(currentExercise, dayIndex);
+        }
+
+        async function fetchSwapAISuggestions(currentExercise, dayIndex) {
+            const aiContainer = document.getElementById('swapAISuggestionsList');
+
+            try {
+                // Gather other exercises in this workout day to exclude them
+                const workoutExercises = (workoutDays[dayIndex]?.exercises || []).map(ex => ({
+                    id: ex.id,
+                    name: ex.name
+                }));
+
+                const response = await fetch('/.netlify/functions/ai-swap-exercise', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${currentSession.access_token}`
+                    },
+                    body: JSON.stringify({
+                        exercise: {
+                            id: currentExercise.id,
+                            name: currentExercise.name,
+                            muscle_group: currentExercise.muscle_group || currentExercise.muscleGroup || '',
+                            equipment: currentExercise.equipment || '',
+                            secondary_muscles: currentExercise.secondary_muscles || [],
+                            difficulty: currentExercise.difficulty || '',
+                            exercise_type: currentExercise.exercise_type || ''
+                        },
+                        workoutExercises: workoutExercises,
+                        coachId: currentCoachId
+                    })
+                });
+
+                const data = await response.json();
+
+                // Check if modal is still open (user may have closed it)
+                if (swapDayIndex === null) return;
+
+                if (data.suggestions && data.suggestions.length > 0) {
+                    aiContainer.innerHTML = data.suggestions.map(ex => {
+                        const hasVideo = ex.video_url || ex.animation_url;
+                        const videoSrc = ex.video_url || ex.animation_url;
+                        const thumbHtml = hasVideo
+                            ? `<video class="swap-exercise-thumb" src="${videoSrc}" muted loop playsinline preload="metadata" onmouseenter="this.play().catch(()=>{})" onmouseleave="this.pause()"></video>`
+                            : `<img class="swap-exercise-thumb" src="${ex.thumbnail_url || '/img/exercise-placeholder.svg'}" alt="${ex.name}" onerror="this.src='/img/exercise-placeholder.svg'">`;
+                        return `
+                            <div class="swap-exercise-item" onclick="selectSwapExercise('${ex.id}')" style="border-left: 3px solid #10b981;">
+                                ${thumbHtml}
+                                <div class="swap-exercise-info">
+                                    <div class="swap-exercise-name">${ex.name}</div>
+                                    <div class="swap-exercise-meta">${ex.muscle_group || ''} ${ex.equipment ? '• ' + ex.equipment : ''}</div>
+                                    ${ex.ai_reason ? `<div style="font-size: 11px; color: #10b981; margin-top: 2px;">${ex.ai_reason}</div>` : ''}
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                } else {
+                    aiContainer.innerHTML = '<div style="padding: 12px; text-align: center; color: var(--text-muted); font-size: 13px;">No AI suggestions available</div>';
+                }
+            } catch (err) {
+                console.error('Swap AI suggestions error:', err);
+                aiContainer.innerHTML = '<div style="padding: 12px; text-align: center; color: var(--text-muted); font-size: 13px;">Could not load suggestions</div>';
+            }
         }
 
         function closeSwapModal() {
