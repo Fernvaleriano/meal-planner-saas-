@@ -36,6 +36,7 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
   const isMountedRef = useRef(true);
   const workoutExercisesRef = useRef(workoutExercises);
   const modalContentRef = useRef(null);
+  const fetchIdRef = useRef(0); // Guards against stale/concurrent fetch responses
 
   // Force close handler - used for escape routes (back button, escape key)
   const forceClose = useCallback(() => {
@@ -97,8 +98,12 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
   const exerciseId = exercise?.id;
 
   // Fetch AI-powered suggestions - depends on exerciseId and equipment filter
+  // Uses fetchIdRef to discard responses from stale/concurrent requests
   const fetchSuggestions = useCallback(async (equipmentFilter = '', excludeIds = []) => {
     if (!isMountedRef.current || !exerciseId) return;
+
+    // Increment fetch ID — any response from a previous call will be ignored
+    const myFetchId = ++fetchIdRef.current;
 
     setLoading(true);
     setError(null);
@@ -118,58 +123,34 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
           id: ex?.id,
           name: ex?.name
         })).filter(ex => ex.id),
-        equipment: equipmentFilter, // Pass equipment filter to backend
-        coachId: coachId || null, // Include coach's custom exercises in AI suggestions
-        previousSuggestionIds: excludeIds // Exclude previously shown suggestions on refresh
+        equipment: equipmentFilter,
+        coachId: coachId || null,
+        previousSuggestionIds: excludeIds
       });
 
-      if (!isMountedRef.current) return;
+      // Discard if component unmounted or a newer fetch was started
+      if (!isMountedRef.current || fetchIdRef.current !== myFetchId) return;
 
       if (response?.suggestions && response.suggestions.length > 0) {
         setSuggestions(response.suggestions);
-        // Accumulate shown IDs so next refresh excludes all previously seen
         const newIds = response.suggestions.map(s => s.id).filter(Boolean);
         setPreviousSuggestionIds(prev => [...prev, ...newIds]);
       } else if (excludeIds.length > 0) {
-        // If no new suggestions found after excluding previous ones, reset and show fresh
+        // Exhausted all unique candidates — reset the history so next refresh starts fresh
         setPreviousSuggestionIds([]);
-        setSuggestions([]);
-        // Retry without exclusions
-        const retryResponse = await apiPost('/.netlify/functions/ai-swap-exercise', {
-          exercise: {
-            id: exerciseId,
-            name: exercise?.name,
-            muscle_group: muscleGroup,
-            equipment: exercise?.equipment,
-            secondary_muscles: exercise?.secondary_muscles,
-            difficulty: exercise?.difficulty,
-            exercise_type: exercise?.exercise_type
-          },
-          workoutExercises: (workoutExercisesRef.current || []).map(ex => ({
-            id: ex?.id,
-            name: ex?.name
-          })).filter(ex => ex.id),
-          equipment: equipmentFilter,
-          coachId: coachId || null,
-          previousSuggestionIds: []
-        });
-        if (isMountedRef.current && retryResponse?.suggestions) {
-          setSuggestions(retryResponse.suggestions);
-          const retryIds = retryResponse.suggestions.map(s => s.id).filter(Boolean);
-          setPreviousSuggestionIds(retryIds);
-        }
+        // Keep the current suggestions visible (don't blank them)
       } else {
         setSuggestions([]);
       }
     } catch (err) {
-      if (!isMountedRef.current) return;
+      if (!isMountedRef.current || fetchIdRef.current !== myFetchId) return;
 
       console.error('Error fetching AI suggestions:', err);
       setError('Failed to get suggestions. Please try again.');
       setSuggestions([]);
     }
 
-    if (isMountedRef.current) {
+    if (isMountedRef.current && fetchIdRef.current === myFetchId) {
       setLoading(false);
     }
   }, [exerciseId, exercise?.name, muscleGroup, exercise?.equipment, exercise?.secondary_muscles, exercise?.difficulty, exercise?.exercise_type, coachId]);
