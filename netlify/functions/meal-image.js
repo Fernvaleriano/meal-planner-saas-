@@ -72,6 +72,78 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+// Generate image with Replicate Flux Schnell (cheap/fast model ~$0.003 per image)
+async function generateMealImageCheap(mealName, customPrompt = null) {
+  const prompt = customPrompt
+    ? `Professional food photography: ${customPrompt}. Beautiful presentation. Top-down or 45-degree angle. Soft natural lighting. Appetizing and realistic. No text, words, or labels.`
+    : `Professional food photography of a healthy fitness meal: ${mealName}. Show this as a complete, cohesive plated dish cooked together - NOT separate ingredients laid out. The meal should look like something served at a healthy restaurant. Beautiful presentation. Top-down or 45-degree angle. Soft natural lighting. Appetizing and realistic. No text, words, or labels.`;
+
+  console.log('Using Flux Schnell (cheap) for:', mealName);
+
+  const response = await fetch('https://api.replicate.com/v1/models/black-forest-labs/flux-schnell/predictions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${REPLICATE_API_TOKEN}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'wait'
+    },
+    body: JSON.stringify({
+      input: {
+        prompt: prompt,
+        aspect_ratio: '1:1',
+        num_outputs: 1,
+        output_format: 'png'
+      }
+    })
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    console.error('Replicate Flux Schnell API error:', error);
+    throw new Error(`Replicate API error: ${error}`);
+  }
+
+  const prediction = await response.json();
+  console.log('Flux Schnell prediction status:', prediction.status);
+
+  if (prediction.status === 'succeeded' && prediction.output) {
+    const imageUrl = Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
+    return imageUrl;
+  }
+
+  if (prediction.status === 'processing' || prediction.status === 'starting') {
+    let result = prediction;
+    let attempts = 0;
+    const maxAttempts = 30;
+
+    while (result.status !== 'succeeded' && result.status !== 'failed' && attempts < maxAttempts) {
+      await sleep(1000);
+      attempts++;
+
+      const pollResponse = await fetch(prediction.urls.get, {
+        headers: { 'Authorization': `Bearer ${REPLICATE_API_TOKEN}` }
+      });
+
+      if (!pollResponse.ok) throw new Error('Failed to poll prediction status');
+      result = await pollResponse.json();
+      console.log(`Flux Schnell poll attempt ${attempts}: ${result.status}`);
+    }
+
+    if (result.status === 'succeeded' && result.output) {
+      const imageUrl = Array.isArray(result.output) ? result.output[0] : result.output;
+      return imageUrl;
+    }
+
+    if (result.status === 'failed') {
+      throw new Error(`Image generation failed: ${result.error || 'Unknown error'}`);
+    }
+
+    throw new Error('Image generation timed out');
+  }
+
+  throw new Error(`Unexpected prediction status: ${prediction.status}`);
+}
+
 // Generate image with Replicate Google Imagen 4 Fast
 async function generateMealImage(mealName, customPrompt = null) {
   // Use custom prompt if provided, otherwise generate default prompt from meal name
@@ -254,7 +326,7 @@ exports.handler = async (event, context) => {
       }
 
       const body = JSON.parse(event.body);
-      const { mealName, regenerate, customPrompt } = body;
+      const { mealName, regenerate, customPrompt, cheapModel } = body;
 
       if (!mealName) {
         return {
@@ -335,11 +407,13 @@ exports.handler = async (event, context) => {
         };
       }
 
-      console.log(`Generating image for: ${mealName}${customPrompt ? ' (custom prompt)' : ''}`);
+      console.log(`Generating image for: ${mealName}${customPrompt ? ' (custom prompt)' : ''}${cheapModel ? ' (Flux Schnell)' : ' (Imagen 4)'}`);
       console.log(`Will be stored with key: ${imageKey}`);
 
-      // Generate image with Replicate Imagen 4 Fast
-      const imageUrl = await generateMealImage(mealName, customPrompt);
+      // Use Flux Schnell for swapped/revised meals (cheap), Imagen 4 for initial plans
+      const imageUrl = cheapModel
+        ? await generateMealImageCheap(mealName, customPrompt)
+        : await generateMealImage(mealName, customPrompt);
 
       // Download the generated image
       const imageBuffer = await downloadImage(imageUrl);
