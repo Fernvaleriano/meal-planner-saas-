@@ -37,18 +37,21 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
   const workoutExercisesRef = useRef(workoutExercises);
   const modalContentRef = useRef(null);
   const fetchIdRef = useRef(0); // Guards against stale/concurrent fetch responses
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
-  // Force close handler - used for escape routes (back button, escape key)
+  // Force close handler - uses ref so identity is stable (prevents pushState re-runs)
   const forceClose = useCallback(() => {
     try {
-      onClose?.();
+      onCloseRef.current?.();
     } catch (e) {
       console.error('Error in forceClose:', e);
       window.history.back();
     }
-  }, [onClose]);
+  }, []);
 
   // Handle browser back button - critical for mobile "escape" functionality
+  // Runs ONCE on mount (stable forceClose via ref)
   useEffect(() => {
     const modalState = { modal: 'swap-exercise', timestamp: Date.now() };
     window.history.pushState(modalState, '');
@@ -264,14 +267,14 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
     }
   }, [selecting, onSwap]);
 
-  // Handle close
+  // Handle close — uses ref for stable identity
   const handleClose = useCallback((e) => {
     if (e) {
       e.preventDefault();
       e.stopPropagation();
     }
-    if (onClose) onClose();
-  }, [onClose]);
+    onCloseRef.current?.();
+  }, []);
 
   // Handle overlay click
   const handleOverlayClick = useCallback((e) => {
@@ -422,6 +425,7 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
                     <img
                       src={ex.thumbnail_url || ex.animation_url || '/img/exercise-placeholder.svg'}
                       alt={ex.name || 'Exercise'}
+                      loading="lazy"
                       onError={(e) => { if (!e.target.dataset.fallback) { e.target.dataset.fallback = '1'; e.target.src = '/img/exercise-placeholder.svg'; } }}
                     />
                   </div>
@@ -488,6 +492,7 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
                     <img
                       src={ex.thumbnail_url || ex.animation_url || '/img/exercise-placeholder.svg'}
                       alt={ex.name || 'Exercise'}
+                      loading="lazy"
                       onError={(e) => { if (!e.target.dataset.fallback) { e.target.dataset.fallback = '1'; e.target.src = '/img/exercise-placeholder.svg'; } }}
                     />
                   </div>
@@ -552,6 +557,7 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
                         <img
                           src={ex.thumbnail_url || ex.animation_url || '/img/exercise-placeholder.svg'}
                           alt={ex.name || 'Exercise'}
+                          loading="lazy"
                           onError={(e) => { if (!e.target.dataset.fallback) { e.target.dataset.fallback = '1'; e.target.src = '/img/exercise-placeholder.svg'; } }}
                         />
                       </div>
