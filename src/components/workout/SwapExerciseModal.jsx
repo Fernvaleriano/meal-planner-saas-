@@ -20,6 +20,9 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
   const [error, setError] = useState(null);
   const [selecting, setSelecting] = useState(false);
 
+  // Track all previously shown suggestion IDs so refresh gives new results
+  const [previousSuggestionIds, setPreviousSuggestionIds] = useState([]);
+
   // Equipment filter - affects AI recommendations
   const [selectedEquipment, setSelectedEquipment] = useState('');
 
@@ -94,7 +97,7 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
   const exerciseId = exercise?.id;
 
   // Fetch AI-powered suggestions - depends on exerciseId and equipment filter
-  const fetchSuggestions = useCallback(async (equipmentFilter = '') => {
+  const fetchSuggestions = useCallback(async (equipmentFilter = '', excludeIds = []) => {
     if (!isMountedRef.current || !exerciseId) return;
 
     setLoading(true);
@@ -116,13 +119,45 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
           name: ex?.name
         })).filter(ex => ex.id),
         equipment: equipmentFilter, // Pass equipment filter to backend
-        coachId: coachId || null // Include coach's custom exercises in AI suggestions
+        coachId: coachId || null, // Include coach's custom exercises in AI suggestions
+        previousSuggestionIds: excludeIds // Exclude previously shown suggestions on refresh
       });
 
       if (!isMountedRef.current) return;
 
-      if (response?.suggestions) {
+      if (response?.suggestions && response.suggestions.length > 0) {
         setSuggestions(response.suggestions);
+        // Accumulate shown IDs so next refresh excludes all previously seen
+        const newIds = response.suggestions.map(s => s.id).filter(Boolean);
+        setPreviousSuggestionIds(prev => [...prev, ...newIds]);
+      } else if (excludeIds.length > 0) {
+        // If no new suggestions found after excluding previous ones, reset and show fresh
+        setPreviousSuggestionIds([]);
+        setSuggestions([]);
+        // Retry without exclusions
+        const retryResponse = await apiPost('/.netlify/functions/ai-swap-exercise', {
+          exercise: {
+            id: exerciseId,
+            name: exercise?.name,
+            muscle_group: muscleGroup,
+            equipment: exercise?.equipment,
+            secondary_muscles: exercise?.secondary_muscles,
+            difficulty: exercise?.difficulty,
+            exercise_type: exercise?.exercise_type
+          },
+          workoutExercises: (workoutExercisesRef.current || []).map(ex => ({
+            id: ex?.id,
+            name: ex?.name
+          })).filter(ex => ex.id),
+          equipment: equipmentFilter,
+          coachId: coachId || null,
+          previousSuggestionIds: []
+        });
+        if (isMountedRef.current && retryResponse?.suggestions) {
+          setSuggestions(retryResponse.suggestions);
+          const retryIds = retryResponse.suggestions.map(s => s.id).filter(Boolean);
+          setPreviousSuggestionIds(retryIds);
+        }
       } else {
         setSuggestions([]);
       }
@@ -137,7 +172,7 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
     if (isMountedRef.current) {
       setLoading(false);
     }
-  }, [exerciseId, exercise?.name, muscleGroup, exercise?.equipment, exercise?.secondary_muscles, exercise?.difficulty, exercise?.exercise_type]);
+  }, [exerciseId, exercise?.name, muscleGroup, exercise?.equipment, exercise?.secondary_muscles, exercise?.difficulty, exercise?.exercise_type, coachId]);
 
   // Fetch exercises for browse mode
   const fetchBrowseExercises = useCallback(async (equipment) => {
@@ -192,7 +227,9 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
   // Fetch on mount and when equipment filter changes
   useEffect(() => {
     isMountedRef.current = true;
-    fetchSuggestions(selectedEquipment);
+    // Reset previous suggestions when equipment filter changes (fresh pool)
+    setPreviousSuggestionIds([]);
+    fetchSuggestions(selectedEquipment, []);
 
     return () => {
       isMountedRef.current = false;
@@ -270,10 +307,10 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
     }
   }, []);
 
-  // Handle refresh
+  // Handle refresh - pass previously shown IDs so backend excludes them
   const handleRefresh = useCallback(() => {
-    fetchSuggestions(selectedEquipment);
-  }, [fetchSuggestions, selectedEquipment]);
+    fetchSuggestions(selectedEquipment, previousSuggestionIds);
+  }, [fetchSuggestions, selectedEquipment, previousSuggestionIds]);
 
   // Toggle browse section
   const toggleBrowse = useCallback(() => {
