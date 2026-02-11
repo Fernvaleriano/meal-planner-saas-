@@ -468,7 +468,7 @@ exports.handler = async (event) => {
   }
 
   try {
-    const { exercise, workoutExercises = [], equipment = "", coachId = null } = JSON.parse(event.body);
+    const { exercise, workoutExercises = [], equipment = "", coachId = null, previousSuggestionIds = [] } = JSON.parse(event.body);
 
     if (!exercise) {
       return { statusCode: 400, headers, body: JSON.stringify({ error: "Exercise is required" }) };
@@ -483,7 +483,8 @@ exports.handler = async (event) => {
     console.log("AI Swap - Exercise:", exerciseName, "| Muscle:", muscleGroup,
       "| Pattern:", origMovement.pattern, "| Specific:", origMovement.muscle,
       "| Sub:", JSON.stringify(origMovement.subPatterns),
-      "| Equipment filter:", equipment);
+      "| Equipment filter:", equipment,
+      "| Refresh:", previousSuggestionIds.length > 0 ? `yes (excluding ${previousSuggestionIds.length} previous)` : "no");
 
     // Fetch potential alternatives from database - increased limit for better candidates
     let query = supabase
@@ -518,11 +519,17 @@ exports.handler = async (event) => {
     // Get exercise IDs already in the workout to exclude them
     const workoutExerciseIds = new Set(workoutExercises.map(ex => String(ex.id)).filter(Boolean));
 
+    // Get previously suggested exercise IDs to exclude on refresh
+    const previousIds = new Set((previousSuggestionIds || []).map(id => String(id)).filter(Boolean));
+
     // Filter, score, and sort alternatives
     const scored = [];
     for (const alt of alternatives) {
       // Skip exercises already in workout
       if (workoutExerciseIds.has(String(alt.id))) continue;
+
+      // Skip previously suggested exercises (so refresh gives new results)
+      if (previousIds.has(String(alt.id))) continue;
 
       // Apply exclusion rules (bicep/tricep conflicts, stretches, etc.)
       if (shouldExcludeAlternative(exercise, alt, origMovement)) continue;
@@ -604,6 +611,10 @@ Return ONLY valid JSON, no markdown fences, no explanation:
 
 Select exactly 5.`;
 
+    // Use higher temperature on refresh to get more varied rankings
+    const isRefresh = previousSuggestionIds.length > 0;
+    const aiTemperature = isRefresh ? 0.7 : 0.2;
+
     // Primary: GPT-4o-mini — best balance of quality and speed for exercise ranking
     try {
       if (!OPENAI_API_KEY) {
@@ -617,7 +628,7 @@ Select exactly 5.`;
         model: 'gpt-4o-mini',
         messages: [{ role: 'user', content: rankingPrompt }],
         max_tokens: 512,
-        temperature: 0.2,
+        temperature: aiTemperature,
       });
 
       const responseText = completion.choices?.[0]?.message?.content || '';
@@ -638,6 +649,7 @@ Select exactly 5.`;
         const message = await anthropic.messages.create({
           model: 'claude-haiku-4-20250414',
           max_tokens: 512,
+          temperature: aiTemperature,
           messages: [{ role: 'user', content: rankingPrompt }],
         });
 
