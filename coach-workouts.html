@@ -5768,7 +5768,7 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${currentSession.access_token}`
+                        'Authorization': `Bearer ${currentAccessToken}`
                     },
                     body: JSON.stringify({
                         exercise: {
@@ -7854,7 +7854,7 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${currentSession.access_token}`
+                        'Authorization': `Bearer ${currentAccessToken}`
                     },
                     body: JSON.stringify({
                         exercise: {
