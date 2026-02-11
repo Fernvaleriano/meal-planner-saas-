@@ -5399,8 +5399,10 @@
                     <div class="exercise-drag">
                         ⋮⋮
                         <div class="exercise-move-btns">
+                            <button class="exercise-move-btn" onclick="moveExerciseToTop(${dayIndex}, ${exIndex})" title="Move to top" ${exIndex === 0 ? 'disabled' : ''}>⤒</button>
                             <button class="exercise-move-btn" onclick="moveExercise(${dayIndex}, ${exIndex}, -1)" title="Move up" ${exIndex === 0 ? 'disabled' : ''}>▲</button>
                             <button class="exercise-move-btn" onclick="moveExercise(${dayIndex}, ${exIndex}, 1)" title="Move down" ${exIndex === totalExercises - 1 ? 'disabled' : ''}>▼</button>
+                            <button class="exercise-move-btn" onclick="moveExerciseToBottom(${dayIndex}, ${exIndex})" title="Move to bottom" ${exIndex === totalExercises - 1 ? 'disabled' : ''}>⤓</button>
                         </div>
                     </div>
                     <div class="exercise-thumb-wrap">
@@ -5711,6 +5713,22 @@
 
             const [moved] = exercises.splice(exIndex, 1);
             exercises.splice(newIndex, 0, moved);
+            renderWorkoutDays();
+        }
+
+        function moveExerciseToTop(dayIndex, exIndex) {
+            if (exIndex === 0) return;
+            const exercises = workoutDays[dayIndex].exercises;
+            const [moved] = exercises.splice(exIndex, 1);
+            exercises.unshift(moved);
+            renderWorkoutDays();
+        }
+
+        function moveExerciseToBottom(dayIndex, exIndex) {
+            const exercises = workoutDays[dayIndex].exercises;
+            if (exIndex === exercises.length - 1) return;
+            const [moved] = exercises.splice(exIndex, 1);
+            exercises.push(moved);
             renderWorkoutDays();
         }
 
@@ -6657,7 +6675,7 @@
 
         function addExerciseToDay(exercise) {
             const { isWarmup, isStretch } = detectExerciseType(exercise);
-            workoutDays[currentDayIndex].exercises.push({
+            const newExercise = {
                 id: exercise.id,
                 name: exercise.name,
                 video_url: exercise.video_url,
@@ -6671,7 +6689,27 @@
                 restSeconds: isWarmup ? 30 : isStretch ? 0 : 90,
                 isWarmup,
                 isStretch
-            });
+            };
+
+            const dayExercises = workoutDays[currentDayIndex].exercises;
+
+            if (isWarmup) {
+                // Insert warmups at the top (after any existing warmups)
+                const lastWarmupIndex = dayExercises.reduce((last, ex, i) => ex.isWarmup ? i : last, -1);
+                dayExercises.splice(lastWarmupIndex + 1, 0, newExercise);
+            } else if (isStretch) {
+                // Stretches go at the very end (already default behavior)
+                dayExercises.push(newExercise);
+            } else {
+                // Regular exercises: insert before any stretches at the end
+                const firstStretchIndex = dayExercises.findIndex(ex => ex.isStretch);
+                if (firstStretchIndex !== -1) {
+                    dayExercises.splice(firstStretchIndex, 0, newExercise);
+                } else {
+                    dayExercises.push(newExercise);
+                }
+            }
+
             renderWorkoutDays();
             closeExerciseModal();
             showToast(`Added ${exercise.name}`);
