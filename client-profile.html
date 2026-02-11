@@ -8107,6 +8107,7 @@
         const GET_CLIENT_PLANS_ENDPOINT = '/.netlify/functions/get-client-plans';
         const DELETE_PLAN_ENDPOINT = '/.netlify/functions/delete-coach-plan';
         const PUBLISH_PLAN_ENDPOINT = '/.netlify/functions/publish-plan';
+        const RENAME_PLAN_ENDPOINT = '/.netlify/functions/rename-plan';
         const UPLOAD_PHOTO_ENDPOINT = '/.netlify/functions/upload-progress-photo';
         const GET_PHOTOS_ENDPOINT = '/.netlify/functions/get-progress-photos';
         const DELETE_PHOTO_ENDPOINT = '/.netlify/functions/delete-progress-photo';
@@ -9144,6 +9145,7 @@
                             ${coachNotesPreview}
                         </div>
                         <div class="plan-actions">
+                            <button class="icon-btn" onclick="openRenamePlan(${plan.id}, event)" title="Rename plan">✏️</button>
                             <button class="icon-btn" onclick="deletePlan(${plan.id}, event)" title="Delete plan">🗑️</button>
                         </div>
                     </div>
@@ -14094,6 +14096,99 @@
     </script>
         </div>
     </main>
+    <!-- Rename Plan Modal -->
+    <div id="renamePlanModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:10000; justify-content:center; align-items:center;">
+        <div style="background:#fff; border-radius:16px; padding:24px; width:90%; max-width:400px; box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+            <h3 style="margin:0 0 16px 0; font-size:18px; color:#1e293b;">Rename Diet Plan</h3>
+            <input type="text" id="renamePlanInput" placeholder="Enter new plan name..." maxlength="255"
+                   style="width:100%; padding:12px 14px; border:2px solid #e2e8f0; border-radius:10px; font-size:15px; outline:none; box-sizing:border-box; transition:border-color 0.2s;"
+                   onfocus="this.style.borderColor='#0d9488'" onblur="this.style.borderColor='#e2e8f0'">
+            <div style="display:flex; gap:10px; margin-top:16px; justify-content:flex-end;">
+                <button onclick="closeRenamePlan()" style="padding:10px 20px; border:1px solid #e2e8f0; background:#fff; border-radius:10px; cursor:pointer; font-size:14px; color:#64748b;">Cancel</button>
+                <button onclick="submitRenamePlan()" id="renamePlanSubmitBtn" style="padding:10px 20px; border:none; background:#0d9488; color:#fff; border-radius:10px; cursor:pointer; font-size:14px; font-weight:600;">Rename</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        let renamingPlanId = null;
+
+        function openRenamePlan(planId, event) {
+            event.stopPropagation();
+            renamingPlanId = planId;
+
+            // Pre-fill with the current plan name
+            const plan = clientPlans.find(p => p.id === planId);
+            const planData = plan ? (plan.plan_data || {}) : {};
+            const currentName = plan ? (plan.plan_name || planData.planName || '') : '';
+            const input = document.getElementById('renamePlanInput');
+            input.value = currentName;
+
+            const modal = document.getElementById('renamePlanModal');
+            modal.style.display = 'flex';
+            setTimeout(() => input.focus(), 100);
+
+            // Allow Enter key to submit
+            input.onkeydown = function(e) {
+                if (e.key === 'Enter') submitRenamePlan();
+                if (e.key === 'Escape') closeRenamePlan();
+            };
+        }
+
+        function closeRenamePlan() {
+            document.getElementById('renamePlanModal').style.display = 'none';
+            renamingPlanId = null;
+        }
+
+        async function submitRenamePlan() {
+            const newName = document.getElementById('renamePlanInput').value.trim();
+            if (!newName) {
+                document.getElementById('renamePlanInput').style.borderColor = '#ef4444';
+                return;
+            }
+
+            const btn = document.getElementById('renamePlanSubmitBtn');
+            btn.disabled = true;
+            btn.textContent = 'Saving...';
+
+            try {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                if (!session?.access_token) {
+                    alert('Session expired. Please refresh the page and try again.');
+                    return;
+                }
+
+                const response = await fetch(RENAME_PLAN_ENDPOINT, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${session.access_token}`
+                    },
+                    body: JSON.stringify({
+                        planId: renamingPlanId,
+                        coachId: currentUser.id,
+                        newName: newName
+                    })
+                });
+
+                if (!response.ok) throw new Error('Failed to rename plan');
+
+                closeRenamePlan();
+                await loadPlans(currentClient.id);
+            } catch (error) {
+                console.error('Error renaming plan:', error);
+                alert('Failed to rename plan. Please try again.');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Rename';
+            }
+        }
+
+        // Close modal on backdrop click
+        document.getElementById('renamePlanModal').addEventListener('click', function(e) {
+            if (e.target === this) closeRenamePlan();
+        });
+    </script>
+
     <!-- PWA Install Prompt -->
     <script src="/js/pwa-install-prompt.js"></script>
 </body>
