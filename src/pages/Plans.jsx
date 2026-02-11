@@ -557,7 +557,8 @@ function Plans() {
     setMealImageUrl(meal.image_url || null);
 
     // If no image_url, try to fetch/generate one
-    if (!meal.image_url) {
+    // Skip generation for swapped/revised meals to save on API costs
+    if (!meal.image_url && !meal.skipImageGeneration) {
       setMealImageLoading(true);
       try {
         const response = await apiPost('/.netlify/functions/meal-image', {
@@ -779,8 +780,10 @@ Return ONLY valid JSON:
       newMeal.type = newMeal.type || meal.type || meal.meal_type || 'meal';
       newMeal.meal_type = newMeal.type;
       newMeal.name = newMeal.name || 'New Meal';
-      // Don't copy old image - it's a different meal now. Will fetch new image below.
+      // Don't copy old image - it's a different meal now.
       newMeal.image_url = null;
+      // Skip costly image generation for swapped meals to save on API costs
+      newMeal.skipImageGeneration = true;
 
       // Update the plan with proper immutable updates
       const updatedPlan = { ...selectedPlan };
@@ -905,8 +908,10 @@ Return ONLY valid JSON:
       revisedMeal.meal_type = revisedMeal.type;
       revisedMeal.name = revisedMeal.name || 'Revised Meal';
       revisedMeal.instructions = revisedMeal.instructions || meal.instructions || '';
-      // Don't copy old image - meal name may have changed. Will fetch new image below.
+      // Don't copy old image - meal name may have changed.
       revisedMeal.image_url = null;
+      // Skip costly image generation for revised meals to save on API costs
+      revisedMeal.skipImageGeneration = true;
 
       // Use calculated macros from backend, fallback to original if not provided
       revisedMeal.calories = (revisedMeal.calories !== undefined && revisedMeal.calories !== null && revisedMeal.calories > 0)
