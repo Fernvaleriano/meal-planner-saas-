@@ -167,7 +167,8 @@ exports.handler = async (event) => {
         thumbnailUrl,
         caloriesPerMinute,
         isCompound,
-        isUnilateral
+        isUnilateral,
+        referenceLinks
       } = body;
 
       if (!coachId || !name) {
@@ -195,7 +196,8 @@ exports.handler = async (event) => {
           calories_per_minute: caloriesPerMinute,
           is_compound: isCompound || false,
           is_unilateral: isUnilateral || false,
-          is_custom: true
+          is_custom: true,
+          reference_links: referenceLinks || []
         }])
         .select()
         .single();
@@ -237,6 +239,7 @@ exports.handler = async (event) => {
       if (updateData.caloriesPerMinute !== undefined) updateFields.calories_per_minute = updateData.caloriesPerMinute;
       if (updateData.isCompound !== undefined) updateFields.is_compound = updateData.isCompound;
       if (updateData.isUnilateral !== undefined) updateFields.is_unilateral = updateData.isUnilateral;
+      if (updateData.referenceLinks !== undefined) updateFields.reference_links = updateData.referenceLinks;
 
       const { data: exercise, error } = await supabase
         .from('exercises')

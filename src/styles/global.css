@@ -16071,6 +16071,88 @@ a.nav-left {
     background: rgba(255, 255, 255, 0.1);
 }
 
+/* Coach Reference Links - Card */
+.exercise-card-v2 .coach-reference-links {
+    padding: 10px 14px;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(99, 102, 241, 0.1) 100%);
+    border-top: 1px solid rgba(59, 130, 246, 0.2);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.exercise-card-v2 .coach-reference-links .note-label {
+    color: #60a5fa;
+    font-weight: 600;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.exercise-card-v2 .coach-reference-links .note-label svg {
+    color: #60a5fa;
+}
+
+.exercise-card-v2 .coach-reference-links .reference-links-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.exercise-card-v2 .coach-reference-links .reference-link-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.2s;
+}
+
+.exercise-card-v2 .coach-reference-links .reference-link-chip.youtube {
+    background: rgba(255, 0, 0, 0.15);
+    color: #ff6b6b;
+    border: 1px solid rgba(255, 0, 0, 0.3);
+}
+
+.exercise-card-v2 .coach-reference-links .reference-link-chip.youtube:active {
+    background: rgba(255, 0, 0, 0.3);
+}
+
+.exercise-card-v2 .coach-reference-links .reference-link-chip.instagram {
+    background: rgba(225, 48, 108, 0.15);
+    color: #f472b6;
+    border: 1px solid rgba(225, 48, 108, 0.3);
+}
+
+.exercise-card-v2 .coach-reference-links .reference-link-chip.instagram:active {
+    background: rgba(225, 48, 108, 0.3);
+}
+
+.exercise-card-v2 .coach-reference-links .reference-link-chip.generic {
+    background: rgba(59, 130, 246, 0.15);
+    color: #60a5fa;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.exercise-card-v2 .coach-reference-links .reference-link-chip.generic:active {
+    background: rgba(59, 130, 246, 0.3);
+}
+
+.exercise-card-v2 .coach-reference-links .link-type-icon {
+    font-size: 11px;
+}
+
+.exercise-card-v2 .coach-reference-links .link-title {
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 /* Set Input Fields - Enhanced Layout */
 .exercise-card-v2 .set-item {
     display: grid;
@@ -18183,6 +18265,87 @@ a.nav-left {
     font-size: 14px;
     line-height: 1.5;
     margin: 0;
+}
+
+/* Coach Reference Links Section - Modal */
+.coach-reference-links-section {
+    padding: 16px;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.12) 0%, rgba(99, 102, 241, 0.12) 100%);
+    border-top: 1px solid rgba(59, 130, 246, 0.25);
+    border-bottom: 1px solid rgba(59, 130, 246, 0.25);
+}
+
+.coach-reference-links-section .reference-links-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    color: #60a5fa;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.coach-reference-links-section .reference-links-header svg {
+    color: #60a5fa;
+}
+
+.reference-links-list-modal {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.reference-link-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    text-decoration: none;
+    transition: all 0.2s;
+}
+
+.reference-link-row:active {
+    background: rgba(255, 255, 255, 0.1);
+    transform: scale(0.98);
+}
+
+.reference-link-row .ref-link-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+}
+
+.reference-link-row .ref-link-icon.youtube {
+    background: rgba(255, 0, 0, 0.2);
+}
+
+.reference-link-row .ref-link-icon.instagram {
+    background: rgba(225, 48, 108, 0.2);
+}
+
+.reference-link-row .ref-link-icon.generic {
+    background: rgba(59, 130, 246, 0.2);
+}
+
+.reference-link-row .ref-link-text {
+    flex: 1;
+    font-size: 14px;
+    color: #e2e8f0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.reference-link-row .ref-link-arrow {
+    color: #64748b;
+    flex-shrink: 0;
 }
 
 /* Client Note for Coach Section */
