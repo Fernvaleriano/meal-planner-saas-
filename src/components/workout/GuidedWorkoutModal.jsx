@@ -405,6 +405,7 @@ function GuidedWorkoutModal({
 
   // Check for resume state on mount
   useEffect(() => {
+    console.log('[Play] GuidedWorkoutModal MOUNTED. exercises:', exercises.length, 'currentExercise:', !!currentExercise);
     const saved = loadResumeState();
     if (saved && saved.workoutName === workoutName && saved.exerciseCount === exercises.length) {
       setResumeData(saved);
@@ -2031,6 +2032,7 @@ function GuidedWorkoutModal({
   const strokeDashoffset = circumference * (1 - timerProgress);
 
   if (!currentExercise && phase !== 'complete' && phase !== 'deferred-review') {
+    console.log('[Play] GuidedWorkoutModal fallback: no currentExercise! exercises.length:', exercises.length, 'safeExIndex:', safeExIndex, 'phase:', phase);
     return (
       <div className="guided-workout-overlay">
         <div className="guided-top-bar">

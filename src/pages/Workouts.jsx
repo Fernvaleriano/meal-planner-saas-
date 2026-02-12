@@ -1936,6 +1936,7 @@ function Workouts() {
 
   // Called when user clicks "Begin Workout" on the confirmation screen
   const handleStartGuidedWorkout = useCallback(() => {
+    console.log('[Play] Begin Workout tapped. showGuidedWorkout will be set to true.');
     setShowWorkoutReadyConfirm(false);
     setShowGuidedWorkout(true);
   }, []);
@@ -2314,7 +2315,10 @@ function Workouts() {
   // Get exercises from workout with safety checks
   const exercises = useMemo(() => {
     try {
-      if (!todayWorkout?.workout_data) return [];
+      if (!todayWorkout?.workout_data) {
+        console.log('[Play] exercises useMemo: no workout_data, returning []');
+        return [];
+      }
 
       let rawExercises = [];
 
@@ -2369,7 +2373,7 @@ function Workouts() {
 
       return merged;
     } catch (e) {
-      console.error('Error getting exercises:', e);
+      console.error('[Play] exercises useMemo THREW error:', e);
       return [];
     }
   }, [todayWorkout, workoutLog]);
