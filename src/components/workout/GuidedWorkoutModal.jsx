@@ -466,6 +466,9 @@ function GuidedWorkoutModal({
   // Save progress when closing mid-workout (not when completing)
   const handleCloseWithSave = useCallback(() => {
     if (phase !== 'complete' && currentExIndex > 0) {
+      // Persist all exercise data so reps are visible in regular mode immediately
+      exercises.forEach((_, i) => persistExerciseData(i));
+
       // Serialize completedSets (Sets → arrays)
       const serializedCompleted = {};
       Object.entries(completedSets).forEach(([key, setObj]) => {
@@ -487,7 +490,7 @@ function GuidedWorkoutModal({
       });
     }
     onClose();
-  }, [phase, currentExIndex, currentSetIndex, totalElapsed, completedSets, setLogs, workoutName, exercises.length, currentExercise?.name, onClose, skippedQueue, pendingNextExIdx, supersetState]);
+  }, [phase, currentExIndex, currentSetIndex, totalElapsed, completedSets, setLogs, workoutName, exercises.length, currentExercise?.name, onClose, skippedQueue, pendingNextExIdx, supersetState, exercises, persistExerciseData]);
 
   // --- Swap handlers ---
   const handleOpenSwap = useCallback(() => {
