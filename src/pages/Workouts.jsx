@@ -1166,14 +1166,37 @@ function Workouts() {
       } else if (typeof clean.sets === 'number') {
         clean.sets = Math.min(Math.max(clean.sets, 1), 20);
       }
-      // Debug: log exercise being added to help diagnose freeze issues
-      console.log(`[handleAddExercise] Adding: "${clean.name}" (id=${clean.id})`, {
-        fieldCount: Object.keys(clean).length,
-        sets: clean.sets,
-        video_url: clean.video_url,
-        animation_url: clean.animation_url,
-        thumbnail_url: clean.thumbnail_url
-      });
+
+      // On-screen debug overlay for phone users (temporary)
+      try {
+        const debugDiv = document.getElementById('exercise-debug-overlay') || (() => {
+          const d = document.createElement('div');
+          d.id = 'exercise-debug-overlay';
+          d.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:#1a1a2e;color:#0f0;padding:12px;font-size:11px;max-height:50vh;overflow:auto;font-family:monospace;border-bottom:3px solid #0f0;';
+          const closeBtn = document.createElement('button');
+          closeBtn.textContent = 'X Close Debug';
+          closeBtn.style.cssText = 'position:absolute;top:4px;right:4px;background:#f00;color:#fff;border:none;padding:4px 8px;font-size:12px;border-radius:4px;';
+          closeBtn.onclick = () => d.remove();
+          d.appendChild(closeBtn);
+          document.body.appendChild(d);
+          return d;
+        })();
+        const keys = Object.keys(clean);
+        const dataStr = JSON.stringify(clean);
+        debugDiv.innerHTML += `<div style="margin-top:8px;border-top:1px solid #333;padding-top:4px;">
+          <b style="color:#ff0;">Adding: ${clean.name}</b><br/>
+          id: ${clean.id}<br/>
+          fields (${keys.length}): ${keys.join(', ')}<br/>
+          data size: ${dataStr.length} chars<br/>
+          sets: ${JSON.stringify(clean.sets)}<br/>
+          video_url: ${clean.video_url || 'none'}<br/>
+          animation_url: ${clean.animation_url || 'none'}<br/>
+          thumbnail_url: ${clean.thumbnail_url || 'none'}<br/>
+          muscle_group: ${clean.muscle_group || 'none'}<br/>
+          equipment: ${clean.equipment || 'none'}<br/>
+        </div>`;
+      } catch(e) {}
+
       return clean;
     });
 

@@ -199,23 +199,21 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
   const [lastTranscript, setLastTranscript] = useState('');
   const recognitionRef = useRef(null);
 
-  // Debug: detect re-render loops and log exercise data on mount
+  // Debug: detect re-render loops — show on-screen alert if loop detected
   const renderCountRef = useRef(0);
   renderCountRef.current += 1;
-  if (renderCountRef.current === 1) {
+  if (renderCountRef.current === 50) {
+    // Show on-screen debug overlay for phone users (no console access)
     try {
-      console.log(`[ExerciseCard] Mounted: "${exercise.name}" (id=${exercise.id})`, {
-        sets: exercise.sets, reps: exercise.reps,
-        thumbnail_url: exercise.thumbnail_url, video_url: exercise.video_url,
-        animation_url: exercise.animation_url,
-        fieldCount: Object.keys(exercise).length,
-        dataSize: JSON.stringify(exercise).length
-      });
-    } catch (e) {
-      console.error(`[ExerciseCard] Error logging exercise "${exercise.name}":`, e);
-    }
-  } else if (renderCountRef.current === 50) {
-    console.error(`[ExerciseCard] RE-RENDER LOOP detected for "${exercise.name}" (id=${exercise.id}) — 50+ renders`);
+      const debugDiv = document.getElementById('exercise-debug-overlay') || (() => {
+        const d = document.createElement('div');
+        d.id = 'exercise-debug-overlay';
+        d.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:red;color:white;padding:12px;font-size:13px;max-height:40vh;overflow:auto;';
+        document.body.appendChild(d);
+        return d;
+      })();
+      debugDiv.innerHTML += `<p><b>RE-RENDER LOOP:</b> "${exercise.name}" rendered 50+ times!</p>`;
+    } catch(e) {}
   }
 
   // Check for voice support on mount
