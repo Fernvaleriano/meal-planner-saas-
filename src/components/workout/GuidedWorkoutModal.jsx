@@ -1990,10 +1990,26 @@ function GuidedWorkoutModal({
   };
 
   const handleFinishWorkout = () => {
-    // Persist any remaining exercise data
+    // Build final exercises with actual logged data so the parent has accurate values
+    // for PR detection (avoids race condition with React state updates)
+    const finalExercises = exercises.map((ex, i) => {
+      const logs = setLogsRef.current[i];
+      if (!logs) return ex;
+      const updatedSets = logs.map((log, si) => ({
+        reps: log.reps,
+        weight: log.weight,
+        completed: completedSetsRef.current[i]?.has(si) || false,
+        duration: log.duration,
+        restSeconds: log.restSeconds,
+        effort: log.effort || null
+      }));
+      return { ...ex, sets: updatedSets };
+    });
+
+    // Also persist to parent state for regular view
     exercises.forEach((_, i) => persistExerciseData(i));
     clearResumeState(); // Workout finished, no need to resume
-    if (onWorkoutFinish) onWorkoutFinish();
+    if (onWorkoutFinish) onWorkoutFinish(finalExercises);
     onClose();
   };
 

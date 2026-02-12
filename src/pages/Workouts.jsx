@@ -1916,22 +1916,29 @@ function Workouts() {
   }, []);
 
   // Complete workout - saves exercise_logs with all sets/reps/weight data
-  const handleCompleteWorkout = useCallback(async () => {
+  // exercisesOverride: optional array of exercises with final logged data (from play mode)
+  // to avoid race condition where React state hasn't updated yet
+  const handleCompleteWorkout = useCallback(async (exercisesOverride) => {
     if (!workoutLog?.id) return;
     setShowFinishConfirm(false);
     setCompletingWorkout(true);
 
     try {
-      // Gather current exercises with their set data from todayWorkout
-      const workout = todayWorkoutRef.current;
+      // Use override if provided (from play mode), otherwise read from state
       let currentExercises = [];
-      if (workout?.workout_data) {
-        if (Array.isArray(workout.workout_data.exercises) && workout.workout_data.exercises.length > 0) {
-          currentExercises = workout.workout_data.exercises;
-        } else if (workout.workout_data.days && Array.isArray(workout.workout_data.days)) {
-          const dayIndex = workout.day_index || 0;
-          const safeIndex = Math.abs(dayIndex) % workout.workout_data.days.length;
-          currentExercises = workout.workout_data.days[safeIndex]?.exercises || [];
+      if (exercisesOverride && exercisesOverride.length > 0) {
+        currentExercises = exercisesOverride;
+      } else {
+        // Gather current exercises with their set data from todayWorkout
+        const workout = todayWorkoutRef.current;
+        if (workout?.workout_data) {
+          if (Array.isArray(workout.workout_data.exercises) && workout.workout_data.exercises.length > 0) {
+            currentExercises = workout.workout_data.exercises;
+          } else if (workout.workout_data.days && Array.isArray(workout.workout_data.days)) {
+            const dayIndex = workout.day_index || 0;
+            const safeIndex = Math.abs(dayIndex) % workout.workout_data.days.length;
+            currentExercises = workout.workout_data.days[safeIndex]?.exercises || [];
+          }
         }
       }
 
@@ -2376,12 +2383,13 @@ function Workouts() {
   }, [todayWorkout, totalSets]);
 
   // Handle finish button click - show confirmation if activities are incomplete
-  const handleFinishClick = useCallback(() => {
+  // exercisesOverride: optional array of exercises with final logged data (from play mode)
+  const handleFinishClick = useCallback((exercisesOverride) => {
     if (!workoutLog?.id) return;
-    if (completedExercises.size < exercises.length) {
+    if (completedExercises.size < exercises.length && !exercisesOverride) {
       setShowFinishConfirm(true);
     } else {
-      handleCompleteWorkout();
+      handleCompleteWorkout(exercisesOverride);
     }
   }, [workoutLog?.id, completedExercises.size, exercises.length, handleCompleteWorkout]);
 
