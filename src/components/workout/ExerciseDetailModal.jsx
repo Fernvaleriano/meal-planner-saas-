@@ -2951,21 +2951,12 @@ function ExerciseDetailModal({
                     alt={exercise.name || 'Exercise'}
                     onError={(e) => { e.target.src = '/img/exercise-placeholder.svg'; }}
                   />
-                ) : videoUrl ? (
-                  /* If we only have video, show it as preview (first frame) */
-                  <video
-                    src={`${videoUrl}#t=0.1`}
-                    muted
-                    playsInline
-                    preload="metadata"
-                    poster="/img/exercise-placeholder.svg"
-                    onError={(e) => {
-                      // Don't hide - show placeholder instead
-                      e.target.poster = '/img/exercise-placeholder.svg';
-                      e.target.removeAttribute('src');
-                    }}
-                  />
                 ) : (
+                  /* No image thumbnail available — show placeholder.
+                     Previously loaded the video URL here as <video src={videoUrl}#t=0.1>
+                     but for 4K UHD videos this downloads hundreds of MB just for a
+                     thumbnail preview, freezing the phone. The play button overlay
+                     lets users load the video on demand instead. */
                   <img
                     src="/img/exercise-placeholder.svg"
                     alt={exercise.name || 'Exercise'}
