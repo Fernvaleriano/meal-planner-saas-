@@ -144,10 +144,14 @@ Return ONLY the JSON object, nothing else.`;
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    contents: [{ parts }],
+                    contents: [{ role: 'user', parts }],
                     generationConfig: {
                         temperature: 0.2,
-                        maxOutputTokens: 512
+                        maxOutputTokens: 512,
+                        responseMimeType: 'application/json',
+                        thinkingConfig: {
+                            thinkingBudget: 0
+                        }
                     }
                 })
             });
@@ -172,8 +176,8 @@ Return ONLY the JSON object, nothing else.`;
         const data = await response.json();
         console.log('✅ Gemini response received');
 
-        // Extract response text
-        if (!data.candidates || !data.candidates[0]?.content?.parts?.[0]?.text) {
+        // Extract response text - handle thinking parts from Gemini 2.5+
+        if (!data.candidates || !data.candidates[0]?.content?.parts?.length) {
             console.error('Invalid Gemini response structure:', JSON.stringify(data).substring(0, 500));
             return {
                 statusCode: 500,
@@ -182,7 +186,23 @@ Return ONLY the JSON object, nothing else.`;
             };
         }
 
-        const content = data.candidates[0].content.parts[0].text;
+        // Filter out thinking/thought parts and get the actual output text
+        const allParts = data.candidates[0].content.parts;
+        const outputParts = allParts.filter(p => !p.thought && p.text);
+        const contentPart = outputParts.length > 0
+            ? outputParts[outputParts.length - 1]
+            : allParts.find(p => p.text);
+        const content = contentPart?.text;
+
+        if (!content) {
+            console.error('No text content in Gemini response parts:', JSON.stringify(allParts).substring(0, 500));
+            return {
+                statusCode: 500,
+                headers,
+                body: JSON.stringify({ error: 'Invalid AI response - no text content' })
+            };
+        }
+
         console.log('Gemini response:', content.substring(0, 300));
 
         // Parse the response
