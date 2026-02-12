@@ -439,6 +439,7 @@ function Workouts() {
   const [showAddActivity, setShowAddActivity] = useState(false);
   const [workoutHistory, setWorkoutHistory] = useState([]);
   const [workoutStartTime, setWorkoutStartTime] = useState(null);
+  const [actualDurationMinutes, setActualDurationMinutes] = useState(null); // Actual elapsed duration from play mode (minutes)
 
   // States for reschedule/duplicate functionality
   const [showRescheduleModal, setShowRescheduleModal] = useState(false);
@@ -1917,8 +1918,9 @@ function Workouts() {
 
   // Complete workout - saves exercise_logs with all sets/reps/weight data
   // exercisesOverride: optional array of exercises with final logged data (from play mode)
+  // elapsedSeconds: optional actual elapsed time in seconds (from play mode timer)
   // to avoid race condition where React state hasn't updated yet
-  const handleCompleteWorkout = useCallback(async (exercisesOverride) => {
+  const handleCompleteWorkout = useCallback(async (exercisesOverride, elapsedSeconds) => {
     if (!workoutLog?.id) return;
     setShowFinishConfirm(false);
     setCompletingWorkout(true);
@@ -1965,10 +1967,12 @@ function Workouts() {
           };
         });
 
-      // Calculate duration
-      const durationMinutes = workoutStartTime
-        ? Math.round((new Date() - new Date(workoutStartTime)) / 60000)
-        : null;
+      // Calculate duration — prefer actual elapsed time from play mode timer
+      const durationMinutes = elapsedSeconds && elapsedSeconds > 0
+        ? Math.round(elapsedSeconds / 60)
+        : workoutStartTime
+          ? Math.round((new Date() - new Date(workoutStartTime)) / 60000)
+          : null;
 
       // Use a timeout to ensure the user isn't stuck on the loading screen forever
       const timeoutPromise = new Promise((_, reject) =>
@@ -1995,6 +1999,10 @@ function Workouts() {
 
       // Capture any new PRs from the response
       setWorkoutPRs(result?.prs || []);
+      // Store actual duration from play mode so summary/share displays it correctly
+      if (elapsedSeconds && elapsedSeconds > 0) {
+        setActualDurationMinutes(Math.round(elapsedSeconds / 60));
+      }
       // Clear localStorage completion cache since workout is done
       try {
         const workout = todayWorkoutRef.current;
@@ -2266,11 +2274,12 @@ function Workouts() {
     }
   }, [showError, showSuccess]);
 
-  // Calculate workout duration
+  // Calculate workout duration — prefer actual elapsed time from play mode if available
   const workoutDuration = useMemo(() => {
+    if (actualDurationMinutes && actualDurationMinutes > 0) return actualDurationMinutes;
     if (!workoutStartTime) return 0;
     return Math.floor((new Date() - workoutStartTime) / 60000); // in minutes
-  }, [workoutStartTime, completedExercises]); // Re-calculate when exercises complete
+  }, [workoutStartTime, completedExercises, actualDurationMinutes]); // Re-calculate when exercises complete
 
   // Get exercises from workout with safety checks
   const exercises = useMemo(() => {
@@ -2384,12 +2393,17 @@ function Workouts() {
 
   // Handle finish button click - show confirmation if activities are incomplete
   // exercisesOverride: optional array of exercises with final logged data (from play mode)
-  const handleFinishClick = useCallback((exercisesOverride) => {
+  // elapsedSeconds: optional actual elapsed time in seconds (from play mode timer)
+  const handleFinishClick = useCallback((exercisesOverride, elapsedSeconds) => {
     if (!workoutLog?.id) return;
+    // Store actual duration from play mode timer if provided
+    if (elapsedSeconds && elapsedSeconds > 0) {
+      setActualDurationMinutes(Math.round(elapsedSeconds / 60));
+    }
     if (completedExercises.size < exercises.length && !exercisesOverride) {
       setShowFinishConfirm(true);
     } else {
-      handleCompleteWorkout(exercisesOverride);
+      handleCompleteWorkout(exercisesOverride, elapsedSeconds);
     }
   }, [workoutLog?.id, completedExercises.size, exercises.length, handleCompleteWorkout]);
 
