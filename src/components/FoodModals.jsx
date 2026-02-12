@@ -925,8 +925,8 @@ export function ScanLabelModal({ isOpen, onClose, mealType, clientData, onFoodLo
         protein: nutrition.protein,
         carbs: nutrition.carbs,
         fat: nutrition.fat,
-        servingSize: 1,
-        servingUnit: resultToAdd.servingSize || 'serving',
+        servingSize: resultToAdd.servingSize || 1,
+        servingUnit: resultToAdd.servingUnit || 'serving',
         numberOfServings: servings,
         foodSource: 'nutrition_label'
       });
@@ -1014,8 +1014,8 @@ export function ScanLabelModal({ isOpen, onClose, mealType, clientData, onFoodLo
           ) : result ? (
             <div className="scan-results-section">
               <h3 className="food-detail-name">{result.name || 'Scanned Food'}</h3>
-              {result.servingSize && (
-                <p className="serving-info">Serving size: {result.servingSize}</p>
+              {(result.servingSize || result.servingUnit) && (
+                <p className="serving-info">Serving size: {result.servingSize} {result.servingUnit}</p>
               )}
 
               <div className="servings-adjuster">

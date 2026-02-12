@@ -99,7 +99,7 @@ exports.handler = async (event, context) => {
 
 Look for and extract:
 1. Product name (from the label or packaging if visible)
-2. Serving size (e.g., "1 cup", "2 cookies", "100g")
+2. Serving size as a number and unit separately (e.g., for "1 cup" use servingSize: 1 and servingUnit: "cup", for "2 cookies" use servingSize: 2 and servingUnit: "cookies", for "100g" use servingSize: 100 and servingUnit: "g")
 3. Calories per serving
 4. Protein (in grams)
 5. Total Carbohydrates (in grams)
@@ -108,7 +108,8 @@ Look for and extract:
 Return ONLY a valid JSON object with this exact format (no markdown, no explanation, no code blocks):
 {
   "name": "Product name or generic description",
-  "servingSize": "serving size as shown on label",
+  "servingSize": 1,
+  "servingUnit": "cup",
   "calories": 000,
   "protein": 00,
   "carbs": 00,
@@ -118,7 +119,9 @@ Return ONLY a valid JSON object with this exact format (no markdown, no explanat
 Important:
 - Use the exact values from the label, don't estimate
 - If the product name is not visible, use a generic description based on what you can see
-- Round to whole numbers
+- servingSize must be a number (the numeric portion of the serving size)
+- servingUnit must be a string (the unit portion like "cup", "g", "oz", "cookies", "pieces", "serving")
+- Round calories, protein, carbs, and fat to whole numbers
 - If a value is not visible or unclear, use 0
 - If this is NOT a nutrition label, return: {"error": "No nutrition label detected"}
 
@@ -227,9 +230,28 @@ Return ONLY the JSON object, nothing else.`;
         }
 
         // Validate and clean the data
+        // Handle servingSize: could be a number (new format) or string (legacy format)
+        let servingSize = 1;
+        let servingUnit = 'serving';
+
+        if (typeof result.servingSize === 'number' && result.servingSize > 0) {
+            servingSize = result.servingSize;
+            servingUnit = (result.servingUnit || 'serving').substring(0, 50);
+        } else if (typeof result.servingSize === 'string') {
+            // Parse legacy string format like "1 cup", "2 cookies", "100g"
+            const match = result.servingSize.match(/^([\d.]+)\s*(.+)$/);
+            if (match) {
+                servingSize = parseFloat(match[1]) || 1;
+                servingUnit = match[2].trim().substring(0, 50);
+            } else {
+                servingUnit = result.servingSize.substring(0, 50);
+            }
+        }
+
         const nutritionData = {
             name: (result.name || 'Food Item').substring(0, 100),
-            servingSize: (result.servingSize || '1 serving').substring(0, 50),
+            servingSize: servingSize,
+            servingUnit: servingUnit,
             calories: Math.max(0, Math.round(result.calories || 0)),
             protein: Math.max(0, Math.round(result.protein || 0)),
             carbs: Math.max(0, Math.round(result.carbs || 0)),
