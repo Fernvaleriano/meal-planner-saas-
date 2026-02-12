@@ -2847,11 +2847,7 @@ function Workouts() {
 
       {/* ===== DETAIL VIEW: Hero + Exercises + Finish (shown when a card is tapped) ===== */}
       {expandedWorkout && todayWorkout && (
-        <div
-          className="workout-detail-bg"
-          style={workoutImage ? { backgroundImage: `url(${workoutImage})` } : {}}
-        >
-          <div className="workout-detail-bg-overlay"></div>
+        <>
           {/* Top Navigation Bar with back button */}
           <div className="workout-top-nav">
             <button
@@ -2930,9 +2926,10 @@ function Workouts() {
             </div>
           </div>
 
-          {/* Hero Section */}
+          {/* Hero Section with Image */}
           <div
             className="workout-hero-v3"
+            style={workoutImage ? { backgroundImage: `url(${workoutImage})` } : {}}
           >
             <div className="hero-overlay"></div>
             <div className="hero-content-v3">
@@ -3037,7 +3034,7 @@ function Workouts() {
               <span className="btn-progress">{completedCount}/{totalExercises} activities done</span>
             </button>
           </div>
-        </div>
+        </>
       )}
 
       {/* Exercise Detail Modal - Wrapped in ErrorBoundary */}
