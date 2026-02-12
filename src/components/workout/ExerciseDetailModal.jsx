@@ -827,6 +827,7 @@ function ExerciseDetailModal({
           for (const s of setsData) {
             const w = s.weight || 0;
             const r = s.reps || 0;
+            if (w <= 0) continue; // Skip invalid/zero-weight sets
             const prevBest = bestReps[w] || 0;
             if (r > 0 && prevBest > 0 && r > prevBest) {
               setProgressTip({

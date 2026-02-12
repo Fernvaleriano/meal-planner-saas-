@@ -321,6 +321,7 @@ exports.handler = async (event) => {
                 for (const s of sets) {
                   const w = Number(s.weight) || 0;
                   const r = Number(s.reps) || 0;
+                  if (w <= 0) continue; // Skip invalid/zero-weight sets
                   if (r > (bestRepsAtWeight[w] || 0)) {
                     bestRepsAtWeight[w] = r;
                   }
@@ -396,7 +397,7 @@ exports.handler = async (event) => {
               for (const s of setsData) {
                 const w = Number(s.weight) || 0;
                 const r = Number(s.reps) || 0;
-                if (weightsSeen.has(w) || r <= 0) continue;
+                if (w <= 0 || weightsSeen.has(w) || r <= 0) continue;
                 weightsSeen.add(w);
 
                 // Find best reps at this weight in current session
