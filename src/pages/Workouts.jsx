@@ -3199,7 +3199,7 @@ function Workouts() {
                 </div>
               </div>
             )}
-            <button className="share-results-btn" onClick={() => setShowShareResults(true)}>
+            <button className="share-results-btn" onClick={() => { setShareBgImage(workoutImage); setShowShareResults(true); }}>
               <Share2 size={18} />
               Share results
             </button>
