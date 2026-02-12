@@ -2849,7 +2849,6 @@ function Workouts() {
       {expandedWorkout && todayWorkout && (
         <div
           className="workout-detail-bg"
-          style={workoutImage ? { backgroundImage: `url(${workoutImage})` } : {}}
         >
           <div className="workout-detail-bg-overlay"></div>
           {/* Top Navigation Bar with back button */}
