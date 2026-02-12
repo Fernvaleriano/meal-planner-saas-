@@ -139,7 +139,8 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
   // Handle sets being a number or an array
   const initializeSets = () => {
     if (Array.isArray(exercise.sets) && exercise.sets.length > 0) {
-      const filtered = exercise.sets.filter(Boolean).map(set => ({
+      // Cap at 20 sets to prevent malformed data from causing excessive renders
+      const filtered = exercise.sets.slice(0, 20).filter(Boolean).map(set => ({
         reps: set?.reps || exercise.reps || 12,
         weight: set?.weight || 0,
         completed: set?.completed || false,
@@ -148,7 +149,7 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
       }));
       if (filtered.length > 0) return filtered;
     }
-    const numSets = typeof exercise.sets === 'number' && exercise.sets > 0 ? exercise.sets : 3;
+    const numSets = typeof exercise.sets === 'number' && exercise.sets > 0 ? Math.min(exercise.sets, 20) : 3;
     return Array(numSets).fill(null).map(() => ({
       reps: parseReps(exercise.reps) || 12,
       weight: 0,
@@ -250,18 +251,26 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
   }, []);
 
   // Sync sets when exercise.sets changes (e.g., from SetEditorModal)
+  // Use a ref to track the last synced sets JSON to avoid re-render loops
+  // when the parent recreates exercise objects with new array references but same data.
+  const lastSyncedSetsJsonRef = useRef('');
   useEffect(() => {
-    if (Array.isArray(exercise.sets) && exercise.sets.length > 0) {
-      const newSets = exercise.sets.filter(Boolean).map(set => ({
-        reps: set?.reps || exercise.reps || 12,
-        weight: set?.weight || 0,
-        completed: set?.completed || false,
-        duration: set?.duration || exercise.duration || null,
-        restSeconds: set?.restSeconds || exercise.restSeconds || 60
-      }));
-      if (newSets.length > 0) {
-        setSets(newSets);
-      }
+    if (!Array.isArray(exercise.sets) || exercise.sets.length === 0) return;
+
+    // Compare by value, not reference — parent may create new arrays with same data
+    const incoming = JSON.stringify(exercise.sets);
+    if (incoming === lastSyncedSetsJsonRef.current) return;
+    lastSyncedSetsJsonRef.current = incoming;
+
+    const newSets = exercise.sets.filter(Boolean).map(set => ({
+      reps: set?.reps || exercise.reps || 12,
+      weight: set?.weight || 0,
+      completed: set?.completed || false,
+      duration: set?.duration || exercise.duration || null,
+      restSeconds: set?.restSeconds || exercise.restSeconds || 60
+    }));
+    if (newSets.length > 0) {
+      setSets(newSets);
     }
   }, [exercise.sets, exercise.reps, exercise.duration, exercise.restSeconds]);
 
