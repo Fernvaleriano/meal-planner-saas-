@@ -179,28 +179,43 @@ exports.handler = async (event) => {
         };
       }
 
-      const { data: exercise, error } = await supabase
+      const insertData = {
+        coach_id: coachId,
+        name,
+        description,
+        instructions,
+        muscle_group: muscleGroup,
+        secondary_muscles: secondaryMuscles || [],
+        equipment,
+        exercise_type: exerciseType,
+        difficulty,
+        animation_url: animationUrl,
+        thumbnail_url: thumbnailUrl,
+        calories_per_minute: caloriesPerMinute,
+        is_compound: isCompound || false,
+        is_unilateral: isUnilateral || false,
+        is_custom: true,
+        reference_links: referenceLinks || []
+      };
+
+      let { data: exercise, error } = await supabase
         .from('exercises')
-        .insert([{
-          coach_id: coachId,
-          name,
-          description,
-          instructions,
-          muscle_group: muscleGroup,
-          secondary_muscles: secondaryMuscles || [],
-          equipment,
-          exercise_type: exerciseType,
-          difficulty,
-          animation_url: animationUrl,
-          thumbnail_url: thumbnailUrl,
-          calories_per_minute: caloriesPerMinute,
-          is_compound: isCompound || false,
-          is_unilateral: isUnilateral || false,
-          is_custom: true,
-          reference_links: referenceLinks || []
-        }])
+        .insert([insertData])
         .select()
         .single();
+
+      // If reference_links column doesn't exist in schema cache, retry without it
+      if (error && error.message && error.message.includes("'reference_links'") && error.message.includes('schema cache')) {
+        console.warn('reference_links column not found in schema cache, retrying without it');
+        const { reference_links, ...insertDataWithoutLinks } = insertData;
+        const retryResult = await supabase
+          .from('exercises')
+          .insert([insertDataWithoutLinks])
+          .select()
+          .single();
+        exercise = retryResult.data;
+        error = retryResult.error;
+      }
 
       if (error) throw error;
 
@@ -241,13 +256,28 @@ exports.handler = async (event) => {
       if (updateData.isUnilateral !== undefined) updateFields.is_unilateral = updateData.isUnilateral;
       if (updateData.referenceLinks !== undefined) updateFields.reference_links = updateData.referenceLinks;
 
-      const { data: exercise, error } = await supabase
+      let { data: exercise, error } = await supabase
         .from('exercises')
         .update(updateFields)
         .eq('id', exerciseId)
         .eq('is_custom', true) // Can only update custom exercises
         .select()
         .single();
+
+      // If reference_links column doesn't exist in schema cache, retry without it
+      if (error && error.message && error.message.includes("'reference_links'") && error.message.includes('schema cache')) {
+        console.warn('reference_links column not found in schema cache, retrying update without it');
+        const { reference_links, ...updateFieldsWithoutLinks } = updateFields;
+        const retryResult = await supabase
+          .from('exercises')
+          .update(updateFieldsWithoutLinks)
+          .eq('id', exerciseId)
+          .eq('is_custom', true)
+          .select()
+          .single();
+        exercise = retryResult.data;
+        error = retryResult.error;
+      }
 
       if (error) throw error;
 
