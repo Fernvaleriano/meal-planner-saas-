@@ -456,6 +456,7 @@ function Workouts() {
   const [showCreateWorkout, setShowCreateWorkout] = useState(false);
   const [showClubWorkouts, setShowClubWorkouts] = useState(false);
   const [showGuidedWorkout, setShowGuidedWorkout] = useState(false);
+  const guidedExercisesRef = useRef([]); // Snapshot of exercises when guided workout opens
   const [showFinishConfirm, setShowFinishConfirm] = useState(false);
   const [showBetaBanner, setShowBetaBanner] = useState(() => {
     return !localStorage.getItem('workouts_beta_banner_dismissed');
@@ -1936,9 +1937,15 @@ function Workouts() {
 
   // Called when user clicks "Begin Workout" on the confirmation screen
   const handleStartGuidedWorkout = useCallback(() => {
+    // Snapshot exercises at the moment the user starts guided workout
+    // so a race condition (e.g. workout-log API resolving mid-render)
+    // cannot momentarily empty the exercises array.
+    if (exercises.length > 0) {
+      guidedExercisesRef.current = exercises;
+    }
     setShowWorkoutReadyConfirm(false);
     setShowGuidedWorkout(true);
-  }, []);
+  }, [exercises]);
 
   // Dismiss beta banner and remember choice
   const dismissBetaBanner = useCallback(() => {
@@ -2373,6 +2380,13 @@ function Workouts() {
       return [];
     }
   }, [todayWorkout, workoutLog]);
+
+  // Keep guided-workout exercises snapshot in sync so swaps/updates propagate
+  useEffect(() => {
+    if (showGuidedWorkout && exercises.length > 0) {
+      guidedExercisesRef.current = exercises;
+    }
+  }, [showGuidedWorkout, exercises]);
 
   // Calculate total volume (sets x reps x weight estimate) - AFTER exercises is defined
   const totalVolume = useMemo(() => {
@@ -3143,10 +3157,10 @@ function Workouts() {
       )}
 
       {/* Guided Workout Mode */}
-      {showGuidedWorkout && exercises.length > 0 && (
+      {showGuidedWorkout && (exercises.length > 0 || guidedExercisesRef.current.length > 0) && (
         <ErrorBoundary>
           <GuidedWorkoutModal
-            exercises={exercises}
+            exercises={exercises.length > 0 ? exercises : guidedExercisesRef.current}
             workoutName={todayWorkout?.name || 'Workout'}
             onClose={() => setShowGuidedWorkout(false)}
             onExerciseComplete={(exerciseId) => {

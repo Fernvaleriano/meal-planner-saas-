@@ -2030,8 +2030,6 @@ function GuidedWorkoutModal({
   const timerProgress = Math.min(timer / maxTime, 1);
   const strokeDashoffset = circumference * (1 - timerProgress);
 
-  if (!currentExercise) return null;
-
   // --- Complete screen ---
   if (phase === 'complete') {
     return (
