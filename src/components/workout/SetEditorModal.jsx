@@ -154,7 +154,8 @@ function SetEditorModal({
   sets,
   onSave,
   onClose,
-  isTimedExercise
+  isTimedExercise,
+  weightUnit = 'lbs'
 }) {
   const [editMode, setEditMode] = useState(isTimedExercise ? 'time' : 'reps');
   const [localSets, setLocalSets] = useState(sets.map(s => ({ ...s, rpe: s.rpe || null })));
@@ -475,7 +476,7 @@ function SetEditorModal({
             {isListening && (
               <div className="voice-listening">
                 <div className="voice-pulse"></div>
-                <span>Listening... Say something like "12 reps at 50 kilos"</span>
+                <span>Listening... Say something like "12 reps at {weightUnit === 'kg' ? '50 kilos' : '135 pounds'}"</span>
               </div>
             )}
             {lastTranscript && !isListening && (
@@ -551,7 +552,7 @@ function SetEditorModal({
                 >
                   {set.weight || 0}
                 </button>
-                <span className="set-unit">kg</span>
+                <span className="set-unit">{weightUnit}</span>
                 <button className="set-delete-btn" onClick={() => deleteSet(index)}>
                   <X size={14} />
                 </button>

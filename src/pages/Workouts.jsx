@@ -411,6 +411,9 @@ function Workouts() {
   const { clientData, user } = useAuth();
   const navigate = useNavigate();
   const { showError, showSuccess } = useToast();
+
+  // User's preferred weight unit (default to lbs for imperial)
+  const weightUnit = clientData?.unit_preference === 'metric' ? 'kg' : 'lbs';
   const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [weekDates, setWeekDates] = useState(() => getWeekDates(new Date()));
   const [todayWorkout, setTodayWorkout] = useState(null);
@@ -1946,7 +1949,7 @@ function Workouts() {
               setNumber: sIdx + 1,
               reps: s?.reps || 0,
               weight: s?.weight || 0,
-              weightUnit: s?.weightUnit || 'kg',
+              weightUnit: s?.weightUnit || weightUnit,
               rpe: s?.rpe || null,
               restSeconds: s?.restSeconds || 60,
               completed: s?.completed || false
@@ -2336,7 +2339,7 @@ function Workouts() {
     return volume;
   }, [exercises]);
 
-  // Calculate total lifted weight (kg) and total sets
+  // Calculate total lifted weight and total sets
   const totalLifted = useMemo(() => {
     let lifted = 0;
     exercises.forEach(ex => {
@@ -2437,7 +2440,7 @@ function Workouts() {
         if (shareToggles.duration) activeToggles.push({ label: 'Duration', value: dur });
         if (shareToggles.calories) activeToggles.push({ label: 'Calories', value: String(estimatedCalories) });
         if (shareToggles.activities) activeToggles.push({ label: 'Activities', value: String(exercises.length) });
-        if (shareToggles.lifted && totalLifted > 0) activeToggles.push({ label: 'Lifted (kg)', value: totalLifted.toLocaleString() });
+        if (shareToggles.lifted && totalLifted > 0) activeToggles.push({ label: `Lifted (${weightUnit})`, value: totalLifted.toLocaleString() });
         if (shareToggles.sets) activeToggles.push({ label: 'Sets', value: String(totalSets) });
 
         if (activeToggles.length > 0) {
@@ -3005,6 +3008,7 @@ function Workouts() {
                       isFirst={index === 0}
                       isLast={index === exercises.length - 1}
                       onUpdateExercise={handleUpdateExercise}
+                      weightUnit={weightUnit}
                     />
                   </ErrorBoundary>
                 );
@@ -3055,6 +3059,7 @@ function Workouts() {
             workoutLogId={workoutLog?.id || null}
             selectedDate={selectedDate}
             readinessData={readinessData}
+            weightUnit={weightUnit}
           />
         </ErrorBoundary>
       )}
@@ -3097,7 +3102,7 @@ function Workouts() {
             coachId={clientData?.coach_id}
             workoutLogId={workoutLog?.id}
             selectedDate={selectedDate}
-            weightUnit={clientData?.unit_preference === 'metric' ? 'kg' : 'lbs'}
+            weightUnit={weightUnit}
             genderPreference={clientData?.preferred_exercise_gender || 'all'}
           />
         </ErrorBoundary>
@@ -3163,7 +3168,7 @@ function Workouts() {
               </div>
               <div className="summary-stat-card">
                 <span className="stat-value">{totalLifted > 0 ? totalLifted.toLocaleString() : '--'}</span>
-                <span className="stat-label">Lifted (kg)</span>
+                <span className="stat-label">Lifted ({weightUnit})</span>
               </div>
               <div className="summary-stat-card full">
                 <span className="stat-value">{totalSets}</span>
@@ -3240,7 +3245,7 @@ function Workouts() {
                     {shareToggles.lifted && totalLifted > 0 && (
                       <div className="share-stat">
                         <span className="share-stat-value">{totalLifted.toLocaleString()}</span>
-                        <span className="share-stat-label">Lifted (kg)</span>
+                        <span className="share-stat-label">Lifted ({weightUnit})</span>
                       </div>
                     )}
                     {shareToggles.sets && (
@@ -3287,7 +3292,7 @@ function Workouts() {
                 { key: 'duration', label: 'Duration', value: formatDuration(workoutDuration || todayWorkout?.workout_data?.estimatedMinutes || 45) },
                 { key: 'calories', label: 'Calories', value: estimatedCalories },
                 { key: 'activities', label: 'Activities', value: exercises.length },
-                { key: 'lifted', label: 'Lifted', value: `${totalLifted > 0 ? totalLifted.toLocaleString() : 0} kg` },
+                { key: 'lifted', label: 'Lifted', value: `${totalLifted > 0 ? totalLifted.toLocaleString() : 0} ${weightUnit}` },
                 { key: 'sets', label: 'Sets', value: totalSets },
                 ...(workoutPRs.length > 0 ? [{ key: 'prs', label: 'New PRs', value: `${workoutPRs.length} PR${workoutPRs.length !== 1 ? 's' : ''}` }] : [])
               ].map(({ key, label, value }) => (

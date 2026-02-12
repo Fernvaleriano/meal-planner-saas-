@@ -190,7 +190,8 @@ function ExerciseDetailModal({
   clientId = null, // Client ID for fetching exercise history
   workoutLogId = null, // Existing workout log ID for auto-saving exercise logs
   selectedDate = null, // Date the client is viewing (may be a past date)
-  readinessData = null // Pre-workout readiness: { energy: 1-3, soreness: 1-3, sleep: 1-3 }
+  readinessData = null, // Pre-workout readiness: { energy: 1-3, soreness: 1-3, sleep: 1-3 }
+  weightUnit = 'lbs' // User's preferred weight unit: 'lbs' or 'kg'
 }) {
   // Force close handler that always works - used for escape routes
   const forceClose = useCallback(() => {
@@ -594,14 +595,14 @@ function ExerciseDetailModal({
             type: 'deload',
             icon: '\u{1F6E1}\u{FE0F}',
             title: 'Easy day — recover smart',
-            message: `You're tired and sore. Drop to ${Math.round(lastMaxWeight * 0.8)} kg, slow tempo, focus on form.`,
+            message: `You're tired and sore. Drop to ${Math.round(lastMaxWeight * 0.8)} ${weightUnit}, slow tempo, focus on form.`,
           };
         } else if (readiness === 'low') {
           tip = {
             type: 'deload',
             icon: '\u{1F6E1}\u{FE0F}',
             title: 'Listen to your body',
-            message: `Low energy today. Stay at ${lastMaxWeight} kg, focus on controlled reps and good form.`,
+            message: `Low energy today. Stay at ${lastMaxWeight} ${weightUnit}, focus on controlled reps and good form.`,
           };
 
         // 2. RPE was near-max last session — hold steady regardless of readiness
@@ -610,17 +611,17 @@ function ExerciseDetailModal({
             type: 'build_reps',
             icon: '\u{1F6E1}\u{FE0F}',
             title: 'Near your limit',
-            message: `RPE ${avgRpe} on ${dateLabel} — you were grinding. Stay at ${lastMaxWeight} kg, clean reps.`,
+            message: `RPE ${avgRpe} on ${dateLabel} — you were grinding. Stay at ${lastMaxWeight} ${weightUnit}, clean reps.`,
           };
 
         // 3. HIGH readiness + well recovered + hit target reps → increase weight
         } else if (readiness === 'high' && wellRecovered && allSetsHitTarget && lastMaxWeight > 0) {
-          const increment = lastMaxWeight >= 80 ? 5 : 2.5;
+          const increment = weightUnit === 'kg' ? (lastMaxWeight >= 80 ? 5 : 2.5) : (lastMaxWeight >= 175 ? 10 : 5);
           tip = {
             type: 'increase_weight',
             icon: '\u{1F525}',
             title: 'Go heavier today',
-            message: `You're fresh and hit ${lastMaxReps} reps @ ${lastMaxWeight} kg on ${dateLabel}. Try ${lastMaxWeight + increment} kg.`,
+            message: `You're fresh and hit ${lastMaxReps} reps @ ${lastMaxWeight} ${weightUnit} on ${dateLabel}. Try ${lastMaxWeight + increment} ${weightUnit}.`,
           };
 
         // 4. HIGH readiness + not fully recovered → add reps or set instead of weight
@@ -630,7 +631,7 @@ function ExerciseDetailModal({
               type: 'add_set',
               icon: '\u{1F4AA}',
               title: 'Add volume',
-              message: `Feeling strong but still recovering. Stay at ${lastMaxWeight} kg and add an extra set.`,
+              message: `Feeling strong but still recovering. Stay at ${lastMaxWeight} ${weightUnit} and add an extra set.`,
             };
           } else {
             const targetReps = Math.min(lastMaxReps + 2, 15);
@@ -638,18 +639,18 @@ function ExerciseDetailModal({
               type: 'add_reps',
               icon: '\u{1F4AA}',
               title: 'Push the reps',
-              message: `Good energy today. Aim for ${targetReps} reps @ ${lastMaxWeight} kg.`,
+              message: `Good energy today. Aim for ${targetReps} reps @ ${lastMaxWeight} ${weightUnit}.`,
             };
           }
 
         // 5. HIGH readiness + low RPE last session → weight bump
         } else if (readiness === 'high' && hasRpe && avgRpe <= 6.5 && lastMaxWeight > 0) {
-          const increment = lastMaxWeight >= 80 ? 5 : 2.5;
+          const increment = weightUnit === 'kg' ? (lastMaxWeight >= 80 ? 5 : 2.5) : (lastMaxWeight >= 175 ? 10 : 5);
           tip = {
             type: 'increase_weight',
             icon: '\u{1F525}',
             title: 'You had more in the tank',
-            message: `RPE ${avgRpe} on ${dateLabel} and you're feeling great. Bump to ${lastMaxWeight + increment} kg.`,
+            message: `RPE ${avgRpe} on ${dateLabel} and you're feeling great. Bump to ${lastMaxWeight + increment} ${weightUnit}.`,
           };
 
         // 6. Plateau detected — suggest changing stimulus
@@ -658,7 +659,7 @@ function ExerciseDetailModal({
             type: 'plateau',
             icon: '\u{26A1}',
             title: 'Switch it up',
-            message: `Same weight for 3 sessions. Try slower tempo, shorter rest, or add an extra set at ${lastMaxWeight} kg.`,
+            message: `Same weight for 3 sessions. Try slower tempo, shorter rest, or add an extra set at ${lastMaxWeight} ${weightUnit}.`,
           };
 
         // 7. NORMAL readiness + hit target reps → add a set first, then weight
@@ -668,7 +669,7 @@ function ExerciseDetailModal({
             type: 'add_set',
             icon: '\u{1F4C8}',
             title: 'Add a set',
-            message: `You did ${lastTotalSets}×${lastMaxReps} at ${lastMaxWeight} kg on ${dateLabel}. Try ${targetSets}×${lastMaxReps} at ${lastMaxWeight} kg today before going heavier.`,
+            message: `You did ${lastTotalSets}×${lastMaxReps} at ${lastMaxWeight} ${weightUnit} on ${dateLabel}. Try ${targetSets}×${lastMaxReps} at ${lastMaxWeight} ${weightUnit} today before going heavier.`,
           };
 
         // 8. NORMAL readiness + struggling → build reps
@@ -677,7 +678,7 @@ function ExerciseDetailModal({
             type: 'build_reps',
             icon: '\u{1F4AA}',
             title: 'Build your reps',
-            message: `On ${dateLabel}: ${lastMaxReps} reps @ ${lastMaxWeight} kg. Aim for ${Math.min(lastMaxReps + 2, 12)} reps at the same weight.`,
+            message: `On ${dateLabel}: ${lastMaxReps} reps @ ${lastMaxWeight} ${weightUnit}. Aim for ${Math.min(lastMaxReps + 2, 12)} reps at the same weight.`,
           };
 
         // 9. NORMAL readiness + mid-range reps → add 1 rep
@@ -687,7 +688,7 @@ function ExerciseDetailModal({
             type: 'add_reps',
             icon: '\u{1F4C8}',
             title: 'Keep progressing',
-            message: `On ${dateLabel}: ${lastMaxReps} reps @ ${lastMaxWeight} kg. Aim for ${targetReps} reps this session.`,
+            message: `On ${dateLabel}: ${lastMaxReps} reps @ ${lastMaxWeight} ${weightUnit}. Aim for ${targetReps} reps this session.`,
           };
 
         // 10. Bodyweight exercise — no weight tracked
@@ -782,7 +783,7 @@ function ExerciseDetailModal({
           setNumber: i + 1,
           reps: s.reps || 0,
           weight: s.weight || 0,
-          weightUnit: s.weightUnit || 'kg',
+          weightUnit: s.weightUnit || weightUnit,
           rpe: s.rpe || null,
           restSeconds: s.restSeconds || null,
           isTimeBased: s.isTimeBased || false
@@ -814,7 +815,7 @@ function ExerciseDetailModal({
             type: 'new_pr',
             icon: '\u{1F3C6}',
             title: 'New Personal Record!',
-            message: `You just hit ${currentMaxWeight} kg — up from ${previousMax} kg. Keep pushing!`,
+            message: `You just hit ${currentMaxWeight} ${weightUnit} — up from ${previousMax} ${weightUnit}. Keep pushing!`,
           });
           allTimeMaxWeightRef.current = currentMaxWeight;
           prDetected = true;
@@ -833,7 +834,7 @@ function ExerciseDetailModal({
                 icon: '\u{1F3C6}',
                 title: 'New Rep Record!',
                 message: w > 0
-                  ? `${r} reps at ${w} kg — beat your previous best of ${prevBest} reps!`
+                  ? `${r} reps at ${w} ${weightUnit} — beat your previous best of ${prevBest} reps!`
                   : `${r} reps — beat your previous best of ${prevBest} reps!`,
               });
               bestReps[w] = r; // Update so it doesn't re-trigger
@@ -1137,7 +1138,7 @@ function ExerciseDetailModal({
                 setNumber: i + 1,
                 reps: s.reps || 0,
                 weight: s.weight || 0,
-                weightUnit: s.weightUnit || 'kg',
+                weightUnit: s.weightUnit || weightUnit,
                 rpe: s.rpe || null,
                 restSeconds: s.restSeconds || null,
                 isTimeBased: s.isTimeBased || false
@@ -2327,7 +2328,7 @@ function ExerciseDetailModal({
 
         if (!parsed.understood) {
           // Schedule error message outside of this updater
-          setTimeout(() => setVoiceError('Could not understand. Try: "12 reps 50 kg" or "done"'), 0);
+          setTimeout(() => setVoiceError(`Could not understand. Try: "12 reps ${weightUnit === 'kg' ? '50 kg' : '135 lbs'}" or "done"`), 0);
           return prevSets;
         }
 
@@ -2616,19 +2617,20 @@ function ExerciseDetailModal({
         let recommendedSets = lastNumSets;
         let reasoning = '';
 
+        const recIncrement = weightUnit === 'kg' ? 2.5 : 5;
         if (lastMaxReps >= 12) {
           // Hit 12+ reps, time to increase weight
-          recommendedWeight = lastMaxWeight + 2.5;
+          recommendedWeight = lastMaxWeight + recIncrement;
           recommendedReps = 8;
-          reasoning = `You hit ${lastMaxReps} reps @ ${lastMaxWeight}kg on ${dateLabel}. Increase weight, drop to 8 reps.`;
+          reasoning = `You hit ${lastMaxReps} reps @ ${lastMaxWeight} ${weightUnit} on ${dateLabel}. Increase weight, drop to 8 reps.`;
         } else if (lastMaxReps < 8) {
           // Under 8 reps, keep same weight and aim to increase reps
           recommendedReps = lastMaxReps + 1;
-          reasoning = `Last session: ${lastMaxReps} reps @ ${lastMaxWeight}kg. Aim for ${recommendedReps} reps.`;
+          reasoning = `Last session: ${lastMaxReps} reps @ ${lastMaxWeight} ${weightUnit}. Aim for ${recommendedReps} reps.`;
         } else {
           // 8-11 reps, progressive increase
           recommendedReps = lastMaxReps + 1;
-          reasoning = `On ${dateLabel}: ${lastMaxReps} reps @ ${lastMaxWeight}kg. Aim for ${recommendedReps} reps.`;
+          reasoning = `On ${dateLabel}: ${lastMaxReps} reps @ ${lastMaxWeight} ${weightUnit}. Aim for ${recommendedReps} reps.`;
         }
 
         if (cancelled) return;
@@ -2991,12 +2993,12 @@ function ExerciseDetailModal({
                   {isTimedExercise ? (
                     <>
                       <span className="reps-value">{formatDuration(set?.duration || exercise.duration)}</span>
-                      {set?.weight > 0 && <span className="weight-value">{set.weight} kg</span>}
+                      {set?.weight > 0 && <span className="weight-value">{set.weight} {weightUnit}</span>}
                     </>
                   ) : (
                     <>
                       <span className="reps-value">{parseReps(set?.reps || exercise.reps)}x</span>
-                      <span className="weight-value">{set?.weight || 0} kg</span>
+                      <span className="weight-value">{set?.weight || 0} {weightUnit}</span>
                     </>
                   )}
                 </div>
@@ -3074,7 +3076,7 @@ function ExerciseDetailModal({
               <span className="coaching-rec-value-divider">@</span>
               <div className="coaching-rec-value-item">
                 <span className="coaching-rec-value-number">{coachingRecommendation.weight || '—'}</span>
-                <span className="coaching-rec-value-label">kg</span>
+                <span className="coaching-rec-value-label">{weightUnit}</span>
               </div>
             </div>
 
@@ -3082,7 +3084,7 @@ function ExerciseDetailModal({
 
             {coachingRecommendation.lastSession && (
               <div className="coaching-rec-last-session">
-                <span>Last: {coachingRecommendation.lastSession.reps} reps @ {coachingRecommendation.lastSession.weight}kg</span>
+                <span>Last: {coachingRecommendation.lastSession.reps} reps @ {coachingRecommendation.lastSession.weight} {weightUnit}</span>
                 <span className="coaching-rec-last-date">{coachingRecommendation.lastSession.date}</span>
               </div>
             )}
@@ -3173,7 +3175,7 @@ function ExerciseDetailModal({
                     {allTimeMax > 0 && (
                       <div className="history-pr-banner">
                         <Award size={18} />
-                        <span className="history-pr-value">{allTimeMax} kg</span>
+                        <span className="history-pr-value">{allTimeMax} {weightUnit}</span>
                         {prDate && <span className="history-pr-date">{prDate}</span>}
                       </div>
                     )}
@@ -3207,7 +3209,7 @@ function ExerciseDetailModal({
                       {best1RM && (
                         <div className="history-stat-pill">
                           <TrendingUp size={14} />
-                          <span>Est. 1RM: {best1RM} kg</span>
+                          <span>Est. 1RM: {best1RM} {weightUnit}</span>
                         </div>
                       )}
                       {historyStats?.totalWorkouts > 0 && (
@@ -3254,7 +3256,7 @@ function ExerciseDetailModal({
                                       <span className="history-set-num">Set {sIdx + 1}</span>
                                       <span className="history-set-reps">{s.reps || 0} x</span>
                                       {s.weight > 0 && (
-                                        <span className="history-set-weight">{s.weight} kg</span>
+                                        <span className="history-set-weight">{s.weight} {weightUnit}</span>
                                       )}
                                     </div>
                                   ))}
@@ -3539,6 +3541,7 @@ function ExerciseDetailModal({
             isTimedExercise={isTimedExercise}
             onSave={handleSaveSets}
             onClose={() => setShowSetEditor(false)}
+            weightUnit={weightUnit}
           />
         </Portal>
       )}
