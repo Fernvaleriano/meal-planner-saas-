@@ -12933,48 +12933,13 @@ a.nav-left {
     transform: scale(0.98);
 }
 
-/* Workout Detail Background - Full page background image */
-.workout-detail-bg {
-    position: relative;
-    min-height: 100vh;
-    background-size: cover;
-    background-position: center top;
-    background-repeat: no-repeat;
-    background-color: #000;
-}
-
-.workout-detail-bg-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(to bottom,
-        rgba(0, 0, 0, 0.3) 0%,
-        rgba(0, 0, 0, 0.65) 40%,
-        rgba(0, 0, 0, 0.85) 100%);
-    pointer-events: none;
-    z-index: 0;
-}
-
-.workout-detail-bg > *:not(.workout-detail-bg-overlay) {
-    position: relative;
-    z-index: 1;
-}
-
-.workout-detail-bg .workout-top-nav {
-    background: rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-}
-
 /* Hero Section V3 - With Background Image */
 .workout-hero-v3 {
     position: relative;
     min-height: 280px;
     background-size: cover;
     background-position: center;
-    background-color: transparent;
+    background-color: #1a1a1a;
     display: flex;
     align-items: flex-end;
     padding: 24px 20px;
@@ -12986,7 +12951,7 @@ a.nav-left {
     left: 0;
     right: 0;
     bottom: 0;
-    background: linear-gradient(to top, rgba(0, 0, 0, 0.5) 0%, rgba(0, 0, 0, 0.1) 60%, transparent 100%);
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.4) 50%, rgba(0, 0, 0, 0.2) 100%);
     pointer-events: none;
 }
 
@@ -16388,24 +16353,6 @@ a.nav-left {
 /* Main page background */
 [data-theme="light"] .workouts-page-v2 {
     background: #f8fafc;
-}
-
-/* Detail view background - light mode keeps image with lighter overlay */
-[data-theme="light"] .workout-detail-bg {
-    background-color: #f8fafc;
-}
-
-[data-theme="light"] .workout-detail-bg-overlay {
-    background: linear-gradient(to bottom,
-        rgba(248, 250, 252, 0.3) 0%,
-        rgba(248, 250, 252, 0.7) 40%,
-        rgba(248, 250, 252, 0.9) 100%);
-}
-
-[data-theme="light"] .workout-detail-bg .workout-top-nav {
-    background: rgba(255, 255, 255, 0.6);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
 }
 
 /* Top navigation */
