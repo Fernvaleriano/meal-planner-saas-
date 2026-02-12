@@ -494,7 +494,15 @@ function SetEditorModal({
         <div className="editor-exercise-info">
           <div className="editor-exercise-thumb">
             <img
-              src={exercise.thumbnail_url || exercise.animation_url || '/img/exercise-placeholder.svg'}
+              src={(() => {
+                // Use thumbnail if it's a real image (not a video URL)
+                const thumb = exercise.thumbnail_url;
+                if (thumb && !/\.mp4|\.webm|\.mov/i.test(thumb.split('?')[0])) return thumb;
+                // Skip animation_url if it's a video — loading .mp4 as <img> downloads the entire file
+                const anim = exercise.animation_url;
+                if (anim && !/\.mp4|\.webm|\.mov/i.test(anim.split('?')[0])) return anim;
+                return '/img/exercise-placeholder.svg';
+              })()}
               alt={exercise.name}
               onError={(e) => { e.target.src = '/img/exercise-placeholder.svg'; }}
             />

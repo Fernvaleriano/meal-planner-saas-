@@ -131,28 +131,6 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
     return null;
   }
 
-  // Re-render loop breaker: if this component renders 100+ times rapidly,
-  // show a static fallback instead of freezing the entire app
-  const renderCountRef = useRef(0);
-  const renderResetTimerRef = useRef(null);
-  renderCountRef.current += 1;
-  if (renderCountRef.current > 100) {
-    return (
-      <div style={{ padding: 16, background: '#2a1a1a', borderRadius: 12, marginBottom: 8, border: '1px solid #f44' }}>
-        <p style={{ color: '#f88', fontSize: 14, margin: 0 }}>
-          {exercise.name || 'Exercise'} — rendering issue detected. Try removing and re-adding this exercise.
-        </p>
-      </div>
-    );
-  }
-  // Reset counter after 200ms of quiet — only counts rapid consecutive renders
-  if (!renderResetTimerRef.current) {
-    renderResetTimerRef.current = setTimeout(() => {
-      renderCountRef.current = 0;
-      renderResetTimerRef.current = null;
-    }, 200);
-  }
-
   // Check for special exercise types - with defensive checks
   const isSuperset = exercise.isSuperset && exercise.supersetGroup;
   const isWarmup = exercise.isWarmup;
