@@ -2540,7 +2540,8 @@ function Workouts() {
           ctx.fillStyle = '#e5e7eb';
           workoutPRs.forEach((pr, i) => {
             if (i < 3) { // Max 3 PRs to fit in the card
-              ctx.fillText(`${pr.exerciseName}: ${pr.weight} ${pr.unit} x${pr.reps}`, width / 2, prStartY + 24 + i * 20);
+              const prText = pr.weight > 0 ? `${pr.weight} ${pr.unit} x${pr.reps}` : `${pr.reps} reps`;
+              ctx.fillText(`${pr.exerciseName}: ${prText}`, width / 2, prStartY + 24 + i * 20);
             }
           });
         }
@@ -3337,7 +3338,7 @@ function Workouts() {
                       </div>
                       {workoutPRs.map((pr, idx) => (
                         <div key={idx} className="share-pr-item">
-                          {pr.exerciseName}: {pr.weight} {pr.unit} x{pr.reps}
+                          {pr.exerciseName}: {pr.weight > 0 ? `${pr.weight} ${pr.unit} x${pr.reps}` : `${pr.reps} reps`}
                         </div>
                       ))}
                     </div>
