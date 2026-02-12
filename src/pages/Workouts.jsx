@@ -1148,8 +1148,34 @@ function Workouts() {
     if (!newExerciseOrArray) return;
 
     // Normalize to array
-    const newExercises = Array.isArray(newExerciseOrArray) ? newExerciseOrArray : [newExerciseOrArray];
-    if (newExercises.length === 0) return;
+    const rawExercises = Array.isArray(newExerciseOrArray) ? newExerciseOrArray : [newExerciseOrArray];
+    if (rawExercises.length === 0) return;
+
+    // Sanitize exercises: strip large text fields that bloat workout_data
+    // and ensure sets is always a clean number or array to prevent render loops
+    const newExercises = rawExercises.map(ex => {
+      const clean = { ...ex };
+      // Remove large text fields that aren't needed in workout_data
+      delete clean.instructions;
+      delete clean.tips;
+      delete clean.created_at;
+      delete clean.updated_at;
+      // Ensure sets is a valid number or array (cap at 20)
+      if (Array.isArray(clean.sets)) {
+        clean.sets = clean.sets.slice(0, 20);
+      } else if (typeof clean.sets === 'number') {
+        clean.sets = Math.min(Math.max(clean.sets, 1), 20);
+      }
+      // Debug: log exercise being added to help diagnose freeze issues
+      console.log(`[handleAddExercise] Adding: "${clean.name}" (id=${clean.id})`, {
+        fieldCount: Object.keys(clean).length,
+        sets: clean.sets,
+        video_url: clean.video_url,
+        animation_url: clean.animation_url,
+        thumbnail_url: clean.thumbnail_url
+      });
+      return clean;
+    });
 
     const workout = todayWorkoutRef.current;
 

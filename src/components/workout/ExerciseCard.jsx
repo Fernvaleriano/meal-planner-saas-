@@ -199,6 +199,25 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
   const [lastTranscript, setLastTranscript] = useState('');
   const recognitionRef = useRef(null);
 
+  // Debug: detect re-render loops and log exercise data on mount
+  const renderCountRef = useRef(0);
+  renderCountRef.current += 1;
+  if (renderCountRef.current === 1) {
+    try {
+      console.log(`[ExerciseCard] Mounted: "${exercise.name}" (id=${exercise.id})`, {
+        sets: exercise.sets, reps: exercise.reps,
+        thumbnail_url: exercise.thumbnail_url, video_url: exercise.video_url,
+        animation_url: exercise.animation_url,
+        fieldCount: Object.keys(exercise).length,
+        dataSize: JSON.stringify(exercise).length
+      });
+    } catch (e) {
+      console.error(`[ExerciseCard] Error logging exercise "${exercise.name}":`, e);
+    }
+  } else if (renderCountRef.current === 50) {
+    console.error(`[ExerciseCard] RE-RENDER LOOP detected for "${exercise.name}" (id=${exercise.id}) — 50+ renders`);
+  }
+
   // Check for voice support on mount
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -254,15 +273,35 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
   // Use a ref to track the last synced sets JSON to avoid re-render loops
   // when the parent recreates exercise objects with new array references but same data.
   const lastSyncedSetsJsonRef = useRef('');
+  const syncCountRef = useRef(0);
   useEffect(() => {
     if (!Array.isArray(exercise.sets) || exercise.sets.length === 0) return;
 
+    // Safety: cap syncs to prevent infinite re-render loops from malformed data
+    syncCountRef.current += 1;
+    if (syncCountRef.current > 10) {
+      console.warn('[ExerciseCard] Sync loop detected for exercise:', exercise.name, exercise.id, '— skipping');
+      return;
+    }
+    // Reset sync counter after a tick (only counts rapid consecutive syncs)
+    const resetTimer = setTimeout(() => { syncCountRef.current = 0; }, 100);
+
     // Compare by value, not reference — parent may create new arrays with same data
-    const incoming = JSON.stringify(exercise.sets);
-    if (incoming === lastSyncedSetsJsonRef.current) return;
+    let incoming;
+    try {
+      incoming = JSON.stringify(exercise.sets);
+    } catch (err) {
+      console.error('[ExerciseCard] Failed to serialize exercise.sets for', exercise.name, ':', err);
+      clearTimeout(resetTimer);
+      return;
+    }
+    if (incoming === lastSyncedSetsJsonRef.current) {
+      clearTimeout(resetTimer);
+      return;
+    }
     lastSyncedSetsJsonRef.current = incoming;
 
-    const newSets = exercise.sets.filter(Boolean).map(set => ({
+    const newSets = exercise.sets.slice(0, 20).filter(Boolean).map(set => ({
       reps: set?.reps || exercise.reps || 12,
       weight: set?.weight || 0,
       completed: set?.completed || false,
@@ -272,6 +311,8 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
     if (newSets.length > 0) {
       setSets(newSets);
     }
+
+    return () => clearTimeout(resetTimer);
   }, [exercise.sets, exercise.reps, exercise.duration, exercise.restSeconds]);
 
   // Calculate completed sets
