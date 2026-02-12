@@ -3143,7 +3143,7 @@ function Workouts() {
       )}
 
       {/* Guided Workout Mode */}
-      {showGuidedWorkout && exercises.length > 0 && (
+      {showGuidedWorkout && (
         <ErrorBoundary>
           <GuidedWorkoutModal
             exercises={exercises}
