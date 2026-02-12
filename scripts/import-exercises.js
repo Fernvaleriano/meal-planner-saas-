@@ -143,34 +143,41 @@ function determineDifficulty(instructions, equipment) {
 
 /**
  * Extract primary muscle group (simplified)
+ *
+ * IMPORTANT: Iteration order matters! Leg muscles must be checked BEFORE arm muscles
+ * because scientific names like "Biceps Femoris" (hamstring) and "Triceps Surae" (calf)
+ * contain "bicep"/"tricep" which would falsely match 'arms'.
  */
 function extractMuscleGroup(primaryMuscles) {
   if (!primaryMuscles) return null;
 
-  const muscleMap = {
-    'chest': 'chest',
-    'pectoralis': 'chest',
-    'back': 'back',
-    'latissimus': 'back',
-    'shoulder': 'shoulders',
-    'deltoid': 'shoulders',
-    'bicep': 'arms',
-    'tricep': 'arms',
-    'forearm': 'arms',
-    'quadricep': 'legs',
-    'hamstring': 'legs',
-    'glute': 'legs',
-    'calf': 'legs',
-    'abdominal': 'core',
-    'oblique': 'core',
-    'core': 'core',
-  };
+  // Ordered array instead of object to guarantee check order.
+  // Legs MUST come before arms so "Biceps Femoris" → legs, not arms.
+  const muscleChecks = [
+    ['quadricep', 'legs'],
+    ['hamstring', 'legs'],
+    ['glute', 'legs'],
+    ['calf', 'legs'],
+    ['calves', 'legs'],
+    ['chest', 'chest'],
+    ['pectoralis', 'chest'],
+    ['back', 'back'],
+    ['latissimus', 'back'],
+    ['shoulder', 'shoulders'],
+    ['deltoid', 'shoulders'],
+    ['abdominal', 'core'],
+    ['oblique', 'core'],
+    ['core', 'core'],
+    ['bicep', 'arms'],
+    ['tricep', 'arms'],
+    ['forearm', 'arms'],
+  ];
 
   const lowerMuscles = primaryMuscles.toLowerCase();
 
-  for (const [key, value] of Object.entries(muscleMap)) {
+  for (const [key, group] of muscleChecks) {
     if (lowerMuscles.includes(key)) {
-      return value;
+      return group;
     }
   }
 
