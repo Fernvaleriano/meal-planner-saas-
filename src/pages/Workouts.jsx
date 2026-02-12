@@ -2933,6 +2933,7 @@ function Workouts() {
           {/* Hero Section */}
           <div
             className="workout-hero-v3"
+            style={workoutImage ? { backgroundImage: `url(${workoutImage})` } : {}}
           >
             <div className="hero-overlay"></div>
             <div className="hero-content-v3">
