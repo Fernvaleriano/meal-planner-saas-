@@ -12966,6 +12966,7 @@ a.nav-left {
     background: rgba(0, 0, 0, 0.4);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
+    z-index: 100;
 }
 
 /* Hero Section V3 - With Background Image */
