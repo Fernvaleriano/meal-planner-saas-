@@ -1151,47 +1151,33 @@ function Workouts() {
     const rawExercises = Array.isArray(newExerciseOrArray) ? newExerciseOrArray : [newExerciseOrArray];
     if (rawExercises.length === 0) return;
 
-    // Sanitize exercises: strip large text fields that bloat workout_data
-    // and ensure sets is always a clean number or array to prevent render loops
+    // Whitelist only the fields needed for workout rendering.
+    // DB exercises can have 27+ fields including ones with spaces in names
+    // (e.g. "primary muscles", "common mistakes") that can cause issues.
+    const EXERCISE_FIELDS = [
+      'id', 'name', 'description', 'muscle_group', 'secondary_muscles',
+      'equipment', 'exercise_type', 'difficulty', 'animation_url',
+      'thumbnail_url', 'video_url', 'calories_per_minute', 'is_compound',
+      'is_unilateral', 'category', 'gender_variant', 'source',
+      // Config fields from AddActivityModal
+      'sets', 'reps', 'weight', 'restSeconds', 'duration',
+      // Workout-specific fields
+      'trackingType', 'phase', 'isWarmup', 'isStretch', 'isSuperset',
+      'supersetGroup', 'completed', 'notes'
+    ];
     const newExercises = rawExercises.map(ex => {
-      const clean = { ...ex };
-      // Remove large text fields that aren't needed in workout_data
-      delete clean.instructions;
-      delete clean.tips;
-      delete clean.created_at;
-      delete clean.updated_at;
+      const clean = {};
+      for (const key of EXERCISE_FIELDS) {
+        if (ex[key] !== undefined && ex[key] !== null) {
+          clean[key] = ex[key];
+        }
+      }
       // Ensure sets is a valid number or array (cap at 20)
       if (Array.isArray(clean.sets)) {
         clean.sets = clean.sets.slice(0, 20);
       } else if (typeof clean.sets === 'number') {
         clean.sets = Math.min(Math.max(clean.sets, 1), 20);
       }
-
-      // TEMPORARY DEBUG: Show native alert with exercise data (pauses execution so user can read)
-      try {
-        const keys = Object.keys(clean);
-        // eslint-disable-next-line no-alert
-        window.alert(
-          `DEBUG - Exercise Data\n\n` +
-          `Name: ${clean.name}\n` +
-          `ID: ${clean.id}\n` +
-          `Fields (${keys.length}): ${keys.join(', ')}\n` +
-          `Data size: ${JSON.stringify(clean).length}\n` +
-          `sets: ${JSON.stringify(clean.sets)}\n` +
-          `reps: ${JSON.stringify(clean.reps)}\n` +
-          `duration: ${JSON.stringify(clean.duration)}\n` +
-          `restSeconds: ${JSON.stringify(clean.restSeconds)}\n` +
-          `video_url: ${clean.video_url || 'none'}\n` +
-          `animation_url: ${clean.animation_url || 'none'}\n` +
-          `thumbnail_url: ${clean.thumbnail_url || 'none'}\n` +
-          `muscle_group: ${clean.muscle_group || 'none'}\n` +
-          `equipment: ${clean.equipment || 'none'}\n` +
-          `exercise_type: ${clean.exercise_type || 'none'}\n` +
-          `difficulty: ${clean.difficulty || 'none'}\n` +
-          `\nTap OK to proceed (may freeze)`
-        );
-      } catch(e) {}
-
       return clean;
     });
 

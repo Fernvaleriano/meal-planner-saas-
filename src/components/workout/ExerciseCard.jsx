@@ -131,6 +131,28 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
     return null;
   }
 
+  // Re-render loop breaker: if this component renders 100+ times rapidly,
+  // show a static fallback instead of freezing the entire app
+  const renderCountRef = useRef(0);
+  const renderResetTimerRef = useRef(null);
+  renderCountRef.current += 1;
+  if (renderCountRef.current > 100) {
+    return (
+      <div style={{ padding: 16, background: '#2a1a1a', borderRadius: 12, marginBottom: 8, border: '1px solid #f44' }}>
+        <p style={{ color: '#f88', fontSize: 14, margin: 0 }}>
+          {exercise.name || 'Exercise'} — rendering issue detected. Try removing and re-adding this exercise.
+        </p>
+      </div>
+    );
+  }
+  // Reset counter after 200ms of quiet — only counts rapid consecutive renders
+  if (!renderResetTimerRef.current) {
+    renderResetTimerRef.current = setTimeout(() => {
+      renderCountRef.current = 0;
+      renderResetTimerRef.current = null;
+    }, 200);
+  }
+
   // Check for special exercise types - with defensive checks
   const isSuperset = exercise.isSuperset && exercise.supersetGroup;
   const isWarmup = exercise.isWarmup;
@@ -198,23 +220,6 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
   const [voiceError, setVoiceError] = useState(null);
   const [lastTranscript, setLastTranscript] = useState('');
   const recognitionRef = useRef(null);
-
-  // Debug: detect re-render loops — show on-screen alert if loop detected
-  const renderCountRef = useRef(0);
-  renderCountRef.current += 1;
-  if (renderCountRef.current === 50) {
-    // Show on-screen debug overlay for phone users (no console access)
-    try {
-      const debugDiv = document.getElementById('exercise-debug-overlay') || (() => {
-        const d = document.createElement('div');
-        d.id = 'exercise-debug-overlay';
-        d.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:red;color:white;padding:12px;font-size:13px;max-height:40vh;overflow:auto;';
-        document.body.appendChild(d);
-        return d;
-      })();
-      debugDiv.innerHTML += `<p><b>RE-RENDER LOOP:</b> "${exercise.name}" rendered 50+ times!</p>`;
-    } catch(e) {}
-  }
 
   // Check for voice support on mount
   useEffect(() => {
