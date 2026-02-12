@@ -2030,27 +2030,7 @@ function GuidedWorkoutModal({
   const timerProgress = Math.min(timer / maxTime, 1);
   const strokeDashoffset = circumference * (1 - timerProgress);
 
-  // If currentExercise is unavailable (race condition / empty exercises),
-  // show a visible fallback instead of returning null (which is invisible).
-  if (!currentExercise && phase !== 'complete' && phase !== 'deferred-review') {
-    return (
-      <div className="guided-workout-overlay">
-        <div className="guided-top-bar">
-          <button className="guided-close-btn" onClick={onClose}>
-            <X size={24} />
-          </button>
-          <div className="guided-workout-name">{workoutName || 'Workout'}</div>
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, color: '#94a3b8', padding: '40px 20px', textAlign: 'center' }}>
-          <AlertTriangle size={48} style={{ marginBottom: 16, color: '#f59e0b' }} />
-          <p style={{ marginBottom: 16, fontSize: '16px' }}>Unable to load exercise data.</p>
-          <button onClick={onClose} style={{ padding: '10px 24px', background: '#0d9488', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '15px' }}>
-            Close Workout
-          </button>
-        </div>
-      </div>
-    );
-  }
+  if (!currentExercise) return null;
 
   // --- Complete screen ---
   if (phase === 'complete') {
