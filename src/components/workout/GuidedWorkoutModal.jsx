@@ -2009,7 +2009,7 @@ function GuidedWorkoutModal({
     // Also persist to parent state for regular view
     exercises.forEach((_, i) => persistExerciseData(i));
     clearResumeState(); // Workout finished, no need to resume
-    if (onWorkoutFinish) onWorkoutFinish(finalExercises);
+    if (onWorkoutFinish) onWorkoutFinish(finalExercises, totalElapsed);
     onClose();
   };
 
