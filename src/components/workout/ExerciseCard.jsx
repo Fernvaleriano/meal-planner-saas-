@@ -139,7 +139,8 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
   // Handle sets being a number or an array
   const initializeSets = () => {
     if (Array.isArray(exercise.sets) && exercise.sets.length > 0) {
-      const filtered = exercise.sets.filter(Boolean).map(set => ({
+      // Cap at 20 sets to prevent malformed data from causing excessive renders
+      const filtered = exercise.sets.slice(0, 20).filter(Boolean).map(set => ({
         reps: set?.reps || exercise.reps || 12,
         weight: set?.weight || 0,
         completed: set?.completed || false,
@@ -148,7 +149,7 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
       }));
       if (filtered.length > 0) return filtered;
     }
-    const numSets = typeof exercise.sets === 'number' && exercise.sets > 0 ? exercise.sets : 3;
+    const numSets = typeof exercise.sets === 'number' && exercise.sets > 0 ? Math.min(exercise.sets, 20) : 3;
     return Array(numSets).fill(null).map(() => ({
       reps: parseReps(exercise.reps) || 12,
       weight: 0,
@@ -197,6 +198,23 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
   const [voiceError, setVoiceError] = useState(null);
   const [lastTranscript, setLastTranscript] = useState('');
   const recognitionRef = useRef(null);
+
+  // Debug: detect re-render loops — show on-screen alert if loop detected
+  const renderCountRef = useRef(0);
+  renderCountRef.current += 1;
+  if (renderCountRef.current === 50) {
+    // Show on-screen debug overlay for phone users (no console access)
+    try {
+      const debugDiv = document.getElementById('exercise-debug-overlay') || (() => {
+        const d = document.createElement('div');
+        d.id = 'exercise-debug-overlay';
+        d.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:red;color:white;padding:12px;font-size:13px;max-height:40vh;overflow:auto;';
+        document.body.appendChild(d);
+        return d;
+      })();
+      debugDiv.innerHTML += `<p><b>RE-RENDER LOOP:</b> "${exercise.name}" rendered 50+ times!</p>`;
+    } catch(e) {}
+  }
 
   // Check for voice support on mount
   useEffect(() => {
@@ -250,19 +268,49 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
   }, []);
 
   // Sync sets when exercise.sets changes (e.g., from SetEditorModal)
+  // Use a ref to track the last synced sets JSON to avoid re-render loops
+  // when the parent recreates exercise objects with new array references but same data.
+  const lastSyncedSetsJsonRef = useRef('');
+  const syncCountRef = useRef(0);
   useEffect(() => {
-    if (Array.isArray(exercise.sets) && exercise.sets.length > 0) {
-      const newSets = exercise.sets.filter(Boolean).map(set => ({
-        reps: set?.reps || exercise.reps || 12,
-        weight: set?.weight || 0,
-        completed: set?.completed || false,
-        duration: set?.duration || exercise.duration || null,
-        restSeconds: set?.restSeconds || exercise.restSeconds || 60
-      }));
-      if (newSets.length > 0) {
-        setSets(newSets);
-      }
+    if (!Array.isArray(exercise.sets) || exercise.sets.length === 0) return;
+
+    // Safety: cap syncs to prevent infinite re-render loops from malformed data
+    syncCountRef.current += 1;
+    if (syncCountRef.current > 10) {
+      console.warn('[ExerciseCard] Sync loop detected for exercise:', exercise.name, exercise.id, '— skipping');
+      return;
     }
+    // Reset sync counter after a tick (only counts rapid consecutive syncs)
+    const resetTimer = setTimeout(() => { syncCountRef.current = 0; }, 100);
+
+    // Compare by value, not reference — parent may create new arrays with same data
+    let incoming;
+    try {
+      incoming = JSON.stringify(exercise.sets);
+    } catch (err) {
+      console.error('[ExerciseCard] Failed to serialize exercise.sets for', exercise.name, ':', err);
+      clearTimeout(resetTimer);
+      return;
+    }
+    if (incoming === lastSyncedSetsJsonRef.current) {
+      clearTimeout(resetTimer);
+      return;
+    }
+    lastSyncedSetsJsonRef.current = incoming;
+
+    const newSets = exercise.sets.slice(0, 20).filter(Boolean).map(set => ({
+      reps: set?.reps || exercise.reps || 12,
+      weight: set?.weight || 0,
+      completed: set?.completed || false,
+      duration: set?.duration || exercise.duration || null,
+      restSeconds: set?.restSeconds || exercise.restSeconds || 60
+    }));
+    if (newSets.length > 0) {
+      setSets(newSets);
+    }
+
+    return () => clearTimeout(resetTimer);
   }, [exercise.sets, exercise.reps, exercise.duration, exercise.restSeconds]);
 
   // Calculate completed sets

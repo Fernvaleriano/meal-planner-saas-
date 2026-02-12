@@ -844,6 +844,8 @@ function ExerciseDetailModal({
         }
       } catch (err) {
         console.error('Error auto-saving exercise log:', err);
+        // Reset flag so failed saves don't block future save attempts
+        setsChangedRef.current = false;
       }
     }, 2000);
 
