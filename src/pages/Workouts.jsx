@@ -2458,7 +2458,7 @@ function Workouts() {
   const handleShareResults = async () => {
     try {
       const width = 720;
-      const height = 480;
+      const height = 720;
       const canvas = document.createElement('canvas');
       canvas.width = width;
       canvas.height = height;
@@ -2479,11 +2479,14 @@ function Workouts() {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
         ctx.fillRect(0, 0, width, height);
 
-        // Brand logo (full logo image containing icon + name)
+        // Brand logo (full logo image containing icon + name, preserving aspect ratio)
         if (logoImg) {
-          const logoWidth = width * 0.5;
-          const logoHeight = 80;
-          ctx.drawImage(logoImg, (width - logoWidth) / 2, 5, logoWidth, logoHeight);
+          const maxLogoWidth = width * 0.5;
+          const maxLogoHeight = 100;
+          const logoScale = Math.min(maxLogoWidth / logoImg.naturalWidth, maxLogoHeight / logoImg.naturalHeight);
+          const logoWidth = logoImg.naturalWidth * logoScale;
+          const logoHeight = logoImg.naturalHeight * logoScale;
+          ctx.drawImage(logoImg, (width - logoWidth) / 2, 20, logoWidth, logoHeight);
         }
 
         // Stats
@@ -2496,42 +2499,42 @@ function Workouts() {
         if (shareToggles.sets) activeToggles.push({ label: 'Sets', value: String(totalSets) });
 
         if (activeToggles.length > 0) {
-          const statY = height / 2 - 10;
+          const statY = height * 0.45;
           const spacing = width / (activeToggles.length + 1);
           activeToggles.forEach((stat, i) => {
             const x = spacing * (i + 1);
             ctx.fillStyle = 'white';
-            ctx.font = 'bold 44px -apple-system, BlinkMacSystemFont, sans-serif';
+            ctx.font = 'bold 48px -apple-system, BlinkMacSystemFont, sans-serif';
             ctx.textAlign = 'center';
             ctx.fillText(stat.value, x, statY);
             ctx.fillStyle = '#9ca3af';
-            ctx.font = '16px -apple-system, BlinkMacSystemFont, sans-serif';
-            ctx.fillText(stat.label, x, statY + 28);
+            ctx.font = '18px -apple-system, BlinkMacSystemFont, sans-serif';
+            ctx.fillText(stat.label, x, statY + 32);
           });
         }
 
         // PRs section
         if (shareToggles.prs && workoutPRs.length > 0) {
-          const prStartY = activeToggles.length > 0 ? height / 2 + 50 : height / 2 - 20;
+          const prStartY = activeToggles.length > 0 ? height * 0.65 : height / 2 - 20;
           ctx.fillStyle = '#fbbf24';
-          ctx.font = 'bold 18px -apple-system, BlinkMacSystemFont, sans-serif';
+          ctx.font = 'bold 20px -apple-system, BlinkMacSystemFont, sans-serif';
           ctx.textAlign = 'center';
           ctx.fillText(`🏆 ${workoutPRs.length} New PR${workoutPRs.length !== 1 ? 's' : ''}!`, width / 2, prStartY);
-          ctx.font = '14px -apple-system, BlinkMacSystemFont, sans-serif';
+          ctx.font = '16px -apple-system, BlinkMacSystemFont, sans-serif';
           ctx.fillStyle = '#e5e7eb';
           workoutPRs.forEach((pr, i) => {
             if (i < 3) { // Max 3 PRs to fit in the card
               const prText = pr.weight > 0 ? `${pr.weight} ${pr.unit} x${pr.reps}` : `${pr.reps} reps`;
-              ctx.fillText(`${pr.exerciseName}: ${prText}`, width / 2, prStartY + 24 + i * 20);
+              ctx.fillText(`${pr.exerciseName}: ${prText}`, width / 2, prStartY + 28 + i * 24);
             }
           });
         }
 
-        // Footer - larger text
+        // Footer
         ctx.fillStyle = '#9ca3af';
         ctx.font = '18px -apple-system, BlinkMacSystemFont, sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText('Powered by Zique Fitness', width / 2, height - 22);
+        ctx.fillText('Powered by Zique Fitness', width / 2, height - 30);
 
         // Convert and share
         canvas.toBlob(async (blob) => {

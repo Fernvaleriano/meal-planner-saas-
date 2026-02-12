@@ -12557,11 +12557,12 @@ a.nav-left {
 
 .share-card-bg {
     background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
-    min-height: 260px;
     position: relative;
     overflow: hidden;
     background-size: cover;
     background-position: center;
+    aspect-ratio: 1 / 1;
+    width: 100%;
 }
 
 .share-card-overlay {
@@ -12575,13 +12576,16 @@ a.nav-left {
 }
 
 .share-card-content {
-    position: relative;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
     z-index: 2;
     padding: 24px;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    min-height: 260px;
 }
 
 .share-card-brand {
@@ -12592,8 +12596,8 @@ a.nav-left {
 }
 
 .share-card-logo {
-    width: 60%;
-    height: 70px;
+    width: 50%;
+    height: auto;
     object-fit: contain;
 }
 
