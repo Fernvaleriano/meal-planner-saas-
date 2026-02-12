@@ -471,7 +471,7 @@ function WorkoutFeedCard({ workout, coachId, onUpdate, weightUnit = 'lbs' }) {
                       <span className="feed-item-name">{exercise.exerciseName || exercise.name}</span>
                       <div className="workout-feed-exercise-badges">
                         {exercise.maxWeight != null && exercise.maxWeight > 0 && (
-                          <span className="feed-item-calories">{exercise.maxWeight} kg max</span>
+                          <span className="feed-item-calories">{exercise.maxWeight} {weightUnit} max</span>
                         )}
                         {(exercise.isPr || exercise.isPR) && (
                           <span className="improvement-positive" style={{ fontSize: '0.75rem', marginLeft: 4 }}>
@@ -488,7 +488,7 @@ function WorkoutFeedCard({ workout, coachId, onUpdate, weightUnit = 'lbs' }) {
                           <span key={si} className="workout-feed-set-pill">
                             {set.isTimeBased
                               ? `${set.reps || 0}s`
-                              : `${set.reps || 0}x${set.weight || 0}${set.weightUnit || 'kg'}`}
+                              : `${set.reps || 0}x${set.weight || 0}${set.weightUnit || weightUnit}`}
                             {set.rpe && <span className="set-rpe-mini"> RPE {set.rpe}</span>}
                           </span>
                         ))}

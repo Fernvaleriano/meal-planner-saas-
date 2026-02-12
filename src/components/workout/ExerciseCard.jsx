@@ -125,7 +125,7 @@ const parseVoiceInputForSets = (transcript) => {
   }
 };
 
-function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick, workoutStarted, onSwapExercise, onDeleteExercise, onMoveUp, onMoveDown, isFirst, isLast, onUpdateExercise }) {
+function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick, workoutStarted, onSwapExercise, onDeleteExercise, onMoveUp, onMoveDown, isFirst, isLast, onUpdateExercise, weightUnit = 'lbs' }) {
   // Early return if exercise is invalid
   if (!exercise || typeof exercise !== 'object') {
     return null;
@@ -335,6 +335,9 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
     newSets[setIndex] = { ...newSets[setIndex], weight: isNaN(numValue) ? 0 : numValue };
     setSets(newSets);
   };
+
+  // Weight increment based on unit system
+  const weightIncrement = weightUnit === 'kg' ? 2.5 : 5;
 
   // Increment/decrement weight
   const adjustWeight = (setIndex, delta, e) => {
@@ -852,7 +855,7 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
                   {sets.map((set, idx) => (
                     <div key={idx} className={`time-box ${set?.weight > 0 ? 'with-weight' : ''}`}>
                       <span className="reps-value">{formatDuration(set?.duration || exercise.duration) || '45s'}</span>
-                      {set?.weight > 0 && <span className="weight-value">{set.weight} kg</span>}
+                      {set?.weight > 0 && <span className="weight-value">{set.weight} {weightUnit}</span>}
                     </div>
                   ))}
                 </>
@@ -861,7 +864,7 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
                   {sets.map((set, idx) => (
                     <div key={idx} className="time-box with-weight">
                       <span className="reps-value">{parseReps(set?.reps || exercise.reps)}x</span>
-                      <span className="weight-value">{set?.weight || 0} kg</span>
+                      <span className="weight-value">{set?.weight || 0} {weightUnit}</span>
                     </div>
                   ))}
                 </>
@@ -925,29 +928,29 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
 
                   {/* Weight Input */}
                   <div className="set-input-group">
-                    <label>Weight (kg)</label>
+                    <label>Weight ({weightUnit})</label>
                     <div className="weight-input-row">
                       <button
                         className="weight-adjust-btn"
-                        onClick={(e) => adjustWeight(idx, -2.5, e)}
+                        onClick={(e) => adjustWeight(idx, -weightIncrement, e)}
                       >
                         <Minus size={14} />
                       </button>
                       <input
                         type="number"
                         inputMode="decimal"
-                        step="0.5"
+                        step={weightUnit === 'kg' ? '0.5' : '1'}
                         className="set-input weight-input"
                         value={set.weight || ''}
                         onChange={(e) => updateWeight(idx, e.target.value, e)}
                         onClick={(e) => e.stopPropagation()}
                         onFocus={(e) => e.target.select()}
                         min="0"
-                        max="500"
+                        max={weightUnit === 'kg' ? '500' : '1100'}
                       />
                       <button
                         className="weight-adjust-btn"
-                        onClick={(e) => adjustWeight(idx, 2.5, e)}
+                        onClick={(e) => adjustWeight(idx, weightIncrement, e)}
                       >
                         <Plus size={14} />
                       </button>
@@ -1114,6 +1117,7 @@ const arePropsEqual = (prev, next) => {
   if (prev.workoutStarted !== next.workoutStarted) return false;
   if (prev.isFirst !== next.isFirst) return false;
   if (prev.isLast !== next.isLast) return false;
+  if (prev.weightUnit !== next.weightUnit) return false;
 
   // Skip comparing function props (onToggleComplete, onClick, onSwapExercise, etc.)
   // — they change reference on every parent render but their behavior is stable
