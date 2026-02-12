@@ -499,7 +499,33 @@ exports.handler = async (event) => {
     // Detect movement pattern for the original exercise
     const origMovement = detectMovement(exerciseName);
 
-    console.log("AI Swap - Exercise:", exerciseName, "| Muscle:", muscleGroup,
+    // Map movement-detected muscle to expected DB muscle_group.
+    // This corrects misclassifications (e.g. "Biceps Femoris" wrongly stored as "arms"
+    // when it should be "legs") so the query fetches the right candidate pool.
+    const MOVEMENT_MUSCLE_TO_GROUP = {
+      'POSTERIOR_CHAIN': 'legs',
+      'LEGS': 'legs',
+      'GLUTES': 'legs',
+      'CALVES': 'legs',
+      'CHEST': 'chest',
+      'BACK': 'back',
+      'SHOULDERS': 'shoulders',
+      'TRAPS': 'back',
+      'BICEPS': 'arms',
+      'TRICEPS': 'arms',
+      'FOREARMS': 'arms',
+      'CORE': 'core',
+      'CARDIO': 'cardio',
+    };
+    const detectedMuscleGroup = origMovement.muscle ? MOVEMENT_MUSCLE_TO_GROUP[origMovement.muscle] : null;
+
+    // Use the movement-detected muscle group when it differs from the stored one
+    // (e.g. sumo deadlift stored as "arms" but detected as "legs")
+    const effectiveMuscleGroup = detectedMuscleGroup || muscleGroup;
+
+    console.log("AI Swap - Exercise:", exerciseName, "| Stored muscle:", muscleGroup,
+      "| Detected muscle:", detectedMuscleGroup,
+      "| Effective:", effectiveMuscleGroup,
       "| Pattern:", origMovement.pattern, "| Specific:", origMovement.muscle,
       "| Sub:", JSON.stringify(origMovement.subPatterns),
       "| Equipment filter:", equipment,
@@ -511,9 +537,14 @@ exports.handler = async (event) => {
       .select("id, name, muscle_group, secondary_muscles, equipment, difficulty, exercise_type, description, thumbnail_url, animation_url, video_url, is_compound, is_unilateral")
       .limit(200);
 
-    // Filter by muscle group if provided
-    if (muscleGroup) {
-      query = query.ilike("muscle_group", `%${muscleGroup}%`);
+    // Filter by muscle group - use detected movement muscle group when available
+    // to correct misclassified exercises (e.g. deadlifts stored as "arms" due to
+    // "Biceps Femoris" in scientific muscle names)
+    if (detectedMuscleGroup && detectedMuscleGroup !== muscleGroup) {
+      // Stored and detected differ — query BOTH to catch correctly and incorrectly categorized exercises
+      query = query.or(`muscle_group.ilike.%${detectedMuscleGroup}%,muscle_group.ilike.%${muscleGroup}%`);
+    } else if (effectiveMuscleGroup) {
+      query = query.ilike("muscle_group", `%${effectiveMuscleGroup}%`);
     }
 
     // Scope to global exercises + this coach's custom exercises
