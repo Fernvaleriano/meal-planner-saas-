@@ -204,27 +204,14 @@ function ExerciseDetailModal({
     }
   }, [onClose]);
 
-  // Track whether modal was closed via back button (vs programmatic close)
-  const closedViaBackRef = useRef(false);
-  const effectInstanceRef = useRef(0); // Guards against StrictMode double-mount stale cleanup
-
   // Handle browser back button - critical for mobile "escape" functionality
-  // Uses a unique modal ID to prevent cascading: when an entry ABOVE us is popped,
-  // the popstate event's state will be our own entry — we ignore that.
-  // On cleanup (programmatic close), we pop our orphaned entry via queueMicrotask
-  // to safely defer it outside React's commit phase.
-  // The effectInstanceRef guard prevents StrictMode's double-mount from popping the
-  // re-mount's entry (stale cleanup would see a mismatched instance ID and skip).
   useEffect(() => {
-    const instanceId = ++effectInstanceRef.current;
-    const modalId = 'detail-' + Date.now();
-    closedViaBackRef.current = false;
-    window.history.pushState({ modal: modalId }, '');
+    // Push a state so back button will trigger popstate instead of leaving the page
+    const modalState = { modal: 'exercise-detail', timestamp: Date.now() };
+    window.history.pushState(modalState, '');
 
     const handlePopState = (event) => {
-      // If navigating TO our own entry, something above us was popped — ignore
-      if (event.state?.modal === modalId) return;
-      closedViaBackRef.current = true;
+      // User pressed back button - close the modal
       forceClose();
     };
 
@@ -232,16 +219,6 @@ function ExerciseDetailModal({
 
     return () => {
       window.removeEventListener('popstate', handlePopState);
-      // If closed programmatically (not via back button), pop our orphaned history entry
-      // queueMicrotask defers this to after React's commit phase, preventing cascading
-      // The instanceId check ensures StrictMode's stale cleanup doesn't pop the re-mount's entry
-      if (!closedViaBackRef.current) {
-        queueMicrotask(() => {
-          if (effectInstanceRef.current === instanceId) {
-            window.history.back();
-          }
-        });
-      }
     };
   }, [forceClose]);
 
