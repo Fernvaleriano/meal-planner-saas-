@@ -24981,7 +24981,8 @@ a.nav-left {
 }
 
 /* Preview button — small eye icon overlaid on thumbnail */
-.swap-exercise-thumb {
+.swap-exercise-thumb,
+.add-exercise-thumb {
     position: relative;
 }
 
