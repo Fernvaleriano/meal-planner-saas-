@@ -97,16 +97,15 @@ body {
    TOP NAVIGATION
    ======================================== */
 .top-nav {
-    background: transparent;
+    background: var(--brand-gradient);
     /* Add safe-area-inset-top for iPhone notch/Dynamic Island */
     padding: calc(8px + env(safe-area-inset-top, 0px)) 24px 8px 24px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    position: absolute;
+    box-shadow: var(--shadow-lg);
+    position: sticky;
     top: 0;
-    left: 0;
-    right: 0;
     z-index: 100;
 }
 
@@ -1903,11 +1902,9 @@ a.nav-left {
    ======================================== */
 .ai-hero-card {
     background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-    border-radius: 0 0 20px 20px;
-    /* Extend to fill the status bar area and overlay behind the nav */
+    border-radius: 20px;
     padding: 24px 20px;
-    padding-top: calc(70px + env(safe-area-inset-top, 0px));
-    margin: -24px -16px 20px -16px;
+    margin-bottom: 20px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
     position: relative;
     overflow: hidden;
@@ -2190,19 +2187,11 @@ a.nav-left {
     height: 16px;
 }
 
-/* Desktop - AI Hero Card breakout margins match main-content padding */
-@media (min-width: 1024px) {
-    .ai-hero-card {
-        margin: -32px -24px 20px -24px;
-    }
-}
-
 /* Light Mode - AI Hero Section */
 [data-theme="light"] .ai-hero-card {
     background: white;
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
     border: 1px solid var(--gray-200);
-    border-top: none;
 }
 
 [data-theme="light"] .ai-hero-card::before {
