@@ -39,17 +39,10 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
   const fetchIdRef = useRef(0); // Guards against stale/concurrent fetch responses
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
-  const historyEntryRef = useRef(false); // Track if we have an unpoped history entry
 
   // Force close handler - uses ref so identity is stable (prevents pushState re-runs)
   const forceClose = useCallback(() => {
     try {
-      // Pop our history entry if we still own one, then close
-      if (historyEntryRef.current && window.history.state?.modal === 'swap-exercise') {
-        // history.back() will trigger popstate → handler sets ref=false and re-calls forceClose
-        window.history.back();
-        return;
-      }
       onCloseRef.current?.();
     } catch (e) {
       console.error('Error in forceClose:', e);
@@ -62,21 +55,13 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
   useEffect(() => {
     const modalState = { modal: 'swap-exercise', timestamp: Date.now() };
     window.history.pushState(modalState, '');
-    historyEntryRef.current = true;
 
     const handlePopState = () => {
-      historyEntryRef.current = false; // Back button popped our entry
       forceClose();
     };
 
     window.addEventListener('popstate', handlePopState);
-    return () => {
-      window.removeEventListener('popstate', handlePopState);
-      // Mark entry as stale on unmount — parent (handleSwapExercise) will
-      // clean up orphaned entries via deferred setTimeout after React finishes.
-      // Do NOT call history.back() here: it fires during React's commit phase
-      // and causes cascading popstate events that crash the app.
-    };
+    return () => window.removeEventListener('popstate', handlePopState);
   }, [forceClose]);
 
   // Prevent background scrolling when modal is open
@@ -282,14 +267,14 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
     }
   }, [selecting, onSwap]);
 
-  // Handle close — routes through forceClose to pop history entry first
+  // Handle close — uses ref for stable identity
   const handleClose = useCallback((e) => {
     if (e) {
       e.preventDefault();
       e.stopPropagation();
     }
-    forceClose();
-  }, [forceClose]);
+    onCloseRef.current?.();
+  }, []);
 
   // Handle overlay click
   const handleOverlayClick = useCallback((e) => {

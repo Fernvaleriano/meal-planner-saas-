@@ -204,24 +204,14 @@ function ExerciseDetailModal({
     }
   }, [onClose]);
 
-  // Track if we have an unpopped history entry
-  const historyEntryRef = useRef(false);
-
   // Handle browser back button - critical for mobile "escape" functionality
   useEffect(() => {
     // Push a state so back button will trigger popstate instead of leaving the page
     const modalState = { modal: 'exercise-detail', timestamp: Date.now() };
     window.history.pushState(modalState, '');
-    historyEntryRef.current = true;
 
     const handlePopState = (event) => {
-      // When a child modal (like SwapExerciseModal) pops its history entry,
-      // we navigate back TO our 'exercise-detail' state — don't close in that case.
-      // Only close when navigating PAST our entry (e.g. user pressed back from this modal).
-      if (event.state?.modal === 'exercise-detail') {
-        return; // Child modal was popped, we're still the active modal
-      }
-      historyEntryRef.current = false;
+      // User pressed back button - close the modal
       forceClose();
     };
 
@@ -229,10 +219,6 @@ function ExerciseDetailModal({
 
     return () => {
       window.removeEventListener('popstate', handlePopState);
-      // Mark entry as stale on unmount — parent (handleSwapExercise) will
-      // clean up orphaned entries via deferred setTimeout after React finishes.
-      // Do NOT call history.back() here: it fires during React's commit phase
-      // and causes cascading popstate events that crash the app.
     };
   }, [forceClose]);
 
@@ -2293,7 +2279,6 @@ function ExerciseDetailModal({
     // Remove the history state we pushed when opening
     // This prevents double back-button issues
     if (window.history.state?.modal === 'exercise-detail') {
-      historyEntryRef.current = false; // Mark as handled before back()
       window.history.back();
       return; // popstate handler will call forceClose
     }
