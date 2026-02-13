@@ -16,8 +16,6 @@ function SmartThumbnail({
   const [thumbnail, setThumbnail] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const [useVideoFallback, setUseVideoFallback] = useState(false);
-  const videoRef = useRef(null);
   const timeoutRef = useRef(null);
 
   const hasVideo = !!(exercise?.video_url || exercise?.animation_url);
@@ -53,7 +51,6 @@ function SmartThumbnail({
     async function loadThumbnail() {
       setLoading(true);
       setError(false);
-      setUseVideoFallback(false);
 
       // Priority 1: Use thumbnail_url if available AND it's not a video URL.
       // AI workout generator (generate-workout-claude.js) sets thumbnail_url to
@@ -78,8 +75,7 @@ function SmartThumbnail({
         // Set a timeout to stop loading after 3 seconds
         timeoutRef.current = setTimeout(() => {
           if (!cancelled) {
-            // If still loading after 3s, try video fallback
-            setUseVideoFallback(true);
+            // If still loading after 3s, give up and show placeholder
             setLoading(false);
           }
         }, 3000);
@@ -89,12 +85,8 @@ function SmartThumbnail({
           clearTimeout(timeoutRef.current);
           if (generated) {
             setThumbnail(generated);
-            setLoading(false);
-          } else {
-            // Generation failed, try video fallback
-            setUseVideoFallback(true);
-            setLoading(false);
           }
+          setLoading(false);
         }
         return;
       }
@@ -119,15 +111,6 @@ function SmartThumbnail({
   const handleImageError = () => {
     setError(true);
     setThumbnail(null);
-    // Try video fallback if image failed
-    if (videoUrl) {
-      setUseVideoFallback(true);
-    }
-  };
-
-  const handleVideoError = () => {
-    setError(true);
-    setUseVideoFallback(false);
   };
 
   const sizeClasses = {
@@ -142,28 +125,12 @@ function SmartThumbnail({
       onClick={onClick}
     >
       {/* Show generated/cached thumbnail or static image */}
-      {thumbnail && !error && !useVideoFallback ? (
+      {thumbnail && !error ? (
         <img
           src={thumbnail}
           alt={exercise?.name || 'Exercise'}
           loading="lazy"
           onError={handleImageError}
-        />
-      ) : useVideoFallback && videoUrl && !error ? (
-        /* Fallback: inline video preview */
-        <video
-          ref={videoRef}
-          src={videoUrl}
-          muted
-          playsInline
-          preload="metadata"
-          onLoadedMetadata={() => {
-            // Seek to 0.5s for better preview
-            if (videoRef.current) {
-              videoRef.current.currentTime = 0.5;
-            }
-          }}
-          onError={handleVideoError}
         />
       ) : (
         /* No media - show placeholder */
@@ -173,7 +140,7 @@ function SmartThumbnail({
       )}
 
       {/* Play indicator for videos */}
-      {showPlayIndicator && hasVideo && !loading && (thumbnail || useVideoFallback) && (
+      {showPlayIndicator && hasVideo && !loading && thumbnail && (
         <div className="smart-thumb-play">
           <Play size={size === 'small' ? 10 : size === 'large' ? 16 : 12} />
         </div>
