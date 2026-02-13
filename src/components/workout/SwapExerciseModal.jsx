@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { X, Loader2, Sparkles, ArrowRight, RefreshCw, ChevronDown, Dumbbell, Search, Star, Eye } from 'lucide-react';
 import { apiPost, apiGet } from '../../utils/api';
+import SmartThumbnail from './SmartThumbnail';
 
 const EQUIPMENT_OPTIONS = [
   { value: '', label: 'All' },
@@ -465,12 +466,7 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
                   disabled={selecting}
                 >
                   <div className="swap-exercise-thumb">
-                    <img
-                      src={ex.thumbnail_url || '/img/exercise-placeholder.svg'}
-                      alt={ex.name || 'Exercise'}
-                      loading="lazy"
-                      onError={(e) => { if (!e.target.dataset.fallback) { e.target.dataset.fallback = '1'; e.target.src = '/img/exercise-placeholder.svg'; } }}
-                    />
+                    <SmartThumbnail exercise={ex} size="small" showPlayIndicator={false} className="swap-thumb-fill" />
                     {getPreviewUrl(ex) && (
                       <button className="swap-preview-btn" onClick={(e) => handlePreview(e, ex)} aria-label="Preview exercise">
                         <Eye size={12} />
@@ -537,12 +533,7 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
                 >
                   <div className="suggestion-rank">{index + 1}</div>
                   <div className="swap-exercise-thumb">
-                    <img
-                      src={ex.thumbnail_url || '/img/exercise-placeholder.svg'}
-                      alt={ex.name || 'Exercise'}
-                      loading="lazy"
-                      onError={(e) => { if (!e.target.dataset.fallback) { e.target.dataset.fallback = '1'; e.target.src = '/img/exercise-placeholder.svg'; } }}
-                    />
+                    <SmartThumbnail exercise={ex} size="small" showPlayIndicator={false} className="swap-thumb-fill" />
                     {getPreviewUrl(ex) && (
                       <button className="swap-preview-btn" onClick={(e) => handlePreview(e, ex)} aria-label="Preview exercise">
                         <Eye size={12} />
@@ -607,12 +598,7 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
                       disabled={selecting}
                     >
                       <div className="swap-exercise-thumb small">
-                        <img
-                          src={ex.thumbnail_url || '/img/exercise-placeholder.svg'}
-                          alt={ex.name || 'Exercise'}
-                          loading="lazy"
-                          onError={(e) => { if (!e.target.dataset.fallback) { e.target.dataset.fallback = '1'; e.target.src = '/img/exercise-placeholder.svg'; } }}
-                        />
+                        <SmartThumbnail exercise={ex} size="small" showPlayIndicator={false} className="swap-thumb-fill" />
                         {getPreviewUrl(ex) && (
                           <button className="swap-preview-btn" onClick={(e) => handlePreview(e, ex)} aria-label="Preview exercise">
                             <Eye size={12} />

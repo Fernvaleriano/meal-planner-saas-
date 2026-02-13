@@ -24973,6 +24973,13 @@ a.nav-left {
     font-size: 12px;
 }
 
+/* SmartThumbnail inside swap thumb — fill parent, override own sizing */
+.swap-exercise-thumb .swap-thumb-fill {
+    width: 100%;
+    height: 100%;
+    border-radius: inherit;
+}
+
 /* Preview button — small eye icon overlaid on thumbnail */
 .swap-exercise-thumb {
     position: relative;
