@@ -1125,13 +1125,23 @@ function Workouts() {
         });
       } else {
         // For regular workouts, use client-workout-log endpoint
+        // Preserve the days structure when the workout uses it
+        const workoutDataToSave = isUsingDays ? {
+          ...workout.workout_data,
+          days: (() => {
+            const saveDays = [...(workout.workout_data.days || [])];
+            const safeIdx = Math.abs(dayIndex) % saveDays.length;
+            saveDays[safeIdx] = { ...saveDays[safeIdx], exercises: updatedExercises };
+            return saveDays;
+          })()
+        } : {
+          ...workout.workout_data,
+          exercises: updatedExercises
+        };
         apiPut('/.netlify/functions/client-workout-log', {
           assignmentId: workout.id,
           dayIndex: workout.day_index,
-          workout_data: {
-            ...workout.workout_data,
-            exercises: updatedExercises
-          }
+          workout_data: workoutDataToSave
         }).catch(err => {
           console.error('Error saving swapped exercise:', err);
         });

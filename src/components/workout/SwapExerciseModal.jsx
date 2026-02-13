@@ -39,6 +39,7 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
   const fetchIdRef = useRef(0); // Guards against stale/concurrent fetch responses
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
+  const historyEntryRef = useRef(false); // Track if we have an unpoped history entry
 
   // Force close handler - uses ref so identity is stable (prevents pushState re-runs)
   const forceClose = useCallback(() => {
@@ -55,13 +56,23 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
   useEffect(() => {
     const modalState = { modal: 'swap-exercise', timestamp: Date.now() };
     window.history.pushState(modalState, '');
+    historyEntryRef.current = true;
 
     const handlePopState = () => {
+      historyEntryRef.current = false; // Back button popped our entry
       forceClose();
     };
 
     window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+      // Clean up orphaned history entry on unmount (e.g. after swap select or X close)
+      // Without this, phantom entries accumulate and back-button navigates away from the page
+      if (historyEntryRef.current) {
+        historyEntryRef.current = false;
+        try { window.history.back(); } catch (e) { /* ignore */ }
+      }
+    };
   }, [forceClose]);
 
   // Prevent background scrolling when modal is open
