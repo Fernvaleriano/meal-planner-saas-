@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Loader2, Sparkles, ArrowRight, RefreshCw, ChevronDown, Dumbbell, Search, Star } from 'lucide-react';
+import { X, Loader2, Sparkles, ArrowRight, RefreshCw, ChevronDown, Dumbbell, Search, Star, Eye } from 'lucide-react';
 import { apiPost, apiGet } from '../../utils/api';
 
 const EQUIPMENT_OPTIONS = [
@@ -31,6 +31,9 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
   const [browseExercises, setBrowseExercises] = useState([]);
   const [browseLoading, setBrowseLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Preview state — only one exercise animation loaded at a time (on demand)
+  const [previewExercise, setPreviewExercise] = useState(null);
 
   // Refs for cleanup and stable references
   const isMountedRef = useRef(true);
@@ -320,6 +323,27 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
     setShowBrowse(prev => !prev);
   }, []);
 
+  // Preview — open on-demand, only loads one animation at a time
+  const handlePreview = useCallback((e, ex) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setPreviewExercise(ex);
+  }, []);
+
+  const closePreview = useCallback(() => {
+    setPreviewExercise(null);
+  }, []);
+
+  // Get the best media URL for preview (animation or video, prefer animation)
+  const getPreviewUrl = (ex) => ex?.animation_url || ex?.video_url || null;
+
+  // Check if a URL points to a video file (mp4, webm, etc.)
+  const isVideoFile = (url) => {
+    if (!url) return false;
+    const lower = url.split('?')[0].toLowerCase();
+    return lower.endsWith('.mp4') || lower.endsWith('.webm') || lower.endsWith('.mov') || lower.endsWith('.m4v');
+  };
+
   // Show fallback UI if exercise data is invalid - prevent black screen
   if (!exercise || !exercise.id) {
     return (
@@ -447,6 +471,11 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
                       loading="lazy"
                       onError={(e) => { if (!e.target.dataset.fallback) { e.target.dataset.fallback = '1'; e.target.src = '/img/exercise-placeholder.svg'; } }}
                     />
+                    {getPreviewUrl(ex) && (
+                      <button className="swap-preview-btn" onClick={(e) => handlePreview(e, ex)} aria-label="Preview exercise">
+                        <Eye size={12} />
+                      </button>
+                    )}
                   </div>
                   <div className="swap-exercise-info">
                     <span className="swap-exercise-name">{ex.name}</span>
@@ -514,6 +543,11 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
                       loading="lazy"
                       onError={(e) => { if (!e.target.dataset.fallback) { e.target.dataset.fallback = '1'; e.target.src = '/img/exercise-placeholder.svg'; } }}
                     />
+                    {getPreviewUrl(ex) && (
+                      <button className="swap-preview-btn" onClick={(e) => handlePreview(e, ex)} aria-label="Preview exercise">
+                        <Eye size={12} />
+                      </button>
+                    )}
                   </div>
                   <div className="swap-exercise-info">
                     <span className="swap-exercise-name">{ex.name}</span>
@@ -579,6 +613,11 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
                           loading="lazy"
                           onError={(e) => { if (!e.target.dataset.fallback) { e.target.dataset.fallback = '1'; e.target.src = '/img/exercise-placeholder.svg'; } }}
                         />
+                        {getPreviewUrl(ex) && (
+                          <button className="swap-preview-btn" onClick={(e) => handlePreview(e, ex)} aria-label="Preview exercise">
+                            <Eye size={12} />
+                          </button>
+                        )}
                       </div>
                       <div className="swap-exercise-info">
                         <span className="swap-exercise-name">{ex.name}</span>
@@ -600,6 +639,50 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
             </div>
           )}
         </div>
+
+        {/* Exercise Preview Overlay — loads animation on demand (one at a time) */}
+        {previewExercise && getPreviewUrl(previewExercise) && (
+          <div className="swap-preview-overlay" onClick={closePreview}>
+            <div className="swap-preview-content" onClick={(e) => e.stopPropagation()}>
+              <button className="swap-preview-close" onClick={closePreview}>
+                <X size={20} />
+              </button>
+              <div className="swap-preview-media">
+                {isVideoFile(getPreviewUrl(previewExercise)) ? (
+                  <video
+                    src={getPreviewUrl(previewExercise)}
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    onError={(e) => { e.target.style.display = 'none'; }}
+                  />
+                ) : (
+                  <img
+                    src={getPreviewUrl(previewExercise)}
+                    alt={previewExercise.name || 'Exercise preview'}
+                    onError={(e) => { if (!e.target.dataset.fallback) { e.target.dataset.fallback = '1'; e.target.src = '/img/exercise-placeholder.svg'; } }}
+                  />
+                )}
+              </div>
+              <div className="swap-preview-info">
+                <span className="swap-preview-name">{previewExercise.name}</span>
+                <span className="swap-preview-meta">
+                  {previewExercise.muscle_group || previewExercise.muscleGroup}
+                  {previewExercise.equipment && ` • ${previewExercise.equipment}`}
+                </span>
+              </div>
+              <button
+                className="swap-preview-select"
+                onClick={(e) => handleSelect(e, previewExercise)}
+                disabled={selecting}
+              >
+                <ArrowRight size={16} />
+                Swap to this exercise
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
