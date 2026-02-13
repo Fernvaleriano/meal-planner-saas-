@@ -1125,19 +1125,10 @@ function Workouts() {
         });
       } else {
         // For regular workouts, use client-workout-log endpoint
-        // Preserve days structure for multi-day workouts
         apiPut('/.netlify/functions/client-workout-log', {
           assignmentId: workout.id,
           dayIndex: workout.day_index,
-          workout_data: isUsingDays ? {
-            ...workout.workout_data,
-            days: (() => {
-              const saveDays = [...(workout.workout_data.days || [])];
-              const safeIdx = Math.abs(dayIndex) % saveDays.length;
-              saveDays[safeIdx] = { ...saveDays[safeIdx], exercises: updatedExercises };
-              return saveDays;
-            })()
-          } : {
+          workout_data: {
             ...workout.workout_data,
             exercises: updatedExercises
           }

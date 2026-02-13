@@ -39,8 +39,6 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
   const fetchIdRef = useRef(0); // Guards against stale/concurrent fetch responses
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
-  const closedViaBackRef = useRef(false);
-  const effectInstanceRef = useRef(0); // Guards against StrictMode double-mount stale cleanup
 
   // Force close handler - uses ref so identity is stable (prevents pushState re-runs)
   const forceClose = useCallback(() => {
@@ -54,39 +52,16 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
 
   // Handle browser back button - critical for mobile "escape" functionality
   // Runs ONCE on mount (stable forceClose via ref)
-  // Uses a unique modal ID to prevent cascading: when an entry ABOVE us is popped,
-  // the popstate event's state will be our own entry — we ignore that.
-  // On cleanup (programmatic close), we pop our orphaned entry via queueMicrotask
-  // to safely defer it outside React's commit phase.
-  // The effectInstanceRef guard prevents StrictMode's double-mount from popping the
-  // re-mount's entry (stale cleanup would see a mismatched instance ID and skip).
   useEffect(() => {
-    const instanceId = ++effectInstanceRef.current;
-    const modalId = 'swap-' + Date.now();
-    closedViaBackRef.current = false;
-    window.history.pushState({ modal: modalId }, '');
+    const modalState = { modal: 'swap-exercise', timestamp: Date.now() };
+    window.history.pushState(modalState, '');
 
-    const handlePopState = (event) => {
-      // If navigating TO our own entry, something above us was popped — ignore
-      if (event.state?.modal === modalId) return;
-      closedViaBackRef.current = true;
+    const handlePopState = () => {
       forceClose();
     };
 
     window.addEventListener('popstate', handlePopState);
-    return () => {
-      window.removeEventListener('popstate', handlePopState);
-      // If closed programmatically (not via back button), pop our orphaned history entry
-      // queueMicrotask defers this to after React's commit phase, preventing cascading
-      // The instanceId check ensures StrictMode's stale cleanup doesn't pop the re-mount's entry
-      if (!closedViaBackRef.current) {
-        queueMicrotask(() => {
-          if (effectInstanceRef.current === instanceId) {
-            window.history.back();
-          }
-        });
-      }
-    };
+    return () => window.removeEventListener('popstate', handlePopState);
   }, [forceClose]);
 
   // Prevent background scrolling when modal is open
