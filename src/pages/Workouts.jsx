@@ -1870,13 +1870,15 @@ function Workouts() {
 
   // Start workout — show readiness check first (only once per session)
   const handleStartWorkout = useCallback(() => {
+    // TEMP DEBUG
+    window.alert(`[DEBUG 1] Play tapped.\nreadinessData: ${!!readinessData}\nworkoutStarted: ${workoutStarted}\nexercises.length: ${exercises.length}`);
     if (readinessData || workoutStarted) {
       // Already completed readiness check this session — go straight to confirmation
       setShowWorkoutReadyConfirm(true);
     } else {
       setShowReadinessCheck(true);
     }
-  }, [readinessData, workoutStarted]);
+  }, [readinessData, workoutStarted, exercises.length]);
 
   // Called after readiness check is completed (or skipped)
   const handleReadinessComplete = useCallback(async (readiness) => {
@@ -1936,7 +1938,8 @@ function Workouts() {
 
   // Called when user clicks "Begin Workout" on the confirmation screen
   const handleStartGuidedWorkout = useCallback(() => {
-    console.log('[Play] Begin Workout tapped. showGuidedWorkout will be set to true.');
+    // TEMP DEBUG
+    window.alert(`[DEBUG 2] Begin Workout tapped.\nAbout to set showGuidedWorkout=true`);
     setShowWorkoutReadyConfirm(false);
     setShowGuidedWorkout(true);
   }, []);
@@ -3147,6 +3150,8 @@ function Workouts() {
       )}
 
       {/* Guided Workout Mode */}
+      {/* TEMP DEBUG: visible indicator when showGuidedWorkout is true */}
+      {showGuidedWorkout && !window.__guidedDebugShown && (() => { window.__guidedDebugShown = true; window.alert(`[DEBUG 3] Rendering GuidedWorkoutModal!\nexercises: ${exercises.length}`); return null; })()}
       {showGuidedWorkout && (
         <ErrorBoundary>
           <GuidedWorkoutModal
