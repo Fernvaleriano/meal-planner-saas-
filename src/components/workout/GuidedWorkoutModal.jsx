@@ -339,6 +339,7 @@ function GuidedWorkoutModal({
 
   const intervalRef = useRef(null);
   const elapsedRef = useRef(null);
+  const totalElapsedRef = useRef(0);
   const endTimeRef = useRef(null);
   const voiceNoteRef = useRef(null);
   const phaseMaxTimeRef = useRef(10); // Tracks max time for current phase (for progress ring)
@@ -375,6 +376,65 @@ function GuidedWorkoutModal({
   pendingNextExIdxRef.current = pendingNextExIdx;
   isPlayingDeferredRef.current = isPlayingDeferred;
   supersetStateRef.current = supersetState;
+  totalElapsedRef.current = totalElapsed;
+
+  // Build resume payload from refs (avoids stale closures in event handlers/intervals)
+  const buildResumePayload = useCallback(() => {
+    const serializedCompleted = {};
+    const cs = completedSetsRef.current;
+    if (cs) {
+      Object.entries(cs).forEach(([key, setObj]) => {
+        serializedCompleted[key] = Array.from(setObj);
+      });
+    }
+    return {
+      workoutName,
+      exerciseCount: exercises.length,
+      currentExIndex: currentExIndexRef.current,
+      currentSetIndex: currentSetIndexRef.current,
+      totalElapsed: totalElapsedRef.current,
+      completedSets: serializedCompleted,
+      setLogs: setLogsRef.current,
+      exerciseName: exercises[currentExIndexRef.current]?.name,
+      skippedQueue: skippedQueueRef.current,
+      pendingNextExIdx: pendingNextExIdxRef.current,
+      supersetState: supersetStateRef.current
+    };
+  }, [workoutName, exercises]);
+
+  // Auto-save resume state every 10 seconds for crash recovery
+  useEffect(() => {
+    const autoSaveId = setInterval(() => {
+      if (phaseRef.current === 'complete') return;
+      saveResumeState(buildResumePayload());
+    }, 10000);
+    return () => clearInterval(autoSaveId);
+  }, [buildResumePayload]);
+
+  // Save resume state on page close/crash (beforeunload + pagehide for mobile)
+  useEffect(() => {
+    const handleUnload = () => {
+      if (phaseRef.current === 'complete') return;
+      saveResumeState(buildResumePayload());
+    };
+    window.addEventListener('beforeunload', handleUnload);
+    window.addEventListener('pagehide', handleUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleUnload);
+      window.removeEventListener('pagehide', handleUnload);
+    };
+  }, [buildResumePayload]);
+
+  // Save resume state when app goes to background (may precede a crash)
+  useEffect(() => {
+    const handleVisibilitySave = () => {
+      if (document.visibilityState === 'hidden' && phaseRef.current !== 'complete') {
+        saveResumeState(buildResumePayload());
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilitySave);
+    return () => document.removeEventListener('visibilitychange', handleVisibilitySave);
+  }, [buildResumePayload]);
 
   // Clamp currentExIndex to valid range to prevent out-of-bounds access after swaps
   const safeExIndex = exercises.length > 0 ? Math.min(currentExIndex, exercises.length - 1) : 0;
@@ -466,7 +526,7 @@ function GuidedWorkoutModal({
 
   // Save progress when closing mid-workout (not when completing)
   const handleCloseWithSave = useCallback(() => {
-    if (phase !== 'complete' && currentExIndex > 0) {
+    if (phase !== 'complete') {
       // Persist all exercise data so reps are visible in regular mode immediately
       // Use ref to avoid temporal dead zone (persistExerciseData is declared later in the file)
       const persist = persistExerciseDataRef.current;
