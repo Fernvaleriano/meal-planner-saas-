@@ -1146,6 +1146,22 @@ function Workouts() {
           console.error('Error saving swapped exercise:', err);
         });
       }
+
+      // Clean up orphaned modal history entries (swap-exercise, exercise-detail)
+      // after React finishes rendering. Both modals push history entries on mount
+      // but can't safely pop them in useEffect cleanup (causes crashes).
+      // This deferred cleanup runs after all state updates are committed.
+      setTimeout(() => {
+        const popModalEntry = (remaining) => {
+          if (remaining <= 0) return;
+          const s = window.history.state;
+          if (s?.modal === 'swap-exercise' || s?.modal === 'exercise-detail') {
+            window.history.back();
+            setTimeout(() => popModalEntry(remaining - 1), 30);
+          }
+        };
+        popModalEntry(4);
+      }, 100);
     } catch (err) {
       console.error('Error in handleSwapExercise:', err);
     }

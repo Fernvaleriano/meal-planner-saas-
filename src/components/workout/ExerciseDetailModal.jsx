@@ -229,12 +229,10 @@ function ExerciseDetailModal({
 
     return () => {
       window.removeEventListener('popstate', handlePopState);
-      // Clean up orphaned history entry on unmount (e.g. after swap closes both modals)
-      // Without this, phantom entries accumulate and back-button navigates away from the page
-      if (historyEntryRef.current) {
-        historyEntryRef.current = false;
-        try { window.history.back(); } catch (e) { /* ignore */ }
-      }
+      // Mark entry as stale on unmount — parent (handleSwapExercise) will
+      // clean up orphaned entries via deferred setTimeout after React finishes.
+      // Do NOT call history.back() here: it fires during React's commit phase
+      // and causes cascading popstate events that crash the app.
     };
   }, [forceClose]);
 

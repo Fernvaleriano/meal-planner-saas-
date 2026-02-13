@@ -44,6 +44,12 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
   // Force close handler - uses ref so identity is stable (prevents pushState re-runs)
   const forceClose = useCallback(() => {
     try {
+      // Pop our history entry if we still own one, then close
+      if (historyEntryRef.current && window.history.state?.modal === 'swap-exercise') {
+        // history.back() will trigger popstate → handler sets ref=false and re-calls forceClose
+        window.history.back();
+        return;
+      }
       onCloseRef.current?.();
     } catch (e) {
       console.error('Error in forceClose:', e);
@@ -66,12 +72,10 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
     window.addEventListener('popstate', handlePopState);
     return () => {
       window.removeEventListener('popstate', handlePopState);
-      // Clean up orphaned history entry on unmount (e.g. after swap select or X close)
-      // Without this, phantom entries accumulate and back-button navigates away from the page
-      if (historyEntryRef.current) {
-        historyEntryRef.current = false;
-        try { window.history.back(); } catch (e) { /* ignore */ }
-      }
+      // Mark entry as stale on unmount — parent (handleSwapExercise) will
+      // clean up orphaned entries via deferred setTimeout after React finishes.
+      // Do NOT call history.back() here: it fires during React's commit phase
+      // and causes cascading popstate events that crash the app.
     };
   }, [forceClose]);
 
@@ -278,14 +282,14 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
     }
   }, [selecting, onSwap]);
 
-  // Handle close — uses ref for stable identity
+  // Handle close — routes through forceClose to pop history entry first
   const handleClose = useCallback((e) => {
     if (e) {
       e.preventDefault();
       e.stopPropagation();
     }
-    onCloseRef.current?.();
-  }, []);
+    forceClose();
+  }, [forceClose]);
 
   // Handle overlay click
   const handleOverlayClick = useCallback((e) => {
