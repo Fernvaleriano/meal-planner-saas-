@@ -39,6 +39,8 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
   const fetchIdRef = useRef(0); // Guards against stale/concurrent fetch responses
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
+  const suggestionsAbortRef = useRef(null); // AbortController for AI suggestions fetch
+  const browseAbortRef = useRef(null); // AbortController for browse exercises fetch
 
   // Force close handler - uses ref so identity is stable (prevents pushState re-runs)
   const forceClose = useCallback(() => {
@@ -102,8 +104,14 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
 
   // Fetch AI-powered suggestions - depends on exerciseId and equipment filter
   // Uses fetchIdRef to discard responses from stale/concurrent requests
+  // Uses AbortController to cancel in-flight requests on re-fetch or unmount
   const fetchSuggestions = useCallback(async (equipmentFilter = '', excludeIds = []) => {
     if (!isMountedRef.current || !exerciseId) return;
+
+    // Abort any previous suggestions request
+    if (suggestionsAbortRef.current) suggestionsAbortRef.current.abort();
+    const controller = new AbortController();
+    suggestionsAbortRef.current = controller;
 
     // Increment fetch ID — any response from a previous call will be ignored
     const myFetchId = ++fetchIdRef.current;
@@ -129,7 +137,7 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
         equipment: equipmentFilter,
         coachId: coachId || null,
         previousSuggestionIds: excludeIds
-      });
+      }, { signal: controller.signal });
 
       // Discard if component unmounted or a newer fetch was started
       if (!isMountedRef.current || fetchIdRef.current !== myFetchId) return;
@@ -146,6 +154,7 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
         setSuggestions([]);
       }
     } catch (err) {
+      if (err.name === 'AbortError') return; // Request was cancelled — ignore
       if (!isMountedRef.current || fetchIdRef.current !== myFetchId) return;
 
       console.error('Error fetching AI suggestions:', err);
@@ -159,8 +168,14 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
   }, [exerciseId, exercise?.name, muscleGroup, exercise?.equipment, exercise?.secondary_muscles, exercise?.difficulty, exercise?.exercise_type, coachId]);
 
   // Fetch exercises for browse mode
+  // Uses AbortController to cancel in-flight requests on re-fetch or unmount
   const fetchBrowseExercises = useCallback(async (equipment) => {
     if (!isMountedRef.current) return;
+
+    // Abort any previous browse request
+    if (browseAbortRef.current) browseAbortRef.current.abort();
+    const controller = new AbortController();
+    browseAbortRef.current = controller;
 
     setBrowseLoading(true);
 
@@ -182,7 +197,7 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
         url += `&genderVariant=${encodeURIComponent(genderPreference)}`;
       }
 
-      const response = await apiGet(url);
+      const response = await apiGet(url, { signal: controller.signal });
 
       if (!isMountedRef.current) return;
 
@@ -198,6 +213,7 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
         setBrowseExercises([]);
       }
     } catch (err) {
+      if (err.name === 'AbortError') return; // Request was cancelled — ignore
       if (!isMountedRef.current) return;
       console.error('Error fetching browse exercises:', err);
       setBrowseExercises([]);
@@ -217,6 +233,9 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
 
     return () => {
       isMountedRef.current = false;
+      // Cancel any in-flight requests to prevent ghost updates
+      if (suggestionsAbortRef.current) suggestionsAbortRef.current.abort();
+      if (browseAbortRef.current) browseAbortRef.current.abort();
     };
   }, [selectedEquipment]); // Refetch when equipment changes
 
@@ -369,7 +388,7 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
         <div className="swap-current">
           <div className="swap-current-thumb">
             <img
-              src={exercise.thumbnail_url || exercise.animation_url || '/img/exercise-placeholder.svg'}
+              src={exercise.thumbnail_url || '/img/exercise-placeholder.svg'}
               alt={exercise.name || 'Exercise'}
               onError={(e) => { if (!e.target.dataset.fallback) { e.target.dataset.fallback = '1'; e.target.src = '/img/exercise-placeholder.svg'; } }}
             />
@@ -423,7 +442,7 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
                 >
                   <div className="swap-exercise-thumb">
                     <img
-                      src={ex.thumbnail_url || ex.animation_url || '/img/exercise-placeholder.svg'}
+                      src={ex.thumbnail_url || '/img/exercise-placeholder.svg'}
                       alt={ex.name || 'Exercise'}
                       loading="lazy"
                       onError={(e) => { if (!e.target.dataset.fallback) { e.target.dataset.fallback = '1'; e.target.src = '/img/exercise-placeholder.svg'; } }}
@@ -490,7 +509,7 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
                   <div className="suggestion-rank">{index + 1}</div>
                   <div className="swap-exercise-thumb">
                     <img
-                      src={ex.thumbnail_url || ex.animation_url || '/img/exercise-placeholder.svg'}
+                      src={ex.thumbnail_url || '/img/exercise-placeholder.svg'}
                       alt={ex.name || 'Exercise'}
                       loading="lazy"
                       onError={(e) => { if (!e.target.dataset.fallback) { e.target.dataset.fallback = '1'; e.target.src = '/img/exercise-placeholder.svg'; } }}
@@ -555,7 +574,7 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
                     >
                       <div className="swap-exercise-thumb small">
                         <img
-                          src={ex.thumbnail_url || ex.animation_url || '/img/exercise-placeholder.svg'}
+                          src={ex.thumbnail_url || '/img/exercise-placeholder.svg'}
                           alt={ex.name || 'Exercise'}
                           loading="lazy"
                           onError={(e) => { if (!e.target.dataset.fallback) { e.target.dataset.fallback = '1'; e.target.src = '/img/exercise-placeholder.svg'; } }}

@@ -216,20 +216,21 @@ async function authenticatedFetch(url, options = {}) {
 }
 
 // API helper methods
-export async function apiGet(url) {
+export async function apiGet(url, options = {}) {
   // Add timezone to query parameters for date-aware endpoints
   const timezone = getUserTimezone();
   const separator = url.includes('?') ? '&' : '?';
   const urlWithTimezone = `${url}${separator}timezone=${encodeURIComponent(timezone)}`;
-  return authenticatedFetch(urlWithTimezone, { method: 'GET' });
+  return authenticatedFetch(urlWithTimezone, { method: 'GET', ...options });
 }
 
-export async function apiPost(url, data) {
+export async function apiPost(url, data, options = {}) {
   // Add timezone to request body for date-aware endpoints
   const timezone = getUserTimezone();
   return authenticatedFetch(url, {
     method: 'POST',
-    body: JSON.stringify({ ...data, timezone })
+    body: JSON.stringify({ ...data, timezone }),
+    ...options
   });
 }
 
