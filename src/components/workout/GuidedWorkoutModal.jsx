@@ -362,6 +362,7 @@ function GuidedWorkoutModal({
   const skippedQueueRef = useRef(skippedQueue);
   const pendingNextExIdxRef = useRef(pendingNextExIdx);
   const isPlayingDeferredRef = useRef(isPlayingDeferred);
+  const persistExerciseDataRef = useRef(null); // Ref for persistExerciseData (declared later) to avoid TDZ in handleCloseWithSave
   const supersetStateRef = useRef(supersetState);
 
   // Keep refs in sync (single effect to avoid re-render cascade)
@@ -467,7 +468,9 @@ function GuidedWorkoutModal({
   const handleCloseWithSave = useCallback(() => {
     if (phase !== 'complete' && currentExIndex > 0) {
       // Persist all exercise data so reps are visible in regular mode immediately
-      exercises.forEach((_, i) => persistExerciseData(i));
+      // Use ref to avoid temporal dead zone (persistExerciseData is declared later in the file)
+      const persist = persistExerciseDataRef.current;
+      if (persist) exercises.forEach((_, i) => persist(i));
 
       // Serialize completedSets (Sets → arrays)
       const serializedCompleted = {};
@@ -490,7 +493,7 @@ function GuidedWorkoutModal({
       });
     }
     onClose();
-  }, [phase, currentExIndex, currentSetIndex, totalElapsed, completedSets, setLogs, workoutName, exercises.length, currentExercise?.name, onClose, skippedQueue, pendingNextExIdx, supersetState, exercises, persistExerciseData]);
+  }, [phase, currentExIndex, currentSetIndex, totalElapsed, completedSets, setLogs, workoutName, exercises.length, currentExercise?.name, onClose, skippedQueue, pendingNextExIdx, supersetState, exercises]);
 
   // --- Swap handlers ---
   const handleOpenSwap = useCallback(() => {
@@ -1631,6 +1634,7 @@ function GuidedWorkoutModal({
 
     onUpdateExercise({ ...ex, sets: updatedSets });
   }, [exercises, onUpdateExercise]);
+  persistExerciseDataRef.current = persistExerciseData;
 
   // Helper: mark an exercise (or all members of its superset group) as fully complete
   const markExerciseFullyComplete = useCallback((exIdx) => {
