@@ -1,7 +1,7 @@
 // Netlify Function for importing workout programs from uploaded files (PDF text, etc.)
-// Parses the content using GPT-4o-mini, matches exercises against the database,
+// Parses the content using Claude AI, matches exercises against the database,
 // and returns a structured program with only matched exercises.
-const OpenAI = require('openai');
+const Anthropic = require('@anthropic-ai/sdk');
 const { createClient } = require('@supabase/supabase-js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
@@ -181,7 +181,6 @@ function findBestExerciseMatch(pdfName, pdfMuscleGroup, exercises) {
 }
 
 function isWarmupExercise(name) {
-  if (!name) return false;
   const lower = name.toLowerCase();
   const warmupKeywords = [
     'warm up', 'warmup', 'warm-up',
@@ -197,7 +196,6 @@ function isWarmupExercise(name) {
 }
 
 function isStretchExercise(name) {
-  if (!name) return false;
   const lower = name.toLowerCase();
   const stretchKeywords = [
     'stretch', 'cool down', 'cooldown', 'cool-down',
@@ -222,13 +220,13 @@ exports.handler = async (event) => {
     };
   }
 
-  const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+  const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
-  if (!OPENAI_API_KEY) {
+  if (!ANTHROPIC_API_KEY) {
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ success: false, error: 'OpenAI API key not configured.' })
+      body: JSON.stringify({ success: false, error: 'API key not configured.' })
     };
   }
 
@@ -257,7 +255,7 @@ exports.handler = async (event) => {
     console.log(`Importing workout program from text (${trimmedContent.length} chars)`);
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
-    const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
+    const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
 
     // Split text into day chunks for parallel parsing
     // Look for patterns like "DAY 1:", "DAY 2:", etc.
@@ -284,14 +282,15 @@ exports.handler = async (event) => {
 
 Rules:
 - Extract EVERY exercise (warm-ups, main exercises, cool-down stretches)
-- Preserve exact exercise names, sets, reps, rest periods, coaching notes
-- isWarmup=true for warm-up exercises, isStretch=true for cool-down/stretches
-- Detect SUPERSET/TRISET/GIANT SET groupings: assign sequential supersetGroup letters (A, B, C, D, E, F). Exercises not in a group get supersetGroup=null.
-- Rest: convert to seconds (90s=90, 2min=120, -=0). Defaults: warmups/stretches=0, compounds=90, isolation=60.
+- Preserve exact exercise names from the source
+- Preserve sets, reps, rest periods, coaching notes
+- Mark warm-up exercises: isWarmup=true
+- Mark cool-down/stretch exercises: isStretch=true
+- Rest: convert to seconds (90s=90, 2 min=120, 75s=75, -=0). If no rest column, use 0 for warmups/stretches, 90 for compounds, 60 for isolation.
 - Keep reps as string if ranges or units (e.g. "8-10", "2 min", "30s each")
 
 Return JSON:
-{"name":"Day 1: Push","exercises":[{"originalName":"Bench press","muscleGroup":"chest","sets":4,"reps":"8-10","restSeconds":90,"notes":"note","isWarmup":false,"isStretch":false,"supersetGroup":"A"}]}`;
+{"name":"Day 1: Push","exercises":[{"originalName":"Bench press","muscleGroup":"chest","sets":4,"reps":"8-10","restSeconds":90,"notes":"coaching note","isWarmup":false,"isStretch":false}]}`;
 
     // Run DB fetch and ALL day parses in PARALLEL
     const fetchExercisesPromise = (async () => {
@@ -313,20 +312,18 @@ Return JSON:
       return allExercises;
     })();
 
-    // Parse each day chunk in parallel with GPT-4o-mini (fast + cheap + accurate)
+    // Parse each day chunk in parallel with Haiku (each fits easily in 4096 tokens)
     const dayParsePromises = dayChunks.map((chunk, i) =>
-      openai.chat.completions.create({
-        model: 'gpt-4o-mini',
+      anthropic.messages.create({
+        model: 'claude-3-5-haiku-20241022',
         max_tokens: 4096,
-        temperature: 0.1,
-        response_format: { type: 'json_object' },
-        messages: [
-          { role: 'system', content: daySystemPrompt },
-          { role: 'user', content: `Parse ALL exercises from this workout day.\n\n${chunk}` }
-        ]
-      }).then(completion => {
-        const text = completion.choices[0]?.message?.content || '';
-        console.log(`Day ${i + 1} AI response (first 300 chars):`, text.substring(0, 300));
+        system: daySystemPrompt,
+        messages: [{
+          role: 'user',
+          content: `Parse ALL exercises from this workout day. Return only valid JSON.\n\n${chunk}`
+        }]
+      }).then(msg => {
+        const text = msg.content[0]?.text || '';
         try {
           const parsed = JSON.parse(text.trim());
           return parsed;
@@ -358,82 +355,8 @@ Return JSON:
     const [allExercises, ...dayResults] = await Promise.all([fetchExercisesPromise, ...dayParsePromises]);
     console.log(`Fetched ${allExercises.length} exercises, parsed ${dayResults.filter(Boolean).length}/${dayChunks.length} days`);
 
-    // Combine parsed days and normalize exercise structure
-    // The AI may return exercises in various structures:
-    // - { exercises: [...] }                      (expected)
-    // - { sections: [{ exercises: [...] }] }      (sectioned)
-    // - { warmup: [...], main: [...] }            (categorized)
-    // - [{ exercises: [...] }]                    (array of days)
-    // We need to flatten all of these into { name, exercises: [...] }
-    function extractExercisesFromParsed(parsed) {
-      if (!parsed) return [];
-      // Direct exercises array
-      if (Array.isArray(parsed.exercises) && parsed.exercises.length > 0) {
-        return parsed.exercises;
-      }
-      // Sections/groups: { sections: [{exercises: [...]}, ...] }
-      const sectionKeys = ['sections', 'groups', 'blocks', 'workout', 'workouts'];
-      for (const key of sectionKeys) {
-        if (Array.isArray(parsed[key])) {
-          const all = [];
-          for (const section of parsed[key]) {
-            if (Array.isArray(section.exercises)) {
-              all.push(...section.exercises);
-            } else if (Array.isArray(section)) {
-              all.push(...section);
-            }
-          }
-          if (all.length > 0) return all;
-        }
-      }
-      // Categorized: { warmup: [...], main_workout: [...], cooldown: [...] }
-      const categoryKeys = ['warmup', 'warm_up', 'warmUp', 'main', 'main_workout', 'mainWorkout',
-        'cooldown', 'cool_down', 'coolDown', 'stretches', 'hiit', 'finisher'];
-      const fromCategories = [];
-      for (const key of categoryKeys) {
-        if (Array.isArray(parsed[key])) {
-          fromCategories.push(...parsed[key]);
-        }
-      }
-      if (fromCategories.length > 0) return fromCategories;
-      // Check all values for arrays of objects with exercise-like properties
-      for (const val of Object.values(parsed)) {
-        if (Array.isArray(val) && val.length > 0 && val[0] && (val[0].originalName || val[0].name || val[0].exercise)) {
-          return val;
-        }
-      }
-      return [];
-    }
-
-    // Normalize exercise objects — AI may use "name" vs "originalName" inconsistently
-    function normalizeExerciseObject(ex) {
-      if (!ex || typeof ex !== 'object') return null;
-      return {
-        ...ex,
-        originalName: ex.originalName || ex.name || ex.exercise || 'Unknown Exercise'
-      };
-    }
-
-    const rawParsedDays = dayResults.filter(Boolean);
-
-    // Handle case where AI returns an array of days instead of a single day
-    let parsedDays = [];
-    for (const raw of rawParsedDays) {
-      if (Array.isArray(raw)) {
-        // AI returned an array - each element is a day
-        parsedDays.push(...raw.map(d => ({
-          name: d.name || 'Workout',
-          exercises: extractExercisesFromParsed(d).map(normalizeExerciseObject).filter(Boolean)
-        })));
-      } else {
-        const exercises = extractExercisesFromParsed(raw).map(normalizeExerciseObject).filter(Boolean);
-        console.log(`Extracted ${exercises.length} exercises from parsed day (keys: ${Object.keys(raw).join(', ')})`);
-        parsedDays.push({
-          name: raw.name || 'Workout',
-          exercises: exercises
-        });
-      }
-    }
+    // Combine parsed days
+    const parsedDays = dayResults.filter(Boolean);
 
     if (parsedDays.length === 0) {
       throw new Error('Could not parse any workout days from the document.');
@@ -488,8 +411,8 @@ Return JSON:
             notes: ex.notes || '',
             isWarmup: detectedWarmup,
             isStretch: detectedStretch,
-            isSuperset: !!ex.supersetGroup,
-            supersetGroup: ex.supersetGroup || null,
+            isSuperset: false,
+            supersetGroup: null,
             matched: true,
             trackingType: timedCheck.isTime ? 'time' : 'reps',
             duration: timedCheck.isTime ? timedCheck.durationSeconds : undefined
@@ -517,35 +440,12 @@ Return JSON:
             notes: ex.notes || '',
             isWarmup: detectedWarmup,
             isStretch: detectedStretch,
-            isSuperset: !!ex.supersetGroup,
-            supersetGroup: ex.supersetGroup || null,
+            isSuperset: false,
+            supersetGroup: null,
             matched: false,
             trackingType: unmatchedTimedCheck.isTime ? 'time' : 'reps',
             duration: unmatchedTimedCheck.isTime ? unmatchedTimedCheck.durationSeconds : undefined
           });
-        }
-      }
-
-      // Post-process: enforce superset rest pattern
-      // In a superset/triset, all exercises except the last one should have 0 rest
-      // (you go straight to the next exercise). Only the last exercise gets the rest period.
-      const supersetGroups = {};
-      resultExercises.forEach((ex, idx) => {
-        if (ex.isSuperset && ex.supersetGroup) {
-          if (!supersetGroups[ex.supersetGroup]) supersetGroups[ex.supersetGroup] = [];
-          supersetGroups[ex.supersetGroup].push(idx);
-        }
-      });
-      for (const group of Object.values(supersetGroups)) {
-        if (group.length < 2) continue;
-        // Find the max rest in the group to use as the final exercise's rest
-        const maxRest = Math.max(...group.map(idx => resultExercises[idx].restSeconds || 0));
-        // Set 0 rest on all but the last exercise, last gets the group rest
-        for (let i = 0; i < group.length - 1; i++) {
-          resultExercises[group[i]].restSeconds = 0;
-        }
-        if (maxRest > 0) {
-          resultExercises[group[group.length - 1]].restSeconds = maxRest;
         }
       }
 
