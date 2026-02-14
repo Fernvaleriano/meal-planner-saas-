@@ -95,12 +95,12 @@ export function usePullToRefresh(onRefresh, options = {}) {
         const pulledDistance = Math.min(diff * resistance, threshold * 1.5);
         pullDistanceRef.current = pulledDistance;
         updateIndicatorDOM(pulledDistance);
-        // Only preventDefault after 10px of deliberate pull-down.
-        // Calling it on any 1px movement blocks touch→click synthesis on iOS,
-        // making exercise cards untappable.
-        if (diff > 10) {
-          e.preventDefault();
-        }
+        // Note: We no longer call e.preventDefault() here.
+        // Native overscroll is blocked by CSS `overscroll-behavior-y: contain`
+        // on html, which makes preventDefault() unnecessary. Using a passive
+        // listener instead fixes Android WebView/Chrome scrolling — non-passive
+        // touchmove handlers force the compositor to wait for JS before
+        // scrolling, which blocks scroll gestures on Android.
       }
     };
 
@@ -158,11 +158,11 @@ export function usePullToRefresh(onRefresh, options = {}) {
       updateIndicatorDOM(0);
     };
 
-    // Use passive listeners for better scroll performance
-    // Note: touchmove is NOT passive so we can call preventDefault() to stop
-    // the browser's default pull-to-refresh/back navigation behavior
+    // All listeners are passive for best scroll performance on Android.
+    // Native overscroll is prevented via CSS (overscroll-behavior-y: contain)
+    // so we no longer need non-passive touchmove to call preventDefault().
     container.addEventListener('touchstart', handleTouchStart, { passive: true });
-    container.addEventListener('touchmove', handleTouchMove, { passive: false });
+    container.addEventListener('touchmove', handleTouchMove, { passive: true });
     container.addEventListener('touchend', handleTouchEnd, { passive: true });
     container.addEventListener('touchcancel', handleTouchCancel, { passive: true });
 
