@@ -53,6 +53,20 @@ function isVideoUrl(url) {
 // Pixel dimensions for each size tier (used for img width/height attributes)
 const SIZE_PX = { small: 48, medium: 80, large: 120 };
 
+// Muscle-group color/gradient mapping for placeholders
+const MUSCLE_GROUP_STYLES = {
+  chest:     { gradient: 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)', label: 'CH' },
+  back:      { gradient: 'linear-gradient(135deg, #3498db 0%, #2980b9 100%)', label: 'BK' },
+  shoulders: { gradient: 'linear-gradient(135deg, #e67e22 0%, #d35400 100%)', label: 'SH' },
+  legs:      { gradient: 'linear-gradient(135deg, #27ae60 0%, #229954 100%)', label: 'LG' },
+  arms:      { gradient: 'linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%)', label: 'AR' },
+  core:      { gradient: 'linear-gradient(135deg, #f39c12 0%, #e67e22 100%)', label: 'CR' },
+  full_body: { gradient: 'linear-gradient(135deg, #1abc9c 0%, #16a085 100%)', label: 'FB' },
+  cardio:    { gradient: 'linear-gradient(135deg, #e74c3c 0%, #e67e22 100%)', label: 'CD' },
+};
+
+const DEFAULT_STYLE = { gradient: 'linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%)', label: '' };
+
 /**
  * Smart Thumbnail Component
  *
@@ -80,6 +94,10 @@ function SmartThumbnail({
   const hasVideo = !!(exercise?.video_url || exercise?.animation_url);
   const videoUrl = exercise?.video_url || exercise?.animation_url;
   const px = SIZE_PX[size] || 80;
+
+  // Resolve muscle-group style for placeholder
+  const muscleGroup = exercise?.muscle_group?.toLowerCase() || '';
+  const mgStyle = MUSCLE_GROUP_STYLES[muscleGroup] || DEFAULT_STYLE;
 
   // --- IntersectionObserver: load when near, unload when far ---
   useEffect(() => {
@@ -192,10 +210,16 @@ function SmartThumbnail({
     large: 'smart-thumb-large'
   };
 
+  // Apply muscle-group gradient only when showing placeholder
+  const containerStyle = (!shouldShowImage && !loading)
+    ? { background: mgStyle.gradient }
+    : undefined;
+
   return (
     <div
       ref={containerRef}
       className={`smart-thumbnail ${sizeClasses[size]} ${className} ${loading ? 'loading' : ''}`}
+      style={containerStyle}
       onClick={onClick}
     >
       {shouldShowImage ? (
@@ -211,6 +235,9 @@ function SmartThumbnail({
       ) : (
         <div className="smart-thumb-placeholder">
           <Dumbbell size={size === 'small' ? 16 : size === 'large' ? 32 : 24} />
+          {mgStyle.label && (
+            <span className="smart-thumb-muscle-label">{mgStyle.label}</span>
+          )}
         </div>
       )}
 
