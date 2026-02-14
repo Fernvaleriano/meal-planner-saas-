@@ -287,11 +287,13 @@ Rules:
 - Mark warm-up exercises: isWarmup=true
 - Mark cool-down/stretch exercises: isStretch=true
 - Detect SUPERSET, TRISET, and GIANT SET groupings. Exercises in the same superset/triset share the same supersetGroup letter (A, B, C, D, E, F, etc.). Assign letters sequentially per group found. Exercises NOT in a superset/triset get supersetGroup=null.
+- SUPERSET REST RULE: In supersets/trisets, the first exercise(s) should have restSeconds=0 (no rest — go straight to the next exercise). Only the LAST exercise in the group gets the actual rest period (e.g. 60s). This is the standard superset convention.
 - Rest: convert to seconds (90s=90, 2 min=120, 75s=75, -=0). If no rest column, use 0 for warmups/stretches, 90 for compounds, 60 for isolation.
+- IMPORTANT: Input may be copy-pasted from tables with concatenated columns (e.g. "Bench press310-120sControl the descent"). Parse carefully: "3" is sets, "10-12" is reps, "0s" is rest, and the remaining text is notes. Do NOT read "120s" from "10-120s" — that is reps "10-12" followed by rest "0s".
 - Keep reps as string if ranges or units (e.g. "8-10", "2 min", "30s each")
 
 Return JSON:
-{"name":"Day 1: Push","exercises":[{"originalName":"Bench press","muscleGroup":"chest","sets":4,"reps":"8-10","restSeconds":90,"notes":"coaching note","isWarmup":false,"isStretch":false,"supersetGroup":null},{"originalName":"Cable fly","muscleGroup":"chest","sets":3,"reps":"12-15","restSeconds":60,"notes":"squeeze at peak","isWarmup":false,"isStretch":false,"supersetGroup":"A"}]}`;
+{"name":"Day 1: Push","exercises":[{"originalName":"Bench press","muscleGroup":"chest","sets":4,"reps":"8-10","restSeconds":0,"notes":"coaching note","isWarmup":false,"isStretch":false,"supersetGroup":"A"},{"originalName":"Cable fly","muscleGroup":"chest","sets":3,"reps":"12-15","restSeconds":60,"notes":"squeeze at peak","isWarmup":false,"isStretch":false,"supersetGroup":"A"}]}`;
 
     // Run DB fetch and ALL day parses in PARALLEL
     const fetchExercisesPromise = (async () => {
@@ -513,6 +515,29 @@ Return JSON:
             trackingType: unmatchedTimedCheck.isTime ? 'time' : 'reps',
             duration: unmatchedTimedCheck.isTime ? unmatchedTimedCheck.durationSeconds : undefined
           });
+        }
+      }
+
+      // Post-process: enforce superset rest pattern
+      // In a superset/triset, all exercises except the last one should have 0 rest
+      // (you go straight to the next exercise). Only the last exercise gets the rest period.
+      const supersetGroups = {};
+      resultExercises.forEach((ex, idx) => {
+        if (ex.isSuperset && ex.supersetGroup) {
+          if (!supersetGroups[ex.supersetGroup]) supersetGroups[ex.supersetGroup] = [];
+          supersetGroups[ex.supersetGroup].push(idx);
+        }
+      });
+      for (const group of Object.values(supersetGroups)) {
+        if (group.length < 2) continue;
+        // Find the max rest in the group to use as the final exercise's rest
+        const maxRest = Math.max(...group.map(idx => resultExercises[idx].restSeconds || 0));
+        // Set 0 rest on all but the last exercise, last gets the group rest
+        for (let i = 0; i < group.length - 1; i++) {
+          resultExercises[group[i]].restSeconds = 0;
+        }
+        if (maxRest > 0) {
+          resultExercises[group[group.length - 1]].restSeconds = maxRest;
         }
       }
 
