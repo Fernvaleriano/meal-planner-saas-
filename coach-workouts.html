@@ -9042,6 +9042,8 @@
             }
 
             renderWorkoutDays();
+            // Check superset consistency for imported program
+            workoutDays.forEach((_, d) => checkSupersetWarnings(d));
             closeImportModal();
             updateSaveButtonMode();
 

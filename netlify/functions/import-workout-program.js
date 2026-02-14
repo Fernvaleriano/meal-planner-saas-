@@ -286,11 +286,12 @@ Rules:
 - Preserve sets, reps, rest periods, coaching notes
 - Mark warm-up exercises: isWarmup=true
 - Mark cool-down/stretch exercises: isStretch=true
+- Detect supersets: if exercises are grouped as a superset (indicated by labels like "Superset", "SS", "A1/A2", "B1/B2", paired exercises, or explicit superset notation), set isSuperset=true and assign a supersetGroup letter ("A", "B", or "C"). Exercises sharing the same superset group letter are performed together. For example, A1 and A2 both get supersetGroup "A", B1 and B2 both get supersetGroup "B".
 - Rest: convert to seconds (90s=90, 2 min=120, 75s=75, -=0). If no rest column, use 0 for warmups/stretches, 90 for compounds, 60 for isolation.
 - Keep reps as string if ranges or units (e.g. "8-10", "2 min", "30s each")
 
 Return JSON:
-{"name":"Day 1: Push","exercises":[{"originalName":"Bench press","muscleGroup":"chest","sets":4,"reps":"8-10","restSeconds":90,"notes":"coaching note","isWarmup":false,"isStretch":false}]}`;
+{"name":"Day 1: Push","exercises":[{"originalName":"Bench press","muscleGroup":"chest","sets":4,"reps":"8-10","restSeconds":90,"notes":"coaching note","isWarmup":false,"isStretch":false,"isSuperset":false,"supersetGroup":null}]}`;
 
     // Run DB fetch and ALL day parses in PARALLEL
     const fetchExercisesPromise = (async () => {
@@ -381,6 +382,8 @@ Return JSON:
 
         const detectedWarmup = ex.isWarmup || isWarmupExercise(ex.originalName);
         const detectedStretch = ex.isStretch || isStretchExercise(ex.originalName);
+        const detectedSuperset = ex.isSuperset || false;
+        const detectedSupersetGroup = ex.supersetGroup || null;
 
         const match = findBestExerciseMatch(ex.originalName, ex.muscleGroup, allExercises);
 
@@ -411,8 +414,8 @@ Return JSON:
             notes: ex.notes || '',
             isWarmup: detectedWarmup,
             isStretch: detectedStretch,
-            isSuperset: false,
-            supersetGroup: null,
+            isSuperset: detectedSuperset,
+            supersetGroup: detectedSupersetGroup,
             matched: true,
             trackingType: timedCheck.isTime ? 'time' : 'reps',
             duration: timedCheck.isTime ? timedCheck.durationSeconds : undefined
@@ -440,8 +443,8 @@ Return JSON:
             notes: ex.notes || '',
             isWarmup: detectedWarmup,
             isStretch: detectedStretch,
-            isSuperset: false,
-            supersetGroup: null,
+            isSuperset: detectedSuperset,
+            supersetGroup: detectedSupersetGroup,
             matched: false,
             trackingType: unmatchedTimedCheck.isTime ? 'time' : 'reps',
             duration: unmatchedTimedCheck.isTime ? unmatchedTimedCheck.durationSeconds : undefined
