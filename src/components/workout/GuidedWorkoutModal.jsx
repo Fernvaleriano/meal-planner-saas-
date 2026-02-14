@@ -825,13 +825,31 @@ function GuidedWorkoutModal({
           return;
         }
 
-        const last = sessions[0];
-        let lastSets;
-        try {
-          lastSets = typeof last.setsData === 'string' ? JSON.parse(last.setsData) : (last.setsData || []);
-        } catch { lastSets = []; }
-        if (!Array.isArray(lastSets)) lastSets = [];
-        const lastMaxWeight = lastSets.reduce((max, s) => Math.max(max, s.weight || 0), 0);
+        // Parse sets from a session
+        const parseSets = (session) => {
+          try {
+            const s = typeof session.setsData === 'string' ? JSON.parse(session.setsData) : (session.setsData || []);
+            return Array.isArray(s) ? s : [];
+          } catch { return []; }
+        };
+
+        const getMaxWeight = (sets) => sets.reduce((max, s) => Math.max(max, s.weight || 0), 0);
+
+        let last = sessions[0];
+        let lastSets = parseSets(last);
+        let lastMaxWeight = getMaxWeight(lastSets);
+
+        // If most recent session has 0 weight, check if older sessions have real weight
+        // (indicates warm-up sets or unrecorded weight — skip to actual working session)
+        if (lastMaxWeight <= 0 && sessions.length > 1) {
+          const sessionWithWeight = sessions.find(s => getMaxWeight(parseSets(s)) > 0);
+          if (sessionWithWeight) {
+            last = sessionWithWeight;
+            lastSets = parseSets(last);
+            lastMaxWeight = getMaxWeight(lastSets);
+          }
+        }
+
         const lastMaxReps = lastSets.reduce((max, s) => Math.max(max, s.reps || 0), 0);
         const lastNumSets = lastSets.length || 3;
 
