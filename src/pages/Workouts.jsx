@@ -2031,9 +2031,11 @@ function Workouts() {
 
       // Capture any new PRs from the response
       setWorkoutPRs(result?.prs || []);
-      // Store actual duration from play mode so summary/share displays it correctly
+      // Store actual duration so summary/share displays it correctly
       if (elapsedSeconds && elapsedSeconds > 0) {
         setActualDurationMinutes(elapsedSeconds / 60);
+      } else if (durationMinutes && durationMinutes > 0) {
+        setActualDurationMinutes(durationMinutes);
       }
       // Clear localStorage completion cache since workout is done
       try {
