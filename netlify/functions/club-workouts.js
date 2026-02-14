@@ -10,6 +10,39 @@ const headers = {
   'Content-Type': 'application/json'
 };
 
+// Enrich exercises with the latest media URLs from the exercises table.
+// Club workout snapshots may have been created before thumbnails were set.
+async function enrichExercisesWithVideos(exercises, supabase) {
+  if (!exercises || exercises.length === 0) return exercises;
+
+  const exerciseIds = exercises
+    .filter(ex => ex.id && typeof ex.id === 'number')
+    .map(ex => ex.id);
+
+  if (exerciseIds.length === 0) return exercises;
+
+  const { data: exerciseData, error } = await supabase
+    .from('exercises')
+    .select('id, video_url, animation_url, thumbnail_url')
+    .in('id', exerciseIds);
+
+  if (error || !exerciseData) return exercises;
+
+  const videoMap = new Map(exerciseData.map(ex => [ex.id, ex]));
+
+  return exercises.map(ex => {
+    if (!ex.id || !videoMap.has(ex.id)) return ex;
+    const fresh = videoMap.get(ex.id);
+    const updates = {};
+    // Always prefer the DB thumbnail (coach may have updated it)
+    if (fresh.thumbnail_url && fresh.thumbnail_url !== ex.thumbnail_url) updates.thumbnail_url = fresh.thumbnail_url;
+    if (fresh.video_url && !ex.video_url) updates.video_url = fresh.video_url;
+    if (fresh.animation_url && !ex.animation_url) updates.animation_url = fresh.animation_url;
+    if (Object.keys(updates).length === 0) return ex;
+    return { ...ex, ...updates };
+  });
+}
+
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers, body: '' };
@@ -74,6 +107,13 @@ exports.handler = async (event) => {
                 });
               }
             }
+          }
+        }
+
+        // Enrich all exercises with the latest thumbnails from the DB
+        for (const day of days) {
+          if (day.exercises && day.exercises.length > 0) {
+            day.exercises = await enrichExercisesWithVideos(day.exercises, supabase);
           }
         }
 
