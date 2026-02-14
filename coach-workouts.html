@@ -8963,6 +8963,18 @@
             document.getElementById('importFilterMatched').classList.remove('active');
         }
 
+        // Detect if a reps value like "3 min", "30s" is time-based
+        // Returns { isTime, durationSeconds }
+        function detectTimedRepsValue(repsValue) {
+            if (!repsValue || typeof repsValue !== 'string') return { isTime: false };
+            const str = repsValue.trim().toLowerCase();
+            const minMatch = str.match(/^(\d+(?:\.\d+)?)\s*(?:min(?:utes?|s)?)\b/);
+            if (minMatch) return { isTime: true, durationSeconds: Math.round(parseFloat(minMatch[1]) * 60) };
+            const secMatch = str.match(/^(\d+)\s*(?:s(?:ec(?:onds?)?)?)\b/);
+            if (secMatch) return { isTime: true, durationSeconds: parseInt(secMatch[1], 10) };
+            return { isTime: false };
+        }
+
         function applyImportedProgram() {
             if (!importedProgramData || !importedProgramData.program) {
                 showToast('No imported data available', 'error');
@@ -8992,25 +9004,40 @@
 
                 workoutDays.push({
                     name: day.name,
-                    exercises: exercises.map(ex => ({
-                        id: ex.id || null,
-                        name: ex.name,
-                        video_url: ex.video_url || null,
-                        animation_url: ex.animation_url || null,
-                        thumbnail_url: ex.thumbnail_url || null,
-                        muscle_group: ex.muscle_group || ex.muscleGroup,
-                        equipment: ex.equipment || null,
-                        instructions: ex.instructions || null,
-                        sets: ex.sets || 3,
-                        reps: ex.reps || '8-12',
-                        restSeconds: ex.restSeconds != null ? ex.restSeconds : 90,
-                        notes: ex.notes || '',
-                        matched: ex.matched || false,
-                        isSuperset: ex.isSuperset || false,
-                        supersetGroup: ex.supersetGroup || null,
-                        isWarmup: ex.isWarmup || false,
-                        isStretch: ex.isStretch || false
-                    }))
+                    exercises: exercises.map(ex => {
+                        const repsVal = ex.reps || '8-12';
+                        // Use trackingType from import if set, otherwise detect from reps value
+                        let trackingType = ex.trackingType || 'reps';
+                        let duration = ex.duration;
+                        if (!ex.trackingType) {
+                            const timedCheck = detectTimedRepsValue(repsVal);
+                            if (timedCheck.isTime) {
+                                trackingType = 'time';
+                                duration = timedCheck.durationSeconds;
+                            }
+                        }
+                        return {
+                            id: ex.id || null,
+                            name: ex.name,
+                            video_url: ex.video_url || null,
+                            animation_url: ex.animation_url || null,
+                            thumbnail_url: ex.thumbnail_url || null,
+                            muscle_group: ex.muscle_group || ex.muscleGroup,
+                            equipment: ex.equipment || null,
+                            instructions: ex.instructions || null,
+                            sets: ex.sets || 3,
+                            reps: repsVal,
+                            restSeconds: ex.restSeconds != null ? ex.restSeconds : 90,
+                            notes: ex.notes || '',
+                            matched: ex.matched || false,
+                            isSuperset: ex.isSuperset || false,
+                            supersetGroup: ex.supersetGroup || null,
+                            isWarmup: ex.isWarmup || false,
+                            isStretch: ex.isStretch || false,
+                            trackingType: trackingType,
+                            duration: duration
+                        };
+                    })
                 });
             }
 

@@ -12,6 +12,17 @@ const parseReps = (reps) => {
   return 12;
 };
 
+// Parse time-based reps value (e.g. "3 min", "30s") into seconds
+const parseTimeFromReps = (reps) => {
+  if (!reps || typeof reps !== 'string') return null;
+  const str = reps.trim().toLowerCase();
+  const minMatch = str.match(/^(\d+(?:\.\d+)?)\s*(?:min(?:utes?|s)?)\b/);
+  if (minMatch) return Math.round(parseFloat(minMatch[1]) * 60);
+  const secMatch = str.match(/^(\d+)\s*(?:s(?:ec(?:onds?)?)?)\b/);
+  if (secMatch) return parseInt(secMatch[1], 10);
+  return null;
+};
+
 // RPE scale with descriptions
 const RPE_OPTIONS = [
   { value: null, label: '-', description: 'Not set' },
@@ -326,7 +337,7 @@ function SetEditorModal({
       return localSets[setIndex]?.weight || 0;
     }
     if (editMode === 'time') {
-      return localSets[setIndex]?.duration || exercise.duration || 45;
+      return localSets[setIndex]?.duration || exercise.duration || parseTimeFromReps(exercise.reps) || 45;
     }
     return parseReps(localSets[setIndex]?.reps || exercise.reps);
   };
@@ -549,7 +560,7 @@ function SetEditorModal({
                   onClick={() => selectField(index, 'reps')}
                 >
                   {editMode === 'time'
-                    ? (set.duration || exercise.duration || 45)
+                    ? (set.duration || exercise.duration || parseTimeFromReps(exercise.reps) || 45)
                     : parseReps(set.reps || exercise.reps)
                   }
                 </button>

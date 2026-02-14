@@ -14,6 +14,24 @@ const headers = {
   'Content-Type': 'application/json'
 };
 
+// --- Time-based reps detection ---
+// Detects if a reps value like "3 min", "30s", "2 min each" is time-based
+// Returns { isTime: true, durationSeconds: 180 } or { isTime: false }
+function detectTimedReps(repsValue) {
+  if (!repsValue || typeof repsValue !== 'string') return { isTime: false };
+  const str = repsValue.trim().toLowerCase();
+  // Match patterns like "3 min", "3min", "2 minutes", "30s", "30 sec", "45 seconds", "30s hold", "2 min each"
+  const minMatch = str.match(/^(\d+(?:\.\d+)?)\s*(?:min(?:utes?|s)?)\b/);
+  if (minMatch) {
+    return { isTime: true, durationSeconds: Math.round(parseFloat(minMatch[1]) * 60) };
+  }
+  const secMatch = str.match(/^(\d+)\s*(?:s(?:ec(?:onds?)?)?)\b/);
+  if (secMatch) {
+    return { isTime: true, durationSeconds: parseInt(secMatch[1], 10) };
+  }
+  return { isTime: false };
+}
+
 // --- Exercise matching utilities (shared with generate-workout-claude.js) ---
 
 function normalizeExerciseName(name) {
@@ -374,6 +392,9 @@ Return JSON:
             hasVideo: !!(match.video_url || match.animation_url)
           });
 
+          const repsVal = ex.reps || (detectedWarmup ? '10-15' : detectedStretch ? '30s hold' : '8-12');
+          const timedCheck = detectTimedReps(repsVal);
+
           resultExercises.push({
             id: match.id,
             name: match.name,
@@ -385,14 +406,16 @@ Return JSON:
             equipment: match.equipment,
             instructions: match.instructions,
             sets: ex.sets || (detectedWarmup ? 1 : detectedStretch ? 1 : 3),
-            reps: ex.reps || (detectedWarmup ? '10-15' : detectedStretch ? '30s hold' : '8-12'),
+            reps: repsVal,
             restSeconds: ex.restSeconds != null ? ex.restSeconds : (detectedWarmup ? 30 : detectedStretch ? 0 : 90),
             notes: ex.notes || '',
             isWarmup: detectedWarmup,
             isStretch: detectedStretch,
             isSuperset: false,
             supersetGroup: null,
-            matched: true
+            matched: true,
+            trackingType: timedCheck.isTime ? 'time' : 'reps',
+            duration: timedCheck.isTime ? timedCheck.durationSeconds : undefined
           });
         } else {
           matchStats.unmatched++;
@@ -403,20 +426,25 @@ Return JSON:
           });
 
           // Include unmatched exercises too, flagged as unmatched
+          const unmatchedRepsVal = ex.reps || (detectedWarmup ? '10-15' : detectedStretch ? '30s hold' : '8-12');
+          const unmatchedTimedCheck = detectTimedReps(unmatchedRepsVal);
+
           resultExercises.push({
             name: ex.originalName,
             originalName: ex.originalName,
             muscle_group: ex.muscleGroup,
             equipment: null,
             sets: ex.sets || (detectedWarmup ? 1 : detectedStretch ? 1 : 3),
-            reps: ex.reps || (detectedWarmup ? '10-15' : detectedStretch ? '30s hold' : '8-12'),
+            reps: unmatchedRepsVal,
             restSeconds: ex.restSeconds != null ? ex.restSeconds : (detectedWarmup ? 30 : detectedStretch ? 0 : 90),
             notes: ex.notes || '',
             isWarmup: detectedWarmup,
             isStretch: detectedStretch,
             isSuperset: false,
             supersetGroup: null,
-            matched: false
+            matched: false,
+            trackingType: unmatchedTimedCheck.isTime ? 'time' : 'reps',
+            duration: unmatchedTimedCheck.isTime ? unmatchedTimedCheck.durationSeconds : undefined
           });
         }
       }
