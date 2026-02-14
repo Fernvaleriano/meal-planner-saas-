@@ -70,16 +70,47 @@ exports.handler = async (event) => {
       });
     }
 
-    const videos = files
-      .filter(f => !f.id?.endsWith('/'))
-      .map(f => ({
-        name: f.name,
-        filePath: `${folderPath}/${f.name}`,
-        size: f.metadata?.size || 0,
-        createdAt: f.created_at,
-        contentType: f.metadata?.mimetype || 'video/webm',
-        signedUrl: urlMap.get(`${folderPath}/${f.name}`) || null
-      }));
+    // Check for video thumbnails in exercise-thumbnails bucket
+    const thumbFolder = `video-thumbnails/${coachId}`;
+    const { data: thumbFiles } = await supabase.storage
+      .from('exercise-thumbnails')
+      .list(thumbFolder, { limit: 200 });
+
+    const thumbSet = new Set();
+    if (thumbFiles) {
+      thumbFiles.forEach(f => {
+        // Store base name without extension for matching
+        const baseName = f.name.replace(/\.\w+$/, '');
+        thumbSet.add(baseName);
+      });
+    }
+
+    // Build thumbnail public URLs for videos that have them
+    const videoFiles = files.filter(f => !f.id?.endsWith('/'));
+    const thumbUrlMap = new Map();
+    for (const f of videoFiles) {
+      const videoBaseName = f.name.replace(/\.\w+$/, '');
+      if (thumbSet.has(videoBaseName)) {
+        // Find the actual thumbnail file to get its extension
+        const thumbFile = thumbFiles.find(tf => tf.name.replace(/\.\w+$/, '') === videoBaseName);
+        if (thumbFile) {
+          const { data: tUrl } = supabase.storage
+            .from('exercise-thumbnails')
+            .getPublicUrl(`${thumbFolder}/${thumbFile.name}`);
+          thumbUrlMap.set(f.name, tUrl.publicUrl);
+        }
+      }
+    }
+
+    const videos = videoFiles.map(f => ({
+      name: f.name,
+      filePath: `${folderPath}/${f.name}`,
+      size: f.metadata?.size || 0,
+      createdAt: f.created_at,
+      contentType: f.metadata?.mimetype || 'video/webm',
+      signedUrl: urlMap.get(`${folderPath}/${f.name}`) || null,
+      thumbnailUrl: thumbUrlMap.get(f.name) || null
+    }));
 
     return {
       statusCode: 200,
