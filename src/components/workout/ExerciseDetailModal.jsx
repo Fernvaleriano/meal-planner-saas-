@@ -2595,16 +2595,32 @@ function ExerciseDetailModal({
           return;
         }
 
-        // Get the most recent previous session
-        const lastSession = previousSessions[0];
-        let lastSets;
-        try {
-          lastSets = typeof lastSession.setsData === 'string'
-            ? JSON.parse(lastSession.setsData) : (lastSession.setsData || []);
-        } catch { lastSets = []; }
-        if (!Array.isArray(lastSets)) lastSets = [];
+        // Get the most recent previous session, but skip 0-weight sessions
+        // when older sessions have real weight data (indicates warm-up or unrecorded weight)
+        const parseSets = (session) => {
+          try {
+            const s = typeof session.setsData === 'string'
+              ? JSON.parse(session.setsData) : (session.setsData || []);
+            return Array.isArray(s) ? s : [];
+          } catch { return []; }
+        };
 
-        const lastMaxWeight = lastSets.reduce((max, s) => Math.max(max, s.weight || 0), 0);
+        const getMaxWeight = (sets) => sets.reduce((max, s) => Math.max(max, s.weight || 0), 0);
+
+        let lastSession = previousSessions[0];
+        let lastSets = parseSets(lastSession);
+        let lastMaxWeight = getMaxWeight(lastSets);
+
+        // If most recent session has 0 weight, check if older sessions have real weight
+        if (lastMaxWeight <= 0 && previousSessions.length > 1) {
+          const sessionWithWeight = previousSessions.find(s => getMaxWeight(parseSets(s)) > 0);
+          if (sessionWithWeight) {
+            lastSession = sessionWithWeight;
+            lastSets = parseSets(lastSession);
+            lastMaxWeight = getMaxWeight(lastSets);
+          }
+        }
+
         const lastMaxReps = lastSets.reduce((max, s) => Math.max(max, s.reps || 0), 0);
         const lastNumSets = lastSets.length || 3;
         const dateLabel = new Date(lastSession.workoutDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
