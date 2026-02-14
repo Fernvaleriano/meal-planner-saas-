@@ -71,14 +71,24 @@ function CreateWorkoutModal({ onClose, onCreateWorkout, selectedDate, coachId = 
 
     // Add default sets/reps to each exercise
     // Auto-detect timed exercises (cardio, flexibility, interval) and set trackingType
+    // Also detect time-based reps values like "3 min", "30s"
     const exercisesWithDefaults = newExercises.map(exercise => {
-      const isTimedByDefault = exercise.duration || exercise.exercise_type === 'cardio' ||
-        exercise.exercise_type === 'interval' || exercise.exercise_type === 'flexibility';
+      const repsTimeMatch = exercise.reps && typeof exercise.reps === 'string'
+        ? exercise.reps.trim().toLowerCase().match(/^(\d+(?:\.\d+)?)\s*(?:min(?:utes?|s)?)\b/)
+          || exercise.reps.trim().toLowerCase().match(/^(\d+)\s*(?:s(?:ec(?:onds?)?)?)\b/)
+        : null;
+      const parsedDuration = repsTimeMatch
+        ? (exercise.reps.trim().toLowerCase().includes('min')
+            ? Math.round(parseFloat(repsTimeMatch[1]) * 60)
+            : parseInt(repsTimeMatch[1], 10))
+        : null;
+      const isTimedByDefault = exercise.trackingType === 'time' || exercise.duration || parsedDuration ||
+        exercise.exercise_type === 'cardio' || exercise.exercise_type === 'interval' || exercise.exercise_type === 'flexibility';
       return {
         ...exercise,
         sets: exercise.sets || 3,
         reps: exercise.reps || '10',
-        duration: exercise.duration || 30,
+        duration: exercise.duration || parsedDuration || 30,
         trackingType: isTimedByDefault ? 'time' : 'reps',
         restSeconds: exercise.restSeconds || 60,
         completed: false

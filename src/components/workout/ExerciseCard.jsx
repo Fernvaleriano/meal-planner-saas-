@@ -14,6 +14,18 @@ const parseReps = (reps) => {
   return 12;
 };
 
+// Parse time-based reps value (e.g. "3 min", "30s") into seconds
+// Used as fallback when duration field is missing but reps contains a time value
+const parseTimeFromReps = (reps) => {
+  if (!reps || typeof reps !== 'string') return null;
+  const str = reps.trim().toLowerCase();
+  const minMatch = str.match(/^(\d+(?:\.\d+)?)\s*(?:min(?:utes?|s)?)\b/);
+  if (minMatch) return Math.round(parseFloat(minMatch[1]) * 60);
+  const secMatch = str.match(/^(\d+)\s*(?:s(?:ec(?:onds?)?)?)\b/);
+  if (secMatch) return parseInt(secMatch[1], 10);
+  return null;
+};
+
 // Number words to digits mapping for voice input
 const numberWords = {
   'zero': 0, 'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5,
@@ -144,7 +156,7 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
         reps: set?.reps || exercise.reps || 12,
         weight: set?.weight || 0,
         completed: set?.completed || false,
-        duration: set?.duration || exercise.duration || null,
+        duration: set?.duration || exercise.duration || parseTimeFromReps(exercise.reps) || null,
         restSeconds: set?.restSeconds || exercise.restSeconds || 60
       }));
       if (filtered.length > 0) return filtered;
@@ -286,7 +298,7 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
       reps: set?.reps || exercise.reps || 12,
       weight: set?.weight || 0,
       completed: set?.completed || false,
-      duration: set?.duration || exercise.duration || null,
+      duration: set?.duration || exercise.duration || parseTimeFromReps(exercise.reps) || null,
       restSeconds: set?.restSeconds || exercise.restSeconds || 60
     }));
     if (newSets.length > 0) {
@@ -300,7 +312,8 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
   const completedSets = sets.filter(s => s.completed).length;
 
   // Check if this is a timed/interval exercise - respect explicit trackingType from workout builder
-  const isTimedExercise = exercise.trackingType === 'time' || exercise.exercise_type === 'timed' || (!exercise.trackingType && (exercise.duration || exercise.exercise_type === 'cardio' || exercise.exercise_type === 'interval')) || sets.some(s => s?.isTimeBased);
+  // Also detect time-based reps values (e.g. "3 min", "30s") when trackingType is not set
+  const isTimedExercise = exercise.trackingType === 'time' || exercise.exercise_type === 'timed' || (!exercise.trackingType && (exercise.duration || exercise.exercise_type === 'cardio' || exercise.exercise_type === 'interval' || parseTimeFromReps(exercise.reps))) || sets.some(s => s?.isTimeBased);
 
   // Toggle individual set completion
   const toggleSet = (setIndex, e) => {
@@ -885,7 +898,7 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
                 <>
                   {sets.map((set, idx) => (
                     <div key={idx} className={`time-box ${set?.weight > 0 ? 'with-weight' : ''}`}>
-                      <span className="reps-value">{formatDuration(set?.duration || exercise.duration) || '45s'}</span>
+                      <span className="reps-value">{formatDuration(set?.duration || exercise.duration || parseTimeFromReps(exercise.reps)) || '45s'}</span>
                       {set?.weight > 0 && <span className="weight-value">{set.weight} {weightUnit}</span>}
                     </div>
                   ))}
