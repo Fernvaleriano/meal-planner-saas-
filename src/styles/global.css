@@ -21453,29 +21453,11 @@ a.nav-left {
 
 .smart-thumb-placeholder {
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 2px;
     width: 100%;
     height: 100%;
-    color: rgba(255, 255, 255, 0.7);
-}
-
-.smart-thumb-muscle-label {
-    font-size: 9px;
-    font-weight: 700;
-    letter-spacing: 0.5px;
-    color: rgba(255, 255, 255, 0.85);
-    line-height: 1;
-}
-
-.smart-thumb-small .smart-thumb-muscle-label {
-    font-size: 7px;
-}
-
-.smart-thumb-large .smart-thumb-muscle-label {
-    font-size: 11px;
+    color: #475569;
 }
 
 .smart-thumb-play {
