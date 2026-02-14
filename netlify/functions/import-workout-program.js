@@ -181,6 +181,7 @@ function findBestExerciseMatch(pdfName, pdfMuscleGroup, exercises) {
 }
 
 function isWarmupExercise(name) {
+  if (!name) return false;
   const lower = name.toLowerCase();
   const warmupKeywords = [
     'warm up', 'warmup', 'warm-up',
@@ -196,6 +197,7 @@ function isWarmupExercise(name) {
 }
 
 function isStretchExercise(name) {
+  if (!name) return false;
   const lower = name.toLowerCase();
   const stretchKeywords = [
     'stretch', 'cool down', 'cooldown', 'cool-down',
@@ -406,6 +408,15 @@ Return JSON:
       return [];
     }
 
+    // Normalize exercise objects — AI may use "name" vs "originalName" inconsistently
+    function normalizeExerciseObject(ex) {
+      if (!ex || typeof ex !== 'object') return null;
+      return {
+        ...ex,
+        originalName: ex.originalName || ex.name || ex.exercise || 'Unknown Exercise'
+      };
+    }
+
     const rawParsedDays = dayResults.filter(Boolean);
 
     // Handle case where AI returns an array of days instead of a single day
@@ -415,10 +426,10 @@ Return JSON:
         // AI returned an array - each element is a day
         parsedDays.push(...raw.map(d => ({
           name: d.name || 'Workout',
-          exercises: extractExercisesFromParsed(d)
+          exercises: extractExercisesFromParsed(d).map(normalizeExerciseObject).filter(Boolean)
         })));
       } else {
-        const exercises = extractExercisesFromParsed(raw);
+        const exercises = extractExercisesFromParsed(raw).map(normalizeExerciseObject).filter(Boolean);
         console.log(`Extracted ${exercises.length} exercises from parsed day (keys: ${Object.keys(raw).join(', ')})`);
         parsedDays.push({
           name: raw.name || 'Workout',
