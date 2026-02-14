@@ -79,15 +79,18 @@ const refreshSignedUrls = async (workoutData, coachId) => {
 
     if (!response.ok) return workoutData;
 
-    const { signedUrls } = await response.json();
+    const { signedUrls, thumbnailUrls } = await response.json();
 
-    // Update workout data with fresh signed URLs
+    // Update workout data with fresh signed URLs and video thumbnails
     const updatedDays = workoutData.days.map(day => ({
       ...day,
       exercises: (day.exercises || []).map(ex => {
         const updated = { ...ex };
         if (ex.customVideoPath && signedUrls[ex.customVideoPath]) {
           updated.customVideoUrl = signedUrls[ex.customVideoPath];
+        }
+        if (ex.customVideoPath && thumbnailUrls?.[ex.customVideoPath]) {
+          updated.customVideoThumbnail = thumbnailUrls[ex.customVideoPath];
         }
         if (ex.voiceNotePath && signedUrls[ex.voiceNotePath]) {
           updated.voiceNoteUrl = signedUrls[ex.voiceNotePath];
