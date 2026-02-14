@@ -346,6 +346,13 @@ Return JSON:
       // Quick extract from header text
       const nameMatch = programHeader.match(/(?:IRON ARCHITECTURE|PROGRAM|PROTOCOL)[^\n]*/i);
       if (nameMatch) programMeta.programName = nameMatch[0].trim();
+
+      // Extract description line (e.g. "Description: ..." or "Desc: ...")
+      const descMatch = programHeader.match(/(?:Description|Desc)\s*:\s*([^\n]+)/i);
+      if (descMatch) {
+        programMeta.description = descMatch[1].trim();
+      }
+
       if (/hypertrophy/i.test(programHeader)) programMeta.goal = 'hypertrophy';
       else if (/strength/i.test(programHeader)) programMeta.goal = 'strength';
       if (/advanced/i.test(programHeader)) programMeta.difficulty = 'advanced';
