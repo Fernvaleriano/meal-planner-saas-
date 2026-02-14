@@ -1,7 +1,7 @@
 // Netlify Function for importing workout programs from uploaded files (PDF text, etc.)
-// Parses the content using Claude AI, matches exercises against the database,
+// Parses the content using GPT-4o-mini, matches exercises against the database,
 // and returns a structured program with only matched exercises.
-const Anthropic = require('@anthropic-ai/sdk');
+const OpenAI = require('openai');
 const { createClient } = require('@supabase/supabase-js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
@@ -222,13 +222,13 @@ exports.handler = async (event) => {
     };
   }
 
-  const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
+  const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
-  if (!ANTHROPIC_API_KEY) {
+  if (!OPENAI_API_KEY) {
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ success: false, error: 'API key not configured.' })
+      body: JSON.stringify({ success: false, error: 'OpenAI API key not configured.' })
     };
   }
 
@@ -257,7 +257,7 @@ exports.handler = async (event) => {
     console.log(`Importing workout program from text (${trimmedContent.length} chars)`);
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
-    const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
+    const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
 
     // Split text into day chunks for parallel parsing
     // Look for patterns like "DAY 1:", "DAY 2:", etc.
@@ -313,18 +313,18 @@ Return JSON:
       return allExercises;
     })();
 
-    // Parse each day chunk in parallel with Sonnet for better accuracy on messy text
+    // Parse each day chunk in parallel with GPT-4o-mini (fast + cheap + accurate)
     const dayParsePromises = dayChunks.map((chunk, i) =>
-      anthropic.messages.create({
-        model: 'claude-sonnet-4-20250514',
+      openai.chat.completions.create({
+        model: 'gpt-4o-mini',
         max_tokens: 4096,
-        system: daySystemPrompt,
-        messages: [{
-          role: 'user',
-          content: `Parse ALL exercises from this workout day. Return only valid JSON.\n\n${chunk}`
-        }]
-      }).then(msg => {
-        const text = msg.content[0]?.text || '';
+        temperature: 0.1,
+        messages: [
+          { role: 'system', content: daySystemPrompt },
+          { role: 'user', content: `Parse ALL exercises from this workout day. Return only valid JSON.\n\n${chunk}` }
+        ]
+      }).then(completion => {
+        const text = completion.choices[0]?.message?.content || '';
         console.log(`Day ${i + 1} AI response (first 300 chars):`, text.substring(0, 300));
         try {
           const parsed = JSON.parse(text.trim());
