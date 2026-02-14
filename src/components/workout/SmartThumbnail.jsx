@@ -77,8 +77,8 @@ function SmartThumbnail({
   const timeoutRef = useRef(null);
   const thumbnailUrlRef = useRef(null); // holds resolved URL even when img is unloaded
 
-  const hasVideo = !!(exercise?.video_url || exercise?.animation_url);
-  const videoUrl = exercise?.video_url || exercise?.animation_url;
+  const hasVideo = !!(exercise?.customVideoUrl || exercise?.video_url || exercise?.animation_url);
+  const videoUrl = exercise?.customVideoUrl || exercise?.video_url || exercise?.animation_url;
   const px = SIZE_PX[size] || 80;
 
   // --- IntersectionObserver: load when near, unload when far ---
@@ -111,6 +111,16 @@ function SmartThumbnail({
     async function resolveThumbnail() {
       setLoading(true);
       setError(false);
+
+      // Priority 0: Use custom video thumbnail uploaded by coach
+      if (exercise?.customVideoThumbnail) {
+        if (!cancelled) {
+          thumbnailUrlRef.current = exercise.customVideoThumbnail;
+          setThumbnail(exercise.customVideoThumbnail);
+          setLoading(false);
+        }
+        return;
+      }
 
       // Priority 1: Use thumbnail_url if available AND not a video URL.
       if (exercise?.thumbnail_url && !isVideoUrl(exercise.thumbnail_url)) {
@@ -173,7 +183,7 @@ function SmartThumbnail({
         clearTimeout(timeoutRef.current);
       }
     };
-  }, [exercise?.id, exercise?.thumbnail_url, exercise?.video_url, exercise?.animation_url, videoUrl]);
+  }, [exercise?.id, exercise?.thumbnail_url, exercise?.video_url, exercise?.animation_url, exercise?.customVideoUrl, exercise?.customVideoThumbnail, videoUrl]);
 
   const handleImageError = useCallback(() => {
     setError(true);

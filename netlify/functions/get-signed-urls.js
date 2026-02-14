@@ -67,6 +67,9 @@ exports.handler = async (event) => {
     // Generate signed URLs for each file path
     const signedUrls = {};
 
+    // Collect custom video names for thumbnail lookup
+    const customVideoNames = [];
+
     for (const filePath of filePaths) {
       // Security: Only allow access to exercise-videos, voice-notes, and client-voice-notes folders
       if (!filePath.startsWith('exercise-videos/') && !filePath.startsWith('voice-notes/') && !filePath.startsWith('client-voice-notes/')) {
@@ -89,6 +92,43 @@ exports.handler = async (event) => {
       if (!error && data?.signedUrl) {
         signedUrls[filePath] = data.signedUrl;
       }
+
+      // Track custom video file names for thumbnail lookup
+      if (filePath.startsWith('exercise-videos/')) {
+        const fileName = filePath.split('/').pop();
+        customVideoNames.push({ filePath, fileName });
+      }
+    }
+
+    // Look up thumbnails for custom videos
+    const thumbnailUrls = {};
+    if (customVideoNames.length > 0 && coachId) {
+      const thumbFolder = `video-thumbnails/${coachId}`;
+      const { data: thumbFiles } = await supabase.storage
+        .from('exercise-thumbnails')
+        .list(thumbFolder, { limit: 200 });
+
+      if (thumbFiles && thumbFiles.length > 0) {
+        const thumbMap = new Map();
+        thumbFiles.forEach(f => {
+          if (f.name === 'metadata.json') return;
+          const baseName = f.name.replace(/\.\w+$/, '');
+          thumbMap.set(baseName, f.name);
+        });
+
+        for (const { filePath, fileName } of customVideoNames) {
+          const videoBaseName = fileName.replace(/\.\w+$/, '');
+          const thumbFileName = thumbMap.get(videoBaseName);
+          if (thumbFileName) {
+            const { data: tUrl } = supabase.storage
+              .from('exercise-thumbnails')
+              .getPublicUrl(`${thumbFolder}/${thumbFileName}`);
+            if (tUrl?.publicUrl) {
+              thumbnailUrls[filePath] = tUrl.publicUrl;
+            }
+          }
+        }
+      }
     }
 
     return {
@@ -97,6 +137,7 @@ exports.handler = async (event) => {
       body: JSON.stringify({
         success: true,
         signedUrls,
+        thumbnailUrls,
         expiresIn: SIGNED_URL_EXPIRY
       })
     };
