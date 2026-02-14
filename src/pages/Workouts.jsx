@@ -2492,7 +2492,7 @@ function Workouts() {
         }
 
         // Stats
-        const dur = formatDuration(workoutDuration || todayWorkout?.workout_data?.estimatedMinutes || 45);
+        const dur = formatDuration(workoutDuration || estimateWorkoutMinutes(exercises) || todayWorkout?.workout_data?.estimatedMinutes || 45);
         const activeToggles = [];
         if (shareToggles.duration) activeToggles.push({ label: 'Duration', value: dur });
         if (shareToggles.calories) activeToggles.push({ label: 'Calories', value: String(estimatedCalories) });
@@ -3218,7 +3218,7 @@ function Workouts() {
             </div>
             <div className="summary-stats-grid">
               <div className="summary-stat-card wide">
-                <span className="stat-value">{formatDuration(workoutDuration || todayWorkout?.workout_data?.estimatedMinutes || 45)}</span>
+                <span className="stat-value">{formatDuration(workoutDuration || estimateWorkoutMinutes(exercises) || todayWorkout?.workout_data?.estimatedMinutes || 45)}</span>
                 <span className="stat-label">Duration</span>
                 <span className="stat-value secondary">{estimatedCalories}</span>
                 <span className="stat-label">Calories</span>
@@ -3287,7 +3287,7 @@ function Workouts() {
                   <div className="share-card-stats">
                     {shareToggles.duration && (
                       <div className="share-stat">
-                        <span className="share-stat-value">{formatDuration(workoutDuration || todayWorkout?.workout_data?.estimatedMinutes || 45)}</span>
+                        <span className="share-stat-value">{formatDuration(workoutDuration || estimateWorkoutMinutes(exercises) || todayWorkout?.workout_data?.estimatedMinutes || 45)}</span>
                         <span className="share-stat-label">Duration</span>
                       </div>
                     )}
@@ -3350,7 +3350,7 @@ function Workouts() {
             <div className="share-toggles">
               <h3>Statistics</h3>
               {[
-                { key: 'duration', label: 'Duration', value: formatDuration(workoutDuration || todayWorkout?.workout_data?.estimatedMinutes || 45) },
+                { key: 'duration', label: 'Duration', value: formatDuration(workoutDuration || estimateWorkoutMinutes(exercises) || todayWorkout?.workout_data?.estimatedMinutes || 45) },
                 { key: 'calories', label: 'Calories', value: estimatedCalories },
                 { key: 'activities', label: 'Activities', value: exercises.length },
                 { key: 'lifted', label: 'Lifted', value: `${totalLifted > 0 ? totalLifted.toLocaleString() : 0} ${weightUnit}` },
