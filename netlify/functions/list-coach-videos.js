@@ -50,9 +50,14 @@ exports.handler = async (event) => {
       return { statusCode: 200, headers, body: JSON.stringify({ videos: [] }) };
     }
 
-    // Generate signed URLs for each file
+    // Generate signed URLs for each file (only actual video files, not voice notes)
+    const videoExtensions = ['.mp4', '.webm', '.mov', '.avi', '.m4v'];
     const filePaths = files
       .filter(f => !f.id?.endsWith('/')) // skip folders
+      .filter(f => {
+        const lower = f.name.toLowerCase();
+        return videoExtensions.some(ext => lower.endsWith(ext));
+      })
       .map(f => `${folderPath}/${f.name}`);
 
     const { data: signedUrls, error: signedError } = await supabase.storage
@@ -100,7 +105,7 @@ exports.handler = async (event) => {
     }
 
     // Build thumbnail public URLs for videos that have them
-    const videoFiles = files.filter(f => !f.id?.endsWith('/'));
+    const videoFiles = files.filter(f => !f.id?.endsWith('/') && videoExtensions.some(ext => f.name.toLowerCase().endsWith(ext)));
     const thumbUrlMap = new Map();
     for (const f of videoFiles) {
       const videoBaseName = f.name.replace(/\.\w+$/, '');
