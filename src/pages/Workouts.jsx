@@ -755,7 +755,7 @@ function Workouts() {
   }, [clientData?.id, selectedDate]);
 
   // Setup pull-to-refresh (DOM-driven — no React re-renders during drag)
-  const { isRefreshing, indicatorRef, bindToContainer, threshold } = usePullToRefresh(refreshWorkoutData);
+  const { isRefreshing, indicatorRef, bindToContainer, threshold } = usePullToRefresh(refreshWorkoutData, { passiveTouch: true });
 
   // Fetch ALL workouts for selected date (assignments + ad-hoc)
   useEffect(() => {

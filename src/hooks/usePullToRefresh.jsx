@@ -16,7 +16,7 @@ import { onAppResume } from './useAppLifecycle';
  * - The parent component NEVER re-renders during pull gesture
  */
 export function usePullToRefresh(onRefresh, options = {}) {
-  const { threshold = 60, resistance = 0.5 } = options;
+  const { threshold = 60, resistance = 0.5, passiveTouch = false } = options;
 
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [containerEl, setContainerEl] = useState(null);
@@ -95,12 +95,12 @@ export function usePullToRefresh(onRefresh, options = {}) {
         const pulledDistance = Math.min(diff * resistance, threshold * 1.5);
         pullDistanceRef.current = pulledDistance;
         updateIndicatorDOM(pulledDistance);
-        // Note: We no longer call e.preventDefault() here.
-        // Native overscroll is blocked by CSS `overscroll-behavior-y: contain`
-        // on html, which makes preventDefault() unnecessary. Using a passive
-        // listener instead fixes Android WebView/Chrome scrolling — non-passive
-        // touchmove handlers force the compositor to wait for JS before
-        // scrolling, which blocks scroll gestures on Android.
+        // Only preventDefault when not in passive mode.
+        // Workouts uses passiveTouch: true (CSS overscroll-behavior handles it)
+        // because non-passive touchmove blocks Android compositor scrolling.
+        if (!passiveTouch && diff > 10) {
+          e.preventDefault();
+        }
       }
     };
 
@@ -158,11 +158,11 @@ export function usePullToRefresh(onRefresh, options = {}) {
       updateIndicatorDOM(0);
     };
 
-    // All listeners are passive for best scroll performance on Android.
-    // Native overscroll is prevented via CSS (overscroll-behavior-y: contain)
-    // so we no longer need non-passive touchmove to call preventDefault().
+    // touchmove is passive only when passiveTouch is opted-in (e.g. Workouts page
+    // where CSS overscroll-behavior-y: contain handles native overscroll).
+    // Other pages keep non-passive so preventDefault() can block native overscroll.
     container.addEventListener('touchstart', handleTouchStart, { passive: true });
-    container.addEventListener('touchmove', handleTouchMove, { passive: true });
+    container.addEventListener('touchmove', handleTouchMove, { passive: passiveTouch });
     container.addEventListener('touchend', handleTouchEnd, { passive: true });
     container.addEventListener('touchcancel', handleTouchCancel, { passive: true });
 
@@ -172,7 +172,7 @@ export function usePullToRefresh(onRefresh, options = {}) {
       container.removeEventListener('touchend', handleTouchEnd);
       container.removeEventListener('touchcancel', handleTouchCancel);
     };
-  }, [containerEl, onRefresh, threshold, resistance, updateIndicatorDOM]);
+  }, [containerEl, onRefresh, threshold, resistance, passiveTouch, updateIndicatorDOM]);
 
   // Reset everything on app resume (heartbeat-based — works even when
   // visibilitychange doesn't fire on iOS)
