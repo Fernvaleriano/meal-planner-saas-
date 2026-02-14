@@ -49,6 +49,14 @@
     box-sizing: border-box;
 }
 
+/* Prevent native overscroll / pull-to-refresh on Android Chrome & PWAs.
+   Custom pull-to-refresh is handled in JS; this CSS replaces the need
+   for non-passive preventDefault() on touchmove which blocks scrolling
+   on Android WebView. */
+html {
+    overscroll-behavior-y: contain;
+}
+
 /* Accessibility - Visually hidden but accessible to screen readers */
 .visually-hidden {
     position: absolute;
@@ -91,6 +99,11 @@ body {
     width: 100%;
     max-width: 100vw;
     overflow-x: hidden;
+    /* Tell Android compositor to handle pan gestures natively on the
+       compositor thread instead of waiting for JS touch handlers.
+       Fixes scrolling on Android WebView/Chrome where non-passive
+       touchmove listeners (e.g. pull-to-refresh) block scroll. */
+    touch-action: manipulation;
 }
 
 /* ========================================
