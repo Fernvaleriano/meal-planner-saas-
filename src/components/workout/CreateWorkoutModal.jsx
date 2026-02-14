@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { X, Plus, Dumbbell, Trash2, Clock, Hash, ArrowLeftRight } from 'lucide-react';
 import AddActivityModal from './AddActivityModal';
 import SwapExerciseModal from './SwapExerciseModal';
+import SmartThumbnail from './SmartThumbnail';
 
 function CreateWorkoutModal({ onClose, onCreateWorkout, selectedDate, coachId = null, isCoach = false }) {
   const [workoutName, setWorkoutName] = useState('');
@@ -285,10 +286,10 @@ function CreateWorkoutModal({ onClose, onCreateWorkout, selectedDate, coachId = 
                         onTouchEnd={() => handleTouchEnd(index)}
                       >
                         <div className="exercise-thumb">
-                          <img
-                            src={exercise.thumbnail_url || exercise.animation_url || '/img/exercise-placeholder.svg'}
-                            alt={exercise.name || 'Exercise'}
-                            onError={(e) => { e.target.src = '/img/exercise-placeholder.svg'; }}
+                          <SmartThumbnail
+                            exercise={exercise}
+                            size="small"
+                            showPlayIndicator={false}
                           />
                         </div>
                         <div className="exercise-details">

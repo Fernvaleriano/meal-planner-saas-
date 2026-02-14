@@ -14685,6 +14685,8 @@ a.nav-left {
     gap: 12px;
     padding: 10px 0;
     border-bottom: 1px solid rgba(51, 65, 85, 0.5);
+    content-visibility: auto;
+    contain-intrinsic-size: auto 64px;
 }
 
 .club-exercise-item:last-child {
@@ -15563,6 +15565,10 @@ a.nav-left {
     transition: all 0.2s;
     position: relative;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    /* iOS memory fix: skip rendering for off-screen cards so WebKit doesn't
+       keep their compositing layers + decoded image textures in GPU memory. */
+    content-visibility: auto;
+    contain-intrinsic-size: auto 120px; /* estimated card height for layout stability */
 }
 
 .exercise-card-v2:hover {
@@ -21422,6 +21428,14 @@ a.nav-left {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    /* iOS GPU memory fix: prevent WebKit from decoding images at their native
+       resolution (often 1000px+) into GPU texture memory. image-rendering: auto
+       with explicit width/height attributes (set in JSX) tells the decoder to
+       downsample to the display size. transform: translateZ(0) promotes to its
+       own compositing layer so it can be evicted independently. */
+    image-rendering: auto;
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
 }
 
 .smart-thumb-placeholder {

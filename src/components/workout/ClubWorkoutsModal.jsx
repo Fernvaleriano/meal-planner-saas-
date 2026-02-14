@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { X, Dumbbell, Clock, Flame, ChevronRight, ChevronDown, Search, Filter, Users, Loader2, CalendarPlus, Layers, Calendar, Check } from 'lucide-react';
 import { apiGet } from '../../utils/api';
+import SmartThumbnail from './SmartThumbnail';
 
 const CATEGORY_LABELS = {
   strength: 'Strength',
@@ -392,10 +393,10 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
                 <div key={`${exercise.id || index}-${index}`} className="club-exercise-item">
                   <div className="club-exercise-number">{index + 1}</div>
                   <div className="club-exercise-thumb">
-                    <img
-                      src={exercise.thumbnail_url || exercise.animation_url || '/img/exercise-placeholder.svg'}
-                      alt={exercise.name || 'Exercise'}
-                      onError={(e) => { e.target.src = '/img/exercise-placeholder.svg'; }}
+                    <SmartThumbnail
+                      exercise={exercise}
+                      size="small"
+                      showPlayIndicator={false}
                     />
                   </div>
                   <div className="club-exercise-info">
