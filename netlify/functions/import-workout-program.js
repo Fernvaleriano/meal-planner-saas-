@@ -324,6 +324,7 @@ Return JSON:
         }]
       }).then(msg => {
         const text = msg.content[0]?.text || '';
+        console.log(`Day ${i + 1} AI response (first 300 chars):`, text.substring(0, 300));
         try {
           const parsed = JSON.parse(text.trim());
           return parsed;
@@ -355,8 +356,73 @@ Return JSON:
     const [allExercises, ...dayResults] = await Promise.all([fetchExercisesPromise, ...dayParsePromises]);
     console.log(`Fetched ${allExercises.length} exercises, parsed ${dayResults.filter(Boolean).length}/${dayChunks.length} days`);
 
-    // Combine parsed days
-    const parsedDays = dayResults.filter(Boolean);
+    // Combine parsed days and normalize exercise structure
+    // The AI may return exercises in various structures:
+    // - { exercises: [...] }                      (expected)
+    // - { sections: [{ exercises: [...] }] }      (sectioned)
+    // - { warmup: [...], main: [...] }            (categorized)
+    // - [{ exercises: [...] }]                    (array of days)
+    // We need to flatten all of these into { name, exercises: [...] }
+    function extractExercisesFromParsed(parsed) {
+      if (!parsed) return [];
+      // Direct exercises array
+      if (Array.isArray(parsed.exercises) && parsed.exercises.length > 0) {
+        return parsed.exercises;
+      }
+      // Sections/groups: { sections: [{exercises: [...]}, ...] }
+      const sectionKeys = ['sections', 'groups', 'blocks', 'workout', 'workouts'];
+      for (const key of sectionKeys) {
+        if (Array.isArray(parsed[key])) {
+          const all = [];
+          for (const section of parsed[key]) {
+            if (Array.isArray(section.exercises)) {
+              all.push(...section.exercises);
+            } else if (Array.isArray(section)) {
+              all.push(...section);
+            }
+          }
+          if (all.length > 0) return all;
+        }
+      }
+      // Categorized: { warmup: [...], main_workout: [...], cooldown: [...] }
+      const categoryKeys = ['warmup', 'warm_up', 'warmUp', 'main', 'main_workout', 'mainWorkout',
+        'cooldown', 'cool_down', 'coolDown', 'stretches', 'hiit', 'finisher'];
+      const fromCategories = [];
+      for (const key of categoryKeys) {
+        if (Array.isArray(parsed[key])) {
+          fromCategories.push(...parsed[key]);
+        }
+      }
+      if (fromCategories.length > 0) return fromCategories;
+      // Check all values for arrays of objects with exercise-like properties
+      for (const val of Object.values(parsed)) {
+        if (Array.isArray(val) && val.length > 0 && val[0] && (val[0].originalName || val[0].name || val[0].exercise)) {
+          return val;
+        }
+      }
+      return [];
+    }
+
+    const rawParsedDays = dayResults.filter(Boolean);
+
+    // Handle case where AI returns an array of days instead of a single day
+    let parsedDays = [];
+    for (const raw of rawParsedDays) {
+      if (Array.isArray(raw)) {
+        // AI returned an array - each element is a day
+        parsedDays.push(...raw.map(d => ({
+          name: d.name || 'Workout',
+          exercises: extractExercisesFromParsed(d)
+        })));
+      } else {
+        const exercises = extractExercisesFromParsed(raw);
+        console.log(`Extracted ${exercises.length} exercises from parsed day (keys: ${Object.keys(raw).join(', ')})`);
+        parsedDays.push({
+          name: raw.name || 'Workout',
+          exercises: exercises
+        });
+      }
+    }
 
     if (parsedDays.length === 0) {
       throw new Error('Could not parse any workout days from the document.');
