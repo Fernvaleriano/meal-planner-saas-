@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback, startTransition } from 'react';
-import { X, Search, Loader2, Plus, Mic, MicOff, ChevronDown, Check, ChevronRight } from 'lucide-react';
+import { X, Search, Loader2, Plus, Mic, MicOff, ChevronDown, Check, ChevronRight, Eye } from 'lucide-react';
 import { apiGet } from '../../utils/api';
 import SmartThumbnail from './SmartThumbnail';
 
@@ -282,6 +282,9 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelec
   const [isListening, setIsListening] = useState(false);
   const [voiceSupported, setVoiceSupported] = useState(false);
   const recognitionRef = useRef(null);
+
+  // Preview state — only one exercise animation loaded at a time (on demand)
+  const [previewExercise, setPreviewExercise] = useState(null);
 
   // Refs for cleanup
   const isMountedRef = useRef(true);
@@ -706,6 +709,27 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelec
     setDisplayCount(prev => prev + LOAD_MORE_COUNT);
   }, []);
 
+  // Preview — open on-demand, only loads one animation at a time
+  const handlePreview = useCallback((e, ex) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setPreviewExercise(ex);
+  }, []);
+
+  const closePreview = useCallback(() => {
+    setPreviewExercise(null);
+  }, []);
+
+  // Get the best media URL for preview (animation or video, prefer animation)
+  const getPreviewUrl = (ex) => ex?.animation_url || ex?.video_url || null;
+
+  // Check if a URL points to a video file (mp4, webm, etc.)
+  const isVideoFile = (url) => {
+    if (!url) return false;
+    const lower = url.split('?')[0].toLowerCase();
+    return lower.endsWith('.mp4') || lower.endsWith('.webm') || lower.endsWith('.mov') || lower.endsWith('.m4v');
+  };
+
   // Check if exercise is selected
   const isExerciseSelected = useCallback((exerciseId) => {
     return selectedExercises.some(ex => ex.id === exerciseId);
@@ -861,6 +885,11 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelec
                         size="small"
                         showPlayIndicator={false}
                       />
+                      {getPreviewUrl(ex) && (
+                        <button className="swap-preview-btn" onClick={(e) => handlePreview(e, ex)} aria-label="Preview exercise">
+                          <Eye size={12} />
+                        </button>
+                      )}
                     </div>
                     <div className="add-exercise-info">
                       <span className="add-exercise-name">{ex.name}</span>
@@ -890,6 +919,49 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelec
           )}
         </div>
 
+        {/* Exercise Preview Overlay — loads animation on demand (one at a time) */}
+        {previewExercise && getPreviewUrl(previewExercise) && (
+          <div className="swap-preview-overlay" onClick={closePreview}>
+            <div className="swap-preview-content" onClick={(e) => e.stopPropagation()}>
+              <button className="swap-preview-close" onClick={closePreview}>
+                <X size={20} />
+              </button>
+              <div className="swap-preview-media">
+                {isVideoFile(getPreviewUrl(previewExercise)) ? (
+                  <video
+                    src={getPreviewUrl(previewExercise)}
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    onError={(e) => { e.target.style.display = 'none'; }}
+                  />
+                ) : (
+                  <img
+                    src={getPreviewUrl(previewExercise)}
+                    alt={previewExercise.name || 'Exercise preview'}
+                    onError={(e) => { if (!e.target.dataset.fallback) { e.target.dataset.fallback = '1'; e.target.src = '/img/exercise-placeholder.svg'; } }}
+                  />
+                )}
+              </div>
+              <div className="swap-preview-info">
+                <span className="swap-preview-name">{previewExercise.name}</span>
+                <span className="swap-preview-meta">
+                  {previewExercise.muscle_group || previewExercise.muscleGroup}
+                  {previewExercise.equipment && ` • ${previewExercise.equipment}`}
+                </span>
+              </div>
+              <button
+                className="swap-preview-select"
+                onClick={(e) => handleSelect(e, previewExercise)}
+                disabled={selecting}
+              >
+                <Plus size={16} />
+                Add this exercise
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
