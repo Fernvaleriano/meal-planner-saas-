@@ -286,11 +286,12 @@ Rules:
 - Preserve sets, reps, rest periods, coaching notes
 - Mark warm-up exercises: isWarmup=true
 - Mark cool-down/stretch exercises: isStretch=true
+- Detect SUPERSET, TRISET, and GIANT SET groupings. Exercises in the same superset/triset share the same supersetGroup letter (A, B, C, D, E, F, etc.). Assign letters sequentially per group found. Exercises NOT in a superset/triset get supersetGroup=null.
 - Rest: convert to seconds (90s=90, 2 min=120, 75s=75, -=0). If no rest column, use 0 for warmups/stretches, 90 for compounds, 60 for isolation.
 - Keep reps as string if ranges or units (e.g. "8-10", "2 min", "30s each")
 
 Return JSON:
-{"name":"Day 1: Push","exercises":[{"originalName":"Bench press","muscleGroup":"chest","sets":4,"reps":"8-10","restSeconds":90,"notes":"coaching note","isWarmup":false,"isStretch":false}]}`;
+{"name":"Day 1: Push","exercises":[{"originalName":"Bench press","muscleGroup":"chest","sets":4,"reps":"8-10","restSeconds":90,"notes":"coaching note","isWarmup":false,"isStretch":false,"supersetGroup":null},{"originalName":"Cable fly","muscleGroup":"chest","sets":3,"reps":"12-15","restSeconds":60,"notes":"squeeze at peak","isWarmup":false,"isStretch":false,"supersetGroup":"A"}]}`;
 
     // Run DB fetch and ALL day parses in PARALLEL
     const fetchExercisesPromise = (async () => {
@@ -477,8 +478,8 @@ Return JSON:
             notes: ex.notes || '',
             isWarmup: detectedWarmup,
             isStretch: detectedStretch,
-            isSuperset: false,
-            supersetGroup: null,
+            isSuperset: !!ex.supersetGroup,
+            supersetGroup: ex.supersetGroup || null,
             matched: true,
             trackingType: timedCheck.isTime ? 'time' : 'reps',
             duration: timedCheck.isTime ? timedCheck.durationSeconds : undefined
@@ -506,8 +507,8 @@ Return JSON:
             notes: ex.notes || '',
             isWarmup: detectedWarmup,
             isStretch: detectedStretch,
-            isSuperset: false,
-            supersetGroup: null,
+            isSuperset: !!ex.supersetGroup,
+            supersetGroup: ex.supersetGroup || null,
             matched: false,
             trackingType: unmatchedTimedCheck.isTime ? 'time' : 'reps',
             duration: unmatchedTimedCheck.isTime ? unmatchedTimedCheck.durationSeconds : undefined
