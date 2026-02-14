@@ -3,7 +3,6 @@ const { createClient } = require('@supabase/supabase-js');
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 const THUMB_BUCKET = 'exercise-thumbnails';
-const VIDEO_BUCKET = 'exercise-videos';
 
 const headers = {
   'Access-Control-Allow-Origin': '*',
@@ -12,18 +11,10 @@ const headers = {
   'Content-Type': 'application/json'
 };
 
-// Check if URL points to an image
-function isImageUrl(url) {
-  if (!url) return false;
-  const lower = url.split('?')[0].toLowerCase();
-  return lower.endsWith('.gif') || lower.endsWith('.png') || lower.endsWith('.jpg') ||
-    lower.endsWith('.jpeg') || lower.endsWith('.webp') || lower.endsWith('.svg');
-}
-
 // Normalize name for matching
 function normalizeName(name) {
   return name
-    .replace(/\.(jpg|jpeg|png|gif|webp|svg|mp4|mov|webm)$/i, '')
+    .replace(/\.(jpg|jpeg|png|gif|webp|svg)$/i, '')
     .replace(/1$/, '')
     .replace(/[_\s]*(female|male)$/i, '')
     .replace(/[_-]/g, ' ')
@@ -35,18 +26,18 @@ function normalizeName(name) {
 }
 
 /**
- * Populate Exercise Thumbnails
+ * Populate Exercise Thumbnails (iOS-safe)
  *
- * Three-pass approach:
- * 1. Copy animation_url to thumbnail_url for exercises with GIF/image animation_url
- * 2. Match remaining exercises against images in exercise-thumbnails bucket
- * 3. Match remaining exercises against GIF frames in exercise-videos bucket
+ * ONLY matches exercises against properly-sized images already uploaded to
+ * the exercise-thumbnails storage bucket. Does NOT copy animation_url GIFs
+ * to thumbnail_url — those GIFs can be 60MB+ decoded and caused iOS WebKit
+ * OOM crashes (see commit a297e9b).
  *
  * Query params:
  *   ?dryRun=true   - Preview changes without writing
- *   ?pass=1|2|3    - Run a specific pass only (default: all)
- *   ?limit=100     - Max exercises to process per pass
+ *   ?limit=500     - Max exercises to update
  *   ?muscle=chest  - Filter to a specific muscle group
+ *   ?overwrite=true - Overwrite existing thumbnails
  */
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') {
@@ -64,12 +55,12 @@ exports.handler = async (event) => {
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
   const params = event.queryStringParameters || {};
   const dryRun = params.dryRun === 'true';
-  const passFilter = params.pass ? parseInt(params.pass) : null;
   const limit = parseInt(params.limit) || 500;
   const muscleFilter = params.muscle || null;
+  const overwrite = params.overwrite === 'true';
 
   try {
-    // Get all exercises without thumbnails
+    // Step 1: Get all exercises
     let query = supabase
       .from('exercises')
       .select('id, name, muscle_group, animation_url, video_url, thumbnail_url');
@@ -86,226 +77,115 @@ exports.handler = async (event) => {
 
     const withThumbnail = allExercises.filter(e => e.thumbnail_url);
     const withoutThumbnail = allExercises.filter(e => !e.thumbnail_url);
+    const target = overwrite ? allExercises : withoutThumbnail;
 
-    const results = {
-      pass1: { description: 'Copy animation_url (GIF/image) to thumbnail_url', updated: [], skipped: 0 },
-      pass2: { description: 'Match against exercise-thumbnails bucket', updated: [], skipped: 0 },
-      pass3: { description: 'Match against exercise-videos bucket (GIF files)', updated: [], skipped: 0 },
-    };
+    // Step 2: List all images in the exercise-thumbnails bucket
+    const allImages = [];
 
+    async function listImagesRecursive(prefix) {
+      const { data, error } = await supabase.storage
+        .from(THUMB_BUCKET)
+        .list(prefix, { limit: 1000 });
+
+      if (error || !data) return;
+
+      for (const item of data) {
+        const itemPath = prefix ? `${prefix}/${item.name}` : item.name;
+        if (item.id === null) {
+          // It's a folder — recurse
+          await listImagesRecursive(itemPath);
+        } else if (/\.(jpg|jpeg|png|gif|webp|svg)$/i.test(item.name)) {
+          const { data: urlData } = supabase.storage.from(THUMB_BUCKET).getPublicUrl(itemPath);
+          allImages.push({
+            filename: item.name,
+            path: itemPath,
+            url: urlData.publicUrl,
+            normalized: normalizeName(item.name)
+          });
+        }
+      }
+    }
+
+    await listImagesRecursive('');
+
+    // Step 3: Build exercise lookup by normalized name
+    const exerciseLookup = new Map();
+    for (const ex of target) {
+      const normalized = normalizeName(ex.name);
+      if (!exerciseLookup.has(normalized)) {
+        exerciseLookup.set(normalized, []);
+      }
+      exerciseLookup.get(normalized).push(ex);
+    }
+
+    // Step 4: Match images to exercises
+    const updated = [];
+    const notMatched = [];
     const alreadyFixed = new Set();
 
-    // ── Pass 1: Copy animation_url to thumbnail_url ──
-    if (!passFilter || passFilter === 1) {
-      const candidates = withoutThumbnail.filter(e => e.animation_url && isImageUrl(e.animation_url));
+    for (const img of allImages) {
+      let matches = exerciseLookup.get(img.normalized);
 
-      for (const exercise of candidates.slice(0, limit)) {
-        if (!dryRun) {
-          const { error } = await supabase
-            .from('exercises')
-            .update({ thumbnail_url: exercise.animation_url })
-            .eq('id', exercise.id);
+      // Try partial match if no exact match
+      if (!matches) {
+        for (const [normalized, exList] of exerciseLookup.entries()) {
+          if (normalized.includes(img.normalized) || img.normalized.includes(normalized)) {
+            matches = exList;
+            break;
+          }
+        }
+      }
 
-          if (error) {
-            results.pass1.skipped++;
+      if (matches) {
+        for (const exercise of matches) {
+          if (alreadyFixed.has(exercise.id)) continue;
+          if (updated.length >= limit) break;
+
+          // Skip if already has this exact URL
+          if (exercise.thumbnail_url === img.url) {
+            alreadyFixed.add(exercise.id);
             continue;
           }
-        }
 
-        results.pass1.updated.push({
-          id: exercise.id,
-          name: exercise.name,
-          muscle_group: exercise.muscle_group,
-          source: exercise.animation_url
+          if (!dryRun) {
+            const { error } = await supabase
+              .from('exercises')
+              .update({ thumbnail_url: img.url })
+              .eq('id', exercise.id);
+
+            if (error) {
+              continue;
+            }
+          }
+
+          updated.push({
+            id: exercise.id,
+            name: exercise.name,
+            muscle_group: exercise.muscle_group,
+            matched_image: img.filename
+          });
+          alreadyFixed.add(exercise.id);
+        }
+      } else {
+        notMatched.push({
+          image: img.filename,
+          normalized: img.normalized
         });
-        alreadyFixed.add(exercise.id);
       }
     }
 
-    // ── Pass 2: Match against exercise-thumbnails bucket ──
-    if (!passFilter || passFilter === 2) {
-      const stillMissing = withoutThumbnail.filter(e => !alreadyFixed.has(e.id));
-
-      if (stillMissing.length > 0) {
-        // List all images in thumbnail bucket
-        const allImages = [];
-
-        async function listImagesRecursive(prefix) {
-          const { data, error } = await supabase.storage
-            .from(THUMB_BUCKET)
-            .list(prefix, { limit: 1000 });
-
-          if (error || !data) return;
-
-          for (const item of data) {
-            const itemPath = prefix ? `${prefix}/${item.name}` : item.name;
-            if (item.id === null) {
-              await listImagesRecursive(itemPath);
-            } else if (/\.(jpg|jpeg|png|gif|webp|svg)$/i.test(item.name)) {
-              const { data: urlData } = supabase.storage.from(THUMB_BUCKET).getPublicUrl(itemPath);
-              allImages.push({
-                filename: item.name,
-                path: itemPath,
-                url: urlData.publicUrl,
-                normalized: normalizeName(item.name)
-              });
-            }
-          }
-        }
-
-        await listImagesRecursive('');
-
-        // Build exercise lookup by normalized name
-        const exerciseLookup = new Map();
-        for (const ex of stillMissing) {
-          const normalized = normalizeName(ex.name);
-          if (!exerciseLookup.has(normalized)) {
-            exerciseLookup.set(normalized, []);
-          }
-          exerciseLookup.get(normalized).push(ex);
-        }
-
-        // Match images to exercises
-        for (const img of allImages) {
-          let matches = exerciseLookup.get(img.normalized);
-
-          // Try partial match if no exact match
-          if (!matches) {
-            for (const [normalized, exList] of exerciseLookup.entries()) {
-              if (normalized.includes(img.normalized) || img.normalized.includes(normalized)) {
-                matches = exList;
-                break;
-              }
-            }
-          }
-
-          if (matches) {
-            for (const exercise of matches) {
-              if (alreadyFixed.has(exercise.id)) continue;
-              if (results.pass2.updated.length >= limit) break;
-
-              if (!dryRun) {
-                const { error } = await supabase
-                  .from('exercises')
-                  .update({ thumbnail_url: img.url })
-                  .eq('id', exercise.id);
-
-                if (error) {
-                  results.pass2.skipped++;
-                  continue;
-                }
-              }
-
-              results.pass2.updated.push({
-                id: exercise.id,
-                name: exercise.name,
-                muscle_group: exercise.muscle_group,
-                source: img.filename
-              });
-              alreadyFixed.add(exercise.id);
-            }
-          }
-        }
-      }
-    }
-
-    // ── Pass 3: Match against exercise-videos bucket (GIF files) ──
-    if (!passFilter || passFilter === 3) {
-      const stillMissing = withoutThumbnail.filter(e => !alreadyFixed.has(e.id));
-
-      if (stillMissing.length > 0) {
-        const allGifs = [];
-
-        async function listGifsRecursive(prefix) {
-          const { data, error } = await supabase.storage
-            .from(VIDEO_BUCKET)
-            .list(prefix, { limit: 1000 });
-
-          if (error || !data) return;
-
-          for (const item of data) {
-            const itemPath = prefix ? `${prefix}/${item.name}` : item.name;
-            if (item.id === null) {
-              await listGifsRecursive(itemPath);
-            } else if (/\.(gif|jpg|jpeg|png|webp)$/i.test(item.name)) {
-              const { data: urlData } = supabase.storage.from(VIDEO_BUCKET).getPublicUrl(itemPath);
-              allGifs.push({
-                filename: item.name,
-                path: itemPath,
-                url: urlData.publicUrl,
-                normalized: normalizeName(item.name)
-              });
-            }
-          }
-        }
-
-        await listGifsRecursive('');
-
-        // Build exercise lookup
-        const exerciseLookup = new Map();
-        for (const ex of stillMissing) {
-          const normalized = normalizeName(ex.name);
-          if (!exerciseLookup.has(normalized)) {
-            exerciseLookup.set(normalized, []);
-          }
-          exerciseLookup.get(normalized).push(ex);
-        }
-
-        for (const gif of allGifs) {
-          let matches = exerciseLookup.get(gif.normalized);
-
-          if (!matches) {
-            for (const [normalized, exList] of exerciseLookup.entries()) {
-              if (normalized.includes(gif.normalized) || gif.normalized.includes(normalized)) {
-                matches = exList;
-                break;
-              }
-            }
-          }
-
-          if (matches) {
-            for (const exercise of matches) {
-              if (alreadyFixed.has(exercise.id)) continue;
-              if (results.pass3.updated.length >= limit) break;
-
-              if (!dryRun) {
-                const { error } = await supabase
-                  .from('exercises')
-                  .update({ thumbnail_url: gif.url })
-                  .eq('id', exercise.id);
-
-                if (error) {
-                  results.pass3.skipped++;
-                  continue;
-                }
-              }
-
-              results.pass3.updated.push({
-                id: exercise.id,
-                name: exercise.name,
-                muscle_group: exercise.muscle_group,
-                source: gif.filename
-              });
-              alreadyFixed.add(exercise.id);
-            }
-          }
-        }
-      }
-    }
-
-    // ── Build summary ──
-    const totalFixed = results.pass1.updated.length + results.pass2.updated.length + results.pass3.updated.length;
-    const stillMissingCount = withoutThumbnail.length - totalFixed;
-
-    // Group remaining missing by muscle group
+    // Step 5: Build report of still-missing exercises grouped by muscle group
+    const stillMissing = target.filter(e => !alreadyFixed.has(e.id));
     const missingByMuscle = {};
-    const remainingMissing = withoutThumbnail.filter(e => !alreadyFixed.has(e.id));
-    for (const ex of remainingMissing) {
+    for (const ex of stillMissing) {
       const group = ex.muscle_group || 'unknown';
       if (!missingByMuscle[group]) {
-        missingByMuscle[group] = { count: 0, sample: [] };
+        missingByMuscle[group] = { count: 0, hasAnimation: 0, hasVideo: 0, noMedia: 0, sample: [] };
       }
       missingByMuscle[group].count++;
+      if (ex.animation_url) missingByMuscle[group].hasAnimation++;
+      else if (ex.video_url) missingByMuscle[group].hasVideo++;
+      else missingByMuscle[group].noMedia++;
       if (missingByMuscle[group].sample.length < 5) {
         missingByMuscle[group].sample.push(ex.name);
       }
@@ -316,38 +196,22 @@ exports.handler = async (event) => {
       mode: dryRun ? 'DRY RUN (no changes made)' : 'LIVE',
       overview: {
         totalExercises: allExercises.length,
-        alreadyHaveThumbnails: withThumbnail.length,
+        alreadyHadThumbnails: withThumbnail.length,
         missingThumbnails: withoutThumbnail.length,
-        fixedThisRun: totalFixed,
-        stillMissing: stillMissingCount
+        imagesInBucket: allImages.length,
+        matchedThisRun: updated.length,
+        unmatchedImages: notMatched.length,
+        stillMissing: stillMissing.length
       },
-      passes: {
-        pass1_animation_copy: {
-          description: results.pass1.description,
-          updated: results.pass1.updated.length,
-          errors: results.pass1.skipped,
-          sample: results.pass1.updated.slice(0, 20)
-        },
-        pass2_thumbnail_bucket: {
-          description: results.pass2.description,
-          updated: results.pass2.updated.length,
-          errors: results.pass2.skipped,
-          sample: results.pass2.updated.slice(0, 20)
-        },
-        pass3_video_bucket_gifs: {
-          description: results.pass3.description,
-          updated: results.pass3.updated.length,
-          errors: results.pass3.skipped,
-          sample: results.pass3.updated.slice(0, 20)
-        }
-      },
+      matched: updated.slice(0, 30),
+      unmatchedImages: notMatched.slice(0, 20),
       stillMissingByMuscleGroup: missingByMuscle,
-      hints: {
-        dryRun: dryRun ? 'Remove ?dryRun=true to apply changes' : null,
-        remaining: stillMissingCount > 0
-          ? `${stillMissingCount} exercises still need thumbnails. Upload images to the "${THUMB_BUCKET}" bucket and run sync-thumbnails, or the UI will show muscle-group colored placeholders.`
+      safety: 'Only uses images from exercise-thumbnails bucket. Does NOT copy animation_url GIFs (crash risk on iOS — see commit a297e9b).',
+      hints: dryRun
+        ? 'Remove ?dryRun=true to apply changes'
+        : stillMissing.length > 0
+          ? `${stillMissing.length} exercises still need thumbnails. Upload properly-sized images to the "${THUMB_BUCKET}" bucket with filenames matching exercise names.`
           : 'All exercises have thumbnails!'
-      }
     };
 
     return {
