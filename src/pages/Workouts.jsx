@@ -43,16 +43,15 @@ const formatDisplayDate = (date) => {
   }
 };
 
-// Helper to format duration from minutes to HH:MM or M:SS
+// Helper to format duration from minutes to human-readable format
 const formatDuration = (minutes) => {
-  if (!minutes || minutes <= 0) return '0:00';
+  if (!minutes || minutes <= 0) return '0 min';
   const hrs = Math.floor(minutes / 60);
-  const mins = Math.floor(minutes % 60);
-  const secs = Math.round((minutes % 1) * 60);
+  const mins = Math.round(minutes % 60);
   if (hrs > 0) {
-    return `${hrs}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    return mins > 0 ? `${hrs}h ${mins}m` : `${hrs}h`;
   }
-  return `${mins}:${String(secs).padStart(2, '0')}`;
+  return `${mins} min`;
 };
 
 // Helper to refresh signed URLs for private videos/audio
@@ -2034,7 +2033,7 @@ function Workouts() {
       setWorkoutPRs(result?.prs || []);
       // Store actual duration from play mode so summary/share displays it correctly
       if (elapsedSeconds && elapsedSeconds > 0) {
-        setActualDurationMinutes(Math.round(elapsedSeconds / 60));
+        setActualDurationMinutes(elapsedSeconds / 60);
       }
       // Clear localStorage completion cache since workout is done
       try {
@@ -2307,12 +2306,12 @@ function Workouts() {
     }
   }, [showError, showSuccess]);
 
-  // Calculate workout duration — prefer actual elapsed time from play mode if available
+  // Calculate workout duration — only use actual elapsed time from play mode
+  // Without play mode, returns 0 so display falls back to estimatedMinutes
   const workoutDuration = useMemo(() => {
     if (actualDurationMinutes && actualDurationMinutes > 0) return actualDurationMinutes;
-    if (!workoutStartTime) return 0;
-    return Math.floor((new Date() - workoutStartTime) / 60000); // in minutes
-  }, [workoutStartTime, completedExercises, actualDurationMinutes]); // Re-calculate when exercises complete
+    return 0;
+  }, [actualDurationMinutes]);
 
   // Get exercises from workout with safety checks
   const exercises = useMemo(() => {
