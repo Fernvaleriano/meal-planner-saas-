@@ -127,6 +127,9 @@
   directory = "netlify/functions"
   node_bundler = "esbuild"
 
+[functions."import-workout-program"]
+  timeout = 26
+
 # Scheduled function - runs every hour to send check-in reminders
 [functions."send-checkin-reminders"]
   schedule = "@hourly"

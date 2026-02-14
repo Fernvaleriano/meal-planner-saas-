@@ -319,9 +319,10 @@ Return JSON:
         model: 'gpt-4o-mini',
         max_tokens: 4096,
         temperature: 0.1,
+        response_format: { type: 'json_object' },
         messages: [
           { role: 'system', content: daySystemPrompt },
-          { role: 'user', content: `Parse ALL exercises from this workout day. Return only valid JSON.\n\n${chunk}` }
+          { role: 'user', content: `Parse ALL exercises from this workout day.\n\n${chunk}` }
         ]
       }).then(completion => {
         const text = completion.choices[0]?.message?.content || '';
