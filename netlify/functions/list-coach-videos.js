@@ -70,16 +70,30 @@ exports.handler = async (event) => {
       });
     }
 
-    // Check for video thumbnails in exercise-thumbnails bucket
+    // Check for video thumbnails and metadata in exercise-thumbnails bucket
     const thumbFolder = `video-thumbnails/${coachId}`;
     const { data: thumbFiles } = await supabase.storage
       .from('exercise-thumbnails')
       .list(thumbFolder, { limit: 200 });
 
+    // Load metadata.json for display names
+    let videoMeta = {};
+    try {
+      const { data: metaData } = await supabase.storage
+        .from('exercise-thumbnails')
+        .download(`${thumbFolder}/metadata.json`);
+      if (metaData) {
+        const text = await metaData.text();
+        videoMeta = JSON.parse(text);
+      }
+    } catch (e) {
+      // No metadata file yet, that's fine
+    }
+
     const thumbSet = new Set();
     if (thumbFiles) {
       thumbFiles.forEach(f => {
-        // Store base name without extension for matching
+        if (f.name === 'metadata.json') return;
         const baseName = f.name.replace(/\.\w+$/, '');
         thumbSet.add(baseName);
       });
@@ -91,7 +105,6 @@ exports.handler = async (event) => {
     for (const f of videoFiles) {
       const videoBaseName = f.name.replace(/\.\w+$/, '');
       if (thumbSet.has(videoBaseName)) {
-        // Find the actual thumbnail file to get its extension
         const thumbFile = thumbFiles.find(tf => tf.name.replace(/\.\w+$/, '') === videoBaseName);
         if (thumbFile) {
           const { data: tUrl } = supabase.storage
@@ -109,7 +122,8 @@ exports.handler = async (event) => {
       createdAt: f.created_at,
       contentType: f.metadata?.mimetype || 'video/webm',
       signedUrl: urlMap.get(`${folderPath}/${f.name}`) || null,
-      thumbnailUrl: thumbUrlMap.get(f.name) || null
+      thumbnailUrl: thumbUrlMap.get(f.name) || null,
+      displayName: videoMeta[f.name]?.displayName || null
     }));
 
     return {

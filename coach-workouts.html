@@ -1114,7 +1114,7 @@
         /* My Videos Modal */
         .my-videos-modal {
             width: 95%;
-            max-width: 900px;
+            max-width: 700px;
             max-height: 85vh;
             display: flex;
             flex-direction: column;
@@ -1147,72 +1147,77 @@
             white-space: nowrap;
         }
 
-        .my-videos-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 16px;
-            padding: 20px;
+        .my-videos-list {
             overflow-y: auto;
             flex: 1;
+            padding: 8px 0;
         }
 
-        .my-video-card {
-            background: var(--card-bg);
-            border-radius: var(--radius-md);
-            border: 1px solid var(--border-color);
-            overflow: hidden;
-            transition: all 0.2s ease;
+        .my-video-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 20px;
+            border-bottom: 1px solid var(--border-color);
+            transition: background 0.15s;
+            cursor: pointer;
         }
 
-        .my-video-card:hover {
-            border-color: var(--brand-primary);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        .my-video-item:hover {
+            background: rgba(255,255,255,0.03);
         }
 
-        .my-video-preview {
-            width: 100%;
-            aspect-ratio: 16/9;
+        .my-video-item:last-child {
+            border-bottom: none;
+        }
+
+        .my-video-thumb {
+            width: 72px;
+            height: 48px;
+            border-radius: 6px;
             background: #0a0a1a;
+            overflow: hidden;
+            flex-shrink: 0;
             display: flex;
             align-items: center;
             justify-content: center;
             position: relative;
-            cursor: pointer;
         }
 
-        .my-video-preview video {
+        .my-video-thumb img {
             width: 100%;
             height: 100%;
-            object-fit: contain;
+            object-fit: cover;
         }
 
-        .my-video-play-btn {
+        .my-video-thumb svg {
+            opacity: 0.4;
+        }
+
+        .my-video-thumb .play-icon {
             position: absolute;
             inset: 0;
             display: flex;
             align-items: center;
             justify-content: center;
-            background: rgba(0,0,0,0.3);
-            transition: background 0.2s;
+            background: rgba(0,0,0,0.25);
+            opacity: 0;
+            transition: opacity 0.15s;
         }
 
-        .my-video-play-btn:hover {
-            background: rgba(0,0,0,0.1);
+        .my-video-item:hover .my-video-thumb .play-icon {
+            opacity: 1;
         }
 
-        .my-video-play-btn svg {
-            width: 36px;
-            height: 36px;
+        .my-video-play-icon svg {
+            width: 20px;
+            height: 20px;
             fill: white;
-            opacity: 0.9;
         }
 
-        .my-video-card.playing .my-video-play-btn {
-            display: none;
-        }
-
-        .my-video-info {
-            padding: 10px 12px;
+        .my-video-details {
+            flex: 1;
+            min-width: 0;
         }
 
         .my-video-name {
@@ -1222,44 +1227,40 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            margin-bottom: 4px;
+            margin-bottom: 2px;
         }
 
         .my-video-meta {
             font-size: 11px;
             color: var(--text-secondary);
-            display: flex;
-            justify-content: space-between;
         }
 
         .my-video-actions {
             display: flex;
-            gap: 6px;
-            padding: 0 12px 10px;
+            gap: 4px;
+            flex-shrink: 0;
         }
 
         .my-video-actions button {
-            flex: 1;
-            padding: 6px 0;
+            width: 32px;
+            height: 32px;
             border-radius: var(--radius-sm);
-            border: 1px solid var(--border-color);
+            border: 1px solid transparent;
             background: transparent;
             color: var(--text-secondary);
-            font-size: 12px;
-            font-weight: 500;
             cursor: pointer;
             transition: all 0.15s;
             font-family: inherit;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 4px;
+            padding: 0;
         }
 
-        .my-video-actions .replace-btn:hover {
-            border-color: var(--brand-primary);
-            color: var(--brand-primary);
-            background: rgba(13, 148, 136, 0.08);
+        .my-video-actions button:hover {
+            background: rgba(255,255,255,0.06);
+            color: var(--text-primary);
+            border-color: var(--border-color);
         }
 
         .my-video-actions .delete-btn:hover {
@@ -1269,7 +1270,6 @@
         }
 
         .my-videos-empty {
-            grid-column: 1 / -1;
             text-align: center;
             padding: 60px 20px;
             color: var(--text-secondary);
@@ -1280,40 +1280,45 @@
             opacity: 0.4;
         }
 
-        .my-video-thumb-btn {
+        .my-videos-loading {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-secondary);
+        }
+
+        /* Video preview overlay */
+        .video-preview-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 10001;
+            background: rgba(0,0,0,0.85);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .video-preview-overlay video {
+            max-width: 100%;
+            max-height: 80vh;
+            border-radius: 8px;
+        }
+
+        .video-preview-close {
             position: absolute;
-            top: 6px;
-            right: 6px;
-            width: 30px;
-            height: 30px;
+            top: 16px;
+            right: 16px;
+            width: 36px;
+            height: 36px;
             border-radius: 50%;
             border: none;
-            background: rgba(0,0,0,0.6);
+            background: rgba(255,255,255,0.15);
             color: white;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            opacity: 0;
-            transition: opacity 0.2s;
-            z-index: 2;
-            padding: 0;
-        }
-
-        .my-video-card:hover .my-video-thumb-btn,
-        .my-video-thumb-btn:focus {
-            opacity: 1;
-        }
-
-        .my-video-thumb-btn:hover {
-            background: rgba(13, 148, 136, 0.8);
-        }
-
-        .my-videos-loading {
-            grid-column: 1 / -1;
-            text-align: center;
-            padding: 60px 20px;
-            color: var(--text-secondary);
+            font-size: 20px;
         }
 
         /* Import Modal Styles */
@@ -3875,10 +3880,14 @@
             }
 
             /* My videos modal */
-            .my-videos-grid {
-                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            .my-video-item {
+                padding: 8px 12px;
                 gap: 10px;
-                padding: 12px;
+            }
+
+            .my-video-thumb {
+                width: 56px;
+                height: 38px;
             }
 
             .my-videos-toolbar {
@@ -5240,7 +5249,7 @@
                 <input type="text" class="my-videos-search" id="myVideosSearch" placeholder="Search videos..." oninput="filterMyVideos()">
                 <span class="my-videos-count" id="myVideosCount"></span>
             </div>
-            <div class="my-videos-grid" id="myVideosGrid">
+            <div class="my-videos-list" id="myVideosGrid">
                 <div class="my-videos-loading">Loading videos...</div>
             </div>
         </div>
@@ -9095,8 +9104,6 @@
 
         function closeMyVideosModal() {
             document.getElementById('myVideosModal').classList.remove('active');
-            // Pause any playing videos
-            document.querySelectorAll('#myVideosGrid video').forEach(v => v.pause());
         }
 
         async function loadMyVideos() {
@@ -9124,82 +9131,111 @@
                 renderMyVideos(myVideosCache);
                 return;
             }
-            const filtered = myVideosCache.filter(v => v.name.toLowerCase().includes(query));
+            const filtered = myVideosCache.filter(v =>
+                (v.displayName || v.name).toLowerCase().includes(query)
+            );
             renderMyVideos(filtered);
         }
 
+        function getVideoDisplayName(v) {
+            if (v.displayName) return v.displayName;
+            return v.name.replace(/^custom-video-\d+-?/, '').replace(/\.\w+$/, '') || v.name;
+        }
+
         function renderMyVideos(videos) {
-            const grid = document.getElementById('myVideosGrid');
+            const list = document.getElementById('myVideosGrid');
             document.getElementById('myVideosCount').textContent = `${videos.length} video${videos.length !== 1 ? 's' : ''}`;
 
             if (videos.length === 0) {
-                grid.innerHTML = `
+                list.innerHTML = `
                     <div class="my-videos-empty">
                         <svg width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
                         </svg>
                         <p>No custom videos found</p>
-                        <p style="font-size:12px;margin-top:4px">Upload videos from the workout builder using "Record Demo" or "Upload"</p>
+                        <p style="font-size:12px;margin-top:4px">Upload videos from the workout builder</p>
                     </div>`;
                 return;
             }
 
-            grid.innerHTML = videos.map((v, i) => {
+            // Find the real index in myVideosCache for each video (needed when filtering)
+            list.innerHTML = videos.map((v) => {
+                const realIndex = myVideosCache.indexOf(v);
                 const sizeMB = v.size ? (v.size / 1024 / 1024).toFixed(1) + ' MB' : '';
                 const date = v.createdAt ? new Date(v.createdAt).toLocaleDateString() : '';
-                const displayName = v.name.replace(/^custom-video-\d+-?/, '').replace(/\.\w+$/, '') || v.name;
-                const posterAttr = v.thumbnailUrl ? ` poster="${v.thumbnailUrl}"` : '';
+                const displayName = getVideoDisplayName(v);
+                const thumbHtml = v.thumbnailUrl
+                    ? `<img src="${v.thumbnailUrl}" alt="" loading="lazy">`
+                    : `<svg width="24" height="24" fill="none" stroke="#555" stroke-width="1.5" viewBox="0 0 24 24"><path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>`;
                 return `
-                    <div class="my-video-card" id="my-video-${i}">
-                        <div class="my-video-preview" onclick="toggleMyVideoPlay(${i})">
-                            ${v.signedUrl
-                                ? `<video src="${v.signedUrl}" muted loop playsinline preload="none"${posterAttr}></video>
-                                   <div class="my-video-play-btn"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>`
-                                : `<svg width="32" height="32" fill="none" stroke="#666" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>`
-                            }
-                            <button class="my-video-thumb-btn" onclick="event.stopPropagation(); uploadVideoThumbnail(${i})" title="Set thumbnail">
-                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><circle cx="12" cy="13" r="3"/></svg>
-                            </button>
+                    <div class="my-video-item" id="my-video-${realIndex}">
+                        <div class="my-video-thumb" onclick="previewMyVideo(${realIndex})" title="Preview video">
+                            ${thumbHtml}
+                            <div class="play-icon"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M8 5v14l11-7z" fill="white"/></svg></div>
                         </div>
-                        <div class="my-video-info">
-                            <div class="my-video-name" title="${v.name}">${displayName || v.name}</div>
-                            <div class="my-video-meta">
-                                <span>${sizeMB}</span>
-                                <span>${date}</span>
-                            </div>
+                        <div class="my-video-details" onclick="renameMyVideo(${realIndex})">
+                            <div class="my-video-name" title="${v.name}">${displayName}</div>
+                            <div class="my-video-meta">${sizeMB}${sizeMB && date ? ' · ' : ''}${date}</div>
                         </div>
                         <div class="my-video-actions">
-                            <button class="replace-btn" onclick="replaceMyVideo(${i})" title="Replace with a new video">
-                                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-                                Replace
+                            <button onclick="uploadVideoThumbnail(${realIndex})" title="Set thumbnail">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><circle cx="12" cy="13" r="3"/></svg>
                             </button>
-                            <button class="delete-btn" onclick="deleteMyVideo(${i})" title="Delete this video">
-                                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                                Delete
+                            <button onclick="replaceMyVideo(${realIndex})" title="Replace video">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                            </button>
+                            <button class="delete-btn" onclick="deleteMyVideo(${realIndex})" title="Delete video">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                             </button>
                         </div>
                     </div>`;
             }).join('');
         }
 
-        function toggleMyVideoPlay(index) {
-            const card = document.getElementById(`my-video-${index}`);
-            if (!card) return;
-            const video = card.querySelector('video');
-            if (!video) return;
+        // Preview video in fullscreen overlay
+        function previewMyVideo(index) {
+            const v = myVideosCache[index];
+            if (!v?.signedUrl) return;
 
-            if (video.paused) {
-                // Pause all other videos first
-                document.querySelectorAll('#myVideosGrid video').forEach(v => {
-                    v.pause();
-                    v.closest('.my-video-card')?.classList.remove('playing');
+            const overlay = document.createElement('div');
+            overlay.className = 'video-preview-overlay';
+            overlay.innerHTML = `
+                <video src="${v.signedUrl}" controls autoplay playsinline style="max-width:100%;max-height:80vh;border-radius:8px"></video>
+                <button class="video-preview-close" onclick="this.parentElement.remove()">&times;</button>
+            `;
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) overlay.remove();
+            });
+            document.body.appendChild(overlay);
+        }
+
+        // Rename video (display name stored in metadata)
+        function renameMyVideo(index) {
+            const v = myVideosCache[index];
+            if (!v) return;
+            const currentName = getVideoDisplayName(v);
+            const newName = prompt('Rename video:', currentName);
+            if (!newName || newName.trim() === '' || newName.trim() === currentName) return;
+
+            v.displayName = newName.trim();
+            // Save to backend metadata
+            saveVideoMetadata(v.name, { displayName: newName.trim() });
+            filterMyVideos(); // re-render
+            showToast('Video renamed', 'success');
+        }
+
+        async function saveVideoMetadata(videoName, meta) {
+            try {
+                await apiCall('/.netlify/functions/save-video-metadata', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        coachId: currentCoachId,
+                        videoName,
+                        metadata: meta
+                    })
                 });
-                video.preload = 'auto';
-                video.play();
-                card.classList.add('playing');
-            } else {
-                video.pause();
-                card.classList.remove('playing');
+            } catch (err) {
+                console.error('Failed to save video metadata:', err);
             }
         }
 
@@ -9220,11 +9256,11 @@
                     return;
                 }
 
-                try {
-                    showToast('Uploading thumbnail...', 'success');
+                showToast('Uploading thumbnail...', 'success');
 
-                    const reader = new FileReader();
-                    reader.onload = async () => {
+                const reader = new FileReader();
+                reader.onload = async () => {
+                    try {
                         const base64 = reader.result;
                         const result = await apiCall('/.netlify/functions/upload-video-thumbnail', {
                             method: 'POST',
@@ -9237,19 +9273,16 @@
                         });
 
                         if (result.thumbnailUrl) {
-                            // Update cache and re-render
                             myVideosCache[index].thumbnailUrl = result.thumbnailUrl;
-                            const card = document.getElementById(`my-video-${index}`);
-                            const videoEl = card?.querySelector('video');
-                            if (videoEl) videoEl.poster = result.thumbnailUrl;
+                            filterMyVideos(); // re-render
                             showToast('Thumbnail updated!', 'success');
                         }
-                    };
-                    reader.readAsDataURL(file);
-                } catch (err) {
-                    console.error('Failed to upload thumbnail:', err);
-                    showToast('Failed to upload thumbnail', 'error');
-                }
+                    } catch (err) {
+                        console.error('Failed to upload thumbnail:', err);
+                        showToast('Failed to upload thumbnail', 'error');
+                    }
+                };
+                reader.readAsDataURL(file);
             };
             input.click();
         }
