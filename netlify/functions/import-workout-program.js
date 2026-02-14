@@ -313,10 +313,10 @@ Return JSON:
       return allExercises;
     })();
 
-    // Parse each day chunk in parallel with Haiku (each fits easily in 4096 tokens)
+    // Parse each day chunk in parallel with Sonnet for better accuracy on messy text
     const dayParsePromises = dayChunks.map((chunk, i) =>
       anthropic.messages.create({
-        model: 'claude-3-5-haiku-20241022',
+        model: 'claude-sonnet-4-20250514',
         max_tokens: 4096,
         system: daySystemPrompt,
         messages: [{
