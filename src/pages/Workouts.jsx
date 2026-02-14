@@ -2031,11 +2031,9 @@ function Workouts() {
 
       // Capture any new PRs from the response
       setWorkoutPRs(result?.prs || []);
-      // Store actual duration so summary/share displays it correctly
+      // Store actual duration from play mode so summary/share displays it correctly
       if (elapsedSeconds && elapsedSeconds > 0) {
         setActualDurationMinutes(elapsedSeconds / 60);
-      } else if (durationMinutes && durationMinutes > 0) {
-        setActualDurationMinutes(durationMinutes);
       }
       // Clear localStorage completion cache since workout is done
       try {
@@ -2308,12 +2306,12 @@ function Workouts() {
     }
   }, [showError, showSuccess]);
 
-  // Calculate workout duration — prefer actual elapsed time from play mode if available
+  // Calculate workout duration — only use actual elapsed time from play mode
+  // Without play mode, returns 0 so display falls back to estimatedMinutes
   const workoutDuration = useMemo(() => {
     if (actualDurationMinutes && actualDurationMinutes > 0) return actualDurationMinutes;
-    if (!workoutStartTime) return 0;
-    return Math.floor((new Date() - workoutStartTime) / 60000); // in minutes
-  }, [workoutStartTime, completedExercises, actualDurationMinutes]); // Re-calculate when exercises complete
+    return 0;
+  }, [actualDurationMinutes]);
 
   // Get exercises from workout with safety checks
   const exercises = useMemo(() => {
