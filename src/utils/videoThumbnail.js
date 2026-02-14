@@ -123,13 +123,20 @@ export async function generateVideoThumbnail(videoUrl, seekTime = 0.5) {
 
       try {
         const canvas = document.createElement('canvas');
-        canvas.width = video.videoWidth || 320;
-        canvas.height = video.videoHeight || 180;
+        // Cap canvas at 160px on its longest side. The largest display size is
+        // 120x120 (smart-thumb-large); 160px gives a crisp 2× density on retina
+        // without bloating the base64 data URL or GPU texture memory on iOS.
+        const MAX_DIM = 160;
+        const nativeW = video.videoWidth || 320;
+        const nativeH = video.videoHeight || 180;
+        const scale = Math.min(MAX_DIM / nativeW, MAX_DIM / nativeH, 1);
+        canvas.width = Math.round(nativeW * scale);
+        canvas.height = Math.round(nativeH * scale);
 
         const ctx = canvas.getContext('2d');
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.5);
 
         // Cache it
         thumbnailCache.set(videoUrl, dataUrl);
@@ -178,7 +185,7 @@ export async function preloadThumbnails(exercises) {
 
   const videosToLoad = exercises
     .filter(ex => !ex.thumbnail_url && (ex.video_url || ex.animation_url))
-    .slice(0, 10); // Limit to 10 at a time
+    .slice(0, 4); // Limit to 4 — iOS WebKit OOMs with too many concurrent video loads
 
   // Load in parallel but don't block
   Promise.all(
