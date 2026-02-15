@@ -969,12 +969,27 @@
             color: #3b82f6;
         }
 
+        .reference-link-item .ref-link-clickable {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+            min-width: 0;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
         .reference-link-item .link-title {
             flex: 1;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
             color: var(--text-primary);
+        }
+
+        .reference-link-item .ref-link-clickable:hover .link-title {
+            color: #3b82f6;
+            text-decoration: underline;
         }
 
         .reference-link-item .link-delete {
@@ -5761,8 +5776,10 @@
                                 <div class="reference-links-list">
                                     ${exercise.reference_links.map((link, linkIdx) => `
                                         <div class="reference-link-item">
-                                            <span class="link-icon ${detectLinkType(link.url)}">${getLinkTypeIcon(detectLinkType(link.url))}</span>
-                                            <span class="link-title" title="${escapeHtml(link.url)}">${escapeHtml(link.title || link.url)}</span>
+                                            <a href="${escapeHtml(link.url)}" target="_blank" rel="noopener noreferrer" class="ref-link-clickable" onclick="event.stopPropagation()">
+                                                <span class="link-icon ${detectLinkType(link.url)}">${getLinkTypeIcon(detectLinkType(link.url))}</span>
+                                                <span class="link-title" title="${escapeHtml(link.url)}">${escapeHtml(link.title || link.url)}</span>
+                                            </a>
                                             <button class="link-delete" onclick="removeReferenceLink(${dayIndex}, ${exIndex}, ${linkIdx})" title="Remove link">x</button>
                                         </div>
                                     `).join('')}
