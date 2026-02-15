@@ -1040,6 +1040,74 @@
             color: white;
         }
 
+        /* Global Reference Links */
+        .global-ref-actions {
+            display: flex;
+            gap: 6px;
+            margin-top: 6px;
+            align-items: center;
+        }
+
+        .save-global-btn, .load-global-btn {
+            padding: 4px 10px;
+            border-radius: 6px;
+            border: 1px solid transparent;
+            font-size: 11px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+
+        .save-global-btn {
+            background: rgba(139, 92, 246, 0.15);
+            color: #a78bfa;
+            border-color: rgba(139, 92, 246, 0.3);
+        }
+
+        .save-global-btn:hover {
+            background: rgba(139, 92, 246, 0.3);
+            border-color: #a78bfa;
+        }
+
+        .save-global-btn.saved {
+            background: rgba(34, 197, 94, 0.15);
+            color: #4ade80;
+            border-color: rgba(34, 197, 94, 0.3);
+        }
+
+        .load-global-btn {
+            background: rgba(59, 130, 246, 0.15);
+            color: #60a5fa;
+            border-color: rgba(59, 130, 246, 0.3);
+        }
+
+        .load-global-btn:hover {
+            background: rgba(59, 130, 246, 0.3);
+            border-color: #60a5fa;
+        }
+
+        .global-ref-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 10px;
+            background: rgba(139, 92, 246, 0.15);
+            color: #a78bfa;
+            margin-left: auto;
+        }
+
+        .global-ref-indicator {
+            font-size: 10px;
+            color: var(--text-muted);
+            font-style: italic;
+            margin-top: 4px;
+        }
+
         .video-recording-timer {
             font-size: 12px;
             font-weight: 600;
@@ -5295,6 +5363,10 @@
         let audioChunks = [];
         let currentRecordingExercise = null;
 
+        // Global exercise references cache: { exerciseName: [{ url, title, type }] }
+        let globalExerciseReferences = {};
+        let globalRefsLoaded = false;
+
         // Custom exercise state
         let ceVideoRecorder = null;
         let ceVideoChunks = [];
@@ -5339,7 +5411,8 @@
             await Promise.all([
                 loadPrograms(),
                 loadExercises(),
-                loadClients()
+                loadClients(),
+                loadGlobalExerciseReferences()
             ]);
 
             // Add initial day
@@ -5682,6 +5755,7 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
                                 </svg>
                                 Reference Links
+                                ${hasGlobalRefs(exercise.name) ? '<span class="global-ref-badge"><svg width="10" height="10" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg> Saved globally</span>' : ''}
                             </div>
                             ${(exercise.reference_links && exercise.reference_links.length > 0) ? `
                                 <div class="reference-links-list">
@@ -5689,7 +5763,7 @@
                                         <div class="reference-link-item">
                                             <span class="link-icon ${detectLinkType(link.url)}">${getLinkTypeIcon(detectLinkType(link.url))}</span>
                                             <span class="link-title" title="${escapeHtml(link.url)}">${escapeHtml(link.title || link.url)}</span>
-                                            <button class="link-delete" onclick="removeReferenceLink(${dayIndex}, ${exIndex}, ${linkIdx})" title="Remove link">×</button>
+                                            <button class="link-delete" onclick="removeReferenceLink(${dayIndex}, ${exIndex}, ${linkIdx})" title="Remove link">x</button>
                                         </div>
                                     `).join('')}
                                 </div>
@@ -5700,6 +5774,26 @@
                                     <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                                     Add
                                 </button>
+                            </div>
+                            <div class="global-ref-actions">
+                                ${(exercise.reference_links && exercise.reference_links.length > 0) ? `
+                                    <button class="save-global-btn ${hasGlobalRefs(exercise.name) ? 'saved' : ''}" onclick="saveRefsGlobally(${dayIndex}, ${exIndex})" title="Save these links globally so they auto-load for this exercise in future workouts">
+                                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6l4 2"/></svg>
+                                        ${hasGlobalRefs(exercise.name) ? 'Update Global Links' : 'Save Globally'}
+                                    </button>
+                                ` : ''}
+                                ${(!exercise.reference_links || exercise.reference_links.length === 0) && hasGlobalRefs(exercise.name) ? `
+                                    <button class="load-global-btn" onclick="loadGlobalRefsForExercise(${dayIndex}, ${exIndex})" title="Load your saved global reference links for this exercise">
+                                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                                        Load Saved Links
+                                    </button>
+                                ` : ''}
+                                ${(exercise.reference_links && exercise.reference_links.length > 0) && hasGlobalRefs(exercise.name) ? `
+                                    <button class="load-global-btn" onclick="loadGlobalRefsForExercise(${dayIndex}, ${exIndex})" title="Load any additional saved global links">
+                                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                                        Load Saved
+                                    </button>
+                                ` : ''}
                             </div>
                         </div>
                         ${exercise.recommendedSwaps && exercise.recommendedSwaps.length > 0 ? `
@@ -5809,6 +5903,103 @@
             if (exercise.reference_links) {
                 exercise.reference_links.splice(linkIndex, 1);
                 renderWorkoutDays();
+            }
+        }
+
+        // --- Global Exercise References ---
+        async function loadGlobalExerciseReferences() {
+            if (!currentCoachId) return;
+            try {
+                const result = await apiCall(`/.netlify/functions/exercise-references?coachId=${currentCoachId}`);
+                globalExerciseReferences = {};
+                (result.references || []).forEach(ref => {
+                    globalExerciseReferences[ref.exercise_name.toLowerCase()] = ref.reference_links || [];
+                });
+                globalRefsLoaded = true;
+                console.log('Loaded global exercise references:', Object.keys(globalExerciseReferences).length);
+            } catch (err) {
+                console.error('Error loading global exercise references:', err);
+                globalExerciseReferences = {};
+                globalRefsLoaded = true;
+            }
+        }
+
+        function getGlobalRefsForExercise(exerciseName) {
+            if (!exerciseName || !globalRefsLoaded) return [];
+            return globalExerciseReferences[exerciseName.toLowerCase()] || [];
+        }
+
+        function hasGlobalRefs(exerciseName) {
+            return getGlobalRefsForExercise(exerciseName).length > 0;
+        }
+
+        async function saveRefsGlobally(dayIndex, exIndex) {
+            const exercise = workoutDays[dayIndex].exercises[exIndex];
+            if (!exercise.reference_links || exercise.reference_links.length === 0) {
+                showToast('Add reference links first before saving globally', 'error');
+                return;
+            }
+
+            try {
+                await apiCall('/.netlify/functions/exercise-references', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        coachId: currentCoachId,
+                        exerciseName: exercise.name,
+                        referenceLinks: exercise.reference_links
+                    })
+                });
+
+                // Update local cache
+                globalExerciseReferences[exercise.name.toLowerCase()] = [...exercise.reference_links];
+                showToast(`Links saved globally for "${exercise.name}" — they'll auto-load next time!`, 'success');
+                renderWorkoutDays();
+            } catch (err) {
+                console.error('Error saving global references:', err);
+                showToast('Failed to save global references: ' + err.message, 'error');
+            }
+        }
+
+        function loadGlobalRefsForExercise(dayIndex, exIndex) {
+            const exercise = workoutDays[dayIndex].exercises[exIndex];
+            const globalRefs = getGlobalRefsForExercise(exercise.name);
+            if (globalRefs.length === 0) {
+                showToast('No saved global links for this exercise', 'error');
+                return;
+            }
+
+            if (!exercise.reference_links) exercise.reference_links = [];
+
+            // Add only links that aren't already present (compare by URL)
+            const existingUrls = new Set(exercise.reference_links.map(l => l.url));
+            let addedCount = 0;
+            globalRefs.forEach(ref => {
+                if (!existingUrls.has(ref.url)) {
+                    exercise.reference_links.push({ ...ref });
+                    addedCount++;
+                }
+            });
+
+            if (addedCount > 0) {
+                showToast(`Loaded ${addedCount} global reference link${addedCount > 1 ? 's' : ''}`);
+                renderWorkoutDays();
+            } else {
+                showToast('All global links already added');
+            }
+        }
+
+        async function removeGlobalRefs(exerciseName) {
+            if (!confirm(`Remove all saved global links for "${exerciseName}"?`)) return;
+            try {
+                await apiCall(`/.netlify/functions/exercise-references?coachId=${currentCoachId}&exerciseName=${encodeURIComponent(exerciseName)}`, {
+                    method: 'DELETE'
+                });
+                delete globalExerciseReferences[exerciseName.toLowerCase()];
+                showToast(`Global links removed for "${exerciseName}"`);
+                renderWorkoutDays();
+            } catch (err) {
+                console.error('Error removing global references:', err);
+                showToast('Failed to remove: ' + err.message, 'error');
             }
         }
 
@@ -6157,6 +6348,13 @@
             // Keep the existing sets/reps/rest config
             const oldExercise = workoutDays[swapDayIndex].exercises[swapExIndex];
 
+            // Auto-load global reference links for swapped exercise
+            let refLinks = newExercise.reference_links || [];
+            const globalRefs = getGlobalRefsForExercise(newExercise.name);
+            if (globalRefs.length > 0 && refLinks.length === 0) {
+                refLinks = globalRefs.map(ref => ({ ...ref }));
+            }
+
             workoutDays[swapDayIndex].exercises[swapExIndex] = {
                 id: newExercise.id,
                 name: newExercise.name,
@@ -6169,7 +6367,8 @@
                 sets: oldExercise.sets || 3,
                 reps: oldExercise.reps || '8-12',
                 restSeconds: oldExercise.restSeconds || 90,
-                notes: oldExercise.notes || ''
+                notes: oldExercise.notes || '',
+                reference_links: refLinks
             };
 
             renderWorkoutDays();
@@ -6265,6 +6464,21 @@
             const exercises = Array.from(selectedExercises.values());
             exercises.forEach(exercise => {
                 const { isWarmup, isStretch } = detectExerciseType(exercise);
+
+                // Auto-load global reference links if available
+                let refLinks = exercise.reference_links || [];
+                const globalRefs = getGlobalRefsForExercise(exercise.name);
+                if (globalRefs.length > 0 && refLinks.length === 0) {
+                    refLinks = globalRefs.map(ref => ({ ...ref }));
+                } else if (globalRefs.length > 0 && refLinks.length > 0) {
+                    const existingUrls = new Set(refLinks.map(l => l.url));
+                    globalRefs.forEach(ref => {
+                        if (!existingUrls.has(ref.url)) {
+                            refLinks.push({ ...ref });
+                        }
+                    });
+                }
+
                 workoutDays[currentDayIndex].exercises.push({
                     id: exercise.id,
                     name: exercise.name,
@@ -6279,7 +6493,7 @@
                     restSeconds: isWarmup ? 30 : isStretch ? 0 : 90,
                     isWarmup,
                     isStretch,
-                    reference_links: exercise.reference_links || []
+                    reference_links: refLinks
                 });
             });
             renderWorkoutDays();
@@ -6951,6 +7165,22 @@
 
         function addExerciseToDay(exercise) {
             const { isWarmup, isStretch } = detectExerciseType(exercise);
+
+            // Auto-load global reference links if available
+            let refLinks = exercise.reference_links || [];
+            const globalRefs = getGlobalRefsForExercise(exercise.name);
+            if (globalRefs.length > 0 && refLinks.length === 0) {
+                refLinks = globalRefs.map(ref => ({ ...ref }));
+            } else if (globalRefs.length > 0 && refLinks.length > 0) {
+                // Merge: add global refs not already in the exercise's links
+                const existingUrls = new Set(refLinks.map(l => l.url));
+                globalRefs.forEach(ref => {
+                    if (!existingUrls.has(ref.url)) {
+                        refLinks.push({ ...ref });
+                    }
+                });
+            }
+
             const newExercise = {
                 id: exercise.id,
                 name: exercise.name,
@@ -6965,7 +7195,7 @@
                 restSeconds: isWarmup ? 30 : isStretch ? 0 : 90,
                 isWarmup,
                 isStretch,
-                reference_links: exercise.reference_links || []
+                reference_links: refLinks
             };
 
             const dayExercises = workoutDays[currentDayIndex].exercises;
