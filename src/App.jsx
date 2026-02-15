@@ -12,6 +12,7 @@ import CheckIn from './pages/CheckIn';
 import Progress from './pages/Progress';
 import Feed from './pages/Feed';
 import WorkoutHistory from './pages/WorkoutHistory';
+import AdaptiveCoach from './pages/AdaptiveCoach';
 import Login from './pages/Login';
 import ForgotPassword from './pages/ForgotPassword';
 import LoadingScreen from './components/LoadingScreen';
@@ -64,6 +65,7 @@ function App() {
         <Route path="progress" element={<Progress />} />
         <Route path="feed" element={<Feed />} />
         <Route path="workout-history" element={<WorkoutHistory />} />
+        <Route path="adaptive-coach" element={<AdaptiveCoach />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
