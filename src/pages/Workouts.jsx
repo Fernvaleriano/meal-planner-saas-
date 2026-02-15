@@ -1038,6 +1038,7 @@ function Workouts() {
         isSuperset: oldExercise.isSuperset,
         order: oldExercise.order,
         trackingType: oldExercise.trackingType,
+        repType: oldExercise.repType || null,
         duration: oldExercise.duration,
       };
 
@@ -1162,7 +1163,7 @@ function Workouts() {
       'thumbnail_url', 'video_url', 'calories_per_minute', 'is_compound',
       'is_unilateral', 'category', 'gender_variant', 'source',
       // Config fields from AddActivityModal
-      'sets', 'reps', 'weight', 'restSeconds', 'duration',
+      'sets', 'reps', 'weight', 'restSeconds', 'duration', 'repType',
       // Workout-specific fields
       'trackingType', 'phase', 'isWarmup', 'isStretch', 'isSuperset',
       'supersetGroup', 'completed', 'notes'

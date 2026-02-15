@@ -25618,6 +25618,86 @@ a.nav-left {
     color: #4f46e5;
 }
 
+/* Rep Type Selector (Reps / Timed / Till Failure dropdown) */
+.rep-type-selector {
+    flex-shrink: 0;
+    margin-top: 4px;
+}
+
+.rep-type-select {
+    appearance: none;
+    -webkit-appearance: none;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 6px;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.7rem;
+    padding: 4px 20px 4px 8px;
+    cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.5)' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 6px center;
+    transition: all 0.2s;
+}
+
+.rep-type-select:focus {
+    outline: none;
+    border-color: var(--brand-primary, #14b8a6);
+}
+
+.rep-type-select option {
+    background: #1e293b;
+    color: #e2e8f0;
+}
+
+[data-theme="light"] .rep-type-select {
+    background-color: white;
+    border-color: var(--gray-200);
+    color: var(--gray-700);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='rgba(0,0,0,0.4)' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+}
+
+[data-theme="light"] .rep-type-select option {
+    background: white;
+    color: var(--gray-900);
+}
+
+/* Till Failure Badge in workout builder */
+.till-failure-badge {
+    display: inline-block;
+    background: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid rgba(239, 68, 68, 0.25);
+    white-space: nowrap;
+    letter-spacing: 0.02em;
+}
+
+[data-theme="light"] .till-failure-badge {
+    background: rgba(239, 68, 68, 0.1);
+    color: #dc2626;
+    border-color: rgba(239, 68, 68, 0.2);
+}
+
+.config-item.till-failure-label {
+    display: flex;
+    align-items: center;
+}
+
+/* Till Failure in exercise card set boxes */
+.till-failure-box .till-failure-text {
+    color: #f87171;
+    font-weight: 600;
+    font-size: 0.75rem;
+}
+
+[data-theme="light"] .till-failure-box .till-failure-text {
+    color: #dc2626;
+}
+
 .exercise-remove-btn {
     background: none;
     border: none;
@@ -25697,6 +25777,12 @@ a.nav-left {
     background: white;
     border-color: var(--gray-200);
     color: var(--gray-900);
+}
+
+[data-theme="light"] .create-workout-exercise-item .rep-type-select {
+    background-color: white;
+    border-color: var(--gray-200);
+    color: var(--gray-700);
 }
 
 [data-theme="light"] .create-workout-add-btn {

@@ -168,6 +168,7 @@ function SetEditorModal({
   isTimedExercise,
   weightUnit = 'lbs'
 }) {
+  const isTillFailure = exercise.repType === 'failure';
   const [editMode, setEditMode] = useState(isTimedExercise ? 'time' : 'reps');
   const [localSets, setLocalSets] = useState(sets.map(s => ({ ...s, rpe: s.rpe || null })));
   const [activeSetIndex, setActiveSetIndex] = useState(null);
@@ -530,7 +531,7 @@ function SetEditorModal({
             className={`mode-btn ${editMode === 'reps' ? 'active' : ''}`}
             onClick={() => setEditMode('reps')}
           >
-            Reps
+            {isTillFailure ? 'Till Failure' : 'Reps'}
           </button>
           <button
             className={`mode-btn ${editMode === 'time' ? 'active' : ''}`}
@@ -543,7 +544,7 @@ function SetEditorModal({
         {/* Column Headers */}
         <div className="editor-column-headers">
           <span className="header-spacer"></span>
-          <span className="header-label">{editMode === 'time' ? 'SECONDS' : 'REPS'}</span>
+          <span className="header-label">{editMode === 'time' ? 'SECONDS' : (isTillFailure ? 'REPS DONE' : 'REPS')}</span>
           <span className="header-spacer-x"></span>
           <span className="header-label">WEIGHT</span>
           <span className="header-spacer"></span>
@@ -641,7 +642,7 @@ function SetEditorModal({
           <div className="editor-numpad">
             <div className="numpad-header">
               <span className="numpad-label">
-                {activeField === 'weight' ? 'Enter weight' : (editMode === 'time' ? 'Enter seconds' : 'Enter reps')}
+                {activeField === 'weight' ? 'Enter weight' : (editMode === 'time' ? 'Enter seconds' : (isTillFailure ? 'Reps completed' : 'Enter reps'))}
               </span>
               <button className="numpad-done-btn" onClick={hideKeyboard}>
                 Done
