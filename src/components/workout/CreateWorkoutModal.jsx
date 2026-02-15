@@ -127,6 +127,7 @@ function CreateWorkoutModal({ onClose, onCreateWorkout, selectedDate, coachId = 
           reps: ex.reps,
           duration: ex.duration,
           trackingType: isTimedByDefault ? 'time' : ex.trackingType,
+          repType: ex.repType || null,
           restSeconds: ex.restSeconds,
           completed: false,
         };
@@ -328,7 +329,11 @@ function CreateWorkoutModal({ onClose, onCreateWorkout, selectedDate, coachId = 
                                 onChange={(e) => handleUpdateExercise(index, 'sets', parseInt(e.target.value) || 1)}
                               />
                             </div>
-                            {exercise.trackingType === 'time' ? (
+                            {exercise.repType === 'failure' ? (
+                              <div className="config-item till-failure-label">
+                                <span className="till-failure-badge">Till Failure</span>
+                              </div>
+                            ) : exercise.trackingType === 'time' ? (
                               <div className="config-item">
                                 <label>SECS</label>
                                 <input
@@ -350,16 +355,28 @@ function CreateWorkoutModal({ onClose, onCreateWorkout, selectedDate, coachId = 
                                 />
                               </div>
                             )}
-                            <button
-                              className={`tracking-type-toggle ${exercise.trackingType === 'time' ? 'time-mode' : 'reps-mode'}`}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleUpdateExercise(index, 'trackingType', exercise.trackingType === 'time' ? 'reps' : 'time');
-                              }}
-                              title={exercise.trackingType === 'time' ? 'Switch to reps' : 'Switch to seconds'}
-                            >
-                              {exercise.trackingType === 'time' ? <Clock size={14} /> : <Hash size={14} />}
-                            </button>
+                            <div className="rep-type-selector">
+                              <select
+                                className="rep-type-select"
+                                value={exercise.repType === 'failure' ? 'failure' : (exercise.trackingType === 'time' ? 'time' : 'reps')}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  if (val === 'failure') {
+                                    handleUpdateExercise(index, 'repType', 'failure');
+                                  } else if (val === 'time') {
+                                    handleUpdateExercise(index, 'repType', null);
+                                    handleUpdateExercise(index, 'trackingType', 'time');
+                                  } else {
+                                    handleUpdateExercise(index, 'repType', null);
+                                    handleUpdateExercise(index, 'trackingType', 'reps');
+                                  }
+                                }}
+                              >
+                                <option value="reps">Reps</option>
+                                <option value="time">Timed</option>
+                                <option value="failure">Till Failure</option>
+                              </select>
+                            </div>
                           </div>
                         </div>
                       </div>

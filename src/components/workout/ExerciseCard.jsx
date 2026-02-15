@@ -903,6 +903,15 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
                     </div>
                   ))}
                 </>
+              ) : exercise.repType === 'failure' ? (
+                <>
+                  {sets.map((set, idx) => (
+                    <div key={idx} className="time-box with-weight till-failure-box">
+                      <span className="reps-value till-failure-text">{set?.reps && set.reps > 0 ? `${set.reps}x` : 'TF'}</span>
+                      <span className="weight-value">{set?.weight || 0} {weightUnit}</span>
+                    </div>
+                  ))}
+                </>
               ) : (
                 <>
                   {sets.map((set, idx) => (
@@ -955,7 +964,7 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
 
                   {/* Reps Input */}
                   <div className="set-input-group">
-                    <label>Reps</label>
+                    <label>{exercise.repType === 'failure' ? 'Reps Done' : 'Reps'}</label>
                     <input
                       type="number"
                       inputMode="numeric"
@@ -965,6 +974,7 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
                       onChange={(e) => updateReps(idx, e.target.value, e)}
                       onClick={(e) => e.stopPropagation()}
                       onFocus={(e) => e.target.select()}
+                      placeholder={exercise.repType === 'failure' ? 'Max' : ''}
                       min="0"
                       max="100"
                     />
@@ -1132,6 +1142,7 @@ const arePropsEqual = (prev, next) => {
   if (prev.exercise?.id !== next.exercise?.id) return false;
   if (prev.exercise?.name !== next.exercise?.name) return false;
   if (prev.exercise?.reps !== next.exercise?.reps) return false;
+  if (prev.exercise?.repType !== next.exercise?.repType) return false;
   if (prev.exercise?.duration !== next.exercise?.duration) return false;
   if (prev.exercise?.restSeconds !== next.exercise?.restSeconds) return false;
   if (prev.exercise?.completed !== next.exercise?.completed) return false;

@@ -3089,6 +3089,11 @@ function ExerciseDetailModal({
                       <span className="reps-value">{formatDuration(set?.duration || exercise.duration)}</span>
                       {set?.weight > 0 && <span className="weight-value">{set.weight} {weightUnit}</span>}
                     </>
+                  ) : exercise.repType === 'failure' ? (
+                    <>
+                      <span className="reps-value till-failure-text">{set?.reps && set.reps > 0 ? `${set.reps}x` : 'TF'}</span>
+                      <span className="weight-value">{set?.weight || 0} {weightUnit}</span>
+                    </>
                   ) : (
                     <>
                       <span className="reps-value">{parseReps(set?.reps || exercise.reps)}x</span>

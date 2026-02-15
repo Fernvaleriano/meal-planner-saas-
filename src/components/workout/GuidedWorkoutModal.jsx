@@ -584,7 +584,8 @@ function GuidedWorkoutModal({
       parseDurationToSeconds(ex.reps) ||
       30;
     const rest = ex.restSeconds || ex.rest_seconds || 60;
-    return { isTimed, sets, reps, duration, rest };
+    const isTillFailure = ex.repType === 'failure';
+    return { isTimed, isTillFailure, sets, reps, duration, rest };
   };
 
   // Get exercise phase (warmup, main, or cooldown)
@@ -1361,6 +1362,8 @@ function GuidedWorkoutModal({
         } else {
           const desc = exInfo.isTimed
             ? `${exInfo.sets} sets, ${formatDuration(exInfo.duration)} each`
+            : exInfo.isTillFailure
+            ? `${exInfo.sets} sets, till failure`
             : `${exInfo.sets} sets of ${exInfo.reps} reps`;
           await speak(`Get ready. ${currentExercise.name}. ${desc}.`, voiceEnabled);
         }
@@ -2146,6 +2149,8 @@ function GuidedWorkoutModal({
                       <p>
                         {exInfo.isTimed
                           ? `${exInfo.sets} set${exInfo.sets !== 1 ? 's' : ''} \u00D7 ${formatDuration(exInfo.duration)}`
+                          : exInfo.isTillFailure
+                          ? `${exInfo.sets} set${exInfo.sets !== 1 ? 's' : ''} \u00D7 Till Failure`
                           : `${exInfo.sets} set${exInfo.sets !== 1 ? 's' : ''} \u00D7 ${exInfo.reps} reps`
                         }
                       </p>
@@ -2269,6 +2274,8 @@ function GuidedWorkoutModal({
         <div className="guided-exercise-meta">
           {info.isTimed
             ? `${info.sets} set${info.sets !== 1 ? 's' : ''} × ${formatDuration(info.duration)}`
+            : info.isTillFailure
+            ? `${info.sets} set${info.sets !== 1 ? 's' : ''} × Till Failure`
             : `${info.sets} set${info.sets !== 1 ? 's' : ''} × ${info.reps} reps`
           }
         </div>
@@ -2596,11 +2603,12 @@ function GuidedWorkoutModal({
                     onChange={(e) => updateSetLog('reps', parseInt(e.target.value) || 0)}
                     onBlur={() => setEditingField(null)}
                     onKeyDown={(e) => { if (e.key === 'Enter') setEditingField(null); }}
+                    placeholder={info.isTillFailure ? 'Max' : ''}
                   />
                 ) : (
-                  <span className="guided-input-value">{currentSetLog.reps || info.reps}</span>
+                  <span className="guided-input-value">{currentSetLog.reps || (info.isTillFailure ? '—' : info.reps)}</span>
                 )}
-                <span className="guided-input-label">reps</span>
+                <span className="guided-input-label">{info.isTillFailure ? 'reps done' : 'reps'}</span>
               </div>
 
               <div className="guided-input-divider">&times;</div>

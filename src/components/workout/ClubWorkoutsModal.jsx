@@ -402,9 +402,11 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
                   <div className="club-exercise-info">
                     <span className="club-exercise-name">{exercise.name}</span>
                     <span className="club-exercise-meta">
-                      {exercise.sets || 3} sets x {exercise.trackingType === 'time' || exercise.exercise_type === 'cardio' || !!exercise.duration || (typeof exercise.reps === 'string' && /\d+\s*min/i.test(exercise.reps))
+                      {exercise.sets || 3} sets x {exercise.repType === 'failure'
+                        ? 'Till Failure'
+                        : (exercise.trackingType === 'time' || exercise.exercise_type === 'cardio' || !!exercise.duration || (typeof exercise.reps === 'string' && /\d+\s*min/i.test(exercise.reps))
                         ? formatDuration(exercise.duration || (Array.isArray(exercise.sets) && exercise.sets[0]?.duration) || exercise.reps || 30)
-                        : `${exercise.reps || '10'} reps`}
+                        : `${exercise.reps || '10'} reps`)}
                       {exercise.equipment ? ` | ${exercise.equipment}` : ''}
                     </span>
                   </div>
