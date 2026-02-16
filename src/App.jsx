@@ -37,6 +37,16 @@ function ProtectedRoute({ children }) {
   return children;
 }
 
+function CoachOnlyRoute({ children }) {
+  const { clientData } = useAuth();
+
+  if (clientData?.is_coach !== true) {
+    return <Navigate to="/" replace />;
+  }
+
+  return children;
+}
+
 function App() {
   // Initialize app lifecycle handling (visibilitychange, session refresh on resume)
   useAppLifecycle();
@@ -62,7 +72,7 @@ function App() {
         <Route path="recipes" element={<Recipes />} />
         <Route path="check-in" element={<CheckIn />} />
         <Route path="progress" element={<Progress />} />
-        <Route path="feed" element={<Feed />} />
+        <Route path="feed" element={<CoachOnlyRoute><Feed /></CoachOnlyRoute>} />
         <Route path="workout-history" element={<WorkoutHistory />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

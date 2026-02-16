@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../utils/supabase';
 import { useAuth } from '../context/AuthContext';
 
@@ -117,7 +117,7 @@ function Login() {
           </button>
 
           <div className="forgot-password-link">
-            <a href="/forgot-password">Forgot your password?</a>
+            <Link to="/forgot-password">Forgot your password?</Link>
           </div>
         </form>
 

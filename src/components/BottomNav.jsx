@@ -22,7 +22,7 @@ function BottomNav({ currentPath }) {
         <Link
           key={path}
           to={path}
-          className={`bottom-nav-item ${currentPath === path ? 'active' : ''}`}
+          className={`bottom-nav-item ${path === '/' ? currentPath === '/' ? 'active' : '' : currentPath.startsWith(path) ? 'active' : ''}`}
           aria-label={`Navigate to ${label}`}
           aria-current={currentPath === path ? 'page' : undefined}
         >

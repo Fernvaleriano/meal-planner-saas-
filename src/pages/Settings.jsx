@@ -183,7 +183,7 @@ function Settings() {
 
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(clientData.email, {
-        redirectTo: `${window.location.origin}/reset-password`
+        redirectTo: `${window.location.origin}/set-password.html`
       });
 
       if (error) {
