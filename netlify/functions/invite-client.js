@@ -5,7 +5,7 @@ const { sendIntakeInvitationEmail } = require('./utils/email-service');
 const { handleCors, authenticateCoach, corsHeaders } = require('./utils/auth');
 const crypto = require('crypto');
 
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
+const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 const APP_URL = process.env.URL || 'https://ziquefitnessnutrition.com';
 

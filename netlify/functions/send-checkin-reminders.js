@@ -56,7 +56,7 @@ exports.handler = async (event, context) => {
         const { createClient } = require('@supabase/supabase-js');
         const { sendCheckinReminder } = require('./utils/email-service');
 
-        const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
+        const SUPABASE_URL = process.env.SUPABASE_URL;
         const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
         if (!SUPABASE_SERVICE_KEY) {

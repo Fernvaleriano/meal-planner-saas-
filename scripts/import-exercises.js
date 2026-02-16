@@ -18,7 +18,7 @@ const csv = require('csv-parse/sync');
 
 // Configuration
 const CSV_FILE = path.join(__dirname, '..', '1500+ exercise data.xlsx - Sheet1.csv');
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
+const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
 if (!SUPABASE_SERVICE_KEY) {

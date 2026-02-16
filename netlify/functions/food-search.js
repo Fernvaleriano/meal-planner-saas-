@@ -6,7 +6,7 @@ const EDAMAM_API_KEY = process.env.EDAMAM_API_KEY;
 const EDAMAM_API_URL = 'https://api.edamam.com/api/food-database/v2/parser';
 
 // Supabase
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
+const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
 const headers = {
