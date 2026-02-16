@@ -269,6 +269,12 @@ function TopNav() {
     if (notif.type === 'diary_reaction' || notif.type === 'diary_comment') {
       setShowNotifications(false);
       setSelectedNotification(notif);
+    } else if (notif.type === 'diet_plan_published') {
+      setShowNotifications(false);
+      navigate('/plans');
+    } else if (notif.type === 'workout_assigned') {
+      setShowNotifications(false);
+      navigate('/workouts');
     } else {
       setShowNotifications(false);
     }

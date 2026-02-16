@@ -69,6 +69,29 @@ exports.handler = async (event, context) => {
 
     console.log('✅ Plan published:', planId);
 
+    // Create a notification for the client
+    if (data.client_id) {
+      try {
+        const planName = data.name || data.plan_name || 'New Diet Plan';
+        await supabase
+          .from('notifications')
+          .insert([{
+            client_id: data.client_id,
+            type: 'diet_plan_published',
+            title: 'New Diet Plan Available',
+            message: `Your coach has published "${planName}" for you.`,
+            metadata: {
+              plan_id: data.id,
+              plan_name: planName
+            }
+          }]);
+        console.log('🔔 Notification sent to client', data.client_id);
+      } catch (notifError) {
+        // Don't fail the publish if notification fails
+        console.error('⚠️ Failed to send notification:', notifError);
+      }
+    }
+
     return {
       statusCode: 200,
       headers: {

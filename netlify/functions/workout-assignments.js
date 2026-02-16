@@ -443,6 +443,28 @@ exports.handler = async (event) => {
 
       if (error) throw error;
 
+      // Create a notification for the client
+      try {
+        const programName = finalName || 'New Workout Program';
+        await supabase
+          .from('notifications')
+          .insert([{
+            client_id: clientId,
+            type: 'workout_assigned',
+            title: 'New Workout Program Assigned',
+            message: `Your coach has assigned "${programName}" to you.`,
+            metadata: {
+              assignment_id: assignment.id,
+              program_id: programId || null,
+              program_name: programName
+            }
+          }]);
+        console.log('🔔 Notification sent to client', clientId);
+      } catch (notifError) {
+        // Don't fail the assignment if notification fails
+        console.error('⚠️ Failed to send notification:', notifError);
+      }
+
       return {
         statusCode: 200,
         headers,
