@@ -15,18 +15,9 @@ function ForgotPassword() {
     setError('');
 
     try {
-      // First verify this email belongs to a client (case-insensitive)
-      const { data: client, error: clientError } = await supabase
-        .from('clients')
-        .select('id, email')
-        .ilike('email', email.trim())
-        .single();
-
-      if (clientError || !client) {
-        throw new Error('No account found with this email address');
-      }
-
-      // Send password reset email via Supabase
+      // Send password reset email via Supabase directly
+      // No pre-check against clients table — RLS blocks anonymous reads,
+      // and skipping the check avoids leaking whether an email exists
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.toLowerCase().trim(), {
         redirectTo: `${window.location.origin}/set-password.html`
       });
