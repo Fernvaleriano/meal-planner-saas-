@@ -295,9 +295,10 @@ function Diary() {
   // Setup pull-to-refresh
   const { isRefreshing, pullDistance, containerProps, threshold } = usePullToRefresh(refreshDiaryData);
 
-  // Cleanup microphone on component unmount
+  // Cleanup timers and microphone on component unmount
   useEffect(() => {
     return () => {
+      if (waterDebounceRef.current) clearTimeout(waterDebounceRef.current);
       if (recognitionRef.current) {
         const rec = recognitionRef.current;
         recognitionRef.current = null;
@@ -2411,7 +2412,7 @@ function Diary() {
                   placeholder="Ask me anything or log food..."
                   value={aiInput}
                   onChange={(e) => setAiInput(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleAiChat()}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAiChat()}
                   disabled={aiLogging}
                 />
                 <button

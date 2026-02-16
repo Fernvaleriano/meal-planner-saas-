@@ -333,8 +333,13 @@ function Plans() {
       const response = await apiPost('/.netlify/functions/meal-image-batch', { mealNames });
       if (response.images) {
         const newImages = { ...mealImages, ...response.images };
+        // Cap cache at 50 entries to prevent localStorage overflow
+        const keys = Object.keys(newImages);
+        if (keys.length > 50) {
+          keys.slice(0, keys.length - 50).forEach(k => delete newImages[k]);
+        }
         setMealImages(newImages);
-        localStorage.setItem('mealImageCache', JSON.stringify(newImages));
+        try { localStorage.setItem('mealImageCache', JSON.stringify(newImages)); } catch (e) { /* quota exceeded */ }
 
         // Update the meals with their new image URLs (with proper immutable update)
         setSelectedPlan(prevPlan => {
@@ -442,9 +447,14 @@ function Plans() {
     refreshVoiceNoteUrls(selectedPlan);
   }, [selectedPlan?.id]);
 
-  // Save undo states to localStorage
+  // Save undo states to localStorage (cap at 10 plans)
   useEffect(() => {
-    localStorage.setItem('plannerUndoStates', JSON.stringify(previousMealStates));
+    const states = { ...previousMealStates };
+    const keys = Object.keys(states);
+    if (keys.length > 10) {
+      keys.slice(0, keys.length - 10).forEach(k => delete states[k]);
+    }
+    try { localStorage.setItem('plannerUndoStates', JSON.stringify(states)); } catch (e) { /* quota exceeded */ }
   }, [previousMealStates]);
 
   // Store original plan data for revert feature
