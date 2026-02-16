@@ -88,7 +88,12 @@ exports.handler = async (event) => {
         fatGoal,
         fiberGoal,
         sugarGoal,
-        sodiumGoal
+        sodiumGoal,
+        potassiumGoal,
+        calciumGoal,
+        ironGoal,
+        vitaminCGoal,
+        cholesterolGoal
       } = body;
 
       if (!clientId) {
@@ -135,9 +140,7 @@ exports.handler = async (event) => {
       let result;
       if (existing) {
         // Update existing
-        const { data, error } = await supabase
-          .from('calorie_goals')
-          .update({
+        const updateData = {
             calorie_goal: calorieGoal,
             protein_goal: proteinGoal,
             carbs_goal: carbsGoal,
@@ -145,7 +148,17 @@ exports.handler = async (event) => {
             fiber_goal: fiberGoal || null,
             sugar_goal: sugarGoal || null,
             sodium_goal: sodiumGoal || null
-          })
+        };
+        // Only include micronutrient goals if provided
+        if (potassiumGoal !== undefined) updateData.potassium_goal = potassiumGoal || null;
+        if (calciumGoal !== undefined) updateData.calcium_goal = calciumGoal || null;
+        if (ironGoal !== undefined) updateData.iron_goal = ironGoal || null;
+        if (vitaminCGoal !== undefined) updateData.vitamin_c_goal = vitaminCGoal || null;
+        if (cholesterolGoal !== undefined) updateData.cholesterol_goal = cholesterolGoal || null;
+
+        const { data, error } = await supabase
+          .from('calorie_goals')
+          .update(updateData)
           .eq('client_id', clientId)
           .select()
           .single();
@@ -167,9 +180,7 @@ exports.handler = async (event) => {
           }
         }
 
-        const { data, error } = await supabase
-          .from('calorie_goals')
-          .insert([{
+        const insertData = {
             client_id: clientId,
             coach_id: coachId,
             calorie_goal: calorieGoal || defaults.calorie,
@@ -179,7 +190,16 @@ exports.handler = async (event) => {
             fiber_goal: fiberGoal || null,
             sugar_goal: sugarGoal || null,
             sodium_goal: sodiumGoal || null
-          }])
+        };
+        if (potassiumGoal !== undefined) insertData.potassium_goal = potassiumGoal || null;
+        if (calciumGoal !== undefined) insertData.calcium_goal = calciumGoal || null;
+        if (ironGoal !== undefined) insertData.iron_goal = ironGoal || null;
+        if (vitaminCGoal !== undefined) insertData.vitamin_c_goal = vitaminCGoal || null;
+        if (cholesterolGoal !== undefined) insertData.cholesterol_goal = cholesterolGoal || null;
+
+        const { data, error } = await supabase
+          .from('calorie_goals')
+          .insert([insertData])
           .select()
           .single();
 

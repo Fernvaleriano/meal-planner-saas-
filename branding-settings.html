@@ -1358,6 +1358,50 @@
                     </div>
                 </div>
 
+                <!-- White-Label Email From Address Section -->
+                <div class="settings-section">
+                    <div class="section-header">
+                        <h2 class="section-title">
+                            <span class="section-title-icon">✉️</span>
+                            Custom Email From Address
+                        </h2>
+                    </div>
+                    <p class="section-description">Send client emails from your own brand identity instead of Zique Fitness.</p>
+
+                    <div class="form-group">
+                        <label class="form-label" for="emailFromName">From Name</label>
+                        <input type="text" id="emailFromName" class="form-input" placeholder="e.g. Sarah's Nutrition Coaching" maxlength="100">
+                        <p class="form-hint">The display name recipients will see</p>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="emailFrom">From Email Address</label>
+                        <input type="email" id="emailFrom" class="form-input" placeholder="e.g. hello@yourcoachingbrand.com">
+                        <p class="form-hint">The email address emails will appear to come from</p>
+                    </div>
+
+                    <div class="form-group" style="display:flex;align-items:center;gap:12px;padding:12px 0;">
+                        <label class="toggle-switch" style="flex-shrink:0;">
+                            <input type="checkbox" id="whiteLabelEnabled" onchange="toggleWhiteLabel()">
+                            <span class="toggle-slider" style="width:44px;height:24px;border-radius:12px;background:var(--gray-300);position:relative;display:inline-block;transition:background 0.2s;cursor:pointer;">
+                                <span style="width:20px;height:20px;border-radius:50%;background:white;position:absolute;top:2px;left:2px;transition:transform 0.2s;"></span>
+                            </span>
+                        </label>
+                        <div>
+                            <span style="font-size:14px;font-weight:500;color:var(--gray-700);">Enable White-Label Emails</span>
+                            <p class="form-hint" style="margin-top:2px;">When enabled, client emails use your custom from address</p>
+                        </div>
+                    </div>
+
+                    <div id="whiteLabelStatus" style="padding:12px 16px;border-radius:8px;font-size:13px;margin-top:8px;display:none;"></div>
+
+                    <div style="margin-top:16px;">
+                        <button type="button" class="btn btn-primary" style="font-size:14px;padding:10px 20px;" onclick="saveWhiteLabelEmail()">
+                            Save Email Settings
+                        </button>
+                    </div>
+                </div>
+
                 <!-- Action Buttons -->
                 <div class="action-buttons">
                     <button type="button" class="btn btn-primary" id="saveBtn" onclick="saveBranding()">
@@ -1607,6 +1651,9 @@
 
                 // Load branding data
                 await loadBranding();
+
+                // Load white-label email settings
+                await loadWhiteLabelEmail();
 
                 // Initialize color pickers
                 initColorPickers();
@@ -2136,6 +2183,84 @@
 
             } catch (error) {
                 console.error('Error sending test email:', error);
+                showToast(error.message, 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // White-Label Email Functions
+        async function loadWhiteLabelEmail() {
+            try {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                const response = await fetch('/.netlify/functions/save-white-label-email', {
+                    headers: { 'Authorization': `Bearer ${session.access_token}` }
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('emailFromName').value = data.email_from_name || '';
+                    document.getElementById('emailFrom').value = data.email_from || '';
+                    document.getElementById('whiteLabelEnabled').checked = data.white_label_enabled || false;
+                    updateWhiteLabelStatus(data);
+                }
+            } catch (err) {
+                console.error('Error loading white-label settings:', err);
+            }
+        }
+
+        function updateWhiteLabelStatus(data) {
+            const statusEl = document.getElementById('whiteLabelStatus');
+            if (!data.email_from) {
+                statusEl.style.display = 'none';
+                return;
+            }
+            statusEl.style.display = 'block';
+            if (data.white_label_enabled && data.email_from_verified) {
+                statusEl.style.background = 'rgba(16, 185, 129, 0.1)';
+                statusEl.style.color = '#059669';
+                statusEl.innerHTML = '✓ White-label emails are active. Clients will receive emails from <strong>' + (data.email_from_name || data.email_from) + '</strong>';
+            } else if (data.email_from && !data.email_from_verified) {
+                statusEl.style.background = 'rgba(245, 158, 11, 0.1)';
+                statusEl.style.color = '#d97706';
+                statusEl.innerHTML = '⏳ Email address saved. Contact support to verify your domain for sending.';
+            } else if (!data.white_label_enabled && data.email_from_verified) {
+                statusEl.style.background = 'rgba(107, 114, 128, 0.1)';
+                statusEl.style.color = '#6b7280';
+                statusEl.innerHTML = 'ℹ️ Email is verified but white-label is disabled. Toggle it on to use your custom from address.';
+            }
+        }
+
+        function toggleWhiteLabel() {
+            // Visual feedback only - actual save happens on button click
+        }
+
+        async function saveWhiteLabelEmail() {
+            try {
+                showLoading(true);
+                const { data: { session } } = await supabaseClient.auth.getSession();
+
+                const payload = {
+                    email_from: document.getElementById('emailFrom').value.trim(),
+                    email_from_name: document.getElementById('emailFromName').value.trim(),
+                    white_label_enabled: document.getElementById('whiteLabelEnabled').checked
+                };
+
+                const response = await fetch('/.netlify/functions/save-white-label-email', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${session.access_token}`
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || 'Failed to save');
+
+                updateWhiteLabelStatus(data.settings);
+                showToast('Email settings saved!', 'success');
+            } catch (error) {
+                console.error('Error saving white-label email:', error);
                 showToast(error.message, 'error');
             } finally {
                 showLoading(false);

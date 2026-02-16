@@ -43,7 +43,7 @@ const getGenderBasedDefaults = (gender) => {
     potassium_goal: 3500,
     calcium_goal: 1000,
     iron_goal: 18,
-    vitaminC_goal: 90,
+    vitamin_c_goal: 90,
     cholesterol_goal: 300
   };
 };
@@ -571,7 +571,7 @@ function Diary() {
     if (cached) {
       setEntries(cached.entries || []);
       setTotals(cached.totals || { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, sugar: 0, sodium: 0, potassium: 0, calcium: 0, iron: 0, vitaminC: 0, cholesterol: 0 });
-      setGoals(cached.goals || { calorie_goal: 2600, protein_goal: 221, carbs_goal: 260, fat_goal: 75, fiber_goal: 28, sugar_goal: 50, sodium_goal: 2300, potassium_goal: 3500, calcium_goal: 1000, iron_goal: 18, vitaminC_goal: 90, cholesterol_goal: 300 });
+      setGoals(cached.goals || { calorie_goal: 2600, protein_goal: 221, carbs_goal: 260, fat_goal: 75, fiber_goal: 28, sugar_goal: 50, sodium_goal: 2300, potassium_goal: 3500, calcium_goal: 1000, iron_goal: 18, vitamin_c_goal: 90, cholesterol_goal: 300 });
       setWaterIntake(cached.water || 0);
     }
 
@@ -897,6 +897,13 @@ function Diary() {
             carbs: entry.carbs,
             fat: entry.fat,
             fiber: entry.fiber,
+            sugar: entry.sugar,
+            sodium: entry.sodium,
+            potassium: entry.potassium,
+            calcium: entry.calcium,
+            iron: entry.iron,
+            vitaminC: entry.vitamin_c || entry.vitaminC,
+            cholesterol: entry.cholesterol,
             foodSource: 'copied'
           });
           copiedCount++;
@@ -971,6 +978,14 @@ function Diary() {
         protein: food.protein,
         carbs: food.carbs,
         fat: food.fat,
+        fiber: food.fiber,
+        sugar: food.sugar,
+        sodium: food.sodium,
+        potassium: food.potassium,
+        calcium: food.calcium,
+        iron: food.iron,
+        vitaminC: food.vitaminC,
+        cholesterol: food.cholesterol,
         servingSize: food.serving_size || 1,
         servingUnit: food.serving_unit || 'serving',
         numberOfServings: 1,
@@ -1565,6 +1580,14 @@ function Diary() {
           protein: food.protein,
           carbs: food.carbs,
           fat: food.fat,
+          fiber: food.fiber,
+          sugar: food.sugar,
+          sodium: food.sodium,
+          potassium: food.potassium,
+          calcium: food.calcium,
+          iron: food.iron,
+          vitaminC: food.vitamin_c || food.vitaminC,
+          cholesterol: food.cholesterol,
           servingSize: food.serving_size || 1,
           servingUnit: food.serving_unit || 'serving',
           numberOfServings: food.number_of_servings || 1,
@@ -1623,7 +1646,7 @@ function Diary() {
   const potassiumProgress = Math.min(100, Math.round(((totals.potassium || 0) / (goals.potassium_goal || 3500)) * 100));
   const calciumProgress = Math.min(100, Math.round(((totals.calcium || 0) / (goals.calcium_goal || 1000)) * 100));
   const ironProgress = Math.min(100, Math.round(((totals.iron || 0) / (goals.iron_goal || 18)) * 100));
-  const vitaminCProgress = Math.min(100, Math.round(((totals.vitaminC || 0) / (goals.vitaminC_goal || 90)) * 100));
+  const vitaminCProgress = Math.min(100, Math.round(((totals.vitaminC || 0) / (goals.vitamin_c_goal || goals.vitaminC_goal || 90)) * 100));
   const cholesterolProgress = Math.min(100, Math.round(((totals.cholesterol || 0) / (goals.cholesterol_goal || 300)) * 100));
 
   // Calorie ring component
@@ -2035,7 +2058,7 @@ function Diary() {
             </div>
             <div className="macro-bar-item">
               <span className="macro-bar-label vitaminC">Vit C:</span>
-              <span className="macro-bar-value">{Math.round(totals.vitaminC || 0)}/{goals.vitaminC_goal || 90}mg</span>
+              <span className="macro-bar-value">{Math.round(totals.vitaminC || 0)}/{goals.vitamin_c_goal || goals.vitaminC_goal || 90}mg</span>
               <div className="macro-bar-track">
                 <div className="macro-bar-fill vitaminC" style={{ width: `${vitaminCProgress}%` }} />
               </div>
