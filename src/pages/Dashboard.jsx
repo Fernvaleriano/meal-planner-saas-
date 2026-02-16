@@ -40,7 +40,6 @@ function Dashboard() {
   const cachedPlans = clientData?.id ? getCache(`plans_${clientData.id}`) : null;
   const cachedSupplements = clientData?.id ? getCache(`supplements_${clientData.id}`) : null;
 
-  const [loading, setLoading] = useState(false);
   const [todayProgress, setTodayProgress] = useState(cachedDashboard?.progress || {
     calories: 0,
     protein: 0,
@@ -73,6 +72,7 @@ function Dashboard() {
   const [isRecording, setIsRecording] = useState(false);
   const recognitionRef = useRef(null);
   const preVoiceInputRef = useRef(''); // Store input text before voice started
+  const logSuccessTimerRef = useRef(null);
 
   // Food confirmation state
   const [parsedFoods, setParsedFoods] = useState(null);
@@ -165,7 +165,8 @@ function Dashboard() {
 
     // Show success feedback
     setLogSuccess(true);
-    setTimeout(() => setLogSuccess(false), 3000);
+    if (logSuccessTimerRef.current) clearTimeout(logSuccessTimerRef.current);
+    logSuccessTimerRef.current = setTimeout(() => setLogSuccess(false), 3000);
   };
 
   // Auto-select meal type based on time
@@ -177,9 +178,10 @@ function Dashboard() {
     else setSelectedMealType('snack');
   }, []);
 
-  // Cleanup microphone on component unmount
+  // Cleanup timers and microphone on component unmount
   useEffect(() => {
     return () => {
+      if (logSuccessTimerRef.current) clearTimeout(logSuccessTimerRef.current);
       if (recognitionRef.current) {
         const rec = recognitionRef.current;
         recognitionRef.current = null;
@@ -391,7 +393,8 @@ function Dashboard() {
       setParsedFoods(null);
       setShowConfirmation(false);
       setLogSuccess(true);
-      setTimeout(() => setLogSuccess(false), 3000);
+      if (logSuccessTimerRef.current) clearTimeout(logSuccessTimerRef.current);
+      logSuccessTimerRef.current = setTimeout(() => setLogSuccess(false), 3000);
     } catch (err) {
       console.error('Error logging food:', err);
       alert('Error logging food. Please try again.');

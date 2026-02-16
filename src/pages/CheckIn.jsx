@@ -106,6 +106,7 @@ function CheckIn() {
             type="button"
             className={`rating-btn ${ratings[type] === value ? 'selected' : ''}`}
             onClick={() => handleRating(type, value)}
+            aria-label={`${label} ${value} out of 5`}
           >
             {value}
           </button>

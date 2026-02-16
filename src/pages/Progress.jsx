@@ -159,31 +159,21 @@ function Progress() {
 
     setSavingMeasurement(true);
     try {
-      const response = await fetch('/.netlify/functions/save-measurement', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          clientId: clientData.id,
-          coachId: clientData.coach_id,
-          measuredDate: measurementForm.date,
-          weight: parseFloat(measurementForm.weight) || null,
-          bodyFatPercentage: parseFloat(measurementForm.bodyFat) || null,
-          chest: parseFloat(measurementForm.chest) || null,
-          waist: parseFloat(measurementForm.waist) || null,
-          hips: parseFloat(measurementForm.hips) || null,
-          leftArm: parseFloat(measurementForm.leftArm) || null,
-          rightArm: parseFloat(measurementForm.rightArm) || null,
-          leftThigh: parseFloat(measurementForm.leftThigh) || null,
-          rightThigh: parseFloat(measurementForm.rightThigh) || null,
-          notes: measurementForm.notes || null
-        })
+      await apiPost('/.netlify/functions/save-measurement', {
+        clientId: clientData.id,
+        coachId: clientData.coach_id,
+        measuredDate: measurementForm.date,
+        weight: parseFloat(measurementForm.weight) || null,
+        bodyFatPercentage: parseFloat(measurementForm.bodyFat) || null,
+        chest: parseFloat(measurementForm.chest) || null,
+        waist: parseFloat(measurementForm.waist) || null,
+        hips: parseFloat(measurementForm.hips) || null,
+        leftArm: parseFloat(measurementForm.leftArm) || null,
+        rightArm: parseFloat(measurementForm.rightArm) || null,
+        leftThigh: parseFloat(measurementForm.leftThigh) || null,
+        rightThigh: parseFloat(measurementForm.rightThigh) || null,
+        notes: measurementForm.notes || null
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to save measurement');
-      }
 
       alert('Measurement saved!');
       setShowMeasurementModal(false);
@@ -230,23 +220,13 @@ function Progress() {
 
     setUploadingPhoto(true);
     try {
-      const response = await fetch('/.netlify/functions/upload-progress-photo', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          clientId: clientData.id,
-          coachId: clientData.coach_id,
-          photoData: photoPreview,
-          photoType: photoType,
-          takenDate: photoDate
-        })
+      await apiPost('/.netlify/functions/upload-progress-photo', {
+        clientId: clientData.id,
+        coachId: clientData.coach_id,
+        photoData: photoPreview,
+        photoType: photoType,
+        takenDate: photoDate
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to upload photo');
-      }
 
       alert('Photo uploaded!');
       setShowPhotoModal(false);

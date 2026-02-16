@@ -338,7 +338,7 @@ function TopNav() {
                     <Check size={14} /> Mark all read
                   </button>
                 )}
-                <button className="close-notifications-btn" onClick={() => setShowNotifications(false)}>
+                <button className="close-notifications-btn" onClick={() => setShowNotifications(false)} aria-label="Close notifications">
                   <X size={18} />
                 </button>
               </div>
