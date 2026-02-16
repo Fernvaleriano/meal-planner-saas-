@@ -157,6 +157,26 @@ exports.handler = async (event, context) => {
 
       console.log(`✅ Bulk post (fallback): Created ${fallbackData.length} plans`);
 
+      // Create notifications for fallback path (client_id may not be in result, use original clientIds)
+      try {
+        const notificationRows = clientIds.map(cId => ({
+          client_id: cId,
+          type: 'diet_plan_published',
+          title: 'New Diet Plan Available',
+          message: `Your coach has published "${planName || 'New Diet Plan'}" for you.`,
+          metadata: {
+            plan_name: planName || 'New Diet Plan'
+          }
+        }));
+
+        if (notificationRows.length > 0) {
+          await supabase.from('notifications').insert(notificationRows);
+          console.log(`🔔 Notifications sent to ${notificationRows.length} client(s) (fallback)`);
+        }
+      } catch (notifError) {
+        console.error('⚠️ Failed to send notifications (fallback):', notifError);
+      }
+
       return {
         statusCode: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -170,6 +190,30 @@ exports.handler = async (event, context) => {
     }
 
     console.log(`✅ Bulk post: Created ${insertedPlans.length} plans`);
+
+    // Create notifications for each client
+    try {
+      const notificationRows = insertedPlans
+        .filter(plan => plan.client_id)
+        .map(plan => ({
+          client_id: plan.client_id,
+          type: 'diet_plan_published',
+          title: 'New Diet Plan Available',
+          message: `Your coach has published "${planName || 'New Diet Plan'}" for you.`,
+          metadata: {
+            plan_id: plan.id,
+            plan_name: planName || 'New Diet Plan'
+          }
+        }));
+
+      if (notificationRows.length > 0) {
+        await supabase.from('notifications').insert(notificationRows);
+        console.log(`🔔 Notifications sent to ${notificationRows.length} client(s)`);
+      }
+    } catch (notifError) {
+      // Don't fail the bulk post if notifications fail
+      console.error('⚠️ Failed to send notifications:', notifError);
+    }
 
     return {
       statusCode: 200,
