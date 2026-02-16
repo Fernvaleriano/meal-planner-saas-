@@ -360,9 +360,9 @@ export function SnapPhotoModal({ isOpen, onClose, mealType, clientData, onFoodLo
                       <div className="detected-food-servings">
                         <label>Servings</label>
                         <div className="servings-controls">
-                          <button onClick={() => updateServings(idx, -0.5)}><Minus size={16} /></button>
+                          <button onClick={() => updateServings(idx, -0.5)} aria-label="Decrease servings"><Minus size={16} /></button>
                           <span className="servings-value">{foodServings}</span>
-                          <button onClick={() => updateServings(idx, 0.5)}><Plus size={16} /></button>
+                          <button onClick={() => updateServings(idx, 0.5)} aria-label="Increase servings"><Plus size={16} /></button>
                         </div>
                       </div>
                       <div className="detected-food-macros">
