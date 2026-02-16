@@ -3098,7 +3098,7 @@
                     clientName,
 
                     // Basic info
-                    email: document.getElementById('clientEmail').value.trim() || null,
+                    email: (document.getElementById('clientEmail').value.trim().toLowerCase()) || null,
                     phone: document.getElementById('clientPhone').value.trim() || null,
 
                     // Physical stats

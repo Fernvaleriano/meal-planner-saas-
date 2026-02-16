@@ -15,11 +15,11 @@ function ForgotPassword() {
     setError('');
 
     try {
-      // First verify this email belongs to a client
+      // First verify this email belongs to a client (case-insensitive)
       const { data: client, error: clientError } = await supabase
         .from('clients')
         .select('id, email')
-        .eq('email', email.toLowerCase().trim())
+        .ilike('email', email.trim())
         .single();
 
       if (clientError || !client) {
@@ -27,7 +27,7 @@ function ForgotPassword() {
       }
 
       // Send password reset email via Supabase
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.toLowerCase().trim(), {
         redirectTo: `${window.location.origin}/set-password.html`
       });
 
