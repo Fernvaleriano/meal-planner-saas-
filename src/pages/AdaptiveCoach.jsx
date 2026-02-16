@@ -2,29 +2,22 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost } from '../utils/api';
 import ReadinessCheckin from '../components/adaptive/ReadinessCheckin';
-import WeeklyPlanner from '../components/adaptive/WeeklyPlanner';
 import HealthSpanCard from '../components/adaptive/HealthSpanCard';
-import BadgesPanel from '../components/adaptive/BadgesPanel';
 import NutritionRecommendations from '../components/adaptive/NutritionRecommendations';
-import TriageFlagsPanel from '../components/adaptive/TriageFlagsPanel';
 import {
-  Brain, Activity, Trophy, Utensils, AlertTriangle, ChevronRight,
-  TrendingUp, TrendingDown, Minus, Zap, Moon, Dumbbell
+  Brain, Activity, ChevronRight,
+  TrendingUp, TrendingDown, Minus, Dumbbell, Heart
 } from 'lucide-react';
 
 function AdaptiveCoach() {
   const { clientData } = useAuth();
-  const [activeTab, setActiveTab] = useState('overview');
   const [readinessData, setReadinessData] = useState(null);
-  const [weekSchedule, setWeekSchedule] = useState(null);
   const [gamificationData, setGamificationData] = useState(null);
   const [nutritionRecs, setNutritionRecs] = useState([]);
-  const [triageFlags, setTriageFlags] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showReadinessModal, setShowReadinessModal] = useState(false);
 
   const clientId = clientData?.id;
-  const isCoach = clientData?.is_coach === true;
 
   const fetchData = useCallback(async () => {
     if (!clientId) return;
@@ -32,23 +25,19 @@ function AdaptiveCoach() {
     try {
       const results = await Promise.allSettled([
         apiGet(`/.netlify/functions/daily-readiness?clientId=${clientId}&days=7`),
-        apiGet(`/.netlify/functions/adaptive-planner?clientId=${clientId}`),
         apiGet(`/.netlify/functions/gamification?clientId=${clientId}`),
-        apiGet(`/.netlify/functions/contextual-nutrition?clientId=${clientId}`),
-        ...(isCoach ? [apiGet(`/.netlify/functions/coach-triage?coachId=${clientData?.coach_id || clientId}`)] : [])
+        apiGet(`/.netlify/functions/contextual-nutrition?clientId=${clientId}`)
       ]);
 
       if (results[0].status === 'fulfilled') setReadinessData(results[0].value);
-      if (results[1].status === 'fulfilled') setWeekSchedule(results[1].value);
-      if (results[2].status === 'fulfilled') setGamificationData(results[2].value);
-      if (results[3].status === 'fulfilled') setNutritionRecs(results[3].value?.recommendations || []);
-      if (results[4]?.status === 'fulfilled') setTriageFlags(results[4].value?.flags || []);
+      if (results[1].status === 'fulfilled') setGamificationData(results[1].value);
+      if (results[2].status === 'fulfilled') setNutritionRecs(results[2].value?.recommendations || []);
     } catch (err) {
       console.error('Failed to fetch adaptive coach data:', err);
     } finally {
       setLoading(false);
     }
-  }, [clientId, isCoach, clientData?.coach_id]);
+  }, [clientId]);
 
   useEffect(() => {
     fetchData();
@@ -62,12 +51,10 @@ function AdaptiveCoach() {
       });
       setShowReadinessModal(false);
 
-      // Refresh data and update gamification
+      // Refresh all data + recompute Health Span
       await Promise.allSettled([
         fetchData(),
-        apiPost('/.netlify/functions/gamification', { clientId }),
-        apiPost('/.netlify/functions/adaptive-planner', { clientId }),
-        apiPost('/.netlify/functions/coach-triage', { clientId })
+        apiPost('/.netlify/functions/gamification', { clientId })
       ]);
 
       return result;
@@ -81,15 +68,6 @@ function AdaptiveCoach() {
   const todayIntensity = readinessData?.stats?.todayIntensity;
   const healthSpan = gamificationData?.healthSpan;
   const streaks = gamificationData?.streaks || {};
-  const points = gamificationData?.points || {};
-
-  const tabs = [
-    { id: 'overview', label: 'Overview', icon: Brain },
-    { id: 'planner', label: 'Planner', icon: Activity },
-    { id: 'achievements', label: 'Achievements', icon: Trophy },
-    { id: 'nutrition', label: 'Nutrition', icon: Utensils },
-    ...(isCoach ? [{ id: 'triage', label: 'Triage', icon: AlertTriangle }] : [])
-  ];
 
   const getIntensityColor = (intensity) => {
     const colors = {
@@ -113,28 +91,21 @@ function AdaptiveCoach() {
     return (
       <div className="adaptive-coach-loading">
         <div className="loading-spinner" />
-        <p>Loading your adaptive coaching data...</p>
+        <p>Loading your coaching data...</p>
       </div>
     );
   }
 
   return (
     <div className="adaptive-coach-page">
+      {/* Header */}
       <div className="adaptive-coach-header">
-        <div className="adaptive-header-top">
-          <h1>
-            <Brain size={24} />
-            Adaptive Coach
-          </h1>
-          {points.level && (
-            <div className="level-badge">
-              <Zap size={14} />
-              Level {points.level}
-            </div>
-          )}
-        </div>
+        <h1>
+          <Brain size={24} />
+          Adaptive Coach
+        </h1>
         <p className="adaptive-subtitle">
-          Your AI-powered fitness brain that adapts to your body every day
+          Personalized training guidance based on how your body feels today
         </p>
       </div>
 
@@ -169,7 +140,7 @@ function AdaptiveCoach() {
 
         <div className="adaptive-stat-card">
           <div className="stat-icon-wrapper" style={{ background: '#06b6d420' }}>
-            <Moon size={20} style={{ color: '#06b6d4' }} />
+            <Heart size={20} style={{ color: '#06b6d4' }} />
           </div>
           <div className="stat-content">
             <span className="stat-value">
@@ -196,7 +167,7 @@ function AdaptiveCoach() {
         </div>
       )}
 
-      {/* No readiness yet today - prompt */}
+      {/* No readiness yet today - CTA */}
       {!todayReadiness && (
         <button
           className="adaptive-cta-banner"
@@ -211,96 +182,47 @@ function AdaptiveCoach() {
         </button>
       )}
 
-      {/* Tab Navigation */}
-      <div className="adaptive-tabs">
-        {tabs.map(tab => (
-          <button
-            key={tab.id}
-            className={`adaptive-tab ${activeTab === tab.id ? 'active' : ''}`}
-            onClick={() => setActiveTab(tab.id)}
-          >
-            <tab.icon size={16} />
-            <span>{tab.label}</span>
-          </button>
-        ))}
-      </div>
+      {/* Health Span Score */}
+      <HealthSpanCard
+        healthSpan={healthSpan}
+        history={gamificationData?.healthSpanHistory || []}
+      />
 
-      {/* Tab Content */}
-      <div className="adaptive-tab-content">
-        {activeTab === 'overview' && (
-          <div className="adaptive-overview">
-            {healthSpan && (
-              <HealthSpanCard
-                healthSpan={healthSpan}
-                history={gamificationData?.healthSpanHistory || []}
-              />
-            )}
+      {/* Readiness History (last 7 days) */}
+      {readinessData?.readiness?.length > 0 && (
+        <div className="readiness-history-card">
+          <h3>Readiness This Week</h3>
+          <div className="readiness-history-bars">
+            {readinessData.readiness.slice(0, 7).reverse().map((day) => {
+              const score = day.readiness_score || 0;
+              const dayLabel = new Date(day.assessment_date + 'T12:00:00Z')
+                .toLocaleDateString('en-US', { weekday: 'short' });
+              const isToday = day.assessment_date === new Date().toISOString().split('T')[0];
 
-            <WeeklyPlanner
-              schedule={weekSchedule?.schedule}
-              wasAutoAdjusted={weekSchedule?.wasAutoAdjusted}
-              adjustmentReason={weekSchedule?.adjustmentReason}
-              getIntensityColor={getIntensityColor}
-            />
-
-            {nutritionRecs.length > 0 && (
-              <NutritionRecommendations recommendations={nutritionRecs.slice(0, 2)} />
-            )}
-
-            <BadgesPanel
-              badges={gamificationData?.badges}
-              compact
-            />
+              return (
+                <div key={day.assessment_date} className={`readiness-bar-item ${isToday ? 'today' : ''}`}>
+                  <div className="readiness-bar-track">
+                    <div
+                      className="readiness-bar-fill"
+                      style={{
+                        height: `${score}%`,
+                        background: getIntensityColor(day.intensity_recommendation)
+                      }}
+                    />
+                  </div>
+                  <span className="readiness-bar-score">{score}</span>
+                  <span className="readiness-bar-day">{dayLabel}</span>
+                </div>
+              );
+            })}
           </div>
-        )}
+        </div>
+      )}
 
-        {activeTab === 'planner' && (
-          <WeeklyPlanner
-            schedule={weekSchedule?.schedule}
-            wasAutoAdjusted={weekSchedule?.wasAutoAdjusted}
-            adjustmentReason={weekSchedule?.adjustmentReason}
-            getIntensityColor={getIntensityColor}
-            expanded
-            readinessHistory={readinessData?.readiness || []}
-          />
-        )}
-
-        {activeTab === 'achievements' && (
-          <div className="adaptive-achievements">
-            <HealthSpanCard
-              healthSpan={healthSpan}
-              history={gamificationData?.healthSpanHistory || []}
-            />
-            <BadgesPanel
-              badges={gamificationData?.badges}
-              streaks={streaks}
-              points={points}
-              stats={gamificationData?.stats}
-            />
-          </div>
-        )}
-
-        {activeTab === 'nutrition' && (
-          <NutritionRecommendations
-            recommendations={nutritionRecs}
-            expanded
-          />
-        )}
-
-        {activeTab === 'triage' && isCoach && (
-          <TriageFlagsPanel
-            flags={triageFlags}
-            onResolve={async (flagId, notes) => {
-              await apiPost('/.netlify/functions/coach-triage', {
-                flagId,
-                status: 'resolved',
-                resolutionNotes: notes
-              });
-              fetchData();
-            }}
-          />
-        )}
-      </div>
+      {/* Contextual Nutrition */}
+      {nutritionRecs.length > 0 && (
+        <NutritionRecommendations recommendations={nutritionRecs} />
+      )}
 
       {/* Readiness Check-in Modal */}
       {showReadinessModal && (
