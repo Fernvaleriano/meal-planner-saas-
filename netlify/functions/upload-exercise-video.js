@@ -10,8 +10,8 @@ const headers = {
   'Content-Type': 'application/json'
 };
 
-// Max file size: 50MB
-const MAX_FILE_SIZE = 50 * 1024 * 1024;
+// Max file size: 500MB
+const MAX_FILE_SIZE = 500 * 1024 * 1024;
 
 // Signed URL expiry: 7 days (in seconds)
 const SIGNED_URL_EXPIRY = 7 * 24 * 60 * 60;
@@ -69,7 +69,7 @@ exports.handler = async (event) => {
       return {
         statusCode: 400,
         headers,
-        body: JSON.stringify({ error: `Video too large. Max ${MAX_FILE_SIZE / 1024 / 1024}MB` })
+        body: JSON.stringify({ error: `Video too large. Max ${Math.round(MAX_FILE_SIZE / 1024 / 1024)}MB` })
       };
     }
 

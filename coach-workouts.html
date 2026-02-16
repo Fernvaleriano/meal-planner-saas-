@@ -7971,8 +7971,8 @@
                     resolve(result);
                 }
 
-                // Safety timeout: 60s max for compression
-                const safetyTimeout = setTimeout(() => finish(file), 60000);
+                // Safety timeout: 5 min max for compression (longer videos need more time)
+                const safetyTimeout = setTimeout(() => finish(file), 300000);
 
                 video.onloadedmetadata = () => {
                     let width = video.videoWidth;
@@ -8048,7 +8048,7 @@
         let videoRecordingExercise = null;
         let videoRecordingTimer = null;
         let videoRecordingSeconds = 0;
-        const MAX_VIDEO_SECONDS = 20;
+        const MAX_VIDEO_SECONDS = 180;
 
         async function startVideoRecording(dayIndex, exIndex) {
             const btn = document.getElementById(`videoRecordBtn-${dayIndex}-${exIndex}`);
@@ -8133,9 +8133,9 @@
             const file = event.target.files[0];
             if (!file) return;
 
-            // Check file size (max 50MB)
-            if (file.size > 50 * 1024 * 1024) {
-                showToast('Video too large. Max 50MB.', 'error');
+            // Check file size (max 500MB)
+            if (file.size > 500 * 1024 * 1024) {
+                showToast('Video too large. Max 500MB.', 'error');
                 return;
             }
 
@@ -8739,9 +8739,9 @@
             const file = event.target.files[0];
             if (!file) return;
 
-            // Check file size (max 50MB)
-            if (file.size > 50 * 1024 * 1024) {
-                showToast('Video too large. Max 50MB', 'error');
+            // Check file size (max 500MB)
+            if (file.size > 500 * 1024 * 1024) {
+                showToast('Video too large. Max 500MB', 'error');
                 return;
             }
 
@@ -9573,8 +9573,8 @@
             const video = myVideosCache[replaceVideoIndex];
             if (!video) return;
 
-            if (file.size > 50 * 1024 * 1024) {
-                showToast('Video must be under 50MB', 'error');
+            if (file.size > 500 * 1024 * 1024) {
+                showToast('Video must be under 500MB', 'error');
                 return;
             }
 
