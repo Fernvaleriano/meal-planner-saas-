@@ -2804,6 +2804,11 @@ function ExerciseDetailModal({
       const data = await response.json();
       if (data.success && data.exercise?.thumbnail_url) {
         setLocalThumbnailUrl(data.exercise.thumbnail_url);
+        // Propagate the new thumbnail_url to the parent so ExerciseCard/SmartThumbnail
+        // in the workout list updates without needing a page reload.
+        if (onUpdateExercise && exercise) {
+          onUpdateExercise({ ...exercise, thumbnail_url: data.exercise.thumbnail_url });
+        }
       }
     } catch (err) {
       console.error('Thumbnail upload failed:', err);
@@ -2814,7 +2819,7 @@ function ExerciseDetailModal({
         thumbnailInputRef.current.value = '';
       }
     }
-  }, [exercise?.id]);
+  }, [exercise, onUpdateExercise]);
 
   // Debug: Log video URL when playing (helps identify mismatched videos in database)
   const handlePlayVideo = useCallback(() => {

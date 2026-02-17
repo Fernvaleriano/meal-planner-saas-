@@ -38,10 +38,11 @@ async function enrichExercisesWithVideos(exercises, supabase) {
     if (!ex.id || !videoMap.has(ex.id)) return ex;
     const fresh = videoMap.get(ex.id);
     const updates = {};
-    // Only overwrite if the DB has a value and the snapshot doesn't
+    // Always prefer the DB thumbnail (coach may have updated it after snapshot)
+    if (fresh.thumbnail_url && fresh.thumbnail_url !== ex.thumbnail_url) updates.thumbnail_url = fresh.thumbnail_url;
+    // Only overwrite video/animation if the DB has a value and the snapshot doesn't
     if (fresh.video_url && !ex.video_url) updates.video_url = fresh.video_url;
     if (fresh.animation_url && !ex.animation_url) updates.animation_url = fresh.animation_url;
-    if (fresh.thumbnail_url && !ex.thumbnail_url) updates.thumbnail_url = fresh.thumbnail_url;
     if (Object.keys(updates).length === 0) return ex;
     return { ...ex, ...updates };
   });

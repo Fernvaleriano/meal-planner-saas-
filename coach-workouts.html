@@ -5256,6 +5256,36 @@
                     </div>
                 </div>
 
+                <!-- Thumbnail Upload Section -->
+                <div class="video-upload-section">
+                    <h4>
+                        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        </svg>
+                        Thumbnail Image (optional)
+                    </h4>
+                    <div class="video-upload-options">
+                        <div class="video-upload-option" onclick="triggerCEThumbnailUpload()">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                            </svg>
+                            <span>Upload Image</span>
+                        </div>
+                    </div>
+                    <input type="file" id="ceThumbnailFileInput" accept="image/jpeg,image/png,image/gif,image/webp" onchange="handleCEThumbnailUpload(event)" style="display: none;">
+
+                    <!-- Thumbnail Preview -->
+                    <div class="custom-video-preview-container" id="ceThumbnailPreview">
+                        <img id="cePreviewThumbnail" style="max-width: 100%; max-height: 200px; border-radius: 8px; object-fit: cover;">
+                        <div class="custom-video-preview-info">
+                            <span id="ceThumbnailSize">Image ready</span>
+                            <button class="btn btn-secondary" onclick="removeCEThumbnail()" style="padding: 6px 12px; font-size: 12px; background: rgba(239, 68, 68, 0.1); color: var(--danger);">
+                                Remove Image
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Video Upload Section -->
                 <div class="video-upload-section">
                     <h4>
@@ -5388,6 +5418,8 @@
         let ceVideoData = null;
         let ceVideoBlob = null;
         let ceRecordingInterval = null;
+        let ceThumbnailBase64 = null;
+        let ceThumbnailName = null;
 
         // Helper for authenticated API calls
         async function apiCall(url, options = {}) {
@@ -8723,12 +8755,55 @@
 
             document.getElementById('customExerciseModal').classList.remove('active');
 
+            // Reset thumbnail
+            removeCEThumbnail();
+
             // Reset reference links
             ceReferenceLinks = [];
             const linksListEl = document.getElementById('ceReferenceLinksList');
             if (linksListEl) linksListEl.innerHTML = '';
             const linkInputEl = document.getElementById('ceReferenceLinkInput');
             if (linkInputEl) linkInputEl.value = '';
+        }
+
+        function triggerCEThumbnailUpload() {
+            document.getElementById('ceThumbnailFileInput').click();
+        }
+
+        function handleCEThumbnailUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            if (file.size > 5 * 1024 * 1024) {
+                showToast('Image must be under 5MB', 'error');
+                return;
+            }
+
+            const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+            if (!validTypes.includes(file.type)) {
+                showToast('Please select a JPEG, PNG, GIF, or WebP image', 'error');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = () => {
+                ceThumbnailBase64 = reader.result;
+                ceThumbnailName = file.name;
+                const preview = document.getElementById('cePreviewThumbnail');
+                preview.src = reader.result;
+                document.getElementById('ceThumbnailPreview').classList.add('visible');
+                const sizeMB = (file.size / 1024 / 1024).toFixed(1);
+                document.getElementById('ceThumbnailSize').textContent = `${file.name} (${sizeMB} MB)`;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function removeCEThumbnail() {
+            ceThumbnailBase64 = null;
+            ceThumbnailName = null;
+            document.getElementById('cePreviewThumbnail').src = '';
+            document.getElementById('ceThumbnailPreview').classList.remove('visible');
+            document.getElementById('ceThumbnailFileInput').value = '';
         }
 
         function triggerCEVideoUpload() {
@@ -8997,9 +9072,32 @@
                 });
 
                 if (result.success && result.exercise) {
+                    let finalExercise = result.exercise;
+
+                    // Upload thumbnail if provided
+                    if (ceThumbnailBase64 && ceThumbnailName) {
+                        saveBtn.innerHTML = '<span class="spinner"></span> Uploading thumbnail...';
+                        try {
+                            const thumbResult = await apiCall('/.netlify/functions/upload-exercise-thumbnail', {
+                                method: 'POST',
+                                body: JSON.stringify({
+                                    exerciseId: result.exercise.id,
+                                    imageBase64: ceThumbnailBase64,
+                                    imageName: ceThumbnailName
+                                })
+                            });
+                            if (thumbResult.success && thumbResult.exercise?.thumbnail_url) {
+                                finalExercise = { ...finalExercise, thumbnail_url: thumbResult.exercise.thumbnail_url };
+                            }
+                        } catch (thumbErr) {
+                            console.error('Thumbnail upload failed (exercise still created):', thumbErr);
+                            showToast('Exercise created but thumbnail upload failed', 'error');
+                        }
+                    }
+
                     // Add to local exercises array
                     exercises.push({
-                        ...result.exercise,
+                        ...finalExercise,
                         is_custom: true,
                         // Store video file path for signed URL refresh
                         video_file_path: videoFilePath
@@ -9522,6 +9620,20 @@
                         if (result.thumbnailUrl) {
                             myVideosCache[index].thumbnailUrl = result.thumbnailUrl;
                             filterMyVideos(); // re-render
+
+                            // Also update local exercises array so thumbnails show immediately
+                            if (result.updatedExercises > 0) {
+                                const vName = video.name.toLowerCase();
+                                const vBase = video.name.replace(/\.\w+$/, '').toLowerCase();
+                                exercises.forEach(ex => {
+                                    const anim = (ex.animation_url || '').toLowerCase();
+                                    const vid = (ex.video_url || '').toLowerCase();
+                                    if (anim.includes(vName) || anim.includes(vBase) ||
+                                        vid.includes(vName) || vid.includes(vBase)) {
+                                        ex.thumbnail_url = result.thumbnailUrl;
+                                    }
+                                });
+                            }
                             showToast('Thumbnail updated!', 'success');
                         }
                     } catch (err) {
