@@ -483,6 +483,7 @@ function Workouts() {
   const isRefreshingRef = useRef(false);
   const completedExercisesRef = useRef(new Set());
   const pendingSaveRef = useRef(null); // Track pending completion saves for visibilitychange flush
+  const globalExerciseRefsRef = useRef({}); // Coach's global exercise references keyed by lowercase exercise name
 
   // Keep refs updated for stable callbacks
   todayWorkoutRef.current = todayWorkout;
@@ -651,6 +652,20 @@ function Workouts() {
     if (!clientData?.coach_id) return;
     apiGet(`/.netlify/functions/get-coach-branding?coachId=${clientData.coach_id}`)
       .then(data => setCoachBranding(data))
+      .catch(() => {});
+  }, [clientData?.coach_id]);
+
+  // Fetch coach's global exercise references (for auto-attaching reference links)
+  useEffect(() => {
+    if (!clientData?.coach_id) return;
+    apiGet(`/.netlify/functions/exercise-references?coachId=${clientData.coach_id}`)
+      .then(data => {
+        const refsMap = {};
+        (data?.references || []).forEach(ref => {
+          refsMap[ref.exercise_name.toLowerCase()] = ref.reference_links || [];
+        });
+        globalExerciseRefsRef.current = refsMap;
+      })
       .catch(() => {});
   }, [clientData?.coach_id]);
 
@@ -1023,6 +1038,22 @@ function Workouts() {
       // Create the swapped exercise — start with old exercise properties to preserve
       // workout-specific fields (phase, supersetGroup, isSuperset, trackingType, etc.),
       // then overlay the new exercise data, then restore the original programming config.
+      // Auto-merge reference links from new exercise + coach's global refs
+      let swapRefLinks = Array.isArray(newExercise.reference_links) ? [...newExercise.reference_links] : [];
+      const swapGlobalRefs = globalExerciseRefsRef.current[
+        (newExercise.name || '').toLowerCase()
+      ] || [];
+      if (swapGlobalRefs.length > 0) {
+        if (swapRefLinks.length === 0) {
+          swapRefLinks = swapGlobalRefs.map(ref => ({ ...ref }));
+        } else {
+          const existingUrls = new Set(swapRefLinks.map(l => l.url));
+          swapGlobalRefs.forEach(ref => {
+            if (!existingUrls.has(ref.url)) swapRefLinks.push({ ...ref });
+          });
+        }
+      }
+
       const swappedExercise = {
         ...oldExercise,
         ...newExercise,
@@ -1040,6 +1071,7 @@ function Workouts() {
         trackingType: oldExercise.trackingType,
         repType: oldExercise.repType || null,
         duration: oldExercise.duration,
+        reference_links: swapRefLinks.length > 0 ? swapRefLinks : undefined,
       };
 
       // Get exercises from either direct array or days structure
@@ -1168,7 +1200,9 @@ function Workouts() {
       'sets', 'reps', 'weight', 'restSeconds', 'duration', 'repType',
       // Workout-specific fields
       'trackingType', 'phase', 'isWarmup', 'isStretch', 'isSuperset',
-      'supersetGroup', 'completed', 'notes'
+      'supersetGroup', 'completed', 'notes',
+      // Reference links (auto-included from exercise library + coach global refs)
+      'reference_links'
     ];
     const newExercises = rawExercises.map(ex => {
       const clean = {};
@@ -1183,6 +1217,27 @@ function Workouts() {
       } else if (typeof clean.sets === 'number') {
         clean.sets = Math.min(Math.max(clean.sets, 1), 20);
       }
+
+      // Auto-merge coach's global exercise references
+      const globalRefs = globalExerciseRefsRef.current[
+        (clean.name || '').toLowerCase()
+      ] || [];
+      if (globalRefs.length > 0) {
+        let refLinks = Array.isArray(clean.reference_links) ? [...clean.reference_links] : [];
+        if (refLinks.length === 0) {
+          refLinks = globalRefs.map(ref => ({ ...ref }));
+        } else {
+          // Merge: add global refs not already present
+          const existingUrls = new Set(refLinks.map(l => l.url));
+          globalRefs.forEach(ref => {
+            if (!existingUrls.has(ref.url)) {
+              refLinks.push({ ...ref });
+            }
+          });
+        }
+        clean.reference_links = refLinks;
+      }
+
       return clean;
     });
 

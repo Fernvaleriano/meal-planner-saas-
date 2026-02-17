@@ -6402,6 +6402,11 @@
             const globalRefs = getGlobalRefsForExercise(newExercise.name);
             if (globalRefs.length > 0 && refLinks.length === 0) {
                 refLinks = globalRefs.map(ref => ({ ...ref }));
+            } else if (globalRefs.length > 0 && refLinks.length > 0) {
+                const existingUrls = new Set(refLinks.map(l => l.url));
+                globalRefs.forEach(ref => {
+                    if (!existingUrls.has(ref.url)) refLinks.push({ ...ref });
+                });
             }
 
             workoutDays[swapDayIndex].exercises[swapExIndex] = {
@@ -8697,7 +8702,21 @@
                                 isSuperset: ex.isSuperset || false,
                                 supersetGroup: ex.supersetGroup || null,
                                 isWarmup: ex.isWarmup || false,
-                                isStretch: ex.isStretch || false
+                                isStretch: ex.isStretch || false,
+                                reference_links: (() => {
+                                    let refLinks = ex.reference_links || [];
+                                    const globalRefs = getGlobalRefsForExercise(ex.name);
+                                    if (globalRefs.length > 0 && refLinks.length === 0) {
+                                        return globalRefs.map(ref => ({ ...ref }));
+                                    } else if (globalRefs.length > 0 && refLinks.length > 0) {
+                                        const existingUrls = new Set(refLinks.map(l => l.url));
+                                        globalRefs.forEach(ref => {
+                                            if (!existingUrls.has(ref.url)) refLinks.push({ ...ref });
+                                        });
+                                        return refLinks;
+                                    }
+                                    return refLinks;
+                                })()
                             }))
                         });
                     });
@@ -9399,6 +9418,18 @@
                                 duration = timedCheck.durationSeconds;
                             }
                         }
+                        // Auto-load global reference links for imported exercise
+                        let refLinks = ex.reference_links || [];
+                        const globalRefs = getGlobalRefsForExercise(ex.name);
+                        if (globalRefs.length > 0 && refLinks.length === 0) {
+                            refLinks = globalRefs.map(ref => ({ ...ref }));
+                        } else if (globalRefs.length > 0 && refLinks.length > 0) {
+                            const existingUrls = new Set(refLinks.map(l => l.url));
+                            globalRefs.forEach(ref => {
+                                if (!existingUrls.has(ref.url)) refLinks.push({ ...ref });
+                            });
+                        }
+
                         return {
                             id: ex.id || null,
                             name: ex.name,
@@ -9418,7 +9449,8 @@
                             isWarmup: ex.isWarmup || false,
                             isStretch: ex.isStretch || false,
                             trackingType: trackingType,
-                            duration: duration
+                            duration: duration,
+                            reference_links: refLinks
                         };
                     })
                 });
