@@ -185,6 +185,61 @@ const MOVEMENT_PATTERNS = [
   { pattern: 'SWIM', muscle: 'CARDIO', test: (n) =>
     n.includes('swim') || n.includes('pool') || n.includes('lap')
   },
+
+  // === STRETCHES / MOBILITY / WARMUP ===
+  // Detect by body region so stretches swap with same-region stretches.
+  // These must come AFTER all strength/cardio patterns to avoid false positives
+  // (e.g. "hamstring curl" should match LEG_CURL, not HAMSTRING_STRETCH).
+  { pattern: 'BACK_STRETCH', muscle: 'BACK', isStretch: true, test: (n) =>
+    (n.includes('stretch') || n.includes('mobility') || n.includes('foam roll') || n.includes('warmup') || n.includes('warm up')) &&
+    (n.includes('lat') || n.includes('back') || n.includes('thoracic') || n.includes('spine') || n.includes('child') || n.includes('cat cow') || n.includes('cat-cow'))
+  },
+  { pattern: 'CHEST_STRETCH', muscle: 'CHEST', isStretch: true, test: (n) =>
+    (n.includes('stretch') || n.includes('mobility') || n.includes('foam roll') || n.includes('warmup') || n.includes('warm up')) &&
+    (n.includes('chest') || n.includes('pec'))
+  },
+  { pattern: 'SHOULDER_STRETCH', muscle: 'SHOULDERS', isStretch: true, test: (n) =>
+    (n.includes('stretch') || n.includes('mobility') || n.includes('foam roll') || n.includes('warmup') || n.includes('warm up')) &&
+    (n.includes('shoulder') || n.includes('delt') || n.includes('rotator'))
+  },
+  { pattern: 'HIP_STRETCH', muscle: 'LEGS', isStretch: true, test: (n) =>
+    (n.includes('stretch') || n.includes('mobility') || n.includes('foam roll') || n.includes('warmup') || n.includes('warm up')) &&
+    (n.includes('hip') || n.includes('hip flexor') || n.includes('pigeon') || n.includes('groin') || n.includes('adductor'))
+  },
+  { pattern: 'HAMSTRING_STRETCH', muscle: 'LEGS', isStretch: true, test: (n) =>
+    (n.includes('stretch') || n.includes('mobility') || n.includes('foam roll') || n.includes('warmup') || n.includes('warm up')) &&
+    (n.includes('hamstring') || n.includes('posterior'))
+  },
+  { pattern: 'QUAD_STRETCH', muscle: 'LEGS', isStretch: true, test: (n) =>
+    (n.includes('stretch') || n.includes('mobility') || n.includes('foam roll') || n.includes('warmup') || n.includes('warm up')) &&
+    (n.includes('quad') || n.includes('thigh'))
+  },
+  { pattern: 'GLUTE_STRETCH', muscle: 'GLUTES', isStretch: true, test: (n) =>
+    (n.includes('stretch') || n.includes('mobility') || n.includes('foam roll') || n.includes('warmup') || n.includes('warm up')) &&
+    (n.includes('glute') || n.includes('piriformis'))
+  },
+  { pattern: 'CALF_STRETCH', muscle: 'CALVES', isStretch: true, test: (n) =>
+    (n.includes('stretch') || n.includes('mobility') || n.includes('foam roll') || n.includes('warmup') || n.includes('warm up')) &&
+    (n.includes('calf') || n.includes('calves') || n.includes('achilles') || n.includes('soleus') || n.includes('gastrocnemius'))
+  },
+  { pattern: 'ARM_STRETCH', muscle: 'ARMS', isStretch: true, test: (n) =>
+    (n.includes('stretch') || n.includes('mobility') || n.includes('foam roll') || n.includes('warmup') || n.includes('warm up')) &&
+    (n.includes('bicep') || n.includes('tricep') || n.includes('arm') || n.includes('forearm') || n.includes('wrist'))
+  },
+  { pattern: 'CORE_STRETCH', muscle: 'CORE', isStretch: true, test: (n) =>
+    (n.includes('stretch') || n.includes('mobility') || n.includes('foam roll') || n.includes('warmup') || n.includes('warm up')) &&
+    (n.includes('core') || n.includes('ab') || n.includes('oblique') || n.includes('cobra'))
+  },
+  { pattern: 'NECK_STRETCH', muscle: 'NECK', isStretch: true, test: (n) =>
+    (n.includes('stretch') || n.includes('mobility') || n.includes('foam roll') || n.includes('warmup') || n.includes('warm up')) &&
+    (n.includes('neck') || n.includes('trap') || n.includes('upper back'))
+  },
+  // Generic stretch fallback — catches anything with "stretch"/"mobility"/"foam roll"
+  // that didn't match a body-region-specific pattern above
+  { pattern: 'GENERAL_STRETCH', muscle: '', isStretch: true, test: (n) =>
+    n.includes('stretch') || n.includes('mobility') || n.includes('foam roll') ||
+    n.includes('warmup') || n.includes('warm up') || n.includes('cool down') || n.includes('cooldown')
+  },
 ];
 
 // Cardio machine patterns where same-type variants (e.g. different speeds) are NOT valid swaps.
@@ -247,6 +302,7 @@ function detectMovement(exerciseName) {
         isBicep: !!mp.isBicep,
         isTricep: !!mp.isTricep,
         isTricepRelated: !!mp.isTricepRelated,
+        isStretch: !!mp.isStretch,
         subPatterns: detectSubPatterns(name),
       };
     }
@@ -264,12 +320,15 @@ function detectMovement(exerciseName) {
   else if (name.includes('glute')) muscle = 'GLUTES';
   else if (name.includes('cardio') || name.includes('hiit') || name.includes('conditioning') || name.includes('interval')) muscle = 'CARDIO';
 
+  const isStretch = name.includes('stretch') || name.includes('mobility') || name.includes('foam roll') ||
+                     name.includes('warmup') || name.includes('warm up') || name.includes('cool down') || name.includes('cooldown');
   return {
     pattern: null,
     muscle,
     isBicep: name.includes('bicep') || name.includes('curl'),
     isTricep: name.includes('tricep'),
     isTricepRelated: false,
+    isStretch,
     subPatterns: detectSubPatterns(name),
   };
 }
@@ -407,6 +466,19 @@ function getRelatedPatterns(pattern) {
     'HIIT_MOVEMENT': ['JUMP', 'STAIR_CLIMB', 'RUN', 'CYCLE', 'ROW_CARDIO'],
     'ELLIPTICAL': ['STAIR_CLIMB', 'CYCLE', 'RUN', 'ROW_CARDIO'],
     'SWIM': ['ROW_CARDIO', 'CYCLE', 'ELLIPTICAL'],
+    // Stretches / Mobility — group by nearby body regions
+    'BACK_STRETCH': ['SHOULDER_STRETCH', 'NECK_STRETCH', 'CORE_STRETCH', 'GENERAL_STRETCH'],
+    'CHEST_STRETCH': ['SHOULDER_STRETCH', 'CORE_STRETCH', 'GENERAL_STRETCH'],
+    'SHOULDER_STRETCH': ['BACK_STRETCH', 'CHEST_STRETCH', 'NECK_STRETCH', 'GENERAL_STRETCH'],
+    'HIP_STRETCH': ['HAMSTRING_STRETCH', 'GLUTE_STRETCH', 'QUAD_STRETCH', 'GENERAL_STRETCH'],
+    'HAMSTRING_STRETCH': ['HIP_STRETCH', 'GLUTE_STRETCH', 'CALF_STRETCH', 'GENERAL_STRETCH'],
+    'QUAD_STRETCH': ['HIP_STRETCH', 'HAMSTRING_STRETCH', 'GENERAL_STRETCH'],
+    'GLUTE_STRETCH': ['HIP_STRETCH', 'HAMSTRING_STRETCH', 'GENERAL_STRETCH'],
+    'CALF_STRETCH': ['HAMSTRING_STRETCH', 'GENERAL_STRETCH'],
+    'ARM_STRETCH': ['SHOULDER_STRETCH', 'GENERAL_STRETCH'],
+    'CORE_STRETCH': ['BACK_STRETCH', 'HIP_STRETCH', 'GENERAL_STRETCH'],
+    'NECK_STRETCH': ['SHOULDER_STRETCH', 'BACK_STRETCH', 'GENERAL_STRETCH'],
+    'GENERAL_STRETCH': ['BACK_STRETCH', 'SHOULDER_STRETCH', 'HIP_STRETCH', 'CHEST_STRETCH', 'HAMSTRING_STRETCH'],
   };
   return relations[pattern] || [];
 }
@@ -429,9 +501,13 @@ function shouldExcludeAlternative(original, alt, origMovement) {
   }
 
   // Filter out stretches/warmups for strength exercises
-  const isStretchOrWarmup = altName.includes('stretch') || altName.includes('warmup') || altName.includes('warm up') || altName.includes('mobility') || altName.includes('foam roll');
-  const originalIsStrength = !origName.includes('stretch') && !origName.includes('warmup') && !origName.includes('mobility');
+  const isStretchOrWarmup = altName.includes('stretch') || altName.includes('warmup') || altName.includes('warm up') || altName.includes('mobility') || altName.includes('foam roll') || altName.includes('cool down') || altName.includes('cooldown');
+  const originalIsStrength = !origName.includes('stretch') && !origName.includes('warmup') && !origName.includes('warm up') && !origName.includes('mobility') && !origName.includes('foam roll') && !origName.includes('cool down') && !origName.includes('cooldown');
   if (originalIsStrength && isStretchOrWarmup) return true;
+
+  // INVERSE: Filter out strength/cardio exercises when original IS a stretch/warmup/mobility
+  const originalIsStretch = origName.includes('stretch') || origName.includes('warmup') || origName.includes('warm up') || origName.includes('mobility') || origName.includes('foam roll') || origName.includes('cool down') || origName.includes('cooldown');
+  if (originalIsStretch && !isStretchOrWarmup) return true;
 
   // BICEP exercise: exclude tricep, chest exercises
   if (origMovement.isBicep) {
