@@ -71,12 +71,55 @@ exports.handler = async (event) => {
       .from(BUCKET_NAME)
       .getPublicUrl(filePath);
 
+    const thumbnailUrl = urlData.publicUrl;
+
+    // Also update exercises.thumbnail_url for any custom exercises that use this video.
+    // Custom exercises store their video as animation_url (a signed URL containing the filename)
+    // or video_url. We match by coach_id + filename substring.
+    let updatedExerciseCount = 0;
+    try {
+      const { data: matchingExercises } = await supabase
+        .from('exercises')
+        .select('id, animation_url, video_url')
+        .eq('coach_id', coachId)
+        .eq('is_custom', true);
+
+      if (matchingExercises && matchingExercises.length > 0) {
+        // Find exercises whose animation_url or video_url contains this video's filename
+        const exerciseIds = matchingExercises
+          .filter(ex => {
+            const anim = (ex.animation_url || '').toLowerCase();
+            const vid = (ex.video_url || '').toLowerCase();
+            const vName = videoName.toLowerCase();
+            const vBase = videoBaseName.toLowerCase();
+            return anim.includes(vName) || anim.includes(vBase) ||
+                   vid.includes(vName) || vid.includes(vBase);
+          })
+          .map(ex => ex.id);
+
+        if (exerciseIds.length > 0) {
+          const { error: updateError } = await supabase
+            .from('exercises')
+            .update({ thumbnail_url: thumbnailUrl })
+            .in('id', exerciseIds);
+
+          if (!updateError) {
+            updatedExerciseCount = exerciseIds.length;
+          }
+        }
+      }
+    } catch (exErr) {
+      // Don't fail the upload if exercise update fails
+      console.error('Failed to update exercise thumbnail_url:', exErr);
+    }
+
     return {
       statusCode: 200,
       headers,
       body: JSON.stringify({
         success: true,
-        thumbnailUrl: urlData.publicUrl
+        thumbnailUrl,
+        updatedExercises: updatedExerciseCount
       })
     };
 
