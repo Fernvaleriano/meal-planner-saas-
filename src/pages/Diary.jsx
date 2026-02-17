@@ -2826,7 +2826,7 @@ function Diary() {
                     <Camera size={20} color="white" />
                   </div>
                   <div className="quick-add-text">
-                    <div style={{ fontWeight: 600 }}>Snap Photo</div>
+                    <div style={{ fontWeight: 600 }}>Photo My Meal</div>
                     <div style={{ fontSize: '0.85rem', color: '#64748b' }}>Take a photo of your food</div>
                   </div>
                 </button>
@@ -2853,7 +2853,7 @@ function Diary() {
                     <FileText size={20} color="white" />
                   </div>
                   <div className="quick-add-text">
-                    <div style={{ fontWeight: 600 }}>Scan Label</div>
+                    <div style={{ fontWeight: 600 }}>Scan Nutrition Label</div>
                     <div style={{ fontSize: '0.85rem', color: '#64748b' }}>Scan nutrition facts label</div>
                   </div>
                 </button>
@@ -3022,7 +3022,7 @@ function Diary() {
                   className="food-option-btn"
                 >
                   <FileText size={20} style={{ color: 'var(--gray-600)' }} />
-                  <span style={{ fontSize: '0.75rem', color: 'var(--gray-600)' }}>Scan Label</span>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--gray-600)' }}>Scan Nutrition Label</span>
                 </button>
               </div>
 

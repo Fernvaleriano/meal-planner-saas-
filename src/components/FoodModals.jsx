@@ -237,7 +237,7 @@ export function SnapPhotoModal({ isOpen, onClose, mealType, clientData, onFoodLo
     <div className="modal-overlay" onClick={handleClose}>
       <div className="modal-content" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>Snap Photo</h2>
+          <h2>Photo My Meal</h2>
           <button className="modal-close" onClick={handleClose}><X size={24} /></button>
         </div>
 
