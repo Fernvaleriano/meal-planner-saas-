@@ -10,6 +10,39 @@ const headers = {
   'Content-Type': 'application/json'
 };
 
+// Enrich exercises with the latest media URLs from the exercises table.
+// Ad-hoc workout snapshots may have been created before thumbnails were set.
+async function enrichExercisesWithMedia(exercises, supabase) {
+  if (!exercises || exercises.length === 0) return exercises;
+
+  const exerciseIds = exercises
+    .filter(ex => ex.id && typeof ex.id === 'number')
+    .map(ex => ex.id);
+
+  if (exerciseIds.length === 0) return exercises;
+
+  const { data: exerciseData, error } = await supabase
+    .from('exercises')
+    .select('id, video_url, animation_url, thumbnail_url')
+    .in('id', exerciseIds);
+
+  if (error || !exerciseData) return exercises;
+
+  const mediaMap = new Map(exerciseData.map(ex => [ex.id, ex]));
+
+  return exercises.map(ex => {
+    if (!ex.id || !mediaMap.has(ex.id)) return ex;
+    const fresh = mediaMap.get(ex.id);
+    const updates = {};
+    // Always prefer the DB thumbnail (coach may have updated it after snapshot)
+    if (fresh.thumbnail_url && fresh.thumbnail_url !== ex.thumbnail_url) updates.thumbnail_url = fresh.thumbnail_url;
+    if (fresh.video_url && !ex.video_url) updates.video_url = fresh.video_url;
+    if (fresh.animation_url && !ex.animation_url) updates.animation_url = fresh.animation_url;
+    if (Object.keys(updates).length === 0) return ex;
+    return { ...ex, ...updates };
+  });
+}
+
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers, body: '' };
@@ -57,6 +90,17 @@ exports.handler = async (event) => {
           headers,
           body: JSON.stringify({ workouts: [] })
         };
+      }
+
+      // Enrich exercises with fresh media URLs from the exercises table
+      if (workouts && workouts.length > 0) {
+        for (const workout of workouts) {
+          if (workout.workout_data?.exercises) {
+            workout.workout_data.exercises = await enrichExercisesWithMedia(
+              workout.workout_data.exercises, supabase
+            );
+          }
+        }
       }
 
       return {
