@@ -4146,6 +4146,10 @@
                         <span class="save-dropdown-item-title">Save & Update Clients <span class="client-count-badge" id="activeClientCount" style="display:none;">0</span></span>
                         <span class="save-dropdown-item-desc">Save changes and apply them to all clients using this program</span>
                     </button>
+                    <button class="save-dropdown-item" onclick="backfillReferenceLinks(); closeSaveDropdown();">
+                        <span class="save-dropdown-item-title">Sync Reference Links to All Workouts</span>
+                        <span class="save-dropdown-item-desc">Add your saved global reference links to all existing programs, assignments &amp; client workouts</span>
+                    </button>
                 </div>
             </div>
         </div>
@@ -6049,6 +6053,27 @@
             } catch (err) {
                 console.error('Error removing global references:', err);
                 showToast('Failed to remove: ' + err.message, 'error');
+            }
+        }
+
+        // Backfill reference links into all existing programs, assignments, and ad-hoc workouts
+        async function backfillReferenceLinks() {
+            if (!currentCoachId) {
+                showToast('No coach ID available', 'error');
+                return;
+            }
+            if (!confirm('This will add your saved global reference links to ALL existing workout programs, client assignments, and ad-hoc workouts. Continue?')) return;
+
+            try {
+                showToast('Backfilling reference links... This may take a moment.');
+                const result = await apiCall('/.netlify/functions/backfill-reference-links', {
+                    method: 'POST',
+                    body: JSON.stringify({ coachId: currentCoachId })
+                });
+                showToast(result.message || 'Backfill complete!', 'success');
+            } catch (err) {
+                console.error('Backfill error:', err);
+                showToast('Backfill failed: ' + err.message, 'error');
             }
         }
 
