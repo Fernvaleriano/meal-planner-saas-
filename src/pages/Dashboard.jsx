@@ -838,7 +838,7 @@ function Dashboard() {
         {/* Quick Action Buttons */}
         <div className="ai-hero-quick-actions" role="group" aria-label="Quick food logging options">
           <button className="quick-action-pill" onClick={() => setPhotoModalOpen(true)} aria-label="Take a photo of your food">
-            <Camera size={16} aria-hidden="true" /> Snap Photo
+            <Camera size={16} aria-hidden="true" /> Photo My Meal
           </button>
           <button className="quick-action-pill" onClick={() => setSearchModalOpen(true)} aria-label="Search food database">
             <Search size={16} aria-hidden="true" /> Search Foods
@@ -847,7 +847,7 @@ function Dashboard() {
             <Heart size={16} aria-hidden="true" /> Favorites
           </button>
           <button className="quick-action-pill" onClick={() => setScanLabelModalOpen(true)} aria-label="Scan nutrition label">
-            <ScanLine size={16} aria-hidden="true" /> Scan Label
+            <ScanLine size={16} aria-hidden="true" /> Scan Nutrition Label
           </button>
         </div>
       </div>
