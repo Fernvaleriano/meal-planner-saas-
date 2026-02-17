@@ -71,8 +71,9 @@ exports.handler = async (event) => {
     const customVideoNames = [];
 
     for (const filePath of filePaths) {
-      // Security: Only allow access to exercise-videos, voice-notes, and client-voice-notes folders
-      if (!filePath.startsWith('exercise-videos/') && !filePath.startsWith('voice-notes/') && !filePath.startsWith('client-voice-notes/')) {
+      // Security: Only allow access to exercise-videos, voice-notes, meal-voice-notes, and client-voice-notes folders
+      const allowedPrefixes = ['exercise-videos/', 'voice-notes/', 'meal-voice-notes/', 'client-voice-notes/'];
+      if (!allowedPrefixes.some(prefix => filePath.startsWith(prefix))) {
         continue;
       }
 

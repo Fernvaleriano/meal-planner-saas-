@@ -56,6 +56,8 @@ exports.handler = async (event) => {
       .filter(f => !f.id?.endsWith('/')) // skip folders
       .filter(f => {
         const lower = f.name.toLowerCase();
+        // Exclude meal voice notes that may have been stored here previously
+        if (lower.startsWith('meal-voice-note-')) return false;
         return videoExtensions.some(ext => lower.endsWith(ext));
       })
       .map(f => `${folderPath}/${f.name}`);
@@ -105,7 +107,7 @@ exports.handler = async (event) => {
     }
 
     // Build thumbnail public URLs for videos that have them
-    const videoFiles = files.filter(f => !f.id?.endsWith('/') && videoExtensions.some(ext => f.name.toLowerCase().endsWith(ext)));
+    const videoFiles = files.filter(f => !f.id?.endsWith('/') && !f.name.toLowerCase().startsWith('meal-voice-note-') && videoExtensions.some(ext => f.name.toLowerCase().endsWith(ext)));
     const thumbUrlMap = new Map();
     for (const f of videoFiles) {
       const videoBaseName = f.name.replace(/\.\w+$/, '');

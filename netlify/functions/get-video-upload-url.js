@@ -47,8 +47,12 @@ exports.handler = async (event) => {
       };
     }
 
-    // Determine folder (exercise-videos or voice-notes)
-    const folderPath = folder === 'voice-notes' ? 'voice-notes' : 'exercise-videos';
+    // Determine folder (exercise-videos, voice-notes, or meal-voice-notes)
+    const folderMap = {
+      'voice-notes': 'voice-notes',
+      'meal-voice-notes': 'meal-voice-notes'
+    };
+    const folderPath = folderMap[folder] || 'exercise-videos';
     const filePath = `${folderPath}/${coachId}/${fileName}`;
 
     // Create a signed upload URL
