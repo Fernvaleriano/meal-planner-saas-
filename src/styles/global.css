@@ -18615,70 +18615,12 @@ a.nav-left {
     color: #334155;
 }
 
-/* AI Tips Section */
+/* Ask Coach Section */
 .ai-tips-section {
     padding: 16px;
     background: rgba(13, 148, 136, 0.05);
     border-top: 1px solid rgba(255, 255, 255, 0.05);
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.ai-tips-section .tips-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    color: #0d9488;
-    font-size: 14px;
-    font-weight: 600;
-    margin-bottom: 12px;
-}
-
-.ai-tips-section .tips-header .spin {
-    animation: spin 1s linear infinite;
-}
-
-.ai-tips-section .tips-list {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    margin-bottom: 12px;
-}
-
-.ai-tips-section .tip-item {
-    display: flex;
-    gap: 8px;
-    font-size: 13px;
-    color: #d1d5db;
-    line-height: 1.4;
-}
-
-.ai-tips-section .tip-bullet {
-    color: #0d9488;
-    flex-shrink: 0;
-}
-
-.ai-tips-section .tips-loading-placeholder {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    margin-bottom: 12px;
-}
-
-.ai-tips-section .tip-skeleton {
-    height: 16px;
-    background: linear-gradient(90deg, #2a2a2a 25%, #3a3a3a 50%, #2a2a2a 75%);
-    background-size: 200% 100%;
-    animation: shimmer 1.5s infinite;
-    border-radius: 4px;
-}
-
-.ai-tips-section .tip-skeleton:nth-child(1) { width: 90%; }
-.ai-tips-section .tip-skeleton:nth-child(2) { width: 75%; }
-.ai-tips-section .tip-skeleton:nth-child(3) { width: 85%; }
-
-@keyframes shimmer {
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
 }
 
 .ai-tips-section .ask-coach-btn {
@@ -18704,48 +18646,6 @@ a.nav-left {
 
 .ai-tips-section .ask-coach-btn:active {
     transform: scale(0.98);
-}
-
-/* Common Mistakes Section */
-.ai-tips-section .mistakes-header {
-    color: #f59e0b;
-    margin-top: 16px;
-}
-
-.ai-tips-section .mistakes-list {
-    margin-bottom: 12px;
-}
-
-.ai-tips-section .mistake-item {
-    color: #fbbf24;
-}
-
-.ai-tips-section .mistake-bullet {
-    color: #f59e0b;
-}
-
-/* Coaching Cues Section */
-.ai-tips-section .cues-header {
-    color: #8b5cf6;
-    margin-top: 16px;
-}
-
-.ai-tips-section .coaching-cues-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-bottom: 16px;
-}
-
-.ai-tips-section .coaching-cue-tag {
-    display: inline-block;
-    padding: 6px 12px;
-    background: rgba(139, 92, 246, 0.15);
-    border: 1px solid rgba(139, 92, 246, 0.3);
-    border-radius: 20px;
-    color: #a78bfa;
-    font-size: 12px;
-    font-weight: 500;
 }
 
 /* Ask Coach Chat Modal */
