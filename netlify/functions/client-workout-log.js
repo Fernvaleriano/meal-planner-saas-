@@ -253,6 +253,25 @@ exports.handler = async (event) => {
         let dayIndex = 0;
         let isWorkoutDay = selectedDays.includes(targetDayName);
 
+        // Check if target date is before the assignment start date
+        if (targetDate < startDate) {
+          isWorkoutDay = false;
+        }
+
+        // Check if target date is after the assignment end date
+        if (isWorkoutDay) {
+          let endBoundary = null;
+          if (assignment.end_date) {
+            endBoundary = new Date(assignment.end_date + 'T23:59:59');
+          } else if (schedule.weeksAmount) {
+            endBoundary = new Date(startDate);
+            endBoundary.setDate(endBoundary.getDate() + (schedule.weeksAmount * 7));
+          }
+          if (endBoundary && targetDate >= endBoundary) {
+            isWorkoutDay = false;
+          }
+        }
+
         if (isWorkoutDay && days.length > 0) {
           let workoutDayCount = 0;
           const tempDate = new Date(startDate);

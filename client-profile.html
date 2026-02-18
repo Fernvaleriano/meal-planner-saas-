@@ -10703,6 +10703,21 @@
                     const dateOverrides = workoutData.date_overrides || {};
                     const dayNames = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
 
+                    // Compute assignment date boundaries
+                    const assignmentStart = acCurrentAssignment.start_date
+                        ? new Date(acCurrentAssignment.start_date + 'T00:00:00')
+                        : new Date(acCurrentAssignment.created_at);
+                    assignmentStart.setHours(0,0,0,0);
+
+                    let assignmentEnd = null;
+                    if (acCurrentAssignment.end_date) {
+                        assignmentEnd = new Date(acCurrentAssignment.end_date + 'T23:59:59');
+                    } else if (schedule.weeksAmount) {
+                        assignmentEnd = new Date(assignmentStart);
+                        assignmentEnd.setDate(assignmentEnd.getDate() + (schedule.weeksAmount * 7) - 1);
+                        assignmentEnd.setHours(23,59,59,999);
+                    }
+
                     const firstDay = new Date(acCurrentYear, acCurrentMonth, 1);
                     const lastDay = new Date(acCurrentYear, acCurrentMonth + 1, 0);
 
@@ -10710,6 +10725,10 @@
                         const dateStr = acFormatDate(d);
                         const dayName = dayNames[d.getDay()];
                         const override = dateOverrides[dateStr];
+
+                        // Skip dates outside the assignment's date range
+                        if (d < assignmentStart) continue;
+                        if (assignmentEnd && d > assignmentEnd) continue;
 
                         if (override) {
                             if (!override.isRest && override.dayIndex !== undefined) {
@@ -12646,9 +12665,29 @@
                     const today = new Date();
                     today.setHours(0,0,0,0);
 
+                    // Compute assignment date boundaries
+                    const assignmentStart = calendarAssignment.start_date
+                        ? new Date(calendarAssignment.start_date + 'T00:00:00')
+                        : new Date(calendarAssignment.created_at);
+                    assignmentStart.setHours(0,0,0,0);
+
+                    let assignmentEnd = null;
+                    if (calendarAssignment.end_date) {
+                        assignmentEnd = new Date(calendarAssignment.end_date + 'T23:59:59');
+                    } else if (schedule.weeksAmount) {
+                        assignmentEnd = new Date(assignmentStart);
+                        assignmentEnd.setDate(assignmentEnd.getDate() + (schedule.weeksAmount * 7) - 1);
+                        assignmentEnd.setHours(23,59,59,999);
+                    }
+
                     for (let d = new Date(firstDay); d <= lastDay; d.setDate(d.getDate() + 1)) {
                         const dateStr = d.toISOString().split('T')[0];
                         const dayOfWeek = d.getDay();
+
+                        // Skip dates outside the assignment's date range
+                        if (d < assignmentStart) continue;
+                        if (assignmentEnd && d > assignmentEnd) continue;
+
                         const isScheduled = scheduledDays.some(sd => dayMap[sd.toLowerCase()] === dayOfWeek);
 
                         if (isScheduled && !calendarWorkoutData[dateStr]) {
