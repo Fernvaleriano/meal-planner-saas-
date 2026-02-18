@@ -256,12 +256,22 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
     // Suggestions will be refetched by the effect above
   }, []);
 
-  // Filter browse exercises by search query
+  // Filter browse exercises by search query + stretch/strength boundary
   const filteredBrowseExercises = browseExercises.filter(ex => {
+    const exName = (ex.name || '').toLowerCase();
+
+    // Enforce stretch ↔ strength boundary: stretches only swap with stretches
+    const isStretchKeyword = (n) => n.includes('stretch') || n.includes('mobility') || n.includes('foam roll') || n.includes('warmup') || n.includes('warm up') || n.includes('cool down') || n.includes('cooldown');
+    const origName = (exercise?.name || '').toLowerCase();
+    const originalIsStretch = isStretchKeyword(origName);
+    const altIsStretch = isStretchKeyword(exName);
+    if (originalIsStretch && !altIsStretch) return false;
+    if (!originalIsStretch && altIsStretch) return false;
+
     if (!searchQuery.trim()) return true;
     const query = searchQuery.toLowerCase();
     return (
-      (ex.name && ex.name.toLowerCase().includes(query)) ||
+      (ex.name && exName.includes(query)) ||
       (ex.equipment && ex.equipment.toLowerCase().includes(query))
     );
   });

@@ -6288,12 +6288,26 @@
             // Filter exercises by same muscle group for browse section
             const muscleGroup = currentExercise.muscle_group || currentExercise.muscleGroup || '';
 
+            // Helper to detect stretch/mobility/warmup exercises by name
+            const isStretchExercise = (n) => {
+                const lower = (n || '').toLowerCase();
+                return lower.includes('stretch') || lower.includes('mobility') || lower.includes('foam roll') || lower.includes('warmup') || lower.includes('warm up') || lower.includes('cool down') || lower.includes('cooldown');
+            };
+            const currentIsStretch = isStretchExercise(currentExercise.name);
+
             swapExerciseCache = exercises.filter(ex => {
                 const exMuscle = ex.muscle_group || '';
                 const isMatch = exMuscle.toLowerCase() === muscleGroup.toLowerCase() ||
                     (ex.secondary_muscles && ex.secondary_muscles.some(m =>
                         m.toLowerCase() === muscleGroup.toLowerCase()));
-                return isMatch && ex.id !== currentExercise.id;
+                if (!isMatch || ex.id === currentExercise.id) return false;
+
+                // Enforce stretch ↔ strength boundary
+                const altIsStretch = isStretchExercise(ex.name);
+                if (currentIsStretch && !altIsStretch) return false;
+                if (!currentIsStretch && altIsStretch) return false;
+
+                return true;
             });
 
             renderSwapExerciseList(swapExerciseCache);
@@ -6447,7 +6461,11 @@
                 reps: oldExercise.reps || '8-12',
                 restSeconds: oldExercise.restSeconds || 90,
                 notes: oldExercise.notes || '',
-                reference_links: refLinks
+                reference_links: refLinks,
+                // Preserve workout-specific flags from the old exercise
+                isStretch: oldExercise.isStretch,
+                isWarmup: oldExercise.isWarmup,
+                phase: oldExercise.phase
             };
 
             renderWorkoutDays();
