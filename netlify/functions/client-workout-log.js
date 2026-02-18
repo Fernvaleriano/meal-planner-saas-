@@ -260,12 +260,13 @@ exports.handler = async (event) => {
 
         // Check if target date is after the assignment end date
         if (isWorkoutDay) {
+          const weeksToUse = schedule.weeksAmount || 12; // Default to 12 weeks if not set
           let endBoundary = null;
           if (assignment.end_date) {
             endBoundary = new Date(assignment.end_date + 'T23:59:59');
-          } else if (schedule.weeksAmount) {
+          } else {
             endBoundary = new Date(startDate);
-            endBoundary.setDate(endBoundary.getDate() + (schedule.weeksAmount * 7));
+            endBoundary.setDate(endBoundary.getDate() + (weeksToUse * 7));
           }
           if (endBoundary && targetDate >= endBoundary) {
             isWorkoutDay = false;

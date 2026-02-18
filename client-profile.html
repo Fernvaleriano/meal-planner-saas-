@@ -10710,11 +10710,12 @@
                     assignmentStart.setHours(0,0,0,0);
 
                     let assignmentEnd = null;
+                    const weeksToUse = schedule.weeksAmount || 12; // Default to 12 weeks if not set
                     if (acCurrentAssignment.end_date) {
                         assignmentEnd = new Date(acCurrentAssignment.end_date + 'T23:59:59');
-                    } else if (schedule.weeksAmount) {
+                    } else {
                         assignmentEnd = new Date(assignmentStart);
-                        assignmentEnd.setDate(assignmentEnd.getDate() + (schedule.weeksAmount * 7) - 1);
+                        assignmentEnd.setDate(assignmentEnd.getDate() + (weeksToUse * 7) - 1);
                         assignmentEnd.setHours(23,59,59,999);
                     }
 
@@ -12408,11 +12409,12 @@
                 if (!assignment?.workout_data) return '';
 
                 const schedule = assignment.workout_data.schedule || {};
-                const scheduledDays = schedule.days || schedule.scheduleDays || [];
+                const scheduledDays = schedule.selectedDays || schedule.days || schedule.scheduleDays || [];
                 if (scheduledDays.length === 0) return '';
 
                 // Map day names to day numbers (0=Sun, 1=Mon, etc.)
-                const dayMap = { sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6 };
+                // Support both abbreviated (mon, tue) and full (monday, tuesday) formats
+                const dayMap = { sun: 0, sunday: 0, mon: 1, monday: 1, tue: 2, tuesday: 2, wed: 3, wednesday: 3, thu: 4, thursday: 4, fri: 5, friday: 5, sat: 6, saturday: 6 };
                 const scheduledDayNums = scheduledDays.map(d => dayMap[d.toLowerCase()] ?? -1).filter(n => n >= 0);
 
                 const workoutDates = new Set(workouts.map(w => w.workoutDate));
@@ -12672,11 +12674,12 @@
                     assignmentStart.setHours(0,0,0,0);
 
                     let assignmentEnd = null;
+                    const weeksToUse = schedule.weeksAmount || 12; // Default to 12 weeks if not set
                     if (calendarAssignment.end_date) {
                         assignmentEnd = new Date(calendarAssignment.end_date + 'T23:59:59');
-                    } else if (schedule.weeksAmount) {
+                    } else {
                         assignmentEnd = new Date(assignmentStart);
-                        assignmentEnd.setDate(assignmentEnd.getDate() + (schedule.weeksAmount * 7) - 1);
+                        assignmentEnd.setDate(assignmentEnd.getDate() + (weeksToUse * 7) - 1);
                         assignmentEnd.setHours(23,59,59,999);
                     }
 
