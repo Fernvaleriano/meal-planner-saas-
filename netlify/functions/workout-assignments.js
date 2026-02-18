@@ -213,6 +213,19 @@ exports.handler = async (event) => {
 
             const selectedDays = schedule.selectedDays || ['mon', 'tue', 'wed', 'thu', 'fri'];
 
+            // Compute assignment end date boundary
+            let endBoundary = null;
+            if (activeAssignment.end_date) {
+              endBoundary = new Date(activeAssignment.end_date + 'T23:59:59');
+            } else if (schedule.weeksAmount) {
+              endBoundary = new Date(startDate);
+              endBoundary.setDate(endBoundary.getDate() + (schedule.weeksAmount * 7));
+            }
+
+            // Skip if target date is before start date or after end date
+            if (targetDate < startDate) continue;
+            if (endBoundary && targetDate >= endBoundary) continue;
+
             // Check for date overrides (reschedule/duplicate/skip)
             const dateOverrides = workoutData.date_overrides || {};
             const dateKey = date;
