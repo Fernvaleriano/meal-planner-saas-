@@ -6396,10 +6396,18 @@
         }
 
         function filterSwapExercises(query) {
-            const filtered = query
-                ? swapExerciseCache.filter(ex =>
-                    ex.name.toLowerCase().includes(query.toLowerCase()))
-                : swapExerciseCache;
+            if (!query) {
+                renderSwapExerciseList(swapExerciseCache);
+                return;
+            }
+            // When user types a search query, search ALL exercises so they can
+            // find any exercise in the library, not just same-muscle-group ones
+            const lowerQuery = query.toLowerCase();
+            const currentExercise = workoutDays[swapDayIndex]?.exercises[swapExIndex];
+            const filtered = exercises.filter(ex => {
+                if (currentExercise && ex.id === currentExercise.id) return false;
+                return ex.name.toLowerCase().includes(lowerQuery);
+            });
             renderSwapExerciseList(filtered);
         }
 
