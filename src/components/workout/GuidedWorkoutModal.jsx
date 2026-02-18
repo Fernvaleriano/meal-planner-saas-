@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { X, Play, Pause, SkipForward, SkipBack, ChevronRight, ChevronLeft, Check, Volume2, VolumeX, Mic, MessageSquare, Square, Send, ChevronUp, ChevronDown, MessageCircle, Bot, Loader2, Sparkles, Flame, Repeat, Clock, Zap, AlertTriangle, TrendingUp } from 'lucide-react';
+import { X, Play, Pause, SkipForward, SkipBack, ChevronRight, ChevronLeft, Check, Volume2, VolumeX, Mic, MessageSquare, Square, Send, ChevronUp, ChevronDown, MessageCircle, Bot, Loader2, Sparkles, Flame, Repeat, Clock, Zap, AlertTriangle, TrendingUp, ExternalLink } from 'lucide-react';
 import SmartThumbnail from './SmartThumbnail';
 import SwapExerciseModal from './SwapExerciseModal';
 import { apiGet, apiPost, apiPut } from '../../utils/api';
@@ -2330,6 +2330,31 @@ function GuidedWorkoutModal({
         {showCoachNote && currentExercise.notes && (
           <div className="guided-text-note">
             <p>{currentExercise.notes}</p>
+          </div>
+        )}
+
+        {/* Reference Links */}
+        {currentExercise.reference_links && currentExercise.reference_links.length > 0 && (
+          <div className="guided-reference-links">
+            <div className="guided-reference-links-label">
+              <ExternalLink size={14} />
+              <span>Reference Links</span>
+            </div>
+            <div className="guided-reference-links-list">
+              {currentExercise.reference_links.map((link, idx) => (
+                <a
+                  key={idx}
+                  href={link.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`guided-reference-link-chip ${link.type || 'generic'}`}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <span className="guided-ref-link-icon">{link.type === 'youtube' ? '▶' : link.type === 'instagram' ? '📷' : '🔗'}</span>
+                  <span className="guided-ref-link-title">{link.title || 'Link'}</span>
+                </a>
+              ))}
+            </div>
           </div>
         )}
 
