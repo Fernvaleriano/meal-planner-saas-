@@ -187,6 +187,51 @@ exports.handler = async (event) => {
           const targetDayOfWeek = targetDate.getDay();
           const targetDayName = dayNames[targetDayOfWeek];
 
+          // Batch-fetch program images for assignments that need them (single query instead of N)
+          const programIdsNeeded = activeAssignments
+            .filter(a => !(a.workout_data?.image_url) && a.program_id)
+            .map(a => a.program_id);
+          const programImageMap = new Map();
+          if (programIdsNeeded.length > 0) {
+            try {
+              const { data: programs } = await supabase
+                .from('workout_programs')
+                .select('id, program_data')
+                .in('id', [...new Set(programIdsNeeded)]);
+              if (programs) {
+                programs.forEach(p => {
+                  programImageMap.set(p.id, p.program_data?.image_url || null);
+                });
+              }
+            } catch (e) {
+              // Ignore - programs may have been deleted
+            }
+          }
+
+          // Helper: count workout days between two dates using math instead of day-by-day loop
+          function countWorkoutDays(startDate, targetDate, selectedDays) {
+            const daySet = new Set(selectedDays);
+            const start = new Date(startDate);
+            const target = new Date(targetDate);
+            const totalDays = Math.floor((target - start) / (24 * 60 * 60 * 1000));
+            if (totalDays <= 0) return 0;
+
+            const fullWeeks = Math.floor(totalDays / 7);
+            const daysPerWeek = dayNames.filter(d => daySet.has(d)).length;
+            let count = fullWeeks * daysPerWeek;
+
+            // Count remaining partial week days
+            const remainderDays = totalDays % 7;
+            for (let i = 0; i < remainderDays; i++) {
+              const d = new Date(start);
+              d.setDate(d.getDate() + (fullWeeks * 7) + i);
+              if (daySet.has(dayNames[d.getDay()])) {
+                count++;
+              }
+            }
+            return count;
+          }
+
           // Process each active assignment to find workouts for this date
           const todayWorkouts = [];
 
@@ -196,20 +241,8 @@ exports.handler = async (event) => {
             const schedule = workoutData.schedule || activeAssignment.schedule || {};
             const startDate = activeAssignment.start_date ? new Date(activeAssignment.start_date) : new Date(activeAssignment.created_at);
 
-            // Resolve image_url: use assignment's image, or fall back to program's image
-            let resolvedImageUrl = workoutData.image_url || null;
-            if (!resolvedImageUrl && activeAssignment.program_id) {
-              try {
-                const { data: programData } = await supabase
-                  .from('workout_programs')
-                  .select('program_data')
-                  .eq('id', activeAssignment.program_id)
-                  .single();
-                resolvedImageUrl = programData?.program_data?.image_url || null;
-              } catch (e) {
-                // Ignore - program may have been deleted
-              }
-            }
+            // Resolve image_url: use assignment's image, or fall back to pre-fetched program image
+            const resolvedImageUrl = workoutData.image_url || programImageMap.get(activeAssignment.program_id) || null;
 
             const selectedDays = schedule.selectedDays || ['mon', 'tue', 'wed', 'thu', 'fri'];
 
@@ -243,11 +276,6 @@ exports.handler = async (event) => {
 
               if (override.dayIndex !== undefined && days.length > 0) {
                 const dayIndex = override.dayIndex % days.length;
-                let enrichedExercises = await enrichExercisesWithEquipment(
-                  days[dayIndex].exercises || [],
-                  supabase
-                );
-                enrichedExercises = await enrichExercisesWithVideos(enrichedExercises, supabase);
 
                 todayWorkout = {
                   id: activeAssignment.id,
@@ -255,7 +283,7 @@ exports.handler = async (event) => {
                   day_index: dayIndex,
                   workout_data: {
                     ...days[dayIndex],
-                    exercises: enrichedExercises,
+                    exercises: days[dayIndex].exercises || [],
                     estimatedMinutes: days[dayIndex].estimatedMinutes || 45,
                     estimatedCalories: days[dayIndex].estimatedCalories || 300,
                     image_url: resolvedImageUrl
@@ -273,21 +301,8 @@ exports.handler = async (event) => {
               const isWorkoutDay = selectedDays.includes(targetDayName);
 
               if (isWorkoutDay) {
-                let workoutDayCount = 0;
-                const tempDate = new Date(startDate);
-
-                let loopCount = 0;
-                const maxLoops = 365;
-
-                while (tempDate < targetDate && loopCount < maxLoops) {
-                  const tempDayName = dayNames[tempDate.getDay()];
-                  if (selectedDays.includes(tempDayName)) {
-                    workoutDayCount++;
-                  }
-                  tempDate.setDate(tempDate.getDate() + 1);
-                  loopCount++;
-                }
-
+                // Use math-based counting instead of day-by-day loop
+                const workoutDayCount = countWorkoutDays(startDate, targetDate, selectedDays);
                 const dayIndex = workoutDayCount % days.length;
 
                 todayWorkout = {
@@ -320,20 +335,47 @@ exports.handler = async (event) => {
               };
             }
 
-            // Enrich exercises with equipment and video data if missing
-            if (todayWorkout?.workout_data?.exercises) {
-              todayWorkout.workout_data.exercises = await enrichExercisesWithEquipment(
-                todayWorkout.workout_data.exercises,
-                supabase
-              );
-              todayWorkout.workout_data.exercises = await enrichExercisesWithVideos(
-                todayWorkout.workout_data.exercises,
-                supabase
-              );
-            }
-
             if (todayWorkout) {
               todayWorkouts.push(todayWorkout);
+            }
+          }
+
+          // Batch-enrich all exercises across all workouts with a single DB query each
+          // Collect all exercise IDs from all workouts
+          const allExerciseIds = new Set();
+          for (const w of todayWorkouts) {
+            const exercises = w.workout_data?.exercises || [];
+            exercises.forEach(ex => {
+              if (ex.id && typeof ex.id === 'number') allExerciseIds.add(ex.id);
+            });
+          }
+
+          if (allExerciseIds.size > 0) {
+            // Single query for both equipment and video data
+            const { data: exerciseData } = await supabase
+              .from('exercises')
+              .select('id, equipment, video_url, animation_url, thumbnail_url')
+              .in('id', [...allExerciseIds]);
+
+            if (exerciseData) {
+              const exerciseMap = new Map(exerciseData.map(ex => [ex.id, ex]));
+
+              // Apply enrichment to all workouts
+              for (const w of todayWorkouts) {
+                if (w.workout_data?.exercises) {
+                  w.workout_data.exercises = w.workout_data.exercises.map(ex => {
+                    if (!ex.id || !exerciseMap.has(ex.id)) return ex;
+                    const fresh = exerciseMap.get(ex.id);
+                    const updates = {};
+                    if (!ex.equipment && fresh.equipment) updates.equipment = fresh.equipment;
+                    if (fresh.thumbnail_url && fresh.thumbnail_url !== ex.thumbnail_url) updates.thumbnail_url = fresh.thumbnail_url;
+                    if (fresh.video_url && !ex.video_url) updates.video_url = fresh.video_url;
+                    if (fresh.animation_url && !ex.animation_url) updates.animation_url = fresh.animation_url;
+                    if (Object.keys(updates).length === 0) return ex;
+                    return { ...ex, ...updates };
+                  });
+                }
+              }
             }
           }
 
