@@ -101,17 +101,31 @@ exports.handler = async (event) => {
 
       if (error) throw error;
 
-      // Fetch exercise_logs for each workout so client-side gets notes, sets, etc.
-      const workoutsWithExercises = await Promise.all(
-        (workouts || []).map(async (w) => {
-          const { data: exercises } = await supabase
-            .from('exercise_logs')
-            .select('*')
-            .eq('workout_log_id', w.id)
-            .order('exercise_order', { ascending: true });
-          return { ...w, exercises: exercises || [] };
-        })
-      );
+      // Batch-fetch all exercise_logs in a single query instead of one per workout
+      const workoutIds = (workouts || []).map(w => w.id);
+      let allExerciseLogs = [];
+      if (workoutIds.length > 0) {
+        const { data: exerciseLogs } = await supabase
+          .from('exercise_logs')
+          .select('*')
+          .in('workout_log_id', workoutIds)
+          .order('exercise_order', { ascending: true });
+        allExerciseLogs = exerciseLogs || [];
+      }
+
+      // Group exercise logs by workout_log_id
+      const exercisesByWorkout = new Map();
+      for (const log of allExerciseLogs) {
+        if (!exercisesByWorkout.has(log.workout_log_id)) {
+          exercisesByWorkout.set(log.workout_log_id, []);
+        }
+        exercisesByWorkout.get(log.workout_log_id).push(log);
+      }
+
+      const workoutsWithExercises = (workouts || []).map(w => ({
+        ...w,
+        exercises: exercisesByWorkout.get(w.id) || []
+      }));
 
       return {
         statusCode: 200,

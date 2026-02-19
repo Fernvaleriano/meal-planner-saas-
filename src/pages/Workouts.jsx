@@ -795,39 +795,41 @@ function Workouts() {
 
       try {
         const dateStr = formatDate(selectedDate);
-        const allWorkouts = [];
 
-        // Fetch coach-assigned workouts
-        const assignmentRes = await apiGet(`/.netlify/functions/workout-assignments?clientId=${clientData.id}&date=${dateStr}`);
+        // Fetch all workout data in parallel instead of sequentially
+        const [assignmentRes, adhocRes, logRes] = await Promise.all([
+          apiGet(`/.netlify/functions/workout-assignments?clientId=${clientData.id}&date=${dateStr}`),
+          apiGet(`/.netlify/functions/adhoc-workouts?clientId=${clientData.id}&date=${dateStr}`).catch(err => {
+            console.error('Error fetching adhoc workouts:', err);
+            return null;
+          }),
+          apiGet(`/.netlify/functions/workout-logs?clientId=${clientData.id}&date=${dateStr}`).catch(err => {
+            console.error('Error fetching workout log:', err);
+            return null;
+          })
+        ]);
         if (!mounted) return;
+
+        const allWorkouts = [];
 
         if (assignmentRes?.assignments?.length > 0) {
           assignmentRes.assignments.forEach(a => allWorkouts.push(a));
         }
 
-        // Also fetch ad-hoc (client-created / club) workouts
-        try {
-          const adhocRes = await apiGet(`/.netlify/functions/adhoc-workouts?clientId=${clientData.id}&date=${dateStr}`);
-          if (!mounted) return;
-
-          if (adhocRes?.workouts?.length > 0) {
-            adhocRes.workouts.forEach(w => {
-              allWorkouts.push({
-                id: w.id,
-                client_id: w.client_id,
-                workout_date: w.workout_date,
-                name: w.name || 'Custom Workout',
-                day_index: 0,
-                workout_data: w.workout_data,
-                is_adhoc: true
-              });
+        if (adhocRes?.workouts?.length > 0) {
+          adhocRes.workouts.forEach(w => {
+            allWorkouts.push({
+              id: w.id,
+              client_id: w.client_id,
+              workout_date: w.workout_date,
+              name: w.name || 'Custom Workout',
+              day_index: 0,
+              workout_data: w.workout_data,
+              is_adhoc: true
             });
-          }
-        } catch (adhocErr) {
-          console.error('Error fetching adhoc workouts:', adhocErr);
+          });
         }
 
-        if (!mounted) return;
         setTodayWorkouts(allWorkouts);
 
         if (allWorkouts.length > 0) {
@@ -835,40 +837,31 @@ function Workouts() {
           const first = allWorkouts[0];
           setTodayWorkout(first);
 
-          // Load workout log for assigned workouts
-          if (!first.is_adhoc) {
-            try {
-              const logRes = await apiGet(`/.netlify/functions/workout-logs?clientId=${clientData.id}&date=${dateStr}`);
-              if (!mounted) return;
-
-              if (logRes?.logs?.length > 0) {
-                const log = logRes.logs[0];
-                setWorkoutLog(log);
-                setWorkoutStarted(log?.status === 'in_progress' || log?.status === 'completed');
-                if (log?.energy_level || log?.soreness_level || log?.sleep_quality) {
-                  setReadinessData({
-                    energy: log.energy_level || 2,
-                    soreness: log.soreness_level || 2,
-                    sleep: log.sleep_quality || 2
-                  });
-                }
-                const fromData = getCompletedFromWorkoutData(first.workout_data, first.day_index, first.id);
-                if (fromData.size > 0) {
-                  setCompletedExercises(fromData);
-                } else {
-                  const completed = new Set(
-                    (log?.exercises || []).map(e => e?.exercise_id).filter(Boolean)
-                  );
-                  setCompletedExercises(completed);
-                }
-              } else {
-                setWorkoutLog(null);
-                const fromData = getCompletedFromWorkoutData(first.workout_data, first.day_index, first.id);
-                setCompletedExercises(fromData);
-              }
-            } catch (logErr) {
-              console.error('Error fetching workout log:', logErr);
+          // Process workout log for assigned workouts
+          if (!first.is_adhoc && logRes?.logs?.length > 0) {
+            const log = logRes.logs[0];
+            setWorkoutLog(log);
+            setWorkoutStarted(log?.status === 'in_progress' || log?.status === 'completed');
+            if (log?.energy_level || log?.soreness_level || log?.sleep_quality) {
+              setReadinessData({
+                energy: log.energy_level || 2,
+                soreness: log.soreness_level || 2,
+                sleep: log.sleep_quality || 2
+              });
             }
+            const fromData = getCompletedFromWorkoutData(first.workout_data, first.day_index, first.id);
+            if (fromData.size > 0) {
+              setCompletedExercises(fromData);
+            } else {
+              const completed = new Set(
+                (log?.exercises || []).map(e => e?.exercise_id).filter(Boolean)
+              );
+              setCompletedExercises(completed);
+            }
+          } else if (!first.is_adhoc) {
+            setWorkoutLog(null);
+            const fromData = getCompletedFromWorkoutData(first.workout_data, first.day_index, first.id);
+            setCompletedExercises(fromData);
           } else {
             setWorkoutLog(null);
             const fromData = getCompletedFromWorkoutData(first.workout_data, 0, first.id);
