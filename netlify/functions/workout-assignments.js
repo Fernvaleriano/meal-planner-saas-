@@ -213,13 +213,14 @@ exports.handler = async (event) => {
 
             const selectedDays = schedule.selectedDays || ['mon', 'tue', 'wed', 'thu', 'fri'];
 
-            // Compute assignment end date boundary
+            // Compute assignment end date boundary (default 12 weeks if not set)
+            const weeksToUse = schedule.weeksAmount || 12;
             let endBoundary = null;
             if (activeAssignment.end_date) {
               endBoundary = new Date(activeAssignment.end_date + 'T23:59:59');
-            } else if (schedule.weeksAmount) {
+            } else {
               endBoundary = new Date(startDate);
-              endBoundary.setDate(endBoundary.getDate() + (schedule.weeksAmount * 7));
+              endBoundary.setDate(endBoundary.getDate() + (weeksToUse * 7));
             }
 
             // Skip if target date is before start date or after end date
