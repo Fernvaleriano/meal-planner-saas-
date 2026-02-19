@@ -12935,6 +12935,7 @@
                     <div class="wpr-active-actions">
                         <button class="wpr-btn" onclick="event.stopPropagation(); editAssignmentSchedule()">Edit Schedule</button>
                         <button class="wpr-btn danger" onclick="event.stopPropagation(); unassignProgram()">Unassign</button>
+                        <button class="wpr-btn danger" onclick="event.stopPropagation(); removeEntireProgram()" style="background:#dc2626;color:#fff;">Remove Entire Program</button>
                     </div>
                     <div class="wpr-active-days">${daysChips}</div>
                     ${daysExercises}
@@ -13095,6 +13096,63 @@
             } catch (err) {
                 console.error('Error unassigning program:', err);
                 alert('Failed to unassign program.');
+            }
+        }
+
+        async function removeEntireProgram() {
+            if (!clientActiveAssignment) return;
+
+            const a = clientActiveAssignment;
+            const programName = a.name || 'Workout Program';
+
+            // Count completed workout days from the feed cache
+            const completedDates = Object.keys(acWorkoutLogsCache || {});
+            const completedCount = completedDates.length;
+
+            // Count future scheduled days that will be removed
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const futureDays = Object.keys(acAssignmentCache || {}).filter(dateStr => {
+                const d = new Date(dateStr + 'T12:00:00');
+                return d >= today && !acWorkoutLogsCache[dateStr];
+            });
+
+            let msg = `Remove entire program "${programName}" from this client's calendar?\n\n`;
+            if (completedCount > 0) {
+                msg += `${completedCount} completed workout(s) will be PRESERVED.\n`;
+            }
+            if (futureDays.length > 0) {
+                msg += `${futureDays.length} upcoming scheduled day(s) will be REMOVED.\n`;
+            }
+            msg += `\nThis will deactivate the program and clear all future scheduled workouts. Completed workouts are never deleted.`;
+
+            if (!confirm(msg)) return;
+
+            try {
+                // Set end_date to yesterday and deactivate — preserves completed logs
+                const yesterday = new Date();
+                yesterday.setDate(yesterday.getDate() - 1);
+                const endDateStr = yesterday.toISOString().split('T')[0];
+
+                const res = await fetch('/.netlify/functions/workout-assignments', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        assignmentId: a.id,
+                        isActive: false,
+                        endDate: endDateStr
+                    })
+                });
+
+                if (!res.ok) throw new Error('Failed to remove program');
+
+                clientActiveAssignment = null;
+                alert('Program removed. Completed workouts have been preserved.');
+                await loadWorkoutPrograms(clientId);
+                await acLoadMonthData();
+            } catch (err) {
+                console.error('Error removing program:', err);
+                alert('Failed to remove program. Please try again.');
             }
         }
 
