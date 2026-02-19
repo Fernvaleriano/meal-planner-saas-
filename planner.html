@@ -1927,6 +1927,18 @@
             background: rgba(45, 212, 191, 0.1);
         }
 
+        .coach-nav-item.coach-nav-logout {
+            color: #dc2626;
+        }
+
+        .coach-nav-item.coach-nav-logout:active {
+            transform: scale(0.95);
+        }
+
+        [data-theme="dark"] .coach-nav-item.coach-nav-logout {
+            color: #f87171;
+        }
+
         /* Voice recording button styles */
         button.recording {
             background: #dc2626 !important;
@@ -11843,6 +11855,14 @@ document.addEventListener('click', async (e) => {
                     </svg>
                 </div>
                 <span class="coach-nav-label">Profile</span>
+            </a>
+            <a href="#" class="coach-nav-item coach-nav-logout" onclick="event.preventDefault(); logout();">
+                <div class="coach-nav-icon">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="24" height="24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                    </svg>
+                </div>
+                <span class="coach-nav-label">Log Out</span>
             </a>
         </div>
     </nav>
