@@ -1847,6 +1847,10 @@
                         <span class="sidebar-nav-icon"><i data-lucide="bell"></i></span>
                         Reminders
                     </a>
+                    <a href="#" class="sidebar-nav-item sidebar-nav-logout" id="logoutLink">
+                        <span class="sidebar-nav-icon"><i data-lucide="log-out"></i></span>
+                        Log Out
+                    </a>
                 </div>
             </div>
         </nav>
@@ -2370,6 +2374,7 @@
         const modalTitle = document.getElementById('modalTitle');
         const userEmailSpan = document.getElementById('userEmail');
         const logoutBtn = document.getElementById('logoutBtn');
+        const logoutLink = document.getElementById('logoutLink');
         const addClientBtn = document.getElementById('addClientBtn');
         const searchInput = document.getElementById('searchInput');
         const searchContainer = document.getElementById('searchContainer');
@@ -3340,7 +3345,7 @@
             }
         });
 
-        logoutBtn.addEventListener('click', async () => {
+        async function handleLogout() {
             try {
                 await supabaseClient.auth.signOut({ scope: 'local' });
             } catch (err) {
@@ -3349,6 +3354,11 @@
             localStorage.removeItem('supabase.auth.token');
             sessionStorage.clear();
             window.location.href = 'login.html';
+        }
+        logoutBtn.addEventListener('click', handleLogout);
+        logoutLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            handleLogout();
         });
 
         // Close modals when clicking outside
