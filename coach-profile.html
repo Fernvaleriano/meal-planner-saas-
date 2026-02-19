@@ -872,6 +872,18 @@
         [data-theme="dark"] .coach-nav-item.active .coach-nav-icon {
             background: rgba(45, 212, 191, 0.1);
         }
+
+        .coach-nav-item.coach-nav-logout {
+            color: #dc2626;
+        }
+
+        .coach-nav-item.coach-nav-logout:active {
+            transform: scale(0.95);
+        }
+
+        [data-theme="dark"] .coach-nav-item.coach-nav-logout {
+            color: #f87171;
+        }
     </style>
     <link rel="stylesheet" href="/css/coach-layout.css">
     <script src="https://unpkg.com/lucide@0.312.0/dist/umd/lucide.min.js" onload="lucide.createIcons()"></script>
@@ -1138,6 +1150,14 @@
                         </label>
                     </div>
                 </div>
+
+                <!-- Log Out -->
+                <button onclick="handleLogout()" style="width: 100%; padding: 16px; margin-top: 16px; background: none; border: 1px solid #dc2626; color: #dc2626; border-radius: 12px; font-size: 1rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s;">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                    </svg>
+                    Log Out
+                </button>
             </div>
         </div>
 
@@ -1185,6 +1205,14 @@
                     </svg>
                 </div>
                 <span class="coach-nav-label">Profile</span>
+            </a>
+            <a href="#" class="coach-nav-item coach-nav-logout" onclick="event.preventDefault(); handleLogout();">
+                <div class="coach-nav-icon">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="24" height="24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                    </svg>
+                </div>
+                <span class="coach-nav-label">Log Out</span>
             </a>
         </div>
     </nav>
