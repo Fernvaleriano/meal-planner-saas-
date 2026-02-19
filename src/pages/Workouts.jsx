@@ -3167,7 +3167,7 @@ function Workouts() {
               <div className="uncheck-all-section">
                 <button className="uncheck-all-btn" onClick={handleUncheckAll}>
                   <RotateCcw size={14} />
-                  <span>Reset all ({completedExercises.size})</span>
+                  <span>Uncheck all ({completedExercises.size})</span>
                 </button>
               </div>
             )}
