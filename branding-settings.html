@@ -1144,6 +1144,10 @@
                         <span class="sidebar-nav-icon"><i data-lucide="bell"></i></span>
                         Reminders
                     </a>
+                    <a href="#" class="sidebar-nav-item sidebar-nav-logout" id="logoutLink">
+                        <span class="sidebar-nav-icon"><i data-lucide="log-out"></i></span>
+                        Log Out
+                    </a>
                 </div>
             </div>
         </nav>
@@ -1786,9 +1790,14 @@
             });
 
             // Logout
-            document.getElementById('logoutBtn').addEventListener('click', async () => {
+            async function handleLogout() {
                 await supabaseClient.auth.signOut({ scope: 'local' });
                 window.location.href = 'login.html';
+            }
+            document.getElementById('logoutBtn').addEventListener('click', handleLogout);
+            document.getElementById('logoutLink').addEventListener('click', (e) => {
+                e.preventDefault();
+                handleLogout();
             });
         }
 

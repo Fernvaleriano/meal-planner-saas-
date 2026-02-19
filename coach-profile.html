@@ -932,6 +932,10 @@
                         <span class="sidebar-nav-icon"><i data-lucide="bell"></i></span>
                         Reminders
                     </a>
+                    <a href="#" class="sidebar-nav-item sidebar-nav-logout" id="logoutLink">
+                        <span class="sidebar-nav-icon"><i data-lucide="log-out"></i></span>
+                        Log Out
+                    </a>
                 </div>
             </div>
         </nav>
@@ -1288,6 +1292,7 @@
         const loadingDiv = document.getElementById('loadingDiv');
         const profileContent = document.getElementById('profileContent');
         const logoutBtn = document.getElementById('logoutBtn');
+        const logoutLink = document.getElementById('logoutLink');
 
         async function loadProfile() {
             try {
@@ -1398,7 +1403,7 @@
         }
 
         // Logout handler
-        logoutBtn.addEventListener('click', async () => {
+        async function handleLogout() {
             try {
                 await supabaseClient.auth.signOut({ scope: 'local' });
             } catch (err) {
@@ -1407,6 +1412,11 @@
             localStorage.removeItem('supabase.auth.token');
             sessionStorage.clear();
             window.location.href = 'login.html';
+        }
+        logoutBtn.addEventListener('click', handleLogout);
+        logoutLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            handleLogout();
         });
 
         // Password change modal functions
