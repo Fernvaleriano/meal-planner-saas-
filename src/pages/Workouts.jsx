@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { ChevronLeft, ChevronRight, Play, Clock, Flame, CheckCircle, Dumbbell, Target, Calendar, TrendingUp, Award, Heart, MoreVertical, X, History, Settings, LogOut, Plus, Copy, ArrowRightLeft, SkipForward, PenSquare, Trash2, MoveRight, Share2, Star, Weight, Users } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Play, Clock, Flame, CheckCircle, Dumbbell, Target, Calendar, TrendingUp, Award, Heart, MoreVertical, X, History, Settings, LogOut, Plus, Copy, ArrowRightLeft, SkipForward, PenSquare, Trash2, MoveRight, Share2, Star, Weight, Users, RotateCcw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, apiPut, apiDelete, ensureFreshSession } from '../utils/api';
@@ -1028,6 +1028,88 @@ function Workouts() {
     }
   }, []);
 
+  // Uncheck all completed exercises
+  const handleUncheckAll = useCallback(async () => {
+    if (completedExercises.size === 0) return;
+
+    setCompletedExercises(new Set());
+
+    // Clear localStorage cache
+    try {
+      const workout = todayWorkoutRef.current;
+      if (workout?.id) {
+        localStorage.removeItem(`completedExercises_${workout.id}`);
+      }
+    } catch (e) { /* ignore */ }
+
+    // Update workout_data to clear completed flags on all exercises
+    let capturedWorkoutData = null;
+    let capturedWorkout = null;
+
+    setTodayWorkout(prev => {
+      if (!prev?.workout_data) return prev;
+
+      let currentExercises = [];
+      let isUsingDays = false;
+      const dayIndex = prev.day_index || 0;
+
+      if (Array.isArray(prev.workout_data.exercises) && prev.workout_data.exercises.length > 0) {
+        currentExercises = [...prev.workout_data.exercises];
+      } else if (prev.workout_data.days && Array.isArray(prev.workout_data.days)) {
+        isUsingDays = true;
+        const dayData = prev.workout_data.days[dayIndex];
+        if (dayData?.exercises && Array.isArray(dayData.exercises)) {
+          currentExercises = [...dayData.exercises];
+        }
+      }
+
+      const updatedExercises = currentExercises.map(ex => ({ ...ex, completed: false }));
+
+      let updatedWorkoutData;
+      if (isUsingDays) {
+        const updatedDays = [...prev.workout_data.days];
+        updatedDays[dayIndex] = { ...updatedDays[dayIndex], exercises: updatedExercises };
+        updatedWorkoutData = { ...prev.workout_data, days: updatedDays };
+      } else {
+        updatedWorkoutData = { ...prev.workout_data, exercises: updatedExercises };
+      }
+
+      capturedWorkoutData = updatedWorkoutData;
+      capturedWorkout = prev;
+
+      return { ...prev, workout_data: updatedWorkoutData };
+    });
+
+    // Persist to backend
+    await new Promise(r => setTimeout(r, 50));
+
+    const workout = capturedWorkout || todayWorkoutRef.current;
+    const updatedWorkoutData = capturedWorkoutData;
+    if (!workout || !updatedWorkoutData) return;
+
+    try {
+      if (workout.is_adhoc) {
+        const isRealId = workout.id && !String(workout.id).startsWith('adhoc-') && !String(workout.id).startsWith('custom-');
+        const dateStr = workout.workout_date || new Date().toISOString().split('T')[0];
+        await apiPut('/.netlify/functions/adhoc-workouts', {
+          ...(isRealId ? { workoutId: workout.id } : {}),
+          clientId: workout.client_id,
+          workoutDate: dateStr,
+          workoutData: updatedWorkoutData,
+          name: workout.name
+        });
+      } else {
+        await apiPut('/.netlify/functions/client-workout-log', {
+          assignmentId: workout.id,
+          dayIndex: workout.day_index,
+          workout_data: updatedWorkoutData
+        });
+      }
+    } catch (err) {
+      console.error('Error persisting uncheck all:', err);
+    }
+  }, [completedExercises.size]);
+
   // Handle exercise swap - use ref for stable callback
   // Uses requestAnimationFrame for mobile Safari stability
   const handleSwapExercise = useCallback((oldExercise, newExercise) => {
@@ -1550,14 +1632,12 @@ function Workouts() {
     const workout = todayWorkoutRef.current;
     if (!workout?.workout_data || !updatedExercise) return;
 
-    // Auto-mark exercise as completed when sets have been edited with actual data
+    // Auto-mark exercise as completed only when ALL sets have been explicitly completed
+    // (i.e., each set has completed: true). This prevents false positives from default
+    // reps/weight values when play mode persists exercise data on early exit.
     if (updatedExercise.id && updatedExercise.sets?.length > 0) {
-      const hasEditedSets = updatedExercise.sets.some(s => {
-        // reps can be a number (12) or string ("8-10") from AI workouts
-        const repsVal = typeof s.reps === 'string' ? parseInt(s.reps) : s.reps;
-        return (repsVal && repsVal > 0) || (s.weight && s.weight > 0) || s.duration;
-      });
-      if (hasEditedSets && !completedExercisesRef.current.has(updatedExercise.id)) {
+      const allSetsCompleted = updatedExercise.sets.every(s => s.completed === true);
+      if (allSetsCompleted && !completedExercisesRef.current.has(updatedExercise.id)) {
         // Update ref immediately so the workout_data map below sees it
         completedExercisesRef.current = new Set([...completedExercisesRef.current, updatedExercise.id]);
         setCompletedExercises(prev => {
@@ -3083,6 +3163,14 @@ function Workouts() {
 
           {/* Exercise List */}
           <div className={`workout-content ${isRefreshing ? 'refreshing' : ''}`}>
+            {completedExercises.size > 0 && (
+              <div className="uncheck-all-section">
+                <button className="uncheck-all-btn" onClick={handleUncheckAll}>
+                  <RotateCcw size={14} />
+                  <span>Reset all ({completedExercises.size})</span>
+                </button>
+              </div>
+            )}
             <div className="exercises-list-v2">
               {exercises.map((exercise, index) => {
                 if (!exercise || !exercise.id) return null;
