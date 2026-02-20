@@ -7340,6 +7340,10 @@
                 </button>
             </div>
             <div id="activityCalendarContent" class="collapsible-content">
+                <div id="acProgramBar" style="display:none; padding:10px 16px; margin-bottom:8px; background:#fef2f2; border:1px solid #fecaca; border-radius:10px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+                    <span id="acProgramBarName" style="font-size:14px; font-weight:600; color:#1e293b;"></span>
+                    <button onclick="removeEntireProgram()" style="padding:6px 14px; font-size:12px; font-weight:600; background:#dc2626; color:#fff; border:none; border-radius:6px; cursor:pointer;">Remove Entire Program</button>
+                </div>
                 <div class="ac-layout">
                     <!-- Calendar Grid -->
                     <div class="ac-calendar-container">
@@ -10693,6 +10697,16 @@
                 const data = await res.json();
                 const assignments = data.assignments || [];
                 acCurrentAssignment = assignments.find(a => a.is_active) || assignments[0] || null;
+
+                // Show/hide the Remove Entire Program bar
+                const programBar = document.getElementById('acProgramBar');
+                const programBarName = document.getElementById('acProgramBarName');
+                if (acCurrentAssignment && programBar) {
+                    programBar.style.display = 'flex';
+                    programBarName.textContent = 'Active: ' + (acCurrentAssignment.name || 'Workout Program');
+                } else if (programBar) {
+                    programBar.style.display = 'none';
+                }
 
                 if (acCurrentAssignment) {
                     acAssignmentCache = {};
