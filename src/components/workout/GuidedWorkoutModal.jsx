@@ -2348,6 +2348,79 @@ function GuidedWorkoutModal({
           </div>
         )}
 
+        {/* Message Coach */}
+        <div className="guided-client-note-section">
+          <button
+            className="guided-client-note-toggle"
+            onClick={() => setShowClientNoteInput(!showClientNoteInput)}
+            type="button"
+          >
+            <div className="guided-client-note-toggle-left">
+              <MessageCircle size={16} />
+              <span>Message Coach</span>
+            </div>
+            {clientNoteSaved[currentExIndex] && <span className="note-saved-badge">Saved</span>}
+            {showClientNoteInput ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          </button>
+
+          {showClientNoteInput && (
+            <div className="guided-client-note-input-area">
+              <textarea
+                className="guided-client-note-textarea"
+                placeholder="Leave a note for your coach about this exercise..."
+                value={clientNotes[currentExIndex] || ''}
+                onChange={(e) => handleClientNoteChange(e.target.value)}
+                rows={3}
+                maxLength={500}
+              />
+              <div className="guided-client-note-actions">
+                <div className="guided-client-note-actions-left">
+                  {isRecordingVoiceNote ? (
+                    <button
+                      className="guided-voice-note-btn recording"
+                      onClick={stopVoiceNoteRecording}
+                      type="button"
+                    >
+                      <Square size={16} />
+                      <span>Stop</span>
+                    </button>
+                  ) : (
+                    <button
+                      className="guided-voice-note-btn"
+                      onClick={startVoiceNoteRecording}
+                      disabled={voiceNoteUploading}
+                      type="button"
+                    >
+                      <Mic size={16} />
+                      <span>{voiceNoteUploading ? 'Uploading...' : 'Voice Note'}</span>
+                    </button>
+                  )}
+                </div>
+                <div className="guided-client-note-char-count">
+                  {(clientNotes[currentExIndex] || '').length}/500
+                </div>
+              </div>
+
+              {voiceNoteUrl && (
+                <div className="guided-client-voice-note-preview">
+                  <audio controls src={voiceNoteUrl} preload="metadata" />
+                </div>
+              )}
+
+              {(clientNotes[currentExIndex] || '').trim() && (
+                <button
+                  className="guided-client-note-send-btn"
+                  onClick={() => saveClientNote(clientNotes[currentExIndex])}
+                  type="button"
+                >
+                  <Send size={14} />
+                  <span>Send Note</span>
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
         {/* Reference Links */}
         {currentExercise.reference_links && currentExercise.reference_links.length > 0 && (
           <div className="guided-reference-links">
@@ -2465,78 +2538,6 @@ function GuidedWorkoutModal({
           </div>
         )}
 
-        {/* Message Coach */}
-        <div className="guided-client-note-section">
-          <button
-            className="guided-client-note-toggle"
-            onClick={() => setShowClientNoteInput(!showClientNoteInput)}
-            type="button"
-          >
-            <div className="guided-client-note-toggle-left">
-              <MessageCircle size={16} />
-              <span>Message Coach</span>
-            </div>
-            {clientNoteSaved[currentExIndex] && <span className="note-saved-badge">Saved</span>}
-            {showClientNoteInput ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-          </button>
-
-          {showClientNoteInput && (
-            <div className="guided-client-note-input-area">
-              <textarea
-                className="guided-client-note-textarea"
-                placeholder="Leave a note for your coach about this exercise..."
-                value={clientNotes[currentExIndex] || ''}
-                onChange={(e) => handleClientNoteChange(e.target.value)}
-                rows={3}
-                maxLength={500}
-              />
-              <div className="guided-client-note-actions">
-                <div className="guided-client-note-actions-left">
-                  {isRecordingVoiceNote ? (
-                    <button
-                      className="guided-voice-note-btn recording"
-                      onClick={stopVoiceNoteRecording}
-                      type="button"
-                    >
-                      <Square size={16} />
-                      <span>Stop</span>
-                    </button>
-                  ) : (
-                    <button
-                      className="guided-voice-note-btn"
-                      onClick={startVoiceNoteRecording}
-                      disabled={voiceNoteUploading}
-                      type="button"
-                    >
-                      <Mic size={16} />
-                      <span>{voiceNoteUploading ? 'Uploading...' : 'Voice Note'}</span>
-                    </button>
-                  )}
-                </div>
-                <div className="guided-client-note-char-count">
-                  {(clientNotes[currentExIndex] || '').length}/500
-                </div>
-              </div>
-
-              {voiceNoteUrl && (
-                <div className="guided-client-voice-note-preview">
-                  <audio controls src={voiceNoteUrl} preload="metadata" />
-                </div>
-              )}
-
-              {(clientNotes[currentExIndex] || '').trim() && (
-                <button
-                  className="guided-client-note-send-btn"
-                  onClick={() => saveClientNote(clientNotes[currentExIndex])}
-                  type="button"
-                >
-                  <Send size={14} />
-                  <span>Send Note</span>
-                </button>
-              )}
-            </div>
-          )}
-        </div>
       </div>
 
       {/* Exercise thumbnail / video player */}

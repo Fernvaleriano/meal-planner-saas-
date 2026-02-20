@@ -2131,6 +2131,79 @@ function ExerciseDetailModal({
           </div>
         )}
 
+        {/* Message Coach */}
+        <div className="client-note-for-coach-section">
+          <button
+            className="client-note-toggle"
+            onClick={() => setShowNoteInput(!showNoteInput)}
+            type="button"
+          >
+            <div className="client-note-toggle-left">
+              <MessageCircle size={16} />
+              <span>Message Coach</span>
+            </div>
+            {clientNoteSaved && <span className="note-saved-badge">Saved</span>}
+            {showNoteInput ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          </button>
+
+          {showNoteInput && (
+            <div className="client-note-input-area">
+              <textarea
+                className="client-note-textarea"
+                placeholder="Leave a note for your coach about this exercise..."
+                value={clientNote}
+                onChange={(e) => handleClientNoteChange(e.target.value)}
+                rows={3}
+                maxLength={500}
+              />
+              <div className="client-note-actions">
+                <div className="client-note-actions-left">
+                  {isRecordingVoiceNote ? (
+                    <button
+                      className="voice-note-btn recording"
+                      onClick={stopVoiceNoteRecording}
+                      type="button"
+                    >
+                      <Square size={16} />
+                      <span>Stop</span>
+                    </button>
+                  ) : (
+                    <button
+                      className="voice-note-btn"
+                      onClick={startVoiceNoteRecording}
+                      disabled={voiceNoteUploading}
+                      type="button"
+                    >
+                      <Mic size={16} />
+                      <span>{voiceNoteUploading ? 'Uploading...' : 'Voice Note'}</span>
+                    </button>
+                  )}
+                </div>
+                <div className="client-note-char-count">
+                  {clientNote.length}/500
+                </div>
+              </div>
+
+              {voiceNoteUrl && (
+                <div className="client-voice-note-preview">
+                  <audio controls src={voiceNoteUrl} preload="metadata" />
+                </div>
+              )}
+
+              {clientNote.trim() && (
+                <button
+                  className="client-note-send-btn"
+                  onClick={() => saveClientNote(clientNote)}
+                  type="button"
+                >
+                  <Send size={14} />
+                  <span>Send Note</span>
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
         {/* Exercise History Section */}
         <div className="exercise-history-section">
           <button className="exercise-history-toggle" onClick={toggleHistory} type="button">
@@ -2380,79 +2453,6 @@ function ExerciseDetailModal({
             <MessageCircle size={16} />
             <span>Ask Coach</span>
           </button>
-        </div>
-
-        {/* Message Coach */}
-        <div className="client-note-for-coach-section">
-          <button
-            className="client-note-toggle"
-            onClick={() => setShowNoteInput(!showNoteInput)}
-            type="button"
-          >
-            <div className="client-note-toggle-left">
-              <MessageCircle size={16} />
-              <span>Message Coach</span>
-            </div>
-            {clientNoteSaved && <span className="note-saved-badge">Saved</span>}
-            {showNoteInput ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-          </button>
-
-          {showNoteInput && (
-            <div className="client-note-input-area">
-              <textarea
-                className="client-note-textarea"
-                placeholder="Leave a note for your coach about this exercise..."
-                value={clientNote}
-                onChange={(e) => handleClientNoteChange(e.target.value)}
-                rows={3}
-                maxLength={500}
-              />
-              <div className="client-note-actions">
-                <div className="client-note-actions-left">
-                  {isRecordingVoiceNote ? (
-                    <button
-                      className="voice-note-btn recording"
-                      onClick={stopVoiceNoteRecording}
-                      type="button"
-                    >
-                      <Square size={16} />
-                      <span>Stop</span>
-                    </button>
-                  ) : (
-                    <button
-                      className="voice-note-btn"
-                      onClick={startVoiceNoteRecording}
-                      disabled={voiceNoteUploading}
-                      type="button"
-                    >
-                      <Mic size={16} />
-                      <span>{voiceNoteUploading ? 'Uploading...' : 'Voice Note'}</span>
-                    </button>
-                  )}
-                </div>
-                <div className="client-note-char-count">
-                  {clientNote.length}/500
-                </div>
-              </div>
-
-              {voiceNoteUrl && (
-                <div className="client-voice-note-preview">
-                  <audio controls src={voiceNoteUrl} preload="metadata" />
-                </div>
-              )}
-
-              {clientNote.trim() && (
-                <button
-                  className="client-note-send-btn"
-                  onClick={() => saveClientNote(clientNote)}
-                  type="button"
-                >
-                  <Send size={14} />
-                  <span>Send Note</span>
-                </button>
-              )}
-            </div>
-          )}
         </div>
 
         {/* Activity Progress */}
