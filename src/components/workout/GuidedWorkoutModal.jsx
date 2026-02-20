@@ -1036,18 +1036,27 @@ function GuidedWorkoutModal({
     const rec = aiRecommendations[currentExIndex];
     if (!rec) return;
 
-    // Apply recommended reps and weight to all sets
+    // Build the updated logs with recommended values
+    const updatedLogs = (setLogsRef.current[currentExIndex] || []).map(set => ({
+      ...set,
+      reps: rec.reps,
+      weight: rec.weight
+    }));
+
+    // Apply recommended reps and weight to all sets (triggers re-render)
     setSetLogs(prev => {
       const updated = { ...prev };
-      if (updated[currentExIndex]) {
-        updated[currentExIndex] = updated[currentExIndex].map(set => ({
-          ...set,
-          reps: rec.reps,
-          weight: rec.weight
-        }));
-      }
+      updated[currentExIndex] = updatedLogs;
       return updated;
     });
+
+    // Immediately sync the ref so persistExerciseData reads the new values
+    // (ref is normally synced during render, but we need it before the next render)
+    setLogsRef.current = { ...setLogsRef.current, [currentExIndex]: updatedLogs };
+
+    // Persist to parent/backend right away so accepted values are saved immediately
+    const persist = persistExerciseDataRef.current;
+    if (persist) persist(currentExIndex);
 
     setAcceptedRecommendation(prev => ({ ...prev, [currentExIndex]: true }));
   }, [currentExIndex, aiRecommendations]);
@@ -1623,17 +1632,23 @@ function GuidedWorkoutModal({
       }
     }));
 
-    // Also update all set logs with the new value
+    // Build updated logs with the new value
+    const updatedLogs = (setLogsRef.current[currentExIndex] || []).map(set => ({
+      ...set,
+      [field]: numValue
+    }));
+
+    // Update all set logs with the new value
     setSetLogs(prev => {
       const updated = { ...prev };
-      if (updated[currentExIndex]) {
-        updated[currentExIndex] = updated[currentExIndex].map(set => ({
-          ...set,
-          [field]: numValue
-        }));
-      }
+      updated[currentExIndex] = updatedLogs;
       return updated;
     });
+
+    // Immediately sync ref and persist so edited recommendation values are saved
+    setLogsRef.current = { ...setLogsRef.current, [currentExIndex]: updatedLogs };
+    const persist = persistExerciseDataRef.current;
+    if (persist) persist(currentExIndex);
   }, [currentExIndex]);
 
   // --- Persist set data to parent when exercise changes or completes ---
