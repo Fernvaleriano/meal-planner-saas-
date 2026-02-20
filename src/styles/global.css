@@ -16671,32 +16671,6 @@ a.nav-left {
     color: #6b7280;
 }
 
-[data-theme="light"] .exercise-card-v2 .coach-note {
-    background: rgba(245, 158, 11, 0.08);
-    border-top-color: rgba(245, 158, 11, 0.15);
-}
-
-[data-theme="light"] .exercise-card-v2 .note-label {
-    color: #b45309;
-}
-
-[data-theme="light"] .exercise-card-v2 .note-text {
-    color: #92400e;
-}
-
-[data-theme="light"] .exercise-card-v2 .coach-voice-note {
-    background: linear-gradient(135deg, rgba(13, 148, 136, 0.08) 0%, rgba(2, 132, 199, 0.08) 100%);
-    border-top-color: rgba(13, 148, 136, 0.2);
-}
-
-[data-theme="light"] .exercise-card-v2 .coach-voice-note .note-label {
-    color: #0f766e;
-}
-
-[data-theme="light"] .exercise-card-v2 .coach-voice-note .note-label svg {
-    color: #0f766e;
-}
-
 [data-theme="light"] .exercise-card-v2 .skip-rest-btn {
     background: #f3f4f6;
     border-color: #e5e7eb;
