@@ -37,6 +37,7 @@ exports.handler = async (event) => {
       return { statusCode: 403, headers, body: JSON.stringify({ error: 'Not authorized to delete this file' }) };
     }
 
+    // Delete the video file from storage
     const { error } = await supabase.storage
       .from('workout-assets')
       .remove([filePath]);
@@ -46,10 +47,44 @@ exports.handler = async (event) => {
       throw error;
     }
 
+    // Also delete any custom exercises that reference this video file.
+    // The animation_url/video_url contain signed URLs with the file path embedded,
+    // so we match on the file path substring.
+    let deletedExerciseIds = [];
+    try {
+      const fileName = filePath.split('/').pop();
+      const { data: matchingExercises } = await supabase
+        .from('exercises')
+        .select('id')
+        .eq('coach_id', coachId)
+        .eq('is_custom', true)
+        .or(`animation_url.like.%${fileName}%,video_url.like.%${fileName}%`);
+
+      if (matchingExercises && matchingExercises.length > 0) {
+        deletedExerciseIds = matchingExercises.map(e => e.id);
+        const { error: delExError } = await supabase
+          .from('exercises')
+          .delete()
+          .in('id', deletedExerciseIds);
+
+        if (delExError) {
+          console.error('Error deleting associated exercises:', delExError);
+          // Don't throw - video was already deleted successfully
+        }
+      }
+    } catch (exErr) {
+      console.error('Error cleaning up exercises for deleted video:', exErr);
+      // Don't throw - video was already deleted successfully
+    }
+
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify({ success: true, deletedPath: filePath })
+      body: JSON.stringify({
+        success: true,
+        deletedPath: filePath,
+        deletedExerciseIds
+      })
     };
 
   } catch (err) {
