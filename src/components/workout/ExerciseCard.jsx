@@ -871,6 +871,31 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
           </div>
         </div>
 
+        {/* Coach Notes - positioned above sets for visibility */}
+        {exercise.notes && (
+          <div className="coach-note">
+            <span className="note-label">Coach Note:</span>
+            <span className="note-text">{exercise.notes}</span>
+          </div>
+        )}
+
+        {/* Coach's Voice Note — preload="none" prevents 10+ concurrent audio
+            metadata loads that can overwhelm iOS media subsystem */}
+        {exercise.voiceNoteUrl && (
+          <div className="coach-voice-note">
+            <span className="note-label">
+              <Mic size={14} />
+              Coach's Voice Note:
+            </span>
+            <audio
+              controls
+              src={exercise.voiceNoteUrl}
+              className="voice-note-audio"
+              preload="none"
+            />
+          </div>
+        )}
+
         {/* SETS ZONE - Swipe for add set */}
         <div className="sets-swipe-zone">
           {/* Add Set Button (behind the sets row) */}
@@ -1076,31 +1101,6 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
           </div>
         </div>
       )}
-
-      {/* Coach Notes */}
-        {exercise.notes && (
-          <div className="coach-note">
-            <span className="note-label">Coach Note:</span>
-            <span className="note-text">{exercise.notes}</span>
-          </div>
-        )}
-
-        {/* Coach's Voice Note — preload="none" prevents 10+ concurrent audio
-            metadata loads that can overwhelm iOS media subsystem */}
-        {exercise.voiceNoteUrl && (
-          <div className="coach-voice-note">
-            <span className="note-label">
-              <Mic size={14} />
-              Coach's Voice Note:
-            </span>
-            <audio
-              controls
-              src={exercise.voiceNoteUrl}
-              className="voice-note-audio"
-              preload="none"
-            />
-          </div>
-        )}
 
         {/* Reference Links */}
         {exercise.reference_links && exercise.reference_links.length > 0 && (
