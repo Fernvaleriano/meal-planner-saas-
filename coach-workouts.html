@@ -3373,6 +3373,34 @@
             text-transform: uppercase;
         }
 
+        .delete-custom-exercise-btn {
+            position: absolute;
+            bottom: 6px;
+            right: 6px;
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            border: none;
+            background: rgba(239, 68, 68, 0.15);
+            color: #ef4444;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: all 0.2s;
+            z-index: 5;
+        }
+
+        .exercise-card:hover .delete-custom-exercise-btn {
+            opacity: 1;
+        }
+
+        .delete-custom-exercise-btn:hover {
+            background: #ef4444;
+            color: white;
+        }
+
         /* Recording indicator for custom exercise */
         .ce-recording-indicator {
             display: flex;
@@ -6906,6 +6934,9 @@
                     </div>
                     <div class="exercise-card-meta">${ex.muscle_group || ex.primary_muscles || 'General'}${ex.equipment ? ' • ' + ex.equipment : ''}</div>
                     ${secondaryMuscles ? `<div class="exercise-card-secondary">Also: ${secondaryMuscles}</div>` : ''}
+                    ${ex.is_custom ? `<button class="delete-custom-exercise-btn" onclick="event.stopPropagation(); deleteCustomExercise(${ex.id}, '${ex.name.replace(/'/g, "\\'")}')" title="Delete custom exercise">
+                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                    </button>` : ''}
                 </div>
             `}).join('');
 
@@ -9042,6 +9073,24 @@
             `).join('')}</div>`;
         }
 
+        async function deleteCustomExercise(exerciseId, exerciseName) {
+            if (!confirm(`Delete custom exercise "${exerciseName}"?\n\nThis cannot be undone.`)) return;
+
+            try {
+                await apiCall(`/.netlify/functions/exercises?exerciseId=${exerciseId}`, {
+                    method: 'DELETE'
+                });
+
+                // Remove from local exercises array
+                exercises = exercises.filter(ex => ex.id !== exerciseId);
+                renderExerciseGrid();
+                showToast(`"${exerciseName}" deleted`, 'success');
+            } catch (err) {
+                console.error('Failed to delete custom exercise:', err);
+                showToast('Failed to delete exercise: ' + (err.message || 'Unknown error'), 'error');
+            }
+        }
+
         async function saveCustomExercise() {
             const name = document.getElementById('ceExerciseName').value.trim();
             const muscleGroup = document.getElementById('ceMuscleGroup').value;
@@ -9733,20 +9782,26 @@
             const video = myVideosCache[index];
             if (!video) return;
 
-            if (!confirm(`Delete "${video.name}"?\n\nThis will permanently remove the video file. Any exercises using this video will no longer show it.`)) {
+            if (!confirm(`Delete "${video.name}"?\n\nThis will permanently remove the video file and any custom exercises that use it.`)) {
                 return;
             }
 
             try {
                 showToast('Deleting video...', 'success');
-                await apiCall('/.netlify/functions/delete-coach-video', {
+                const result = await apiCall('/.netlify/functions/delete-coach-video', {
                     method: 'POST',
                     body: JSON.stringify({ coachId: currentCoachId, filePath: video.filePath })
                 });
 
+                // Remove associated exercises from local cache
+                if (result.deletedExerciseIds && result.deletedExerciseIds.length > 0) {
+                    const deletedSet = new Set(result.deletedExerciseIds);
+                    exercises = exercises.filter(ex => !deletedSet.has(ex.id));
+                }
+
                 myVideosCache.splice(index, 1);
                 filterMyVideos();
-                showToast('Video deleted', 'success');
+                showToast('Video and associated exercises deleted', 'success');
             } catch (err) {
                 console.error('Failed to delete video:', err);
                 showToast('Failed to delete video', 'error');
