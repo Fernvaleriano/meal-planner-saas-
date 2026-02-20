@@ -2348,12 +2348,12 @@ function GuidedWorkoutModal({
           </div>
         )}
 
-        {/* Reference Links */}
+        {/* Technique Tutorials */}
         {currentExercise.reference_links && currentExercise.reference_links.length > 0 && (
           <div className="guided-reference-links">
             <div className="guided-reference-links-label">
               <ExternalLink size={14} />
-              <span>Reference Links</span>
+              <span>Technique Tutorials</span>
             </div>
             <div className="guided-reference-links-list">
               {currentExercise.reference_links.map((link, idx) => (

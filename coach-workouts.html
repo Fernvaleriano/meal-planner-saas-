@@ -4175,8 +4175,8 @@
                         <span class="save-dropdown-item-desc">Save changes and apply them to all clients using this program</span>
                     </button>
                     <button class="save-dropdown-item" onclick="backfillReferenceLinks(); closeSaveDropdown();">
-                        <span class="save-dropdown-item-title">Sync Reference Links to All Workouts</span>
-                        <span class="save-dropdown-item-desc">Add your saved global reference links to all existing programs, assignments &amp; client workouts</span>
+                        <span class="save-dropdown-item-title">Sync Technique Tutorials to All Workouts</span>
+                        <span class="save-dropdown-item-desc">Add your saved global technique tutorials to all existing programs, assignments &amp; client workouts</span>
                     </button>
                 </div>
             </div>
@@ -5274,7 +5274,7 @@
 
                 <!-- Reference Links Section -->
                 <div class="custom-exercise-form-group">
-                    <label>Reference Links (optional)</label>
+                    <label>Technique Tutorials (optional)</label>
                     <p style="font-size: 12px; color: var(--text-muted); margin: 0 0 8px 0;">Add YouTube, Instagram, or any URL for exercise demos and form guides</p>
                     <div id="ceReferenceLinksContainer">
                         <div id="ceReferenceLinksList"></div>
@@ -5833,7 +5833,7 @@
                                 <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
                                 </svg>
-                                Reference Links
+                                Technique Tutorials
                                 ${hasGlobalRefs(exercise.name) ? '<span class="global-ref-badge"><svg width="10" height="10" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg> Saved globally</span>' : ''}
                             </div>
                             ${(exercise.reference_links && exercise.reference_links.length > 0) ? `
@@ -5976,7 +5976,7 @@
 
             input.value = '';
             renderWorkoutDays();
-            showToast('Reference link added');
+            showToast('Technique tutorial added');
         }
 
         function removeReferenceLink(dayIndex, exIndex, linkIndex) {
@@ -6017,7 +6017,7 @@
         async function saveRefsGlobally(dayIndex, exIndex) {
             const exercise = workoutDays[dayIndex].exercises[exIndex];
             if (!exercise.reference_links || exercise.reference_links.length === 0) {
-                showToast('Add reference links first before saving globally', 'error');
+                showToast('Add technique tutorials first before saving globally', 'error');
                 return;
             }
 
@@ -6062,7 +6062,7 @@
             });
 
             if (addedCount > 0) {
-                showToast(`Loaded ${addedCount} global reference link${addedCount > 1 ? 's' : ''}`);
+                showToast(`Loaded ${addedCount} global technique tutorial${addedCount > 1 ? 's' : ''}`);
                 renderWorkoutDays();
             } else {
                 showToast('All global links already added');
@@ -6090,10 +6090,10 @@
                 showToast('No coach ID available', 'error');
                 return;
             }
-            if (!confirm('This will add your saved global reference links to ALL existing workout programs, client assignments, and ad-hoc workouts. Continue?')) return;
+            if (!confirm('This will add your saved global technique tutorials to ALL existing workout programs, client assignments, and ad-hoc workouts. Continue?')) return;
 
             try {
-                showToast('Backfilling reference links... This may take a moment.');
+                showToast('Backfilling technique tutorials... This may take a moment.');
                 const result = await apiCall('/.netlify/functions/backfill-reference-links', {
                     method: 'POST',
                     body: JSON.stringify({ coachId: currentCoachId })

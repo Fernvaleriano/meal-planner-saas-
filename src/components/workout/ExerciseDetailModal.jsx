@@ -2343,12 +2343,12 @@ function ExerciseDetailModal({
           </div>
         )}
 
-        {/* Reference Links */}
+        {/* Technique Tutorials */}
         {exercise.reference_links && exercise.reference_links.length > 0 && (
           <div className="coach-reference-links-section">
             <div className="reference-links-header">
               <ExternalLink size={16} />
-              <span>Reference Links</span>
+              <span>Technique Tutorials</span>
             </div>
             <div className="reference-links-list-modal">
               {exercise.reference_links.map((link, idx) => (

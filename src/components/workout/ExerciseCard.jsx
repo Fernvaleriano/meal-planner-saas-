@@ -1102,12 +1102,12 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
           </div>
         )}
 
-        {/* Reference Links */}
+        {/* Technique Tutorials */}
         {exercise.reference_links && exercise.reference_links.length > 0 && (
           <div className="coach-reference-links">
             <span className="note-label">
               <ExternalLink size={14} />
-              Reference Links:
+              Technique Tutorials:
             </span>
             <div className="reference-links-list">
               {exercise.reference_links.map((link, idx) => (
