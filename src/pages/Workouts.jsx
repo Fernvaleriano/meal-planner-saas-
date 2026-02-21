@@ -1129,11 +1129,20 @@ function Workouts() {
         }
       }
 
+      // Preserve set count and structure but reset per-set weight to 0.
+      // Different exercises use different loads (e.g. barbell deadlift 140kg
+      // vs kettlebell single-leg deadlift), so carrying over the old weight
+      // after a swap is misleading.
+      let swapSets = oldExercise.sets;
+      if (Array.isArray(swapSets)) {
+        swapSets = swapSets.map(s => ({ ...s, weight: 0, completed: false }));
+      }
+
       const swappedExercise = {
         ...oldExercise,
         ...newExercise,
         // Preserve the workout-specific properties from the old exercise
-        sets: oldExercise.sets,
+        sets: swapSets,
         reps: oldExercise.reps,
         restSeconds: oldExercise.restSeconds,
         notes: oldExercise.notes,

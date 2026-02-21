@@ -11503,7 +11503,10 @@
                     newExercise.sets = old.sets || 3;
                     newExercise.reps = old.reps || '10';
                     newExercise.restSeconds = old.restSeconds || 60;
-                    newExercise.setsData = old.setsData;
+                    // Reset per-set weight to 0 — different exercises use different loads
+                    if (Array.isArray(old.setsData)) {
+                        newExercise.setsData = old.setsData.map(s => ({ ...s, weight: 0, completed: false }));
+                    }
                     exercises[acSwapExerciseIndex] = newExercise;
                 }
 
