@@ -118,12 +118,17 @@ function CreateWorkoutModal({ onClose, onCreateWorkout, selectedDate, coachId = 
     if (!swapExerciseData || !newExercise) return;
     setExercises(prev => prev.map(ex => {
       if (String(ex.id) === String(swapExerciseData.id) && ex === swapExerciseData) {
-        // Preserve workout-specific config, overlay new exercise data
+        // Preserve workout-specific config, overlay new exercise data.
+        // Reset per-set weight to 0 — different exercises use different loads.
         const isTimedByDefault = newExercise.duration || newExercise.exercise_type === 'cardio' ||
           newExercise.exercise_type === 'interval' || newExercise.exercise_type === 'flexibility';
+        let swapSets = ex.sets;
+        if (Array.isArray(swapSets)) {
+          swapSets = swapSets.map(s => ({ ...s, weight: 0, completed: false }));
+        }
         return {
           ...newExercise,
-          sets: ex.sets,
+          sets: swapSets,
           reps: ex.reps,
           duration: ex.duration,
           trackingType: isTimedByDefault ? 'time' : ex.trackingType,
