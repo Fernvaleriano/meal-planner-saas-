@@ -188,7 +188,7 @@ function isWarmupExercise(name) {
     'marching in place', 'front rotation',
     'push-up wall', 'push up wall',
     'jump rope', 'jumping jack', 'high knee', 'butt kick',
-    'mountain climber', 'bear crawl', 'inchworm',
+    'bear crawl', 'inchworm',
     'arm circle', 'arm swing', 'leg swing', 'hip circle', 'torso twist',
     'march', 'jogging', 'jog in place'
   ];
@@ -202,7 +202,9 @@ function isStretchExercise(name) {
     'flexibility', 'static hold', 'foam roll',
     'child pose', 'pigeon', 'downward dog',
     'cobra', 'cat cow', 'dead hang',
-    'knee to chest', 'full body stretch'
+    'knee to chest', 'full body stretch',
+    'hip flexor stretch', 'kneeling hip flexor',
+    'glute stretch', 'quad stretch', 'hamstring stretch'
   ];
   return stretchKeywords.some(kw => lower.includes(kw));
 }
@@ -290,6 +292,14 @@ Rules:
 - Rest: convert to seconds (90s=90, 2 min=120, 75s=75, -=0). If no rest column, use 0 for warmups/stretches, 90 for compounds, 60 for isolation.
 - Keep reps as string if ranges or units (e.g. "8-10", "2 min", "30s each")
 
+HIIT / Interval / Circuit Training Rules:
+- If the workout uses rounds (Round 1, Round 2, etc.) with time-based intervals, this is HIIT/interval training.
+- GROUP repeated exercises across rounds: if "Box jump, 30 sec" appears in Rounds 1, 2, and 3, output ONE exercise entry with sets=3, reps="30 sec".
+- If the same exercise appears in different round groups with DIFFERENT durations (e.g. "Burpee, 30 sec" in rounds 1-3 and "Burpee, 20 sec" in rounds 4-6), output them as SEPARATE exercise entries.
+- For time-based exercises (e.g. "30 sec", "1 min", "40 sec", "20 sec"), set reps to the time string (e.g. "30 sec", "1 min", "40 sec").
+- Warm-up and cool-down exercises in HIIT are typically 1 set each with time-based reps like "1 min".
+- Preserve the order: warm-up exercises first, then working exercises in the order they appear across round groups, then cool-down exercises last.
+
 Return JSON:
 {"name":"Day 1: Push","exercises":[{"originalName":"Bench press","muscleGroup":"chest","sets":4,"reps":"8-10","restSeconds":90,"notes":"coaching note","isWarmup":false,"isStretch":false,"isSuperset":false,"supersetGroup":null}]}`;
 
@@ -313,15 +323,15 @@ Return JSON:
       return allExercises;
     })();
 
-    // Parse each day chunk in parallel with Haiku (each fits easily in 4096 tokens)
+    // Parse each day chunk in parallel with Haiku
     const dayParsePromises = dayChunks.map((chunk, i) =>
       anthropic.messages.create({
         model: 'claude-3-5-haiku-20241022',
-        max_tokens: 4096,
+        max_tokens: 8192,
         system: daySystemPrompt,
         messages: [{
           role: 'user',
-          content: `Parse ALL exercises from this workout day. Return only valid JSON.\n\n${chunk}`
+          content: `Parse ALL exercises from this workout day. Group repeated exercises across rounds into single entries with the appropriate number of sets. Return only valid JSON, no markdown fences.\n\n${chunk}`
         }]
       }).then(msg => {
         const text = msg.content[0]?.text || '';
@@ -329,9 +339,16 @@ Return JSON:
           const parsed = JSON.parse(text.trim());
           return parsed;
         } catch (e) {
+          // Try to extract JSON from markdown code fences or surrounding text
+          const fenceMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+          if (fenceMatch) {
+            try { return JSON.parse(fenceMatch[1].trim()); } catch (e2) { /* fall through */ }
+          }
           const match = text.match(/\{[\s\S]*\}/);
-          if (match) return JSON.parse(match[0]);
-          console.error(`Failed to parse day ${i + 1}:`, text.substring(0, 200));
+          if (match) {
+            try { return JSON.parse(match[0]); } catch (e2) { /* fall through */ }
+          }
+          console.error(`Failed to parse day ${i + 1}:`, text.substring(0, 500));
           return null;
         }
       }).catch(err => {
@@ -342,14 +359,31 @@ Return JSON:
 
     // Also try to extract program metadata from header
     let programMeta = { programName: 'Imported Program', description: '', goal: 'hypertrophy', difficulty: 'intermediate' };
-    if (programHeader.length > 30) {
-      // Quick extract from header text
-      const nameMatch = programHeader.match(/(?:IRON ARCHITECTURE|PROGRAM|PROTOCOL)[^\n]*/i);
+    if (programHeader.length > 10) {
+      // Quick extract from header text - try to get the first meaningful line as the program name
+      const headerLines = programHeader.trim().split('\n').map(l => l.trim()).filter(l => l.length > 3);
+      if (headerLines.length > 0) {
+        // Use the first non-trivial line as program name
+        programMeta.programName = headerLines[0];
+      }
+      // Also try specific patterns
+      const nameMatch = programHeader.match(/(?:IRON ARCHITECTURE|PROTOCOL)[^\n]*/i);
       if (nameMatch) programMeta.programName = nameMatch[0].trim();
-      if (/hypertrophy/i.test(programHeader)) programMeta.goal = 'hypertrophy';
-      else if (/strength/i.test(programHeader)) programMeta.goal = 'strength';
+
+      // Detect goal from header content
+      if (/hiit|high\s*intensity\s*interval|interval\s*training|conditioning/i.test(programHeader)) programMeta.goal = 'endurance';
+      else if (/hypertrophy|muscle\s*building|mass/i.test(programHeader)) programMeta.goal = 'hypertrophy';
+      else if (/strength|powerlifting|power/i.test(programHeader)) programMeta.goal = 'strength';
+      else if (/weight\s*loss|fat\s*loss|lean/i.test(programHeader)) programMeta.goal = 'weight_loss';
+      else if (/general|fitness|wellness/i.test(programHeader)) programMeta.goal = 'general';
+
       if (/advanced/i.test(programHeader)) programMeta.difficulty = 'advanced';
       else if (/beginner/i.test(programHeader)) programMeta.difficulty = 'beginner';
+
+      // Build description from remaining header lines
+      if (headerLines.length > 1) {
+        programMeta.description = headerLines.slice(1).join('. ');
+      }
     }
 
     // Wait for everything in parallel
@@ -380,8 +414,9 @@ Return JSON:
       for (const ex of (day.exercises || [])) {
         matchStats.total++;
 
-        const detectedWarmup = ex.isWarmup || isWarmupExercise(ex.originalName);
-        const detectedStretch = ex.isStretch || isStretchExercise(ex.originalName);
+        // Trust the AI's explicit classification; only fall back to keyword detection if not set
+        const detectedWarmup = ex.isWarmup != null ? ex.isWarmup : isWarmupExercise(ex.originalName);
+        const detectedStretch = ex.isStretch != null ? ex.isStretch : isStretchExercise(ex.originalName);
         const detectedSuperset = ex.isSuperset || false;
         const detectedSupersetGroup = ex.supersetGroup || null;
 
