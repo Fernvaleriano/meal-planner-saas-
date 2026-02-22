@@ -74,11 +74,14 @@ function AskCoachChat({ exercise, onClose }) {
 
   // Add welcome message on mount
   useEffect(() => {
+    const hasInstructions = exercise?.instructions;
     setMessages([{
       role: 'coach',
-      text: `Hi! I'm your AI coach. Ask me anything about ${exercise?.name || 'this exercise'} - form tips, equipment alternatives, common mistakes, or anything else!`
+      text: hasInstructions
+        ? `Hi! I'm your AI coach. I've loaded your custom instructions for ${exercise?.name || 'this exercise'} and will use them to guide my answers. Ask me anything - form tips, equipment alternatives, common mistakes, or anything else!`
+        : `Hi! I'm your AI coach. Ask me anything about ${exercise?.name || 'this exercise'} - form tips, equipment alternatives, common mistakes, or anything else!`
     }]);
-  }, [exercise?.name]);
+  }, [exercise?.name, exercise?.instructions]);
 
   // Categorize exercise by movement pattern for smarter responses
   const getExerciseCategory = (name) => {

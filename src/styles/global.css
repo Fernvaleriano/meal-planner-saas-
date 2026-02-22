@@ -18344,6 +18344,36 @@ a.nav-left {
     opacity: 0.8;
 }
 
+/* Exercise Instructions Section in Modal */
+.exercise-instructions-section {
+    padding: 16px;
+    background: rgba(139, 92, 246, 0.1);
+    border-top: 1px solid rgba(139, 92, 246, 0.2);
+    border-bottom: 1px solid rgba(139, 92, 246, 0.2);
+}
+
+.exercise-instructions-section .exercise-instructions-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    color: #a78bfa;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.exercise-instructions-section .exercise-instructions-header svg {
+    color: #a78bfa;
+}
+
+.exercise-instructions-section .exercise-instructions-text {
+    color: #c4b5fd;
+    font-size: 14px;
+    line-height: 1.5;
+    margin: 0;
+    white-space: pre-wrap;
+}
+
 /* Coach Voice Note Section in Modal */
 .coach-voice-note-section {
     padding: 16px;
