@@ -1279,7 +1279,7 @@ function Workouts() {
       'thumbnail_url', 'video_url', 'calories_per_minute', 'is_compound',
       'is_unilateral', 'category', 'gender_variant', 'source',
       // Custom exercise fields
-      'is_custom', 'coach_id', 'customVideoPath',
+      'is_custom', 'coach_id', 'customVideoPath', 'instructions',
       // Config fields from AddActivityModal
       'sets', 'reps', 'weight', 'restSeconds', 'duration', 'repType',
       // Workout-specific fields
