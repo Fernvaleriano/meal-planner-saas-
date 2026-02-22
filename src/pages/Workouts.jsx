@@ -2925,17 +2925,11 @@ function Workouts() {
                     const cardExercises = getWorkoutExercises(workout);
                     const cardCompletedCount = getWorkoutCompletedCount(workout);
                     const cardImage = workout.workout_data?.image_url || null;
-                    const cardDayName = (() => {
-                      if (workout.workout_data?.name) return workout.workout_data.name;
-                      if (workout.workout_data?.days?.length > 0) {
-                        const di = workout.day_index || 0;
-                        const si = Math.abs(di) % workout.workout_data.days.length;
-                        return workout.workout_data.days[si]?.name || workout.name;
-                      }
-                      return workout.name || 'Workout';
-                    })();
+                    const cardDayName = workout.name || workout.workout_data?.name || 'Workout';
                     const totalDays = workout.workout_data?.days?.length || 0;
                     const currentDay = totalDays > 0 ? (workout.day_index || 0) + 1 : 0;
+                    const daySpecificName = workout.workout_data?.name && workout.workout_data.name !== workout.name
+                      ? workout.workout_data.name : null;
                     const estMinutes = estimateWorkoutMinutes(cardExercises) || workout.workout_data?.estimatedMinutes || null;
                     const estCalories = estimateWorkoutCalories(cardExercises) || workout.workout_data?.estimatedCalories || null;
 
@@ -2953,7 +2947,7 @@ function Workouts() {
                               {cardCompletedCount}/{cardExercises.length} activities done
                             </p>
                             {totalDays > 0 && (
-                              <p className="workout-card-day">Day {currentDay}/{totalDays}</p>
+                              <p className="workout-card-day">{daySpecificName ? `${daySpecificName} · ` : ''}Day {currentDay}/{totalDays}</p>
                             )}
                             <div className="workout-card-stats">
                               {estMinutes && (
