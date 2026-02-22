@@ -1,11 +1,12 @@
 // Netlify Function for importing workout programs from uploaded files (PDF text, etc.)
-// Parses the content using Claude AI, matches exercises against the database,
-// and returns a structured program with only matched exercises.
+// Parses the content using AI (GPT-4o-mini primary, Claude Haiku fallback),
+// matches exercises against the database, and returns a structured program.
 const Anthropic = require('@anthropic-ai/sdk');
 const { createClient } = require('@supabase/supabase-js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 const headers = {
   'Access-Control-Allow-Origin': '*',
@@ -67,16 +68,16 @@ function extractKeyWords(name) {
     'crossover', 'kickback', 'pullover', 'twist', 'rotation', 'hold', 'walk', 'step',
     'bicycle', 'russian', 'woodchop', 'rollout', 'climber', 'bug', 'bird', 'dog', 'hip',
     'bridge', 'thrust', 'flutter', 'scissor', 'hollow', 'situp', 'jackknife', 'march',
-    'stretch', 'rotation'];
+    'stretch', 'rotation', 'swing', 'running', 'run', 'jog', 'sprint', 'roller'];
 
   const equipmentWords = ['barbell', 'dumbbell', 'cable', 'machine', 'kettlebell', 'band',
-    'bodyweight', 'smith', 'ez', 'trap', 'hex', 'pulley', 'box'];
+    'bodyweight', 'smith', 'ez', 'trap', 'hex', 'pulley', 'box', 'treadmill', 'foam'];
 
   const positionWords = ['incline', 'decline', 'flat', 'seated', 'standing', 'lying',
-    'bent', 'reverse', 'close', 'wide', 'single', 'one', 'arm', 'leg', 'front'];
+    'bent', 'reverse', 'close', 'wide', 'single', 'one', 'arm', 'leg', 'front', 'kneeling'];
 
   const muscleWords = ['chest', 'back', 'shoulder', 'bicep', 'tricep', 'quad', 'hamstring',
-    'glute', 'calf', 'lat', 'pec', 'delt', 'trap', 'ab', 'core', 'deltoid'];
+    'glute', 'calf', 'lat', 'pec', 'delt', 'trap', 'ab', 'core', 'deltoid', 'hip'];
 
   const keyWords = [];
   for (const word of words) {
@@ -184,13 +185,13 @@ function isWarmupExercise(name) {
   const lower = name.toLowerCase();
   const warmupKeywords = [
     'warm up', 'warmup', 'warm-up',
-    'dynamic stretch', 'activation', 'mobility', 'light cardio',
+    'dynamic stretch', 'activation', 'light cardio',
     'marching in place', 'front rotation',
     'push-up wall', 'push up wall',
     'jump rope', 'jumping jack', 'high knee', 'butt kick',
     'bear crawl', 'inchworm',
     'arm circle', 'arm swing', 'leg swing', 'hip circle', 'torso twist',
-    'march', 'jogging', 'jog in place'
+    'jogging', 'jog in place'
   ];
   return warmupKeywords.some(kw => lower.includes(kw));
 }
@@ -209,6 +210,319 @@ function isStretchExercise(name) {
   return stretchKeywords.some(kw => lower.includes(kw));
 }
 
+// --- Regex-based fallback parser ---
+// Parses workout text without AI when both GPT-4o-mini and Haiku fail
+function fallbackParseDay(chunk) {
+  const lines = chunk.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+  if (lines.length === 0) return null;
+
+  // Try to extract day name from first line
+  let dayName = 'Workout';
+  const dayNameMatch = lines[0].match(/^(?:DAY\s+\d+[:\s]*)(.*)/i);
+  if (dayNameMatch) {
+    dayName = lines[0].replace(/\s+/g, ' ').trim();
+  } else if (lines[0].length < 80) {
+    dayName = lines[0];
+  }
+
+  const exercises = [];
+  let currentSection = 'working'; // warmup, working, cooldown
+  let currentNotes = '';
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+
+    // Detect section headers
+    if (/^warm[- ]?up/i.test(line)) { currentSection = 'warmup'; continue; }
+    if (/^(?:working\s*sets|main\s*set|block\s*[a-z])/i.test(line)) { currentSection = 'working'; continue; }
+    if (/^cool[- ]?down/i.test(line)) { currentSection = 'cooldown'; continue; }
+
+    // Skip section labels, headers, and non-exercise lines
+    if (/^(?:DAY\s+\d+|Block\s+[A-Z]:|WORKING|WARM|COOL|Coach note:|Week\s+\d)/i.test(line)) {
+      // Capture coach notes
+      if (/^Coach note:/i.test(line)) {
+        currentNotes = line.replace(/^Coach note:\s*/i, '');
+      }
+      continue;
+    }
+
+    // Try to parse exercise line: "Exercise Name, SetsxReps" or "Exercise Name, Duration"
+    // Patterns:
+    //   "Jogging, 5 min (flat, easy)"
+    //   "Dynamic Leg Swing, 1x10 (each leg)"
+    //   "Pigeon Glutes Stretch, 1x90 sec (each side)"
+    //   "Foam Roller Back, 2 min"
+    //   "Treadmill Running (incline 6-10%), 30-45 min continuous"
+    //   "Bench press - Barbell | 4 sets | 8-10 reps | 90s rest"
+
+    // Pattern 1: "Name, SetsxReps (notes)" or "Name, Duration (notes)"
+    let match = line.match(/^([A-Z][^,|]+),\s*(\d+)\s*x\s*(\d+\s*(?:sec|min|s)?(?:\s*\w+)?)\s*(?:\(([^)]+)\))?/i);
+    if (match) {
+      const name = match[1].trim();
+      const sets = parseInt(match[2], 10);
+      let reps = match[3].trim();
+      const extra = match[4] || '';
+      const notes = currentNotes || (extra ? extra : '');
+      currentNotes = '';
+
+      exercises.push({
+        originalName: name,
+        muscleGroup: guessMusclGroup(name),
+        sets: sets,
+        reps: reps,
+        restSeconds: currentSection === 'warmup' ? 0 : currentSection === 'cooldown' ? 0 : 60,
+        notes: notes,
+        isWarmup: currentSection === 'warmup',
+        isStretch: currentSection === 'cooldown' || isStretchExercise(name),
+        isSuperset: false,
+        supersetGroup: null
+      });
+      continue;
+    }
+
+    // Pattern 2: "Name, Duration" (e.g., "Jogging, 5 min")
+    match = line.match(/^([A-Z][^,|]+),\s*(\d+(?:-\d+)?)\s*(min(?:utes?)?|sec(?:onds?)?|s)\b(.*)/i);
+    if (match) {
+      const name = match[1].trim();
+      const dur = match[2];
+      const unit = match[3];
+      const rest = match[4] || '';
+      const extra = rest.match(/\(([^)]+)\)/);
+      const notes = currentNotes || (extra ? extra[1] : '');
+      currentNotes = '';
+
+      exercises.push({
+        originalName: name,
+        muscleGroup: guessMusclGroup(name),
+        sets: 1,
+        reps: `${dur} ${unit.startsWith('m') ? 'min' : 'sec'}`,
+        restSeconds: 0,
+        notes: notes,
+        isWarmup: currentSection === 'warmup' || isWarmupExercise(name),
+        isStretch: currentSection === 'cooldown' || isStretchExercise(name),
+        isSuperset: false,
+        supersetGroup: null
+      });
+      continue;
+    }
+
+    // Pattern 3: "Name | Sets sets | Reps reps | Rest rest" (table format)
+    match = line.match(/^([^|]+)\|?\s*(\d+)\s*sets?\s*\|?\s*([\d\-]+)\s*reps?\s*\|?\s*(\d+s?)\s*rest/i);
+    if (match) {
+      const name = match[1].trim().replace(/[-–]\s*$/, '').trim();
+      const notes = currentNotes || '';
+      currentNotes = '';
+
+      exercises.push({
+        originalName: name,
+        muscleGroup: guessMusclGroup(name),
+        sets: parseInt(match[2], 10),
+        reps: match[3],
+        restSeconds: parseInt(match[4], 10),
+        notes: notes,
+        isWarmup: currentSection === 'warmup',
+        isStretch: currentSection === 'cooldown' || isStretchExercise(name),
+        isSuperset: false,
+        supersetGroup: null
+      });
+      continue;
+    }
+
+    // Pattern 4: Just a name that looks like an exercise (capitalized, 2+ words, no colon)
+    if (/^[A-Z][a-z]/.test(line) && !line.includes(':') && line.split(/\s+/).length >= 2 && line.length < 60) {
+      // Check if it's followed by comma with details on same line we missed, or standalone
+      const name = line.replace(/,\s*$/, '').trim();
+      if (name.length > 3 && !(/^(?:Week|Block|Round|Set|Note)/i.test(name))) {
+        const notes = currentNotes || '';
+        currentNotes = '';
+
+        exercises.push({
+          originalName: name,
+          muscleGroup: guessMusclGroup(name),
+          sets: currentSection === 'warmup' || currentSection === 'cooldown' ? 1 : 3,
+          reps: currentSection === 'cooldown' ? '30 sec' : '10',
+          restSeconds: currentSection === 'warmup' ? 0 : currentSection === 'cooldown' ? 0 : 60,
+          notes: notes,
+          isWarmup: currentSection === 'warmup' || isWarmupExercise(name),
+          isStretch: currentSection === 'cooldown' || isStretchExercise(name),
+          isSuperset: false,
+          supersetGroup: null
+        });
+      }
+      continue;
+    }
+  }
+
+  if (exercises.length === 0) return null;
+
+  return {
+    name: dayName,
+    exercises: exercises
+  };
+}
+
+function guessMusclGroup(name) {
+  const lower = name.toLowerCase();
+  if (/chest|bench|push.?up|pec/.test(lower)) return 'chest';
+  if (/back|row|pull.?up|lat|deadlift/.test(lower)) return 'back';
+  if (/shoulder|delt|overhead|press/.test(lower)) return 'shoulders';
+  if (/bicep|curl/.test(lower)) return 'biceps';
+  if (/tricep|pushdown|extension/.test(lower)) return 'triceps';
+  if (/leg|squat|lunge|quad|hamstring|calf/.test(lower)) return 'legs';
+  if (/glute|hip|bridge|thrust/.test(lower)) return 'glutes';
+  if (/ab|core|crunch|plank/.test(lower)) return 'core';
+  if (/cardio|run|jog|treadmill|walk|sprint|cycling/.test(lower)) return 'cardio';
+  if (/stretch|foam|mobility|pigeon|flexor/.test(lower)) return 'flexibility';
+  return 'full_body';
+}
+
+// --- AI parsing functions ---
+
+const PARSE_SYSTEM_PROMPT = `You are a fitness program parser. Extract workout data from ONE day of a program and return valid JSON.
+
+Rules:
+- Extract EVERY exercise (warm-ups, working sets, cool-down, stretches, mobility work)
+- Preserve exact exercise names from the source text
+- Parse sets and reps: "1x10" means sets=1 reps="10", "3x8-10" means sets=3 reps="8-10"
+- For time-based work: "5 min" → sets=1 reps="5 min", "1x90 sec" → sets=1 reps="90 sec"
+- For continuous duration exercises (like "30-45 min continuous"), sets=1 reps="30-45 min"
+- Mark warm-up exercises with isWarmup=true
+- Mark cool-down/stretch/mobility exercises with isStretch=true
+- Include coaching notes from "Coach note:" lines in the notes field. Escape any double quotes in notes.
+- Detect supersets (A1/A2, B1/B2 patterns or explicit "Superset" labels): isSuperset=true, supersetGroup="A"/"B"/"C"
+- Rest: convert to seconds. If not specified, use 0 for warmups/stretches, 90 for compounds, 60 for isolation.
+- For HIIT/interval/circuit workouts with rounds: group repeated exercises across rounds. E.g. "Box jump, 30 sec" in Rounds 1-3 = one exercise with sets=3, reps="30 sec"
+- Ignore section headers like "Block A:", "WORKING SETS:", "WARM-UP:", week progressions ("Week 1-4: 30 min"), and other non-exercise text
+
+Return this exact JSON structure:
+{"name":"Day 1: Push","exercises":[{"originalName":"Bench press","muscleGroup":"chest","sets":4,"reps":"8-10","restSeconds":90,"notes":"","isWarmup":false,"isStretch":false,"isSuperset":false,"supersetGroup":null}]}`;
+
+const PARSE_USER_PROMPT = `Parse ALL exercises from this workout day into JSON. Return ONLY the JSON object, nothing else.\n\n`;
+
+async function parseWithGPT4oMini(chunk, chunkIndex) {
+  if (!OPENAI_API_KEY) {
+    throw new Error('OPENAI_API_KEY not configured');
+  }
+  const OpenAI = require('openai');
+  const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
+
+  const completion = await openai.chat.completions.create({
+    model: 'gpt-4o-mini',
+    response_format: { type: 'json_object' },
+    max_tokens: 4096,
+    temperature: 0.1,
+    messages: [
+      { role: 'system', content: PARSE_SYSTEM_PROMPT },
+      { role: 'user', content: PARSE_USER_PROMPT + chunk }
+    ]
+  });
+
+  const text = completion.choices?.[0]?.message?.content || '';
+  if (!text.trim()) {
+    throw new Error('Empty response from GPT-4o-mini');
+  }
+
+  // JSON mode guarantees valid JSON, but still parse carefully
+  const parsed = JSON.parse(text.trim());
+  if (!parsed.exercises || !Array.isArray(parsed.exercises)) {
+    throw new Error('Response missing exercises array');
+  }
+  console.log(`Day ${chunkIndex + 1}: GPT-4o-mini parsed ${parsed.exercises.length} exercises`);
+  return parsed;
+}
+
+async function parseWithHaiku(anthropic, chunk, chunkIndex) {
+  const msg = await anthropic.messages.create({
+    model: 'claude-3-5-haiku-20241022',
+    max_tokens: 8192,
+    system: PARSE_SYSTEM_PROMPT,
+    messages: [{
+      role: 'user',
+      content: PARSE_USER_PROMPT + chunk
+    }]
+  });
+
+  const text = msg.content[0]?.text || '';
+  if (!text.trim()) {
+    throw new Error('Empty response from Haiku');
+  }
+
+  // Try direct JSON parse
+  try {
+    const parsed = JSON.parse(text.trim());
+    if (parsed.exercises && Array.isArray(parsed.exercises)) {
+      console.log(`Day ${chunkIndex + 1}: Haiku parsed ${parsed.exercises.length} exercises`);
+      return parsed;
+    }
+  } catch (e) { /* try extraction */ }
+
+  // Try extracting from markdown fences
+  const fenceMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (fenceMatch) {
+    try {
+      const parsed = JSON.parse(fenceMatch[1].trim());
+      if (parsed.exercises && Array.isArray(parsed.exercises)) {
+        console.log(`Day ${chunkIndex + 1}: Haiku parsed ${parsed.exercises.length} exercises (from fence)`);
+        return parsed;
+      }
+    } catch (e) { /* try next */ }
+  }
+
+  // Try extracting the largest JSON object
+  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  if (jsonMatch) {
+    try {
+      const parsed = JSON.parse(jsonMatch[0]);
+      if (parsed.exercises && Array.isArray(parsed.exercises)) {
+        console.log(`Day ${chunkIndex + 1}: Haiku parsed ${parsed.exercises.length} exercises (extracted)`);
+        return parsed;
+      }
+    } catch (e) { /* fall through */ }
+  }
+
+  throw new Error(`Haiku returned unparseable response: ${text.substring(0, 200)}`);
+}
+
+// Parse a single day chunk with GPT-4o-mini → Haiku fallback → regex fallback
+async function parseDayChunk(anthropic, chunk, chunkIndex) {
+  const errors = [];
+
+  // Attempt 1: GPT-4o-mini with JSON mode
+  try {
+    return await parseWithGPT4oMini(chunk, chunkIndex);
+  } catch (err) {
+    errors.push(`GPT-4o-mini: ${err.message}`);
+    console.error(`Day ${chunkIndex + 1} GPT-4o-mini failed:`, err.message);
+  }
+
+  // Attempt 2: Claude Haiku fallback
+  try {
+    if (anthropic) {
+      return await parseWithHaiku(anthropic, chunk, chunkIndex);
+    }
+  } catch (err) {
+    errors.push(`Haiku: ${err.message}`);
+    console.error(`Day ${chunkIndex + 1} Haiku failed:`, err.message);
+  }
+
+  // Attempt 3: Regex-based fallback parser
+  try {
+    const result = fallbackParseDay(chunk);
+    if (result && result.exercises && result.exercises.length > 0) {
+      console.log(`Day ${chunkIndex + 1}: Regex fallback parsed ${result.exercises.length} exercises`);
+      return result;
+    }
+    errors.push('Regex fallback: No exercises found');
+  } catch (err) {
+    errors.push(`Regex fallback: ${err.message}`);
+    console.error(`Day ${chunkIndex + 1} regex fallback failed:`, err.message);
+  }
+
+  console.error(`Day ${chunkIndex + 1} all parsers failed:`, errors.join(' | '));
+  return { _errors: errors }; // Return errors instead of null so we can surface them
+}
+
+
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers, body: '' };
@@ -224,11 +538,11 @@ exports.handler = async (event) => {
 
   const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
-  if (!ANTHROPIC_API_KEY) {
+  if (!OPENAI_API_KEY && !ANTHROPIC_API_KEY) {
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ success: false, error: 'API key not configured.' })
+      body: JSON.stringify({ success: false, error: 'No AI API key configured (need OPENAI_API_KEY or ANTHROPIC_API_KEY).' })
     };
   }
 
@@ -252,22 +566,29 @@ exports.handler = async (event) => {
       };
     }
 
-    // Truncate very long inputs to avoid token limits
-    const trimmedContent = fileContent.length > 20000 ? fileContent.substring(0, 20000) : fileContent;
+    // Sanitize input: normalize line endings, remove non-printable chars, collapse excess whitespace
+    let trimmedContent = fileContent.length > 20000 ? fileContent.substring(0, 20000) : fileContent;
+    trimmedContent = trimmedContent
+      .replace(/\r\n/g, '\n')
+      .replace(/\r/g, '\n')
+      .replace(/[^\x20-\x7E\n\t]/g, ' ')  // Replace non-printable/non-ASCII with space
+      .replace(/\t/g, '  ')
+      .replace(/ {3,}/g, '  '); // Collapse excessive spaces
+
     console.log(`Importing workout program from text (${trimmedContent.length} chars)`);
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
-    const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
+    const anthropic = ANTHROPIC_API_KEY ? new Anthropic({ apiKey: ANTHROPIC_API_KEY }) : null;
 
     // Split text into day chunks for parallel parsing
-    // Look for patterns like "DAY 1:", "DAY 2:", etc.
+    // Look for patterns like "DAY 1:", "Day 2 -", "DAY 3", etc.
     const dayChunks = [];
-    const dayPattern = /(?=DAY\s+\d+[:\s])/i;
-    const parts = trimmedContent.split(dayPattern).filter(p => p.trim().length > 50);
+    const dayPattern = /(?=\bDAY\s+\d+\b)/i;
+    const parts = trimmedContent.split(dayPattern).filter(p => p.trim().length > 30);
 
     // Extract program header (everything before Day 1)
     let programHeader = '';
-    if (parts.length > 0 && !/^DAY\s+\d+/i.test(parts[0].trim())) {
+    if (parts.length > 0 && !/^\s*DAY\s+\d+/i.test(parts[0].trim())) {
       programHeader = parts.shift();
     }
 
@@ -279,29 +600,6 @@ exports.handler = async (event) => {
     }
 
     console.log(`Split into ${dayChunks.length} day chunks`);
-
-    const daySystemPrompt = `You are a fitness program parser. Extract workout data from ONE day of a program. Return ONLY valid JSON, no markdown.
-
-Rules:
-- Extract EVERY exercise (warm-ups, main exercises, cool-down stretches)
-- Preserve exact exercise names from the source
-- Preserve sets, reps, rest periods, coaching notes
-- Mark warm-up exercises: isWarmup=true
-- Mark cool-down/stretch exercises: isStretch=true
-- Detect supersets: if exercises are grouped as a superset (indicated by labels like "Superset", "SS", "A1/A2", "B1/B2", paired exercises, or explicit superset notation), set isSuperset=true and assign a supersetGroup letter ("A", "B", or "C"). Exercises sharing the same superset group letter are performed together. For example, A1 and A2 both get supersetGroup "A", B1 and B2 both get supersetGroup "B".
-- Rest: convert to seconds (90s=90, 2 min=120, 75s=75, -=0). If no rest column, use 0 for warmups/stretches, 90 for compounds, 60 for isolation.
-- Keep reps as string if ranges or units (e.g. "8-10", "2 min", "30s each")
-
-HIIT / Interval / Circuit Training Rules:
-- If the workout uses rounds (Round 1, Round 2, etc.) with time-based intervals, this is HIIT/interval training.
-- GROUP repeated exercises across rounds: if "Box jump, 30 sec" appears in Rounds 1, 2, and 3, output ONE exercise entry with sets=3, reps="30 sec".
-- If the same exercise appears in different round groups with DIFFERENT durations (e.g. "Burpee, 30 sec" in rounds 1-3 and "Burpee, 20 sec" in rounds 4-6), output them as SEPARATE exercise entries.
-- For time-based exercises (e.g. "30 sec", "1 min", "40 sec", "20 sec"), set reps to the time string (e.g. "30 sec", "1 min", "40 sec").
-- Warm-up and cool-down exercises in HIIT are typically 1 set each with time-based reps like "1 min".
-- Preserve the order: warm-up exercises first, then working exercises in the order they appear across round groups, then cool-down exercises last.
-
-Return JSON:
-{"name":"Day 1: Push","exercises":[{"originalName":"Bench press","muscleGroup":"chest","sets":4,"reps":"8-10","restSeconds":90,"notes":"coaching note","isWarmup":false,"isStretch":false,"isSuperset":false,"supersetGroup":null}]}`;
 
     // Run DB fetch and ALL day parses in PARALLEL
     const fetchExercisesPromise = (async () => {
@@ -323,54 +621,19 @@ Return JSON:
       return allExercises;
     })();
 
-    // Parse each day chunk in parallel with Haiku
-    const dayParsePromises = dayChunks.map((chunk, i) =>
-      anthropic.messages.create({
-        model: 'claude-3-5-haiku-20241022',
-        max_tokens: 8192,
-        system: daySystemPrompt,
-        messages: [{
-          role: 'user',
-          content: `Parse ALL exercises from this workout day. Group repeated exercises across rounds into single entries with the appropriate number of sets. Return only valid JSON, no markdown fences.\n\n${chunk}`
-        }]
-      }).then(msg => {
-        const text = msg.content[0]?.text || '';
-        try {
-          const parsed = JSON.parse(text.trim());
-          return parsed;
-        } catch (e) {
-          // Try to extract JSON from markdown code fences or surrounding text
-          const fenceMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-          if (fenceMatch) {
-            try { return JSON.parse(fenceMatch[1].trim()); } catch (e2) { /* fall through */ }
-          }
-          const match = text.match(/\{[\s\S]*\}/);
-          if (match) {
-            try { return JSON.parse(match[0]); } catch (e2) { /* fall through */ }
-          }
-          console.error(`Failed to parse day ${i + 1}:`, text.substring(0, 500));
-          return null;
-        }
-      }).catch(err => {
-        console.error(`Error parsing day ${i + 1}:`, err.message);
-        return null;
-      })
-    );
+    // Parse each day chunk in parallel
+    const dayParsePromises = dayChunks.map((chunk, i) => parseDayChunk(anthropic, chunk, i));
 
-    // Also try to extract program metadata from header
+    // Extract program metadata from header
     let programMeta = { programName: 'Imported Program', description: '', goal: 'hypertrophy', difficulty: 'intermediate' };
     if (programHeader.length > 10) {
-      // Quick extract from header text - try to get the first meaningful line as the program name
       const headerLines = programHeader.trim().split('\n').map(l => l.trim()).filter(l => l.length > 3);
       if (headerLines.length > 0) {
-        // Use the first non-trivial line as program name
         programMeta.programName = headerLines[0];
       }
-      // Also try specific patterns
       const nameMatch = programHeader.match(/(?:IRON ARCHITECTURE|PROTOCOL)[^\n]*/i);
       if (nameMatch) programMeta.programName = nameMatch[0].trim();
 
-      // Detect goal from header content
       if (/hiit|high\s*intensity\s*interval|interval\s*training|conditioning/i.test(programHeader)) programMeta.goal = 'endurance';
       else if (/hypertrophy|muscle\s*building|mass/i.test(programHeader)) programMeta.goal = 'hypertrophy';
       else if (/strength|powerlifting|power/i.test(programHeader)) programMeta.goal = 'strength';
@@ -380,7 +643,6 @@ Return JSON:
       if (/advanced/i.test(programHeader)) programMeta.difficulty = 'advanced';
       else if (/beginner/i.test(programHeader)) programMeta.difficulty = 'beginner';
 
-      // Build description from remaining header lines
       if (headerLines.length > 1) {
         programMeta.description = headerLines.slice(1).join('. ');
       }
@@ -388,16 +650,38 @@ Return JSON:
 
     // Wait for everything in parallel
     const [allExercises, ...dayResults] = await Promise.all([fetchExercisesPromise, ...dayParsePromises]);
-    console.log(`Fetched ${allExercises.length} exercises, parsed ${dayResults.filter(Boolean).length}/${dayChunks.length} days`);
 
-    // Combine parsed days
-    const parsedDays = dayResults.filter(Boolean);
-
-    if (parsedDays.length === 0) {
-      throw new Error('Could not parse any workout days from the document.');
+    // Separate successful parses from errors
+    const parsedDays = [];
+    const allErrors = [];
+    for (let i = 0; i < dayResults.length; i++) {
+      const result = dayResults[i];
+      if (result && result._errors) {
+        allErrors.push(`Day ${i + 1}: ${result._errors.join('; ')}`);
+      } else if (result && result.exercises && Array.isArray(result.exercises) && result.exercises.length > 0) {
+        parsedDays.push(result);
+      } else if (result === null) {
+        allErrors.push(`Day ${i + 1}: All parsers returned null`);
+      }
     }
 
-    // 3. Match each parsed exercise against the database
+    console.log(`Fetched ${allExercises.length} exercises, parsed ${parsedDays.length}/${dayChunks.length} days`);
+
+    if (parsedDays.length === 0) {
+      const errorDetail = allErrors.length > 0
+        ? `Parse errors: ${allErrors.join(' | ')}`
+        : 'No exercises could be extracted from the text.';
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({
+          success: false,
+          error: `Could not parse any workout days. ${errorDetail}`
+        })
+      };
+    }
+
+    // Match each parsed exercise against the database
     const matchStats = {
       total: 0,
       matched: 0,
@@ -431,7 +715,7 @@ Return JSON:
           });
 
           const repsVal = ex.reps || (detectedWarmup ? '10-15' : detectedStretch ? '30s hold' : '8-12');
-          const timedCheck = detectTimedReps(repsVal);
+          const timedCheck = detectTimedReps(String(repsVal));
 
           resultExercises.push({
             id: match.id,
@@ -444,7 +728,7 @@ Return JSON:
             equipment: match.equipment,
             instructions: match.instructions,
             sets: ex.sets || (detectedWarmup ? 1 : detectedStretch ? 1 : 3),
-            reps: repsVal,
+            reps: String(repsVal),
             restSeconds: ex.restSeconds != null ? ex.restSeconds : (detectedWarmup ? 30 : detectedStretch ? 0 : 90),
             notes: ex.notes || '',
             isWarmup: detectedWarmup,
@@ -463,9 +747,8 @@ Return JSON:
             day: day.name
           });
 
-          // Include unmatched exercises too, flagged as unmatched
           const unmatchedRepsVal = ex.reps || (detectedWarmup ? '10-15' : detectedStretch ? '30s hold' : '8-12');
-          const unmatchedTimedCheck = detectTimedReps(unmatchedRepsVal);
+          const unmatchedTimedCheck = detectTimedReps(String(unmatchedRepsVal));
 
           resultExercises.push({
             name: ex.originalName,
@@ -473,7 +756,7 @@ Return JSON:
             muscle_group: ex.muscleGroup,
             equipment: null,
             sets: ex.sets || (detectedWarmup ? 1 : detectedStretch ? 1 : 3),
-            reps: unmatchedRepsVal,
+            reps: String(unmatchedRepsVal),
             restSeconds: ex.restSeconds != null ? ex.restSeconds : (detectedWarmup ? 30 : detectedStretch ? 0 : 90),
             notes: ex.notes || '',
             isWarmup: detectedWarmup,
@@ -520,7 +803,7 @@ Return JSON:
     };
 
   } catch (error) {
-    console.error('Import workout program error:', error.message);
+    console.error('Import workout program error:', error.message, error.stack);
     return {
       statusCode: 500,
       headers,
