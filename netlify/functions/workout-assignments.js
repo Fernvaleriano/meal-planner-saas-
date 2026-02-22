@@ -279,7 +279,7 @@ exports.handler = async (event) => {
 
                 todayWorkout = {
                   id: activeAssignment.id,
-                  name: days[dayIndex].name || `Day ${dayIndex + 1}`,
+                  name: activeAssignment.name || days[dayIndex].name || `Day ${dayIndex + 1}`,
                   day_index: dayIndex,
                   workout_data: {
                     ...days[dayIndex],
@@ -307,7 +307,7 @@ exports.handler = async (event) => {
 
                 todayWorkout = {
                   id: activeAssignment.id,
-                  name: days[dayIndex].name || `Day ${dayIndex + 1}`,
+                  name: activeAssignment.name || days[dayIndex].name || `Day ${dayIndex + 1}`,
                   day_index: dayIndex,
                   workout_data: {
                     ...days[dayIndex],
