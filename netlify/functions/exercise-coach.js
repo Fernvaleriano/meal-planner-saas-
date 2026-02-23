@@ -402,7 +402,7 @@ exports.handler = async (event) => {
 Exercise details:
 - Primary muscle: ${muscleGroup}
 - Equipment: ${equipment}
-${instructions ? `- Instructions: ${instructions}` : ''}
+${instructions ? `- Custom instructions from coach: ${instructions}` : ''}
 
 Requirements for each tip:
 - Be SPECIFIC to this exact exercise, not generic advice
@@ -455,7 +455,7 @@ RESPOND IN THIS EXACT JSON FORMAT (no markdown, no explanation):
 A client is asking about: "${exerciseName}"
 Target muscle: ${muscleGroup}
 Equipment: ${equipment}
-${instructions ? `Exercise description: ${instructions}` : ''}${cuesContext}
+${instructions ? `\n**CUSTOM INSTRUCTIONS FROM COACH (IMPORTANT - prioritize these):**\n${instructions}` : ''}${cuesContext}
 ${conversationContext}
 
 CLIENT'S QUESTION: "${question}"

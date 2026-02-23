@@ -2388,6 +2388,17 @@ function ExerciseDetailModal({
           </div>
         </div>
 
+        {/* Exercise Instructions (from custom exercise) */}
+        {exercise.instructions && (
+          <div className="exercise-instructions-section">
+            <div className="exercise-instructions-header">
+              <Sparkles size={16} />
+              <span>Exercise Instructions</span>
+            </div>
+            <p className="exercise-instructions-text">{exercise.instructions}</p>
+          </div>
+        )}
+
         {/* Coach Voice Note — only one audio element at a time (inside the modal),
             and preload="none" so it doesn't load until user taps play */}
         {exercise.voiceNoteUrl && (
