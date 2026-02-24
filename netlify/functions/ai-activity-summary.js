@@ -937,7 +937,7 @@ IMPORTANT RULES:
 6. For nutrition questions, compare actual intake vs goals when both are available
 7. For body composition questions, mention weight changes and trends
 8. If the data needed to answer is not available, say so honestly rather than guessing
-9. Keep response under 200 words unless more detail is needed for the question
+9. Provide a thorough response - use as many words as needed to fully answer the question without cutting short
 10. IMPORTANT: Always use the exact weight units provided in the data (kg or lbs). Never convert or assume units - use exactly what is shown in the client data`;
 
     const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
@@ -947,7 +947,7 @@ IMPORTANT RULES:
         contents: [{ parts: [{ text: prompt }] }],
         generationConfig: {
           temperature: 0.7,
-          maxOutputTokens: 800
+          maxOutputTokens: 2048
         }
       })
     });
