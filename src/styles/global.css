@@ -11979,7 +11979,7 @@ a.nav-left {
 .workouts-page-v2 {
     min-height: 100vh;
     background: var(--gray-50);
-    padding-bottom: 140px;
+    padding-bottom: 80px;
     /* Prevent Android Chrome's native pull-to-refresh from hijacking gesture */
     overscroll-behavior-y: contain;
     overflow-y: auto;
