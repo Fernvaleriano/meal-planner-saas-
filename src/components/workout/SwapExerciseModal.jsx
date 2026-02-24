@@ -191,7 +191,7 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
         url += `&coachId=${coachId}`;
       }
       if (muscleGroup) {
-        url += `&muscle_group=${encodeURIComponent(muscleGroup)}`;
+        url += `&muscleGroup=${encodeURIComponent(muscleGroup)}&includeSecondary=false`;
       }
       if (equipment) {
         url += `&equipment=${encodeURIComponent(equipment)}`;

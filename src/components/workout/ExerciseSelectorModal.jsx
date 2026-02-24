@@ -112,7 +112,7 @@ export function ExerciseSelectorModal({
       }
       params.append('limit', LIMIT.toString());
       params.append('offset', resetList ? '0' : offset.toString());
-      params.append('includeSecondary', 'true');
+      params.append('includeSecondary', 'false');
 
       const data = await apiGet(`/.netlify/functions/exercises?${params.toString()}`);
 
