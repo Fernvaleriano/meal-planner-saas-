@@ -4357,6 +4357,341 @@
             }
         }
 
+        /* ========== MOBILE WORKOUT PREVIEW MODAL ========== */
+        .mobile-workout-preview-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: var(--bg-primary);
+            z-index: 2000;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .mobile-workout-preview-overlay.open {
+            display: flex;
+        }
+
+        .mwp-header {
+            background: linear-gradient(135deg, rgba(13, 148, 136, 0.95) 0%, rgba(2, 132, 199, 0.95) 100%);
+            padding: 14px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-shrink: 0;
+        }
+
+        .mwp-back-btn {
+            background: rgba(255,255,255,0.15);
+            border: none;
+            color: white;
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .mwp-header-title {
+            color: white;
+            font-size: 1.1rem;
+            font-weight: 700;
+            flex: 1;
+            min-width: 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .mwp-header-action {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .mwp-body {
+            flex: 1;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            padding: 16px;
+        }
+
+        /* Program list inside mobile preview */
+        .mwp-search {
+            width: 100%;
+            padding: 12px 16px;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            font-family: inherit;
+            margin-bottom: 12px;
+        }
+
+        .mwp-search::placeholder { color: var(--text-muted); }
+
+        .mwp-program-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .mwp-program-card:active {
+            transform: scale(0.98);
+        }
+
+        .mwp-program-card-name {
+            font-weight: 700;
+            font-size: 1rem;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .mwp-program-card-meta {
+            display: flex;
+            gap: 8px;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            flex-wrap: wrap;
+        }
+
+        .mwp-program-card-meta span {
+            background: var(--bg-tertiary);
+            padding: 2px 8px;
+            border-radius: 6px;
+        }
+
+        .mwp-program-card-desc {
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            margin-top: 6px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .mwp-empty {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-muted);
+        }
+
+        .mwp-empty-icon {
+            font-size: 3rem;
+            margin-bottom: 12px;
+        }
+
+        .mwp-empty-title {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+
+        /* Workout detail view */
+        .mwp-program-header {
+            margin-bottom: 20px;
+        }
+
+        .mwp-program-title {
+            font-size: 1.3rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+        }
+
+        .mwp-program-info {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 8px;
+        }
+
+        .mwp-program-tag {
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            text-transform: capitalize;
+        }
+
+        .mwp-program-desc {
+            color: var(--text-secondary);
+            font-size: 0.88rem;
+            line-height: 1.5;
+        }
+
+        .mwp-day-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            margin-bottom: 14px;
+            overflow: hidden;
+        }
+
+        .mwp-day-header {
+            padding: 14px 16px;
+            background: var(--bg-tertiary);
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: var(--text-primary);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .mwp-day-header .exercise-count {
+            font-weight: 500;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .mwp-day-header .chevron {
+            transition: transform 0.2s;
+            color: var(--text-muted);
+        }
+
+        .mwp-day-header.collapsed .chevron {
+            transform: rotate(-90deg);
+        }
+
+        .mwp-day-exercises {
+            padding: 8px 0;
+        }
+
+        .mwp-day-exercises.collapsed {
+            display: none;
+        }
+
+        .mwp-exercise-item {
+            display: flex;
+            gap: 12px;
+            padding: 10px 16px;
+            align-items: flex-start;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .mwp-exercise-item:last-child {
+            border-bottom: none;
+        }
+
+        .mwp-exercise-thumb {
+            width: 48px;
+            height: 48px;
+            border-radius: 8px;
+            object-fit: cover;
+            background: var(--bg-tertiary);
+            flex-shrink: 0;
+        }
+
+        .mwp-exercise-details {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .mwp-exercise-name {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .mwp-exercise-badges {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 4px;
+            flex-wrap: wrap;
+        }
+
+        .mwp-exercise-badge {
+            font-size: 0.68rem;
+            font-weight: 700;
+            padding: 1px 6px;
+            border-radius: 4px;
+            text-transform: uppercase;
+        }
+
+        .mwp-badge-warmup {
+            background: rgba(245, 158, 11, 0.15);
+            color: #f59e0b;
+        }
+
+        .mwp-badge-stretch {
+            background: rgba(16, 185, 129, 0.15);
+            color: #10b981;
+        }
+
+        .mwp-badge-superset {
+            background: rgba(139, 92, 246, 0.15);
+            color: #8b5cf6;
+        }
+
+        .mwp-exercise-stats {
+            display: flex;
+            gap: 12px;
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+        }
+
+        .mwp-exercise-stat {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .mwp-exercise-stat strong {
+            color: var(--text-primary);
+            font-weight: 700;
+        }
+
+        .mwp-exercise-notes {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            font-style: italic;
+            margin-top: 4px;
+        }
+
+        .mwp-load-btn {
+            width: 100%;
+            padding: 14px;
+            background: var(--brand-gradient);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            font-family: inherit;
+            cursor: pointer;
+            margin-top: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .mwp-load-btn:active {
+            opacity: 0.9;
+            transform: scale(0.98);
+        }
+
         /* Mobile sidebar toggle button */
         .mobile-sidebar-toggle {
             display: none;
@@ -4460,6 +4795,12 @@
 
         .mobile-quick-btn.videos {
             background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+            border: none;
+            color: white;
+        }
+
+        .mobile-quick-btn.my-workouts {
+            background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
             border: none;
             color: white;
         }
@@ -4614,6 +4955,12 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
                 </svg>
                 Videos
+            </button>
+            <button class="mobile-quick-btn my-workouts" onclick="openMobileWorkoutPreview()">
+                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                </svg>
+                My Workouts
             </button>
         </div>
 
@@ -5739,12 +6086,214 @@
     </div>
     <input type="file" id="replaceVideoInput" accept="video/*" style="display:none">
 
+    <!-- Mobile Workout Preview Modal -->
+    <div class="mobile-workout-preview-overlay" id="mobileWorkoutPreview">
+        <div class="mwp-header">
+            <button class="mwp-back-btn" id="mwpBackBtn" onclick="closeMobileWorkoutPreview()">
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                </svg>
+            </button>
+            <span class="mwp-header-title" id="mwpHeaderTitle">My Workouts</span>
+        </div>
+        <div class="mwp-body" id="mwpBody">
+            <!-- Content rendered by JS -->
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
         // Mobile sidebar toggle
         function toggleMobileSidebar() {
             const sidebar = document.querySelector('.sidebar');
             sidebar.classList.toggle('mobile-open');
+        }
+
+        // ========== MOBILE WORKOUT PREVIEW ==========
+        let mwpViewingProgramId = null;
+
+        function openMobileWorkoutPreview() {
+            const overlay = document.getElementById('mobileWorkoutPreview');
+            overlay.classList.add('open');
+            document.body.style.overflow = 'hidden';
+            mwpViewingProgramId = null;
+            renderMobileWorkoutList();
+        }
+
+        function closeMobileWorkoutPreview() {
+            if (mwpViewingProgramId !== null) {
+                // Go back to list view
+                mwpViewingProgramId = null;
+                document.getElementById('mwpHeaderTitle').textContent = 'My Workouts';
+                document.getElementById('mwpBackBtn').setAttribute('onclick', 'closeMobileWorkoutPreview()');
+                renderMobileWorkoutList();
+                return;
+            }
+            const overlay = document.getElementById('mobileWorkoutPreview');
+            overlay.classList.remove('open');
+            document.body.style.overflow = '';
+        }
+
+        function renderMobileWorkoutList() {
+            const body = document.getElementById('mwpBody');
+            document.getElementById('mwpHeaderTitle').textContent = 'My Workouts';
+
+            if (!programs || programs.length === 0) {
+                body.innerHTML = `
+                    <div class="mwp-empty">
+                        <div class="mwp-empty-icon">&#x1F4CB;</div>
+                        <div class="mwp-empty-title">No workouts yet</div>
+                        <p>Create your first workout program to see it here</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const searchHtml = `<input type="text" class="mwp-search" id="mwpSearchInput" placeholder="Search workouts..." oninput="filterMobileWorkoutList()">`;
+
+            const listHtml = programs.map(p => {
+                const dayCount = p.program_data?.days?.length || p.days_per_week || 0;
+                const totalExercises = (p.program_data?.days || []).reduce((sum, d) => sum + (d.exercises || []).length, 0);
+                return `
+                    <div class="mwp-program-card" onclick="viewMobileWorkoutDetail(${p.id})" data-name="${(p.name || '').toLowerCase()}" data-type="${p.program_type || ''}" data-difficulty="${p.difficulty || ''}">
+                        <div class="mwp-program-card-name">${p.name || 'Untitled Program'}${p.is_club_workout ? ' <span style="font-size:10px;background:rgba(139,92,246,0.2);color:#c4b5fd;padding:2px 6px;border-radius:4px;font-weight:600;">CLUB</span>' : ''}</div>
+                        <div class="mwp-program-card-meta">
+                            <span>${(p.program_type || 'general').replace('_', ' ')}</span>
+                            <span>${p.difficulty || 'intermediate'}</span>
+                            <span>${dayCount} day${dayCount !== 1 ? 's' : ''}</span>
+                            ${totalExercises > 0 ? `<span>${totalExercises} exercise${totalExercises !== 1 ? 's' : ''}</span>` : ''}
+                        </div>
+                        ${p.description ? `<div class="mwp-program-card-desc">${p.description}</div>` : ''}
+                    </div>
+                `;
+            }).join('');
+
+            body.innerHTML = searchHtml + '<div id="mwpProgramCards">' + listHtml + '</div>';
+            body.scrollTop = 0;
+        }
+
+        function filterMobileWorkoutList() {
+            const query = (document.getElementById('mwpSearchInput')?.value || '').toLowerCase().trim();
+            const cards = document.querySelectorAll('#mwpProgramCards .mwp-program-card');
+            cards.forEach(card => {
+                const name = card.getAttribute('data-name') || '';
+                const type = card.getAttribute('data-type') || '';
+                const difficulty = card.getAttribute('data-difficulty') || '';
+                const match = !query || name.includes(query) || type.includes(query) || difficulty.includes(query);
+                card.style.display = match ? '' : 'none';
+            });
+        }
+
+        async function viewMobileWorkoutDetail(programId) {
+            const program = programs.find(p => p.id === programId);
+            if (!program) return;
+
+            mwpViewingProgramId = programId;
+            document.getElementById('mwpHeaderTitle').textContent = program.name || 'Workout';
+            document.getElementById('mwpBackBtn').setAttribute('onclick', 'closeMobileWorkoutPreview()');
+
+            const body = document.getElementById('mwpBody');
+            body.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);">Loading workout...</div>';
+
+            // Enrich with video data if available
+            const days = program.program_data?.days || [];
+
+            let html = '';
+
+            // Program header
+            html += `<div class="mwp-program-header">`;
+            html += `<div class="mwp-program-title">${program.name || 'Untitled Program'}</div>`;
+            html += `<div class="mwp-program-info">`;
+            html += `<span class="mwp-program-tag">${(program.program_type || 'general').replace('_', ' ')}</span>`;
+            html += `<span class="mwp-program-tag">${program.difficulty || 'intermediate'}</span>`;
+            html += `<span class="mwp-program-tag">${program.days_per_week || days.length} days/week</span>`;
+            html += `</div>`;
+            if (program.description) {
+                html += `<div class="mwp-program-desc">${program.description}</div>`;
+            }
+            html += `</div>`;
+
+            if (days.length === 0) {
+                html += `<div class="mwp-empty">
+                    <div class="mwp-empty-icon">&#x1F3CB;&#xFE0F;</div>
+                    <div class="mwp-empty-title">No days added yet</div>
+                    <p>This program doesn't have any workout days</p>
+                </div>`;
+            } else {
+                days.forEach((day, dayIdx) => {
+                    const exercises = day.exercises || [];
+                    html += `<div class="mwp-day-card">`;
+                    html += `<div class="mwp-day-header" onclick="toggleMwpDay(this)">`;
+                    html += `<span>${day.name || 'Day ' + (dayIdx + 1)} <span class="exercise-count">(${exercises.length} exercise${exercises.length !== 1 ? 's' : ''})</span></span>`;
+                    html += `<svg class="chevron" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>`;
+                    html += `</div>`;
+                    html += `<div class="mwp-day-exercises">`;
+
+                    if (exercises.length === 0) {
+                        html += `<div style="padding:16px;text-align:center;color:var(--text-muted);font-size:0.85rem;">No exercises</div>`;
+                    } else {
+                        exercises.forEach(ex => {
+                            const thumbSrc = ex.thumbnail_url || ex.animation_url || '/img/exercise-placeholder.svg';
+                            let badges = '';
+                            if (ex.isWarmup) badges += '<span class="mwp-exercise-badge mwp-badge-warmup">Warm-up</span>';
+                            if (ex.isStretch) badges += '<span class="mwp-exercise-badge mwp-badge-stretch">Stretch</span>';
+                            if (ex.isSuperset && ex.supersetGroup) badges += '<span class="mwp-exercise-badge mwp-badge-superset">Superset ' + ex.supersetGroup + '</span>';
+
+                            html += `<div class="mwp-exercise-item">`;
+                            html += `<img class="mwp-exercise-thumb" src="${thumbSrc}" alt="" onerror="this.src='/img/exercise-placeholder.svg'">`;
+                            html += `<div class="mwp-exercise-details">`;
+                            html += `<div class="mwp-exercise-name">${ex.name || 'Exercise'}</div>`;
+                            if (badges) html += `<div class="mwp-exercise-badges">${badges}</div>`;
+                            html += `<div class="mwp-exercise-stats">`;
+                            html += `<span class="mwp-exercise-stat"><strong>${ex.sets || 3}</strong> sets</span>`;
+                            if (ex.trackingType === 'time') {
+                                html += `<span class="mwp-exercise-stat"><strong>${ex.duration || 30}</strong> sec</span>`;
+                            } else {
+                                html += `<span class="mwp-exercise-stat"><strong>${ex.reps || '10'}</strong> reps</span>`;
+                            }
+                            html += `<span class="mwp-exercise-stat"><strong>${ex.restSeconds != null ? ex.restSeconds : 90}</strong>s rest</span>`;
+                            html += `</div>`;
+                            if (ex.notes) {
+                                html += `<div class="mwp-exercise-notes">${ex.notes}</div>`;
+                            }
+                            html += `</div></div>`;
+                        });
+                    }
+
+                    html += `</div></div>`;
+                });
+            }
+
+            // Load into builder button
+            html += `<button class="mwp-load-btn" onclick="loadProgramFromPreview(${programId})">
+                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                </svg>
+                Open in Builder
+            </button>`;
+
+            body.innerHTML = html;
+            body.scrollTop = 0;
+        }
+
+        function toggleMwpDay(header) {
+            header.classList.toggle('collapsed');
+            const exercises = header.nextElementSibling;
+            exercises.classList.toggle('collapsed');
+        }
+
+        function loadProgramFromPreview(programId) {
+            // Close the preview and load in the builder
+            const overlay = document.getElementById('mobileWorkoutPreview');
+            overlay.classList.remove('open');
+            document.body.style.overflow = '';
+            mwpViewingProgramId = null;
+            selectProgram(programId);
+            // Close sidebar if open
+            const sidebar = document.querySelector('.sidebar');
+            if (sidebar.classList.contains('mobile-open')) {
+                sidebar.classList.remove('mobile-open');
+            }
         }
 
         // Initialize Supabase (for auth only)
