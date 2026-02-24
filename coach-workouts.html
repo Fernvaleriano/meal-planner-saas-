@@ -2139,7 +2139,7 @@
             transition: all 0.2s;
             padding: 0;
             z-index: 1;
-            opacity: 0;
+            opacity: 0.5;
         }
 
         .insert-exercise-divider:hover .insert-exercise-btn {
@@ -2153,6 +2153,13 @@
             transform: scale(1.15);
         }
 
+        .insert-exercise-btn:active {
+            border-color: var(--brand-primary);
+            color: var(--brand-primary);
+            background: rgba(13, 148, 136, 0.1);
+            transform: scale(1.15);
+        }
+
         .insert-exercise-divider::before {
             content: '';
             position: absolute;
@@ -2160,12 +2167,13 @@
             right: 0;
             top: 50%;
             height: 1px;
-            background: transparent;
-            transition: background 0.2s;
+            background: var(--border-color);
+            opacity: 0.3;
+            transition: opacity 0.2s;
         }
 
         .insert-exercise-divider:hover::before {
-            background: var(--border-color);
+            opacity: 0.6;
         }
 
         .add-day-btn {
