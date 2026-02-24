@@ -1026,7 +1026,6 @@ function Workouts() {
         }
 
         if (hasWorkout) break;
-        }
       }
 
       return {
