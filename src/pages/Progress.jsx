@@ -205,71 +205,41 @@ function Progress() {
     }
   };
 
-  // Swipeable measurement entry component
-  const SwipeableMeasurement = ({ measurement }) => {
-    const [touchStart, setTouchStart] = useState(null);
-    const [touchEnd, setTouchEnd] = useState(null);
-    const [swiped, setSwiped] = useState(false);
-    const minSwipeDistance = 50;
-
-    const onTouchStart = (e) => {
-      setTouchEnd(null);
-      setTouchStart(e.targetTouches[0].clientX);
-    };
-
-    const onTouchMove = (e) => {
-      setTouchEnd(e.targetTouches[0].clientX);
-    };
-
-    const onTouchEnd = () => {
-      if (!touchStart || !touchEnd) return;
-      const distance = touchStart - touchEnd;
-      const isLeftSwipe = distance > minSwipeDistance;
-      const isRightSwipe = distance < -minSwipeDistance;
-
-      if (isLeftSwipe) {
-        setSwiped(true);
-      } else if (isRightSwipe) {
-        setSwiped(false);
-      }
-    };
+  // Measurement entry with visible delete button
+  const MeasurementEntry = ({ measurement }) => {
+    const [deleting, setDeleting] = useState(false);
 
     const handleDelete = () => {
       const dateStr = new Date(measurement.measured_date).toLocaleDateString();
       if (window.confirm(`Delete measurement from ${dateStr}?`)) {
+        setDeleting(true);
         handleDeleteMeasurement(measurement.id);
       }
     };
 
     return (
-      <div
-        className={`measurement-entry-swipeable ${swiped ? 'swiped' : ''}`}
-        onTouchStart={onTouchStart}
-        onTouchMove={onTouchMove}
-        onTouchEnd={onTouchEnd}
-      >
-        <div className="measurement-entry-content" onClick={() => swiped && setSwiped(false)}>
-          <div className="measurement-entry-header">
-            <span className="measurement-date">
-              {new Date(measurement.measured_date).toLocaleDateString()}
-            </span>
+      <div className={`measurement-entry ${deleting ? 'deleting' : ''}`}>
+        <div className="measurement-entry-header">
+          <span className="measurement-date">
+            {new Date(measurement.measured_date).toLocaleDateString()}
+          </span>
+          <div className="measurement-header-right">
             <span className="measurement-primary">
               {measurement.weight && <span>{measurement.weight} {weightUnit}</span>}
               {measurement.body_fat_percentage && <span> | {measurement.body_fat_percentage}% BF</span>}
             </span>
+            <button className="measurement-trash-btn" onClick={handleDelete} disabled={deleting}>
+              <Trash2 size={16} />
+            </button>
           </div>
-          {(measurement.chest || measurement.waist || measurement.hips) && (
-            <div className="measurement-secondary">
-              {measurement.chest && <span>Chest: {measurement.chest}"</span>}
-              {measurement.waist && <span>Waist: {measurement.waist}"</span>}
-              {measurement.hips && <span>Hips: {measurement.hips}"</span>}
-            </div>
-          )}
         </div>
-        <button className="measurement-delete-btn" onClick={handleDelete}>
-          <Trash2 size={20} />
-          <span>Delete</span>
-        </button>
+        {(measurement.chest || measurement.waist || measurement.hips) && (
+          <div className="measurement-secondary">
+            {measurement.chest && <span>Chest: {measurement.chest}"</span>}
+            {measurement.waist && <span>Waist: {measurement.waist}"</span>}
+            {measurement.hips && <span>Hips: {measurement.hips}"</span>}
+          </div>
+        )}
       </div>
     );
   };
@@ -400,7 +370,7 @@ function Progress() {
               ) : (
                 <div className="measurements-list">
                   {measurements.slice(0, 10).map((m) => (
-                    <SwipeableMeasurement key={m.id} measurement={m} />
+                    <MeasurementEntry key={m.id} measurement={m} />
                   ))}
                 </div>
               )}
