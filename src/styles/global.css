@@ -8323,6 +8323,56 @@ a.nav-left {
     color: #94a3b8;
 }
 
+/* Swipeable Measurement Entry */
+.measurement-entry-swipeable {
+    position: relative;
+    overflow: hidden;
+    border-radius: 10px;
+    margin-bottom: 4px;
+}
+
+.measurement-entry-swipeable .measurement-entry-content {
+    padding: 14px;
+    background: var(--gray-50);
+    border-radius: 10px;
+    transition: transform 0.25s ease-out;
+    position: relative;
+    z-index: 2;
+}
+
+[data-theme="dark"] .measurement-entry-swipeable .measurement-entry-content {
+    background: #334155;
+}
+
+.measurement-entry-swipeable.swiped .measurement-entry-content {
+    transform: translateX(-80px);
+}
+
+.measurement-delete-btn {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 80px;
+    background: #ef4444;
+    color: white;
+    border: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    z-index: 1;
+    border-radius: 0 10px 10px 0;
+}
+
+.measurement-delete-btn:active {
+    background: #dc2626;
+}
+
 .photos-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
