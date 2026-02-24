@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { ChevronLeft, ChevronRight, Play, Clock, Flame, CheckCircle, Dumbbell, Target, Calendar, TrendingUp, Award, Heart, MoreVertical, X, History, Settings, LogOut, Plus, Copy, ArrowRightLeft, SkipForward, PenSquare, Trash2, MoveRight, Share2, Star, Weight, Users, RotateCcw } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Play, Clock, Flame, CheckCircle, Dumbbell, Target, Calendar, TrendingUp, Award, Heart, MoreVertical, X, History, Settings, LogOut, Plus, Copy, ArrowRightLeft, SkipForward, PenSquare, Trash2, MoveRight, Share2, Star, Weight, Users, RotateCcw, Zap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, apiPut, apiDelete, ensureFreshSession } from '../utils/api';
@@ -476,6 +476,7 @@ function Workouts() {
   const [coachBranding, setCoachBranding] = useState(null);
   const shareCardRef = useRef(null);
   const shareBgInputRef = useRef(null);
+  const [weekScheduleData, setWeekScheduleData] = useState(null); // Raw active assignments for week schedule
   const menuRef = useRef(null);
   const heroMenuRef = useRef(null);
   const todayWorkoutRef = useRef(null);
@@ -891,6 +892,202 @@ function Workouts() {
       mounted = false;
     };
   }, [clientData?.id, selectedDate]);
+
+  // Fetch active assignments once for computing weekly schedule preview
+  useEffect(() => {
+    if (!clientData?.id) return;
+    let mounted = true;
+
+    apiGet(`/.netlify/functions/workout-assignments?clientId=${clientData.id}&activeOnly=true`)
+      .then(data => {
+        if (mounted && data?.assignments) {
+          setWeekScheduleData(data.assignments);
+        }
+      })
+      .catch(() => {});
+
+    return () => { mounted = false; };
+  }, [clientData?.id]);
+
+  // Compute weekly schedule from active assignments + week dates
+  const weekSchedule = useMemo(() => {
+    if (!weekScheduleData || !weekDates || weekDates.length === 0) return null;
+
+    const dayNamesList = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+    const todayStr = formatDate(new Date());
+
+    const schedule = weekDates.map(date => {
+      if (!date || !(date instanceof Date) || isNaN(date.getTime())) return null;
+
+      const dateStr = formatDate(date);
+      const dayName = dayNamesList[date.getDay()];
+      const isPast = dateStr < todayStr;
+      const isTodayDate = dateStr === todayStr;
+      const isFuture = dateStr > todayStr;
+
+      let hasWorkout = false;
+      let workoutName = '';
+      let exerciseCount = 0;
+
+      for (const assignment of weekScheduleData) {
+        const workoutData = assignment.workout_data || {};
+        const days = workoutData.days || [];
+        const assignSchedule = workoutData.schedule || assignment.schedule || {};
+        const selectedDays = assignSchedule.selectedDays || ['mon', 'tue', 'wed', 'thu', 'fri'];
+        const startDate = new Date(assignment.start_date || assignment.created_at);
+
+        if (date < startDate) continue;
+
+        // Check end boundary
+        const weeksToUse = assignSchedule.weeksAmount || 12;
+        let endBoundary;
+        if (assignment.end_date) {
+          endBoundary = new Date(assignment.end_date + 'T23:59:59');
+        } else {
+          endBoundary = new Date(startDate);
+          endBoundary.setDate(endBoundary.getDate() + (weeksToUse * 7));
+        }
+        if (date >= endBoundary) continue;
+
+        // Check date overrides
+        const dateOverrides = workoutData.date_overrides || {};
+        const override = dateOverrides[dateStr];
+
+        if (override) {
+          if (override.isRest) continue;
+          if (override.dayIndex !== undefined && days.length > 0) {
+            const dayIndex = override.dayIndex % days.length;
+            hasWorkout = true;
+            workoutName = days[dayIndex].name || `Day ${dayIndex + 1}`;
+            exerciseCount = (days[dayIndex].exercises || []).filter(ex => ex && ex.id).length;
+            break;
+          }
+        }
+
+        if (selectedDays.includes(dayName) && days.length > 0) {
+          const totalDaysDiff = Math.floor((date - startDate) / (24 * 60 * 60 * 1000));
+          const daySet = new Set(selectedDays);
+          const fullWeeks = Math.floor(totalDaysDiff / 7);
+          const daysPerWeek = dayNamesList.filter(d => daySet.has(d)).length;
+          let count = fullWeeks * daysPerWeek;
+          const remainderDays = totalDaysDiff % 7;
+          for (let i = 0; i < remainderDays; i++) {
+            const d = new Date(startDate);
+            d.setDate(d.getDate() + (fullWeeks * 7) + i);
+            if (daySet.has(dayNamesList[d.getDay()])) count++;
+          }
+          const dayIndex = count % days.length;
+
+          hasWorkout = true;
+          workoutName = days[dayIndex].name || `Day ${dayIndex + 1}`;
+          exerciseCount = (days[dayIndex].exercises || []).filter(ex => ex && ex.id).length;
+          break;
+        }
+      }
+
+      return {
+        date,
+        dateStr,
+        dayLabel: getDayName(date),
+        isPast,
+        isToday: isTodayDate,
+        isFuture,
+        hasWorkout
+      };
+    });
+
+    return schedule.filter(Boolean);
+  }, [weekScheduleData, weekDates]);
+
+  // Upcoming workouts (future days this week that have workouts)
+  const upcomingWorkouts = useMemo(() => {
+    if (!weekScheduleData || !weekDates || weekDates.length === 0) return [];
+
+    const dayNamesList = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+    const todayStr = formatDate(new Date());
+
+    return weekDates
+      .filter(date => {
+        if (!date || !(date instanceof Date) || isNaN(date.getTime())) return false;
+        return formatDate(date) > todayStr;
+      })
+      .map(date => {
+        const dateStr = formatDate(date);
+        const dayName = dayNamesList[date.getDay()];
+
+        for (const assignment of weekScheduleData) {
+          const workoutData = assignment.workout_data || {};
+          const days = workoutData.days || [];
+          const assignSchedule = workoutData.schedule || assignment.schedule || {};
+          const selectedDays = assignSchedule.selectedDays || ['mon', 'tue', 'wed', 'thu', 'fri'];
+          const startDate = new Date(assignment.start_date || assignment.created_at);
+
+          if (date < startDate) continue;
+
+          const weeksToUse = assignSchedule.weeksAmount || 12;
+          let endBoundary;
+          if (assignment.end_date) {
+            endBoundary = new Date(assignment.end_date + 'T23:59:59');
+          } else {
+            endBoundary = new Date(startDate);
+            endBoundary.setDate(endBoundary.getDate() + (weeksToUse * 7));
+          }
+          if (date >= endBoundary) continue;
+
+          const dateOverrides = workoutData.date_overrides || {};
+          const override = dateOverrides[dateStr];
+
+          if (override) {
+            if (override.isRest) continue;
+            if (override.dayIndex !== undefined && days.length > 0) {
+              const dayIndex = override.dayIndex % days.length;
+              return {
+                date,
+                dateStr,
+                dayLabel: formatDisplayDate(date),
+                workoutName: days[dayIndex].name || `Day ${dayIndex + 1}`,
+                exerciseCount: (days[dayIndex].exercises || []).filter(ex => ex && ex.id).length
+              };
+            }
+          }
+
+          if (selectedDays.includes(dayName) && days.length > 0) {
+            const totalDaysDiff = Math.floor((date - startDate) / (24 * 60 * 60 * 1000));
+            const daySet = new Set(selectedDays);
+            const fullWeeks = Math.floor(totalDaysDiff / 7);
+            const daysPerWeek = dayNamesList.filter(d => daySet.has(d)).length;
+            let count = fullWeeks * daysPerWeek;
+            const remainderDays = totalDaysDiff % 7;
+            for (let i = 0; i < remainderDays; i++) {
+              const d = new Date(startDate);
+              d.setDate(d.getDate() + (fullWeeks * 7) + i);
+              if (daySet.has(dayNamesList[d.getDay()])) count++;
+            }
+            const dayIndex = count % days.length;
+
+            return {
+              date,
+              dateStr,
+              dayLabel: formatDisplayDate(date),
+              workoutName: days[dayIndex].name || `Day ${dayIndex + 1}`,
+              exerciseCount: (days[dayIndex].exercises || []).filter(ex => ex && ex.id).length
+            };
+          }
+        }
+        return null;
+      })
+      .filter(Boolean)
+      .slice(0, 3);
+  }, [weekScheduleData, weekDates]);
+
+  // Weekly stats computed from schedule
+  const weeklyStats = useMemo(() => {
+    if (!weekSchedule) return null;
+    const totalWorkouts = weekSchedule.filter(d => d.hasWorkout).length;
+    const completedWorkouts = weekSchedule.filter(d => d.isPast && d.hasWorkout).length;
+    const todayHasWorkout = weekSchedule.find(d => d.isToday)?.hasWorkout || false;
+    return { totalWorkouts, completedWorkouts, todayHasWorkout };
+  }, [weekSchedule]);
 
   // Navigate weeks - with safety checks
   const goToPreviousWeek = useCallback(() => {
@@ -2998,6 +3195,91 @@ function Workouts() {
                     <span>Create Workout</span>
                   </button>
                 </div>
+
+                {/* Weekly Progress Section */}
+                {weekSchedule && weeklyStats && weeklyStats.totalWorkouts > 0 && (
+                  <div className="week-progress-section">
+                    <div className="week-progress-header">
+                      <h4 className="week-progress-title">
+                        <Calendar size={16} />
+                        This Week
+                      </h4>
+                      <span className="week-progress-count">
+                        {weeklyStats.completedWorkouts}/{weeklyStats.totalWorkouts} workouts
+                      </span>
+                    </div>
+                    <div className="week-progress-dots">
+                      {weekSchedule.map((day) => (
+                        <div
+                          key={day.dateStr}
+                          className={`week-dot ${day.hasWorkout ? 'has-workout' : 'rest'} ${day.isToday ? 'today' : ''} ${day.isPast ? 'past' : ''}`}
+                          title={`${day.dayLabel}${day.hasWorkout ? ' - Workout' : ' - Rest'}`}
+                        >
+                          <span className="week-dot-label">{day.dayLabel}</span>
+                          <div className="week-dot-indicator">
+                            {day.isPast && day.hasWorkout ? (
+                              <CheckCircle size={16} />
+                            ) : day.isToday && day.hasWorkout ? (
+                              <Zap size={16} />
+                            ) : day.hasWorkout ? (
+                              <Dumbbell size={14} />
+                            ) : (
+                              <span className="dot-rest"></span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    {/* Progress bar */}
+                    <div className="week-progress-bar">
+                      <div
+                        className="week-progress-fill"
+                        style={{ width: `${(weeklyStats.completedWorkouts / weeklyStats.totalWorkouts) * 100}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Upcoming Schedule Section */}
+                {upcomingWorkouts.length > 0 && (
+                  <div className="upcoming-schedule-section">
+                    <h4 className="upcoming-title">
+                      <TrendingUp size={16} />
+                      Coming Up
+                    </h4>
+                    <div className="upcoming-list">
+                      {upcomingWorkouts.map((item) => (
+                        <button
+                          key={item.dateStr}
+                          className="upcoming-item"
+                          onClick={() => setSelectedDate(item.date)}
+                        >
+                          <div className="upcoming-day-badge">
+                            <span className="upcoming-day-name">{getDayName(item.date)}</span>
+                            <span className="upcoming-day-num">{item.date.getDate()}</span>
+                          </div>
+                          <div className="upcoming-info">
+                            <span className="upcoming-workout-name">{item.workoutName}</span>
+                            <span className="upcoming-meta">
+                              <Dumbbell size={12} />
+                              {item.exerciseCount} exercises
+                            </span>
+                          </div>
+                          <ChevronRight size={16} className="upcoming-chevron" />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Quick Action: Workout History */}
+                <div className="workout-quick-links">
+                  <button className="quick-link-btn" onClick={() => navigate('/workout-history')}>
+                    <History size={18} />
+                    <span>Workout History</span>
+                    <ChevronRight size={16} className="quick-link-chevron" />
+                  </button>
+                </div>
               </>
             ) : (
               <div className="empty-state-v2">
@@ -3030,6 +3312,47 @@ function Workouts() {
                       <span>Add Activity</span>
                     </button>
                   </div>
+                </div>
+
+                {/* Upcoming Schedule Section (Rest Day view) */}
+                {upcomingWorkouts.length > 0 && (
+                  <div className="upcoming-schedule-section rest-day-upcoming">
+                    <h4 className="upcoming-title">
+                      <TrendingUp size={16} />
+                      Coming Up This Week
+                    </h4>
+                    <div className="upcoming-list">
+                      {upcomingWorkouts.map((item) => (
+                        <button
+                          key={item.dateStr}
+                          className="upcoming-item"
+                          onClick={() => setSelectedDate(item.date)}
+                        >
+                          <div className="upcoming-day-badge">
+                            <span className="upcoming-day-name">{getDayName(item.date)}</span>
+                            <span className="upcoming-day-num">{item.date.getDate()}</span>
+                          </div>
+                          <div className="upcoming-info">
+                            <span className="upcoming-workout-name">{item.workoutName}</span>
+                            <span className="upcoming-meta">
+                              <Dumbbell size={12} />
+                              {item.exerciseCount} exercises
+                            </span>
+                          </div>
+                          <ChevronRight size={16} className="upcoming-chevron" />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Quick Action: Workout History */}
+                <div className="workout-quick-links rest-day-links">
+                  <button className="quick-link-btn" onClick={() => navigate('/workout-history')}>
+                    <History size={18} />
+                    <span>Workout History</span>
+                    <ChevronRight size={16} className="quick-link-chevron" />
+                  </button>
                 </div>
               </div>
             )}
