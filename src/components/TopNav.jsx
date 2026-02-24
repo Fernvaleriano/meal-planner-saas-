@@ -330,7 +330,7 @@ function TopNav() {
             aria-label="View notifications"
             aria-expanded={showNotifications}
           >
-            <Bell size={20} aria-hidden="true" />
+            <Bell size={18} aria-hidden="true" />
             {unreadCount > 0 && (
               <span className="notification-badge">{unreadCount > 9 ? '9+' : unreadCount}</span>
             )}
