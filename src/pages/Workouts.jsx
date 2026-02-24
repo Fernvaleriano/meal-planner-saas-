@@ -498,11 +498,12 @@ function Workouts() {
   // cascade has 6+ steps and each render re-creates 15 ExerciseCards.
   useEffect(() => {
     if (!todayWorkout?.id) return;
+    const matchKey = todayWorkout.instance_id || `${todayWorkout.id}-${todayWorkout.day_index}`;
     setTodayWorkouts(prev => {
-      const idx = prev.findIndex(w => w.id === todayWorkout.id);
+      const idx = prev.findIndex(w => (w.instance_id || `${w.id}-${w.day_index}`) === matchKey);
       if (idx === -1) return prev; // workout not in list, nothing to sync
       if (prev[idx] === todayWorkout) return prev; // already the same reference
-      return prev.map(w => w.id === todayWorkout.id ? todayWorkout : w);
+      return prev.map(w => (w.instance_id || `${w.id}-${w.day_index}`) === matchKey ? todayWorkout : w);
     });
   }, [todayWorkout]);
 
@@ -1744,7 +1745,9 @@ function Workouts() {
   // Handle tapping a workout card - select it and expand to detail view
   const handleSelectWorkoutCard = useCallback((workout) => {
     if (!workout) return;
-    if (workout.id !== todayWorkout?.id) {
+    const currentKey = todayWorkout?.instance_id || `${todayWorkout?.id}-${todayWorkout?.day_index}`;
+    const newKey = workout.instance_id || `${workout.id}-${workout.day_index}`;
+    if (newKey !== currentKey) {
       setTodayWorkout(workout);
       setWorkoutStarted(false);
       setWorkoutLog(null);
@@ -1754,7 +1757,7 @@ function Workouts() {
       setCompletedExercises(fromData);
     }
     setExpandedWorkout(true);
-  }, [todayWorkout?.id]);
+  }, [todayWorkout?.id, todayWorkout?.instance_id, todayWorkout?.day_index]);
 
   // Go back from detail view to cards view
   const handleBackToCards = useCallback(() => {
