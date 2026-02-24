@@ -159,7 +159,13 @@ body {
 .nav-right {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-radius: 999px;
+    padding: 5px 6px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 .nav-left {
@@ -187,7 +193,7 @@ body {
 }
 
 .nav-logo-left {
-    height: 120px;
+    height: 100px;
     width: auto;
     max-width: 75%;
     object-fit: contain;
@@ -196,14 +202,14 @@ body {
 /* Responsive logo sizing for different screen sizes */
 @media (max-width: 500px) {
     .nav-logo-left {
-        height: 110px;
+        height: 90px;
         max-width: 70%;
     }
 }
 
 @media (max-width: 380px) {
     .nav-logo-left {
-        height: 95px;
+        height: 80px;
         max-width: 65%;
     }
 }
@@ -220,6 +226,9 @@ a.nav-left {
 .nav-coach-story {
     cursor: pointer;
     transition: transform 0.2s;
+    background: none;
+    border: none;
+    padding: 0;
 }
 
 .nav-coach-story:hover {
@@ -227,15 +236,17 @@ a.nav-left {
 }
 
 .nav-coach-story .story-ring {
-    width: 40px;
-    height: 40px;
+    width: 34px;
+    height: 34px;
     border-radius: 50%;
     padding: 2px;
-    background: rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.35);
+    transition: box-shadow 0.2s;
 }
 
 .nav-coach-story .story-ring.unseen {
     background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.2);
 }
 
 .nav-coach-story .story-ring img {
@@ -243,7 +254,7 @@ a.nav-left {
     height: 100%;
     border-radius: 50%;
     object-fit: cover;
-    border: 2px solid #0f172a;
+    border: 1.5px solid rgba(255, 255, 255, 0.9);
 }
 
 .streak-badge-nav {
@@ -273,13 +284,14 @@ a.nav-left {
 }
 
 .nav-btn {
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.15);
     border: none;
     color: white;
-    padding: 8px 12px;
-    min-width: 44px;
-    min-height: 44px;
-    border-radius: 10px;
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+    min-height: 34px;
+    border-radius: 50%;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -293,7 +305,7 @@ a.nav-left {
 }
 
 .nav-btn:hover {
-    background: rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.28);
 }
 
 /* Notification Bell */
@@ -303,16 +315,17 @@ a.nav-left {
 
 .notification-badge {
     position: absolute;
-    top: -4px;
-    right: -4px;
+    top: -2px;
+    right: -2px;
     background: #ef4444;
     color: white;
-    font-size: 10px;
+    font-size: 9px;
     font-weight: 700;
-    padding: 2px 5px;
+    padding: 1px 4px;
     border-radius: 10px;
-    min-width: 16px;
+    min-width: 15px;
     text-align: center;
+    border: 1.5px solid rgba(13, 148, 136, 0.8);
 }
 
 .notification-dropdown {
@@ -354,19 +367,21 @@ a.nav-left {
 /* Notification Badge */
 .notification-badge {
     position: absolute;
-    top: -4px;
-    right: -4px;
+    top: -2px;
+    right: -2px;
     background: #ef4444;
     color: white;
-    font-size: 0.65rem;
-    font-weight: 600;
-    min-width: 18px;
-    height: 18px;
-    border-radius: 9px;
+    font-size: 0.6rem;
+    font-weight: 700;
+    min-width: 16px;
+    height: 16px;
+    border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 0 4px;
+    padding: 0 3px;
+    border: 1.5px solid rgba(13, 148, 136, 0.8);
+    line-height: 1;
 }
 
 /* Notification Header */
