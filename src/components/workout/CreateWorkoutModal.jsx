@@ -339,14 +339,31 @@ function CreateWorkoutModal({ onClose, onCreateWorkout, selectedDate, coachId = 
                                 <span className="till-failure-badge">Till Failure</span>
                               </div>
                             ) : exercise.trackingType === 'time' ? (
-                              <div className="config-item">
-                                <label>SECS</label>
+                              <div className="config-item time-config">
+                                <label>MIN</label>
                                 <input
                                   type="number"
-                                  min="1"
-                                  max="600"
-                                  value={exercise.duration || 30}
-                                  onChange={(e) => handleUpdateExercise(index, 'duration', parseInt(e.target.value) || 30)}
+                                  min="0"
+                                  max="90"
+                                  value={Math.floor((exercise.duration || 30) / 60)}
+                                  onChange={(e) => {
+                                    const mins = parseInt(e.target.value) || 0;
+                                    const secs = (exercise.duration || 30) % 60;
+                                    handleUpdateExercise(index, 'duration', Math.max(1, mins * 60 + secs));
+                                  }}
+                                />
+                                <span className="time-separator">:</span>
+                                <label>SEC</label>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max="59"
+                                  value={(exercise.duration || 30) % 60}
+                                  onChange={(e) => {
+                                    const secs = Math.min(59, parseInt(e.target.value) || 0);
+                                    const mins = Math.floor((exercise.duration || 30) / 60);
+                                    handleUpdateExercise(index, 'duration', Math.max(1, mins * 60 + secs));
+                                  }}
                                 />
                               </div>
                             ) : (

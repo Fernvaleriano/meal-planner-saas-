@@ -160,6 +160,17 @@ const parseVoiceInput = (transcript) => {
   }
 };
 
+// Format seconds to a friendly display: "10:00" for 10 min, "1:30" for 90s, "45s" for under a minute
+const formatDurationDisplay = (seconds) => {
+  if (!seconds) return '45s';
+  if (seconds >= 60) {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  }
+  return `${seconds}s`;
+};
+
 function SetEditorModal({
   exercise,
   sets,
@@ -544,7 +555,7 @@ function SetEditorModal({
         {/* Column Headers */}
         <div className="editor-column-headers">
           <span className="header-spacer"></span>
-          <span className="header-label">{editMode === 'time' ? 'SECONDS' : (isTillFailure ? 'REPS DONE' : 'REPS')}</span>
+          <span className="header-label">{editMode === 'time' ? 'TIME' : (isTillFailure ? 'REPS DONE' : 'REPS')}</span>
           <span className="header-spacer-x"></span>
           <span className="header-label">WEIGHT</span>
           <span className="header-spacer"></span>
@@ -561,7 +572,7 @@ function SetEditorModal({
                   onClick={() => selectField(index, 'reps')}
                 >
                   {editMode === 'time'
-                    ? (set.duration || exercise.duration || parseTimeFromReps(exercise.reps) || 45)
+                    ? formatDurationDisplay(set.duration || exercise.duration || parseTimeFromReps(exercise.reps) || 45)
                     : parseReps(set.reps || exercise.reps)
                   }
                 </button>
@@ -642,7 +653,7 @@ function SetEditorModal({
           <div className="editor-numpad">
             <div className="numpad-header">
               <span className="numpad-label">
-                {activeField === 'weight' ? 'Enter weight' : (editMode === 'time' ? 'Enter seconds' : (isTillFailure ? 'Reps completed' : 'Enter reps'))}
+                {activeField === 'weight' ? 'Enter weight' : (editMode === 'time' ? 'Enter time (seconds)' : (isTillFailure ? 'Reps completed' : 'Enter reps'))}
               </span>
               <button className="numpad-done-btn" onClick={hideKeyboard}>
                 Done
