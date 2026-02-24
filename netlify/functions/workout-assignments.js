@@ -283,66 +283,59 @@ exports.handler = async (event) => {
               }
 
               // Collect all added workout instances from ALL formats (backwards compat + new)
+              // Use a single Set to merge any duplicates by day_index — one card per day max
+              const seenDayIndices = new Set();
               const addedInstances = [];
-              const legacyDayIndicesSeen = new Set(); // dedup old-format entries by day_index
 
-              // New format: addedWorkouts (each has its own instance_id — always keep)
+              // New format: addedWorkouts
               if (Array.isArray(override.addedWorkouts)) {
                 for (const aw of override.addedWorkouts) {
-                  addedInstances.push({
-                    instance_id: aw.instance_id,
-                    day_index: aw.day_index,
-                    isNew: true
-                  });
+                  const di = aw.day_index % days.length;
+                  if (!seenDayIndices.has(di)) {
+                    seenDayIndices.add(di);
+                    addedInstances.push({ instance_id: aw.instance_id, day_index: aw.day_index });
+                  }
                 }
               }
 
-              // Backwards compat: old dayIndices → treat as added instances, suppress natural
+              // Backwards compat: old dayIndices → suppress natural
               if (Array.isArray(override.dayIndices)) {
                 for (const idx of override.dayIndices) {
-                  if (!legacyDayIndicesSeen.has(idx)) {
-                    legacyDayIndicesSeen.add(idx);
-                    addedInstances.push({
-                      instance_id: `${activeAssignment.id}-legacy-di-${idx}`,
-                      day_index: idx
-                    });
+                  const di = idx % days.length;
+                  if (!seenDayIndices.has(di)) {
+                    seenDayIndices.add(di);
+                    addedInstances.push({ instance_id: `${activeAssignment.id}-legacy-di-${di}`, day_index: idx });
                   }
                 }
                 skipNatural = true;
               }
 
-              // Backwards compat: old dayIndex → treat as single added instance, suppress natural
+              // Backwards compat: old dayIndex → suppress natural
               if (override.dayIndex !== undefined) {
-                if (!legacyDayIndicesSeen.has(override.dayIndex)) {
-                  legacyDayIndicesSeen.add(override.dayIndex);
-                  addedInstances.push({
-                    instance_id: `${activeAssignment.id}-legacy-dx`,
-                    day_index: override.dayIndex
-                  });
+                const di = override.dayIndex % days.length;
+                if (!seenDayIndices.has(di)) {
+                  seenDayIndices.add(di);
+                  addedInstances.push({ instance_id: `${activeAssignment.id}-legacy-dx`, day_index: override.dayIndex });
                 }
                 skipNatural = true;
               }
 
-              // Backwards compat: old addedDayIndices → treat as added instances (no suppress)
+              // Backwards compat: old addedDayIndices (no suppress)
               if (Array.isArray(override.addedDayIndices)) {
                 for (const idx of override.addedDayIndices) {
-                  if (!legacyDayIndicesSeen.has(idx)) {
-                    legacyDayIndicesSeen.add(idx);
-                    addedInstances.push({
-                      instance_id: `${activeAssignment.id}-legacy-adi-${idx}`,
-                      day_index: idx
-                    });
+                  const di = idx % days.length;
+                  if (!seenDayIndices.has(di)) {
+                    seenDayIndices.add(di);
+                    addedInstances.push({ instance_id: `${activeAssignment.id}-legacy-adi-${di}`, day_index: idx });
                   }
                 }
               }
 
-              // Create a card for each added instance
+              // Create a card for each unique added instance
               for (const inst of addedInstances) {
                 const di = inst.day_index % days.length;
-                // Dedup: if natural schedule is active and this matches it, skip (natural handles it)
+                // Skip if natural schedule already covers this day
                 if (!skipNatural && naturalDayIndex !== undefined && di === naturalDayIndex) continue;
-                // Dedup: if a legacy entry duplicates a new-format entry's day_index, skip the legacy
-                if (!inst.isNew && addedInstances.some(o => o.isNew && (o.day_index % days.length) === di)) continue;
                 const day = days[di];
                 if (day) {
                   todayWorkouts.push({
