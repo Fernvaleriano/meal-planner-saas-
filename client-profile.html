@@ -12,6 +12,7 @@
     <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" href="/icons/logo.png">
     <script src="/js/theme.js"></script>
+    <link rel="stylesheet" href="/css/voice-to-text.css">
     <title>Client Profile - Zique Fitness Nutrition</title>
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <link rel="preconnect" href="https://unpkg.com" crossorigin>
@@ -7330,6 +7331,9 @@
                 <textarea id="aiCoachQuestion"
                     placeholder="Ask anything about your client's diet... e.g., 'Are they eating enough vegetables?' or 'How can they increase protein?'"
                     rows="2"></textarea>
+                <button type="button" class="vtt-mic-btn" title="Voice input" onclick="VoiceToText.toggle(document.getElementById('aiCoachQuestion'), this)">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                </button>
                 <button class="btn btn-primary ai-ask-btn" onclick="askAICoach()" id="aiAskBtn">
                     Ask AI
                 </button>
@@ -7504,6 +7508,9 @@
                         <textarea id="workoutAiQuestion"
                             placeholder="Ask about this client's workout progress, plateaus, volume trends..."
                             rows="2"></textarea>
+                        <button type="button" class="vtt-mic-btn" title="Voice input" onclick="VoiceToText.toggle(document.getElementById('workoutAiQuestion'), this)">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                        </button>
                         <button class="btn btn-primary ai-ask-btn" onclick="askWorkoutAI()" id="workoutAiAskBtn">
                             Ask AI
                         </button>
@@ -10262,7 +10269,12 @@
                         ` : `
                             <div class="coach-response-form">
                                 <textarea id="response-${c.id}" placeholder="Write a response to encourage and guide your client..."></textarea>
-                                <button class="btn btn-primary" onclick="submitCoachResponse(${c.id})" style="width: 100%;">Send Response</button>
+                                <div style="display: flex; gap: 8px; align-items: center;">
+                                    <button class="btn btn-primary" onclick="submitCoachResponse(${c.id})" style="flex: 1;">Send Response</button>
+                                    <button type="button" class="vtt-mic-btn vtt-mic-sm" title="Voice input" onclick="VoiceToText.toggle(document.getElementById('response-${c.id}'), this)">
+                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                                    </button>
+                                </div>
                             </div>
                         `}
                     </div>
@@ -11949,6 +11961,11 @@
                     content.innerHTML = `<div style="padding:8px;">
                         <textarea style="width:100%; min-height:80px; padding:10px; border:1px solid #e2e8f0; border-radius:8px; font-size:13px; resize:vertical;"
                             id="acExdInstructions" placeholder="Add exercise instructions or notes...">${escapeHtml(ex?.notes || '')}</textarea>
+                        <div style="margin-top:6px; text-align:right;">
+                            <button type="button" class="vtt-mic-btn vtt-mic-inline" title="Voice input" onclick="VoiceToText.toggle(document.getElementById('acExdInstructions'), this)">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                            </button>
+                        </div>
                     </div>`;
                     break;
                 case 'details':
@@ -14334,5 +14351,6 @@
 
     <!-- PWA Install Prompt -->
     <script src="/js/pwa-install-prompt.js"></script>
+    <script src="/js/voice-to-text.js"></script>
 </body>
 </html>

@@ -12,6 +12,7 @@
     </script>
     <script src="/js/theme.js"></script>
     <script src="/js/gym-features.js"></script>
+    <link rel="stylesheet" href="/css/voice-to-text.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -5013,7 +5014,12 @@
                 </div>
                 <div class="form-group">
                     <label class="form-label">Description</label>
-                    <textarea class="form-textarea" id="programDescription" placeholder="Describe the program goals and structure..."></textarea>
+                    <div style="display: flex; gap: 8px; align-items: flex-start;">
+                        <textarea class="form-textarea" id="programDescription" placeholder="Describe the program goals and structure..." style="flex:1;"></textarea>
+                        <button type="button" class="vtt-mic-btn vtt-mic-sm" title="Voice input" onclick="VoiceToText.toggle(document.getElementById('programDescription'), this)" style="margin-top:2px;">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Club Workout Toggle -->
@@ -5734,11 +5740,21 @@
                     </div>
                     <div class="ai-form-group">
                         <label>Injuries or Limitations (optional)</label>
-                        <input type="text" id="aiInjuries" placeholder="e.g., Lower back pain, avoid overhead pressing">
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <input type="text" id="aiInjuries" placeholder="e.g., Lower back pain, avoid overhead pressing" style="flex:1;">
+                            <button type="button" class="vtt-mic-btn vtt-mic-inline" title="Voice input" onclick="VoiceToText.toggle(document.getElementById('aiInjuries'), this)">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                            </button>
+                        </div>
                     </div>
                     <div class="ai-form-group">
                         <label>Additional Preferences (optional)</label>
-                        <textarea id="aiPreferences" rows="2" placeholder="e.g., Include stretching, prefer compound movements"></textarea>
+                        <div style="display: flex; gap: 8px; align-items: flex-start;">
+                            <textarea id="aiPreferences" rows="2" placeholder="e.g., Include stretching, prefer compound movements" style="flex:1;"></textarea>
+                            <button type="button" class="vtt-mic-btn vtt-mic-inline" title="Voice input" onclick="VoiceToText.toggle(document.getElementById('aiPreferences'), this)" style="margin-top:2px;">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -5954,7 +5970,12 @@
 
                 <div class="custom-exercise-form-group">
                     <label>Instructions (optional)</label>
-                    <textarea class="form-textarea" id="ceInstructions" placeholder="Describe how to perform this exercise correctly..." rows="3"></textarea>
+                    <div style="display: flex; gap: 8px; align-items: flex-start;">
+                        <textarea class="form-textarea" id="ceInstructions" placeholder="Describe how to perform this exercise correctly..." rows="3" style="flex:1;"></textarea>
+                        <button type="button" class="vtt-mic-btn vtt-mic-sm" title="Voice input" onclick="VoiceToText.toggle(document.getElementById('ceInstructions'), this)" style="margin-top:2px;">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Reference Links Section -->
@@ -10775,5 +10796,6 @@
             });
         });
     </script>
+    <script src="/js/voice-to-text.js"></script>
 </body>
 </html>

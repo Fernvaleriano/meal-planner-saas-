@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { X, Send, Loader2, MessageCircle, Bot, ChevronLeft } from 'lucide-react';
+import { X, Send, Loader2, MessageCircle, Bot, ChevronLeft, Mic } from 'lucide-react';
 import { apiPost } from '../../utils/api';
 
 // Helper function to strip markdown formatting from text
@@ -24,8 +24,12 @@ function AskCoachChat({ exercise, onClose }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+  const recognitionRef = useRef(null);
+  const preVoiceInputRef = useRef('');
+  const voiceSupported = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
 
   // Force close handler - used for escape routes (back button, escape key)
   const forceClose = useCallback(() => {
@@ -71,6 +75,116 @@ function AskCoachChat({ exercise, onClose }) {
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
+
+  // Cleanup recognition on unmount
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        try { recognitionRef.current.abort(); } catch (_) {}
+        recognitionRef.current = null;
+      }
+    };
+  }, []);
+
+  const isIOS = () =>
+    /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+  const toggleVoiceInput = () => {
+    if (!voiceSupported) {
+      alert('Voice input is not supported in this browser. Please try Chrome or Safari.');
+      return;
+    }
+    if (isRecording) {
+      stopVoiceInput();
+    } else {
+      startVoiceInput();
+    }
+  };
+
+  const stopVoiceInput = () => {
+    if (recognitionRef.current) {
+      try { recognitionRef.current.stop(); } catch (_) {}
+      recognitionRef.current = null;
+    }
+    setIsRecording(false);
+  };
+
+  const startVoiceInput = async () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (recognitionRef.current) {
+      try { recognitionRef.current.abort(); } catch (_) {}
+      recognitionRef.current = null;
+    }
+
+    if (isIOS() && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        stream.getTracks().forEach(t => t.stop());
+      } catch (err) {
+        if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+          alert('Microphone access denied. Please allow microphone access in your device settings.');
+        } else {
+          alert('Could not access microphone. Please check permissions.');
+        }
+        return;
+      }
+    }
+
+    preVoiceInputRef.current = input;
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = () => setIsRecording(true);
+
+    recognition.onresult = (event) => {
+      let finalTranscript = '';
+      let interimTranscript = '';
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const t = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          finalTranscript += t;
+        } else {
+          interimTranscript += t;
+        }
+      }
+      const prev = preVoiceInputRef.current;
+      const separator = prev && !prev.endsWith(' ') ? ' ' : '';
+      if (finalTranscript) {
+        setInput(prev + separator + finalTranscript);
+      } else if (interimTranscript) {
+        setInput(prev + separator + interimTranscript);
+      }
+    };
+
+    recognition.onerror = (event) => {
+      console.warn('Speech recognition error:', event.error);
+      if (event.error === 'not-allowed') {
+        alert('Microphone access denied. Please allow microphone access.');
+      }
+      setIsRecording(false);
+      recognitionRef.current = null;
+    };
+
+    recognition.onend = () => {
+      setIsRecording(false);
+      recognitionRef.current = null;
+    };
+
+    recognitionRef.current = recognition;
+    try {
+      recognition.start();
+    } catch (err) {
+      console.error('Failed to start speech recognition:', err);
+      setIsRecording(false);
+      recognitionRef.current = null;
+    }
+  };
 
   // Add welcome message on mount
   useEffect(() => {
@@ -721,6 +835,17 @@ function AskCoachChat({ exercise, onClose }) {
             onKeyDown={handleKeyDown}
             disabled={loading}
           />
+          {voiceSupported && (
+            <button
+              className={`voice-btn${isRecording ? ' recording' : ''}`}
+              onClick={toggleVoiceInput}
+              disabled={loading}
+              type="button"
+              title={isRecording ? 'Stop recording' : 'Voice input'}
+            >
+              <Mic size={18} />
+            </button>
+          )}
           <button
             className="send-btn"
             onClick={handleSend}

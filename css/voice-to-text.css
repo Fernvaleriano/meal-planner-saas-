@@ -1,0 +1,79 @@
+/* Voice-to-Text Mic Button Styles */
+.vtt-mic-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    border: 2px solid var(--gray-200, #e2e8f0);
+    border-radius: 10px;
+    background: var(--gray-50, #f8fafc);
+    color: var(--gray-500, #64748b);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    padding: 0;
+    flex-shrink: 0;
+}
+
+.vtt-mic-btn:hover {
+    background: var(--gray-100, #f1f5f9);
+    border-color: var(--gray-300, #cbd5e1);
+    color: var(--gray-700, #334155);
+}
+
+.vtt-mic-btn.vtt-recording {
+    background: #dc2626;
+    border-color: #dc2626;
+    color: white;
+    animation: vtt-pulse 1.5s ease-in-out infinite;
+}
+
+.vtt-mic-btn.vtt-mic-sm {
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+    border-radius: 8px;
+}
+
+.vtt-mic-btn.vtt-mic-sm svg {
+    width: 15px;
+    height: 15px;
+}
+
+.vtt-mic-btn.vtt-mic-inline {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    border-radius: 6px;
+    border-width: 1px;
+}
+
+.vtt-mic-btn.vtt-mic-inline svg {
+    width: 14px;
+    height: 14px;
+}
+
+@keyframes vtt-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.4); }
+    50% { box-shadow: 0 0 0 8px rgba(220, 38, 38, 0); }
+}
+
+/* Dark mode */
+[data-theme="dark"] .vtt-mic-btn {
+    background: var(--gray-800, #1e293b);
+    border-color: var(--gray-600, #475569);
+    color: var(--gray-400, #94a3b8);
+}
+
+[data-theme="dark"] .vtt-mic-btn:hover {
+    background: var(--gray-700, #334155);
+    border-color: var(--gray-500, #64748b);
+    color: var(--gray-200, #e2e8f0);
+}
+
+[data-theme="dark"] .vtt-mic-btn.vtt-recording {
+    background: #dc2626;
+    border-color: #dc2626;
+    color: white;
+}
