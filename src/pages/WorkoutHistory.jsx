@@ -453,14 +453,14 @@ export default function WorkoutHistory() {
   // Derived data
   // -----------------------------------------------------------------------
   const summaryStats = useMemo(() => {
-    if (!workouts.length) return { total: 0, volume: 0, avgDuration: 0, prs: 0 };
+    if (!workouts.length) return { total: 0, volume: 0, avgDuration: 0, calories: 0, totalSets: 0 };
     const total = workouts.length;
     const volume = workouts.reduce((s, w) => s + (w.total_volume || 0), 0);
     const durations = workouts.filter((w) => w.duration_minutes).map((w) => w.duration_minutes);
     const avgDuration = durations.length > 0 ? durations.reduce((a, b) => a + b, 0) / durations.length : 0;
-    // PR count comes from individual exercises; approximate from workouts if not available
-    const prs = 0; // Will be visible when exercise details are loaded
-    return { total, volume, avgDuration, prs };
+    const calories = workouts.reduce((s, w) => s + (w.estimated_calories || 0), 0);
+    const totalSets = workouts.reduce((s, w) => s + (w.total_sets || 0), 0);
+    return { total, volume, avgDuration, calories, totalSets };
   }, [workouts]);
 
   // Chart data: total volume per workout, chronological, last 20
@@ -502,15 +502,25 @@ export default function WorkoutHistory() {
         <div className="workout-history-stat-value">{formatDuration(summaryStats.avgDuration)}</div>
         <div className="workout-history-stat-label">Avg Duration</div>
       </div>
-      <div className="workout-history-stat">
-        <div className="workout-history-stat-icon">
-          <Flame size={18} />
+      {summaryStats.calories > 0 ? (
+        <div className="workout-history-stat">
+          <div className="workout-history-stat-icon">
+            <Flame size={18} />
+          </div>
+          <div className="workout-history-stat-value">
+            {formatVolume(summaryStats.calories)}
+          </div>
+          <div className="workout-history-stat-label">Calories</div>
         </div>
-        <div className="workout-history-stat-value">
-          {formatVolume(workouts.reduce((s, w) => s + (w.estimated_calories || 0), 0))}
+      ) : (
+        <div className="workout-history-stat">
+          <div className="workout-history-stat-icon">
+            <Target size={18} />
+          </div>
+          <div className="workout-history-stat-value">{summaryStats.totalSets}</div>
+          <div className="workout-history-stat-label">Total Sets</div>
         </div>
-        <div className="workout-history-stat-label">Calories</div>
-      </div>
+      )}
     </div>
   );
 
