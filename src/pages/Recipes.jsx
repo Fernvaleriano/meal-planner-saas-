@@ -146,7 +146,7 @@ function Recipes() {
   const [selectedRecipe, setSelectedRecipe] = useState(null);
 
   // Discover tab state
-  const [activeTab, setActiveTab] = useState('my-recipes'); // 'my-recipes' or 'discover'
+  const [activeTab, setActiveTab] = useState('discover'); // 'my-recipes' or 'discover'
   const [discoverRecipes, setDiscoverRecipes] = useState([]);
   const [discoverLoading, setDiscoverLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
