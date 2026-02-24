@@ -10,6 +10,57 @@ const headers = {
   'Content-Type': 'application/json'
 };
 
+// Generate a unique instance ID for each workout card
+function generateInstanceId() {
+  return 'inst_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 9);
+}
+
+// Migrate old override formats to the new addedWorkouts format.
+// Old formats (dayIndex, dayIndices, addedDayIndices) are converted to
+// addedWorkouts entries with unique instance IDs, then removed.
+function migrateOverride(override) {
+  if (!override) return {};
+  const migrated = { ...override };
+  let workouts = Array.isArray(migrated.addedWorkouts) ? [...migrated.addedWorkouts] : [];
+
+  // Convert old dayIndex (singular) → single addedWorkouts entry
+  if (migrated.dayIndex !== undefined) {
+    workouts.push({ instance_id: generateInstanceId(), day_index: migrated.dayIndex });
+    delete migrated.dayIndex;
+    migrated.isRest = true; // old dayIndex replaced the natural schedule
+  }
+
+  // Convert old dayIndices (array) → multiple addedWorkouts entries
+  if (Array.isArray(migrated.dayIndices)) {
+    for (const idx of migrated.dayIndices) {
+      workouts.push({ instance_id: generateInstanceId(), day_index: idx });
+    }
+    delete migrated.dayIndices;
+    migrated.isRest = true; // old dayIndices replaced the natural schedule
+  }
+
+  // Convert addedDayIndices → addedWorkouts entries
+  if (Array.isArray(migrated.addedDayIndices)) {
+    for (const idx of migrated.addedDayIndices) {
+      workouts.push({ instance_id: generateInstanceId(), day_index: idx });
+    }
+    delete migrated.addedDayIndices;
+  }
+
+  if (workouts.length > 0) {
+    migrated.addedWorkouts = workouts;
+  }
+  return migrated;
+}
+
+// Check if an override is empty (no data worth keeping)
+function isOverrideEmpty(override) {
+  if (!override) return true;
+  if (override.isRest) return false;
+  if (override.addedWorkouts && override.addedWorkouts.length > 0) return false;
+  return true;
+}
+
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers, body: '' };
@@ -29,7 +80,7 @@ exports.handler = async (event) => {
     // POST - Reschedule or duplicate a workout to another date
     if (event.httpMethod === 'POST') {
       const body = JSON.parse(event.body || '{}');
-      const { assignmentId, action, sourceDayIndex, targetDate, sourceDate, isAdded } = body;
+      const { assignmentId, action, sourceDayIndex, targetDate, sourceDate, isAdded, instanceId } = body;
 
       if (!assignmentId || !action || !targetDate) {
         return {
@@ -67,64 +118,74 @@ exports.handler = async (event) => {
       const dateOverrides = currentWorkoutData.date_overrides || {};
 
       if (action === 'skip') {
-        const existingOverride = dateOverrides[targetDate] || {};
+        // Migrate existing override to new format (cleans up old dayIndex/dayIndices/addedDayIndices)
+        let override = migrateOverride(dateOverrides[targetDate]);
 
-        if (isAdded && sourceDayIndex !== undefined) {
-          // Deleting an added (moved/duplicated) workout — remove from addedDayIndices only
-          if (existingOverride.addedDayIndices) {
-            existingOverride.addedDayIndices = existingOverride.addedDayIndices.filter(idx => idx !== sourceDayIndex);
-            if (existingOverride.addedDayIndices.length === 0) {
-              delete existingOverride.addedDayIndices;
-            }
+        if (isAdded && instanceId) {
+          // Deleting a specific added instance — remove by instance_id
+          if (override.addedWorkouts) {
+            override.addedWorkouts = override.addedWorkouts.filter(w => w.instance_id !== instanceId);
+            if (override.addedWorkouts.length === 0) delete override.addedWorkouts;
           }
-          // Clean up if override is now empty
-          if (!existingOverride.isRest && existingOverride.dayIndex === undefined &&
-              !existingOverride.dayIndices && !existingOverride.addedDayIndices) {
-            delete dateOverrides[targetDate];
-          } else {
-            dateOverrides[targetDate] = existingOverride;
+        } else if (isAdded && sourceDayIndex !== undefined) {
+          // Fallback: no instanceId, remove first matching day_index
+          if (override.addedWorkouts) {
+            const idx = override.addedWorkouts.findIndex(w => w.day_index === sourceDayIndex);
+            if (idx !== -1) override.addedWorkouts.splice(idx, 1);
+            if (override.addedWorkouts.length === 0) delete override.addedWorkouts;
           }
         } else {
-          // Deleting a natural workout — set isRest but preserve addedDayIndices
-          existingOverride.isRest = true;
-          dateOverrides[targetDate] = existingOverride;
+          // Deleting a natural workout — suppress it, preserve added workouts
+          override.isRest = true;
+        }
+
+        if (isOverrideEmpty(override)) {
+          delete dateOverrides[targetDate];
+        } else {
+          dateOverrides[targetDate] = override;
         }
       } else if (action === 'reschedule' || action === 'duplicate') {
-        // For reschedule, handle the source date
+        // --- Handle SOURCE date (reschedule only) ---
         if (action === 'reschedule' && sourceDate) {
-          const sourceOverride = dateOverrides[sourceDate] || {};
+          let sourceOverride = migrateOverride(dateOverrides[sourceDate]);
 
-          if (isAdded && sourceOverride.addedDayIndices) {
-            // Moving an added card — remove from addedDayIndices only
-            sourceOverride.addedDayIndices = sourceOverride.addedDayIndices.filter(idx => idx !== sourceDayIndex);
-            if (sourceOverride.addedDayIndices.length === 0) {
-              delete sourceOverride.addedDayIndices;
+          if (isAdded && instanceId) {
+            // Removing a specific added instance from source
+            if (sourceOverride.addedWorkouts) {
+              sourceOverride.addedWorkouts = sourceOverride.addedWorkouts.filter(w => w.instance_id !== instanceId);
+              if (sourceOverride.addedWorkouts.length === 0) delete sourceOverride.addedWorkouts;
             }
-            // Clean up empty override
-            if (!sourceOverride.isRest && sourceOverride.dayIndex === undefined &&
-                !sourceOverride.dayIndices && !sourceOverride.addedDayIndices) {
-              delete dateOverrides[sourceDate];
-            } else {
-              dateOverrides[sourceDate] = sourceOverride;
+          } else if (isAdded && sourceDayIndex !== undefined) {
+            // Fallback: remove first matching day_index from source
+            if (sourceOverride.addedWorkouts) {
+              const idx = sourceOverride.addedWorkouts.findIndex(w => w.day_index === sourceDayIndex);
+              if (idx !== -1) sourceOverride.addedWorkouts.splice(idx, 1);
+              if (sourceOverride.addedWorkouts.length === 0) delete sourceOverride.addedWorkouts;
             }
           } else {
-            // Moving a natural workout — set isRest but preserve addedDayIndices
+            // Removing a natural workout from source — suppress it, preserve added workouts
             sourceOverride.isRest = true;
+          }
+
+          if (isOverrideEmpty(sourceOverride)) {
+            delete dateOverrides[sourceDate];
+          } else {
             dateOverrides[sourceDate] = sourceOverride;
           }
         }
 
-        // Add the moved workout to the target date as an addition (not a replacement)
-        // This preserves whatever natural workout is already on the target date
+        // --- Handle TARGET date: add new independent instance ---
         if (sourceDayIndex !== undefined) {
-          const targetOverride = dateOverrides[targetDate] || {};
-          const addedList = targetOverride.addedDayIndices
-            ? [...targetOverride.addedDayIndices]
-            : [];
-          if (!addedList.includes(sourceDayIndex)) {
-            addedList.push(sourceDayIndex);
-          }
-          targetOverride.addedDayIndices = addedList;
+          let targetOverride = migrateOverride(dateOverrides[targetDate]);
+          if (!targetOverride.addedWorkouts) targetOverride.addedWorkouts = [];
+
+          // Always create a NEW instance — never deduplicate by day_index.
+          // Each move/duplicate produces its own independent workout card.
+          targetOverride.addedWorkouts.push({
+            instance_id: generateInstanceId(),
+            day_index: sourceDayIndex
+          });
+
           dateOverrides[targetDate] = targetOverride;
         }
       }

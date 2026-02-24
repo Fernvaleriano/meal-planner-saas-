@@ -976,42 +976,41 @@ function Workouts() {
           naturalDayIndex = count % days.length;
         }
 
-        if (override) {
+        if (override && days.length > 0) {
           if (override.isRest) skipNatural = true;
 
-          // Backwards compat: old-style dayIndices
-          if (override.dayIndices && Array.isArray(override.dayIndices) && days.length > 0) {
-            hasWorkout = true;
-            let totalEx = 0;
-            for (const idx of override.dayIndices) {
-              const di = idx % days.length;
-              totalEx += (days[di].exercises || []).filter(ex => ex && ex.id).length;
-              cardCount++;
+          // Collect all added instances from ALL formats
+          const addedIndices = [];
+
+          // New format: addedWorkouts
+          if (Array.isArray(override.addedWorkouts)) {
+            for (const aw of override.addedWorkouts) {
+              addedIndices.push(aw.day_index);
             }
-            exerciseCount = totalEx;
+          }
+          // Backwards compat: dayIndices (suppresses natural)
+          if (Array.isArray(override.dayIndices)) {
+            for (const idx of override.dayIndices) addedIndices.push(idx);
             skipNatural = true;
           }
+          // Backwards compat: dayIndex (suppresses natural)
+          if (override.dayIndex !== undefined) {
+            addedIndices.push(override.dayIndex);
+            skipNatural = true;
+          }
+          // Backwards compat: addedDayIndices (does not suppress natural)
+          if (Array.isArray(override.addedDayIndices)) {
+            for (const idx of override.addedDayIndices) addedIndices.push(idx);
+          }
 
-          // Backwards compat: old-style dayIndex
-          if (!skipNatural && override.dayIndex !== undefined && days.length > 0) {
-            const dayIndex = override.dayIndex % days.length;
+          // Count exercises from each added instance
+          for (const idx of addedIndices) {
+            const di = idx % days.length;
+            // Dedup against natural
+            if (!skipNatural && naturalDayIndex !== undefined && di === naturalDayIndex) continue;
             hasWorkout = true;
-            workoutName = days[dayIndex].name || `Day ${dayIndex + 1}`;
-            exerciseCount = (days[dayIndex].exercises || []).filter(ex => ex && ex.id).length;
+            exerciseCount += (days[di].exercises || []).filter(ex => ex && ex.id).length;
             cardCount++;
-            skipNatural = true;
-          }
-
-          // addedDayIndices: extra workouts on top of natural schedule (dedup against natural)
-          if (override.addedDayIndices && Array.isArray(override.addedDayIndices) && days.length > 0) {
-            for (const idx of override.addedDayIndices) {
-              const di = idx % days.length;
-              // Skip if matches natural day index (already counted below)
-              if (!skipNatural && naturalDayIndex !== undefined && di === naturalDayIndex) continue;
-              hasWorkout = true;
-              exerciseCount += (days[di].exercises || []).filter(ex => ex && ex.id).length;
-              cardCount++;
-            }
           }
         }
 
@@ -2499,7 +2498,8 @@ function Workouts() {
           sourceDayIndex: targetWorkout.day_index,
           sourceDate: formatDate(selectedDate),
           targetDate: rescheduleTargetDate,
-          isAdded: targetWorkout.is_added || false
+          isAdded: targetWorkout.is_added || false,
+          instanceId: targetWorkout.instance_id || null
         });
 
         if (res?.success) {
@@ -2567,20 +2567,20 @@ function Workouts() {
         }
         deleteSucceeded = true;
       } else {
-        // Skip/delete assigned workout - mark as rest day
+        // Skip/delete assigned workout
         await apiPost('/.netlify/functions/client-workout-log', {
           assignmentId: todayWorkout.id,
           action: 'skip',
           sourceDayIndex: todayWorkout.day_index,
           sourceDate: formatDate(selectedDate),
           targetDate: formatDate(selectedDate),
-          isAdded: todayWorkout.is_added || false
+          isAdded: todayWorkout.is_added || false,
+          instanceId: todayWorkout.instance_id || null
         });
         deleteSucceeded = true;
       }
     } catch (err) {
       console.error('Error deleting workout:', err);
-      // If assignment not found (404), treat as already deleted - still update local state
       if (err.status === 404 || err.message?.includes('not found')) {
         deleteSucceeded = true;
       } else {
@@ -2590,7 +2590,7 @@ function Workouts() {
     }
 
     if (deleteSucceeded) {
-      // Remove only this specific card (match by id + day_index + is_added)
+      // Remove only this specific card by unique instance_id
       const remaining = todayWorkouts.filter(w =>
         w.instance_id !== todayWorkout.instance_id
       );
@@ -2625,7 +2625,8 @@ function Workouts() {
           sourceDayIndex: workout.day_index,
           sourceDate: formatDate(selectedDate),
           targetDate: formatDate(selectedDate),
-          isAdded: workout.is_added || false
+          isAdded: workout.is_added || false,
+          instanceId: workout.instance_id || null
         });
         deleteSucceeded = true;
       }
