@@ -3740,19 +3740,19 @@
 
                 <!-- Extended Stats Row -->
                 <div class="stats-grid-extended" id="extendedStats">
-                    <div class="stat-mini">
+                    <div class="stat-mini" title="Total completed workouts across all clients this week">
                         <div class="stat-mini-number" id="statWorkouts">-</div>
-                        <div class="stat-mini-label">Workouts This Week</div>
+                        <div class="stat-mini-label">Completed Workouts</div>
                     </div>
-                    <div class="stat-mini">
+                    <div class="stat-mini" title="Total new personal records set by all clients this week">
                         <div class="stat-mini-number" id="statPRs">-</div>
-                        <div class="stat-mini-label">PRs This Week</div>
+                        <div class="stat-mini-label">New PRs This Week</div>
                     </div>
-                    <div class="stat-mini">
+                    <div class="stat-mini" title="Percentage of clients who completed at least one workout this week">
                         <div class="stat-mini-number" id="statAdherence">-</div>
-                        <div class="stat-mini-label">Avg Adherence</div>
+                        <div class="stat-mini-label">Adherence Rate</div>
                     </div>
-                    <div class="stat-mini">
+                    <div class="stat-mini" title="Percentage of clients with at least one completed workout this week">
                         <div class="stat-mini-number" id="statActiveRate">-</div>
                         <div class="stat-mini-label">Clients Active</div>
                     </div>
@@ -6270,18 +6270,20 @@
                 const prevWeekStart = new Date(weekAgo);
                 prevWeekStart.setDate(prevWeekStart.getDate() - 7);
 
-                // Fetch this week's workout logs
+                // Fetch this week's completed workout logs
                 const { data: thisWeekWorkouts } = await supabaseClient
                     .from('workout_logs')
                     .select('id, client_id, total_volume, created_at, status')
                     .in('client_id', clientIds)
+                    .eq('status', 'completed')
                     .gte('created_at', weekAgo.toISOString());
 
-                // Fetch last week's workout logs for comparison
+                // Fetch last week's completed workout logs for comparison
                 const { data: lastWeekWorkouts } = await supabaseClient
                     .from('workout_logs')
                     .select('id, client_id, total_volume')
                     .in('client_id', clientIds)
+                    .eq('status', 'completed')
                     .gte('created_at', prevWeekStart.toISOString())
                     .lt('created_at', weekAgo.toISOString());
 
@@ -6395,32 +6397,32 @@
                     const initials = d.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
                     const isActive = d.workouts > 0;
 
-                    // Volume trend
+                    // Volume trend (week-over-week comparison)
                     let trendHtml = '';
                     if (d.volumeThisWeek > 0 && d.volumeLastWeek > 0) {
                         const pct = Math.round(((d.volumeThisWeek - d.volumeLastWeek) / d.volumeLastWeek) * 100);
-                        if (pct > 0) trendHtml = `<span class="cag-badge green">↑ ${pct}% vol</span>`;
-                        else if (pct < 0) trendHtml = `<span class="cag-badge red">↓ ${Math.abs(pct)}% vol</span>`;
-                        else trendHtml = `<span class="cag-badge gray">— same vol</span>`;
+                        if (pct > 0) trendHtml = `<span class="cag-badge green" title="Total volume lifted this week is ${pct}% more than last week">↑ ${pct}% vol vs last wk</span>`;
+                        else if (pct < 0) trendHtml = `<span class="cag-badge red" title="Total volume lifted this week is ${Math.abs(pct)}% less than last week">↓ ${Math.abs(pct)}% vol vs last wk</span>`;
+                        else trendHtml = `<span class="cag-badge gray" title="Same total volume as last week">— same vol</span>`;
                     }
 
                     // Badges
                     let badges = [];
                     if (isActive) {
-                        badges.push(`<span class="cag-badge green">${d.workouts} workout${d.workouts !== 1 ? 's' : ''}</span>`);
+                        badges.push(`<span class="cag-badge green" title="Completed ${d.workouts} workout${d.workouts !== 1 ? 's' : ''} this week">${d.workouts} workout${d.workouts !== 1 ? 's' : ''} this wk</span>`);
                     } else {
-                        badges.push('<span class="cag-badge red">No activity</span>');
+                        badges.push('<span class="cag-badge red" title="No completed workouts this week">No activity</span>');
                     }
-                    if (d.prs > 0) badges.push(`<span class="cag-badge purple">${d.prs} PR${d.prs !== 1 ? 's' : ''}</span>`);
+                    if (d.prs > 0) badges.push(`<span class="cag-badge purple" title="${d.prs} new personal record${d.prs !== 1 ? 's' : ''} set this week">${d.prs} PR${d.prs !== 1 ? 's' : ''} this wk</span>`);
                     if (d.hasNotes) badges.push('<span class="cag-badge blue"><svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>');
                     if (trendHtml) badges.push(trendHtml);
 
                     // Detail text
                     let detail = '';
                     if (d.lastWorkout) {
-                        detail = 'Last workout ' + timeAgo(d.lastWorkout.toISOString());
+                        detail = 'Last completed workout ' + timeAgo(d.lastWorkout.toISOString());
                     } else {
-                        detail = 'No workouts this week';
+                        detail = 'No completed workouts this week';
                     }
                     if (d.checkedIn) detail += ' · Checked in';
 
