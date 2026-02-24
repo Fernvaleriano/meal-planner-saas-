@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { ChevronLeft, Ruler, Camera, X, Plus, Minus, ChevronDown } from 'lucide-react';
+import { ChevronLeft, Ruler, Camera, X, Plus, Minus, ChevronDown, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { apiGet, apiPost, ensureFreshSession } from '../utils/api';
+import { apiGet, apiPost, apiDelete, ensureFreshSession } from '../utils/api';
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
 
 // Get today's date in local timezone (NOT UTC)
@@ -191,6 +191,89 @@ function Progress() {
     }
   };
 
+  // Delete measurement handler
+  const handleDeleteMeasurement = async (measurementId) => {
+    if (!clientData?.id) return;
+
+    try {
+      await apiDelete(`/.netlify/functions/delete-measurement?measurementId=${measurementId}&clientId=${clientData.id}`);
+      // Remove from local state immediately
+      setMeasurements(prev => prev.filter(m => m.id !== measurementId));
+    } catch (err) {
+      console.error('Error deleting measurement:', err);
+      alert('Failed to delete measurement. Please try again.');
+    }
+  };
+
+  // Swipeable measurement entry component
+  const SwipeableMeasurement = ({ measurement }) => {
+    const [touchStart, setTouchStart] = useState(null);
+    const [touchEnd, setTouchEnd] = useState(null);
+    const [swiped, setSwiped] = useState(false);
+    const minSwipeDistance = 50;
+
+    const onTouchStart = (e) => {
+      setTouchEnd(null);
+      setTouchStart(e.targetTouches[0].clientX);
+    };
+
+    const onTouchMove = (e) => {
+      setTouchEnd(e.targetTouches[0].clientX);
+    };
+
+    const onTouchEnd = () => {
+      if (!touchStart || !touchEnd) return;
+      const distance = touchStart - touchEnd;
+      const isLeftSwipe = distance > minSwipeDistance;
+      const isRightSwipe = distance < -minSwipeDistance;
+
+      if (isLeftSwipe) {
+        setSwiped(true);
+      } else if (isRightSwipe) {
+        setSwiped(false);
+      }
+    };
+
+    const handleDelete = () => {
+      const dateStr = new Date(measurement.measured_date).toLocaleDateString();
+      if (window.confirm(`Delete measurement from ${dateStr}?`)) {
+        handleDeleteMeasurement(measurement.id);
+      }
+    };
+
+    return (
+      <div
+        className={`measurement-entry-swipeable ${swiped ? 'swiped' : ''}`}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+      >
+        <div className="measurement-entry-content" onClick={() => swiped && setSwiped(false)}>
+          <div className="measurement-entry-header">
+            <span className="measurement-date">
+              {new Date(measurement.measured_date).toLocaleDateString()}
+            </span>
+            <span className="measurement-primary">
+              {measurement.weight && <span>{measurement.weight} {weightUnit}</span>}
+              {measurement.body_fat_percentage && <span> | {measurement.body_fat_percentage}% BF</span>}
+            </span>
+          </div>
+          {(measurement.chest || measurement.waist || measurement.hips) && (
+            <div className="measurement-secondary">
+              {measurement.chest && <span>Chest: {measurement.chest}"</span>}
+              {measurement.waist && <span>Waist: {measurement.waist}"</span>}
+              {measurement.hips && <span>Hips: {measurement.hips}"</span>}
+            </div>
+          )}
+        </div>
+        <button className="measurement-delete-btn" onClick={handleDelete}>
+          <Trash2 size={20} />
+          <span>Delete</span>
+        </button>
+      </div>
+    );
+  };
+
   // Photo handlers
   const handlePhotoSelect = async (e) => {
     const file = e.target.files?.[0];
@@ -316,25 +399,8 @@ function Progress() {
                 </div>
               ) : (
                 <div className="measurements-list">
-                  {measurements.slice(0, 10).map((m, idx) => (
-                    <div key={idx} className="measurement-entry">
-                      <div className="measurement-entry-header">
-                        <span className="measurement-date">
-                          {new Date(m.measured_date).toLocaleDateString()}
-                        </span>
-                        <span className="measurement-primary">
-                          {m.weight && <span>{m.weight} {weightUnit}</span>}
-                          {m.body_fat_percentage && <span> | {m.body_fat_percentage}% BF</span>}
-                        </span>
-                      </div>
-                      {(m.chest || m.waist || m.hips) && (
-                        <div className="measurement-secondary">
-                          {m.chest && <span>Chest: {m.chest}"</span>}
-                          {m.waist && <span>Waist: {m.waist}"</span>}
-                          {m.hips && <span>Hips: {m.hips}"</span>}
-                        </div>
-                      )}
-                    </div>
+                  {measurements.slice(0, 10).map((m) => (
+                    <SwipeableMeasurement key={m.id} measurement={m} />
                   ))}
                 </div>
               )}
