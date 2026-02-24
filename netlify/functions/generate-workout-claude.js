@@ -406,10 +406,10 @@ exports.handler = async (event) => {
 
     // Build training style instruction
     const styleMap = {
-      'straight_sets': 'Use straight sets (complete all sets of one exercise before moving to the next)',
-      'supersets': 'Use supersets (pair exercises back-to-back with minimal rest)',
-      'circuits': 'Use circuit training (cycle through all exercises with minimal rest)',
-      'mixed': 'Mix straight sets with occasional supersets for efficiency'
+      'straight_sets': 'Use straight sets (complete all sets of one exercise before moving to the next). All exercises should have "isSuperset": false and "supersetGroup": null.',
+      'supersets': 'MANDATORY: Use supersets — pair MOST main exercises into superset pairs. Each pair must have BOTH exercises marked with "isSuperset": true and the SAME "supersetGroup" letter (e.g., both exercises in the first pair get "supersetGroup": "A", the second pair gets "B", etc.). Place paired exercises CONSECUTIVELY in the exercises array. Aim for 2-3 superset pairs per workout. Rest 60-90s between superset rounds, 0s between exercises within a superset.',
+      'circuits': 'Use circuit training (cycle through all exercises with minimal rest). Group 3-5 exercises into circuits using "isSuperset": true and the same "supersetGroup" letter for all exercises in the circuit.',
+      'mixed': 'Mix straight sets with supersets — use 1-2 superset pairs per workout (mark both exercises with "isSuperset": true and the same "supersetGroup" letter like "A" or "B"), and keep the remaining exercises as straight sets ("isSuperset": false). Place superset pairs CONSECUTIVELY.'
     };
     const styleInstruction = styleMap[trainingStyle] || styleMap['straight_sets'];
 
@@ -634,8 +634,12 @@ Return this exact JSON structure:
       "exercises": [
         {"name": "Cardio Warm-up", "muscleGroup": "cardio", "sets": 1, "reps": "5 min", "restSeconds": 0, "notes": "", "isSuperset": false, "supersetGroup": null, "isWarmup": true, "isStretch": false, "phase": "warmup"},
         {"name": "Dynamic Warm-up", "muscleGroup": "cardio", "sets": 1, "reps": "10-15", "restSeconds": 0, "notes": "", "isSuperset": false, "supersetGroup": null, "isWarmup": true, "isStretch": false, "phase": "warmup"},
-        {"name": "Compound Exercise", "muscleGroup": "${targetMuscle}", "sets": 4, "reps": "8-10", "restSeconds": 90, "notes": "Form cue", "isSuperset": false, "supersetGroup": null, "isWarmup": false, "isStretch": false, "phase": "main"},
-        {"name": "Isolation Exercise", "muscleGroup": "${targetMuscle}", "sets": 3, "reps": "10-12", "restSeconds": 60, "notes": "Form cue", "isSuperset": false, "supersetGroup": null, "isWarmup": false, "isStretch": false, "phase": "main"},
+${trainingStyle === 'supersets' || trainingStyle === 'mixed' ?
+`        {"name": "Compound Exercise A1", "muscleGroup": "${targetMuscle}", "sets": 4, "reps": "8-10", "restSeconds": 0, "notes": "Form cue", "isSuperset": true, "supersetGroup": "A", "isWarmup": false, "isStretch": false, "phase": "main"},
+        {"name": "Compound Exercise A2", "muscleGroup": "${targetMuscle}", "sets": 4, "reps": "8-10", "restSeconds": 90, "notes": "Form cue — rest 90s after completing both", "isSuperset": true, "supersetGroup": "A", "isWarmup": false, "isStretch": false, "phase": "main"},
+        {"name": "Isolation Exercise", "muscleGroup": "${targetMuscle}", "sets": 3, "reps": "10-12", "restSeconds": 60, "notes": "Form cue", "isSuperset": false, "supersetGroup": null, "isWarmup": false, "isStretch": false, "phase": "main"},` :
+`        {"name": "Compound Exercise", "muscleGroup": "${targetMuscle}", "sets": 4, "reps": "8-10", "restSeconds": 90, "notes": "Form cue", "isSuperset": false, "supersetGroup": null, "isWarmup": false, "isStretch": false, "phase": "main"},
+        {"name": "Isolation Exercise", "muscleGroup": "${targetMuscle}", "sets": 3, "reps": "10-12", "restSeconds": 60, "notes": "Form cue", "isSuperset": false, "supersetGroup": null, "isWarmup": false, "isStretch": false, "phase": "main"},`}
         {"name": "Static Stretch", "muscleGroup": "stretching", "sets": 1, "reps": "30s hold", "restSeconds": 0, "notes": "", "isSuperset": false, "supersetGroup": null, "isWarmup": false, "isStretch": true, "phase": "cooldown"}
       ]
     }]
@@ -719,8 +723,12 @@ Return this exact JSON structure:
       "exercises": [
         {"name": "Cardio Warm-up", "muscleGroup": "cardio", "sets": 1, "reps": "5 min", "restSeconds": 0, "notes": "", "isSuperset": false, "supersetGroup": null, "isWarmup": true, "isStretch": false, "phase": "warmup"},
         {"name": "Dynamic Prep", "muscleGroup": "cardio", "sets": 1, "reps": "10-15", "restSeconds": 0, "notes": "", "isSuperset": false, "supersetGroup": null, "isWarmup": true, "isStretch": false, "phase": "warmup"},
-        {"name": "Compound Exercise", "muscleGroup": "primary_muscle", "sets": 4, "reps": "8-10", "restSeconds": 90, "notes": "Form cue", "isSuperset": false, "supersetGroup": null, "isWarmup": false, "isStretch": false, "phase": "main"},
-        {"name": "Isolation Exercise", "muscleGroup": "primary_muscle", "sets": 3, "reps": "10-12", "restSeconds": 60, "notes": "Form cue", "isSuperset": false, "supersetGroup": null, "isWarmup": false, "isStretch": false, "phase": "main"},
+${trainingStyle === 'supersets' || trainingStyle === 'mixed' ?
+`        {"name": "Compound Exercise A1", "muscleGroup": "primary_muscle", "sets": 4, "reps": "8-10", "restSeconds": 0, "notes": "Form cue", "isSuperset": true, "supersetGroup": "A", "isWarmup": false, "isStretch": false, "phase": "main"},
+        {"name": "Compound Exercise A2", "muscleGroup": "primary_muscle", "sets": 4, "reps": "8-10", "restSeconds": 90, "notes": "Form cue — rest 90s after completing both", "isSuperset": true, "supersetGroup": "A", "isWarmup": false, "isStretch": false, "phase": "main"},
+        {"name": "Isolation Exercise", "muscleGroup": "primary_muscle", "sets": 3, "reps": "10-12", "restSeconds": 60, "notes": "Form cue", "isSuperset": false, "supersetGroup": null, "isWarmup": false, "isStretch": false, "phase": "main"},` :
+`        {"name": "Compound Exercise", "muscleGroup": "primary_muscle", "sets": 4, "reps": "8-10", "restSeconds": 90, "notes": "Form cue", "isSuperset": false, "supersetGroup": null, "isWarmup": false, "isStretch": false, "phase": "main"},
+        {"name": "Isolation Exercise", "muscleGroup": "primary_muscle", "sets": 3, "reps": "10-12", "restSeconds": 60, "notes": "Form cue", "isSuperset": false, "supersetGroup": null, "isWarmup": false, "isStretch": false, "phase": "main"},`}
         {"name": "Static Stretch", "muscleGroup": "stretching", "sets": 1, "reps": "30s hold", "restSeconds": 0, "notes": "", "isSuperset": false, "supersetGroup": null, "isWarmup": false, "isStretch": true, "phase": "cooldown"}
       ]
     }]
