@@ -11963,7 +11963,7 @@ a.nav-left {
 
 .workouts-page-v2 {
     min-height: 100vh;
-    background: #000;
+    background: var(--gray-50);
     padding-bottom: 140px;
     /* Prevent Android Chrome's native pull-to-refresh from hijacking gesture */
     overscroll-behavior-y: contain;
@@ -13020,7 +13020,7 @@ a.nav-left {
     background-size: cover;
     background-position: center top;
     background-repeat: no-repeat;
-    background-color: #000;
+    background-color: var(--gray-50);
 }
 
 .workout-detail-bg-overlay {
@@ -13030,9 +13030,9 @@ a.nav-left {
     right: 0;
     bottom: 0;
     background: linear-gradient(to bottom,
-        rgba(0, 0, 0, 0.3) 0%,
-        rgba(0, 0, 0, 0.65) 40%,
-        rgba(0, 0, 0, 0.85) 100%);
+        rgba(30, 41, 59, 0.3) 0%,
+        rgba(30, 41, 59, 0.65) 40%,
+        rgba(30, 41, 59, 0.85) 100%);
     pointer-events: none;
     z-index: 0;
 }
@@ -13043,7 +13043,7 @@ a.nav-left {
 }
 
 .workout-detail-bg .workout-top-nav {
-    background: rgba(0, 0, 0, 0.4);
+    background: rgba(30, 41, 59, 0.4);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
     z-index: 100;
@@ -16812,15 +16812,7 @@ a.nav-left {
    WORKOUTS PAGE - LIGHT MODE
    ======================================== */
 
-/* Main page background */
-[data-theme="light"] .workouts-page-v2 {
-    background: #f8fafc;
-}
-
 /* Detail view background - light mode keeps image with lighter overlay */
-[data-theme="light"] .workout-detail-bg {
-    background-color: #f8fafc;
-}
 
 [data-theme="light"] .workout-detail-bg-overlay {
     background: linear-gradient(to bottom,
