@@ -581,17 +581,54 @@ body {
 
 @media (max-width: 768px) {
     .main-container {
-        padding: 24px 20px;
-        padding-bottom: calc(24px + env(safe-area-inset-bottom));
+        padding: 20px 16px;
+        padding-bottom: calc(20px + env(safe-area-inset-bottom));
+    }
+
+    .main-header {
+        padding: 0 16px;
+        padding-top: env(safe-area-inset-top);
+        min-height: calc(56px + env(safe-area-inset-top));
+    }
+
+    .main-header-title {
+        font-size: 1.1rem;
+    }
+
+    .main-header-actions {
+        gap: 8px;
+    }
+
+    .main-header-actions .btn {
+        padding: 10px 16px;
+        min-height: 40px;
+        font-size: 0.85rem;
     }
 
     .stats-grid {
-        grid-template-columns: 1fr;
-        gap: 16px;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
     }
 
     .stat-card {
-        padding: 24px;
+        padding: 20px;
+        border-radius: 14px;
+    }
+
+    .stat-value {
+        font-size: 1.75rem;
+    }
+
+    .stat-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 10px;
+        font-size: 1.25rem;
+        margin-bottom: 12px;
+    }
+
+    .card {
+        border-radius: 16px;
     }
 
     .card-header {
@@ -601,19 +638,46 @@ body {
     .card-body {
         padding: 20px;
     }
+
+    .btn {
+        min-height: 46px;
+        border-radius: 12px;
+    }
+
+    .btn-sm {
+        min-height: 38px;
+    }
+
+    /* Table improvements for mobile */
+    .table td {
+        padding: 14px 12px;
+        font-size: 0.875rem;
+    }
+
+    .table th {
+        padding: 10px 12px;
+    }
 }
 
 /* Extra small screens */
 @media (max-width: 360px) {
     .main-container {
-        padding: 16px;
-        padding-bottom: calc(16px + env(safe-area-inset-bottom));
+        padding: 14px 12px;
+        padding-bottom: calc(14px + env(safe-area-inset-bottom));
     }
 
     .btn {
         padding: 10px 16px;
         min-height: 44px;
         font-size: 0.875rem;
+    }
+
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .stat-card {
+        padding: 18px;
     }
 }
 
@@ -622,9 +686,19 @@ body {
     display: none;
     background: none;
     border: none;
-    padding: 8px;
+    padding: 10px;
     cursor: pointer;
     color: var(--gray-600);
+    border-radius: 10px;
+    transition: background 0.2s;
+}
+
+.mobile-menu-btn:hover {
+    background: var(--gray-100);
+}
+
+[data-theme="dark"] .mobile-menu-btn:hover {
+    background: var(--gray-700);
 }
 
 /* Overlay for mobile */
@@ -636,7 +710,10 @@ body {
     right: 0;
     bottom: 0;
     background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
     z-index: 99;
+    transition: opacity 0.3s ease;
 }
 
 .sidebar-overlay.active {

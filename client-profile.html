@@ -4249,6 +4249,41 @@
             .site-footer {
                 display: none;
             }
+
+            /* Improved section spacing on mobile */
+            .activity-calendar-section,
+            .workout-progress-section,
+            .workout-calendar-section,
+            .ai-assistant-section {
+                padding: 20px 16px;
+                border-radius: 14px;
+                margin-bottom: 16px;
+            }
+
+            /* Better button sizing on mobile */
+            .btn {
+                min-height: 46px;
+                border-radius: 12px;
+            }
+
+            .ai-quick-btn {
+                padding: 10px 16px;
+                font-size: 0.82rem;
+            }
+
+            .ai-period-btn {
+                padding: 8px 16px;
+                font-size: 0.82rem;
+                min-height: 38px;
+            }
+
+            /* AI input area */
+            #aiCoachQuestion,
+            #workoutAiQuestion {
+                font-size: 16px; /* Prevent iOS zoom */
+                padding: 14px;
+                border-radius: 12px;
+            }
         }
 
         /* Bottom Navigation Bar */

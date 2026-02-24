@@ -2813,21 +2813,21 @@
             }
 
             .container {
-                padding: 16px;
-                padding-bottom: calc(16px + env(safe-area-inset-bottom));
+                padding: 20px 16px;
+                padding-bottom: calc(20px + env(safe-area-inset-bottom));
             }
 
             .welcome-card {
-                padding: 20px;
-                border-radius: 16px;
+                padding: 24px 20px;
+                border-radius: 18px;
             }
 
             .welcome-card h1 {
-                font-size: 1.25rem;
+                font-size: 1.3rem;
             }
 
             .welcome-section {
-                margin-bottom: 16px;
+                margin-bottom: 20px;
             }
 
             .stats-grid {
@@ -2836,36 +2836,40 @@
             }
 
             .stat-card {
-                min-width: 140px;
+                min-width: calc(50% - 6px);
                 flex: 1;
-                padding: 18px;
+                padding: 20px;
+                border-radius: 14px;
             }
 
             .stat-number {
-                font-size: 2rem;
+                font-size: 1.75rem;
             }
 
             .quick-actions-grid {
                 grid-template-columns: repeat(3, 1fr);
-                gap: 10px;
+                gap: 12px;
             }
 
             .quick-action-tile {
-                padding: 16px 8px;
+                padding: 18px 10px;
+                border-radius: 14px;
             }
 
             .quick-action-icon {
-                width: 42px;
-                height: 42px;
-                font-size: 1.25rem;
+                width: 46px;
+                height: 46px;
+                font-size: 1.3rem;
+                border-radius: 12px;
             }
 
             .quick-action-label {
-                font-size: 0.75rem;
+                font-size: 0.78rem;
+                margin-top: 10px;
             }
 
             .cards-section-header {
-                margin-bottom: 12px;
+                margin-bottom: 14px;
             }
 
             .hero-ai-prompt-box {
@@ -2874,36 +2878,43 @@
 
             .hero-ai-search-btn {
                 width: 100%;
-                height: 44px;
+                height: 48px;
+                border-radius: 12px;
             }
 
             .hero-ai-chip-row {
-                gap: 6px;
+                gap: 8px;
             }
 
             .hero-chip {
-                font-size: 0.75rem;
-                padding: 6px 10px;
+                font-size: 0.78rem;
+                padding: 8px 12px;
+                border-radius: 20px;
             }
         }
 
         /* Extra small screens */
         @media (max-width: 360px) {
             .container {
-                padding: 16px;
+                padding: 16px 12px;
                 padding-bottom: calc(16px + env(safe-area-inset-bottom));
             }
 
             .welcome-card {
-                padding: 20px;
+                padding: 20px 16px;
             }
 
             .stat-card {
-                padding: 20px;
+                padding: 18px;
             }
 
             .action-card {
-                padding: 24px;
+                padding: 20px;
+            }
+
+            .quick-actions-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
             }
         }
 
