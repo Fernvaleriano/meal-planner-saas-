@@ -613,10 +613,9 @@ goal === 'hypertrophy' ? `  * Main compounds: 4 sets of 6-10 reps, 90-120s rest 
 - Do NOT repeat the exercise name in notes
 
 CONSTRAINTS:
-${injuries ? `- AVOID exercises that aggravate: ${injuries}` : '- No injury restrictions'}
 - ONLY use exercises that require this equipment: ${equipment.join(', ')}. Do NOT include exercises requiring equipment not in this list.
-${preferences ? `- Additional preferences: ${preferences}` : ''}
-
+${injuries ? `\n=== INJURY/LIMITATION RESTRICTIONS (MANDATORY — NEVER VIOLATE) ===\nThe client has the following injuries or limitations: ${injuries}\n- You MUST NOT include ANY exercise that could aggravate these conditions\n- This overrides ALL other exercise selection guidance above — if a recommended movement pattern conflicts with these restrictions, SKIP that movement pattern entirely and substitute a safe alternative\n- When in doubt about whether an exercise is safe, EXCLUDE it\n` : '- No injury restrictions'}
+${preferences ? `\n=== CLIENT PREFERENCES (MANDATORY — MUST FOLLOW) ===\nThe client has specified: ${preferences}\n- You MUST strictly follow these preferences when selecting exercises\n- If a preference says to avoid or exclude a specific exercise or movement type, do NOT include it under any circumstances\n- These preferences override the default movement pattern recommendations above\n` : ''}
 For supersets: mark BOTH exercises with "isSuperset": true and "supersetGroup": "A" (or "B", "C" for multiple pairs)
 
 Return this exact JSON structure:
@@ -644,7 +643,7 @@ Return this exact JSON structure:
   "progressionNotes": "How to progress week over week"
 }
 ${warmupStretchInstructions}`;
-      userMessage = `Create a single ${muscleLabel} workout for ${clientName}. Goal: ${goal}. Experience: ${experience}. Include ${exerciseCount} MAIN exercises (plus warm-up and cool-down). Return only valid JSON.`;
+      userMessage = `Create a single ${muscleLabel} workout for ${clientName}. Goal: ${goal}. Experience: ${experience}. Include ${exerciseCount} MAIN exercises (plus warm-up and cool-down).${injuries ? ` IMPORTANT: Client has these injuries/limitations — "${injuries}" — do NOT include any exercises that could aggravate them.` : ''}${preferences ? ` IMPORTANT: Client preferences — "${preferences}" — you MUST follow these strictly.` : ''} Return only valid JSON.`;
     } else {
       systemPrompt = `You are an elite strength & conditioning coach with 20+ years of experience designing periodized programs for athletes and physique competitors. Return ONLY valid JSON, no markdown or extra text.
 
@@ -698,10 +697,9 @@ goal === 'hypertrophy' ? `- Main compounds: 4 sets of 6-10 reps, 90-120s rest
 - Examples: "Drive through heels, chest up", "Squeeze at top for 1 sec", "Control the eccentric — 2 sec down"
 
 CONSTRAINTS:
-${injuries ? `- AVOID exercises that aggravate: ${injuries}` : '- No injury restrictions'}
 - ONLY use exercises that require this equipment: ${equipment.join(', ')}. Do NOT include exercises requiring equipment not in this list.
-${preferences ? `- Additional preferences: ${preferences}` : ''}
-
+${injuries ? `\n=== INJURY/LIMITATION RESTRICTIONS (MANDATORY — NEVER VIOLATE) ===\nThe client has the following injuries or limitations: ${injuries}\n- You MUST NOT include ANY exercise that could aggravate these conditions\n- This overrides ALL other exercise selection guidance — if a recommended movement pattern conflicts with these restrictions, SKIP it and substitute a safe alternative\n- When in doubt about whether an exercise is safe, EXCLUDE it\n` : '- No injury restrictions'}
+${preferences ? `\n=== CLIENT PREFERENCES (MANDATORY — MUST FOLLOW) ===\nThe client has specified: ${preferences}\n- You MUST strictly follow these preferences when selecting exercises\n- If a preference says to avoid or exclude a specific exercise or movement type, do NOT include it under any circumstances\n- These preferences override the default movement pattern recommendations above\n` : ''}
 For supersets: mark BOTH exercises with "isSuperset": true and "supersetGroup": "A" (or "B", "C")
 ${warmupStretchInstructions}
 
@@ -729,7 +727,7 @@ Return this exact JSON structure:
   }],
   "progressionNotes": "How to progress week over week (include specific weight/rep progression guidance)"
 }`;
-      userMessage = `Create a complete ${daysPerWeek}-day workout program for ${clientName}. Goal: ${goal}. Experience: ${experience}. Each day should include warm-up, ${exerciseCount} MAIN exercises, and cool-down stretches. Return only valid JSON.`;
+      userMessage = `Create a complete ${daysPerWeek}-day workout program for ${clientName}. Goal: ${goal}. Experience: ${experience}. Each day should include warm-up, ${exerciseCount} MAIN exercises, and cool-down stretches.${injuries ? ` IMPORTANT: Client has these injuries/limitations — "${injuries}" — do NOT include any exercises that could aggravate them.` : ''}${preferences ? ` IMPORTANT: Client preferences — "${preferences}" — you MUST follow these strictly.` : ''} Return only valid JSON.`;
     }
 
     // Use Claude Sonnet 4 for superior exercise selection and workout programming.
