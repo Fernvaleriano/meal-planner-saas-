@@ -11,6 +11,7 @@
     <meta name="apple-mobile-web-app-title" content="Zique Fitness">
     <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" href="/icons/logo.png">
+    <link rel="stylesheet" href="/css/voice-to-text.css">
     <title>AI Meal Planner - Zique Fitness Nutrition</title>
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -2583,12 +2584,18 @@
                     <span><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>Quick Add</span>
                     <span class="quick-add-hint">AI-powered - describe your meal</span>
                 </div>
-                <textarea
-                    id="quickAddInput"
-                    class="quick-add-textarea"
-                    placeholder="e.g., grilled chicken breast with rice and steamed broccoli"
-                    rows="2"
-                ></textarea>
+                <div style="display:flex; gap:8px; align-items:flex-start;">
+                    <textarea
+                        id="quickAddInput"
+                        class="quick-add-textarea"
+                        placeholder="e.g., grilled chicken breast with rice and steamed broccoli"
+                        rows="2"
+                        style="flex:1;"
+                    ></textarea>
+                    <button type="button" class="vtt-mic-btn vtt-mic-sm" title="Voice input" onclick="VoiceToText.toggle(document.getElementById('quickAddInput'), this)" style="margin-top:2px;">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                    </button>
+                </div>
                 <button id="quickAddBtn" class="quick-add-btn" onclick="parseAndAddIngredients()">
                     <span id="quickAddBtnText">Add Ingredients</span>
                     <span id="quickAddSpinner" class="quick-add-spinner" style="display: none;"></span>
@@ -5312,6 +5319,9 @@ function displayDietPlan(multiDayData) {
                                     placeholder="e.g., 2 eggs with toast and avocado..."
                                     style="flex: 1; padding: 8px 10px; border: 1px solid #c4b5fd; border-radius: 6px; font-size: 12px; background: white; color: #1f2937;"
                                     onkeypress="if(event.key==='Enter')sendAiBrainstorm(${dayIndex},${mealIndex})">
+                                <button type="button" class="vtt-mic-btn vtt-mic-inline" title="Voice input" onclick="VoiceToText.toggle(document.getElementById('ai-chat-input-${dayIndex}-${mealIndex}'), this)">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                                </button>
                                 <button data-action="send-ai-brainstorm" data-day-index="${dayIndex}" data-meal-index="${mealIndex}"
                                     style="padding: 8px 14px; background: #7c3aed; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;">
                                     Send
@@ -5326,6 +5336,9 @@ function displayDietPlan(multiDayData) {
                                 <textarea id="${mealNoteId}" style="width: 100%; min-height: 50px; padding: 6px; border: 1px solid #fcd34d; border-radius: 4px; font-size: 12px; resize: vertical; color: #333; background: white;" placeholder="Add a note about this meal...">${existingNote}</textarea>
                                 <div style="display: flex; gap: 8px; margin-top: 6px; align-items: center; flex-wrap: wrap;">
                                     <button data-action="save-meal-note" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn" style="background: #f59e0b; color: white; padding: 4px 12px; font-size: 11px; border-radius: 4px;">Save Note</button>
+                                    <button type="button" class="vtt-mic-btn vtt-mic-inline" title="Dictate note" onclick="VoiceToText.toggle(document.getElementById('${mealNoteId}'), this)" style="border-color: #0d9488; color: #0d9488;">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                                    </button>
                                     <button id="voice-btn-${dayIndex}-${mealIndex}" onclick="toggleMealVoiceRecording(${dayIndex}, ${mealIndex})" style="background: #7c3aed; color: white; padding: 4px 12px; font-size: 11px; border-radius: 4px; border: none; cursor: pointer;"><svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:2px;"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>Record Voice</button>
                                 </div>
                                 ${voiceNoteUrl ? `
@@ -5360,7 +5373,12 @@ function displayDietPlan(multiDayData) {
                 <h4 style="margin: 0; color: #0369a1; font-size: 14px; font-weight: 600;"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Coach Notes for Client</h4>
                 <button id="saveNotesBtn" data-action="save-coach-notes" class="btn btn-secondary" style="font-size: 12px; padding: 6px 12px;">Save Notes</button>
             </div>
-            <textarea id="coachNotesInput" placeholder="Add personalized notes, tips, or instructions for your client..." style="width: 100%; min-height: 80px; padding: 10px; border: 1px solid #cbd5e0; border-radius: 6px; font-size: 14px; resize: vertical; color: #333; background: white;"></textarea>
+            <div style="display: flex; gap: 8px; align-items: flex-start;">
+                <textarea id="coachNotesInput" placeholder="Add personalized notes, tips, or instructions for your client..." style="flex: 1; min-height: 80px; padding: 10px; border: 1px solid #cbd5e0; border-radius: 6px; font-size: 14px; resize: vertical; color: #333; background: white;"></textarea>
+                <button type="button" class="vtt-mic-btn vtt-mic-sm" title="Voice input" onclick="VoiceToText.toggle(document.getElementById('coachNotesInput'), this)" style="margin-top:2px;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                </button>
+            </div>
             <p style="margin-top: 6px; font-size: 11px; color: #64748b;">These notes will be visible to the client when they view this plan.</p>
         </div>
     `;
@@ -11866,5 +11884,6 @@ document.addEventListener('click', async (e) => {
             </a>
         </div>
     </nav>
+    <script src="/js/voice-to-text.js"></script>
 </body>
 </html>

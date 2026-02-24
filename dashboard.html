@@ -12,6 +12,7 @@
     <meta name="apple-mobile-web-app-title" content="Zique Fitness">
     <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" href="/icons/logo.png">
+    <link rel="stylesheet" href="/css/voice-to-text.css">
     <title>Dashboard - Zique Fitness Nutrition</title>
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <link rel="preload" href="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" as="script">
@@ -605,6 +606,14 @@
 
         [data-theme="dark"] .hero-ai-input::placeholder {
             color: #64748b;
+        }
+
+        .hero-ai-prompt-box .vtt-mic-btn {
+            width: 48px;
+            height: 48px;
+            min-width: 48px;
+            border-radius: 12px;
+            border-width: 2px;
         }
 
         .hero-ai-search-btn {
@@ -3703,6 +3712,9 @@
                     <div class="hero-ai-search">
                         <div class="hero-ai-prompt-box">
                             <input type="text" id="heroAiInput" class="hero-ai-input" placeholder="Ask anything about your clients..." autocomplete="off">
+                            <button type="button" id="heroVttBtn" class="vtt-mic-btn" title="Voice input" onclick="VoiceToText.toggle(document.getElementById('heroAiInput'), this)">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                            </button>
                             <button class="hero-ai-search-btn" onclick="askHeroAI()">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
                             </button>
@@ -6540,5 +6552,6 @@
             });
         }
     </script>
+    <script src="/js/voice-to-text.js"></script>
 </body>
 </html>

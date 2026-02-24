@@ -5,6 +5,7 @@
     <link rel="icon" href="/icons/logo.png" type="image/png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <script src="/js/theme.js"></script>
+    <link rel="stylesheet" href="/css/voice-to-text.css">
     <title>Supplement Protocols - Zique Fitness Nutrition</title>
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <link rel="preload" href="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" as="script">
@@ -1246,12 +1247,22 @@
 
                 <div class="form-group">
                     <label>Notes (visible to client)</label>
-                    <textarea id="protocolNotes" placeholder="Instructions, tips, brand recommendations..."></textarea>
+                    <div style="display: flex; gap: 8px; align-items: flex-start;">
+                        <textarea id="protocolNotes" placeholder="Instructions, tips, brand recommendations..." style="flex:1;"></textarea>
+                        <button type="button" class="vtt-mic-btn vtt-mic-sm" title="Voice input" onclick="VoiceToText.toggle(document.getElementById('protocolNotes'), this)" style="margin-top:2px;">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                        </button>
+                    </div>
                 </div>
 
                 <div class="form-group private-notes-section">
                     <label>Private Notes (coach only)</label>
-                    <textarea id="protocolPrivateNotes" placeholder="Notes only you can see..."></textarea>
+                    <div style="display: flex; gap: 8px; align-items: flex-start;">
+                        <textarea id="protocolPrivateNotes" placeholder="Notes only you can see..." style="flex:1;"></textarea>
+                        <button type="button" class="vtt-mic-btn vtt-mic-sm" title="Voice input" onclick="VoiceToText.toggle(document.getElementById('protocolPrivateNotes'), this)" style="margin-top:2px;">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                        </button>
+                    </div>
                 </div>
             </div>
             <div class="modal-footer">
@@ -1402,12 +1413,22 @@
 
                 <div class="form-group">
                     <label>Notes (visible to clients when published)</label>
-                    <textarea id="libraryNotes" placeholder="Instructions, tips, brand recommendations..."></textarea>
+                    <div style="display: flex; gap: 8px; align-items: flex-start;">
+                        <textarea id="libraryNotes" placeholder="Instructions, tips, brand recommendations..." style="flex:1;"></textarea>
+                        <button type="button" class="vtt-mic-btn vtt-mic-sm" title="Voice input" onclick="VoiceToText.toggle(document.getElementById('libraryNotes'), this)" style="margin-top:2px;">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                        </button>
+                    </div>
                 </div>
 
                 <div class="form-group private-notes-section">
                     <label>Private Notes (coach only)</label>
-                    <textarea id="libraryPrivateNotes" placeholder="Notes only you can see..."></textarea>
+                    <div style="display: flex; gap: 8px; align-items: flex-start;">
+                        <textarea id="libraryPrivateNotes" placeholder="Notes only you can see..." style="flex:1;"></textarea>
+                        <button type="button" class="vtt-mic-btn vtt-mic-sm" title="Voice input" onclick="VoiceToText.toggle(document.getElementById('libraryPrivateNotes'), this)" style="margin-top:2px;">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                        </button>
+                    </div>
                 </div>
             </div>
             <div class="modal-footer">
@@ -2712,5 +2733,6 @@
     </script>
         </div>
     </main>
+    <script src="/js/voice-to-text.js"></script>
 </body>
 </html>

@@ -18958,6 +18958,43 @@ a.nav-left {
     background: #14b8a6;
 }
 
+.ask-coach-input .voice-btn {
+    width: 44px;
+    height: 44px;
+    background: #1a1a1a;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 50%;
+    color: #9ca3af;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.ask-coach-input .voice-btn:hover:not(:disabled) {
+    border-color: rgba(255, 255, 255, 0.3);
+    color: white;
+}
+
+.ask-coach-input .voice-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.ask-coach-input .voice-btn.recording {
+    background: #dc2626;
+    border-color: #dc2626;
+    color: white;
+    animation: voice-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes voice-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.4); }
+    50% { box-shadow: 0 0 0 8px rgba(220, 38, 38, 0); }
+}
+
 /* Activity Progress Bar at Bottom */
 .activity-progress-bar {
     background: #1a1a1a;
