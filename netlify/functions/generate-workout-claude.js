@@ -339,8 +339,32 @@ exports.handler = async (event) => {
         console.warn(`Only ${exercisesWithVideos.length} exercises have videos - workout variety may be limited`);
       }
 
-      // Group exercises by muscle group for the prompt
-      for (const ex of exercisesWithVideos) {
+      // Filter exercises by selected equipment BEFORE sending to Claude
+      const matchesSelectedEquipment = (ex) => {
+        const exEquipment = (ex.equipment || '').toLowerCase();
+        if (!equipment || equipment.length === 0) return true;
+        return equipment.some(eq => {
+          const eqLower = eq.toLowerCase();
+          if (eqLower === 'bodyweight') {
+            // Bodyweight matches exercises with no equipment, 'none', or 'bodyweight'
+            return !exEquipment || exEquipment === 'none' || exEquipment === 'bodyweight' || exEquipment === 'body weight';
+          }
+          if (eqLower === 'bands') {
+            return exEquipment.includes('band');
+          }
+          if (eqLower === 'pullup_bar') {
+            return exEquipment.includes('pull-up') || exEquipment.includes('pullup') || exEquipment.includes('pull up');
+          }
+          // Default: substring match (handles 'barbell' in 'Barbell', 'machine' in 'Smith Machine', etc.)
+          return exEquipment.includes(eqLower);
+        });
+      };
+
+      const equipmentFilteredExercises = exercisesWithVideos.filter(matchesSelectedEquipment);
+      console.log(`${equipmentFilteredExercises.length} of ${exercisesWithVideos.length} exercises match selected equipment: ${equipment.join(', ')}`);
+
+      // Group FILTERED exercises by muscle group for the prompt (only equipment-matching exercises)
+      for (const ex of equipmentFilteredExercises) {
         const group = (ex.muscle_group || 'other').toLowerCase();
         if (!exercisesByMuscleGroup[group]) {
           exercisesByMuscleGroup[group] = [];
@@ -411,21 +435,30 @@ exports.handler = async (event) => {
         })
         .join('\n');
 
-      // Get ALL exercise names with their muscle groups for smarter warmup/stretch selection
-      const allExerciseNames = Object.values(exercisesByMuscleGroup).flat();
+      // Use ALL exercises with videos for warmup/stretch matching (not equipment-filtered,
+      // since warmups/stretches are typically bodyweight and should always be available)
+      const allExerciseNames = exercisesWithVideos.map(e => e.name);
+
+      // Build unfiltered groups for warmup/stretch category lookups
+      const allExercisesGrouped = {};
+      for (const ex of exercisesWithVideos) {
+        const group = (ex.muscle_group || 'other').toLowerCase();
+        if (!allExercisesGrouped[group]) allExercisesGrouped[group] = [];
+        allExercisesGrouped[group].push(ex.name);
+      }
 
       // WARM-UP OPTIONS: bodyweight, cardio, light movements from ANY category
       const warmupSuitableExercises = [];
 
-      // Check for cardio category
-      if (exercisesByMuscleGroup['cardio']?.length > 0) {
-        warmupSuitableExercises.push(...exercisesByMuscleGroup['cardio'].slice(0, 5));
+      // Check for cardio category (from unfiltered exercises)
+      if (allExercisesGrouped['cardio']?.length > 0) {
+        warmupSuitableExercises.push(...allExercisesGrouped['cardio'].slice(0, 5));
       }
 
-      // Check for dedicated warmup/mobility categories
+      // Check for dedicated warmup/mobility categories (from unfiltered exercises)
       ['warmup', 'warm-up', 'mobility', 'flexibility'].forEach(cat => {
-        if (exercisesByMuscleGroup[cat]?.length > 0) {
-          warmupSuitableExercises.push(...exercisesByMuscleGroup[cat].slice(0, 5));
+        if (allExercisesGrouped[cat]?.length > 0) {
+          warmupSuitableExercises.push(...allExercisesGrouped[cat].slice(0, 5));
         }
       });
 
@@ -580,7 +613,7 @@ goal === 'hypertrophy' ? `  * Main compounds: 4 sets of 6-10 reps, 90-120s rest 
 
 CONSTRAINTS:
 ${injuries ? `- AVOID exercises that aggravate: ${injuries}` : '- No injury restrictions'}
-- Available equipment: ${equipment.join(', ')}
+- ONLY use exercises that require this equipment: ${equipment.join(', ')}. Do NOT include exercises requiring equipment not in this list.
 ${preferences ? `- Additional preferences: ${preferences}` : ''}
 
 For supersets: mark BOTH exercises with "isSuperset": true and "supersetGroup": "A" (or "B", "C" for multiple pairs)
@@ -665,7 +698,7 @@ goal === 'hypertrophy' ? `- Main compounds: 4 sets of 6-10 reps, 90-120s rest
 
 CONSTRAINTS:
 ${injuries ? `- AVOID exercises that aggravate: ${injuries}` : '- No injury restrictions'}
-- Available equipment: ${equipment.join(', ')}
+- ONLY use exercises that require this equipment: ${equipment.join(', ')}. Do NOT include exercises requiring equipment not in this list.
 ${preferences ? `- Additional preferences: ${preferences}` : ''}
 
 For supersets: mark BOTH exercises with "isSuperset": true and "supersetGroup": "A" (or "B", "C")
