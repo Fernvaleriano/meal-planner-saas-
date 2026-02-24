@@ -29,7 +29,7 @@ exports.handler = async (event) => {
     // POST - Reschedule or duplicate a workout to another date
     if (event.httpMethod === 'POST') {
       const body = JSON.parse(event.body || '{}');
-      const { assignmentId, action, sourceDayIndex, targetDate, sourceDate } = body;
+      const { assignmentId, action, sourceDayIndex, targetDate, sourceDate, isAdded } = body;
 
       if (!assignmentId || !action || !targetDate) {
         return {
@@ -67,27 +67,50 @@ exports.handler = async (event) => {
       const dateOverrides = currentWorkoutData.date_overrides || {};
 
       if (action === 'skip') {
-        // Mark target date as rest day
-        dateOverrides[targetDate] = { isRest: true };
+        const existingOverride = dateOverrides[targetDate] || {};
+
+        if (isAdded && sourceDayIndex !== undefined) {
+          // Deleting an added (moved/duplicated) workout — remove from addedDayIndices only
+          if (existingOverride.addedDayIndices) {
+            existingOverride.addedDayIndices = existingOverride.addedDayIndices.filter(idx => idx !== sourceDayIndex);
+            if (existingOverride.addedDayIndices.length === 0) {
+              delete existingOverride.addedDayIndices;
+            }
+          }
+          // Clean up if override is now empty
+          if (!existingOverride.isRest && existingOverride.dayIndex === undefined &&
+              !existingOverride.dayIndices && !existingOverride.addedDayIndices) {
+            delete dateOverrides[targetDate];
+          } else {
+            dateOverrides[targetDate] = existingOverride;
+          }
+        } else {
+          // Deleting a natural workout — set isRest but preserve addedDayIndices
+          existingOverride.isRest = true;
+          dateOverrides[targetDate] = existingOverride;
+        }
       } else if (action === 'reschedule' || action === 'duplicate') {
         // For reschedule, handle the source date
         if (action === 'reschedule' && sourceDate) {
-          const sourceOverride = dateOverrides[sourceDate];
-          if (sourceOverride && sourceOverride.addedDayIndices) {
-            // Source has added workouts — remove just this one
-            const remaining = sourceOverride.addedDayIndices.filter(idx => idx !== sourceDayIndex);
-            if (remaining.length > 0) {
-              sourceOverride.addedDayIndices = remaining;
-            } else {
+          const sourceOverride = dateOverrides[sourceDate] || {};
+
+          if (isAdded && sourceOverride.addedDayIndices) {
+            // Moving an added card — remove from addedDayIndices only
+            sourceOverride.addedDayIndices = sourceOverride.addedDayIndices.filter(idx => idx !== sourceDayIndex);
+            if (sourceOverride.addedDayIndices.length === 0) {
               delete sourceOverride.addedDayIndices;
-              // If nothing else in the override, remove it
-              if (!sourceOverride.isRest && sourceOverride.dayIndex === undefined) {
-                delete dateOverrides[sourceDate];
-              }
+            }
+            // Clean up empty override
+            if (!sourceOverride.isRest && sourceOverride.dayIndex === undefined &&
+                !sourceOverride.dayIndices && !sourceOverride.addedDayIndices) {
+              delete dateOverrides[sourceDate];
+            } else {
+              dateOverrides[sourceDate] = sourceOverride;
             }
           } else {
-            // Natural workout — mark source as rest to hide it
-            dateOverrides[sourceDate] = { isRest: true };
+            // Moving a natural workout — set isRest but preserve addedDayIndices
+            sourceOverride.isRest = true;
+            dateOverrides[sourceDate] = sourceOverride;
           }
         }
 

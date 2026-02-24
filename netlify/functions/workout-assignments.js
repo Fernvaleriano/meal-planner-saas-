@@ -268,6 +268,13 @@ exports.handler = async (event) => {
             let todayWorkout = null;
             let skipNatural = false;
 
+            // Compute natural day index upfront (needed for dedup against addedDayIndices)
+            let naturalDayIndex = undefined;
+            if (days.length > 0 && selectedDays.includes(targetDayName)) {
+              const workoutDayCount = countWorkoutDays(startDate, targetDate, selectedDays);
+              naturalDayIndex = workoutDayCount % days.length;
+            }
+
             // If there's an override for this date, use it
             if (override) {
               // isRest suppresses the natural workout
@@ -277,17 +284,18 @@ exports.handler = async (event) => {
 
               // Backwards compat: old-style dayIndices replace natural schedule entirely
               if (override.dayIndices && Array.isArray(override.dayIndices) && days.length > 0) {
-                for (const idx of override.dayIndices) {
-                  const di = idx % days.length;
+                for (let i = 0; i < override.dayIndices.length; i++) {
+                  const di = override.dayIndices[i] % days.length;
                   const day = days[di];
                   if (day) {
                     todayWorkouts.push({
                       id: activeAssignment.id,
+                      instance_id: `${activeAssignment.id}-override-${i}`,
                       name: activeAssignment.name || day.name || `Day ${di + 1}`,
                       day_index: di,
                       workout_data: {
                         ...day,
-                        exercises: day.exercises || [],
+                        exercises: [...(day.exercises || [])],
                         estimatedMinutes: day.estimatedMinutes || 45,
                         estimatedCalories: day.estimatedCalories || 300,
                         image_url: resolvedImageUrl
@@ -307,11 +315,12 @@ exports.handler = async (event) => {
 
                 todayWorkouts.push({
                   id: activeAssignment.id,
+                  instance_id: `${activeAssignment.id}-override-0`,
                   name: activeAssignment.name || days[dayIndex].name || `Day ${dayIndex + 1}`,
                   day_index: dayIndex,
                   workout_data: {
                     ...days[dayIndex],
-                    exercises: days[dayIndex].exercises || [],
+                    exercises: [...(days[dayIndex].exercises || [])],
                     estimatedMinutes: days[dayIndex].estimatedMinutes || 45,
                     estimatedCalories: days[dayIndex].estimatedCalories || 300,
                     image_url: resolvedImageUrl
@@ -325,28 +334,31 @@ exports.handler = async (event) => {
 
               // addedDayIndices: extra workouts added ON TOP of natural schedule
               if (override.addedDayIndices && Array.isArray(override.addedDayIndices) && days.length > 0) {
-                for (const idx of override.addedDayIndices) {
-                  const di = idx % days.length;
+                for (let i = 0; i < override.addedDayIndices.length; i++) {
+                  const di = override.addedDayIndices[i] % days.length;
+                  // Skip if this matches the natural day index (already shown by natural schedule)
+                  if (!skipNatural && naturalDayIndex !== undefined && di === naturalDayIndex) continue;
                   const day = days[di];
                   if (day) {
                     todayWorkouts.push({
                       id: activeAssignment.id,
+                      instance_id: `${activeAssignment.id}-added-${i}`,
                       name: activeAssignment.name || day.name || `Day ${di + 1}`,
                       day_index: di,
                       workout_data: {
                         ...day,
-                        exercises: day.exercises || [],
+                        exercises: [...(day.exercises || [])],
                         estimatedMinutes: day.estimatedMinutes || 45,
                         estimatedCalories: day.estimatedCalories || 300,
                         image_url: resolvedImageUrl
                       },
                       program_id: activeAssignment.program_id,
                       client_id: activeAssignment.client_id,
-                      is_override: true
+                      is_override: true,
+                      is_added: true
                     });
                   }
                 }
-                // Don't set skipNatural — natural schedule still shows
               }
             }
 
@@ -355,19 +367,16 @@ exports.handler = async (event) => {
               const isWorkoutDay = selectedDays.includes(targetDayName);
 
               if (isWorkoutDay) {
-                // Use math-based counting instead of day-by-day loop
-                const workoutDayCount = countWorkoutDays(startDate, targetDate, selectedDays);
-                const dayIndex = workoutDayCount % days.length;
-
                 todayWorkout = {
                   id: activeAssignment.id,
-                  name: activeAssignment.name || days[dayIndex].name || `Day ${dayIndex + 1}`,
-                  day_index: dayIndex,
+                  instance_id: `${activeAssignment.id}-natural`,
+                  name: activeAssignment.name || days[naturalDayIndex].name || `Day ${naturalDayIndex + 1}`,
+                  day_index: naturalDayIndex,
                   workout_data: {
-                    ...days[dayIndex],
-                    exercises: days[dayIndex].exercises || [],
-                    estimatedMinutes: days[dayIndex].estimatedMinutes || 45,
-                    estimatedCalories: days[dayIndex].estimatedCalories || 300,
+                    ...days[naturalDayIndex],
+                    exercises: [...(days[naturalDayIndex].exercises || [])],
+                    estimatedMinutes: days[naturalDayIndex].estimatedMinutes || 45,
+                    estimatedCalories: days[naturalDayIndex].estimatedCalories || 300,
                     image_url: resolvedImageUrl
                   },
                   program_id: activeAssignment.program_id,
@@ -377,9 +386,10 @@ exports.handler = async (event) => {
             } else if (!skipNatural && workoutData.exercises) {
               todayWorkout = {
                 id: activeAssignment.id,
+                instance_id: `${activeAssignment.id}-natural`,
                 name: activeAssignment.name || 'Today\'s Workout',
                 workout_data: {
-                  exercises: workoutData.exercises,
+                  exercises: [...(workoutData.exercises || [])],
                   estimatedMinutes: 45,
                   estimatedCalories: 300,
                   image_url: resolvedImageUrl

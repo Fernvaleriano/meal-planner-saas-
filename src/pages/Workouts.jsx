@@ -959,6 +959,23 @@ function Workouts() {
         let skipNatural = false;
         let cardCount = 0;
 
+        // Compute natural day index upfront for dedup
+        let naturalDayIndex = undefined;
+        if (days.length > 0 && selectedDays.includes(dayName)) {
+          const totalDaysDiff = Math.floor((date - startDate) / (24 * 60 * 60 * 1000));
+          const daySet = new Set(selectedDays);
+          const fullWeeks = Math.floor(totalDaysDiff / 7);
+          const daysPerWeek = dayNamesList.filter(d => daySet.has(d)).length;
+          let count = fullWeeks * daysPerWeek;
+          const remainderDays = totalDaysDiff % 7;
+          for (let i = 0; i < remainderDays; i++) {
+            const d = new Date(startDate);
+            d.setDate(d.getDate() + (fullWeeks * 7) + i);
+            if (daySet.has(dayNamesList[d.getDay()])) count++;
+          }
+          naturalDayIndex = count % days.length;
+        }
+
         if (override) {
           if (override.isRest) skipNatural = true;
 
@@ -985,34 +1002,23 @@ function Workouts() {
             skipNatural = true;
           }
 
-          // addedDayIndices: extra workouts on top of natural schedule
+          // addedDayIndices: extra workouts on top of natural schedule (dedup against natural)
           if (override.addedDayIndices && Array.isArray(override.addedDayIndices) && days.length > 0) {
-            hasWorkout = true;
             for (const idx of override.addedDayIndices) {
               const di = idx % days.length;
+              // Skip if matches natural day index (already counted below)
+              if (!skipNatural && naturalDayIndex !== undefined && di === naturalDayIndex) continue;
+              hasWorkout = true;
               exerciseCount += (days[di].exercises || []).filter(ex => ex && ex.id).length;
               cardCount++;
             }
           }
         }
 
-        if (!skipNatural && selectedDays.includes(dayName) && days.length > 0) {
-          const totalDaysDiff = Math.floor((date - startDate) / (24 * 60 * 60 * 1000));
-          const daySet = new Set(selectedDays);
-          const fullWeeks = Math.floor(totalDaysDiff / 7);
-          const daysPerWeek = dayNamesList.filter(d => daySet.has(d)).length;
-          let count = fullWeeks * daysPerWeek;
-          const remainderDays = totalDaysDiff % 7;
-          for (let i = 0; i < remainderDays; i++) {
-            const d = new Date(startDate);
-            d.setDate(d.getDate() + (fullWeeks * 7) + i);
-            if (daySet.has(dayNamesList[d.getDay()])) count++;
-          }
-          const dayIndex = count % days.length;
-
+        if (!skipNatural && naturalDayIndex !== undefined && days.length > 0) {
           hasWorkout = true;
-          workoutName = days[dayIndex].name || `Day ${dayIndex + 1}`;
-          exerciseCount += (days[dayIndex].exercises || []).filter(ex => ex && ex.id).length;
+          workoutName = days[naturalDayIndex].name || `Day ${naturalDayIndex + 1}`;
+          exerciseCount += (days[naturalDayIndex].exercises || []).filter(ex => ex && ex.id).length;
           cardCount++;
         }
 
@@ -2492,7 +2498,8 @@ function Workouts() {
           action: rescheduleAction,
           sourceDayIndex: targetWorkout.day_index,
           sourceDate: formatDate(selectedDate),
-          targetDate: rescheduleTargetDate
+          targetDate: rescheduleTargetDate,
+          isAdded: targetWorkout.is_added || false
         });
 
         if (res?.success) {
@@ -2566,7 +2573,8 @@ function Workouts() {
           action: 'skip',
           sourceDayIndex: todayWorkout.day_index,
           sourceDate: formatDate(selectedDate),
-          targetDate: formatDate(selectedDate)
+          targetDate: formatDate(selectedDate),
+          isAdded: todayWorkout.is_added || false
         });
         deleteSucceeded = true;
       }
@@ -2582,8 +2590,10 @@ function Workouts() {
     }
 
     if (deleteSucceeded) {
-      // Remove from todayWorkouts and select next available
-      const remaining = todayWorkouts.filter(w => w.id !== todayWorkout.id);
+      // Remove only this specific card (match by id + day_index + is_added)
+      const remaining = todayWorkouts.filter(w =>
+        w.instance_id !== todayWorkout.instance_id
+      );
       setTodayWorkouts(remaining);
       setTodayWorkout(remaining.length > 0 ? remaining[0] : null);
       setWorkoutLog(null);
@@ -2614,7 +2624,8 @@ function Workouts() {
           action: 'skip',
           sourceDayIndex: workout.day_index,
           sourceDate: formatDate(selectedDate),
-          targetDate: formatDate(selectedDate)
+          targetDate: formatDate(selectedDate),
+          isAdded: workout.is_added || false
         });
         deleteSucceeded = true;
       }
@@ -2630,9 +2641,11 @@ function Workouts() {
     }
 
     if (deleteSucceeded) {
-      const remaining = todayWorkouts.filter(w => w.id !== workout.id);
+      const remaining = todayWorkouts.filter(w =>
+        w.instance_id !== workout.instance_id
+      );
       setTodayWorkouts(remaining);
-      if (todayWorkout?.id === workout.id) {
+      if (todayWorkout?.instance_id === workout.instance_id) {
         setTodayWorkout(remaining.length > 0 ? remaining[0] : null);
         setWorkoutLog(null);
         setCompletedExercises(remaining.length > 0
@@ -3179,7 +3192,7 @@ function Workouts() {
 
                     return (
                       <div
-                        key={`${workout.id}-${workout.day_index}`}
+                        key={workout.instance_id || `${workout.id}-${workout.day_index}`}
                         className="workout-card-v3"
                         style={cardImage ? { backgroundImage: `url(${cardImage})` } : {}}
                         onClick={() => handleSelectWorkoutCard(workout)}
