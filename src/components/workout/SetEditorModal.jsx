@@ -170,7 +170,10 @@ function SetEditorModal({
   weightUnit = 'lbs'
 }) {
   const isTillFailure = exercise.repType === 'failure';
-  const [editMode, setEditMode] = useState(isTimedExercise ? 'time' : 'reps');
+  const isDistanceExercise = exercise.trackingType === 'distance';
+  const distanceUnit = exercise.distanceUnit || 'miles';
+  const distanceUnitLabel = distanceUnit === 'miles' ? 'mi' : distanceUnit === 'km' ? 'km' : 'm';
+  const [editMode, setEditMode] = useState(isDistanceExercise ? 'distance' : (isTimedExercise ? 'time' : 'reps'));
   const [localSets, setLocalSets] = useState(sets.map(s => ({ ...s, rpe: s.rpe || null })));
   const [activeSetIndex, setActiveSetIndex] = useState(null);
   const [activeField, setActiveField] = useState(null);
@@ -338,6 +341,9 @@ function SetEditorModal({
     if (field === 'weight') {
       return localSets[setIndex]?.weight || 0;
     }
+    if (editMode === 'distance') {
+      return localSets[setIndex]?.distance || exercise.distance || 1;
+    }
     if (editMode === 'time') {
       return localSets[setIndex]?.duration || exercise.duration || parseTimeFromReps(exercise.reps) || 45;
     }
@@ -349,6 +355,8 @@ function SetEditorModal({
     const newSets = [...localSets];
     if (field === 'weight') {
       newSets[setIndex] = { ...newSets[setIndex], weight: value };
+    } else if (editMode === 'distance') {
+      newSets[setIndex] = { ...newSets[setIndex], distance: value };
     } else if (editMode === 'time') {
       newSets[setIndex] = { ...newSets[setIndex], duration: value };
     } else {
@@ -414,10 +422,11 @@ function SetEditorModal({
 
   // Handle save
   const handleSave = () => {
-    // Tag each set with the edit mode so the parent knows if it's time-based
+    // Tag each set with the edit mode so the parent knows if it's time-based or distance-based
     const setsToSave = localSets.map(s => ({
       ...s,
-      isTimeBased: editMode === 'time'
+      isTimeBased: editMode === 'time',
+      isDistanceBased: editMode === 'distance'
     }));
     onSave(setsToSave, editMode);
     onClose();
@@ -542,12 +551,18 @@ function SetEditorModal({
           >
             Time
           </button>
+          <button
+            className={`mode-btn ${editMode === 'distance' ? 'active' : ''}`}
+            onClick={() => setEditMode('distance')}
+          >
+            Distance
+          </button>
         </div>
 
         {/* Column Headers */}
         <div className="editor-column-headers">
           <span className="header-spacer"></span>
-          <span className="header-label">{editMode === 'time' ? 'SECONDS' : (isTillFailure ? 'REPS DONE' : 'REPS')}</span>
+          <span className="header-label">{editMode === 'distance' ? distanceUnitLabel.toUpperCase() : (editMode === 'time' ? 'SECONDS' : (isTillFailure ? 'REPS DONE' : 'REPS'))}</span>
           <span className="header-spacer-x"></span>
           <span className="header-label">WEIGHT</span>
           <span className="header-spacer"></span>
@@ -563,12 +578,14 @@ function SetEditorModal({
                   className={`set-value-input ${activeSetIndex === index && activeField === 'reps' ? 'active' : ''}`}
                   onClick={() => selectField(index, 'reps')}
                 >
-                  {editMode === 'time'
-                    ? (set.duration || exercise.duration || parseTimeFromReps(exercise.reps) || 45)
-                    : parseReps(set.reps || exercise.reps)
+                  {editMode === 'distance'
+                    ? (set.distance || exercise.distance || 1)
+                    : editMode === 'time'
+                      ? (set.duration || exercise.duration || parseTimeFromReps(exercise.reps) || 45)
+                      : parseReps(set.reps || exercise.reps)
                   }
                 </button>
-                <span className="set-multiplier">x</span>
+                <span className="set-multiplier">{editMode === 'distance' ? distanceUnitLabel : 'x'}</span>
                 <button
                   className={`set-value-input weight-input ${activeSetIndex === index && activeField === 'weight' ? 'active' : ''}`}
                   onClick={() => selectField(index, 'weight')}
@@ -645,7 +662,7 @@ function SetEditorModal({
           <div className="editor-numpad">
             <div className="numpad-header">
               <span className="numpad-label">
-                {activeField === 'weight' ? 'Enter weight' : (editMode === 'time' ? 'Enter seconds' : (isTillFailure ? 'Reps completed' : 'Enter reps'))}
+                {activeField === 'weight' ? 'Enter weight' : (editMode === 'distance' ? `Enter ${distanceUnit}` : (editMode === 'time' ? 'Enter seconds' : (isTillFailure ? 'Reps completed' : 'Enter reps')))}
               </span>
               <button className="numpad-done-btn" onClick={hideKeyboard}>
                 Done
