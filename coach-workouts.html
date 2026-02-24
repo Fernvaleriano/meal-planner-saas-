@@ -2122,42 +2122,31 @@
             align-items: center;
             justify-content: center;
             padding: 4px 0;
-            position: relative;
-        }
-
-        .insert-exercise-divider::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            right: 0;
-            top: 50%;
-            height: 1px;
-            background: var(--border-color);
-            opacity: 0.4;
         }
 
         .insert-exercise-btn {
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            border: 2px dashed var(--border-color);
-            background: var(--bg-primary);
+            width: 100%;
+            padding: 8px;
+            border-radius: var(--radius-md);
+            border: 1px dashed var(--border-color);
+            background: transparent;
             color: var(--text-muted);
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
+            gap: 6px;
             transition: all 0.2s;
-            padding: 0;
-            z-index: 1;
+            font-family: inherit;
+            font-size: 13px;
+            font-weight: 500;
         }
 
         .insert-exercise-btn:hover,
         .insert-exercise-btn:active {
             border-color: var(--brand-primary);
             color: var(--brand-primary);
-            background: rgba(13, 148, 136, 0.1);
-            transform: scale(1.15);
+            background: rgba(13, 148, 136, 0.05);
         }
 
         .add-day-btn {
@@ -6101,6 +6090,7 @@
                         <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
                         </svg>
+                        Insert Exercise
                     </button>
                 </div>`;
         }
