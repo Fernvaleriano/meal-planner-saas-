@@ -2521,7 +2521,7 @@ function Workouts() {
     let volume = 0;
     exercises.forEach(ex => {
       const sets = typeof ex.sets === 'number' ? ex.sets : 3;
-      const reps = typeof ex.reps === 'number' ? ex.reps : parseInt(ex.reps) || 10;
+      const reps = typeof ex.reps === 'number' ? ex.reps : parseFloat(ex.reps) || 10;
       volume += sets * reps;
     });
     return volume;
@@ -2534,12 +2534,12 @@ function Workouts() {
       if (Array.isArray(ex.sets)) {
         ex.sets.forEach(s => {
           const weight = parseFloat(s?.weight) || 0;
-          const reps = parseInt(s?.reps) || 0;
+          const reps = parseFloat(s?.reps) || 0;
           lifted += weight * reps;
         });
       } else {
         const numSets = typeof ex.sets === 'number' ? ex.sets : 3;
-        const reps = typeof ex.reps === 'number' ? ex.reps : parseInt(ex.reps) || 10;
+        const reps = typeof ex.reps === 'number' ? ex.reps : parseFloat(ex.reps) || 10;
         const weight = parseFloat(ex.weight) || 0;
         lifted += numSets * reps * weight;
       }

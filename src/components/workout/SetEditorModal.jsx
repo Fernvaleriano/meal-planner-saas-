@@ -3,11 +3,12 @@ import { X, Clock, ChevronDown, Mic, MicOff } from 'lucide-react';
 import Portal from '../Portal';
 
 // Parse reps - if it's a range like "8-12", return just the first number
+// Supports decimals like "1.5" (e.g. 1.5 miles)
 const parseReps = (reps) => {
   if (typeof reps === 'number') return reps;
   if (typeof reps === 'string') {
-    const match = reps.match(/^(\d+)/);
-    if (match) return parseInt(match[1], 10);
+    const match = reps.match(/^(\d+(?:\.\d+)?)/);
+    if (match) return parseFloat(match[1]);
   }
   return 12;
 };
@@ -373,27 +374,29 @@ function SetEditorModal({
         // For weight, allow decimals by treating as string manipulation
         newValue = parseFloat(`${currentValue}${num}`.slice(-5)) || 0;
       } else {
-        newValue = parseInt(`${currentValue}${num}`.slice(-3), 10); // Max 3 digits
+        // For reps, use parseFloat to preserve decimals (e.g. 1.5 miles)
+        newValue = parseFloat(`${currentValue}${num}`.slice(-4)) || 0;
       }
     }
     updateValue(activeSetIndex, activeField, newValue);
   };
 
-  // Handle backspace
+  // Handle backspace - works with decimals by string manipulation
   const handleBackspace = () => {
     if (activeSetIndex === null || activeField === null) return;
     const currentValue = getCurrentValue(activeSetIndex, activeField);
-    const newValue = Math.floor(currentValue / 10) || 0;
+    const str = String(currentValue);
+    const trimmed = str.slice(0, -1);
+    const newValue = trimmed ? parseFloat(trimmed) || 0 : 0;
     updateValue(activeSetIndex, activeField, newValue);
   };
 
-  // Handle decimal for weight
+  // Handle decimal for weight or reps (e.g. 1.5 miles)
   const handleDecimal = () => {
-    if (activeField === 'weight') {
-      const currentValue = getCurrentValue(activeSetIndex, 'weight');
-      // Add .5 to the weight
-      updateValue(activeSetIndex, 'weight', currentValue + 0.5);
-    }
+    if (activeSetIndex === null || activeField === null) return;
+    const currentValue = getCurrentValue(activeSetIndex, activeField);
+    // Add .5 to the current value
+    updateValue(activeSetIndex, activeField, currentValue + 0.5);
   };
 
   // Apply to all sets

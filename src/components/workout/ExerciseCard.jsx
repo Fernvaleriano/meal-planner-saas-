@@ -4,12 +4,13 @@ import SmartThumbnail from './SmartThumbnail';
 import { onAppResume, onAppSuspend } from '../../hooks/useAppLifecycle';
 
 // Parse reps - if it's a range like "8-12", return just the first number
+// Supports decimals like "1.5" (e.g. 1.5 miles)
 // Defined outside component so it's available during initialization
 const parseReps = (reps) => {
   if (typeof reps === 'number') return reps;
   if (typeof reps === 'string') {
-    const match = reps.match(/^(\d+)/);
-    if (match) return parseInt(match[1], 10);
+    const match = reps.match(/^(\d+(?:\.\d+)?)/);
+    if (match) return parseFloat(match[1]);
   }
   return 12;
 };
@@ -362,11 +363,11 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
     }, 1000);
   };
 
-  // Update reps for a set
+  // Update reps for a set (supports decimals like 1.5 for distance-based exercises)
   const updateReps = (setIndex, value, e) => {
     e?.stopPropagation();
     const newSets = [...sets];
-    const numValue = parseInt(value, 10);
+    const numValue = parseFloat(value);
     newSets[setIndex] = { ...newSets[setIndex], reps: isNaN(numValue) ? 0 : numValue };
     setSets(newSets);
   };
@@ -967,8 +968,8 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
                     <label>{exercise.repType === 'failure' ? 'Reps Done' : 'Reps'}</label>
                     <input
                       type="number"
-                      inputMode="numeric"
-                      pattern="[0-9]*"
+                      inputMode="decimal"
+                      step="any"
                       className="set-input"
                       value={set.reps || ''}
                       onChange={(e) => updateReps(idx, e.target.value, e)}
@@ -976,7 +977,7 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
                       onFocus={(e) => e.target.select()}
                       placeholder={exercise.repType === 'failure' ? 'Max' : ''}
                       min="0"
-                      max="100"
+                      max="999"
                     />
                   </div>
 

@@ -64,12 +64,12 @@ const COMPOUND_PATTERNS = [
   'bulgarian split squat', 'step up', 'farmer', 'turkish get up'
 ];
 
-// Parse reps helper
+// Parse reps helper - supports decimals like "1.5" (e.g. 1.5 miles)
 const parseReps = (reps) => {
   if (typeof reps === 'number') return reps;
   if (typeof reps === 'string') {
-    const match = reps.match(/^(\d+)/);
-    if (match) return parseInt(match[1], 10);
+    const match = reps.match(/^(\d+(?:\.\d+)?)/);
+    if (match) return parseFloat(match[1]);
   }
   return 12;
 };
