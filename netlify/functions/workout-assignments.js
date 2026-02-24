@@ -274,40 +274,29 @@ exports.handler = async (event) => {
                 continue;
               }
 
-              // Handle merged dayIndices (multiple days moved onto same date)
+              // Handle multiple days on same date — each as a separate workout card
               if (override.dayIndices && Array.isArray(override.dayIndices) && days.length > 0) {
-                const mergedExercises = [];
-                const mergedNames = [];
-                let totalMinutes = 0;
-                let totalCalories = 0;
                 for (const idx of override.dayIndices) {
                   const di = idx % days.length;
                   const day = days[di];
                   if (day) {
-                    mergedExercises.push(...(day.exercises || []));
-                    mergedNames.push(day.name || `Day ${di + 1}`);
-                    totalMinutes += day.estimatedMinutes || 45;
-                    totalCalories += day.estimatedCalories || 300;
+                    todayWorkouts.push({
+                      id: activeAssignment.id,
+                      name: activeAssignment.name || day.name || `Day ${di + 1}`,
+                      day_index: di,
+                      workout_data: {
+                        ...day,
+                        exercises: day.exercises || [],
+                        estimatedMinutes: day.estimatedMinutes || 45,
+                        estimatedCalories: day.estimatedCalories || 300,
+                        image_url: resolvedImageUrl
+                      },
+                      program_id: activeAssignment.program_id,
+                      client_id: activeAssignment.client_id,
+                      is_override: true
+                    });
                   }
                 }
-
-                todayWorkout = {
-                  id: activeAssignment.id,
-                  name: activeAssignment.name || mergedNames.join(' + '),
-                  day_index: override.dayIndices[0] % days.length,
-                  workout_data: {
-                    name: mergedNames.join(' + '),
-                    exercises: mergedExercises,
-                    estimatedMinutes: totalMinutes,
-                    estimatedCalories: totalCalories,
-                    image_url: resolvedImageUrl
-                  },
-                  program_id: activeAssignment.program_id,
-                  client_id: activeAssignment.client_id,
-                  is_override: true,
-                  is_merged: true
-                };
-                todayWorkouts.push(todayWorkout);
                 continue;
               }
 

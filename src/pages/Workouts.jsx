@@ -958,17 +958,15 @@ function Workouts() {
 
         if (override) {
           if (override.isRest) continue;
-          // Handle merged days (multiple workouts moved to same date)
+          // Handle multiple workouts on same date (separate cards)
           if (override.dayIndices && Array.isArray(override.dayIndices) && days.length > 0) {
             hasWorkout = true;
-            const names = [];
             let totalEx = 0;
             for (const idx of override.dayIndices) {
               const di = idx % days.length;
-              names.push(days[di].name || `Day ${di + 1}`);
               totalEx += (days[di].exercises || []).filter(ex => ex && ex.id).length;
             }
-            workoutName = names.join(' + ');
+            workoutName = `${override.dayIndices.length} Workouts`;
             exerciseCount = totalEx;
             break;
           }
@@ -3157,7 +3155,7 @@ function Workouts() {
 
                     return (
                       <div
-                        key={workout.id}
+                        key={`${workout.id}-${workout.day_index}`}
                         className="workout-card-v3"
                         style={cardImage ? { backgroundImage: `url(${cardImage})` } : {}}
                         onClick={() => handleSelectWorkoutCard(workout)}
