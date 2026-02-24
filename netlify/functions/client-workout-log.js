@@ -22,27 +22,38 @@ function migrateOverride(override) {
   if (!override) return {};
   const migrated = { ...override };
   let workouts = Array.isArray(migrated.addedWorkouts) ? [...migrated.addedWorkouts] : [];
+  // Track day_indices already present to avoid duplicates during conversion
+  const existingDayIndices = new Set(workouts.map(w => w.day_index));
 
   // Convert old dayIndex (singular) → single addedWorkouts entry
   if (migrated.dayIndex !== undefined) {
-    workouts.push({ instance_id: generateInstanceId(), day_index: migrated.dayIndex });
+    if (!existingDayIndices.has(migrated.dayIndex)) {
+      workouts.push({ instance_id: generateInstanceId(), day_index: migrated.dayIndex });
+      existingDayIndices.add(migrated.dayIndex);
+    }
     delete migrated.dayIndex;
     migrated.isRest = true; // old dayIndex replaced the natural schedule
   }
 
-  // Convert old dayIndices (array) → multiple addedWorkouts entries
+  // Convert old dayIndices (array) → multiple addedWorkouts entries (dedup)
   if (Array.isArray(migrated.dayIndices)) {
     for (const idx of migrated.dayIndices) {
-      workouts.push({ instance_id: generateInstanceId(), day_index: idx });
+      if (!existingDayIndices.has(idx)) {
+        workouts.push({ instance_id: generateInstanceId(), day_index: idx });
+        existingDayIndices.add(idx);
+      }
     }
     delete migrated.dayIndices;
     migrated.isRest = true; // old dayIndices replaced the natural schedule
   }
 
-  // Convert addedDayIndices → addedWorkouts entries
+  // Convert addedDayIndices → addedWorkouts entries (dedup)
   if (Array.isArray(migrated.addedDayIndices)) {
     for (const idx of migrated.addedDayIndices) {
-      workouts.push({ instance_id: generateInstanceId(), day_index: idx });
+      if (!existingDayIndices.has(idx)) {
+        workouts.push({ instance_id: generateInstanceId(), day_index: idx });
+        existingDayIndices.add(idx);
+      }
     }
     delete migrated.addedDayIndices;
   }

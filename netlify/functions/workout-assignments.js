@@ -284,44 +284,55 @@ exports.handler = async (event) => {
 
               // Collect all added workout instances from ALL formats (backwards compat + new)
               const addedInstances = [];
+              const legacyDayIndicesSeen = new Set(); // dedup old-format entries by day_index
 
-              // New format: addedWorkouts (each has its own instance_id)
+              // New format: addedWorkouts (each has its own instance_id — always keep)
               if (Array.isArray(override.addedWorkouts)) {
                 for (const aw of override.addedWorkouts) {
                   addedInstances.push({
                     instance_id: aw.instance_id,
-                    day_index: aw.day_index
+                    day_index: aw.day_index,
+                    isNew: true
                   });
                 }
               }
 
               // Backwards compat: old dayIndices → treat as added instances, suppress natural
               if (Array.isArray(override.dayIndices)) {
-                for (let i = 0; i < override.dayIndices.length; i++) {
-                  addedInstances.push({
-                    instance_id: `${activeAssignment.id}-legacy-di-${i}`,
-                    day_index: override.dayIndices[i]
-                  });
+                for (const idx of override.dayIndices) {
+                  if (!legacyDayIndicesSeen.has(idx)) {
+                    legacyDayIndicesSeen.add(idx);
+                    addedInstances.push({
+                      instance_id: `${activeAssignment.id}-legacy-di-${idx}`,
+                      day_index: idx
+                    });
+                  }
                 }
                 skipNatural = true;
               }
 
               // Backwards compat: old dayIndex → treat as single added instance, suppress natural
               if (override.dayIndex !== undefined) {
-                addedInstances.push({
-                  instance_id: `${activeAssignment.id}-legacy-dx`,
-                  day_index: override.dayIndex
-                });
+                if (!legacyDayIndicesSeen.has(override.dayIndex)) {
+                  legacyDayIndicesSeen.add(override.dayIndex);
+                  addedInstances.push({
+                    instance_id: `${activeAssignment.id}-legacy-dx`,
+                    day_index: override.dayIndex
+                  });
+                }
                 skipNatural = true;
               }
 
               // Backwards compat: old addedDayIndices → treat as added instances (no suppress)
               if (Array.isArray(override.addedDayIndices)) {
-                for (let i = 0; i < override.addedDayIndices.length; i++) {
-                  addedInstances.push({
-                    instance_id: `${activeAssignment.id}-legacy-adi-${i}`,
-                    day_index: override.addedDayIndices[i]
-                  });
+                for (const idx of override.addedDayIndices) {
+                  if (!legacyDayIndicesSeen.has(idx)) {
+                    legacyDayIndicesSeen.add(idx);
+                    addedInstances.push({
+                      instance_id: `${activeAssignment.id}-legacy-adi-${idx}`,
+                      day_index: idx
+                    });
+                  }
                 }
               }
 
@@ -330,6 +341,8 @@ exports.handler = async (event) => {
                 const di = inst.day_index % days.length;
                 // Dedup: if natural schedule is active and this matches it, skip (natural handles it)
                 if (!skipNatural && naturalDayIndex !== undefined && di === naturalDayIndex) continue;
+                // Dedup: if a legacy entry duplicates a new-format entry's day_index, skip the legacy
+                if (!inst.isNew && addedInstances.some(o => o.isNew && (o.day_index % days.length) === di)) continue;
                 const day = days[di];
                 if (day) {
                   todayWorkouts.push({

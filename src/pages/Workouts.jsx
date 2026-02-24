@@ -979,35 +979,42 @@ function Workouts() {
         if (override && days.length > 0) {
           if (override.isRest) skipNatural = true;
 
-          // Collect all added instances from ALL formats
+          // Collect all added instances from ALL formats (dedup legacy by day_index)
           const addedIndices = [];
+          const legacySeen = new Set();
 
-          // New format: addedWorkouts
+          // New format: addedWorkouts (always keep, these are intentional)
           if (Array.isArray(override.addedWorkouts)) {
             for (const aw of override.addedWorkouts) {
-              addedIndices.push(aw.day_index);
+              addedIndices.push({ dayIdx: aw.day_index, isNew: true });
             }
           }
-          // Backwards compat: dayIndices (suppresses natural)
+          // Backwards compat: dayIndices (suppresses natural, dedup)
           if (Array.isArray(override.dayIndices)) {
-            for (const idx of override.dayIndices) addedIndices.push(idx);
+            for (const idx of override.dayIndices) {
+              if (!legacySeen.has(idx)) { legacySeen.add(idx); addedIndices.push({ dayIdx: idx }); }
+            }
             skipNatural = true;
           }
-          // Backwards compat: dayIndex (suppresses natural)
+          // Backwards compat: dayIndex (suppresses natural, dedup)
           if (override.dayIndex !== undefined) {
-            addedIndices.push(override.dayIndex);
+            if (!legacySeen.has(override.dayIndex)) { legacySeen.add(override.dayIndex); addedIndices.push({ dayIdx: override.dayIndex }); }
             skipNatural = true;
           }
-          // Backwards compat: addedDayIndices (does not suppress natural)
+          // Backwards compat: addedDayIndices (no suppress, dedup)
           if (Array.isArray(override.addedDayIndices)) {
-            for (const idx of override.addedDayIndices) addedIndices.push(idx);
+            for (const idx of override.addedDayIndices) {
+              if (!legacySeen.has(idx)) { legacySeen.add(idx); addedIndices.push({ dayIdx: idx }); }
+            }
           }
 
           // Count exercises from each added instance
-          for (const idx of addedIndices) {
-            const di = idx % days.length;
+          for (const entry of addedIndices) {
+            const di = entry.dayIdx % days.length;
             // Dedup against natural
             if (!skipNatural && naturalDayIndex !== undefined && di === naturalDayIndex) continue;
+            // Dedup legacy against new-format entries with same day_index
+            if (!entry.isNew && addedIndices.some(o => o.isNew && (o.dayIdx % days.length) === di)) continue;
             hasWorkout = true;
             exerciseCount += (days[di].exercises || []).filter(ex => ex && ex.id).length;
             cardCount++;
