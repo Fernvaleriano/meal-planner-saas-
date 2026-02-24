@@ -1966,6 +1966,17 @@ a.nav-left {
     color: #475569; /* Improved contrast for accessibility (WCAG AA) */
 }
 
+/* Coaching Message */
+.coaching-message {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.7);
+    margin: 0 0 16px 0;
+    padding: 0;
+    font-style: italic;
+    line-height: 1.4;
+    position: relative;
+}
+
 /* Meal Type Selector */
 .meal-type-selector {
     display: flex;

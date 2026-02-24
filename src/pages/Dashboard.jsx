@@ -287,6 +287,43 @@ function Dashboard() {
 
   }, [clientData?.id, clientData?.coach_id]);
 
+  // Get time-of-day coaching message
+  const getCoachingMessage = () => {
+    const hour = new Date().getHours();
+    const caloriesLeft = Math.max(0, targets.calories - todayProgress.calories);
+    const proteinLeft = Math.max(0, targets.protein - todayProgress.protein);
+    const caloriePercent = targets.calories ? Math.round((todayProgress.calories / targets.calories) * 100) : 0;
+
+    // Early morning — nothing logged yet likely
+    if (hour >= 5 && hour < 9) {
+      if (todayProgress.calories === 0) return "Good morning — start strong with a protein-rich breakfast.";
+      return `Good morning — you're already at ${todayProgress.protein}g protein. Keep it up.`;
+    }
+    // Late morning
+    if (hour >= 9 && hour < 12) {
+      if (todayProgress.calories === 0) return "Morning's moving — don't forget to log breakfast.";
+      return `${proteinLeft}g protein left today. You've got this.`;
+    }
+    // Midday
+    if (hour >= 12 && hour < 15) {
+      if (caloriePercent >= 60) return "Solid day so far — stay on track this afternoon.";
+      return `Halfway through the day — ${caloriesLeft} cal and ${proteinLeft}g protein to go.`;
+    }
+    // Afternoon
+    if (hour >= 15 && hour < 18) {
+      if (proteinLeft <= 30) return "Almost hit your protein goal — finish strong.";
+      return `Afternoon check — ${proteinLeft}g protein left. Dinner can close that gap.`;
+    }
+    // Evening
+    if (hour >= 18 && hour < 21) {
+      if (caloriePercent >= 90) return "Almost there — great discipline today.";
+      return `Evening push — ${caloriesLeft} cal remaining. Let's close it out.`;
+    }
+    // Late night
+    if (todayProgress.calories === 0) return "Day's almost over — log what you ate today.";
+    return `Wrapping up — you hit ${caloriePercent}% of your calorie goal today.`;
+  };
+
   // Calculate overall progress percentage
   const getOverallProgress = () => {
     if (!targets.calories) return 0;
@@ -708,6 +745,9 @@ function Dashboard() {
           </div>
         </div>
 
+        {/* Time-of-day coaching message */}
+        <p className="coaching-message">{getCoachingMessage()}</p>
+
         {/* Meal Type Selector */}
         <div className="meal-type-selector" role="group" aria-label="Select meal type">
           {[
@@ -838,7 +878,7 @@ function Dashboard() {
         {/* Quick Action Buttons */}
         <div className="ai-hero-quick-actions" role="group" aria-label="Quick food logging options">
           <button className="quick-action-pill" onClick={() => setPhotoModalOpen(true)} aria-label="Take a photo of your food">
-            <Camera size={16} aria-hidden="true" /> Photo My Meal
+            <Camera size={16} aria-hidden="true" /> Log by Photo
           </button>
           <button className="quick-action-pill" onClick={() => setSearchModalOpen(true)} aria-label="Search food database">
             <Search size={16} aria-hidden="true" /> Search Foods
