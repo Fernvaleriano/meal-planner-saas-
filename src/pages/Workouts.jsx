@@ -958,6 +958,20 @@ function Workouts() {
 
         if (override) {
           if (override.isRest) continue;
+          // Handle merged days (multiple workouts moved to same date)
+          if (override.dayIndices && Array.isArray(override.dayIndices) && days.length > 0) {
+            hasWorkout = true;
+            const names = [];
+            let totalEx = 0;
+            for (const idx of override.dayIndices) {
+              const di = idx % days.length;
+              names.push(days[di].name || `Day ${di + 1}`);
+              totalEx += (days[di].exercises || []).filter(ex => ex && ex.id).length;
+            }
+            workoutName = names.join(' + ');
+            exerciseCount = totalEx;
+            break;
+          }
           if (override.dayIndex !== undefined && days.length > 0) {
             const dayIndex = override.dayIndex % days.length;
             hasWorkout = true;
