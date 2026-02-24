@@ -12057,7 +12057,7 @@ a.nav-left {
     justify-content: space-between;
     padding: 12px 16px;
     padding-top: calc(12px + env(safe-area-inset-top, 0px));
-    background: #000;
+    background: var(--gray-50);
     position: sticky;
     top: 0;
     z-index: 100;
@@ -16829,7 +16829,7 @@ a.nav-left {
 
 /* Top navigation */
 [data-theme="light"] .workout-top-nav {
-    background: #ffffff;
+    background: var(--gray-50);
     border-bottom: 1px solid #e5e7eb;
 }
 
