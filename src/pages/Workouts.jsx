@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { ChevronLeft, ChevronRight, Play, Clock, Flame, CheckCircle, Dumbbell, Target, Calendar, TrendingUp, Award, Heart, MoreVertical, X, History, Settings, LogOut, Plus, Copy, ArrowRightLeft, SkipForward, PenSquare, Trash2, MoveRight, Share2, Star, Weight, Users, RotateCcw, Zap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -3185,64 +3185,107 @@ function Workouts() {
             ) : todayWorkouts.length > 0 ? (
               <>
                 <div className="workout-cards-container">
-                  {todayWorkouts.map((workout) => {
-                    const cardExercises = getWorkoutExercises(workout);
-                    const cardCompletedCount = getWorkoutCompletedCount(workout);
-                    const cardImage = workout.workout_data?.image_url || null;
-                    const cardDayName = workout.name || workout.workout_data?.name || 'Workout';
-                    const totalDays = workout.workout_data?.days?.length || 0;
-                    const currentDay = totalDays > 0 ? (workout.day_index || 0) + 1 : 0;
-                    const daySpecificName = workout.workout_data?.name && workout.workout_data.name !== workout.name
-                      ? workout.workout_data.name : null;
-                    const estMinutes = estimateWorkoutMinutes(cardExercises) || workout.workout_data?.estimatedMinutes || null;
-                    const estCalories = estimateWorkoutCalories(cardExercises) || workout.workout_data?.estimatedCalories || null;
+                  {(() => {
+                    // Group workouts by assignment id so multiple days from the same
+                    // program merge into a single card with a separator between days
+                    const grouped = [];
+                    const groupMap = new Map();
+                    todayWorkouts.forEach((workout) => {
+                      const key = workout.id;
+                      if (!groupMap.has(key)) {
+                        const group = [workout];
+                        groupMap.set(key, group);
+                        grouped.push(group);
+                      } else {
+                        groupMap.get(key).push(workout);
+                      }
+                    });
 
-                    return (
-                      <div
-                        key={workout.instance_id || `${workout.id}-${workout.day_index}`}
-                        className="workout-card-v3"
-                        style={cardImage ? { backgroundImage: `url(${cardImage})` } : {}}
-                        onClick={() => handleSelectWorkoutCard(workout)}
-                      >
-                        <div className="workout-card-content">
-                          <div className="workout-card-info">
-                            <h3 className="workout-card-title">{cardDayName}</h3>
-                            <p className="workout-card-progress">
-                              {cardCompletedCount}/{cardExercises.length} activities done
-                            </p>
-                            {totalDays > 0 && (
-                              <p className="workout-card-day">{daySpecificName ? `${daySpecificName} · ` : ''}Day {currentDay}/{totalDays}</p>
-                            )}
-                            <div className="workout-card-stats">
-                              {estMinutes && (
-                                <span className="workout-card-stat">
-                                  <Clock size={13} />
-                                  {estMinutes} min
-                                </span>
-                              )}
-                              {estCalories && (
-                                <span className="workout-card-stat">
-                                  <Flame size={13} />
-                                  {estCalories} kcal
-                                </span>
-                              )}
-                              <span className="workout-card-stat">
-                                <Dumbbell size={13} />
-                                {cardExercises.length}
-                              </span>
-                            </div>
+                    return grouped.map((group) => {
+                      const first = group[0];
+                      const cardImage = first.workout_data?.image_url || null;
+                      const programName = first.name || first.workout_data?.name || 'Workout';
+
+                      // Aggregate stats across all days in the group
+                      let totalExercises = 0;
+                      let totalCompleted = 0;
+                      group.forEach((w) => {
+                        totalExercises += getWorkoutExercises(w).length;
+                        totalCompleted += getWorkoutCompletedCount(w);
+                      });
+
+                      return (
+                        <div
+                          key={first.instance_id || `${first.id}-group`}
+                          className="workout-card-v3"
+                          style={cardImage ? { backgroundImage: `url(${cardImage})` } : {}}
+                        >
+                          <div className="workout-card-content workout-card-content-merged">
+                            {group.map((workout, idx) => {
+                              const cardExercises = getWorkoutExercises(workout);
+                              const cardCompletedCount = getWorkoutCompletedCount(workout);
+                              const totalDays = workout.workout_data?.days?.length || 0;
+                              const currentDay = totalDays > 0 ? (workout.day_index || 0) + 1 : 0;
+                              const daySpecificName = workout.workout_data?.name && workout.workout_data.name !== workout.name
+                                ? workout.workout_data.name : null;
+                              const estMinutes = estimateWorkoutMinutes(cardExercises) || workout.workout_data?.estimatedMinutes || null;
+                              const estCalories = estimateWorkoutCalories(cardExercises) || workout.workout_data?.estimatedCalories || null;
+
+                              return (
+                                <React.Fragment key={workout.instance_id || `${workout.id}-${workout.day_index}`}>
+                                  {idx > 0 && <div className="workout-card-day-separator" />}
+                                  <div
+                                    className="workout-card-day-section"
+                                    onClick={() => handleSelectWorkoutCard(workout)}
+                                  >
+                                    <div className="workout-card-info">
+                                      <div className="workout-card-day-header">
+                                        <h3 className="workout-card-title">
+                                          {totalDays > 0 ? `Day ${currentDay}` : (daySpecificName || programName)}
+                                          {totalDays > 0 && <span className="workout-card-title-sub"> / {totalDays}</span>}
+                                        </h3>
+                                        <div className="workout-card-day-menu" onClick={(e) => {
+                                          e.stopPropagation();
+                                          setCardMenuWorkout(workout);
+                                          setCardMenuWorkoutId(workout.id);
+                                        }}>
+                                          <MoreVertical size={18} />
+                                        </div>
+                                      </div>
+                                      {daySpecificName && totalDays > 0 && (
+                                        <p className="workout-card-day">{daySpecificName}</p>
+                                      )}
+                                      <p className="workout-card-progress">
+                                        {cardCompletedCount}/{cardExercises.length} activities done
+                                      </p>
+                                      <div className="workout-card-stats">
+                                        {estMinutes && (
+                                          <span className="workout-card-stat">
+                                            <Clock size={13} />
+                                            {estMinutes} min
+                                          </span>
+                                        )}
+                                        {estCalories && (
+                                          <span className="workout-card-stat">
+                                            <Flame size={13} />
+                                            {estCalories} kcal
+                                          </span>
+                                        )}
+                                        <span className="workout-card-stat">
+                                          <Dumbbell size={13} />
+                                          {cardExercises.length}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </React.Fragment>
+                              );
+                            })}
                           </div>
                         </div>
-                        <div className="workout-card-menu" onClick={(e) => {
-                          e.stopPropagation();
-                          setCardMenuWorkout(workout);
-                          setCardMenuWorkoutId(workout.id);
-                        }}>
-                          <MoreVertical size={20} />
-                        </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    });
+                  })()}
                 </div>
 
                 {/* Quick action buttons below cards */}
