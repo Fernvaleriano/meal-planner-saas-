@@ -242,7 +242,19 @@ function AiQuickWorkoutModal({ onClose, onGenerateWorkout, selectedDate }) {
 
         // Check equipment match (if equipment filter is set)
         const equipmentMatch = selectedEquipment.length === 0 ||
-          selectedEquipment.some(eq => exEquipment.includes(eq) || eq === 'bodyweight');
+          selectedEquipment.some(eq => {
+            if (eq === 'bodyweight') {
+              // Bodyweight matches exercises with no equipment, 'none', or 'bodyweight'
+              return !exEquipment || exEquipment === 'none' || exEquipment === 'bodyweight' || exEquipment === 'body weight';
+            }
+            if (eq === 'bands') {
+              return exEquipment.includes('band');
+            }
+            if (eq === 'pullup_bar') {
+              return exEquipment.includes('pull-up') || exEquipment.includes('pullup') || exEquipment.includes('pull up');
+            }
+            return exEquipment.includes(eq);
+          });
 
         // For PUSH workouts: exclude pull exercises (curls, rows, etc.)
         if (selectedType.id === 'push') {
