@@ -13504,6 +13504,287 @@ a.nav-left {
     color: rgba(255, 255, 255, 0.45);
 }
 
+/* ===== Weekly Progress Section ===== */
+.week-progress-section {
+    margin: 4px 16px 12px;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 16px;
+}
+
+.week-progress-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+}
+
+.week-progress-title {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 14px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.85);
+    margin: 0;
+}
+
+.week-progress-title svg {
+    color: #6366f1;
+}
+
+.week-progress-count {
+    font-size: 12.5px;
+    color: rgba(255, 255, 255, 0.45);
+    font-weight: 500;
+}
+
+.week-progress-dots {
+    display: flex;
+    justify-content: space-between;
+    gap: 4px;
+    margin-bottom: 12px;
+}
+
+.week-dot {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+}
+
+.week-dot-label {
+    font-size: 10.5px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.35);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.week-dot-indicator {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1.5px solid rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.25);
+    transition: all 0.2s;
+}
+
+.week-dot.has-workout.past .week-dot-indicator {
+    background: rgba(16, 185, 129, 0.15);
+    border-color: rgba(16, 185, 129, 0.3);
+    color: #10b981;
+}
+
+.week-dot.has-workout.past .week-dot-label {
+    color: #10b981;
+}
+
+.week-dot.has-workout.today .week-dot-indicator {
+    background: rgba(99, 102, 241, 0.18);
+    border-color: rgba(99, 102, 241, 0.4);
+    color: #818cf8;
+    box-shadow: 0 0 12px rgba(99, 102, 241, 0.2);
+}
+
+.week-dot.has-workout.today .week-dot-label {
+    color: #818cf8;
+}
+
+.week-dot.has-workout:not(.past):not(.today) .week-dot-indicator {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.week-dot.rest .week-dot-indicator {
+    background: transparent;
+    border-color: rgba(255, 255, 255, 0.04);
+}
+
+.dot-rest {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.week-progress-bar {
+    height: 4px;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.week-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #10b981, #6366f1);
+    border-radius: 2px;
+    transition: width 0.5s ease;
+    min-width: 0;
+}
+
+/* ===== Upcoming Schedule Section ===== */
+.upcoming-schedule-section {
+    margin: 4px 16px 12px;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 16px;
+}
+
+.upcoming-schedule-section.rest-day-upcoming {
+    margin: 20px 0 8px;
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.upcoming-title {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 14px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.85);
+    margin: 0 0 12px;
+}
+
+.upcoming-title svg {
+    color: #f59e0b;
+}
+
+.upcoming-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.upcoming-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: left;
+    color: inherit;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.upcoming-item:active {
+    background: rgba(255, 255, 255, 0.08);
+    transform: scale(0.98);
+}
+
+.upcoming-day-badge {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 40px;
+    padding: 6px 8px;
+    background: rgba(99, 102, 241, 0.1);
+    border-radius: 10px;
+}
+
+.upcoming-day-name {
+    font-size: 10px;
+    font-weight: 700;
+    color: #818cf8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.upcoming-day-num {
+    font-size: 16px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.9);
+    line-height: 1.1;
+}
+
+.upcoming-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.upcoming-workout-name {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.85);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.upcoming-meta {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11.5px;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.upcoming-meta svg {
+    color: rgba(255, 255, 255, 0.3);
+}
+
+.upcoming-chevron {
+    color: rgba(255, 255, 255, 0.2);
+    flex-shrink: 0;
+}
+
+/* ===== Workout Quick Links ===== */
+.workout-quick-links {
+    margin: 4px 16px 20px;
+}
+
+.workout-quick-links.rest-day-links {
+    margin: 16px 0 4px;
+}
+
+.quick-link-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 16px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 14px;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: left;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.quick-link-btn:active {
+    background: rgba(255, 255, 255, 0.08);
+    color: white;
+    transform: scale(0.98);
+}
+
+.quick-link-btn svg:first-child {
+    color: rgba(255, 255, 255, 0.35);
+}
+
+.quick-link-chevron {
+    margin-left: auto;
+    color: rgba(255, 255, 255, 0.15);
+}
+
 /* Start Workout Button - below cards */
 .start-workout-section {
     padding: 0 16px 8px;
@@ -16782,6 +17063,136 @@ a.nav-left {
 
 [data-theme="light"] .card-action-btn svg {
     color: #9ca3af;
+}
+
+/* Weekly Progress Section - Light */
+[data-theme="light"] .week-progress-section {
+    background: #ffffff;
+    border-color: #e5e7eb;
+}
+
+[data-theme="light"] .week-progress-title {
+    color: #111827;
+}
+
+[data-theme="light"] .week-progress-count {
+    color: #6b7280;
+}
+
+[data-theme="light"] .week-dot-label {
+    color: #9ca3af;
+}
+
+[data-theme="light"] .week-dot-indicator {
+    background: #f3f4f6;
+    border-color: #e5e7eb;
+    color: #d1d5db;
+}
+
+[data-theme="light"] .week-dot.has-workout.past .week-dot-indicator {
+    background: rgba(16, 185, 129, 0.1);
+    border-color: rgba(16, 185, 129, 0.25);
+    color: #10b981;
+}
+
+[data-theme="light"] .week-dot.has-workout.past .week-dot-label {
+    color: #10b981;
+}
+
+[data-theme="light"] .week-dot.has-workout.today .week-dot-indicator {
+    background: rgba(99, 102, 241, 0.1);
+    border-color: rgba(99, 102, 241, 0.3);
+    color: #6366f1;
+}
+
+[data-theme="light"] .week-dot.has-workout.today .week-dot-label {
+    color: #6366f1;
+}
+
+[data-theme="light"] .week-dot.has-workout:not(.past):not(.today) .week-dot-indicator {
+    background: #f3f4f6;
+    border-color: #d1d5db;
+    color: #9ca3af;
+}
+
+[data-theme="light"] .week-dot.rest .week-dot-indicator {
+    background: transparent;
+    border-color: #f3f4f6;
+}
+
+[data-theme="light"] .dot-rest {
+    background: #e5e7eb;
+}
+
+[data-theme="light"] .week-progress-bar {
+    background: #e5e7eb;
+}
+
+/* Upcoming Schedule Section - Light */
+[data-theme="light"] .upcoming-schedule-section {
+    background: #ffffff;
+    border-color: #e5e7eb;
+}
+
+[data-theme="light"] .upcoming-title {
+    color: #111827;
+}
+
+[data-theme="light"] .upcoming-item {
+    background: #f9fafb;
+    border-color: #e5e7eb;
+}
+
+[data-theme="light"] .upcoming-item:active {
+    background: #f3f4f6;
+}
+
+[data-theme="light"] .upcoming-day-badge {
+    background: rgba(99, 102, 241, 0.08);
+}
+
+[data-theme="light"] .upcoming-day-name {
+    color: #6366f1;
+}
+
+[data-theme="light"] .upcoming-day-num {
+    color: #111827;
+}
+
+[data-theme="light"] .upcoming-workout-name {
+    color: #111827;
+}
+
+[data-theme="light"] .upcoming-meta {
+    color: #6b7280;
+}
+
+[data-theme="light"] .upcoming-meta svg {
+    color: #9ca3af;
+}
+
+[data-theme="light"] .upcoming-chevron {
+    color: #d1d5db;
+}
+
+/* Workout Quick Links - Light */
+[data-theme="light"] .quick-link-btn {
+    background: #ffffff;
+    border-color: #e5e7eb;
+    color: #374151;
+}
+
+[data-theme="light"] .quick-link-btn:active {
+    background: #f3f4f6;
+    color: #111827;
+}
+
+[data-theme="light"] .quick-link-btn svg:first-child {
+    color: #9ca3af;
+}
+
+[data-theme="light"] .quick-link-chevron {
+    color: #d1d5db;
 }
 
 /* Action buttons at bottom */
