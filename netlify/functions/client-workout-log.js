@@ -69,10 +69,9 @@ exports.handler = async (event) => {
       if (action === 'skip') {
         // Mark target date as rest day
         dateOverrides[targetDate] = { isRest: true };
-      } else if (action === 'reschedule') {
-        // Move workout from source date to target date
-        // First, determine what workout (if any) exists on the target date
-        // so we can merge both days' exercises on the target date
+      } else if (action === 'reschedule' || action === 'duplicate') {
+        // Determine what workout (if any) already exists on the target date
+        // so we can merge exercises when the target already has a workout
         let targetExistingDayIndex = undefined;
 
         const existingTargetOverride = dateOverrides[targetDate];
@@ -123,20 +122,19 @@ exports.handler = async (event) => {
           }
         }
 
-        // Handle the source date — always mark as rest since we're moving away
-        if (sourceDate) {
+        // For reschedule, mark source date as rest since the workout is moving away
+        if (action === 'reschedule' && sourceDate) {
           dateOverrides[sourceDate] = { isRest: true };
         }
-        // Assign the moved workout to the target date
-        // If the target already has a workout, merge both days' exercises
+
+        // Assign the workout to the target date
+        // If the target already has a different workout, merge both days' exercises
         if (sourceDayIndex !== undefined) {
           if (targetExistingDayIndex !== undefined && targetExistingDayIndex !== sourceDayIndex) {
             // Target has a different workout — merge both day indices
-            // Collect all existing dayIndices from a previous merge, if any
             const existingIndices = existingTargetOverride?.dayIndices
               ? [...existingTargetOverride.dayIndices]
               : [targetExistingDayIndex];
-            // Add the incoming day if not already present
             if (!existingIndices.includes(sourceDayIndex)) {
               existingIndices.push(sourceDayIndex);
             }
@@ -144,11 +142,6 @@ exports.handler = async (event) => {
           } else {
             dateOverrides[targetDate] = { dayIndex: sourceDayIndex };
           }
-        }
-      } else if (action === 'duplicate') {
-        // Copy workout to target date (source stays as-is)
-        if (sourceDayIndex !== undefined) {
-          dateOverrides[targetDate] = { dayIndex: sourceDayIndex };
         }
       }
 
