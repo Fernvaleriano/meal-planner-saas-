@@ -1950,6 +1950,175 @@
             0%, 100% { opacity: 1; }
             50% { opacity: 0.7; }
         }
+
+        /* Meal Reference Links */
+        .meal-reference-links-container {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f0fdfa;
+            border-radius: 8px;
+            border: 1px dashed #99f6e4;
+        }
+
+        .meal-reference-links-header {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 6px;
+            font-size: 11px;
+            color: #0d9488;
+            font-weight: 600;
+        }
+
+        .meal-reference-links-list {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-bottom: 6px;
+        }
+
+        .meal-ref-link-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 10px;
+            background: white;
+            border-radius: 6px;
+            font-size: 12px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .meal-ref-link-item .link-icon {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            flex-shrink: 0;
+        }
+
+        .meal-ref-link-item .link-icon.youtube {
+            background: rgba(255, 0, 0, 0.15);
+            color: #ff0000;
+        }
+
+        .meal-ref-link-item .link-icon.instagram {
+            background: rgba(225, 48, 108, 0.15);
+            color: #e1306c;
+        }
+
+        .meal-ref-link-item .link-icon.generic {
+            background: rgba(59, 130, 246, 0.15);
+            color: #3b82f6;
+        }
+
+        .meal-ref-link-item .ref-link-clickable {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+            min-width: 0;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .meal-ref-link-item .link-title {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            color: #1f2937;
+        }
+
+        .meal-ref-link-item .ref-link-clickable:hover .link-title {
+            color: #0d9488;
+            text-decoration: underline;
+        }
+
+        .meal-ref-link-item .link-delete {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: none;
+            background: rgba(239, 68, 68, 0.15);
+            color: #dc2626;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            flex-shrink: 0;
+        }
+
+        .meal-ref-link-item .link-delete:hover {
+            background: #dc2626;
+            color: white;
+        }
+
+        .add-meal-link-row {
+            display: flex;
+            gap: 6px;
+        }
+
+        .add-meal-link-row input {
+            flex: 1;
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: 1px solid #99f6e4;
+            background: white;
+            color: #1f2937;
+            font-size: 12px;
+            outline: none;
+        }
+
+        .add-meal-link-row input:focus {
+            border-color: #0d9488;
+        }
+
+        .add-meal-link-row input::placeholder {
+            color: #94a3b8;
+        }
+
+        .add-meal-link-btn {
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: 1px solid #0d9488;
+            background: rgba(13, 148, 136, 0.15);
+            color: #0d9488;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            white-space: nowrap;
+        }
+
+        .add-meal-link-btn:hover {
+            background: #0d9488;
+            color: white;
+        }
+
+        [data-theme="dark"] .meal-reference-links-container {
+            background: rgba(13, 148, 136, 0.1);
+            border-color: rgba(13, 148, 136, 0.3);
+        }
+
+        [data-theme="dark"] .meal-ref-link-item {
+            background: var(--bg-secondary, #1e293b);
+            border-color: var(--border-color, #334155);
+        }
+
+        [data-theme="dark"] .meal-ref-link-item .link-title {
+            color: var(--text-primary, #e2e8f0);
+        }
+
+        [data-theme="dark"] .add-meal-link-row input {
+            background: var(--bg-secondary, #1e293b);
+            color: var(--text-primary, #e2e8f0);
+            border-color: rgba(13, 148, 136, 0.3);
+        }
     </style>
     <script src="https://unpkg.com/lucide@0.312.0/dist/umd/lucide.min.js" onload="lucide.createIcons()"></script>
     <style>body{-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;overscroll-behavior:none;-webkit-overflow-scrolling:touch;}</style>
@@ -5228,6 +5397,7 @@ function displayDietPlan(multiDayData) {
             const mealNoteId = `meal-note-${dayIndex}-${mealIndex}`;
             const existingNote = meal.coach_note || '';
             const voiceNoteUrl = meal.voice_note_url || '';
+            const mealRefLinks = meal.reference_links || [];
             const isSupplement = meal.type === 'supplement';
 
             if (isSupplement) {
@@ -5350,6 +5520,36 @@ function displayDietPlan(multiDayData) {
                                     <audio controls src="${voiceNoteUrl}" style="width: 100%; height: 32px;"></audio>
                                 </div>
                                 ` : ''}
+                            </div>
+                        </details>
+
+                        <!-- Reference Links -->
+                        <details style="margin-top: 6px;">
+                            <summary style="font-size: 11px; color: #0d9488; cursor: pointer; padding: 6px; background: #f0fdfa; border-radius: 6px;">
+                                <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:3px;"><path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                                Reference Links${mealRefLinks.length > 0 ? ' (' + mealRefLinks.length + ')' : ''}
+                            </summary>
+                            <div class="meal-reference-links-container" style="border-top: none; border-radius: 0 0 8px 8px; margin-top: 0;">
+                                ${mealRefLinks.length > 0 ? `
+                                    <div class="meal-reference-links-list">
+                                        ${mealRefLinks.map((link, linkIdx) => `
+                                            <div class="meal-ref-link-item">
+                                                <a href="${mealEscapeHtml(link.url)}" target="_blank" rel="noopener noreferrer" class="ref-link-clickable" onclick="event.stopPropagation()">
+                                                    <span class="link-icon ${mealDetectLinkType(link.url)}">${mealGetLinkTypeIcon(mealDetectLinkType(link.url))}</span>
+                                                    <span class="link-title" title="${mealEscapeHtml(link.url)}">${mealEscapeHtml(link.title || link.url)}</span>
+                                                </a>
+                                                <button class="link-delete" onclick="removeMealReferenceLink(${dayIndex}, ${mealIndex}, ${linkIdx})" title="Remove link">x</button>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                ` : ''}
+                                <div class="add-meal-link-row">
+                                    <input type="text" id="mealRefLinkInput-${dayIndex}-${mealIndex}" placeholder="Paste recipe URL, YouTube link, etc..." onkeydown="if(event.key==='Enter'){addMealReferenceLink(${dayIndex}, ${mealIndex})}">
+                                    <button class="add-meal-link-btn" onclick="addMealReferenceLink(${dayIndex}, ${mealIndex})">
+                                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                                        Add
+                                    </button>
+                                </div>
                             </div>
                         </details>
                     </div>
@@ -6245,7 +6445,7 @@ async function toggleMealVoiceRecording(dayIndex, mealIndex) {
 
         mediaRecorder.start();
         btn.classList.add('recording');
-        btn.innerHTML = '⏹️ Stop';
+        btn.innerHTML = '<svg width="11" height="11" fill="currentColor" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:2px;"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>Stop';
         showToast('Recording... Click again to stop', 'success');
 
     } catch (err) {
@@ -6335,6 +6535,71 @@ async function deleteMealVoiceNote(dayIndex, mealIndex) {
 
         displayDietPlan(lastPlanQuery.currentPlan);
         showToast('Voice note deleted', 'success');
+    }
+}
+
+// MEAL REFERENCE LINKS HELPERS
+function mealEscapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function mealDetectLinkType(url) {
+    if (!url) return 'generic';
+    const lower = url.toLowerCase();
+    if (lower.includes('youtube.com') || lower.includes('youtu.be')) return 'youtube';
+    if (lower.includes('instagram.com')) return 'instagram';
+    return 'generic';
+}
+
+function mealGetLinkTypeIcon(type) {
+    if (type === 'youtube') return '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>';
+    if (type === 'instagram') return '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>';
+    return '<svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>';
+}
+
+function mealGetTitleFromUrl(url) {
+    const type = mealDetectLinkType(url);
+    if (type === 'youtube') return 'YouTube Video';
+    if (type === 'instagram') return 'Instagram Post';
+    try {
+        return new URL(url).hostname.replace('www.', '');
+    } catch {
+        return url;
+    }
+}
+
+function addMealReferenceLink(dayIndex, mealIndex) {
+    const input = document.getElementById(`mealRefLinkInput-${dayIndex}-${mealIndex}`);
+    const url = (input.value || '').trim();
+    if (!url) return;
+
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        showToast('Please enter a valid URL starting with http:// or https://', 'error');
+        return;
+    }
+
+    const meal = lastPlanQuery.currentPlan[dayIndex].plan[mealIndex];
+    if (!meal.reference_links) meal.reference_links = [];
+
+    meal.reference_links.push({
+        url: url,
+        title: mealGetTitleFromUrl(url),
+        type: mealDetectLinkType(url)
+    });
+
+    input.value = '';
+    markUnsavedChanges();
+    displayDietPlan(lastPlanQuery.currentPlan);
+    showToast('Reference link added');
+}
+
+function removeMealReferenceLink(dayIndex, mealIndex, linkIndex) {
+    const meal = lastPlanQuery.currentPlan[dayIndex].plan[mealIndex];
+    if (meal.reference_links) {
+        meal.reference_links.splice(linkIndex, 1);
+        markUnsavedChanges();
+        displayDietPlan(lastPlanQuery.currentPlan);
     }
 }
 
@@ -9903,7 +10168,8 @@ function addMealToDay(dayIndex) {
         image_url: null,
         coach_note: null,
         voice_note_url: null,
-        voice_note_path: null
+        voice_note_path: null,
+        reference_links: []
     };
 
     day.plan.push(newMeal);
