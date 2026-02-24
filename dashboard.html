@@ -4329,7 +4329,7 @@
                 document.getElementById('checkInCount').textContent = pendingCheckIns;
 
                 // Populate priority alerts
-                loadPriorityAlerts(coachId, clientCount || 0, pendingCheckIns);
+                await loadPriorityAlerts(coachId, clientCount || 0, pendingCheckIns);
             } catch (error) {
                 console.error('Error loading stats:', error);
             }
@@ -4358,6 +4358,7 @@
         let _localOnlyDismissed = new Set(); // Alert IDs only in localStorage, need DB sync
         let _currentCoachId = null; // Set during loadPriorityAlerts
         let _dbAvailable = true; // Track if database is working
+        let _loadingAlerts = false; // Guard against concurrent loadPriorityAlerts calls
 
         const DISMISSED_STORAGE_KEY = 'dismissedPriorityAlerts';
 
@@ -4400,20 +4401,25 @@
 
                 // Build a set of alert IDs from database
                 const dbDismissed = new Set();
+                const prefixMap = {
+                    'high_stress': 'stress',
+                    'low_energy': 'energy',
+                    'pending_checkin': 'checkin',
+                    'expiring_plan': 'plan',
+                    'client_pr': 'pr',
+                    'workout_note': 'workout-note',
+                    'ghost_client': 'ghost',
+                    'plateau': 'plateau'
+                };
                 (data || []).forEach(item => {
-                    const prefixMap = {
-                        'high_stress': 'stress',
-                        'low_energy': 'energy',
-                        'pending_checkin': 'checkin',
-                        'expiring_plan': 'plan',
-                        'client_pr': 'pr',
-                        'workout_note': 'workout-note',
-                        'ghost_client': 'ghost',
-                        'plateau': 'plateau'
-                    };
                     const prefix = prefixMap[item.reason];
                     if (prefix && item.related_checkin_id != null) {
                         dbDismissed.add(`${prefix}-${item.related_checkin_id}`);
+                    } else if (prefix && item.client_id != null) {
+                        // Fallback for items where related_checkin_id is null:
+                        // use client_id (matches ghost_client pattern, and provides
+                        // a reasonable fallback for other types)
+                        dbDismissed.add(`${prefix}-${item.client_id}`);
                     }
                 });
 
@@ -4579,6 +4585,7 @@
         async function syncLocalDismissalsToDb() {
             if (!_localOnlyDismissed || _localOnlyDismissed.size === 0 || !_dbAvailable) return;
 
+            const synced = [];
             for (const alertId of _localOnlyDismissed) {
                 const alert = _allPriorityAlerts.find(a => a.id === alertId);
                 if (!alert) continue; // Alert no longer exists, skip
@@ -4596,6 +4603,7 @@
                     });
                     if (response.ok) {
                         _dbDismissedIds.add(alertId);
+                        synced.push(alertId);
                         console.log('Synced local dismissal to DB:', alertId);
                     } else {
                         console.warn('Failed to sync dismissal to DB:', alertId);
@@ -4604,7 +4612,8 @@
                     console.warn('Could not sync local dismissal:', alertId, e);
                 }
             }
-            _localOnlyDismissed.clear();
+            // Only remove successfully synced items — failed ones stay for retry on next load
+            synced.forEach(id => _localOnlyDismissed.delete(id));
         }
 
         function toggleHandledSection() {
@@ -4719,6 +4728,13 @@
         }
 
         async function loadPriorityAlerts(coachId, clientCount, pendingCheckIns) {
+            // Guard against concurrent calls — if already loading, skip
+            if (_loadingAlerts) {
+                console.log('loadPriorityAlerts already in progress, skipping...');
+                return;
+            }
+            _loadingAlerts = true;
+
             const alertsEl = document.getElementById('priorityAlerts');
             _allPriorityAlerts = [];
             _currentCoachId = coachId;
@@ -5196,13 +5212,17 @@
                 renderPriorityAlertSections();
 
                 // Clean up stale localStorage entries (dismissed items whose alerts no longer exist)
-                const currentAlertIds = new Set(_allPriorityAlerts.map(a => a.id));
-                const staleCleaned = new Set(
-                    [..._dismissedFromDb].filter(id => currentAlertIds.has(id) || _dbDismissedIds.has(id))
-                );
-                if (staleCleaned.size < _dismissedFromDb.size) {
-                    _dismissedFromDb = staleCleaned;
-                    saveLocalDismissed(_dismissedFromDb);
+                // Only remove entries that are BOTH: not in current alerts AND not confirmed in DB
+                // Be conservative — keep entries if there's any doubt, to prevent items reappearing
+                if (_dbAvailable && _allPriorityAlerts.length > 0) {
+                    const currentAlertIds = new Set(_allPriorityAlerts.map(a => a.id));
+                    const staleCleaned = new Set(
+                        [..._dismissedFromDb].filter(id => currentAlertIds.has(id) || _dbDismissedIds.has(id))
+                    );
+                    if (staleCleaned.size < _dismissedFromDb.size) {
+                        _dismissedFromDb = staleCleaned;
+                        saveLocalDismissed(_dismissedFromDb);
+                    }
                 }
 
                 // Background: sync any localStorage-only dismissals to DB
@@ -5217,6 +5237,8 @@
                         <span>Dashboard ready. ${clientCount} active client${clientCount !== 1 ? 's' : ''}.</span>
                     </div>
                 `;
+            } finally {
+                _loadingAlerts = false;
             }
         }
 
