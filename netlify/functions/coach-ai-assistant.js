@@ -174,9 +174,31 @@ ${clientContext}
 
 COACH'S QUESTION: "${question}"
 
+RESPONSE FORMAT:
+You MUST organize your response into sections using this exact format. Each section starts with a header on its own line wrapped in square brackets. Only include sections that are relevant to the question - skip sections with no useful info.
+
+Available sections (use only what applies):
+[Overview] - Quick summary of findings
+[Calorie Analysis] - Daily calorie intake vs goals, trends
+[Macro Breakdown] - Protein, carbs, fat analysis and balance
+[Meal Patterns] - Meal timing, consistency, food choices
+[Recommendations] - Actionable coaching suggestions
+[Highlights] - Positive observations and wins
+
+Example format:
+[Overview]
+Sarah averaged 1,850 cal/day over the last 7 days, which is 150 cal under her 2,000 cal goal. Protein intake is strong at 142g/day.
+
+[Recommendations]
+1. Consider adding a small protein-rich snack in the afternoon to close the calorie gap.
+2. Carb intake is inconsistent - highest on weekends. May want to discuss meal prep for Saturdays.
+
 Provide a helpful, thorough response based on the client's actual data. Include specific numbers and observations where relevant. If suggesting improvements, be encouraging and practical. Give a complete answer - do not cut your response short.
 
-IMPORTANT: Do NOT use any markdown formatting like **bold**, *italics*, or bullet points with asterisks. Write in plain text only using regular sentences and numbered lists (1. 2. 3.) if needed.`
+IMPORTANT RULES:
+1. Do NOT use any markdown formatting like **bold**, *italics*, or bullet points with asterisks
+2. Write in plain text only using regular sentences and numbered lists (1. 2. 3.) if needed
+3. You MUST use the [Section Name] format for headers. Do not skip this formatting.`
                     }]
                 }],
                 generationConfig: {

@@ -928,17 +928,37 @@ ${clientContext}
 
 COACH'S QUESTION: "${question}"
 
+RESPONSE FORMAT:
+You MUST organize your response into sections using this exact format. Each section starts with a header on its own line wrapped in square brackets. Only include sections that are relevant to the question - skip sections with no useful info.
+
+Available sections (use only what applies):
+[Action Needed] - Urgent items needing immediate coach action (diet requests, high stress, etc.)
+[Check-ins & Wellness] - Energy, stress, adherence, and general wellbeing data
+[Nutrition] - Diet tracking, calorie/macro data, meal plan adherence
+[Training & PRs] - Workouts, exercises, personal records, program progress
+[Body Composition] - Weight changes, measurements, trends
+[Highlights] - Positive progress, wins, and clients doing well
+[Summary] - General overview when the question is broad
+
+Example format:
+[Action Needed]
+Sarah requested a new meal plan due to digestive issues. Mike reported stress at 9/10 - consider reaching out.
+
+[Training & PRs]
+3 clients hit new PRs this week. John bench pressed 225lbs x 5 (up from 215lbs). Lisa squatted 185lbs x 3.
+
 IMPORTANT RULES:
-1. Answer in plain text only - no special characters, no emojis, no asterisks, no markdown formatting
+1. Write in plain text only - no special characters, no emojis, no asterisks, no markdown formatting
 2. Use specific client names when relevant
-3. Be concise and direct - give the information they asked for
+3. Be concise within each section - short, scannable sentences
 4. If listing clients, use simple numbered lists (1. 2. 3.) or just commas
 5. For workout/exercise questions, include specific weights, sets, reps, and PRs when available
 6. For nutrition questions, compare actual intake vs goals when both are available
 7. For body composition questions, mention weight changes and trends
 8. If the data needed to answer is not available, say so honestly rather than guessing
 9. Provide a thorough response - use as many words as needed to fully answer the question without cutting short
-10. IMPORTANT: Always use the exact weight units provided in the data (kg or lbs). Never convert or assume units - use exactly what is shown in the client data`;
+10. IMPORTANT: Always use the exact weight units provided in the data (kg or lbs). Never convert or assume units - use exactly what is shown in the client data
+11. You MUST use the [Section Name] format for headers. Do not skip this formatting.`;
 
     const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
       method: 'POST',

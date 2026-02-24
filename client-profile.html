@@ -1020,6 +1020,74 @@
             white-space: pre-wrap;
         }
 
+        /* AI Response Sections */
+        .ai-sections {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .ai-section-card {
+            background: white;
+            border-radius: 10px;
+            border: 1px solid var(--gray-200, #e2e8f0);
+            border-left: 3px solid var(--section-color, #94a3b8);
+            padding: 14px 16px;
+            transition: box-shadow 0.2s;
+        }
+
+        .ai-section-card:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+
+        [data-theme="dark"] .ai-section-card {
+            background: #1e293b;
+            border-color: #475569;
+            border-left-color: var(--section-color, #64748b);
+        }
+
+        [data-theme="dark"] .ai-section-card:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+
+        .ai-section-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .ai-section-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            background: color-mix(in srgb, var(--section-color) 12%, transparent);
+            color: var(--section-color);
+            flex-shrink: 0;
+        }
+
+        .ai-section-title {
+            font-size: 0.8125rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            color: var(--section-color);
+        }
+
+        .ai-section-content {
+            font-size: 0.875rem;
+            line-height: 1.7;
+            color: #374151;
+            white-space: pre-wrap;
+        }
+
+        [data-theme="dark"] .ai-section-content {
+            color: #cbd5e1;
+        }
+
         .ai-loading {
             display: flex;
             align-items: center;
@@ -10569,6 +10637,51 @@
             askAICoach();
         }
 
+        function formatAIResponse(text) {
+            if (!text) return 'No response received.';
+
+            const sectionConfig = {
+                'Overview': { icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>', color: '#3b82f6' },
+                'Calorie Analysis': { icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>', color: '#f59e0b' },
+                'Macro Breakdown': { icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>', color: '#8b5cf6' },
+                'Meal Patterns': { icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>', color: '#06b6d4' },
+                'Recommendations': { icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>', color: '#22c55e' },
+                'Highlights': { icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>', color: '#f59e0b' },
+                'Action Needed': { icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>', color: '#ef4444' },
+                'Check-ins & Wellness': { icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>', color: '#3b82f6' },
+                'Nutrition': { icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>', color: '#22c55e' },
+                'Training & PRs': { icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="10" rx="2"/><line x1="12" y1="7" x2="12" y2="17"/><line x1="2" y1="12" x2="22" y2="12"/></svg>', color: '#8b5cf6' },
+                'Body Composition': { icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>', color: '#f59e0b' },
+                'Summary': { icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>', color: '#64748b' }
+            };
+
+            const sectionRegex = /\[([^\]]+)\]/g;
+            const parts = text.split(sectionRegex);
+
+            if (parts.length <= 1) {
+                return text;
+            }
+
+            let html = '<div class="ai-sections">';
+            for (let i = 1; i < parts.length; i += 2) {
+                const sectionName = parts[i].trim();
+                const content = (parts[i + 1] || '').trim();
+                if (!content) continue;
+
+                const config = sectionConfig[sectionName] || { icon: sectionConfig['Summary'].icon, color: '#64748b' };
+
+                html += '<div class="ai-section-card" style="--section-color: ' + config.color + '">' +
+                    '<div class="ai-section-header">' +
+                        '<span class="ai-section-icon">' + config.icon + '</span>' +
+                        '<span class="ai-section-title">' + sectionName + '</span>' +
+                    '</div>' +
+                    '<div class="ai-section-content">' + content + '</div>' +
+                '</div>';
+            }
+            html += '</div>';
+            return html;
+        }
+
         async function askAICoach() {
             const questionInput = document.getElementById('aiCoachQuestion');
             const question = questionInput.value.trim();
@@ -10607,13 +10720,14 @@
                     throw new Error(data.error || 'Failed to get AI response');
                 }
 
-                // Display response
-                responseText.textContent = data.response;
+                // Display response with sections
+                const formatted = formatAIResponse(data.response);
+                responseText.innerHTML = formatted;
                 responseContainer.style.display = 'block';
 
             } catch (error) {
                 console.error('AI Coach error:', error);
-                responseText.textContent = 'Sorry, I encountered an error analyzing the data. Please try again.';
+                responseText.innerHTML = 'Sorry, I encountered an error analyzing the data. Please try again.';
                 responseContainer.style.display = 'block';
             } finally {
                 loadingEl.style.display = 'none';
