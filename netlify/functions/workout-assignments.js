@@ -266,15 +266,16 @@ exports.handler = async (event) => {
             const override = dateOverrides[dateKey];
 
             let todayWorkout = null;
+            let skipNatural = false;
 
             // If there's an override for this date, use it
             if (override) {
+              // isRest suppresses the natural workout
               if (override.isRest) {
-                // This assignment is a rest day on this date, skip it
-                continue;
+                skipNatural = true;
               }
 
-              // Handle multiple days on same date — each as a separate workout card
+              // Backwards compat: old-style dayIndices replace natural schedule entirely
               if (override.dayIndices && Array.isArray(override.dayIndices) && days.length > 0) {
                 for (const idx of override.dayIndices) {
                   const di = idx % days.length;
@@ -297,13 +298,14 @@ exports.handler = async (event) => {
                     });
                   }
                 }
-                continue;
+                skipNatural = true;
               }
 
-              if (override.dayIndex !== undefined && days.length > 0) {
+              // Backwards compat: old-style dayIndex replaces natural schedule
+              if (!skipNatural && override.dayIndex !== undefined && days.length > 0) {
                 const dayIndex = override.dayIndex % days.length;
 
-                todayWorkout = {
+                todayWorkouts.push({
                   id: activeAssignment.id,
                   name: activeAssignment.name || days[dayIndex].name || `Day ${dayIndex + 1}`,
                   day_index: dayIndex,
@@ -317,13 +319,39 @@ exports.handler = async (event) => {
                   program_id: activeAssignment.program_id,
                   client_id: activeAssignment.client_id,
                   is_override: true
-                };
-                todayWorkouts.push(todayWorkout);
-                continue;
+                });
+                skipNatural = true;
+              }
+
+              // addedDayIndices: extra workouts added ON TOP of natural schedule
+              if (override.addedDayIndices && Array.isArray(override.addedDayIndices) && days.length > 0) {
+                for (const idx of override.addedDayIndices) {
+                  const di = idx % days.length;
+                  const day = days[di];
+                  if (day) {
+                    todayWorkouts.push({
+                      id: activeAssignment.id,
+                      name: activeAssignment.name || day.name || `Day ${di + 1}`,
+                      day_index: di,
+                      workout_data: {
+                        ...day,
+                        exercises: day.exercises || [],
+                        estimatedMinutes: day.estimatedMinutes || 45,
+                        estimatedCalories: day.estimatedCalories || 300,
+                        image_url: resolvedImageUrl
+                      },
+                      program_id: activeAssignment.program_id,
+                      client_id: activeAssignment.client_id,
+                      is_override: true
+                    });
+                  }
+                }
+                // Don't set skipNatural — natural schedule still shows
               }
             }
 
-            if (days.length > 0) {
+            // Natural schedule (unless suppressed by isRest or old-style overrides)
+            if (!skipNatural && days.length > 0) {
               const isWorkoutDay = selectedDays.includes(targetDayName);
 
               if (isWorkoutDay) {
@@ -346,7 +374,7 @@ exports.handler = async (event) => {
                   client_id: activeAssignment.client_id
                 };
               }
-            } else if (workoutData.exercises) {
+            } else if (!skipNatural && workoutData.exercises) {
               todayWorkout = {
                 id: activeAssignment.id,
                 name: activeAssignment.name || 'Today\'s Workout',

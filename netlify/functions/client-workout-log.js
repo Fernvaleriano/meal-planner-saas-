@@ -70,78 +70,39 @@ exports.handler = async (event) => {
         // Mark target date as rest day
         dateOverrides[targetDate] = { isRest: true };
       } else if (action === 'reschedule' || action === 'duplicate') {
-        // Determine what workout (if any) already exists on the target date
-        // so we can merge exercises when the target already has a workout
-        let targetExistingDayIndex = undefined;
-
-        const existingTargetOverride = dateOverrides[targetDate];
-        if (existingTargetOverride && existingTargetOverride.dayIndices && existingTargetOverride.dayIndices.length > 0) {
-          // Target already has merged days — use first index as representative
-          targetExistingDayIndex = existingTargetOverride.dayIndices[0];
-        } else if (existingTargetOverride && existingTargetOverride.dayIndex !== undefined) {
-          // Target date already has an override with a specific dayIndex
-          targetExistingDayIndex = existingTargetOverride.dayIndex;
-        } else if (!existingTargetOverride || !existingTargetOverride.isRest) {
-          // No override on target date — compute the natural dayIndex from the schedule
-          const days = currentWorkoutData.days || [];
-          if (days.length > 0) {
-            const schedule = currentWorkoutData.schedule || {};
-            const selectedDays = schedule.selectedDays || ['mon', 'tue', 'wed', 'thu', 'fri'];
-            const startDate = assignment.start_date ? new Date(assignment.start_date) : new Date(assignment.created_at);
-            const targetDateObj = new Date(targetDate);
-            const dayNames = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
-            const targetDayName = dayNames[targetDateObj.getDay()];
-
-            if (selectedDays.includes(targetDayName) && targetDateObj >= startDate) {
-              // Check end boundary
-              const weeksToUse = schedule.weeksAmount || 12;
-              let endBoundary = null;
-              if (assignment.end_date) {
-                endBoundary = new Date(assignment.end_date + 'T23:59:59');
-              } else {
-                endBoundary = new Date(startDate);
-                endBoundary.setDate(endBoundary.getDate() + (weeksToUse * 7));
-              }
-
-              if (!endBoundary || targetDateObj < endBoundary) {
-                // Count workout days between start and target date
-                const totalDays = Math.floor((targetDateObj - startDate) / (24 * 60 * 60 * 1000));
-                const daySet = new Set(selectedDays);
-                const fullWeeks = Math.floor(totalDays / 7);
-                const daysPerWeek = dayNames.filter(d => daySet.has(d)).length;
-                let count = fullWeeks * daysPerWeek;
-                const remainderDays = totalDays % 7;
-                for (let i = 0; i < remainderDays; i++) {
-                  const d = new Date(startDate);
-                  d.setDate(d.getDate() + (fullWeeks * 7) + i);
-                  if (daySet.has(dayNames[d.getDay()])) count++;
-                }
-                targetExistingDayIndex = count % days.length;
-              }
-            }
-          }
-        }
-
-        // For reschedule, mark source date as rest since the workout is moving away
+        // For reschedule, handle the source date
         if (action === 'reschedule' && sourceDate) {
-          dateOverrides[sourceDate] = { isRest: true };
+          const sourceOverride = dateOverrides[sourceDate];
+          if (sourceOverride && sourceOverride.addedDayIndices) {
+            // Source has added workouts — remove just this one
+            const remaining = sourceOverride.addedDayIndices.filter(idx => idx !== sourceDayIndex);
+            if (remaining.length > 0) {
+              sourceOverride.addedDayIndices = remaining;
+            } else {
+              delete sourceOverride.addedDayIndices;
+              // If nothing else in the override, remove it
+              if (!sourceOverride.isRest && sourceOverride.dayIndex === undefined) {
+                delete dateOverrides[sourceDate];
+              }
+            }
+          } else {
+            // Natural workout — mark source as rest to hide it
+            dateOverrides[sourceDate] = { isRest: true };
+          }
         }
 
-        // Assign the workout to the target date
-        // If the target already has a different workout, merge both days' exercises
+        // Add the moved workout to the target date as an addition (not a replacement)
+        // This preserves whatever natural workout is already on the target date
         if (sourceDayIndex !== undefined) {
-          if (targetExistingDayIndex !== undefined && targetExistingDayIndex !== sourceDayIndex) {
-            // Target has a different workout — merge both day indices
-            const existingIndices = existingTargetOverride?.dayIndices
-              ? [...existingTargetOverride.dayIndices]
-              : [targetExistingDayIndex];
-            if (!existingIndices.includes(sourceDayIndex)) {
-              existingIndices.push(sourceDayIndex);
-            }
-            dateOverrides[targetDate] = { dayIndices: existingIndices };
-          } else {
-            dateOverrides[targetDate] = { dayIndex: sourceDayIndex };
+          const targetOverride = dateOverrides[targetDate] || {};
+          const addedList = targetOverride.addedDayIndices
+            ? [...targetOverride.addedDayIndices]
+            : [];
+          if (!addedList.includes(sourceDayIndex)) {
+            addedList.push(sourceDayIndex);
           }
+          targetOverride.addedDayIndices = addedList;
+          dateOverrides[targetDate] = targetOverride;
         }
       }
 
