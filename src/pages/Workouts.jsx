@@ -979,42 +979,42 @@ function Workouts() {
         if (override && days.length > 0) {
           if (override.isRest) skipNatural = true;
 
-          // Collect all added instances from ALL formats (dedup legacy by day_index)
+          // Collect all added instances — merge any duplicates by day_index
+          const seenDi = new Set();
           const addedIndices = [];
-          const legacySeen = new Set();
 
-          // New format: addedWorkouts (always keep, these are intentional)
+          // New format: addedWorkouts
           if (Array.isArray(override.addedWorkouts)) {
             for (const aw of override.addedWorkouts) {
-              addedIndices.push({ dayIdx: aw.day_index, isNew: true });
+              const di = aw.day_index % days.length;
+              if (!seenDi.has(di)) { seenDi.add(di); addedIndices.push(di); }
             }
           }
-          // Backwards compat: dayIndices (suppresses natural, dedup)
+          // Backwards compat: dayIndices
           if (Array.isArray(override.dayIndices)) {
             for (const idx of override.dayIndices) {
-              if (!legacySeen.has(idx)) { legacySeen.add(idx); addedIndices.push({ dayIdx: idx }); }
+              const di = idx % days.length;
+              if (!seenDi.has(di)) { seenDi.add(di); addedIndices.push(di); }
             }
             skipNatural = true;
           }
-          // Backwards compat: dayIndex (suppresses natural, dedup)
+          // Backwards compat: dayIndex
           if (override.dayIndex !== undefined) {
-            if (!legacySeen.has(override.dayIndex)) { legacySeen.add(override.dayIndex); addedIndices.push({ dayIdx: override.dayIndex }); }
+            const di = override.dayIndex % days.length;
+            if (!seenDi.has(di)) { seenDi.add(di); addedIndices.push(di); }
             skipNatural = true;
           }
-          // Backwards compat: addedDayIndices (no suppress, dedup)
+          // Backwards compat: addedDayIndices
           if (Array.isArray(override.addedDayIndices)) {
             for (const idx of override.addedDayIndices) {
-              if (!legacySeen.has(idx)) { legacySeen.add(idx); addedIndices.push({ dayIdx: idx }); }
+              const di = idx % days.length;
+              if (!seenDi.has(di)) { seenDi.add(di); addedIndices.push(di); }
             }
           }
 
-          // Count exercises from each added instance
-          for (const entry of addedIndices) {
-            const di = entry.dayIdx % days.length;
-            // Dedup against natural
+          // Count exercises from each unique added instance
+          for (const di of addedIndices) {
             if (!skipNatural && naturalDayIndex !== undefined && di === naturalDayIndex) continue;
-            // Dedup legacy against new-format entries with same day_index
-            if (!entry.isNew && addedIndices.some(o => o.isNew && (o.dayIdx % days.length) === di)) continue;
             hasWorkout = true;
             exerciseCount += (days[di].exercises || []).filter(ex => ex && ex.id).length;
             cardCount++;
