@@ -25595,6 +25595,23 @@ a.nav-left {
     border-color: var(--brand-primary, #14b8a6);
 }
 
+/* Time config (MIN : SEC) layout */
+.create-workout-exercise-item .config-item.time-config {
+    gap: 3px;
+}
+
+.create-workout-exercise-item .config-item.time-config input {
+    width: 38px;
+    padding: 4px 4px;
+}
+
+.create-workout-exercise-item .config-item.time-config .time-separator {
+    color: #64748b;
+    font-weight: 600;
+    font-size: 0.85rem;
+    margin: 0 1px;
+}
+
 .tracking-type-toggle {
     display: flex;
     align-items: center;
