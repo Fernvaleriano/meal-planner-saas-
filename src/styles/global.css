@@ -24413,6 +24413,7 @@ a.nav-left {
 
 /* Add Activity Modal */
 .add-activity-modal {
+    height: 90vh;
     max-height: 90vh;
     background: white;
     /* Ensure children have proper flex behavior */
