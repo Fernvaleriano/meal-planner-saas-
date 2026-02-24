@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ChevronLeft, Flame } from 'lucide-react';
+import { ChevronLeft, ChevronDown, Flame } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost } from '../utils/api';
@@ -22,6 +22,7 @@ function CheckIn() {
   const [streak, setStreak] = useState(0);
   const [history, setHistory] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
+  const [historyExpanded, setHistoryExpanded] = useState(false);
 
   // Scroll to top on mount
   useEffect(() => {
@@ -199,51 +200,69 @@ function CheckIn() {
 
         {/* History */}
         <div className="section-card">
-          <h3 className="section-title">📅 Previous Check-ins</h3>
+          <button
+            type="button"
+            className="collapsible-header"
+            onClick={() => setHistoryExpanded(!historyExpanded)}
+            aria-expanded={historyExpanded}
+          >
+            <h3 className="section-title" style={{ margin: 0 }}>📅 Previous Check-ins</h3>
+            <ChevronDown
+              size={20}
+              style={{
+                transition: 'transform 0.2s ease',
+                transform: historyExpanded ? 'rotate(180deg)' : 'rotate(0deg)'
+              }}
+            />
+          </button>
 
-          {loadingHistory ? (
-            <div className="loading-state">
-              <div className="spinner"></div>
-              <p>Loading history...</p>
-            </div>
-          ) : history.length === 0 ? (
-            <div className="empty-state-inline">
-              <span>📝</span>
-              <p>No check-ins yet. Submit your first one above!</p>
-            </div>
-          ) : (
-            <div className="checkin-history">
-              {history.map((entry, idx) => (
-                <div key={idx} className="checkin-entry">
-                  <div className="checkin-entry-header">
-                    <span className="checkin-date">
-                      {new Date(entry.checkin_date || entry.created_at).toLocaleDateString('en-US', {
-                        weekday: 'short',
-                        month: 'short',
-                        day: 'numeric'
-                      })}
-                    </span>
-                    <span className="checkin-adherence-badge">{entry.meal_plan_adherence || entry.adherence_percent || 0}%</span>
-                  </div>
-                  <div className="checkin-ratings">
-                    {entry.energy_level && <span>⚡ Energy: {entry.energy_level}/5</span>}
-                    {entry.sleep_quality && <span>😴 Sleep: {entry.sleep_quality}/5</span>}
-                    {entry.hunger_level && <span>🍽️ Hunger: {entry.hunger_level}/5</span>}
-                    {entry.stress_level && <span>😰 Stress: {entry.stress_level}/5</span>}
-                  </div>
-                  {entry.wins && (
-                    <div className="checkin-notes">
-                      <strong>Wins:</strong> {entry.wins}
-                    </div>
-                  )}
-                  {entry.challenges && (
-                    <div className="checkin-notes">
-                      <strong>Challenges:</strong> {entry.challenges}
-                    </div>
-                  )}
+          {historyExpanded && (
+            <>
+              {loadingHistory ? (
+                <div className="loading-state">
+                  <div className="spinner"></div>
+                  <p>Loading history...</p>
                 </div>
-              ))}
-            </div>
+              ) : history.length === 0 ? (
+                <div className="empty-state-inline">
+                  <span>📝</span>
+                  <p>No check-ins yet. Submit your first one above!</p>
+                </div>
+              ) : (
+                <div className="checkin-history">
+                  {history.map((entry, idx) => (
+                    <div key={idx} className="checkin-entry">
+                      <div className="checkin-entry-header">
+                        <span className="checkin-date">
+                          {new Date(entry.checkin_date || entry.created_at).toLocaleDateString('en-US', {
+                            weekday: 'short',
+                            month: 'short',
+                            day: 'numeric'
+                          })}
+                        </span>
+                        <span className="checkin-adherence-badge">{entry.meal_plan_adherence || entry.adherence_percent || 0}%</span>
+                      </div>
+                      <div className="checkin-ratings">
+                        {entry.energy_level && <span>⚡ Energy: {entry.energy_level}/5</span>}
+                        {entry.sleep_quality && <span>😴 Sleep: {entry.sleep_quality}/5</span>}
+                        {entry.hunger_level && <span>🍽️ Hunger: {entry.hunger_level}/5</span>}
+                        {entry.stress_level && <span>😰 Stress: {entry.stress_level}/5</span>}
+                      </div>
+                      {entry.wins && (
+                        <div className="checkin-notes">
+                          <strong>Wins:</strong> {entry.wins}
+                        </div>
+                      )}
+                      {entry.challenges && (
+                        <div className="checkin-notes">
+                          <strong>Challenges:</strong> {entry.challenges}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
