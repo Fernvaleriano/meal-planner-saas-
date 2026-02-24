@@ -11439,7 +11439,7 @@
                 setsData = exercise.setsData.map(s => ({ reps: s.reps || 0, weight: s.weight || 0, weightUnit: s.weightUnit || 'lbs' }));
             } else {
                 const numSets = exercise.sets || 3;
-                const reps = parseInt(exercise.reps) || 10;
+                const reps = parseFloat(exercise.reps) || 10;
                 for (let i = 0; i < numSets; i++) {
                     setsData.push({ reps, weight: 0, weightUnit: 'lbs' });
                 }
@@ -11491,7 +11491,7 @@
                 if (repsInput && weightInput) {
                     newSetsData.push({
                         setNumber: newSetsData.length + 1,
-                        reps: parseInt(repsInput.value) || 0,
+                        reps: parseFloat(repsInput.value) || 0,
                         weight: parseFloat(weightInput.value) || 0,
                         weightUnit: 'lbs'
                     });
@@ -11965,7 +11965,7 @@
                 setsData = ex.setsData;
             } else {
                 const numSets = ex.sets || 3;
-                const reps = parseInt(ex.reps) || 10;
+                const reps = parseFloat(ex.reps) || 10;
                 for (let i = 0; i < numSets; i++) {
                     setsData.push({ reps, weight: 0, weightUnit: 'lbs' });
                 }

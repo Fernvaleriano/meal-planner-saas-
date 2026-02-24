@@ -2067,6 +2067,20 @@
             color: var(--brand-primary);
         }
 
+        .tracking-toggle-btn.distance-active {
+            background: rgba(59, 130, 246, 0.15);
+            border-color: rgba(59, 130, 246, 0.4);
+            color: #3b82f6;
+        }
+
+        .distance-unit-select {
+            font-size: 11px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--text);
+        }
+
         .tracking-toggle-btn .toggle-icon {
             font-size: 10px;
         }
@@ -6301,6 +6315,9 @@
                             html += `<span class="mwp-exercise-stat"><strong>${ex.sets || 3}</strong> sets</span>`;
                             if (ex.trackingType === 'time') {
                                 html += `<span class="mwp-exercise-stat"><strong>${ex.duration || 30}</strong> sec</span>`;
+                            } else if (ex.trackingType === 'distance') {
+                                const dLabel = ex.distanceUnit === 'km' ? 'km' : ex.distanceUnit === 'meters' ? 'm' : 'mi';
+                                html += `<span class="mwp-exercise-stat"><strong>${ex.distance || 1}</strong> ${dLabel}</span>`;
                             } else {
                                 html += `<span class="mwp-exercise-stat"><strong>${ex.reps || '10'}</strong> reps</span>`;
                             }
@@ -6721,11 +6738,18 @@
                             <div class="config-group">
                                 ${exercise.trackingType === 'time'
                                     ? `<input type="number" class="config-input" value="${exercise.duration || 30}" onchange="updateExercise(${dayIndex}, ${exIndex}, 'duration', this.value)" style="width:70px">`
+                                    : exercise.trackingType === 'distance'
+                                    ? `<input type="number" step="any" class="config-input" value="${exercise.distance || 1}" onchange="updateExercise(${dayIndex}, ${exIndex}, 'distance', this.value)" style="width:50px">
+                                       <select class="config-input distance-unit-select" style="width:45px;padding:2px" onchange="updateExercise(${dayIndex}, ${exIndex}, 'distanceUnit', this.value)">
+                                           <option value="miles" ${(exercise.distanceUnit || 'miles') === 'miles' ? 'selected' : ''}>mi</option>
+                                           <option value="km" ${exercise.distanceUnit === 'km' ? 'selected' : ''}>km</option>
+                                           <option value="meters" ${exercise.distanceUnit === 'meters' ? 'selected' : ''}>m</option>
+                                       </select>`
                                     : `<input type="text" class="config-input" value="${exercise.reps || '10'}" onchange="updateExercise(${dayIndex}, ${exIndex}, 'reps', this.value)" style="width:70px">`
                                 }
-                                <button class="tracking-toggle-btn ${exercise.trackingType === 'time' ? 'time-active' : ''}" onclick="toggleTrackingType(${dayIndex}, ${exIndex})" title="Toggle between reps and time">
-                                    <span class="toggle-icon">${exercise.trackingType === 'time' ? '⏱' : '#'}</span>
-                                    ${exercise.trackingType === 'time' ? 'Secs' : 'Reps'}
+                                <button class="tracking-toggle-btn ${exercise.trackingType === 'time' ? 'time-active' : ''} ${exercise.trackingType === 'distance' ? 'distance-active' : ''}" onclick="toggleTrackingType(${dayIndex}, ${exIndex})" title="Toggle between reps, time, and distance">
+                                    <span class="toggle-icon">${exercise.trackingType === 'time' ? '⏱' : exercise.trackingType === 'distance' ? '📏' : '#'}</span>
+                                    ${exercise.trackingType === 'time' ? 'Secs' : exercise.trackingType === 'distance' ? 'Dist' : 'Reps'}
                                 </button>
                             </div>
                             <div class="config-group">
@@ -6876,6 +6900,8 @@
         function updateExercise(dayIndex, exIndex, field, value) {
             if (field === 'sets' || field === 'restSeconds' || field === 'duration') {
                 workoutDays[dayIndex].exercises[exIndex][field] = parseInt(value) || 0;
+            } else if (field === 'distance') {
+                workoutDays[dayIndex].exercises[exIndex][field] = parseFloat(value) || 1;
             } else {
                 workoutDays[dayIndex].exercises[exIndex][field] = value;
             }
@@ -7154,13 +7180,21 @@
 
         function toggleTrackingType(dayIndex, exIndex) {
             const exercise = workoutDays[dayIndex].exercises[exIndex];
-            if (exercise.trackingType === 'time') {
-                exercise.trackingType = 'reps';
-            } else {
+            if (exercise.trackingType === 'reps' || !exercise.trackingType) {
                 exercise.trackingType = 'time';
                 if (!exercise.duration) {
                     exercise.duration = 30;
                 }
+            } else if (exercise.trackingType === 'time') {
+                exercise.trackingType = 'distance';
+                if (!exercise.distance) {
+                    exercise.distance = 1;
+                }
+                if (!exercise.distanceUnit) {
+                    exercise.distanceUnit = 'miles';
+                }
+            } else {
+                exercise.trackingType = 'reps';
             }
             renderWorkoutDays();
         }
@@ -10452,6 +10486,23 @@
             return { isTime: false };
         }
 
+        // Detect if a reps value like "1.5 miles", "5 km", "400m" is distance-based
+        // Returns { isDistance, distanceValue, distanceUnit }
+        function detectDistanceRepsValue(repsValue) {
+            if (!repsValue || typeof repsValue !== 'string') return { isDistance: false };
+            const str = repsValue.trim().toLowerCase();
+            const match = str.match(/^(\d+(?:\.\d+)?)\s*(miles?|mi|kilometers?|km|meters?|m)\b/);
+            if (match) {
+                const value = parseFloat(match[1]);
+                const unit = match[2];
+                let distanceUnit = 'miles';
+                if (/^k/.test(unit)) distanceUnit = 'km';
+                else if (/^me|^m$/.test(unit)) distanceUnit = 'meters';
+                return { isDistance: true, distanceValue: value, distanceUnit };
+            }
+            return { isDistance: false };
+        }
+
         function applyImportedProgram() {
             if (!importedProgramData || !importedProgramData.program) {
                 showToast('No imported data available', 'error');
@@ -10486,11 +10537,20 @@
                         // Use trackingType from import if set, otherwise detect from reps value
                         let trackingType = ex.trackingType || 'reps';
                         let duration = ex.duration;
+                        let distance = ex.distance || null;
+                        let distanceUnit = ex.distanceUnit || null;
                         if (!ex.trackingType) {
-                            const timedCheck = detectTimedRepsValue(repsVal);
-                            if (timedCheck.isTime) {
-                                trackingType = 'time';
-                                duration = timedCheck.durationSeconds;
+                            const distanceCheck = detectDistanceRepsValue(repsVal);
+                            if (distanceCheck.isDistance) {
+                                trackingType = 'distance';
+                                distance = distanceCheck.distanceValue;
+                                distanceUnit = distanceCheck.distanceUnit;
+                            } else {
+                                const timedCheck = detectTimedRepsValue(repsVal);
+                                if (timedCheck.isTime) {
+                                    trackingType = 'time';
+                                    duration = timedCheck.durationSeconds;
+                                }
                             }
                         }
                         // Auto-load global reference links for imported exercise
@@ -10525,6 +10585,8 @@
                             isStretch: ex.isStretch || false,
                             trackingType: trackingType,
                             duration: duration,
+                            distance: distance,
+                            distanceUnit: distanceUnit,
                             reference_links: refLinks
                         };
                     })

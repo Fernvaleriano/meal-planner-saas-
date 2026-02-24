@@ -1656,7 +1656,10 @@ function ExerciseDetailModal({
   // Prioritize custom video from coach over default video
   const hasCustomVideo = !!exercise?.customVideoUrl;
   const videoUrl = exercise?.customVideoUrl || exercise?.video_url || exercise?.animation_url;
-  const isTimedExercise = exercise?.duration || exercise?.exercise_type === 'cardio' || exercise?.exercise_type === 'timed' || sets.some(s => s?.isTimeBased);
+  const isDistanceExercise = exercise?.trackingType === 'distance';
+  const distanceUnit = exercise?.distanceUnit || 'miles';
+  const distanceUnitLabel = distanceUnit === 'miles' ? 'mi' : distanceUnit === 'km' ? 'km' : 'm';
+  const isTimedExercise = !isDistanceExercise && (exercise?.duration || exercise?.exercise_type === 'cardio' || exercise?.exercise_type === 'timed' || sets.some(s => s?.isTimeBased));
   const difficultyLevel = exercise?.difficulty || 'Novice';
 
   // Helper to check if URL is an image (not video)
@@ -1821,12 +1824,12 @@ function ExerciseDetailModal({
     }
   }, [exercise?.name, videoUrl, videoBlobUrl]);
 
-  // Parse reps helper
+  // Parse reps helper - supports decimals like "1.5" (e.g. 1.5 miles)
   const parseReps = (reps) => {
     if (typeof reps === 'number') return reps;
     if (typeof reps === 'string') {
-      const match = reps.match(/^(\d+)/);
-      if (match) return parseInt(match[1], 10);
+      const match = reps.match(/^(\d+(?:\.\d+)?)/);
+      if (match) return parseFloat(match[1]);
     }
     return 12;
   };
@@ -2015,8 +2018,13 @@ function ExerciseDetailModal({
           <div className="modal-time-boxes" onClick={() => setShowSetEditor(true)}>
             <div className="time-boxes-row">
               {sets.map((set, idx) => (
-                <div key={idx} className={`time-box ${!isTimedExercise || set?.weight ? 'with-weight' : ''} clickable`}>
-                  {isTimedExercise ? (
+                <div key={idx} className={`time-box ${!isTimedExercise && !isDistanceExercise || set?.weight ? 'with-weight' : ''} clickable`}>
+                  {isDistanceExercise ? (
+                    <>
+                      <span className="reps-value">{set?.distance || exercise.distance || 1} {distanceUnitLabel}</span>
+                      {set?.weight > 0 && <span className="weight-value">{set.weight} {weightUnit}</span>}
+                    </>
+                  ) : isTimedExercise ? (
                     <>
                       <span className="reps-value">{formatDuration(set?.duration || exercise.duration)}</span>
                       {set?.weight > 0 && <span className="weight-value">{set.weight} {weightUnit}</span>}

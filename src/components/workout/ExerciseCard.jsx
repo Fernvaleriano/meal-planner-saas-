@@ -4,12 +4,13 @@ import SmartThumbnail from './SmartThumbnail';
 import { onAppResume, onAppSuspend } from '../../hooks/useAppLifecycle';
 
 // Parse reps - if it's a range like "8-12", return just the first number
+// Supports decimals like "1.5" (e.g. 1.5 miles)
 // Defined outside component so it's available during initialization
 const parseReps = (reps) => {
   if (typeof reps === 'number') return reps;
   if (typeof reps === 'string') {
-    const match = reps.match(/^(\d+)/);
-    if (match) return parseInt(match[1], 10);
+    const match = reps.match(/^(\d+(?:\.\d+)?)/);
+    if (match) return parseFloat(match[1]);
   }
   return 12;
 };
@@ -157,6 +158,7 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
         weight: set?.weight || 0,
         completed: set?.completed || false,
         duration: set?.duration || exercise.duration || parseTimeFromReps(exercise.reps) || null,
+        distance: set?.distance || exercise.distance || null,
         restSeconds: set?.restSeconds || exercise.restSeconds || 60
       }));
       if (filtered.length > 0) return filtered;
@@ -167,6 +169,7 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
       weight: 0,
       completed: false,
       duration: exercise.duration || null,
+      distance: exercise.distance || null,
       restSeconds: exercise.restSeconds || 60
     }));
   };
@@ -299,6 +302,7 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
       weight: set?.weight || 0,
       completed: set?.completed || false,
       duration: set?.duration || exercise.duration || parseTimeFromReps(exercise.reps) || null,
+      distance: set?.distance || exercise.distance || null,
       restSeconds: set?.restSeconds || exercise.restSeconds || 60
     }));
     if (newSets.length > 0) {
@@ -311,9 +315,14 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
   // Calculate completed sets
   const completedSets = sets.filter(s => s.completed).length;
 
+  // Check if this is a distance-based exercise
+  const isDistanceExercise = exercise.trackingType === 'distance';
+  const distanceUnit = exercise.distanceUnit || 'miles';
+  const distanceUnitLabel = distanceUnit === 'miles' ? 'mi' : distanceUnit === 'km' ? 'km' : 'm';
+
   // Check if this is a timed/interval exercise - respect explicit trackingType from workout builder
   // Also detect time-based reps values (e.g. "3 min", "30s") when trackingType is not set
-  const isTimedExercise = exercise.trackingType === 'time' || exercise.exercise_type === 'timed' || (!exercise.trackingType && (exercise.duration || exercise.exercise_type === 'cardio' || exercise.exercise_type === 'interval' || parseTimeFromReps(exercise.reps))) || sets.some(s => s?.isTimeBased);
+  const isTimedExercise = !isDistanceExercise && (exercise.trackingType === 'time' || exercise.exercise_type === 'timed' || (!exercise.trackingType && (exercise.duration || exercise.exercise_type === 'cardio' || exercise.exercise_type === 'interval' || parseTimeFromReps(exercise.reps))) || sets.some(s => s?.isTimeBased));
 
   // Toggle individual set completion
   const toggleSet = (setIndex, e) => {
@@ -362,11 +371,11 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
     }, 1000);
   };
 
-  // Update reps for a set
+  // Update reps for a set (supports decimals like 1.5 for distance-based exercises)
   const updateReps = (setIndex, value, e) => {
     e?.stopPropagation();
     const newSets = [...sets];
-    const numValue = parseInt(value, 10);
+    const numValue = parseFloat(value);
     newSets[setIndex] = { ...newSets[setIndex], reps: isNaN(numValue) ? 0 : numValue };
     setSets(newSets);
   };
@@ -892,9 +901,18 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
             onTouchMove={handleSetsTouchMove}
             onTouchEnd={handleSetsTouchEnd}
           >
-            {/* Time/Reps Boxes Row */}
+            {/* Time/Reps/Distance Boxes Row */}
             <div className="time-boxes-row">
-              {isTimedExercise ? (
+              {isDistanceExercise ? (
+                <>
+                  {sets.map((set, idx) => (
+                    <div key={idx} className={`time-box ${set?.weight > 0 ? 'with-weight' : ''}`}>
+                      <span className="reps-value">{set?.distance || exercise.distance || 1} {distanceUnitLabel}</span>
+                      {set?.weight > 0 && <span className="weight-value">{set.weight} {weightUnit}</span>}
+                    </div>
+                  ))}
+                </>
+              ) : isTimedExercise ? (
                 <>
                   {sets.map((set, idx) => (
                     <div key={idx} className={`time-box ${set?.weight > 0 ? 'with-weight' : ''}`}>
@@ -962,21 +980,31 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
                     )}
                   </div>
 
-                  {/* Reps Input */}
+                  {/* Reps / Distance Input */}
                   <div className="set-input-group">
-                    <label>{exercise.repType === 'failure' ? 'Reps Done' : 'Reps'}</label>
+                    <label>{isDistanceExercise ? `Dist (${distanceUnitLabel})` : (exercise.repType === 'failure' ? 'Reps Done' : 'Reps')}</label>
                     <input
                       type="number"
-                      inputMode="numeric"
-                      pattern="[0-9]*"
+                      inputMode="decimal"
+                      step="any"
                       className="set-input"
-                      value={set.reps || ''}
-                      onChange={(e) => updateReps(idx, e.target.value, e)}
+                      value={isDistanceExercise ? (set.distance || '') : (set.reps || '')}
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        const newSets = [...sets];
+                        const numValue = parseFloat(e.target.value);
+                        if (isDistanceExercise) {
+                          newSets[idx] = { ...newSets[idx], distance: isNaN(numValue) ? 0 : numValue };
+                        } else {
+                          newSets[idx] = { ...newSets[idx], reps: isNaN(numValue) ? 0 : numValue };
+                        }
+                        setSets(newSets);
+                      }}
                       onClick={(e) => e.stopPropagation()}
                       onFocus={(e) => e.target.select()}
                       placeholder={exercise.repType === 'failure' ? 'Max' : ''}
                       min="0"
-                      max="100"
+                      max="999"
                     />
                   </div>
 
@@ -1143,6 +1171,9 @@ const arePropsEqual = (prev, next) => {
   if (prev.exercise?.name !== next.exercise?.name) return false;
   if (prev.exercise?.reps !== next.exercise?.reps) return false;
   if (prev.exercise?.repType !== next.exercise?.repType) return false;
+  if (prev.exercise?.trackingType !== next.exercise?.trackingType) return false;
+  if (prev.exercise?.distance !== next.exercise?.distance) return false;
+  if (prev.exercise?.distanceUnit !== next.exercise?.distanceUnit) return false;
   if (prev.exercise?.duration !== next.exercise?.duration) return false;
   if (prev.exercise?.restSeconds !== next.exercise?.restSeconds) return false;
   if (prev.exercise?.completed !== next.exercise?.completed) return false;

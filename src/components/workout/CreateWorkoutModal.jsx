@@ -72,24 +72,42 @@ function CreateWorkoutModal({ onClose, onCreateWorkout, selectedDate, coachId = 
     // Add default sets/reps to each exercise
     // Auto-detect timed exercises (cardio, flexibility, interval) and set trackingType
     // Also detect time-based reps values like "3 min", "30s"
+    // Also detect distance-based reps values like "1.5 miles", "5 km", "400m"
     const exercisesWithDefaults = newExercises.map(exercise => {
-      const repsTimeMatch = exercise.reps && typeof exercise.reps === 'string'
-        ? exercise.reps.trim().toLowerCase().match(/^(\d+(?:\.\d+)?)\s*(?:min(?:utes?|s)?)\b/)
-          || exercise.reps.trim().toLowerCase().match(/^(\d+)\s*(?:s(?:ec(?:onds?)?)?)\b/)
+      const repsStr = exercise.reps && typeof exercise.reps === 'string' ? exercise.reps.trim().toLowerCase() : '';
+      const repsTimeMatch = repsStr
+        ? repsStr.match(/^(\d+(?:\.\d+)?)\s*(?:min(?:utes?|s)?)\b/)
+          || repsStr.match(/^(\d+)\s*(?:s(?:ec(?:onds?)?)?)\b/)
         : null;
       const parsedDuration = repsTimeMatch
-        ? (exercise.reps.trim().toLowerCase().includes('min')
+        ? (repsStr.includes('min')
             ? Math.round(parseFloat(repsTimeMatch[1]) * 60)
             : parseInt(repsTimeMatch[1], 10))
         : null;
-      const isTimedByDefault = exercise.trackingType === 'time' || exercise.duration || parsedDuration ||
-        exercise.exercise_type === 'cardio' || exercise.exercise_type === 'interval' || exercise.exercise_type === 'flexibility';
+      // Detect distance values like "1.5 miles", "5 km", "400 m", "400m", "2 kilometers"
+      const distanceMatch = repsStr
+        ? repsStr.match(/^(\d+(?:\.\d+)?)\s*(miles?|mi|kilometers?|km|meters?|m)\b/)
+        : null;
+      let distanceUnit = exercise.distanceUnit || null;
+      let distanceValue = exercise.distance || null;
+      if (distanceMatch) {
+        distanceValue = parseFloat(distanceMatch[1]);
+        const unit = distanceMatch[2];
+        if (/^mi/.test(unit)) distanceUnit = 'miles';
+        else if (/^k/.test(unit)) distanceUnit = 'km';
+        else distanceUnit = 'meters';
+      }
+      const isDistanceByDefault = exercise.trackingType === 'distance' || distanceMatch;
+      const isTimedByDefault = !isDistanceByDefault && (exercise.trackingType === 'time' || exercise.duration || parsedDuration ||
+        exercise.exercise_type === 'cardio' || exercise.exercise_type === 'interval' || exercise.exercise_type === 'flexibility');
       return {
         ...exercise,
         sets: exercise.sets || 3,
         reps: exercise.reps || '10',
+        distance: distanceValue || exercise.distance || 1,
+        distanceUnit: distanceUnit || exercise.distanceUnit || 'miles',
         duration: exercise.duration || parsedDuration || 30,
-        trackingType: isTimedByDefault ? 'time' : 'reps',
+        trackingType: isDistanceByDefault ? 'distance' : (isTimedByDefault ? 'time' : 'reps'),
         restSeconds: exercise.restSeconds || 60,
         completed: false
       };
@@ -366,6 +384,28 @@ function CreateWorkoutModal({ onClose, onCreateWorkout, selectedDate, coachId = 
                                   }}
                                 />
                               </div>
+                            ) : exercise.trackingType === 'distance' ? (
+                              <div className="config-item distance-config">
+                                <label>{(exercise.distanceUnit || 'miles').toUpperCase()}</label>
+                                <input
+                                  type="number"
+                                  inputMode="decimal"
+                                  step="any"
+                                  min="0.1"
+                                  max="999"
+                                  value={exercise.distance || 1}
+                                  onChange={(e) => handleUpdateExercise(index, 'distance', parseFloat(e.target.value) || 1)}
+                                />
+                                <select
+                                  className="distance-unit-select"
+                                  value={exercise.distanceUnit || 'miles'}
+                                  onChange={(e) => handleUpdateExercise(index, 'distanceUnit', e.target.value)}
+                                >
+                                  <option value="miles">mi</option>
+                                  <option value="km">km</option>
+                                  <option value="meters">m</option>
+                                </select>
+                              </div>
                             ) : (
                               <div className="config-item">
                                 <label>REPS</label>
@@ -380,11 +420,14 @@ function CreateWorkoutModal({ onClose, onCreateWorkout, selectedDate, coachId = 
                             <div className="rep-type-selector">
                               <select
                                 className="rep-type-select"
-                                value={exercise.repType === 'failure' ? 'failure' : (exercise.trackingType === 'time' ? 'time' : 'reps')}
+                                value={exercise.repType === 'failure' ? 'failure' : (exercise.trackingType || 'reps')}
                                 onChange={(e) => {
                                   const val = e.target.value;
                                   if (val === 'failure') {
                                     handleUpdateExercise(index, 'repType', 'failure');
+                                  } else if (val === 'distance') {
+                                    handleUpdateExercise(index, 'repType', null);
+                                    handleUpdateExercise(index, 'trackingType', 'distance');
                                   } else if (val === 'time') {
                                     handleUpdateExercise(index, 'repType', null);
                                     handleUpdateExercise(index, 'trackingType', 'time');
@@ -396,6 +439,7 @@ function CreateWorkoutModal({ onClose, onCreateWorkout, selectedDate, coachId = 
                               >
                                 <option value="reps">Reps</option>
                                 <option value="time">Timed</option>
+                                <option value="distance">Distance</option>
                                 <option value="failure">Till Failure</option>
                               </select>
                             </div>

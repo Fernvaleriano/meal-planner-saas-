@@ -64,12 +64,12 @@ const COMPOUND_PATTERNS = [
   'bulgarian split squat', 'step up', 'farmer', 'turkish get up'
 ];
 
-// Parse reps helper
+// Parse reps helper - supports decimals like "1.5" (e.g. 1.5 miles)
 const parseReps = (reps) => {
   if (typeof reps === 'number') return reps;
   if (typeof reps === 'string') {
-    const match = reps.match(/^(\d+)/);
-    if (match) return parseInt(match[1], 10);
+    const match = reps.match(/^(\d+(?:\.\d+)?)/);
+    if (match) return parseFloat(match[1]);
   }
   return 12;
 };
@@ -323,6 +323,7 @@ function GuidedWorkoutModal({
           reps: existingSet?.reps || defaultReps,
           weight: existingSet?.weight || 0,
           duration: existingSet?.duration || ex.duration || null,
+          distance: existingSet?.distance || ex.distance || null,
           restSeconds: existingSet?.restSeconds || ex.restSeconds || ex.rest_seconds || 60,
           effort: existingSet?.effort || null
         };
@@ -568,15 +569,18 @@ function GuidedWorkoutModal({
     if (!ex) return {};
     const repsStr = typeof ex.reps === 'string' ? ex.reps : '';
     const repsHasTimeUnit = /\d+\s*min/i.test(repsStr);
-    const isTimed = ex.trackingType === 'time' ||
+    const isDistance = ex.trackingType === 'distance';
+    const isTimed = !isDistance && (ex.trackingType === 'time' ||
       ex.exercise_type === 'timed' ||
       ex.exercise_type === 'cardio' ||
       ex.exercise_type === 'interval' ||
       !!ex.duration ||
-      repsHasTimeUnit;
+      repsHasTimeUnit);
     const sets = typeof ex.sets === 'number' ? ex.sets :
       (Array.isArray(ex.sets) ? ex.sets.length : 3);
     const reps = parseReps(ex.reps);
+    const distance = ex.distance || null;
+    const distanceUnit = ex.distanceUnit || 'miles';
     // Check exercise-level duration, then set-level duration, then parse reps string for time units
     const setDuration = Array.isArray(ex.sets) && ex.sets[0]?.duration;
     const duration = parseDurationToSeconds(ex.duration) ||
@@ -585,7 +589,7 @@ function GuidedWorkoutModal({
       30;
     const rest = ex.restSeconds || ex.rest_seconds || 60;
     const isTillFailure = ex.repType === 'failure';
-    return { isTimed, isTillFailure, sets, reps, duration, rest };
+    return { isTimed, isDistance, isTillFailure, sets, reps, distance, distanceUnit, duration, rest };
   };
 
   // Get exercise phase (warmup, main, or cooldown)
@@ -772,11 +776,12 @@ function GuidedWorkoutModal({
       currentExercise.phase === 'warmup' || currentExercise.phase === 'cooldown' ||
       currentExercise.exercise_type === 'stretch';
 
-    const isTimed = currentExercise.trackingType === 'time' ||
+    const isDistance = currentExercise.trackingType === 'distance';
+    const isTimed = !isDistance && (currentExercise.trackingType === 'time' ||
       currentExercise.exercise_type === 'timed' ||
       currentExercise.exercise_type === 'cardio' ||
       currentExercise.exercise_type === 'interval' ||
-      !!currentExercise.duration;
+      !!currentExercise.duration);
 
     // Cardio equipment where reps/weight progression doesn't make sense
     const cardioMachineKeywords = [
@@ -791,7 +796,7 @@ function GuidedWorkoutModal({
     const isCardioEquipment = cardioMachineKeywords.some(kw => exerciseNameLower.includes(kw)) ||
       muscleGroupLower === 'cardio';
 
-    if (isTimed || isWarmupOrStretch || isCardioEquipment) {
+    if (isTimed || isDistance || isWarmupOrStretch || isCardioEquipment) {
       setProgressTips(prev => ({ ...prev, [currentExIndex]: null }));
       setAiRecommendations(prev => ({ ...prev, [currentExIndex]: null }));
       return;
@@ -2162,7 +2167,9 @@ function GuidedWorkoutModal({
                       <p>{group.map(idx => exercises[idx]?.name).filter(Boolean).join(' + ')}</p>
                     ) : (
                       <p>
-                        {exInfo.isTimed
+                        {exInfo.isDistance
+                          ? `${exInfo.sets} set${exInfo.sets !== 1 ? 's' : ''} \u00D7 ${exInfo.distance || 1} ${exInfo.distanceUnit === 'miles' ? 'mi' : exInfo.distanceUnit === 'km' ? 'km' : 'm'}`
+                          : exInfo.isTimed
                           ? `${exInfo.sets} set${exInfo.sets !== 1 ? 's' : ''} \u00D7 ${formatDuration(exInfo.duration)}`
                           : exInfo.isTillFailure
                           ? `${exInfo.sets} set${exInfo.sets !== 1 ? 's' : ''} \u00D7 Till Failure`
@@ -2287,7 +2294,9 @@ function GuidedWorkoutModal({
         </div>
         <h1 className="guided-exercise-name">{currentExercise.name}</h1>
         <div className="guided-exercise-meta">
-          {info.isTimed
+          {info.isDistance
+            ? `${info.sets} set${info.sets !== 1 ? 's' : ''} × ${info.distance || 1} ${info.distanceUnit === 'miles' ? 'mi' : info.distanceUnit === 'km' ? 'km' : 'm'}`
+            : info.isTimed
             ? `${info.sets} set${info.sets !== 1 ? 's' : ''} × ${formatDuration(info.duration)}`
             : info.isTillFailure
             ? `${info.sets} set${info.sets !== 1 ? 's' : ''} × Till Failure`
