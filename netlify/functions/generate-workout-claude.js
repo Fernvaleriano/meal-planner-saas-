@@ -297,6 +297,7 @@ exports.handler = async (event) => {
 
     // Fetch exercises from database FIRST so we can provide the list to Claude
     let allExercises = [];
+    let exercisesWithVideos = [];
     let exercisesByMuscleGroup = {};
 
     if (SUPABASE_SERVICE_KEY) {
@@ -327,7 +328,7 @@ exports.handler = async (event) => {
       console.log(`Fetched ${allExercises.length} exercises for AI selection`);
 
       // Filter to only exercises with videos and group by muscle group
-      const exercisesWithVideos = allExercises.filter(e => e.video_url || e.animation_url);
+      exercisesWithVideos = allExercises.filter(e => e.video_url || e.animation_url);
       console.log(`${exercisesWithVideos.length} exercises have videos`);
 
       // CRITICAL: If no exercises have videos, log a warning
@@ -775,8 +776,10 @@ Return this exact JSON structure:
     // Match AI-generated exercises to database exercises (using allExercises fetched earlier)
     let matchStats = { total: 0, matched: 0, unmatched: 0, unmatchedNames: [] };
 
-    // Create a list of exercises WITH videos for warmup/stretch matching
-    const exercisesWithVideos = allExercises.filter(e => e.video_url || e.animation_url);
+    // Use the exercises WITH videos list (already built earlier, or rebuild if needed)
+    if (exercisesWithVideos.length === 0) {
+      exercisesWithVideos = allExercises.filter(e => e.video_url || e.animation_url);
+    }
     console.log(`Exercises with videos for warmup/stretch matching: ${exercisesWithVideos.length}`);
 
     if (allExercises.length > 0) {
