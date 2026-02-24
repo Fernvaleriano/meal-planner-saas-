@@ -10897,7 +10897,7 @@
                         if (assignmentEnd && d > assignmentEnd) continue;
 
                         if (override) {
-                            if (!override.isRest && override.dayIndex !== undefined) {
+                            if (!override.isRest && (override.dayIndex !== undefined || (override.dayIndices && override.dayIndices.length > 0))) {
                                 acAssignmentCache[dateStr] = true;
                             }
                         } else if (selectedDays.includes(dayName) && days.length > 0) {
