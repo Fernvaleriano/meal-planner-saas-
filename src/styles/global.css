@@ -1008,7 +1008,7 @@ a.nav-left {
     bottom: 0;
     left: 0;
     right: 0;
-    background: white;
+    background: var(--gray-50);
     border-top: 1px solid var(--gray-200);
     display: flex;
     justify-content: space-around;
@@ -1027,11 +1027,6 @@ a.nav-left {
     .bottom-nav {
         display: none;
     }
-}
-
-[data-theme="dark"] .bottom-nav {
-    background: #1e293b;
-    border-color: #334155;
 }
 
 .bottom-nav-item {
