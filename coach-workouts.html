@@ -2117,6 +2117,57 @@
             background: rgba(13, 148, 136, 0.05);
         }
 
+        .insert-exercise-divider {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2px 0;
+            position: relative;
+        }
+
+        .insert-exercise-btn {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: 2px dashed var(--border-color);
+            background: var(--bg-primary);
+            color: var(--text-muted);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            padding: 0;
+            z-index: 1;
+            opacity: 0;
+        }
+
+        .insert-exercise-divider:hover .insert-exercise-btn {
+            opacity: 1;
+        }
+
+        .insert-exercise-btn:hover {
+            border-color: var(--brand-primary);
+            color: var(--brand-primary);
+            background: rgba(13, 148, 136, 0.1);
+            transform: scale(1.15);
+        }
+
+        .insert-exercise-divider::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 50%;
+            height: 1px;
+            background: transparent;
+            transition: background 0.2s;
+        }
+
+        .insert-exercise-divider:hover::before {
+            background: var(--border-color);
+        }
+
         .add-day-btn {
             width: 100%;
             padding: 16px;
@@ -5762,6 +5813,7 @@
         let workoutDays = [];
         let selectedClients = new Set();
         let currentDayIndex = null;
+        let insertExerciseAtIndex = null;
         let currentExerciseFilter = 'all';
         let currentSearchTerm = '';
         let currentEquipmentFilter = '';
@@ -6029,7 +6081,15 @@
                         </div>
                     </div>
                     <div class="exercise-list">
-                        ${day.exercises.map((ex, exIndex) => renderExerciseItem(ex, dayIndex, exIndex)).join('')}
+                        ${day.exercises.map((ex, exIndex) => {
+                            let html = '';
+                            if (exIndex === 0) {
+                                html += renderInsertButton(dayIndex, 0);
+                            }
+                            html += renderExerciseItem(ex, dayIndex, exIndex);
+                            html += renderInsertButton(dayIndex, exIndex + 1);
+                            return html;
+                        }).join('')}
                     </div>
                     <button class="add-exercise-btn" onclick="openExerciseModal(${dayIndex})">
                         <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -6039,6 +6099,18 @@
                     </button>
                 </div>
             `).join('');
+        }
+
+        // Render insert-between button
+        function renderInsertButton(dayIndex, insertIndex) {
+            return `
+                <div class="insert-exercise-divider">
+                    <button class="insert-exercise-btn" onclick="openExerciseModal(${dayIndex}, ${insertIndex})" title="Insert exercise here">
+                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
+                        </svg>
+                    </button>
+                </div>`;
         }
 
         // Render single exercise item
@@ -6933,7 +7005,7 @@
         function addSelectedExercises() {
             if (selectedExercises.size === 0) return;
             const exercises = Array.from(selectedExercises.values());
-            exercises.forEach(exercise => {
+            const newExercises = exercises.map(exercise => {
                 const { isWarmup, isStretch } = detectExerciseType(exercise);
 
                 // Auto-load global reference links if available
@@ -6950,7 +7022,7 @@
                     });
                 }
 
-                workoutDays[currentDayIndex].exercises.push({
+                return {
                     id: exercise.id,
                     name: exercise.name,
                     video_url: exercise.video_url,
@@ -6965,17 +7037,29 @@
                     isWarmup,
                     isStretch,
                     reference_links: refLinks
-                });
+                };
             });
+
+            if (insertExerciseAtIndex !== null) {
+                // Insert at the specified position
+                workoutDays[currentDayIndex].exercises.splice(insertExerciseAtIndex, 0, ...newExercises);
+            } else {
+                // Append to end (default behavior)
+                workoutDays[currentDayIndex].exercises.push(...newExercises);
+            }
+
             renderWorkoutDays();
             const count = exercises.length;
-            showToast(`Added ${count} exercise${count !== 1 ? 's' : ''}`);
+            const action = insertExerciseAtIndex !== null ? 'Inserted' : 'Added';
+            showToast(`${action} ${count} exercise${count !== 1 ? 's' : ''}`);
+            insertExerciseAtIndex = null;
             clearExerciseSelection();
             closeExerciseModal();
         }
 
-        function openExerciseModal(dayIndex) {
+        function openExerciseModal(dayIndex, insertAtIndex) {
             currentDayIndex = dayIndex;
+            insertExerciseAtIndex = (insertAtIndex !== undefined) ? insertAtIndex : null;
             clearExerciseSelection();
             resetExerciseFilters();
             document.getElementById('exerciseModal').classList.add('active');
@@ -6984,6 +7068,7 @@
 
         function closeExerciseModal() {
             document.getElementById('exerciseModal').classList.remove('active');
+            insertExerciseAtIndex = null;
         }
 
         function filterExercises(muscle, btn) {
