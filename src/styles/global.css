@@ -13311,6 +13311,76 @@ a.nav-left {
     background: rgba(255, 255, 255, 0.1);
 }
 
+/* Merged card: content wrapper for multiple days */
+.workout-card-content-merged {
+    flex-direction: column;
+    padding: 0;
+    min-height: auto;
+}
+
+/* Each day section inside a merged card */
+.workout-card-day-section {
+    padding: 16px 20px;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.workout-card-day-section:active {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.workout-card-day-section .workout-card-info {
+    min-height: auto;
+    padding-right: 0;
+}
+
+/* Day header row with title + per-day 3-dot menu */
+.workout-card-day-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.workout-card-day-header .workout-card-title {
+    margin-bottom: 4px;
+}
+
+.workout-card-title-sub {
+    font-size: 15px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.45);
+}
+
+/* Per-day 3-dot menu inside merged card */
+.workout-card-day-menu {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.5);
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.25);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.workout-card-day-menu:active {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* Separator line between days in merged card */
+.workout-card-day-separator {
+    height: 1px;
+    margin: 0 16px;
+    background: rgba(255, 255, 255, 0.12);
+    border-top: 1px dashed rgba(255, 255, 255, 0.08);
+}
+
 .card-dropdown-menu {
     position: absolute;
     top: 100%;
