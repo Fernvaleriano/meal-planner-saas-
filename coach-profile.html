@@ -762,22 +762,38 @@
         /* Responsive */
         @media (max-width: 640px) {
             .container {
-                padding: 20px;
+                padding: 20px 16px;
             }
 
             .profile-card {
-                padding: 24px;
+                padding: 24px 20px;
+                border-radius: 16px;
             }
 
             .profile-header {
                 flex-direction: column;
                 text-align: center;
+                gap: 16px;
             }
 
             .profile-avatar {
-                width: 72px;
-                height: 72px;
-                font-size: 28px;
+                width: 80px;
+                height: 80px;
+                font-size: 30px;
+            }
+
+            .form-group input,
+            .form-group select,
+            .form-group textarea {
+                font-size: 16px; /* Prevent iOS zoom */
+                padding: 14px;
+                border-radius: 10px;
+            }
+
+            .btn {
+                min-height: 46px;
+                border-radius: 12px;
+                padding: 12px 24px;
             }
         }
 

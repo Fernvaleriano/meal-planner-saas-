@@ -3456,21 +3456,20 @@
             }
 
             .sidebar-actions {
-                flex-direction: row;
-                flex-wrap: wrap;
-                padding: 12px;
-                gap: 8px;
+                flex-direction: column;
+                padding: 16px;
+                gap: 10px;
             }
 
             .sidebar-actions .sidebar-btn {
-                flex: 1 1 calc(50% - 4px);
+                width: 100%;
                 min-width: 0;
-                padding: 12px 10px;
-                font-size: 0.8rem;
+                padding: 14px 16px;
+                font-size: 0.875rem;
             }
 
             .program-list {
-                max-height: 200px;
+                max-height: 250px;
                 padding: 12px;
             }
 
@@ -3480,12 +3479,12 @@
 
             .builder-area {
                 max-width: 100%;
-                padding: 16px;
+                padding: 20px;
             }
 
             .builder-card {
-                padding: 20px;
-                margin-bottom: 16px;
+                padding: 24px;
+                margin-bottom: 20px;
             }
 
             .form-row {
@@ -3505,7 +3504,7 @@
             }
 
             .ai-mode-selector {
-                grid-template-columns: 1fr;
+                grid-template-columns: 1fr 1fr;
             }
 
             /* Modal adjustments for tablet */
@@ -3520,174 +3519,241 @@
             }
 
             .modal-header {
-                padding: 16px 20px;
+                padding: 18px 24px;
             }
 
             .modal-body {
-                padding: 16px 20px;
+                padding: 18px 24px;
             }
 
             .modal-footer {
-                padding: 14px 20px;
+                padding: 16px 24px;
             }
         }
 
         /* Responsive - Mobile phone */
         @media (max-width: 600px) {
-            /* Top nav */
+            /* === TOP NAV - DECLUTTERED === */
             .top-nav {
-                padding: 10px 12px;
-                gap: 8px;
+                padding: 12px 16px;
+                gap: 10px;
+                min-height: 56px;
             }
 
             .nav-back {
-                font-size: 0.8rem;
-                gap: 4px;
+                font-size: 0;  /* Hide text, show only icon */
+                gap: 0;
                 flex-shrink: 0;
+                width: 36px;
+                height: 36px;
+                justify-content: center;
+                background: rgba(255,255,255,0.12);
+                border-radius: 10px;
+                transition: background 0.2s;
+            }
+
+            .nav-back:hover {
+                background: rgba(255,255,255,0.2);
             }
 
             .nav-back svg {
-                width: 16px;
-                height: 16px;
+                width: 20px;
+                height: 20px;
             }
 
             .nav-title {
-                font-size: 1rem;
+                font-size: 1.05rem;
                 white-space: nowrap;
                 overflow: hidden;
                 text-overflow: ellipsis;
-                flex-shrink: 1;
+                flex: 1;
                 min-width: 0;
+                text-align: center;
             }
 
             .nav-actions {
-                gap: 6px;
+                gap: 8px;
                 flex-shrink: 0;
             }
 
             .nav-actions .btn {
-                padding: 8px 12px;
-                font-size: 0.75rem;
-                gap: 4px;
+                padding: 10px 16px;
+                font-size: 0.8rem;
+                gap: 6px;
+                border-radius: 10px;
+                min-height: 40px;
             }
 
             .nav-actions .btn svg {
-                width: 14px;
-                height: 14px;
+                width: 16px;
+                height: 16px;
+            }
+
+            /* Hide "Save Program" text on very small screens, keep icon */
+            .nav-actions #simpleSaveBtn,
+            .save-dropdown .btn-save-main {
+                padding: 10px 14px;
+                font-size: 0.8rem;
+                gap: 6px;
             }
 
             /* Save dropdown adjustments */
-            .save-dropdown .btn-save-main {
-                padding: 8px 12px;
-                font-size: 0.75rem;
-                gap: 4px;
+            .save-dropdown .btn-save-main svg {
+                width: 16px;
+                height: 16px;
             }
 
-            .save-dropdown .btn-save-main svg {
-                width: 14px;
-                height: 14px;
+            .save-dropdown .btn-save-toggle {
+                padding: 10px 10px;
             }
 
             .save-dropdown-menu {
-                min-width: 220px;
-                right: -8px;
+                min-width: calc(100vw - 32px);
+                right: 0;
+                position: fixed;
+                left: 16px;
+                top: auto;
+                margin-top: 8px;
+            }
+
+            .save-dropdown-item {
+                padding: 16px 20px;
+            }
+
+            .save-dropdown-item-title {
+                font-size: 0.95rem;
+            }
+
+            .save-dropdown-item-desc {
+                font-size: 0.8rem;
+                margin-top: 2px;
             }
 
             /* Sidebar mobile toggle */
             .mobile-sidebar-toggle {
                 display: flex;
+                width: 40px;
+                height: 40px;
+                border-radius: 10px;
             }
 
-            /* Builder area */
+            /* === BUILDER AREA - MORE BREATHING ROOM === */
             .builder-area {
-                padding: 12px;
+                padding: 16px;
             }
 
             .builder-card {
-                padding: 16px;
-                margin-bottom: 12px;
-                border-radius: var(--radius-md);
+                padding: 20px;
+                margin-bottom: 16px;
+                border-radius: 14px;
             }
 
             .builder-title {
-                font-size: 1rem;
-                margin-bottom: 16px;
-                gap: 8px;
+                font-size: 1.05rem;
+                margin-bottom: 20px;
+                gap: 10px;
             }
 
             .builder-title svg {
-                width: 20px;
-                height: 20px;
+                width: 22px;
+                height: 22px;
             }
 
-            /* Form fields */
+            /* === FORM FIELDS - SPACIOUS === */
             .form-group {
-                margin-bottom: 14px;
+                margin-bottom: 16px;
             }
 
             .form-input, .form-select, .form-textarea {
-                padding: 12px 14px;
-                font-size: 0.9rem;
+                padding: 14px 16px;
+                font-size: 16px; /* Prevents iOS zoom on focus */
+                border-radius: 10px;
             }
 
             .form-label {
-                font-size: 0.7rem;
-                margin-bottom: 6px;
+                font-size: 0.725rem;
+                margin-bottom: 8px;
+            }
+
+            .form-row {
+                gap: 0;
             }
 
             /* Hero upload section */
             .hero-upload-area {
-                padding: 16px;
+                padding: 20px 16px;
             }
 
             .hero-upload-area svg {
-                width: 24px;
-                height: 24px;
+                width: 28px;
+                height: 28px;
             }
 
             .hero-upload-buttons {
                 flex-direction: column;
                 align-items: stretch;
-                gap: 8px;
+                gap: 10px;
                 width: 100%;
+                margin-top: 12px;
             }
 
             .hero-upload-buttons .or-divider {
                 text-align: center;
-                margin: -4px 0;
+                margin: -2px 0;
+                font-size: 11px;
+                color: var(--text-muted);
             }
 
             .hero-upload-buttons .btn-secondary,
             .hero-upload-buttons .btn-ai-generate {
                 width: 100%;
                 justify-content: center;
-                padding: 10px 16px;
+                padding: 12px 16px;
+                min-height: 44px;
             }
 
-            /* Workout days */
+            /* === WORKOUT DAYS - SPACIOUS === */
             .workout-day {
-                padding: 14px;
-                margin-bottom: 12px;
+                padding: 16px;
+                margin-bottom: 14px;
+                border-radius: 12px;
             }
 
             .workout-day-header {
-                margin-bottom: 12px;
+                margin-bottom: 14px;
+                gap: 8px;
             }
 
             .day-name-input {
-                font-size: 0.9rem;
+                font-size: 0.95rem;
                 max-width: calc(100% - 50px);
+                padding: 8px 0;
             }
 
-            /* Exercise items - stack layout */
+            .workout-day-actions .icon-btn {
+                width: 38px;
+                height: 38px;
+            }
+
+            /* === EXERCISE ITEMS - COMPLETELY REDESIGNED FOR MOBILE === */
             .exercise-item {
-                flex-wrap: wrap;
-                gap: 10px;
-                padding: 12px;
+                flex-direction: column;
+                align-items: stretch;
+                gap: 0;
+                padding: 0;
+                overflow: hidden;
+            }
+
+            /* Top row: drag + thumb + name + actions */
+            .exercise-item > .exercise-drag,
+            .exercise-item > .exercise-thumb-wrap,
+            .exercise-item > .exercise-info,
+            .exercise-item > .exercise-actions {
+                /* Reset for custom layout */
             }
 
             .exercise-drag {
-                order: -1;
+                display: none; /* Hide drag handle on mobile, use move buttons instead */
             }
 
             .exercise-thumb-wrap {
@@ -3696,261 +3762,399 @@
 
             .exercise-thumb,
             .exercise-thumb-video {
-                width: 48px;
-                height: 48px;
+                width: 52px;
+                height: 52px;
+                border-radius: 10px;
+            }
+
+            .exercise-item {
+                display: flex;
+                flex-direction: column;
+                gap: 0;
+                padding: 14px 16px;
+            }
+
+            /* Exercise top section: thumb + name + actions in a row */
+            .exercise-item > :first-child {
+                /* drag handle */
             }
 
             .exercise-info {
                 flex: 1;
                 min-width: 0;
-                width: calc(100% - 80px);
+                width: 100%;
             }
 
             .exercise-name {
-                font-size: 0.85rem;
+                font-size: 0.9rem;
                 white-space: normal;
                 overflow: visible;
                 text-overflow: initial;
+                line-height: 1.3;
+                margin-bottom: 4px;
             }
 
+            /* === EXERCISE CONFIG - HORIZONTAL SCROLL WITH LARGER INPUTS === */
             .exercise-config {
                 width: 100%;
-                flex-basis: 100%;
-                justify-content: flex-start;
-                gap: 8px;
-                padding-left: 0;
-                flex-wrap: wrap;
+                display: flex;
+                gap: 10px;
+                padding: 12px 0 4px;
+                flex-wrap: nowrap;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: none;
+                border-top: 1px solid var(--border-color);
+                margin-top: 10px;
+            }
+
+            .exercise-config::-webkit-scrollbar {
+                display: none;
+            }
+
+            .config-group {
+                flex-shrink: 0;
+                min-width: 58px;
             }
 
             .config-input {
-                width: 52px;
-                padding: 6px 4px;
-                font-size: 0.8rem;
+                width: 62px;
+                padding: 10px 6px;
+                font-size: 0.9rem;
+                border-radius: 8px;
+                font-weight: 600;
             }
 
             .config-label {
-                font-size: 0.6rem;
+                font-size: 0.65rem;
+                margin-top: 5px;
             }
 
+            /* === EXERCISE ACTIONS - SPACED OUT === */
             .exercise-actions {
-                gap: 4px;
+                gap: 6px;
+                margin-top: 10px;
+                padding-top: 10px;
+                border-top: 1px solid var(--border-color);
+                justify-content: flex-end;
+                flex-wrap: wrap;
             }
 
             .exercise-actions .icon-btn {
-                width: 32px;
-                height: 32px;
+                width: 38px;
+                height: 38px;
+                border-radius: 8px;
             }
 
             .exercise-actions .icon-btn svg {
-                width: 14px;
-                height: 14px;
+                width: 16px;
+                height: 16px;
+            }
+
+            .exercise-notes {
+                margin-top: 10px;
             }
 
             .exercise-notes .notes-input {
-                padding: 8px 10px;
-                font-size: 0.8rem;
+                padding: 10px 12px;
+                font-size: 0.85rem;
+                border-radius: 8px;
             }
 
             /* Exercise badges */
             .exercise-name-row {
-                gap: 4px;
+                gap: 6px;
             }
 
             .exercise-badge {
                 font-size: 0.6rem;
-                padding: 1px 5px;
+                padding: 2px 6px;
+                border-radius: 4px;
             }
 
-            /* Add buttons */
+            /* === ADD BUTTONS - LARGE TAP TARGETS === */
             .add-exercise-btn {
-                padding: 12px;
-                font-size: 0.85rem;
+                padding: 16px;
+                font-size: 0.9rem;
+                border-radius: 10px;
+                min-height: 52px;
             }
 
             .add-day-btn {
-                padding: 14px;
-                font-size: 0.9rem;
+                padding: 16px;
+                font-size: 0.95rem;
+                border-radius: 10px;
+                min-height: 52px;
             }
 
             /* Assign section */
             .assign-description {
-                font-size: 0.85rem;
+                font-size: 0.9rem;
+                line-height: 1.5;
             }
 
             .assign-btn {
-                padding: 14px 20px;
-                font-size: 0.9rem;
+                padding: 16px 24px;
+                font-size: 0.95rem;
+                border-radius: 12px;
+                min-height: 52px;
             }
 
-            /* Modals - near full screen on mobile */
+            /* === MODALS - SHEET-STYLE FROM BOTTOM === */
             .modal-overlay {
-                padding: 8px;
+                padding: 0;
                 align-items: flex-end;
             }
 
             .modal {
                 max-width: 100%;
-                max-height: 92vh;
-                border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+                max-height: 94vh;
+                border-radius: 20px 20px 0 0;
                 width: 100%;
             }
 
+            /* Drag handle indicator for bottom sheet */
+            .modal::before {
+                content: '';
+                display: block;
+                width: 36px;
+                height: 4px;
+                background: var(--border-color);
+                border-radius: 2px;
+                margin: 8px auto 0;
+            }
+
             .modal-header {
-                padding: 14px 16px;
+                padding: 12px 20px 16px;
             }
 
             .modal-title {
-                font-size: 1rem;
-                gap: 8px;
-            }
-
-            .modal-title svg {
-                width: 20px;
-                height: 20px;
-            }
-
-            .modal-close {
-                width: 34px;
-                height: 34px;
-                font-size: 1.2rem;
-            }
-
-            .modal-body {
-                padding: 14px 16px;
-            }
-
-            .modal-footer {
-                padding: 12px 16px;
-            }
-
-            .modal-footer .btn {
-                padding: 10px 14px;
-                font-size: 0.85rem;
-            }
-
-            /* Exercise library modal */
-            .exercise-library-modal {
-                max-height: 92vh;
-            }
-
-            .exercise-grid {
-                grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+                font-size: 1.05rem;
                 gap: 10px;
             }
 
+            .modal-title svg {
+                width: 22px;
+                height: 22px;
+            }
+
+            .modal-close {
+                width: 38px;
+                height: 38px;
+                font-size: 1.3rem;
+            }
+
+            .modal-body {
+                padding: 16px 20px;
+            }
+
+            .modal-footer {
+                padding: 16px 20px;
+                padding-bottom: calc(16px + env(safe-area-inset-bottom));
+            }
+
+            .modal-footer .btn {
+                padding: 14px 18px;
+                font-size: 0.9rem;
+                min-height: 48px;
+                border-radius: 12px;
+            }
+
+            /* === EXERCISE LIBRARY MODAL === */
+            .exercise-library-modal {
+                max-height: 94vh;
+            }
+
+            .exercise-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 12px;
+            }
+
             .exercise-card {
-                padding: 10px;
+                padding: 12px;
+                border-radius: 12px;
             }
 
             .exercise-card-thumb,
             .exercise-card-thumb-video {
-                height: 80px;
-                margin-bottom: 8px;
+                height: 90px;
+                margin-bottom: 10px;
+                border-radius: 8px;
             }
 
             .exercise-card-name {
-                font-size: 0.8rem;
+                font-size: 0.82rem;
+                line-height: 1.3;
             }
 
             .exercise-card-meta {
-                font-size: 0.7rem;
+                font-size: 0.72rem;
             }
 
             .exercise-filters {
-                gap: 6px;
-                margin-bottom: 12px;
+                gap: 8px;
+                margin-bottom: 14px;
+                padding-bottom: 2px;
+                overflow-x: auto;
+                flex-wrap: nowrap;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: none;
+            }
+
+            .exercise-filters::-webkit-scrollbar {
+                display: none;
             }
 
             .filter-chip {
-                padding: 6px 12px;
-                font-size: 0.75rem;
+                padding: 8px 16px;
+                font-size: 0.8rem;
+                white-space: nowrap;
+                flex-shrink: 0;
+                border-radius: 20px;
+            }
+
+            /* Advanced filters stacked */
+            .advanced-filters-row {
+                gap: 10px !important;
+            }
+
+            .filter-dropdown-group {
+                flex: 1 1 100% !important;
+                min-width: 100% !important;
             }
 
             /* Exercise select bar */
             .exercise-select-bar {
-                padding: 10px 14px;
-                border-radius: 10px;
-                flex-wrap: wrap;
-                gap: 8px;
+                padding: 14px 20px;
+                border-radius: 14px;
+                gap: 10px;
+                margin: 12px 0;
             }
 
             .exercise-select-bar-count {
-                font-size: 0.8rem;
+                font-size: 0.85rem;
             }
 
             .exercise-select-bar-btn {
-                padding: 6px 14px;
-                font-size: 0.8rem;
+                padding: 10px 18px;
+                font-size: 0.85rem;
+                border-radius: 10px;
             }
 
-            /* Assign modal */
+            /* === ASSIGN MODAL === */
             .assign-modal {
                 max-width: 100%;
             }
 
             .client-select-list {
-                max-height: 300px;
+                max-height: 350px;
             }
 
-            /* AI modal */
+            .client-select-item {
+                padding: 14px 20px;
+                gap: 14px;
+            }
+
+            /* === AI MODAL - LARGER CARDS === */
             .ai-mode-selector {
                 grid-template-columns: 1fr;
-                gap: 10px;
+                gap: 12px;
             }
 
             .ai-mode-card {
-                padding: 14px;
+                padding: 18px;
+                display: flex;
+                align-items: center;
+                gap: 14px;
+                text-align: left;
             }
 
             .ai-mode-icon {
-                font-size: 1.5rem;
+                font-size: 1.75rem;
+                margin-bottom: 0;
+                flex-shrink: 0;
             }
 
             .ai-mode-title {
-                font-size: 0.9rem;
+                font-size: 0.95rem;
             }
 
             .ai-mode-desc {
-                font-size: 0.75rem;
+                font-size: 0.8rem;
+                line-height: 1.4;
             }
 
             .ai-btn {
-                padding: 12px 20px;
-                font-size: 0.875rem;
+                padding: 14px 24px;
+                font-size: 0.9rem;
+                min-height: 48px;
+                border-radius: 12px;
+            }
+
+            .ai-form-group input,
+            .ai-form-group select,
+            .ai-form-group textarea {
+                font-size: 16px; /* Prevent iOS zoom */
+            }
+
+            /* Equipment grid on mobile */
+            .equipment-grid {
+                gap: 8px;
+            }
+
+            .equipment-item {
+                padding: 12px 14px;
+                font-size: 0.85rem;
             }
 
             /* Swap modal */
             .swap-exercise-thumb {
-                width: 48px;
-                height: 48px;
+                width: 52px;
+                height: 52px;
             }
 
             .swap-exercise-name {
-                font-size: 0.85rem;
+                font-size: 0.9rem;
             }
 
             .swap-exercise-meta {
-                font-size: 0.7rem;
+                font-size: 0.75rem;
+            }
+
+            .swap-exercise-item {
+                padding: 14px;
+                gap: 14px;
             }
 
             /* Recommended swaps */
             .recommended-swap-item {
-                gap: 8px;
-                padding: 10px;
+                gap: 12px;
+                padding: 14px;
             }
 
             .recommended-swap-item .swap-thumb {
-                width: 40px;
-                height: 40px;
+                width: 44px;
+                height: 44px;
             }
 
             /* Schedule modal */
             .days-selector {
-                gap: 6px;
+                gap: 8px;
+                justify-content: space-between;
+            }
+
+            .day-checkbox {
+                flex: 1;
+                min-width: 0;
+            }
+
+            .day-checkbox input[type="checkbox"] {
+                width: 24px;
+                height: 24px;
             }
 
             .day-checkbox span {
-                font-size: 0.75rem;
+                font-size: 0.78rem;
             }
 
             /* Custom exercise modal */
@@ -3959,72 +4163,197 @@
             }
 
             .custom-exercise-modal .modal-body {
-                padding: 16px;
+                padding: 20px;
+            }
+
+            .custom-exercise-form-group input,
+            .custom-exercise-form-group select {
+                font-size: 16px; /* Prevent iOS zoom */
             }
 
             /* Toast notification */
             .toast {
-                left: 12px;
-                right: 12px;
-                bottom: 12px;
-                padding: 12px 16px;
-                font-size: 0.85rem;
+                left: 16px;
+                right: 16px;
+                bottom: calc(16px + env(safe-area-inset-bottom));
+                padding: 14px 18px;
+                font-size: 0.9rem;
+                border-radius: 14px;
             }
 
             /* Confirm modal */
             .confirm-modal {
-                padding: 20px;
-                width: 95%;
+                padding: 24px;
+                width: 92%;
+                border-radius: 20px;
             }
 
             .confirm-modal-title {
-                font-size: 1rem;
+                font-size: 1.05rem;
             }
 
             .confirm-modal-message {
-                font-size: 0.85rem;
+                font-size: 0.9rem;
+                line-height: 1.5;
+            }
+
+            .confirm-modal-actions {
+                gap: 10px;
+            }
+
+            .confirm-modal-actions .btn {
+                min-height: 46px;
+                border-radius: 12px;
             }
 
             /* Club workout toggle */
             .form-group[style*="display: flex"] {
-                padding: 10px 12px !important;
+                padding: 14px 16px !important;
+                border-radius: 12px !important;
             }
 
             /* My videos modal */
             .my-video-item {
-                padding: 8px 12px;
-                gap: 10px;
+                padding: 12px 16px;
+                gap: 12px;
             }
 
             .my-video-thumb {
-                width: 56px;
-                height: 38px;
+                width: 64px;
+                height: 42px;
+                border-radius: 8px;
             }
 
             .my-videos-toolbar {
-                padding: 10px 12px;
+                padding: 14px 16px;
+                gap: 10px;
+            }
+
+            .my-videos-search {
+                min-width: 100%;
+            }
+
+            /* Video / voice containers */
+            .voice-note-container {
+                gap: 10px;
+                margin-top: 10px;
+            }
+
+            .voice-note-btn {
+                width: 38px;
+                height: 38px;
+            }
+
+            .custom-video-container {
+                gap: 10px;
+                margin-top: 10px;
+                padding-top: 10px;
+            }
+
+            .custom-video-btn {
+                padding: 8px 14px;
+                font-size: 0.82rem;
+            }
+
+            /* Reference links */
+            .reference-links-container {
+                margin-top: 10px;
+                padding-top: 10px;
+            }
+
+            .add-reference-link-row {
                 gap: 8px;
+            }
+
+            .add-reference-link-row input {
+                padding: 10px 12px;
+                font-size: 14px;
+            }
+
+            .add-link-btn {
+                padding: 10px 14px;
+                font-size: 0.82rem;
             }
 
             /* Empty state */
             .empty-state {
-                padding: 40px 16px;
+                padding: 48px 20px;
             }
 
             .empty-icon {
-                font-size: 3rem;
+                font-size: 3.5rem;
             }
 
             .empty-title {
-                font-size: 1rem;
+                font-size: 1.05rem;
             }
 
             /* Superset/warmup/stretch border adjustments */
             .superset-exercise,
             .warmup-exercise,
             .stretch-exercise {
-                margin-left: -12px;
-                padding-left: 10px;
+                margin-left: -16px;
+                padding-left: 13px;
+                border-left-width: 3px;
+            }
+
+            /* Exercise label selector on mobile */
+            .exercise-label-row {
+                margin-top: 8px;
+            }
+
+            .exercise-label-select {
+                padding: 6px 10px;
+                font-size: 0.8rem;
+            }
+
+            /* Tracking toggle on mobile */
+            .tracking-toggle-btn {
+                padding: 4px 10px;
+                min-height: 28px;
+            }
+
+            /* Import modal */
+            .import-drop-zone {
+                padding: 28px 20px;
+            }
+
+            .import-paste-area {
+                min-height: 120px;
+                font-size: 14px;
+            }
+        }
+
+        /* === EXTRA SMALL SCREENS (< 375px) === */
+        @media (max-width: 375px) {
+            .top-nav {
+                padding: 10px 12px;
+            }
+
+            .nav-actions #simpleSaveBtn span,
+            .save-dropdown .btn-save-main span {
+                display: none; /* Hide text, show icon only */
+            }
+
+            .builder-area {
+                padding: 12px;
+            }
+
+            .builder-card {
+                padding: 16px;
+            }
+
+            .exercise-item {
+                padding: 12px;
+            }
+
+            .config-input {
+                width: 56px;
+                padding: 8px 4px;
+            }
+
+            .exercise-grid {
+                grid-template-columns: 1fr;
             }
         }
 
@@ -4033,14 +4362,14 @@
             display: none;
             align-items: center;
             justify-content: center;
-            width: 36px;
-            height: 36px;
-            border-radius: var(--radius-sm);
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
             border: none;
             background: rgba(255,255,255,0.15);
             color: white;
             cursor: pointer;
-            transition: background 0.2s;
+            transition: all 0.2s;
             flex-shrink: 0;
         }
 
@@ -4048,12 +4377,16 @@
             background: rgba(255,255,255,0.25);
         }
 
+        .mobile-sidebar-toggle:active {
+            transform: scale(0.95);
+        }
+
         .mobile-sidebar-toggle .badge {
             position: absolute;
             top: -4px;
             right: -4px;
-            width: 16px;
-            height: 16px;
+            width: 18px;
+            height: 18px;
             background: var(--warning);
             color: white;
             font-size: 10px;
@@ -4068,8 +4401,8 @@
         .mobile-quick-actions {
             display: none;
             overflow-x: auto;
-            gap: 8px;
-            padding: 10px 12px;
+            gap: 10px;
+            padding: 14px 16px;
             background: var(--bg-secondary);
             border-bottom: 1px solid var(--border-color);
             -webkit-overflow-scrolling: touch;
@@ -4089,23 +4422,28 @@
         .mobile-quick-btn {
             display: flex;
             align-items: center;
-            gap: 6px;
-            padding: 10px 14px;
-            border-radius: var(--radius-sm);
+            gap: 8px;
+            padding: 12px 18px;
+            border-radius: 12px;
             border: 1px solid var(--border-color);
             background: var(--bg-tertiary);
             color: var(--text-secondary);
-            font-size: 0.8rem;
+            font-size: 0.85rem;
             font-weight: 600;
             cursor: pointer;
             white-space: nowrap;
             flex-shrink: 0;
             font-family: inherit;
             transition: all 0.2s;
+            min-height: 44px;
         }
 
         .mobile-quick-btn:active {
-            transform: scale(0.96);
+            transform: scale(0.97);
+        }
+
+        .mobile-quick-btn svg {
+            flex-shrink: 0;
         }
 
         .mobile-quick-btn.ai {
