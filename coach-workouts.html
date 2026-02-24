@@ -6068,7 +6068,9 @@
                                 html += renderInsertButton(dayIndex, 0);
                             }
                             html += renderExerciseItem(ex, dayIndex, exIndex);
-                            html += renderInsertButton(dayIndex, exIndex + 1);
+                            if (exIndex < day.exercises.length - 1) {
+                                html += renderInsertButton(dayIndex, exIndex + 1);
+                            }
                             return html;
                         }).join('')}
                     </div>
