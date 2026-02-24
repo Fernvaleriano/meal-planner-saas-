@@ -600,7 +600,7 @@
         .modal {
             display: none;
             position: fixed;
-            z-index: 1000;
+            z-index: 1100;
             left: 0;
             top: 0;
             width: 100%;
@@ -1082,9 +1082,11 @@
             .modal-content {
                 margin: 16px;
                 padding: 24px;
+                padding-bottom: 32px;
                 border-radius: 16px;
                 max-height: calc(100vh - 32px);
                 overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
             }
 
             .modal-header {
