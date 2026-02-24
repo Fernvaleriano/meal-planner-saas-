@@ -670,6 +670,23 @@ function Workouts() {
       .catch(() => {});
   }, [clientData?.coach_id]);
 
+  // Refresh week schedule data (active assignments for This Week / Coming Up sections)
+  const refreshWeekSchedule = useCallback(() => {
+    if (!clientData?.id) return;
+    apiGet(`/.netlify/functions/workout-assignments?clientId=${clientData.id}&activeOnly=true`)
+      .then(data => {
+        if (data?.assignments) {
+          setWeekScheduleData(data.assignments);
+        }
+      })
+      .catch(() => {});
+  }, [clientData?.id]);
+
+  // Fetch active assignments on mount for computing weekly schedule preview
+  useEffect(() => {
+    refreshWeekSchedule();
+  }, [refreshWeekSchedule]);
+
   // Pull-to-refresh: Refresh workout data
   // Optimized to run API calls in parallel where possible
   const refreshWorkoutData = useCallback(async () => {
@@ -764,13 +781,15 @@ function Workouts() {
         setCompletedExercises(new Set());
       }
       setError(null);
+      // Also refresh week schedule so This Week / Coming Up stay in sync
+      refreshWeekSchedule();
     } catch (err) {
       console.error('Error refreshing workout:', err);
       setError('Failed to load workout');
     } finally {
       isRefreshingRef.current = false;
     }
-  }, [clientData?.id, selectedDate]);
+  }, [clientData?.id, selectedDate, refreshWeekSchedule]);
 
   // Setup pull-to-refresh (DOM-driven — no React re-renders during drag)
   const { isRefreshing, indicatorRef, bindToContainer, threshold } = usePullToRefresh(refreshWorkoutData);
@@ -892,22 +911,6 @@ function Workouts() {
       mounted = false;
     };
   }, [clientData?.id, selectedDate]);
-
-  // Fetch active assignments once for computing weekly schedule preview
-  useEffect(() => {
-    if (!clientData?.id) return;
-    let mounted = true;
-
-    apiGet(`/.netlify/functions/workout-assignments?clientId=${clientData.id}&activeOnly=true`)
-      .then(data => {
-        if (mounted && data?.assignments) {
-          setWeekScheduleData(data.assignments);
-        }
-      })
-      .catch(() => {});
-
-    return () => { mounted = false; };
-  }, [clientData?.id]);
 
   // Compute weekly schedule from active assignments + week dates
   const weekSchedule = useMemo(() => {
@@ -1679,6 +1682,7 @@ function Workouts() {
         setTodayWorkouts(prev => prev.map(w =>
           w.id === newWorkout.id ? { ...w, id: realId } : w
         ));
+        refreshWeekSchedule();
       } else {
         console.error('No workout returned from POST:', res);
         showError('Failed to save workout');
@@ -1687,7 +1691,7 @@ function Workouts() {
       console.error('Error saving workout:', err);
       showError('Failed to save workout: ' + (err.message || 'Unknown error'));
     }
-  }, [clientData?.id, selectedDate, showError]);
+  }, [clientData?.id, selectedDate, showError, refreshWeekSchedule]);
 
   // Handle switching active workout card
   // Handle tapping a workout card - select it and expand to detail view
@@ -1769,11 +1773,12 @@ function Workouts() {
           showSuccess(`"${workoutName}" scheduled for ${new Date(dateStr + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}`);
         }
       }
+      refreshWeekSchedule();
     } catch (err) {
       console.error('Error saving club workout:', err);
       showError('Failed to save workout: ' + (err.message || 'Unknown error'));
     }
-  }, [clientData?.id, selectedDate, showError, showSuccess]);
+  }, [clientData?.id, selectedDate, showError, showSuccess, refreshWeekSchedule]);
 
   // Handle scheduling a multi-day club workout program
   const handleScheduleClubProgram = useCallback(async ({ program, startDate, selectedDays, weeks }) => {
@@ -1819,12 +1824,13 @@ function Workouts() {
         }
         // Refresh today's workout to pick up the new assignment
         refreshWorkoutData();
+        refreshWeekSchedule();
       }
     } catch (err) {
       console.error('Error scheduling program:', err);
       showError('Failed to schedule program: ' + (err.message || 'Unknown error'));
     }
-  }, [clientData?.id, clientData?.coach_id, selectedDate, showError, showSuccess, refreshWorkoutData]);
+  }, [clientData?.id, clientData?.coach_id, selectedDate, showError, showSuccess, refreshWorkoutData, refreshWeekSchedule]);
 
   // Handle updating an exercise (sets, reps, weight changes) - use ref for stable callback
   const handleUpdateExercise = useCallback((updatedExercise) => {
@@ -2480,11 +2486,12 @@ function Workouts() {
 
       // Refresh to show updated state
       refreshWorkoutData();
+      refreshWeekSchedule();
 
       // Show success feedback
       alert(`Workout ${action === 'duplicate' ? 'duplicated' : action === 'skip' ? 'skipped' : 'rescheduled'} successfully!`);
     }
-  }, [todayWorkout, rescheduleAction, rescheduleTargetDate, selectedDate, refreshWorkoutData, clientData?.id]);
+  }, [todayWorkout, rescheduleAction, rescheduleTargetDate, selectedDate, refreshWorkoutData, refreshWeekSchedule, clientData?.id]);
 
   // Open reschedule modal with action type
   const openRescheduleModal = useCallback((action, targetWorkout) => {
@@ -2549,8 +2556,9 @@ function Workouts() {
         : new Set()
       );
       setShowHeroMenu(false);
+      refreshWeekSchedule();
     }
-  }, [todayWorkout, todayWorkouts, clientData?.id, selectedDate, showError]);
+  }, [todayWorkout, todayWorkouts, clientData?.id, selectedDate, showError, refreshWeekSchedule]);
 
   // Handle deleting a specific workout from card menu
   const handleDeleteCardWorkout = useCallback(async (workout) => {
@@ -2597,8 +2605,9 @@ function Workouts() {
         );
       }
       setCardMenuWorkoutId(null);
+      refreshWeekSchedule();
     }
-  }, [todayWorkout, todayWorkouts, selectedDate, showError]);
+  }, [todayWorkout, todayWorkouts, selectedDate, showError, refreshWeekSchedule]);
 
   // Handle deleting the entire workout program/assignment (all days)
   const handleDeleteEntireProgram = useCallback(async (workout) => {
@@ -2630,6 +2639,7 @@ function Workouts() {
       if (typeof showSuccess === 'function') {
         showSuccess(`"${programName}" has been deleted`);
       }
+      refreshWeekSchedule();
     } catch (err) {
       console.error('Error deleting program:', err);
       if (err.status === 404 || err.message?.includes('not found')) {
@@ -2637,11 +2647,12 @@ function Workouts() {
         setTodayWorkouts([]);
         setTodayWorkout(null);
         setCardMenuWorkoutId(null);
+        refreshWeekSchedule();
       } else {
         showError('Failed to delete program: ' + (err.message || 'Unknown error'));
       }
     }
-  }, [showError, showSuccess]);
+  }, [showError, showSuccess, refreshWeekSchedule]);
 
   // Calculate workout duration — only use actual elapsed time from play mode
   // Without play mode, returns 0 so display falls back to estimatedMinutes
