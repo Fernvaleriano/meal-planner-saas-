@@ -2161,6 +2161,26 @@
         }
 
         // Helper function to escape HTML and convert URLs to clickable links
+        // Reference links helpers for view-plan
+        function vpEscapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        function vpDetectLinkType(url) {
+            if (!url) return 'generic';
+            const lower = url.toLowerCase();
+            if (lower.includes('youtube.com') || lower.includes('youtu.be')) return 'youtube';
+            if (lower.includes('instagram.com')) return 'instagram';
+            return 'generic';
+        }
+
+        function vpGetLinkTypeIcon(type) {
+            if (type === 'youtube') return '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>';
+            if (type === 'instagram') return '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>';
+            return '<svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>';
+        }
+
         function linkifyText(text) {
             if (!text) return '';
 
@@ -3920,6 +3940,31 @@
             // Get existing note for this meal
             const mealNote = meal.coach_note || '';
             const voiceNoteUrl = meal.voice_note_url || '';
+            const mealRefLinks = meal.reference_links || [];
+
+            // Build reference links section (shown in both client and coach views)
+            let refLinksSection = '';
+            if (mealRefLinks.length > 0) {
+                refLinksSection = `
+                    <div style="margin-top: 12px; padding: 10px; background: #f0fdfa; border-radius: 8px; border: 1px dashed #99f6e4;">
+                        <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 8px; font-size: 0.8em; color: #0d9488; font-weight: 600;">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                            Reference Links
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            ${mealRefLinks.map(link => {
+                                const linkType = vpDetectLinkType(link.url);
+                                return `
+                                    <a href="${vpEscapeHtml(link.url)}" target="_blank" rel="noopener noreferrer" style="display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: white; border-radius: 6px; font-size: 0.85em; text-decoration: none; border: 1px solid #e2e8f0;">
+                                        <span style="width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; border-radius: 4px; flex-shrink: 0; ${linkType === 'youtube' ? 'background: rgba(255,0,0,0.15); color: #ff0000;' : linkType === 'instagram' ? 'background: rgba(225,48,108,0.15); color: #e1306c;' : 'background: rgba(59,130,246,0.15); color: #3b82f6;'}">${vpGetLinkTypeIcon(linkType)}</span>
+                                        <span style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #1f2937;">${vpEscapeHtml(link.title || link.url)}</span>
+                                        <svg width="12" height="12" fill="none" stroke="#94a3b8" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg>
+                                    </a>`;
+                            }).join('')}
+                        </div>
+                    </div>
+                `;
+            }
 
             // Build notes section based on view type
             let notesSection = '';
@@ -3940,6 +3985,7 @@
                         </div>
                     `;
                 }
+                notesSection += refLinksSection;
             } else {
                 // Coach view: show editable note field and voice recording
                 const voiceNoteSection = voiceNoteUrl ? `
@@ -3963,12 +4009,13 @@
                         <!-- Voice Note Section -->
                         <div style="margin-top: 10px; display: flex; align-items: center; gap: 10px;">
                             <button id="voice-btn-${index}" onclick="toggleMealVoiceRecording('${index}', ${dayIndex}, ${mealIndex})" style="background: #7c3aed; color: white; padding: 6px 12px; font-size: 0.8em; border-radius: 4px; border: none; cursor: pointer; display: flex; align-items: center; gap: 4px;">
-                                🎤 Record Voice Note
+                                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg> Record Voice Note
                             </button>
                             <span style="color: #6b7280; font-size: 0.75em;">Record a voice message for your client</span>
                         </div>
                         ${voiceNoteSection}
                     </div>
+                    ${refLinksSection}
                 `;
             }
 
@@ -4480,7 +4527,7 @@
             if (mediaRecorder && mediaRecorder.state === 'recording') {
                 mediaRecorder.stop();
                 btn.classList.remove('recording');
-                btn.innerHTML = '🎤 Record';
+                btn.innerHTML = '<svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg> Record';
                 return;
             }
 
@@ -4508,7 +4555,7 @@
 
                 mediaRecorder.start();
                 btn.classList.add('recording');
-                btn.innerHTML = '⏹️ Stop';
+                btn.innerHTML = '<svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;"><rect x="4" y="4" width="16" height="16" rx="2"/></svg> Stop';
                 showNotification('Recording... Click again to stop', 'success');
 
             } catch (err) {
