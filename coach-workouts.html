@@ -2121,13 +2121,24 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 2px 0;
+            padding: 4px 0;
             position: relative;
         }
 
+        .insert-exercise-divider::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 50%;
+            height: 1px;
+            background: var(--border-color);
+            opacity: 0.4;
+        }
+
         .insert-exercise-btn {
-            width: 28px;
-            height: 28px;
+            width: 30px;
+            height: 30px;
             border-radius: 50%;
             border: 2px dashed var(--border-color);
             background: var(--bg-primary);
@@ -2139,41 +2150,14 @@
             transition: all 0.2s;
             padding: 0;
             z-index: 1;
-            opacity: 0.5;
         }
 
-        .insert-exercise-divider:hover .insert-exercise-btn {
-            opacity: 1;
-        }
-
-        .insert-exercise-btn:hover {
-            border-color: var(--brand-primary);
-            color: var(--brand-primary);
-            background: rgba(13, 148, 136, 0.1);
-            transform: scale(1.15);
-        }
-
+        .insert-exercise-btn:hover,
         .insert-exercise-btn:active {
             border-color: var(--brand-primary);
             color: var(--brand-primary);
             background: rgba(13, 148, 136, 0.1);
             transform: scale(1.15);
-        }
-
-        .insert-exercise-divider::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            right: 0;
-            top: 50%;
-            height: 1px;
-            background: var(--border-color);
-            opacity: 0.3;
-            transition: opacity 0.2s;
-        }
-
-        .insert-exercise-divider:hover::before {
-            opacity: 0.6;
         }
 
         .add-day-btn {
