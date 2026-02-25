@@ -14,6 +14,7 @@ function CreateWorkoutModal({ onClose, onCreateWorkout, selectedDate, coachId = 
   const [difficulty, setDifficulty] = useState('Beginner');
   const [category, setCategory] = useState('Main Workout Programs');
   const [frequency, setFrequency] = useState(3);
+  const [startDate, setStartDate] = useState('');
 
   // Multi-day state
   const [days, setDays] = useState([{ name: 'Day 1', exercises: [] }]);
@@ -324,6 +325,7 @@ function CreateWorkoutModal({ onClose, onCreateWorkout, selectedDate, coachId = 
         difficulty,
         category,
         frequency,
+        startDate: startDate || null,
         exercises: isSingleDay ? days[0].exercises : allExercises,
         estimatedMinutes,
         estimatedCalories,
@@ -608,6 +610,17 @@ function CreateWorkoutModal({ onClose, onCreateWorkout, selectedDate, coachId = 
                   </select>
                   <ChevronDown size={14} className="select-chevron" />
                 </div>
+              </div>
+
+              {/* Start Date */}
+              <div className="create-workout-dropdown">
+                <label>Start Date</label>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="create-workout-select"
+                />
               </div>
             </div>
 
