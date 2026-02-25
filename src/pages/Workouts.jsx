@@ -3241,20 +3241,18 @@ function Workouts() {
                                     className="workout-card-day-section"
                                     onClick={() => handleSelectWorkoutCard(workout)}
                                   >
+                                    <div className="workout-card-day-menu" onClick={(e) => {
+                                      e.stopPropagation();
+                                      setCardMenuWorkout(workout);
+                                      setCardMenuWorkoutId(workout.id);
+                                    }}>
+                                      <MoreVertical size={18} />
+                                    </div>
                                     <div className="workout-card-info">
-                                      <div className="workout-card-day-header">
-                                        <h3 className="workout-card-title">
-                                          {totalDays > 0 ? `Day ${currentDay}` : (daySpecificName || programName)}
-                                          {totalDays > 0 && <span className="workout-card-title-sub"> / {totalDays}</span>}
-                                        </h3>
-                                        <div className="workout-card-day-menu" onClick={(e) => {
-                                          e.stopPropagation();
-                                          setCardMenuWorkout(workout);
-                                          setCardMenuWorkoutId(workout.id);
-                                        }}>
-                                          <MoreVertical size={18} />
-                                        </div>
-                                      </div>
+                                      <h3 className="workout-card-title">
+                                        {totalDays > 0 ? `Day ${currentDay}` : (daySpecificName || programName)}
+                                        {totalDays > 0 && <span className="workout-card-title-sub"> / {totalDays}</span>}
+                                      </h3>
                                       {daySpecificName && totalDays > 0 && (
                                         <p className="workout-card-day">{daySpecificName}</p>
                                       )}
