@@ -103,6 +103,7 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
   const [showScheduling, setShowScheduling] = useState(false);
   const [scheduleStartDate, setScheduleStartDate] = useState('');
   const [selectedDays, setSelectedDays] = useState(['mon', 'tue', 'wed', 'thu', 'fri']);
+  const [numberOfWeeks, setNumberOfWeeks] = useState(4);
 
   // Lock body scroll
   useEffect(() => {
@@ -237,10 +238,17 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
     if (!selectedProgram || !showScheduling) return null;
     const totalDays = selectedProgram.total_days || selectedProgram.days?.length || 0;
     const daysPerWeek = selectedDays.length;
-    if (daysPerWeek === 0 || totalDays === 0) return { weeks: 0, totalDays, daysPerWeek: 0 };
-    const weeks = Math.ceil(totalDays / daysPerWeek);
-    return { weeks, totalDays, daysPerWeek };
-  }, [selectedProgram, showScheduling, selectedDays]);
+    if (daysPerWeek === 0 || totalDays === 0) return { weeks: numberOfWeeks, totalDays, daysPerWeek: 0 };
+    // Calculate end date based on start date and number of weeks
+    let endDate = null;
+    if (scheduleStartDate) {
+      const start = new Date(scheduleStartDate + 'T12:00:00');
+      const end = new Date(start);
+      end.setDate(end.getDate() + (numberOfWeeks * 7) - 1);
+      endDate = end;
+    }
+    return { weeks: numberOfWeeks, totalDays, daysPerWeek, endDate };
+  }, [selectedProgram, showScheduling, selectedDays, numberOfWeeks, scheduleStartDate]);
 
   const toggleDay = useCallback((dayKey) => {
     setSelectedDays(prev => {
@@ -260,9 +268,9 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
       program: selectedProgram,
       startDate: scheduleStartDate,
       selectedDays,
-      weeks: scheduleInfo?.weeks || 1
+      weeks: numberOfWeeks
     });
-  }, [selectedProgram, scheduleStartDate, selectedDays, scheduleInfo, onScheduleProgram]);
+  }, [selectedProgram, scheduleStartDate, selectedDays, numberOfWeeks, onScheduleProgram]);
 
   // Handle selecting a workout to use (optionally for a specific date)
   const handleUseWorkout = useCallback((workout, forDate) => {
@@ -495,6 +503,32 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
               />
             </div>
 
+            {/* Number of Weeks */}
+            <div className="schedule-section">
+              <label className="schedule-label">Number of Weeks</label>
+              <p className="schedule-hint">How long do you want to run this program?</p>
+              <div className="schedule-weeks-selector">
+                {[1, 2, 3, 4, 6, 8, 10, 12].map(w => (
+                  <button
+                    key={w}
+                    className={`schedule-week-btn ${numberOfWeeks === w ? 'active' : ''}`}
+                    onClick={() => setNumberOfWeeks(w)}
+                  >
+                    {w}
+                  </button>
+                ))}
+              </div>
+              {scheduleStartDate && (
+                <p className="schedule-hint" style={{ marginTop: 8, marginBottom: 0 }}>
+                  Ends on {(() => {
+                    const end = new Date(scheduleStartDate + 'T12:00:00');
+                    end.setDate(end.getDate() + (numberOfWeeks * 7) - 1);
+                    return end.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+                  })()}
+                </p>
+              )}
+            </div>
+
             {/* Day of Week Selector */}
             <div className="schedule-section">
               <label className="schedule-label">Workout Days</label>
@@ -519,7 +553,7 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
                 <Calendar size={18} />
                 <div className="schedule-summary-text">
                   <span className="schedule-summary-main">
-                    {scheduleInfo.daysPerWeek} days/week for {scheduleInfo.weeks} {scheduleInfo.weeks === 1 ? 'week' : 'weeks'}
+                    {scheduleInfo.daysPerWeek} days/week for {numberOfWeeks} {numberOfWeeks === 1 ? 'week' : 'weeks'}
                   </span>
                   <span className="schedule-summary-detail">
                     {selectedDays.map(d => DAY_LABELS.find(dl => dl.key === d)?.full).filter(Boolean).join(', ')}
@@ -527,6 +561,9 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
                   {scheduleStartDate && (
                     <span className="schedule-summary-detail">
                       Starting {new Date(scheduleStartDate + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
+                      {scheduleInfo.endDate && (
+                        <> — Ends {scheduleInfo.endDate.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</>
+                      )}
                     </span>
                   )}
                 </div>
@@ -651,6 +688,10 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
                 } else {
                   setSelectedDays(['mon', 'tue', 'wed', 'thu', 'fri']);
                 }
+                // Default number of weeks: estimate from program size
+                const defaultDaysPerWeek = totalDays <= 3 ? 3 : totalDays <= 4 ? 4 : 5;
+                const estimatedWeeks = Math.ceil(totalDays / defaultDaysPerWeek);
+                setNumberOfWeeks(estimatedWeeks < 1 ? 1 : estimatedWeeks > 12 ? 12 : estimatedWeeks);
               }}
             >
               <Calendar size={20} />
