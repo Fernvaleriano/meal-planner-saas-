@@ -3209,14 +3209,67 @@ function Workouts() {
                       const cardImage = first.workout_data?.image_url || null;
                       const programName = first.name || first.workout_data?.name || 'Workout';
 
-                      // Aggregate stats across all days in the group
-                      let totalExercises = 0;
-                      let totalCompleted = 0;
-                      group.forEach((w) => {
-                        totalExercises += getWorkoutExercises(w).length;
-                        totalCompleted += getWorkoutCompletedCount(w);
-                      });
+                      // Single-day group — use original card layout
+                      if (group.length === 1) {
+                        const workout = first;
+                        const cardExercises = getWorkoutExercises(workout);
+                        const cardCompletedCount = getWorkoutCompletedCount(workout);
+                        const cardDayName = workout.name || workout.workout_data?.name || 'Workout';
+                        const totalDays = workout.workout_data?.days?.length || 0;
+                        const currentDay = totalDays > 0 ? (workout.day_index || 0) + 1 : 0;
+                        const daySpecificName = workout.workout_data?.name && workout.workout_data.name !== workout.name
+                          ? workout.workout_data.name : null;
+                        const estMinutes = estimateWorkoutMinutes(cardExercises) || workout.workout_data?.estimatedMinutes || null;
+                        const estCalories = estimateWorkoutCalories(cardExercises) || workout.workout_data?.estimatedCalories || null;
 
+                        return (
+                          <div
+                            key={workout.instance_id || `${workout.id}-${workout.day_index}`}
+                            className="workout-card-v3"
+                            style={cardImage ? { backgroundImage: `url(${cardImage})` } : {}}
+                            onClick={() => handleSelectWorkoutCard(workout)}
+                          >
+                            <div className="workout-card-content">
+                              <div className="workout-card-info">
+                                <h3 className="workout-card-title">{cardDayName}</h3>
+                                <p className="workout-card-progress">
+                                  {cardCompletedCount}/{cardExercises.length} activities done
+                                </p>
+                                {totalDays > 0 && (
+                                  <p className="workout-card-day">{daySpecificName ? `${daySpecificName} · ` : ''}Day {currentDay}/{totalDays}</p>
+                                )}
+                                <div className="workout-card-stats">
+                                  {estMinutes && (
+                                    <span className="workout-card-stat">
+                                      <Clock size={13} />
+                                      {estMinutes} min
+                                    </span>
+                                  )}
+                                  {estCalories && (
+                                    <span className="workout-card-stat">
+                                      <Flame size={13} />
+                                      {estCalories} kcal
+                                    </span>
+                                  )}
+                                  <span className="workout-card-stat">
+                                    <Dumbbell size={13} />
+                                    {cardExercises.length}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="workout-card-menu" onClick={(e) => {
+                              e.stopPropagation();
+                              setCardMenuWorkout(workout);
+                              setCardMenuWorkoutId(workout.id);
+                            }}>
+                              <MoreVertical size={20} />
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      // Multi-day group — merged card with separator between days
                       return (
                         <div
                           key={first.instance_id || `${first.id}-group`}
