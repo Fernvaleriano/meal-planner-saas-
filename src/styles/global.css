@@ -13320,7 +13320,9 @@ a.nav-left {
 
 /* Each day section inside a merged card */
 .workout-card-day-section {
+    position: relative;
     padding: 16px 20px;
+    padding-right: 52px;
     cursor: pointer;
     transition: background 0.15s;
 }
@@ -13334,15 +13336,7 @@ a.nav-left {
     padding-right: 0;
 }
 
-/* Day header row with title + per-day 3-dot menu */
-.workout-card-day-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-}
-
-.workout-card-day-header .workout-card-title {
+.workout-card-day-section .workout-card-title {
     margin-bottom: 4px;
 }
 
@@ -13352,9 +13346,11 @@ a.nav-left {
     color: rgba(255, 255, 255, 0.45);
 }
 
-/* Per-day 3-dot menu inside merged card */
+/* Per-day 3-dot menu — pinned top-right of each day section */
 .workout-card-day-menu {
-    flex-shrink: 0;
+    position: absolute;
+    top: 12px;
+    right: 12px;
     width: 32px;
     height: 32px;
     display: flex;
