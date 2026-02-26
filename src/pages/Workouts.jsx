@@ -1696,7 +1696,9 @@ function Workouts() {
   const handleCreateWorkout = useCallback(async (workoutData) => {
     if (!workoutData?.exercises?.length) return;
 
-    const dateStr = formatDate(selectedDate);
+    // Use the start date from the form if provided, otherwise fall back to the selected calendar date
+    const dateStr = workoutData.startDate || formatDate(selectedDate);
+    const isForCurrentDay = dateStr === formatDate(selectedDate);
     const workoutName = workoutData.name || 'My Workout';
     const newWorkout = {
       id: `custom-${dateStr}-${Date.now()}`,
@@ -1708,11 +1710,13 @@ function Workouts() {
       is_adhoc: true
     };
 
-    // Update local state with new workout
-    setTodayWorkout(newWorkout);
-    setTodayWorkouts(prev => [...prev, newWorkout]);
+    // Only update today's local state if the workout is for the currently viewed date
+    if (isForCurrentDay) {
+      setTodayWorkout(newWorkout);
+      setTodayWorkouts(prev => [...prev, newWorkout]);
+      setExpandedWorkout(true);
+    }
     setShowCreateWorkout(false);
-    setExpandedWorkout(true);
 
     // Create ad-hoc workout in backend using dedicated endpoint
     try {
@@ -1726,10 +1730,12 @@ function Workouts() {
       if (res?.workout) {
         // Update with real workout ID from backend
         const realId = res.workout.id;
-        setTodayWorkout(prev => ({ ...prev, id: realId }));
-        setTodayWorkouts(prev => prev.map(w =>
-          w.id === newWorkout.id ? { ...w, id: realId } : w
-        ));
+        if (isForCurrentDay) {
+          setTodayWorkout(prev => ({ ...prev, id: realId }));
+          setTodayWorkouts(prev => prev.map(w =>
+            w.id === newWorkout.id ? { ...w, id: realId } : w
+          ));
+        }
         refreshWeekSchedule();
       } else {
         console.error('No workout returned from POST:', res);
