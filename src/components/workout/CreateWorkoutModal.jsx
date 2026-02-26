@@ -619,7 +619,7 @@ function CreateWorkoutModal({ onClose, onCreateWorkout, selectedDate, coachId = 
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className="create-workout-select"
+                  className="create-workout-date-input"
                 />
               </div>
             </div>
