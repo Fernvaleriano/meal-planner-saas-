@@ -1192,7 +1192,7 @@
         }
 
         .ac-day-cell {
-            min-height: 70px;
+            min-height: 80px;
             border: 1px solid #f1f5f9;
             border-radius: 8px;
             padding: 4px;
@@ -1207,7 +1207,6 @@
         }
 
         .ac-day-cell.selected {
-            background: #eff6ff;
             border-color: #3b82f6;
             box-shadow: 0 0 0 2px #3b82f6;
         }
@@ -1260,6 +1259,77 @@
             right: 3px;
             font-size: 11px;
             line-height: 1;
+        }
+
+        /* Exercise thumbnails in calendar cells */
+        .ac-cell-exercises {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2px;
+            margin-top: 1px;
+            justify-content: center;
+        }
+
+        .ac-cell-ex {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            border: 2px solid #d1d5db;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f8fafc;
+            font-size: 9px;
+            font-weight: 700;
+            color: #64748b;
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .ac-cell-ex img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .ac-cell-ex.done {
+            border-color: #22c55e;
+        }
+
+        .ac-cell-ex.done::after {
+            content: '\2713';
+            position: absolute;
+            bottom: -2px;
+            right: -2px;
+            background: #22c55e;
+            color: white;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            font-size: 7px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+        }
+
+        .ac-cell-ex.not-done {
+            border-color: #d1d5db;
+        }
+
+        .ac-cell-overflow {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 8px;
+            font-weight: 700;
+            color: #475569;
+            flex-shrink: 0;
         }
 
         /* Calendar legend */
@@ -10819,7 +10889,7 @@
         let acCurrentMonth = new Date().getMonth();
         let acCurrentYear = new Date().getFullYear();
         let acSelectedDate = null;
-        let acAssignmentCache = {}; // { 'YYYY-MM-DD': true }
+        let acAssignmentCache = {}; // { 'YYYY-MM-DD': { exercises: [{ name, thumbnail_url, _done }] } }
         let acWorkoutLogsCache = {}; // { 'YYYY-MM-DD': 'completed' | 'in_progress' | 'skipped' }
         let acCurrentAssignment = null;
         let acExercisesCache = [];
@@ -10855,7 +10925,8 @@
         }
 
         function acGetDayStatus(dateStr) {
-            const hasWorkout = acAssignmentCache[dateStr];
+            const cacheEntry = acAssignmentCache[dateStr];
+            const hasWorkout = !!cacheEntry;
             const logStatus = acWorkoutLogsCache[dateStr]; // 'completed', 'in_progress', 'skipped', or undefined
             if (!hasWorkout && !logStatus) return null; // rest day
             if (logStatus === 'completed') return 'completed';
@@ -10868,6 +10939,29 @@
             const cellDate = new Date(dateStr + 'T00:00:00');
             if (cellDate < today) return 'missed';
             return 'scheduled';
+        }
+
+        function acRenderCellExercises(dateStr) {
+            const entry = acAssignmentCache[dateStr];
+            if (!entry || !entry.exercises || entry.exercises.length === 0) return '';
+            const maxShow = 4;
+            const exercises = entry.exercises;
+            let html = '<div class="ac-cell-exercises">';
+            const toShow = exercises.slice(0, maxShow);
+            for (const ex of toShow) {
+                const doneClass = ex._done ? 'done' : 'not-done';
+                const initial = (ex.name || '?')[0].toUpperCase();
+                if (ex.thumbnail_url) {
+                    html += `<div class="ac-cell-ex ${doneClass}" title="${escapeHtml(ex.name)}"><img src="${escapeHtml(ex.thumbnail_url)}" alt="" loading="lazy"></div>`;
+                } else {
+                    html += `<div class="ac-cell-ex ${doneClass}" title="${escapeHtml(ex.name)}">${initial}</div>`;
+                }
+            }
+            if (exercises.length > maxShow) {
+                html += `<div class="ac-cell-overflow">+${exercises.length - maxShow}</div>`;
+            }
+            html += '</div>';
+            return html;
         }
 
         function acGetStatusBadge(status) {
@@ -10921,6 +11015,7 @@
 
                 html += `<div class="${classes}" onclick="acSelectDay('${dateStr}')">
                     <span class="ac-day-number">${d}</span>
+                    ${acRenderCellExercises(dateStr)}
                     ${acGetStatusBadge(status)}
                 </div>`;
             }
@@ -10942,6 +11037,7 @@
             if (status) classes += ` ac-status-${status}`;
             return `<div class="${classes}" onclick="acSelectDay('${dateStr}')">
                 <span class="ac-day-number">${day}</span>
+                ${acRenderCellExercises(dateStr)}
                 ${acGetStatusBadge(status)}
             </div>`;
         }
@@ -10962,6 +11058,35 @@
                     const dateOverrides = workoutData.date_overrides || {};
                     const dayNames = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
 
+                    // Helper: count workout days between two dates
+                    function acCountWorkoutDays(startDate, targetDate, selDays) {
+                        const daySet = new Set(selDays);
+                        const start = new Date(startDate);
+                        const target = new Date(targetDate);
+                        const totalDays = Math.floor((target - start) / (24 * 60 * 60 * 1000));
+                        if (totalDays <= 0) return 0;
+                        const fullWeeks = Math.floor(totalDays / 7);
+                        const daysPerWeek = dayNames.filter(dn => daySet.has(dn)).length;
+                        let count = fullWeeks * daysPerWeek;
+                        const remainderDays = totalDays % 7;
+                        for (let i = 0; i < remainderDays; i++) {
+                            const dd = new Date(start);
+                            dd.setDate(dd.getDate() + (fullWeeks * 7) + i);
+                            if (daySet.has(dayNames[dd.getDay()])) count++;
+                        }
+                        return count;
+                    }
+
+                    // Helper: extract lightweight exercise summaries from a day object
+                    function acExtractExercises(dayObj) {
+                        if (!dayObj || !dayObj.exercises) return [];
+                        return dayObj.exercises.map(ex => ({
+                            name: ex.name || '',
+                            thumbnail_url: ex.thumbnail_url || '',
+                            _done: !!ex._done
+                        }));
+                    }
+
                     // Compute assignment date boundaries
                     const assignmentStart = acCurrentAssignment.start_date
                         ? new Date(acCurrentAssignment.start_date + 'T00:00:00')
@@ -10969,7 +11094,7 @@
                     assignmentStart.setHours(0,0,0,0);
 
                     let assignmentEnd = null;
-                    const weeksToUse = schedule.weeksAmount || 12; // Default to 12 weeks if not set
+                    const weeksToUse = schedule.weeksAmount || 12;
                     if (acCurrentAssignment.end_date) {
                         assignmentEnd = new Date(acCurrentAssignment.end_date + 'T23:59:59');
                     } else {
@@ -10991,11 +11116,26 @@
                         if (assignmentEnd && d > assignmentEnd) continue;
 
                         if (override) {
-                            if (!override.isRest && (override.dayIndex !== undefined || (override.dayIndices && override.dayIndices.length > 0))) {
-                                acAssignmentCache[dateStr] = true;
+                            if (override.isRest) continue;
+                            // Determine day index from override
+                            let di = override.dayIndex;
+                            if (di === undefined && override.dayIndices && override.dayIndices.length > 0) {
+                                di = override.dayIndices[0];
+                            }
+                            if (override.addedWorkouts && override.addedWorkouts.length > 0 && di === undefined) {
+                                di = override.addedWorkouts[0].day_index;
+                            }
+                            if (di !== undefined && days.length > 0) {
+                                const dayObj = days[di % days.length];
+                                acAssignmentCache[dateStr] = { exercises: acExtractExercises(dayObj) };
+                            } else if (di !== undefined) {
+                                acAssignmentCache[dateStr] = { exercises: [] };
                             }
                         } else if (selectedDays.includes(dayName) && days.length > 0) {
-                            acAssignmentCache[dateStr] = true;
+                            const workoutDayCount = acCountWorkoutDays(assignmentStart, d, selectedDays);
+                            const dayIndex = workoutDayCount % days.length;
+                            const dayObj = days[dayIndex];
+                            acAssignmentCache[dateStr] = { exercises: acExtractExercises(dayObj) };
                         }
                     }
                 }
@@ -11012,7 +11152,14 @@
                     const adhocRes = await fetch(`/.netlify/functions/adhoc-workouts?clientId=${clientId}`);
                     const adhocData = await adhocRes.json();
                     (adhocData.workouts || []).forEach(w => {
-                        if (w.workout_date) acAssignmentCache[w.workout_date] = true;
+                        if (w.workout_date) {
+                            const exs = (w.workout_data?.exercises || []).map(ex => ({
+                                name: ex.name || '',
+                                thumbnail_url: ex.thumbnail_url || '',
+                                _done: !!ex._done
+                            }));
+                            acAssignmentCache[w.workout_date] = { exercises: exs };
+                        }
                     });
                 } catch (e) { /* ignore */ }
 
@@ -11400,7 +11547,7 @@
                         });
                     }
                 }
-                acAssignmentCache[targetDate] = true;
+                acAssignmentCache[targetDate] = { exercises: [] };
                 acRenderCalendar();
             } catch (err) {
                 console.error('Error adding exercises to date:', err);
@@ -11510,6 +11657,16 @@
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ assignmentId, dayIndex, workout_data: { exercises } })
                     });
+                }
+                // Update cache so calendar cell thumbnails reflect done status
+                if (acAssignmentCache[dateStr]) {
+                    acAssignmentCache[dateStr] = {
+                        exercises: (exercises || []).map(ex => ({
+                            name: ex.name || '',
+                            thumbnail_url: ex.thumbnail_url || '',
+                            _done: !!ex._done
+                        }))
+                    };
                 }
                 acSelectDay(dateStr);
             } catch (err) {
@@ -11894,7 +12051,7 @@
                 });
                 const data = await res.json();
 
-                acAssignmentCache[dateStr] = true;
+                acAssignmentCache[dateStr] = { exercises: [] };
                 acRenderCalendar();
                 await acSelectDay(dateStr);
 
@@ -12024,7 +12181,7 @@
                     })
                 });
 
-                acAssignmentCache[dateStr] = true;
+                acAssignmentCache[dateStr] = { exercises: (exercises || []).map(ex => ({ name: ex.name || '', thumbnail_url: ex.thumbnail_url || '', _done: false })) };
                 acRenderCalendar();
                 acSelectDay(dateStr);
             } catch (err) {
