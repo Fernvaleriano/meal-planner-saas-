@@ -1209,7 +1209,7 @@
         .ac-day-cell.selected {
             background: #eff6ff;
             border-color: #3b82f6;
-            box-shadow: 0 0 0 1px #3b82f6;
+            box-shadow: 0 0 0 2px #3b82f6;
         }
 
         .ac-day-cell.today .ac-day-number {
@@ -1227,20 +1227,84 @@
             opacity: 0.35;
         }
 
-        .ac-day-cell.has-workout::after {
-            content: '';
-            position: absolute;
-            bottom: 4px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: #22c55e;
+        /* Status-based background colors for workout days */
+        .ac-day-cell.ac-status-scheduled {
+            background: #eff6ff;
+            border-color: #93c5fd;
         }
 
-        .ac-day-cell.has-logged::after {
-            background: #3b82f6;
+        .ac-day-cell.ac-status-completed {
+            background: #f0fdf4;
+            border-color: #86efac;
+        }
+
+        .ac-day-cell.ac-status-in-progress {
+            background: #fffbeb;
+            border-color: #fcd34d;
+        }
+
+        .ac-day-cell.ac-status-missed {
+            background: #fef2f2;
+            border-color: #fca5a5;
+        }
+
+        .ac-day-cell.ac-status-skipped {
+            background: #f5f5f4;
+            border-color: #d6d3d1;
+        }
+
+        /* Status icon badge in corner */
+        .ac-status-badge {
+            position: absolute;
+            bottom: 3px;
+            right: 3px;
+            font-size: 11px;
+            line-height: 1;
+        }
+
+        /* Calendar legend */
+        .ac-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            padding: 8px 4px;
+            margin-top: 4px;
+        }
+
+        .ac-legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 11px;
+            color: #64748b;
+        }
+
+        .ac-legend-swatch {
+            width: 14px;
+            height: 14px;
+            border-radius: 4px;
+            border: 1px solid;
+            flex-shrink: 0;
+        }
+
+        .ac-legend-swatch.swatch-scheduled {
+            background: #eff6ff;
+            border-color: #93c5fd;
+        }
+
+        .ac-legend-swatch.swatch-completed {
+            background: #f0fdf4;
+            border-color: #86efac;
+        }
+
+        .ac-legend-swatch.swatch-in-progress {
+            background: #fffbeb;
+            border-color: #fcd34d;
+        }
+
+        .ac-legend-swatch.swatch-missed {
+            background: #fef2f2;
+            border-color: #fca5a5;
         }
 
         .ac-day-number {
@@ -7462,6 +7526,12 @@
                         <div class="ac-grid" id="acCalendarGrid">
                             <!-- Populated by JS -->
                         </div>
+                        <div class="ac-legend">
+                            <div class="ac-legend-item"><div class="ac-legend-swatch swatch-scheduled"></div>Scheduled</div>
+                            <div class="ac-legend-item"><div class="ac-legend-swatch swatch-completed"></div>Completed</div>
+                            <div class="ac-legend-item"><div class="ac-legend-swatch swatch-in-progress"></div>In Progress</div>
+                            <div class="ac-legend-item"><div class="ac-legend-swatch swatch-missed"></div>Missed</div>
+                        </div>
                     </div>
 
                     <!-- Day Detail Panel -->
@@ -10750,7 +10820,7 @@
         let acCurrentYear = new Date().getFullYear();
         let acSelectedDate = null;
         let acAssignmentCache = {}; // { 'YYYY-MM-DD': true }
-        let acWorkoutLogsCache = {}; // { 'YYYY-MM-DD': true }
+        let acWorkoutLogsCache = {}; // { 'YYYY-MM-DD': 'completed' | 'in_progress' | 'skipped' }
         let acCurrentAssignment = null;
         let acExercisesCache = [];
         let acCurrentMuscleFilter = 'all';
@@ -10784,6 +10854,33 @@
             acSelectDay(today);
         }
 
+        function acGetDayStatus(dateStr) {
+            const hasWorkout = acAssignmentCache[dateStr];
+            const logStatus = acWorkoutLogsCache[dateStr]; // 'completed', 'in_progress', 'skipped', or undefined
+            if (!hasWorkout && !logStatus) return null; // rest day
+            if (logStatus === 'completed') return 'completed';
+            if (logStatus === 'in_progress') return 'in-progress';
+            if (logStatus === 'skipped') return 'skipped';
+            if (logStatus) return 'completed'; // any other logged status defaults to completed
+            // Has assignment but no log — is it in the past?
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const cellDate = new Date(dateStr + 'T00:00:00');
+            if (cellDate < today) return 'missed';
+            return 'scheduled';
+        }
+
+        function acGetStatusBadge(status) {
+            switch (status) {
+                case 'completed': return '<span class="ac-status-badge" title="Completed">&#10003;</span>';
+                case 'in-progress': return '<span class="ac-status-badge" title="In Progress">&#9997;</span>';
+                case 'missed': return '<span class="ac-status-badge" title="Missed">&#10007;</span>';
+                case 'skipped': return '<span class="ac-status-badge" title="Skipped">&#8212;</span>';
+                case 'scheduled': return '<span class="ac-status-badge" title="Scheduled">&#128337;</span>';
+                default: return '';
+            }
+        }
+
         function acRenderCalendar() {
             const grid = document.getElementById('acCalendarGrid');
             if (!grid) return;
@@ -10815,18 +10912,16 @@
                 const dateStr = acFormatDate(date);
                 const isToday = dateStr === todayStr;
                 const isSelected = dateStr === acSelectedDate;
-                const hasWorkout = acAssignmentCache[dateStr];
-                const hasLogged = acWorkoutLogsCache[dateStr];
+                const status = acGetDayStatus(dateStr);
 
                 let classes = 'ac-day-cell';
                 if (isToday) classes += ' today';
                 if (isSelected) classes += ' selected';
-                if (hasWorkout) classes += ' has-workout';
-                if (hasLogged) classes += ' has-logged';
+                if (status) classes += ` ac-status-${status}`;
 
                 html += `<div class="${classes}" onclick="acSelectDay('${dateStr}')">
                     <span class="ac-day-number">${d}</span>
-                    ${hasWorkout ? '<div class="ac-day-icons"><span class="ac-day-icon">' + (hasLogged ? '&#9989;' : '&#127947;&#65039;') + '</span></div>' : ''}
+                    ${acGetStatusBadge(status)}
                 </div>`;
             }
 
@@ -10842,13 +10937,12 @@
         }
 
         function acRenderDayCell(day, dateStr, otherMonth) {
-            const hasWorkout = acAssignmentCache[dateStr];
-            const hasLogged = acWorkoutLogsCache[dateStr];
+            const status = acGetDayStatus(dateStr);
             let classes = 'ac-day-cell other-month';
-            if (hasWorkout) classes += ' has-workout';
-            if (hasLogged) classes += ' has-logged';
+            if (status) classes += ` ac-status-${status}`;
             return `<div class="${classes}" onclick="acSelectDay('${dateStr}')">
                 <span class="ac-day-number">${day}</span>
+                ${acGetStatusBadge(status)}
             </div>`;
         }
 
@@ -10911,7 +11005,7 @@
                 const feed = feedData.feed || feedData.workouts || [];
                 acWorkoutLogsCache = {};
                 feed.forEach(w => {
-                    if (w.workoutDate) acWorkoutLogsCache[w.workoutDate] = true;
+                    if (w.workoutDate) acWorkoutLogsCache[w.workoutDate] = w.status || 'completed';
                 });
 
                 try {
