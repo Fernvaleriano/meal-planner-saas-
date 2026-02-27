@@ -1,9 +1,8 @@
-import { Routes, Route, Navigate, useOutletContext } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import { useAppLifecycle } from './hooks/useAppLifecycle';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
-import CoachDashboard from './pages/CoachDashboard';
 import Diary from './pages/Diary';
 import Plans from './pages/Plans';
 import Workouts from './pages/Workouts';
@@ -48,17 +47,6 @@ function CoachOnlyRoute({ children }) {
   return children;
 }
 
-function SmartDashboard() {
-  const { clientData } = useAuth();
-  const isCoach = clientData?.is_coach === true;
-  const context = useOutletContext() || {};
-
-  if (isCoach) {
-    return <CoachDashboard selectedClient={context.selectedClient} onSelectClient={context.onSelectClient} />;
-  }
-  return <Dashboard />;
-}
-
 function App() {
   // Initialize app lifecycle handling (visibilitychange, session refresh on resume)
   useAppLifecycle();
@@ -75,7 +63,7 @@ function App() {
           </ProtectedRoute>
         }
       >
-        <Route index element={<SmartDashboard />} />
+        <Route index element={<Dashboard />} />
         <Route path="diary" element={<Diary />} />
         <Route path="plans" element={<Plans />} />
         <Route path="plans/:planId" element={<Plans />} />
