@@ -819,6 +819,331 @@
             color: #cbd5e1;
         }
 
+        /* ===== AI HERO SECTION ===== */
+        .ai-hero-section {
+            margin-bottom: 20px;
+        }
+
+        .ai-hero-prompt-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .ai-hero-input {
+            flex: 1;
+            padding: 16px 20px;
+            border: 2px solid var(--gray-200);
+            border-radius: 16px;
+            font-size: 1rem;
+            font-family: inherit;
+            background: white;
+            color: var(--gray-900);
+            transition: all 0.2s;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        }
+
+        .ai-hero-input:focus {
+            outline: none;
+            border-color: var(--brand-primary);
+            box-shadow: 0 0 0 4px rgba(13, 148, 136, 0.1), 0 4px 12px rgba(0, 0, 0, 0.06);
+        }
+
+        .ai-hero-input::placeholder {
+            color: var(--gray-400);
+        }
+
+        [data-theme="dark"] .ai-hero-input {
+            background: #1e293b;
+            border-color: #334155;
+            color: #f1f5f9;
+        }
+
+        [data-theme="dark"] .ai-hero-input:focus {
+            border-color: var(--brand-primary);
+            box-shadow: 0 0 0 4px rgba(13, 148, 136, 0.15);
+        }
+
+        [data-theme="dark"] .ai-hero-input::placeholder {
+            color: #64748b;
+        }
+
+        .ai-hero-mic {
+            width: 52px;
+            height: 52px;
+            min-width: 52px;
+            border-radius: 14px;
+            border-width: 2px;
+        }
+
+        .ai-hero-send-btn {
+            width: 52px;
+            height: 52px;
+            min-width: 52px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--brand-primary);
+            border: none;
+            border-radius: 14px;
+            cursor: pointer;
+            color: white;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+
+        .ai-hero-send-btn:hover {
+            background: #0f766e;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(13, 148, 136, 0.3);
+        }
+
+        .ai-hero-send-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .ai-hero-chips {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .ai-hero-chip-row {
+            display: flex;
+            flex-wrap: nowrap;
+            gap: 8px;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            padding-bottom: 4px;
+        }
+
+        .ai-hero-chip-row::-webkit-scrollbar {
+            display: none;
+        }
+
+        /* ===== STATS STRIP ===== */
+        .dashboard-glance {
+            margin-bottom: 16px;
+        }
+
+        .stats-strip {
+            display: flex;
+            align-items: center;
+            gap: 0;
+            padding: 12px 20px;
+            background: white;
+            border-radius: 14px;
+            border: 1px solid var(--gray-100);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            margin-bottom: 16px;
+        }
+
+        .stats-strip::-webkit-scrollbar {
+            display: none;
+        }
+
+        [data-theme="dark"] .stats-strip {
+            background: #1e293b;
+            border-color: #334155;
+        }
+
+        .stats-strip-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 14px;
+            white-space: nowrap;
+            text-decoration: none;
+            color: inherit;
+            transition: background 0.15s;
+            border-radius: 8px;
+        }
+
+        .stats-strip-item:hover {
+            background: var(--gray-50);
+        }
+
+        [data-theme="dark"] .stats-strip-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .stats-strip-number {
+            font-size: 1.125rem;
+            font-weight: 700;
+            color: var(--gray-900);
+        }
+
+        [data-theme="dark"] .stats-strip-number {
+            color: #f1f5f9;
+        }
+
+        .stats-strip-number--pending {
+            color: var(--brand-primary);
+        }
+
+        .stats-strip-label {
+            font-size: 0.8125rem;
+            color: var(--gray-500);
+            font-weight: 500;
+        }
+
+        .stats-strip-divider {
+            width: 1px;
+            height: 24px;
+            background: var(--gray-200);
+            flex-shrink: 0;
+        }
+
+        [data-theme="dark"] .stats-strip-divider {
+            background: #334155;
+        }
+
+        /* ===== STORIES COMPACT ===== */
+        .stories-compact {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 18px;
+            background: white;
+            border-radius: 14px;
+            border: 1px solid var(--gray-100);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+            margin-bottom: 16px;
+        }
+
+        [data-theme="dark"] .stories-compact {
+            background: #1e293b;
+            border-color: #334155;
+        }
+
+        .stories-compact-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--gray-500);
+        }
+
+        .stories-compact-label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--gray-700);
+        }
+
+        [data-theme="dark"] .stories-compact-label {
+            color: #cbd5e1;
+        }
+
+        .stories-compact-count {
+            font-size: 0.8rem;
+            color: var(--gray-400);
+        }
+
+        .stories-compact-actions {
+            display: flex;
+            gap: 6px;
+        }
+
+        .stories-compact-btn {
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--gray-50);
+            border: 1px solid var(--gray-200);
+            border-radius: 10px;
+            cursor: pointer;
+            color: var(--gray-500);
+            transition: all 0.15s;
+        }
+
+        .stories-compact-btn:hover {
+            background: var(--brand-primary);
+            border-color: var(--brand-primary);
+            color: white;
+        }
+
+        [data-theme="dark"] .stories-compact-btn {
+            background: #0f172a;
+            border-color: #334155;
+            color: #94a3b8;
+        }
+
+        [data-theme="dark"] .stories-compact-btn:hover {
+            background: var(--brand-primary);
+            border-color: var(--brand-primary);
+            color: white;
+        }
+
+        /* ===== MY STORIES COLLAPSED ===== */
+        .my-stories-collapsed .my-stories-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 18px;
+            cursor: pointer;
+            transition: background 0.15s;
+            border-radius: 14px;
+        }
+
+        .my-stories-collapsed .my-stories-toggle:hover {
+            background: var(--gray-50);
+        }
+
+        [data-theme="dark"] .my-stories-collapsed .my-stories-toggle:hover {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .my-stories-toggle-label {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--gray-600);
+        }
+
+        [data-theme="dark"] .my-stories-toggle-label {
+            color: #94a3b8;
+        }
+
+        .my-stories-toggle-count {
+            font-size: 0.8rem;
+            color: var(--gray-400);
+        }
+
+        .my-stories-chevron {
+            margin-left: auto;
+            color: var(--gray-400);
+            transition: transform 0.2s;
+        }
+
+        .my-stories-section:not(.my-stories-collapsed) .my-stories-chevron {
+            transform: rotate(180deg);
+        }
+
+        .my-stories-collapsible {
+            padding: 0 18px 12px;
+        }
+
+        /* ===== CLIENT ACTIVITY COLLAPSED ===== */
+        .cag-collapsed .cag-list-collapsible {
+            display: none;
+        }
+
+        .cag-chevron {
+            color: var(--gray-400);
+            transition: transform 0.2s;
+            flex-shrink: 0;
+        }
+
+        .cag-section:not(.cag-collapsed) .cag-chevron {
+            transform: rotate(180deg);
+        }
+
         /* Stat card bell icon */
         .stat-bell {
             position: absolute;
@@ -2682,6 +3007,66 @@
             .story-card-preview {
                 height: 120px;
             }
+
+            .ai-hero-input {
+                padding: 14px 16px;
+                font-size: 0.9375rem;
+                border-radius: 14px;
+            }
+
+            .ai-hero-send-btn,
+            .ai-hero-mic {
+                width: 48px;
+                height: 48px;
+                min-width: 48px;
+                border-radius: 12px;
+            }
+
+            .stats-strip {
+                padding: 10px 14px;
+                gap: 0;
+                border-radius: 12px;
+            }
+
+            .stats-strip-item {
+                padding: 4px 10px;
+            }
+
+            .stats-strip-number {
+                font-size: 1rem;
+            }
+
+            .stats-strip-label {
+                font-size: 0.75rem;
+            }
+
+            .stories-compact {
+                padding: 10px 14px;
+                border-radius: 12px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .stats-strip {
+                padding: 8px 10px;
+            }
+
+            .stats-strip-item {
+                padding: 4px 8px;
+                gap: 4px;
+            }
+
+            .stats-strip-number {
+                font-size: 0.9375rem;
+            }
+
+            .stats-strip-label {
+                font-size: 0.6875rem;
+            }
+
+            .stats-strip-divider {
+                height: 18px;
+            }
         }
 
         /* Dark mode for onboarding */
@@ -3762,10 +4147,70 @@
                 </button>
             </div>
 
-            <div class="welcome-section">
-                <div class="welcome-card">
-                    <span id="tierBadge" class="tier-badge">LOADING</span>
-                    <h1>Coach Overview</h1>
+            <!-- AI Hero Section - The primary interface -->
+            <div class="ai-hero-section">
+                <div class="ai-hero-prompt-box">
+                    <input type="text" id="heroAiInput" class="ai-hero-input" placeholder="Ask anything about your clients..." autocomplete="off">
+                    <button type="button" id="heroVttBtn" class="vtt-mic-btn ai-hero-mic" title="Voice input" onclick="VoiceToText.toggle(document.getElementById('heroAiInput'), this)">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                    </button>
+                    <button class="ai-hero-send-btn" onclick="askHeroAI()">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                    </button>
+                </div>
+                <div class="ai-hero-chips">
+                    <div class="ai-hero-chip-row">
+                        <button class="hero-chip" onclick="askQuickQuestion('Which clients hit new PRs this week?')">PRs this week</button>
+                        <button class="hero-chip" onclick="askQuickQuestion('Who hasn\'t logged a workout this week?')">Inactive clients</button>
+                        <button class="hero-chip" onclick="askQuickQuestion('Which clients are at risk of dropping off based on activity and check-ins?')">At risk</button>
+                        <button class="hero-chip" onclick="askQuickQuestion('Which clients have a workout program ending this week?')">Programs ending</button>
+                        <button class="hero-chip" onclick="askQuickQuestion('Give me a weekly summary of all client activity, check-ins, workouts, PRs, and anything that needs my attention')">Weekly summary</button>
+                    </div>
+                </div>
+                <div class="hero-ai-response" id="aiResponseArea" style="display:none;">
+                    <p class="ai-response-placeholder"></p>
+                </div>
+            </div>
+
+            <!-- Compact stats + priority row -->
+            <div class="dashboard-glance">
+                <!-- Inline stats strip -->
+                <div class="stats-strip">
+                    <a href="manage-clients.html" class="stats-strip-item" title="View all clients">
+                        <span class="stats-strip-number" id="clientCount">-</span>
+                        <span class="stats-strip-label">Clients</span>
+                    </a>
+                    <div class="stats-strip-divider"></div>
+                    <div class="stats-strip-item" style="cursor:pointer" onclick="document.getElementById('priorityAlerts').scrollIntoView({behavior:'smooth'})" title="View pending check-ins">
+                        <span class="stats-strip-number stats-strip-number--pending" id="checkInCount">-</span>
+                        <span class="stats-strip-label">Check-Ins</span>
+                    </div>
+                    <div class="stats-strip-divider"></div>
+                    <div class="stats-strip-item" title="Completed workouts this week">
+                        <span class="stats-strip-number" id="statWorkouts">-</span>
+                        <span class="stats-strip-label">Workouts</span>
+                    </div>
+                    <div class="stats-strip-divider"></div>
+                    <div class="stats-strip-item" title="New PRs this week">
+                        <span class="stats-strip-number" id="statPRs">-</span>
+                        <span class="stats-strip-label">PRs</span>
+                    </div>
+                    <div class="stats-strip-divider"></div>
+                    <div class="stats-strip-item" title="Workout adherence rate">
+                        <span class="stats-strip-number" id="statAdherence">-</span>
+                        <span class="stats-strip-label">Adherence</span>
+                    </div>
+                    <div class="stats-strip-divider"></div>
+                    <div class="stats-strip-item" title="Active clients rate">
+                        <span class="stats-strip-number" id="statActiveRate">-</span>
+                        <span class="stats-strip-label">Active</span>
+                    </div>
+                </div>
+
+                <!-- Today's Priority - compact -->
+                <div class="welcome-section" style="margin-bottom: 0;">
+                <div class="welcome-card" style="grid-column: 1 / -1;">
+                    <span id="tierBadge" class="tier-badge" style="margin-bottom: 8px;">LOADING</span>
                     <div class="action-center" id="actionCenter">
                         <div class="action-center-heading">Today's Priority</div>
                         <div class="priority-alerts" id="priorityAlerts">
@@ -3776,78 +4221,23 @@
                         </div>
                         <a href="manage-clients.html" class="action-center-link">View Clients</a>
                     </div>
-                    <!-- AI Search integrated into hero -->
-                    <div class="hero-ai-search">
-                        <div class="hero-ai-prompt-box">
-                            <input type="text" id="heroAiInput" class="hero-ai-input" placeholder="Ask anything about your clients..." autocomplete="off">
-                            <button type="button" id="heroVttBtn" class="vtt-mic-btn" title="Voice input" onclick="VoiceToText.toggle(document.getElementById('heroAiInput'), this)">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-                            </button>
-                            <button class="hero-ai-search-btn" onclick="askHeroAI()">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-                            </button>
-                        </div>
-                        <div class="hero-ai-chips">
-                            <div class="hero-ai-chip-row">
-                                <button class="hero-chip" onclick="askQuickQuestion('Which clients hit new PRs this week?')">PRs this week</button>
-                                <button class="hero-chip" onclick="askQuickQuestion('Who hasn\'t logged a workout this week?')">Inactive clients</button>
-                                <button class="hero-chip" onclick="askQuickQuestion('Which clients are at risk of dropping off based on activity and check-ins?')">At risk</button>
-                                <button class="hero-chip" onclick="askQuickQuestion('Which clients have a workout program ending this week?')">Programs ending</button>
-                                <button class="hero-chip" onclick="askQuickQuestion('Give me a weekly summary of all client activity, check-ins, workouts, PRs, and anything that needs my attention')">Weekly summary</button>
-                            </div>
-                        </div>
-                        <div class="hero-ai-response" id="aiResponseArea" style="display:none;">
-                            <p class="ai-response-placeholder"></p>
-                        </div>
-                    </div>
                 </div>
-                <div class="stats-grid">
-                    <div class="stat-card" style="cursor:pointer" onclick="window.location.href='manage-clients.html'" title="View all clients">
-                        <div class="stat-number" id="clientCount">-</div>
-                        <div class="stat-label">Active Clients</div>
-                        <div class="stat-bell">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                        </div>
-                    </div>
-                    <div class="stat-card stat-card--pending" style="cursor:pointer" onclick="document.getElementById('priorityAlerts').scrollIntoView({behavior:'smooth'})" title="View pending check-ins below">
-                        <div class="stat-number" id="checkInCount">-</div>
-                        <div class="stat-label">Check-Ins Pending</div>
-                        <div class="stat-bell">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Extended Stats Row -->
-                <div class="stats-grid-extended" id="extendedStats">
-                    <div class="stat-mini" title="Total completed workouts across all clients this week">
-                        <div class="stat-mini-number" id="statWorkouts">-</div>
-                        <div class="stat-mini-label">Completed Workouts</div>
-                    </div>
-                    <div class="stat-mini" title="Total new personal records set by all clients this week">
-                        <div class="stat-mini-number" id="statPRs">-</div>
-                        <div class="stat-mini-label">New PRs This Week</div>
-                    </div>
-                    <div class="stat-mini" title="Percentage of clients who completed at least one workout this week">
-                        <div class="stat-mini-number" id="statAdherence">-</div>
-                        <div class="stat-mini-label">Adherence Rate</div>
-                    </div>
-                    <div class="stat-mini" title="Percentage of clients with at least one completed workout this week">
-                        <div class="stat-mini-number" id="statActiveRate">-</div>
-                        <div class="stat-mini-label">Clients Active</div>
-                    </div>
                 </div>
             </div>
 
-            <!-- Client Activity At-a-Glance -->
-            <div class="cag-section" id="clientActivityGrid">
-                <div class="cag-header">
+            <!-- extendedStats container kept for JS compatibility -->
+            <div id="extendedStats" style="display:none;"></div>
+
+            <!-- Client Activity At-a-Glance - Collapsed by default -->
+            <div class="cag-section cag-collapsed" id="clientActivityGrid">
+                <div class="cag-header" onclick="toggleClientActivity()" style="cursor: pointer;">
                     <div>
                         <div class="cag-title">Client Activity</div>
                         <div class="cag-subtitle">Active clients — last 7 days</div>
                     </div>
+                    <svg class="cag-chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
                 </div>
-                <div class="cag-list" id="cagList">
+                <div class="cag-list cag-list-collapsible" id="cagList" style="display: none;">
                     <div class="cag-empty">Loading client activity...</div>
                 </div>
             </div>
@@ -3898,33 +4288,23 @@
                 </div>
             </div>
 
-            <!-- Coach Stories Section -->
-            <div class="coach-stories-creator" id="coachStoriesCreator">
-                <div class="stories-creator-header">
-                    <div class="stories-creator-title">
-                        <span class="stories-icon"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></span>
-                        <h2>Client Stories</h2>
-                    </div>
-                    <span class="stories-subtitle">Share updates with all your clients (expires in 24h)</span>
+            <!-- Coach Stories - Compact inline row -->
+            <div class="stories-compact" id="coachStoriesCreator">
+                <div class="stories-compact-left">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                    <span class="stories-compact-label">Stories</span>
+                    <span class="stories-compact-count" id="activeStoriesPreview"></span>
                 </div>
-                <div class="stories-creator-content">
-                    <div class="story-type-buttons">
-                        <button class="story-type-btn" onclick="openStoryCreator('image')">
-                            <span class="type-icon"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></span>
-                            <span class="type-label">Photo</span>
-                        </button>
-                        <button class="story-type-btn" onclick="openStoryCreator('quote')">
-                            <span class="type-icon"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>
-                            <span class="type-label">Quote</span>
-                        </button>
-                        <button class="story-type-btn" onclick="openStoryCreator('link')">
-                            <span class="type-icon"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></span>
-                            <span class="type-label">Link</span>
-                        </button>
-                    </div>
-                    <div class="active-stories" id="activeStoriesPreview">
-                        <!-- Shows current active stories count -->
-                    </div>
+                <div class="stories-compact-actions">
+                    <button class="stories-compact-btn" onclick="openStoryCreator('image')" title="Share photo">
+                        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                    </button>
+                    <button class="stories-compact-btn" onclick="openStoryCreator('quote')" title="Share quote">
+                        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                    </button>
+                    <button class="stories-compact-btn" onclick="openStoryCreator('link')" title="Share link">
+                        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                    </button>
                 </div>
             </div>
 
@@ -3972,28 +4352,20 @@
                 </div>
             </div>
 
-            <!-- My Stories Management Section -->
-            <div class="my-stories-section" id="myStoriesSection">
-                <div class="my-stories-header">
-                    <div class="my-stories-title">
-                        <span class="stories-icon"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg></span>
-                        <h2>My Stories</h2>
-                    </div>
-                    <div class="my-stories-actions">
-                        <button class="refresh-stories-btn" onclick="loadMyStories()" title="Refresh">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
-                            </svg>
-                        </button>
-                    </div>
+            <!-- My Stories - Hidden by default, toggled from compact row -->
+            <div class="my-stories-section my-stories-collapsed" id="myStoriesSection">
+                <div class="my-stories-toggle" onclick="toggleMyStories()">
+                    <span class="my-stories-toggle-label">My Active Stories</span>
+                    <span class="my-stories-toggle-count" id="myStoriesCount"></span>
+                    <svg class="my-stories-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
                 </div>
-                <div class="my-stories-grid" id="myStoriesGrid">
-                    <div class="stories-loading">Loading your stories...</div>
-                </div>
-                <div class="my-stories-empty" id="myStoriesEmpty" style="display: none;">
-                    <span class="empty-icon">📭</span>
-                    <p>No active stories</p>
-                    <span class="empty-hint">Create a story above to share with your clients!</span>
+                <div class="my-stories-collapsible" id="myStoriesCollapsible" style="display: none;">
+                    <div class="my-stories-grid" id="myStoriesGrid">
+                        <div class="stories-loading">Loading your stories...</div>
+                    </div>
+                    <div class="my-stories-empty" id="myStoriesEmpty" style="display: none;">
+                        <p style="color: var(--gray-400); font-size: 0.875rem; text-align: center; padding: 12px 0;">No active stories</p>
+                    </div>
                 </div>
             </div>
 
@@ -4028,40 +4400,7 @@
                 </div>
             </div>
 
-            <!-- Quick Actions Grid -->
-            <div class="cards-section-header">
-                <h2 class="cards-section-title">Quick Actions</h2>
-            </div>
-            <div class="quick-actions-grid">
-                <a href="manage-clients.html" class="quick-action-tile">
-                    <div class="quick-action-icon"><svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
-                    <div class="quick-action-label">My Clients</div>
-                </a>
-                <a href="planner.html" class="quick-action-tile">
-                    <div class="quick-action-icon"><svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></div>
-                    <div class="quick-action-label">Meal Planner</div>
-                </a>
-                <a href="coach-workouts.html" class="quick-action-tile">
-                    <div class="quick-action-icon"><svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M6.5 6.5h11M6.5 17.5h11M2 12h2M20 12h2M6 6.5V4M6 20v-2.5M18 6.5V4M18 20v-2.5M6 6.5a1.5 1.5 0 0 0-1.5 1.5v8A1.5 1.5 0 0 0 6 17.5M18 6.5a1.5 1.5 0 0 1 1.5 1.5v8a1.5 1.5 0 0 1-1.5 1.5"/></svg></div>
-                    <div class="quick-action-label">Workouts</div>
-                </a>
-                <a href="supplement-protocols.html" class="quick-action-tile">
-                    <div class="quick-action-icon"><svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M10.5 1.5H8.25A2.25 2.25 0 0 0 6 3.75v16.5a2.25 2.25 0 0 0 2.25 2.25h7.5A2.25 2.25 0 0 0 18 20.25V3.75a2.25 2.25 0 0 0-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3"/></svg></div>
-                    <div class="quick-action-label">Supplements</div>
-                </a>
-                <a href="reminder-settings.html" class="quick-action-tile">
-                    <div class="quick-action-icon"><svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div>
-                    <div class="quick-action-label">Reminders</div>
-                </a>
-                <a href="branding-settings.html" class="quick-action-tile" id="brandingTile" style="display: none;">
-                    <div class="quick-action-icon"><svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><circle cx="13.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="10.5" r="1.5"/><circle cx="8.5" cy="7.5" r="1.5"/><circle cx="6.5" cy="12" r="1.5"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg></div>
-                    <div class="quick-action-label">Branding</div>
-                </a>
-                <a href="client-feed.html" class="quick-action-tile">
-                    <div class="quick-action-icon"><svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>
-                    <div class="quick-action-label">Client Feed</div>
-                </a>
-            </div>
+            <!-- Quick Actions removed - all accessible via sidebar navigation -->
         </div>
         </div>
 
@@ -5848,11 +6187,26 @@
             }
         }
 
+        // Toggle functions for collapsible sections
+        function toggleClientActivity() {
+            const section = document.getElementById('clientActivityGrid');
+            const list = document.getElementById('cagList');
+            section.classList.toggle('cag-collapsed');
+            list.style.display = section.classList.contains('cag-collapsed') ? 'none' : '';
+        }
+
+        function toggleMyStories() {
+            const section = document.getElementById('myStoriesSection');
+            const collapsible = document.getElementById('myStoriesCollapsible');
+            section.classList.toggle('my-stories-collapsed');
+            collapsible.style.display = section.classList.contains('my-stories-collapsed') ? 'none' : '';
+        }
+
         // AI Client Assistant functions (uses hero search input)
         async function askAIAssistant() {
             const input = document.getElementById('heroAiInput');
             const responseArea = document.getElementById('aiResponseArea');
-            const searchBtn = document.querySelector('.hero-ai-search-btn');
+            const searchBtn = document.querySelector('.ai-hero-send-btn');
             const question = input.value.trim();
 
             if (!question) return;
