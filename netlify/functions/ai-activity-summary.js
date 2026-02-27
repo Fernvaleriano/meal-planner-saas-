@@ -92,7 +92,7 @@ exports.handler = async (event, context) => {
     // Fetch recent check-ins (last 7 days)
     const { data: recentCheckins, error: checkinsError } = await supabase
       .from('client_checkins')
-      .select('id, client_id, checkin_date, energy_level, stress_level, meal_plan_adherence, request_new_diet, diet_request_reason, created_at')
+      .select('id, client_id, checkin_date, energy_level, stress_level, sleep_quality, hunger_level, meal_plan_adherence, wins, challenges, questions, request_new_diet, diet_request_reason, created_at')
       .eq('coach_id', coachId)
       .gte('created_at', sevenDaysAgo.toISOString())
       .order('created_at', { ascending: false });
@@ -103,7 +103,7 @@ exports.handler = async (event, context) => {
 
     // Fetch food diary entries to check engagement
     const { data: diaryEntries, error: diaryError } = await supabase
-      .from('food_diary')
+      .from('food_diary_entries')
       .select('id, client_id, created_at')
       .in('client_id', clients.map(c => c.id))
       .gte('created_at', sevenDaysAgo.toISOString());
@@ -596,7 +596,7 @@ async function handleQuestion(event) {
           .limit(10),
         supabase
           .from('client_measurements')
-          .select('weight, weight_unit, body_fat, chest, waist, hips, arms, thighs, created_at')
+          .select('weight, weight_unit, body_fat_percentage, chest, waist, hips, left_arm, right_arm, left_thigh, right_thigh, measurement_unit, created_at')
           .eq('client_id', coachId)
           .order('created_at', { ascending: false })
           .limit(5),
@@ -625,7 +625,7 @@ async function handleQuestion(event) {
             .limit(10),
           supabase
             .from('client_measurements')
-            .select('weight, weight_unit, body_fat, chest, waist, hips, arms, thighs, created_at')
+            .select('weight, weight_unit, body_fat_percentage, chest, waist, hips, left_arm, right_arm, left_thigh, right_thigh, measurement_unit, created_at')
             .eq('client_id', coachClient.id)
             .order('created_at', { ascending: false })
             .limit(5)
@@ -682,20 +682,20 @@ async function handleQuestion(event) {
       // Check-ins (14 days)
       supabase
         .from('client_checkins')
-        .select('id, client_id, checkin_date, energy_level, stress_level, meal_plan_adherence, request_new_diet, diet_request_reason, created_at')
+        .select('id, client_id, checkin_date, energy_level, stress_level, sleep_quality, hunger_level, meal_plan_adherence, wins, challenges, questions, request_new_diet, diet_request_reason, created_at')
         .eq('coach_id', coachId)
         .gte('created_at', fourteenDaysAgo.toISOString())
         .order('created_at', { ascending: false }),
-      // Food diary counts (7 days)
+      // Food diary entry counts (7 days)
       supabase
-        .from('food_diary')
+        .from('food_diary_entries')
         .select('id, client_id, created_at')
         .in('client_id', clientIds)
         .gte('created_at', sevenDaysAgo.toISOString()),
       // Food diary entries with macros (7 days)
       supabase
         .from('food_diary_entries')
-        .select('id, client_id, food_name, calories, protein, carbs, fat, created_at')
+        .select('id, client_id, food_name, meal_type, calories, protein, carbs, fat, created_at')
         .in('client_id', clientIds)
         .gte('created_at', sevenDaysAgo.toISOString())
         .order('created_at', { ascending: false })
@@ -732,7 +732,7 @@ async function handleQuestion(event) {
       // Body measurements - most recent per client (no time limit) + 30-day history for trends
       supabase
         .from('client_measurements')
-        .select('id, client_id, weight, weight_unit, body_fat, chest, waist, hips, arms, thighs, created_at')
+        .select('id, client_id, weight, weight_unit, body_fat_percentage, chest, waist, hips, left_arm, right_arm, left_thigh, right_thigh, measurement_unit, created_at')
         .in('client_id', clientIds)
         .order('created_at', { ascending: false })
         .limit(500),
@@ -743,16 +743,16 @@ async function handleQuestion(event) {
         .in('client_id', clientIds)
         .order('created_at', { ascending: false })
         .limit(500),
-      // Supplement intake (7 days)
+      // Supplement intake (7 days) - join with protocols to get supplement name
       supabase
         .from('supplement_intake')
-        .select('id, client_id, supplement_name, taken, created_at')
+        .select('id, client_id, protocol_id, date, taken_at, created_at, client_protocols(name)')
         .in('client_id', clientIds)
-        .gte('created_at', sevenDaysAgo.toISOString()),
-      // Supplement protocols
+        .gte('date', sevenDaysAgo.toISOString().split('T')[0]),
+      // Supplement protocols (name, timing, dose per protocol)
       supabase
         .from('client_protocols')
-        .select('id, client_id, supplements')
+        .select('id, client_id, name, timing, dose')
         .in('client_id', clientIds),
       // Calorie/macro goals
       supabase
@@ -878,7 +878,7 @@ async function handleQuestion(event) {
       const activePlan = clientMealPlans.find(p => p.status === 'published' || p.status === 'active');
 
       // Supplements
-      const clientProtocol = protocols.find(p => p.client_id === client.id);
+      const clientProtocols = protocols.filter(p => p.client_id === client.id);
       const clientSupplementIntake = supplementIntake.filter(s => s.client_id === client.id);
 
       return {
@@ -893,7 +893,12 @@ async function handleQuestion(event) {
           date: latestCheckin.checkin_date,
           energy: latestCheckin.energy_level,
           stress: latestCheckin.stress_level,
+          sleep: latestCheckin.sleep_quality,
+          hunger: latestCheckin.hunger_level,
           adherence: latestCheckin.meal_plan_adherence,
+          wins: latestCheckin.wins,
+          challenges: latestCheckin.challenges,
+          questions: latestCheckin.questions,
           requestedDiet: latestCheckin.request_new_diet,
           dietReason: latestCheckin.diet_request_reason
         } : null,
@@ -922,17 +927,23 @@ async function handleQuestion(event) {
             : null,
           latestMeasurement: latestMeasurement ? {
             date: latestMeasurement.created_at,
-            bodyFat: latestMeasurement.body_fat,
+            bodyFat: latestMeasurement.body_fat_percentage,
             waist: latestMeasurement.waist,
             chest: latestMeasurement.chest,
-            arms: latestMeasurement.arms
+            hips: latestMeasurement.hips,
+            leftArm: latestMeasurement.left_arm,
+            rightArm: latestMeasurement.right_arm,
+            leftThigh: latestMeasurement.left_thigh,
+            rightThigh: latestMeasurement.right_thigh,
+            measurementUnit: latestMeasurement.measurement_unit || 'in'
           } : null
         },
         mealPlan: activePlan ? { name: activePlan.plan_name, calories: activePlan.daily_calories, endDate: activePlan.end_date } : null,
         supplements: {
-          protocol: clientProtocol?.supplements ? (Array.isArray(clientProtocol.supplements) ? clientProtocol.supplements.length : 0) : 0,
-          takenThisWeek: clientSupplementIntake.filter(s => s.taken).length,
-          totalThisWeek: clientSupplementIntake.length
+          protocolCount: clientProtocols.length,
+          protocolNames: clientProtocols.map(p => p.name).filter(Boolean),
+          takenThisWeek: clientSupplementIntake.length,
+          totalExpectedThisWeek: clientProtocols.length * 7
         }
       };
     });
@@ -976,9 +987,17 @@ async function handleQuestion(event) {
 
       // Check-in data
       if (c.latestCheckin) {
-        if (c.latestCheckin.stress >= 8) parts.push(`high stress (${c.latestCheckin.stress}/10)`);
-        if (c.latestCheckin.energy <= 3) parts.push(`low energy (${c.latestCheckin.energy}/10)`);
-        if (c.latestCheckin.adherence) parts.push(`${c.latestCheckin.adherence}% meal adherence`);
+        const checkinDate = c.latestCheckin.date ? new Date(c.latestCheckin.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
+        let checkinParts = [];
+        if (c.latestCheckin.energy) checkinParts.push(`energy: ${c.latestCheckin.energy}/5`);
+        if (c.latestCheckin.stress) checkinParts.push(`stress: ${c.latestCheckin.stress}/5`);
+        if (c.latestCheckin.sleep) checkinParts.push(`sleep: ${c.latestCheckin.sleep}/5`);
+        if (c.latestCheckin.hunger) checkinParts.push(`hunger: ${c.latestCheckin.hunger}/5`);
+        if (c.latestCheckin.adherence) checkinParts.push(`meal adherence: ${c.latestCheckin.adherence}%`);
+        if (checkinParts.length > 0) parts.push(`check-in (${checkinDate}): ${checkinParts.join(', ')}`);
+        if (c.latestCheckin.wins) parts.push(`wins: "${c.latestCheckin.wins}"`);
+        if (c.latestCheckin.challenges) parts.push(`challenges: "${c.latestCheckin.challenges}"`);
+        if (c.latestCheckin.questions) parts.push(`questions: "${c.latestCheckin.questions}"`);
         if (c.latestCheckin.requestedDiet) parts.push(`requested new diet${c.latestCheckin.dietReason ? ': ' + c.latestCheckin.dietReason : ''}`);
       }
 
@@ -1028,11 +1047,16 @@ async function handleQuestion(event) {
       }
       if (c.body.latestMeasurement) {
         const mDate = c.body.latestMeasurement.date ? new Date(c.body.latestMeasurement.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
+        const mUnit = c.body.latestMeasurement.measurementUnit || 'in';
         let mParts = [];
         if (c.body.latestMeasurement.bodyFat) mParts.push(`body fat: ${c.body.latestMeasurement.bodyFat}%`);
-        if (c.body.latestMeasurement.waist) mParts.push(`waist: ${c.body.latestMeasurement.waist}`);
-        if (c.body.latestMeasurement.chest) mParts.push(`chest: ${c.body.latestMeasurement.chest}`);
-        if (c.body.latestMeasurement.arms) mParts.push(`arms: ${c.body.latestMeasurement.arms}`);
+        if (c.body.latestMeasurement.waist) mParts.push(`waist: ${c.body.latestMeasurement.waist}${mUnit}`);
+        if (c.body.latestMeasurement.chest) mParts.push(`chest: ${c.body.latestMeasurement.chest}${mUnit}`);
+        if (c.body.latestMeasurement.hips) mParts.push(`hips: ${c.body.latestMeasurement.hips}${mUnit}`);
+        if (c.body.latestMeasurement.leftArm) mParts.push(`L arm: ${c.body.latestMeasurement.leftArm}${mUnit}`);
+        if (c.body.latestMeasurement.rightArm) mParts.push(`R arm: ${c.body.latestMeasurement.rightArm}${mUnit}`);
+        if (c.body.latestMeasurement.leftThigh) mParts.push(`L thigh: ${c.body.latestMeasurement.leftThigh}${mUnit}`);
+        if (c.body.latestMeasurement.rightThigh) mParts.push(`R thigh: ${c.body.latestMeasurement.rightThigh}${mUnit}`);
         if (mParts.length > 0) {
           parts.push(`measurements${mDate ? ` (${mDate})` : ''}: ${mParts.join(', ')}`);
         }
@@ -1044,8 +1068,8 @@ async function handleQuestion(event) {
       }
 
       // Supplements
-      if (c.supplements.protocol > 0) {
-        parts.push(`supplements: ${c.supplements.takenThisWeek}/${c.supplements.totalThisWeek} taken this week`);
+      if (c.supplements.protocolCount > 0) {
+        parts.push(`supplements (${c.supplements.protocolNames.join(', ')}): ${c.supplements.takenThisWeek}/${c.supplements.totalExpectedThisWeek} taken this week`);
       }
 
       return `- ${c.name}: ${parts.join(', ')}`;
@@ -1082,13 +1106,16 @@ async function handleQuestion(event) {
       if (coachSelfData.latestMeasurement) {
         const m = coachSelfData.latestMeasurement;
         const mDate = new Date(m.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        const mUnit = m.measurement_unit || 'in';
         let mParts = [`Measurements (${mDate}):`];
-        if (m.body_fat) mParts.push(`body fat ${m.body_fat}%`);
-        if (m.chest) mParts.push(`chest ${m.chest}`);
-        if (m.waist) mParts.push(`waist ${m.waist}`);
-        if (m.hips) mParts.push(`hips ${m.hips}`);
-        if (m.arms) mParts.push(`arms ${m.arms}`);
-        if (m.thighs) mParts.push(`thighs ${m.thighs}`);
+        if (m.body_fat_percentage) mParts.push(`body fat ${m.body_fat_percentage}%`);
+        if (m.chest) mParts.push(`chest ${m.chest}${mUnit}`);
+        if (m.waist) mParts.push(`waist ${m.waist}${mUnit}`);
+        if (m.hips) mParts.push(`hips ${m.hips}${mUnit}`);
+        if (m.left_arm) mParts.push(`L arm ${m.left_arm}${mUnit}`);
+        if (m.right_arm) mParts.push(`R arm ${m.right_arm}${mUnit}`);
+        if (m.left_thigh) mParts.push(`L thigh ${m.left_thigh}${mUnit}`);
+        if (m.right_thigh) mParts.push(`R thigh ${m.right_thigh}${mUnit}`);
         parts.push(mParts.join(', '));
       }
       coachSelfContext = `\nYOUR DATA (the coach asking this question):
