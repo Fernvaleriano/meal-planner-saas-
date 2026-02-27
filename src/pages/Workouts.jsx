@@ -1163,6 +1163,25 @@ function Workouts() {
     }
   }, [weekDates]);
 
+  // Navigate to a specific date - updates both the selected date and the week view
+  const navigateToDate = useCallback((date) => {
+    try {
+      if (!date || !(date instanceof Date) || isNaN(date.getTime())) return;
+      setSelectedDate(date);
+      // Update week view to the week containing the target date
+      const targetWeek = getWeekDates(date);
+      const currentWeekStart = weekDates && weekDates.length > 0 ? formatDate(weekDates[0]) : null;
+      const targetWeekStart = targetWeek.length > 0 ? formatDate(targetWeek[0]) : null;
+      if (currentWeekStart !== targetWeekStart) {
+        setWeekDates(targetWeek);
+      }
+      // Scroll to top so the user sees the loaded workout
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (e) {
+      console.error('Error navigating to date:', e);
+    }
+  }, [weekDates]);
+
   // Toggle exercise completion - persists to workout_data so it survives navigation and app close
   const toggleExerciseComplete = useCallback(async (exerciseId) => {
     if (!exerciseId) return;
@@ -3422,7 +3441,7 @@ function Workouts() {
                         <button
                           key={item.dateStr}
                           className="upcoming-item"
-                          onClick={() => setSelectedDate(item.date)}
+                          onClick={() => navigateToDate(item.date)}
                         >
                           <div className="upcoming-day-badge">
                             <span className="upcoming-day-name">{getDayName(item.date)}</span>
@@ -3496,7 +3515,7 @@ function Workouts() {
                         <button
                           key={item.dateStr}
                           className="upcoming-item"
-                          onClick={() => setSelectedDate(item.date)}
+                          onClick={() => navigateToDate(item.date)}
                         >
                           <div className="upcoming-day-badge">
                             <span className="upcoming-day-name">{getDayName(item.date)}</span>
