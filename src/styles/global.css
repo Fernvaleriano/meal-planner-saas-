@@ -12472,7 +12472,7 @@ a.nav-left {
 .summary-stats-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 10px;
+    gap: 12px;
     margin: 24px 0;
 }
 
@@ -12485,10 +12485,6 @@ a.nav-left {
     align-items: flex-start;
 }
 
-.summary-stat-card.wide {
-    grid-column: 1;
-}
-
 .summary-stat-card.full {
     grid-column: 1 / -1;
 }
@@ -12498,10 +12494,6 @@ a.nav-left {
     font-weight: 700;
     color: white;
     line-height: 1.1;
-}
-
-.summary-stat-card .stat-value.secondary {
-    margin-top: 12px;
 }
 
 .summary-stat-card .stat-label {
@@ -12697,7 +12689,7 @@ a.nav-left {
     justify-content: space-around;
     padding: 16px 0;
     flex-wrap: wrap;
-    gap: 12px;
+    gap: 20px;
 }
 
 .share-stat {

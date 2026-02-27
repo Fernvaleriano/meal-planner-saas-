@@ -3871,10 +3871,12 @@ function Workouts() {
               <p className="summary-subtitle">Training finished</p>
             </div>
             <div className="summary-stats-grid">
-              <div className="summary-stat-card wide">
+              <div className="summary-stat-card">
                 <span className="stat-value">{formatDuration(workoutDuration || estimateWorkoutMinutes(exercises) || todayWorkout?.workout_data?.estimatedMinutes || 45)}</span>
                 <span className="stat-label">Duration</span>
-                <span className="stat-value secondary">{estimatedCalories}</span>
+              </div>
+              <div className="summary-stat-card">
+                <span className="stat-value">{estimatedCalories}</span>
                 <span className="stat-label">Calories</span>
               </div>
               <div className="summary-stat-card">
