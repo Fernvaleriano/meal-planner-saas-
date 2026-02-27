@@ -900,15 +900,31 @@ async function handleQuestion(event) {
       };
     });
 
+    // Helper: convert date to relative time string (timezone-agnostic)
+    function timeAgo(date) {
+      const now = new Date();
+      const diffMs = now - date;
+      const diffMins = Math.floor(diffMs / 60000);
+      if (diffMins < 1) return 'just now';
+      if (diffMins < 60) return `${diffMins} minute${diffMins !== 1 ? 's' : ''} ago`;
+      const diffHours = Math.floor(diffMins / 60);
+      if (diffHours < 24) return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
+      const diffDays = Math.floor(diffHours / 24);
+      if (diffDays < 7) return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
+      const diffWeeks = Math.floor(diffDays / 7);
+      if (diffWeeks < 5) return `${diffWeeks} week${diffWeeks !== 1 ? 's' : ''} ago`;
+      const diffMonths = Math.floor(diffDays / 30);
+      return `${diffMonths} month${diffMonths !== 1 ? 's' : ''} ago`;
+    }
+
     // Build context string for AI
     const clientContext = clientData.map(c => {
       let parts = [];
 
-      // Activity status with actual timestamp
+      // Activity status with relative time (avoids timezone issues)
       if (c.lastActivityAt) {
         const actDate = new Date(c.lastActivityAt);
-        const actStr = actDate.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
-        parts.push(`last online: ${actStr}`);
+        parts.push(`last online: ${timeAgo(actDate)}`);
         if (c.isActive) parts.push('active this week');
         else parts.push(`inactive for ${c.daysSinceActivity} days`);
       } else {
