@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Home, NotebookPen, Utensils, User, LogOut, Activity } from 'lucide-react';
+import { Home, NotebookPen, Utensils, User, LogOut, Activity, Dumbbell } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 function DesktopSidebar() {
@@ -13,6 +13,7 @@ function DesktopSidebar() {
     { path: '/', icon: Home, label: 'Home' },
     { path: '/diary', icon: NotebookPen, label: 'Diary' },
     ...(isCoach ? [{ path: '/feed', icon: Activity, label: 'Client Feed' }] : []),
+    { path: '/workouts', icon: Dumbbell, label: 'Workouts' },
     { path: '/plans', icon: Utensils, label: 'Meal Plans' },
     { path: '/settings', icon: User, label: 'Profile' }
   ];
