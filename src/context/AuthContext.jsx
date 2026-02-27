@@ -26,8 +26,9 @@ const trackClientActivity = async (userId) => {
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
-  // Track if we've already tracked activity this session
-  const activityTrackedRef = useRef(false);
+  // Track last time we sent an activity ping (timestamp, not boolean)
+  const lastActivityPingRef = useRef(0);
+  const activityIntervalRef = useRef(null);
   // Initialize clientData from localStorage cache if available
   const [clientData, setClientData] = useState(() => {
     try {
@@ -205,9 +206,10 @@ export function AuthProvider({ children }) {
             if (session?.user && mounted) {
               setUser(session.user);
 
-              // Track client activity on app load (only once per session)
-              if (!activityTrackedRef.current) {
-                activityTrackedRef.current = true;
+              // Track client activity (throttled to every 5 minutes)
+              const now = Date.now();
+              if (now - lastActivityPingRef.current > 5 * 60 * 1000) {
+                lastActivityPingRef.current = now;
                 trackClientActivity(session.user.id);
               }
 
@@ -246,10 +248,13 @@ export function AuthProvider({ children }) {
         if (session?.user && mounted) {
           setUser(session.user);
 
-          // Track client activity on app load (only once per session)
-          if (!activityTrackedRef.current) {
-            activityTrackedRef.current = true;
-            trackClientActivity(session.user.id);
+          // Track client activity (throttled to every 5 minutes)
+          {
+            const now = Date.now();
+            if (now - lastActivityPingRef.current > 5 * 60 * 1000) {
+              lastActivityPingRef.current = now;
+              trackClientActivity(session.user.id);
+            }
           }
 
           // No cached data, wait for fetch to complete
@@ -279,6 +284,7 @@ export function AuthProvider({ children }) {
         setUser(session.user);
 
         // Track client activity on sign in
+        lastActivityPingRef.current = Date.now();
         trackClientActivity(session.user.id);
 
         const client = await fetchClientData(session.user.id);
@@ -294,6 +300,32 @@ export function AuthProvider({ children }) {
       subscription.unsubscribe();
     };
   }, [fetchClientData]);
+
+  // Periodic activity tracking - update last_activity_at every 5 minutes while app is open
+  useEffect(() => {
+    if (!user) {
+      if (activityIntervalRef.current) {
+        clearInterval(activityIntervalRef.current);
+        activityIntervalRef.current = null;
+      }
+      return;
+    }
+
+    activityIntervalRef.current = setInterval(() => {
+      const now = Date.now();
+      if (now - lastActivityPingRef.current > 5 * 60 * 1000) {
+        lastActivityPingRef.current = now;
+        trackClientActivity(user.id);
+      }
+    }, 5 * 60 * 1000); // Check every 5 minutes
+
+    return () => {
+      if (activityIntervalRef.current) {
+        clearInterval(activityIntervalRef.current);
+        activityIntervalRef.current = null;
+      }
+    };
+  }, [user]);
 
   // Apply theme to document
   useEffect(() => {
