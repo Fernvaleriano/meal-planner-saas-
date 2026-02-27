@@ -555,7 +555,7 @@ async function handleQuestion(event) {
     // Fetch all client data for this coach
     const { data: clients, error: clientsError } = await supabase
       .from('clients')
-      .select('id, client_name, last_activity_at, user_id, created_at, unit_preference')
+      .select('id, client_name, last_activity_at, user_id, created_at, unit_preference, diet_type, allergies, disliked_foods, preferred_foods')
       .eq('coach_id', coachId)
       .or('is_archived.eq.false,is_archived.is.null')
       .order('client_name', { ascending: true });
@@ -888,6 +888,10 @@ async function handleQuestion(event) {
         daysSinceActivity: daysSinceActivity !== null ? daysSinceActivity : 'never logged in',
         lastActivityAt: client.last_activity_at || null,
         joinedAt: client.created_at || null,
+        dietType: client.diet_type || null,
+        allergies: client.allergies || null,
+        dislikedFoods: client.disliked_foods || null,
+        preferredFoods: client.preferred_foods || null,
         hasCheckedInThisWeek: clientCheckins.some(c => new Date(c.created_at) >= sevenDaysAgo),
         latestCheckin: latestCheckin ? {
           date: latestCheckin.checkin_date,
@@ -995,6 +999,12 @@ async function handleQuestion(event) {
       }
 
       if (c.hasCheckedInThisWeek) parts.push('checked in');
+
+      // Dietary preferences & restrictions
+      if (c.dietType && c.dietType !== 'no_preference' && c.dietType !== 'standard') parts.push(`diet: ${c.dietType}`);
+      if (c.allergies && c.allergies !== 'none') parts.push(`allergies: ${c.allergies}`);
+      if (c.dislikedFoods) parts.push(`dislikes: ${c.dislikedFoods}`);
+      if (c.preferredFoods) parts.push(`prefers: ${c.preferredFoods}`);
 
       // Check-in data
       if (c.latestCheckin) {
