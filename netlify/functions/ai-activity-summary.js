@@ -596,7 +596,7 @@ async function handleQuestion(event) {
           .limit(10),
         supabase
           .from('client_measurements')
-          .select('weight, body_fat, chest, waist, hips, arms, thighs, created_at')
+          .select('weight, weight_unit, body_fat, chest, waist, hips, arms, thighs, created_at')
           .eq('client_id', coachId)
           .order('created_at', { ascending: false })
           .limit(5),
@@ -625,7 +625,7 @@ async function handleQuestion(event) {
             .limit(10),
           supabase
             .from('client_measurements')
-            .select('weight, body_fat, chest, waist, hips, arms, thighs, created_at')
+            .select('weight, weight_unit, body_fat, chest, waist, hips, arms, thighs, created_at')
             .eq('client_id', coachClient.id)
             .order('created_at', { ascending: false })
             .limit(5)
@@ -635,8 +635,21 @@ async function handleQuestion(event) {
       }
 
       // Merge all coach weight data (dedup by picking whichever has more data)
-      const allCoachWeights = coachClientWeights.length > coachWeights.length ? coachClientWeights : coachWeights;
+      let allCoachWeights = coachClientWeights.length > coachWeights.length ? coachClientWeights : coachWeights;
       const allCoachMeasurements = coachClientMeasurements.length > coachMeasurements.length ? coachClientMeasurements : coachMeasurements;
+
+      // Fall back to client_measurements.weight if weight_logs is empty
+      // (client portal stores weight in client_measurements, not weight_logs)
+      if (allCoachWeights.length === 0) {
+        const measWithWeight = allCoachMeasurements.filter(m => m.weight != null);
+        if (measWithWeight.length > 0) {
+          allCoachWeights = measWithWeight.map(m => ({
+            weight: m.weight,
+            unit: m.weight_unit || coachClient?.unit_preference || 'kg',
+            created_at: m.created_at
+          }));
+        }
+      }
 
       if (allCoachWeights.length > 0 || allCoachMeasurements.length > 0 || coachClient) {
         coachSelfData = {
@@ -719,7 +732,7 @@ async function handleQuestion(event) {
       // Body measurements - most recent per client (no time limit) + 30-day history for trends
       supabase
         .from('client_measurements')
-        .select('id, client_id, weight, body_fat, chest, waist, hips, arms, thighs, created_at')
+        .select('id, client_id, weight, weight_unit, body_fat, chest, waist, hips, arms, thighs, created_at')
         .in('client_id', clientIds)
         .order('created_at', { ascending: false })
         .limit(500),
@@ -830,11 +843,35 @@ async function handleQuestion(event) {
       });
 
       // Measurements & weight
+      // Client portal stores weight in client_measurements (NOT weight_logs)
+      // weight_logs is a legacy table - check both and prefer whichever has data
       const clientMeasurements = measurements.filter(m => m.client_id === client.id);
       const latestMeasurement = clientMeasurements[0];
       const clientWeightLogs = weightLogs.filter(w => w.client_id === client.id);
-      const latestWeight = clientWeightLogs[0];
-      const earliestWeight = clientWeightLogs[clientWeightLogs.length - 1];
+
+      // Get weight from weight_logs first, fall back to client_measurements.weight
+      const measurementsWithWeight = clientMeasurements.filter(m => m.weight != null);
+      let latestWeight, earliestWeight;
+      if (clientWeightLogs.length > 0) {
+        latestWeight = clientWeightLogs[0];
+        earliestWeight = clientWeightLogs[clientWeightLogs.length - 1];
+      } else if (measurementsWithWeight.length > 0) {
+        // Use weight from client_measurements table
+        latestWeight = {
+          weight: measurementsWithWeight[0].weight,
+          unit: measurementsWithWeight[0].weight_unit || client.unit_preference || 'kg',
+          created_at: measurementsWithWeight[0].created_at
+        };
+        const earliest = measurementsWithWeight[measurementsWithWeight.length - 1];
+        earliestWeight = {
+          weight: earliest.weight,
+          unit: earliest.weight_unit || client.unit_preference || 'kg',
+          created_at: earliest.created_at
+        };
+      } else {
+        latestWeight = null;
+        earliestWeight = null;
+      }
 
       // Meal plans
       const clientMealPlans = mealPlans.filter(p => p.client_id === client.id);
