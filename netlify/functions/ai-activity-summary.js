@@ -577,6 +577,80 @@ async function handleQuestion(event) {
 
     const clientIds = clients.map(c => c.id);
 
+    // Fetch coach's own data (coach may also track their own fitness)
+    // coachId is the user's auth ID from the coaches table
+    let coachSelfData = null;
+    try {
+      // Check if coach has a client record (self-tracking) or weight logs
+      const [coachClientResult, coachWeightResult, coachMeasurementsResult, coachNameResult] = await Promise.all([
+        supabase
+          .from('clients')
+          .select('id, client_name, last_activity_at, unit_preference')
+          .eq('user_id', coachId)
+          .maybeSingle(),
+        supabase
+          .from('weight_logs')
+          .select('weight, unit, created_at')
+          .eq('client_id', coachId)
+          .order('created_at', { ascending: false })
+          .limit(10),
+        supabase
+          .from('client_measurements')
+          .select('weight, body_fat, chest, waist, hips, arms, thighs, created_at')
+          .eq('client_id', coachId)
+          .order('created_at', { ascending: false })
+          .limit(5),
+        supabase
+          .from('coaches')
+          .select('name, business_name')
+          .eq('id', coachId)
+          .maybeSingle()
+      ]);
+
+      const coachClient = coachClientResult.data;
+      const coachWeights = coachWeightResult.data || [];
+      const coachMeasurements = coachMeasurementsResult.data || [];
+      const coachInfo = coachNameResult.data;
+
+      // If coach has a client record, also fetch weight logs by that client ID
+      let coachClientWeights = [];
+      let coachClientMeasurements = [];
+      if (coachClient) {
+        const [cwResult, cmResult] = await Promise.all([
+          supabase
+            .from('weight_logs')
+            .select('weight, unit, created_at')
+            .eq('client_id', coachClient.id)
+            .order('created_at', { ascending: false })
+            .limit(10),
+          supabase
+            .from('client_measurements')
+            .select('weight, body_fat, chest, waist, hips, arms, thighs, created_at')
+            .eq('client_id', coachClient.id)
+            .order('created_at', { ascending: false })
+            .limit(5)
+        ]);
+        coachClientWeights = cwResult.data || [];
+        coachClientMeasurements = cmResult.data || [];
+      }
+
+      // Merge all coach weight data (dedup by picking whichever has more data)
+      const allCoachWeights = coachClientWeights.length > coachWeights.length ? coachClientWeights : coachWeights;
+      const allCoachMeasurements = coachClientMeasurements.length > coachMeasurements.length ? coachClientMeasurements : coachMeasurements;
+
+      if (allCoachWeights.length > 0 || allCoachMeasurements.length > 0 || coachClient) {
+        coachSelfData = {
+          name: coachInfo?.name || coachClient?.client_name || 'Coach',
+          businessName: coachInfo?.business_name || null,
+          latestWeight: allCoachWeights[0] || null,
+          weightHistory: allCoachWeights.slice(0, 5),
+          latestMeasurement: allCoachMeasurements[0] || null
+        };
+      }
+    } catch (e) {
+      console.warn('Could not fetch coach self data:', e);
+    }
+
     // Fetch all data sources in parallel for comprehensive context
     const [
       checkinsResult,
@@ -642,20 +716,20 @@ async function handleQuestion(event) {
         .eq('coach_id', coachId)
         .order('created_at', { ascending: false })
         .limit(200),
-      // Body measurements (30 days)
+      // Body measurements - most recent per client (no time limit) + 30-day history for trends
       supabase
         .from('client_measurements')
         .select('id, client_id, weight, body_fat, chest, waist, hips, arms, thighs, created_at')
         .in('client_id', clientIds)
-        .gte('created_at', thirtyDaysAgo.toISOString())
-        .order('created_at', { ascending: false }),
-      // Weight logs (30 days)
+        .order('created_at', { ascending: false })
+        .limit(500),
+      // Weight logs - most recent per client (no time limit) + history for trends
       supabase
         .from('weight_logs')
         .select('id, client_id, weight, unit, created_at')
         .in('client_id', clientIds)
-        .gte('created_at', thirtyDaysAgo.toISOString())
-        .order('created_at', { ascending: false }),
+        .order('created_at', { ascending: false })
+        .limit(500),
       // Supplement intake (7 days)
       supabase
         .from('supplement_intake')
@@ -775,6 +849,8 @@ async function handleQuestion(event) {
         hasPortalAccess,
         isActive: isActiveThisWeek,
         daysSinceActivity: daysSinceActivity !== null ? daysSinceActivity : 'never logged in',
+        lastActivityAt: client.last_activity_at || null,
+        joinedAt: client.created_at || null,
         hasCheckedInThisWeek: clientCheckins.some(c => new Date(c.created_at) >= sevenDaysAgo),
         latestCheckin: latestCheckin ? {
           date: latestCheckin.checkin_date,
@@ -828,10 +904,20 @@ async function handleQuestion(event) {
     const clientContext = clientData.map(c => {
       let parts = [];
 
-      // Activity status
-      if (c.isActive) parts.push('active this week');
-      else if (c.daysSinceActivity === 'never logged in') parts.push('never logged in');
-      else parts.push(`inactive for ${c.daysSinceActivity} days`);
+      // Activity status with actual timestamp
+      if (c.lastActivityAt) {
+        const actDate = new Date(c.lastActivityAt);
+        const actStr = actDate.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
+        parts.push(`last online: ${actStr}`);
+        if (c.isActive) parts.push('active this week');
+        else parts.push(`inactive for ${c.daysSinceActivity} days`);
+      } else {
+        parts.push('never logged in');
+      }
+      if (c.joinedAt) {
+        const joinDate = new Date(c.joinedAt);
+        parts.push(`client since: ${joinDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`);
+      }
 
       if (c.hasCheckedInThisWeek) parts.push('checked in');
 
@@ -876,16 +962,28 @@ async function handleQuestion(event) {
         }
       }
 
-      // Body/weight
+      // Body/weight with dates
       if (c.body.latestWeight) {
+        const wDate = c.body.latestWeight.date ? new Date(c.body.latestWeight.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
         let weightStr = `weight: ${c.body.latestWeight.value}${c.body.latestWeight.unit}`;
+        if (wDate) weightStr += ` (logged ${wDate})`;
         if (c.body.weightChange) {
           const sign = c.body.weightChange.change > 0 ? '+' : '';
-          weightStr += ` (${sign}${c.body.weightChange.change}${c.body.weightChange.unit} over ${c.body.weightChange.period})`;
+          weightStr += ` ${sign}${c.body.weightChange.change}${c.body.weightChange.unit} change`;
         }
         parts.push(weightStr);
       }
-      if (c.body.latestMeasurement?.bodyFat) parts.push(`body fat: ${c.body.latestMeasurement.bodyFat}%`);
+      if (c.body.latestMeasurement) {
+        const mDate = c.body.latestMeasurement.date ? new Date(c.body.latestMeasurement.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
+        let mParts = [];
+        if (c.body.latestMeasurement.bodyFat) mParts.push(`body fat: ${c.body.latestMeasurement.bodyFat}%`);
+        if (c.body.latestMeasurement.waist) mParts.push(`waist: ${c.body.latestMeasurement.waist}`);
+        if (c.body.latestMeasurement.chest) mParts.push(`chest: ${c.body.latestMeasurement.chest}`);
+        if (c.body.latestMeasurement.arms) mParts.push(`arms: ${c.body.latestMeasurement.arms}`);
+        if (mParts.length > 0) {
+          parts.push(`measurements${mDate ? ` (${mDate})` : ''}: ${mParts.join(', ')}`);
+        }
+      }
 
       // Meal plan
       if (c.mealPlan) {
@@ -910,7 +1008,42 @@ async function handleQuestion(event) {
     const clientsWithNewPrs = clientData.filter(c => c.workouts.newPrsThisWeek && c.workouts.newPrsThisWeek.length > 0);
     const totalNewPrsThisWeek = clientData.reduce((sum, c) => sum + (c.workouts.newPrsThisWeek?.length || 0), 0);
 
-    const prompt = `You are an AI assistant helping a fitness/nutrition coach manage their clients. You have access to comprehensive data including workouts, exercises, personal records, nutrition, body measurements, meal plans, supplements, check-ins, and more. Answer the coach's question thoroughly based on the data below.
+    // Build coach self-data context if available
+    let coachSelfContext = '';
+    if (coachSelfData) {
+      const parts = [];
+      parts.push(`Name: ${coachSelfData.name}`);
+      if (coachSelfData.businessName) parts.push(`Business: ${coachSelfData.businessName}`);
+      if (coachSelfData.latestWeight) {
+        const w = coachSelfData.latestWeight;
+        const wDate = new Date(w.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        parts.push(`Current weight: ${w.weight}${w.unit} (logged ${wDate})`);
+        if (coachSelfData.weightHistory.length >= 2) {
+          const oldest = coachSelfData.weightHistory[coachSelfData.weightHistory.length - 1];
+          const change = Math.round((w.weight - oldest.weight) * 10) / 10;
+          const sign = change > 0 ? '+' : '';
+          const oldDate = new Date(oldest.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+          parts.push(`Weight change: ${sign}${change}${w.unit} since ${oldDate}`);
+        }
+      }
+      if (coachSelfData.latestMeasurement) {
+        const m = coachSelfData.latestMeasurement;
+        const mDate = new Date(m.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        let mParts = [`Measurements (${mDate}):`];
+        if (m.body_fat) mParts.push(`body fat ${m.body_fat}%`);
+        if (m.chest) mParts.push(`chest ${m.chest}`);
+        if (m.waist) mParts.push(`waist ${m.waist}`);
+        if (m.hips) mParts.push(`hips ${m.hips}`);
+        if (m.arms) mParts.push(`arms ${m.arms}`);
+        if (m.thighs) mParts.push(`thighs ${m.thighs}`);
+        parts.push(mParts.join(', '));
+      }
+      coachSelfContext = `\nYOUR DATA (the coach asking this question):
+${parts.join('\n')}
+`;
+    }
+
+    const prompt = `You are an AI assistant helping a fitness/nutrition coach manage their clients. You have access to comprehensive data including workouts, exercises, personal records, nutrition, body measurements, meal plans, supplements, check-ins, and more. You also have access to the coach's own personal fitness data when available. Answer the coach's question thoroughly based on the data below. When the coach says "my" or "me", they are referring to themselves (the coach), not a client.
 
 SUMMARY:
 - Total clients: ${clients.length}
@@ -922,7 +1055,7 @@ SUMMARY:
 - Total workouts logged (30 days): ${totalWorkouts}
 - Clients who hit NEW PRs this week: ${clientsWithNewPrs.length}${clientsWithNewPrs.length > 0 ? ` (${clientsWithNewPrs.map(c => c.name).join(', ')})` : ''}
 - Total new PRs achieved this week: ${totalNewPrsThisWeek}
-
+${coachSelfContext}
 CLIENT DETAILS:
 ${clientContext}
 
@@ -938,6 +1071,7 @@ Available sections (use only what applies):
 [Training & PRs] - Workouts, exercises, personal records, program progress
 [Body Composition] - Weight changes, measurements, trends
 [Highlights] - Positive progress, wins, and clients doing well
+[Your Info] - Use when coach asks about their own data (weight, measurements, etc.)
 [Summary] - General overview when the question is broad
 
 Example format:
