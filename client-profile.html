@@ -1192,7 +1192,7 @@
         }
 
         .ac-day-cell {
-            min-height: 90px;
+            min-height: 72px;
             border: 1px solid #f1f5f9;
             border-radius: 8px;
             padding: 4px;
@@ -1227,24 +1227,45 @@
             opacity: 0.35;
         }
 
-        /* Exercise emoji icons in calendar cells */
-        .ac-cell-icons {
+        /* Workout labels in calendar cells */
+        .ac-cell-workouts {
             display: flex;
-            flex-wrap: wrap;
-            gap: 1px;
+            flex-direction: column;
+            gap: 2px;
             margin-top: 2px;
-            line-height: 1.1;
+            overflow: hidden;
         }
 
-        .ac-cell-icon {
-            font-size: 20px;
-            line-height: 1;
+        .ac-cell-label {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+            font-size: 10px;
+            line-height: 1.2;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: #64748b;
         }
 
-        /* Faded = workout not done */
-        .ac-cell-icons.faded .ac-cell-icon {
-            opacity: 0.3;
-            filter: grayscale(100%);
+        .ac-cell-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .ac-cell-dot.done {
+            background: #22c55e;
+        }
+
+        .ac-cell-dot.pending {
+            background: #94a3b8;
+        }
+
+        .ac-cell-label-text {
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .ac-day-number {
@@ -10741,7 +10762,7 @@
         let acCurrentMonth = new Date().getMonth();
         let acCurrentYear = new Date().getFullYear();
         let acSelectedDate = null;
-        let acAssignmentCache = {}; // { 'YYYY-MM-DD': { exercises: [{ name, thumbnail_url, _done }] } }
+        let acAssignmentCache = {}; // { 'YYYY-MM-DD': [{ dayName, exerciseCount }] }
         let acWorkoutLogsCache = {}; // { 'YYYY-MM-DD': 'completed' | 'in_progress' | 'skipped' }
         let acCurrentAssignment = null;
         let acExercisesCache = [];
@@ -10776,56 +10797,15 @@
             acSelectDay(today);
         }
 
-        function acGetExerciseEmoji(ex) {
-            const name = (ex.name || '').toLowerCase();
-            const muscle = (ex.muscle_group || '').toLowerCase();
-            const equip = (ex.equipment || '').toLowerCase();
-
-            // Name-based (most specific)
-            if (/run|jog|sprint|cardio/.test(name)) return '\u{1F3C3}';
-            if (/walk|step/.test(name)) return '\u{1F6B6}';
-            if (/stretch|yoga|pigeon|child.?s pose|cool.?down|warm.?up/.test(name)) return '\u{1F9D8}';
-            if (/jump|high.?knee|burpee|box.?jump|plyo|jumping.?jack/.test(name)) return '\u{1F938}';
-            if (/swim/.test(name)) return '\u{1F3CA}';
-            if (/cycl|bike|spin/.test(name)) return '\u{1F6B4}';
-            if (/plank|crunch|sit.?up|ab.?roll/.test(name)) return '\u{1F9D8}';
-            if (/curl|bicep|tricep/.test(name)) return '\u{1F4AA}';
-            if (/push.?up|pull.?up|dip|chin.?up/.test(name)) return '\u{1F938}';
-            if (/row/.test(name)) return '\u{1F6A3}';
-            if (/squat|lunge|leg.?press|deadlift/.test(name)) return '\u{1F3CB}';
-            if (/bench|press|fly|chest/.test(name)) return '\u{1F3CB}';
-
-            // Equipment-based
-            if (/dumbbell|barbell|kettlebell|weight/.test(equip)) return '\u{1F3CB}';
-            if (/treadmill/.test(equip)) return '\u{1F3C3}';
-            if (/mat|bodyweight|none/.test(equip)) return '\u{1F938}';
-            if (/machine|cable|smith/.test(equip)) return '\u{1F3CB}';
-            if (/band|resistance/.test(equip)) return '\u{1F4AA}';
-
-            // Muscle group fallback
-            if (/chest|back|shoulder/.test(muscle)) return '\u{1F3CB}';
-            if (/leg|quad|hamstring|calf|glute/.test(muscle)) return '\u{1F3CB}';
-            if (/arm|bicep|tricep|forearm/.test(muscle)) return '\u{1F4AA}';
-            if (/core|ab/.test(muscle)) return '\u{1F9D8}';
-            if (/cardio/.test(muscle)) return '\u{1F3C3}';
-
-            return '\u{1F3CB}';
-        }
-
-        function acIsDayDone(dateStr) {
-            const logStatus = acWorkoutLogsCache[dateStr];
-            return !!logStatus;
-        }
-
-        function acRenderCellIcons(dateStr) {
-            const entry = acAssignmentCache[dateStr];
-            if (!entry || !entry.exercises || entry.exercises.length === 0) return '';
-            const isDone = acIsDayDone(dateStr);
-            const fadedClass = isDone ? '' : ' faded';
-            let html = `<div class="ac-cell-icons${fadedClass}">`;
-            for (const ex of entry.exercises) {
-                const emoji = acGetExerciseEmoji(ex);
-                html += `<span class="ac-cell-icon" title="${escapeHtml(ex.name)}">${emoji}</span>`;
+        function acRenderCellLabels(dateStr) {
+            const entries = acAssignmentCache[dateStr];
+            if (!entries || entries.length === 0) return '';
+            const isDone = !!acWorkoutLogsCache[dateStr];
+            const dotClass = isDone ? 'done' : 'pending';
+            let html = '<div class="ac-cell-workouts">';
+            for (const entry of entries) {
+                const label = entry.dayName || 'Workout';
+                html += `<div class="ac-cell-label"><span class="ac-cell-dot ${dotClass}"></span><span class="ac-cell-label-text">${escapeHtml(label)}</span></div>`;
             }
             html += '</div>';
             return html;
@@ -10869,7 +10849,7 @@
 
                 html += `<div class="${classes}" onclick="acSelectDay('${dateStr}')">
                     <span class="ac-day-number">${d}</span>
-                    ${acRenderCellIcons(dateStr)}
+                    ${acRenderCellLabels(dateStr)}
                 </div>`;
             }
 
@@ -10887,7 +10867,7 @@
         function acRenderDayCell(day, dateStr, otherMonth) {
             return `<div class="ac-day-cell other-month" onclick="acSelectDay('${dateStr}')">
                 <span class="ac-day-number">${day}</span>
-                ${acRenderCellIcons(dateStr)}
+                ${acRenderCellLabels(dateStr)}
             </div>`;
         }
 
@@ -10895,58 +10875,49 @@
             try {
                 const res = await fetch(`/.netlify/functions/workout-assignments?clientId=${clientId}&activeOnly=true`);
                 const data = await res.json();
-                const assignments = data.assignments || [];
-                acCurrentAssignment = assignments.find(a => a.is_active) || assignments[0] || null;
+                const allAssignments = data.assignments || [];
+                acCurrentAssignment = allAssignments.find(a => a.is_active) || allAssignments[0] || null;
 
-                if (acCurrentAssignment) {
-                    acAssignmentCache = {};
-                    const workoutData = acCurrentAssignment.workout_data || {};
+                acAssignmentCache = {}; // { 'YYYY-MM-DD': [{ dayName, exerciseCount }] }
+                const dayNames = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+
+                // Helper: count workout days between two dates
+                function acCountWorkoutDays(startDate, targetDate, selDays) {
+                    const daySet = new Set(selDays);
+                    const start = new Date(startDate);
+                    const target = new Date(targetDate);
+                    const totalDays = Math.floor((target - start) / (24 * 60 * 60 * 1000));
+                    if (totalDays <= 0) return 0;
+                    const fullWeeks = Math.floor(totalDays / 7);
+                    const daysPerWeek = dayNames.filter(dn => daySet.has(dn)).length;
+                    let count = fullWeeks * daysPerWeek;
+                    const remainderDays = totalDays % 7;
+                    for (let i = 0; i < remainderDays; i++) {
+                        const dd = new Date(start);
+                        dd.setDate(dd.getDate() + (fullWeeks * 7) + i);
+                        if (daySet.has(dayNames[dd.getDay()])) count++;
+                    }
+                    return count;
+                }
+
+                // Process ALL active assignments
+                for (const assignment of allAssignments) {
+                    const workoutData = assignment.workout_data || {};
                     const days = workoutData.days || [];
                     const schedule = workoutData.schedule || {};
                     const selectedDays = schedule.selectedDays || ['mon', 'tue', 'wed', 'thu', 'fri'];
                     const dateOverrides = workoutData.date_overrides || {};
-                    const dayNames = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+                    const programName = assignment.name || 'Workout';
 
-                    // Helper: count workout days between two dates
-                    function acCountWorkoutDays(startDate, targetDate, selDays) {
-                        const daySet = new Set(selDays);
-                        const start = new Date(startDate);
-                        const target = new Date(targetDate);
-                        const totalDays = Math.floor((target - start) / (24 * 60 * 60 * 1000));
-                        if (totalDays <= 0) return 0;
-                        const fullWeeks = Math.floor(totalDays / 7);
-                        const daysPerWeek = dayNames.filter(dn => daySet.has(dn)).length;
-                        let count = fullWeeks * daysPerWeek;
-                        const remainderDays = totalDays % 7;
-                        for (let i = 0; i < remainderDays; i++) {
-                            const dd = new Date(start);
-                            dd.setDate(dd.getDate() + (fullWeeks * 7) + i);
-                            if (daySet.has(dayNames[dd.getDay()])) count++;
-                        }
-                        return count;
-                    }
-
-                    // Helper: extract lightweight exercise summaries from a day object
-                    function acExtractExercises(dayObj) {
-                        if (!dayObj || !dayObj.exercises) return [];
-                        return dayObj.exercises.map(ex => ({
-                            name: ex.name || '',
-                            muscle_group: ex.muscle_group || '',
-                            equipment: ex.equipment || '',
-                            _done: !!ex._done
-                        }));
-                    }
-
-                    // Compute assignment date boundaries
-                    const assignmentStart = acCurrentAssignment.start_date
-                        ? new Date(acCurrentAssignment.start_date + 'T00:00:00')
-                        : new Date(acCurrentAssignment.created_at);
+                    const assignmentStart = assignment.start_date
+                        ? new Date(assignment.start_date + 'T00:00:00')
+                        : new Date(assignment.created_at);
                     assignmentStart.setHours(0,0,0,0);
 
                     let assignmentEnd = null;
                     const weeksToUse = schedule.weeksAmount || 12;
-                    if (acCurrentAssignment.end_date) {
-                        assignmentEnd = new Date(acCurrentAssignment.end_date + 'T23:59:59');
+                    if (assignment.end_date) {
+                        assignmentEnd = new Date(assignment.end_date + 'T23:59:59');
                     } else {
                         assignmentEnd = new Date(assignmentStart);
                         assignmentEnd.setDate(assignmentEnd.getDate() + (weeksToUse * 7) - 1);
@@ -10958,34 +10929,32 @@
 
                     for (let d = new Date(firstDay); d <= lastDay; d.setDate(d.getDate() + 1)) {
                         const dateStr = acFormatDate(d);
-                        const dayName = dayNames[d.getDay()];
+                        const dayOfWeek = dayNames[d.getDay()];
                         const override = dateOverrides[dateStr];
 
-                        // Skip dates outside the assignment's date range
                         if (d < assignmentStart) continue;
                         if (assignmentEnd && d > assignmentEnd) continue;
 
+                        let dayObj = null;
                         if (override) {
                             if (override.isRest) continue;
-                            // Determine day index from override
                             let di = override.dayIndex;
-                            if (di === undefined && override.dayIndices && override.dayIndices.length > 0) {
-                                di = override.dayIndices[0];
-                            }
-                            if (override.addedWorkouts && override.addedWorkouts.length > 0 && di === undefined) {
-                                di = override.addedWorkouts[0].day_index;
-                            }
-                            if (di !== undefined && days.length > 0) {
-                                const dayObj = days[di % days.length];
-                                acAssignmentCache[dateStr] = { exercises: acExtractExercises(dayObj) };
-                            } else if (di !== undefined) {
-                                acAssignmentCache[dateStr] = { exercises: [] };
-                            }
-                        } else if (selectedDays.includes(dayName) && days.length > 0) {
+                            if (di === undefined && override.dayIndices && override.dayIndices.length > 0) di = override.dayIndices[0];
+                            if (override.addedWorkouts && override.addedWorkouts.length > 0 && di === undefined) di = override.addedWorkouts[0].day_index;
+                            if (di !== undefined && days.length > 0) dayObj = days[di % days.length];
+                        } else if (selectedDays.includes(dayOfWeek) && days.length > 0) {
                             const workoutDayCount = acCountWorkoutDays(assignmentStart, d, selectedDays);
                             const dayIndex = workoutDayCount % days.length;
-                            const dayObj = days[dayIndex];
-                            acAssignmentCache[dateStr] = { exercises: acExtractExercises(dayObj) };
+                            dayObj = days[dayIndex];
+                        }
+
+                        if (dayObj || (override && !override.isRest)) {
+                            const entry = {
+                                dayName: dayObj?.name || programName,
+                                exerciseCount: dayObj?.exercises?.length || 0
+                            };
+                            if (!acAssignmentCache[dateStr]) acAssignmentCache[dateStr] = [];
+                            acAssignmentCache[dateStr].push(entry);
                         }
                     }
                 }
@@ -11003,13 +10972,12 @@
                     const adhocData = await adhocRes.json();
                     (adhocData.workouts || []).forEach(w => {
                         if (w.workout_date) {
-                            const exs = (w.workout_data?.exercises || []).map(ex => ({
-                                name: ex.name || '',
-                                muscle_group: ex.muscle_group || '',
-                                equipment: ex.equipment || '',
-                                _done: !!ex._done
-                            }));
-                            acAssignmentCache[w.workout_date] = { exercises: exs };
+                            const entry = {
+                                dayName: w.name || 'Custom Workout',
+                                exerciseCount: w.workout_data?.exercises?.length || 0
+                            };
+                            if (!acAssignmentCache[w.workout_date]) acAssignmentCache[w.workout_date] = [];
+                            acAssignmentCache[w.workout_date].push(entry);
                         }
                     });
                 } catch (e) { /* ignore */ }
@@ -11041,29 +11009,25 @@
                 // Fetch assigned workout for this date
                 const res = await fetch(`/.netlify/functions/workout-assignments?clientId=${clientId}&date=${dateStr}`);
                 const data = await res.json();
-                const assignments = data.assignments || [];
-                let workout = assignments[0] || null;
+                const allWorkouts = data.assignments || [];
 
-                // Also check for adhoc workout
-                if (!workout || !workout.workout_data) {
-                    try {
-                        const adhocRes = await fetch(`/.netlify/functions/adhoc-workouts?clientId=${clientId}&date=${dateStr}`);
-                        const adhocData = await adhocRes.json();
-                        const adhocWorkout = (adhocData.workouts || [])[0];
-                        if (adhocWorkout) {
-                            workout = {
-                                id: adhocWorkout.id,
-                                name: adhocWorkout.name || 'Custom Workout',
-                                workout_data: adhocWorkout.workout_data || { exercises: [] },
-                                is_adhoc: true,
-                                day_index: 0
-                            };
-                        }
-                    } catch (e) { /* ignore */ }
-                }
+                // Also check for adhoc workouts
+                try {
+                    const adhocRes = await fetch(`/.netlify/functions/adhoc-workouts?clientId=${clientId}&date=${dateStr}`);
+                    const adhocData = await adhocRes.json();
+                    (adhocData.workouts || []).forEach(aw => {
+                        allWorkouts.push({
+                            id: aw.id,
+                            name: aw.name || 'Custom Workout',
+                            workout_data: aw.workout_data || { exercises: [] },
+                            is_adhoc: true,
+                            day_index: 0
+                        });
+                    });
+                } catch (e) { /* ignore */ }
 
-                if (workout && workout.workout_data) {
-                    acRenderDayDetail(workout, dateStr);
+                if (allWorkouts.length > 0) {
+                    acRenderDayDetail(allWorkouts, dateStr);
                 } else {
                     bodyEl.innerHTML = `
                         <div class="ac-detail-empty">
@@ -11085,96 +11049,113 @@
             }
         }
 
-        function acRenderDayDetail(workout, dateStr) {
+        function acRenderDayDetail(workouts, dateStr) {
             const bodyEl = document.getElementById('acDetailBody');
-            const exercises = workout.workout_data.exercises || [];
-            const workoutName = workout.name || 'Workout';
-            const isAdhoc = !!workout.is_adhoc;
-            const assignmentId = workout.id;
-            const dayIndex = workout.day_index !== undefined ? workout.day_index : 0;
+            let html = '';
+            let globalExIdx = 0; // global exercise counter across all workouts
 
-            let html = `<div class="ac-detail-workout-name">${escapeHtml(workoutName)}</div>`;
+            workouts.forEach((workout, wIdx) => {
+                const exercises = workout.workout_data?.exercises || [];
+                const workoutName = workout.name || 'Workout';
+                const isAdhoc = !!workout.is_adhoc;
+                const assignmentId = workout.id;
+                const dayIndex = workout.day_index !== undefined ? workout.day_index : 0;
 
-            // Bulk action bar (hidden until selections made)
-            html += `<div class="ac-bulk-bar" id="acBulkBar">
-                <span class="ac-bulk-count" id="acBulkCount">0 selected</span>
-                <button class="ac-bulk-btn" onclick="acBulkCheckDone()">&#9745; Check done</button>
-                <button class="ac-bulk-btn" onclick="acBulkUncheckDone()">&#9744; Uncheck</button>
-                <button class="ac-bulk-btn danger" onclick="acBulkDelete()">&#128465; Delete</button>
-                <button class="ac-bulk-btn" onclick="acBulkMoveTo()">&#9999; Move to</button>
-                <button class="ac-bulk-btn" onclick="acBulkCopyTo()">&#128203; Copy to</button>
-            </div>`;
+                // Workout header
+                html += `<div class="ac-detail-workout-name">${escapeHtml(workoutName)}</div>`;
 
-            // Action buttons
-            html += `<div class="ac-detail-actions">
-                <button class="ac-action-btn" onclick="acOpenAddExercise('${assignmentId}', ${dayIndex}, ${isAdhoc}, '${dateStr}')">+ Add Exercise</button>
-                <button class="ac-action-btn" onclick="acOpenAddWorkout('${dateStr}')">+ Add Workout</button>
-                <button class="ac-action-btn danger" onclick="acDeleteWorkout('${assignmentId}', ${isAdhoc}, '${dateStr}')">Delete Workout</button>
-                ${!isAdhoc ? `<button class="ac-action-btn danger" onclick="removeEntireProgram()" style="background:#dc2626;color:#fff;border-color:#dc2626;">Remove Entire Program</button>` : ''}
-            </div>`;
+                // Bulk action bar (only for first workout)
+                if (wIdx === 0) {
+                    html += `<div class="ac-bulk-bar" id="acBulkBar">
+                        <span class="ac-bulk-count" id="acBulkCount">0 selected</span>
+                        <button class="ac-bulk-btn" onclick="acBulkCheckDone()">&#9745; Check done</button>
+                        <button class="ac-bulk-btn" onclick="acBulkUncheckDone()">&#9744; Uncheck</button>
+                        <button class="ac-bulk-btn danger" onclick="acBulkDelete()">&#128465; Delete</button>
+                        <button class="ac-bulk-btn" onclick="acBulkMoveTo()">&#9999; Move to</button>
+                        <button class="ac-bulk-btn" onclick="acBulkCopyTo()">&#128203; Copy to</button>
+                    </div>`;
+                }
 
-            // Select all checkbox
-            if (exercises.length > 0) {
-                html += `<div style="display:flex; align-items:center; gap:8px; margin-bottom:8px; padding:4px 0;">
-                    <input type="checkbox" class="ac-exercise-checkbox" id="acSelectAll" onchange="acToggleSelectAll(this.checked)">
-                    <label for="acSelectAll" style="font-size:12px; color:#64748b; font-weight:600; cursor:pointer;">Select All</label>
+                // Action buttons for this workout
+                html += `<div class="ac-detail-actions">
+                    <button class="ac-action-btn" onclick="acOpenAddExercise('${assignmentId}', ${dayIndex}, ${isAdhoc}, '${dateStr}')">+ Add Exercise</button>
+                    <button class="ac-action-btn danger" onclick="acDeleteWorkout('${assignmentId}', ${isAdhoc}, '${dateStr}')">Delete Workout</button>
+                    ${!isAdhoc ? `<button class="ac-action-btn danger" onclick="removeEntireProgram()" style="background:#dc2626;color:#fff;border-color:#dc2626;">Remove Program</button>` : ''}
                 </div>`;
-            }
 
-            // Exercise list
-            if (exercises.length === 0) {
-                html += '<p style="text-align: center; color: #94a3b8; padding: 20px;">No exercises in this workout</p>';
-            } else {
-                exercises.forEach((ex, idx) => {
-                    const thumb = ex.thumbnail_url || ex.animation_url || '';
-                    const sets = ex.sets || 0;
-                    const reps = ex.reps || '0';
-                    const restSec = ex.restSeconds || 0;
-                    const trackingType = ex.trackingType || 'reps';
-                    const isChecked = acSelectedExercises.has(idx);
-                    const isDone = ex._done;
+                // Select all checkbox (only for first workout)
+                if (wIdx === 0 && exercises.length > 0) {
+                    html += `<div style="display:flex; align-items:center; gap:8px; margin-bottom:8px; padding:4px 0;">
+                        <input type="checkbox" class="ac-exercise-checkbox" id="acSelectAll" onchange="acToggleSelectAll(this.checked)">
+                        <label for="acSelectAll" style="font-size:12px; color:#64748b; font-weight:600; cursor:pointer;">Select All</label>
+                    </div>`;
+                }
 
-                    // Build sets display
-                    let setsHtml = '';
-                    if (ex.setsData && Array.isArray(ex.setsData)) {
-                        setsHtml = ex.setsData.map(s =>
-                            `<span class="ac-set-pill${s._completed ? ' completed' : ''}">${s.reps || 0}${s.weight ? 'x' + s.weight + (s.weightUnit || 'lbs') : ''}</span>`
-                        ).join('');
-                    } else if (sets > 0) {
-                        setsHtml = `<span class="ac-set-pill">${sets} sets x ${reps} ${trackingType === 'time' ? 'sec' : 'reps'}</span>`;
-                    }
-                    if (restSec > 0) {
-                        setsHtml += `<span class="ac-set-pill">Rest: ${restSec}s</span>`;
-                    }
+                // Exercise list
+                if (exercises.length === 0) {
+                    html += '<p style="text-align: center; color: #94a3b8; padding: 12px;">No exercises in this workout</p>';
+                } else {
+                    exercises.forEach((ex, idx) => {
+                        const thumb = ex.thumbnail_url || ex.animation_url || '';
+                        const sets = ex.sets || 0;
+                        const reps = ex.reps || '0';
+                        const restSec = ex.restSeconds || 0;
+                        const trackingType = ex.trackingType || 'reps';
+                        const isChecked = acSelectedExercises.has(globalExIdx);
+                        const isDone = ex._done;
 
-                    html += `
-                        <div class="ac-exercise-item${isChecked ? ' checked' : ''}" data-ex-index="${idx}">
-                            <div class="ac-exercise-header">
-                                <input type="checkbox" class="ac-exercise-checkbox" ${isChecked ? 'checked' : ''} onchange="acToggleExerciseSelect(${idx}, this.checked)">
-                                ${thumb ? `<img class="ac-exercise-thumb" src="${thumb}" alt="" onerror="this.style.display='none'" onclick="acOpenExerciseDetail(${idx}, '${assignmentId}', ${dayIndex}, ${isAdhoc}, '${dateStr}')" style="cursor:pointer">` : `<div class="ac-exercise-thumb" style="display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer" onclick="acOpenExerciseDetail(${idx}, '${assignmentId}', ${dayIndex}, ${isAdhoc}, '${dateStr}')">&#127947;&#65039;</div>`}
-                                <div class="ac-exercise-info" onclick="acOpenExerciseDetail(${idx}, '${assignmentId}', ${dayIndex}, ${isAdhoc}, '${dateStr}')" style="cursor:pointer">
-                                    <div class="ac-exercise-name">${escapeHtml(ex.name || '')}${isDone ? ' &#9989;' : ''}</div>
-                                    <div class="ac-exercise-meta">${ex.muscle_group || ''} ${ex.equipment ? '&middot; ' + ex.equipment : ''}</div>
+                        let setsHtml = '';
+                        if (ex.setsData && Array.isArray(ex.setsData)) {
+                            setsHtml = ex.setsData.map(s =>
+                                `<span class="ac-set-pill${s._completed ? ' completed' : ''}">${s.reps || 0}${s.weight ? 'x' + s.weight + (s.weightUnit || 'lbs') : ''}</span>`
+                            ).join('');
+                        } else if (sets > 0) {
+                            setsHtml = `<span class="ac-set-pill">${sets} sets x ${reps} ${trackingType === 'time' ? 'sec' : 'reps'}</span>`;
+                        }
+                        if (restSec > 0) {
+                            setsHtml += `<span class="ac-set-pill">Rest: ${restSec}s</span>`;
+                        }
+
+                        html += `
+                            <div class="ac-exercise-item${isChecked ? ' checked' : ''}" data-ex-index="${idx}" data-workout-idx="${wIdx}">
+                                <div class="ac-exercise-header">
+                                    <input type="checkbox" class="ac-exercise-checkbox" ${isChecked ? 'checked' : ''} onchange="acToggleExerciseSelect(${globalExIdx}, this.checked)">
+                                    ${thumb ? `<img class="ac-exercise-thumb" src="${thumb}" alt="" onerror="this.style.display='none'" onclick="acOpenExerciseDetail(${idx}, '${assignmentId}', ${dayIndex}, ${isAdhoc}, '${dateStr}')" style="cursor:pointer">` : `<div class="ac-exercise-thumb" style="display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer" onclick="acOpenExerciseDetail(${idx}, '${assignmentId}', ${dayIndex}, ${isAdhoc}, '${dateStr}')">&#127947;&#65039;</div>`}
+                                    <div class="ac-exercise-info" onclick="acOpenExerciseDetail(${idx}, '${assignmentId}', ${dayIndex}, ${isAdhoc}, '${dateStr}')" style="cursor:pointer">
+                                        <div class="ac-exercise-name">${escapeHtml(ex.name || '')}${isDone ? ' &#9989;' : ''}</div>
+                                        <div class="ac-exercise-meta">${ex.muscle_group || ''} ${ex.equipment ? '&middot; ' + ex.equipment : ''}</div>
+                                    </div>
+                                    <button class="ac-dot-menu-btn" onclick="acToggleDotMenu(event, ${idx}, '${assignmentId}', ${dayIndex}, ${isAdhoc}, '${dateStr}')">&#8942;</button>
+                                    <div class="ac-dot-menu" id="acDotMenu_${globalExIdx}">
+                                        <button class="ac-dot-menu-item" onclick="acDotAction('checkDone', ${globalExIdx})">&#9745; ${isDone ? 'Uncheck done' : 'Check as done'}</button>
+                                        <button class="ac-dot-menu-item" onclick="acDotAction('edit', ${globalExIdx})">&#9998; Edit sets</button>
+                                        <button class="ac-dot-menu-item" onclick="acDotAction('swap', ${globalExIdx})">&#8644; Swap exercise</button>
+                                        <button class="ac-dot-menu-item" onclick="acDotAction('moveTo', ${globalExIdx})">&#8599; Move to</button>
+                                        <button class="ac-dot-menu-item" onclick="acDotAction('copyTo', ${globalExIdx})">&#128203; Copy to</button>
+                                        <button class="ac-dot-menu-item danger" onclick="acDotAction('delete', ${globalExIdx})">&#128465; Delete</button>
+                                    </div>
                                 </div>
-                                <button class="ac-dot-menu-btn" onclick="acToggleDotMenu(event, ${idx}, '${assignmentId}', ${dayIndex}, ${isAdhoc}, '${dateStr}')">&#8942;</button>
-                                <div class="ac-dot-menu" id="acDotMenu_${idx}">
-                                    <button class="ac-dot-menu-item" onclick="acDotAction('checkDone', ${idx})">&#9745; ${isDone ? 'Uncheck done' : 'Check as done'}</button>
-                                    <button class="ac-dot-menu-item" onclick="acDotAction('edit', ${idx})">&#9998; Edit sets</button>
-                                    <button class="ac-dot-menu-item" onclick="acDotAction('swap', ${idx})">&#8644; Swap exercise</button>
-                                    <button class="ac-dot-menu-item" onclick="acDotAction('moveTo', ${idx})">&#8599; Move to</button>
-                                    <button class="ac-dot-menu-item" onclick="acDotAction('copyTo', ${idx})">&#128203; Copy to</button>
-                                    <button class="ac-dot-menu-item danger" onclick="acDotAction('delete', ${idx})">&#128465; Delete</button>
-                                </div>
+                                <div class="ac-sets-grid" onclick="acOpenExerciseDetail(${idx}, '${assignmentId}', ${dayIndex}, ${isAdhoc}, '${dateStr}')" style="cursor:pointer">${setsHtml}</div>
+                                <div id="acSetEditor_${globalExIdx}"></div>
                             </div>
-                            <div class="ac-sets-grid" onclick="acOpenExerciseDetail(${idx}, '${assignmentId}', ${dayIndex}, ${isAdhoc}, '${dateStr}')" style="cursor:pointer">${setsHtml}</div>
-                            <div id="acSetEditor_${idx}"></div>
-                        </div>
-                    `;
-                });
-            }
+                        `;
+                        globalExIdx++;
+                    });
+                }
+
+                // Separator between workouts
+                if (wIdx < workouts.length - 1) {
+                    html += '<hr style="border: none; border-top: 1px solid #e2e8f0; margin: 16px 0;">';
+                }
+            });
+
+            // Add workout button at bottom
+            html += `<div class="ac-detail-actions" style="justify-content: center; margin-top: 12px;">
+                <button class="ac-action-btn" onclick="acOpenAddWorkout('${dateStr}')">+ Add Workout</button>
+            </div>`;
 
             bodyEl.innerHTML = html;
-            bodyEl.dataset.workout = JSON.stringify(workout);
+            bodyEl.dataset.workout = JSON.stringify(workouts[0]);
             bodyEl.dataset.dateStr = dateStr;
         }
 
@@ -11398,7 +11379,7 @@
                         });
                     }
                 }
-                acAssignmentCache[targetDate] = { exercises: [] };
+                if (!acAssignmentCache[targetDate]) acAssignmentCache[targetDate] = [];
                 acRenderCalendar();
             } catch (err) {
                 console.error('Error adding exercises to date:', err);
@@ -11509,17 +11490,7 @@
                         body: JSON.stringify({ assignmentId, dayIndex, workout_data: { exercises } })
                     });
                 }
-                // Update cache so calendar cell icons reflect changes
-                if (acAssignmentCache[dateStr]) {
-                    acAssignmentCache[dateStr] = {
-                        exercises: (exercises || []).map(ex => ({
-                            name: ex.name || '',
-                            muscle_group: ex.muscle_group || '',
-                            equipment: ex.equipment || '',
-                            _done: !!ex._done
-                        }))
-                    };
-                }
+                // Cache is refreshed via acSelectDay below
                 acSelectDay(dateStr);
             } catch (err) {
                 console.error('Error saving exercises:', err);
@@ -11903,7 +11874,8 @@
                 });
                 const data = await res.json();
 
-                acAssignmentCache[dateStr] = { exercises: [] };
+                if (!acAssignmentCache[dateStr]) acAssignmentCache[dateStr] = [];
+                acAssignmentCache[dateStr].push({ dayName: 'Custom Workout', exerciseCount: 0 });
                 acRenderCalendar();
                 await acSelectDay(dateStr);
 
@@ -12033,7 +12005,8 @@
                     })
                 });
 
-                acAssignmentCache[dateStr] = { exercises: (exercises || []).map(ex => ({ name: ex.name || '', muscle_group: ex.muscle_group || '', equipment: ex.equipment || '', _done: false })) };
+                if (!acAssignmentCache[dateStr]) acAssignmentCache[dateStr] = [];
+                acAssignmentCache[dateStr].push({ dayName: name || 'Workout', exerciseCount: (exercises || []).length });
                 acRenderCalendar();
                 acSelectDay(dateStr);
             } catch (err) {
