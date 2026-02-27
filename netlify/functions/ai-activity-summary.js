@@ -906,7 +906,18 @@ async function handleQuestion(event) {
         nutrition: {
           avgDailyCalories: avgCalories,
           avgDailyProtein: avgProtein,
-          goals: clientGoals ? { calories: clientGoals.calorie_goal, protein: clientGoals.protein_goal, carbs: clientGoals.carbs_goal, fat: clientGoals.fat_goal } : null
+          goals: clientGoals ? { calories: clientGoals.calorie_goal, protein: clientGoals.protein_goal, carbs: clientGoals.carbs_goal, fat: clientGoals.fat_goal } : null,
+          // Recent food entries grouped by day (last 3 days, up to 30 entries)
+          recentFoods: (() => {
+            const sorted = clientFoodEntries.sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 30);
+            const byDay = {};
+            sorted.forEach(f => {
+              const day = f.created_at?.split('T')[0] || 'unknown';
+              if (!byDay[day]) byDay[day] = [];
+              byDay[day].push({ name: f.food_name, meal: f.meal_type, cal: f.calories, protein: f.protein, carbs: f.carbs, fat: f.fat });
+            });
+            return Object.entries(byDay).slice(0, 3).map(([date, foods]) => ({ date, foods }));
+          })()
         },
         workouts: {
           totalThisMonth: clientWorkoutLogs.length,
@@ -1009,6 +1020,14 @@ async function handleQuestion(event) {
         parts.push(nutritionStr);
       }
       if (c.diaryEntriesThisWeek > 0) parts.push(`${c.diaryEntriesThisWeek} food diary entries`);
+      // Recent food details by day
+      if (c.nutrition.recentFoods && c.nutrition.recentFoods.length > 0) {
+        c.nutrition.recentFoods.forEach(day => {
+          const dayLabel = new Date(day.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+          const foodList = day.foods.map(f => `${f.name || 'unknown'}(${f.cal || 0}cal)`).join(', ');
+          parts.push(`${dayLabel} foods: ${foodList}`);
+        });
+      }
 
       // Workouts
       if (c.workouts.totalThisMonth > 0) {
@@ -1181,7 +1200,7 @@ IMPORTANT RULES:
         contents: [{ parts: [{ text: prompt }] }],
         generationConfig: {
           temperature: 0.7,
-          maxOutputTokens: 2048
+          maxOutputTokens: 4096
         }
       })
     });
