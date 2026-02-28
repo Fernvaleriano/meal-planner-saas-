@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { Moon, Camera, Lock, LogOut, ChevronRight, Loader, Users, Scale } from 'lucide-react';
 import { apiGet, apiPost } from '../utils/api';
 import { supabase } from '../utils/supabase';
+import { usePullToRefreshEvent } from '../hooks/usePullToRefreshEvent';
 
 // localStorage cache helpers
 const getCache = (key) => {
@@ -52,6 +53,9 @@ function Settings() {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
+
+  // Respond to global pull-to-refresh gesture
+  usePullToRefreshEvent(refreshClientData);
 
   // Sync exercise gender preference when clientData loads
   useEffect(() => {

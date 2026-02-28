@@ -3,6 +3,7 @@ import { Send, Search, MessageCircle, Image, X, Trash2, Check, CheckCheck, Paper
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost } from '../utils/api';
 import { supabase } from '../utils/supabase';
+import { usePullToRefreshEvent } from '../hooks/usePullToRefreshEvent';
 
 
 function Messages() {
@@ -57,6 +58,9 @@ function Messages() {
       setLoading(false);
     }
   }, [isCoach, coachId, clientId]);
+
+  // Respond to global pull-to-refresh gesture
+  usePullToRefreshEvent(fetchConversations);
 
   // Fetch messages for active conversation
   const fetchMessages = useCallback(async () => {

@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { supabase } from '../utils/supabase';
 import { clearSessionCache } from '../utils/api';
+import { clearPersistedState } from '../hooks/useStatePersistence';
 
 const AuthContext = createContext({});
 
@@ -354,6 +355,12 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('cachedClientData');
     // Clear API session cache
     clearSessionCache();
+    // Clear persisted state snapshots (sessionStorage)
+    clearPersistedState();
+    // Tell Service Worker to clear data cache
+    if (navigator.serviceWorker?.controller) {
+      navigator.serviceWorker.controller.postMessage({ type: 'CLEAR_DATA_CACHE' });
+    }
   }, []);
 
   const refreshClientData = useCallback(async () => {
