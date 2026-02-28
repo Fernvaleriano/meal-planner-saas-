@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { ArrowLeft, Send, Search, MessageCircle, Image, X, Check, CheckCheck, Trash2 } from 'lucide-react';
+import { ArrowLeft, Send, Search, MessageCircle, Image, X, Trash2, Check, CheckCheck, Paperclip } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost } from '../utils/api';
 import { supabase } from '../utils/supabase';
+
+const GIPHY_KEY = 'GlVGYHkr3WSBnllca54iNt0yFbjz7L29';
 
 function Messages() {
   const { user, clientData } = useAuth();
@@ -24,6 +26,16 @@ function Messages() {
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const fileInputRef = useRef(null);
+
+  // GIF picker state
+  const [showGifPicker, setShowGifPicker] = useState(false);
+  const [gifQuery, setGifQuery] = useState('');
+  const [gifs, setGifs] = useState([]);
+  const [gifsLoading, setGifsLoading] = useState(false);
+  const gifTimerRef = useRef(null);
+
+  // Lightbox state
+  const [lightboxUrl, setLightboxUrl] = useState(null);
 
   // Scroll to bottom of messages
   const scrollToBottom = useCallback(() => {
@@ -105,6 +117,7 @@ function Messages() {
       });
     };
     reader.readAsDataURL(file);
+    setShowGifPicker(false);
 
     // Reset file input so same file can be selected again
     e.target.value = '';
@@ -130,27 +143,27 @@ function Messages() {
     return result;
   };
 
-  // Send a message (with optional media)
-  const handleSend = async () => {
+  // Send a message (with optional media or GIF)
+  const handleSend = async (gifUrl = null, gifType = null) => {
     const hasText = newMessage.trim();
-    const hasMedia = mediaPreview;
+    const hasMedia = gifUrl || mediaPreview;
 
     if ((!hasText && !hasMedia) || sending) return;
 
     const msgText = newMessage.trim();
     setNewMessage('');
     setSending(true);
-    setUploading(!!hasMedia);
+    setUploading(!!mediaPreview);
 
     try {
       const cId = isCoach ? coachId : activeConvo.coachId;
       const clId = isCoach ? activeConvo.clientId : clientId;
 
-      let mediaUrl = null;
-      let mediaType = null;
+      let mediaUrl = gifUrl || null;
+      let mediaType = gifType || null;
 
-      // Upload media first if present
-      if (hasMedia) {
+      // Upload media first if present (not a GIF URL)
+      if (!gifUrl && mediaPreview) {
         const uploadResult = await uploadMedia(mediaPreview.dataUrl);
         mediaUrl = uploadResult.mediaUrl;
         mediaType = uploadResult.mediaType;
@@ -169,6 +182,7 @@ function Messages() {
         is_read: false
       };
       setMessages(prev => [...prev, optimisticMsg]);
+      setMediaPreview(null);
       setTimeout(scrollToBottom, 50);
 
       await apiPost('/.netlify/functions/chat', {
@@ -182,7 +196,7 @@ function Messages() {
       });
 
       // Update conversation list with new last message
-      const previewText = msgText || (mediaType === 'video' ? 'Sent a video' : 'Sent a photo');
+      const previewText = msgText || (mediaType === 'video' ? 'Sent a video' : mediaType === 'gif' ? 'Sent a GIF' : 'Sent a photo');
       setConversations(prev => prev.map(c => {
         const matchId = isCoach ? c.clientId : c.coachId;
         const activeId = isCoach ? activeConvo.clientId : activeConvo.coachId;
@@ -202,8 +216,53 @@ function Messages() {
       setUploading(false);
     } finally {
       setSending(false);
+      setUploading(false);
       inputRef.current?.focus();
     }
+  };
+
+  // GIF picker - load trending on open
+  const openGifPicker = async () => {
+    setShowGifPicker(true);
+    setGifQuery('');
+    clearMediaPreview();
+    await fetchGifs('trending');
+  };
+
+  // Fetch GIFs from GIPHY
+  const fetchGifs = async (query) => {
+    setGifsLoading(true);
+    try {
+      const endpoint = query === 'trending' ? 'trending' : 'search';
+      const url = `https://api.giphy.com/v1/gifs/${endpoint}?api_key=${GIPHY_KEY}&limit=20&rating=pg-13${query !== 'trending' ? '&q=' + encodeURIComponent(query) : ''}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      setGifs(data.data || []);
+    } catch (err) {
+      console.error('Error fetching GIFs:', err);
+      setGifs([]);
+    } finally {
+      setGifsLoading(false);
+    }
+  };
+
+  // Handle GIF search with debounce
+  const handleGifSearch = (value) => {
+    setGifQuery(value);
+    if (gifTimerRef.current) clearTimeout(gifTimerRef.current);
+    gifTimerRef.current = setTimeout(() => {
+      if (value.trim()) {
+        fetchGifs(value.trim());
+      } else {
+        fetchGifs('trending');
+      }
+    }, 400);
+  };
+
+  // Select a GIF and send it
+  const selectGif = (gifUrlValue) => {
+    setShowGifPicker(false);
+    handleSend(gifUrlValue, 'gif');
   };
 
   // Unsend (delete) a message
@@ -242,6 +301,7 @@ function Messages() {
     setMessages([]);
     setSelectedMsgId(null);
     setMediaPreview(null);
+    setShowGifPicker(false);
   };
 
   // Close unsend menu when clicking elsewhere
@@ -373,9 +433,10 @@ function Messages() {
               const matchId = isCoach ? c.clientId : c.coachId;
               const msgMatchId = isCoach ? newMsg.client_id : newMsg.coach_id;
               if (matchId === msgMatchId) {
+                const previewText = newMsg.message || (newMsg.media_type === 'video' ? 'Sent a video' : newMsg.media_type === 'gif' ? 'Sent a GIF' : 'Sent a photo');
                 return {
                   ...c,
-                  lastMessage: newMsg.message,
+                  lastMessage: previewText,
                   lastMessageAt: newMsg.created_at,
                   lastMessageSender: newMsg.sender_type,
                   hasMessages: true,
@@ -464,6 +525,37 @@ function Messages() {
   const grouped = groupMessagesByDate(messages);
   const myType = isCoach ? 'coach' : 'client';
 
+  // Render media content in a message bubble
+  const renderMedia = (msg) => {
+    if (!msg.media_url) return null;
+
+    if (msg.media_type === 'video') {
+      return (
+        <div className="chat-msg-media">
+          <video
+            src={msg.media_url}
+            controls
+            playsInline
+            preload="metadata"
+            className="chat-media-video"
+          />
+        </div>
+      );
+    }
+
+    // Image or GIF
+    return (
+      <div className="chat-msg-media" onClick={(e) => { e.stopPropagation(); setLightboxUrl(msg.media_url); }}>
+        <img
+          src={msg.media_url}
+          alt={msg.media_type === 'gif' ? 'GIF' : 'Photo'}
+          loading="lazy"
+          className="chat-media-image"
+        />
+      </div>
+    );
+  };
+
   // Conversation thread view
   if (activeConvo) {
     const convoName = isCoach ? activeConvo.clientName : (activeConvo.coachName || 'Your Coach');
@@ -501,6 +593,7 @@ function Messages() {
 
             const msg = item.data;
             const isMine = msg.sender_type === myType;
+            const hasMedia = !!msg.media_url;
 
             return (
               <div
@@ -513,32 +606,8 @@ function Messages() {
                   }
                 }}
               >
-                <div className="chat-msg-bubble">
-                  {/* Media content */}
-                  {msg.media_url && (
-                    <div className="chat-msg-media">
-                      {msg.media_type === 'video' ? (
-                        <video
-                          src={msg.media_url}
-                          controls
-                          playsInline
-                          className="chat-media-video"
-                        />
-                      ) : (
-                        <img
-                          src={msg.media_url}
-                          alt="Shared media"
-                          className="chat-media-image"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            window.open(msg.media_url, '_blank');
-                          }}
-                        />
-                      )}
-                    </div>
-                  )}
-
-                  {/* Text content */}
+                <div className={`chat-msg-bubble ${hasMedia ? 'media-bubble' : ''}`}>
+                  {renderMedia(msg)}
                   {msg.message && <p>{msg.message}</p>}
 
                   {/* Time + read receipt */}
@@ -590,6 +659,45 @@ function Messages() {
           </div>
         )}
 
+        {/* GIF Picker */}
+        {showGifPicker && (
+          <div className="chat-gif-picker">
+            <div className="chat-gif-picker-header">
+              <input
+                type="text"
+                placeholder="Search GIFs..."
+                value={gifQuery}
+                onChange={(e) => handleGifSearch(e.target.value)}
+                autoFocus
+              />
+              <button onClick={() => setShowGifPicker(false)}>
+                <X size={18} />
+              </button>
+            </div>
+            <div className="chat-gif-grid">
+              {gifsLoading ? (
+                <div className="chat-gif-loading">Loading...</div>
+              ) : gifs.length === 0 ? (
+                <div className="chat-gif-loading">No GIFs found</div>
+              ) : (
+                gifs.map(gif => (
+                  <img
+                    key={gif.id}
+                    src={gif.images.fixed_height_still?.url || gif.images.fixed_height.url}
+                    data-gif={gif.images.fixed_height.url}
+                    alt={gif.title}
+                    onClick={() => selectGif(gif.images.fixed_height.url)}
+                    onMouseEnter={(e) => { e.target.src = e.target.dataset.gif; }}
+                    onMouseLeave={(e) => { e.target.src = gif.images.fixed_height_still?.url || gif.images.fixed_height.url; }}
+                    loading="lazy"
+                  />
+                ))
+              )}
+            </div>
+            <div className="chat-gif-powered">Powered by GIPHY</div>
+          </div>
+        )}
+
         {/* Input bar */}
         <div className="chat-input-bar">
           <input
@@ -603,8 +711,16 @@ function Messages() {
             className="chat-attach-btn"
             onClick={() => fileInputRef.current?.click()}
             disabled={sending}
+            title="Send photo or video"
           >
-            <Image size={22} />
+            <Paperclip size={20} />
+          </button>
+          <button
+            className="chat-gif-btn"
+            onClick={() => showGifPicker ? setShowGifPicker(false) : openGifPicker()}
+            title="Send GIF"
+          >
+            GIF
           </button>
           <textarea
             ref={inputRef}
@@ -617,7 +733,7 @@ function Messages() {
           />
           <button
             className="chat-send-btn"
-            onClick={handleSend}
+            onClick={() => handleSend()}
             disabled={!canSend || sending}
           >
             {uploading ? (
@@ -627,6 +743,16 @@ function Messages() {
             )}
           </button>
         </div>
+
+        {/* Lightbox for viewing media full-screen */}
+        {lightboxUrl && (
+          <div className="chat-lightbox" onClick={() => setLightboxUrl(null)}>
+            <button className="chat-lightbox-close" onClick={() => setLightboxUrl(null)}>
+              <X size={24} />
+            </button>
+            <img src={lightboxUrl} alt="Full size" onClick={(e) => e.stopPropagation()} />
+          </div>
+        )}
       </div>
     );
   }

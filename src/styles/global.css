@@ -18226,6 +18226,269 @@ a.nav-left {
 }
 
 /* ========================================
+   EXERCISE MODAL V2 - LIGHT MODE
+   ======================================== */
+
+[data-theme="light"] .exercise-modal-overlay-v2 {
+    background: rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="light"] .exercise-modal-v2 {
+    background: #ffffff;
+}
+
+/* Modal Header V2 - Light */
+[data-theme="light"] .exercise-modal-v2 .modal-header-v2 {
+    background: rgba(248, 250, 252, 0.95);
+    border-bottom: 1px solid #e5e7eb;
+}
+
+[data-theme="light"] .exercise-modal-v2 .close-btn {
+    color: #374151;
+}
+
+[data-theme="light"] .exercise-modal-v2 .header-info h2 {
+    color: #111827;
+}
+
+[data-theme="light"] .exercise-modal-v2 .muscle-badge {
+    color: #0d9488;
+}
+
+[data-theme="light"] .exercise-modal-v2 .equipment-badge {
+    background: #f3f4f6;
+    color: #6b7280;
+}
+
+/* Video Section V2 - Light */
+[data-theme="light"] .exercise-modal-v2 .video-section-v2 {
+    background: #f3f4f6;
+}
+
+[data-theme="light"] .exercise-modal-v2 .placeholder-overlay {
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.5));
+}
+
+[data-theme="light"] .exercise-modal-v2 .placeholder-overlay span {
+    color: #ffffff;
+}
+
+/* Modal Tabs - Light */
+[data-theme="light"] .exercise-modal-v2 .modal-tabs {
+    background: #f9fafb;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+[data-theme="light"] .exercise-modal-v2 .tab-btn {
+    color: #6b7280;
+}
+
+[data-theme="light"] .exercise-modal-v2 .tab-btn:hover {
+    color: #374151;
+}
+
+[data-theme="light"] .exercise-modal-v2 .tab-btn.active {
+    background: rgba(13, 148, 136, 0.1);
+    color: #0d9488;
+}
+
+/* Sets Progress - Light */
+[data-theme="light"] .exercise-modal-v2 .sets-progress {
+    background: #f9fafb;
+}
+
+[data-theme="light"] .exercise-modal-v2 .progress-dot {
+    background: #e5e7eb;
+}
+
+[data-theme="light"] .exercise-modal-v2 .progress-text {
+    color: #6b7280;
+}
+
+/* Set Rows - Light */
+[data-theme="light"] .exercise-modal-v2 .set-row {
+    background: #f9fafb;
+}
+
+[data-theme="light"] .exercise-modal-v2 .set-row.done {
+    background: rgba(34, 197, 94, 0.08);
+}
+
+[data-theme="light"] .exercise-modal-v2 .set-number {
+    background: #e5e7eb;
+    color: #374151;
+}
+
+[data-theme="light"] .exercise-modal-v2 .set-reps-control button,
+[data-theme="light"] .exercise-modal-v2 .set-weight-control button {
+    background: #e5e7eb;
+    color: #374151;
+}
+
+[data-theme="light"] .exercise-modal-v2 .value-display .value {
+    color: #111827;
+}
+
+[data-theme="light"] .exercise-modal-v2 .value-display .label {
+    color: #6b7280;
+}
+
+[data-theme="light"] .exercise-modal-v2 .set-complete-btn {
+    background: #f3f4f6;
+    border-color: #e5e7eb;
+    color: #9ca3af;
+}
+
+[data-theme="light"] .exercise-modal-v2 .set-complete-btn.completed {
+    color: white;
+}
+
+[data-theme="light"] .exercise-modal-v2 .add-set-btn-v2 {
+    border-color: #e5e7eb;
+    color: #6b7280;
+}
+
+/* Rest Setting - Light */
+[data-theme="light"] .exercise-modal-v2 .rest-setting {
+    background: #f9fafb;
+    color: #6b7280;
+}
+
+/* Personal Note - Light */
+[data-theme="light"] .exercise-modal-v2 .personal-note-v2 {
+    background: #f9fafb;
+}
+
+[data-theme="light"] .exercise-modal-v2 .personal-note-v2 .note-header span {
+    color: #111827;
+}
+
+[data-theme="light"] .exercise-modal-v2 .personal-note-v2 textarea {
+    background: #ffffff;
+    border-color: #e5e7eb;
+    color: #111827;
+}
+
+[data-theme="light"] .exercise-modal-v2 .personal-note-v2 .note-content {
+    color: #6b7280;
+}
+
+/* History Tab - Light */
+[data-theme="light"] .exercise-modal-v2 .pr-value {
+    color: #111827;
+}
+
+[data-theme="light"] .exercise-modal-v2 .history-chart-v2 h4,
+[data-theme="light"] .exercise-modal-v2 .recent-sessions h4 {
+    color: #111827;
+}
+
+[data-theme="light"] .exercise-modal-v2 .chart-container {
+    background: #f9fafb;
+}
+
+[data-theme="light"] .exercise-modal-v2 .bar-label {
+    color: #6b7280;
+}
+
+[data-theme="light"] .exercise-modal-v2 .no-history {
+    background: #f9fafb;
+}
+
+[data-theme="light"] .exercise-modal-v2 .no-history p {
+    color: #6b7280;
+}
+
+[data-theme="light"] .exercise-modal-v2 .session-item {
+    background: #f9fafb;
+}
+
+[data-theme="light"] .exercise-modal-v2 .session-date {
+    color: #111827;
+}
+
+[data-theme="light"] .exercise-modal-v2 .session-sets,
+[data-theme="light"] .exercise-modal-v2 .session-weight {
+    color: #6b7280;
+}
+
+[data-theme="light"] .exercise-modal-v2 .no-sessions {
+    color: #6b7280;
+}
+
+/* Info Tab - Light */
+[data-theme="light"] .exercise-modal-v2 .muscles-info h4,
+[data-theme="light"] .exercise-modal-v2 .equipment-info h4,
+[data-theme="light"] .exercise-modal-v2 .instructions-info h4,
+[data-theme="light"] .exercise-modal-v2 .tips-info h4 {
+    color: #111827;
+}
+
+[data-theme="light"] .exercise-modal-v2 .muscle-group {
+    background: #f9fafb;
+}
+
+[data-theme="light"] .exercise-modal-v2 .group-label {
+    color: #6b7280;
+}
+
+[data-theme="light"] .exercise-modal-v2 .group-value {
+    color: #111827;
+}
+
+[data-theme="light"] .exercise-modal-v2 .equipment-badge-large {
+    background: #f3f4f6;
+    color: #374151;
+}
+
+[data-theme="light"] .exercise-modal-v2 .instructions-info p {
+    color: #4b5563;
+}
+
+[data-theme="light"] .exercise-modal-v2 .tips-info li {
+    color: #4b5563;
+}
+
+/* Rest Timer Overlay - Light */
+[data-theme="light"] .exercise-modal-v2 .rest-timer-overlay {
+    background: rgba(255, 255, 255, 0.95);
+}
+
+[data-theme="light"] .exercise-modal-v2 .timer-seconds {
+    color: #111827;
+}
+
+[data-theme="light"] .exercise-modal-v2 .timer-label {
+    color: #6b7280;
+}
+
+[data-theme="light"] .exercise-modal-v2 .rest-timer-content h3 {
+    color: #111827;
+}
+
+[data-theme="light"] .exercise-modal-v2 .rest-timer-content p {
+    color: #6b7280;
+}
+
+[data-theme="light"] .exercise-modal-v2 .skip-rest-btn {
+    background: #f3f4f6;
+    color: #374151;
+}
+
+[data-theme="light"] .exercise-modal-v2 .skip-rest-btn:hover {
+    background: #e5e7eb;
+}
+
+/* Video Controls - Light */
+[data-theme="light"] .exercise-modal-v2 .video-control-btn {
+    background: rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="light"] .exercise-modal-v2 .video-control-btn:hover {
+    background: rgba(0, 0, 0, 0.6);
+}
+
+/* ========================================
    EXERCISE MODAL V3 - Reference Design
    ======================================== */
 
@@ -18600,6 +18863,189 @@ a.nav-left {
 
 .coaching-rec-btn.accept:active {
     transform: scale(0.98);
+}
+
+/* ========================================
+   EXERCISE MODAL V3 / IMAGES V3 / TIME BOXES / COACHING REC - LIGHT MODE
+   ======================================== */
+
+/* Modal V3 - Light */
+[data-theme="light"] .exercise-modal-v2.modal-v3 {
+    background: #ffffff;
+}
+
+[data-theme="light"] .modal-header-v3 {
+    background: #ffffff;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+[data-theme="light"] .modal-header-v3 .close-btn {
+    color: #374151;
+}
+
+[data-theme="light"] .modal-header-v3 .header-title {
+    color: #111827;
+}
+
+/* Exercise Images V3 - Light */
+[data-theme="light"] .exercise-images-v3 {
+    background: #f9fafb;
+}
+
+[data-theme="light"] .exercise-images-v3 .image-container {
+    background: #e5e7eb;
+}
+
+/* Difficulty Section - Light */
+[data-theme="light"] .difficulty-section {
+    color: #6b7280;
+}
+
+[data-theme="light"] .difficulty-section svg {
+    color: #6b7280;
+}
+
+/* Modal Time Boxes - Light */
+[data-theme="light"] .modal-time-boxes .time-box {
+    background: #f3f4f6;
+    color: #111827;
+    border-color: #e5e7eb;
+}
+
+[data-theme="light"] .modal-time-boxes .time-box .weight-value {
+    color: #6b7280;
+}
+
+[data-theme="light"] .modal-time-boxes .time-box.clickable:hover,
+[data-theme="light"] .modal-time-boxes .time-box.clickable:active {
+    background: #e5e7eb;
+    border-color: #3b82f6;
+}
+
+[data-theme="light"] .modal-time-boxes .time-box.add-box {
+    color: #6b7280;
+}
+
+[data-theme="light"] .modal-time-boxes .time-box.add-box:hover {
+    background: #e5e7eb;
+    color: #374151;
+}
+
+[data-theme="light"] .modal-time-boxes .rest-box {
+    background: #f3f4f6;
+    color: #6b7280;
+    border-color: #e5e7eb;
+}
+
+/* Coaching Recommendation Card - Light */
+[data-theme="light"] .coaching-rec-card {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(139, 92, 246, 0.04) 100%);
+    border-color: rgba(59, 130, 246, 0.2);
+}
+
+[data-theme="light"] .coaching-rec-value-item {
+    background: rgba(59, 130, 246, 0.06);
+}
+
+[data-theme="light"] .coaching-rec-value-number {
+    color: #111827;
+}
+
+[data-theme="light"] .coaching-rec-value-label {
+    color: #6b7280;
+}
+
+[data-theme="light"] .coaching-rec-reasoning {
+    color: #4b5563;
+}
+
+[data-theme="light"] .coaching-rec-last-session {
+    background: rgba(0, 0, 0, 0.03);
+    color: #6b7280;
+}
+
+[data-theme="light"] .coaching-rec-last-date {
+    color: #9ca3af;
+}
+
+/* Workout Hero V3 - Light */
+[data-theme="light"] .workout-hero-v3 .hero-title-v3 {
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="light"] .workout-hero-v3 .hero-day-label {
+    color: #6b7280;
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
+}
+
+[data-theme="light"] .workout-hero-v3 .stat-item {
+    color: #374151;
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
+}
+
+[data-theme="light"] .workout-hero-v3 .hero-description {
+    color: #6b7280;
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
+}
+
+/* Workout Card V3 - Light */
+[data-theme="light"] .workout-card-v3 {
+    background-color: #e8e8ee;
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .workout-card-v3::after {
+    background: linear-gradient(to right, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0.25) 55%, rgba(255, 255, 255, 0.05) 100%);
+}
+
+[data-theme="light"] .workout-card-overlay {
+    background: linear-gradient(to right, rgba(255, 255, 255, 0.75) 0%, rgba(255, 255, 255, 0.55) 60%, rgba(255, 255, 255, 0.35) 100%);
+}
+
+[data-theme="light"] .workout-card-title {
+    color: #111827;
+    text-shadow: 0 1px 3px rgba(255, 255, 255, 0.5);
+}
+
+[data-theme="light"] .workout-card-progress {
+    color: rgba(17, 24, 39, 0.7);
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
+}
+
+[data-theme="light"] .workout-card-day {
+    color: rgba(17, 24, 39, 0.55);
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
+}
+
+[data-theme="light"] .workout-card-stat {
+    color: rgba(17, 24, 39, 0.6);
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
+}
+
+[data-theme="light"] .workout-card-stat svg {
+    color: rgba(17, 24, 39, 0.5);
+}
+
+[data-theme="light"] .workout-card-badge {
+    background: rgba(139, 92, 246, 0.15);
+    color: #7c3aed;
+}
+
+[data-theme="light"] .workout-card-menu {
+    color: rgba(17, 24, 39, 0.6);
+    background: rgba(255, 255, 255, 0.5);
+}
+
+[data-theme="light"] .workout-card-day-section:active {
+    background: rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .workout-card-title-sub {
+    color: rgba(17, 24, 39, 0.45);
+}
+
+[data-theme="light"] .workout-card-day-menu {
+    color: rgba(17, 24, 39, 0.5);
 }
 
 /* ============================================
@@ -20503,6 +20949,176 @@ a.nav-left {
 
 .workout-ready-cancel-btn:active {
     color: #9ca3af;
+}
+
+/* ========================================
+   SET EDITOR / READINESS / WORKOUT-READY MODALS - LIGHT MODE
+   ======================================== */
+
+[data-theme="light"] .set-editor-overlay {
+    background: rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="light"] .set-editor-modal {
+    background: #ffffff;
+}
+
+[data-theme="light"] .editor-header {
+    border-bottom-color: #e5e7eb;
+}
+
+[data-theme="light"] .editor-close-btn {
+    color: #374151;
+}
+
+[data-theme="light"] .editor-title {
+    color: #111827;
+}
+
+[data-theme="light"] .editor-exercise-thumb {
+    background: #e5e7eb;
+}
+
+[data-theme="light"] .editor-exercise-details h3 {
+    color: #111827;
+}
+
+[data-theme="light"] .editor-difficulty {
+    color: #6b7280;
+}
+
+[data-theme="light"] .editor-mode-toggle {
+    background: #f3f4f6;
+}
+
+[data-theme="light"] .editor-mode-toggle .mode-btn {
+    color: #6b7280;
+}
+
+[data-theme="light"] .editor-mode-toggle .mode-btn.active {
+    background: #ffffff;
+    color: #111827;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .editor-set-item .set-value-input {
+    background: #f3f4f6;
+    color: #111827;
+}
+
+[data-theme="light"] .editor-set-item .set-value-input.active {
+    border-color: #3b82f6;
+    background: #eff6ff;
+}
+
+[data-theme="light"] .editor-set-item .set-delete-btn {
+    border-color: #d1d5db;
+    color: #9ca3af;
+}
+
+[data-theme="light"] .editor-set-item .rest-pill {
+    background: #f3f4f6;
+    color: #6b7280;
+}
+
+/* Readiness Modal - Light */
+[data-theme="light"] .readiness-overlay {
+    background: rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="light"] .readiness-modal {
+    background: #ffffff;
+    border-color: #e5e7eb;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="light"] .readiness-dot {
+    background: #e5e7eb;
+}
+
+[data-theme="light"] .readiness-question {
+    color: #111827;
+}
+
+[data-theme="light"] .readiness-option-btn {
+    background: #f9fafb;
+    border-color: #e5e7eb;
+}
+
+[data-theme="light"] .readiness-option-btn:active {
+    background: rgba(59, 130, 246, 0.08);
+    border-color: rgba(59, 130, 246, 0.3);
+}
+
+[data-theme="light"] .readiness-label {
+    color: #374151;
+}
+
+/* Workout Ready Modal - Light */
+[data-theme="light"] .workout-ready-overlay {
+    background: rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="light"] .workout-ready-modal {
+    background: #ffffff;
+    border-color: rgba(59, 130, 246, 0.15);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="light"] .workout-ready-title {
+    color: #111827;
+}
+
+[data-theme="light"] .workout-ready-info {
+    color: #6b7280;
+}
+
+[data-theme="light"] .workout-ready-summary {
+    background: #f9fafb;
+    border-color: #e5e7eb;
+}
+
+[data-theme="light"] .workout-ready-item {
+    background: #f3f4f6;
+}
+
+[data-theme="light"] .workout-ready-label {
+    color: #374151;
+}
+
+/* RPE Button - Light */
+[data-theme="light"] .rpe-btn {
+    background: #f3f4f6;
+    border-color: #e5e7eb;
+    color: #6b7280;
+}
+
+[data-theme="light"] .rpe-btn:hover,
+[data-theme="light"] .rpe-btn:active {
+    background: #e5e7eb;
+}
+
+[data-theme="light"] .rpe-dropdown-header {
+    color: #111827;
+    background: #f9fafb;
+    border-bottom-color: #e5e7eb;
+}
+
+[data-theme="light"] .rpe-option {
+    color: #111827;
+}
+
+[data-theme="light"] .rpe-option:hover {
+    background: #f3f4f6;
+}
+
+/* Progress Tip - Light */
+[data-theme="light"] .progress-tip-title {
+    color: #374151;
+}
+
+[data-theme="light"] .progress-tip-message {
+    color: #6b7280;
 }
 
 .progress-tip-header {
@@ -30277,14 +30893,12 @@ a.nav-left {
 }
 
 .chat-msg-time {
-    display: block;
+    display: inline;
     font-size: 10px;
-    margin-top: 4px;
     opacity: 0.7;
 }
 
 .chat-msg.mine .chat-msg-time {
-    text-align: right;
     color: rgba(255, 255, 255, 0.7);
 }
 
@@ -30405,11 +31019,16 @@ a.nav-left {
     background: var(--gray-100);
 }
 
-/* Attachment button */
-.chat-attach-btn {
-    width: 42px;
-    height: 42px;
-    min-width: 42px;
+/* ========================================
+   CHAT MEDIA, GIF PICKER, READ RECEIPTS, DELETE
+   ======================================== */
+
+/* Attachment buttons */
+.chat-attach-btn,
+.chat-gif-btn {
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
     border-radius: 50%;
     border: none;
     background: transparent;
@@ -30421,7 +31040,14 @@ a.nav-left {
     transition: all 0.15s;
 }
 
-.chat-attach-btn:hover:not(:disabled) {
+.chat-gif-btn {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+}
+
+.chat-attach-btn:hover:not(:disabled),
+.chat-gif-btn:hover {
     color: var(--brand-primary);
     background: rgba(13, 148, 136, 0.08);
 }
@@ -30429,6 +31055,17 @@ a.nav-left {
 .chat-attach-btn:disabled {
     opacity: 0.4;
     cursor: not-allowed;
+}
+
+[data-theme="dark"] .chat-attach-btn,
+[data-theme="dark"] .chat-gif-btn {
+    color: var(--gray-500);
+}
+
+[data-theme="dark"] .chat-attach-btn:hover:not(:disabled),
+[data-theme="dark"] .chat-gif-btn:hover {
+    background: var(--gray-300);
+    color: var(--gray-700);
 }
 
 /* Media in message bubbles */
@@ -30460,6 +31097,15 @@ a.nav-left {
     max-width: 100%;
     max-height: 280px;
     border-radius: inherit;
+}
+
+.media-bubble {
+    padding: 6px !important;
+    overflow: hidden;
+}
+
+.media-bubble p {
+    padding: 4px 8px 0;
 }
 
 /* No text message - adjust bubble padding */
@@ -30578,4 +31224,136 @@ a.nav-left {
 /* Tap hint cursor on own messages */
 .chat-msg.mine {
     cursor: pointer;
+}
+
+/* GIF Picker */
+.chat-gif-picker {
+    border-top: 1px solid var(--gray-200);
+    background: var(--gray-50);
+    max-height: 320px;
+    display: flex;
+    flex-direction: column;
+}
+
+.chat-gif-picker-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.chat-gif-picker-header input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid var(--gray-200);
+    border-radius: 20px;
+    font-size: 14px;
+    background: var(--gray-100);
+    color: var(--gray-800);
+    outline: none;
+}
+
+.chat-gif-picker-header input:focus {
+    border-color: var(--brand-primary);
+}
+
+.chat-gif-picker-header button {
+    width: 32px;
+    height: 32px;
+    background: none;
+    border: none;
+    color: var(--gray-500);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.chat-gif-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 4px;
+    padding: 4px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.chat-gif-grid img {
+    width: 100%;
+    height: 120px;
+    object-fit: cover;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: transform 0.15s;
+}
+
+.chat-gif-grid img:hover {
+    transform: scale(1.03);
+}
+
+.chat-gif-loading {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 24px;
+    color: var(--gray-400);
+    font-size: 14px;
+}
+
+.chat-gif-powered {
+    text-align: center;
+    padding: 6px;
+    font-size: 10px;
+    color: var(--gray-400);
+    border-top: 1px solid var(--gray-200);
+}
+
+[data-theme="dark"] .chat-gif-picker-header input {
+    background: var(--gray-200);
+    border-color: var(--gray-300);
+}
+
+/* Lightbox for viewing media full-screen */
+.chat-lightbox {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 10001;
+    background: rgba(0, 0, 0, 0.92);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    cursor: pointer;
+}
+
+.chat-lightbox img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    border-radius: 4px;
+    cursor: default;
+}
+
+.chat-lightbox-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    border-radius: 50%;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+}
+
+.chat-lightbox-close:hover {
+    background: rgba(255, 255, 255, 0.2);
 }
