@@ -150,6 +150,11 @@ function Messages() {
     }
   }, [isCoach, conversations, activeConvo]);
 
+  // Scroll to top on mount
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   // Fetch conversations on mount
   useEffect(() => {
     fetchConversations();
