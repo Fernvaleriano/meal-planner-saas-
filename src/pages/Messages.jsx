@@ -102,9 +102,9 @@ function Messages() {
       return;
     }
 
-    // Validate file size (10MB)
-    if (file.size > 10 * 1024 * 1024) {
-      alert('File too large. Maximum size is 10MB.');
+    // Validate file size (250MB)
+    if (file.size > 250 * 1024 * 1024) {
+      alert('File too large. Maximum size is 250MB.');
       return;
     }
 
