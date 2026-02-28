@@ -346,12 +346,9 @@ a.nav-left {
 
 @media (min-width: 640px) {
     .notification-dropdown {
-        position: absolute;
-        top: 100%;
         left: auto;
-        right: 0;
-        margin-top: 8px;
-        min-width: 420px;
+        right: 16px;
+        width: 420px;
         max-height: 400px;
     }
 }
