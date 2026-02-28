@@ -13,6 +13,7 @@ import Progress from './pages/Progress';
 import Feed from './pages/Feed';
 import Messages from './pages/Messages';
 import WorkoutHistory from './pages/WorkoutHistory';
+import Notifications from './pages/Notifications';
 import Login from './pages/Login';
 import ForgotPassword from './pages/ForgotPassword';
 import LoadingScreen from './components/LoadingScreen';
@@ -76,6 +77,7 @@ function App() {
         <Route path="feed" element={<CoachOnlyRoute><Feed /></CoachOnlyRoute>} />
         <Route path="messages" element={<Messages />} />
         <Route path="workout-history" element={<WorkoutHistory />} />
+        <Route path="notifications" element={<Notifications />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
