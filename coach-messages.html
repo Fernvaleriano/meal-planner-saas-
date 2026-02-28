@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" href="/icons/logo.png" type="image/png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <script src="/js/theme.js"></script>
+    <meta name="theme-color" content="#0d9488">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Zique Fitness">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/icons/logo.png">
+    <title>Messages - Zique Fitness</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --brand-primary: #0d9488;
+            --brand-primary-dark: #0f766e;
+            --brand-secondary: #0284c7;
+            --brand-gradient: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
+            --gray-50: #f8fafc;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-300: #cbd5e1;
+            --gray-400: #94a3b8;
+            --gray-500: #64748b;
+            --gray-600: #475569;
+            --gray-700: #334155;
+            --gray-800: #1e293b;
+            --gray-900: #0f172a;
+            --error: #ef4444;
+        }
+
+        [data-theme="dark"] {
+            --gray-50: #0f172a;
+            --gray-100: #1e293b;
+            --gray-200: #334155;
+            --gray-300: #475569;
+            --gray-400: #94a3b8;
+            --gray-500: #cbd5e1;
+            --gray-600: #e2e8f0;
+            --gray-700: #f1f5f9;
+            --gray-800: #f8fafc;
+            --gray-900: #ffffff;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--gray-50);
+            min-height: 100vh;
+            color: var(--gray-800);
+        }
+
+        /* ===== CHAT LAYOUT ===== */
+        .chat-container {
+            display: flex;
+            height: 100vh;
+            height: 100dvh;
+        }
+
+        /* ===== CONVERSATION LIST ===== */
+        .convo-list-panel {
+            width: 360px;
+            min-width: 360px;
+            border-right: 1px solid var(--gray-200);
+            display: flex;
+            flex-direction: column;
+            background: var(--gray-50);
+        }
+
+        .convo-list-header {
+            padding: 20px 16px 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .convo-list-header h1 {
+            font-size: 22px;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .convo-total-badge {
+            background: var(--error);
+            color: white;
+            font-size: 12px;
+            font-weight: 700;
+            min-width: 22px;
+            height: 22px;
+            border-radius: 11px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 6px;
+        }
+
+        .convo-search {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 12px 16px;
+            padding: 10px 14px;
+            background: var(--gray-100);
+            border-radius: 12px;
+        }
+
+        .convo-search svg { color: var(--gray-400); flex-shrink: 0; }
+
+        .convo-search input {
+            flex: 1;
+            border: none;
+            background: none;
+            outline: none;
+            font-size: 14px;
+            color: var(--gray-800);
+            font-family: inherit;
+        }
+
+        .convo-search input::placeholder { color: var(--gray-400); }
+
+        .convo-list {
+            flex: 1;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .convo-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+            padding: 14px 16px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            text-align: left;
+            transition: background 0.15s;
+            border-bottom: 1px solid var(--gray-100);
+            color: var(--gray-800);
+        }
+
+        .convo-item:hover { background: var(--gray-100); }
+        .convo-item.active { background: rgba(13, 148, 136, 0.08); }
+        .convo-item.unread { background: rgba(13, 148, 136, 0.04); }
+
+        .convo-avatar {
+            width: 48px;
+            height: 48px;
+            min-width: 48px;
+            border-radius: 50%;
+            background: var(--brand-gradient);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            font-weight: 700;
+            overflow: hidden;
+        }
+
+        .convo-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+        .convo-content { flex: 1; min-width: 0; }
+
+        .convo-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+
+        .convo-name { font-size: 15px; font-weight: 600; }
+        .convo-item.unread .convo-name { font-weight: 700; }
+        .convo-time { font-size: 12px; color: var(--gray-400); white-space: nowrap; }
+
+        .convo-bottom {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .convo-preview {
+            font-size: 13px;
+            color: var(--gray-400);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            flex: 1;
+        }
+
+        .convo-item.unread .convo-preview { color: var(--gray-600); font-weight: 500; }
+
+        .convo-unread-badge {
+            background: var(--brand-primary);
+            color: white;
+            font-size: 11px;
+            font-weight: 700;
+            min-width: 20px;
+            height: 20px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 6px;
+            flex-shrink: 0;
+        }
+
+        /* ===== THREAD PANEL ===== */
+        .thread-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--gray-50);
+        }
+
+        .thread-empty {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: var(--gray-400);
+            text-align: center;
+            padding: 40px;
+        }
+
+        .thread-empty svg { margin-bottom: 16px; opacity: 0.5; }
+        .thread-empty p { font-size: 16px; font-weight: 500; }
+        .thread-empty .sub { font-size: 13px; margin-top: 4px; font-weight: 400; }
+
+        .thread-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 20px;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .thread-back-btn {
+            display: none;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--gray-500);
+            padding: 4px;
+        }
+
+        .thread-avatar {
+            width: 36px;
+            height: 36px;
+            min-width: 36px;
+            border-radius: 50%;
+            background: var(--brand-gradient);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .thread-name { font-size: 16px; font-weight: 600; }
+
+        /* Messages area */
+        .messages-area {
+            flex: 1;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            padding: 16px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .date-divider {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px 0;
+        }
+
+        .date-divider span {
+            font-size: 12px;
+            color: var(--gray-400);
+            background: var(--gray-100);
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-weight: 500;
+        }
+
+        .msg { display: flex; max-width: 65%; margin-bottom: 2px; }
+        .msg.mine { margin-left: auto; }
+        .msg.theirs { margin-right: auto; }
+
+        .msg-bubble {
+            padding: 10px 14px;
+            border-radius: 18px;
+            word-wrap: break-word;
+        }
+
+        .msg.mine .msg-bubble {
+            background: var(--brand-primary);
+            color: white;
+            border-bottom-right-radius: 6px;
+        }
+
+        .msg.theirs .msg-bubble {
+            background: var(--gray-200);
+            color: var(--gray-800);
+            border-bottom-left-radius: 6px;
+        }
+
+        .msg-bubble p { margin: 0; font-size: 15px; line-height: 1.4; white-space: pre-wrap; }
+
+        .msg-time { display: block; font-size: 10px; margin-top: 4px; opacity: 0.7; }
+        .msg.mine .msg-time { text-align: right; color: rgba(255, 255, 255, 0.7); }
+        .msg.theirs .msg-time { color: var(--gray-400); }
+
+        /* Input bar */
+        .input-bar {
+            display: flex;
+            align-items: flex-end;
+            gap: 10px;
+            padding: 14px 20px;
+            border-top: 1px solid var(--gray-200);
+        }
+
+        .msg-input {
+            flex: 1;
+            border: 1px solid var(--gray-200);
+            border-radius: 20px;
+            padding: 10px 16px;
+            font-size: 15px;
+            line-height: 1.4;
+            resize: none;
+            outline: none;
+            background: white;
+            color: var(--gray-800);
+            max-height: 120px;
+            font-family: inherit;
+        }
+
+        [data-theme="dark"] .msg-input {
+            background: var(--gray-100);
+            border-color: var(--gray-200);
+        }
+
+        .msg-input:focus {
+            border-color: var(--brand-primary);
+            box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.15);
+        }
+
+        .send-btn {
+            width: 42px;
+            height: 42px;
+            min-width: 42px;
+            border-radius: 50%;
+            border: none;
+            background: var(--brand-primary);
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s;
+        }
+
+        .send-btn:hover:not(:disabled) { background: var(--brand-primary-dark); }
+        .send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        .convo-empty {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 60px 20px;
+            color: var(--gray-400);
+            text-align: center;
+        }
+
+        .convo-empty p { margin-top: 12px; font-size: 14px; }
+
+        .loading-text {
+            padding: 40px;
+            text-align: center;
+            color: var(--gray-400);
+            font-size: 14px;
+        }
+
+        /* ===== MOBILE RESPONSIVE ===== */
+        @media (max-width: 768px) {
+            .convo-list-panel {
+                width: 100%;
+                min-width: 100%;
+            }
+
+            .thread-panel { display: none; }
+
+            .chat-container.thread-open .convo-list-panel { display: none; }
+            .chat-container.thread-open .thread-panel { display: flex; }
+
+            .thread-back-btn { display: flex; }
+
+            .msg { max-width: 85%; }
+
+            .input-bar {
+                padding-bottom: calc(14px + env(safe-area-inset-bottom));
+            }
+        }
+
+        /* ===== COACH BOTTOM NAV (MOBILE) ===== */
+        .coach-bottom-nav {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            border-top: 1px solid var(--gray-200);
+            padding: 8px 0;
+            padding-bottom: calc(8px + env(safe-area-inset-bottom));
+            z-index: 1000;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        .coach-bottom-nav-inner {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .coach-nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-decoration: none;
+            color: var(--gray-500);
+            padding: 8px 12px;
+            border-radius: 12px;
+            transition: all 0.2s;
+            min-width: 56px;
+        }
+
+        .coach-nav-item.active { color: var(--brand-primary); }
+        .coach-nav-item.active .coach-nav-icon { background: rgba(13, 148, 136, 0.1); border-radius: 14px; }
+
+        .coach-nav-icon {
+            width: 48px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 2px;
+        }
+
+        .coach-nav-label { font-size: 11px; font-weight: 600; }
+
+        [data-theme="dark"] .coach-bottom-nav {
+            background: #1e293b;
+            border-top-color: #334155;
+        }
+
+        [data-theme="dark"] .coach-nav-item { color: #94a3b8; }
+        [data-theme="dark"] .coach-nav-item.active { color: #14b8a6; }
+
+        @media (max-width: 768px) {
+            .coach-bottom-nav { display: block; }
+            .chat-container { height: calc(100vh - 64px); height: calc(100dvh - 64px); }
+        }
+    </style>
+    <link rel="stylesheet" href="/css/coach-layout.css">
+    <script src="https://unpkg.com/lucide@0.312.0/dist/umd/lucide.min.js" onload="lucide.createIcons()"></script>
+</head>
+<body>
+    <!-- Sidebar (Desktop) -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <a href="dashboard.html" class="sidebar-logo">
+                <img src="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/Untitled%20design%20(3).svg" alt="Zique Fitness" class="sidebar-logo-img">
+            </a>
+        </div>
+        <nav class="sidebar-nav">
+            <div class="sidebar-nav-section" data-section="menu">
+                <div class="sidebar-nav-label" onclick="toggleSidebarSection(this)">
+                    Menu
+                    <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </div>
+                <div class="sidebar-nav-items">
+                    <a href="dashboard.html" class="sidebar-nav-item">
+                        <span class="sidebar-nav-icon"><i data-lucide="layout-dashboard"></i></span>
+                        Dashboard
+                    </a>
+                    <a href="manage-clients.html" class="sidebar-nav-item">
+                        <span class="sidebar-nav-icon"><i data-lucide="users"></i></span>
+                        Clients
+                    </a>
+                    <a href="client-feed.html" class="sidebar-nav-item">
+                        <span class="sidebar-nav-icon"><i data-lucide="activity"></i></span>
+                        Client Feed
+                    </a>
+                    <a href="coach-messages.html" class="sidebar-nav-item active">
+                        <span class="sidebar-nav-icon"><i data-lucide="message-circle"></i></span>
+                        Messages
+                    </a>
+                    <a href="manage-recipes.html" class="sidebar-nav-item">
+                        <span class="sidebar-nav-icon"><i data-lucide="book-open"></i></span>
+                        Recipes
+                    </a>
+                    <a href="planner.html" class="sidebar-nav-item">
+                        <span class="sidebar-nav-icon"><i data-lucide="sparkles"></i></span>
+                        AI Planner
+                    </a>
+                </div>
+            </div>
+            <div class="sidebar-nav-section" data-section="settings">
+                <div class="sidebar-nav-label" onclick="toggleSidebarSection(this)">
+                    Settings
+                    <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </div>
+                <div class="sidebar-nav-items">
+                    <a href="coach-profile.html" class="sidebar-nav-item">
+                        <span class="sidebar-nav-icon"><i data-lucide="user"></i></span>
+                        My Profile
+                    </a>
+                    <a href="supplement-protocols.html" class="sidebar-nav-item">
+                        <span class="sidebar-nav-icon"><i data-lucide="pill"></i></span>
+                        Supplements
+                    </a>
+                    <a href="reminder-settings.html" class="sidebar-nav-item">
+                        <span class="sidebar-nav-icon"><i data-lucide="bell"></i></span>
+                        Reminders
+                    </a>
+                    <a href="#" class="sidebar-nav-item sidebar-nav-logout" id="logoutLink">
+                        <span class="sidebar-nav-icon"><i data-lucide="log-out"></i></span>
+                        Log Out
+                    </a>
+                </div>
+            </div>
+        </nav>
+    </aside>
+
+    <!-- Main Chat Area -->
+    <div class="chat-container" id="chatContainer">
+        <!-- Conversation List -->
+        <div class="convo-list-panel">
+            <div class="convo-list-header">
+                <h1>Messages</h1>
+                <span class="convo-total-badge" id="totalBadge" style="display:none;">0</span>
+            </div>
+            <div class="convo-search">
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                <input type="text" placeholder="Search clients..." id="searchInput">
+            </div>
+            <div class="convo-list" id="convoList">
+                <div class="loading-text">Loading conversations...</div>
+            </div>
+        </div>
+
+        <!-- Thread Panel -->
+        <div class="thread-panel" id="threadPanel">
+            <div class="thread-empty" id="threadEmpty">
+                <svg width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+                <p>Select a conversation</p>
+                <p class="sub">Choose a client to start messaging</p>
+            </div>
+            <div class="thread-header" id="threadHeader" style="display:none;">
+                <button class="thread-back-btn" id="backBtn" onclick="closeThread()">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                </button>
+                <div class="thread-avatar" id="threadAvatar"></div>
+                <div class="thread-name" id="threadName"></div>
+            </div>
+            <div class="messages-area" id="messagesArea" style="display:none;"></div>
+            <div class="input-bar" id="inputBar" style="display:none;">
+                <textarea id="msgInput" class="msg-input" placeholder="Send a message..." rows="1"></textarea>
+                <button class="send-btn" id="sendBtn" disabled>
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Coach Bottom Nav (Mobile) -->
+    <nav class="coach-bottom-nav">
+        <div class="coach-bottom-nav-inner">
+            <a href="dashboard.html" class="coach-nav-item">
+                <div class="coach-nav-icon">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="24" height="24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+                    </svg>
+                </div>
+                <span class="coach-nav-label">Dashboard</span>
+            </a>
+            <a href="manage-clients.html" class="coach-nav-item">
+                <div class="coach-nav-icon">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="24" height="24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+                    </svg>
+                </div>
+                <span class="coach-nav-label">Clients</span>
+            </a>
+            <a href="client-feed.html" class="coach-nav-item">
+                <div class="coach-nav-icon">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="24" height="24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                    </svg>
+                </div>
+                <span class="coach-nav-label">Feed</span>
+            </a>
+            <a href="planner.html" class="coach-nav-item">
+                <div class="coach-nav-icon">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="24" height="24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                    </svg>
+                </div>
+                <span class="coach-nav-label">Planner</span>
+            </a>
+            <a href="coach-profile.html" class="coach-nav-item">
+                <div class="coach-nav-icon">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="24" height="24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                    </svg>
+                </div>
+                <span class="coach-nav-label">Profile</span>
+            </a>
+            <a href="coach-messages.html" class="coach-nav-item active">
+                <div class="coach-nav-icon">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="24" height="24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+                    </svg>
+                </div>
+                <span class="coach-nav-label">Messages</span>
+            </a>
+        </div>
+    </nav>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        // Sidebar collapse
+        function toggleSidebarSection(label) {
+            const section = label.parentElement;
+            section.classList.toggle('collapsed');
+            const sectionName = section.dataset.section;
+            const collapsed = JSON.parse(localStorage.getItem('sidebarCollapsed') || '{}');
+            collapsed[sectionName] = section.classList.contains('collapsed');
+            localStorage.setItem('sidebarCollapsed', JSON.stringify(collapsed));
+        }
+
+        const SUPABASE_URL = 'https://qewqcjzlfqamqwbccapr.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFld3FjanpsZnFhbXF3YmNjYXByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM2OTg0NzAsImV4cCI6MjA3OTI3NDQ3MH0.mQnMC33O88oLkLLGWD2oG-oaSHGI-NfHmtQCZxnxSLs';
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        let currentUser = null;
+        let activeClientId = null;
+        let activeClientName = '';
+        let conversations = [];
+        let realtimeChannel = null;
+
+        // Helpers
+        function getInitials(name) {
+            if (!name) return '?';
+            return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+        }
+
+        function formatTime(dateStr) {
+            if (!dateStr) return '';
+            const d = new Date(dateStr);
+            const now = new Date();
+            const diff = Math.floor((now - d) / 86400000);
+            if (diff === 0) return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+            if (diff === 1) return 'Yesterday';
+            if (diff < 7) return d.toLocaleDateString([], { weekday: 'short' });
+            return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+        }
+
+        function formatMsgTime(dateStr) {
+            return new Date(dateStr).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+        }
+
+        // Auth check
+        async function init() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) { window.location.href = 'index.html'; return; }
+            currentUser = session.user;
+
+            // Verify is coach
+            const { data: clientData } = await supabaseClient
+                .from('clients')
+                .select('id')
+                .eq('user_id', currentUser.id)
+                .maybeSingle();
+            if (clientData) { window.location.href = '/app'; return; }
+
+            // Logout handler
+            document.getElementById('logoutLink')?.addEventListener('click', async (e) => {
+                e.preventDefault();
+                await supabaseClient.auth.signOut();
+                window.location.href = 'index.html';
+            });
+
+            await loadConversations();
+            setupSearch();
+            setupRealtimeList();
+        }
+
+        // Load conversations
+        async function loadConversations() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            const res = await fetch(`/.netlify/functions/chat?action=conversations&coachId=${currentUser.id}`, {
+                headers: { 'Authorization': `Bearer ${session.access_token}` }
+            });
+            const data = await res.json();
+            conversations = data.conversations || [];
+            renderConversations();
+        }
+
+        function renderConversations(filter = '') {
+            const list = document.getElementById('convoList');
+            const filtered = filter
+                ? conversations.filter(c => c.clientName.toLowerCase().includes(filter.toLowerCase()))
+                : conversations;
+
+            const totalUnread = conversations.reduce((s, c) => s + (c.unreadCount || 0), 0);
+            const badge = document.getElementById('totalBadge');
+            if (totalUnread > 0) {
+                badge.textContent = totalUnread;
+                badge.style.display = 'flex';
+            } else {
+                badge.style.display = 'none';
+            }
+
+            if (filtered.length === 0) {
+                list.innerHTML = '<div class="convo-empty"><svg width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg><p>No conversations</p></div>';
+                return;
+            }
+
+            list.innerHTML = filtered.map(c => {
+                const preview = c.lastMessage
+                    ? (c.lastMessageSender === 'coach' ? 'You: ' : '') + c.lastMessage
+                    : 'No messages yet';
+                return `
+                    <button class="convo-item ${c.unreadCount > 0 ? 'unread' : ''} ${activeClientId === c.clientId ? 'active' : ''}"
+                            onclick="openThread(${c.clientId}, '${c.clientName.replace(/'/g, "\\'")}', '${c.profilePhoto || ''}')">
+                        <div class="convo-avatar">
+                            ${c.profilePhoto ? `<img src="${c.profilePhoto}" alt="${c.clientName}">` : getInitials(c.clientName)}
+                        </div>
+                        <div class="convo-content">
+                            <div class="convo-top">
+                                <span class="convo-name">${c.clientName}</span>
+                                <span class="convo-time">${formatTime(c.lastMessageAt)}</span>
+                            </div>
+                            <div class="convo-bottom">
+                                <span class="convo-preview">${preview}</span>
+                                ${c.unreadCount > 0 ? `<span class="convo-unread-badge">${c.unreadCount}</span>` : ''}
+                            </div>
+                        </div>
+                    </button>`;
+            }).join('');
+        }
+
+        // Open a thread
+        async function openThread(clientId, clientName) {
+            activeClientId = clientId;
+            activeClientName = clientName;
+
+            // Update UI
+            document.getElementById('chatContainer').classList.add('thread-open');
+            document.getElementById('threadEmpty').style.display = 'none';
+            document.getElementById('threadHeader').style.display = 'flex';
+            document.getElementById('messagesArea').style.display = 'flex';
+            document.getElementById('inputBar').style.display = 'flex';
+            document.getElementById('threadAvatar').textContent = getInitials(clientName);
+            document.getElementById('threadName').textContent = clientName;
+
+            // Highlight active convo
+            renderConversations(document.getElementById('searchInput').value);
+
+            // Load messages
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            const res = await fetch(`/.netlify/functions/chat?action=messages&coachId=${currentUser.id}&clientId=${clientId}&limit=100`, {
+                headers: { 'Authorization': `Bearer ${session.access_token}` }
+            });
+            const data = await res.json();
+            renderMessages(data.messages || []);
+
+            // Mark as read
+            await fetch('/.netlify/functions/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+                body: JSON.stringify({ action: 'mark-read', coachId: currentUser.id, clientId, readerType: 'coach' })
+            });
+
+            // Update local unread count
+            const convo = conversations.find(c => c.clientId === clientId);
+            if (convo) convo.unreadCount = 0;
+            renderConversations(document.getElementById('searchInput').value);
+
+            // Setup input
+            setupInput();
+
+            // Subscribe to realtime for this thread
+            setupRealtimeThread(clientId);
+        }
+
+        function renderMessages(messages) {
+            const area = document.getElementById('messagesArea');
+            let html = '';
+            let currentDate = null;
+
+            messages.forEach(msg => {
+                const msgDate = new Date(msg.created_at).toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
+                if (msgDate !== currentDate) {
+                    currentDate = msgDate;
+                    html += `<div class="date-divider"><span>${msgDate}</span></div>`;
+                }
+                const isMine = msg.sender_type === 'coach';
+                html += `
+                    <div class="msg ${isMine ? 'mine' : 'theirs'}">
+                        <div class="msg-bubble">
+                            <p>${escapeHtml(msg.message)}</p>
+                            <span class="msg-time">${formatMsgTime(msg.created_at)}</span>
+                        </div>
+                    </div>`;
+            });
+
+            area.innerHTML = html;
+            area.scrollTop = area.scrollHeight;
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        // Close thread (mobile back)
+        function closeThread() {
+            activeClientId = null;
+            document.getElementById('chatContainer').classList.remove('thread-open');
+            if (realtimeChannel) {
+                supabaseClient.removeChannel(realtimeChannel);
+                realtimeChannel = null;
+            }
+        }
+
+        // Input handling
+        function setupInput() {
+            const input = document.getElementById('msgInput');
+            const sendBtn = document.getElementById('sendBtn');
+
+            input.value = '';
+            sendBtn.disabled = true;
+
+            // Remove old listeners by cloning
+            const newInput = input.cloneNode(true);
+            input.parentNode.replaceChild(newInput, input);
+            const newSendBtn = sendBtn.cloneNode(true);
+            sendBtn.parentNode.replaceChild(newSendBtn, sendBtn);
+
+            newInput.addEventListener('input', () => {
+                newSendBtn.disabled = !newInput.value.trim();
+            });
+
+            newInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    if (newInput.value.trim()) sendMessage();
+                }
+            });
+
+            newSendBtn.addEventListener('click', sendMessage);
+            newInput.focus();
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('msgInput');
+            const text = input.value.trim();
+            if (!text || !activeClientId) return;
+
+            input.value = '';
+            document.getElementById('sendBtn').disabled = true;
+
+            // Optimistic render
+            const area = document.getElementById('messagesArea');
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'msg mine';
+            msgDiv.innerHTML = `<div class="msg-bubble"><p>${escapeHtml(text)}</p><span class="msg-time">${formatMsgTime(new Date().toISOString())}</span></div>`;
+            area.appendChild(msgDiv);
+            area.scrollTop = area.scrollHeight;
+
+            // Update conversation list
+            const convo = conversations.find(c => c.clientId === activeClientId);
+            if (convo) {
+                convo.lastMessage = text;
+                convo.lastMessageAt = new Date().toISOString();
+                convo.lastMessageSender = 'coach';
+                convo.hasMessages = true;
+            }
+            renderConversations(document.getElementById('searchInput').value);
+
+            // Send via API
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            await fetch('/.netlify/functions/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+                body: JSON.stringify({
+                    action: 'send',
+                    coachId: currentUser.id,
+                    clientId: activeClientId,
+                    senderType: 'coach',
+                    message: text
+                })
+            });
+
+            input.focus();
+        }
+
+        // Search
+        function setupSearch() {
+            document.getElementById('searchInput').addEventListener('input', (e) => {
+                renderConversations(e.target.value);
+            });
+        }
+
+        // Realtime: conversation list updates
+        function setupRealtimeList() {
+            supabaseClient
+                .channel('chat-list-coach')
+                .on('postgres_changes', {
+                    event: 'INSERT',
+                    schema: 'public',
+                    table: 'chat_messages',
+                    filter: `coach_id=eq.${currentUser.id}`
+                }, (payload) => {
+                    const msg = payload.new;
+                    if (msg.sender_type === 'client') {
+                        const convo = conversations.find(c => c.clientId === msg.client_id);
+                        if (convo) {
+                            convo.lastMessage = msg.message;
+                            convo.lastMessageAt = msg.created_at;
+                            convo.lastMessageSender = 'client';
+                            convo.hasMessages = true;
+                            if (activeClientId !== msg.client_id) {
+                                convo.unreadCount = (convo.unreadCount || 0) + 1;
+                            }
+                        }
+                        // Re-sort conversations
+                        conversations.sort((a, b) => {
+                            if (a.hasMessages && !b.hasMessages) return -1;
+                            if (!a.hasMessages && b.hasMessages) return 1;
+                            if (a.hasMessages && b.hasMessages) return new Date(b.lastMessageAt) - new Date(a.lastMessageAt);
+                            return a.clientName.localeCompare(b.clientName);
+                        });
+                        renderConversations(document.getElementById('searchInput').value);
+                    }
+                })
+                .subscribe();
+        }
+
+        // Realtime: active thread messages
+        function setupRealtimeThread(clientId) {
+            if (realtimeChannel) {
+                supabaseClient.removeChannel(realtimeChannel);
+            }
+
+            realtimeChannel = supabaseClient
+                .channel(`chat-thread-${clientId}`)
+                .on('postgres_changes', {
+                    event: 'INSERT',
+                    schema: 'public',
+                    table: 'chat_messages',
+                    filter: `coach_id=eq.${currentUser.id}`
+                }, async (payload) => {
+                    const msg = payload.new;
+                    if (msg.client_id === clientId && msg.sender_type === 'client') {
+                        // Add message to thread
+                        const area = document.getElementById('messagesArea');
+                        const msgDiv = document.createElement('div');
+                        msgDiv.className = 'msg theirs';
+                        msgDiv.innerHTML = `<div class="msg-bubble"><p>${escapeHtml(msg.message)}</p><span class="msg-time">${formatMsgTime(msg.created_at)}</span></div>`;
+                        area.appendChild(msgDiv);
+                        area.scrollTop = area.scrollHeight;
+
+                        // Mark as read
+                        const { data: { session } } = await supabaseClient.auth.getSession();
+                        await fetch('/.netlify/functions/chat', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+                            body: JSON.stringify({ action: 'mark-read', coachId: currentUser.id, clientId, readerType: 'coach' })
+                        });
+                    }
+                })
+                .subscribe();
+        }
+
+        // Init
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
