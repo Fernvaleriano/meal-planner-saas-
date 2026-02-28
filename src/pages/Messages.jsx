@@ -41,6 +41,7 @@ function Messages() {
   const [mediaPreview, setMediaPreview] = useState(null); // { file, dataUrl, type }
   const [uploading, setUploading] = useState(false);
   const [selectedMsgId, setSelectedMsgId] = useState(null); // for unsend menu
+  const [resubscribeKey, setResubscribeKey] = useState(0); // Incremented on resume to force Supabase channel re-subscribe
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
   const inputRef = useRef(null);
@@ -343,6 +344,11 @@ function Messages() {
     const unsub = onAppResume((backgroundMs) => {
       if (backgroundMs < 3000) return;
       fetchConversations();
+      // Force Supabase Realtime channels to tear down and reconnect.
+      // The WebSocket connection dies during background and channels
+      // silently stop receiving events. Incrementing the key causes
+      // the channel useEffects to re-run (cleanup old → create new).
+      setResubscribeKey(k => k + 1);
     });
     return () => unsub();
   }, [fetchConversations]);
@@ -433,7 +439,7 @@ function Messages() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [activeConvo, isCoach, coachId, clientId, scrollToBottom]);
+  }, [activeConvo, isCoach, coachId, clientId, scrollToBottom, resubscribeKey]);
 
   // Real-time subscription for conversation list updates
   useEffect(() => {
@@ -489,7 +495,7 @@ function Messages() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user?.id, isCoach, coachId, clientId, activeConvo]);
+  }, [user?.id, isCoach, coachId, clientId, activeConvo, resubscribeKey]);
 
   // Format time for conversation list
   const formatTime = (dateStr) => {

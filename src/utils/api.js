@@ -42,12 +42,18 @@ const SESSION_EXPIRY_BUFFER = 5 * 60 * 1000;
 /**
  * Get auth token with proactive session refresh
  * This ensures the session is valid before making API calls
+ *
+ * @param {boolean} bypassGate  If true, skip waiting on the resume gate.
+ *   ONLY used by ensureFreshSession when called from triggerResume(),
+ *   which is the function that created the gate in the first place.
+ *   Without this, triggerResume → ensureFreshSession → getAuthToken
+ *   would deadlock (waiting on a gate that can't resolve until this returns).
  */
-async function getAuthToken() {
+async function getAuthToken(bypassGate = false) {
   // If the app just resumed from background, wait for the session refresh
   // to complete before returning any token. This is the key fix that prevents
   // the race condition where pages fetch with expired tokens.
-  if (resumeGate) {
+  if (!bypassGate && resumeGate) {
     try {
       await resumeGate;
     } catch {
@@ -177,11 +183,17 @@ export function clearSessionCache() {
 
 /**
  * Force a session refresh (useful after returning from background)
+ *
+ * @param {object} options
+ * @param {boolean} options._bypassGate  Pass true ONLY when called from the
+ *   resume flow (triggerResume) that owns the gate. Otherwise the call would
+ *   deadlock: triggerResume sets gate → ensureFreshSession → getAuthToken
+ *   awaits gate → gate resolves after ensureFreshSession returns → deadlock.
  */
-export async function ensureFreshSession() {
+export async function ensureFreshSession({ _bypassGate = false } = {}) {
   // Clear cache to force a fresh check
   sessionCache.timestamp = 0;
-  return await getAuthToken();
+  return await getAuthToken(_bypassGate);
 }
 
 // Authenticated fetch wrapper with improved error handling

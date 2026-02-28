@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, Calendar, Flame, Target, Clock, Utensils, Co
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, ensureFreshSession } from '../utils/api';
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
+import { onAppResume } from '../hooks/useAppLifecycle';
 
 // localStorage cache helpers
 const getCache = (key) => {
@@ -207,6 +208,15 @@ function Plans() {
 
   // Setup pull-to-refresh
   const { isRefreshing, indicatorRef, bindToContainer, threshold } = usePullToRefresh(refreshPlansData);
+
+  // Re-fetch plans when app resumes from background
+  useEffect(() => {
+    const unsub = onAppResume((backgroundMs) => {
+      if (backgroundMs < 3000) return;
+      refreshPlansData();
+    });
+    return () => unsub();
+  }, [refreshPlansData]);
 
   // Load plans with caching
   useEffect(() => {
