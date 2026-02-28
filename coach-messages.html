@@ -849,7 +849,7 @@
         let activeClientName = '';
         let conversations = [];
         let realtimeChannel = null;
-        let pendingAttachment = null; // { dataUrl, mediaType, file }
+        let pendingAttachment = null; // { file, previewUrl, mediaType }
         let activeContextMenu = null;
         // Helpers
         function getInitials(name) {
@@ -1103,39 +1103,44 @@
             const file = e.target.files[0];
             if (!file) return;
 
+            if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
+                alert('Please select an image or video file.');
+                return;
+            }
+
             if (file.size > 250 * 1024 * 1024) {
                 alert('File too large. Maximum 250MB.');
                 return;
             }
 
-            const reader = new FileReader();
-            reader.onload = (ev) => {
-                const dataUrl = ev.target.result;
-                const isVideo = file.type.startsWith('video/');
-                pendingAttachment = { dataUrl, mediaType: isVideo ? 'video' : 'image', file };
+            const isVideo = file.type.startsWith('video/');
+            // Use object URL for preview (memory-efficient, works for large videos)
+            const previewUrl = URL.createObjectURL(file);
+            pendingAttachment = { file, previewUrl, mediaType: isVideo ? 'video' : 'image' };
 
-                const preview = document.getElementById('attachmentPreview');
-                const existingMedia = preview.querySelector('img, video');
-                if (existingMedia) existingMedia.remove();
+            const preview = document.getElementById('attachmentPreview');
+            const existingMedia = preview.querySelector('img, video');
+            if (existingMedia) existingMedia.remove();
 
-                if (isVideo) {
-                    const vid = document.createElement('video');
-                    vid.src = dataUrl;
-                    vid.controls = false;
-                    preview.insertBefore(vid, preview.firstChild);
-                } else {
-                    const img = document.createElement('img');
-                    img.src = dataUrl;
-                    preview.insertBefore(img, preview.firstChild);
-                }
-                preview.classList.add('visible');
-                updateSendBtnState();
-            };
-            reader.readAsDataURL(file);
+            if (isVideo) {
+                const vid = document.createElement('video');
+                vid.src = previewUrl;
+                vid.controls = false;
+                preview.insertBefore(vid, preview.firstChild);
+            } else {
+                const img = document.createElement('img');
+                img.src = previewUrl;
+                preview.insertBefore(img, preview.firstChild);
+            }
+            preview.classList.add('visible');
+            updateSendBtnState();
             e.target.value = '';
         }
 
         function clearAttachment() {
+            if (pendingAttachment?.previewUrl) {
+                URL.revokeObjectURL(pendingAttachment.previewUrl);
+            }
             pendingAttachment = null;
             const preview = document.getElementById('attachmentPreview');
             preview.classList.remove('visible');
@@ -1243,9 +1248,10 @@
             msgDiv.className = 'msg-wrapper';
             let bubbleHtml = '';
             if (attachment) {
+                const previewSrc = attachment.previewUrl;
                 const mediaTag = attachment.mediaType === 'video'
-                    ? `<div class="msg-media"><video src="${attachment.dataUrl}" preload="metadata"></video></div>`
-                    : `<div class="msg-media"><img src="${attachment.dataUrl}" alt="Photo"></div>`;
+                    ? `<div class="msg-media"><video src="${previewSrc}" preload="metadata"></video></div>`
+                    : `<div class="msg-media"><img src="${previewSrc}" alt="Photo"></div>`;
                 bubbleHtml = `<div class="msg-bubble media-bubble">${mediaTag}${text ? `<p>${escapeHtml(text)}</p>` : ''}<span class="msg-time">${formatMsgTime(new Date().toISOString())}</span></div>`;
             } else {
                 bubbleHtml = `<div class="msg-bubble"><p>${escapeHtml(text)}</p><span class="msg-time">${formatMsgTime(new Date().toISOString())}</span></div>`;
@@ -1266,27 +1272,40 @@
 
             const { data: { session } } = await supabaseClient.auth.getSession();
 
-            // Upload media if present
+            // Upload media if present (uses signed URL to bypass body size limits)
             let mediaUrl = null;
             let mediaType = null;
             if (attachment) {
                 try {
-                    const uploadRes = await fetch('/.netlify/functions/upload-chat-media', {
+                    const ext = attachment.file.name?.split('.').pop() || attachment.file.type.split('/')[1] || 'bin';
+
+                    // Step 1: Get signed upload URL
+                    const urlRes = await fetch('/.netlify/functions/get-chat-upload-url', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
                         body: JSON.stringify({
-                            fileData: attachment.dataUrl,
                             coachId: currentUser.id,
-                            clientId: activeClientId
+                            clientId: activeClientId,
+                            contentType: attachment.file.type,
+                            fileExtension: ext
                         })
                     });
-                    const uploadData = await uploadRes.json();
-                    if (uploadData.success) {
-                        mediaUrl = uploadData.mediaUrl;
-                        mediaType = uploadData.mediaType;
-                    }
+                    const urlData = await urlRes.json();
+                    if (!urlData.success) throw new Error(urlData.error || 'Failed to get upload URL');
+
+                    // Step 2: Upload file directly to Supabase Storage
+                    const uploadRes = await fetch(urlData.uploadUrl, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': attachment.file.type },
+                        body: attachment.file
+                    });
+                    if (!uploadRes.ok) throw new Error('Failed to upload file to storage');
+
+                    mediaUrl = urlData.publicUrl;
+                    mediaType = urlData.mediaType;
                 } catch (err) {
                     console.error('Media upload failed:', err);
+                    alert('Failed to upload media. Please try again or use a smaller file.');
                 }
             }
 
