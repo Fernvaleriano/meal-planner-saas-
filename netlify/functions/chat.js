@@ -7,7 +7,7 @@ const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, OPTIONS'
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS'
 };
 
 exports.handler = async (event) => {
@@ -46,9 +46,10 @@ exports.handler = async (event) => {
         // Get the latest message for each client conversation
         const { data: latestMessages, error: msgError } = await supabase
           .from('chat_messages')
-          .select('id, client_id, sender_type, message, created_at, is_read')
+          .select('id, client_id, sender_type, message, media_url, media_type, created_at, is_read')
           .eq('coach_id', coachId)
           .in('client_id', clientIds)
+          .is('deleted_at', null)
           .order('created_at', { ascending: false });
 
         if (msgError) {
@@ -74,7 +75,7 @@ exports.handler = async (event) => {
             clientId: client.id,
             clientName: client.client_name,
             profilePhoto: client.profile_photo_url,
-            lastMessage: msgData?.latest?.message || null,
+            lastMessage: msgData?.latest?.message || (msgData?.latest?.media_type === 'video' ? 'Sent a video' : msgData?.latest?.media_type === 'gif' ? 'Sent a GIF' : msgData?.latest?.media_url ? 'Sent a photo' : null),
             lastMessageAt: msgData?.latest?.created_at || null,
             lastMessageSender: msgData?.latest?.sender_type || null,
             unreadCount: msgData?.unreadCount || 0,
@@ -160,9 +161,10 @@ exports.handler = async (event) => {
       if (action === 'messages' && coachId && clientId) {
         let query = supabase
           .from('chat_messages')
-          .select('id, sender_type, message, is_read, created_at')
+          .select('id, sender_type, message, media_url, media_type, is_read, created_at')
           .eq('coach_id', coachId)
           .eq('client_id', clientId)
+          .is('deleted_at', null)
           .order('created_at', { ascending: false })
           .limit(parseInt(limit));
 
@@ -195,24 +197,31 @@ exports.handler = async (event) => {
 
       // Send a message
       if (action === 'send') {
-        const { coachId, clientId, senderType, message } = body;
+        const { coachId, clientId, senderType, message, mediaUrl, mediaType } = body;
 
-        if (!coachId || !clientId || !senderType || !message?.trim()) {
-          return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'coachId, clientId, senderType, and message required' }) };
+        if (!coachId || !clientId || !senderType || (!message?.trim() && !mediaUrl)) {
+          return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'coachId, clientId, senderType, and message or media required' }) };
         }
 
         if (!['coach', 'client'].includes(senderType)) {
           return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'senderType must be coach or client' }) };
         }
 
+        const insertData = {
+          coach_id: coachId,
+          client_id: parseInt(clientId),
+          sender_type: senderType,
+          message: message?.trim() || null
+        };
+
+        if (mediaUrl) {
+          insertData.media_url = mediaUrl;
+          insertData.media_type = mediaType || 'image';
+        }
+
         const { data: newMessage, error: insertError } = await supabase
           .from('chat_messages')
-          .insert({
-            coach_id: coachId,
-            client_id: parseInt(clientId),
-            sender_type: senderType,
-            message: message.trim()
-          })
+          .insert(insertData)
           .select()
           .single();
 
@@ -222,16 +231,18 @@ exports.handler = async (event) => {
         }
 
         // Create a notification for the recipient
+        const notifText = message?.trim()
+          ? message.trim().substring(0, 100)
+          : mediaType === 'video' ? 'Sent a video' : mediaType === 'gif' ? 'Sent a GIF' : 'Sent a photo';
+
         if (senderType === 'coach') {
-          // Notify client
           await supabase.from('notifications').insert({
             client_id: parseInt(clientId),
             type: 'chat_message',
             title: 'New message from your coach',
-            message: message.trim().substring(0, 100)
+            message: notifText
           });
         } else {
-          // Notify coach
           const { data: client } = await supabase
             .from('clients')
             .select('client_name')
@@ -242,7 +253,7 @@ exports.handler = async (event) => {
             user_id: coachId,
             type: 'chat_message',
             title: `New message from ${client?.client_name || 'client'}`,
-            message: message.trim().substring(0, 100),
+            message: notifText,
             related_client_id: parseInt(clientId)
           });
         }
@@ -276,6 +287,33 @@ exports.handler = async (event) => {
         if (updateError) {
           console.error('Error marking as read:', updateError);
           return { statusCode: 500, headers: corsHeaders, body: JSON.stringify({ error: updateError.message }) };
+        }
+
+        return {
+          statusCode: 200,
+          headers: corsHeaders,
+          body: JSON.stringify({ success: true })
+        };
+      }
+
+      // Delete a message (soft delete)
+      if (action === 'delete') {
+        const { messageId, coachId } = body;
+
+        if (!messageId || !coachId) {
+          return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'messageId and coachId required' }) };
+        }
+
+        const { error: deleteError } = await supabase
+          .from('chat_messages')
+          .update({ deleted_at: new Date().toISOString() })
+          .eq('id', messageId)
+          .eq('coach_id', coachId)
+          .eq('sender_type', 'coach');
+
+        if (deleteError) {
+          console.error('Error deleting message:', deleteError);
+          return { statusCode: 500, headers: corsHeaders, body: JSON.stringify({ error: deleteError.message }) };
         }
 
         return {
