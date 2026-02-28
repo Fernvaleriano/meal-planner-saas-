@@ -15,11 +15,96 @@ import { ensureFreshSession, _setResumeGate } from '../utils/api';
  * - Watchdog that catches stuck body styles even if visibilitychange doesn't fire
  * - Resume gate: blocks ALL API calls until the session is refreshed, preventing
  *   race conditions where pages fetch with stale tokens
+ * - Keep-alive: Web Lock + silent ping to resist OS from killing the process
  */
 
 // Global subscriber registry — persists across renders and component mounts
 const subscribers = new Set();
 let lastSuspendTime = null;
+
+// ── KEEP-ALIVE: Resist OS from killing the app process ──
+// Uses multiple strategies because no single one works on all platforms:
+// 1. Web Locks API — tells the browser this tab is "in use, don't discard"
+// 2. Periodic silent ping — lightweight network activity keeps the process warm
+// 3. Silent AudioContext — keeps iOS WebView active (iOS kills silent tabs)
+
+let keepAliveActive = false;
+let keepAlivePingInterval = null;
+let webLockController = null;
+let keepAliveAudioCtx = null;
+
+function startKeepAlive() {
+  if (keepAliveActive) return;
+  keepAliveActive = true;
+
+  // Strategy 1: Web Locks API — hold a lock for the app lifetime.
+  // Signals to the browser that this tab shouldn't be discarded.
+  if (navigator.locks) {
+    const controller = new AbortController();
+    webLockController = controller;
+    navigator.locks.request('zique-keep-alive', { signal: controller.signal }, () => {
+      // Return a promise that never resolves — holds the lock forever
+      return new Promise(() => {});
+    }).catch(() => {});
+  }
+
+  // Strategy 2: Periodic silent ping every 20s while backgrounded.
+  // A tiny HEAD request to our own origin keeps the network stack alive
+  // and prevents the OS from marking the WebView as idle.
+  keepAlivePingInterval = setInterval(() => {
+    if (document.visibilityState === 'hidden') {
+      fetch('/manifest.json', { method: 'HEAD', cache: 'no-store' }).catch(() => {});
+    }
+  }, 20000);
+
+  // Strategy 3: Silent AudioContext — on iOS, having an active audio session
+  // prevents the WebView from being suspended. The gain is 0 so no sound plays.
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (AC) {
+      keepAliveAudioCtx = new AC();
+      const oscillator = keepAliveAudioCtx.createOscillator();
+      const gain = keepAliveAudioCtx.createGain();
+      gain.gain.value = 0; // completely silent
+      oscillator.connect(gain);
+      gain.connect(keepAliveAudioCtx.destination);
+      oscillator.start();
+
+      // iOS requires user interaction to start audio
+      const resumeAudio = () => {
+        if (keepAliveAudioCtx && keepAliveAudioCtx.state === 'suspended') {
+          keepAliveAudioCtx.resume().catch(() => {});
+        }
+      };
+      document.addEventListener('touchstart', resumeAudio, { once: true, passive: true });
+      document.addEventListener('click', resumeAudio, { once: true });
+    }
+  } catch {
+    // AudioContext not available — skip
+  }
+
+  console.log('[AppLifecycle] Keep-alive started');
+}
+
+function stopKeepAlive() {
+  if (!keepAliveActive) return;
+  keepAliveActive = false;
+
+  if (keepAlivePingInterval) {
+    clearInterval(keepAlivePingInterval);
+    keepAlivePingInterval = null;
+  }
+  if (webLockController) {
+    webLockController.abort();
+    webLockController = null;
+  }
+  if (keepAliveAudioCtx) {
+    keepAliveAudioCtx.close().catch(() => {});
+    keepAliveAudioCtx = null;
+  }
+
+  console.log('[AppLifecycle] Keep-alive stopped');
+}
 
 /**
  * Subscribe a handler to app lifecycle events.
@@ -168,6 +253,11 @@ export function useAppLifecycle() {
         }
       }
     } else if (document.visibilityState === 'visible') {
+      // Re-activate the silent audio context on resume (iOS suspends it)
+      if (keepAliveAudioCtx && keepAliveAudioCtx.state === 'suspended') {
+        keepAliveAudioCtx.resume().catch(() => {});
+      }
+
       const backgroundMs = suspendTimeRef.current
         ? Date.now() - suspendTimeRef.current
         : 0;
@@ -176,6 +266,10 @@ export function useAppLifecycle() {
   }, [handleResume]);
 
   useEffect(() => {
+    // Start the keep-alive system immediately — this is what keeps the app
+    // alive in the background as long as possible
+    startKeepAlive();
+
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
     // Also handle the pageshow event for bfcache restoration (iOS Safari)
@@ -244,6 +338,7 @@ export function useAppLifecycle() {
       clearInterval(heartbeatInterval);
       document.removeEventListener('touchstart', handleTouchStart, { capture: true });
       document.removeEventListener('click', handleTouchStart, { capture: true });
+      stopKeepAlive();
     };
   }, [handleVisibilityChange, handleResume]);
 }
