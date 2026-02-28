@@ -1197,6 +1197,28 @@ a.nav-left {
     padding: 0;
 }
 
+/* Messages page - keep input bar visible above bottom nav */
+.main-content.messages-page {
+    padding: 0;
+    padding-bottom: 60px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.main-content.messages-page .container {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+@media (min-width: 1024px) {
+    .main-content.messages-page {
+        padding-bottom: 0;
+    }
+}
+
 /* ========================================
    DESKTOP SIDEBAR
    ======================================== */
@@ -31395,15 +31417,16 @@ a.nav-left {
 .chat-page {
     display: flex;
     flex-direction: column;
-    height: calc(100vh - 140px);
+    flex: 1;
+    min-height: 0;
     max-width: 800px;
+    width: 100%;
     margin: 0 auto;
     background: var(--gray-50);
 }
 
 @media (min-width: 1024px) {
     .chat-page {
-        height: calc(100vh - 80px);
         border-left: 1px solid var(--gray-200);
         border-right: 1px solid var(--gray-200);
     }

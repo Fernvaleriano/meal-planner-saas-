@@ -9,12 +9,13 @@ function Layout() {
 
   // Hide top nav on pages that have their own navigation
   const hideTopNav = location.pathname === '/workouts';
+  const isMessagesPage = location.pathname === '/messages';
 
   return (
     <div className="app-layout">
       {!hideTopNav && <TopNav />}
       <DesktopSidebar />
-      <main className={`main-content ${hideTopNav ? 'no-top-nav' : ''}`}>
+      <main className={`main-content ${hideTopNav ? 'no-top-nav' : ''} ${isMessagesPage ? 'messages-page' : ''}`}>
         <div className={`container ${hideTopNav ? 'full-width' : ''}`}>
           <ErrorBoundary>
             <Outlet />
