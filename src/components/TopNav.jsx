@@ -269,6 +269,9 @@ function TopNav() {
     if (notif.type === 'diary_reaction' || notif.type === 'diary_comment') {
       setShowNotifications(false);
       setSelectedNotification(notif);
+    } else if (notif.type === 'chat_message') {
+      setShowNotifications(false);
+      navigate('/messages');
     } else if (notif.type === 'diet_plan_published') {
       setShowNotifications(false);
       navigate('/plans');
