@@ -15670,6 +15670,323 @@ a.nav-left {
     box-shadow: none;
 }
 
+/* Club Workouts Modal - Light Mode */
+[data-theme="light"] .club-workouts-modal {
+    background: #ffffff;
+}
+
+[data-theme="light"] .club-workouts-header {
+    border-bottom-color: #e2e8f0;
+}
+
+[data-theme="light"] .club-workouts-header h2 {
+    color: #111827;
+}
+
+[data-theme="light"] .club-workouts-close,
+[data-theme="light"] .club-workouts-back {
+    color: #6b7280;
+}
+
+[data-theme="light"] .club-search-wrapper {
+    background: #f8fafc;
+    border-color: #e2e8f0;
+}
+
+[data-theme="light"] .club-search-wrapper svg {
+    color: #9ca3af;
+}
+
+[data-theme="light"] .club-search-input {
+    color: #111827;
+}
+
+[data-theme="light"] .club-search-input::placeholder {
+    color: #9ca3af;
+}
+
+[data-theme="light"] .club-filter-pill {
+    border-color: #e2e8f0;
+    background: #f8fafc;
+    color: #6b7280;
+}
+
+[data-theme="light"] .club-filter-pill:hover {
+    border-color: #d1d5db;
+}
+
+[data-theme="light"] .club-filter-pill.active {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(99, 102, 241, 0.1) 100%);
+    border-color: #8b5cf6;
+    color: #7c3aed;
+}
+
+[data-theme="light"] .club-filter-pill.active:hover {
+    border-color: #8b5cf6;
+}
+
+[data-theme="light"] .club-filter-dropdown {
+    background: #ffffff;
+    border-color: #e2e8f0;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+[data-theme="light"] .club-filter-option {
+    color: #374151;
+}
+
+[data-theme="light"] .club-filter-option:hover {
+    background: rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .club-filter-option.selected {
+    background: rgba(139, 92, 246, 0.1);
+    color: #7c3aed;
+}
+
+[data-theme="light"] .club-category-btn {
+    border-color: #e2e8f0;
+    background: #f8fafc;
+    color: #6b7280;
+}
+
+[data-theme="light"] .club-category-btn.active {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.12) 0%, rgba(99, 102, 241, 0.12) 100%);
+    border-color: #8b5cf6;
+    color: #7c3aed;
+}
+
+[data-theme="light"] .club-loading {
+    color: #9ca3af;
+}
+
+[data-theme="light"] .club-empty {
+    color: #9ca3af;
+}
+
+[data-theme="light"] .club-empty h3 {
+    color: #111827;
+}
+
+[data-theme="light"] .club-empty p {
+    color: #9ca3af;
+}
+
+[data-theme="light"] .club-workout-card {
+    background: #f8fafc;
+    border-color: #e2e8f0;
+}
+
+[data-theme="light"] .club-workout-card.has-image {
+    border-color: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .club-workout-card:hover {
+    border-color: #8b5cf6;
+}
+
+[data-theme="light"] .club-workout-card.has-image:hover {
+    border-color: rgba(139, 92, 246, 0.6);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .club-workout-card-header h3 {
+    color: #111827;
+}
+
+[data-theme="light"] .club-workout-card-header svg {
+    color: #9ca3af;
+}
+
+[data-theme="light"] .club-workout-card.has-image .club-workout-card-header h3 {
+    color: #f8fafc;
+}
+
+[data-theme="light"] .club-workout-card.has-image .club-workout-card-header svg {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+[data-theme="light"] .club-workout-card-desc {
+    color: #6b7280;
+}
+
+[data-theme="light"] .club-workout-card.has-image .club-workout-card-desc {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+[data-theme="light"] .club-workout-card-stats {
+    color: #9ca3af;
+}
+
+[data-theme="light"] .club-workout-card.has-image .club-workout-card-stats {
+    color: rgba(255, 255, 255, 0.75);
+}
+
+[data-theme="light"] .club-workout-badge {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="light"] .club-workout-badge.category {
+    color: #7c3aed;
+}
+
+[data-theme="light"] .club-workout-card.has-image .club-workout-badge {
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+[data-theme="light"] .club-workout-card.has-image .club-workout-badge.category {
+    color: #e0d4ff;
+}
+
+[data-theme="light"] .club-workout-detail-desc {
+    color: #6b7280;
+}
+
+[data-theme="light"] .detail-stat {
+    color: #6b7280;
+}
+
+[data-theme="light"] .detail-stat svg {
+    color: #9ca3af;
+}
+
+[data-theme="light"] .club-workout-exercises h3 {
+    color: #9ca3af;
+}
+
+[data-theme="light"] .club-exercise-item {
+    border-bottom-color: rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .club-exercise-name {
+    color: #111827;
+}
+
+[data-theme="light"] .club-exercise-meta {
+    color: #9ca3af;
+}
+
+[data-theme="light"] .club-exercise-thumb {
+    background: #f1f5f9;
+}
+
+[data-theme="light"] .club-program-day-card {
+    background: #f8fafc;
+    border-color: #e2e8f0;
+}
+
+[data-theme="light"] .club-program-day-card:hover {
+    border-color: #8b5cf6;
+}
+
+[data-theme="light"] .club-program-day-name {
+    color: #111827;
+}
+
+[data-theme="light"] .club-program-day-meta {
+    color: #9ca3af;
+}
+
+[data-theme="light"] .club-program-day-arrow {
+    color: #d1d5db;
+}
+
+[data-theme="light"] .club-program-days-list h3 {
+    color: #9ca3af;
+}
+
+[data-theme="light"] .club-workout-action {
+    border-top-color: #e2e8f0;
+    background: #ffffff;
+}
+
+[data-theme="light"] .club-workout-schedule-btn {
+    border-color: #e2e8f0;
+    color: #6b7280;
+}
+
+[data-theme="light"] .club-workout-schedule-btn:hover {
+    border-color: #8b5cf6;
+    color: #7c3aed;
+}
+
+[data-theme="light"] .club-date-input {
+    border-color: #e2e8f0;
+    background: #f8fafc;
+    color: #111827;
+}
+
+[data-theme="light"] .club-date-input:focus {
+    border-color: #8b5cf6;
+}
+
+[data-theme="light"] .schedule-program-summary {
+    border-bottom-color: #e2e8f0;
+}
+
+[data-theme="light"] .schedule-program-summary h3 {
+    color: #111827;
+}
+
+[data-theme="light"] .schedule-program-meta {
+    color: #6b7280;
+}
+
+[data-theme="light"] .schedule-label {
+    color: #374151;
+}
+
+[data-theme="light"] .schedule-hint {
+    color: #9ca3af;
+}
+
+[data-theme="light"] .schedule-date-input {
+    border-color: #e2e8f0;
+    background: #f8fafc;
+    color: #111827;
+}
+
+[data-theme="light"] .schedule-date-input:focus {
+    border-color: #8b5cf6;
+}
+
+[data-theme="light"] .schedule-day-btn {
+    border-color: #e2e8f0;
+    background: #f8fafc;
+    color: #9ca3af;
+}
+
+[data-theme="light"] .schedule-day-btn:hover:not(.active) {
+    border-color: #d1d5db;
+    color: #6b7280;
+}
+
+[data-theme="light"] .schedule-summary-main {
+    color: #374151;
+}
+
+[data-theme="light"] .schedule-summary-detail {
+    color: #6b7280;
+}
+
+[data-theme="light"] .schedule-week-btn {
+    border-color: #e2e8f0;
+    background: #f8fafc;
+    color: #6b7280;
+}
+
+[data-theme="light"] .schedule-week-btn:hover:not(.active) {
+    border-color: #d1d5db;
+    color: #374151;
+}
+
+[data-theme="light"] .schedule-warning {
+    color: #d97706;
+    background: rgba(245, 158, 11, 0.08);
+}
+
 /* AI Quick Workout Modal */
 .ai-workout-overlay {
     position: fixed;
@@ -18995,57 +19312,57 @@ a.nav-left {
 }
 
 [data-theme="light"] .workout-card-v3::after {
-    background: linear-gradient(to right, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0.25) 55%, rgba(255, 255, 255, 0.05) 100%);
+    background: linear-gradient(to right, rgba(10, 10, 30, 0.55) 0%, rgba(10, 10, 30, 0.35) 55%, rgba(10, 10, 30, 0.15) 100%);
 }
 
 [data-theme="light"] .workout-card-overlay {
-    background: linear-gradient(to right, rgba(255, 255, 255, 0.75) 0%, rgba(255, 255, 255, 0.55) 60%, rgba(255, 255, 255, 0.35) 100%);
+    background: linear-gradient(to right, rgba(10, 10, 30, 0.88) 0%, rgba(10, 10, 30, 0.72) 60%, rgba(10, 10, 30, 0.55) 100%);
 }
 
 [data-theme="light"] .workout-card-title {
-    color: #111827;
-    text-shadow: 0 1px 3px rgba(255, 255, 255, 0.5);
+    color: #f8fafc;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
 }
 
 [data-theme="light"] .workout-card-progress {
-    color: rgba(17, 24, 39, 0.7);
-    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
+    color: rgba(248, 250, 252, 0.8);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 [data-theme="light"] .workout-card-day {
-    color: rgba(17, 24, 39, 0.55);
-    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
+    color: rgba(248, 250, 252, 0.65);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 [data-theme="light"] .workout-card-stat {
-    color: rgba(17, 24, 39, 0.6);
-    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
+    color: rgba(248, 250, 252, 0.7);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 [data-theme="light"] .workout-card-stat svg {
-    color: rgba(17, 24, 39, 0.5);
+    color: rgba(248, 250, 252, 0.6);
 }
 
 [data-theme="light"] .workout-card-badge {
-    background: rgba(139, 92, 246, 0.15);
-    color: #7c3aed;
+    background: rgba(139, 92, 246, 0.25);
+    color: #c4b5fd;
 }
 
 [data-theme="light"] .workout-card-menu {
-    color: rgba(17, 24, 39, 0.6);
-    background: rgba(255, 255, 255, 0.5);
+    color: rgba(248, 250, 252, 0.7);
+    background: rgba(0, 0, 0, 0.3);
 }
 
 [data-theme="light"] .workout-card-day-section:active {
-    background: rgba(0, 0, 0, 0.04);
+    background: rgba(255, 255, 255, 0.04);
 }
 
 [data-theme="light"] .workout-card-title-sub {
-    color: rgba(17, 24, 39, 0.45);
+    color: rgba(248, 250, 252, 0.5);
 }
 
 [data-theme="light"] .workout-card-day-menu {
-    color: rgba(17, 24, 39, 0.5);
+    color: rgba(248, 250, 252, 0.6);
 }
 
 /* ============================================
@@ -19650,6 +19967,37 @@ a.nav-left {
 .reference-link-row .ref-link-arrow {
     color: #64748b;
     flex-shrink: 0;
+}
+
+/* Reference Links - Light Mode */
+[data-theme="light"] .coach-reference-links-section {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(99, 102, 241, 0.08) 100%);
+    border-top-color: rgba(59, 130, 246, 0.15);
+    border-bottom-color: rgba(59, 130, 246, 0.15);
+}
+
+[data-theme="light"] .coach-reference-links-section .reference-links-header {
+    color: #3b82f6;
+}
+
+[data-theme="light"] .coach-reference-links-section .reference-links-header svg {
+    color: #3b82f6;
+}
+
+[data-theme="light"] .reference-link-row {
+    background: rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .reference-link-row:active {
+    background: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .reference-link-row .ref-link-text {
+    color: #1e293b;
+}
+
+[data-theme="light"] .reference-link-row .ref-link-arrow {
+    color: #94a3b8;
 }
 
 /* Client Note for Coach Section */
