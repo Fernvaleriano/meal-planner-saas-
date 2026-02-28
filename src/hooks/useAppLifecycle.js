@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback } from 'react';
-import { ensureFreshSession } from '../utils/api';
+import { ensureFreshSession, _setResumeGate } from '../utils/api';
 
 /**
  * App Lifecycle Hook
@@ -13,6 +13,8 @@ import { ensureFreshSession } from '../utils/api';
  * - Session refresh on resume
  * - Subscriber pattern so components can register their own resume/suspend handlers
  * - Watchdog that catches stuck body styles even if visibilitychange doesn't fire
+ * - Resume gate: blocks ALL API calls until the session is refreshed, preventing
+ *   race conditions where pages fetch with stale tokens
  */
 
 // Global subscriber registry — persists across renders and component mounts
@@ -77,12 +79,23 @@ function cleanupStuckScrollLock() {
  * Extracted so both visibilitychange AND the heartbeat can call it.
  */
 async function triggerResume(backgroundMs) {
-  // If backgrounded for more than 5 seconds, refresh auth session
+  // If backgrounded for more than 5 seconds, refresh auth session.
+  // CRITICAL: We set a "resume gate" that blocks ALL getAuthToken() calls
+  // until the session refresh completes. This prevents the race condition
+  // where page useEffects fire API calls with the old expired token
+  // before ensureFreshSession() has finished.
   if (backgroundMs > 5000) {
+    let resolveGate;
+    const gate = new Promise((resolve) => { resolveGate = resolve; });
+    _setResumeGate(gate);
+
     try {
       await ensureFreshSession();
     } catch (e) {
       console.error('[AppLifecycle] session refresh error:', e);
+    } finally {
+      resolveGate();
+      _setResumeGate(null);
     }
   }
 
