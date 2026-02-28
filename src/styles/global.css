@@ -31408,8 +31408,7 @@ a.nav-left {
    ======================================== */
 
 /* Attachment buttons */
-.chat-attach-btn,
-.chat-gif-btn {
+.chat-attach-btn {
     width: 38px;
     height: 38px;
     min-width: 38px;
@@ -31424,14 +31423,7 @@ a.nav-left {
     transition: all 0.15s;
 }
 
-.chat-gif-btn {
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: -0.5px;
-}
-
-.chat-attach-btn:hover:not(:disabled),
-.chat-gif-btn:hover {
+.chat-attach-btn:hover:not(:disabled) {
     color: var(--brand-primary);
     background: rgba(13, 148, 136, 0.08);
 }
@@ -31441,13 +31433,11 @@ a.nav-left {
     cursor: not-allowed;
 }
 
-[data-theme="dark"] .chat-attach-btn,
-[data-theme="dark"] .chat-gif-btn {
+[data-theme="dark"] .chat-attach-btn {
     color: var(--gray-500);
 }
 
-[data-theme="dark"] .chat-attach-btn:hover:not(:disabled),
-[data-theme="dark"] .chat-gif-btn:hover {
+[data-theme="dark"] .chat-attach-btn:hover:not(:disabled) {
     background: var(--gray-300);
     color: var(--gray-700);
 }
@@ -31608,93 +31598,6 @@ a.nav-left {
 /* Tap hint cursor on own messages */
 .chat-msg.mine {
     cursor: pointer;
-}
-
-/* GIF Picker */
-.chat-gif-picker {
-    border-top: 1px solid var(--gray-200);
-    background: var(--gray-50);
-    max-height: 320px;
-    display: flex;
-    flex-direction: column;
-}
-
-.chat-gif-picker-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 12px;
-    border-bottom: 1px solid var(--gray-200);
-}
-
-.chat-gif-picker-header input {
-    flex: 1;
-    padding: 8px 12px;
-    border: 1px solid var(--gray-200);
-    border-radius: 20px;
-    font-size: 14px;
-    background: var(--gray-100);
-    color: var(--gray-800);
-    outline: none;
-}
-
-.chat-gif-picker-header input:focus {
-    border-color: var(--brand-primary);
-}
-
-.chat-gif-picker-header button {
-    width: 32px;
-    height: 32px;
-    background: none;
-    border: none;
-    color: var(--gray-500);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.chat-gif-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 4px;
-    padding: 4px;
-    overflow-y: auto;
-    flex: 1;
-}
-
-.chat-gif-grid img {
-    width: 100%;
-    height: 120px;
-    object-fit: cover;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: transform 0.15s;
-}
-
-.chat-gif-grid img:hover {
-    transform: scale(1.03);
-}
-
-.chat-gif-loading {
-    grid-column: 1 / -1;
-    text-align: center;
-    padding: 24px;
-    color: var(--gray-400);
-    font-size: 14px;
-}
-
-.chat-gif-powered {
-    text-align: center;
-    padding: 6px;
-    font-size: 10px;
-    color: var(--gray-400);
-    border-top: 1px solid var(--gray-200);
-}
-
-[data-theme="dark"] .chat-gif-picker-header input {
-    background: var(--gray-200);
-    border-color: var(--gray-300);
 }
 
 /* Lightbox for viewing media full-screen */

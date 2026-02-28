@@ -497,85 +497,6 @@
         .send-btn:hover:not(:disabled) { background: var(--brand-primary-dark); }
         .send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-        /* GIF Picker */
-        .gif-picker {
-            display: none;
-            position: absolute;
-            bottom: 70px;
-            left: 20px;
-            right: 20px;
-            max-width: 400px;
-            background: white;
-            border: 1px solid var(--gray-200);
-            border-radius: 16px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.15);
-            z-index: 300;
-            overflow: hidden;
-            max-height: 400px;
-            display: none;
-            flex-direction: column;
-        }
-        .gif-picker.open { display: flex; }
-        .gif-picker-header {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 12px;
-            border-bottom: 1px solid var(--gray-100);
-        }
-        .gif-picker-header input {
-            flex: 1;
-            border: none;
-            background: var(--gray-100);
-            border-radius: 8px;
-            padding: 8px 12px;
-            font-size: 14px;
-            outline: none;
-            font-family: inherit;
-            color: var(--gray-800);
-        }
-        .gif-picker-close {
-            width: 28px;
-            height: 28px;
-            border: none;
-            background: none;
-            cursor: pointer;
-            color: var(--gray-400);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 18px;
-        }
-        .gif-picker-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 4px;
-            padding: 8px;
-            overflow-y: auto;
-            max-height: 320px;
-        }
-        .gif-picker-grid img {
-            width: 100%;
-            height: 120px;
-            object-fit: cover;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: transform 0.1s;
-        }
-        .gif-picker-grid img:hover { transform: scale(1.03); }
-        .gif-picker-loading {
-            text-align: center;
-            padding: 20px;
-            color: var(--gray-400);
-            font-size: 13px;
-        }
-        .gif-powered {
-            text-align: center;
-            padding: 6px;
-            font-size: 10px;
-            color: var(--gray-400);
-            border-top: 1px solid var(--gray-100);
-        }
 
         .convo-empty {
             display: flex;
@@ -638,11 +559,6 @@
         [data-theme="dark"] .msg-context-menu button:hover { background: #334155; }
         [data-theme="dark"] .msg-context-menu button.delete-action { color: #f87171; }
         [data-theme="dark"] .msg-context-menu button.delete-action:hover { background: rgba(239,68,68,0.1); }
-        [data-theme="dark"] .gif-picker { background: #1e293b; border-color: #334155; }
-        [data-theme="dark"] .gif-picker-header { border-color: #334155; }
-        [data-theme="dark"] .gif-picker-header input { background: #334155; color: #e2e8f0; }
-        [data-theme="dark"] .gif-picker-close { color: #94a3b8; }
-        [data-theme="dark"] .gif-powered { border-color: #334155; color: #64748b; }
 
         /* ===== MOBILE RESPONSIVE ===== */
         @media (max-width: 768px) {
@@ -843,9 +759,6 @@
                     <button class="input-action-btn" id="attachBtn" title="Send photo/video">
                         <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
                     </button>
-                    <button class="input-action-btn" id="gifBtn" title="Send GIF">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M11.5 9H13v6h-1.5V9zM9 9H6c-.6 0-1 .5-1 1v4c0 .5.4 1 1 1h3c.6 0 1-.5 1-1v-2H8.5v1.5h-2v-3H10V10c0-.5-.4-1-1-1zm10 1.5V9h-4.5v6H16v-2h2v-1.5h-2v-1h3z"/></svg>
-                    </button>
                 </div>
                 <div class="input-middle">
                     <div class="attachment-preview" id="attachmentPreview">
@@ -857,17 +770,6 @@
                     <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
                 </button>
                 <input type="file" id="fileInput" accept="image/*,video/*" style="display:none;">
-                <!-- GIF Picker -->
-                <div class="gif-picker" id="gifPicker">
-                    <div class="gif-picker-header">
-                        <input type="text" placeholder="Search GIFs..." id="gifSearch">
-                        <button class="gif-picker-close" id="gifPickerClose">&times;</button>
-                    </div>
-                    <div class="gif-picker-grid" id="gifGrid">
-                        <div class="gif-picker-loading">Search for GIFs above</div>
-                    </div>
-                    <div class="gif-powered">Powered by GIPHY</div>
-                </div>
             </div>
         </div>
     </div>
@@ -949,8 +851,6 @@
         let realtimeChannel = null;
         let pendingAttachment = null; // { dataUrl, mediaType, file }
         let activeContextMenu = null;
-        const GIPHY_KEY = 'GlVGYHkr3WSBnllca54iNt0yFbjz7L29'; // public beta key
-
         // Helpers
         function getInitials(name) {
             if (!name) return '?';
@@ -1189,17 +1089,6 @@
             document.getElementById('fileInput').onchange = handleFileSelect;
             document.getElementById('attachmentRemove').onclick = clearAttachment;
 
-            // GIF button
-            document.getElementById('gifBtn').onclick = toggleGifPicker;
-            document.getElementById('gifPickerClose').onclick = () => closeGifPicker();
-
-            // GIF search with debounce
-            let gifTimer;
-            document.getElementById('gifSearch').oninput = (e) => {
-                clearTimeout(gifTimer);
-                gifTimer = setTimeout(() => searchGifs(e.target.value), 400);
-            };
-
             newInput.focus();
         }
 
@@ -1253,90 +1142,6 @@
             const media = preview.querySelector('img, video');
             if (media) media.remove();
             updateSendBtnState();
-        }
-
-        // GIF Picker
-        function toggleGifPicker() {
-            const picker = document.getElementById('gifPicker');
-            if (picker.classList.contains('open')) {
-                closeGifPicker();
-            } else {
-                picker.classList.add('open');
-                document.getElementById('gifSearch').focus();
-                searchGifs('trending');
-            }
-        }
-
-        function closeGifPicker() {
-            document.getElementById('gifPicker').classList.remove('open');
-        }
-
-        async function searchGifs(query) {
-            const grid = document.getElementById('gifGrid');
-            if (!query.trim()) {
-                grid.innerHTML = '<div class="gif-picker-loading">Search for GIFs above</div>';
-                return;
-            }
-            grid.innerHTML = '<div class="gif-picker-loading">Loading...</div>';
-
-            try {
-                const endpoint = query === 'trending' ? 'trending' : 'search';
-                const url = `https://api.giphy.com/v1/gifs/${endpoint}?api_key=${GIPHY_KEY}&limit=20&rating=pg-13${query !== 'trending' ? '&q=' + encodeURIComponent(query) : ''}`;
-                const res = await fetch(url);
-                const data = await res.json();
-
-                if (!data.data?.length) {
-                    grid.innerHTML = '<div class="gif-picker-loading">No GIFs found</div>';
-                    return;
-                }
-
-                grid.innerHTML = data.data.map(gif => {
-                    const url = gif.images.fixed_height.url;
-                    const still = gif.images.fixed_height_still?.url || url;
-                    return `<img src="${still}" data-gif="${url}" alt="${gif.title}" onclick="selectGif('${url}')" onmouseenter="this.src=this.dataset.gif" onmouseleave="this.src='${still}'">`;
-                }).join('');
-            } catch (err) {
-                grid.innerHTML = '<div class="gif-picker-loading">Failed to load GIFs</div>';
-            }
-        }
-
-        async function selectGif(gifUrl) {
-            closeGifPicker();
-            if (!activeClientId) return;
-
-            // Optimistic render
-            const area = document.getElementById('messagesArea');
-            const msgDiv = document.createElement('div');
-            msgDiv.className = 'msg-wrapper';
-            msgDiv.innerHTML = `<div class="msg mine"><div class="msg-bubble media-bubble"><div class="msg-media"><img src="${gifUrl}" alt="GIF"></div><span class="msg-time">${formatMsgTime(new Date().toISOString())}</span></div></div>`;
-            area.appendChild(msgDiv);
-            area.scrollTop = area.scrollHeight;
-
-            // Send via API
-            const { data: { session } } = await supabaseClient.auth.getSession();
-            await fetch('/.netlify/functions/chat', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
-                body: JSON.stringify({
-                    action: 'send',
-                    coachId: currentUser.id,
-                    clientId: activeClientId,
-                    senderType: 'coach',
-                    message: null,
-                    mediaUrl: gifUrl,
-                    mediaType: 'gif'
-                })
-            });
-
-            // Update conversation preview
-            const convo = conversations.find(c => c.clientId === activeClientId);
-            if (convo) {
-                convo.lastMessage = 'Sent a GIF';
-                convo.lastMessageAt = new Date().toISOString();
-                convo.lastMessageSender = 'coach';
-                convo.hasMessages = true;
-            }
-            renderConversations(document.getElementById('searchInput').value);
         }
 
         // Lightbox
@@ -1589,15 +1394,6 @@
                 })
                 .subscribe();
         }
-
-        // Close GIF picker when clicking outside
-        document.addEventListener('click', (e) => {
-            const picker = document.getElementById('gifPicker');
-            const gifBtn = document.getElementById('gifBtn');
-            if (picker?.classList.contains('open') && !picker.contains(e.target) && e.target !== gifBtn && !gifBtn?.contains(e.target)) {
-                closeGifPicker();
-            }
-        });
 
         // Init
         document.addEventListener('DOMContentLoaded', init);
