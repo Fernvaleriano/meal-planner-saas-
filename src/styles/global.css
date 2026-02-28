@@ -19285,6 +19285,42 @@ a.nav-left {
     color: #9ca3af;
 }
 
+/* Activity Progress Bar & Sets Progress - Light */
+[data-theme="light"] .activity-progress-bar {
+    background: #f9fafb;
+    border-top: 1px solid #e5e7eb;
+}
+
+[data-theme="light"] .activity-progress-bar .activity-header {
+    color: #6b7280;
+}
+
+[data-theme="light"] .activity-thumb {
+    background: #e5e7eb;
+}
+
+[data-theme="light"] .sets-progress-simple {
+    background: #f9fafb;
+    border-top: 1px solid #e5e7eb;
+}
+
+[data-theme="light"] .sets-progress-simple .progress-dot {
+    background: #d1d5db;
+}
+
+[data-theme="light"] .sets-progress-simple .progress-text {
+    color: #6b7280;
+}
+
+[data-theme="light"] .complete-exercise-btn {
+    border-color: #22c55e;
+    color: #22c55e;
+}
+
+[data-theme="light"] .complete-exercise-btn:hover {
+    background: rgba(34, 197, 94, 0.1);
+}
+
 /* Workout Hero V3 - Light */
 [data-theme="light"] .workout-hero-v3 .hero-title-v3 {
     text-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
