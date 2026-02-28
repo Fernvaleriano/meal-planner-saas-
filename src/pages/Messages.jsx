@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { ArrowLeft, Send, Search, MessageCircle, Image, X, Trash2, Check, CheckCheck, Paperclip } from 'lucide-react';
+import { Send, Search, MessageCircle, Image, X, Trash2, Check, CheckCheck, Paperclip } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost } from '../utils/api';
 import { supabase } from '../utils/supabase';
@@ -551,11 +551,12 @@ function Messages() {
     return (
       <div className="chat-page">
         <div className="chat-thread-header">
-          <button className="chat-back-btn" onClick={() => { setActiveConvo(null); fetchConversations(); }}>
-            <ArrowLeft size={20} />
-          </button>
           <div className="chat-thread-avatar">
-            {getInitials(convoName)}
+            {activeConvo.profilePhoto || activeConvo.coachPhoto ? (
+              <img src={activeConvo.profilePhoto || activeConvo.coachPhoto} alt={convoName} />
+            ) : (
+              getInitials(convoName)
+            )}
           </div>
           <div className="chat-thread-name">{convoName}</div>
         </div>
