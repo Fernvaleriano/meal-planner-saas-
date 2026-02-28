@@ -19,6 +19,20 @@ let sessionCache = {
   refreshPromise: null
 };
 
+// Resume gate: a Promise that resolves once the app lifecycle's
+// ensureFreshSession() call completes after returning from background.
+// Any getAuthToken() call will await this before proceeding, which
+// prevents the race condition where page fetches fire with a stale token.
+let resumeGate = null;
+
+/**
+ * Set or clear the resume gate. Called only by useAppLifecycle.
+ * @param {Promise|null} gate
+ */
+export function _setResumeGate(gate) {
+  resumeGate = gate;
+}
+
 // Session is considered fresh if retrieved within the last 2 minutes (reduced API overhead)
 const SESSION_CACHE_TTL = 120000;
 
@@ -30,6 +44,17 @@ const SESSION_EXPIRY_BUFFER = 5 * 60 * 1000;
  * This ensures the session is valid before making API calls
  */
 async function getAuthToken() {
+  // If the app just resumed from background, wait for the session refresh
+  // to complete before returning any token. This is the key fix that prevents
+  // the race condition where pages fetch with expired tokens.
+  if (resumeGate) {
+    try {
+      await resumeGate;
+    } catch {
+      // Gate rejected — proceed anyway, refreshSession below will handle it
+    }
+  }
+
   const now = Date.now();
 
   // If we have a refresh in progress, wait for it

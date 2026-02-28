@@ -699,9 +699,12 @@ function Workouts() {
     try {
       const dateStr = formatDate(selectedDate);
 
-      // Run session refresh and all data fetches in parallel
-      const [, assignmentRes, adhocRes, logRes] = await Promise.all([
-        ensureFreshSession(),
+      // CRITICAL: Refresh session FIRST, then fetch data.
+      // Running these in parallel caused a race condition where fetches
+      // used the old expired token before the refresh completed.
+      await ensureFreshSession();
+
+      const [assignmentRes, adhocRes, logRes] = await Promise.all([
         apiGet(`/.netlify/functions/workout-assignments?clientId=${clientData.id}&date=${dateStr}`).catch(() => null),
         apiGet(`/.netlify/functions/adhoc-workouts?clientId=${clientData.id}&date=${dateStr}`).catch(() => null),
         apiGet(`/.netlify/functions/workout-logs?clientId=${clientData.id}&date=${dateStr}`).catch(() => null)
