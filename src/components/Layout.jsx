@@ -4,6 +4,7 @@ import BottomNav from './BottomNav';
 import DesktopSidebar from './DesktopSidebar';
 import ErrorBoundary from './ErrorBoundary';
 import PullToRefreshWrapper from './PullToRefreshWrapper';
+import SyncIndicator from './SyncIndicator';
 
 function Layout() {
   const location = useLocation();
@@ -14,6 +15,7 @@ function Layout() {
 
   return (
     <div className="app-layout">
+      <SyncIndicator />
       {!hideTopNav && <TopNav />}
       <DesktopSidebar />
       <main className={`main-content ${hideTopNav ? 'no-top-nav' : ''} ${isMessagesPage ? 'messages-page' : ''}`}>

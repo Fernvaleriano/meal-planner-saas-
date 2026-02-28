@@ -164,6 +164,11 @@ function cleanupStuckScrollLock() {
  * Extracted so both visibilitychange AND the heartbeat can call it.
  */
 async function triggerResume(backgroundMs) {
+  // Let the UI know we're syncing (used by SyncIndicator)
+  if (backgroundMs > 5000) {
+    window.dispatchEvent(new CustomEvent('app-resume-sync', { detail: { phase: 'start' } }));
+  }
+
   // If backgrounded for more than 5 seconds, refresh auth session.
   // CRITICAL: We set a "resume gate" that blocks ALL getAuthToken() calls
   // until the session refresh completes. This prevents the race condition
@@ -175,7 +180,11 @@ async function triggerResume(backgroundMs) {
     _setResumeGate(gate);
 
     try {
-      await ensureFreshSession();
+      // CRITICAL: _bypassGate must be true here. We just set the resume gate
+      // above, and ensureFreshSession → getAuthToken normally waits on it.
+      // Without the bypass this would deadlock: getAuthToken waits for a gate
+      // that can't resolve until this very call returns.
+      await ensureFreshSession({ _bypassGate: true });
     } catch (e) {
       console.error('[AppLifecycle] session refresh error:', e);
     } finally {
@@ -210,6 +219,11 @@ async function triggerResume(backgroundMs) {
         console.error('[AppLifecycle] resume handler error:', e);
       }
     }
+  }
+
+  // Signal sync complete (used by SyncIndicator)
+  if (backgroundMs > 5000) {
+    window.dispatchEvent(new CustomEvent('app-resume-sync', { detail: { phase: 'done' } }));
   }
 }
 

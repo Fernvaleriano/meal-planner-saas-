@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, apiDelete, ensureFreshSession } from '../utils/api';
 import { SnapPhotoModal, SearchFoodsModal, FavoritesModal, ScanLabelModal } from '../components/FoodModals';
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
+import { onAppResume } from '../hooks/useAppLifecycle';
 
 // localStorage cache helpers
 const getCache = (key) => {
@@ -142,6 +143,16 @@ function Dashboard() {
 
   // Setup pull-to-refresh using the reusable hook
   const { isRefreshing, indicatorRef, bindToContainer, threshold } = usePullToRefresh(refreshData);
+
+  // Re-fetch data when app resumes from background.
+  // Without this, backgrounding for >5s leaves stale data on screen.
+  useEffect(() => {
+    const unsub = onAppResume((backgroundMs) => {
+      if (backgroundMs < 3000) return;
+      refreshData();
+    });
+    return () => unsub();
+  }, [refreshData]);
 
   // Handle food logged from modals
   const handleFoodLogged = (nutrition) => {
