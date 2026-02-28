@@ -61,6 +61,7 @@
             display: flex;
             height: 100vh;
             height: 100dvh;
+            margin-left: var(--sidebar-width);
         }
 
         /* ===== CONVERSATION LIST ===== */
@@ -397,6 +398,10 @@
 
         /* ===== MOBILE RESPONSIVE ===== */
         @media (max-width: 768px) {
+            .chat-container {
+                margin-left: 0;
+            }
+
             .convo-list-panel {
                 width: 100%;
                 min-width: 100%;
