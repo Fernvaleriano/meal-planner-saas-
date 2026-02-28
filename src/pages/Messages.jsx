@@ -24,6 +24,7 @@ function Messages() {
   const [uploading, setUploading] = useState(false);
   const [selectedMsgId, setSelectedMsgId] = useState(null); // for unsend menu
   const messagesEndRef = useRef(null);
+  const messagesContainerRef = useRef(null);
   const inputRef = useRef(null);
   const fileInputRef = useRef(null);
 
@@ -38,8 +39,13 @@ function Messages() {
   const [lightboxUrl, setLightboxUrl] = useState(null);
 
   // Scroll to bottom of messages
-  const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  const scrollToBottom = useCallback((instant = false) => {
+    const container = messagesContainerRef.current;
+    if (container) {
+      container.scrollTop = container.scrollHeight;
+    } else {
+      messagesEndRef.current?.scrollIntoView({ behavior: instant ? 'auto' : 'smooth' });
+    }
   }, []);
 
   // Fetch conversation list
@@ -70,7 +76,6 @@ function Messages() {
         `/.netlify/functions/chat?action=messages&coachId=${cId}&clientId=${clId}&limit=100`
       );
       setMessages(result.messages || []);
-      setTimeout(scrollToBottom, 100);
 
       // Mark messages as read
       await apiPost('/.netlify/functions/chat', {
@@ -183,7 +188,6 @@ function Messages() {
       };
       setMessages(prev => [...prev, optimisticMsg]);
       setMediaPreview(null);
-      setTimeout(scrollToBottom, 50);
 
       await apiPost('/.netlify/functions/chat', {
         action: 'send',
@@ -339,6 +343,16 @@ function Messages() {
     }
   }, [activeConvo, fetchMessages]);
 
+  // Auto-scroll to bottom whenever messages change
+  useEffect(() => {
+    if (messages.length > 0) {
+      // Use requestAnimationFrame to ensure DOM has rendered
+      requestAnimationFrame(() => {
+        scrollToBottom(true);
+      });
+    }
+  }, [messages, scrollToBottom]);
+
   // Real-time subscription for new messages + updates (read receipts, deletes)
   useEffect(() => {
     if (!activeConvo) return;
@@ -365,8 +379,6 @@ function Messages() {
                 if (prev.some(m => m.id === newMsg.id)) return prev;
                 return [...prev, newMsg];
               });
-              setTimeout(scrollToBottom, 100);
-
               apiPost('/.netlify/functions/chat', {
                 action: 'mark-read',
                 coachId: cId,
@@ -573,7 +585,7 @@ function Messages() {
           <div className="chat-thread-name">{convoName}</div>
         </div>
 
-        <div className="chat-messages-container">
+        <div className="chat-messages-container" ref={messagesContainerRef}>
           {messages.length === 0 && (
             <div className="chat-empty-thread">
               <MessageCircle size={40} />
