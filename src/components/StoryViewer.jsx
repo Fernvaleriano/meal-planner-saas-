@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { apiPost } from '../utils/api';
 
@@ -246,7 +247,7 @@ function StoryViewer({ stories, coachName, coachAvatar, clientId, onClose }) {
     return null;
   };
 
-  return (
+  return createPortal(
     <div className="story-viewer-overlay" onClick={handleClose}>
       <div className="story-viewer" onClick={(e) => e.stopPropagation()}>
         {/* Progress bars */}
@@ -321,7 +322,8 @@ function StoryViewer({ stories, coachName, coachAvatar, clientId, onClose }) {
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
