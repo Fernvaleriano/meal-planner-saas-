@@ -19803,6 +19803,16 @@ a.nav-left {
     color: #6b7280;
 }
 
+[data-theme="light"] .note-textarea {
+    background: #f8fafc;
+    border-color: #e2e8f0;
+    color: #1e293b;
+}
+
+[data-theme="light"] .note-textarea::placeholder {
+    color: #94a3b8;
+}
+
 /* Muscle Groups Section */
 .muscle-groups-section {
     padding: 16px;
@@ -19922,6 +19932,67 @@ a.nav-left {
     font-size: 14px;
     line-height: 1.5;
     margin: 0;
+}
+
+/* Muscle Groups Section - Light Mode */
+[data-theme="light"] .muscle-groups-section h4 {
+    color: #111827;
+}
+
+[data-theme="light"] .muscle-info-row .muscle-name {
+    color: #4b5563;
+}
+
+/* Exercise Instructions Section - Light Mode */
+[data-theme="light"] .exercise-instructions-section {
+    background: rgba(139, 92, 246, 0.06);
+    border-top-color: rgba(139, 92, 246, 0.15);
+    border-bottom-color: rgba(139, 92, 246, 0.15);
+}
+
+[data-theme="light"] .exercise-instructions-section .exercise-instructions-header {
+    color: #6d28d9;
+}
+
+[data-theme="light"] .exercise-instructions-section .exercise-instructions-header svg {
+    color: #6d28d9;
+}
+
+[data-theme="light"] .exercise-instructions-section .exercise-instructions-text {
+    color: #374151;
+}
+
+/* Coach Voice Note Section - Light Mode */
+[data-theme="light"] .coach-voice-note-section {
+    background: linear-gradient(135deg, rgba(13, 148, 136, 0.08) 0%, rgba(2, 132, 199, 0.08) 100%);
+    border-top-color: rgba(13, 148, 136, 0.2);
+    border-bottom-color: rgba(13, 148, 136, 0.2);
+}
+
+[data-theme="light"] .coach-voice-note-section .voice-note-header {
+    color: #0d9488;
+}
+
+[data-theme="light"] .coach-voice-note-section .voice-note-header svg {
+    color: #0d9488;
+}
+
+/* Coach Text Note Section - Light Mode */
+[data-theme="light"] .coach-text-note-section {
+    background: rgba(245, 158, 11, 0.06);
+    border-bottom-color: rgba(245, 158, 11, 0.15);
+}
+
+[data-theme="light"] .coach-text-note-section .text-note-header {
+    color: #b45309;
+}
+
+[data-theme="light"] .coach-text-note-section .text-note-header svg {
+    color: #b45309;
+}
+
+[data-theme="light"] .coach-text-note-section .coach-note-text {
+    color: #92400e;
 }
 
 /* Coach Reference Links Section - Modal */
@@ -20227,6 +20298,23 @@ a.nav-left {
 
 .ai-tips-section .ask-coach-btn:active {
     transform: scale(0.98);
+}
+
+/* Ask Coach Section - Light Mode */
+[data-theme="light"] .ai-tips-section {
+    background: rgba(13, 148, 136, 0.04);
+    border-top-color: #e5e7eb;
+    border-bottom-color: #e5e7eb;
+}
+
+[data-theme="light"] .ai-tips-section .ask-coach-btn {
+    background: rgba(13, 148, 136, 0.08);
+    border-color: rgba(13, 148, 136, 0.2);
+    color: #0d9488;
+}
+
+[data-theme="light"] .ai-tips-section .ask-coach-btn:hover {
+    background: rgba(13, 148, 136, 0.15);
 }
 
 /* Ask Coach Chat Modal */
@@ -20857,6 +20945,20 @@ a.nav-left {
     color: #9ca3af;
     font-size: 14px;
     line-height: 1.5;
+}
+
+[data-theme="light"] .note-textarea-v3 {
+    background: #f8fafc;
+    border-color: #e2e8f0;
+    color: #1e293b;
+}
+
+[data-theme="light"] .note-textarea-v3::placeholder {
+    color: #94a3b8;
+}
+
+[data-theme="light"] .note-content-v3 {
+    color: #4b5563;
 }
 
 /* ========================================
