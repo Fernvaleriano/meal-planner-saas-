@@ -1198,6 +1198,14 @@ a.nav-left {
 }
 
 /* Messages page - keep input bar visible above bottom nav */
+/* Lock the viewport height so the flex chain is constrained and
+   .chat-messages-container becomes scrollable instead of growing */
+.app-layout:has(.messages-page) {
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+}
+
 .main-content.messages-page {
     padding: 0;
     padding-bottom: 60px;

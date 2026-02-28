@@ -36,9 +36,10 @@ function Messages() {
     const container = messagesContainerRef.current;
     if (container) {
       container.scrollTop = container.scrollHeight;
-    } else {
-      messagesEndRef.current?.scrollIntoView({ behavior: instant ? 'auto' : 'smooth' });
     }
+    // Always try scrollIntoView as fallback (handles cases where
+    // the container isn't scrollable due to layout issues)
+    messagesEndRef.current?.scrollIntoView({ behavior: instant ? 'auto' : 'smooth', block: 'end' });
   }, []);
 
   // Fetch conversation list
