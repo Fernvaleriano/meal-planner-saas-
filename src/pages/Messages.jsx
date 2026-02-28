@@ -325,10 +325,17 @@ function Messages() {
   // Auto-scroll to bottom whenever messages change
   useEffect(() => {
     if (messages.length > 0) {
-      // Use requestAnimationFrame to ensure DOM has rendered
+      // Immediate scroll attempt
+      scrollToBottom(true);
+      // After next frame render
       requestAnimationFrame(() => {
         scrollToBottom(true);
       });
+      // Delayed attempt to handle images/media loading and affecting layout
+      const timer = setTimeout(() => {
+        scrollToBottom(true);
+      }, 300);
+      return () => clearTimeout(timer);
     }
   }, [messages, scrollToBottom]);
 
@@ -529,6 +536,7 @@ function Messages() {
             playsInline
             preload="metadata"
             className="chat-media-video"
+            onLoadedMetadata={() => scrollToBottom(true)}
           />
         </div>
       );
@@ -540,8 +548,8 @@ function Messages() {
         <img
           src={msg.media_url}
           alt={msg.media_type === 'gif' ? 'GIF' : 'Photo'}
-          loading="lazy"
           className="chat-media-image"
+          onLoad={() => scrollToBottom(true)}
         />
       </div>
     );
