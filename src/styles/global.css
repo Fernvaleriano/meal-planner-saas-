@@ -10991,7 +10991,7 @@ a.nav-left {
     width: 100%;
     max-width: 420px;
     height: 100%;
-    max-height: 100vh;
+    max-height: 100dvh;
     position: relative;
     display: flex;
     flex-direction: column;
@@ -11208,7 +11208,7 @@ a.nav-left {
 /* Footer */
 .story-footer {
     padding: 12px 16px;
-    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(20px + env(safe-area-inset-bottom, 20px));
     position: absolute;
     bottom: 0;
     left: 0;
