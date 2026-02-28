@@ -317,13 +317,140 @@
         .msg.mine .msg-time { text-align: right; color: rgba(255, 255, 255, 0.7); }
         .msg.theirs .msg-time { color: var(--gray-400); }
 
+        /* Media messages */
+        .msg-media { max-width: 280px; border-radius: 12px; overflow: hidden; margin-bottom: 4px; cursor: pointer; }
+        .msg-media img, .msg-media video { width: 100%; display: block; border-radius: 12px; }
+        .msg-bubble.media-bubble { padding: 4px; }
+        .msg-bubble.media-bubble p { padding: 6px 10px 0; }
+
+        /* Message context menu */
+        .msg-wrapper { position: relative; }
+        .msg-context-menu {
+            position: absolute;
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: 10px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+            z-index: 200;
+            min-width: 140px;
+            overflow: hidden;
+            animation: fadeInMenu 0.15s ease;
+        }
+        @keyframes fadeInMenu { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        .msg-context-menu button {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+            padding: 10px 14px;
+            border: none;
+            background: none;
+            font-size: 14px;
+            cursor: pointer;
+            color: var(--gray-700);
+            font-family: inherit;
+        }
+        .msg-context-menu button:hover { background: var(--gray-50); }
+        .msg-context-menu button.delete-action { color: var(--error); }
+        .msg-context-menu button.delete-action:hover { background: #fef2f2; }
+
+        /* Image lightbox */
+        .lightbox-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.85);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: zoom-out;
+        }
+        .lightbox-overlay img, .lightbox-overlay video {
+            max-width: 90vw;
+            max-height: 90vh;
+            border-radius: 8px;
+            object-fit: contain;
+        }
+        .lightbox-close {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: none;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
         /* Input bar */
         .input-bar {
             display: flex;
             align-items: flex-end;
-            gap: 10px;
+            gap: 8px;
             padding: 14px 20px;
             border-top: 1px solid var(--gray-200);
+        }
+
+        .input-actions {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            padding-bottom: 6px;
+        }
+
+        .input-action-btn {
+            width: 36px;
+            height: 36px;
+            border: none;
+            background: none;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--gray-400);
+            transition: all 0.15s;
+        }
+        .input-action-btn:hover { background: var(--gray-100); color: var(--gray-600); }
+
+        .input-middle { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+
+        /* Attachment preview */
+        .attachment-preview {
+            display: none;
+            position: relative;
+            padding: 8px;
+            background: var(--gray-100);
+            border-radius: 12px;
+        }
+        .attachment-preview.visible { display: block; }
+        .attachment-preview img, .attachment-preview video {
+            max-height: 120px;
+            max-width: 200px;
+            border-radius: 8px;
+            display: block;
+        }
+        .attachment-remove {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: none;
+            background: rgba(0,0,0,0.5);
+            color: white;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .msg-input {
@@ -364,10 +491,91 @@
             align-items: center;
             justify-content: center;
             transition: all 0.15s;
+            margin-bottom: 2px;
         }
 
         .send-btn:hover:not(:disabled) { background: var(--brand-primary-dark); }
         .send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        /* GIF Picker */
+        .gif-picker {
+            display: none;
+            position: absolute;
+            bottom: 70px;
+            left: 20px;
+            right: 20px;
+            max-width: 400px;
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+            z-index: 300;
+            overflow: hidden;
+            max-height: 400px;
+            display: none;
+            flex-direction: column;
+        }
+        .gif-picker.open { display: flex; }
+        .gif-picker-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px;
+            border-bottom: 1px solid var(--gray-100);
+        }
+        .gif-picker-header input {
+            flex: 1;
+            border: none;
+            background: var(--gray-100);
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 14px;
+            outline: none;
+            font-family: inherit;
+            color: var(--gray-800);
+        }
+        .gif-picker-close {
+            width: 28px;
+            height: 28px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            color: var(--gray-400);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+        .gif-picker-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 4px;
+            padding: 8px;
+            overflow-y: auto;
+            max-height: 320px;
+        }
+        .gif-picker-grid img {
+            width: 100%;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        .gif-picker-grid img:hover { transform: scale(1.03); }
+        .gif-picker-loading {
+            text-align: center;
+            padding: 20px;
+            color: var(--gray-400);
+            font-size: 13px;
+        }
+        .gif-powered {
+            text-align: center;
+            padding: 6px;
+            font-size: 10px;
+            color: var(--gray-400);
+            border-top: 1px solid var(--gray-100);
+        }
 
         .convo-empty {
             display: flex;
@@ -421,6 +629,20 @@
         [data-theme="dark"] .loading-text { color: #64748b; }
         [data-theme="dark"] .convo-empty { color: #64748b; }
         [data-theme="dark"] .convo-search svg { color: #64748b; }
+
+        [data-theme="dark"] .input-action-btn { color: #64748b; }
+        [data-theme="dark"] .input-action-btn:hover { background: #334155; color: #94a3b8; }
+        [data-theme="dark"] .attachment-preview { background: #1e293b; }
+        [data-theme="dark"] .msg-context-menu { background: #1e293b; border-color: #334155; box-shadow: 0 4px 16px rgba(0,0,0,0.3); }
+        [data-theme="dark"] .msg-context-menu button { color: #e2e8f0; }
+        [data-theme="dark"] .msg-context-menu button:hover { background: #334155; }
+        [data-theme="dark"] .msg-context-menu button.delete-action { color: #f87171; }
+        [data-theme="dark"] .msg-context-menu button.delete-action:hover { background: rgba(239,68,68,0.1); }
+        [data-theme="dark"] .gif-picker { background: #1e293b; border-color: #334155; }
+        [data-theme="dark"] .gif-picker-header { border-color: #334155; }
+        [data-theme="dark"] .gif-picker-header input { background: #334155; color: #e2e8f0; }
+        [data-theme="dark"] .gif-picker-close { color: #94a3b8; }
+        [data-theme="dark"] .gif-powered { border-color: #334155; color: #64748b; }
 
         /* ===== MOBILE RESPONSIVE ===== */
         @media (max-width: 768px) {
@@ -616,11 +838,36 @@
                 <div class="thread-name" id="threadName"></div>
             </div>
             <div class="messages-area" id="messagesArea" style="display:none;"></div>
-            <div class="input-bar" id="inputBar" style="display:none;">
-                <textarea id="msgInput" class="msg-input" placeholder="Send a message..." rows="1"></textarea>
+            <div class="input-bar" id="inputBar" style="display:none; position:relative;">
+                <div class="input-actions">
+                    <button class="input-action-btn" id="attachBtn" title="Send photo/video">
+                        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+                    </button>
+                    <button class="input-action-btn" id="gifBtn" title="Send GIF">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M11.5 9H13v6h-1.5V9zM9 9H6c-.6 0-1 .5-1 1v4c0 .5.4 1 1 1h3c.6 0 1-.5 1-1v-2H8.5v1.5h-2v-3H10V10c0-.5-.4-1-1-1zm10 1.5V9h-4.5v6H16v-2h2v-1.5h-2v-1h3z"/></svg>
+                    </button>
+                </div>
+                <div class="input-middle">
+                    <div class="attachment-preview" id="attachmentPreview">
+                        <button class="attachment-remove" id="attachmentRemove">&times;</button>
+                    </div>
+                    <textarea id="msgInput" class="msg-input" placeholder="Send a message..." rows="1"></textarea>
+                </div>
                 <button class="send-btn" id="sendBtn" disabled>
                     <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
                 </button>
+                <input type="file" id="fileInput" accept="image/*,video/*" style="display:none;">
+                <!-- GIF Picker -->
+                <div class="gif-picker" id="gifPicker">
+                    <div class="gif-picker-header">
+                        <input type="text" placeholder="Search GIFs..." id="gifSearch">
+                        <button class="gif-picker-close" id="gifPickerClose">&times;</button>
+                    </div>
+                    <div class="gif-picker-grid" id="gifGrid">
+                        <div class="gif-picker-loading">Search for GIFs above</div>
+                    </div>
+                    <div class="gif-powered">Powered by GIPHY</div>
+                </div>
             </div>
         </div>
     </div>
@@ -700,6 +947,9 @@
         let activeClientName = '';
         let conversations = [];
         let realtimeChannel = null;
+        let pendingAttachment = null; // { dataUrl, mediaType, file }
+        let activeContextMenu = null;
+        const GIPHY_KEY = 'GlVGYHkr3WSBnllca54iNt0yFbjz7L29'; // public beta key
 
         // Helpers
         function getInitials(name) {
@@ -859,11 +1109,27 @@
                     html += `<div class="date-divider"><span>${msgDate}</span></div>`;
                 }
                 const isMine = msg.sender_type === 'coach';
+                const hasMedia = msg.media_url;
+                const hasText = msg.message;
+                const bubbleClass = hasMedia ? 'msg-bubble media-bubble' : 'msg-bubble';
+
+                let mediaHtml = '';
+                if (hasMedia) {
+                    if (msg.media_type === 'video') {
+                        mediaHtml = `<div class="msg-media" onclick="openLightbox('${msg.media_url}', 'video')"><video src="${msg.media_url}" preload="metadata"></video></div>`;
+                    } else {
+                        mediaHtml = `<div class="msg-media" onclick="openLightbox('${msg.media_url}', 'image')"><img src="${msg.media_url}" alt="Photo" loading="lazy"></div>`;
+                    }
+                }
+
                 html += `
-                    <div class="msg ${isMine ? 'mine' : 'theirs'}">
-                        <div class="msg-bubble">
-                            <p>${escapeHtml(msg.message)}</p>
-                            <span class="msg-time">${formatMsgTime(msg.created_at)}</span>
+                    <div class="msg-wrapper">
+                        <div class="msg ${isMine ? 'mine' : 'theirs'}" data-msg-id="${msg.id}" ${isMine ? 'oncontextmenu="showContextMenu(event, ' + msg.id + ')"' : ''}>
+                            <div class="${bubbleClass}">
+                                ${mediaHtml}
+                                ${hasText ? `<p>${escapeHtml(msg.message)}</p>` : ''}
+                                <span class="msg-time">${formatMsgTime(msg.created_at)}</span>
+                            </div>
                         </div>
                     </div>`;
             });
@@ -895,6 +1161,7 @@
 
             input.value = '';
             sendBtn.disabled = true;
+            clearAttachment();
 
             // Remove old listeners by cloning
             const newInput = input.cloneNode(true);
@@ -903,45 +1170,147 @@
             sendBtn.parentNode.replaceChild(newSendBtn, sendBtn);
 
             newInput.addEventListener('input', () => {
-                newSendBtn.disabled = !newInput.value.trim();
+                newSendBtn.disabled = !newInput.value.trim() && !pendingAttachment;
             });
 
             newInput.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
-                    if (newInput.value.trim()) sendMessage();
+                    if (newInput.value.trim() || pendingAttachment) sendMessage();
                 }
             });
 
             newSendBtn.addEventListener('click', sendMessage);
+
+            // Attachment button
+            document.getElementById('attachBtn').onclick = () => {
+                document.getElementById('fileInput').click();
+            };
+            document.getElementById('fileInput').onchange = handleFileSelect;
+            document.getElementById('attachmentRemove').onclick = clearAttachment;
+
+            // GIF button
+            document.getElementById('gifBtn').onclick = toggleGifPicker;
+            document.getElementById('gifPickerClose').onclick = () => closeGifPicker();
+
+            // GIF search with debounce
+            let gifTimer;
+            document.getElementById('gifSearch').oninput = (e) => {
+                clearTimeout(gifTimer);
+                gifTimer = setTimeout(() => searchGifs(e.target.value), 400);
+            };
+
             newInput.focus();
         }
 
-        async function sendMessage() {
+        function updateSendBtnState() {
             const input = document.getElementById('msgInput');
-            const text = input.value.trim();
-            if (!text || !activeClientId) return;
+            const sendBtn = document.getElementById('sendBtn');
+            sendBtn.disabled = !input.value.trim() && !pendingAttachment;
+        }
 
-            input.value = '';
-            document.getElementById('sendBtn').disabled = true;
+        // File attachment
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            if (file.size > 10 * 1024 * 1024) {
+                alert('File too large. Maximum 10MB.');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                const dataUrl = ev.target.result;
+                const isVideo = file.type.startsWith('video/');
+                pendingAttachment = { dataUrl, mediaType: isVideo ? 'video' : 'image', file };
+
+                const preview = document.getElementById('attachmentPreview');
+                const existingMedia = preview.querySelector('img, video');
+                if (existingMedia) existingMedia.remove();
+
+                if (isVideo) {
+                    const vid = document.createElement('video');
+                    vid.src = dataUrl;
+                    vid.controls = false;
+                    preview.insertBefore(vid, preview.firstChild);
+                } else {
+                    const img = document.createElement('img');
+                    img.src = dataUrl;
+                    preview.insertBefore(img, preview.firstChild);
+                }
+                preview.classList.add('visible');
+                updateSendBtnState();
+            };
+            reader.readAsDataURL(file);
+            e.target.value = '';
+        }
+
+        function clearAttachment() {
+            pendingAttachment = null;
+            const preview = document.getElementById('attachmentPreview');
+            preview.classList.remove('visible');
+            const media = preview.querySelector('img, video');
+            if (media) media.remove();
+            updateSendBtnState();
+        }
+
+        // GIF Picker
+        function toggleGifPicker() {
+            const picker = document.getElementById('gifPicker');
+            if (picker.classList.contains('open')) {
+                closeGifPicker();
+            } else {
+                picker.classList.add('open');
+                document.getElementById('gifSearch').focus();
+                searchGifs('trending');
+            }
+        }
+
+        function closeGifPicker() {
+            document.getElementById('gifPicker').classList.remove('open');
+        }
+
+        async function searchGifs(query) {
+            const grid = document.getElementById('gifGrid');
+            if (!query.trim()) {
+                grid.innerHTML = '<div class="gif-picker-loading">Search for GIFs above</div>';
+                return;
+            }
+            grid.innerHTML = '<div class="gif-picker-loading">Loading...</div>';
+
+            try {
+                const endpoint = query === 'trending' ? 'trending' : 'search';
+                const url = `https://api.giphy.com/v1/gifs/${endpoint}?api_key=${GIPHY_KEY}&limit=20&rating=pg-13${query !== 'trending' ? '&q=' + encodeURIComponent(query) : ''}`;
+                const res = await fetch(url);
+                const data = await res.json();
+
+                if (!data.data?.length) {
+                    grid.innerHTML = '<div class="gif-picker-loading">No GIFs found</div>';
+                    return;
+                }
+
+                grid.innerHTML = data.data.map(gif => {
+                    const url = gif.images.fixed_height.url;
+                    const still = gif.images.fixed_height_still?.url || url;
+                    return `<img src="${still}" data-gif="${url}" alt="${gif.title}" onclick="selectGif('${url}')" onmouseenter="this.src=this.dataset.gif" onmouseleave="this.src='${still}'">`;
+                }).join('');
+            } catch (err) {
+                grid.innerHTML = '<div class="gif-picker-loading">Failed to load GIFs</div>';
+            }
+        }
+
+        async function selectGif(gifUrl) {
+            closeGifPicker();
+            if (!activeClientId) return;
 
             // Optimistic render
             const area = document.getElementById('messagesArea');
             const msgDiv = document.createElement('div');
-            msgDiv.className = 'msg mine';
-            msgDiv.innerHTML = `<div class="msg-bubble"><p>${escapeHtml(text)}</p><span class="msg-time">${formatMsgTime(new Date().toISOString())}</span></div>`;
+            msgDiv.className = 'msg-wrapper';
+            msgDiv.innerHTML = `<div class="msg mine"><div class="msg-bubble media-bubble"><div class="msg-media"><img src="${gifUrl}" alt="GIF"></div><span class="msg-time">${formatMsgTime(new Date().toISOString())}</span></div></div>`;
             area.appendChild(msgDiv);
             area.scrollTop = area.scrollHeight;
-
-            // Update conversation list
-            const convo = conversations.find(c => c.clientId === activeClientId);
-            if (convo) {
-                convo.lastMessage = text;
-                convo.lastMessageAt = new Date().toISOString();
-                convo.lastMessageSender = 'coach';
-                convo.hasMessages = true;
-            }
-            renderConversations(document.getElementById('searchInput').value);
 
             // Send via API
             const { data: { session } } = await supabaseClient.auth.getSession();
@@ -953,7 +1322,181 @@
                     coachId: currentUser.id,
                     clientId: activeClientId,
                     senderType: 'coach',
-                    message: text
+                    message: null,
+                    mediaUrl: gifUrl,
+                    mediaType: 'gif'
+                })
+            });
+
+            // Update conversation preview
+            const convo = conversations.find(c => c.clientId === activeClientId);
+            if (convo) {
+                convo.lastMessage = 'Sent a GIF';
+                convo.lastMessageAt = new Date().toISOString();
+                convo.lastMessageSender = 'coach';
+                convo.hasMessages = true;
+            }
+            renderConversations(document.getElementById('searchInput').value);
+        }
+
+        // Lightbox
+        function openLightbox(url, type) {
+            const overlay = document.createElement('div');
+            overlay.className = 'lightbox-overlay';
+            overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+
+            if (type === 'video') {
+                overlay.innerHTML = `<video src="${url}" controls autoplay style="max-width:90vw;max-height:90vh;border-radius:8px;"></video><button class="lightbox-close">&times;</button>`;
+            } else {
+                overlay.innerHTML = `<img src="${url}" alt="Photo"><button class="lightbox-close">&times;</button>`;
+            }
+            overlay.querySelector('.lightbox-close').onclick = () => overlay.remove();
+            document.body.appendChild(overlay);
+        }
+
+        // Context menu (right-click to delete own messages)
+        function showContextMenu(event, msgId) {
+            event.preventDefault();
+            closeContextMenu();
+
+            const msgEl = event.currentTarget;
+            const wrapper = msgEl.closest('.msg-wrapper');
+
+            const menu = document.createElement('div');
+            menu.className = 'msg-context-menu';
+            menu.innerHTML = `
+                <button onclick="copyMessage(${msgId}, this)"><svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" stroke-width="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" stroke-width="2"/></svg> Copy</button>
+                <button class="delete-action" onclick="deleteMessage(${msgId}, this)"><svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg> Delete</button>
+            `;
+
+            // Position: align to right for own messages
+            menu.style.right = '0';
+            menu.style.top = (msgEl.offsetTop + msgEl.offsetHeight) + 'px';
+
+            wrapper.appendChild(menu);
+            activeContextMenu = menu;
+
+            // Close on click outside
+            setTimeout(() => {
+                document.addEventListener('click', closeContextMenu, { once: true });
+            }, 10);
+        }
+
+        function closeContextMenu() {
+            if (activeContextMenu) {
+                activeContextMenu.remove();
+                activeContextMenu = null;
+            }
+        }
+
+        function copyMessage(msgId, btn) {
+            const msgEl = document.querySelector(`[data-msg-id="${msgId}"]`);
+            const textEl = msgEl?.querySelector('p');
+            if (textEl) {
+                navigator.clipboard.writeText(textEl.textContent);
+            }
+            closeContextMenu();
+        }
+
+        async function deleteMessage(msgId, btn) {
+            closeContextMenu();
+            if (!confirm('Delete this message?')) return;
+
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            const res = await fetch('/.netlify/functions/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+                body: JSON.stringify({ action: 'delete', messageId: msgId, coachId: currentUser.id })
+            });
+
+            if (res.ok) {
+                const msgEl = document.querySelector(`[data-msg-id="${msgId}"]`);
+                if (msgEl) {
+                    const wrapper = msgEl.closest('.msg-wrapper');
+                    wrapper.style.opacity = '0';
+                    wrapper.style.transition = 'opacity 0.2s';
+                    setTimeout(() => wrapper.remove(), 200);
+                }
+            }
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('msgInput');
+            const text = input.value.trim();
+            const attachment = pendingAttachment;
+
+            if (!text && !attachment) return;
+            if (!activeClientId) return;
+
+            input.value = '';
+            document.getElementById('sendBtn').disabled = true;
+            clearAttachment();
+
+            // Optimistic render
+            const area = document.getElementById('messagesArea');
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'msg-wrapper';
+            let bubbleHtml = '';
+            if (attachment) {
+                const mediaTag = attachment.mediaType === 'video'
+                    ? `<div class="msg-media"><video src="${attachment.dataUrl}" preload="metadata"></video></div>`
+                    : `<div class="msg-media"><img src="${attachment.dataUrl}" alt="Photo"></div>`;
+                bubbleHtml = `<div class="msg-bubble media-bubble">${mediaTag}${text ? `<p>${escapeHtml(text)}</p>` : ''}<span class="msg-time">${formatMsgTime(new Date().toISOString())}</span></div>`;
+            } else {
+                bubbleHtml = `<div class="msg-bubble"><p>${escapeHtml(text)}</p><span class="msg-time">${formatMsgTime(new Date().toISOString())}</span></div>`;
+            }
+            msgDiv.innerHTML = `<div class="msg mine">${bubbleHtml}</div>`;
+            area.appendChild(msgDiv);
+            area.scrollTop = area.scrollHeight;
+
+            // Update conversation list
+            const convo = conversations.find(c => c.clientId === activeClientId);
+            if (convo) {
+                convo.lastMessage = text || (attachment?.mediaType === 'video' ? 'Sent a video' : 'Sent a photo');
+                convo.lastMessageAt = new Date().toISOString();
+                convo.lastMessageSender = 'coach';
+                convo.hasMessages = true;
+            }
+            renderConversations(document.getElementById('searchInput').value);
+
+            const { data: { session } } = await supabaseClient.auth.getSession();
+
+            // Upload media if present
+            let mediaUrl = null;
+            let mediaType = null;
+            if (attachment) {
+                try {
+                    const uploadRes = await fetch('/.netlify/functions/upload-chat-media', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+                        body: JSON.stringify({
+                            fileData: attachment.dataUrl,
+                            coachId: currentUser.id,
+                            clientId: activeClientId
+                        })
+                    });
+                    const uploadData = await uploadRes.json();
+                    if (uploadData.success) {
+                        mediaUrl = uploadData.mediaUrl;
+                        mediaType = uploadData.mediaType;
+                    }
+                } catch (err) {
+                    console.error('Media upload failed:', err);
+                }
+            }
+
+            // Send message via API
+            await fetch('/.netlify/functions/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+                body: JSON.stringify({
+                    action: 'send',
+                    coachId: currentUser.id,
+                    clientId: activeClientId,
+                    senderType: 'coach',
+                    message: text || null,
+                    mediaUrl,
+                    mediaType
                 })
             });
 
@@ -1018,11 +1561,20 @@
                 }, async (payload) => {
                     const msg = payload.new;
                     if (msg.client_id === clientId && msg.sender_type === 'client') {
-                        // Add message to thread
                         const area = document.getElementById('messagesArea');
                         const msgDiv = document.createElement('div');
-                        msgDiv.className = 'msg theirs';
-                        msgDiv.innerHTML = `<div class="msg-bubble"><p>${escapeHtml(msg.message)}</p><span class="msg-time">${formatMsgTime(msg.created_at)}</span></div>`;
+                        msgDiv.className = 'msg-wrapper';
+
+                        let mediaHtml = '';
+                        if (msg.media_url) {
+                            if (msg.media_type === 'video') {
+                                mediaHtml = `<div class="msg-media" onclick="openLightbox('${msg.media_url}', 'video')"><video src="${msg.media_url}" preload="metadata"></video></div>`;
+                            } else {
+                                mediaHtml = `<div class="msg-media" onclick="openLightbox('${msg.media_url}', 'image')"><img src="${msg.media_url}" alt="Photo" loading="lazy"></div>`;
+                            }
+                        }
+                        const bubbleClass = msg.media_url ? 'msg-bubble media-bubble' : 'msg-bubble';
+                        msgDiv.innerHTML = `<div class="msg theirs" data-msg-id="${msg.id}"><div class="${bubbleClass}">${mediaHtml}${msg.message ? `<p>${escapeHtml(msg.message)}</p>` : ''}<span class="msg-time">${formatMsgTime(msg.created_at)}</span></div></div>`;
                         area.appendChild(msgDiv);
                         area.scrollTop = area.scrollHeight;
 
@@ -1037,6 +1589,15 @@
                 })
                 .subscribe();
         }
+
+        // Close GIF picker when clicking outside
+        document.addEventListener('click', (e) => {
+            const picker = document.getElementById('gifPicker');
+            const gifBtn = document.getElementById('gifBtn');
+            if (picker?.classList.contains('open') && !picker.contains(e.target) && e.target !== gifBtn && !gifBtn?.contains(e.target)) {
+                closeGifPicker();
+            }
+        });
 
         // Init
         document.addEventListener('DOMContentLoaded', init);
