@@ -5,7 +5,7 @@ const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.s
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
 const BUCKET_NAME = 'chat-media';
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_FILE_SIZE = 250 * 1024 * 1024; // 250MB
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -20,7 +20,8 @@ async function ensureBucketExists(supabase) {
     if (!bucketExists) {
       await supabase.storage.createBucket(BUCKET_NAME, {
         public: true,
-        fileSizeLimit: MAX_FILE_SIZE
+        fileSizeLimit: MAX_FILE_SIZE,
+        allowedMimeTypes: ['image/*', 'video/*']
       });
     }
     return true;
@@ -69,7 +70,7 @@ exports.handler = async (event) => {
     const buffer = Buffer.from(base64Data, 'base64');
 
     if (buffer.length > MAX_FILE_SIZE) {
-      return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'File too large. Maximum 10MB.' }) };
+      return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'File too large. Maximum 250MB.' }) };
     }
 
     const timestamp = Date.now();
