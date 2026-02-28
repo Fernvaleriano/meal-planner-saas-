@@ -4,7 +4,6 @@ import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost } from '../utils/api';
 import { supabase } from '../utils/supabase';
 
-const GIPHY_KEY = 'GlVGYHkr3WSBnllca54iNt0yFbjz7L29';
 
 function Messages() {
   const { user, clientData } = useAuth();
@@ -26,13 +25,6 @@ function Messages() {
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const fileInputRef = useRef(null);
-
-  // GIF picker state
-  const [showGifPicker, setShowGifPicker] = useState(false);
-  const [gifQuery, setGifQuery] = useState('');
-  const [gifs, setGifs] = useState([]);
-  const [gifsLoading, setGifsLoading] = useState(false);
-  const gifTimerRef = useRef(null);
 
   // Lightbox state
   const [lightboxUrl, setLightboxUrl] = useState(null);
@@ -143,10 +135,10 @@ function Messages() {
     return result;
   };
 
-  // Send a message (with optional media or GIF)
-  const handleSend = async (gifUrl = null, gifType = null) => {
+  // Send a message (with optional media)
+  const handleSend = async () => {
     const hasText = newMessage.trim();
-    const hasMedia = gifUrl || mediaPreview;
+    const hasMedia = mediaPreview;
 
     if ((!hasText && !hasMedia) || sending) return;
 
@@ -159,11 +151,11 @@ function Messages() {
       const cId = isCoach ? coachId : activeConvo.coachId;
       const clId = isCoach ? activeConvo.clientId : clientId;
 
-      let mediaUrl = gifUrl || null;
-      let mediaType = gifType || null;
+      let mediaUrl = null;
+      let mediaType = null;
 
-      // Upload media first if present (not a GIF URL)
-      if (!gifUrl && mediaPreview) {
+      // Upload media first if present
+      if (mediaPreview) {
         const uploadResult = await uploadMedia(mediaPreview.dataUrl);
         mediaUrl = uploadResult.mediaUrl;
         mediaType = uploadResult.mediaType;
@@ -196,7 +188,7 @@ function Messages() {
       });
 
       // Update conversation list with new last message
-      const previewText = msgText || (mediaType === 'video' ? 'Sent a video' : mediaType === 'gif' ? 'Sent a GIF' : 'Sent a photo');
+      const previewText = msgText || (mediaType === 'video' ? 'Sent a video' : 'Sent a photo');
       setConversations(prev => prev.map(c => {
         const matchId = isCoach ? c.clientId : c.coachId;
         const activeId = isCoach ? activeConvo.clientId : activeConvo.coachId;
@@ -219,50 +211,6 @@ function Messages() {
       setUploading(false);
       inputRef.current?.focus();
     }
-  };
-
-  // GIF picker - load trending on open
-  const openGifPicker = async () => {
-    setShowGifPicker(true);
-    setGifQuery('');
-    clearMediaPreview();
-    await fetchGifs('trending');
-  };
-
-  // Fetch GIFs from GIPHY
-  const fetchGifs = async (query) => {
-    setGifsLoading(true);
-    try {
-      const endpoint = query === 'trending' ? 'trending' : 'search';
-      const url = `https://api.giphy.com/v1/gifs/${endpoint}?api_key=${GIPHY_KEY}&limit=20&rating=pg-13${query !== 'trending' ? '&q=' + encodeURIComponent(query) : ''}`;
-      const res = await fetch(url);
-      const data = await res.json();
-      setGifs(data.data || []);
-    } catch (err) {
-      console.error('Error fetching GIFs:', err);
-      setGifs([]);
-    } finally {
-      setGifsLoading(false);
-    }
-  };
-
-  // Handle GIF search with debounce
-  const handleGifSearch = (value) => {
-    setGifQuery(value);
-    if (gifTimerRef.current) clearTimeout(gifTimerRef.current);
-    gifTimerRef.current = setTimeout(() => {
-      if (value.trim()) {
-        fetchGifs(value.trim());
-      } else {
-        fetchGifs('trending');
-      }
-    }, 400);
-  };
-
-  // Select a GIF and send it
-  const selectGif = (gifUrlValue) => {
-    setShowGifPicker(false);
-    handleSend(gifUrlValue, 'gif');
   };
 
   // Unsend (delete) a message
@@ -659,45 +607,6 @@ function Messages() {
           </div>
         )}
 
-        {/* GIF Picker */}
-        {showGifPicker && (
-          <div className="chat-gif-picker">
-            <div className="chat-gif-picker-header">
-              <input
-                type="text"
-                placeholder="Search GIFs..."
-                value={gifQuery}
-                onChange={(e) => handleGifSearch(e.target.value)}
-                autoFocus
-              />
-              <button onClick={() => setShowGifPicker(false)}>
-                <X size={18} />
-              </button>
-            </div>
-            <div className="chat-gif-grid">
-              {gifsLoading ? (
-                <div className="chat-gif-loading">Loading...</div>
-              ) : gifs.length === 0 ? (
-                <div className="chat-gif-loading">No GIFs found</div>
-              ) : (
-                gifs.map(gif => (
-                  <img
-                    key={gif.id}
-                    src={gif.images.fixed_height_still?.url || gif.images.fixed_height.url}
-                    data-gif={gif.images.fixed_height.url}
-                    alt={gif.title}
-                    onClick={() => selectGif(gif.images.fixed_height.url)}
-                    onMouseEnter={(e) => { e.target.src = e.target.dataset.gif; }}
-                    onMouseLeave={(e) => { e.target.src = gif.images.fixed_height_still?.url || gif.images.fixed_height.url; }}
-                    loading="lazy"
-                  />
-                ))
-              )}
-            </div>
-            <div className="chat-gif-powered">Powered by GIPHY</div>
-          </div>
-        )}
-
         {/* Input bar */}
         <div className="chat-input-bar">
           <input
@@ -714,13 +623,6 @@ function Messages() {
             title="Send photo or video"
           >
             <Paperclip size={20} />
-          </button>
-          <button
-            className="chat-gif-btn"
-            onClick={() => showGifPicker ? setShowGifPicker(false) : openGifPicker()}
-            title="Send GIF"
-          >
-            GIF
           </button>
           <textarea
             ref={inputRef}
