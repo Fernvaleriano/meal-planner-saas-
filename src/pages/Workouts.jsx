@@ -702,7 +702,7 @@ function Workouts() {
       // Run session refresh and all data fetches in parallel
       const [, assignmentRes, adhocRes, logRes] = await Promise.all([
         ensureFreshSession(),
-        apiGet(`/.netlify/functions/workout-assignments?clientId=${clientData.id}&date=${dateStr}`),
+        apiGet(`/.netlify/functions/workout-assignments?clientId=${clientData.id}&date=${dateStr}`).catch(() => null),
         apiGet(`/.netlify/functions/adhoc-workouts?clientId=${clientData.id}&date=${dateStr}`).catch(() => null),
         apiGet(`/.netlify/functions/workout-logs?clientId=${clientData.id}&date=${dateStr}`).catch(() => null)
       ]);

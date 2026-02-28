@@ -239,13 +239,13 @@ function Diary() {
     try {
       // Fetch diary, water, and interactions all in parallel for faster loading
       const [diaryData, waterData, interactionsData] = await Promise.all([
-        apiGet(`/.netlify/functions/food-diary?clientId=${clientData.id}&date=${dateStr}`),
+        apiGet(`/.netlify/functions/food-diary?clientId=${clientData.id}&date=${dateStr}`).catch(() => null),
         apiGet(`/.netlify/functions/water-intake?clientId=${clientData.id}&date=${dateStr}`).catch(() => null),
         apiGet(`/.netlify/functions/get-diary-interactions?clientId=${clientData.id}&date=${dateStr}`).catch(() => null)
       ]);
 
-      const newEntries = diaryData.entries || [];
-      const newGoals = diaryData.goals || getGenderBasedDefaults(clientData?.gender);
+      const newEntries = diaryData?.entries || [];
+      const newGoals = diaryData?.goals || getGenderBasedDefaults(clientData?.gender);
       const newWater = waterData?.glasses || 0;
 
       // Apply interactions data
@@ -293,7 +293,7 @@ function Diary() {
   }, [clientData?.id, currentDate]);
 
   // Setup pull-to-refresh
-  const { isRefreshing, pullDistance, containerProps, threshold } = usePullToRefresh(refreshDiaryData);
+  const { isRefreshing, indicatorRef, bindToContainer, threshold } = usePullToRefresh(refreshDiaryData);
 
   // Cleanup timers and microphone on component unmount
   useEffect(() => {
@@ -1907,11 +1907,10 @@ function Diary() {
   };
 
   return (
-    <div className="diary-page" {...containerProps}>
+    <div className="diary-page" ref={bindToContainer}>
       {/* Pull-to-refresh indicator */}
       <PullToRefreshIndicator
-        pullDistance={pullDistance}
-        isRefreshing={isRefreshing}
+        indicatorRef={indicatorRef}
         threshold={threshold}
       />
 

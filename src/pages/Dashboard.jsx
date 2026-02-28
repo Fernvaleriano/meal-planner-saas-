@@ -141,7 +141,7 @@ function Dashboard() {
   }, [clientData?.id, clientData?.coach_id]);
 
   // Setup pull-to-refresh using the reusable hook
-  const { isRefreshing, pullDistance, containerProps, threshold } = usePullToRefresh(refreshData);
+  const { isRefreshing, indicatorRef, bindToContainer, threshold } = usePullToRefresh(refreshData);
 
   // Handle food logged from modals
   const handleFoodLogged = (nutrition) => {
@@ -725,11 +725,10 @@ function Dashboard() {
   };
 
   return (
-    <div className="dashboard" {...containerProps}>
+    <div className="dashboard" ref={bindToContainer}>
       {/* Pull-to-refresh indicator */}
       <PullToRefreshIndicator
-        pullDistance={pullDistance}
-        isRefreshing={isRefreshing}
+        indicatorRef={indicatorRef}
         threshold={threshold}
       />
 
