@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, ensureFreshSession } from '../utils/api';
 import { supabase } from '../utils/supabase';
 import { usePullToRefreshEvent } from '../hooks/usePullToRefreshEvent';
+import { onAppResume } from '../hooks/useAppLifecycle';
 
 // localStorage cache helper for instant display on resume
 const getCache = (key) => {
@@ -334,6 +335,17 @@ function Messages() {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
+
+  // Re-fetch data when app resumes from background.
+  // Without this, if the user is on the Messages page and backgrounds the app,
+  // any in-flight fetches die and the page stays stuck on loading forever.
+  useEffect(() => {
+    const unsub = onAppResume((backgroundMs) => {
+      if (backgroundMs < 3000) return;
+      fetchConversations();
+    });
+    return () => unsub();
+  }, [fetchConversations]);
 
   // Fetch conversations on mount
   useEffect(() => {
