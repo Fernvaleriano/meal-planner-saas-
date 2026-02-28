@@ -19815,17 +19815,17 @@ a.nav-left {
     align-items: center;
     gap: 8px;
     margin-bottom: 8px;
-    color: #a78bfa;
+    color: #ede9fe;
     font-weight: 600;
     font-size: 14px;
 }
 
 .exercise-instructions-section .exercise-instructions-header svg {
-    color: #a78bfa;
+    color: #ede9fe;
 }
 
 .exercise-instructions-section .exercise-instructions-text {
-    color: #c4b5fd;
+    color: #f1f0f9;
     font-size: 14px;
     line-height: 1.5;
     margin: 0;
