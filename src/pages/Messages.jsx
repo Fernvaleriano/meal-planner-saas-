@@ -100,15 +100,16 @@ function Messages() {
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      setMediaPreview({
-        file,
-        dataUrl: ev.target.result,
-        type: file.type.startsWith('video/') ? 'video' : 'image'
-      });
-    };
-    reader.readAsDataURL(file);
+    const isVideo = file.type.startsWith('video/');
+    // Use object URL for preview (memory-efficient, works for large videos)
+    const previewUrl = URL.createObjectURL(file);
+
+    setMediaPreview({
+      file,
+      previewUrl,
+      dataUrl: null, // will be set only for small images using base64 fallback
+      type: isVideo ? 'video' : 'image'
+    });
 
     // Reset file input so same file can be selected again
     e.target.value = '';
@@ -116,22 +117,47 @@ function Messages() {
 
   // Remove media preview
   const clearMediaPreview = () => {
+    if (mediaPreview?.previewUrl) {
+      URL.revokeObjectURL(mediaPreview.previewUrl);
+    }
     setMediaPreview(null);
   };
 
-  // Upload media to server
-  const uploadMedia = async (dataUrl) => {
+  // Upload media to server using signed URL (bypasses Netlify body size limit)
+  const uploadMedia = async (file) => {
     const cId = isCoach ? coachId : activeConvo.coachId;
     const clId = isCoach ? activeConvo.clientId : clientId;
 
-    const result = await apiPost('/.netlify/functions/upload-chat-media', {
-      fileData: dataUrl,
-      fileName: `media-${Date.now()}`,
+    // Determine file extension from name or MIME type
+    const ext = file.name?.split('.').pop() || file.type.split('/')[1] || 'bin';
+
+    // Step 1: Get a signed upload URL from the server
+    const urlResult = await apiPost('/.netlify/functions/get-chat-upload-url', {
       coachId: cId,
-      clientId: clId
+      clientId: clId,
+      contentType: file.type,
+      fileExtension: ext
     });
 
-    return result;
+    if (!urlResult.success || !urlResult.uploadUrl) {
+      throw new Error(urlResult.error || 'Failed to get upload URL');
+    }
+
+    // Step 2: Upload the file directly to Supabase Storage
+    const uploadRes = await fetch(urlResult.uploadUrl, {
+      method: 'PUT',
+      headers: { 'Content-Type': file.type },
+      body: file
+    });
+
+    if (!uploadRes.ok) {
+      throw new Error('Failed to upload file to storage');
+    }
+
+    return {
+      mediaUrl: urlResult.publicUrl,
+      mediaType: urlResult.mediaType
+    };
   };
 
   // Send a message (with optional media)
@@ -155,10 +181,10 @@ function Messages() {
 
       // Upload media first if present
       if (mediaPreview) {
-        const uploadResult = await uploadMedia(mediaPreview.dataUrl);
+        const uploadResult = await uploadMedia(mediaPreview.file);
         mediaUrl = uploadResult.mediaUrl;
         mediaType = uploadResult.mediaType;
-        setMediaPreview(null);
+        clearMediaPreview();
         setUploading(false);
       }
 
@@ -204,6 +230,9 @@ function Messages() {
       }));
     } catch (err) {
       console.error('Error sending message:', err);
+      alert(err.message?.includes('upload') || err.message?.includes('storage')
+        ? 'Failed to upload media. Please try again or use a smaller file.'
+        : 'Failed to send message. Please try again.');
       setUploading(false);
     } finally {
       setSending(false);
@@ -598,9 +627,9 @@ function Messages() {
               <X size={18} />
             </button>
             {mediaPreview.type === 'video' ? (
-              <video src={mediaPreview.dataUrl} className="chat-media-preview-content" controls />
+              <video src={mediaPreview.previewUrl} className="chat-media-preview-content" controls />
             ) : (
-              <img src={mediaPreview.dataUrl} alt="Preview" className="chat-media-preview-content" />
+              <img src={mediaPreview.previewUrl} alt="Preview" className="chat-media-preview-content" />
             )}
           </div>
         )}

@@ -1,4 +1,6 @@
-// Netlify Function to upload chat media (photos, videos)
+// Netlify Function to get a signed upload URL for chat media
+// This allows clients to upload files directly to Supabase Storage,
+// bypassing the Netlify Function body size limit (~6MB).
 const { createClient } = require('@supabase/supabase-js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
@@ -10,7 +12,8 @@ const MAX_FILE_SIZE = 250 * 1024 * 1024; // 250MB
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS'
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Content-Type': 'application/json'
 };
 
 async function ensureBucketExists(supabase) {
@@ -45,10 +48,23 @@ exports.handler = async (event) => {
       return { statusCode: 500, headers: corsHeaders, body: JSON.stringify({ error: 'Server configuration error' }) };
     }
 
-    const { fileData, fileName, coachId, clientId } = JSON.parse(event.body);
+    const { coachId, clientId, contentType, fileExtension } = JSON.parse(event.body || '{}');
 
-    if (!fileData || !coachId || !clientId) {
-      return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'fileData, coachId, and clientId are required' }) };
+    if (!coachId || !clientId || !contentType) {
+      return {
+        statusCode: 400,
+        headers: corsHeaders,
+        body: JSON.stringify({ error: 'coachId, clientId, and contentType are required' })
+      };
+    }
+
+    // Validate content type
+    if (!contentType.startsWith('image/') && !contentType.startsWith('video/')) {
+      return {
+        statusCode: 400,
+        headers: corsHeaders,
+        body: JSON.stringify({ error: 'Only image and video files are allowed' })
+      };
     }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
@@ -58,37 +74,25 @@ exports.handler = async (event) => {
       return { statusCode: 500, headers: corsHeaders, body: JSON.stringify({ error: 'Storage not available' }) };
     }
 
-    // Parse base64 data URI
-    // MIME subtypes can contain hyphens, dots, plus signs (e.g. video/x-m4v, image/svg+xml)
-    const dataMatch = fileData.match(/^data:(image|video)\/([a-zA-Z0-9.+\-]+);base64,(.+)$/);
-    if (!dataMatch) {
-      return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'Invalid file data format. Must be image or video.' }) };
-    }
-
-    const mediaCategory = dataMatch[1]; // image or video
-    const fileType = dataMatch[2];
-    const base64Data = dataMatch[3];
-    const buffer = Buffer.from(base64Data, 'base64');
-
-    if (buffer.length > MAX_FILE_SIZE) {
-      return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'File too large. Maximum 250MB.' }) };
-    }
-
+    const mediaCategory = contentType.startsWith('video/') ? 'video' : 'image';
+    const ext = fileExtension || contentType.split('/')[1] || 'bin';
     const timestamp = Date.now();
-    const storagePath = `${coachId}/${clientId}/${timestamp}.${fileType}`;
+    const storagePath = `${coachId}/${clientId}/${timestamp}.${ext}`;
 
-    const { error: uploadError } = await supabase.storage
+    const { data: uploadData, error: uploadError } = await supabase.storage
       .from(BUCKET_NAME)
-      .upload(storagePath, buffer, {
-        contentType: `${mediaCategory}/${fileType}`,
-        upsert: false
-      });
+      .createSignedUploadUrl(storagePath);
 
     if (uploadError) {
-      console.error('Upload error:', uploadError);
-      return { statusCode: 500, headers: corsHeaders, body: JSON.stringify({ error: 'Upload failed: ' + uploadError.message }) };
+      console.error('Error creating signed upload URL:', uploadError);
+      return {
+        statusCode: 500,
+        headers: corsHeaders,
+        body: JSON.stringify({ error: 'Failed to create upload URL: ' + uploadError.message })
+      };
     }
 
+    // Also get the public URL so the client knows the final URL
     const { data: urlData } = supabase.storage.from(BUCKET_NAME).getPublicUrl(storagePath);
 
     return {
@@ -96,13 +100,16 @@ exports.handler = async (event) => {
       headers: corsHeaders,
       body: JSON.stringify({
         success: true,
-        mediaUrl: urlData.publicUrl,
-        mediaType: mediaCategory
+        uploadUrl: uploadData.signedUrl,
+        token: uploadData.token,
+        publicUrl: urlData.publicUrl,
+        mediaType: mediaCategory,
+        storagePath
       })
     };
 
   } catch (error) {
-    console.error('Error in upload-chat-media:', error);
+    console.error('Error in get-chat-upload-url:', error);
     return { statusCode: 500, headers: corsHeaders, body: JSON.stringify({ error: 'Internal server error' }) };
   }
 };
