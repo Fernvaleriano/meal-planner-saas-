@@ -243,10 +243,14 @@ export async function apiPut(url, data) {
   });
 }
 
-export async function apiDelete(url) {
+export async function apiDelete(url, data) {
   // Add timezone to query parameters for date-aware endpoints
   const timezone = getUserTimezone();
   const separator = url.includes('?') ? '&' : '?';
   const urlWithTimezone = `${url}${separator}timezone=${encodeURIComponent(timezone)}`;
-  return authenticatedFetch(urlWithTimezone, { method: 'DELETE' });
+  const options = { method: 'DELETE' };
+  if (data) {
+    options.body = JSON.stringify({ ...data, timezone });
+  }
+  return authenticatedFetch(urlWithTimezone, options);
 }
