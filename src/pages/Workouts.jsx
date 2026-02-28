@@ -504,6 +504,7 @@ function Workouts() {
   const completedExercisesRef = useRef(new Set());
   const pendingSaveRef = useRef(null); // Track pending completion saves for visibilitychange flush
   const globalExerciseRefsRef = useRef({}); // Coach's global exercise references keyed by lowercase exercise name
+  const refreshWorkoutDataRef = useRef(null); // Stable ref for resume handler (defined later via useCallback)
 
   // Keep refs updated for stable callbacks
   todayWorkoutRef.current = todayWorkout;
@@ -569,11 +570,13 @@ function Workouts() {
       // its deps (clientData.id, selectedDate) haven't changed. Without this,
       // any API calls that were in-flight when the app was suspended are dead,
       // and the page stays stuck on "Loading..." forever.
-      refreshWorkoutData();
+      if (refreshWorkoutDataRef.current) {
+        refreshWorkoutDataRef.current();
+      }
     });
 
     return () => unsubResume();
-  }, [showGuidedWorkout, refreshWorkoutData]);
+  }, [showGuidedWorkout]);
 
   // Close menus when clicking outside
   // cardMenuWorkoutId in deps so the closure always sees the current value
@@ -819,6 +822,9 @@ function Workouts() {
       isRefreshingRef.current = false;
     }
   }, [clientData?.id, selectedDate, refreshWeekSchedule]);
+
+  // Keep ref in sync so the resume handler (defined earlier) can call it
+  refreshWorkoutDataRef.current = refreshWorkoutData;
 
   // Setup pull-to-refresh (DOM-driven — no React re-renders during drag)
   const { isRefreshing, indicatorRef, bindToContainer, threshold } = usePullToRefresh(refreshWorkoutData);
