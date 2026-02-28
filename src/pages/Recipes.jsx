@@ -3,6 +3,7 @@ import { ChevronLeft, Clock, X, Search, Sparkles, Globe, BookOpen, Heart, Downlo
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost } from '../utils/api';
+import { usePullToRefreshEvent } from '../hooks/usePullToRefreshEvent';
 
 // Sample recipes fallback
 const SAMPLE_RECIPES = [
@@ -156,6 +157,9 @@ function Recipes() {
   useEffect(() => {
     loadRecipes();
   }, [clientData?.id]);
+
+  // Respond to global pull-to-refresh gesture
+  usePullToRefreshEvent(loadRecipes);
 
   // Scroll to top when page loads
   useEffect(() => {

@@ -4,6 +4,7 @@ import { ArrowLeft, Check, Bell, MessageCircle, Heart, Dumbbell, UtensilsCrossed
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost } from '../utils/api';
 import NotificationDetail from '../components/NotificationDetail';
+import { usePullToRefreshEvent } from '../hooks/usePullToRefreshEvent';
 
 function Notifications() {
   const { clientData } = useAuth();
@@ -33,6 +34,9 @@ function Notifications() {
       fetchNotifications();
     }
   }, [fetchNotifications]);
+
+  // Respond to global pull-to-refresh gesture
+  usePullToRefreshEvent(fetchNotifications);
 
   const markAllRead = async () => {
     if (!clientData?.id || unreadCount === 0) return;

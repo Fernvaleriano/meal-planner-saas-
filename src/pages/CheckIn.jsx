@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronDown, Flame } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost } from '../utils/api';
+import { usePullToRefreshEvent } from '../hooks/usePullToRefreshEvent';
 
 function CheckIn() {
   const navigate = useNavigate();
@@ -34,6 +35,9 @@ function CheckIn() {
       loadHistory();
     }
   }, [clientData?.id]);
+
+  // Respond to global pull-to-refresh gesture
+  usePullToRefreshEvent(loadHistory);
 
   const loadHistory = async () => {
     setLoadingHistory(true);

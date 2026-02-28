@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiGet } from '../utils/api';
+import { usePullToRefreshEvent } from '../hooks/usePullToRefreshEvent';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -382,6 +383,9 @@ export default function WorkoutHistory() {
   useEffect(() => {
     fetchWorkouts();
   }, [fetchWorkouts]);
+
+  // Respond to global pull-to-refresh gesture
+  usePullToRefreshEvent(fetchWorkouts);
 
   // -----------------------------------------------------------------------
   // Fetch workout detail

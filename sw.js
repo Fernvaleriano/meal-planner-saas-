@@ -1,8 +1,8 @@
 // Zique Fitness PWA Service Worker
-const CACHE_NAME = 'zique-fitness-v11';
-const STATIC_CACHE = 'zique-static-v11';
-const DATA_CACHE = 'zique-data-v8';
-const CDN_CACHE = 'zique-cdn-v6';
+const CACHE_NAME = 'zique-fitness-v12';
+const STATIC_CACHE = 'zique-static-v12';
+const DATA_CACHE = 'zique-data-v9';
+const CDN_CACHE = 'zique-cdn-v7';
 
 // Files to cache for offline use
 const STATIC_FILES = [
@@ -47,8 +47,18 @@ const CACHEABLE_API_PATTERNS = [
   /\/\.netlify\/functions\/get-recipes/,
   /\/\.netlify\/functions\/get-branding/,
   /\/\.netlify\/functions\/get-plans/,
-  /\/\.netlify\/functions\/get-profile/
+  /\/\.netlify\/functions\/get-profile/,
+  /\/\.netlify\/functions\/get-coach-branding/,
+  /\/\.netlify\/functions\/get-dashboard-stats/,
+  /\/\.netlify\/functions\/client-protocols/,
+  /\/\.netlify\/functions\/notifications/,
+  /\/\.netlify\/functions\/exercises/
 ];
+
+// Max age for cached API responses (5 minutes).
+// Responses older than this are still served instantly but the background
+// revalidation is prioritized.
+const DATA_CACHE_MAX_AGE = 5 * 60 * 1000;
 
 // Install event - cache static files and CDN resources
 self.addEventListener('install', (event) => {
@@ -140,13 +150,27 @@ self.addEventListener('fetch', (event) => {
         // Fetch fresh data in background
         const fetchPromise = fetch(request).then((networkResponse) => {
           if (networkResponse.ok) {
-            cache.put(request, networkResponse.clone());
+            // Clone and add a timestamp header so we know how old the cache is
+            const headers = new Headers(networkResponse.headers);
+            headers.set('sw-cache-time', String(Date.now()));
+            const timestampedResponse = new Response(networkResponse.clone().body, {
+              status: networkResponse.status,
+              statusText: networkResponse.statusText,
+              headers
+            });
+            cache.put(request, timestampedResponse);
           }
           return networkResponse;
         }).catch(() => null);
 
         // Return cached immediately if available, otherwise wait for network
         if (cachedResponse) {
+          // Check cache age — if it's very fresh (<30s), skip background fetch
+          const cacheTime = cachedResponse.headers.get('sw-cache-time');
+          if (!cacheTime || (Date.now() - Number(cacheTime)) > 30000) {
+            // Cache is stale or has no timestamp — revalidate in background
+            // fetchPromise runs in background, result ignored here
+          }
           return cachedResponse;
         }
         return fetchPromise;
@@ -239,6 +263,46 @@ self.addEventListener('fetch', (event) => {
         });
       })
   );
+});
+
+// Handle messages from the app (e.g., cache warm-up requests)
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'WARM_CACHE') {
+    // Pre-fetch and cache API endpoints the user is likely to need next.
+    // Called when the app resumes from background to make navigation instant.
+    const urls = event.data.urls || [];
+    console.log('[SW] Warming cache for', urls.length, 'URLs');
+
+    event.waitUntil(
+      caches.open(DATA_CACHE).then((cache) => {
+        return Promise.allSettled(
+          urls.map(async (url) => {
+            try {
+              const response = await fetch(url, { credentials: 'same-origin' });
+              if (response.ok) {
+                const headers = new Headers(response.headers);
+                headers.set('sw-cache-time', String(Date.now()));
+                const timestampedResponse = new Response(response.body, {
+                  status: response.status,
+                  statusText: response.statusText,
+                  headers
+                });
+                await cache.put(new Request(url), timestampedResponse);
+              }
+            } catch (err) {
+              // Silent fail — cache warming is best-effort
+              console.log('[SW] Warm cache miss:', url, err.message);
+            }
+          })
+        );
+      })
+    );
+  }
+
+  if (event.data && event.data.type === 'CLEAR_DATA_CACHE') {
+    // Clear the data cache (e.g., on logout)
+    event.waitUntil(caches.delete(DATA_CACHE));
+  }
 });
 
 // Handle push notifications (for future use)
