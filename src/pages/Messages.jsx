@@ -1,10 +1,24 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Send, Search, MessageCircle, Image, X, Trash2, Check, CheckCheck, Paperclip } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { apiGet, apiPost } from '../utils/api';
+import { apiGet, apiPost, ensureFreshSession } from '../utils/api';
 import { supabase } from '../utils/supabase';
 import { usePullToRefreshEvent } from '../hooks/usePullToRefreshEvent';
 
+// localStorage cache helper for instant display on resume
+const getCache = (key) => {
+  try {
+    const cached = localStorage.getItem(key);
+    if (cached) return JSON.parse(cached);
+  } catch { /* ignore */ }
+  return null;
+};
+
+const setMsgCache = (key, data) => {
+  try {
+    localStorage.setItem(key, JSON.stringify(data));
+  } catch { /* ignore */ }
+};
 
 function Messages() {
   const { user, clientData } = useAuth();
@@ -12,12 +26,15 @@ function Messages() {
   const coachId = isCoach ? user?.id : null;
   const clientId = clientData?.id;
 
+  // Load cached conversations for instant display
+  const cachedConvos = clientId ? getCache(`messages_${clientId}`) : null;
+
   // State
-  const [conversations, setConversations] = useState([]);
+  const [conversations, setConversations] = useState(cachedConvos || []);
   const [activeConvo, setActiveConvo] = useState(null);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!cachedConvos);
   const [sending, setSending] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [mediaPreview, setMediaPreview] = useState(null); // { file, dataUrl, type }
@@ -44,6 +61,9 @@ function Messages() {
   // Fetch conversation list
   const fetchConversations = useCallback(async () => {
     try {
+      // Ensure fresh auth session before fetching — prevents stale token hangs
+      await ensureFreshSession();
+
       let url;
       if (isCoach) {
         url = `/.netlify/functions/chat?action=conversations&coachId=${coachId}`;
@@ -51,7 +71,12 @@ function Messages() {
         url = `/.netlify/functions/chat?action=client-conversations&clientId=${clientId}`;
       }
       const result = await apiGet(url);
-      setConversations(result.conversations || []);
+      const convos = result.conversations || [];
+      setConversations(convos);
+      // Cache for instant display on next visit / resume
+      if (clientId) {
+        setMsgCache(`messages_${clientId}`, convos);
+      }
     } catch (err) {
       console.error('Error fetching conversations:', err);
     } finally {
