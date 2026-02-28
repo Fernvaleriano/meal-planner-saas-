@@ -20,13 +20,12 @@ function Messages() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [mediaPreview, setMediaPreview] = useState(null); // { file, dataUrl, type }
+  const [uploading, setUploading] = useState(false);
+  const [selectedMsgId, setSelectedMsgId] = useState(null); // for unsend menu
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const fileInputRef = useRef(null);
-
-  // Media attachment state
-  const [mediaPreview, setMediaPreview] = useState(null); // { file, url, type }
-  const [uploading, setUploading] = useState(false);
 
   // GIF picker state
   const [showGifPicker, setShowGifPicker] = useState(false);
@@ -35,8 +34,7 @@ function Messages() {
   const [gifsLoading, setGifsLoading] = useState(false);
   const gifTimerRef = useRef(null);
 
-  // Message actions state
-  const [contextMenu, setContextMenu] = useState(null); // { msgId, x, y }
+  // Lightbox state
   const [lightboxUrl, setLightboxUrl] = useState(null);
 
   // Scroll to bottom of messages
@@ -93,44 +91,83 @@ function Messages() {
     }
   }, [activeConvo, isCoach, coachId, clientId, scrollToBottom]);
 
-  // Send a message (text and/or media)
-  const handleSend = async (mediaUrl = null, mediaType = null) => {
+  // Handle file selection for media
+  const handleFileSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
+      alert('Please select an image or video file.');
+      return;
+    }
+
+    // Validate file size (10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      alert('File too large. Maximum size is 10MB.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      setMediaPreview({
+        file,
+        dataUrl: ev.target.result,
+        type: file.type.startsWith('video/') ? 'video' : 'image'
+      });
+    };
+    reader.readAsDataURL(file);
+    setShowGifPicker(false);
+
+    // Reset file input so same file can be selected again
+    e.target.value = '';
+  };
+
+  // Remove media preview
+  const clearMediaPreview = () => {
+    setMediaPreview(null);
+  };
+
+  // Upload media to server
+  const uploadMedia = async (dataUrl) => {
+    const cId = isCoach ? coachId : activeConvo.coachId;
+    const clId = isCoach ? activeConvo.clientId : clientId;
+
+    const result = await apiPost('/.netlify/functions/upload-chat-media', {
+      fileData: dataUrl,
+      fileName: `media-${Date.now()}`,
+      coachId: cId,
+      clientId: clId
+    });
+
+    return result;
+  };
+
+  // Send a message (with optional media or GIF)
+  const handleSend = async (gifUrl = null, gifType = null) => {
     const hasText = newMessage.trim();
-    const hasMedia = mediaUrl || mediaPreview;
+    const hasMedia = gifUrl || mediaPreview;
 
     if ((!hasText && !hasMedia) || sending) return;
 
     const msgText = newMessage.trim();
     setNewMessage('');
     setSending(true);
+    setUploading(!!mediaPreview);
 
     try {
       const cId = isCoach ? coachId : activeConvo.coachId;
       const clId = isCoach ? activeConvo.clientId : clientId;
 
-      let finalMediaUrl = mediaUrl;
-      let finalMediaType = mediaType;
+      let mediaUrl = gifUrl || null;
+      let mediaType = gifType || null;
 
-      // Upload file if we have a preview attachment (not a GIF URL)
-      if (!mediaUrl && mediaPreview) {
-        setUploading(true);
-        const reader = new FileReader();
-        const base64 = await new Promise((resolve, reject) => {
-          reader.onload = () => resolve(reader.result);
-          reader.onerror = reject;
-          reader.readAsDataURL(mediaPreview.file);
-        });
-
-        const uploadResult = await apiPost('/.netlify/functions/upload-chat-media', {
-          fileData: base64,
-          coachId: cId,
-          clientId: clId
-        });
-
-        if (uploadResult.success) {
-          finalMediaUrl = uploadResult.mediaUrl;
-          finalMediaType = uploadResult.mediaType;
-        }
+      // Upload media first if present (not a GIF URL)
+      if (!gifUrl && mediaPreview) {
+        const uploadResult = await uploadMedia(mediaPreview.dataUrl);
+        mediaUrl = uploadResult.mediaUrl;
+        mediaType = uploadResult.mediaType;
+        setMediaPreview(null);
         setUploading(false);
       }
 
@@ -139,8 +176,8 @@ function Messages() {
         id: Date.now(),
         sender_type: isCoach ? 'coach' : 'client',
         message: msgText || null,
-        media_url: finalMediaUrl,
-        media_type: finalMediaType,
+        media_url: mediaUrl,
+        media_type: mediaType,
         created_at: new Date().toISOString(),
         is_read: false
       };
@@ -154,12 +191,12 @@ function Messages() {
         clientId: clId,
         senderType: isCoach ? 'coach' : 'client',
         message: msgText || null,
-        mediaUrl: finalMediaUrl,
-        mediaType: finalMediaType
+        mediaUrl,
+        mediaType
       });
 
-      // Update conversation list preview
-      const previewText = msgText || (finalMediaType === 'video' ? 'Sent a video' : finalMediaType === 'gif' ? 'Sent a GIF' : 'Sent a photo');
+      // Update conversation list with new last message
+      const previewText = msgText || (mediaType === 'video' ? 'Sent a video' : mediaType === 'gif' ? 'Sent a GIF' : 'Sent a photo');
       setConversations(prev => prev.map(c => {
         const matchId = isCoach ? c.clientId : c.coachId;
         const activeId = isCoach ? activeConvo.clientId : activeConvo.coachId;
@@ -176,45 +213,12 @@ function Messages() {
       }));
     } catch (err) {
       console.error('Error sending message:', err);
+      setUploading(false);
     } finally {
       setSending(false);
       setUploading(false);
       inputRef.current?.focus();
     }
-  };
-
-  // Handle file selection for photo/video
-  const handleFileSelect = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (file.size > 10 * 1024 * 1024) {
-      alert('File too large. Maximum size is 10MB.');
-      return;
-    }
-
-    if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
-      alert('Only photos and videos are supported.');
-      return;
-    }
-
-    const url = URL.createObjectURL(file);
-    setMediaPreview({
-      file,
-      url,
-      type: file.type.startsWith('video/') ? 'video' : 'image'
-    });
-    setShowGifPicker(false);
-    // Reset file input so the same file can be re-selected
-    e.target.value = '';
-  };
-
-  // Clear media preview
-  const clearMediaPreview = () => {
-    if (mediaPreview?.url) {
-      URL.revokeObjectURL(mediaPreview.url);
-    }
-    setMediaPreview(null);
   };
 
   // GIF picker - load trending on open
@@ -256,18 +260,17 @@ function Messages() {
   };
 
   // Select a GIF and send it
-  const selectGif = (gifUrl) => {
+  const selectGif = (gifUrlValue) => {
     setShowGifPicker(false);
-    handleSend(gifUrl, 'gif');
+    handleSend(gifUrlValue, 'gif');
   };
 
-  // Delete a message
-  const deleteMessage = async (msgId) => {
-    setContextMenu(null);
-    try {
-      const cId = isCoach ? coachId : activeConvo.coachId;
-      const clId = isCoach ? activeConvo.clientId : clientId;
+  // Unsend (delete) a message
+  const handleUnsend = async (msgId) => {
+    const cId = isCoach ? coachId : activeConvo.coachId;
+    const clId = isCoach ? activeConvo.clientId : clientId;
 
+    try {
       await apiPost('/.netlify/functions/chat', {
         action: 'delete',
         messageId: msgId,
@@ -276,27 +279,12 @@ function Messages() {
         senderType: isCoach ? 'coach' : 'client'
       });
 
-      // Remove from UI
+      // Remove from local state
       setMessages(prev => prev.filter(m => m.id !== msgId));
+      setSelectedMsgId(null);
     } catch (err) {
-      console.error('Error deleting message:', err);
+      console.error('Error unsending message:', err);
     }
-  };
-
-  // Handle long press / context menu on message
-  const handleMessageAction = (e, msg) => {
-    const isMine = msg.sender_type === (isCoach ? 'coach' : 'client');
-    if (!isMine) return;
-
-    e.preventDefault();
-    e.stopPropagation();
-
-    const rect = e.currentTarget.getBoundingClientRect();
-    setContextMenu({
-      msgId: msg.id,
-      x: rect.left,
-      y: rect.top - 44
-    });
   };
 
   // Handle enter key
@@ -311,18 +299,21 @@ function Messages() {
   const openConversation = (convo) => {
     setActiveConvo(convo);
     setMessages([]);
+    setSelectedMsgId(null);
     setMediaPreview(null);
     setShowGifPicker(false);
-    setContextMenu(null);
   };
 
-  // Close context menu on outside click
+  // Close unsend menu when clicking elsewhere
   useEffect(() => {
-    if (!contextMenu) return;
-    const close = () => setContextMenu(null);
-    document.addEventListener('click', close);
-    return () => document.removeEventListener('click', close);
-  }, [contextMenu]);
+    if (selectedMsgId === null) return;
+    const handleClick = () => setSelectedMsgId(null);
+    const timer = setTimeout(() => document.addEventListener('click', handleClick), 0);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener('click', handleClick);
+    };
+  }, [selectedMsgId]);
 
   // For client: auto-open single conversation
   useEffect(() => {
@@ -348,7 +339,7 @@ function Messages() {
     }
   }, [activeConvo, fetchMessages]);
 
-  // Real-time subscription for new messages
+  // Real-time subscription for new messages + updates (read receipts, deletes)
   useEffect(() => {
     if (!activeConvo) return;
 
@@ -382,6 +373,29 @@ function Messages() {
                 clientId: clId,
                 readerType: isCoach ? 'coach' : 'client'
               });
+            }
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'chat_messages',
+          filter: `coach_id=eq.${cId}`
+        },
+        (payload) => {
+          const updated = payload.new;
+          if (updated.client_id === parseInt(clId)) {
+            // If soft-deleted, remove from view
+            if (updated.deleted_at) {
+              setMessages(prev => prev.filter(m => m.id !== updated.id));
+            } else {
+              // Update read status
+              setMessages(prev => prev.map(m =>
+                m.id === updated.id ? { ...m, is_read: updated.is_read, read_at: updated.read_at } : m
+              ));
             }
           }
         }
@@ -523,7 +537,7 @@ function Messages() {
             controls
             playsInline
             preload="metadata"
-            style={{ maxWidth: '100%', borderRadius: 12 }}
+            className="chat-media-video"
           />
         </div>
       );
@@ -531,12 +545,12 @@ function Messages() {
 
     // Image or GIF
     return (
-      <div className="chat-msg-media" onClick={() => setLightboxUrl(msg.media_url)}>
+      <div className="chat-msg-media" onClick={(e) => { e.stopPropagation(); setLightboxUrl(msg.media_url); }}>
         <img
           src={msg.media_url}
           alt={msg.media_type === 'gif' ? 'GIF' : 'Photo'}
           loading="lazy"
-          style={{ maxWidth: '100%', borderRadius: 12, cursor: 'pointer' }}
+          className="chat-media-image"
         />
       </div>
     );
@@ -585,34 +599,44 @@ function Messages() {
               <div
                 key={msg.id}
                 className={`chat-msg ${isMine ? 'mine' : 'theirs'}`}
-                onContextMenu={(e) => handleMessageAction(e, msg)}
-                onTouchStart={(e) => {
-                  if (!isMine) return;
-                  const timer = setTimeout(() => handleMessageAction(e, msg), 500);
-                  e.currentTarget._longPressTimer = timer;
-                }}
-                onTouchEnd={(e) => {
-                  if (e.currentTarget._longPressTimer) {
-                    clearTimeout(e.currentTarget._longPressTimer);
-                  }
-                }}
-                onTouchMove={(e) => {
-                  if (e.currentTarget._longPressTimer) {
-                    clearTimeout(e.currentTarget._longPressTimer);
+                onClick={(e) => {
+                  if (isMine) {
+                    e.stopPropagation();
+                    setSelectedMsgId(selectedMsgId === msg.id ? null : msg.id);
                   }
                 }}
               >
                 <div className={`chat-msg-bubble ${hasMedia ? 'media-bubble' : ''}`}>
                   {renderMedia(msg)}
                   {msg.message && <p>{msg.message}</p>}
-                  <div className="chat-msg-footer">
-                    <span className="chat-msg-time">{formatMessageTime(msg.created_at)}</span>
+
+                  {/* Time + read receipt */}
+                  <span className="chat-msg-time">
+                    {formatMessageTime(msg.created_at)}
                     {isMine && (
-                      <span className="chat-read-status">
-                        {msg.is_read ? <CheckCheck size={14} /> : <Check size={14} />}
+                      <span className="chat-read-receipt">
+                        {msg.is_read ? (
+                          <CheckCheck size={14} className="chat-read-icon read" />
+                        ) : (
+                          <Check size={14} className="chat-read-icon" />
+                        )}
                       </span>
                     )}
-                  </div>
+                  </span>
+
+                  {/* Unsend button */}
+                  {isMine && selectedMsgId === msg.id && (
+                    <button
+                      className="chat-unsend-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleUnsend(msg.id);
+                      }}
+                    >
+                      <Trash2 size={13} />
+                      Unsend
+                    </button>
+                  )}
                 </div>
               </div>
             );
@@ -621,30 +645,16 @@ function Messages() {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Context menu for message actions */}
-        {contextMenu && (
-          <div
-            className="chat-context-menu"
-            style={{ top: contextMenu.y, left: contextMenu.x }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button onClick={() => deleteMessage(contextMenu.msgId)}>
-              <Trash2 size={16} />
-              Delete
-            </button>
-          </div>
-        )}
-
-        {/* Media preview before sending */}
+        {/* Media preview */}
         {mediaPreview && (
           <div className="chat-media-preview">
             <button className="chat-media-preview-close" onClick={clearMediaPreview}>
               <X size={18} />
             </button>
             {mediaPreview.type === 'video' ? (
-              <video src={mediaPreview.url} controls style={{ maxHeight: 200, borderRadius: 8 }} />
+              <video src={mediaPreview.dataUrl} className="chat-media-preview-content" controls />
             ) : (
-              <img src={mediaPreview.url} alt="Preview" style={{ maxHeight: 200, borderRadius: 8 }} />
+              <img src={mediaPreview.dataUrl} alt="Preview" className="chat-media-preview-content" />
             )}
           </div>
         )}
@@ -688,7 +698,7 @@ function Messages() {
           </div>
         )}
 
-        {/* Input bar with attachment buttons */}
+        {/* Input bar */}
         <div className="chat-input-bar">
           <input
             type="file"
@@ -700,6 +710,7 @@ function Messages() {
           <button
             className="chat-attach-btn"
             onClick={() => fileInputRef.current?.click()}
+            disabled={sending}
             title="Send photo or video"
           >
             <Paperclip size={20} />
@@ -723,9 +734,13 @@ function Messages() {
           <button
             className="chat-send-btn"
             onClick={() => handleSend()}
-            disabled={(!canSend && !mediaPreview) || sending || uploading}
+            disabled={!canSend || sending}
           >
-            <Send size={20} />
+            {uploading ? (
+              <div className="chat-send-spinner" />
+            ) : (
+              <Send size={20} />
+            )}
           </button>
         </div>
 

@@ -202,7 +202,7 @@ function StoryViewer({ stories, coachName, coachAvatar, clientId, onClose }) {
             style={{ maxWidth: '100%', maxHeight: '70vh', borderRadius: '12px' }}
           />
           {currentStory.caption && (
-            <p style={{ color: 'white', marginTop: '16px', fontSize: '16px' }}>
+            <p className="story-caption-text">
               {currentStory.caption}
             </p>
           )}
