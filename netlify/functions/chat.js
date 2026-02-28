@@ -116,7 +116,7 @@ exports.handler = async (event) => {
         // Get coach info
         const { data: coach } = await supabase
           .from('coaches')
-          .select('id, business_name, logo_url')
+          .select('id, business_name, logo_url, profile_photo_url')
           .eq('id', client.coach_id)
           .single();
 
@@ -146,7 +146,7 @@ exports.handler = async (event) => {
             conversations: [{
               coachId: client.coach_id,
               coachName: coach?.business_name || 'Your Coach',
-              coachPhoto: coach?.logo_url || null,
+              coachPhoto: coach?.profile_photo_url || coach?.logo_url || null,
               clientId: parseInt(clientId),
               lastMessage: lastMsg?.message || null,
               lastMessageAt: lastMsg?.created_at || null,
