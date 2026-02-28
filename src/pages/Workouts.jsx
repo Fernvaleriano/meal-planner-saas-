@@ -28,6 +28,7 @@ const formatDate = (date) => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   }
+};
 
 // localStorage cache helpers for instant display on resume
 const getCache = (key) => {
@@ -42,7 +43,6 @@ const setCache = (key, data) => {
   try {
     localStorage.setItem(key, JSON.stringify(data));
   } catch { /* ignore */ }
-};
 };
 
 // Helper to format date for display
