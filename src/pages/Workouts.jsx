@@ -564,10 +564,16 @@ function Workouts() {
       // Force-clean scroll lock in case modal cleanup didn't run
       document.body.style.overflow = '';
       document.documentElement.style.overflow = '';
+
+      // RE-FETCH workout data — the original useEffect won't re-fire because
+      // its deps (clientData.id, selectedDate) haven't changed. Without this,
+      // any API calls that were in-flight when the app was suspended are dead,
+      // and the page stays stuck on "Loading..." forever.
+      refreshWorkoutData();
     });
 
     return () => unsubResume();
-  }, [showGuidedWorkout]);
+  }, [showGuidedWorkout, refreshWorkoutData]);
 
   // Close menus when clicking outside
   // cardMenuWorkoutId in deps so the closure always sees the current value
