@@ -28,6 +28,21 @@ const formatDate = (date) => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   }
+
+// localStorage cache helpers for instant display on resume
+const getCache = (key) => {
+  try {
+    const cached = localStorage.getItem(key);
+    if (cached) return JSON.parse(cached);
+  } catch { /* ignore */ }
+  return null;
+};
+
+const setCache = (key, data) => {
+  try {
+    localStorage.setItem(key, JSON.stringify(data));
+  } catch { /* ignore */ }
+};
 };
 
 // Helper to format date for display
@@ -418,11 +433,15 @@ function Workouts() {
   const weightUnit = clientData?.unit_preference === 'metric' ? 'kg' : 'lbs';
   const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [weekDates, setWeekDates] = useState(() => getWeekDates(new Date()));
-  const [todayWorkout, setTodayWorkout] = useState(null);
-  const [todayWorkouts, setTodayWorkouts] = useState([]); // All workouts for selected day
+
+  // Load cached workout data for instant display (same pattern as Dashboard)
+  const cachedWorkouts = clientData?.id ? getCache(`workouts_${clientData.id}_${formatDate(new Date())}`) : null;
+  const [todayWorkout, setTodayWorkout] = useState(cachedWorkouts?.todayWorkout || null);
+  const [todayWorkouts, setTodayWorkouts] = useState(cachedWorkouts?.todayWorkouts || []); // All workouts for selected day
   const [expandedWorkout, setExpandedWorkout] = useState(false); // true = detail view, false = cards view
-  const [workoutLog, setWorkoutLog] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [workoutLog, setWorkoutLog] = useState(cachedWorkouts?.workoutLog || null);
+  // If we have cached data, skip the loading spinner — show cached data instantly
+  const [loading, setLoading] = useState(!cachedWorkouts);
   const [error, setError] = useState(null);
   const [selectedExercise, setSelectedExercise] = useState(null);
   const [workoutStarted, setWorkoutStarted] = useState(false);
@@ -813,16 +832,26 @@ function Workouts() {
         return;
       }
 
-      setLoading(true);
+      // Only show loading spinner if we don't have cached data
+      if (!cachedWorkouts) {
+        setLoading(true);
+      }
       setError(null);
       setExpandedWorkout(false);
 
       try {
         const dateStr = formatDate(selectedDate);
 
-        // Fetch all workout data in parallel instead of sequentially
+        // Ensure fresh auth session before fetching — prevents stale token hangs
+        await ensureFreshSession();
+
+        // Fetch all workout data in parallel — ALL with .catch() so one failure
+        // doesn't block everything (this was the main cause of infinite loading)
         const [assignmentRes, adhocRes, logRes] = await Promise.all([
-          apiGet(`/.netlify/functions/workout-assignments?clientId=${clientData.id}&date=${dateStr}`),
+          apiGet(`/.netlify/functions/workout-assignments?clientId=${clientData.id}&date=${dateStr}`).catch(err => {
+            console.error('Error fetching workout assignments:', err);
+            return null;
+          }),
           apiGet(`/.netlify/functions/adhoc-workouts?clientId=${clientData.id}&date=${dateStr}`).catch(err => {
             console.error('Error fetching adhoc workouts:', err);
             return null;
@@ -856,6 +885,9 @@ function Workouts() {
 
         setTodayWorkouts(allWorkouts);
 
+        // Cache workout data for instant display on next visit / resume
+        const cacheKey = `workouts_${clientData.id}_${formatDate(selectedDate)}`;
+
         if (allWorkouts.length > 0) {
           // Auto-select the first workout
           const first = allWorkouts[0];
@@ -865,6 +897,7 @@ function Workouts() {
           if (!first.is_adhoc && logRes?.logs?.length > 0) {
             const log = logRes.logs[0];
             setWorkoutLog(log);
+            setCache(cacheKey, { todayWorkout: first, todayWorkouts: allWorkouts, workoutLog: log });
             setWorkoutStarted(log?.status === 'in_progress' || log?.status === 'completed');
             if (log?.energy_level || log?.soreness_level || log?.sleep_quality) {
               setReadinessData({
@@ -884,10 +917,12 @@ function Workouts() {
             }
           } else if (!first.is_adhoc) {
             setWorkoutLog(null);
+            setCache(cacheKey, { todayWorkout: first, todayWorkouts: allWorkouts, workoutLog: null });
             const fromData = getCompletedFromWorkoutData(first.workout_data, first.day_index, first.id);
             setCompletedExercises(fromData);
           } else {
             setWorkoutLog(null);
+            setCache(cacheKey, { todayWorkout: first, todayWorkouts: allWorkouts, workoutLog: null });
             const fromData = getCompletedFromWorkoutData(first.workout_data, 0, first.id);
             setCompletedExercises(fromData);
           }
@@ -896,6 +931,7 @@ function Workouts() {
           setTodayWorkouts([]);
           setWorkoutLog(null);
           setCompletedExercises(new Set());
+          setCache(cacheKey, { todayWorkout: null, todayWorkouts: [], workoutLog: null });
         }
       } catch (err) {
         console.error('Error fetching workout:', err);
