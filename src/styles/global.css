@@ -30827,14 +30827,12 @@ a.nav-left {
 }
 
 .chat-msg-time {
-    display: block;
+    display: inline;
     font-size: 10px;
-    margin-top: 4px;
     opacity: 0.7;
 }
 
 .chat-msg.mine .chat-msg-time {
-    text-align: right;
     color: rgba(255, 255, 255, 0.7);
 }
 
@@ -30953,4 +30951,308 @@ a.nav-left {
 
 [data-theme="dark"] .chat-date-divider span {
     background: var(--gray-100);
+}
+
+/* ========================================
+   CHAT MEDIA, GIF PICKER, READ RECEIPTS, DELETE
+   ======================================== */
+
+/* Media in message bubbles */
+.chat-msg-media {
+    margin: -6px -6px 6px;
+    border-radius: 12px;
+    overflow: hidden;
+    line-height: 0;
+}
+
+.chat-msg-media img,
+.chat-msg-media video {
+    max-width: 280px;
+    max-height: 300px;
+    width: 100%;
+    display: block;
+}
+
+.media-bubble {
+    padding: 6px !important;
+    overflow: hidden;
+}
+
+.media-bubble p {
+    padding: 4px 8px 0;
+}
+
+/* Message footer with time + read receipt */
+.chat-msg-footer {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    justify-content: flex-end;
+    margin-top: 4px;
+}
+
+.chat-msg.mine .chat-msg-footer {
+    justify-content: flex-end;
+}
+
+.chat-read-status {
+    display: inline-flex;
+    align-items: center;
+    opacity: 0.7;
+}
+
+.chat-read-status svg {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.chat-msg.mine .chat-read-status svg {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+/* Attachment buttons */
+.chat-attach-btn,
+.chat-gif-btn {
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+    border-radius: 50%;
+    border: none;
+    background: var(--gray-100);
+    color: var(--gray-500);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+}
+
+.chat-gif-btn {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+}
+
+.chat-attach-btn:hover,
+.chat-gif-btn:hover {
+    background: var(--gray-200);
+    color: var(--gray-700);
+}
+
+[data-theme="dark"] .chat-attach-btn,
+[data-theme="dark"] .chat-gif-btn {
+    background: var(--gray-200);
+    color: var(--gray-500);
+}
+
+[data-theme="dark"] .chat-attach-btn:hover,
+[data-theme="dark"] .chat-gif-btn:hover {
+    background: var(--gray-300);
+    color: var(--gray-700);
+}
+
+/* Media preview before sending */
+.chat-media-preview {
+    position: relative;
+    padding: 8px 16px;
+    border-top: 1px solid var(--gray-200);
+    background: var(--gray-50);
+    display: flex;
+    justify-content: center;
+}
+
+.chat-media-preview img,
+.chat-media-preview video {
+    max-height: 200px;
+    max-width: 100%;
+    object-fit: contain;
+}
+
+.chat-media-preview-close {
+    position: absolute;
+    top: 4px;
+    right: 20px;
+    width: 28px;
+    height: 28px;
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+}
+
+/* GIF Picker */
+.chat-gif-picker {
+    border-top: 1px solid var(--gray-200);
+    background: var(--gray-50);
+    max-height: 320px;
+    display: flex;
+    flex-direction: column;
+}
+
+.chat-gif-picker-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.chat-gif-picker-header input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid var(--gray-200);
+    border-radius: 20px;
+    font-size: 14px;
+    background: var(--gray-100);
+    color: var(--gray-800);
+    outline: none;
+}
+
+.chat-gif-picker-header input:focus {
+    border-color: var(--brand-primary);
+}
+
+.chat-gif-picker-header button {
+    width: 32px;
+    height: 32px;
+    background: none;
+    border: none;
+    color: var(--gray-500);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.chat-gif-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 4px;
+    padding: 4px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.chat-gif-grid img {
+    width: 100%;
+    height: 120px;
+    object-fit: cover;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: transform 0.15s;
+}
+
+.chat-gif-grid img:hover {
+    transform: scale(1.03);
+}
+
+.chat-gif-loading {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 24px;
+    color: var(--gray-400);
+    font-size: 14px;
+}
+
+.chat-gif-powered {
+    text-align: center;
+    padding: 6px;
+    font-size: 10px;
+    color: var(--gray-400);
+    border-top: 1px solid var(--gray-200);
+}
+
+[data-theme="dark"] .chat-gif-picker-header input {
+    background: var(--gray-200);
+    border-color: var(--gray-300);
+}
+
+/* Context Menu for message actions */
+.chat-context-menu {
+    position: fixed;
+    z-index: 10000;
+    background: var(--gray-50);
+    border: 1px solid var(--gray-200);
+    border-radius: 10px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    overflow: hidden;
+    min-width: 140px;
+}
+
+.chat-context-menu button {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 12px 16px;
+    background: none;
+    border: none;
+    color: #ef4444;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.chat-context-menu button:hover {
+    background: var(--gray-100);
+}
+
+[data-theme="dark"] .chat-context-menu {
+    background: var(--gray-100);
+    border-color: var(--gray-300);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="dark"] .chat-context-menu button:hover {
+    background: var(--gray-200);
+}
+
+/* Lightbox for viewing media full-screen */
+.chat-lightbox {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 10001;
+    background: rgba(0, 0, 0, 0.92);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    cursor: pointer;
+}
+
+.chat-lightbox img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    border-radius: 4px;
+    cursor: default;
+}
+
+.chat-lightbox-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    border-radius: 50%;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+}
+
+.chat-lightbox-close:hover {
+    background: rgba(255, 255, 255, 0.2);
 }

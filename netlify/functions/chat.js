@@ -296,20 +296,28 @@ exports.handler = async (event) => {
         };
       }
 
-      // Delete a message (soft delete)
+      // Delete a message (soft delete) - works for both coaches and clients
       if (action === 'delete') {
-        const { messageId, coachId } = body;
+        const { messageId, coachId, clientId, senderType } = body;
 
         if (!messageId || !coachId) {
           return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'messageId and coachId required' }) };
         }
 
-        const { error: deleteError } = await supabase
+        // Build query - sender can only delete their own messages
+        let query = supabase
           .from('chat_messages')
           .update({ deleted_at: new Date().toISOString() })
           .eq('id', messageId)
-          .eq('coach_id', coachId)
-          .eq('sender_type', 'coach');
+          .eq('coach_id', coachId);
+
+        if (senderType === 'client' && clientId) {
+          query = query.eq('client_id', parseInt(clientId)).eq('sender_type', 'client');
+        } else {
+          query = query.eq('sender_type', 'coach');
+        }
+
+        const { error: deleteError } = await query;
 
         if (deleteError) {
           console.error('Error deleting message:', deleteError);

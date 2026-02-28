@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { ArrowLeft, Send, Search, MessageCircle } from 'lucide-react';
+import { ArrowLeft, Send, Search, MessageCircle, Image, X, Trash2, Check, CheckCheck, Paperclip } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost } from '../utils/api';
 import { supabase } from '../utils/supabase';
+
+const GIPHY_KEY = 'GlVGYHkr3WSBnllca54iNt0yFbjz7L29';
 
 function Messages() {
   const { user, clientData } = useAuth();
@@ -12,7 +14,7 @@ function Messages() {
 
   // State
   const [conversations, setConversations] = useState([]);
-  const [activeConvo, setActiveConvo] = useState(null); // { clientId, clientName, coachId, coachName }
+  const [activeConvo, setActiveConvo] = useState(null);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
@@ -20,6 +22,22 @@ function Messages() {
   const [searchQuery, setSearchQuery] = useState('');
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+  const fileInputRef = useRef(null);
+
+  // Media attachment state
+  const [mediaPreview, setMediaPreview] = useState(null); // { file, url, type }
+  const [uploading, setUploading] = useState(false);
+
+  // GIF picker state
+  const [showGifPicker, setShowGifPicker] = useState(false);
+  const [gifQuery, setGifQuery] = useState('');
+  const [gifs, setGifs] = useState([]);
+  const [gifsLoading, setGifsLoading] = useState(false);
+  const gifTimerRef = useRef(null);
+
+  // Message actions state
+  const [contextMenu, setContextMenu] = useState(null); // { msgId, x, y }
+  const [lightboxUrl, setLightboxUrl] = useState(null);
 
   // Scroll to bottom of messages
   const scrollToBottom = useCallback(() => {
@@ -75,9 +93,12 @@ function Messages() {
     }
   }, [activeConvo, isCoach, coachId, clientId, scrollToBottom]);
 
-  // Send a message
-  const handleSend = async () => {
-    if (!newMessage.trim() || sending) return;
+  // Send a message (text and/or media)
+  const handleSend = async (mediaUrl = null, mediaType = null) => {
+    const hasText = newMessage.trim();
+    const hasMedia = mediaUrl || mediaPreview;
+
+    if ((!hasText && !hasMedia) || sending) return;
 
     const msgText = newMessage.trim();
     setNewMessage('');
@@ -87,15 +108,44 @@ function Messages() {
       const cId = isCoach ? coachId : activeConvo.coachId;
       const clId = isCoach ? activeConvo.clientId : clientId;
 
+      let finalMediaUrl = mediaUrl;
+      let finalMediaType = mediaType;
+
+      // Upload file if we have a preview attachment (not a GIF URL)
+      if (!mediaUrl && mediaPreview) {
+        setUploading(true);
+        const reader = new FileReader();
+        const base64 = await new Promise((resolve, reject) => {
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(mediaPreview.file);
+        });
+
+        const uploadResult = await apiPost('/.netlify/functions/upload-chat-media', {
+          fileData: base64,
+          coachId: cId,
+          clientId: clId
+        });
+
+        if (uploadResult.success) {
+          finalMediaUrl = uploadResult.mediaUrl;
+          finalMediaType = uploadResult.mediaType;
+        }
+        setUploading(false);
+      }
+
       // Optimistic update
       const optimisticMsg = {
         id: Date.now(),
         sender_type: isCoach ? 'coach' : 'client',
-        message: msgText,
+        message: msgText || null,
+        media_url: finalMediaUrl,
+        media_type: finalMediaType,
         created_at: new Date().toISOString(),
         is_read: false
       };
       setMessages(prev => [...prev, optimisticMsg]);
+      setMediaPreview(null);
       setTimeout(scrollToBottom, 50);
 
       await apiPost('/.netlify/functions/chat', {
@@ -103,17 +153,20 @@ function Messages() {
         coachId: cId,
         clientId: clId,
         senderType: isCoach ? 'coach' : 'client',
-        message: msgText
+        message: msgText || null,
+        mediaUrl: finalMediaUrl,
+        mediaType: finalMediaType
       });
 
-      // Update conversation list with new last message
+      // Update conversation list preview
+      const previewText = msgText || (finalMediaType === 'video' ? 'Sent a video' : finalMediaType === 'gif' ? 'Sent a GIF' : 'Sent a photo');
       setConversations(prev => prev.map(c => {
         const matchId = isCoach ? c.clientId : c.coachId;
         const activeId = isCoach ? activeConvo.clientId : activeConvo.coachId;
         if (matchId === activeId) {
           return {
             ...c,
-            lastMessage: msgText,
+            lastMessage: previewText,
             lastMessageAt: new Date().toISOString(),
             lastMessageSender: isCoach ? 'coach' : 'client',
             hasMessages: true
@@ -125,8 +178,125 @@ function Messages() {
       console.error('Error sending message:', err);
     } finally {
       setSending(false);
+      setUploading(false);
       inputRef.current?.focus();
     }
+  };
+
+  // Handle file selection for photo/video
+  const handleFileSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 10 * 1024 * 1024) {
+      alert('File too large. Maximum size is 10MB.');
+      return;
+    }
+
+    if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
+      alert('Only photos and videos are supported.');
+      return;
+    }
+
+    const url = URL.createObjectURL(file);
+    setMediaPreview({
+      file,
+      url,
+      type: file.type.startsWith('video/') ? 'video' : 'image'
+    });
+    setShowGifPicker(false);
+    // Reset file input so the same file can be re-selected
+    e.target.value = '';
+  };
+
+  // Clear media preview
+  const clearMediaPreview = () => {
+    if (mediaPreview?.url) {
+      URL.revokeObjectURL(mediaPreview.url);
+    }
+    setMediaPreview(null);
+  };
+
+  // GIF picker - load trending on open
+  const openGifPicker = async () => {
+    setShowGifPicker(true);
+    setGifQuery('');
+    clearMediaPreview();
+    await fetchGifs('trending');
+  };
+
+  // Fetch GIFs from GIPHY
+  const fetchGifs = async (query) => {
+    setGifsLoading(true);
+    try {
+      const endpoint = query === 'trending' ? 'trending' : 'search';
+      const url = `https://api.giphy.com/v1/gifs/${endpoint}?api_key=${GIPHY_KEY}&limit=20&rating=pg-13${query !== 'trending' ? '&q=' + encodeURIComponent(query) : ''}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      setGifs(data.data || []);
+    } catch (err) {
+      console.error('Error fetching GIFs:', err);
+      setGifs([]);
+    } finally {
+      setGifsLoading(false);
+    }
+  };
+
+  // Handle GIF search with debounce
+  const handleGifSearch = (value) => {
+    setGifQuery(value);
+    if (gifTimerRef.current) clearTimeout(gifTimerRef.current);
+    gifTimerRef.current = setTimeout(() => {
+      if (value.trim()) {
+        fetchGifs(value.trim());
+      } else {
+        fetchGifs('trending');
+      }
+    }, 400);
+  };
+
+  // Select a GIF and send it
+  const selectGif = (gifUrl) => {
+    setShowGifPicker(false);
+    handleSend(gifUrl, 'gif');
+  };
+
+  // Delete a message
+  const deleteMessage = async (msgId) => {
+    setContextMenu(null);
+    try {
+      const cId = isCoach ? coachId : activeConvo.coachId;
+      const clId = isCoach ? activeConvo.clientId : clientId;
+
+      await apiPost('/.netlify/functions/chat', {
+        action: 'delete',
+        messageId: msgId,
+        coachId: cId,
+        clientId: clId,
+        senderType: isCoach ? 'coach' : 'client'
+      });
+
+      // Remove from UI
+      setMessages(prev => prev.filter(m => m.id !== msgId));
+    } catch (err) {
+      console.error('Error deleting message:', err);
+    }
+  };
+
+  // Handle long press / context menu on message
+  const handleMessageAction = (e, msg) => {
+    const isMine = msg.sender_type === (isCoach ? 'coach' : 'client');
+    if (!isMine) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    setContextMenu({
+      msgId: msg.id,
+      x: rect.left,
+      y: rect.top - 44
+    });
   };
 
   // Handle enter key
@@ -141,7 +311,18 @@ function Messages() {
   const openConversation = (convo) => {
     setActiveConvo(convo);
     setMessages([]);
+    setMediaPreview(null);
+    setShowGifPicker(false);
+    setContextMenu(null);
   };
+
+  // Close context menu on outside click
+  useEffect(() => {
+    if (!contextMenu) return;
+    const close = () => setContextMenu(null);
+    document.addEventListener('click', close);
+    return () => document.removeEventListener('click', close);
+  }, [contextMenu]);
 
   // For client: auto-open single conversation
   useEffect(() => {
@@ -186,18 +367,15 @@ function Messages() {
         },
         (payload) => {
           const newMsg = payload.new;
-          // Only add if it's for this conversation and not from us
           if (newMsg.client_id === parseInt(clId)) {
             const myType = isCoach ? 'coach' : 'client';
             if (newMsg.sender_type !== myType) {
               setMessages(prev => {
-                // Avoid duplicates
                 if (prev.some(m => m.id === newMsg.id)) return prev;
                 return [...prev, newMsg];
               });
               setTimeout(scrollToBottom, 100);
 
-              // Mark as read immediately since we're viewing the convo
               apiPost('/.netlify/functions/chat', {
                 action: 'mark-read',
                 coachId: cId,
@@ -236,19 +414,18 @@ function Messages() {
           const newMsg = payload.new;
           const myType = isCoach ? 'coach' : 'client';
 
-          // Update conversation list when new message arrives
           setConversations(prev => {
             const updated = prev.map(c => {
               const matchId = isCoach ? c.clientId : c.coachId;
               const msgMatchId = isCoach ? newMsg.client_id : newMsg.coach_id;
               if (matchId === msgMatchId) {
+                const previewText = newMsg.message || (newMsg.media_type === 'video' ? 'Sent a video' : newMsg.media_type === 'gif' ? 'Sent a GIF' : 'Sent a photo');
                 return {
                   ...c,
-                  lastMessage: newMsg.message,
+                  lastMessage: previewText,
                   lastMessageAt: newMsg.created_at,
                   lastMessageSender: newMsg.sender_type,
                   hasMessages: true,
-                  // Only increment unread if message is not from us and not viewing this convo
                   unreadCount: (newMsg.sender_type !== myType && (!activeConvo || (isCoach ? activeConvo.clientId !== newMsg.client_id : activeConvo.coachId !== newMsg.coach_id)))
                     ? (c.unreadCount || 0) + 1
                     : c.unreadCount
@@ -256,7 +433,6 @@ function Messages() {
               }
               return c;
             });
-            // Re-sort by most recent
             return updated.sort((a, b) => {
               if (a.hasMessages && !b.hasMessages) return -1;
               if (!a.hasMessages && b.hasMessages) return 1;
@@ -335,9 +511,41 @@ function Messages() {
   const grouped = groupMessagesByDate(messages);
   const myType = isCoach ? 'coach' : 'client';
 
+  // Render media content in a message bubble
+  const renderMedia = (msg) => {
+    if (!msg.media_url) return null;
+
+    if (msg.media_type === 'video') {
+      return (
+        <div className="chat-msg-media">
+          <video
+            src={msg.media_url}
+            controls
+            playsInline
+            preload="metadata"
+            style={{ maxWidth: '100%', borderRadius: 12 }}
+          />
+        </div>
+      );
+    }
+
+    // Image or GIF
+    return (
+      <div className="chat-msg-media" onClick={() => setLightboxUrl(msg.media_url)}>
+        <img
+          src={msg.media_url}
+          alt={msg.media_type === 'gif' ? 'GIF' : 'Photo'}
+          loading="lazy"
+          style={{ maxWidth: '100%', borderRadius: 12, cursor: 'pointer' }}
+        />
+      </div>
+    );
+  };
+
   // Conversation thread view
   if (activeConvo) {
     const convoName = isCoach ? activeConvo.clientName : (activeConvo.coachName || 'Your Coach');
+    const canSend = newMessage.trim() || mediaPreview;
 
     return (
       <div className="chat-page">
@@ -371,12 +579,40 @@ function Messages() {
 
             const msg = item.data;
             const isMine = msg.sender_type === myType;
+            const hasMedia = !!msg.media_url;
 
             return (
-              <div key={msg.id} className={`chat-msg ${isMine ? 'mine' : 'theirs'}`}>
-                <div className="chat-msg-bubble">
-                  <p>{msg.message}</p>
-                  <span className="chat-msg-time">{formatMessageTime(msg.created_at)}</span>
+              <div
+                key={msg.id}
+                className={`chat-msg ${isMine ? 'mine' : 'theirs'}`}
+                onContextMenu={(e) => handleMessageAction(e, msg)}
+                onTouchStart={(e) => {
+                  if (!isMine) return;
+                  const timer = setTimeout(() => handleMessageAction(e, msg), 500);
+                  e.currentTarget._longPressTimer = timer;
+                }}
+                onTouchEnd={(e) => {
+                  if (e.currentTarget._longPressTimer) {
+                    clearTimeout(e.currentTarget._longPressTimer);
+                  }
+                }}
+                onTouchMove={(e) => {
+                  if (e.currentTarget._longPressTimer) {
+                    clearTimeout(e.currentTarget._longPressTimer);
+                  }
+                }}
+              >
+                <div className={`chat-msg-bubble ${hasMedia ? 'media-bubble' : ''}`}>
+                  {renderMedia(msg)}
+                  {msg.message && <p>{msg.message}</p>}
+                  <div className="chat-msg-footer">
+                    <span className="chat-msg-time">{formatMessageTime(msg.created_at)}</span>
+                    {isMine && (
+                      <span className="chat-read-status">
+                        {msg.is_read ? <CheckCheck size={14} /> : <Check size={14} />}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
             );
@@ -385,7 +621,96 @@ function Messages() {
           <div ref={messagesEndRef} />
         </div>
 
+        {/* Context menu for message actions */}
+        {contextMenu && (
+          <div
+            className="chat-context-menu"
+            style={{ top: contextMenu.y, left: contextMenu.x }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button onClick={() => deleteMessage(contextMenu.msgId)}>
+              <Trash2 size={16} />
+              Delete
+            </button>
+          </div>
+        )}
+
+        {/* Media preview before sending */}
+        {mediaPreview && (
+          <div className="chat-media-preview">
+            <button className="chat-media-preview-close" onClick={clearMediaPreview}>
+              <X size={18} />
+            </button>
+            {mediaPreview.type === 'video' ? (
+              <video src={mediaPreview.url} controls style={{ maxHeight: 200, borderRadius: 8 }} />
+            ) : (
+              <img src={mediaPreview.url} alt="Preview" style={{ maxHeight: 200, borderRadius: 8 }} />
+            )}
+          </div>
+        )}
+
+        {/* GIF Picker */}
+        {showGifPicker && (
+          <div className="chat-gif-picker">
+            <div className="chat-gif-picker-header">
+              <input
+                type="text"
+                placeholder="Search GIFs..."
+                value={gifQuery}
+                onChange={(e) => handleGifSearch(e.target.value)}
+                autoFocus
+              />
+              <button onClick={() => setShowGifPicker(false)}>
+                <X size={18} />
+              </button>
+            </div>
+            <div className="chat-gif-grid">
+              {gifsLoading ? (
+                <div className="chat-gif-loading">Loading...</div>
+              ) : gifs.length === 0 ? (
+                <div className="chat-gif-loading">No GIFs found</div>
+              ) : (
+                gifs.map(gif => (
+                  <img
+                    key={gif.id}
+                    src={gif.images.fixed_height_still?.url || gif.images.fixed_height.url}
+                    data-gif={gif.images.fixed_height.url}
+                    alt={gif.title}
+                    onClick={() => selectGif(gif.images.fixed_height.url)}
+                    onMouseEnter={(e) => { e.target.src = e.target.dataset.gif; }}
+                    onMouseLeave={(e) => { e.target.src = gif.images.fixed_height_still?.url || gif.images.fixed_height.url; }}
+                    loading="lazy"
+                  />
+                ))
+              )}
+            </div>
+            <div className="chat-gif-powered">Powered by GIPHY</div>
+          </div>
+        )}
+
+        {/* Input bar with attachment buttons */}
         <div className="chat-input-bar">
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileSelect}
+            accept="image/*,video/*"
+            style={{ display: 'none' }}
+          />
+          <button
+            className="chat-attach-btn"
+            onClick={() => fileInputRef.current?.click()}
+            title="Send photo or video"
+          >
+            <Paperclip size={20} />
+          </button>
+          <button
+            className="chat-gif-btn"
+            onClick={() => showGifPicker ? setShowGifPicker(false) : openGifPicker()}
+            title="Send GIF"
+          >
+            GIF
+          </button>
           <textarea
             ref={inputRef}
             value={newMessage}
@@ -397,12 +722,22 @@ function Messages() {
           />
           <button
             className="chat-send-btn"
-            onClick={handleSend}
-            disabled={!newMessage.trim() || sending}
+            onClick={() => handleSend()}
+            disabled={(!canSend && !mediaPreview) || sending || uploading}
           >
             <Send size={20} />
           </button>
         </div>
+
+        {/* Lightbox for viewing media full-screen */}
+        {lightboxUrl && (
+          <div className="chat-lightbox" onClick={() => setLightboxUrl(null)}>
+            <button className="chat-lightbox-close" onClick={() => setLightboxUrl(null)}>
+              <X size={24} />
+            </button>
+            <img src={lightboxUrl} alt="Full size" onClick={(e) => e.stopPropagation()} />
+          </div>
+        )}
       </div>
     );
   }
