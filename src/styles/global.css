@@ -31621,6 +31621,13 @@ a.nav-left {
     justify-content: center;
     font-size: 13px;
     font-weight: 700;
+    overflow: hidden;
+}
+
+.chat-thread-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 
 .chat-thread-name {
