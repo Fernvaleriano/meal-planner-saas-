@@ -331,13 +331,12 @@ a.nav-left {
 .notification-dropdown {
     position: fixed;
     top: 70px;
-    left: 12px;
-    right: 12px;
+    left: 6px;
+    right: 6px;
     margin-top: 0;
     background: white;
     border-radius: 12px;
     box-shadow: var(--shadow-xl);
-    max-width: 520px;
     max-height: 70vh;
     overflow-y: auto;
     z-index: 1000;
@@ -348,7 +347,7 @@ a.nav-left {
     .notification-dropdown {
         left: auto;
         right: 16px;
-        width: 420px;
+        width: 520px;
         max-height: 400px;
     }
 }
