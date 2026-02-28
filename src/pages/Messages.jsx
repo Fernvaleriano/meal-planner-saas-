@@ -109,7 +109,6 @@ function Messages() {
       });
     };
     reader.readAsDataURL(file);
-    setShowGifPicker(false);
 
     // Reset file input so same file can be selected again
     e.target.value = '';
@@ -249,7 +248,6 @@ function Messages() {
     setMessages([]);
     setSelectedMsgId(null);
     setMediaPreview(null);
-    setShowGifPicker(false);
   };
 
   // Close unsend menu when clicking elsewhere
