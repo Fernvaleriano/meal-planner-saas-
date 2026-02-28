@@ -331,24 +331,27 @@ a.nav-left {
 .notification-dropdown {
     position: fixed;
     top: 70px;
-    left: 6px;
-    right: 6px;
+    left: 0;
+    right: 0;
     margin-top: 0;
     background: white;
-    border-radius: 12px;
+    border-radius: 0 0 12px 12px;
     box-shadow: var(--shadow-xl);
-    max-height: 70vh;
+    max-height: 80vh;
     overflow-y: auto;
     z-index: 1000;
     display: none;
+    width: 100vw;
 }
 
 @media (min-width: 640px) {
     .notification-dropdown {
         left: auto;
         right: 16px;
-        width: 520px;
-        max-height: 400px;
+        width: 700px;
+        max-width: calc(100vw - 32px);
+        max-height: 500px;
+        border-radius: 12px;
     }
 }
 
@@ -436,8 +439,14 @@ a.nav-left {
 
 /* Notification List */
 .notification-list {
-    max-height: 350px;
+    max-height: 70vh;
     overflow-y: auto;
+}
+
+@media (min-width: 640px) {
+    .notification-list {
+        max-height: 420px;
+    }
 }
 
 .notification-empty {
@@ -550,7 +559,7 @@ a.nav-left {
 .notification-detail-modal {
     background: var(--gray-50);
     width: 100%;
-    max-width: 400px;
+    max-width: 500px;
     max-height: 90vh;
     border-radius: 16px 16px 0 0;
     overflow: hidden;
@@ -562,6 +571,7 @@ a.nav-left {
 @media (min-width: 640px) {
     .notification-detail-modal {
         border-radius: 16px;
+        max-width: 600px;
         max-height: 80vh;
     }
 }
