@@ -296,20 +296,32 @@ exports.handler = async (event) => {
         };
       }
 
-      // Delete a message (soft delete)
+      // Delete a message (soft delete) - works for both coach and client on their own messages
       if (action === 'delete') {
-        const { messageId, coachId } = body;
+        const { messageId, coachId, clientId, senderType } = body;
 
-        if (!messageId || !coachId) {
-          return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'messageId and coachId required' }) };
+        if (!messageId || !senderType) {
+          return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'messageId and senderType required' }) };
         }
 
-        const { error: deleteError } = await supabase
+        if (!['coach', 'client'].includes(senderType)) {
+          return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'senderType must be coach or client' }) };
+        }
+
+        let query = supabase
           .from('chat_messages')
           .update({ deleted_at: new Date().toISOString() })
           .eq('id', messageId)
-          .eq('coach_id', coachId)
-          .eq('sender_type', 'coach');
+          .eq('sender_type', senderType);
+
+        // Scope to the correct user
+        if (senderType === 'coach') {
+          query = query.eq('coach_id', coachId);
+        } else {
+          query = query.eq('client_id', parseInt(clientId));
+        }
+
+        const { error: deleteError } = await query;
 
         if (deleteError) {
           console.error('Error deleting message:', deleteError);
