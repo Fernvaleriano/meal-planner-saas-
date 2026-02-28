@@ -337,7 +337,7 @@ a.nav-left {
     background: white;
     border-radius: 12px;
     box-shadow: var(--shadow-xl);
-    max-width: 400px;
+    max-width: 520px;
     max-height: 70vh;
     overflow-y: auto;
     z-index: 1000;
@@ -351,7 +351,7 @@ a.nav-left {
         left: auto;
         right: 0;
         margin-top: 8px;
-        min-width: 360px;
+        min-width: 420px;
         max-height: 400px;
     }
 }
@@ -504,9 +504,10 @@ a.nav-left {
 .notification-message {
     font-size: 0.85rem;
     color: var(--gray-600);
-    white-space: nowrap;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
     overflow: hidden;
-    text-overflow: ellipsis;
 }
 
 [data-theme="dark"] .notification-message {
