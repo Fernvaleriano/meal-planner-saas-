@@ -719,7 +719,7 @@ async function handleQuestion(event) {
       // Active workout assignments
       supabase
         .from('client_workout_assignments')
-        .select('id, client_id, workout_data, is_active, start_date, created_at')
+        .select('id, client_id, workout_data, is_active, start_date, end_date, name, created_at')
         .in('client_id', clientIds)
         .eq('is_active', true),
       // Meal plans (active/recent)
