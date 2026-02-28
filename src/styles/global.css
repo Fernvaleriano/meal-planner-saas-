@@ -30404,3 +30404,178 @@ a.nav-left {
 [data-theme="dark"] .chat-date-divider span {
     background: var(--gray-100);
 }
+
+/* Attachment button */
+.chat-attach-btn {
+    width: 42px;
+    height: 42px;
+    min-width: 42px;
+    border-radius: 50%;
+    border: none;
+    background: transparent;
+    color: var(--gray-400);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+}
+
+.chat-attach-btn:hover:not(:disabled) {
+    color: var(--brand-primary);
+    background: rgba(13, 148, 136, 0.08);
+}
+
+.chat-attach-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* Media in message bubbles */
+.chat-msg-media {
+    margin: -6px -6px 6px -6px;
+    border-radius: 14px 14px 4px 4px;
+    overflow: hidden;
+}
+
+.chat-msg.mine .chat-msg-media {
+    border-radius: 14px 4px 4px 4px;
+}
+
+.chat-msg.theirs .chat-msg-media {
+    border-radius: 4px 14px 4px 4px;
+}
+
+.chat-media-image {
+    display: block;
+    max-width: 100%;
+    max-height: 280px;
+    object-fit: cover;
+    cursor: pointer;
+    border-radius: inherit;
+}
+
+.chat-media-video {
+    display: block;
+    max-width: 100%;
+    max-height: 280px;
+    border-radius: inherit;
+}
+
+/* No text message - adjust bubble padding */
+.chat-msg-bubble:has(.chat-msg-media):not(:has(p)) {
+    padding: 6px;
+}
+
+.chat-msg-bubble:has(.chat-msg-media):not(:has(p)) .chat-msg-media {
+    margin: 0 0 4px 0;
+}
+
+/* Media preview bar above input */
+.chat-media-preview {
+    display: flex;
+    align-items: center;
+    padding: 8px 16px;
+    background: var(--gray-50);
+    border-top: 1px solid var(--gray-200);
+    position: relative;
+}
+
+.chat-media-preview-content {
+    max-height: 120px;
+    max-width: 160px;
+    border-radius: 10px;
+    object-fit: cover;
+}
+
+.chat-media-preview-close {
+    position: absolute;
+    top: 4px;
+    right: 12px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(0, 0, 0, 0.5);
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1;
+}
+
+.chat-media-preview-close:hover {
+    background: rgba(0, 0, 0, 0.7);
+}
+
+/* Read receipt icons */
+.chat-read-receipt {
+    display: inline-flex;
+    align-items: center;
+    margin-left: 4px;
+    vertical-align: middle;
+}
+
+.chat-read-icon {
+    opacity: 0.6;
+}
+
+.chat-read-icon.read {
+    opacity: 1;
+    color: #34d399;
+}
+
+.chat-msg.mine .chat-read-icon.read {
+    color: #a7f3d0;
+}
+
+/* Unsend button */
+.chat-unsend-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 6px;
+    padding: 4px 10px;
+    border: none;
+    border-radius: 8px;
+    background: rgba(239, 68, 68, 0.12);
+    color: #ef4444;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s;
+    width: fit-content;
+}
+
+.chat-msg.mine .chat-unsend-btn {
+    margin-left: auto;
+}
+
+.chat-unsend-btn:hover {
+    background: rgba(239, 68, 68, 0.2);
+}
+
+/* Send spinner */
+.chat-send-spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: chat-spin 0.6s linear infinite;
+}
+
+@keyframes chat-spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Make message bubbles relative for unsend positioning */
+.chat-msg-bubble {
+    position: relative;
+}
+
+/* Tap hint cursor on own messages */
+.chat-msg.mine {
+    cursor: pointer;
+}
