@@ -1213,6 +1213,15 @@ a.nav-left {
     flex-direction: column;
 }
 
+/* PullToRefreshWrapper's div must participate in the flex chain
+   so the chat messages container gets a constrained height and scrolls */
+.main-content.messages-page .container > div {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
 @media (min-width: 1024px) {
     .main-content.messages-page {
         padding-bottom: 0;
