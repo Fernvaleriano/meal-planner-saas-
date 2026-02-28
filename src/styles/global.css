@@ -2556,6 +2556,10 @@ a.nav-left {
     color: var(--gray-500);
 }
 
+[data-theme="light"] .coaching-message {
+    color: var(--gray-500);
+}
+
 [data-theme="light"] .meal-type-selector {
     background: var(--gray-100);
 }
