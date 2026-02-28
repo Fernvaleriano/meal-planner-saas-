@@ -7,6 +7,12 @@ import SetEditorModal from './SetEditorModal';
 import SwapExerciseModal from './SwapExerciseModal';
 import AskCoachChat from './AskCoachChat';
 
+// Safe local date string (avoids toISOString() UTC offset issues near midnight)
+const getLocalDateStr = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
 // Number words to digits mapping for voice input (expanded)
 const numberWords = {
   'zero': 0, 'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5,
@@ -513,7 +519,7 @@ function ExerciseDetailModal({
 
         const allSessions = res.history; // most recent first
         // Exclude today's session so the tip is based on previous workouts
-        const todayStr = new Date().toISOString().split('T')[0];
+        const todayStr = getLocalDateStr();
         const sessions = allSessions.filter(s => s.workoutDate !== todayStr);
         if (sessions.length === 0) return;
         const last = sessions[0];
@@ -734,7 +740,7 @@ function ExerciseDetailModal({
       const d = String(selectedDate.getDate()).padStart(2, '0');
       return `${y}-${m}-${d}`;
     }
-    return new Date().toISOString().split('T')[0];
+    return getLocalDateStr();
   }, [selectedDate]);
 
   useEffect(() => {

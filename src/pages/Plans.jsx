@@ -705,9 +705,10 @@ function Plans() {
   // Helper to save updated plan to database
   const savePlanToDatabase = async (updatedPlan) => {
     try {
-      await apiPost('/.netlify/functions/update-meal-plan', {
+      await apiPost('/.netlify/functions/save-client-modification', {
         planId: updatedPlan.id,
-        planData: updatedPlan.plan_data
+        clientId: clientData.id,
+        modifiedPlanData: updatedPlan.plan_data
       });
       // Update cache
       setCache(`plans_full_${clientData.id}`, plans.map(p =>

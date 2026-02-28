@@ -610,7 +610,7 @@ function Workouts() {
 
         if (workout.is_adhoc) {
           const isRealId = workout.id && !String(workout.id).startsWith('adhoc-') && !String(workout.id).startsWith('custom-');
-          const dateStr = workout.workout_date || new Date().toISOString().split('T')[0];
+          const dateStr = workout.workout_date || formatDate(new Date());
           fetch('/.netlify/functions/adhoc-workouts', {
             method: 'PUT',
             headers,
@@ -1266,7 +1266,7 @@ function Workouts() {
     try {
       if (workout.is_adhoc) {
         const isRealId = workout.id && !String(workout.id).startsWith('adhoc-') && !String(workout.id).startsWith('custom-');
-        const dateStr = workout.workout_date || new Date().toISOString().split('T')[0];
+        const dateStr = workout.workout_date || formatDate(new Date());
         await apiPut('/.netlify/functions/adhoc-workouts', {
           ...(isRealId ? { workoutId: workout.id } : {}),
           clientId: workout.client_id,
@@ -1350,7 +1350,7 @@ function Workouts() {
     try {
       if (workout.is_adhoc) {
         const isRealId = workout.id && !String(workout.id).startsWith('adhoc-') && !String(workout.id).startsWith('custom-');
-        const dateStr = workout.workout_date || new Date().toISOString().split('T')[0];
+        const dateStr = workout.workout_date || formatDate(new Date());
         await apiPut('/.netlify/functions/adhoc-workouts', {
           ...(isRealId ? { workoutId: workout.id } : {}),
           clientId: workout.client_id,
@@ -1488,7 +1488,7 @@ function Workouts() {
         // For adhoc workouts, use the adhoc-workouts endpoint
         // Use clientId + workoutDate for reliability (temporary IDs won't work)
         const isRealId = workout.id && !String(workout.id).startsWith('adhoc-') && !String(workout.id).startsWith('custom-');
-        const dateStr = workout.workout_date || new Date().toISOString().split('T')[0];
+        const dateStr = workout.workout_date || formatDate(new Date());
         apiPut('/.netlify/functions/adhoc-workouts', {
           ...(isRealId ? { workoutId: workout.id } : {}),
           clientId: workout.client_id,
@@ -1996,7 +1996,7 @@ function Workouts() {
     // Use correct endpoint based on workout type
     if (workout.is_adhoc) {
       const isRealId = workout.id && !String(workout.id).startsWith('adhoc-') && !String(workout.id).startsWith('custom-');
-      const dateStr = workout.workout_date || new Date().toISOString().split('T')[0];
+      const dateStr = workout.workout_date || formatDate(new Date());
       apiPut('/.netlify/functions/adhoc-workouts', {
         ...(isRealId ? { workoutId: workout.id } : {}),
         clientId: workout.client_id,
@@ -2100,7 +2100,7 @@ function Workouts() {
       if (workout.is_adhoc) {
         // For adhoc workouts, use the adhoc-workouts endpoint
         const isRealId = workout.id && !String(workout.id).startsWith('adhoc-') && !String(workout.id).startsWith('custom-');
-        const dateStr = workout.workout_date || new Date().toISOString().split('T')[0];
+        const dateStr = workout.workout_date || formatDate(new Date());
         apiPut('/.netlify/functions/adhoc-workouts', {
           ...(isRealId ? { workoutId: workout.id } : {}),
           clientId: workout.client_id,
@@ -2203,7 +2203,7 @@ function Workouts() {
     // Use correct endpoint based on workout type
     if (workout.is_adhoc) {
       const isRealId = workout.id && !String(workout.id).startsWith('adhoc-') && !String(workout.id).startsWith('custom-');
-      const dateStr = workout.workout_date || new Date().toISOString().split('T')[0];
+      const dateStr = workout.workout_date || formatDate(new Date());
       apiPut('/.netlify/functions/adhoc-workouts', {
         ...(isRealId ? { workoutId: workout.id } : {}),
         clientId: workout.client_id,
@@ -2271,7 +2271,7 @@ function Workouts() {
     // Use correct endpoint based on workout type
     if (workout.is_adhoc) {
       const isRealId = workout.id && !String(workout.id).startsWith('adhoc-') && !String(workout.id).startsWith('custom-');
-      const dateStr = workout.workout_date || new Date().toISOString().split('T')[0];
+      const dateStr = workout.workout_date || formatDate(new Date());
       apiPut('/.netlify/functions/adhoc-workouts', {
         ...(isRealId ? { workoutId: workout.id } : {}),
         clientId: workout.client_id,

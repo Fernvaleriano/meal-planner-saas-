@@ -3,6 +3,12 @@ import { X, Dumbbell, Clock, Flame, ChevronRight, ChevronDown, Search, Filter, U
 import { apiGet } from '../../utils/api';
 import SmartThumbnail from './SmartThumbnail';
 
+// Safe local date string (avoids toISOString() UTC offset issues near midnight)
+const getLocalDateStr = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
 const CATEGORY_LABELS = {
   strength: 'Strength',
   hypertrophy: 'Hypertrophy',
@@ -445,7 +451,7 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
                   type="date"
                   value={scheduleDate}
                   onChange={(e) => setScheduleDate(e.target.value)}
-                  min={new Date().toISOString().split('T')[0]}
+                  min={getLocalDateStr()}
                   className="club-date-input"
                 />
                 <button
@@ -466,7 +472,7 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
   // Program scheduling view
   if (selectedProgram && showScheduling) {
     const program = selectedProgram;
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalDateStr();
 
     return (
       <div className="club-workouts-overlay" onClick={onClose}>
@@ -678,7 +684,7 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
               onClick={() => {
                 setShowScheduling(true);
                 // Default start date to today
-                setScheduleStartDate(new Date().toISOString().split('T')[0]);
+                setScheduleStartDate(getLocalDateStr());
                 // Default selected days based on total program days
                 const totalDays = program.total_days || program.days?.length || 5;
                 if (totalDays <= 3) {
