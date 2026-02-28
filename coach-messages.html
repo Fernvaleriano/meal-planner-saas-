@@ -34,19 +34,6 @@
             --error: #ef4444;
         }
 
-        [data-theme="dark"] {
-            --gray-50: #0f172a;
-            --gray-100: #1e293b;
-            --gray-200: #334155;
-            --gray-300: #475569;
-            --gray-400: #94a3b8;
-            --gray-500: #cbd5e1;
-            --gray-600: #e2e8f0;
-            --gray-700: #f1f5f9;
-            --gray-800: #f8fafc;
-            --gray-900: #ffffff;
-        }
-
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
@@ -54,6 +41,11 @@
             background: var(--gray-50);
             min-height: 100vh;
             color: var(--gray-800);
+        }
+
+        [data-theme="dark"] body {
+            background: #0f172a;
+            color: #e2e8f0;
         }
 
         /* ===== CHAT LAYOUT ===== */
@@ -395,6 +387,40 @@
             color: var(--gray-400);
             font-size: 14px;
         }
+
+        /* ===== DARK MODE ===== */
+        [data-theme="dark"] .convo-list-panel { background: #0f172a; border-color: #334155; }
+        [data-theme="dark"] .convo-list-header { border-color: #334155; }
+        [data-theme="dark"] .convo-list-header h1 { color: #f1f5f9; }
+        [data-theme="dark"] .convo-search { background: #1e293b; }
+        [data-theme="dark"] .convo-search input { color: #e2e8f0; }
+        [data-theme="dark"] .convo-search input::placeholder { color: #64748b; }
+        [data-theme="dark"] .convo-item { color: #e2e8f0; border-color: #1e293b; }
+        [data-theme="dark"] .convo-item:hover { background: #1e293b; }
+        [data-theme="dark"] .convo-item.active { background: rgba(13, 148, 136, 0.12); }
+        [data-theme="dark"] .convo-item.unread { background: rgba(13, 148, 136, 0.08); }
+        [data-theme="dark"] .convo-name { color: #f1f5f9; }
+        [data-theme="dark"] .convo-time { color: #64748b; }
+        [data-theme="dark"] .convo-preview { color: #94a3b8; }
+        [data-theme="dark"] .convo-item.unread .convo-preview { color: #cbd5e1; }
+
+        [data-theme="dark"] .thread-panel { background: #0f172a; }
+        [data-theme="dark"] .thread-header { border-color: #334155; }
+        [data-theme="dark"] .thread-name { color: #f1f5f9; }
+        [data-theme="dark"] .thread-back-btn { color: #94a3b8; }
+        [data-theme="dark"] .thread-empty { color: #64748b; }
+
+        [data-theme="dark"] .msg.theirs .msg-bubble { background: #1e293b; color: #e2e8f0; }
+        [data-theme="dark"] .msg.theirs .msg-time { color: #64748b; }
+        [data-theme="dark"] .date-divider span { background: #1e293b; color: #94a3b8; }
+
+        [data-theme="dark"] .input-bar { border-color: #334155; }
+        [data-theme="dark"] .msg-input { background: #1e293b; border-color: #334155; color: #e2e8f0; }
+        [data-theme="dark"] .msg-input::placeholder { color: #64748b; }
+
+        [data-theme="dark"] .loading-text { color: #64748b; }
+        [data-theme="dark"] .convo-empty { color: #64748b; }
+        [data-theme="dark"] .convo-search svg { color: #64748b; }
 
         /* ===== MOBILE RESPONSIVE ===== */
         @media (max-width: 768px) {
