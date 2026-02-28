@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Bell, X, Check } from 'lucide-react';
+import { Bell, X, Check, User } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost } from '../utils/api';
 import { onAppResume, onAppSuspend } from '../hooks/useAppLifecycle';
@@ -322,6 +322,14 @@ function TopNav() {
             </div>
           </button>
         )}
+
+        <Link
+          to="/settings"
+          className="nav-btn"
+          aria-label="Profile settings"
+        >
+          <User size={18} aria-hidden="true" />
+        </Link>
 
         <div className="notification-wrapper">
           <button
