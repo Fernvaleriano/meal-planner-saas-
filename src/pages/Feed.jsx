@@ -763,7 +763,7 @@ function Feed() {
   }, [coachId, filterClient, filterMealType, filterDate, activeTab]);
 
   // Pull to refresh
-  const { isRefreshing, pullDistance, containerProps, threshold } = usePullToRefresh(() => fetchAll(true));
+  const { isRefreshing, indicatorRef, bindToContainer, threshold } = usePullToRefresh(() => fetchAll(true));
 
   // Load more
   const handleLoadMore = () => {
@@ -845,10 +845,9 @@ function Feed() {
   }
 
   return (
-    <div className="feed-page" {...containerProps}>
+    <div className="feed-page" ref={bindToContainer}>
       <PullToRefreshIndicator
-        pullDistance={pullDistance}
-        isRefreshing={isRefreshing}
+        indicatorRef={indicatorRef}
         threshold={threshold}
       />
 

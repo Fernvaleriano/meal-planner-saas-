@@ -93,19 +93,19 @@ function Progress() {
 
     try {
       const [measurementsData, photosData] = await Promise.all([
-        apiGet(`/.netlify/functions/get-measurements?clientId=${clientData.id}&limit=20`),
-        apiGet(`/.netlify/functions/get-progress-photos?clientId=${clientData.id}`)
+        apiGet(`/.netlify/functions/get-measurements?clientId=${clientData.id}&limit=20`).catch(() => null),
+        apiGet(`/.netlify/functions/get-progress-photos?clientId=${clientData.id}`).catch(() => null)
       ]);
 
-      setMeasurements(measurementsData?.measurements || []);
-      setPhotos(photosData?.photos || []);
+      if (measurementsData?.measurements) setMeasurements(measurementsData.measurements);
+      if (photosData?.photos) setPhotos(photosData.photos);
     } catch (err) {
       console.error('Error refreshing progress data:', err);
     }
   }, [clientData?.id]);
 
   // Setup pull-to-refresh
-  const { isRefreshing, pullDistance, containerProps, threshold } = usePullToRefresh(refreshProgressData);
+  const { isRefreshing, indicatorRef, bindToContainer, threshold } = usePullToRefresh(refreshProgressData);
 
   useEffect(() => {
     if (clientData?.id) {
@@ -297,11 +297,10 @@ function Progress() {
   };
 
   return (
-    <div className="progress-page" {...containerProps}>
+    <div className="progress-page" ref={bindToContainer}>
       {/* Pull-to-refresh indicator */}
       <PullToRefreshIndicator
-        pullDistance={pullDistance}
-        isRefreshing={isRefreshing}
+        indicatorRef={indicatorRef}
         threshold={threshold}
       />
 

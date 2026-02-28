@@ -157,7 +157,7 @@ function Plans() {
     await ensureFreshSession();
 
     try {
-      const data = await apiGet(`/.netlify/functions/meal-plans?clientId=${clientData.id}`);
+      const data = await apiGet(`/.netlify/functions/meal-plans?clientId=${clientData.id}`).catch(() => null);
       if (data?.plans) {
         setPlans(data.plans);
         setCache(`plans_full_${clientData.id}`, data.plans);
@@ -206,7 +206,7 @@ function Plans() {
   }, [clientData?.id, selectedPlan?.id]);
 
   // Setup pull-to-refresh
-  const { isRefreshing, pullDistance, containerProps, threshold } = usePullToRefresh(refreshPlansData);
+  const { isRefreshing, indicatorRef, bindToContainer, threshold } = usePullToRefresh(refreshPlansData);
 
   // Load plans with caching
   useEffect(() => {
@@ -1703,11 +1703,10 @@ Keep it practical and brief. Format with clear sections.`;
     const { numDays, calories, goal, planName } = getPlanDetails(selectedPlan);
 
     return (
-      <div className="plans-page" {...containerProps}>
+      <div className="plans-page" ref={bindToContainer}>
         {/* Pull-to-refresh indicator */}
         <PullToRefreshIndicator
-          pullDistance={pullDistance}
-          isRefreshing={isRefreshing}
+          indicatorRef={indicatorRef}
           threshold={threshold}
         />
 
@@ -2538,11 +2537,10 @@ Keep it practical and brief. Format with clear sections.`;
 
   // Plans list view
   return (
-    <div className="plans-page" {...containerProps}>
+    <div className="plans-page" ref={bindToContainer}>
       {/* Pull-to-refresh indicator */}
       <PullToRefreshIndicator
-        pullDistance={pullDistance}
-        isRefreshing={isRefreshing}
+        indicatorRef={indicatorRef}
         threshold={threshold}
       />
 
