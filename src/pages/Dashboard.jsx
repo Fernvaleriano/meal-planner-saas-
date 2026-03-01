@@ -72,7 +72,10 @@ function Dashboard() {
 
   // Voice input state
   const [isRecording, setIsRecording] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
   const recognitionRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
   const preVoiceInputRef = useRef(''); // Store input text before voice started
   const logSuccessTimerRef = useRef(null);
 
@@ -215,6 +218,16 @@ function Dashboard() {
         } catch (e) {
           console.log('Cleanup: Error calling abort:', e);
         }
+      }
+      // Also cleanup MediaRecorder if active
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        try {
+          mediaRecorderRef.current.stream.getTracks().forEach(t => t.stop());
+          mediaRecorderRef.current.stop();
+        } catch (e) {
+          console.log('Cleanup: MediaRecorder stop error:', e);
+        }
+        mediaRecorderRef.current = null;
       }
     };
   }, []);
@@ -460,12 +473,9 @@ function Dashboard() {
   };
 
   // Voice input functions
-  const toggleVoiceInput = () => {
-    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-      alert('Voice input is not supported in this browser. Please try Chrome or Safari.');
-      return;
-    }
+  const hasSpeechRecognition = () => ('webkitSpeechRecognition' in window) || ('SpeechRecognition' in window);
 
+  const toggleVoiceInput = () => {
     if (isRecording) {
       stopVoiceInput();
     } else {
@@ -479,7 +489,87 @@ function Dashboard() {
            (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   };
 
+  // MediaRecorder fallback: record audio and transcribe via Whisper API
+  const startMediaRecorderFallback = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const isWebm = typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported('audio/webm');
+      const mimeType = isWebm ? 'audio/webm' : 'audio/mp4';
+      const recorder = new MediaRecorder(stream, { mimeType });
+
+      audioChunksRef.current = [];
+      preVoiceInputRef.current = foodInput;
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+
+      recorder.onstop = async () => {
+        // Stop all mic tracks
+        stream.getTracks().forEach(t => t.stop());
+
+        const blob = new Blob(audioChunksRef.current, { type: mimeType });
+        audioChunksRef.current = [];
+
+        if (blob.size === 0) {
+          resetVoiceUI();
+          return;
+        }
+
+        // Convert to base64 and send to Whisper
+        setIsTranscribing(true);
+        try {
+          const reader = new FileReader();
+          const base64 = await new Promise((resolve, reject) => {
+            reader.onloadend = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          });
+
+          const res = await apiPost('/.netlify/functions/transcribe-audio', {
+            audioData: base64,
+            mimeType
+          });
+
+          if (res?.transcript) {
+            const baseText = preVoiceInputRef.current;
+            setFoodInput(baseText ? `${baseText} ${res.transcript}` : res.transcript);
+          } else {
+            alert('No speech detected. Please try again and speak clearly.');
+          }
+        } catch (err) {
+          console.error('Transcription failed:', err);
+          alert('Could not transcribe audio. Please check your internet connection and try again.');
+        } finally {
+          setIsTranscribing(false);
+        }
+      };
+
+      recorder.start();
+      mediaRecorderRef.current = recorder;
+      setIsRecording(true);
+    } catch (err) {
+      console.error('MediaRecorder start failed:', err);
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        alert('Microphone access denied. Please allow microphone access in your device settings.');
+      } else {
+        alert('Could not access microphone. Please check your permissions.');
+      }
+      resetVoiceUI();
+    }
+  };
+
   const startVoiceInput = async () => {
+    // If SpeechRecognition is not available, use MediaRecorder + Whisper fallback
+    if (!hasSpeechRecognition()) {
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        startMediaRecorderFallback();
+        return;
+      }
+      alert('Voice input is not supported on this device.');
+      return;
+    }
+
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
     // Clean up any existing recognition
@@ -593,6 +683,17 @@ function Dashboard() {
     // Update UI immediately
     setIsRecording(false);
 
+    // Stop MediaRecorder if active (Capacitor fallback path)
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      try {
+        mediaRecorderRef.current.stop(); // triggers onstop which does transcription
+      } catch (e) {
+        console.log('Error stopping MediaRecorder:', e);
+      }
+      mediaRecorderRef.current = null;
+      return;
+    }
+
     if (recognitionRef.current) {
       const rec = recognitionRef.current;
       recognitionRef.current = null;
@@ -622,6 +723,17 @@ function Dashboard() {
 
   const resetVoiceUI = () => {
     setIsRecording(false);
+
+    // Stop MediaRecorder if active
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      try {
+        mediaRecorderRef.current.stream.getTracks().forEach(t => t.stop());
+        mediaRecorderRef.current.stop();
+      } catch (e) {
+        console.log('ResetVoiceUI: MediaRecorder stop error:', e);
+      }
+      mediaRecorderRef.current = null;
+    }
 
     // Stop recognition if it's still running
     if (recognitionRef.current) {
@@ -798,9 +910,10 @@ function Dashboard() {
         {/* Action Buttons */}
         <div className="ai-hero-actions">
           <button
-            className={`voice-btn ${isRecording ? 'recording' : ''}`}
+            className={`voice-btn ${isRecording ? 'recording' : ''} ${isTranscribing ? 'transcribing' : ''}`}
             onClick={toggleVoiceInput}
-            aria-label={isRecording ? 'Stop voice input' : 'Start voice input'}
+            disabled={isTranscribing}
+            aria-label={isTranscribing ? 'Transcribing...' : isRecording ? 'Stop voice input' : 'Start voice input'}
             aria-pressed={isRecording}
           >
             <Mic size={20} aria-hidden="true" />

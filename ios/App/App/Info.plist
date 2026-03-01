@@ -45,5 +45,9 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Zique Fitness needs microphone access for voice food logging and voice notes.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Zique Fitness uses speech recognition to convert your voice into text for logging food and workouts.</string>
 </dict>
 </plist>

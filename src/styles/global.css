@@ -2697,6 +2697,21 @@ a.nav-left {
     50% { transform: scale(1.05); }
 }
 
+.voice-btn.transcribing {
+    background: #f59e0b;
+    border-color: #f59e0b;
+    color: white;
+    opacity: 0.8;
+    cursor: wait;
+    animation: pulse 1s infinite;
+}
+
+[data-theme="light"] .voice-btn.transcribing {
+    background: #f59e0b;
+    border-color: #f59e0b;
+    color: white;
+}
+
 .log-food-btn {
     flex: 1;
     height: 48px;
