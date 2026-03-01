@@ -4291,7 +4291,6 @@ function Workouts() {
                     id="targetDate"
                     value={rescheduleTargetDate}
                     onChange={(e) => setRescheduleTargetDate(e.target.value)}
-                    min={formatDate(new Date())}
                   />
                 </div>
               )}
