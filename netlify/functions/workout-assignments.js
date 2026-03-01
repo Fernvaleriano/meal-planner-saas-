@@ -237,7 +237,17 @@ exports.handler = async (event) => {
 
           for (const activeAssignment of activeAssignments) {
             const workoutData = activeAssignment.workout_data || {};
-            const days = workoutData.days || [];
+            // Normalize flat-structure workouts (exercises on root) into a single-element days array
+            // so override processing works uniformly for both multi-day and flat-structure workouts
+            let days = workoutData.days || [];
+            if (days.length === 0 && workoutData.exercises) {
+              days = [{
+                exercises: workoutData.exercises,
+                name: workoutData.name || activeAssignment.name || 'Workout',
+                estimatedMinutes: workoutData.estimatedMinutes || 45,
+                estimatedCalories: workoutData.estimatedCalories || 300
+              }];
+            }
             const schedule = workoutData.schedule || activeAssignment.schedule || {};
             const startDate = activeAssignment.start_date ? new Date(activeAssignment.start_date) : new Date(activeAssignment.created_at);
 
@@ -256,21 +266,25 @@ exports.handler = async (event) => {
               endBoundary.setDate(endBoundary.getDate() + (weeksToUse * 7));
             }
 
-            // Skip if target date is before start date or after end date
-            if (targetDate < startDate) continue;
-            if (endBoundary && targetDate >= endBoundary) continue;
+            // Check if target date is within the assignment's active date range
+            const isInDateRange = targetDate >= startDate && (!endBoundary || targetDate < endBoundary);
 
             // Check for date overrides (reschedule/duplicate/skip)
             const dateOverrides = workoutData.date_overrides || {};
             const dateKey = date;
             const override = dateOverrides[dateKey];
 
+            // Skip assignment only if outside date range AND no override exists for this date
+            // (date overrides must be honoured even outside the normal schedule range,
+            // because the user explicitly moved/duplicated a workout there)
+            if (!isInDateRange && !override) continue;
+
             let todayWorkout = null;
             let skipNatural = false;
 
             // Compute natural day index upfront (needed for dedup against addedDayIndices)
             let naturalDayIndex = undefined;
-            if (days.length > 0 && selectedDays.includes(targetDayName)) {
+            if (isInDateRange && days.length > 0 && selectedDays.includes(targetDayName)) {
               const workoutDayCount = countWorkoutDays(startDate, targetDate, selectedDays);
               naturalDayIndex = workoutDayCount % days.length;
             }
@@ -355,11 +369,11 @@ exports.handler = async (event) => {
               }
             }
 
-            // Natural schedule (unless suppressed by isRest or old-style overrides)
-            if (!skipNatural && days.length > 0) {
+            // Natural schedule (only within date range, unless suppressed by isRest or old-style overrides)
+            if (isInDateRange && !skipNatural && days.length > 0) {
               const isWorkoutDay = selectedDays.includes(targetDayName);
 
-              if (isWorkoutDay) {
+              if (isWorkoutDay && naturalDayIndex !== undefined) {
                 const natDay = days[naturalDayIndex];
                 todayWorkout = {
                   id: activeAssignment.id,
@@ -377,21 +391,6 @@ exports.handler = async (event) => {
                   client_id: activeAssignment.client_id
                 };
               }
-            } else if (!skipNatural && workoutData.exercises) {
-              todayWorkout = {
-                id: activeAssignment.id,
-                instance_id: `${activeAssignment.id}-natural`,
-                name: activeAssignment.name || 'Today\'s Workout',
-                day_index: 0,
-                workout_data: {
-                  exercises: (workoutData.exercises || []).map(ex => ({ ...ex })),
-                  estimatedMinutes: 45,
-                  estimatedCalories: 300,
-                  image_url: resolvedImageUrl
-                },
-                program_id: activeAssignment.program_id,
-                client_id: activeAssignment.client_id
-              };
             }
 
             if (todayWorkout) {
