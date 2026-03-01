@@ -55,9 +55,9 @@ function Messages() {
     const container = messagesContainerRef.current;
     if (container) {
       container.scrollTop = container.scrollHeight;
-    } else {
-      messagesEndRef.current?.scrollIntoView({ behavior: instant ? 'auto' : 'smooth' });
     }
+    // Always also try scrollIntoView on the sentinel element for reliability
+    messagesEndRef.current?.scrollIntoView({ behavior: instant ? 'auto' : 'smooth' });
   }, []);
 
   // Fetch conversation list
@@ -370,9 +370,11 @@ function Messages() {
     if (messages.length > 0) {
       // Immediate scroll attempt
       scrollToBottom(true);
-      // After next frame render
+      // Double-rAF ensures the browser has completed layout before scrolling
       requestAnimationFrame(() => {
-        scrollToBottom(true);
+        requestAnimationFrame(() => {
+          scrollToBottom(true);
+        });
       });
       // Delayed attempt to handle images/media loading and affecting layout
       const timer = setTimeout(() => {
