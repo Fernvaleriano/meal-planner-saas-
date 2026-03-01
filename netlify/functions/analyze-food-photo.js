@@ -129,8 +129,14 @@ Return ONLY a valid JSON array with this exact format (no markdown, no explanati
   }
 ]
 
-Guidelines:
-- Be specific about portions (e.g., "Grilled Chicken Breast, 6oz")
+Guidelines for ACCURATE estimation:
+- FIRST estimate the weight/size of each item using visual cues (plate diameter ~10in, fork ~7in, hand ~4in wide)
+- For countable items (dumplings, nuggets, cookies, etc.), estimate weight PER PIECE (e.g., a steamed dumpling is typically 25-35g each), then multiply by count
+- Be specific about portions (e.g., "Grilled Chicken Breast, 6oz" or "Steamed Pork Dumplings, 8 pieces ~240g")
+- Use USDA nutritional density as your reference (e.g., steamed pork dumplings are ~170-190 kcal per 100g, meaning ~45-55 kcal per piece)
+- Account for cooking methods: fried adds significant calories vs steamed/grilled
+- Consider visible oils, sauces, and dressings
+- CROSS-CHECK your math: (protein × 4) + (carbs × 4) + (fat × 9) should approximately equal your calorie estimate. If it doesn't, adjust.
 - Round calories to nearest 5, macros to nearest gram
 - List each item separately
 - Return empty array [] if no food is visible
@@ -160,7 +166,7 @@ Return ONLY the JSON array.`;
         try {
             const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
             message = await anthropic.messages.create({
-                model: 'claude-3-haiku-20240307',
+                model: 'claude-haiku-4-5-20251001',
                 max_tokens: 1024,
                 messages: [{
                     role: 'user',
