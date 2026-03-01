@@ -68,6 +68,31 @@ const LOCAL_FOODS = {
   'olive_oil': { name: 'Olive Oil', cal: 119, protein: 0, carbs: 0, fat: 14, per: '1 tbsp (14ml)', grams: 14 },
   'coconut_oil': { name: 'Coconut Oil', cal: 121, protein: 0, carbs: 0, fat: 14, per: '1 tbsp (14ml)', grams: 14 },
   'protein_powder_whey': { name: 'Whey Protein Powder (generic)', cal: 120, protein: 24, carbs: 3, fat: 1.5, per: '1 scoop (32g)', grams: 32 },
+  // Prepared / restaurant foods
+  'dumpling_steamed_pork': { name: 'Pork Dumplings (steamed)', cal: 50, protein: 2.5, carbs: 5, fat: 2, per: '1 piece (30g)', grams: 30 },
+  'dumpling_steamed_shrimp': { name: 'Shrimp Dumplings (steamed)', cal: 45, protein: 3, carbs: 4.5, fat: 1.5, per: '1 piece (28g)', grams: 28 },
+  'dumpling_fried': { name: 'Fried Dumplings / Potstickers', cal: 70, protein: 3, carbs: 7, fat: 3.5, per: '1 piece (30g)', grams: 30 },
+  'gyoza': { name: 'Gyoza (pan-fried)', cal: 65, protein: 2.5, carbs: 7, fat: 3, per: '1 piece (28g)', grams: 28 },
+  'sushi_california_roll': { name: 'California Roll', cal: 255, protein: 9, carbs: 38, fat: 7, per: '6 pieces (180g)', grams: 180 },
+  'sushi_salmon_nigiri': { name: 'Salmon Nigiri', cal: 60, protein: 4, carbs: 8, fat: 1, per: '1 piece (40g)', grams: 40 },
+  'sushi_tuna_roll': { name: 'Tuna Roll', cal: 200, protein: 12, carbs: 30, fat: 3, per: '6 pieces (160g)', grams: 160 },
+  'pizza_cheese': { name: 'Pizza (Cheese)', cal: 270, protein: 12, carbs: 34, fat: 10, per: '1 slice (107g)', grams: 107 },
+  'pizza_pepperoni': { name: 'Pizza (Pepperoni)', cal: 300, protein: 13, carbs: 34, fat: 13, per: '1 slice (113g)', grams: 113 },
+  'burrito_chicken': { name: 'Chicken Burrito', cal: 580, protein: 32, carbs: 60, fat: 22, per: '1 burrito (350g)', grams: 350 },
+  'taco_beef': { name: 'Beef Taco', cal: 210, protein: 10, carbs: 21, fat: 10, per: '1 taco (100g)', grams: 100 },
+  'fried_rice': { name: 'Fried Rice', cal: 228, protein: 5.5, carbs: 32, fat: 8.5, per: '1 cup (200g)', grams: 200 },
+  'lo_mein': { name: 'Lo Mein (chicken)', cal: 310, protein: 14, carbs: 38, fat: 12, per: '1 cup (200g)', grams: 200 },
+  'pad_thai': { name: 'Pad Thai (shrimp)', cal: 360, protein: 14, carbs: 46, fat: 14, per: '1 cup (200g)', grams: 200 },
+  'spring_roll_fried': { name: 'Spring Roll (fried)', cal: 110, protein: 3, carbs: 13, fat: 5, per: '1 roll (64g)', grams: 64 },
+  'mac_and_cheese': { name: 'Mac and Cheese', cal: 310, protein: 11, carbs: 30, fat: 17, per: '1 cup (200g)', grams: 200 },
+  'cheeseburger': { name: 'Cheeseburger', cal: 530, protein: 28, carbs: 40, fat: 28, per: '1 burger (220g)', grams: 220 },
+  'french_fries': { name: 'French Fries', cal: 365, protein: 4, carbs: 44, fat: 19, per: '1 medium serving (117g)', grams: 117 },
+  'chicken_wings_buffalo': { name: 'Buffalo Chicken Wings', cal: 80, protein: 7, carbs: 0.5, fat: 5.5, per: '1 wing (32g)', grams: 32 },
+  'chicken_nuggets': { name: 'Chicken Nuggets', cal: 48, protein: 2.5, carbs: 3, fat: 3, per: '1 piece (18g)', grams: 18 },
+  'grilled_cheese': { name: 'Grilled Cheese Sandwich', cal: 440, protein: 18, carbs: 36, fat: 26, per: '1 sandwich (150g)', grams: 150 },
+  'pho_beef': { name: 'Pho (beef)', cal: 350, protein: 24, carbs: 42, fat: 8, per: '1 bowl (600g)', grams: 600 },
+  'ramen_pork': { name: 'Ramen (pork broth)', cal: 450, protein: 20, carbs: 55, fat: 16, per: '1 bowl (500g)', grams: 500 },
+  'acai_bowl': { name: 'Acai Bowl', cal: 380, protein: 6, carbs: 62, fat: 12, per: '1 bowl (300g)', grams: 300 },
 };
 
 // Parse serving label from "per" field - e.g., "1 large egg (50g)" -> "Large"
@@ -211,7 +236,15 @@ exports.handler = async (event, context) => {
     };
   }
 
-  // Try Edamam first if credentials are configured
+  // Always search local database first for curated, accurate results
+  const localResults = searchLocalDatabase(query);
+  console.log(`🔍 Local database: ${localResults.length} results for "${query}"`);
+
+  // Track names already in local results to avoid duplicates
+  const seenNames = new Set(localResults.map(r => r.name.toLowerCase()));
+
+  // Also try Edamam if credentials are configured
+  let edamamFoods = [];
   if (EDAMAM_APP_ID && EDAMAM_API_KEY) {
     try {
       const searchUrl = `${EDAMAM_API_URL}?app_id=${EDAMAM_APP_ID}&app_key=${EDAMAM_API_KEY}&ingr=${encodeURIComponent(query)}&nutrition-type=logging`;
@@ -256,7 +289,7 @@ exports.handler = async (event, context) => {
         });
       }
 
-      const foods = allFoods.slice(0, 20).map(item => {
+      edamamFoods = allFoods.slice(0, 20).map(item => {
         const food = item.food;
         const nutrients = food.nutrients || {};
         const serving = getBestServing(item.measures);
@@ -301,41 +334,26 @@ exports.handler = async (event, context) => {
           })),
           source: 'edamam'
         };
-      }).filter(food => food.caloriesPer100g > 0);
+      }).filter(food => food.caloriesPer100g > 0 && !seenNames.has(food.name.toLowerCase()));
 
-      console.log(`✅ Edamam returned ${foods.length} foods for "${query}"`);
-
-      return {
-        statusCode: 200,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-        },
-        body: JSON.stringify({
-          query: query,
-          totalHits: allFoods.length,
-          foods: foods,
-          source: 'edamam'
-        })
-      };
+      console.log(`✅ Edamam returned ${edamamFoods.length} unique foods for "${query}"`);
 
     } catch (edamamError) {
       if (edamamError.name === 'AbortError') {
-        console.error('❌ Edamam search timed out after 5s, falling back to local database');
+        console.error('❌ Edamam search timed out after 5s');
       } else {
-        console.error('❌ Edamam search failed, falling back to local database:', edamamError.message);
+        console.error('❌ Edamam search failed:', edamamError.message);
       }
-      // Fall through to local database
+      // Continue with local results only
     }
   } else {
-    console.log('⚠️ Edamam credentials not configured, using local database');
+    console.log('⚠️ Edamam credentials not configured, using local database only');
   }
 
-  // Fallback to local database
-  console.log(`🔍 Searching local database for: "${query}"`);
-  const localResults = searchLocalDatabase(query);
-  console.log(`✅ Local database returned ${localResults.length} foods`);
+  // Merge: local curated results first, then Edamam results
+  const allResults = [...localResults, ...edamamFoods].slice(0, 20);
+  const source = edamamFoods.length > 0 ? 'local+edamam' : 'local';
+  console.log(`✅ Returning ${allResults.length} total results (${localResults.length} local + ${edamamFoods.length} edamam)`);
 
   return {
     statusCode: 200,
@@ -346,9 +364,9 @@ exports.handler = async (event, context) => {
     },
     body: JSON.stringify({
       query: query,
-      totalHits: localResults.length,
-      foods: localResults,
-      source: 'local'
+      totalHits: allResults.length,
+      foods: allResults,
+      source: source
     })
   };
 };
