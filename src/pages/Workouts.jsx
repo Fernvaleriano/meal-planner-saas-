@@ -1035,44 +1035,45 @@ function Workouts() {
         if (override && days.length > 0) {
           if (override.isRest) skipNatural = true;
 
-          // Collect all added instances — merge any duplicates by day_index
-          const seenDi = new Set();
-          const addedIndices = [];
+          // Collect all added instances
+          const addedEntries = []; // { di, isLegacy }
 
-          // New format: addedWorkouts
+          // New format: addedWorkouts — each instance is independent (supports duplicates)
           if (Array.isArray(override.addedWorkouts)) {
             for (const aw of override.addedWorkouts) {
               const di = aw.day_index % days.length;
-              if (!seenDi.has(di)) { seenDi.add(di); addedIndices.push(di); }
+              addedEntries.push({ di, isLegacy: false });
             }
           }
-          // Backwards compat: dayIndices
+          // Backwards compat: dayIndices (dedup by day_index)
+          const legacySeenDi = new Set();
           if (Array.isArray(override.dayIndices)) {
             for (const idx of override.dayIndices) {
               const di = idx % days.length;
-              if (!seenDi.has(di)) { seenDi.add(di); addedIndices.push(di); }
+              if (!legacySeenDi.has(di)) { legacySeenDi.add(di); addedEntries.push({ di, isLegacy: true }); }
             }
             skipNatural = true;
           }
           // Backwards compat: dayIndex
           if (override.dayIndex !== undefined) {
             const di = override.dayIndex % days.length;
-            if (!seenDi.has(di)) { seenDi.add(di); addedIndices.push(di); }
+            if (!legacySeenDi.has(di)) { legacySeenDi.add(di); addedEntries.push({ di, isLegacy: true }); }
             skipNatural = true;
           }
           // Backwards compat: addedDayIndices
           if (Array.isArray(override.addedDayIndices)) {
             for (const idx of override.addedDayIndices) {
               const di = idx % days.length;
-              if (!seenDi.has(di)) { seenDi.add(di); addedIndices.push(di); }
+              if (!legacySeenDi.has(di)) { legacySeenDi.add(di); addedEntries.push({ di, isLegacy: true }); }
             }
           }
 
-          // Count exercises from each unique added instance
-          for (const di of addedIndices) {
-            if (!skipNatural && naturalDayIndex !== undefined && di === naturalDayIndex) continue;
+          // Count exercises from each added instance
+          for (const entry of addedEntries) {
+            // Only skip legacy instances that match the natural schedule
+            if (entry.isLegacy && !skipNatural && naturalDayIndex !== undefined && entry.di === naturalDayIndex) continue;
             hasWorkout = true;
-            exerciseCount += (days[di].exercises || []).filter(ex => ex && ex.id).length;
+            exerciseCount += (days[entry.di].exercises || []).filter(ex => ex && ex.id).length;
             cardCount++;
           }
         }
