@@ -261,8 +261,34 @@ Trigger phrases include: "log", "add", "I had", "I ate", "I just ate", "for brea
 Respond with ONLY this JSON (no markdown, no extra text):
 {"action":"log_food","food_name":"descriptive name","calories":number,"protein":number,"carbs":number,"fat":number,"meal_type":"breakfast|lunch|dinner|snack","confirmation":"brief message"}
 
+**NUTRITIONAL ACCURACY - CRITICAL (use these USDA reference values):**
+For countable items, estimate weight PER PIECE then multiply by count:
+- Steamed pork dumpling: ~30g/piece → ~50 cal, 2.5g P, 5g C, 2g F per piece
+- Steamed shrimp dumpling: ~28g/piece → ~45 cal, 3g P, 4.5g C, 1.5g F per piece
+- Fried dumpling/potsticker: ~30g/piece → ~70 cal, 3g P, 7g C, 3.5g F per piece
+- Chicken nugget: ~18g/piece → ~48 cal, 2.5g P, 3g C, 3g F per piece
+- Buffalo wing: ~32g/piece → ~80 cal, 7g P, 0.5g C, 5.5g F per piece
+- Sushi roll piece: ~30-40g → ~40-45 cal per piece
+- Falafel: ~17g/piece → ~57 cal per piece
+- Samosa: ~70g/piece → ~150 cal per piece
+- Empanada: ~130g/piece → ~280 cal per piece
+
+Common whole foods per 100g:
+- Chicken breast (grilled): 165 cal, 31g P, 0g C, 4g F
+- Salmon (baked): 208 cal, 20g P, 0g C, 13g F
+- White rice (cooked): 130 cal, 2.7g P, 28g C, 0.3g F
+- Brown rice (cooked): 112 cal, 2.6g P, 24g C, 0.9g F
+- Pasta (cooked): 131 cal, 5g P, 25g C, 1g F
+- Egg (large, 50g): 72 cal, 6g P, 0.4g C, 5g F
+
+CROSS-CHECK: After calculating, verify (protein × 4) + (carbs × 4) + (fat × 9) ≈ calories (within 10%). If it doesn't add up, adjust your estimates.
+
+Example: 24 steamed pork dumplings = 24 × 50 cal = 1200 cal, 60g P, 120g C, 48g F
+NOT 480 cal (that would be only 20 cal per dumpling, which is way too low).
+
 **SERVING SIZE HANDLING:**
 - When user gives clear amounts (grams, oz, cups, "1 medium apple"), log directly
+- When user gives a count (e.g., "24 dumplings"), use the per-piece reference values above and MULTIPLY by the count
 - When user says vague amounts like "some", "a bit", "pieces" for variable-size foods, make a reasonable assumption and state it:
   - "5 pieces of jackfruit" → assume ~165g total (about 33g per piece), mention "Logging 5 pieces (~165g)"
   - "a handful of almonds" → assume ~1oz/28g (~23 almonds)
