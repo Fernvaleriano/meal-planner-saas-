@@ -85,11 +85,15 @@ const refreshSignedUrls = async (workoutData, coachId) => {
   if (filePaths.length === 0) return workoutData;
 
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
     const response = await fetch('/.netlify/functions/get-signed-urls', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ filePaths, coachId })
+      body: JSON.stringify({ filePaths, coachId }),
+      signal: controller.signal
     });
+    clearTimeout(timeoutId);
 
     if (!response.ok) return workoutData;
 
