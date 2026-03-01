@@ -93,6 +93,30 @@ const LOCAL_FOODS = {
   'pho_beef': { name: 'Pho (beef)', cal: 350, protein: 24, carbs: 42, fat: 8, per: '1 bowl (600g)', grams: 600 },
   'ramen_pork': { name: 'Ramen (pork broth)', cal: 450, protein: 20, carbs: 55, fat: 16, per: '1 bowl (500g)', grams: 500 },
   'acai_bowl': { name: 'Acai Bowl', cal: 380, protein: 6, carbs: 62, fat: 12, per: '1 bowl (300g)', grams: 300 },
+  // Ethnic / cultural foods
+  'hummus': { name: 'Hummus', cal: 166, protein: 8, carbs: 14, fat: 10, per: '100g', grams: 100 },
+  'falafel': { name: 'Falafel', cal: 57, protein: 2.3, carbs: 5, fat: 3.4, per: '1 piece (17g)', grams: 17 },
+  'naan_bread': { name: 'Naan Bread', cal: 260, protein: 9, carbs: 45, fat: 5, per: '1 piece (90g)', grams: 90 },
+  'samosa_vegetable': { name: 'Samosa (vegetable)', cal: 150, protein: 3, carbs: 18, fat: 7, per: '1 piece (70g)', grams: 70 },
+  'empanada_beef': { name: 'Empanada (beef)', cal: 280, protein: 10, carbs: 26, fat: 15, per: '1 piece (130g)', grams: 130 },
+  'chicken_tikka_masala': { name: 'Chicken Tikka Masala', cal: 300, protein: 22, carbs: 12, fat: 18, per: '1 cup (200g)', grams: 200 },
+  'bibimbap': { name: 'Bibimbap', cal: 490, protein: 22, carbs: 70, fat: 14, per: '1 bowl (400g)', grams: 400 },
+  'chicken_shawarma_wrap': { name: 'Chicken Shawarma (wrap)', cal: 520, protein: 30, carbs: 42, fat: 24, per: '1 wrap (250g)', grams: 250 },
+  // Breakfast items
+  'pancakes': { name: 'Pancakes', cal: 175, protein: 5, carbs: 25, fat: 6, per: '2 medium (150g)', grams: 150 },
+  'waffle': { name: 'Waffle', cal: 218, protein: 6, carbs: 25, fat: 11, per: '1 waffle (75g)', grams: 75 },
+  'french_toast': { name: 'French Toast', cal: 149, protein: 5, carbs: 16, fat: 7, per: '1 slice (65g)', grams: 65 },
+  'breakfast_burrito': { name: 'Breakfast Burrito', cal: 450, protein: 20, carbs: 40, fat: 22, per: '1 burrito (250g)', grams: 250 },
+  'bagel_plain': { name: 'Bagel (plain)', cal: 270, protein: 10, carbs: 53, fat: 1.5, per: '1 bagel (105g)', grams: 105 },
+  'cream_cheese': { name: 'Cream Cheese', cal: 50, protein: 1, carbs: 1, fat: 5, per: '1 tbsp (15g)', grams: 15 },
+  // Common snacks & beverages
+  'popcorn_air_popped': { name: 'Popcorn (air-popped)', cal: 31, protein: 1, carbs: 6, fat: 0.4, per: '1 cup (8g)', grams: 8 },
+  'trail_mix': { name: 'Trail Mix', cal: 175, protein: 5, carbs: 16, fat: 11, per: '1 oz (30g)', grams: 30 },
+  'granola': { name: 'Granola', cal: 210, protein: 5, carbs: 28, fat: 9, per: '0.5 cup (45g)', grams: 45 },
+  'orange_juice': { name: 'Orange Juice', cal: 112, protein: 2, carbs: 26, fat: 0.5, per: '1 cup (248ml)', grams: 248 },
+  'latte_whole_milk': { name: 'Latte (whole milk)', cal: 190, protein: 10, carbs: 18, fat: 8, per: '1 grande (473ml)', grams: 473 },
+  'latte_oat_milk': { name: 'Latte (oat milk)', cal: 170, protein: 5, carbs: 27, fat: 5, per: '1 grande (473ml)', grams: 473 },
+  'smoothie_fruit_protein': { name: 'Smoothie (fruit, protein)', cal: 250, protein: 20, carbs: 35, fat: 3, per: '1 cup (300ml)', grams: 300 },
 };
 
 // Parse serving label from "per" field - e.g., "1 large egg (50g)" -> "Large"
