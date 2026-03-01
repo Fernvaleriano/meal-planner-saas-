@@ -1,7 +1,8 @@
-// Text-based food analysis using GPT-4o Mini (fast and accurate)
-const OpenAI = require('openai');
+// Text-based food analysis using Claude Haiku (matches photo analysis provider)
+const Anthropic = require('@anthropic-ai/sdk');
+const { handleCors, authenticateRequest, checkRateLimit, rateLimitResponse, corsHeaders } = require('./utils/auth');
 
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
 // Helper function to strip markdown formatting from text
 function stripMarkdown(text) {
@@ -23,17 +24,15 @@ function stripMarkdown(text) {
 }
 
 const headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    ...corsHeaders,
     'Content-Type': 'application/json'
 };
 
 exports.handler = async (event, context) => {
     try {
-        if (event.httpMethod === 'OPTIONS') {
-            return { statusCode: 200, headers, body: '' };
-        }
+        // Handle CORS preflight
+        const corsResponse = handleCors(event);
+        if (corsResponse) return corsResponse;
 
         if (event.httpMethod !== 'POST') {
             return {
@@ -43,12 +42,23 @@ exports.handler = async (event, context) => {
             };
         }
 
-        if (!OPENAI_API_KEY) {
-            console.error('OPENAI_API_KEY is not configured');
+        // Verify authenticated user
+        const { user, error: authError } = await authenticateRequest(event);
+        if (authError) return authError;
+
+        // Rate limit - 30 text analyses per minute per user
+        const rateLimit = checkRateLimit(user.id, 'analyze-food-text', 30, 60000);
+        if (!rateLimit.allowed) {
+            console.warn(`Rate limit exceeded for user ${user.id}`);
+            return rateLimitResponse(rateLimit.resetIn);
+        }
+
+        if (!ANTHROPIC_API_KEY) {
+            console.error('ANTHROPIC_API_KEY is not configured');
             return {
                 statusCode: 500,
                 headers,
-                body: JSON.stringify({ error: 'AI analysis is not configured. Please add OPENAI_API_KEY to environment variables.' })
+                body: JSON.stringify({ error: 'AI analysis is not configured.' })
             };
         }
 
@@ -101,23 +111,22 @@ Guidelines:
 
 Return ONLY the JSON array, nothing else.`;
 
-        // Call GPT-4o Mini API
-        console.log('🤖 Calling GPT-4o Mini for text food analysis...');
+        console.log(`Text food analysis for user ${user.id}`);
 
-        let completion;
+        let content;
         try {
-            const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
-            completion = await openai.chat.completions.create({
-                model: 'gpt-4o-mini',
+            const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
+            const message = await anthropic.messages.create({
+                model: 'claude-haiku-4-5-20251001',
+                max_tokens: 1024,
                 messages: [{
                     role: 'user',
                     content: prompt
-                }],
-                max_tokens: 1024,
-                temperature: 0.3
+                }]
             });
+            content = message.content?.[0]?.text || '';
         } catch (apiError) {
-            console.error('OpenAI API error:', apiError);
+            console.error('Anthropic API error:', apiError);
             return {
                 statusCode: 500,
                 headers,
@@ -128,8 +137,7 @@ Return ONLY the JSON array, nothing else.`;
             };
         }
 
-        const content = completion.choices?.[0]?.message?.content || '';
-        console.log('GPT-4o Mini response:', content);
+        console.log('Claude response:', content);
 
         // Parse the response
         let foods = [];
@@ -148,7 +156,7 @@ Return ONLY the JSON array, nothing else.`;
             if (jsonMatch) {
                 foods = JSON.parse(jsonMatch[0]);
             } else {
-                console.error('Could not parse GPT response:', trimmedContent);
+                console.error('Could not parse Claude response:', trimmedContent);
             }
         }
 
