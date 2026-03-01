@@ -990,12 +990,19 @@ function Workouts() {
 
       for (const assignment of weekScheduleData) {
         const workoutData = assignment.workout_data || {};
-        const days = workoutData.days || [];
+        // Normalize flat-structure workouts into a single-element days array
+        let days = workoutData.days || [];
+        if (days.length === 0 && workoutData.exercises) {
+          days = [{
+            exercises: workoutData.exercises,
+            name: workoutData.name || assignment.name || 'Workout',
+            estimatedMinutes: workoutData.estimatedMinutes || 45,
+            estimatedCalories: workoutData.estimatedCalories || 300
+          }];
+        }
         const assignSchedule = workoutData.schedule || assignment.schedule || {};
         const selectedDays = assignSchedule.selectedDays || ['mon', 'tue', 'wed', 'thu', 'fri'];
         const startDate = new Date(assignment.start_date || assignment.created_at);
-
-        if (date < startDate) continue;
 
         // Check end boundary
         const weeksToUse = assignSchedule.weeksAmount || 12;
@@ -1006,18 +1013,22 @@ function Workouts() {
           endBoundary = new Date(startDate);
           endBoundary.setDate(endBoundary.getDate() + (weeksToUse * 7));
         }
-        if (date >= endBoundary) continue;
+
+        const isInDateRange = date >= startDate && date < endBoundary;
 
         // Check date overrides
         const dateOverrides = workoutData.date_overrides || {};
         const override = dateOverrides[dateStr];
 
+        // Skip if outside date range AND no override for this date
+        if (!isInDateRange && !override) continue;
+
         let skipNatural = false;
         let cardCount = 0;
 
-        // Compute natural day index upfront for dedup
+        // Compute natural day index upfront for dedup (only within date range)
         let naturalDayIndex = undefined;
-        if (days.length > 0 && selectedDays.includes(dayName)) {
+        if (isInDateRange && days.length > 0 && selectedDays.includes(dayName)) {
           const totalDaysDiff = Math.floor((date - startDate) / (24 * 60 * 60 * 1000));
           const daySet = new Set(selectedDays);
           const fullWeeks = Math.floor(totalDaysDiff / 7);
@@ -1073,12 +1084,13 @@ function Workouts() {
             // Only skip legacy instances that match the natural schedule
             if (entry.isLegacy && !skipNatural && naturalDayIndex !== undefined && entry.di === naturalDayIndex) continue;
             hasWorkout = true;
-            exerciseCount += (days[entry.di].exercises || []).filter(ex => ex && ex.id).length;
+            exerciseCount += (days[entry.di]?.exercises || []).filter(ex => ex && ex.id).length;
             cardCount++;
           }
         }
 
-        if (!skipNatural && naturalDayIndex !== undefined && days.length > 0) {
+        // Natural schedule only within date range
+        if (isInDateRange && !skipNatural && naturalDayIndex !== undefined && days.length > 0) {
           hasWorkout = true;
           workoutName = days[naturalDayIndex].name || `Day ${naturalDayIndex + 1}`;
           exerciseCount += (days[naturalDayIndex].exercises || []).filter(ex => ex && ex.id).length;
