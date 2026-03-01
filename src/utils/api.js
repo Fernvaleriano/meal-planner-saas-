@@ -39,6 +39,9 @@ const SESSION_CACHE_TTL = 120000;
 // Session is considered stale if it expires within the next 5 minutes
 const SESSION_EXPIRY_BUFFER = 5 * 60 * 1000;
 
+// Network request timeout — prevents indefinite hangs on poor mobile connections
+const FETCH_TIMEOUT_MS = 15000;
+
 /**
  * Get auth token with proactive session refresh
  * This ensures the session is valid before making API calls
@@ -179,7 +182,19 @@ async function refreshSession() {
  */
 export function clearSessionCache() {
   sessionCache = { session: null, timestamp: 0, refreshPromise: null };
+  lastEnsureFreshTimestamp = 0;
 }
+
+// Timestamp of the last successful session refresh via ensureFreshSession.
+// Used to skip redundant refresh calls that happen within a short window
+// (e.g. resume gate refreshes session, then each page also calls ensureFreshSession).
+let lastEnsureFreshTimestamp = 0;
+
+// If ensureFreshSession was called less than 5 seconds ago, skip the redundant refresh.
+// This is the key fix for the 30-35s resume delay: the resume gate already refreshes
+// the session, so pages calling ensureFreshSession immediately after don't need to
+// do it again.
+const ENSURE_FRESH_DEBOUNCE = 5000;
 
 /**
  * Force a session refresh (useful after returning from background)
@@ -191,12 +206,24 @@ export function clearSessionCache() {
  *   awaits gate → gate resolves after ensureFreshSession returns → deadlock.
  */
 export async function ensureFreshSession({ _bypassGate = false } = {}) {
+  const now = Date.now();
+
+  // If the session was JUST refreshed (by the resume gate or a recent call),
+  // skip the redundant refresh — the cached token is still perfectly valid.
+  // This prevents the "double refresh" that was adding 10-20s on resume.
+  if (!_bypassGate && (now - lastEnsureFreshTimestamp) < ENSURE_FRESH_DEBOUNCE) {
+    // Session was refreshed very recently — use the cached token
+    return sessionCache.session?.access_token || await getAuthToken(_bypassGate);
+  }
+
   // Clear cache to force a fresh check
   sessionCache.timestamp = 0;
-  return await getAuthToken(_bypassGate);
+  const token = await getAuthToken(_bypassGate);
+  lastEnsureFreshTimestamp = Date.now();
+  return token;
 }
 
-// Authenticated fetch wrapper with improved error handling
+// Authenticated fetch wrapper with improved error handling and timeout
 async function authenticatedFetch(url, options = {}) {
   const token = await getAuthToken();
 
@@ -209,10 +236,27 @@ async function authenticatedFetch(url, options = {}) {
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const response = await fetch(url, {
-    ...options,
-    headers
-  });
+  // Add timeout to prevent indefinite hangs on poor mobile connections
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+
+  let response;
+  try {
+    response = await fetch(url, {
+      ...options,
+      headers,
+      signal: controller.signal
+    });
+  } catch (err) {
+    clearTimeout(timeoutId);
+    if (err.name === 'AbortError') {
+      const error = new Error(`Request timed out after ${FETCH_TIMEOUT_MS / 1000}s`);
+      error.isTimeout = true;
+      throw error;
+    }
+    throw err;
+  }
+  clearTimeout(timeoutId);
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));

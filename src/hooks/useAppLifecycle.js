@@ -184,7 +184,18 @@ async function triggerResume(backgroundMs) {
       // above, and ensureFreshSession → getAuthToken normally waits on it.
       // Without the bypass this would deadlock: getAuthToken waits for a gate
       // that can't resolve until this very call returns.
-      await ensureFreshSession({ _bypassGate: true });
+      //
+      // TIMEOUT: Cap session refresh at 8 seconds. On poor mobile connections,
+      // supabase.auth.refreshSession() can hang for 20-30s. Rather than blocking
+      // the entire app, let the gate open after 8s and let pages try with whatever
+      // token we have (they'll get a 401 and retry if needed).
+      const SESSION_REFRESH_TIMEOUT = 8000;
+      await Promise.race([
+        ensureFreshSession({ _bypassGate: true }),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Session refresh timeout')), SESSION_REFRESH_TIMEOUT)
+        )
+      ]);
     } catch (e) {
       console.error('[AppLifecycle] session refresh error:', e);
     } finally {
