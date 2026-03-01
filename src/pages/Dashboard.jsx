@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Camera, Search, Heart, ScanLine, Mic, ChevronRight, BarChart3, ClipboardCheck, TrendingUp, BookOpen, Utensils, Pill, ChefHat, Check, CheckCircle, Minus, Plus, X, Sunrise, Sun, Moon, Coffee } from 'lucide-react';
+import InstallAppBanner from '../components/InstallAppBanner';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, apiDelete, ensureFreshSession } from '../utils/api';
 import { SnapPhotoModal, SearchFoodsModal, FavoritesModal, ScanLabelModal } from '../components/FoodModals';
@@ -742,6 +743,9 @@ function Dashboard() {
         indicatorRef={indicatorRef}
         threshold={threshold}
       />
+
+      {/* Install App Banner - prompts users to add to home screen */}
+      <InstallAppBanner />
 
       {/* AI Hero Input Section */}
       <div className="ai-hero-card">
