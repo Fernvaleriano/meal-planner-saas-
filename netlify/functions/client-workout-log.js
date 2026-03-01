@@ -186,19 +186,19 @@ exports.handler = async (event) => {
         }
 
         // --- Handle TARGET date: add new independent instance ---
-        if (sourceDayIndex !== undefined) {
-          let targetOverride = migrateOverride(dateOverrides[targetDate]);
-          if (!targetOverride.addedWorkouts) targetOverride.addedWorkouts = [];
+        // Use sourceDayIndex if provided, fall back to 0 for flat-structure workouts
+        const resolvedDayIndex = sourceDayIndex != null ? sourceDayIndex : 0;
+        let targetOverride = migrateOverride(dateOverrides[targetDate]);
+        if (!targetOverride.addedWorkouts) targetOverride.addedWorkouts = [];
 
-          // Always create a NEW instance — never deduplicate by day_index.
-          // Each move/duplicate produces its own independent workout card.
-          targetOverride.addedWorkouts.push({
-            instance_id: generateInstanceId(),
-            day_index: sourceDayIndex
-          });
+        // Always create a NEW instance — never deduplicate by day_index.
+        // Each move/duplicate produces its own independent workout card.
+        targetOverride.addedWorkouts.push({
+          instance_id: generateInstanceId(),
+          day_index: resolvedDayIndex
+        });
 
-          dateOverrides[targetDate] = targetOverride;
-        }
+        dateOverrides[targetDate] = targetOverride;
       }
 
       // Save the updated workout_data with date overrides

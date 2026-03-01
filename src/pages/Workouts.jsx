@@ -2585,7 +2585,7 @@ function Workouts() {
         const res = await apiPost('/.netlify/functions/client-workout-log', {
           assignmentId: targetWorkout.id,
           action: rescheduleAction,
-          sourceDayIndex: targetWorkout.day_index,
+          sourceDayIndex: targetWorkout.day_index != null ? targetWorkout.day_index : 0,
           sourceDate: formatDate(selectedDate),
           targetDate: rescheduleTargetDate,
           isAdded: targetWorkout.is_added || false,
@@ -2604,6 +2604,9 @@ function Workouts() {
       } else {
         alert('Failed to update workout schedule');
       }
+      setShowRescheduleModal(false);
+      setRescheduleAction(null);
+      rescheduleWorkoutRef.current = null;
       return;
     }
 
@@ -2623,6 +2626,12 @@ function Workouts() {
 
       // Show success feedback
       alert(`Workout ${action === 'duplicate' ? 'duplicated' : action === 'skip' ? 'skipped' : 'rescheduled'} successfully!`);
+    } else {
+      // Unexpected state — close modal and inform user
+      setShowRescheduleModal(false);
+      setRescheduleAction(null);
+      rescheduleWorkoutRef.current = null;
+      alert('Something went wrong. Please try again.');
     }
   }, [todayWorkout, rescheduleAction, rescheduleTargetDate, selectedDate, refreshWorkoutData, refreshWeekSchedule, clientData?.id]);
 
