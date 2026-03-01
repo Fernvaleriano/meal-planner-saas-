@@ -283,28 +283,23 @@ exports.handler = async (event) => {
               }
 
               // Collect all added workout instances from ALL formats (backwards compat + new)
-              // Use a single Set to merge any duplicates by day_index — one card per day max
-              const seenDayIndices = new Set();
               const addedInstances = [];
 
-              // New format: addedWorkouts
+              // New format: addedWorkouts — each instance is independent (supports duplicates)
               if (Array.isArray(override.addedWorkouts)) {
                 for (const aw of override.addedWorkouts) {
-                  const di = aw.day_index % days.length;
-                  if (!seenDayIndices.has(di)) {
-                    seenDayIndices.add(di);
-                    addedInstances.push({ instance_id: aw.instance_id, day_index: aw.day_index });
-                  }
+                  addedInstances.push({ instance_id: aw.instance_id, day_index: aw.day_index });
                 }
               }
 
-              // Backwards compat: old dayIndices → suppress natural
+              // Backwards compat: old dayIndices → suppress natural (dedup by day_index)
+              const legacySeenDi = new Set();
               if (Array.isArray(override.dayIndices)) {
                 for (const idx of override.dayIndices) {
                   const di = idx % days.length;
-                  if (!seenDayIndices.has(di)) {
-                    seenDayIndices.add(di);
-                    addedInstances.push({ instance_id: `${activeAssignment.id}-legacy-di-${di}`, day_index: idx });
+                  if (!legacySeenDi.has(di)) {
+                    legacySeenDi.add(di);
+                    addedInstances.push({ instance_id: `${activeAssignment.id}-legacy-di-${di}`, day_index: idx, _legacy: true });
                   }
                 }
                 skipNatural = true;
@@ -313,9 +308,9 @@ exports.handler = async (event) => {
               // Backwards compat: old dayIndex → suppress natural
               if (override.dayIndex !== undefined) {
                 const di = override.dayIndex % days.length;
-                if (!seenDayIndices.has(di)) {
-                  seenDayIndices.add(di);
-                  addedInstances.push({ instance_id: `${activeAssignment.id}-legacy-dx`, day_index: override.dayIndex });
+                if (!legacySeenDi.has(di)) {
+                  legacySeenDi.add(di);
+                  addedInstances.push({ instance_id: `${activeAssignment.id}-legacy-dx`, day_index: override.dayIndex, _legacy: true });
                 }
                 skipNatural = true;
               }
@@ -324,18 +319,19 @@ exports.handler = async (event) => {
               if (Array.isArray(override.addedDayIndices)) {
                 for (const idx of override.addedDayIndices) {
                   const di = idx % days.length;
-                  if (!seenDayIndices.has(di)) {
-                    seenDayIndices.add(di);
-                    addedInstances.push({ instance_id: `${activeAssignment.id}-legacy-adi-${di}`, day_index: idx });
+                  if (!legacySeenDi.has(di)) {
+                    legacySeenDi.add(di);
+                    addedInstances.push({ instance_id: `${activeAssignment.id}-legacy-adi-${di}`, day_index: idx, _legacy: true });
                   }
                 }
               }
 
-              // Create a card for each unique added instance
+              // Create a card for each added instance
               for (const inst of addedInstances) {
                 const di = inst.day_index % days.length;
-                // Skip if natural schedule already covers this day
-                if (!skipNatural && naturalDayIndex !== undefined && di === naturalDayIndex) continue;
+                // Only skip legacy instances that match the natural schedule (legacy dedup)
+                // New addedWorkouts instances are always shown — duplicates are intentional
+                if (inst._legacy && !skipNatural && naturalDayIndex !== undefined && di === naturalDayIndex) continue;
                 const day = days[di];
                 if (day) {
                   todayWorkouts.push({
@@ -386,6 +382,7 @@ exports.handler = async (event) => {
                 id: activeAssignment.id,
                 instance_id: `${activeAssignment.id}-natural`,
                 name: activeAssignment.name || 'Today\'s Workout',
+                day_index: 0,
                 workout_data: {
                   exercises: (workoutData.exercises || []).map(ex => ({ ...ex })),
                   estimatedMinutes: 45,
