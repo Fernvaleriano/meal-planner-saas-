@@ -1,18 +1,18 @@
-const OpenAI = require('openai');
+// Audio transcription using Claude (matches other Anthropic-powered functions)
+const Anthropic = require('@anthropic-ai/sdk');
+const { handleCors, authenticateRequest, corsHeaders } = require('./utils/auth');
 
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
 const headers = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  ...corsHeaders,
   'Content-Type': 'application/json'
 };
 
 exports.handler = async (event) => {
-  if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 200, headers, body: '' };
-  }
+  // Handle CORS preflight
+  const corsResponse = handleCors(event);
+  if (corsResponse) return corsResponse;
 
   if (event.httpMethod !== 'POST') {
     return {
@@ -22,7 +22,11 @@ exports.handler = async (event) => {
     };
   }
 
-  if (!OPENAI_API_KEY) {
+  // Verify authenticated user
+  const { user, error: authError } = await authenticateRequest(event);
+  if (authError) return authError;
+
+  if (!ANTHROPIC_API_KEY) {
     return {
       statusCode: 500,
       headers,
@@ -43,28 +47,43 @@ exports.handler = async (event) => {
 
     // Extract base64 data from data URL if present
     const base64Data = audioData.includes(',') ? audioData.split(',')[1] : audioData;
-    const buffer = Buffer.from(base64Data, 'base64');
 
-    // Determine file extension from mime type
-    const ext = (mimeType || 'audio/webm').includes('mp4') ? 'mp4' : 'webm';
+    // Map mime type to Anthropic-supported media type
+    const mediaType = (mimeType || 'audio/webm').includes('mp4') ? 'audio/mp4' : 'audio/webm';
 
-    const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
+    const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
 
-    // Use OpenAI Whisper API for transcription
-    const file = new File([buffer], `audio.${ext}`, { type: mimeType || 'audio/webm' });
-
-    const transcription = await openai.audio.transcriptions.create({
-      file: file,
-      model: 'whisper-1',
-      language: 'en'
+    // Use Claude to transcribe audio
+    const message = await anthropic.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 1024,
+      messages: [{
+        role: 'user',
+        content: [
+          {
+            type: 'document',
+            source: {
+              type: 'base64',
+              media_type: mediaType,
+              data: base64Data
+            }
+          },
+          {
+            type: 'text',
+            text: 'Transcribe this audio exactly as spoken. Return ONLY the transcribed text, nothing else. No quotes, no labels, no explanation. If the audio is unclear or empty, return an empty string.'
+          }
+        ]
+      }]
     });
+
+    const transcript = (message.content?.[0]?.text || '').trim();
 
     return {
       statusCode: 200,
       headers,
       body: JSON.stringify({
         success: true,
-        transcript: transcription.text
+        transcript
       })
     };
 
