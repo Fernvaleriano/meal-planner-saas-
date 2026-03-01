@@ -22,7 +22,7 @@ function InstallAppBanner() {
           <div className="install-banner-text">
             <div className="install-banner-title">Install the App</div>
             <p className="install-banner-desc">
-              Add to your home screen for quick access and a native app experience.
+              Skip the browser — open the app straight from your home screen. No typing URLs, no logging in every time.
             </p>
           </div>
         </div>
@@ -48,7 +48,7 @@ function InstallAppBanner() {
           <div className="install-banner-text">
             <div className="install-banner-title">Install the App</div>
             <p className="install-banner-desc">
-              Add this app to your home screen for the best experience.
+              Skip Safari — open the app straight from your home screen. No typing URLs, no logging in every time.
             </p>
           </div>
         </div>
