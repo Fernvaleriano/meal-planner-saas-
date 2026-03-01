@@ -3015,7 +3015,7 @@ function Diary() {
                     <Camera size={20} color="white" />
                   </div>
                   <div className="quick-add-text">
-                    <div style={{ fontWeight: 600 }}>Photo My Meal</div>
+                    <div style={{ fontWeight: 600 }}>Log by Photo</div>
                     <div style={{ fontSize: '0.85rem', color: '#64748b' }}>Take a photo of your food</div>
                   </div>
                 </button>
