@@ -1,4 +1,4 @@
-// Smart food photo analysis using Claude Haiku (better accuracy than Gemini for food analysis)
+// Smart food photo analysis using Claude Sonnet (higher accuracy with weight-based estimation)
 const Anthropic = require('@anthropic-ai/sdk');
 const { handleCors, authenticateRequest, checkRateLimit, rateLimitResponse, corsHeaders } = require('./utils/auth');
 
@@ -102,7 +102,7 @@ exports.handler = async (event, context) => {
         // User-provided context about the food (optional)
         const userContext = details ? details.trim() : null;
 
-        console.log('🧠 Calling Claude Haiku for smart food analysis...');
+        console.log('🧠 Calling Claude Sonnet for smart food analysis...');
 
         // Build the prompt
         const analysisPrompt = `Analyze this food image carefully and identify all food items visible. For each item, provide accurate nutritional estimates.
@@ -122,14 +122,36 @@ Return ONLY a valid JSON array with this exact format (no markdown, no explanati
 ]
 
 Guidelines for ACCURATE estimation:
-- Carefully estimate portion sizes by comparing to standard references (plate size, utensils visible, hand size)
-- Be specific about portions (e.g., "Grilled Chicken Breast, ~6oz" not just "Chicken")
-- Account for cooking methods (grilled vs fried affects calories significantly)
+
+STEP 1 - ESTIMATE WEIGHT:
+- Use visual references to estimate portion weight: dinner plate ~10in diameter, fork ~7in, standard bowl ~2 cups
+- For countable items (dumplings, nuggets, meatballs, cookies, sushi pieces, etc.):
+  * First estimate the weight of ONE piece based on its size (e.g., a steamed dumpling is typically 25-35g, a chicken nugget is ~18g, a sushi roll piece is ~30-40g)
+  * Then count the number of pieces
+  * Total weight = weight per piece × count
+- For non-countable items, estimate total weight in grams or ounces
+
+STEP 2 - CALCULATE NUTRITION:
+- Use USDA nutritional density values (per 100g) as your reference:
+  * Steamed pork dumplings: ~170-190 kcal/100g (~45-55 kcal per piece)
+  * Steamed shrimp dumplings: ~150-170 kcal/100g (~40-50 kcal per piece)
+  * Fried dumplings/gyoza: ~230-260 kcal/100g (~60-75 kcal per piece)
+  * Grilled chicken breast: ~165 kcal/100g
+  * White rice: ~130 kcal/100g
+  * Salmon: ~180-210 kcal/100g
+- Calculate: (weight in g / 100) × kcal per 100g = total calories
+- Do the same for protein, carbs, and fat
+
+STEP 3 - CROSS-CHECK:
+- Verify: (protein × 4) + (carbs × 4) + (fat × 9) should approximately equal your calorie estimate (within 10%)
+- If the math doesn't check out, adjust your estimates until it does
+
+ADDITIONAL GUIDELINES:
+- Account for cooking methods (grilled vs fried vs steamed affects calories significantly)
 - Consider visible fats, oils, sauces, and dressings
 - If skin is visible on meat, account for it
 - Round calories to nearest 5, macros to nearest gram
 - If multiple items are visible, list each separately
-- Use USDA standard values as your reference
 - If the user provided details, prioritize using that information
 - Return empty array [] if no food is visible
 
@@ -155,7 +177,7 @@ Take your time to be accurate. Return ONLY the JSON array.`;
         try {
             const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
             message = await anthropic.messages.create({
-                model: 'claude-3-haiku-20240307',
+                model: 'claude-sonnet-4-5-20250514',
                 max_tokens: 1024,
                 messages: [{
                     role: 'user',
@@ -174,7 +196,7 @@ Take your time to be accurate. Return ONLY the JSON array.`;
             };
         }
 
-        console.log('✅ Claude Haiku response received');
+        console.log('✅ Claude Sonnet response received');
 
         const content = message.content?.[0]?.text || '';
         if (!content) {
@@ -228,7 +250,7 @@ Take your time to be accurate. Return ONLY the JSON array.`;
             headers,
             body: JSON.stringify({
                 foods,
-                model: 'claude-haiku',
+                model: 'claude-sonnet',
                 smart: true
             })
         };
