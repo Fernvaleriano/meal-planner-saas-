@@ -6,6 +6,85 @@ const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
 
+// USDA-based reference data for countable foods (per piece)
+const COUNTABLE_FOOD_REFS = {
+    dumpling: { cal: 50, protein: 2.5, carbs: 5, fat: 2, grams: 30, label: 'dumpling' },
+    dumplings: { cal: 50, protein: 2.5, carbs: 5, fat: 2, grams: 30, label: 'dumpling' },
+    potsticker: { cal: 70, protein: 3, carbs: 7, fat: 3.5, grams: 30, label: 'potsticker' },
+    potstickers: { cal: 70, protein: 3, carbs: 7, fat: 3.5, grams: 30, label: 'potsticker' },
+    gyoza: { cal: 70, protein: 3, carbs: 7, fat: 3.5, grams: 30, label: 'gyoza' },
+    nugget: { cal: 48, protein: 2.5, carbs: 3, fat: 3, grams: 18, label: 'nugget' },
+    nuggets: { cal: 48, protein: 2.5, carbs: 3, fat: 3, grams: 18, label: 'nugget' },
+    wing: { cal: 80, protein: 7, carbs: 0.5, fat: 5.5, grams: 32, label: 'wing' },
+    wings: { cal: 80, protein: 7, carbs: 0.5, fat: 5.5, grams: 32, label: 'wing' },
+    falafel: { cal: 57, protein: 2.3, carbs: 5, fat: 3.4, grams: 17, label: 'falafel' },
+    samosa: { cal: 150, protein: 3.5, carbs: 16, fat: 8, grams: 70, label: 'samosa' },
+    samosas: { cal: 150, protein: 3.5, carbs: 16, fat: 8, grams: 70, label: 'samosa' },
+    empanada: { cal: 280, protein: 8, carbs: 25, fat: 16, grams: 130, label: 'empanada' },
+    empanadas: { cal: 280, protein: 8, carbs: 25, fat: 16, grams: 130, label: 'empanada' },
+    taquito: { cal: 130, protein: 4, carbs: 13, fat: 7, grams: 55, label: 'taquito' },
+    taquitos: { cal: 130, protein: 4, carbs: 13, fat: 7, grams: 55, label: 'taquito' },
+    'spring roll': { cal: 60, protein: 1.5, carbs: 8, fat: 2.5, grams: 30, label: 'spring roll' },
+    'spring rolls': { cal: 60, protein: 1.5, carbs: 8, fat: 2.5, grams: 30, label: 'spring roll' },
+    'egg roll': { cal: 120, protein: 4, carbs: 14, fat: 5, grams: 60, label: 'egg roll' },
+    'egg rolls': { cal: 120, protein: 4, carbs: 14, fat: 5, grams: 60, label: 'egg roll' },
+    meatball: { cal: 65, protein: 5, carbs: 2, fat: 4, grams: 30, label: 'meatball' },
+    meatballs: { cal: 65, protein: 5, carbs: 2, fat: 4, grams: 30, label: 'meatball' },
+    'mozzarella stick': { cal: 90, protein: 4, carbs: 7, fat: 5, grams: 30, label: 'mozzarella stick' },
+    'mozzarella sticks': { cal: 90, protein: 4, carbs: 7, fat: 5, grams: 30, label: 'mozzarella stick' },
+    taco: { cal: 170, protein: 8, carbs: 15, fat: 9, grams: 85, label: 'taco' },
+    tacos: { cal: 170, protein: 8, carbs: 15, fat: 9, grams: 85, label: 'taco' },
+    'sushi piece': { cal: 42, protein: 2, carbs: 7, fat: 0.5, grams: 35, label: 'sushi piece' },
+    'sushi roll': { cal: 42, protein: 2, carbs: 7, fat: 0.5, grams: 35, label: 'sushi piece' },
+};
+
+// Validate and correct nutritional values for countable foods
+function validateCountableFoodNutrition(parsedResponse, userMessage) {
+    if (!parsedResponse || parsedResponse.action !== 'log_food') return parsedResponse;
+
+    const foodName = (parsedResponse.food_name || '').toLowerCase();
+    const msg = (userMessage || '').toLowerCase();
+
+    // Try to extract count from user message or food name
+    const countMatch = msg.match(/(\d+)\s+/);
+    const foodNameCountMatch = foodName.match(/(\d+)\s+/);
+    const count = countMatch ? parseInt(countMatch[1]) : (foodNameCountMatch ? parseInt(foodNameCountMatch[1]) : null);
+
+    if (!count || count < 1) return parsedResponse;
+
+    // Find matching reference food
+    let matchedRef = null;
+    for (const [keyword, ref] of Object.entries(COUNTABLE_FOOD_REFS)) {
+        if (foodName.includes(keyword) || msg.includes(keyword)) {
+            matchedRef = ref;
+            break;
+        }
+    }
+
+    if (!matchedRef) return parsedResponse;
+
+    // Calculate what the correct total should be
+    const correctCal = Math.round(matchedRef.cal * count);
+    const correctProtein = Math.round(matchedRef.protein * count * 10) / 10;
+    const correctCarbs = Math.round(matchedRef.carbs * count * 10) / 10;
+    const correctFat = Math.round(matchedRef.fat * count * 10) / 10;
+
+    // Check if AI's estimate is more than 30% off from correct value
+    const calPerPiece = parsedResponse.calories / count;
+    const tolerance = 0.30;
+
+    if (calPerPiece < matchedRef.cal * (1 - tolerance) || calPerPiece > matchedRef.cal * (1 + tolerance)) {
+        console.log(`Nutritional correction: ${parsedResponse.food_name} - AI said ${parsedResponse.calories} cal (${Math.round(calPerPiece)}/piece), corrected to ${correctCal} cal (${matchedRef.cal}/piece) for ${count} ${matchedRef.label}(s)`);
+        parsedResponse.calories = correctCal;
+        parsedResponse.protein = Math.round(correctProtein);
+        parsedResponse.carbs = Math.round(correctCarbs);
+        parsedResponse.fat = Math.round(correctFat);
+        parsedResponse.confirmation = `Logged ${count} ${matchedRef.label}(s) — ${correctCal} cal (${matchedRef.cal} cal each). ${parsedResponse.confirmation || ''}`.trim();
+    }
+
+    return parsedResponse;
+}
+
 // Helper function to strip markdown formatting and special characters from text
 function stripMarkdown(text) {
     if (!text) return text;
@@ -258,20 +337,36 @@ INSTRUCTIONS:
 
 **FOOD LOGGING - When user wants to log food:**
 Trigger phrases include: "log", "add", "I had", "I ate", "I just ate", "for breakfast/lunch/dinner", "record", "put in", "track", "I'm eating", "I made", "let's log", "yes log it", "log that", "sounds good log it"
-Respond with ONLY this JSON (no markdown, no extra text):
-{"action":"log_food","food_name":"descriptive name","calories":number,"protein":number,"carbs":number,"fat":number,"meal_type":"breakfast|lunch|dinner|snack","confirmation":"brief message"}
 
-**NUTRITIONAL ACCURACY - CRITICAL (use these USDA reference values):**
-For countable items, estimate weight PER PIECE then multiply by count:
-- Steamed pork dumpling: ~30g/piece → ~50 cal, 2.5g P, 5g C, 2g F per piece
-- Steamed shrimp dumpling: ~28g/piece → ~45 cal, 3g P, 4.5g C, 1.5g F per piece
-- Fried dumpling/potsticker: ~30g/piece → ~70 cal, 3g P, 7g C, 3.5g F per piece
-- Chicken nugget: ~18g/piece → ~48 cal, 2.5g P, 3g C, 3g F per piece
-- Buffalo wing: ~32g/piece → ~80 cal, 7g P, 0.5g C, 5.5g F per piece
-- Sushi roll piece: ~30-40g → ~40-45 cal per piece
-- Falafel: ~17g/piece → ~57 cal per piece
-- Samosa: ~70g/piece → ~150 cal per piece
-- Empanada: ~130g/piece → ~280 cal per piece
+**MANDATORY CALORIE LOOKUP TABLE — YOU MUST USE THESE VALUES (do NOT make up your own):**
+When logging countable foods, find the food below, get the per-piece calories, and MULTIPLY by the count:
+| Food                    | Cal/piece | P    | C    | F    | Weight   |
+|-------------------------|-----------|------|------|------|----------|
+| Steamed dumpling (pork) | 50        | 2.5  | 5    | 2    | 30g      |
+| Steamed dumpling (shrimp)| 45       | 3    | 4.5  | 1.5  | 28g      |
+| Fried dumpling/potsticker| 70       | 3    | 7    | 3.5  | 30g      |
+| Chicken nugget          | 48        | 2.5  | 3    | 3    | 18g      |
+| Buffalo/chicken wing    | 80        | 7    | 0.5  | 5.5  | 32g      |
+| Falafel                 | 57        | 2.3  | 5    | 3.4  | 17g      |
+| Samosa                  | 150       | 3.5  | 16   | 8    | 70g      |
+| Empanada                | 280       | 8    | 25   | 16   | 130g     |
+| Spring roll (fried)     | 60        | 1.5  | 8    | 2.5  | 30g      |
+| Egg roll                | 120       | 4    | 14   | 5    | 60g      |
+| Meatball                | 65        | 5    | 2    | 4    | 30g      |
+| Sushi piece (nigiri)    | 42        | 2    | 7    | 0.5  | 35g      |
+| Taco (standard)         | 170       | 8    | 15   | 9    | 85g      |
+| Mozzarella stick        | 90        | 4    | 7    | 5    | 30g      |
+| Taquito                 | 130       | 4    | 13   | 7    | 55g      |
+
+CALCULATION EXAMPLE (follow this EXACTLY):
+User says: "24 steamed pork dumplings"
+Step 1: Look up → steamed dumpling (pork) = 50 cal/piece
+Step 2: Multiply → 24 × 50 = 1200 cal
+Step 3: Macros → 24 × 2.5 = 60g P, 24 × 5 = 120g C, 24 × 2 = 48g F
+Step 4: Cross-check → (60×4)+(120×4)+(48×9) = 240+480+432 = 1152 ≈ 1200 ✓
+Result: {"action":"log_food","food_name":"Steamed Pork Dumplings (24)","calories":1200,"protein":60,"carbs":120,"fat":48,"meal_type":"dinner","confirmation":"Logged 24 steamed pork dumplings — 50 cal each"}
+
+WRONG ANSWER: 480 cal for 24 dumplings = 20 cal/piece. That is IMPOSSIBLY LOW. A single dumpling weighs 30g and has a dough wrapper + meat filling.
 
 Common whole foods per 100g:
 - Chicken breast (grilled): 165 cal, 31g P, 0g C, 4g F
@@ -281,10 +376,8 @@ Common whole foods per 100g:
 - Pasta (cooked): 131 cal, 5g P, 25g C, 1g F
 - Egg (large, 50g): 72 cal, 6g P, 0.4g C, 5g F
 
-CROSS-CHECK: After calculating, verify (protein × 4) + (carbs × 4) + (fat × 9) ≈ calories (within 10%). If it doesn't add up, adjust your estimates.
-
-Example: 24 steamed pork dumplings = 24 × 50 cal = 1200 cal, 60g P, 120g C, 48g F
-NOT 480 cal (that would be only 20 cal per dumpling, which is way too low).
+Respond with ONLY this JSON (no markdown, no extra text):
+{"action":"log_food","food_name":"descriptive name","calories":number,"protein":number,"carbs":number,"fat":number,"meal_type":"breakfast|lunch|dinner|snack","confirmation":"brief message"}
 
 **SERVING SIZE HANDLING:**
 - When user gives clear amounts (grams, oz, cups, "1 medium apple"), log directly
@@ -552,8 +645,13 @@ Look at the data and share 1-2 actionable insights:
             return hasTapPrompt && !hasFoodTags;
         };
 
+        // Detect if user message is a food logging request (needs lower temperature for accuracy)
+        const isLoggingRequest = /\b(log|add|i had|i ate|i just ate|i('m| am) eating|for (breakfast|lunch|dinner|snack)|record|put in|track|let'?s log|log (it|that)|sounds good)\b/i.test(message)
+            || /\d+\s+.{0,40}(dumpling|nugget|wing|piece|slice|taco|egg roll|spring roll|meatball|samosa|empanada|falafel|gyoza|potsticker|taquito|sushi)/i.test(message);
+        const defaultTemp = isLoggingRequest ? 0.3 : 0.7;
+
         // Helper function to call Gemini API
-        const callGemini = async (messageContents, temp = 0.7) => {
+        const callGemini = async (messageContents, temp = defaultTemp) => {
             const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -613,7 +711,8 @@ Look at the data and share 1-2 actionable insights:
                 parsedResponse = JSON.parse(jsonMatch[0]);
                 // Validate required fields
                 if (parsedResponse.action === 'log_food' && parsedResponse.food_name && typeof parsedResponse.calories === 'number') {
-                    // Valid food log response
+                    // Validate and correct nutritional values for countable foods
+                    parsedResponse = validateCountableFoodNutrition(parsedResponse, message);
                 } else {
                     parsedResponse = null; // Invalid structure
                 }
