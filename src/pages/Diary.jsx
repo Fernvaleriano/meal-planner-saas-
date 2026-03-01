@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, ChevronDown, Plus, Camera, Search, Heart, Copy, ArrowLeft, FileText, Sunrise, Sun, Moon, Apple, Droplets, Bot, Maximize2, BarChart3, Check, Trash2, Dumbbell, UtensilsCrossed, Mic, X, ChefHat, Sparkles, Send, Zap, MapPin, Salad, RotateCcw } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronDown, Plus, Camera, Search, Heart, Copy, ArrowLeft, FileText, Sunrise, Sun, Moon, Apple, Droplets, Bot, Maximize2, BarChart3, Check, Trash2, Dumbbell, UtensilsCrossed, Mic, X, ChefHat, Sparkles, Send, Zap, MapPin, Salad, RotateCcw, Pencil } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, apiPut, apiDelete, ensureFreshSession } from '../utils/api';
 import { FavoritesModal, SnapPhotoModal, ScanLabelModal, SearchFoodsModal } from '../components/FoodModals';
@@ -83,6 +83,9 @@ function Diary() {
   const [copyMode, setCopyMode] = useState('from');
   const [showEditEntryModal, setShowEditEntryModal] = useState(false);
   const [editingEntry, setEditingEntry] = useState(null);
+  const [showEditGoalsModal, setShowEditGoalsModal] = useState(false);
+  const [editGoalsForm, setEditGoalsForm] = useState({});
+  const [savingGoals, setSavingGoals] = useState(false);
 
   // AI Assistant states - load conversation from localStorage for persistence
   const [aiMessages, setAiMessages] = useState(() => {
@@ -1727,6 +1730,48 @@ function Diary() {
     }
   };
 
+  // Open edit goals modal
+  const openEditGoalsModal = () => {
+    setEditGoalsForm({
+      calorie_goal: goals.calorie_goal || 2000,
+      protein_goal: goals.protein_goal || 150,
+      carbs_goal: goals.carbs_goal || 200,
+      fat_goal: goals.fat_goal || 67
+    });
+    setShowEditGoalsModal(true);
+  };
+
+  // Save edited goals
+  const handleSaveGoals = async () => {
+    setSavingGoals(true);
+    try {
+      const res = await apiPost('/.netlify/functions/calorie-goals', {
+        clientId: clientData.id,
+        calorieGoal: editGoalsForm.calorie_goal,
+        proteinGoal: editGoalsForm.protein_goal,
+        carbsGoal: editGoalsForm.carbs_goal,
+        fatGoal: editGoalsForm.fat_goal,
+        fiberGoal: goals.fiber_goal || null,
+        sugarGoal: goals.sugar_goal || null,
+        sodiumGoal: goals.sodium_goal || null
+      });
+      if (res?.goals) {
+        const newGoals = { ...goals, ...res.goals };
+        setGoals(newGoals);
+        // Update cache
+        const dateStr = formatDateKey(currentDate);
+        const cached = getCache(`diary_${clientData.id}_${dateStr}`) || {};
+        setCache(`diary_${clientData.id}_${dateStr}`, { ...cached, goals: newGoals });
+      }
+      setShowEditGoalsModal(false);
+    } catch (err) {
+      console.error('Error saving goals:', err);
+      alert(err.message || 'Failed to save goals. Please try again.');
+    } finally {
+      setSavingGoals(false);
+    }
+  };
+
   // Group entries by meal type
   const groupedEntries = {
     breakfast: entries.filter(e => e.meal_type === 'breakfast'),
@@ -2071,7 +2116,26 @@ function Diary() {
 
       {/* Calorie Summary */}
       <div className="calorie-summary">
-        <h3 className="calorie-title">Calories</h3>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+          <h3 className="calorie-title" style={{ margin: 0 }}>Calories</h3>
+          {clientData?.can_edit_goals && (
+            <button
+              onClick={openEditGoalsModal}
+              aria-label="Edit calorie and macro goals"
+              style={{
+                background: 'none',
+                border: 'none',
+                padding: '4px',
+                cursor: 'pointer',
+                color: 'var(--text-secondary, #64748b)',
+                display: 'flex',
+                alignItems: 'center'
+              }}
+            >
+              <Pencil size={16} />
+            </button>
+          )}
+        </div>
         <CalorieRing />
         <div className="calorie-breakdown">
           <div className="calorie-stat">
@@ -3403,6 +3467,84 @@ function Diary() {
                   ))}
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Goals Modal */}
+      {showEditGoalsModal && (
+        <div className="modal-overlay active" onClick={() => setShowEditGoalsModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '400px' }}>
+            <div className="modal-header">
+              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600 }}>Edit Goals</h3>
+              <button className="modal-close" onClick={() => setShowEditGoalsModal(false)}>&times;</button>
+            </div>
+            <div className="modal-body" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {[
+                { key: 'calorie_goal', label: 'Calories', unit: 'kcal', color: '#f97316', step: 50 },
+                { key: 'protein_goal', label: 'Protein', unit: 'g', color: '#3b82f6', step: 5 },
+                { key: 'carbs_goal', label: 'Carbs', unit: 'g', color: '#10b981', step: 5 },
+                { key: 'fat_goal', label: 'Fat', unit: 'g', color: '#f59e0b', step: 5 }
+              ].map(({ key, label, unit, color, step }) => (
+                <div key={key} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: '0.85rem', fontWeight: 600, color }}>
+                    {label} ({unit})
+                  </label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <button
+                      onClick={() => setEditGoalsForm(prev => ({ ...prev, [key]: Math.max(0, (prev[key] || 0) - step) }))}
+                      style={{
+                        width: '36px', height: '36px', borderRadius: '50%',
+                        border: '1px solid var(--border-color, #e2e8f0)',
+                        background: 'var(--bg-secondary, #f8fafc)',
+                        color: 'var(--text-primary, #1e293b)',
+                        fontSize: '1.2rem', cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center'
+                      }}
+                    >
+                      −
+                    </button>
+                    <input
+                      type="number"
+                      value={editGoalsForm[key] || ''}
+                      onChange={(e) => setEditGoalsForm(prev => ({ ...prev, [key]: parseInt(e.target.value) || 0 }))}
+                      style={{
+                        flex: 1, textAlign: 'center', fontSize: '1.2rem', fontWeight: 600,
+                        padding: '8px', borderRadius: '8px',
+                        border: '1px solid var(--border-color, #e2e8f0)',
+                        background: 'var(--bg-secondary, #f8fafc)',
+                        color: 'var(--text-primary, #1e293b)'
+                      }}
+                    />
+                    <button
+                      onClick={() => setEditGoalsForm(prev => ({ ...prev, [key]: (prev[key] || 0) + step }))}
+                      style={{
+                        width: '36px', height: '36px', borderRadius: '50%',
+                        border: '1px solid var(--border-color, #e2e8f0)',
+                        background: 'var(--bg-secondary, #f8fafc)',
+                        color: 'var(--text-primary, #1e293b)',
+                        fontSize: '1.2rem', cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center'
+                      }}
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+              ))}
+              <button
+                onClick={handleSaveGoals}
+                disabled={savingGoals}
+                style={{
+                  marginTop: '8px', padding: '12px', borderRadius: '10px',
+                  border: 'none', background: '#3b82f6', color: '#fff',
+                  fontSize: '1rem', fontWeight: 600, cursor: savingGoals ? 'not-allowed' : 'pointer',
+                  opacity: savingGoals ? 0.6 : 1
+                }}
+              >
+                {savingGoals ? 'Saving...' : 'Save Goals'}
+              </button>
             </div>
           </div>
         </div>
