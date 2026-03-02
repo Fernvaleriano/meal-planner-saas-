@@ -9,11 +9,31 @@ const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.s
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
 // Standard CORS headers
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '').split(',').filter(Boolean);
+
+function getAllowedOrigin(requestOrigin) {
+  if (ALLOWED_ORIGINS.length === 0) return '*';
+  if (ALLOWED_ORIGINS.includes(requestOrigin)) return requestOrigin;
+  return ALLOWED_ORIGINS[0];
+}
+
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': ALLOWED_ORIGINS.length > 0 ? ALLOWED_ORIGINS[0] : '*',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
   'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS'
 };
+
+/**
+ * Build CORS headers for a specific request origin
+ */
+function getCorsHeaders(event) {
+  if (ALLOWED_ORIGINS.length === 0) return corsHeaders;
+  const origin = event?.headers?.origin || event?.headers?.Origin || '';
+  return {
+    ...corsHeaders,
+    'Access-Control-Allow-Origin': getAllowedOrigin(origin)
+  };
+}
 
 /**
  * Handle CORS preflight requests
@@ -22,7 +42,7 @@ function handleCors(event) {
   if (event.httpMethod === 'OPTIONS') {
     return {
       statusCode: 200,
-      headers: corsHeaders,
+      headers: getCorsHeaders(event),
       body: ''
     };
   }
@@ -247,6 +267,7 @@ function rateLimitResponse(resetIn) {
 
 module.exports = {
   corsHeaders,
+  getCorsHeaders,
   handleCors,
   unauthorizedResponse,
   forbiddenResponse,

@@ -45,6 +45,10 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Zique Fitness needs camera access to take photos of your meals for food logging and progress photos.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Zique Fitness needs photo library access to select meal photos for food logging and progress photos.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Zique Fitness needs microphone access for voice food logging and voice notes.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>

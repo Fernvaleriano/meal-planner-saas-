@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Moon, Camera, Lock, LogOut, ChevronRight, Loader, Users, Scale } from 'lucide-react';
-import { apiGet, apiPost } from '../utils/api';
+import { Moon, Camera, Lock, LogOut, ChevronRight, Loader, Users, Scale, Trash2, FileText, Shield, ExternalLink } from 'lucide-react';
+import { apiGet, apiPost, apiDelete } from '../utils/api';
 import { supabase } from '../utils/supabase';
 import { usePullToRefreshEvent } from '../hooks/usePullToRefreshEvent';
 
@@ -36,6 +36,11 @@ function Settings() {
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [passwordMessage, setPasswordMessage] = useState(null);
+
+  // Delete account states
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
 
   // Exercise gender preference states
   const [exerciseGenderPref, setExerciseGenderPref] = useState(
@@ -213,6 +218,29 @@ function Settings() {
   const handleLogout = async () => {
     if (window.confirm('Are you sure you want to log out?')) {
       await logout();
+    }
+  };
+
+  // Handle account deletion
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmText !== 'DELETE') return;
+
+    setDeleteLoading(true);
+    try {
+      const response = await apiDelete('/.netlify/functions/delete-my-account');
+      if (response.success) {
+        alert('Your account has been deleted.');
+        await logout();
+      } else {
+        throw new Error(response.error || 'Failed to delete account');
+      }
+    } catch (err) {
+      console.error('Delete account error:', err);
+      alert(err.message || 'Failed to delete account. Please try again.');
+    } finally {
+      setDeleteLoading(false);
+      setShowDeleteModal(false);
+      setDeleteConfirmText('');
     }
   };
 
@@ -466,6 +494,51 @@ function Settings() {
             </div>
           </div>
         </div>
+
+        <div className="settings-divider"></div>
+
+        <div className="settings-item clickable" onClick={() => setShowDeleteModal(true)}>
+          <div className="settings-item-left">
+            <div className="settings-icon-box" style={{ backgroundColor: '#dc2626' }}>
+              <Trash2 size={20} />
+            </div>
+            <div className="settings-item-text">
+              <div className="settings-item-title" style={{ color: '#dc2626' }}>Delete Account</div>
+              <div className="settings-item-subtitle">Permanently delete your account and data</div>
+            </div>
+          </div>
+          <ChevronRight size={20} className="settings-chevron" />
+        </div>
+      </div>
+
+      {/* Legal Section */}
+      <div className="settings-card">
+        <div className="settings-card-title">LEGAL</div>
+        <a href="/privacy.html" target="_blank" rel="noopener noreferrer" className="settings-item clickable" style={{ textDecoration: 'none', color: 'inherit' }}>
+          <div className="settings-item-left">
+            <div className="settings-icon-box" style={{ backgroundColor: '#6366f1' }}>
+              <Shield size={20} />
+            </div>
+            <div className="settings-item-text">
+              <div className="settings-item-title">Privacy Policy</div>
+            </div>
+          </div>
+          <ExternalLink size={18} className="settings-chevron" />
+        </a>
+
+        <div className="settings-divider"></div>
+
+        <a href="/terms.html" target="_blank" rel="noopener noreferrer" className="settings-item clickable" style={{ textDecoration: 'none', color: 'inherit' }}>
+          <div className="settings-item-left">
+            <div className="settings-icon-box" style={{ backgroundColor: '#8b5cf6' }}>
+              <FileText size={20} />
+            </div>
+            <div className="settings-item-text">
+              <div className="settings-item-title">Terms of Service</div>
+            </div>
+          </div>
+          <ExternalLink size={18} className="settings-chevron" />
+        </a>
       </div>
 
       {/* Version Footer */}
@@ -523,6 +596,75 @@ function Settings() {
               >
                 {passwordLoading && <Loader size={18} className="spin" />}
                 {passwordLoading ? 'Sending...' : 'Send Reset Email'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Account Modal */}
+      {showDeleteModal && (
+        <div className="modal-overlay active" onClick={() => { setShowDeleteModal(false); setDeleteConfirmText(''); }}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <button className="modal-close" onClick={() => { setShowDeleteModal(false); setDeleteConfirmText(''); }}>&times;</button>
+              <span style={{ fontWeight: 600, color: '#dc2626' }}>Delete Account</span>
+            </div>
+            <div className="modal-body" style={{ padding: '20px' }}>
+              <p style={{ marginBottom: '12px', color: 'var(--gray-600)' }}>
+                This will <strong>permanently delete</strong> your account and all associated data including:
+              </p>
+              <ul style={{ marginBottom: '16px', color: 'var(--gray-600)', paddingLeft: '20px', lineHeight: '1.8' }}>
+                <li>Food diary entries</li>
+                <li>Progress photos</li>
+                <li>Workout logs</li>
+                <li>Chat messages</li>
+                <li>Check-in history</li>
+              </ul>
+              <p style={{ marginBottom: '16px', color: '#dc2626', fontWeight: 600 }}>
+                This action cannot be undone.
+              </p>
+              <p style={{ marginBottom: '8px', color: 'var(--gray-600)', fontSize: '0.9rem' }}>
+                Type <strong>DELETE</strong> to confirm:
+              </p>
+              <input
+                type="text"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder="DELETE"
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  borderRadius: '8px',
+                  border: '1px solid var(--gray-300)',
+                  marginBottom: '16px',
+                  fontSize: '1rem',
+                  boxSizing: 'border-box',
+                  backgroundColor: 'var(--bg-primary)',
+                  color: 'var(--text-primary)'
+                }}
+              />
+              <button
+                onClick={handleDeleteAccount}
+                disabled={deleteLoading || deleteConfirmText !== 'DELETE'}
+                style={{
+                  width: '100%',
+                  padding: '14px',
+                  borderRadius: '8px',
+                  background: (deleteLoading || deleteConfirmText !== 'DELETE') ? '#94a3b8' : '#dc2626',
+                  color: 'white',
+                  border: 'none',
+                  fontWeight: 600,
+                  fontSize: '1rem',
+                  cursor: (deleteLoading || deleteConfirmText !== 'DELETE') ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px'
+                }}
+              >
+                {deleteLoading && <Loader size={18} className="spin" />}
+                {deleteLoading ? 'Deleting...' : 'Delete My Account'}
               </button>
             </div>
           </div>
