@@ -229,15 +229,21 @@ function Settings() {
     try {
       const response = await apiDelete('/.netlify/functions/delete-my-account');
       if (response.success) {
-        alert('Your account has been deleted.');
-        await logout();
+        // Account is gone on the server. logout() may throw because the
+        // auth user no longer exists — swallow that error and force-navigate.
+        try {
+          await logout();
+        } catch {
+          // Auth user already deleted; just redirect
+          window.location.href = '/app';
+        }
+        return; // Don't run the finally cleanup — component is unmounting
       } else {
         throw new Error(response.error || 'Failed to delete account');
       }
     } catch (err) {
       console.error('Delete account error:', err);
       alert(err.message || 'Failed to delete account. Please try again.');
-    } finally {
       setDeleteLoading(false);
       setShowDeleteModal(false);
       setDeleteConfirmText('');
