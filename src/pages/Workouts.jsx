@@ -3957,7 +3957,7 @@ function Workouts() {
                 <span className="stat-label">Calories</span>
               </div>
               <div className="summary-stat-card">
-                <span className="stat-value">{exercises.length}</span>
+                <span className="stat-value">{completedExercises.size}</span>
                 <span className="stat-label">Activities</span>
               </div>
               <div className="summary-stat-card">
@@ -4032,7 +4032,7 @@ function Workouts() {
                     )}
                     {shareToggles.activities && (
                       <div className="share-stat">
-                        <span className="share-stat-value">{exercises.length}</span>
+                        <span className="share-stat-value">{completedExercises.size}</span>
                         <span className="share-stat-label">Activities</span>
                       </div>
                     )}
@@ -4085,7 +4085,7 @@ function Workouts() {
               {[
                 { key: 'duration', label: 'Duration', value: formatDuration(workoutDuration || estimateWorkoutMinutes(exercises) || todayWorkout?.workout_data?.estimatedMinutes || 45) },
                 { key: 'calories', label: 'Calories', value: estimatedCalories },
-                { key: 'activities', label: 'Activities', value: exercises.length },
+                { key: 'activities', label: 'Activities', value: completedExercises.size },
                 { key: 'lifted', label: 'Lifted', value: `${totalLifted > 0 ? totalLifted.toLocaleString() : 0} ${weightUnit}` },
                 { key: 'sets', label: 'Sets', value: totalSets },
                 ...(workoutPRs.length > 0 ? [{ key: 'prs', label: 'New PRs', value: `${workoutPRs.length} PR${workoutPRs.length !== 1 ? 's' : ''}` }] : [])
