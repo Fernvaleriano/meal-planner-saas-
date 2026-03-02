@@ -382,6 +382,7 @@ function ExerciseDetailModal({
   const [thumbnailUploading, setThumbnailUploading] = useState(false);
   const [localThumbnailUrl, setLocalThumbnailUrl] = useState(null);
   const thumbnailInputRef = useRef(null);
+  const activityThumbsRef = useRef(null);
 
 
   // Voice input state
@@ -390,6 +391,17 @@ function ExerciseDetailModal({
   const [voiceError, setVoiceError] = useState(null);
   const [lastTranscript, setLastTranscript] = useState('');
   const recognitionRef = useRef(null);
+
+  // Auto-scroll activity thumbnails to keep current exercise visible
+  useEffect(() => {
+    if (activityThumbsRef.current && currentIndex >= 0) {
+      const container = activityThumbsRef.current;
+      const activeThumb = container.children[currentIndex];
+      if (activeThumb) {
+        activeThumb.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+      }
+    }
+  }, [currentIndex]);
 
   // Check for voice support on mount
   useEffect(() => {
@@ -2480,8 +2492,8 @@ function ExerciseDetailModal({
             <div className="activity-header">
               <span>Activity {currentIndex + 1}/{exercises.length}</span>
             </div>
-            <div className="activity-thumbnails">
-              {exercises.slice(0, 7).map((ex, idx) => {
+            <div className="activity-thumbnails" ref={activityThumbsRef}>
+              {exercises.map((ex, idx) => {
                 const exThumb = (ex?.thumbnail_url && !isVideoUrl(ex?.thumbnail_url) ? ex.thumbnail_url : null) ||
                   (isImageUrl(ex?.animation_url) ? ex?.animation_url : null) ||
                   '/img/exercise-placeholder.svg';
