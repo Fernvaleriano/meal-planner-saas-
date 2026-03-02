@@ -1197,6 +1197,11 @@ a.nav-left {
     padding: 0;
 }
 
+/* PullToRefreshWrapper needs min-height so the pull gesture works on short pages */
+.pull-to-refresh-container {
+    min-height: 100%;
+}
+
 /* Messages page - keep input bar visible above bottom nav */
 .main-content.messages-page {
     padding: 0;

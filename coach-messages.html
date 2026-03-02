@@ -1035,7 +1035,12 @@
             });
 
             area.innerHTML = html;
-            area.scrollTop = area.scrollHeight;
+            // Use double-rAF to ensure the browser has completed layout before scrolling
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    area.scrollTop = area.scrollHeight;
+                });
+            });
         }
 
         function escapeHtml(str) {

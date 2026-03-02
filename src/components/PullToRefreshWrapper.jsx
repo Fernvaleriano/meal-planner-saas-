@@ -70,7 +70,7 @@ export default function PullToRefreshWrapper({ children }) {
   const showIndicator = !hasOwnPullToRefresh(location.pathname);
 
   return (
-    <div ref={bindToContainer} style={{ minHeight: '100%' }}>
+    <div ref={bindToContainer} className="pull-to-refresh-container">
       {showIndicator && (
         <PullToRefreshIndicator indicatorRef={indicatorRef} />
       )}
