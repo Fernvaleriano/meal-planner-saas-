@@ -13,153 +13,140 @@ const headers = {
 };
 
 exports.handler = async (event) => {
-  // Handle CORS preflight
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers, body: '' };
   }
 
   if (!SUPABASE_SERVICE_KEY) {
-    return {
-      statusCode: 500,
-      headers,
-      body: JSON.stringify({ error: 'Server configuration error' })
-    };
+    console.error('[water] Missing SUPABASE_SERVICE_KEY');
+    return { statusCode: 500, headers, body: JSON.stringify({ error: 'Server configuration error' }) };
   }
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
   try {
-    // GET - Fetch water intake for a date
     if (event.httpMethod === 'GET') {
       const { clientId, date, timezone } = event.queryStringParameters || {};
-
       if (!clientId) {
-        return {
-          statusCode: 400,
-          headers,
-          body: JSON.stringify({ error: 'clientId is required' })
-        };
+        return { statusCode: 400, headers, body: JSON.stringify({ error: 'clientId is required' }) };
       }
 
       const targetDate = getDefaultDate(date, timezone);
 
-      const { data: intake, error } = await supabase
+      // Use .limit(1) instead of .single() — avoids errors with 0 or 2+ rows
+      const { data: rows, error } = await supabase
         .from('water_intake')
-        .select('*')
+        .select('glasses, goal')
         .eq('client_id', clientId)
         .eq('date', targetDate)
-        .single();
+        .order('updated_at', { ascending: false })
+        .limit(1);
 
-      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+      if (error) {
+        console.error('[water GET] DB error:', JSON.stringify(error));
         throw error;
       }
+
+      const row = rows && rows.length > 0 ? rows[0] : null;
 
       return {
         statusCode: 200,
         headers,
         body: JSON.stringify({
-          glasses: intake?.glasses || 0,
-          goal: intake?.goal || 8,
+          glasses: row?.glasses || 0,
+          goal: row?.goal || 8,
           date: targetDate
         })
       };
     }
 
-    // POST - Update water intake (add/remove glasses)
     if (event.httpMethod === 'POST') {
       const body = JSON.parse(event.body || '{}');
       const { clientId, glasses, date, action, timezone } = body;
 
+      console.log('[water POST] Received:', JSON.stringify({ clientId, glasses, date, action }));
+
       if (!clientId) {
-        return {
-          statusCode: 400,
-          headers,
-          body: JSON.stringify({ error: 'clientId is required' })
-        };
+        return { statusCode: 400, headers, body: JSON.stringify({ error: 'clientId is required' }) };
       }
 
       const targetDate = getDefaultDate(date, timezone);
       const goal = 8;
       let newGlasses = 0;
 
-      if (action === 'add' || action === 'remove' || action === 'complete') {
-        // For relative actions, read the current value first
-        const { data: existing } = await supabase
-          .from('water_intake')
-          .select('glasses')
-          .eq('client_id', clientId)
-          .eq('date', targetDate)
-          .single();
+      // Check for existing row (use .limit(1) — never .single())
+      const { data: existingRows, error: lookupErr } = await supabase
+        .from('water_intake')
+        .select('id, glasses')
+        .eq('client_id', clientId)
+        .eq('date', targetDate)
+        .order('updated_at', { ascending: false })
+        .limit(1);
 
-        const current = existing?.glasses || 0;
-        if (action === 'add') {
-          newGlasses = Math.min(goal, current + (glasses || 1));
-        } else if (action === 'remove') {
-          newGlasses = Math.max(0, current - (glasses || 1));
-        } else {
-          newGlasses = goal;
-        }
+      if (lookupErr) {
+        console.error('[water POST] Lookup error:', JSON.stringify(lookupErr));
+        throw lookupErr;
+      }
+
+      const existing = existingRows && existingRows.length > 0 ? existingRows[0] : null;
+
+      // Calculate the new value
+      if (action === 'add') {
+        newGlasses = Math.min(goal, (existing?.glasses || 0) + (glasses || 1));
+      } else if (action === 'remove') {
+        newGlasses = Math.max(0, (existing?.glasses || 0) - (glasses || 1));
+      } else if (action === 'complete') {
+        newGlasses = goal;
       } else if (glasses !== null && glasses !== undefined) {
-        // Direct/absolute value — the client already computed the value
-        const parsedGlasses = typeof glasses === 'string' ? parseInt(glasses, 10) : glasses;
-        if (!isNaN(parsedGlasses)) {
-          newGlasses = Math.max(0, Math.min(goal, parsedGlasses));
+        const parsed = typeof glasses === 'string' ? parseInt(glasses, 10) : glasses;
+        if (!isNaN(parsed)) {
+          newGlasses = Math.max(0, Math.min(goal, parsed));
         }
       }
 
-      // Try UPDATE first, fall back to INSERT if no row exists
-      // (Cannot use upsert — table has no unique constraint on client_id+date)
-      const { data: updated, error: updateErr } = await supabase
-        .from('water_intake')
-        .update({
-          glasses: newGlasses,
-          updated_at: new Date().toISOString()
-        })
-        .eq('client_id', clientId)
-        .eq('date', targetDate)
-        .select()
-        .single();
+      console.log('[water POST] existing:', existing?.id, 'newGlasses:', newGlasses);
 
-      let intake = updated;
+      if (existing) {
+        // UPDATE by primary key
+        const { error: updateErr } = await supabase
+          .from('water_intake')
+          .update({ glasses: newGlasses, updated_at: new Date().toISOString() })
+          .eq('id', existing.id);
 
-      if (updateErr && updateErr.code === 'PGRST116') {
-        // No existing row — insert a new one
-        const { data: inserted, error: insertErr } = await supabase
+        if (updateErr) {
+          console.error('[water POST] Update error:', JSON.stringify(updateErr));
+          throw updateErr;
+        }
+        console.log('[water POST] Updated row', existing.id, 'to', newGlasses);
+      } else {
+        // INSERT new row
+        const { error: insertErr } = await supabase
           .from('water_intake')
           .insert({
             client_id: clientId,
             date: targetDate,
             glasses: newGlasses,
             goal: goal
-          })
-          .select()
-          .single();
+          });
 
-        if (insertErr) throw insertErr;
-        intake = inserted;
-      } else if (updateErr) {
-        throw updateErr;
+        if (insertErr) {
+          console.error('[water POST] Insert error:', JSON.stringify(insertErr));
+          throw insertErr;
+        }
+        console.log('[water POST] Inserted new row with', newGlasses);
       }
 
       return {
         statusCode: 200,
         headers,
-        body: JSON.stringify({
-          success: true,
-          glasses: intake?.glasses ?? newGlasses,
-          goal: goal
-        })
+        body: JSON.stringify({ success: true, glasses: newGlasses, goal })
       };
     }
 
-    return {
-      statusCode: 405,
-      headers,
-      body: JSON.stringify({ error: 'Method not allowed' })
-    };
+    return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method not allowed' }) };
 
   } catch (err) {
-    console.error('Water intake error:', err);
+    console.error('[water] Unhandled error:', err.message, err.code, err.details);
     return {
       statusCode: 500,
       headers,
