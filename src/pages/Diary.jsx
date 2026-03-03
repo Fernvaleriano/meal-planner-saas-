@@ -64,7 +64,6 @@ function Diary() {
   const [goals, setGoals] = useState(cachedDiary?.goals || getGenderBasedDefaults(clientData?.gender));
   const [waterIntake, setWaterIntake] = useState(cachedDiary?.water || 0);
   const [waterGoal] = useState(8);
-  const [waterError, setWaterError] = useState(false); // true if last save failed
   const [aiInput, setAiInput] = useState('');
   const [aiLogging, setAiLogging] = useState(false);
   const [selectedMealType, setSelectedMealType] = useState('snack');
@@ -125,9 +124,8 @@ function Diary() {
   const audioChunksRef = useRef([]);
   const preVoiceInputRef = useRef('');
 
-  // Water save: debounce timer + pending value ref for rapid taps
-  const waterDebounceRef = useRef(null);
-  const waterPendingRef = useRef(null);
+  // Water: tracks latest tapped value for rapid-tap accuracy
+  const waterLatestRef = useRef(null);
 
   // Food search states
   const [searchQuery, setSearchQuery] = useState('');
@@ -251,7 +249,6 @@ function Diary() {
       .then(waterData => {
         const newWater = waterData?.glasses || 0;
         setWaterIntake(newWater);
-        waterPendingRef.current = null;
         const existing = getCache(cacheKey) || {};
         setCache(cacheKey, { ...existing, water: newWater });
       })
@@ -317,33 +314,6 @@ function Diary() {
   // Cleanup timers and microphone on component unmount
   useEffect(() => {
     return () => {
-      // Flush any pending water save immediately before unmount
-      if (waterDebounceRef.current) {
-        clearTimeout(waterDebounceRef.current);
-        waterDebounceRef.current = null;
-      }
-      if (waterPendingRef.current !== null) {
-        const pending = waterPendingRef.current;
-        waterPendingRef.current = null;
-        // Use sendBeacon for reliable delivery even during page unload
-        const dateStr = formatDateKey(new Date());
-        const payload = JSON.stringify({
-          clientId: clientData?.id,
-          date: dateStr,
-          glasses: pending,
-          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
-        });
-        if (navigator.sendBeacon) {
-          navigator.sendBeacon('/.netlify/functions/water-intake', new Blob([payload], { type: 'application/json' }));
-        } else {
-          fetch('/.netlify/functions/water-intake', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: payload,
-            keepalive: true
-          }).catch(() => {});
-        }
-      }
       if (recognitionRef.current) {
         const rec = recognitionRef.current;
         recognitionRef.current = null;
@@ -645,22 +615,19 @@ function Diary() {
 
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-    // Load water via direct fetch (bypasses auth chain entirely)
-    // The backend uses service key, so auth headers are unnecessary
+    // Load water via direct fetch (no auth wrapper — backend uses service key)
     fetch(`/.netlify/functions/water-intake?clientId=${encodeURIComponent(clientData.id)}&date=${dateStr}&timezone=${encodeURIComponent(timezone)}`)
-      .then(res => res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`)))
-      .then(waterData => {
-        const newWater = waterData?.glasses || 0;
-        setWaterIntake(newWater);
-        waterPendingRef.current = null;
-        // Update only the water portion of cache (don't clobber diary data)
-        const existing = getCache(cacheKey) || {};
-        setCache(cacheKey, { ...existing, water: newWater });
+      .then(res => {
+        if (!res.ok) throw new Error(`Water GET failed: ${res.status}`);
+        return res.json();
       })
-      .catch(err => {
-        // On failure, keep the current value — NEVER reset to 0
-        console.error('Water load failed (keeping current value):', err);
-      });
+      .then(data => {
+        const w = data?.glasses || 0;
+        setWaterIntake(w);
+        const c = getCache(cacheKey) || {};
+        setCache(cacheKey, { ...c, water: w });
+      })
+      .catch(err => console.error(err));
 
     // Load diary + interactions via auth wrapper (these need auth)
     Promise.all([
@@ -715,64 +682,37 @@ function Diary() {
 
   }, [clientData?.id, currentDate]);
 
-  // Handle water intake actions - debounced save via direct fetch
-  // Bypasses the entire apiPost/authenticatedFetch/getAuthToken chain
-  // which can hang due to resumeGate, session refresh, or AbortController timeouts
+  // Save water to server — fire-and-forget, keepalive ensures delivery
+  const saveWater = (clientId, dateStr, value) => {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    fetch('/.netlify/functions/water-intake', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      keepalive: true,
+      body: JSON.stringify({ clientId, date: dateStr, glasses: value, timezone: tz })
+    }).catch(err => console.error('Water save error:', err));
+  };
+
+  // Handle water intake tap
   const handleWaterAction = (action, amount = 1) => {
     if (!clientData?.id) return;
 
-    // Calculate new value based on pending ref (survives between rapid taps)
-    const currentValue = waterPendingRef.current !== null ? waterPendingRef.current : waterIntake;
-    let newGlasses = currentValue;
+    const current = waterLatestRef.current !== null ? waterLatestRef.current : waterIntake;
+    let next = current;
+    if (action === 'add') next = Math.min(waterGoal, current + amount);
+    else if (action === 'remove') next = Math.max(0, current - amount);
+    else if (action === 'complete') next = waterGoal;
 
-    if (action === 'add') {
-      newGlasses = Math.min(waterGoal, currentValue + amount);
-    } else if (action === 'remove') {
-      newGlasses = Math.max(0, currentValue - amount);
-    } else if (action === 'complete') {
-      newGlasses = waterGoal;
-    }
-
-    // Update UI + ref + cache immediately (synchronous, no async gaps)
-    setWaterIntake(newGlasses);
-    waterPendingRef.current = newGlasses;
-    setWaterError(false);
-
+    // Update UI + cache + ref immediately
+    setWaterIntake(next);
+    waterLatestRef.current = next;
     const dateStr = formatDate(currentDate);
     const cacheKey = `diary_${clientData.id}_${dateStr}`;
-    const cached = getCache(cacheKey) || {};
-    setCache(cacheKey, { ...cached, water: newGlasses });
+    const c = getCache(cacheKey) || {};
+    setCache(cacheKey, { ...c, water: next });
 
-    // Debounce the actual network save — wait 600ms after last tap
-    // This prevents concurrent requests that cause server-side race conditions
-    if (waterDebounceRef.current) clearTimeout(waterDebounceRef.current);
-    waterDebounceRef.current = setTimeout(() => {
-      const valueToSave = waterPendingRef.current;
-      if (valueToSave === null || valueToSave === undefined) return;
-
-      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      fetch('/.netlify/functions/water-intake', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          clientId: clientData.id,
-          date: dateStr,
-          glasses: valueToSave,
-          timezone
-        })
-      })
-        .then(res => {
-          if (!res.ok) return res.json().catch(() => ({})).then(d => { throw new Error(d.error || `HTTP ${res.status}`); });
-          // Only clear pending if the value hasn't changed during the request
-          if (waterPendingRef.current === valueToSave) {
-            waterPendingRef.current = null;
-          }
-        })
-        .catch(err => {
-          console.error('Water save failed:', err);
-          setWaterError(true);
-        });
-    }, 600);
+    // Save immediately — keepalive:true means it survives page navigation
+    saveWater(clientData.id, dateStr, next);
   };
 
   // Handle AI food logging
@@ -2345,7 +2285,7 @@ function Diary() {
         <div className="water-intake-left">
           <Droplets size={18} className="water-icon" />
           <span className="water-label">Water</span>
-          <span className="water-progress">{waterIntake}/{waterGoal}{waterError ? ' !' : ''}</span>
+          <span className="water-progress">{waterIntake}/{waterGoal}</span>
         </div>
         <div className="water-intake-controls">
           <button
