@@ -121,8 +121,16 @@ export function SnapPhotoModal({ isOpen, onClose, mealType, clientData, onFoodLo
         setError('No food detected in the image. Try adding details or take a clearer photo.');
       }
     } catch (err) {
-      setError('Failed to analyze photo. Please try again.');
-      console.error(err);
+      console.error('Photo analysis error:', err);
+      if (err.isTimeout) {
+        setError('Photo analysis timed out. Please check your connection and try again.');
+      } else if (err.isAuthError) {
+        setError('Session expired. Please close this modal, refresh the page, and try again.');
+      } else if (err.status === 429) {
+        setError('Too many requests. Please wait a moment and try again.');
+      } else {
+        setError(`Failed to analyze photo: ${err.message || 'Unknown error'}`);
+      }
     } finally {
       setAnalyzing(false);
     }
@@ -886,8 +894,16 @@ export function ScanLabelModal({ isOpen, onClose, mealType, clientData, onFoodLo
         setError('Could not read nutrition label. Please try a clearer photo.');
       }
     } catch (err) {
-      setError('Failed to analyze label. Please try again.');
-      console.error(err);
+      console.error('Label analysis error:', err);
+      if (err.isTimeout) {
+        setError('Label analysis timed out. Please check your connection and try again.');
+      } else if (err.isAuthError) {
+        setError('Session expired. Please close this modal, refresh the page, and try again.');
+      } else if (err.status === 429) {
+        setError('Too many requests. Please wait a moment and try again.');
+      } else {
+        setError(`Failed to analyze label: ${err.message || 'Unknown error'}`);
+      }
     } finally {
       setAnalyzing(false);
     }

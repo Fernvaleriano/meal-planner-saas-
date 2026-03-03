@@ -177,7 +177,7 @@ Take your time to be accurate. Return ONLY the JSON array.`;
         try {
             const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
             message = await anthropic.messages.create({
-                model: 'claude-sonnet-4-5-20250514',
+                model: 'claude-sonnet-4-5-20250929',
                 max_tokens: 1024,
                 messages: [{
                     role: 'user',
