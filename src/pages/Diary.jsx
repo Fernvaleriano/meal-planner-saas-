@@ -64,6 +64,7 @@ function Diary() {
   const [goals, setGoals] = useState(cachedDiary?.goals || getGenderBasedDefaults(clientData?.gender));
   const [waterIntake, setWaterIntake] = useState(cachedDiary?.water || 0);
   const [waterGoal] = useState(8);
+  const [waterSaving, setWaterSaving] = useState(false); // true while save in flight
   const [aiInput, setAiInput] = useState('');
   const [aiLogging, setAiLogging] = useState(false);
   const [selectedMealType, setSelectedMealType] = useState('snack');
@@ -657,8 +658,9 @@ function Diary() {
 
   }, [clientData?.id, currentDate]);
 
-  // Handle water intake actions - saves immediately per tap
-  const handleWaterAction = (action, amount = 1) => {
+  // Handle water intake actions - saves immediately per tap via direct fetch
+  // Bypasses apiPost/authenticatedFetch chain which can hang on mobile
+  const handleWaterAction = async (action, amount = 1) => {
     if (!clientData?.id) return;
 
     // Calculate new value based on current pending value or current state
@@ -683,19 +685,34 @@ function Diary() {
     const cached = getCache(cacheKey) || {};
     setCache(cacheKey, { ...cached, water: newGlasses });
 
-    // Save to server immediately (no debounce - max 8 taps, not worth the risk)
-    apiPost('/.netlify/functions/water-intake', {
-      clientId: clientData.id,
-      date: dateStr,
-      glasses: newGlasses
-    }).then(() => {
+    // Save via direct fetch - bypasses auth wrapper entirely
+    // The backend uses service key, not user token, so auth header is unnecessary
+    setWaterSaving(true);
+    try {
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const res = await fetch('/.netlify/functions/water-intake', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientId: clientData.id,
+          date: dateStr,
+          glasses: newGlasses,
+          timezone
+        })
+      });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || `HTTP ${res.status}`);
+      }
       // Clear pending ref only if value hasn't changed since this save started
       if (waterPendingRef.current === newGlasses) {
         waterPendingRef.current = null;
       }
-    }).catch(err => {
-      console.error('Error saving water intake:', err);
-    });
+    } catch (err) {
+      console.error('Water save failed:', err);
+    } finally {
+      setWaterSaving(false);
+    }
   };
 
   // Handle AI food logging
@@ -2268,7 +2285,7 @@ function Diary() {
         <div className="water-intake-left">
           <Droplets size={18} className="water-icon" />
           <span className="water-label">Water</span>
-          <span className="water-progress">{waterIntake}/{waterGoal}</span>
+          <span className="water-progress">{waterIntake}/{waterGoal}{waterSaving ? ' ...' : ''}</span>
         </div>
         <div className="water-intake-controls">
           <button
