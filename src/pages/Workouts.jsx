@@ -3949,10 +3949,6 @@ function Workouts() {
             </div>
             <div className="summary-stats-grid">
               <div className="summary-stat-card">
-                <span className="stat-value">{formatDuration(workoutDuration || estimateWorkoutMinutes(exercises) || todayWorkout?.workout_data?.estimatedMinutes || 45)}</span>
-                <span className="stat-label">Duration</span>
-              </div>
-              <div className="summary-stat-card">
                 <span className="stat-value">{estimatedCalories}</span>
                 <span className="stat-label">Calories</span>
               </div>
@@ -3964,9 +3960,13 @@ function Workouts() {
                 <span className="stat-value">{totalLifted > 0 ? totalLifted.toLocaleString() : '--'}</span>
                 <span className="stat-label">Lifted ({weightUnit})</span>
               </div>
-              <div className="summary-stat-card full">
+              <div className="summary-stat-card">
                 <span className="stat-value">{totalSets}</span>
                 <span className="stat-label">Sets</span>
+              </div>
+              <div className="summary-stat-card full">
+                <span className="stat-value">{formatDuration(workoutDuration || estimateWorkoutMinutes(exercises) || todayWorkout?.workout_data?.estimatedMinutes || 45)}</span>
+                <span className="stat-label">Duration</span>
               </div>
             </div>
             {workoutPRs.length > 0 && (
@@ -4018,12 +4018,6 @@ function Workouts() {
                     <img src="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/Untitled%20design%20-%202026-02-10T171903.769.png" alt="Zique Fitness" className="share-card-logo" />
                   </div>
                   <div className="share-card-stats">
-                    {shareToggles.duration && (
-                      <div className="share-stat">
-                        <span className="share-stat-value">{formatDuration(workoutDuration || estimateWorkoutMinutes(exercises) || todayWorkout?.workout_data?.estimatedMinutes || 45)}</span>
-                        <span className="share-stat-label">Duration</span>
-                      </div>
-                    )}
                     {shareToggles.calories && (
                       <div className="share-stat">
                         <span className="share-stat-value">{estimatedCalories}</span>
@@ -4046,6 +4040,12 @@ function Workouts() {
                       <div className="share-stat">
                         <span className="share-stat-value">{totalSets}</span>
                         <span className="share-stat-label">Sets</span>
+                      </div>
+                    )}
+                    {shareToggles.duration && (
+                      <div className="share-stat">
+                        <span className="share-stat-value">{formatDuration(workoutDuration || estimateWorkoutMinutes(exercises) || todayWorkout?.workout_data?.estimatedMinutes || 45)}</span>
+                        <span className="share-stat-label">Duration</span>
                       </div>
                     )}
                   </div>
