@@ -465,6 +465,7 @@ function Workouts() {
   const [workoutHistory, setWorkoutHistory] = useState([]);
   const [workoutStartTime, setWorkoutStartTime] = useState(null);
   const [actualDurationMinutes, setActualDurationMinutes] = useState(null); // Actual elapsed duration from play mode (minutes)
+  const [guidedExerciseCount, setGuidedExerciseCount] = useState(0); // Number of exercises tracked by guided workout timer
 
   // States for reschedule/duplicate functionality
   const [showRescheduleModal, setShowRescheduleModal] = useState(false);
@@ -2520,6 +2521,8 @@ function Workouts() {
       // Store actual duration from play mode so summary/share displays it correctly
       if (elapsedSeconds && elapsedSeconds > 0) {
         setActualDurationMinutes(elapsedSeconds / 60);
+        // Track how many exercises were covered by the guided workout timer
+        setGuidedExerciseCount(exercisesOverride?.length || currentExercises.length);
       }
       // Clear localStorage completion cache since workout is done
       try {
@@ -2815,13 +2818,6 @@ function Workouts() {
     }
   }, [showError, showSuccess, refreshWeekSchedule]);
 
-  // Calculate workout duration — only use actual elapsed time from play mode
-  // Without play mode, returns 0 so display falls back to estimatedMinutes
-  const workoutDuration = useMemo(() => {
-    if (actualDurationMinutes && actualDurationMinutes > 0) return actualDurationMinutes;
-    return 0;
-  }, [actualDurationMinutes]);
-
   // Get exercises from workout with safety checks
   const exercises = useMemo(() => {
     try {
@@ -2885,6 +2881,21 @@ function Workouts() {
     }
   }, [todayWorkout, workoutLog]);
 
+  // Calculate workout duration — actual elapsed time from play mode
+  // plus estimated time for any exercises added after the guided workout ended
+  const workoutDuration = useMemo(() => {
+    if (actualDurationMinutes && actualDurationMinutes > 0) {
+      // If exercises were added after the guided workout, include their estimated time
+      if (guidedExerciseCount > 0 && exercises.length > guidedExerciseCount) {
+        const addedExercises = exercises.slice(guidedExerciseCount);
+        const addedMinutes = estimateWorkoutMinutes(addedExercises);
+        return actualDurationMinutes + addedMinutes;
+      }
+      return actualDurationMinutes;
+    }
+    return 0;
+  }, [actualDurationMinutes, guidedExerciseCount, exercises]);
+
   // Calculate total volume (sets x reps x weight estimate) - AFTER exercises is defined
   const totalVolume = useMemo(() => {
     let volume = 0;
@@ -2940,6 +2951,9 @@ function Workouts() {
     // Store actual duration from play mode timer if provided
     if (elapsedSeconds && elapsedSeconds > 0) {
       setActualDurationMinutes(Math.round(elapsedSeconds / 60));
+      // Track how many exercises were covered by the guided workout timer
+      // so we can add estimated time for any exercises added later
+      setGuidedExerciseCount(exercisesOverride?.length || exercises.length);
     }
     if (completedExercises.size < exercises.length && !exercisesOverride) {
       setShowFinishConfirm(true);
