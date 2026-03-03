@@ -287,7 +287,10 @@ async function authenticatedFetch(url, options = {}) {
       }
     }
 
-    const error = new Error(errorData.error || `HTTP ${response.status}`);
+    const msg = errorData.details
+      ? `${errorData.error}: ${errorData.details}`
+      : (errorData.error || `HTTP ${response.status}`);
+    const error = new Error(msg);
     error.status = response.status;
     error.isAuthError = response.status === 401 || response.status === 403;
     throw error;

@@ -393,7 +393,15 @@ function Dashboard() {
       setShowConfirmation(true);
     } catch (err) {
       console.error('Error analyzing food:', err);
-      alert('Error analyzing food. Please try again.');
+      if (err.isTimeout) {
+        alert('Food analysis timed out. Please check your connection and try again.');
+      } else if (err.isAuthError) {
+        alert('Session expired. Please refresh the page and try again.');
+      } else if (err.status === 429) {
+        alert('Too many requests. Please wait a moment and try again.');
+      } else {
+        alert(`Error analyzing food: ${err.message || 'Unknown error'}. Please try again.`);
+      }
     } finally {
       setIsLogging(false);
     }
