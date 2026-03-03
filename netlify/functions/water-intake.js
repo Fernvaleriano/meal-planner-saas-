@@ -107,24 +107,39 @@ exports.handler = async (event) => {
         }
       }
 
-      // Atomic upsert — eliminates race condition when concurrent requests
-      // both try to INSERT for the same (client_id, date)
-      const { data: intake, error } = await supabase
+      // Try UPDATE first, fall back to INSERT if no row exists
+      // (Cannot use upsert — table has no unique constraint on client_id+date)
+      const { data: updated, error: updateErr } = await supabase
         .from('water_intake')
-        .upsert(
-          {
-            client_id: clientId,
-            date: targetDate,
-            glasses: newGlasses,
-            goal: goal,
-            updated_at: new Date().toISOString()
-          },
-          { onConflict: 'client_id,date' }
-        )
+        .update({
+          glasses: newGlasses,
+          updated_at: new Date().toISOString()
+        })
+        .eq('client_id', clientId)
+        .eq('date', targetDate)
         .select()
         .single();
 
-      if (error) throw error;
+      let intake = updated;
+
+      if (updateErr && updateErr.code === 'PGRST116') {
+        // No existing row — insert a new one
+        const { data: inserted, error: insertErr } = await supabase
+          .from('water_intake')
+          .insert({
+            client_id: clientId,
+            date: targetDate,
+            glasses: newGlasses,
+            goal: goal
+          })
+          .select()
+          .single();
+
+        if (insertErr) throw insertErr;
+        intake = inserted;
+      } else if (updateErr) {
+        throw updateErr;
+      }
 
       return {
         statusCode: 200,
