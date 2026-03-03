@@ -223,7 +223,7 @@ Return ONLY the JSON array, nothing else.`;
 
         let content;
         try {
-            const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
+            const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY, maxRetries: 3 });
             const message = await anthropic.messages.create({
                 model: 'claude-haiku-4-5-20251001',
                 max_tokens: 1024,
@@ -235,11 +235,17 @@ Return ONLY the JSON array, nothing else.`;
             content = message.content?.[0]?.text || '';
         } catch (apiError) {
             console.error('Anthropic API error:', apiError);
+            const isOverloaded = apiError.status === 529 || apiError.error?.type === 'overloaded_error';
+            const isRateLimit = apiError.status === 429;
             return {
-                statusCode: 500,
+                statusCode: isOverloaded ? 503 : isRateLimit ? 429 : 500,
                 headers,
                 body: JSON.stringify({
-                    error: 'AI analysis failed',
+                    error: isOverloaded
+                        ? 'AI service is temporarily busy. Please try again in a moment.'
+                        : isRateLimit
+                        ? 'AI rate limit reached. Please wait a moment and try again.'
+                        : 'AI analysis failed',
                     details: apiError.message || 'Unknown API error'
                 })
             };

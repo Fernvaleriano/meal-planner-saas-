@@ -128,6 +128,8 @@ export function SnapPhotoModal({ isOpen, onClose, mealType, clientData, onFoodLo
         setError('Session expired. Please close this modal, refresh the page, and try again.');
       } else if (err.status === 429) {
         setError('Too many requests. Please wait a moment and try again.');
+      } else if (err.status === 503 || (err.message && err.message.includes('busy'))) {
+        setError('AI service is temporarily busy. Please try again in a moment.');
       } else {
         setError(`Failed to analyze photo: ${err.message || 'Unknown error'}`);
       }
@@ -901,6 +903,8 @@ export function ScanLabelModal({ isOpen, onClose, mealType, clientData, onFoodLo
         setError('Session expired. Please close this modal, refresh the page, and try again.');
       } else if (err.status === 429) {
         setError('Too many requests. Please wait a moment and try again.');
+      } else if (err.status === 503 || (err.message && err.message.includes('busy'))) {
+        setError('AI service is temporarily busy. Please try again in a moment.');
       } else {
         setError(`Failed to analyze label: ${err.message || 'Unknown error'}`);
       }
