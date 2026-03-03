@@ -12,10 +12,13 @@ import {
   Activity,
   Target,
   X,
-  Loader
+  Loader,
+  Pencil,
+  Check,
+  RotateCcw
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { apiGet } from '../utils/api';
+import { apiGet, apiPut } from '../utils/api';
 import { usePullToRefreshEvent } from '../hooks/usePullToRefreshEvent';
 
 // ---------------------------------------------------------------------------
@@ -360,6 +363,11 @@ export default function WorkoutHistory() {
   const [exerciseStats, setExerciseStats] = useState(null);
   const [loadingExerciseHistory, setLoadingExerciseHistory] = useState(false);
 
+  // Inline editing for sets
+  const [editingExerciseId, setEditingExerciseId] = useState(null);
+  const [editingSets, setEditingSets] = useState([]);
+  const [savingEdit, setSavingEdit] = useState(false);
+
   // -----------------------------------------------------------------------
   // Fetch workout list
   // -----------------------------------------------------------------------
@@ -452,6 +460,71 @@ export default function WorkoutHistory() {
     },
     [expandedExerciseId, resolvedClientId]
   );
+
+  // -----------------------------------------------------------------------
+  // Inline set editing
+  // -----------------------------------------------------------------------
+  const startEditingSets = useCallback((exercise) => {
+    let setsData = exercise.sets_data;
+    if (typeof setsData === 'string') {
+      try { setsData = JSON.parse(setsData); } catch { setsData = []; }
+    }
+    setEditingExerciseId(exercise.id);
+    setEditingSets((setsData || []).map(s => ({ ...s })));
+  }, []);
+
+  const cancelEditing = useCallback(() => {
+    setEditingExerciseId(null);
+    setEditingSets([]);
+  }, []);
+
+  const updateEditingSet = useCallback((idx, field, value) => {
+    setEditingSets(prev => {
+      const next = [...prev];
+      next[idx] = { ...next[idx], [field]: value };
+      return next;
+    });
+  }, []);
+
+  const saveEditedSets = useCallback(async (exercise) => {
+    if (!workoutDetail || savingEdit) return;
+    setSavingEdit(true);
+    try {
+      const setsToSave = editingSets.map((s, i) => ({
+        ...s,
+        setNumber: i + 1,
+        weight: Number(s.weight) || 0,
+        reps: Number(s.reps) || 0
+      }));
+
+      await apiPut('/.netlify/functions/workout-logs', {
+        workoutId: workoutDetail.id,
+        exercises: [{
+          id: exercise.id,
+          exerciseId: exercise.exercise_id,
+          exerciseName: exercise.exercise_name,
+          order: exercise.exercise_order,
+          sets: setsToSave
+        }]
+      });
+
+      // Refresh workout detail to show updated data
+      const res = await apiGet(
+        `/.netlify/functions/workout-logs?workoutId=${workoutDetail.id}`
+      );
+      setWorkoutDetail(res.workout || null);
+
+      // Also refresh the workout list so summary stats update
+      fetchWorkouts();
+
+      setEditingExerciseId(null);
+      setEditingSets([]);
+    } catch (err) {
+      console.error('Failed to save edited sets:', err);
+    } finally {
+      setSavingEdit(false);
+    }
+  }, [workoutDetail, editingSets, savingEdit, fetchWorkouts]);
 
   // -----------------------------------------------------------------------
   // Derived data
@@ -550,6 +623,8 @@ export default function WorkoutHistory() {
   };
 
   const renderExerciseSetsTable = (exercise) => {
+    const isEditing = editingExerciseId === exercise.id;
+
     let setsData = exercise.sets_data;
     if (typeof setsData === 'string') {
       try {
@@ -565,29 +640,95 @@ export default function WorkoutHistory() {
         </div>
       );
     }
+
+    const displaySets = isEditing ? editingSets : setsData;
+
     return (
-      <table className="workout-history-sets-table">
-        <thead>
-          <tr>
-            <th>Set</th>
-            <th>Weight</th>
-            <th>Reps</th>
-            <th>Type</th>
-          </tr>
-        </thead>
-        <tbody>
-          {setsData.map((set, idx) => (
-            <tr key={idx}>
-              <td>{idx + 1}</td>
-              <td>{set.weight || set.actualWeight || '--'}</td>
-              <td>{set.reps || set.actualReps || '--'}</td>
-              <td style={{ textTransform: 'capitalize', fontSize: '12px', color: '#94a3b8' }}>
-                {set.type || set.setType || 'working'}
-              </td>
+      <div>
+        <div className="workout-history-sets-header-row">
+          {!isEditing ? (
+            <button
+              className="workout-history-edit-btn"
+              onClick={(e) => { e.stopPropagation(); startEditingSets(exercise); }}
+              aria-label="Edit sets"
+            >
+              <Pencil size={14} />
+              Edit
+            </button>
+          ) : (
+            <div className="workout-history-edit-actions">
+              <button
+                className="workout-history-save-btn"
+                onClick={(e) => { e.stopPropagation(); saveEditedSets(exercise); }}
+                disabled={savingEdit}
+                aria-label="Save changes"
+              >
+                {savingEdit ? <Loader size={14} className="spinning" /> : <Check size={14} />}
+                {savingEdit ? 'Saving...' : 'Save'}
+              </button>
+              <button
+                className="workout-history-cancel-btn"
+                onClick={(e) => { e.stopPropagation(); cancelEditing(); }}
+                disabled={savingEdit}
+                aria-label="Cancel editing"
+              >
+                <RotateCcw size={14} />
+                Cancel
+              </button>
+            </div>
+          )}
+        </div>
+        <table className="workout-history-sets-table">
+          <thead>
+            <tr>
+              <th>Set</th>
+              <th>Weight</th>
+              <th>Reps</th>
+              <th>Type</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {displaySets.map((set, idx) => (
+              <tr key={idx}>
+                <td>{idx + 1}</td>
+                <td>
+                  {isEditing ? (
+                    <input
+                      type="number"
+                      className="workout-history-edit-input"
+                      value={set.weight ?? set.actualWeight ?? ''}
+                      onChange={(e) => updateEditingSet(idx, 'weight', e.target.value)}
+                      min="0"
+                      step="0.5"
+                      inputMode="decimal"
+                    />
+                  ) : (
+                    set.weight || set.actualWeight || '--'
+                  )}
+                </td>
+                <td>
+                  {isEditing ? (
+                    <input
+                      type="number"
+                      className="workout-history-edit-input"
+                      value={set.reps ?? set.actualReps ?? ''}
+                      onChange={(e) => updateEditingSet(idx, 'reps', e.target.value)}
+                      min="0"
+                      step="1"
+                      inputMode="numeric"
+                    />
+                  ) : (
+                    set.reps || set.actualReps || '--'
+                  )}
+                </td>
+                <td style={{ textTransform: 'capitalize', fontSize: '12px', color: '#94a3b8' }}>
+                  {set.type || set.setType || 'working'}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     );
   };
 
