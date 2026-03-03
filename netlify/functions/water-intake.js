@@ -79,64 +79,50 @@ exports.handler = async (event) => {
       }
 
       const targetDate = getDefaultDate(date, timezone);
-
-      // Get current intake
-      const { data: existing } = await supabase
-        .from('water_intake')
-        .select('*')
-        .eq('client_id', clientId)
-        .eq('date', targetDate)
-        .single();
-
-      let newGlasses = 0;
       const goal = 8;
+      let newGlasses = 0;
 
-      if (action === 'add') {
-        newGlasses = Math.min(goal, (existing?.glasses || 0) + (glasses || 1));
-      } else if (action === 'remove') {
-        newGlasses = Math.max(0, (existing?.glasses || 0) - (glasses || 1));
-      } else if (action === 'complete') {
-        newGlasses = goal;
+      if (action === 'add' || action === 'remove' || action === 'complete') {
+        // For relative actions, read the current value first
+        const { data: existing } = await supabase
+          .from('water_intake')
+          .select('glasses')
+          .eq('client_id', clientId)
+          .eq('date', targetDate)
+          .single();
+
+        const current = existing?.glasses || 0;
+        if (action === 'add') {
+          newGlasses = Math.min(goal, current + (glasses || 1));
+        } else if (action === 'remove') {
+          newGlasses = Math.max(0, current - (glasses || 1));
+        } else {
+          newGlasses = goal;
+        }
       } else if (glasses !== null && glasses !== undefined) {
-        // Handle direct glasses value (number or string)
+        // Direct/absolute value — the client already computed the value
         const parsedGlasses = typeof glasses === 'string' ? parseInt(glasses, 10) : glasses;
         if (!isNaN(parsedGlasses)) {
           newGlasses = Math.max(0, Math.min(goal, parsedGlasses));
         }
       }
 
-      // Use explicit insert or update instead of upsert for reliability
-      let intake;
-      let error;
-
-      if (existing) {
-        // Update existing record
-        const result = await supabase
-          .from('water_intake')
-          .update({
-            glasses: newGlasses,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', existing.id)
-          .select()
-          .single();
-        intake = result.data;
-        error = result.error;
-      } else {
-        // Insert new record
-        const result = await supabase
-          .from('water_intake')
-          .insert({
+      // Atomic upsert — eliminates race condition when concurrent requests
+      // both try to INSERT for the same (client_id, date)
+      const { data: intake, error } = await supabase
+        .from('water_intake')
+        .upsert(
+          {
             client_id: clientId,
             date: targetDate,
             glasses: newGlasses,
-            goal: goal
-          })
-          .select()
-          .single();
-        intake = result.data;
-        error = result.error;
-      }
+            goal: goal,
+            updated_at: new Date().toISOString()
+          },
+          { onConflict: 'client_id,date' }
+        )
+        .select()
+        .single();
 
       if (error) throw error;
 
@@ -145,7 +131,7 @@ exports.handler = async (event) => {
         headers,
         body: JSON.stringify({
           success: true,
-          glasses: intake?.glasses || newGlasses,
+          glasses: intake?.glasses ?? newGlasses,
           goal: goal
         })
       };
