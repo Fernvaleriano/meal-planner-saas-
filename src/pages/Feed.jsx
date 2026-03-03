@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sunrise, Sun, Moon, Apple, Filter, ChevronDown, ChevronUp, User, Calendar, RefreshCw, MessageCircle, Send, Dumbbell, TrendingUp, Award, Clock, Zap, Mic, Play, Loader2 } from 'lucide-react';
+import { Sunrise, Sun, Moon, Apple, Filter, ChevronDown, ChevronUp, User, Calendar, RefreshCw, MessageCircle, Send, Dumbbell, TrendingUp, Award, Clock, Zap, Mic, Play, Loader2, Reply, Check } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, apiDelete, ensureFreshSession } from '../utils/api';
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
@@ -277,6 +277,12 @@ function WorkoutFeedCard({ workout, coachId, onUpdate, weightUnit = 'lbs' }) {
   const [comment, setComment] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // Note reply state
+  const [replyingTo, setReplyingTo] = useState(null); // exercise index being replied to
+  const [replyText, setReplyText] = useState('');
+  const [replySending, setReplySending] = useState(false);
+  const [replySent, setReplySent] = useState({}); // { exerciseIdx: true } for sent indicators
+
   const [localReaction, setLocalReaction] = useState(
     workout.reactions?.length > 0 ? workout.reactions[0].reaction : null
   );
@@ -364,6 +370,40 @@ function WorkoutFeedCard({ workout, coachId, onUpdate, weightUnit = 'lbs' }) {
       console.error('Error adding comment:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Handle replying to a client note — sends as a chat message
+  const handleNoteReply = async (exerciseIdx, exerciseName) => {
+    if (!replyText.trim() || replySending) return;
+
+    setReplySending(true);
+    try {
+      await apiPost('/.netlify/functions/chat', {
+        action: 'send',
+        coachId,
+        clientId: workout.clientId,
+        senderType: 'coach',
+        message: `Re: ${exerciseName} note — ${replyText.trim()}`
+      });
+
+      // Show sent indicator
+      setReplySent(prev => ({ ...prev, [exerciseIdx]: true }));
+      setReplyText('');
+      setReplyingTo(null);
+
+      // Clear sent indicator after 3 seconds
+      setTimeout(() => {
+        setReplySent(prev => {
+          const next = { ...prev };
+          delete next[exerciseIdx];
+          return next;
+        });
+      }, 3000);
+    } catch (err) {
+      console.error('Error sending note reply:', err);
+    } finally {
+      setReplySending(false);
     }
   };
 
@@ -497,9 +537,58 @@ function WorkoutFeedCard({ workout, coachId, onUpdate, weightUnit = 'lbs' }) {
 
                     {/* Client text note */}
                     {exercise.clientNotes && (
-                      <div className="workout-feed-client-note">
-                        <MessageCircle size={12} />
-                        <span>{exercise.clientNotes}</span>
+                      <div className="workout-feed-note-wrapper">
+                        <div className="workout-feed-client-note">
+                          <MessageCircle size={12} />
+                          <span>{exercise.clientNotes}</span>
+                          <button
+                            className="note-reply-btn"
+                            onClick={() => {
+                              setReplyingTo(replyingTo === idx ? null : idx);
+                              setReplyText('');
+                            }}
+                            title="Reply via message"
+                          >
+                            <Reply size={12} />
+                          </button>
+                        </div>
+
+                        {/* Sent confirmation */}
+                        {replySent[idx] && (
+                          <div className="note-reply-sent">
+                            <Check size={12} />
+                            <span>Sent to messages</span>
+                          </div>
+                        )}
+
+                        {/* Inline reply input */}
+                        {replyingTo === idx && (
+                          <div className="note-reply-input-row">
+                            <input
+                              type="text"
+                              className="note-reply-input"
+                              placeholder={`Reply to ${workout.clientName}...`}
+                              value={replyText}
+                              onChange={(e) => setReplyText(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                  e.preventDefault();
+                                  handleNoteReply(idx, exercise.exerciseName || exercise.name);
+                                }
+                              }}
+                              disabled={replySending}
+                              maxLength={500}
+                              autoFocus
+                            />
+                            <button
+                              className="note-reply-send-btn"
+                              onClick={() => handleNoteReply(idx, exercise.exerciseName || exercise.name)}
+                              disabled={!replyText.trim() || replySending}
+                            >
+                              <Send size={14} />
+                            </button>
+                          </div>
+                        )}
                       </div>
                     )}
 

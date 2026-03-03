@@ -29518,6 +29518,133 @@ a.nav-left {
     color: #7c3aed;
 }
 
+/* Note reply styles */
+.workout-feed-note-wrapper {
+    display: flex;
+    flex-direction: column;
+}
+
+.workout-feed-client-note {
+    position: relative;
+}
+
+.note-reply-btn {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(139, 92, 246, 0.15);
+    border: none;
+    border-radius: 4px;
+    padding: 4px 6px;
+    cursor: pointer;
+    color: #a78bfa;
+    display: flex;
+    align-items: center;
+    opacity: 0;
+    transition: opacity 0.15s ease, background 0.15s ease;
+}
+
+.workout-feed-client-note:hover .note-reply-btn {
+    opacity: 1;
+}
+
+.note-reply-btn:hover {
+    background: rgba(139, 92, 246, 0.25);
+    color: #c4b5fd;
+}
+
+[data-theme="light"] .note-reply-btn {
+    background: rgba(139, 92, 246, 0.1);
+    color: #7c3aed;
+}
+
+[data-theme="light"] .note-reply-btn:hover {
+    background: rgba(139, 92, 246, 0.2);
+}
+
+.note-reply-input-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 6px;
+    padding: 0;
+}
+
+.note-reply-input {
+    flex: 1;
+    padding: 7px 10px;
+    border: 1px solid rgba(139, 92, 246, 0.3);
+    border-radius: 8px;
+    background: rgba(139, 92, 246, 0.06);
+    color: #e2e8f0;
+    font-size: 12px;
+    outline: none;
+    transition: border-color 0.15s ease;
+}
+
+.note-reply-input:focus {
+    border-color: #8b5cf6;
+}
+
+.note-reply-input::placeholder {
+    color: #64748b;
+}
+
+[data-theme="light"] .note-reply-input {
+    background: rgba(139, 92, 246, 0.04);
+    border-color: rgba(139, 92, 246, 0.2);
+    color: #1e293b;
+}
+
+[data-theme="light"] .note-reply-input::placeholder {
+    color: #94a3b8;
+}
+
+.note-reply-send-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border: none;
+    border-radius: 8px;
+    background: #8b5cf6;
+    color: white;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.15s ease, opacity 0.15s ease;
+}
+
+.note-reply-send-btn:hover:not(:disabled) {
+    background: #7c3aed;
+}
+
+.note-reply-send-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.note-reply-sent {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 4px;
+    padding: 3px 8px;
+    font-size: 11px;
+    color: #10b981;
+    animation: noteReplySentFade 0.3s ease;
+}
+
+.note-reply-sent svg {
+    flex-shrink: 0;
+}
+
+@keyframes noteReplySentFade {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
 .workout-feed-exercise-pr {
     background: #f59e0b;
     color: #0f0f0f;
