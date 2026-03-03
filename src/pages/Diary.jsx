@@ -124,10 +124,8 @@ function Diary() {
   const audioChunksRef = useRef([]);
   const preVoiceInputRef = useRef('');
 
-  // Water debounce ref
-  const waterDebounceRef = useRef(null);
+  // Tracks latest water value between rapid taps (before React re-renders)
   const waterPendingRef = useRef(null);
-  const waterSaveInfoRef = useRef(null);
 
   // Food search states
   const [searchQuery, setSearchQuery] = useState('');
@@ -305,20 +303,6 @@ function Diary() {
   // Cleanup timers and microphone on component unmount
   useEffect(() => {
     return () => {
-      // Flush any pending water save before unmount (don't discard it)
-      if (waterDebounceRef.current) clearTimeout(waterDebounceRef.current);
-      const pendingWater = waterPendingRef.current;
-      const saveInfo = waterSaveInfoRef.current;
-      if (pendingWater !== null && pendingWater !== undefined && saveInfo) {
-        waterPendingRef.current = null;
-        waterSaveInfoRef.current = null;
-        // Fire-and-forget: browser completes the request even after unmount
-        apiPost('/.netlify/functions/water-intake', {
-          clientId: saveInfo.clientId,
-          date: saveInfo.dateStr,
-          glasses: pendingWater
-        }).catch(() => {});
-      }
       if (recognitionRef.current) {
         const rec = recognitionRef.current;
         recognitionRef.current = null;
@@ -673,7 +657,7 @@ function Diary() {
 
   }, [clientData?.id, currentDate]);
 
-  // Handle water intake actions - debounced to allow rapid tapping
+  // Handle water intake actions - saves immediately per tap
   const handleWaterAction = (action, amount = 1) => {
     if (!clientData?.id) return;
 
@@ -695,37 +679,23 @@ function Diary() {
 
     // Update cache immediately
     const dateStr = formatDate(currentDate);
-    waterSaveInfoRef.current = { clientId: clientData.id, dateStr };
     const cacheKey = `diary_${clientData.id}_${dateStr}`;
     const cached = getCache(cacheKey) || {};
     setCache(cacheKey, { ...cached, water: newGlasses });
 
-    // Cancel previous debounce timer
-    if (waterDebounceRef.current) {
-      clearTimeout(waterDebounceRef.current);
-    }
-
-    // Set new debounce timer - save after 800ms of no tapping
-    waterDebounceRef.current = setTimeout(async () => {
-      const valueToSave = waterPendingRef.current;
-      waterPendingRef.current = null;
-      waterSaveInfoRef.current = null;
-
-      // Don't save if value is null or clientId is missing
-      if (valueToSave === null || valueToSave === undefined || !clientData?.id) {
-        return;
+    // Save to server immediately (no debounce - max 8 taps, not worth the risk)
+    apiPost('/.netlify/functions/water-intake', {
+      clientId: clientData.id,
+      date: dateStr,
+      glasses: newGlasses
+    }).then(() => {
+      // Clear pending ref only if value hasn't changed since this save started
+      if (waterPendingRef.current === newGlasses) {
+        waterPendingRef.current = null;
       }
-
-      try {
-        await apiPost('/.netlify/functions/water-intake', {
-          clientId: clientData.id,
-          date: dateStr,
-          glasses: valueToSave
-        });
-      } catch (err) {
-        console.error('Error saving water intake:', err);
-      }
-    }, 800);
+    }).catch(err => {
+      console.error('Error saving water intake:', err);
+    });
   };
 
   // Handle AI food logging
