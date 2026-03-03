@@ -399,8 +399,10 @@ function Dashboard() {
         alert('Session expired. Please refresh the page and try again.');
       } else if (err.status === 429) {
         alert('Too many requests. Please wait a moment and try again.');
+      } else if (err.status === 503 || (err.message && err.message.includes('busy'))) {
+        alert('AI service is temporarily busy. Please try again in a moment.');
       } else {
-        alert(`Error analyzing food: ${err.message || 'Unknown error'}. Please try again.`);
+        alert(`Error analyzing food: ${err.message || 'Unknown error'}`);
       }
     } finally {
       setIsLogging(false);
