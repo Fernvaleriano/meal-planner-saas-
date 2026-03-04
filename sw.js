@@ -67,7 +67,17 @@ const CACHEABLE_API_PATTERNS = [
   /\/\.netlify\/functions\/supplement-intake/,
   /\/\.netlify\/functions\/water-intake/,
   /\/\.netlify\/functions\/workout-logs/,
-  /\/\.netlify\/functions\/adhoc-workouts/
+  /\/\.netlify\/functions\/adhoc-workouts/,
+  // Navigation-time endpoints — cached so switching between pages in the
+  // bottom nav doesn't trigger a full reload (especially Messages)
+  /\/\.netlify\/functions\/chat/,
+  /\/\.netlify\/functions\/get-measurements/,
+  /\/\.netlify\/functions\/get-progress-photos/,
+  /\/\.netlify\/functions\/get-coach-stories/,
+  /\/\.netlify\/functions\/exercise-references/,
+  /\/\.netlify\/functions\/save-checkin/,
+  /\/\.netlify\/functions\/toggle-favorite/,
+  /\/\.netlify\/functions\/saved-meals/
 ];
 
 // Max age for cached API responses (5 minutes).
