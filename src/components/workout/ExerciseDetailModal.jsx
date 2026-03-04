@@ -2019,6 +2019,33 @@ function ExerciseDetailModal({
           )}
         </div>
 
+        {/* Reference Links — positioned under the video demo, above reps */}
+        {exercise.reference_links && exercise.reference_links.length > 0 && (
+          <div className="coach-reference-links-section">
+            <div className="reference-links-header">
+              <ExternalLink size={16} />
+              <span>Reference Links</span>
+            </div>
+            <div className="reference-links-list-modal">
+              {exercise.reference_links.map((link, idx) => (
+                <a
+                  key={idx}
+                  href={link.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`reference-link-row ${link.type || 'generic'}`}
+                >
+                  <span className={`ref-link-icon ${link.type || 'generic'}`}>
+                    {link.type === 'youtube' ? '▶' : link.type === 'instagram' ? '📷' : '🔗'}
+                  </span>
+                  <span className="ref-link-text">{link.title || link.url}</span>
+                  <ExternalLink size={14} className="ref-link-arrow" />
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Difficulty */}
         <div className="difficulty-section">
           <BarChart3 size={16} />
@@ -2434,33 +2461,6 @@ function ExerciseDetailModal({
               <span>Coach Note</span>
             </div>
             <p className="coach-note-text">{exercise.notes}</p>
-          </div>
-        )}
-
-        {/* Reference Links */}
-        {exercise.reference_links && exercise.reference_links.length > 0 && (
-          <div className="coach-reference-links-section">
-            <div className="reference-links-header">
-              <ExternalLink size={16} />
-              <span>Reference Links</span>
-            </div>
-            <div className="reference-links-list-modal">
-              {exercise.reference_links.map((link, idx) => (
-                <a
-                  key={idx}
-                  href={link.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`reference-link-row ${link.type || 'generic'}`}
-                >
-                  <span className={`ref-link-icon ${link.type || 'generic'}`}>
-                    {link.type === 'youtube' ? '▶' : link.type === 'instagram' ? '📷' : '🔗'}
-                  </span>
-                  <span className="ref-link-text">{link.title || link.url}</span>
-                  <ExternalLink size={14} className="ref-link-arrow" />
-                </a>
-              ))}
-            </div>
           </div>
         )}
 

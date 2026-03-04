@@ -17303,6 +17303,8 @@ a.nav-left {
     position: relative;
     background: #1e3a5f;
     align-self: flex-start;
+    border: 1.5px solid rgba(148, 163, 184, 0.25);
+    box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.1), 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 .exercise-card-v2 .exercise-thumb img {
@@ -18055,6 +18057,8 @@ a.nav-left {
 
 [data-theme="light"] .exercise-card-v2 .exercise-thumb {
     background: #e0f2fe;
+    border-color: rgba(59, 130, 246, 0.2);
+    box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
 }
 
 [data-theme="light"] .exercise-card-v2 .progress-ring-bg {
@@ -23816,7 +23820,9 @@ a.nav-left {
     position: relative;
     overflow: hidden;
     background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%);
-    border-radius: 8px;
+    border-radius: 10px;
+    border: 1.5px solid rgba(148, 163, 184, 0.25);
+    box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.1), 0 1px 3px rgba(0, 0, 0, 0.3);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -28128,6 +28134,8 @@ a.nav-left {
     overflow: hidden;
     flex-shrink: 0;
     background: #1e293b;
+    border: 1.5px solid rgba(148, 163, 184, 0.25);
+    box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.1), 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 .create-workout-exercise-item .exercise-thumb img {
@@ -31468,6 +31476,11 @@ a.nav-left {
 
 [data-theme="light"] .guided-set-indicator {
     color: #9ca3af;
+}
+
+[data-theme="light"] .smart-thumbnail {
+    border-color: rgba(59, 130, 246, 0.2);
+    box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
 }
 
 [data-theme="light"] .guided-exercise-visual .smart-thumbnail,
