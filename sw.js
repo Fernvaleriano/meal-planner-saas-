@@ -1,7 +1,7 @@
 // Zique Fitness PWA Service Worker
 const CACHE_NAME = 'zique-fitness-v12';
 const STATIC_CACHE = 'zique-static-v12';
-const DATA_CACHE = 'zique-data-v9';
+const DATA_CACHE = 'zique-data-v10';
 const CDN_CACHE = 'zique-cdn-v7';
 
 // Files to cache for offline use
@@ -39,8 +39,13 @@ const CDN_FILES = [
   'https://cdn.jsdelivr.net/npm/chart.js'
 ];
 
-// API endpoints to cache (stale-while-revalidate)
-// Don't cache food-diary - it needs fresh data every time
+// API endpoints to cache (stale-while-revalidate).
+// These are served from cache instantly on resume and refreshed in the background.
+// Previously food-diary, meal-plans, workout-assignments, and get-diary-interactions
+// were excluded ("needs fresh data every time"), but that meant users saw EMPTY pages
+// for 10-25 seconds on resume while the resume gate + cold starts resolved.
+// Stale data from 30 min ago is far better than no data for 25 seconds.
+// The SWR pattern handles this: show stale instantly, update when fresh arrives.
 const CACHEABLE_API_PATTERNS = [
   /\/\.netlify\/functions\/calorie-goals/,
   /\/\.netlify\/functions\/get-favorites/,
@@ -52,7 +57,17 @@ const CACHEABLE_API_PATTERNS = [
   /\/\.netlify\/functions\/get-dashboard-stats/,
   /\/\.netlify\/functions\/client-protocols/,
   /\/\.netlify\/functions\/notifications/,
-  /\/\.netlify\/functions\/exercises/
+  /\/\.netlify\/functions\/exercises/,
+  // Critical resume-time endpoints — added to eliminate the "partial content" problem
+  // on iPhone where users saw empty pages for 10-25s after returning from background
+  /\/\.netlify\/functions\/food-diary/,
+  /\/\.netlify\/functions\/workout-assignments/,
+  /\/\.netlify\/functions\/meal-plans/,
+  /\/\.netlify\/functions\/get-diary-interactions/,
+  /\/\.netlify\/functions\/supplement-intake/,
+  /\/\.netlify\/functions\/water-intake/,
+  /\/\.netlify\/functions\/workout-logs/,
+  /\/\.netlify\/functions\/adhoc-workouts/
 ];
 
 // Max age for cached API responses (5 minutes).
