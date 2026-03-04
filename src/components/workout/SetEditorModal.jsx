@@ -350,15 +350,19 @@ function SetEditorModal({
   // Get the current value being edited
   const getCurrentValue = (setIndex, field) => {
     if (field === 'weight') {
-      return localSets[setIndex]?.weight || 0;
+      const w = localSets[setIndex]?.weight;
+      return w != null ? w : 0;
     }
     if (editMode === 'distance') {
-      return localSets[setIndex]?.distance || exercise.distance || 1;
+      const d = localSets[setIndex]?.distance;
+      return d != null ? d : (exercise.distance || 1);
     }
     if (editMode === 'time') {
-      return localSets[setIndex]?.duration || exercise.duration || parseTimeFromReps(exercise.reps) || 45;
+      const t = localSets[setIndex]?.duration;
+      return t != null ? t : (exercise.duration || parseTimeFromReps(exercise.reps) || 45);
     }
-    return parseReps(localSets[setIndex]?.reps || exercise.reps);
+    const r = localSets[setIndex]?.reps;
+    return r != null ? parseReps(r) : parseReps(exercise.reps);
   };
 
   // Update value for a specific set
