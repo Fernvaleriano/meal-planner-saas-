@@ -1,5 +1,6 @@
 const { createClient } = require('@supabase/supabase-js');
 const { getDefaultDate } = require('./utils/timezone');
+const { withTimeout } = require('./utils/with-timeout');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -11,7 +12,7 @@ const headers = {
   'Content-Type': 'application/json'
 };
 
-exports.handler = async (event) => {
+exports.handler = withTimeout(async (event) => {
   // Handle CORS preflight
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers, body: '' };
@@ -422,4 +423,4 @@ exports.handler = async (event) => {
       body: JSON.stringify({ error: err.message })
     };
   }
-};
+});

@@ -1,4 +1,5 @@
 const { createClient } = require('@supabase/supabase-js');
+const { withTimeout } = require('./utils/with-timeout');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -83,7 +84,7 @@ async function enrichExercisesWithEquipment(exercises, supabase) {
   });
 }
 
-exports.handler = async (event) => {
+exports.handler = withTimeout(async (event) => {
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers, body: '' };
   }
@@ -664,4 +665,4 @@ exports.handler = async (event) => {
       body: JSON.stringify({ error: err.message })
     };
   }
-};
+});

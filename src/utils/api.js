@@ -267,12 +267,29 @@ async function authenticatedFetch(url, options = {}) {
       const newToken = await refreshSession();
 
       if (newToken && newToken !== token) {
-        // Retry with new token
+        // Retry with new token — with the same timeout protection as the original fetch.
+        // Without this, the retry can hang indefinitely on poor mobile connections.
         headers['Authorization'] = `Bearer ${newToken}`;
-        const retryResponse = await fetch(url, {
-          ...options,
-          headers
-        });
+        const retryController = new AbortController();
+        const retryTimeoutId = setTimeout(() => retryController.abort(), FETCH_TIMEOUT_MS);
+        let retryResponse;
+        try {
+          retryResponse = await fetch(url, {
+            ...options,
+            headers,
+            signal: retryController.signal
+          });
+        } catch (retryErr) {
+          clearTimeout(retryTimeoutId);
+          if (retryErr.name === 'AbortError') {
+            const error = new Error(`Retry request timed out after ${FETCH_TIMEOUT_MS / 1000}s`);
+            error.isTimeout = true;
+            error.isAuthError = true;
+            throw error;
+          }
+          throw retryErr;
+        }
+        clearTimeout(retryTimeoutId);
 
         if (retryResponse.ok) {
           return retryResponse.json();

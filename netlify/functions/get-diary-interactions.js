@@ -1,5 +1,6 @@
 // Netlify Function to fetch reactions and comments for diary entries
 const { createClient } = require('@supabase/supabase-js');
+const { withTimeout } = require('./utils/with-timeout');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -10,7 +11,7 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'GET, OPTIONS'
 };
 
-exports.handler = async (event) => {
+exports.handler = withTimeout(async (event) => {
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers: corsHeaders, body: '' };
   }
@@ -149,4 +150,4 @@ exports.handler = async (event) => {
       body: JSON.stringify({ error: error.message })
     };
   }
-};
+});

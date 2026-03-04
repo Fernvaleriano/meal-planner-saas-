@@ -1,5 +1,6 @@
 // Netlify Function for managing client supplement/protocol items
 const { createClient } = require('@supabase/supabase-js');
+const { withTimeout } = require('./utils/with-timeout');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -10,7 +11,7 @@ const corsHeaders = {
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS'
 };
 
-exports.handler = async (event, context) => {
+exports.handler = withTimeout(async (event, context) => {
     // Handle CORS preflight
     if (event.httpMethod === 'OPTIONS') {
         return { statusCode: 200, headers: corsHeaders, body: '' };
@@ -234,4 +235,4 @@ exports.handler = async (event, context) => {
         headers: corsHeaders,
         body: JSON.stringify({ error: 'Method not allowed' })
     };
-};
+});
