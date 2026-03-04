@@ -1001,8 +1001,31 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
                         setSets(newSets);
                       }}
                       onClick={(e) => e.stopPropagation()}
-                      onFocus={(e) => e.target.select()}
-                      placeholder={exercise.repType === 'failure' ? 'Max' : ''}
+                      onFocus={(e) => {
+                        e.stopPropagation();
+                        // Clear value on focus so user can type fresh (like weight input)
+                        const newSets = [...sets];
+                        if (isDistanceExercise) {
+                          newSets[idx] = { ...newSets[idx], distance: 0 };
+                        } else {
+                          newSets[idx] = { ...newSets[idx], reps: 0 };
+                        }
+                        setSets(newSets);
+                      }}
+                      onBlur={(e) => {
+                        // Restore default if left empty
+                        const val = parseFloat(e.target.value);
+                        if (!val || isNaN(val)) {
+                          const newSets = [...sets];
+                          if (isDistanceExercise) {
+                            newSets[idx] = { ...newSets[idx], distance: exercise.distance || 1 };
+                          } else {
+                            newSets[idx] = { ...newSets[idx], reps: parseReps(exercise.reps) || 12 };
+                          }
+                          setSets(newSets);
+                        }
+                      }}
+                      placeholder={exercise.repType === 'failure' ? 'Max' : (isDistanceExercise ? String(exercise.distance || 1) : String(parseReps(exercise.reps) || 12))}
                       min="0"
                       max="999"
                     />
