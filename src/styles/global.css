@@ -13070,6 +13070,12 @@ a.nav-left {
     padding-top: max(40px, env(safe-area-inset-top, 40px));
 }
 
+/* Center the summary modal when no PRs are shown */
+.summary-scroll-overlay.no-prs {
+    align-items: center;
+    padding-top: 16px;
+}
+
 .summary-stars {
     display: flex;
     justify-content: center;
