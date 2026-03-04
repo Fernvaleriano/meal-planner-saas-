@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Calendar, Flame, Target, Clock, Utensils, Coffee, Sun, Moon, Apple, Heart, ClipboardList, RefreshCw, Pencil, Crosshair, BookOpen, X, Plus, Minus, Trash2, Search, Undo2, RotateCcw, ShoppingCart, ChefHat, FileDown, Check, MessageSquare } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { apiGet, apiPost, ensureFreshSession } from '../utils/api';
+import { apiGet, apiPost } from '../utils/api';
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
 import { onAppResume } from '../hooks/useAppLifecycle';
 
@@ -153,9 +153,6 @@ function Plans() {
   // Pull-to-refresh: Refresh plans data
   const refreshPlansData = useCallback(async () => {
     if (!clientData?.id) return;
-
-    // Ensure fresh session before fetching
-    await ensureFreshSession();
 
     try {
       const data = await apiGet(`/.netlify/functions/meal-plans?clientId=${clientData.id}`).catch(() => null);

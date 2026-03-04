@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, ChevronDown, Plus, Camera, Search, Heart, Copy, ArrowLeft, FileText, Sunrise, Sun, Moon, Apple, Droplets, Bot, Maximize2, BarChart3, Check, Trash2, Dumbbell, UtensilsCrossed, Mic, X, ChefHat, Sparkles, Send, Zap, MapPin, Salad, RotateCcw, Pencil } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { apiGet, apiPost, apiPut, apiDelete, ensureFreshSession } from '../utils/api';
+import { apiGet, apiPost, apiPut, apiDelete } from '../utils/api';
 import { FavoritesModal, SnapPhotoModal, ScanLabelModal, SearchFoodsModal } from '../components/FoodModals';
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
 
@@ -236,8 +236,8 @@ function Diary() {
   const refreshDiaryData = useCallback(async () => {
     if (!clientData?.id) return;
 
-    // Ensure fresh session before fetching
-    await ensureFreshSession();
+    // apiGet() handles auth internally — no ensureFreshSession() needed.
+    // The old call added 2-5s delay on every date change / pull-to-refresh.
 
     const dateStr = formatDateKey(currentDate);
     const cacheKey = `diary_${clientData.id}_${dateStr}`;

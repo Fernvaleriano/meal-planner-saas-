@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Sunrise, Sun, Moon, Apple, Filter, ChevronDown, ChevronUp, User, Calendar, RefreshCw, MessageCircle, Send, Dumbbell, TrendingUp, Award, Clock, Zap, Mic, Play, Loader2, Reply, Check } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { apiGet, apiPost, apiDelete, ensureFreshSession } from '../utils/api';
+import { apiGet, apiPost, apiDelete } from '../utils/api';
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
 
 // Available reaction emojis
@@ -755,8 +755,6 @@ function Feed() {
     }
 
     try {
-      await ensureFreshSession();
-
       let url = `/.netlify/functions/coach-activity-feed?coachId=${coachId}&limit=20&offset=${currentOffset}`;
 
       if (filterClient) url += `&clientId=${filterClient}`;
@@ -811,8 +809,6 @@ function Feed() {
     }
 
     try {
-      await ensureFreshSession();
-
       let url = `/.netlify/functions/coach-workout-feed?coachId=${coachId}&limit=20`;
       if (filterClient) url += `&clientId=${filterClient}`;
       if (filterDate) url += `&date=${filterDate}`;

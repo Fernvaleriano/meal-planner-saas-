@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Send, Search, MessageCircle, Image, X, Trash2, Check, CheckCheck, Paperclip } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { apiGet, apiPost, ensureFreshSession } from '../utils/api';
+import { apiGet, apiPost } from '../utils/api';
 import { supabase } from '../utils/supabase';
 import { usePullToRefreshEvent } from '../hooks/usePullToRefreshEvent';
 import { onAppResume } from '../hooks/useAppLifecycle';
@@ -63,9 +63,6 @@ function Messages() {
   // Fetch conversation list
   const fetchConversations = useCallback(async () => {
     try {
-      // Ensure fresh auth session before fetching — prevents stale token hangs
-      await ensureFreshSession();
-
       let url;
       if (isCoach) {
         url = `/.netlify/functions/chat?action=conversations&coachId=${coachId}`;
