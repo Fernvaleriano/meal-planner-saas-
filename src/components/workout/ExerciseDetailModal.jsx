@@ -797,7 +797,10 @@ function ExerciseDetailModal({
           weightUnit: s.weightUnit || weightUnit,
           rpe: s.rpe || null,
           restSeconds: s.restSeconds || null,
-          isTimeBased: s.isTimeBased || false
+          isTimeBased: s.isTimeBased || false,
+          ...(s.duration != null && { duration: s.duration }),
+          ...(s.distance != null && { distance: s.distance }),
+          ...(s.isDistanceBased && { isDistanceBased: true })
         }));
 
         const exercisePayload = {
@@ -952,7 +955,10 @@ function ExerciseDetailModal({
         weightUnit: s.weightUnit || 'kg',
         rpe: s.rpe || null,
         restSeconds: s.restSeconds || null,
-        isTimeBased: s.isTimeBased || false
+        isTimeBased: s.isTimeBased || false,
+        ...(s.duration != null && { duration: s.duration }),
+        ...(s.distance != null && { distance: s.distance }),
+        ...(s.isDistanceBased && { isDistanceBased: true })
       }));
 
       await apiPut('/.netlify/functions/workout-logs', {
@@ -1155,7 +1161,10 @@ function ExerciseDetailModal({
                 weightUnit: s.weightUnit || weightUnit,
                 rpe: s.rpe || null,
                 restSeconds: s.restSeconds || null,
-                isTimeBased: s.isTimeBased || false
+                isTimeBased: s.isTimeBased || false,
+                ...(s.duration != null && { duration: s.duration }),
+                ...(s.distance != null && { distance: s.distance }),
+                ...(s.isDistanceBased && { isDistanceBased: true })
               }));
               await apiPut('/.netlify/functions/workout-logs', {
                 workoutId: logId,
