@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Calendar, Flame, Target, Clock, Utensils, Coffee, Sun, Moon, Apple, Heart, ClipboardList, RefreshCw, Pencil, Crosshair, BookOpen, X, Plus, Minus, Trash2, Search, Undo2, RotateCcw, ShoppingCart, ChefHat, FileDown, Check, MessageSquare } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost } from '../utils/api';
@@ -47,8 +47,11 @@ const getLocalDateString = () => {
 
 function Plans() {
   const { clientData } = useAuth();
-  const { planId } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
+  // Read planId from URL path instead of useParams (component is mounted
+  // persistently outside the Router, so useParams wouldn't work)
+  const planId = location.pathname.match(/^\/plans\/(.+)/)?.[1];
 
   // Load from cache for instant display
   const cachedPlans = clientData?.id ? getCache(`plans_full_${clientData.id}`) : null;
