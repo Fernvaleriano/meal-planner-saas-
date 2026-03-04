@@ -907,7 +907,7 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
                 <>
                   {sets.map((set, idx) => (
                     <div key={idx} className={`time-box ${set?.weight > 0 ? 'with-weight' : ''}`}>
-                      <span className="reps-value">{set?.distance || exercise.distance || 1} {distanceUnitLabel}</span>
+                      <span className="reps-value">{set?.distance != null ? set.distance : (exercise.distance || 1)} {distanceUnitLabel}</span>
                       {set?.weight > 0 && <span className="weight-value">{set.weight} {weightUnit}</span>}
                     </div>
                   ))}
@@ -916,7 +916,7 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
                 <>
                   {sets.map((set, idx) => (
                     <div key={idx} className={`time-box ${set?.weight > 0 ? 'with-weight' : ''}`}>
-                      <span className="reps-value">{formatDuration(set?.duration || exercise.duration || parseTimeFromReps(exercise.reps)) || '45s'}</span>
+                      <span className="reps-value">{formatDuration(set?.duration != null ? set.duration : (exercise.duration || parseTimeFromReps(exercise.reps))) || '45s'}</span>
                       {set?.weight > 0 && <span className="weight-value">{set.weight} {weightUnit}</span>}
                     </div>
                   ))}
@@ -934,8 +934,8 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
                 <>
                   {sets.map((set, idx) => (
                     <div key={idx} className="time-box with-weight">
-                      <span className="reps-value">{parseReps(set?.reps || exercise.reps)}x</span>
-                      <span className="weight-value">{set?.weight || 0} {weightUnit}</span>
+                      <span className="reps-value">{parseReps(set?.reps != null ? set.reps : exercise.reps)}x</span>
+                      <span className="weight-value">{set?.weight != null ? set.weight : 0} {weightUnit}</span>
                     </div>
                   ))}
                 </>
@@ -988,7 +988,7 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
                       inputMode="decimal"
                       step="any"
                       className="set-input"
-                      value={isDistanceExercise ? (set.distance || '') : (set.reps || '')}
+                      value={isDistanceExercise ? (set.distance != null ? set.distance : '') : (set.reps != null ? set.reps : '')}
                       onChange={(e) => {
                         e.stopPropagation();
                         const newSets = [...sets];
@@ -1046,7 +1046,7 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
                         inputMode="decimal"
                         step={weightUnit === 'kg' ? '0.5' : '1'}
                         className="set-input weight-input"
-                        value={set.weight || ''}
+                        value={set.weight != null ? set.weight : ''}
                         onChange={(e) => updateWeight(idx, e.target.value, e)}
                         onClick={(e) => e.stopPropagation()}
                         onFocus={(e) => e.target.select()}

@@ -594,10 +594,10 @@ function SetEditorModal({
                   onClick={() => selectField(index, 'reps')}
                 >
                   {editMode === 'distance'
-                    ? (set.distance || exercise.distance || 1)
+                    ? (set.distance != null ? set.distance : (exercise.distance || 1))
                     : editMode === 'time'
-                      ? formatDurationDisplay(set.duration || exercise.duration || parseTimeFromReps(exercise.reps) || 45)
-                      : parseReps(set.reps || exercise.reps)
+                      ? formatDurationDisplay(set.duration != null ? set.duration : (exercise.duration || parseTimeFromReps(exercise.reps) || 45))
+                      : parseReps(set.reps != null ? set.reps : exercise.reps)
                   }
                 </button>
                 <span className="set-multiplier">{editMode === 'distance' ? distanceUnitLabel : 'x'}</span>
@@ -605,7 +605,7 @@ function SetEditorModal({
                   className={`set-value-input weight-input ${activeSetIndex === index && activeField === 'weight' ? 'active' : ''}`}
                   onClick={() => selectField(index, 'weight')}
                 >
-                  {set.weight || 0}
+                  {set.weight != null ? set.weight : 0}
                 </button>
                 <span className="set-unit">{weightUnit}</span>
                 <button className="set-delete-btn" onClick={() => deleteSet(index)}>
