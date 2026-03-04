@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { X, Camera, Upload, Search, Heart, Loader, Plus, Minus, Check, Trash2 } from 'lucide-react';
-import { apiGet, apiPost, apiDelete, ensureFreshSession } from '../utils/api';
+import { apiGet, apiPost, apiDelete } from '../utils/api';
 import { useToast } from './Toast';
 
 // Get today's date in local timezone (NOT UTC)
@@ -187,9 +187,6 @@ export function SnapPhotoModal({ isOpen, onClose, mealType, clientData, onFoodLo
     const foodsToAdd = [...results];
 
     try {
-      // Ensure fresh session before adding
-      await ensureFreshSession();
-
       // Create all food logging requests in parallel for faster logging
       const logPromises = foodsToAdd.map((food, idx) => {
         const foodServings = servings[idx] || 1;
@@ -482,7 +479,6 @@ export function SearchFoodsModal({ isOpen, onClose, mealType, clientData, onFood
     const foodToAdd = { ...selectedFood };
 
     try {
-      await ensureFreshSession();
       await apiPost('/.netlify/functions/food-diary', {
         clientId: clientData.id,
         coachId: clientData.coach_id,
@@ -934,7 +930,6 @@ export function ScanLabelModal({ isOpen, onClose, mealType, clientData, onFoodLo
     const resultToAdd = { ...result };
 
     try {
-      await ensureFreshSession();
       await apiPost('/.netlify/functions/food-diary', {
         clientId: clientData.id,
         coachId: clientData.coach_id,

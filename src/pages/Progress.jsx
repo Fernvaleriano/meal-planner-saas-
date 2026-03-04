@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { ChevronLeft, Ruler, Camera, X, Plus, Minus, ChevronDown, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { apiGet, apiPost, apiDelete, ensureFreshSession } from '../utils/api';
+import { apiGet, apiPost, apiDelete } from '../utils/api';
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
 
 // Get today's date in local timezone (NOT UTC)
@@ -87,9 +87,6 @@ function Progress() {
   // Pull-to-refresh: Refresh progress data
   const refreshProgressData = useCallback(async () => {
     if (!clientData?.id) return;
-
-    // Ensure fresh session before fetching
-    await ensureFreshSession();
 
     try {
       const [measurementsData, photosData] = await Promise.all([

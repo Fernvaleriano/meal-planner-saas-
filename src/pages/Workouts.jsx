@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { ChevronLeft, ChevronRight, Play, Clock, Flame, CheckCircle, Dumbbell, Target, Calendar, TrendingUp, Award, Heart, MoreVertical, X, History, Settings, LogOut, Plus, Copy, ArrowRightLeft, SkipForward, PenSquare, Trash2, MoveRight, Share2, Star, Weight, Users, RotateCcw, Zap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { apiGet, apiPost, apiPut, apiDelete, ensureFreshSession } from '../utils/api';
+import { apiGet, apiPost, apiPut, apiDelete } from '../utils/api';
 import { onAppResume } from '../hooks/useAppLifecycle';
 import ExerciseCard from '../components/workout/ExerciseCard';
 import ExerciseDetailModal from '../components/workout/ExerciseDetailModal';
@@ -732,10 +732,10 @@ function Workouts() {
     try {
       const dateStr = formatDate(selectedDate);
 
-      // CRITICAL: Refresh session FIRST, then fetch data.
-      // Running these in parallel caused a race condition where fetches
-      // used the old expired token before the refresh completed.
-      await ensureFreshSession();
+      // apiGet() handles auth internally (getAuthToken checks session validity
+      // and refreshes proactively). No need for ensureFreshSession() here —
+      // it was adding 2-5s of delay on every pull-to-refresh by forcing a
+      // full Supabase auth roundtrip before data fetching could start.
 
       const [assignmentRes, adhocRes, logRes] = await Promise.all([
         apiGet(`/.netlify/functions/workout-assignments?clientId=${clientData.id}&date=${dateStr}`).catch(() => null),
@@ -859,8 +859,9 @@ function Workouts() {
       try {
         const dateStr = formatDate(selectedDate);
 
-        // Ensure fresh auth session before fetching — prevents stale token hangs
-        await ensureFreshSession();
+        // apiGet() handles auth internally — no ensureFreshSession() needed.
+        // The old call was adding 2-5s of delay on every date change because
+        // it forced a full Supabase session refresh before data loading started.
 
         // Fetch all workout data in parallel — ALL with .catch() so one failure
         // doesn't block everything (this was the main cause of infinite loading)
