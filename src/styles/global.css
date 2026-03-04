@@ -17409,7 +17409,7 @@ a.nav-left {
     align-items: center;
     justify-content: center;
     gap: 6px;
-    padding: 10px;
+    padding: 6px;
     background: none;
     border: none;
     color: #64748b;
@@ -17431,19 +17431,19 @@ a.nav-left {
 }
 
 .exercise-card-v2 .sets-grid-v2 {
-    padding: 0 14px 14px;
+    padding: 0 10px 10px;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 4px;
 }
 
 .exercise-card-v2 .set-item {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 10px 12px;
+    gap: 6px;
+    padding: 6px 8px;
     background: rgba(255, 255, 255, 0.03);
-    border-radius: 10px;
+    border-radius: 8px;
 }
 
 .exercise-card-v2 .set-item.done {
@@ -17492,11 +17492,11 @@ a.nav-left {
 }
 
 .exercise-card-v2 .set-check {
-    width: 36px;
-    height: 36px;
+    width: 30px;
+    height: 30px;
     background: rgba(255, 255, 255, 0.05);
     border: 2px solid rgba(255, 255, 255, 0.1);
-    border-radius: 10px;
+    border-radius: 8px;
     color: #475569;
     cursor: pointer;
     display: flex;
@@ -17516,12 +17516,12 @@ a.nav-left {
     align-items: center;
     justify-content: center;
     gap: 6px;
-    padding: 10px;
+    padding: 6px;
     background: none;
     border: 2px dashed rgba(255, 255, 255, 0.1);
-    border-radius: 10px;
+    border-radius: 8px;
     color: #64748b;
-    font-size: 13px;
+    font-size: 12px;
     cursor: pointer;
     transition: all 0.2s;
 }
@@ -17676,11 +17676,11 @@ a.nav-left {
 .exercise-card-v2 .set-item {
     display: grid;
     grid-template-columns: auto 1fr 1fr 1fr auto;
-    gap: 8px;
+    gap: 6px;
     align-items: center;
-    padding: 12px;
+    padding: 6px 8px;
     background: rgba(255, 255, 255, 0.03);
-    border-radius: 10px;
+    border-radius: 8px;
 }
 
 .exercise-card-v2 .set-header {
@@ -17705,25 +17705,25 @@ a.nav-left {
 .exercise-card-v2 .set-input-group {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 1px;
 }
 
 .exercise-card-v2 .set-input-group label {
-    font-size: 10px;
+    font-size: 9px;
     color: #6b7280;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.3px;
 }
 
 .exercise-card-v2 .set-input {
     width: 100%;
-    min-width: 50px;
-    padding: 8px;
+    min-width: 44px;
+    padding: 5px 4px;
     background: rgba(255, 255, 255, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
+    border-radius: 6px;
     color: white;
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 600;
     text-align: center;
     -webkit-appearance: none;
@@ -17756,8 +17756,8 @@ a.nav-left {
 }
 
 .exercise-card-v2 .weight-adjust-btn {
-    width: 28px;
-    height: 28px;
+    width: 24px;
+    height: 24px;
     background: rgba(255, 255, 255, 0.1);
     border: none;
     border-radius: 6px;
@@ -17781,8 +17781,8 @@ a.nav-left {
 }
 
 .exercise-card-v2 .rest-time-input {
-    width: 50px;
-    min-width: 50px;
+    width: 44px;
+    min-width: 44px;
 }
 
 .exercise-card-v2 .rest-unit {
