@@ -225,7 +225,11 @@ export async function ensureFreshSession({ _bypassGate = false } = {}) {
 
 // Authenticated fetch wrapper with improved error handling and timeout
 async function authenticatedFetch(url, options = {}) {
-  const token = await getAuthToken();
+  // GET requests skip the resume gate so the Service Worker can serve cached
+  // data instantly on resume. Writes (POST/PUT/DELETE) still wait for a fresh
+  // token because mutations with a stale token would fail and can't be cached.
+  const isRead = !options.method || options.method === 'GET';
+  const token = await getAuthToken(isRead && !!resumeGate);
 
   const headers = {
     'Content-Type': 'application/json',

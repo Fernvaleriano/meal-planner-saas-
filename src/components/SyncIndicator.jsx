@@ -17,9 +17,10 @@ export default function SyncIndicator() {
     const handler = (e) => {
       if (e.detail?.phase === 'start') {
         setSyncing(true);
-        // Safety: auto-hide after 6s in case 'done' never fires
+        // Safety: auto-hide after 16s in case 'done' never fires.
+        // Session refresh can take up to 15s on slow mobile connections.
         clearTimeout(hideTimer);
-        hideTimer = setTimeout(() => setSyncing(false), 6000);
+        hideTimer = setTimeout(() => setSyncing(false), 16000);
       } else if (e.detail?.phase === 'done') {
         // Small delay so the bar is visible long enough to be noticed
         clearTimeout(hideTimer);
@@ -39,7 +40,7 @@ export default function SyncIndicator() {
   return (
     <div className="sync-indicator" aria-live="polite">
       <div className="sync-indicator-bar" />
-      <span className="sync-indicator-text">Syncing...</span>
+      <span className="sync-indicator-text">Reconnecting...</span>
     </div>
   );
 }
