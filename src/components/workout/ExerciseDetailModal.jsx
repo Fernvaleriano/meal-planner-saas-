@@ -2464,18 +2464,6 @@ function ExerciseDetailModal({
           </div>
         )}
 
-        {/* Ask Coach Button */}
-        <div className="ai-tips-section">
-          <button
-            className="ask-coach-btn"
-            onClick={() => setShowAskCoach(true)}
-            type="button"
-          >
-            <MessageCircle size={16} />
-            <span>Ask Coach</span>
-          </button>
-        </div>
-
         {/* Activity Progress */}
         {exercises.length > 0 && (
           <div className="activity-progress-bar">
