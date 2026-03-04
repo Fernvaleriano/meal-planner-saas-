@@ -17565,6 +17565,20 @@ a.nav-left {
     color: #fbbf24;
 }
 
+/* Coach Note - Light Mode */
+[data-theme="light"] .exercise-card-v2 .coach-note {
+    background: rgba(245, 158, 11, 0.1);
+    border-top-color: rgba(180, 83, 9, 0.25);
+}
+
+[data-theme="light"] .exercise-card-v2 .note-label {
+    color: #92400e;
+}
+
+[data-theme="light"] .exercise-card-v2 .note-text {
+    color: #78350f;
+}
+
 /* Coach Voice Note */
 .exercise-card-v2 .coach-voice-note {
     padding: 12px 14px;
@@ -20569,8 +20583,9 @@ a.nav-left {
 
 /* Coach Text Note Section - Light Mode */
 [data-theme="light"] .coach-text-note-section {
-    background: rgba(245, 158, 11, 0.06);
-    border-bottom-color: rgba(245, 158, 11, 0.15);
+    background: rgba(245, 158, 11, 0.1);
+    border-top-color: rgba(180, 83, 9, 0.25);
+    border-bottom-color: rgba(180, 83, 9, 0.25);
 }
 
 [data-theme="light"] .coach-text-note-section .text-note-header {
