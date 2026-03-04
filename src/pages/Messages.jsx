@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Send, Search, MessageCircle, Image, X, Trash2, Check, CheckCheck, Paperclip } from 'lucide-react';
+import { Send, Search, MessageCircle, Image, X, Trash2, Check, CheckCheck, Paperclip, Loader } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost } from '../utils/api';
 import { supabase } from '../utils/supabase';
@@ -37,6 +37,7 @@ function Messages() {
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(!cachedConvos);
   const [sending, setSending] = useState(false);
+  const [loadingMessages, setLoadingMessages] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [mediaPreview, setMediaPreview] = useState(null); // { file, dataUrl, type }
   const [uploading, setUploading] = useState(false);
@@ -89,6 +90,7 @@ function Messages() {
   // Fetch messages for active conversation
   const fetchMessages = useCallback(async () => {
     if (!activeConvo) return;
+    setLoadingMessages(true);
     try {
       const cId = isCoach ? coachId : activeConvo.coachId;
       const clId = isCoach ? activeConvo.clientId : clientId;
@@ -113,6 +115,8 @@ function Messages() {
       }));
     } catch (err) {
       console.error('Error fetching messages:', err);
+    } finally {
+      setLoadingMessages(false);
     }
   }, [activeConvo, isCoach, coachId, clientId, scrollToBottom]);
 
@@ -617,11 +621,17 @@ function Messages() {
 
         <div className="chat-messages-container" ref={messagesContainerRef}>
           {messages.length === 0 && (
-            <div className="chat-empty-thread">
-              <MessageCircle size={40} />
-              <p>No messages yet</p>
-              <p className="chat-empty-sub">Send a message to start the conversation</p>
-            </div>
+            loadingMessages ? (
+              <div className="chat-empty-thread">
+                <Loader size={28} className="spin" />
+              </div>
+            ) : (
+              <div className="chat-empty-thread">
+                <MessageCircle size={40} />
+                <p>No messages yet</p>
+                <p className="chat-empty-sub">Send a message to start the conversation</p>
+              </div>
+            )
           )}
 
           {grouped.map((item, idx) => {
