@@ -21561,7 +21561,7 @@ a.nav-left {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 16px 20px;
+    padding: 12px 20px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
@@ -22870,14 +22870,14 @@ a.nav-left {
 .editor-exercise-info {
     display: flex;
     align-items: center;
-    gap: 16px;
-    padding: 16px 20px;
+    gap: 12px;
+    padding: 10px 20px;
 }
 
 .editor-exercise-thumb {
-    width: 64px;
-    height: 64px;
-    border-radius: 12px;
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
     overflow: hidden;
     background: #2a2a2a;
     flex-shrink: 0;
@@ -22890,33 +22890,33 @@ a.nav-left {
 }
 
 .editor-exercise-details h3 {
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 600;
     color: white;
-    margin-bottom: 4px;
+    margin-bottom: 2px;
 }
 
 .editor-difficulty {
-    font-size: 14px;
+    font-size: 13px;
     color: #9ca3af;
 }
 
 .editor-mode-toggle {
     display: flex;
-    margin: 0 20px 16px;
+    margin: 0 20px 8px;
     background: #2a2a2a;
     border-radius: 10px;
-    padding: 4px;
+    padding: 3px;
 }
 
 .editor-mode-toggle .mode-btn {
     flex: 1;
-    padding: 12px;
+    padding: 8px;
     background: none;
     border: none;
     border-radius: 8px;
     color: #6b7280;
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s;
@@ -22932,7 +22932,7 @@ a.nav-left {
     display: flex;
     align-items: center;
     padding: 0 20px;
-    margin-bottom: 12px;
+    margin-bottom: 6px;
 }
 
 .editor-column-headers .header-spacer {
@@ -22970,7 +22970,7 @@ a.nav-left {
 }
 
 .editor-set-item {
-    margin-bottom: 8px;
+    margin-bottom: 4px;
 }
 
 .editor-set-row {
@@ -22989,12 +22989,12 @@ a.nav-left {
 
 .editor-set-item .set-value-input {
     flex: 1;
-    padding: 12px 8px;
+    padding: 8px 8px;
     background: #2a2a2a;
     border: 2px solid transparent;
-    border-radius: 12px;
+    border-radius: 10px;
     color: white;
-    font-size: 18px;
+    font-size: 17px;
     font-weight: 600;
     text-align: center;
     cursor: pointer;
@@ -23040,7 +23040,7 @@ a.nav-left {
     align-items: center;
     justify-content: space-between;
     gap: 8px;
-    padding: 6px 0;
+    padding: 3px 0;
     margin-left: 30px;
     padding-right: 36px;
 }
@@ -23048,12 +23048,12 @@ a.nav-left {
 .editor-set-item .rest-pill {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 8px 16px;
+    gap: 4px;
+    padding: 4px 12px;
     background: #2a2a2a;
     border-radius: 20px;
     color: #9ca3af;
-    font-size: 13px;
+    font-size: 12px;
 }
 
 /* RPE Selector Styles */
@@ -23195,7 +23195,7 @@ a.nav-left {
 .editor-actions {
     display: flex;
     justify-content: space-between;
-    padding: 16px 20px;
+    padding: 10px 20px;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
@@ -23221,7 +23221,7 @@ a.nav-left {
     display: flex;
     flex-direction: column;
     padding: 0 16px;
-    padding-bottom: calc(80px + env(safe-area-inset-bottom, 20px));
+    padding-bottom: calc(12px + env(safe-area-inset-bottom, 8px));
     background: #2a2a2a;
 }
 
@@ -23229,9 +23229,9 @@ a.nav-left {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 12px 0;
+    padding: 8px 0;
     border-bottom: 1px solid #3d3d3d;
-    margin-bottom: 8px;
+    margin-bottom: 4px;
 }
 
 .numpad-label {
@@ -23257,7 +23257,7 @@ a.nav-left {
 }
 
 .numpad-btn {
-    padding: 12px 8px;
+    padding: 10px 8px;
     background: #3d3d3d;
     border: none;
     border-radius: 6px;
@@ -23266,7 +23266,7 @@ a.nav-left {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    min-height: 44px;
+    min-height: 40px;
 }
 
 .numpad-btn:active {
