@@ -290,6 +290,13 @@ export function AuthProvider({ children }) {
 
         const client = await fetchClientData(session.user.id);
         setClientData(client);
+      } else if (event === 'TOKEN_REFRESHED') {
+        // Supabase auto-refreshes tokens in the background. When it does,
+        // immediately clear the API session cache so subsequent API calls
+        // use the new token instead of the old cached one (which could be
+        // stale for up to the 2-minute SESSION_CACHE_TTL).
+        console.log('SPA: Token refreshed, clearing session cache');
+        clearSessionCache();
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
         setClientData(null);
