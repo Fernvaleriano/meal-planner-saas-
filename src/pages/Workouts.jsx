@@ -546,6 +546,17 @@ function Workouts() {
       // Clearing scroll locks or closing modals here would conflict with it.
       if (showGuidedWorkout) return;
 
+      // If the exercise detail modal is open, let it handle its own resume logic.
+      // ExerciseDetailModal re-locks scroll and forces a re-render on resume,
+      // so closing it here would kick the user out of the exercise they were viewing.
+      if (selectedExerciseRef.current) {
+        // Still refetch workout data in the background so it stays fresh
+        if (refreshWorkoutDataRef.current) {
+          refreshWorkoutDataRef.current();
+        }
+        return;
+      }
+
       // Close the exercise detail modal (this also triggers its body scroll lock cleanup)
       setSelectedExercise(null);
 
