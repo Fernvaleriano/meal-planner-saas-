@@ -16349,6 +16349,15 @@ a.nav-left {
     border-color: rgba(0, 0, 0, 0.1);
 }
 
+[data-theme="light"] .club-workout-card-overlay {
+    background: linear-gradient(
+        to bottom,
+        rgba(0, 0, 0, 0.15) 0%,
+        rgba(0, 0, 0, 0.35) 40%,
+        rgba(0, 0, 0, 0.65) 100%
+    );
+}
+
 [data-theme="light"] .club-workout-card:hover {
     border-color: #8b5cf6;
 }
