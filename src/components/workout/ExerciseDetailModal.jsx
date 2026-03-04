@@ -1429,7 +1429,7 @@ function ExerciseDetailModal({
         ...currentExercise,
         sets: newSets,
         // Persist the exercise type so time-based mode is remembered
-        exercise_type: editMode === 'time' ? 'timed' : (currentExercise.exercise_type || 'strength')
+        exercise_type: editMode === 'time' ? 'timed' : (editMode === 'reps' ? 'strength' : (currentExercise.exercise_type || 'strength'))
       };
       callbackRefs.current.onUpdateExercise(updatedExercise);
     }
