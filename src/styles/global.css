@@ -20677,7 +20677,10 @@ a.nav-left {
 
 /* Client Note for Coach Section */
 .client-note-for-coach-section {
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    margin: 12px 16px 0;
+    border-radius: 12px;
+    background: rgba(139, 92, 246, 0.1);
+    border: 1px solid rgba(139, 92, 246, 0.3);
 }
 
 .client-note-toggle {
@@ -20688,20 +20691,20 @@ a.nav-left {
     padding: 14px 16px;
     background: none;
     border: none;
-    color: #d1d5db;
-    font-size: 14px;
-    font-weight: 500;
+    color: #c4b5fd;
+    font-size: 15px;
+    font-weight: 600;
     cursor: pointer;
 }
 
 .client-note-toggle-left {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
 }
 
 .client-note-toggle-left svg {
-    color: #8b5cf6;
+    color: #a78bfa;
 }
 
 .note-saved-badge {
@@ -20828,11 +20831,12 @@ a.nav-left {
 }
 
 [data-theme="light"] .client-note-for-coach-section {
-    border-top-color: #e2e8f0;
+    background: rgba(139, 92, 246, 0.08);
+    border-color: rgba(139, 92, 246, 0.25);
 }
 
 [data-theme="light"] .client-note-toggle {
-    color: #334155;
+    color: #6d28d9;
 }
 
 /* Ask Coach Section */
@@ -30907,12 +30911,12 @@ a.nav-left {
     align-items: center;
     justify-content: space-between;
     width: 100%;
-    padding: 10px 14px;
-    background: rgba(147, 51, 234, 0.1);
-    border: 1px solid rgba(147, 51, 234, 0.3);
-    border-radius: 10px;
-    color: #a78bfa;
-    font-size: 13px;
+    padding: 12px 14px;
+    background: rgba(139, 92, 246, 0.1);
+    border: 1px solid rgba(139, 92, 246, 0.3);
+    border-radius: 12px;
+    color: #c4b5fd;
+    font-size: 14px;
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s;
