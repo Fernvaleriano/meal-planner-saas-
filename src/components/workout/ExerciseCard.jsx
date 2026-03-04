@@ -321,8 +321,9 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
   const distanceUnitLabel = distanceUnit === 'miles' ? 'mi' : distanceUnit === 'km' ? 'km' : 'm';
 
   // Check if this is a timed/interval exercise - respect explicit trackingType from workout builder
+  // If trackingType is explicitly 'reps' (set by SetEditorModal), never treat as timed
   // Also detect time-based reps values (e.g. "3 min", "30s") when trackingType is not set
-  const isTimedExercise = !isDistanceExercise && (exercise.trackingType === 'time' || exercise.exercise_type === 'timed' || (!exercise.trackingType && (exercise.duration || exercise.exercise_type === 'cardio' || exercise.exercise_type === 'interval' || parseTimeFromReps(exercise.reps))) || sets.some(s => s?.isTimeBased));
+  const isTimedExercise = !isDistanceExercise && exercise.trackingType !== 'reps' && exercise.exercise_type !== 'strength' && (exercise.trackingType === 'time' || exercise.exercise_type === 'timed' || (!exercise.trackingType && (exercise.duration || exercise.exercise_type === 'cardio' || exercise.exercise_type === 'interval' || parseTimeFromReps(exercise.reps))) || sets.some(s => s?.isTimeBased));
 
   // Toggle individual set completion
   const toggleSet = (setIndex, e) => {
