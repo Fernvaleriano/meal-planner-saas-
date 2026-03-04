@@ -2357,7 +2357,7 @@ function GuidedWorkoutModal({
           </div>
         )}
 
-        {/* Message Coach */}
+        {/* Leave a Note to Coach */}
         <div className="guided-client-note-section">
           <button
             className="guided-client-note-toggle"
@@ -2365,8 +2365,8 @@ function GuidedWorkoutModal({
             type="button"
           >
             <div className="guided-client-note-toggle-left">
-              <MessageCircle size={16} />
-              <span>Message Coach</span>
+              <MessageCircle size={18} />
+              <span>Leave a Note to Coach</span>
             </div>
             {clientNoteSaved[currentExIndex] && <span className="note-saved-badge">Saved</span>}
             {showClientNoteInput ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
