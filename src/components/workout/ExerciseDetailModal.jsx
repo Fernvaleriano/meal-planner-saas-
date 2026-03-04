@@ -1438,7 +1438,9 @@ function ExerciseDetailModal({
         ...currentExercise,
         sets: newSets,
         // Persist the exercise type so time-based mode is remembered
-        exercise_type: editMode === 'time' ? 'timed' : (editMode === 'reps' ? 'strength' : (currentExercise.exercise_type || 'strength'))
+        exercise_type: editMode === 'time' ? 'timed' : (editMode === 'reps' ? 'strength' : (currentExercise.exercise_type || 'strength')),
+        // Also update trackingType so ExerciseCard renders the correct unit
+        trackingType: editMode === 'time' ? 'time' : (editMode === 'distance' ? 'distance' : 'reps')
       };
       callbackRefs.current.onUpdateExercise(updatedExercise);
     }
@@ -1680,7 +1682,7 @@ function ExerciseDetailModal({
   const isDistanceExercise = exercise?.trackingType === 'distance';
   const distanceUnit = exercise?.distanceUnit || 'miles';
   const distanceUnitLabel = distanceUnit === 'miles' ? 'mi' : distanceUnit === 'km' ? 'km' : 'm';
-  const isTimedExercise = !isDistanceExercise && (exercise?.duration || exercise?.exercise_type === 'cardio' || exercise?.exercise_type === 'timed' || sets.some(s => s?.isTimeBased));
+  const isTimedExercise = !isDistanceExercise && exercise?.trackingType !== 'reps' && exercise?.exercise_type !== 'strength' && (exercise?.duration || exercise?.exercise_type === 'cardio' || exercise?.exercise_type === 'timed' || sets.some(s => s?.isTimeBased));
   const difficultyLevel = exercise?.difficulty || 'Novice';
 
   // Helper to check if URL is an image (not video)
