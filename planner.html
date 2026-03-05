@@ -29,6 +29,47 @@
     </script>
     <link rel="stylesheet" href="/css/coach-layout.css">
     <style>
+        /* Header Profile Avatar */
+        .header-profile-avatar {
+            width: 36px;
+            height: 36px;
+            min-width: 36px;
+            border-radius: 50%;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            border: 2px solid var(--teal-400, #2dd4bf);
+            background: var(--teal-600, #0d9488);
+            color: white;
+            font-size: 0.8rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .header-profile-avatar:hover {
+            border-color: var(--teal-300, #5eead4);
+            transform: scale(1.05);
+        }
+
+        .header-profile-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
+        }
+
+        [data-theme="dark"] .header-profile-avatar {
+            border-color: var(--teal-500, #14b8a6);
+            background: var(--teal-700, #0f766e);
+        }
+
+        [data-theme="dark"] .header-profile-avatar:hover {
+            border-color: var(--teal-400, #2dd4bf);
+        }
+
         * {
             -webkit-overflow-scrolling: touch !important;
             margin: 0;
@@ -2216,6 +2257,9 @@
             </button>
             <h1 class="main-header-title" style="color: white;"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:6px;"><path d="M3 2l1.578 17.824A2 2 0 0 0 6.556 21.5h10.888a2 2 0 0 0 1.978-1.676L21 2"/><path d="M8 2v3a4 4 0 0 0 8 0V2"/><path d="M12 14v4"/><path d="M9 18h6"/></svg>AI Meal Planner</h1>
             <div class="main-header-actions">
+                <a href="coach-profile.html" class="header-profile-avatar" id="headerProfileAvatar" title="Profile">
+                    <span id="headerProfileInitials">C</span>
+                </a>
                 <button id="backToClientBtn" onclick="goBackToClient()" style="display: none; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500; transition: all 0.2s;">
                     ← Back to Client
                 </button>
@@ -3599,7 +3643,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Check subscription status
             const { data: coachData, error: coachError } = await supabaseClient
                 .from('coaches')
-                .select('subscription_status, trial_ends_at')
+                .select('subscription_status, trial_ends_at, name, profile_photo_url')
                 .eq('id', currentCoach.id)
                 .single();
 
@@ -3616,6 +3660,18 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (!hasValidSubscription) {
                     window.location.href = 'subscription-required.html?from=dashboard';
                     return;
+                }
+
+                // Update header profile avatar
+                const headerAvatar = document.getElementById('headerProfileAvatar');
+                if (headerAvatar) {
+                    if (coachData.profile_photo_url) {
+                        headerAvatar.innerHTML = `<img src="${coachData.profile_photo_url}" alt="Profile">`;
+                    } else if (coachData.name) {
+                        const initials = coachData.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+                        const initialsEl = document.getElementById('headerProfileInitials');
+                        if (initialsEl) initialsEl.textContent = initials;
+                    }
                 }
             }
 
@@ -12136,13 +12192,15 @@ document.addEventListener('click', async (e) => {
                 </div>
                 <span class="coach-nav-label">Planner</span>
             </a>
-            <a href="coach-profile.html" class="coach-nav-item">
+            <a href="coach-workouts.html" class="coach-nav-item">
                 <div class="coach-nav-icon">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="24" height="24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.24 12.24a6 6 0 00-8.49-8.49L5 10.5V19h8.5z"/>
+                        <line x1="16" y1="8" x2="2" y2="22" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+                        <line x1="17.5" y1="15" x2="9" y2="15" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
                     </svg>
                 </div>
-                <span class="coach-nav-label">Profile</span>
+                <span class="coach-nav-label">Workouts</span>
             </a>
             <a href="coach-messages.html" class="coach-nav-item">
                 <div class="coach-nav-icon">
