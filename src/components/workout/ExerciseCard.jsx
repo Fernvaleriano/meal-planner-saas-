@@ -1,6 +1,8 @@
-import { useState, useRef, useEffect, memo } from 'react';
+import { useState, useRef, useEffect, memo, useCallback } from 'react';
 import { Check, Plus, Clock, Minus, Play, Timer, Zap, Flame, Leaf, ArrowLeftRight, Trash2, ChevronUp, ChevronDown, GripVertical, Mic, MicOff, ExternalLink } from 'lucide-react';
 import SmartThumbnail from './SmartThumbnail';
+import SetEditorModal from './SetEditorModal';
+import Portal from '../Portal';
 import { onAppResume, onAppSuspend } from '../../hooks/useAppLifecycle';
 
 // Parse reps - if it's a range like "8-12", return just the first number
@@ -175,6 +177,7 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
   };
 
   const [sets, setSets] = useState(initializeSets);
+  const [showSetEditor, setShowSetEditor] = useState(false);
   const [restTimerActive, setRestTimerActive] = useState(null);
   const [restTimeLeft, setRestTimeLeft] = useState(0);
   const restTimerRef = useRef(null);
@@ -395,6 +398,19 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
     // Close the sets swipe
     setSetsSwipeOffset(0);
   };
+
+  // Save sets from the SetEditorModal
+  const handleSaveSets = useCallback((newSets, editMode) => {
+    setSets(newSets);
+    if (onUpdateExercise) {
+      onUpdateExercise({
+        ...exercise,
+        sets: newSets,
+        exercise_type: editMode === 'time' ? 'timed' : (editMode === 'reps' ? 'strength' : (exercise.exercise_type || 'strength')),
+        trackingType: editMode === 'time' ? 'time' : (editMode === 'distance' ? 'distance' : 'reps')
+      });
+    }
+  }, [exercise, onUpdateExercise]);
 
   // Get thumbnail URL or placeholder
   // Note: animation_url is typically a video (.mp4) which can't be used as img src
@@ -858,7 +874,7 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
               transform: `translateX(-${setsSwipeOffset}px)`,
               transition: isSetsSwiping ? 'none' : 'transform 0.2s ease-out'
             }}
-            onClick={(e) => { e.stopPropagation(); if (setsSwipeOffset > 0) closeSetsSwipe(); else onClick?.(); }}
+            onClick={(e) => { e.stopPropagation(); if (setsSwipeOffset > 0) closeSetsSwipe(); else setShowSetEditor(true); }}
             onTouchStart={handleSetsTouchStart}
             onTouchMove={handleSetsTouchMove}
             onTouchEnd={handleSetsTouchEnd}
@@ -988,6 +1004,20 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
           </div>
         )}
       </div>
+
+      {/* Set Editor Modal */}
+      {showSetEditor && (
+        <Portal>
+          <SetEditorModal
+            exercise={exercise}
+            sets={sets}
+            isTimedExercise={isTimedExercise}
+            onSave={handleSaveSets}
+            onClose={() => setShowSetEditor(false)}
+            weightUnit={weightUnit}
+          />
+        </Portal>
+      )}
     </div>
   );
 }
