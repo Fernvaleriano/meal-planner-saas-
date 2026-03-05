@@ -241,7 +241,7 @@ function StoryViewer({ stories, coachName, coachAvatar, clientId, onClose }) {
           style={{ textDecoration: 'none' }}
         >
           {currentStory.linkPreviewImage && (
-            <img src={currentStory.linkPreviewImage} className="story-link-preview" alt="" />
+            <img src={currentStory.linkPreviewImage} className="story-link-preview" alt="" loading="lazy" decoding="async" />
           )}
           <div className="story-link-info">
             <div className="story-link-title">{currentStory.linkTitle || 'Check this out'}</div>

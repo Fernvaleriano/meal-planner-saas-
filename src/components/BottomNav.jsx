@@ -24,8 +24,24 @@ function BottomNav({ currentPath }) {
   useEffect(() => {
     if (clientData?.id) {
       fetchUnread();
-      const interval = setInterval(fetchUnread, 30000);
-      return () => clearInterval(interval);
+      let interval = setInterval(fetchUnread, 30000);
+
+      // Pause polling when backgrounded to save battery on Android
+      const handleVisibility = () => {
+        if (document.visibilityState === 'hidden') {
+          clearInterval(interval);
+          interval = null;
+        } else if (!interval) {
+          fetchUnread();
+          interval = setInterval(fetchUnread, 30000);
+        }
+      };
+      document.addEventListener('visibilitychange', handleVisibility);
+
+      return () => {
+        clearInterval(interval);
+        document.removeEventListener('visibilitychange', handleVisibility);
+      };
     }
   }, [clientData?.id, fetchUnread]);
 

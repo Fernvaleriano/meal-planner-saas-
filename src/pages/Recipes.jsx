@@ -443,7 +443,7 @@ function Recipes() {
                     onClick={() => setSelectedRecipe(recipe)}
                   >
                     {recipe.image_url ? (
-                      <img src={recipe.image_url} alt={recipe.name} className="recipe-image" />
+                      <img src={recipe.image_url} alt={recipe.name} className="recipe-image" loading="lazy" decoding="async" />
                     ) : (
                       <div className="recipe-image-placeholder">🍳</div>
                     )}
@@ -526,7 +526,7 @@ function Recipes() {
                       onClick={() => loadRecipeDetails(recipe)}
                     >
                       {recipe.image_url ? (
-                        <img src={recipe.image_url} alt={recipe.name} className="recipe-image" />
+                        <img src={recipe.image_url} alt={recipe.name} className="recipe-image" loading="lazy" decoding="async" />
                       ) : (
                         <div className="recipe-image-placeholder">🍳</div>
                       )}

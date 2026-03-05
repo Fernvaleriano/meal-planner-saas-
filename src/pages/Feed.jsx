@@ -126,7 +126,7 @@ function MealCard({ meal, coachId, onUpdate }) {
       <div className="feed-meal-header">
         <div className="feed-client-info">
           {meal.clientPhoto ? (
-            <img src={meal.clientPhoto} alt="" className="feed-client-avatar" />
+            <img src={meal.clientPhoto} alt="" className="feed-client-avatar" loading="lazy" decoding="async" />
           ) : (
             <div className="feed-client-avatar-placeholder">
               <User size={20} />
@@ -416,7 +416,7 @@ function WorkoutFeedCard({ workout, coachId, onUpdate, weightUnit = 'lbs' }) {
       <div className="workout-feed-header">
         <div className="feed-client-info">
           {workout.clientPhoto ? (
-            <img src={workout.clientPhoto} alt="" className="feed-client-avatar" />
+            <img src={workout.clientPhoto} alt="" className="feed-client-avatar" loading="lazy" decoding="async" />
           ) : (
             <div className="feed-client-avatar-placeholder">
               <User size={20} />

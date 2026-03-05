@@ -9585,9 +9585,6 @@ a.nav-left {
     animation: mealSlideUp 0.3s cubic-bezier(0.32, 0.72, 0, 1);
     padding-bottom: calc(80px + env(safe-area-inset-bottom, 20px));
     -webkit-overflow-scrolling: touch;
-    will-change: transform;
-    backface-visibility: hidden;
-    transform: translateZ(0);
     box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
 }
 

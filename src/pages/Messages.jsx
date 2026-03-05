@@ -807,7 +807,7 @@ function Messages() {
               >
                 <div className="chat-convo-avatar">
                   {convo.profilePhoto || convo.coachPhoto ? (
-                    <img src={convo.profilePhoto || convo.coachPhoto} alt={name} />
+                    <img src={convo.profilePhoto || convo.coachPhoto} alt={name} loading="lazy" decoding="async" />
                   ) : (
                     getInitials(name)
                   )}
