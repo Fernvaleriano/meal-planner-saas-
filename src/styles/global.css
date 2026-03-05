@@ -4016,6 +4016,12 @@ a.nav-left {
     overflow: hidden;
     border-radius: 10px;
     margin-bottom: 4px;
+    /* Let browser handle vertical scroll; JS handles horizontal swipe-to-delete.
+       Prevents Android from scrolling the page during a horizontal swipe and
+       suppresses the native context menu on long-press. */
+    touch-action: pan-y;
+    user-select: none;
+    -webkit-touch-callout: none;
 }
 
 .meal-entry-swipeable .meal-entry-content {
@@ -17094,6 +17100,11 @@ a.nav-left {
     transition: all 0.2s;
     position: relative;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    /* Allow vertical scroll but let JS handle horizontal swipe gestures.
+       React synthetic onTouchMove is passive by default, so preventDefault()
+       is silently ignored on Android Chrome — touch-action does the blocking
+       at the compositor level instead. */
+    touch-action: pan-y;
 }
 
 /* Skip rendering for off-screen cards — frees GPU memory on iOS WebKit and
@@ -27845,6 +27856,8 @@ a.nav-left {
     border: 1px solid rgba(255, 255, 255, 0.05);
     position: relative;
     z-index: 2;
+    /* Let browser handle vertical scroll; JS handles horizontal swipe-to-delete */
+    touch-action: pan-y;
 }
 
 /* Swipe delete button */
