@@ -5178,7 +5178,7 @@
         }
 
         // Send a reply to a client note via chat
-        async function sendNoteReply(alertId, clientId, exerciseName) {
+        async function sendNoteReply(alertId, clientId, exerciseName, noteContent) {
             const input = document.getElementById('reply-input-' + alertId);
             const row = document.getElementById('reply-row-' + alertId);
             const sent = document.getElementById('reply-sent-' + alertId);
@@ -5186,6 +5186,13 @@
 
             const btn = row.querySelector('button');
             if (btn) { btn.disabled = true; btn.textContent = 'Sending...'; }
+
+            // Build message with the original note quoted
+            let msg = 'Re: ' + exerciseName + ' note';
+            if (noteContent) {
+                msg += '\n> "' + noteContent + '"';
+            }
+            msg += '\n\n' + input.value.trim();
 
             try {
                 const res = await fetch('/.netlify/functions/chat', {
@@ -5196,7 +5203,7 @@
                         coachId: _currentCoachId,
                         clientId: clientId,
                         senderType: 'coach',
-                        message: 'Re: ' + exerciseName + ' note — ' + input.value.trim()
+                        message: msg
                     })
                 });
                 if (res.ok) {
@@ -5596,6 +5603,9 @@
 
                                 // Escape exercise name for use in HTML attributes
                                 const safeExerciseName = exerciseName.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                                // Get the full note content for quoting in replies
+                                const noteText = (note.client_notes || '').trim();
+                                const safeNoteContent = noteText.replace(/'/g, "\\'").replace(/"/g, '&quot;').replace(/\n/g, ' ');
 
                                 addAlert(aid, `
                                     <div class="priority-alert priority-alert--clickable" onclick="reviewAndArchive('${aid}', '${url}')">
@@ -5613,8 +5623,8 @@
                                             ${voicePlayerHtml}
                                             ${textNoteHtml}
                                             <div id="reply-row-${aid}" class="priority-note-reply-row" style="display:none;" onclick="event.stopPropagation()">
-                                                <input type="text" id="reply-input-${aid}" placeholder="Type your reply..." onkeydown="if(event.key==='Enter'){sendNoteReply('${aid}','${clientId}','${safeExerciseName}')}" />
-                                                <button onclick="sendNoteReply('${aid}','${clientId}','${safeExerciseName}')">Send</button>
+                                                <input type="text" id="reply-input-${aid}" placeholder="Type your reply..." onkeydown="if(event.key==='Enter'){sendNoteReply('${aid}','${clientId}','${safeExerciseName}','${safeNoteContent}')}" />
+                                                <button onclick="sendNoteReply('${aid}','${clientId}','${safeExerciseName}','${safeNoteContent}')">Send</button>
                                             </div>
                                             <div id="reply-sent-${aid}" class="priority-note-reply-sent" style="display:none;">
                                                 <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
