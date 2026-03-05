@@ -2406,6 +2406,41 @@
             font-weight: 600;
         }
 
+        /* Equipment Alert Banner */
+        .equipment-alert-banner {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 10px;
+            padding: 14px 16px;
+            margin: 12px 0 0;
+        }
+        [data-theme="dark"] .equipment-alert-banner {
+            background: rgba(220, 38, 38, 0.1);
+            border-color: rgba(220, 38, 38, 0.3);
+        }
+        .equipment-alert-banner .alert-title {
+            font-weight: 700;
+            color: #dc2626;
+            font-size: 13px;
+            margin-bottom: 8px;
+        }
+        [data-theme="dark"] .equipment-alert-banner .alert-title { color: #fca5a5; }
+        .equipment-alert-banner .alert-client-name {
+            font-weight: 600;
+            color: #991b1b;
+            margin-top: 6px;
+            font-size: 12px;
+        }
+        [data-theme="dark"] .equipment-alert-banner .alert-client-name { color: #fca5a5; }
+        .equipment-alert-banner .alert-item {
+            font-size: 12px;
+            color: #7f1d1d;
+            padding: 2px 0 2px 12px;
+        }
+        [data-theme="dark"] .equipment-alert-banner .alert-item { color: #fecaca; }
+        .equipment-alert-banner .alert-item strong { color: #dc2626; }
+        [data-theme="dark"] .equipment-alert-banner .alert-item strong { color: #fca5a5; }
+
         .days-selector {
             display: flex;
             gap: 8px;
@@ -5237,6 +5272,7 @@
                     <div class="selected-clients-display" id="selectedClientsDisplay">
                         <!-- Selected clients shown here -->
                     </div>
+                    <div id="equipmentAlertContainer"></div>
                 </div>
                 <div class="schedule-row">
                     <label class="schedule-label">Start date</label>
@@ -8495,7 +8531,74 @@
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('startDate').value = today;
 
+            // Check equipment conflicts for selected clients
+            checkAndDisplayEquipmentAlerts();
+
             document.getElementById('scheduleModal').style.display = 'flex';
+        }
+
+        /**
+         * Check selected clients' equipment restrictions against current workout
+         * and display alert banners in the schedule modal.
+         */
+        function checkAndDisplayEquipmentAlerts() {
+            const container = document.getElementById('equipmentAlertContainer');
+            if (!container) return;
+            container.innerHTML = '';
+
+            if (!workoutDays || workoutDays.length === 0) return;
+
+            // Collect all exercises and their equipment from the current program
+            const workoutData = { days: workoutDays };
+
+            let alertHTML = '';
+            for (const clientId of selectedClients) {
+                const client = clients.find(c => String(c.id) === String(clientId));
+                if (!client) continue;
+
+                let unavailable = client.unavailable_equipment;
+                if (typeof unavailable === 'string') {
+                    try { unavailable = JSON.parse(unavailable); } catch(e) { unavailable = []; }
+                }
+                if (!Array.isArray(unavailable) || unavailable.length === 0) continue;
+
+                const restrictedLower = unavailable.map(e => e.toLowerCase());
+                const conflicts = [];
+
+                for (const day of workoutDays) {
+                    for (const ex of (day.exercises || [])) {
+                        if (ex.equipment) {
+                            const exEquipLower = ex.equipment.toLowerCase();
+                            if (restrictedLower.some(r => exEquipLower.includes(r) || r.includes(exEquipLower))) {
+                                conflicts.push({ exerciseName: ex.name || 'Unknown', equipment: ex.equipment, dayName: day.name || '' });
+                            }
+                        }
+                    }
+                }
+
+                if (conflicts.length > 0) {
+                    // Dedupe
+                    const seen = new Set();
+                    const unique = conflicts.filter(c => {
+                        const key = `${c.exerciseName}|${c.equipment}`;
+                        if (seen.has(key)) return false;
+                        seen.add(key);
+                        return true;
+                    });
+                    const items = unique.map(c => {
+                        const dayLabel = c.dayName ? ` (${c.dayName})` : '';
+                        return `<div class="alert-item">• <strong>${c.exerciseName}</strong> requires ${c.equipment}${dayLabel}</div>`;
+                    }).join('');
+                    alertHTML += `<div class="alert-client-name">${client.client_name}:</div>${items}`;
+                }
+            }
+
+            if (alertHTML) {
+                container.innerHTML = `<div class="equipment-alert-banner">
+                    <div class="alert-title">⚠️ Equipment Access Alert</div>
+                    ${alertHTML}
+                </div>`;
+            }
         }
 
         function closeScheduleModal() {

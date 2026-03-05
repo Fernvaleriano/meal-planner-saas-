@@ -29,7 +29,9 @@ exports.handler = async (event, context) => {
       useProteinPowder, proteinPowderBrand, proteinPowderCalories,
       proteinPowderProtein, proteinPowderCarbs, proteinPowderFat,
       useBrandedFoods,
-      password // Optional: if provided, create auth user immediately
+      password, // Optional: if provided, create auth user immediately
+      // Equipment restrictions
+      unavailableEquipment
     } = body;
 
     // Validate required fields
@@ -237,6 +239,8 @@ exports.handler = async (event, context) => {
           protein_powder_fat: proteinPowderFat || null,
           // Branded fitness foods
           use_branded_foods: useBrandedFoods || false,
+          // Equipment restrictions
+          unavailable_equipment: unavailableEquipment || [],
           // Account fields (if password was provided and auth user created)
           user_id: authUserId || null,
           registered_at: authUserId ? new Date().toISOString() : null

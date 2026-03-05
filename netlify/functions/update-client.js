@@ -30,7 +30,9 @@ exports.handler = async (event, context) => {
       proteinPowderProtein, proteinPowderCarbs, proteinPowderFat,
       useBrandedFoods,
       // Client portal permissions
-      canChangeMeals, canReviseMeals, canCustomMeals, canRequestNewPlan
+      canChangeMeals, canReviseMeals, canCustomMeals, canRequestNewPlan,
+      // Equipment restrictions
+      unavailableEquipment
     } = body;
 
     // Validate required fields
@@ -95,6 +97,9 @@ exports.handler = async (event, context) => {
     if (canReviseMeals !== undefined) updateData.can_revise_meals = canReviseMeals;
     if (canCustomMeals !== undefined) updateData.can_custom_meals = canCustomMeals;
     if (canRequestNewPlan !== undefined) updateData.can_request_new_plan = canRequestNewPlan;
+
+    // Equipment restrictions
+    if (unavailableEquipment !== undefined) updateData.unavailable_equipment = unavailableEquipment;
 
     // Update client (verify it belongs to this coach)
     const { data, error } = await supabase
