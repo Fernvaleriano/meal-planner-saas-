@@ -3797,6 +3797,101 @@
             color: #c4b5fd;
         }
 
+        /* Inline reply for priority note items */
+        .priority-note-reply-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            margin-left: 8px;
+            padding: 2px 10px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #7c3aed;
+            background: #f5f3ff;
+            border: 1px solid #e9e5f5;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background 0.15s, color 0.15s;
+            vertical-align: middle;
+        }
+        .priority-note-reply-btn:hover {
+            background: #ede9fe;
+            color: #6d28d9;
+        }
+        .priority-note-reply-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 8px;
+            padding: 0 2px;
+        }
+        .priority-note-reply-row input {
+            flex: 1;
+            padding: 6px 10px;
+            font-size: 13px;
+            border: 1px solid #d4d4d8;
+            border-radius: 8px;
+            outline: none;
+            background: #fff;
+            color: #18181b;
+        }
+        .priority-note-reply-row input:focus {
+            border-color: #7c3aed;
+            box-shadow: 0 0 0 2px rgba(124,58,237,0.15);
+        }
+        .priority-note-reply-row button {
+            padding: 6px 14px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #fff;
+            background: #7c3aed;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.15s;
+            white-space: nowrap;
+        }
+        .priority-note-reply-row button:hover {
+            background: #6d28d9;
+        }
+        .priority-note-reply-row button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .priority-note-reply-sent {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            margin-top: 6px;
+            padding: 3px 10px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #059669;
+            background: #ecfdf5;
+            border-radius: 8px;
+        }
+        [data-theme="dark"] .priority-note-reply-btn {
+            background: #1e1033;
+            border-color: #2d2050;
+            color: #a78bfa;
+        }
+        [data-theme="dark"] .priority-note-reply-btn:hover {
+            background: #2d2050;
+            color: #c4b5fd;
+        }
+        [data-theme="dark"] .priority-note-reply-row input {
+            background: #1a1a2e;
+            border-color: #2d2050;
+            color: #e4e4e7;
+        }
+        [data-theme="dark"] .priority-note-reply-row input:focus {
+            border-color: #7c3aed;
+        }
+        [data-theme="dark"] .priority-note-reply-sent {
+            background: #064e3b;
+            color: #6ee7b7;
+        }
+
         /* Extended Stats Row */
         .stats-grid-extended {
             display: grid;
@@ -5070,6 +5165,59 @@
             window.location.href = url;
         }
 
+        // Toggle inline reply input for a note item
+        function toggleNoteReply(alertId) {
+            const row = document.getElementById('reply-row-' + alertId);
+            if (!row) return;
+            const isVisible = row.style.display !== 'none';
+            row.style.display = isVisible ? 'none' : 'flex';
+            if (!isVisible) {
+                const input = document.getElementById('reply-input-' + alertId);
+                if (input) input.focus();
+            }
+        }
+
+        // Send a reply to a client note via chat
+        async function sendNoteReply(alertId, clientId, exerciseName) {
+            const input = document.getElementById('reply-input-' + alertId);
+            const row = document.getElementById('reply-row-' + alertId);
+            const sent = document.getElementById('reply-sent-' + alertId);
+            if (!input || !input.value.trim()) return;
+
+            const btn = row.querySelector('button');
+            if (btn) { btn.disabled = true; btn.textContent = 'Sending...'; }
+
+            try {
+                const res = await fetch('/.netlify/functions/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'send',
+                        coachId: _currentCoachId,
+                        clientId: clientId,
+                        senderType: 'coach',
+                        message: 'Re: ' + exerciseName + ' note — ' + input.value.trim()
+                    })
+                });
+                if (res.ok) {
+                    // Hide input, show confirmation
+                    row.style.display = 'none';
+                    input.value = '';
+                    if (sent) {
+                        sent.style.display = 'inline-flex';
+                        setTimeout(() => { sent.style.display = 'none'; }, 4000);
+                    }
+                } else {
+                    alert('Failed to send reply. Please try again.');
+                }
+            } catch (e) {
+                console.error('Error sending note reply:', e);
+                alert('Failed to send reply. Please try again.');
+            } finally {
+                if (btn) { btn.disabled = false; btn.textContent = 'Send'; }
+            }
+        }
+
         function renderPriorityAlertSections() {
             const alertsEl = document.getElementById('priorityAlerts');
             if (!alertsEl || _allPriorityAlerts.length === 0) return;
@@ -5446,6 +5594,9 @@
                                     textNoteHtml = `<div class="priority-text-note" onclick="event.stopPropagation()"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:3px;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>${preview}</div>`;
                                 }
 
+                                // Escape exercise name for use in HTML attributes
+                                const safeExerciseName = exerciseName.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+
                                 addAlert(aid, `
                                     <div class="priority-alert priority-alert--clickable" onclick="reviewAndArchive('${aid}', '${url}')">
                                         __CHECKBOX__
@@ -5455,8 +5606,20 @@
                                             <strong>${name}</strong> on ${exerciseName}
                                             <span class="priority-alert-detail">· ${workoutName} · ${timeAgo(note.created_at)}</span>
                                             <span class="priority-alert-link">Review →</span>
+                                            <button class="priority-note-reply-btn" onclick="event.stopPropagation(); toggleNoteReply('${aid}')" title="Reply to this note">
+                                                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                                                Reply
+                                            </button>
                                             ${voicePlayerHtml}
                                             ${textNoteHtml}
+                                            <div id="reply-row-${aid}" class="priority-note-reply-row" style="display:none;" onclick="event.stopPropagation()">
+                                                <input type="text" id="reply-input-${aid}" placeholder="Type your reply..." onkeydown="if(event.key==='Enter'){sendNoteReply('${aid}','${clientId}','${safeExerciseName}')}" />
+                                                <button onclick="sendNoteReply('${aid}','${clientId}','${safeExerciseName}')">Send</button>
+                                            </div>
+                                            <div id="reply-sent-${aid}" class="priority-note-reply-sent" style="display:none;">
+                                                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
+                                                Sent to messages
+                                            </div>
                                         </span>
                                     </div>
                                 `, clientId, 'workout_note', note.id);
