@@ -151,12 +151,21 @@ function AiQuickWorkoutModal({ onClose, onGenerateWorkout, selectedDate }) {
     fetchExercises();
   }, []);
 
-  // Lock body scroll when modal is open
+  // Lock body scroll — position:fixed technique for Android compatibility
   useEffect(() => {
-    const originalStyle = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    const scrollY = window.scrollY;
+    const body = document.body;
+    const html = document.documentElement;
+    const orig = { bo: body.style.overflow, ho: html.style.overflow, bp: body.style.position, bt: body.style.top, bw: body.style.width };
+    body.style.overflow = 'hidden';
+    html.style.overflow = 'hidden';
+    body.style.position = 'fixed';
+    body.style.top = `-${scrollY}px`;
+    body.style.width = '100%';
     return () => {
-      document.body.style.overflow = originalStyle;
+      body.style.overflow = orig.bo; html.style.overflow = orig.ho;
+      body.style.position = orig.bp; body.style.top = orig.bt; body.style.width = orig.bw;
+      window.scrollTo(0, scrollY);
     };
   }, []);
 

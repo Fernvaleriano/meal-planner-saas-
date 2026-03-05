@@ -245,6 +245,8 @@ export function ExerciseSelectorModal({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               autoFocus
+              enterKeyHint="search"
+              inputMode="search"
             />
             {searchQuery && (
               <button

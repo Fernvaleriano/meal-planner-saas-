@@ -1520,10 +1520,12 @@ function GuidedWorkoutModal({
     }
   }, [currentExercise?.name, currentExercise?.customVideoUrl, currentExercise?.video_url, currentExercise?.animation_url, guidedVideoBlobUrl]);
 
-  // Elapsed time tracker - uses functional updater to avoid stale closures
+  // Elapsed time tracker — uses Date.now() to resist drift when Android
+  // throttles setInterval during backgrounding (1/min instead of 1/sec).
+  const elapsedStartRef = useRef(Date.now() - totalElapsed * 1000);
   useEffect(() => {
     const id = setInterval(() => {
-      setTotalElapsed(prev => prev + 1);
+      setTotalElapsed(Math.floor((Date.now() - elapsedStartRef.current) / 1000));
     }, 1000);
     elapsedRef.current = id;
     return () => {
@@ -1532,15 +1534,23 @@ function GuidedWorkoutModal({
     };
   }, []);
 
-  // Lock body AND html scroll — must lock both for iOS Safari
+  // Lock body AND html scroll — position:fixed technique for Android compatibility.
+  // Must lock both body + html for iOS Safari.
+  const scrollLockPosRef = useRef(0);
   useEffect(() => {
-    const origBody = document.body.style.overflow;
-    const origHtml = document.documentElement.style.overflow;
-    document.body.style.overflow = 'hidden';
-    document.documentElement.style.overflow = 'hidden';
+    scrollLockPosRef.current = window.scrollY;
+    const body = document.body;
+    const html = document.documentElement;
+    const orig = { bo: body.style.overflow, ho: html.style.overflow, bp: body.style.position, bt: body.style.top, bw: body.style.width };
+    body.style.overflow = 'hidden';
+    html.style.overflow = 'hidden';
+    body.style.position = 'fixed';
+    body.style.top = `-${scrollLockPosRef.current}px`;
+    body.style.width = '100%';
     return () => {
-      document.body.style.overflow = origBody;
-      document.documentElement.style.overflow = origHtml;
+      body.style.overflow = orig.bo; html.style.overflow = orig.ho;
+      body.style.position = orig.bp; body.style.top = orig.bt; body.style.width = orig.bw;
+      window.scrollTo(0, scrollLockPosRef.current);
     };
   }, []);
 
@@ -1551,6 +1561,9 @@ function GuidedWorkoutModal({
       // Re-ensure body scroll is locked since we're still mounted
       document.body.style.overflow = 'hidden';
       document.documentElement.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollLockPosRef.current}px`;
+      document.body.style.width = '100%';
 
       // Force a lightweight repaint on iOS Safari without destroying the DOM tree.
       // Changing a React key would unmount/remount the entire child tree, which
@@ -2486,6 +2499,7 @@ function GuidedWorkoutModal({
                     ref={recInputRef}
                     type="number"
                     inputMode="numeric"
+                    enterKeyHint="done"
                     className="ai-rec-input"
                     value={aiRecommendations[currentExIndex].reps || ''}
                     onChange={(e) => updateRecommendationValue('reps', e.target.value)}
@@ -2507,6 +2521,7 @@ function GuidedWorkoutModal({
                     ref={recInputRef}
                     type="number"
                     inputMode="decimal"
+                    enterKeyHint="done"
                     className="ai-rec-input"
                     value={aiRecommendations[currentExIndex].weight || ''}
                     onChange={(e) => updateRecommendationValue('weight', e.target.value)}
@@ -2648,6 +2663,7 @@ function GuidedWorkoutModal({
                     ref={inputRef}
                     type="number"
                     inputMode="numeric"
+                    enterKeyHint="done"
                     className="guided-input-field"
                     value={currentSetLog.reps || ''}
                     onChange={(e) => updateSetLog('reps', parseInt(e.target.value) || 0)}
@@ -2672,6 +2688,7 @@ function GuidedWorkoutModal({
                     ref={inputRef}
                     type="number"
                     inputMode="decimal"
+                    enterKeyHint="done"
                     className="guided-input-field"
                     value={currentSetLog.weight || ''}
                     onChange={(e) => updateSetLog('weight', parseFloat(e.target.value) || 0)}
