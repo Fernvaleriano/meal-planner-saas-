@@ -11,7 +11,6 @@ import SwapExerciseModal from '../components/workout/SwapExerciseModal';
 import CreateWorkoutModal from '../components/workout/CreateWorkoutModal';
 import ClubWorkoutsModal from '../components/workout/ClubWorkoutsModal';
 import GuidedWorkoutModal from '../components/workout/GuidedWorkoutModal';
-import MuscleMap from '../components/workout/MuscleMap';
 import ErrorBoundary from '../components/ErrorBoundary';
 import { useToast } from '../components/Toast';
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
@@ -3996,9 +3995,6 @@ function Workouts() {
                 <span className="stat-label">Duration</span>
               </div>
             </div>
-            {exercises.length > 0 && (
-              <MuscleMap exercises={exercises} />
-            )}
             {workoutPRs.length > 0 && (
               <div className="summary-prs-section">
                 <div className="prs-header">
@@ -4047,9 +4043,6 @@ function Workouts() {
                   <div className="share-card-brand">
                     <img src="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/Untitled%20design%20-%202026-02-10T171903.769.png" alt="Zique Fitness" className="share-card-logo" />
                   </div>
-                  {shareToggles.muscles !== false && exercises.length > 0 && (
-                    <MuscleMap exercises={exercises} compact />
-                  )}
                   <div className="share-card-stats">
                     {shareToggles.calories && (
                       <div className="share-stat">

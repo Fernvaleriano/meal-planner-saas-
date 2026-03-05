@@ -17,7 +17,6 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { apiGet } from '../utils/api';
 import { usePullToRefreshEvent } from '../hooks/usePullToRefreshEvent';
-import MuscleMap from '../components/workout/MuscleMap';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -784,11 +783,6 @@ export default function WorkoutHistory() {
             </div>
           )}
         </div>
-
-        {/* Muscles worked */}
-        {exercises.length > 0 && (
-          <MuscleMap exercises={exercises} compact />
-        )}
 
         {/* Exercises list */}
         {exercises.length === 0 ? (
