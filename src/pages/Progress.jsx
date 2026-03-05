@@ -434,6 +434,7 @@ function Progress() {
                     <label>Weight ({weightUnit})</label>
                     <input
                       type="number"
+                      inputMode="decimal"
                       step="0.1"
                       placeholder={weightUnit === 'kg' ? '68.0' : '150.0'}
                       value={measurementForm.weight}
@@ -444,6 +445,7 @@ function Progress() {
                     <label>Body Fat %</label>
                     <input
                       type="number"
+                      inputMode="decimal"
                       step="0.1"
                       placeholder="20.0"
                       value={measurementForm.bodyFat}
@@ -457,6 +459,7 @@ function Progress() {
                     <label>Chest (in)</label>
                     <input
                       type="number"
+                      inputMode="decimal"
                       step="0.1"
                       placeholder="40.0"
                       value={measurementForm.chest}
@@ -467,6 +470,7 @@ function Progress() {
                     <label>Waist (in)</label>
                     <input
                       type="number"
+                      inputMode="decimal"
                       step="0.1"
                       placeholder="32.0"
                       value={measurementForm.waist}
@@ -480,6 +484,7 @@ function Progress() {
                     <label>Hips (in)</label>
                     <input
                       type="number"
+                      inputMode="decimal"
                       step="0.1"
                       placeholder="38.0"
                       value={measurementForm.hips}
@@ -490,6 +495,7 @@ function Progress() {
                     <label>Left Arm (in)</label>
                     <input
                       type="number"
+                      inputMode="decimal"
                       step="0.1"
                       placeholder="14.0"
                       value={measurementForm.leftArm}
@@ -503,6 +509,7 @@ function Progress() {
                     <label>Right Arm (in)</label>
                     <input
                       type="number"
+                      inputMode="decimal"
                       step="0.1"
                       placeholder="14.0"
                       value={measurementForm.rightArm}
@@ -513,6 +520,7 @@ function Progress() {
                     <label>Left Thigh (in)</label>
                     <input
                       type="number"
+                      inputMode="decimal"
                       step="0.1"
                       placeholder="22.0"
                       value={measurementForm.leftThigh}
@@ -525,6 +533,7 @@ function Progress() {
                   <label>Right Thigh (in)</label>
                   <input
                     type="number"
+                    inputMode="decimal"
                     step="0.1"
                     placeholder="22.0"
                     value={measurementForm.rightThigh}

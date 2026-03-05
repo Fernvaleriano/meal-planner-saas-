@@ -3511,6 +3511,7 @@ function Diary() {
                     </button>
                     <input
                       type="number"
+                      inputMode="numeric"
                       value={editGoalsForm[key] || ''}
                       onChange={(e) => setEditGoalsForm(prev => ({ ...prev, [key]: parseInt(e.target.value) || 0 }))}
                       style={{

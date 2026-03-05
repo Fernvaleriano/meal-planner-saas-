@@ -2318,6 +2318,7 @@ Keep it practical and brief. Format with clear sections.`;
                               </button>
                               <input
                                 type="number"
+                                inputMode="decimal"
                                 className="qty-input"
                                 value={ing.quantity}
                                 onChange={e => updateIngredientQty(idx, e.target.value)}
@@ -2432,6 +2433,7 @@ Keep it practical and brief. Format with clear sections.`;
                       <label>Calories</label>
                       <input
                         type="number"
+                        inputMode="numeric"
                         value={customMealData.calories}
                         onChange={e => setCustomMealData(prev => ({ ...prev, calories: e.target.value }))}
                         placeholder="0"
@@ -2441,6 +2443,7 @@ Keep it practical and brief. Format with clear sections.`;
                       <label>Protein (g)</label>
                       <input
                         type="number"
+                        inputMode="numeric"
                         value={customMealData.protein}
                         onChange={e => setCustomMealData(prev => ({ ...prev, protein: e.target.value }))}
                         placeholder="0"
@@ -2450,6 +2453,7 @@ Keep it practical and brief. Format with clear sections.`;
                       <label>Carbs (g)</label>
                       <input
                         type="number"
+                        inputMode="numeric"
                         value={customMealData.carbs}
                         onChange={e => setCustomMealData(prev => ({ ...prev, carbs: e.target.value }))}
                         placeholder="0"
@@ -2459,6 +2463,7 @@ Keep it practical and brief. Format with clear sections.`;
                       <label>Fat (g)</label>
                       <input
                         type="number"
+                        inputMode="numeric"
                         value={customMealData.fat}
                         onChange={e => setCustomMealData(prev => ({ ...prev, fat: e.target.value }))}
                         placeholder="0"

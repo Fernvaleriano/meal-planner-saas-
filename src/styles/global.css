@@ -21330,6 +21330,7 @@ a.nav-left {
     background: #1a1a1a;
     border-radius: 20px 20px 0 0;
     max-height: 90vh;
+    max-height: 90dvh;
     display: flex;
     flex-direction: column;
 }
