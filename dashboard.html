@@ -5188,11 +5188,11 @@
             if (btn) { btn.disabled = true; btn.textContent = 'Sending...'; }
 
             // Build message with the original note quoted
-            let msg = 'Re: ' + exerciseName + ' note';
+            let msg = 'Re: ' + exerciseName;
             if (noteContent) {
-                msg += '\n> "' + noteContent + '"';
+                msg += ' — "' + noteContent + '"';
             }
-            msg += '\n\n' + input.value.trim();
+            msg += ' — ' + input.value.trim();
 
             try {
                 const res = await fetch('/.netlify/functions/chat', {
@@ -5605,7 +5605,9 @@
                                 const safeExerciseName = exerciseName.replace(/'/g, "\\'").replace(/"/g, '&quot;');
                                 // Get the full note content for quoting in replies
                                 const noteText = (note.client_notes || '').trim();
-                                const safeNoteContent = noteText.replace(/'/g, "\\'").replace(/"/g, '&quot;').replace(/\n/g, ' ');
+                                const safeNoteContent = noteText
+                                    ? noteText.replace(/'/g, "\\'").replace(/"/g, '&quot;').replace(/\n/g, ' ')
+                                    : (hasVoice ? '[Voice Note]' : '');
 
                                 addAlert(aid, `
                                     <div class="priority-alert priority-alert--clickable" onclick="reviewAndArchive('${aid}', '${url}')">
