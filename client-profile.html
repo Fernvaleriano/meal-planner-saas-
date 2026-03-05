@@ -12569,6 +12569,8 @@
                     if (note.clientNotes && note.clientNotes.trim()) badges.push('<span class="cn-badge cn-badge--text">💬 Text</span>');
 
                     const safeExName = escapeHtml(note.exerciseName).replace(/'/g, "\\'");
+                    const noteText = (note.clientNotes || '').trim();
+                    const safeNoteContent = noteText.replace(/'/g, "\\'").replace(/"/g, '&quot;').replace(/\n/g, ' ');
                     const replyId = 'cn-reply-' + idx;
 
                     return `
@@ -12585,8 +12587,8 @@
                                 Reply
                             </button>
                             <div id="${replyId}-row" class="cn-reply-row" style="display:none;">
-                                <input type="text" id="${replyId}-input" placeholder="Type your reply..." onkeydown="if(event.key==='Enter') sendCnReply('${replyId}','${safeExName}')" />
-                                <button onclick="sendCnReply('${replyId}','${safeExName}')">Send</button>
+                                <input type="text" id="${replyId}-input" placeholder="Type your reply..." onkeydown="if(event.key==='Enter') sendCnReply('${replyId}','${safeExName}','${safeNoteContent}')" />
+                                <button onclick="sendCnReply('${replyId}','${safeExName}','${safeNoteContent}')">Send</button>
                             </div>
                             <div id="${replyId}-sent" class="cn-reply-sent" style="display:none;">
                                 <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
@@ -12614,7 +12616,7 @@
         }
 
         // Send reply to a client note via chat
-        async function sendCnReply(replyId, exerciseName) {
+        async function sendCnReply(replyId, exerciseName, noteContent) {
             const input = document.getElementById(replyId + '-input');
             const row = document.getElementById(replyId + '-row');
             const sent = document.getElementById(replyId + '-sent');
@@ -12622,6 +12624,13 @@
 
             const btn = row.querySelector('button');
             if (btn) { btn.disabled = true; btn.textContent = 'Sending...'; }
+
+            // Build message with the original note quoted
+            let msg = 'Re: ' + exerciseName + ' note';
+            if (noteContent) {
+                msg += '\n> "' + noteContent + '"';
+            }
+            msg += '\n\n' + input.value.trim();
 
             try {
                 const res = await fetch('/.netlify/functions/chat', {
@@ -12632,7 +12641,7 @@
                         coachId: window.coachUserId || '',
                         clientId: clientId,
                         senderType: 'coach',
-                        message: 'Re: ' + exerciseName + ' note — ' + input.value.trim()
+                        message: msg
                     })
                 });
                 if (res.ok) {
