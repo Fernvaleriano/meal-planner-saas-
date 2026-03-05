@@ -1194,14 +1194,21 @@ IMPORTANT RULES:
 1. Write in plain text only - no special characters, no emojis, no asterisks, no markdown formatting
 2. Use specific client names when relevant
 3. Be concise within each section - short, scannable sentences
-4. If listing clients, use simple numbered lists (1. 2. 3.) or just commas
-5. For workout/exercise questions, include specific weights, sets, reps, and PRs when available
-6. For nutrition questions, compare actual intake vs goals when both are available
-7. For body composition questions, mention weight changes and trends
-8. If the data needed to answer is not available, say so honestly rather than guessing
-9. Provide a thorough response - use as many words as needed to fully answer the question without cutting short
-10. IMPORTANT: Always use the exact weight units provided in the data (kg or lbs). Never convert or assume units - use exactly what is shown in the client data
-11. You MUST use the [Section Name] format for headers. Do not skip this formatting.`;
+4. CRITICAL FORMATTING: Put each client on their OWN line. Never combine multiple clients into one paragraph. Use a blank line between clients for readability.
+5. For PRs or notable achievements, list each one on its own line with a dash prefix like: - Barbell Deadlift: 140kg x 10 reps
+6. Structure each client entry like this:
+   ClientName logged X workouts this month.
+   Recent exercises: Exercise1, Exercise2, Exercise3.
+   - PR: Exercise Name: Weight x Reps
+   - PR: Exercise Name: Weight x Reps
+7. For workout/exercise questions, include specific weights, sets, reps, and PRs when available
+8. For nutrition questions, compare actual intake vs goals when both are available
+9. For body composition questions, mention weight changes and trends
+10. If the data needed to answer is not available, say so honestly rather than guessing
+11. Provide a thorough response - use as many words as needed to fully answer the question without cutting short
+12. IMPORTANT: Always use the exact weight units provided in the data (kg or lbs). Never convert or assume units - use exactly what is shown in the client data
+13. You MUST use the [Section Name] format for headers. Do not skip this formatting.
+14. NEVER write a wall of text. Always break content into separate lines for each client or data point.`;
 
     const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
       method: 'POST',

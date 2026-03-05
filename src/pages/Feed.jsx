@@ -1113,7 +1113,7 @@ function Feed() {
                     <Zap size={14} />
                     <span>AI Insights</span>
                   </div>
-                  <p className="ai-response-text">{aiResponse}</p>
+                  <div className="ai-response-text" style={{ whiteSpace: 'pre-line' }}>{aiResponse}</div>
                 </div>
               )}
             </div>
