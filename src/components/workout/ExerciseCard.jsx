@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, memo } from 'react';
-import { Check, Plus, Clock, Minus, Play, Timer, Zap, Flame, Leaf, RotateCcw, ArrowLeftRight, Trash2, ChevronUp, ChevronDown, GripVertical, Mic, MicOff, ExternalLink } from 'lucide-react';
+import { Check, Plus, Clock, Minus, Play, Timer, Zap, Flame, Leaf, ArrowLeftRight, Trash2, ChevronUp, ChevronDown, GripVertical, Mic, MicOff, ExternalLink } from 'lucide-react';
 import SmartThumbnail from './SmartThumbnail';
 import { onAppResume, onAppSuspend } from '../../hooks/useAppLifecycle';
 
@@ -380,36 +380,6 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
     setSets(newSets);
   };
 
-  // Update weight for a set
-  const updateWeight = (setIndex, value, e) => {
-    e?.stopPropagation();
-    const newSets = [...sets];
-    const numValue = parseFloat(value);
-    newSets[setIndex] = { ...newSets[setIndex], weight: isNaN(numValue) ? 0 : numValue };
-    setSets(newSets);
-  };
-
-  // Weight increment based on unit system
-  const weightIncrement = weightUnit === 'kg' ? 2.5 : 5;
-
-  // Increment/decrement weight
-  const adjustWeight = (setIndex, delta, e) => {
-    e.stopPropagation();
-    const newSets = [...sets];
-    const newWeight = Math.max(0, (newSets[setIndex].weight || 0) + delta);
-    newSets[setIndex] = { ...newSets[setIndex], weight: newWeight };
-    setSets(newSets);
-  };
-
-  // Update rest time for a set
-  const updateRestTime = (setIndex, value, e) => {
-    e?.stopPropagation();
-    const newSets = [...sets];
-    const numValue = parseInt(value, 10);
-    newSets[setIndex] = { ...newSets[setIndex], restSeconds: isNaN(numValue) ? 60 : numValue };
-    setSets(newSets);
-  };
-
   // Add a set - with persistence
   const addSet = (e) => {
     if (e) e.stopPropagation();
@@ -424,14 +394,6 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
 
     // Close the sets swipe
     setSetsSwipeOffset(0);
-  };
-
-  // Remove a set
-  const removeSet = (setIndex, e) => {
-    e.stopPropagation();
-    if (sets.length <= 1) return;
-    const newSets = sets.filter((_, idx) => idx !== setIndex);
-    setSets(newSets);
   };
 
   // Get thumbnail URL or placeholder
@@ -955,148 +917,6 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
             </div>
           </div>
         </div>
-
-      {/* Sets Section (when workout started) */}
-      {workoutStarted && (
-        <div className="sets-panel expanded">
-            <div className="sets-grid-v2">
-              {sets.map((set, idx) => (
-                <div key={idx} className={`set-item ${set.completed ? 'done' : ''}`}>
-                  <div className="set-header">
-                    <span className="set-label">Set {idx + 1}</span>
-                    {sets.length > 1 && (
-                      <button className="remove-set-btn" onClick={(e) => removeSet(idx, e)}>
-                        <Minus size={12} />
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Reps / Distance Input */}
-                  <div className="set-input-group">
-                    <label>{isDistanceExercise ? `Dist (${distanceUnitLabel})` : (exercise.repType === 'failure' ? 'Reps Done' : 'Reps')}</label>
-                    <input
-                      type="number"
-                      inputMode="decimal"
-                      step="any"
-                      className="set-input"
-                      value={isDistanceExercise ? (set.distance != null ? set.distance : '') : (set.reps != null ? set.reps : '')}
-                      onChange={(e) => {
-                        e.stopPropagation();
-                        const newSets = [...sets];
-                        const numValue = parseFloat(e.target.value);
-                        if (isDistanceExercise) {
-                          newSets[idx] = { ...newSets[idx], distance: isNaN(numValue) ? 0 : numValue };
-                        } else {
-                          newSets[idx] = { ...newSets[idx], reps: isNaN(numValue) ? 0 : numValue };
-                        }
-                        setSets(newSets);
-                      }}
-                      onClick={(e) => e.stopPropagation()}
-                      onFocus={(e) => {
-                        e.stopPropagation();
-                        // Clear value on focus so user can type fresh (like weight input)
-                        const newSets = [...sets];
-                        if (isDistanceExercise) {
-                          newSets[idx] = { ...newSets[idx], distance: 0 };
-                        } else {
-                          newSets[idx] = { ...newSets[idx], reps: 0 };
-                        }
-                        setSets(newSets);
-                      }}
-                      onBlur={(e) => {
-                        // Restore default if left empty
-                        const val = parseFloat(e.target.value);
-                        if (!val || isNaN(val)) {
-                          const newSets = [...sets];
-                          if (isDistanceExercise) {
-                            newSets[idx] = { ...newSets[idx], distance: exercise.distance || 1 };
-                          } else {
-                            newSets[idx] = { ...newSets[idx], reps: parseReps(exercise.reps) || 12 };
-                          }
-                          setSets(newSets);
-                        }
-                      }}
-                      placeholder={exercise.repType === 'failure' ? 'Max' : (isDistanceExercise ? String(exercise.distance || 1) : String(parseReps(exercise.reps) || 12))}
-                      min="0"
-                      max="999"
-                    />
-                  </div>
-
-                  {/* Weight Input */}
-                  <div className="set-input-group">
-                    <label>Weight ({weightUnit})</label>
-                    <div className="weight-input-row">
-                      <button
-                        className="weight-adjust-btn"
-                        onClick={(e) => adjustWeight(idx, -weightIncrement, e)}
-                      >
-                        <Minus size={14} />
-                      </button>
-                      <input
-                        type="number"
-                        inputMode="decimal"
-                        step={weightUnit === 'kg' ? '0.5' : '1'}
-                        className="set-input weight-input"
-                        value={set.weight != null ? set.weight : ''}
-                        onChange={(e) => updateWeight(idx, e.target.value, e)}
-                        onClick={(e) => e.stopPropagation()}
-                        onFocus={(e) => e.target.select()}
-                        min="0"
-                        max={weightUnit === 'kg' ? '500' : '1100'}
-                      />
-                      <button
-                        className="weight-adjust-btn"
-                        onClick={(e) => adjustWeight(idx, weightIncrement, e)}
-                      >
-                        <Plus size={14} />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Rest Time Input */}
-                  <div className="set-input-group rest-input">
-                    <label>Rest</label>
-                    <div className="rest-input-row">
-                      <input
-                        type="number"
-                        inputMode="numeric"
-                        pattern="[0-9]*"
-                        className="set-input rest-time-input"
-                        value={set.restSeconds || ''}
-                        onChange={(e) => updateRestTime(idx, e.target.value, e)}
-                        onClick={(e) => e.stopPropagation()}
-                        onFocus={(e) => e.target.select()}
-                        min="0"
-                        max="300"
-                      />
-                      <span className="rest-unit">s</span>
-                      {set.completed && idx < sets.length - 1 && (
-                        <button
-                          className="start-rest-btn"
-                          onClick={(e) => { e.stopPropagation(); startRestTimer(idx, set.restSeconds || 60); }}
-                        >
-                          <RotateCcw size={14} />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Complete Set Button */}
-                  <button
-                    className={`set-check ${set.completed ? 'checked' : ''}`}
-                    onClick={(e) => toggleSet(idx, e)}
-                  >
-                    <Check size={16} />
-                  </button>
-                </div>
-              ))}
-              <button className="add-set-btn" onClick={addSet}>
-                <Plus size={16} />
-                <span>Add Set</span>
-              </button>
-            </div>
-        </div>
-      )}
 
       {/* Rest Timer Overlay */}
       {restTimerActive !== null && (
