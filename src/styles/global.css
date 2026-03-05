@@ -12642,10 +12642,10 @@ a.nav-left {
     min-height: 100vh;
     background: var(--gray-50);
     padding-bottom: 80px;
-    /* Prevent Android Chrome's native pull-to-refresh from hijacking gesture */
-    overscroll-behavior-y: contain;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
+    /* Native overscroll prevention is handled globally on <html>.
+       Do NOT set overflow-y: auto here — it creates a nested scroll container
+       that traps scrolling on Android, preventing the user from scrolling
+       the full page. Let the document/body handle scrolling naturally. */
 }
 
 /* Hero Header */
