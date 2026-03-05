@@ -2536,6 +2536,18 @@
                         window.location.href = 'subscription-required.html?from=dashboard';
                         return;
                     }
+
+                    // Update header profile avatar
+                    const headerAvatar = document.getElementById('headerProfileAvatar');
+                    if (headerAvatar) {
+                        if (coachData.profile_photo_url) {
+                            headerAvatar.innerHTML = `<img src="${coachData.profile_photo_url}" alt="Profile">`;
+                        } else if (coachData.name) {
+                            const initials = coachData.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+                            const initialsEl = document.getElementById('headerProfileInitials');
+                            if (initialsEl) initialsEl.textContent = initials;
+                        }
+                    }
                 }
 
                 // Load clients

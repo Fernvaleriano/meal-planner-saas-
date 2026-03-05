@@ -3643,7 +3643,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Check subscription status
             const { data: coachData, error: coachError } = await supabaseClient
                 .from('coaches')
-                .select('subscription_status, trial_ends_at')
+                .select('subscription_status, trial_ends_at, name, profile_photo_url')
                 .eq('id', currentCoach.id)
                 .single();
 
@@ -3660,6 +3660,18 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (!hasValidSubscription) {
                     window.location.href = 'subscription-required.html?from=dashboard';
                     return;
+                }
+
+                // Update header profile avatar
+                const headerAvatar = document.getElementById('headerProfileAvatar');
+                if (headerAvatar) {
+                    if (coachData.profile_photo_url) {
+                        headerAvatar.innerHTML = `<img src="${coachData.profile_photo_url}" alt="Profile">`;
+                    } else if (coachData.name) {
+                        const initials = coachData.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+                        const initialsEl = document.getElementById('headerProfileInitials');
+                        if (initialsEl) initialsEl.textContent = initials;
+                    }
                 }
             }
 
