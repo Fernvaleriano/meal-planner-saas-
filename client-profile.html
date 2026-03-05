@@ -3046,6 +3046,122 @@
         }
 
         /* ========== Workout Programs Section ========== */
+        /* Equipment Restrictions Section */
+        .equipment-restrictions-section {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-top: 30px;
+        }
+        [data-theme="dark"] .equipment-restrictions-section {
+            background: var(--bg-secondary);
+        }
+        .equip-restrict-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        .equip-restrict-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #dc2626;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        [data-theme="dark"] .equip-restrict-tag {
+            background: rgba(220, 38, 38, 0.15);
+            border-color: rgba(220, 38, 38, 0.3);
+            color: #fca5a5;
+        }
+        .equip-restrict-tag .remove-tag {
+            cursor: pointer;
+            font-size: 16px;
+            line-height: 1;
+            opacity: 0.7;
+            transition: opacity 0.15s;
+        }
+        .equip-restrict-tag .remove-tag:hover { opacity: 1; }
+        .equip-restrict-add-row {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+            align-items: center;
+        }
+        .equip-restrict-add-row select {
+            flex: 1;
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            font-size: 13px;
+            background: white;
+            color: inherit;
+        }
+        [data-theme="dark"] .equip-restrict-add-row select {
+            background: var(--bg-tertiary);
+            border-color: var(--border-color);
+        }
+        .equip-restrict-add-btn {
+            padding: 8px 16px;
+            border-radius: 8px;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .equip-restrict-add-btn:hover { background: #2563eb; }
+        .equip-restrict-empty {
+            color: #94a3b8;
+            font-size: 13px;
+            font-style: italic;
+            margin-top: 8px;
+        }
+
+        /* Equipment Alert Banner (for assignment flow) */
+        .equipment-alert-banner {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 10px;
+            padding: 14px 16px;
+            margin: 12px 0;
+        }
+        [data-theme="dark"] .equipment-alert-banner {
+            background: rgba(220, 38, 38, 0.1);
+            border-color: rgba(220, 38, 38, 0.3);
+        }
+        .equipment-alert-banner .alert-title {
+            font-weight: 700;
+            color: #dc2626;
+            font-size: 13px;
+            margin-bottom: 8px;
+        }
+        [data-theme="dark"] .equipment-alert-banner .alert-title {
+            color: #fca5a5;
+        }
+        .equipment-alert-banner .alert-item {
+            font-size: 12px;
+            color: #7f1d1d;
+            padding: 3px 0;
+        }
+        [data-theme="dark"] .equipment-alert-banner .alert-item {
+            color: #fecaca;
+        }
+        .equipment-alert-banner .alert-item strong {
+            color: #dc2626;
+        }
+        [data-theme="dark"] .equipment-alert-banner .alert-item strong {
+            color: #fca5a5;
+        }
+
         .workout-programs-section {
             background: white;
             border-radius: 12px;
@@ -7798,6 +7914,42 @@
             </div>
         </div>
 
+        <!-- Equipment Restrictions Section -->
+        <div class="equipment-restrictions-section" data-drawer="equipment">
+            <div class="section-header collapsible-header" onclick="toggleSection('equipRestrictions')" style="cursor: pointer;">
+                <h2 class="section-title">🚫 Equipment Restrictions</h2>
+                <button class="section-toggle-btn" type="button">
+                    <span class="toggle-icon collapsed" id="equipRestrictionsToggleIcon">▼</span>
+                </button>
+            </div>
+            <div id="equipRestrictionsContent" class="collapsible-content collapsed">
+                <p style="font-size: 13px; color: var(--text-secondary, #64748b); margin: 0 0 8px;">Mark equipment this client does <strong>not</strong> have access to. You'll get a warning when assigning workouts that use restricted equipment.</p>
+                <div class="equip-restrict-tags" id="equipRestrictTags">
+                    <!-- Tags rendered by JS -->
+                </div>
+                <div class="equip-restrict-add-row">
+                    <select id="equipRestrictSelect">
+                        <option value="">-- Select equipment --</option>
+                        <option value="Barbell">Barbell</option>
+                        <option value="Cable">Cable</option>
+                        <option value="Dumbbell">Dumbbell</option>
+                        <option value="EZ Bar">EZ Bar</option>
+                        <option value="Hack Squat">Hack Squat</option>
+                        <option value="Kettlebell">Kettlebell</option>
+                        <option value="Leg Press Machine">Leg Press Machine</option>
+                        <option value="Machine">Machine</option>
+                        <option value="Resistance Band">Resistance Band</option>
+                        <option value="Smith Machine">Smith Machine</option>
+                    </select>
+                    <input type="text" id="equipRestrictCustom" placeholder="Or type custom..." style="flex: 1; padding: 8px 12px; border-radius: 8px; border: 1px solid #e2e8f0; font-size: 13px; display: none;">
+                    <button class="equip-restrict-add-btn" onclick="addEquipmentRestriction()">+ Add</button>
+                </div>
+                <div style="margin-top: 6px;">
+                    <button onclick="toggleCustomEquipInput()" style="background: none; border: none; color: #3b82f6; cursor: pointer; font-size: 12px; padding: 0;">Not in list? Add custom equipment</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Workout Programs Section -->
         <div class="workout-programs-section" data-drawer="programs">
             <div class="section-header collapsible-header" onclick="toggleSection('workoutPrograms')" style="cursor: pointer;">
@@ -8633,6 +8785,7 @@
                 currentClient = data;
                 currentClientName = data.name || '';
                 displayClient(data);
+                loadEquipmentRestrictions();
 
                 console.log('Client data loaded:', data);
 
@@ -13357,6 +13510,148 @@
             return days[dayIndex]?.exercises || [];
         }
 
+        // ============ EQUIPMENT RESTRICTIONS ============
+        let clientUnavailableEquipment = [];
+
+        function renderEquipmentRestrictions() {
+            const container = document.getElementById('equipRestrictTags');
+            if (!container) return;
+            if (!clientUnavailableEquipment || clientUnavailableEquipment.length === 0) {
+                container.innerHTML = '<div class="equip-restrict-empty">No equipment restrictions set. This client has access to all equipment.</div>';
+                return;
+            }
+            container.innerHTML = clientUnavailableEquipment.map(equip => `
+                <span class="equip-restrict-tag">
+                    🚫 ${equip}
+                    <span class="remove-tag" onclick="removeEquipmentRestriction('${equip.replace(/'/g, "\\'")}')">&times;</span>
+                </span>
+            `).join('');
+        }
+
+        function loadEquipmentRestrictions() {
+            if (!currentClient) return;
+            let raw = currentClient.unavailable_equipment;
+            if (typeof raw === 'string') {
+                try { raw = JSON.parse(raw); } catch(e) { raw = []; }
+            }
+            clientUnavailableEquipment = Array.isArray(raw) ? [...raw] : [];
+            renderEquipmentRestrictions();
+        }
+
+        function addEquipmentRestriction() {
+            const select = document.getElementById('equipRestrictSelect');
+            const custom = document.getElementById('equipRestrictCustom');
+            let value = '';
+
+            if (custom && custom.style.display !== 'none' && custom.value.trim()) {
+                value = custom.value.trim();
+            } else if (select && select.value) {
+                value = select.value;
+            }
+
+            if (!value) return;
+            // Avoid duplicates (case-insensitive)
+            if (clientUnavailableEquipment.some(e => e.toLowerCase() === value.toLowerCase())) {
+                alert('This equipment is already in the restrictions list.');
+                return;
+            }
+            clientUnavailableEquipment.push(value);
+            saveEquipmentRestrictions();
+            if (select) select.value = '';
+            if (custom) custom.value = '';
+        }
+
+        function removeEquipmentRestriction(equip) {
+            clientUnavailableEquipment = clientUnavailableEquipment.filter(e => e !== equip);
+            saveEquipmentRestrictions();
+        }
+
+        async function saveEquipmentRestrictions() {
+            renderEquipmentRestrictions();
+            if (!currentClient || !currentUser) return;
+            try {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                if (!session?.access_token) return;
+                await fetch('/.netlify/functions/update-client', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${session.access_token}`
+                    },
+                    body: JSON.stringify({
+                        clientId: currentClient.id,
+                        coachId: currentUser.id,
+                        unavailableEquipment: clientUnavailableEquipment
+                    })
+                });
+                // Update local data
+                currentClient.unavailable_equipment = clientUnavailableEquipment;
+            } catch (err) {
+                console.error('Failed to save equipment restrictions:', err);
+            }
+        }
+
+        function toggleCustomEquipInput() {
+            const select = document.getElementById('equipRestrictSelect');
+            const custom = document.getElementById('equipRestrictCustom');
+            if (!select || !custom) return;
+            if (custom.style.display === 'none') {
+                custom.style.display = '';
+                select.style.display = 'none';
+            } else {
+                custom.style.display = 'none';
+                select.style.display = '';
+            }
+        }
+
+        /**
+         * Check a workout's exercises against a client's equipment restrictions.
+         * Returns an array of { exerciseName, equipment } for each conflicting exercise.
+         */
+        function checkEquipmentConflicts(workoutData, unavailableEquip) {
+            if (!unavailableEquip || unavailableEquip.length === 0) return [];
+            const conflicts = [];
+            const restrictedLower = unavailableEquip.map(e => e.toLowerCase());
+            const days = workoutData?.days || [];
+            // Also handle flat structure (exercises on root)
+            const allDays = days.length > 0 ? days : (workoutData?.exercises ? [workoutData] : []);
+            for (const day of allDays) {
+                const exercises = day.exercises || [];
+                for (const ex of exercises) {
+                    if (ex.equipment) {
+                        const exEquipLower = ex.equipment.toLowerCase();
+                        if (restrictedLower.some(r => exEquipLower.includes(r) || r.includes(exEquipLower))) {
+                            conflicts.push({ exerciseName: ex.name || 'Unknown exercise', equipment: ex.equipment, dayName: day.name || '' });
+                        }
+                    }
+                }
+            }
+            return conflicts;
+        }
+
+        /**
+         * Build an HTML alert banner for equipment conflicts
+         */
+        function buildEquipmentAlertHTML(clientName, conflicts) {
+            if (!conflicts || conflicts.length === 0) return '';
+            // Dedupe by exercise name + equipment
+            const seen = new Set();
+            const unique = conflicts.filter(c => {
+                const key = `${c.exerciseName}|${c.equipment}`;
+                if (seen.has(key)) return false;
+                seen.add(key);
+                return true;
+            });
+            const items = unique.map(c => {
+                const dayLabel = c.dayName ? ` (${c.dayName})` : '';
+                return `<div class="alert-item"><strong>${c.exerciseName}</strong> requires <strong>${c.equipment}</strong>${dayLabel}</div>`;
+            }).join('');
+            return `<div class="equipment-alert-banner">
+                <div class="alert-title">⚠️ ${clientName} doesn't have access to some equipment:</div>
+                ${items}
+            </div>`;
+        }
+
         // ============ WORKOUT PROGRAMS FUNCTIONS ============
         let coachPrograms = [];
         let clientActiveAssignment = null;
@@ -13556,6 +13851,21 @@
 
             if (!startDate) { alert('Please select a start date.'); return; }
             if (selectedDays.length === 0) { alert('Please select at least one schedule day.'); return; }
+
+            // Check equipment conflicts before assigning
+            if (currentClient && clientUnavailableEquipment.length > 0) {
+                const conflicts = checkEquipmentConflicts(program.program_data, clientUnavailableEquipment);
+                if (conflicts.length > 0) {
+                    const conflictList = conflicts.map(c => `  - ${c.exerciseName} (requires ${c.equipment})`).join('\n');
+                    const proceed = confirm(
+                        `⚠️ Equipment Alert for ${currentClient.client_name}:\n\n` +
+                        `This program includes exercises that use equipment this client doesn't have access to:\n\n` +
+                        conflictList + '\n\n' +
+                        `Do you still want to assign this program?`
+                    );
+                    if (!proceed) return;
+                }
+            }
 
             try {
                 const res = await fetch('/.netlify/functions/workout-assignments', {
