@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, memo } from 'react';
-import { Check, Plus, Clock, ChevronRight, Minus, Play, Timer, Zap, Flame, Leaf, RotateCcw, ArrowLeftRight, Trash2, ChevronUp, ChevronDown, GripVertical, Mic, MicOff, ExternalLink } from 'lucide-react';
+import { Check, Plus, Clock, Minus, Play, Timer, Zap, Flame, Leaf, RotateCcw, ArrowLeftRight, Trash2, ChevronUp, ChevronDown, GripVertical, Mic, MicOff, ExternalLink } from 'lucide-react';
 import SmartThumbnail from './SmartThumbnail';
 import { onAppResume, onAppSuspend } from '../../hooks/useAppLifecycle';
 
@@ -175,7 +175,6 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
   };
 
   const [sets, setSets] = useState(initializeSets);
-  const [showSets, setShowSets] = useState(false);
   const [restTimerActive, setRestTimerActive] = useState(null);
   const [restTimeLeft, setRestTimeLeft] = useState(0);
   const restTimerRef = useRef(null);
@@ -957,18 +956,9 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
           </div>
         </div>
 
-      {/* Expandable Sets Section (when workout started) */}
+      {/* Sets Section (when workout started) */}
       {workoutStarted && (
-        <div className={`sets-panel ${showSets ? 'expanded' : ''}`}>
-          <button
-            className="sets-toggle"
-            onClick={(e) => { e.stopPropagation(); setShowSets(!showSets); }}
-          >
-            <span>{showSets ? 'Hide Sets' : 'Log Sets'}</span>
-            <ChevronRight size={16} className={showSets ? 'rotated' : ''} />
-          </button>
-
-          {showSets && (
+        <div className="sets-panel expanded">
             <div className="sets-grid-v2">
               {sets.map((set, idx) => (
                 <div key={idx} className={`set-item ${set.completed ? 'done' : ''}`}>
@@ -1105,7 +1095,6 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
                 <span>Add Set</span>
               </button>
             </div>
-          )}
         </div>
       )}
 
