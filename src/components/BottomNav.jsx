@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Home, NotebookPen, Dumbbell, MessageCircle, CalendarDays } from 'lucide-react';
+import { Home, NotebookPen, Dumbbell, MessageCircle, UtensilsCrossed } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiGet } from '../utils/api';
 
@@ -54,7 +54,7 @@ function BottomNav({ currentPath }) {
     { path: '/diary', icon: NotebookPen, label: 'Diary' },
     { path: '/messages', icon: MessageCircle, label: 'Messages', badge: unreadMessages },
     { path: '/workouts', icon: Dumbbell, label: 'Workouts' },
-    { path: '/plans', icon: CalendarDays, label: 'Planner' }
+    { path: '/plans', icon: UtensilsCrossed, label: 'Meals' }
   ];
 
   return (
