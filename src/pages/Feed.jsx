@@ -819,7 +819,7 @@ function Feed() {
         throw new Error(result.error);
       }
 
-      setWorkoutFeed(result.workouts || []);
+      setWorkoutFeed(result.feed || []);
     } catch (err) {
       console.error('Feed: Error fetching workout feed:', err);
       setError(err.message || 'Failed to load workout feed');
