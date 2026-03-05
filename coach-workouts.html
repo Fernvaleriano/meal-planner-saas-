@@ -5461,6 +5461,7 @@
                             <option value="cardio">Cardio</option>
                             <option value="flexibility">Flexibility</option>
                             <option value="plyometric">Plyometric</option>
+                            <option value="custom">Custom</option>
                         </select>
                     </div>
                 </div>
@@ -7846,9 +7847,13 @@
 
             // Filter by exercise type
             if (currentExerciseTypeFilter) {
-                filtered = filtered.filter(e =>
-                    e.exercise_type?.toLowerCase() === currentExerciseTypeFilter.toLowerCase()
-                );
+                if (currentExerciseTypeFilter === 'custom') {
+                    filtered = filtered.filter(e => e.is_custom === true);
+                } else {
+                    filtered = filtered.filter(e =>
+                        e.exercise_type?.toLowerCase() === currentExerciseTypeFilter.toLowerCase()
+                    );
+                }
             }
 
             // Search filter (includes name, muscle_group, and secondary_muscles)
