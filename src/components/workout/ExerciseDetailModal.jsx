@@ -1986,6 +1986,8 @@ function ExerciseDetailModal({
                   <img
                     src={thumbnailUrl}
                     alt={exercise.name || 'Exercise'}
+                    loading="lazy"
+                    decoding="async"
                     onError={(e) => { e.target.src = '/img/exercise-placeholder.svg'; }}
                   />
                 ) : (
@@ -2496,6 +2498,8 @@ function ExerciseDetailModal({
                     <img
                       src={exThumb}
                       alt={ex?.name || 'Exercise'}
+                      loading="lazy"
+                      decoding="async"
                       onError={(e) => { e.target.src = '/img/exercise-placeholder.svg'; }}
                     />
                   </button>
