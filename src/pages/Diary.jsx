@@ -2606,6 +2606,7 @@ function Diary() {
                   onChange={(e) => setAiInput(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleAiChat()}
                   disabled={aiLogging}
+                  enterKeyHint="send"
                 />
                 <button
                   className="ai-modal-send"
@@ -3510,6 +3511,7 @@ function Diary() {
                     </button>
                     <input
                       type="number"
+                      inputMode="numeric"
                       value={editGoalsForm[key] || ''}
                       onChange={(e) => setEditGoalsForm(prev => ({ ...prev, [key]: parseInt(e.target.value) || 0 }))}
                       style={{

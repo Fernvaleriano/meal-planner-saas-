@@ -29,10 +29,9 @@ function StoryViewer({ stories, coachName, coachAvatar, clientId, onClose }) {
     return `${Math.floor(seconds / 86400)}d ago`;
   };
 
-  // Close viewer
+  // Close viewer — scroll lock cleanup handled by useEffect unmount
   const handleClose = useCallback(() => {
     clearTimeout(timerRef.current);
-    document.body.style.overflow = '';
     onClose();
   }, [onClose]);
 
@@ -136,11 +135,21 @@ function StoryViewer({ stories, coachName, coachAvatar, clientId, onClose }) {
     return () => clearTimeout(timerRef.current);
   }, [currentIndex, currentStory?.id, clientId, startTimer]);
 
-  // Prevent body scroll when open
+  // Prevent body scroll when open — position:fixed technique for Android
   useEffect(() => {
-    document.body.style.overflow = 'hidden';
+    const scrollY = window.scrollY;
+    const body = document.body;
+    const orig = { o: body.style.overflow, p: body.style.position, t: body.style.top, w: body.style.width };
+    body.style.overflow = 'hidden';
+    body.style.position = 'fixed';
+    body.style.top = `-${scrollY}px`;
+    body.style.width = '100%';
     return () => {
-      document.body.style.overflow = '';
+      body.style.overflow = orig.o;
+      body.style.position = orig.p;
+      body.style.top = orig.t;
+      body.style.width = orig.w;
+      window.scrollTo(0, scrollY);
     };
   }, []);
 

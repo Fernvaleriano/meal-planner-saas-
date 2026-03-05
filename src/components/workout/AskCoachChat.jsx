@@ -834,6 +834,7 @@ function AskCoachChat({ exercise, onClose }) {
             onChange={e => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             disabled={loading}
+            enterKeyHint="send"
           />
           {voiceSupported && (
             <button

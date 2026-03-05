@@ -79,12 +79,21 @@ function CreateWorkoutModal({ onClose, onCreateWorkout, selectedDate, coachId = 
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [forceClose, editingDayName, dayMenuOpen]);
 
-  // Lock body scroll when modal is open
+  // Lock body scroll — position:fixed technique for Android compatibility
   useEffect(() => {
-    const originalStyle = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    const scrollY = window.scrollY;
+    const body = document.body;
+    const html = document.documentElement;
+    const orig = { bo: body.style.overflow, ho: html.style.overflow, bp: body.style.position, bt: body.style.top, bw: body.style.width };
+    body.style.overflow = 'hidden';
+    html.style.overflow = 'hidden';
+    body.style.position = 'fixed';
+    body.style.top = `-${scrollY}px`;
+    body.style.width = '100%';
     return () => {
-      document.body.style.overflow = originalStyle;
+      body.style.overflow = orig.bo; html.style.overflow = orig.ho;
+      body.style.position = orig.bp; body.style.top = orig.bt; body.style.width = orig.bw;
+      window.scrollTo(0, scrollY);
     };
   }, []);
 
@@ -395,6 +404,7 @@ function CreateWorkoutModal({ onClose, onCreateWorkout, selectedDate, coachId = 
               <label>SETS</label>
               <input
                 type="number"
+                inputMode="numeric"
                 min="1"
                 max="10"
                 value={exercise.sets || 3}
@@ -410,6 +420,7 @@ function CreateWorkoutModal({ onClose, onCreateWorkout, selectedDate, coachId = 
                 <label>MIN</label>
                 <input
                   type="number"
+                  inputMode="numeric"
                   min="0"
                   max="90"
                   value={Math.floor((exercise.duration || 30) / 60)}
@@ -423,6 +434,7 @@ function CreateWorkoutModal({ onClose, onCreateWorkout, selectedDate, coachId = 
                 <label>SEC</label>
                 <input
                   type="number"
+                  inputMode="numeric"
                   min="0"
                   max="59"
                   value={(exercise.duration || 30) % 60}

@@ -736,6 +736,7 @@ function Messages() {
             placeholder="Send a message..."
             rows={1}
             className="chat-input"
+            enterKeyHint="send"
           />
           <button
             className="chat-send-btn"

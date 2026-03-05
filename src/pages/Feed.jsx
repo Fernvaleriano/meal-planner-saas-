@@ -579,6 +579,7 @@ function WorkoutFeedCard({ workout, coachId, onUpdate, weightUnit = 'lbs' }) {
                               disabled={replySending}
                               maxLength={500}
                               autoFocus
+                              enterKeyHint="send"
                             />
                             <button
                               className="note-reply-send-btn"

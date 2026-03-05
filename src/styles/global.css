@@ -83,6 +83,7 @@ body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     background: var(--gray-50);
     min-height: 100vh;
+    min-height: 100dvh; /* Android Chrome: accounts for dynamic URL bar height */
     display: flex;
     flex-direction: column;
     color: var(--gray-900);
@@ -96,6 +97,7 @@ body {
     display: flex;
     flex-direction: column;
     min-height: 100vh;
+    min-height: 100dvh;
     width: 100%;
     max-width: 100vw;
     overflow-x: hidden;
@@ -862,7 +864,7 @@ a.nav-left {
 .notification-detail-footer {
     padding: 12px 16px;
     border-top: 1px solid var(--gray-200);
-    padding-bottom: calc(12px + env(safe-area-inset-bottom));
+    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
 }
 
 .view-entry-btn {
@@ -1205,7 +1207,7 @@ a.nav-left {
 .main-content {
     flex: 1;
     padding: 24px 16px;
-    padding-bottom: calc(100px + env(safe-area-inset-bottom));
+    padding-bottom: calc(100px + env(safe-area-inset-bottom, 0px));
     max-width: 100%;
     overflow-x: hidden;
 }
@@ -1226,7 +1228,7 @@ a.nav-left {
 /* No top nav - for pages with custom navigation */
 .main-content.no-top-nav {
     padding: 0;
-    padding-bottom: calc(80px + env(safe-area-inset-bottom));
+    padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
 }
 
 .container.full-width {
@@ -1417,7 +1419,7 @@ a.nav-left {
     justify-content: space-around;
     align-items: center;
     padding: 8px 0;
-    padding-bottom: calc(8px + env(safe-area-inset-bottom));
+    padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
     z-index: 1000;
     box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
     /* Ensure touch events are always received */
@@ -4014,6 +4016,12 @@ a.nav-left {
     overflow: hidden;
     border-radius: 10px;
     margin-bottom: 4px;
+    /* Let browser handle vertical scroll; JS handles horizontal swipe-to-delete.
+       Prevents Android from scrolling the page during a horizontal swipe and
+       suppresses the native context menu on long-press. */
+    touch-action: pan-y;
+    user-select: none;
+    -webkit-touch-callout: none;
 }
 
 .meal-entry-swipeable .meal-entry-content {
@@ -5212,7 +5220,7 @@ a.nav-left {
     justify-content: space-between;
     align-items: center;
     padding: 16px 20px;
-    padding-top: max(16px, env(safe-area-inset-top));
+    padding-top: max(16px, env(safe-area-inset-top, 0px));
     border-bottom: 1px solid var(--gray-100);
     flex-shrink: 0;
 }
@@ -5488,7 +5496,7 @@ a.nav-left {
 /* Modal Input Area - Fixed at bottom */
 .ai-modal-input-area {
     padding: 12px 16px;
-    padding-bottom: max(16px, env(safe-area-inset-bottom));
+    padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
     border-top: 1px solid var(--gray-100);
     background: white;
     flex-shrink: 0;
@@ -6935,6 +6943,7 @@ a.nav-left {
     justify-content: center;
     z-index: 2000;
     padding: 20px;
+    -webkit-backdrop-filter: blur(4px);
     backdrop-filter: blur(4px);
     opacity: 1;
     visibility: visible;
@@ -7846,6 +7855,7 @@ a.nav-left {
 
 .recipes-page {
     min-height: 100vh;
+    min-height: 100dvh;
     background: var(--gray-50);
     padding-bottom: 100px;
 }
@@ -8455,6 +8465,7 @@ a.nav-left {
 
 .checkin-page {
     min-height: 100vh;
+    min-height: 100dvh;
     background: var(--gray-50);
     padding-bottom: 100px;
 }
@@ -8622,6 +8633,7 @@ a.nav-left {
     width: 100%;
     margin-top: 12px;
     -webkit-appearance: none;
+    appearance: none;
     height: 10px;
     border-radius: 10px;
     background: linear-gradient(90deg, rgba(71, 85, 105, 0.4) 0%, rgba(71, 85, 105, 0.6) 100%);
@@ -8633,6 +8645,7 @@ a.nav-left {
 
 .adherence-slider::-webkit-slider-thumb {
     -webkit-appearance: none;
+    appearance: none;
     width: 28px;
     height: 28px;
     border-radius: 50%;
@@ -8781,6 +8794,7 @@ a.nav-left {
 
 .progress-page {
     min-height: 100vh;
+    min-height: 100dvh;
     background: var(--gray-50);
     padding-bottom: 100px;
 }
@@ -11316,6 +11330,7 @@ a.nav-left {
     font-size: 0.95rem;
     font-family: inherit;
     transition: all 0.25s ease;
+    -webkit-backdrop-filter: blur(4px);
     backdrop-filter: blur(4px);
 }
 
@@ -11590,6 +11605,7 @@ a.nav-left {
     width: 100%;
     max-width: 420px;
     height: 100%;
+    max-height: 100vh;
     max-height: 100dvh;
     position: relative;
     display: flex;
@@ -12296,6 +12312,7 @@ a.nav-left {
 .exercise-modal {
     background: var(--gray-900);
     min-height: 100vh;
+    min-height: 100dvh;
     color: white;
 }
 
@@ -12640,6 +12657,7 @@ a.nav-left {
 
 .workouts-page-v2 {
     min-height: 100vh;
+    min-height: 100dvh;
     background: var(--gray-50);
     padding-bottom: 80px;
     /* Native overscroll prevention is handled globally on <html>.
@@ -12897,6 +12915,7 @@ a.nav-left {
     justify-content: center;
     z-index: 1000;
     padding: 20px;
+    overscroll-behavior: contain;
 }
 
 /* Completing workout loading spinner */
@@ -13692,6 +13711,7 @@ a.nav-left {
 .workout-detail-bg {
     position: relative;
     min-height: 100vh;
+    min-height: 100dvh;
     background-size: cover;
     background-position: center top;
     background-repeat: no-repeat;
@@ -15305,6 +15325,7 @@ a.nav-left {
     padding: 20px;
     padding-top: max(20px, env(safe-area-inset-top, 20px));
     padding-bottom: max(20px, env(safe-area-inset-bottom, 20px));
+    overscroll-behavior: contain;
 }
 
 .club-workouts-modal {
@@ -17084,10 +17105,22 @@ a.nav-left {
     transition: all 0.2s;
     position: relative;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    /* iOS memory fix: skip rendering for off-screen cards so WebKit doesn't
-       keep their compositing layers + decoded image textures in GPU memory. */
-    content-visibility: auto;
-    contain-intrinsic-size: auto 120px; /* estimated card height for layout stability */
+    /* Allow vertical scroll but let JS handle horizontal swipe gestures.
+       React synthetic onTouchMove is passive by default, so preventDefault()
+       is silently ignored on Android Chrome — touch-action does the blocking
+       at the compositor level instead. */
+    touch-action: pan-y;
+}
+
+/* Skip rendering for off-screen cards — frees GPU memory on iOS WebKit and
+   avoids decoding image textures that aren't visible. Guarded with @supports
+   because older Android WebViews (Samsung Internet <15, etc.) don't support
+   content-visibility and may show blank cards without the fallback. */
+@supports (content-visibility: auto) {
+    .exercise-card-v2 {
+        content-visibility: auto;
+        contain-intrinsic-size: auto 120px;
+    }
 }
 
 .exercise-card-v2:hover {
@@ -19229,6 +19262,7 @@ a.nav-left {
     width: 36px;
     height: 36px;
     background: rgba(0, 0, 0, 0.6);
+    -webkit-backdrop-filter: blur(8px);
     backdrop-filter: blur(8px);
     border: 1.5px solid rgba(255, 255, 255, 0.2);
     border-radius: 50%;
@@ -20652,6 +20686,7 @@ a.nav-left {
     flex-direction: column;
     height: 100%;
     max-height: 100vh;
+    max-height: 100dvh;
     background: #111;
 }
 
@@ -21301,6 +21336,7 @@ a.nav-left {
     background: #1a1a1a;
     border-radius: 20px 20px 0 0;
     max-height: 90vh;
+    max-height: 90dvh;
     display: flex;
     flex-direction: column;
 }
@@ -22051,6 +22087,7 @@ a.nav-left {
 .ai-rec-input::-webkit-outer-spin-button,
 .ai-rec-input::-webkit-inner-spin-button {
     -webkit-appearance: none;
+    appearance: none;
     margin: 0;
 }
 
@@ -24080,6 +24117,7 @@ a.nav-left {
 .feed-page {
     padding-bottom: 100px;
     min-height: 100vh;
+    min-height: 100dvh;
     width: 100%;
     max-width: 100vw;
     overflow-x: hidden;
@@ -27376,6 +27414,7 @@ a.nav-left {
     display: flex;
     flex-direction: column;
     animation: slideUpFade 0.3s ease;
+    max-height: calc(100vh - 40px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
     max-height: calc(100dvh - 40px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
 }
 
@@ -27826,6 +27865,8 @@ a.nav-left {
     border: 1px solid rgba(255, 255, 255, 0.05);
     position: relative;
     z-index: 2;
+    /* Let browser handle vertical scroll; JS handles horizontal swipe-to-delete */
+    touch-action: pan-y;
 }
 
 /* Swipe delete button */
@@ -28342,6 +28383,7 @@ a.nav-left {
     max-width: 600px;
     margin: 0 auto;
     min-height: 100vh;
+    min-height: 100dvh;
     background: #0f0f0f;
 }
 
@@ -30858,6 +30900,7 @@ a.nav-left {
 .guided-input-field::-webkit-outer-spin-button,
 .guided-input-field::-webkit-inner-spin-button {
     -webkit-appearance: none;
+    appearance: none;
     margin: 0;
 }
 
@@ -31858,7 +31901,7 @@ a.nav-left {
     align-items: flex-end;
     gap: 8px;
     padding: 12px 16px;
-    padding-bottom: calc(12px + env(safe-area-inset-bottom));
+    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
     border-top: 1px solid var(--gray-200);
     background: var(--gray-50);
 }
