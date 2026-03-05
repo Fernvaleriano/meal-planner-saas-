@@ -12570,7 +12570,9 @@
 
                     const safeExName = escapeHtml(note.exerciseName).replace(/'/g, "\\'");
                     const noteText = (note.clientNotes || '').trim();
-                    const safeNoteContent = noteText.replace(/'/g, "\\'").replace(/"/g, '&quot;').replace(/\n/g, ' ');
+                    const safeNoteContent = noteText
+                        ? noteText.replace(/'/g, "\\'").replace(/"/g, '&quot;').replace(/\n/g, ' ')
+                        : (note.clientVoiceNotePath ? '[Voice Note]' : '');
                     const replyId = 'cn-reply-' + idx;
 
                     return `
@@ -12626,11 +12628,11 @@
             if (btn) { btn.disabled = true; btn.textContent = 'Sending...'; }
 
             // Build message with the original note quoted
-            let msg = 'Re: ' + exerciseName + ' note';
+            let msg = 'Re: ' + exerciseName;
             if (noteContent) {
-                msg += '\n> "' + noteContent + '"';
+                msg += ' — "' + noteContent + '"';
             }
-            msg += '\n\n' + input.value.trim();
+            msg += ' — ' + input.value.trim();
 
             try {
                 const res = await fetch('/.netlify/functions/chat', {
