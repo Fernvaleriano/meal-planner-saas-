@@ -42,7 +42,8 @@ const EXERCISE_TYPE_OPTIONS = [
   { value: 'strength', label: 'Strength' },
   { value: 'cardio', label: 'Cardio' },
   { value: 'flexibility', label: 'Flexibility' },
-  { value: 'plyometric', label: 'Plyometric' }
+  { value: 'plyometric', label: 'Plyometric' },
+  { value: 'custom', label: 'Custom' }
 ];
 
 // Get muscle color
@@ -104,7 +105,11 @@ export function ExerciseSelectorModal({
       }
       if (equipment) params.append('equipment', equipment);
       if (difficulty) params.append('difficulty', difficulty);
-      if (exerciseType) params.append('exerciseType', exerciseType);
+      if (exerciseType === 'custom') {
+        params.append('isCustom', 'true');
+      } else if (exerciseType) {
+        params.append('exerciseType', exerciseType);
+      }
       if (searchQuery.trim()) params.append('search', searchQuery.trim());
       // Add gender variant filter based on user preference
       if (genderPreference && genderPreference !== 'all') {
