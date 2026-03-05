@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, NotebookPen, Utensils, User, LogOut, Activity, Dumbbell, MessageCircle } from 'lucide-react';
+import { Home, NotebookPen, CalendarDays, User, LogOut, Activity, Dumbbell, MessageCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiGet } from '../utils/api';
 
@@ -46,7 +46,7 @@ function DesktopSidebar() {
     ...(isCoach ? [{ path: '/feed', icon: Activity, label: 'Client Feed' }] : []),
     { path: '/messages', icon: MessageCircle, label: 'Messages', badge: unreadMessages },
     { path: '/workouts', icon: Dumbbell, label: 'Workouts' },
-    { path: '/plans', icon: Utensils, label: 'Meal Plans' },
+    { path: '/plans', icon: CalendarDays, label: 'Planner' },
     { path: '/settings', icon: User, label: 'Profile' }
   ];
 

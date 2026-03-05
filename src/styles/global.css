@@ -308,6 +308,43 @@ a.nav-left {
     background: rgba(255, 255, 255, 0.28);
 }
 
+/* Profile avatar button in top nav */
+.nav-profile-avatar-btn {
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+    min-height: 34px;
+    border-radius: 50%;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    border: 2px solid rgba(255, 255, 255, 0.6);
+    transition: all 0.2s;
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.nav-profile-avatar-btn:hover {
+    border-color: rgba(255, 255, 255, 0.9);
+    transform: scale(1.05);
+}
+
+.nav-profile-avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+.nav-profile-avatar-initials {
+    color: white;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    line-height: 1;
+}
+
 /* Notification Bell */
 .notification-wrapper {
     position: relative;

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Bell, User } from 'lucide-react';
+import { Bell } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiGet } from '../utils/api';
 import { onAppResume, onAppSuspend } from '../hooks/useAppLifecycle';
@@ -217,10 +217,22 @@ function TopNav() {
 
         <Link
           to="/settings"
-          className="nav-btn"
+          className="nav-profile-avatar-btn"
           aria-label="Profile settings"
         >
-          <User size={18} aria-hidden="true" />
+          {clientData?.profile_photo_url ? (
+            <img
+              src={clientData.profile_photo_url}
+              alt="Profile"
+              className="nav-profile-avatar-img"
+            />
+          ) : (
+            <span className="nav-profile-avatar-initials">
+              {clientData?.client_name
+                ? clientData.client_name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+                : '?'}
+            </span>
+          )}
         </Link>
 
         <div className="notification-wrapper">
