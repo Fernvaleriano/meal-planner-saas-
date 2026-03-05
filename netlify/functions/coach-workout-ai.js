@@ -216,7 +216,13 @@ COACH'S QUESTION: "${question}"
 Provide a helpful, concise response based on the client's actual data. Include specific numbers, exercise names, and observations where relevant. If suggesting programming changes, be specific about exercises, sets, reps, and periodization approaches.
 Keep response under 300 words unless more detail is needed.
 
-IMPORTANT: Do NOT use any markdown formatting like **bold**, *italics*, or bullet points with asterisks. Write in plain text only using regular sentences and numbered lists (1. 2. 3.) if needed.`;
+IMPORTANT FORMATTING RULES:
+1. Do NOT use any markdown formatting like **bold**, *italics*, or bullet points with asterisks.
+2. Write in plain text only.
+3. Put each distinct point or observation on its OWN line. Never write a wall of text.
+4. Use numbered lists (1. 2. 3.) for recommendations or steps.
+5. Use dash-prefixed lines (- item) for listing exercises, PRs, or data points.
+6. Separate different topics with a blank line for readability.`;
 
     const geminiResponse = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
       method: 'POST',
