@@ -69,18 +69,46 @@ const formatDuration = (minutes) => {
   return `${mins} min`;
 };
 
-// Helper to refresh signed URLs for private videos/audio
-const refreshSignedUrls = async (workoutData, coachId) => {
-  if (!workoutData?.days) return workoutData;
+// Helper to apply signed URL mappings to an exercises array
+const applySignedUrls = (exercises, signedUrls, thumbnailUrls) => {
+  return (exercises || []).map(ex => {
+    const updated = { ...ex };
+    if (ex.customVideoPath && signedUrls[ex.customVideoPath]) {
+      updated.customVideoUrl = signedUrls[ex.customVideoPath];
+    }
+    if (ex.customVideoPath && thumbnailUrls?.[ex.customVideoPath]) {
+      updated.customVideoThumbnail = thumbnailUrls[ex.customVideoPath];
+    }
+    if (ex.voiceNotePath && signedUrls[ex.voiceNotePath]) {
+      updated.voiceNoteUrl = signedUrls[ex.voiceNotePath];
+    }
+    return updated;
+  });
+};
 
-  // Collect all file paths that need signed URLs
+// Helper to refresh signed URLs for private videos/audio
+// Handles both multi-day structure (workoutData.days[].exercises)
+// and flat structure (workoutData.exercises) returned by date-specific queries
+const refreshSignedUrls = async (workoutData, coachId) => {
+  if (!workoutData) return workoutData;
+
+  // Collect all file paths that need signed URLs from both structures
   const filePaths = [];
-  workoutData.days.forEach(day => {
-    (day.exercises || []).forEach(ex => {
+  if (workoutData.days) {
+    workoutData.days.forEach(day => {
+      (day.exercises || []).forEach(ex => {
+        if (ex.customVideoPath) filePaths.push(ex.customVideoPath);
+        if (ex.voiceNotePath) filePaths.push(ex.voiceNotePath);
+      });
+    });
+  }
+  // Also check flat structure (exercises directly on workoutData)
+  if (workoutData.exercises) {
+    workoutData.exercises.forEach(ex => {
       if (ex.customVideoPath) filePaths.push(ex.customVideoPath);
       if (ex.voiceNotePath) filePaths.push(ex.voiceNotePath);
     });
-  });
+  }
 
   if (filePaths.length === 0) return workoutData;
 
@@ -99,25 +127,22 @@ const refreshSignedUrls = async (workoutData, coachId) => {
 
     const { signedUrls, thumbnailUrls } = await response.json();
 
-    // Update workout data with fresh signed URLs and video thumbnails
-    const updatedDays = workoutData.days.map(day => ({
-      ...day,
-      exercises: (day.exercises || []).map(ex => {
-        const updated = { ...ex };
-        if (ex.customVideoPath && signedUrls[ex.customVideoPath]) {
-          updated.customVideoUrl = signedUrls[ex.customVideoPath];
-        }
-        if (ex.customVideoPath && thumbnailUrls?.[ex.customVideoPath]) {
-          updated.customVideoThumbnail = thumbnailUrls[ex.customVideoPath];
-        }
-        if (ex.voiceNotePath && signedUrls[ex.voiceNotePath]) {
-          updated.voiceNoteUrl = signedUrls[ex.voiceNotePath];
-        }
-        return updated;
-      })
-    }));
+    const result = { ...workoutData };
 
-    return { ...workoutData, days: updatedDays };
+    // Update multi-day structure
+    if (workoutData.days) {
+      result.days = workoutData.days.map(day => ({
+        ...day,
+        exercises: applySignedUrls(day.exercises, signedUrls, thumbnailUrls)
+      }));
+    }
+
+    // Update flat structure
+    if (workoutData.exercises) {
+      result.exercises = applySignedUrls(workoutData.exercises, signedUrls, thumbnailUrls);
+    }
+
+    return result;
   } catch (err) {
     console.error('Error refreshing signed URLs:', err);
     return workoutData;
@@ -894,8 +919,17 @@ function Workouts() {
 
         const allWorkouts = [];
 
+        // Process assignments - refresh signed URLs for custom videos
         if (assignmentRes?.assignments?.length > 0) {
-          assignmentRes.assignments.forEach(a => allWorkouts.push(a));
+          const refreshedAssignments = await Promise.all(
+            assignmentRes.assignments.map(async (assignment) => {
+              if (assignment.workout_data) {
+                assignment.workout_data = await refreshSignedUrls(assignment.workout_data, assignment.coach_id);
+              }
+              return assignment;
+            })
+          );
+          refreshedAssignments.forEach(a => allWorkouts.push(a));
         }
 
         if (adhocRes?.workouts?.length > 0) {
@@ -912,6 +946,7 @@ function Workouts() {
           });
         }
 
+        if (!mounted) return;
         setTodayWorkouts(allWorkouts);
 
         // Cache workout data for instant display on next visit / resume
