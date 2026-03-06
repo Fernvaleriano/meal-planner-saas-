@@ -69,6 +69,22 @@ const formatDuration = (minutes) => {
   return `${mins} min`;
 };
 
+// Helper to extract file path from a stale Supabase signed URL
+// Signed URL format: https://xxx.supabase.co/storage/v1/object/sign/workout-assets/{path}?token=...
+const extractPathFromSignedUrl = (url) => {
+  if (!url) return null;
+  const match = url.match(/\/object\/sign\/workout-assets\/(.+?)(?:\?|$)/);
+  return match ? decodeURIComponent(match[1]) : null;
+};
+
+// Helper to backfill customVideoPath from stale customVideoUrl (legacy data)
+const ensureCustomVideoPath = (ex) => {
+  if (!ex.customVideoPath && ex.customVideoUrl) {
+    const path = extractPathFromSignedUrl(ex.customVideoUrl);
+    if (path) ex.customVideoPath = path;
+  }
+};
+
 // Helper to apply signed URL mappings to an exercises array
 const applySignedUrls = (exercises, signedUrls, thumbnailUrls) => {
   return (exercises || []).map(ex => {
@@ -97,6 +113,7 @@ const refreshSignedUrls = async (workoutData, coachId) => {
   if (workoutData.days) {
     workoutData.days.forEach(day => {
       (day.exercises || []).forEach(ex => {
+        ensureCustomVideoPath(ex);
         if (ex.customVideoPath) filePaths.push(ex.customVideoPath);
         if (ex.voiceNotePath) filePaths.push(ex.voiceNotePath);
       });
@@ -105,6 +122,7 @@ const refreshSignedUrls = async (workoutData, coachId) => {
   // Also check flat structure (exercises directly on workoutData)
   if (workoutData.exercises) {
     workoutData.exercises.forEach(ex => {
+      ensureCustomVideoPath(ex);
       if (ex.customVideoPath) filePaths.push(ex.customVideoPath);
       if (ex.voiceNotePath) filePaths.push(ex.voiceNotePath);
     });

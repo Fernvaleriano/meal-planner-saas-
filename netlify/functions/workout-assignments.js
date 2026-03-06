@@ -445,6 +445,14 @@ exports.handler = withTimeout(async (event) => {
           const allCustomPaths = [];
           for (const w of todayWorkouts) {
             for (const ex of w.workout_data?.exercises || []) {
+              // If customVideoPath is missing but customVideoUrl exists (legacy data),
+              // extract the path from the signed URL so we can generate a fresh one
+              if (!ex.customVideoPath && ex.customVideoUrl) {
+                const signedMatch = ex.customVideoUrl.match(/\/object\/sign\/workout-assets\/(.+?)(?:\?|$)/);
+                if (signedMatch) {
+                  ex.customVideoPath = decodeURIComponent(signedMatch[1]);
+                }
+              }
               if (ex.customVideoPath) allCustomPaths.push(ex.customVideoPath);
               if (ex.voiceNotePath) allCustomPaths.push(ex.voiceNotePath);
             }
