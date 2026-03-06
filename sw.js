@@ -1,6 +1,6 @@
 // Zique Fitness PWA Service Worker
-const CACHE_NAME = 'zique-fitness-v12';
-const STATIC_CACHE = 'zique-static-v12';
+const CACHE_NAME = 'zique-fitness-v13';
+const STATIC_CACHE = 'zique-static-v13';
 const DATA_CACHE = 'zique-data-v10';
 const CDN_CACHE = 'zique-cdn-v7';
 
