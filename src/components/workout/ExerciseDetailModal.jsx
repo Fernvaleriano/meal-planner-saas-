@@ -1777,6 +1777,8 @@ function ExerciseDetailModal({
   // Debug: Log video URL when playing (helps identify mismatched videos in database)
   const handlePlayVideo = useCallback(() => {
     console.log(`Playing video for "${exercise?.name}":`, {
+      customVideoUrl: exercise?.customVideoUrl,
+      customVideoPath: exercise?.customVideoPath,
       video_url: exercise?.video_url,
       animation_url: exercise?.animation_url,
       using: videoUrl
