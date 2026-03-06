@@ -13609,6 +13609,37 @@
         }
 
         /**
+         * Enrich exercises in program_data with equipment from DB if missing.
+         * Fixes legacy programs saved without equipment info.
+         */
+        async function enrichProgramEquipment(programData) {
+            if (!programData) return;
+            const days = programData.days || [];
+            const allExercises = days.length > 0
+                ? days.flatMap(d => d.exercises || [])
+                : (programData.exercises || []);
+            // Collect IDs of exercises missing equipment
+            const idsToFetch = [...new Set(
+                allExercises.filter(ex => ex.id && !ex.equipment).map(ex => ex.id)
+            )];
+            if (idsToFetch.length === 0) return;
+            try {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                if (!session?.access_token) return;
+                const res = await fetch(`/.netlify/functions/exercises?ids=${idsToFetch.join(',')}`);
+                const result = await res.json();
+                const equipMap = new Map((result.exercises || []).map(ex => [ex.id, ex.equipment]));
+                allExercises.forEach(ex => {
+                    if (ex.id && !ex.equipment && equipMap.has(ex.id)) {
+                        ex.equipment = equipMap.get(ex.id);
+                    }
+                });
+            } catch (err) {
+                console.warn('Could not enrich exercises with equipment:', err);
+            }
+        }
+
+        /**
          * Check a workout's exercises against a client's equipment restrictions.
          * Returns an array of { exerciseName, equipment } for each conflicting exercise.
          */
@@ -13855,6 +13886,9 @@
 
             if (!startDate) { alert('Please select a start date.'); return; }
             if (selectedDays.length === 0) { alert('Please select at least one schedule day.'); return; }
+
+            // Enrich exercises with equipment data from DB if missing (for legacy programs)
+            await enrichProgramEquipment(program.program_data);
 
             // Check equipment conflicts before assigning
             if (currentClient && clientUnavailableEquipment.length > 0) {
