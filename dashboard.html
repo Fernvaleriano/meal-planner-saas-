@@ -3933,6 +3933,62 @@
             color: #6ee7b7;
         }
 
+        /* Emoji reaction picker for priority items */
+        .priority-reaction-row {
+            display: inline-flex;
+            align-items: center;
+            gap: 2px;
+            margin-left: 8px;
+            vertical-align: middle;
+        }
+        .priority-reaction-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            font-size: 14px;
+            background: transparent;
+            border: 1px solid transparent;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.15s, transform 0.15s, border-color 0.15s;
+            padding: 0;
+            opacity: 0.7;
+        }
+        .priority-reaction-btn:hover {
+            background: #f5f3ff;
+            border-color: #e9e5f5;
+            opacity: 1;
+            transform: scale(1.2);
+        }
+        .priority-reaction-btn.reacted {
+            opacity: 1;
+            background: #f5f3ff;
+            border-color: #c4b5fd;
+            transform: scale(1.15);
+        }
+        .priority-reaction-sent {
+            display: none;
+            align-items: center;
+            gap: 3px;
+            margin-left: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            color: #059669;
+            animation: fadeIn 0.2s ease;
+        }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        [data-theme="dark"] .priority-reaction-btn:hover {
+            background: #1e1033;
+            border-color: #2d2050;
+        }
+        [data-theme="dark"] .priority-reaction-btn.reacted {
+            background: #1e1033;
+            border-color: #7c3aed;
+        }
+
         /* Extended Stats Row */
         .stats-grid-extended {
             display: grid;
@@ -5271,6 +5327,112 @@
             }
         }
 
+        // Send a reply to a client PR via chat
+        async function sendPrReply(alertId, clientId, prMessage) {
+            const input = document.getElementById('reply-input-' + alertId);
+            const row = document.getElementById('reply-row-' + alertId);
+            const sent = document.getElementById('reply-sent-' + alertId);
+            if (!input || !input.value.trim()) return;
+
+            const btn = row.querySelector('button');
+            if (btn) { btn.disabled = true; btn.textContent = 'Sending...'; }
+
+            // Build message with the PR info quoted
+            let msg = 'Re: New PR';
+            if (prMessage) {
+                msg += ' — "' + prMessage + '"';
+            }
+            msg += ' — ' + input.value.trim();
+
+            try {
+                const res = await fetch('/.netlify/functions/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'send',
+                        coachId: _currentCoachId,
+                        clientId: clientId,
+                        senderType: 'coach',
+                        message: msg
+                    })
+                });
+                if (res.ok) {
+                    row.style.display = 'none';
+                    input.value = '';
+                    if (sent) {
+                        sent.style.display = 'inline-flex';
+                        setTimeout(() => { sent.style.display = 'none'; }, 4000);
+                    }
+                } else {
+                    alert('Failed to send reply. Please try again.');
+                }
+            } catch (e) {
+                console.error('Error sending PR reply:', e);
+                alert('Failed to send reply. Please try again.');
+            } finally {
+                if (btn) { btn.disabled = false; btn.textContent = 'Send'; }
+            }
+        }
+
+        // Toggle emoji reaction on a priority item (PR or note)
+        async function toggleReaction(alertId, clientId, emoji, itemType, itemId) {
+            const emojiKey = emoji === '👏' ? 'clap' : emoji === '👊' ? 'fist' : emoji === '💪' ? 'muscle' : 'fire';
+            const btn = document.getElementById('react-' + alertId + '-' + emojiKey);
+            if (!btn) return;
+
+            const isReacted = btn.classList.contains('reacted');
+
+            // Optimistically toggle the UI
+            if (isReacted) {
+                btn.classList.remove('reacted');
+            } else {
+                // Remove 'reacted' from siblings
+                const row = btn.parentElement;
+                row.querySelectorAll('.priority-reaction-btn').forEach(b => b.classList.remove('reacted'));
+                btn.classList.add('reacted');
+            }
+
+            try {
+                if (isReacted) {
+                    await fetch('/.netlify/functions/react-to-activity', {
+                        method: 'DELETE',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            coachId: _currentCoachId,
+                            itemType: itemType,
+                            itemId: itemId
+                        })
+                    });
+                } else {
+                    await fetch('/.netlify/functions/react-to-activity', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            coachId: _currentCoachId,
+                            clientId: clientId,
+                            itemType: itemType,
+                            itemId: itemId,
+                            reaction: emoji
+                        })
+                    });
+                    // Show brief confirmation
+                    const sentEl = document.getElementById('reaction-sent-' + alertId);
+                    if (sentEl) {
+                        sentEl.style.display = 'inline-flex';
+                        setTimeout(() => { sentEl.style.display = 'none'; }, 2000);
+                    }
+                }
+            } catch (e) {
+                console.error('Error toggling reaction:', e);
+                // Revert on failure
+                if (isReacted) {
+                    btn.classList.add('reacted');
+                } else {
+                    btn.classList.remove('reacted');
+                }
+            }
+        }
+
         function renderPriorityAlertSections() {
             const alertsEl = document.getElementById('priorityAlerts');
             if (!alertsEl || _allPriorityAlerts.length === 0) return;
@@ -5550,8 +5712,10 @@
                     if (prNotifications && prNotifications.length > 0) {
                         prNotifications.slice(0, MAX_SHOWN).forEach(pr => {
                             const name = clientMap[pr.related_client_id] || '';
-                            const url = pr.related_client_id ? `client-profile.html?clientId=${pr.related_client_id}` : '#';
+                            const clientId = pr.related_client_id;
+                            const url = clientId ? `client-profile.html?clientId=${clientId}` : '#';
                             const aid = 'pr-' + pr.id;
+                            const safePrMessage = (pr.message || '').replace(/'/g, "\\'").replace(/"/g, '&quot;').replace(/\n/g, ' ');
                             addAlert(aid, `
                                 <div class="priority-alert priority-alert--clickable" onclick="reviewAndArchive('${aid}', '${url}')">
                                     __CHECKBOX__
@@ -5561,9 +5725,28 @@
                                         ${name ? `<strong>${name}</strong> — ` : ''}${pr.message}
                                         <span class="priority-alert-detail">· ${timeAgo(pr.created_at)}</span>
                                         <span class="priority-alert-link">View →</span>
+                                        <button class="priority-note-reply-btn" onclick="event.stopPropagation(); toggleNoteReply('${aid}')" title="Reply to this PR">
+                                            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                                            Reply
+                                        </button>
+                                        <span class="priority-reaction-row" onclick="event.stopPropagation()">
+                                            <button id="react-${aid}-clap" class="priority-reaction-btn" onclick="toggleReaction('${aid}','${clientId}','👏','client_pr','${pr.id}')" title="Clap">👏</button>
+                                            <button id="react-${aid}-fist" class="priority-reaction-btn" onclick="toggleReaction('${aid}','${clientId}','👊','client_pr','${pr.id}')" title="Fist bump">👊</button>
+                                            <button id="react-${aid}-muscle" class="priority-reaction-btn" onclick="toggleReaction('${aid}','${clientId}','💪','client_pr','${pr.id}')" title="Muscle">💪</button>
+                                            <button id="react-${aid}-fire" class="priority-reaction-btn" onclick="toggleReaction('${aid}','${clientId}','🔥','client_pr','${pr.id}')" title="Fire">🔥</button>
+                                            <span id="reaction-sent-${aid}" class="priority-reaction-sent">✓</span>
+                                        </span>
+                                        <div id="reply-row-${aid}" class="priority-note-reply-row" style="display:none;" onclick="event.stopPropagation()">
+                                            <input type="text" id="reply-input-${aid}" placeholder="Type your reply..." onkeydown="if(event.key==='Enter'){sendPrReply('${aid}','${clientId}','${safePrMessage}')}" />
+                                            <button onclick="sendPrReply('${aid}','${clientId}','${safePrMessage}')">Send</button>
+                                        </div>
+                                        <div id="reply-sent-${aid}" class="priority-note-reply-sent" style="display:none;">
+                                            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
+                                            Sent to messages
+                                        </div>
                                     </span>
                                 </div>
-                            `, pr.related_client_id, 'client_pr', pr.id);
+                            `, clientId, 'client_pr', pr.id);
                         });
                     }
                 } catch (e) {
@@ -5668,6 +5851,13 @@
                                                 <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                                                 Reply
                                             </button>
+                                            <span class="priority-reaction-row" onclick="event.stopPropagation()">
+                                                <button id="react-${aid}-clap" class="priority-reaction-btn" onclick="toggleReaction('${aid}','${clientId}','👏','workout_note','${note.id}')" title="Clap">👏</button>
+                                                <button id="react-${aid}-fist" class="priority-reaction-btn" onclick="toggleReaction('${aid}','${clientId}','👊','workout_note','${note.id}')" title="Fist bump">👊</button>
+                                                <button id="react-${aid}-muscle" class="priority-reaction-btn" onclick="toggleReaction('${aid}','${clientId}','💪','workout_note','${note.id}')" title="Muscle">💪</button>
+                                                <button id="react-${aid}-fire" class="priority-reaction-btn" onclick="toggleReaction('${aid}','${clientId}','🔥','workout_note','${note.id}')" title="Fire">🔥</button>
+                                                <span id="reaction-sent-${aid}" class="priority-reaction-sent">✓</span>
+                                            </span>
                                             ${voicePlayerHtml}
                                             ${textNoteHtml}
                                             <div id="reply-row-${aid}" class="priority-note-reply-row" style="display:none;" onclick="event.stopPropagation()">

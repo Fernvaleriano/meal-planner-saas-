@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Check, Bell, MessageCircle, Heart, Dumbbell, UtensilsCrossed, FileText } from 'lucide-react';
+import { ArrowLeft, Check, Bell, MessageCircle, Heart, Dumbbell, UtensilsCrossed, FileText, Award, Trophy } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost } from '../utils/api';
 import NotificationDetail from '../components/NotificationDetail';
@@ -74,6 +74,8 @@ function Notifications() {
       case 'chat_message': return <MessageCircle size={18} />;
       case 'diet_plan_published': return <UtensilsCrossed size={18} />;
       case 'workout_assigned': return <Dumbbell size={18} />;
+      case 'pr_reaction': return <Trophy size={18} />;
+      case 'note_reaction': return <Award size={18} />;
       default: return <Bell size={18} />;
     }
   };
@@ -85,6 +87,8 @@ function Notifications() {
       case 'chat_message': return 'notif-icon message';
       case 'diet_plan_published': return 'notif-icon plan';
       case 'workout_assigned': return 'notif-icon workout';
+      case 'pr_reaction': return 'notif-icon reaction';
+      case 'note_reaction': return 'notif-icon reaction';
       default: return 'notif-icon default';
     }
   };
@@ -111,6 +115,8 @@ function Notifications() {
     } else if (notif.type === 'diet_plan_published') {
       navigate('/plans');
     } else if (notif.type === 'workout_assigned') {
+      navigate('/workouts');
+    } else if (notif.type === 'pr_reaction' || notif.type === 'note_reaction') {
       navigate('/workouts');
     }
   };
