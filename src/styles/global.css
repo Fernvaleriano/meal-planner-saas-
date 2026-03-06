@@ -31227,10 +31227,12 @@ a.nav-left {
 
 [data-theme="light"] .guided-workout-name {
     color: #374151;
+    opacity: 1;
 }
 
 [data-theme="light"] .guided-elapsed {
     color: #6b7280;
+    opacity: 1;
 }
 
 [data-theme="light"] .guided-progress-bar {
@@ -31266,6 +31268,7 @@ a.nav-left {
 
 [data-theme="light"] .guided-timer-label {
     color: #6b7280;
+    opacity: 1;
 }
 
 [data-theme="light"] .guided-timer-value {
@@ -31536,6 +31539,186 @@ a.nav-left {
 [data-theme="light"] .guided-deferred-card.superset .guided-deferred-phase-tag.superset {
     background: rgba(139, 92, 246, 0.1);
     color: #7c3aed;
+}
+
+/* --- Light theme: AI Recommendation Card (Plateau / Coaching) --- */
+[data-theme="light"] .ai-recommendation-card {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(139, 92, 246, 0.05) 100%);
+    border-color: rgba(59, 130, 246, 0.2);
+}
+
+[data-theme="light"] .ai-recommendation-card.accepted {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.08) 0%, rgba(34, 197, 94, 0.04) 100%);
+    border-color: rgba(34, 197, 94, 0.25);
+}
+
+[data-theme="light"] .ai-recommendation-card.plateau {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(239, 68, 68, 0.05) 100%);
+    border-color: rgba(245, 158, 11, 0.3);
+}
+
+[data-theme="light"] .ai-recommendation-card.plateau .ai-rec-badge {
+    background: rgba(245, 158, 11, 0.15);
+    color: #b45309;
+}
+
+[data-theme="light"] .ai-rec-badge {
+    background: rgba(59, 130, 246, 0.12);
+    color: #2563eb;
+}
+
+[data-theme="light"] .ai-rec-accepted-badge {
+    background: rgba(34, 197, 94, 0.12);
+    color: #16a34a;
+}
+
+[data-theme="light"] .ai-rec-value-item {
+    background: rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .ai-rec-value-item.editable {
+    border-color: rgba(13, 148, 136, 0.3);
+}
+
+[data-theme="light"] .ai-rec-value-item.editable:active {
+    background: rgba(13, 148, 136, 0.08);
+}
+
+[data-theme="light"] .ai-rec-value-item.editing {
+    border-color: rgba(13, 148, 136, 0.6);
+    background: rgba(13, 148, 136, 0.06);
+}
+
+[data-theme="light"] .ai-rec-input {
+    color: #0d9488;
+}
+
+[data-theme="light"] .ai-rec-edit-hint {
+    color: #0d9488;
+}
+
+[data-theme="light"] .ai-rec-value-number {
+    color: #111827;
+}
+
+[data-theme="light"] .ai-rec-value-label {
+    color: #6b7280;
+}
+
+[data-theme="light"] .ai-rec-value-divider {
+    color: #9ca3af;
+}
+
+[data-theme="light"] .ai-rec-reasoning {
+    color: #374151;
+}
+
+[data-theme="light"] .ai-rec-last-session {
+    background: rgba(0, 0, 0, 0.03);
+    color: #6b7280;
+}
+
+[data-theme="light"] .ai-rec-last-date {
+    color: #9ca3af;
+}
+
+[data-theme="light"] .ai-rec-btn.ask {
+    background: rgba(0, 0, 0, 0.05);
+    color: #374151;
+    border-color: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .ai-rec-btn.ask:active {
+    background: rgba(0, 0, 0, 0.08);
+}
+
+/* --- Light theme: Client Note Toggle --- */
+[data-theme="light"] .guided-client-note-toggle {
+    background: rgba(139, 92, 246, 0.08);
+    border-color: rgba(139, 92, 246, 0.2);
+    color: #7c3aed;
+}
+
+[data-theme="light"] .guided-client-note-toggle:hover {
+    background: rgba(139, 92, 246, 0.12);
+}
+
+/* --- Light theme: Ask AI Chat Modal --- */
+[data-theme="light"] .ask-ai-modal {
+    background: #ffffff;
+    border-color: #e5e7eb;
+}
+
+[data-theme="light"] .ask-ai-header {
+    border-bottom-color: #e5e7eb;
+}
+
+[data-theme="light"] .ask-ai-header-left {
+    color: #111827;
+}
+
+[data-theme="light"] .ask-ai-close {
+    color: #6b7280;
+}
+
+[data-theme="light"] .ask-ai-close:active {
+    background: #f3f4f6;
+}
+
+[data-theme="light"] .ask-ai-exercise-context {
+    color: #374151;
+    background: #f9fafb;
+    border-bottom-color: #e5e7eb;
+}
+
+[data-theme="light"] .ask-ai-current-rec {
+    color: #6b7280;
+}
+
+[data-theme="light"] .ask-ai-message.assistant .ask-ai-bubble {
+    background: #f3f4f6;
+    color: #111827;
+}
+
+[data-theme="light"] .ask-ai-message.user .ask-ai-bubble {
+    color: white;
+}
+
+[data-theme="light"] .ask-ai-suggestion-btn {
+    background: #f3f4f6;
+    color: #374151;
+    border-color: #e5e7eb;
+}
+
+[data-theme="light"] .ask-ai-suggestion-btn:active {
+    background: #e5e7eb;
+}
+
+[data-theme="light"] .ask-ai-input {
+    background: #f9fafb;
+    border-color: #e5e7eb;
+    color: #111827;
+}
+
+[data-theme="light"] .ask-ai-input::placeholder {
+    color: #9ca3af;
+}
+
+[data-theme="light"] .ask-ai-input:focus {
+    border-color: #0d9488;
+}
+
+[data-theme="light"] .ask-ai-input-form {
+    border-top-color: #e5e7eb;
+}
+
+[data-theme="light"] .ask-ai-bubble {
+    background: #f3f4f6;
+    color: #374151;
+}
+
+[data-theme="light"] .ask-ai-bubble.loading {
+    color: #6b7280;
 }
 
 /* ========================================
