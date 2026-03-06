@@ -646,11 +646,12 @@ function Messages() {
             const msg = item.data;
             const isMine = msg.sender_type === myType;
             const hasMedia = !!msg.media_url;
+            const isReaction = msg.message && /^Reacted .+ to your (breakfast|lunch|dinner|snack|meal|workout)$/i.test(msg.message);
 
             return (
               <div
                 key={msg.id}
-                className={`chat-msg ${isMine ? 'mine' : 'theirs'}`}
+                className={`chat-msg ${isMine ? 'mine' : 'theirs'} ${isReaction ? 'reaction-msg' : ''}`}
                 onClick={(e) => {
                   if (isMine) {
                     e.stopPropagation();
@@ -658,7 +659,7 @@ function Messages() {
                   }
                 }}
               >
-                <div className={`chat-msg-bubble ${hasMedia ? 'media-bubble' : ''}`}>
+                <div className={`chat-msg-bubble ${hasMedia ? 'media-bubble' : ''} ${isReaction ? 'reaction-bubble' : ''}`}>
                   {renderMedia(msg)}
                   {msg.message && <p>{msg.message}</p>}
 

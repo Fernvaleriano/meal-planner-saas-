@@ -53,7 +53,7 @@ exports.handler = async (event) => {
   }
 
   try {
-    const { entryId, coachId, clientId, reaction } = JSON.parse(event.body);
+    const { entryId, coachId, clientId, reaction, entryType } = JSON.parse(event.body);
 
     if (!entryId || !coachId || !clientId || !reaction) {
       return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'entryId, coachId, clientId and reaction required' }) };
@@ -90,15 +90,31 @@ exports.handler = async (event) => {
       return { statusCode: 500, headers: corsHeaders, body: JSON.stringify({ error: error.message }) };
     }
 
-    // Create notification for the client (only for new reactions)
+    // Create notification and chat message for the client (only for new reactions)
     if (isNewReaction || reactionChanged) {
       try {
-        // Get the diary entry to include food name
-        const { data: entry } = await supabase
-          .from('food_diary_entries')
-          .select('food_name, meal_type, entry_date')
-          .eq('id', entryId)
-          .single();
+        let mealType = 'meal';
+        let foodName = 'your meal';
+
+        if (entryType === 'workout') {
+          // For workout reactions, get workout name
+          const { data: workoutLog } = await supabase
+            .from('workout_logs')
+            .select('workout_name')
+            .eq('id', entryId)
+            .single();
+          mealType = 'workout';
+          foodName = workoutLog?.workout_name || 'workout';
+        } else {
+          // Get the diary entry to include food name
+          const { data: entry } = await supabase
+            .from('food_diary_entries')
+            .select('food_name, meal_type, entry_date')
+            .eq('id', entryId)
+            .single();
+          mealType = entry?.meal_type || 'meal';
+          foodName = entry?.food_name || 'your meal';
+        }
 
         // Get the coach's name/business
         const { data: coachProfile } = await supabase
@@ -108,8 +124,6 @@ exports.handler = async (event) => {
           .single();
 
         const coachName = coachProfile?.business_name || 'Your coach';
-        const foodName = entry?.food_name || 'your meal';
-        const mealType = entry?.meal_type || 'meal';
 
         // Create notification for the client with entry reference
         await supabase
@@ -121,17 +135,27 @@ exports.handler = async (event) => {
             message: `Your coach reacted with ${reaction} to "${foodName}"`,
             related_entry_id: entryId,
             metadata: {
-              food_name: entry?.food_name,
-              meal_type: entry?.meal_type,
-              entry_date: entry?.entry_date,
+              food_name: foodName,
+              meal_type: mealType,
               reaction: reaction,
               coach_name: coachName
             },
             is_read: false,
             created_at: new Date().toISOString()
           });
+
+        // Also send a chat message so the reaction appears in Messages
+        const chatMessage = `Reacted ${reaction} to your ${mealType}`;
+        await supabase
+          .from('chat_messages')
+          .insert({
+            coach_id: coachId,
+            client_id: parseInt(clientId),
+            sender_type: 'coach',
+            message: chatMessage
+          });
       } catch (notifError) {
-        console.error('Error creating notification:', notifError);
+        console.error('Error creating notification/chat message:', notifError);
         // Don't fail the request if notification fails
       }
     }
