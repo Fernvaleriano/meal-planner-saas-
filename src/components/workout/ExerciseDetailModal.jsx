@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
 import { X, Check, Plus, ChevronLeft, Play, Timer, BarChart3, ArrowLeftRight, Trash2, Mic, MicOff, MessageCircle, Loader2, AlertCircle, History, TrendingUp, Award, ChevronDown, ChevronUp, Send, Square, Sparkles, ExternalLink, Camera } from 'lucide-react';
-import { apiGet, apiPost, apiPut } from '../../utils/api';
+import { apiGet, apiPost, apiPut, apiDelete } from '../../utils/api';
 import { onAppSuspend, onAppResume } from '../../hooks/useAppLifecycle';
 import Portal from '../Portal';
 import SetEditorModal from './SetEditorModal';
@@ -349,6 +349,8 @@ function ExerciseDetailModal({
   const [historyData, setHistoryData] = useState(null);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyStats, setHistoryStats] = useState(null);
+  const [deletingHistoryId, setDeletingHistoryId] = useState(null); // exercise_log id being deleted
+  const [confirmDeleteHistoryId, setConfirmDeleteHistoryId] = useState(null); // exercise_log id awaiting confirm
 
   // Progressive overload tip state
   const [progressTip, setProgressTip] = useState(null);
@@ -1431,6 +1433,10 @@ function ExerciseDetailModal({
     // Update local state
     setSets(newSets);
 
+    // Invalidate history cache so next view shows fresh data (including updated weights/PRs)
+    setHistoryData(null);
+    setHistoryStats(null);
+
     // Persist to backend via parent callback - use ref to avoid stale closure
     const currentExercise = exerciseRef.current;
     if (callbackRefs.current.onUpdateExercise && currentExercise) {
@@ -1497,6 +1503,33 @@ function ExerciseDetailModal({
       fetchExerciseHistory();
     }
   }, [showHistory, historyData, fetchExerciseHistory]);
+
+  // Re-fetch history if section is open but data was invalidated (e.g. after editing sets)
+  useEffect(() => {
+    if (showHistory && !historyData && !historyLoading) {
+      fetchExerciseHistory();
+    }
+  }, [showHistory, historyData, historyLoading, fetchExerciseHistory]);
+
+  // Delete a single exercise history entry and refresh
+  const handleDeleteHistoryEntry = useCallback(async (exerciseLogId) => {
+    if (!clientId || !exerciseLogId) return;
+    setDeletingHistoryId(exerciseLogId);
+    setConfirmDeleteHistoryId(null);
+    try {
+      await apiDelete(
+        `/.netlify/functions/exercise-history?exerciseLogId=${exerciseLogId}&clientId=${clientId}`
+      );
+      // Refresh history data after deletion
+      setHistoryData(null);
+      setHistoryStats(null);
+      await fetchExerciseHistory();
+    } catch (err) {
+      console.error('Error deleting history entry:', err);
+    } finally {
+      setDeletingHistoryId(null);
+    }
+  }, [clientId, fetchExerciseHistory]);
 
   // Reset history when exercise changes
   useEffect(() => {
@@ -2484,6 +2517,36 @@ function ExerciseDetailModal({
                                       )}
                                     </div>
                                   ))}
+                                  {/* Delete history entry */}
+                                  {confirmDeleteHistoryId === entry.id ? (
+                                    <div className="history-delete-confirm">
+                                      <span>Delete this entry?</span>
+                                      <button
+                                        className="history-delete-confirm-yes"
+                                        onClick={() => handleDeleteHistoryEntry(entry.id)}
+                                        disabled={deletingHistoryId === entry.id}
+                                        type="button"
+                                      >
+                                        {deletingHistoryId === entry.id ? <Loader2 size={12} className="spin" /> : 'Yes'}
+                                      </button>
+                                      <button
+                                        className="history-delete-confirm-no"
+                                        onClick={() => setConfirmDeleteHistoryId(null)}
+                                        type="button"
+                                      >
+                                        No
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <button
+                                      className="history-entry-delete-btn"
+                                      onClick={() => setConfirmDeleteHistoryId(entry.id)}
+                                      type="button"
+                                      title="Delete this entry"
+                                    >
+                                      <Trash2 size={12} />
+                                    </button>
+                                  )}
                                 </div>
                               </div>
                             );

@@ -20105,6 +20105,77 @@ a.nav-left {
     color: #475569;
 }
 
+/* Delete history entry button */
+.history-entry-delete-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    color: #6b7280;
+    cursor: pointer;
+    padding: 6px 0 2px;
+    margin-top: 4px;
+    opacity: 0.5;
+    transition: opacity 0.15s, color 0.15s;
+    width: 100%;
+}
+
+.history-entry-delete-btn:hover,
+.history-entry-delete-btn:active {
+    opacity: 1;
+    color: #ef4444;
+}
+
+.history-delete-confirm {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    font-size: 12px;
+    color: #9ca3af;
+}
+
+[data-theme="light"] .history-delete-confirm {
+    border-top-color: rgba(0,0,0,0.08);
+    color: #64748b;
+}
+
+.history-delete-confirm span {
+    flex: 1;
+}
+
+.history-delete-confirm-yes,
+.history-delete-confirm-no {
+    padding: 4px 12px;
+    border-radius: 6px;
+    border: none;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.history-delete-confirm-yes {
+    background: #ef4444;
+    color: #fff;
+}
+
+.history-delete-confirm-yes:disabled {
+    opacity: 0.6;
+}
+
+.history-delete-confirm-no {
+    background: rgba(255,255,255,0.1);
+    color: #d1d5db;
+}
+
+[data-theme="light"] .history-delete-confirm-no {
+    background: #e2e8f0;
+    color: #475569;
+}
+
 /* Add Note Section */
 .add-note-section {
     padding: 0 16px 16px;
