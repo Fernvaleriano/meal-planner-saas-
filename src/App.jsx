@@ -10,6 +10,8 @@ import CheckIn from './pages/CheckIn';
 import Progress from './pages/Progress';
 import Feed from './pages/Feed';
 import WorkoutHistory from './pages/WorkoutHistory';
+import WorkoutPlans from './pages/WorkoutPlans';
+import WorkoutBuilder from './pages/WorkoutBuilder';
 import Notifications from './pages/Notifications';
 import Login from './pages/Login';
 import ForgotPassword from './pages/ForgotPassword';
@@ -79,6 +81,9 @@ function App() {
         <Route path="progress" element={<Progress />} />
         <Route path="feed" element={<CoachOnlyRoute><Feed /></CoachOnlyRoute>} />
         <Route path="workout-history" element={<WorkoutHistory />} />
+        <Route path="workout-plans" element={<WorkoutPlans />} />
+        <Route path="workouts/builder" element={<CoachOnlyRoute><WorkoutBuilder /></CoachOnlyRoute>} />
+        <Route path="workouts/builder/:id" element={<CoachOnlyRoute><WorkoutBuilder /></CoachOnlyRoute>} />
         <Route path="notifications" element={<Notifications />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
