@@ -1810,11 +1810,12 @@ function ExerciseDetailModal({
     setVideoKey(k => k + 1);
   }, [videoBlobUrl]);
 
-  // Fallback: fetch video as blob when direct src fails (fixes URL encoding issues)
+  // Fallback: when video fails, re-fetch a fresh signed URL if this is a custom video
   const handleVideoError = useCallback(async (e) => {
     const mediaError = e?.target?.error;
     console.error(`Video load failed for "${exercise?.name}":`, {
       url: videoUrl,
+      customVideoPath: exercise?.customVideoPath,
       errorCode: mediaError?.code,
       errorMessage: mediaError?.message
     });
@@ -1826,7 +1827,39 @@ function ExerciseDetailModal({
       return;
     }
 
-    // Try fetching the video as a blob (bypasses URL encoding issues)
+    // For custom videos with a file path, request a fresh signed URL on-demand
+    // This handles expired URLs, stale SW cache, and any other URL issues
+    if (exercise?.customVideoPath) {
+      try {
+        console.log('Requesting fresh signed URL for:', exercise.customVideoPath);
+        const resp = await fetch('/.netlify/functions/get-signed-video-url', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filePath: exercise.customVideoPath })
+        });
+        if (resp.ok) {
+          const data = await resp.json();
+          if (data.success && data.url) {
+            console.log('Got fresh signed URL, retrying video');
+            // Fetch as blob to avoid any caching/encoding issues
+            const videoResp = await fetch(data.url);
+            if (videoResp.ok) {
+              const blob = await videoResp.blob();
+              const blobUrl = URL.createObjectURL(blob);
+              setVideoBlobUrl(blobUrl);
+              setVideoLoading(true);
+              setVideoError(false);
+              setVideoKey(k => k + 1);
+              return;
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Fresh signed URL fallback failed:', err);
+      }
+    }
+
+    // Generic blob fallback for non-custom videos (URL encoding issues)
     if (videoUrl) {
       try {
         console.log('Trying blob fallback for video:', videoUrl);
@@ -1847,7 +1880,7 @@ function ExerciseDetailModal({
       setVideoLoading(false);
       setVideoError(true);
     }
-  }, [exercise?.name, videoUrl, videoBlobUrl]);
+  }, [exercise?.name, exercise?.customVideoPath, videoUrl, videoBlobUrl]);
 
   // Parse reps helper - supports decimals like "1.5" (e.g. 1.5 miles)
   const parseReps = (reps) => {

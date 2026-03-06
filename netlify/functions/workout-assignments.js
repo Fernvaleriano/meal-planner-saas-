@@ -471,47 +471,12 @@ exports.handler = withTimeout(async (event) => {
             try {
               const SIGNED_URL_EXPIRY = 24 * 60 * 60; // 24 hours
 
-              // First, verify which files actually exist in storage
-              // Group paths by folder for efficient listing
-              const folderChecks = {};
-              for (const filePath of allCustomPaths) {
-                if (!filePath.startsWith('exercise-videos/')) continue;
-                const parts = filePath.split('/');
-                const folder = parts.slice(0, 2).join('/'); // exercise-videos/{coachId}
-                const fileName = parts.slice(2).join('/');
-                if (!folderChecks[folder]) folderChecks[folder] = new Set();
-                folderChecks[folder].add(fileName);
-              }
-
-              const existingFiles = new Set();
-              for (const [folder, fileNames] of Object.entries(folderChecks)) {
-                const { data: files } = await supabase.storage
-                  .from('workout-assets')
-                  .list(folder, { limit: 500 });
-                if (files) {
-                  for (const f of files) {
-                    if (fileNames.has(f.name)) {
-                      existingFiles.add(`${folder}/${f.name}`);
-                    }
-                  }
-                }
-                console.log(`[video-debug] Files in ${folder}:`, files?.map(f => f.name) || 'none');
-              }
-
-              console.log(`[video-debug] Existing files:`, [...existingFiles]);
-
-              // Only generate signed URLs for files that actually exist
-              const validPaths = allCustomPaths.filter(p => {
-                const exists = existingFiles.has(p) || !p.startsWith('exercise-videos/');
-                if (!exists) {
-                  console.log(`[video-debug] File NOT found in storage: ${p} (exercise: ${pathToExercise[p]})`);
-                }
-                return exists;
-              });
-
-              // Generate signed URLs in parallel for existing files
+              // Generate signed URLs directly — no file listing needed.
+              // createSignedUrl succeeds even if the file is missing (it just signs the path),
+              // so the client gets a URL to try. If the file is truly gone, the player
+              // will fall back gracefully on its own.
               const signedResults = await Promise.all(
-                validPaths.map(filePath =>
+                allCustomPaths.map(filePath =>
                   supabase.storage
                     .from('workout-assets')
                     .createSignedUrl(filePath, SIGNED_URL_EXPIRY)
@@ -527,22 +492,15 @@ exports.handler = withTimeout(async (event) => {
                 if (url) signedUrlMap[filePath] = url;
               }
 
-              console.log(`[video-debug] Generated ${Object.keys(signedUrlMap).length} signed URLs out of ${validPaths.length} valid paths`);
+              console.log(`[video-debug] Generated ${Object.keys(signedUrlMap).length} signed URLs out of ${allCustomPaths.length} paths`);
 
               // Apply fresh signed URLs to exercises
-              // For exercises whose files don't exist, CLEAR the broken customVideoUrl
-              // so the player falls through to video_url or animation_url
               for (const w of todayWorkouts) {
                 if (w.workout_data?.exercises) {
                   w.workout_data.exercises = w.workout_data.exercises.map(ex => {
                     const updates = {};
                     if (ex.customVideoPath && signedUrlMap[ex.customVideoPath]) {
                       updates.customVideoUrl = signedUrlMap[ex.customVideoPath];
-                    } else if (ex.customVideoPath && !existingFiles.has(ex.customVideoPath)) {
-                      // File doesn't exist in storage - clear broken URL so video_url/animation_url can be used
-                      updates.customVideoUrl = null;
-                      updates.customVideoPath = null;
-                      console.log(`[video-debug] Cleared broken customVideo for "${ex.name}" - file missing`);
                     }
                     if (ex.voiceNotePath && signedUrlMap[ex.voiceNotePath]) {
                       updates.voiceNoteUrl = signedUrlMap[ex.voiceNotePath];
