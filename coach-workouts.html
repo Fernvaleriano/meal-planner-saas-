@@ -6594,6 +6594,8 @@
                         if (fresh.video_url && !ex.video_url) day.exercises[i].video_url = fresh.video_url;
                         if (fresh.animation_url && !ex.animation_url) day.exercises[i].animation_url = fresh.animation_url;
                         if (fresh.thumbnail_url && !ex.thumbnail_url) day.exercises[i].thumbnail_url = fresh.thumbnail_url;
+                        // Always enrich equipment from DB so equipment conflict checks work
+                        if (fresh.equipment && !ex.equipment) day.exercises[i].equipment = fresh.equipment;
                     });
                 });
             } catch (err) {
