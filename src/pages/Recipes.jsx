@@ -251,19 +251,22 @@ function Recipes() {
     }
 
     try {
-      await apiPost('/.netlify/functions/favorites', {
+      await apiPost('/.netlify/functions/toggle-favorite', {
         clientId: clientData.id,
-        action: 'add',
-        food: {
-          food_name: selectedRecipe.name,
-          calories: selectedRecipe.calories || 0,
-          protein: selectedRecipe.protein || 0,
-          carbs: selectedRecipe.carbs || 0,
-          fat: selectedRecipe.fat || 0,
-          serving_size: selectedRecipe.servings ? `${selectedRecipe.servings} serving(s)` : '1 serving',
-          source: selectedRecipe.source || 'recipe'
-        }
+        coachId: clientData.coach_id,
+        mealName: selectedRecipe.name,
+        mealType: 'meal',
+        calories: selectedRecipe.calories || 0,
+        protein: selectedRecipe.protein || 0,
+        carbs: selectedRecipe.carbs || 0,
+        fat: selectedRecipe.fat || 0,
+        notes: selectedRecipe.servings ? `${selectedRecipe.servings} serving(s)` : '1 serving',
+        forceAdd: true
       });
+      // Clear favorites cache so list refreshes
+      if (clientData?.id) {
+        sessionStorage.removeItem(`favorites_${clientData.id}`);
+      }
       alert('Recipe saved to favorites!');
     } catch (err) {
       console.error('Error saving favorite:', err);
