@@ -75,13 +75,28 @@ function MealCard({ meal, coachId, onUpdate }) {
         setLocalReaction(null);
       } else {
         // Add/update reaction
-        await apiPost('/.netlify/functions/react-to-diary-entry', {
+        const result = await apiPost('/.netlify/functions/react-to-diary-entry', {
           entryId: primaryEntryId,
           coachId,
           clientId: meal.clientId,
           reaction
         });
         setLocalReaction(reaction);
+
+        // Send as chat message so client sees it in Messages (like note replies)
+        if (result.isNew || result.success) {
+          try {
+            await apiPost('/.netlify/functions/chat', {
+              action: 'send',
+              coachId,
+              clientId: meal.clientId,
+              senderType: 'coach',
+              message: `Reacted ${reaction} to your ${meal.mealType || 'meal'}`
+            });
+          } catch (chatErr) {
+            console.error('Error sending reaction to chat:', chatErr);
+          }
+        }
       }
     } catch (err) {
       console.error('Error saving reaction:', err);
@@ -326,7 +341,7 @@ function WorkoutFeedCard({ workout, coachId, onUpdate, weightUnit = 'lbs' }) {
         });
         setLocalReaction(null);
       } else {
-        await apiPost('/.netlify/functions/react-to-diary-entry', {
+        const result = await apiPost('/.netlify/functions/react-to-diary-entry', {
           entryId: workoutId,
           coachId,
           clientId: workout.clientId,
@@ -334,6 +349,21 @@ function WorkoutFeedCard({ workout, coachId, onUpdate, weightUnit = 'lbs' }) {
           entryType: 'workout'
         });
         setLocalReaction(reaction);
+
+        // Send as chat message so client sees it in Messages (like note replies)
+        if (result.isNew || result.success) {
+          try {
+            await apiPost('/.netlify/functions/chat', {
+              action: 'send',
+              coachId,
+              clientId: workout.clientId,
+              senderType: 'coach',
+              message: `Reacted ${reaction} to your workout`
+            });
+          } catch (chatErr) {
+            console.error('Error sending reaction to chat:', chatErr);
+          }
+        }
       }
     } catch (err) {
       console.error('Error saving reaction:', err);
