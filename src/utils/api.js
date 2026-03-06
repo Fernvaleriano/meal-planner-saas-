@@ -42,6 +42,11 @@ const SESSION_EXPIRY_BUFFER = 5 * 60 * 1000;
 // Network request timeout — prevents indefinite hangs on poor mobile connections
 const FETCH_TIMEOUT_MS = 15000;
 
+// Maximum time to wait on the resume gate before proceeding anyway.
+// This prevents API calls from hanging indefinitely if the gate promise
+// never resolves (e.g., triggerResume crashes or the network is dead).
+const RESUME_GATE_TIMEOUT = 12000;
+
 /**
  * Get auth token with proactive session refresh
  * This ensures the session is valid before making API calls
@@ -52,13 +57,17 @@ const FETCH_TIMEOUT_MS = 15000;
  *   Without this, triggerResume → ensureFreshSession → getAuthToken
  *   would deadlock (waiting on a gate that can't resolve until this returns).
  */
+
 async function getAuthToken(bypassGate = false) {
   // If the app just resumed from background, wait for the session refresh
   // to complete before returning any token. This is the key fix that prevents
   // the race condition where pages fetch with expired tokens.
   if (!bypassGate && resumeGate) {
     try {
-      await resumeGate;
+      await Promise.race([
+        resumeGate,
+        new Promise((resolve) => setTimeout(resolve, RESUME_GATE_TIMEOUT))
+      ]);
     } catch {
       // Gate rejected — proceed anyway, refreshSession below will handle it
     }
