@@ -133,7 +133,7 @@ exports.handler = async (event) => {
             type: 'diary_reaction',
             title: `${reaction} Your coach reacted to your ${mealType}`,
             message: `Your coach reacted with ${reaction} to "${foodName}"`,
-            related_entry_id: entryId,
+            related_entry_id: entryType === 'workout' ? null : entryId,
             metadata: {
               food_name: foodName,
               meal_type: mealType,
@@ -143,19 +143,8 @@ exports.handler = async (event) => {
             is_read: false,
             created_at: new Date().toISOString()
           });
-
-        // Also send a chat message so the reaction appears in Messages
-        const chatMessage = `Reacted ${reaction} to your ${mealType}`;
-        await supabase
-          .from('chat_messages')
-          .insert({
-            coach_id: coachId,
-            client_id: parseInt(clientId),
-            sender_type: 'coach',
-            message: chatMessage
-          });
       } catch (notifError) {
-        console.error('Error creating notification/chat message:', notifError);
+        console.error('Error creating notification:', notifError);
         // Don't fail the request if notification fails
       }
     }
