@@ -362,6 +362,7 @@ exports.handler = withTimeout(async (event) => {
                       image_url: resolvedImageUrl
                     },
                     program_id: activeAssignment.program_id,
+                    coach_id: activeAssignment.coach_id,
                     client_id: activeAssignment.client_id,
                     is_override: true,
                     is_added: true
@@ -389,6 +390,7 @@ exports.handler = withTimeout(async (event) => {
                     image_url: resolvedImageUrl
                   },
                   program_id: activeAssignment.program_id,
+                  coach_id: activeAssignment.coach_id,
                   client_id: activeAssignment.client_id
                 };
               }
