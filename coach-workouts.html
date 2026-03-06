@@ -8569,11 +8569,15 @@
 
                 for (const day of workoutDays) {
                     for (const ex of (day.exercises || [])) {
-                        if (ex.equipment) {
-                            const exEquipLower = ex.equipment.toLowerCase();
-                            if (restrictedLower.some(r => exEquipLower.includes(r) || r.includes(exEquipLower))) {
-                                conflicts.push({ exerciseName: ex.name || 'Unknown', equipment: ex.equipment, dayName: day.name || '' });
-                            }
+                        const exEquipLower = (ex.equipment || '').toLowerCase();
+                        const exNameLower = (ex.name || '').toLowerCase();
+                        const matched = restrictedLower.find(r =>
+                            (exEquipLower && (exEquipLower.includes(r) || r.includes(exEquipLower))) ||
+                            exNameLower.includes(r)
+                        );
+                        if (matched) {
+                            const matchedOriginal = unavailable.find(e => e.toLowerCase() === matched);
+                            conflicts.push({ exerciseName: ex.name || 'Unknown', equipment: matchedOriginal || ex.equipment || 'restricted equipment', dayName: day.name || '' });
                         }
                     }
                 }
