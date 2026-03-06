@@ -1816,6 +1816,7 @@ function ExerciseDetailModal({
     console.error(`Video load failed for "${exercise?.name}":`, {
       url: videoUrl,
       customVideoPath: exercise?.customVideoPath,
+      customVideoUrl: exercise?.customVideoUrl,
       errorCode: mediaError?.code,
       errorMessage: mediaError?.message
     });
@@ -1827,44 +1828,68 @@ function ExerciseDetailModal({
       return;
     }
 
-    // For custom videos with a file path, request a fresh signed URL on-demand
+    // Determine the file path for custom videos — either from customVideoPath
+    // or by extracting it from the signed URL (legacy data may only have customVideoUrl)
+    let customPath = exercise?.customVideoPath;
+    if (!customPath && videoUrl) {
+      const match = videoUrl.match(/\/object\/sign\/workout-assets\/(.+?)(?:\?|$)/);
+      if (match) customPath = decodeURIComponent(match[1]);
+    }
+
+    // For custom videos, request a fresh signed URL on-demand
     // This handles expired URLs, stale SW cache, and any other URL issues
-    if (exercise?.customVideoPath) {
+    if (customPath) {
       try {
-        console.log('Requesting fresh signed URL for:', exercise.customVideoPath);
+        console.log('[video-fix] Requesting fresh signed URL for path:', customPath);
         const resp = await fetch('/.netlify/functions/get-signed-video-url', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ filePath: exercise.customVideoPath })
+          body: JSON.stringify({ filePath: customPath })
         });
-        if (resp.ok) {
-          const data = await resp.json();
-          if (data.success && data.url) {
-            console.log('Got fresh signed URL, retrying video');
-            // Fetch as blob to avoid any caching/encoding issues
-            const videoResp = await fetch(data.url);
-            if (videoResp.ok) {
-              const blob = await videoResp.blob();
-              const blobUrl = URL.createObjectURL(blob);
-              setVideoBlobUrl(blobUrl);
-              setVideoLoading(true);
-              setVideoError(false);
-              setVideoKey(k => k + 1);
-              return;
-            }
+        const data = await resp.json();
+        console.log('[video-fix] get-signed-video-url response:', { ok: resp.ok, success: data.success, fileExists: data.fileExists, error: data.error, hasUrl: !!data.url });
+        if (data.fileExists === false) {
+          console.error('[video-fix] FILE DOES NOT EXIST in storage:', customPath);
+          // File is gone — skip all retries, show error
+          setVideoLoading(false);
+          setVideoError(true);
+          return;
+        }
+        if (resp.ok && data.success && data.url) {
+          console.log('[video-fix] Got fresh signed URL, fetching video as blob...');
+          const videoResp = await fetch(data.url);
+          if (videoResp.ok) {
+            const blob = await videoResp.blob();
+            const blobUrl = URL.createObjectURL(blob);
+            setVideoBlobUrl(blobUrl);
+            setVideoLoading(true);
+            setVideoError(false);
+            setVideoKey(k => k + 1);
+            return;
+          } else {
+            // Read error body from Supabase to understand why it returned 400
+            let errorBody = '';
+            try { errorBody = await videoResp.text(); } catch { /* ignore */ }
+            console.error('[video-fix] Fresh signed URL returned HTTP', videoResp.status, errorBody);
           }
         }
       } catch (err) {
-        console.error('Fresh signed URL fallback failed:', err);
+        console.error('[video-fix] Fresh signed URL fallback failed:', err);
       }
+    } else {
+      console.log('[video-fix] No custom path found — videoUrl:', videoUrl?.substring(0, 80));
     }
 
     // Generic blob fallback for non-custom videos (URL encoding issues)
     if (videoUrl) {
       try {
-        console.log('Trying blob fallback for video:', videoUrl);
+        console.log('[video-fix] Trying blob fallback for video:', videoUrl?.substring(0, 100));
         const resp = await fetch(videoUrl);
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        if (!resp.ok) {
+          let errorBody = '';
+          try { errorBody = await resp.text(); } catch { /* ignore */ }
+          throw new Error(`HTTP ${resp.status}: ${errorBody}`);
+        }
         const blob = await resp.blob();
         const blobUrl = URL.createObjectURL(blob);
         setVideoBlobUrl(blobUrl);
@@ -1872,7 +1897,7 @@ function ExerciseDetailModal({
         setVideoError(false);
         setVideoKey(k => k + 1);
       } catch (fetchErr) {
-        console.error('Blob fallback also failed:', fetchErr);
+        console.error('[video-fix] Blob fallback also failed:', fetchErr);
         setVideoLoading(false);
         setVideoError(true);
       }
@@ -1880,7 +1905,7 @@ function ExerciseDetailModal({
       setVideoLoading(false);
       setVideoError(true);
     }
-  }, [exercise?.name, exercise?.customVideoPath, videoUrl, videoBlobUrl]);
+  }, [exercise?.name, exercise?.customVideoPath, exercise?.customVideoUrl, videoUrl, videoBlobUrl]);
 
   // Parse reps helper - supports decimals like "1.5" (e.g. 1.5 miles)
   const parseReps = (reps) => {
