@@ -3248,7 +3248,17 @@ function Workouts() {
               <ChevronLeft size={24} />
             </button>
             <span className="nav-title">{isToday ? 'Today' : formatDisplayDate(selectedDate)}</span>
-            <div className="nav-spacer" style={{ width: 40 }}></div>
+            {clientData?.is_coach && (
+              <button
+                className="nav-plans-btn"
+                aria-label="Manage workout plans"
+                onClick={() => navigate('/workout-plans')}
+                title="Workout Plans"
+              >
+                <Settings size={20} />
+              </button>
+            )}
+            {!clientData?.is_coach && <div className="nav-spacer" style={{ width: 40 }}></div>}
           </div>
 
           {/* Beta Testing Banner */}
