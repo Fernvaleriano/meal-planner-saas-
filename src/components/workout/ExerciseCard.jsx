@@ -337,6 +337,11 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
     newSets[setIndex] = { ...newSets[setIndex], completed: !wasCompleted };
     setSets(newSets);
 
+    // Persist set completion to backend so it survives navigation
+    if (onUpdateExercise) {
+      onUpdateExercise({ ...exercise, sets: newSets });
+    }
+
     // Start rest timer when completing a set (not when uncompleting)
     if (!wasCompleted && setIndex < sets.length - 1) {
       startRestTimer(setIndex, newSets[setIndex].restSeconds || 60);

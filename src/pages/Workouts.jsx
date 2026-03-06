@@ -551,6 +551,7 @@ function Workouts() {
   const isRefreshingRef = useRef(false);
   const completedExercisesRef = useRef(new Set());
   const pendingSaveRef = useRef(null); // Track pending completion saves for visibilitychange flush
+  const completionSaveTimerRef = useRef(null); // Debounce timer for coalescing rapid completion toggles
   const globalExerciseRefsRef = useRef({}); // Coach's global exercise references keyed by lowercase exercise name
   const refreshWorkoutDataRef = useRef(null); // Stable ref for resume handler (defined later via useCallback)
 
@@ -669,6 +670,17 @@ function Workouts() {
   useEffect(() => {
     const flushPendingSave = () => {
       if (document.visibilityState !== 'hidden') return;
+
+      // If there's a debounced completion save waiting, flush it now using latest state
+      if (completionSaveTimerRef.current) {
+        clearTimeout(completionSaveTimerRef.current);
+        completionSaveTimerRef.current = null;
+        const workout = todayWorkoutRef.current;
+        if (workout?.workout_data) {
+          pendingSaveRef.current = { workout, updatedWorkoutData: workout.workout_data };
+        }
+      }
+
       const pending = pendingSaveRef.current;
       if (!pending) return;
 
@@ -1342,10 +1354,6 @@ function Workouts() {
     });
 
     // Persist the completed flag into workout_data using functional state update
-    // Capture the updated data via ref so we can make the API call outside the updater
-    let capturedWorkoutData = null;
-    let capturedWorkout = null;
-
     setTodayWorkout(prev => {
       if (!prev?.workout_data) return prev;
 
@@ -1379,47 +1387,51 @@ function Workouts() {
         updatedWorkoutData = { ...prev.workout_data, exercises: updatedExercises };
       }
 
-      // Capture for API call (outside updater)
-      capturedWorkoutData = updatedWorkoutData;
-      capturedWorkout = prev;
-
       return { ...prev, workout_data: updatedWorkoutData };
     });
 
-    // Make the API call outside the state updater (updater should be pure)
-    // Use a small delay to ensure state has been committed and ref is available
-    await new Promise(r => setTimeout(r, 50));
-
-    const workout = capturedWorkout || todayWorkoutRef.current;
-    const updatedWorkoutData = capturedWorkoutData;
-    if (!workout || !updatedWorkoutData) return;
-
-    // Store pending save for visibilitychange flush
-    pendingSaveRef.current = { workout, updatedWorkoutData };
-
-    try {
-      if (workout.is_adhoc) {
-        const isRealId = workout.id && !String(workout.id).startsWith('adhoc-') && !String(workout.id).startsWith('custom-');
-        const dateStr = workout.workout_date || new Date().toISOString().split('T')[0];
-        await apiPut('/.netlify/functions/adhoc-workouts', {
-          ...(isRealId ? { workoutId: workout.id } : {}),
-          clientId: workout.client_id,
-          workoutDate: dateStr,
-          workoutData: updatedWorkoutData,
-          name: workout.name
-        });
-      } else {
-        await apiPut('/.netlify/functions/client-workout-log', {
-          assignmentId: workout.id,
-          dayIndex: workout.day_index,
-          workout_data: updatedWorkoutData
-        });
-      }
-      pendingSaveRef.current = null;
-    } catch (err) {
-      console.error('Error persisting exercise completion:', err);
-      // localStorage already has the data as backup
+    // Debounce the API call so rapid toggles coalesce into a single save
+    // with the latest workout_data. This prevents earlier calls from overwriting
+    // later ones when network responses arrive out of order.
+    if (completionSaveTimerRef.current) {
+      clearTimeout(completionSaveTimerRef.current);
     }
+    completionSaveTimerRef.current = setTimeout(async () => {
+      completionSaveTimerRef.current = null;
+
+      // Read the LATEST state from refs (not the stale captured values)
+      // By now React has re-rendered and todayWorkoutRef.current is up to date
+      const workout = todayWorkoutRef.current;
+      if (!workout?.workout_data) return;
+      const updatedWorkoutData = workout.workout_data;
+
+      // Store pending save for visibilitychange flush
+      pendingSaveRef.current = { workout, updatedWorkoutData };
+
+      try {
+        if (workout.is_adhoc) {
+          const isRealId = workout.id && !String(workout.id).startsWith('adhoc-') && !String(workout.id).startsWith('custom-');
+          const dateStr = workout.workout_date || new Date().toISOString().split('T')[0];
+          await apiPut('/.netlify/functions/adhoc-workouts', {
+            ...(isRealId ? { workoutId: workout.id } : {}),
+            clientId: workout.client_id,
+            workoutDate: dateStr,
+            workoutData: updatedWorkoutData,
+            name: workout.name
+          });
+        } else {
+          await apiPut('/.netlify/functions/client-workout-log', {
+            assignmentId: workout.id,
+            dayIndex: workout.day_index,
+            workout_data: updatedWorkoutData
+          });
+        }
+        pendingSaveRef.current = null;
+      } catch (err) {
+        console.error('Error persisting exercise completion:', err);
+        // localStorage already has the data as backup
+      }
+    }, 300);
   }, []);
 
   // Uncheck all completed exercises
