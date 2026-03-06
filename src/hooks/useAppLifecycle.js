@@ -16,11 +16,18 @@ import { ensureFreshSession, _setResumeGate } from '../utils/api';
  * - Resume gate: blocks ALL API calls until the session is refreshed, preventing
  *   race conditions where pages fetch with stale tokens
  * - Keep-alive: Web Lock + silent ping to resist OS from killing the process
+ * - Network reconnection detection (online/offline events)
+ * - Stuck-state recovery: detects when resume hangs and forces recovery
  */
 
 // Global subscriber registry — persists across renders and component mounts
 const subscribers = new Set();
 let lastSuspendTime = null;
+
+// Track whether the app is currently in a stuck/failed resume state.
+// Components (like SyncIndicator) can read this to show recovery UI.
+let resumeStuck = false;
+let lastSuccessfulResume = Date.now();
 
 // ── KEEP-ALIVE: Resist OS from killing the app process ──
 // Uses multiple strategies because no single one works on all platforms:
@@ -132,6 +139,14 @@ export function getBackgroundDuration() {
 }
 
 /**
+ * Check if the app is in a stuck resume state.
+ * Used by SyncIndicator to decide whether to show the reload button.
+ */
+export function isResumeStuck() {
+  return resumeStuck;
+}
+
+/**
  * Clean up stuck body/html scroll locks.
  * Called from multiple places as a safety net.
  */
@@ -162,11 +177,32 @@ function cleanupStuckScrollLock() {
 /**
  * Notify all resume subscribers and perform cleanup.
  * Extracted so both visibilitychange AND the heartbeat can call it.
+ *
+ * Includes a stuck-state safety net: if the entire resume flow takes longer
+ * than RESUME_STUCK_TIMEOUT, we dispatch a 'stuck' phase so the SyncIndicator
+ * can show a "Reload" button. This prevents the user from being stuck with
+ * "Reconnecting..." forever.
  */
+const RESUME_STUCK_TIMEOUT = 10000; // 10 seconds — if resume takes longer, offer reload
+
 async function triggerResume(backgroundMs) {
+  resumeStuck = false;
+
   // Let the UI know we're syncing (used by SyncIndicator)
   if (backgroundMs > 5000) {
     window.dispatchEvent(new CustomEvent('app-resume-sync', { detail: { phase: 'start' } }));
+  }
+
+  // Safety net: if the resume flow hangs, tell the UI we're stuck so it can
+  // show a reload button. The user shouldn't have to pull-to-refresh or
+  // kill the app to recover.
+  let stuckTimer;
+  if (backgroundMs > 5000) {
+    stuckTimer = setTimeout(() => {
+      resumeStuck = true;
+      console.warn('[AppLifecycle] Resume appears stuck after', RESUME_STUCK_TIMEOUT, 'ms — offering reload');
+      window.dispatchEvent(new CustomEvent('app-resume-sync', { detail: { phase: 'stuck' } }));
+    }, RESUME_STUCK_TIMEOUT);
   }
 
   // If backgrounded for more than 5 seconds, refresh auth session.
@@ -232,6 +268,13 @@ async function triggerResume(backgroundMs) {
     }
   }
 
+  // Clear the stuck timer — we completed successfully
+  if (stuckTimer) {
+    clearTimeout(stuckTimer);
+  }
+  resumeStuck = false;
+  lastSuccessfulResume = Date.now();
+
   // Signal sync complete (used by SyncIndicator)
   if (backgroundMs > 5000) {
     window.dispatchEvent(new CustomEvent('app-resume-sync', { detail: { phase: 'done' } }));
@@ -250,15 +293,36 @@ async function triggerResume(backgroundMs) {
 export function useAppLifecycle() {
   const suspendTimeRef = useRef(null);
   const isResumingRef = useRef(false);
+  const resumeStartedAtRef = useRef(null);
 
   const handleResume = useCallback(async (backgroundMs) => {
-    if (isResumingRef.current) return; // prevent double-fires
+    // Prevent double-fires, but with a safety valve: if the previous resume
+    // has been running for over 15 seconds, it's stuck. Force-reset and retry.
+    if (isResumingRef.current) {
+      const elapsed = resumeStartedAtRef.current
+        ? Date.now() - resumeStartedAtRef.current
+        : 0;
+      if (elapsed < 15000) return; // genuinely still running, skip
+      console.warn('[AppLifecycle] Previous resume stuck for', elapsed, 'ms — forcing reset');
+      isResumingRef.current = false;
+      // Also force-clear any stuck resume gate
+      _setResumeGate(null);
+    }
+
     isResumingRef.current = true;
+    resumeStartedAtRef.current = Date.now();
 
     suspendTimeRef.current = null;
-    await triggerResume(backgroundMs);
-
-    isResumingRef.current = false;
+    try {
+      await triggerResume(backgroundMs);
+    } catch (e) {
+      console.error('[AppLifecycle] triggerResume threw:', e);
+      // Ensure the gate is always cleared even on unexpected errors
+      _setResumeGate(null);
+    } finally {
+      isResumingRef.current = false;
+      resumeStartedAtRef.current = null;
+    }
   }, []);
 
   const handleVisibilityChange = useCallback(async () => {
@@ -304,6 +368,32 @@ export function useAppLifecycle() {
       }
     };
     window.addEventListener('pageshow', handlePageShow);
+
+    // ── ONLINE/OFFLINE: Detect network reconnection ──
+    // When the device comes back online after being offline (common during
+    // workouts with poor gym WiFi), trigger a resume-like sync. This handles
+    // the case where visibilitychange fired but the network wasn't available yet.
+    const handleOnline = () => {
+      console.log('[AppLifecycle] Network reconnected');
+      // Only trigger if we're visible (not in background) and it's been a while
+      // since the last successful resume
+      if (document.visibilityState === 'visible') {
+        const sinceLastResume = Date.now() - lastSuccessfulResume;
+        if (sinceLastResume > 5000) {
+          console.log('[AppLifecycle] Triggering sync after network reconnection');
+          handleResume(sinceLastResume);
+        }
+      }
+    };
+
+    const handleOffline = () => {
+      console.log('[AppLifecycle] Network lost');
+      // Dispatch an event so the SyncIndicator can show "No connection"
+      window.dispatchEvent(new CustomEvent('app-resume-sync', { detail: { phase: 'offline' } }));
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
 
     // ── HEARTBEAT: Detect app resume when visibilitychange doesn't fire ──
     // On iOS PWAs / WebViews, visibilitychange is unreliable.
@@ -360,6 +450,8 @@ export function useAppLifecycle() {
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('pageshow', handlePageShow);
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
       clearInterval(heartbeatInterval);
       document.removeEventListener('touchstart', handleTouchStart, { capture: true });
       document.removeEventListener('click', handleTouchStart, { capture: true });

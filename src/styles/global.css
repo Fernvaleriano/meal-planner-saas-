@@ -32260,11 +32260,30 @@ a.nav-left {
     pointer-events: none;
 }
 
+/* When actionable (stuck/offline), allow pointer events for the reload button */
+.sync-indicator--actionable {
+    pointer-events: auto;
+}
+
 .sync-indicator-bar {
     width: 100%;
     height: 3px;
     background: var(--brand-gradient);
     animation: sync-slide 1.2s ease-in-out infinite;
+}
+
+.sync-indicator-content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.sync-indicator-content--expanded {
+    background: var(--gray-900);
+    padding: 6px 12px;
+    border-radius: 0 0 10px 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    animation: sync-slide-down 0.2s ease-out;
 }
 
 .sync-indicator-text {
@@ -32276,9 +32295,48 @@ a.nav-left {
     opacity: 0.9;
 }
 
+/* When inside expanded content, remove the standalone background */
+.sync-indicator-content--expanded .sync-indicator-text {
+    background: none;
+    padding: 0;
+    border-radius: 0;
+    opacity: 1;
+    color: #9ca3af;
+    font-size: 13px;
+}
+
+.sync-indicator-reload {
+    padding: 4px 14px;
+    background: var(--brand-primary);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    -webkit-tap-highlight-color: transparent;
+    transition: opacity 0.15s;
+}
+
+.sync-indicator-reload:active {
+    opacity: 0.7;
+}
+
 [data-theme="light"] .sync-indicator-text {
     background: white;
     box-shadow: var(--shadow-sm);
+}
+
+[data-theme="light"] .sync-indicator-content--expanded {
+    background: white;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+[data-theme="light"] .sync-indicator-content--expanded .sync-indicator-text {
+    background: none;
+    box-shadow: none;
+    color: #6b7280;
 }
 
 @keyframes sync-slide {
@@ -33680,4 +33738,9 @@ a.nav-left {
     .wb-exercise-config {
         gap: 8px;
     }
+}
+
+@keyframes sync-slide-down {
+    from { transform: translateY(-100%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
 }
