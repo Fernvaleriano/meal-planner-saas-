@@ -440,6 +440,56 @@ exports.handler = withTimeout(async (event) => {
             }
           }
 
+          // Generate fresh signed URLs for custom videos and voice notes
+          // so the client gets playable URLs immediately without an extra roundtrip
+          const allCustomPaths = [];
+          for (const w of todayWorkouts) {
+            for (const ex of w.workout_data?.exercises || []) {
+              if (ex.customVideoPath) allCustomPaths.push(ex.customVideoPath);
+              if (ex.voiceNotePath) allCustomPaths.push(ex.voiceNotePath);
+            }
+          }
+
+          if (allCustomPaths.length > 0) {
+            try {
+              const SIGNED_URL_EXPIRY = 24 * 60 * 60; // 24 hours
+              // Generate signed URLs in parallel
+              const signedResults = await Promise.all(
+                allCustomPaths.map(filePath =>
+                  supabase.storage
+                    .from('workout-assets')
+                    .createSignedUrl(filePath, SIGNED_URL_EXPIRY)
+                    .then(({ data, error }) => ({ filePath, url: error ? null : data?.signedUrl }))
+                )
+              );
+
+              const signedUrlMap = {};
+              for (const { filePath, url } of signedResults) {
+                if (url) signedUrlMap[filePath] = url;
+              }
+
+              // Apply fresh signed URLs to exercises
+              for (const w of todayWorkouts) {
+                if (w.workout_data?.exercises) {
+                  w.workout_data.exercises = w.workout_data.exercises.map(ex => {
+                    const updates = {};
+                    if (ex.customVideoPath && signedUrlMap[ex.customVideoPath]) {
+                      updates.customVideoUrl = signedUrlMap[ex.customVideoPath];
+                    }
+                    if (ex.voiceNotePath && signedUrlMap[ex.voiceNotePath]) {
+                      updates.voiceNoteUrl = signedUrlMap[ex.voiceNotePath];
+                    }
+                    if (Object.keys(updates).length === 0) return ex;
+                    return { ...ex, ...updates };
+                  });
+                }
+              }
+            } catch (signErr) {
+              console.error('Error generating signed URLs:', signErr);
+              // Non-fatal: client-side will retry via refreshSignedUrls
+            }
+          }
+
           return {
             statusCode: 200,
             headers,
