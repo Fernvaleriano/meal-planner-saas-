@@ -563,20 +563,43 @@ function Messages() {
                 });
               }
             } else {
-              // Our own message came through real-time — replace any optimistic
-              // or temp message with the server-confirmed version.
-              setMessages(prev => {
-                const withoutOptimistic = prev.filter(m => {
-                  if (typeof m.id === 'string' &&
-                      (m.id.startsWith('temp-') || m.id.startsWith('optimistic-')) &&
-                      m.message === newMsg.message) {
-                    return false; // Remove the optimistic version
-                  }
-                  return true;
+              // Our own message came through real-time.
+              // For regular messages: handleSend already replaces the optimistic
+              // message with the server-confirmed one via the API response, so we
+              // skip processing here to avoid race conditions that can remove the
+              // message from state.
+              // For reactions: handleReaction doesn't use the API response, so we
+              // still need realtime to reconcile temp reaction messages.
+              const isReaction = newMsg.message?.startsWith('__REACTION__:');
+              if (isReaction) {
+                setMessages(prev => {
+                  const withoutTemp = prev.filter(m => {
+                    if (typeof m.id === 'string' &&
+                        m.id.startsWith('temp-') &&
+                        m.message === newMsg.message) {
+                      return false;
+                    }
+                    return true;
+                  });
+                  if (withoutTemp.some(m => m.id === newMsg.id)) return withoutTemp;
+                  return [...withoutTemp, newMsg];
                 });
-                if (withoutOptimistic.some(m => m.id === newMsg.id)) return withoutOptimistic;
-                return [...withoutOptimistic, newMsg];
-              });
+              } else {
+                // Regular own message — just deduplicate (don't touch optimistic)
+                setMessages(prev => {
+                  if (prev.some(m => m.id === newMsg.id)) return prev;
+                  // If the optimistic version was already replaced by handleSend,
+                  // just skip. If not, the optimistic msg stays until apiPost
+                  // response replaces it (which is the correct behavior).
+                  const hasOptimistic = prev.some(m =>
+                    typeof m.id === 'string' &&
+                    m.id.startsWith('optimistic-') &&
+                    m.message === newMsg.message
+                  );
+                  if (hasOptimistic) return prev; // handleSend will replace it
+                  return [...prev, newMsg];
+                });
+              }
             }
           }
         }
