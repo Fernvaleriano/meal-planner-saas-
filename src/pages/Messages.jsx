@@ -60,6 +60,10 @@ function Messages() {
   // Track whether the user is scrolled to bottom so we can restore it when
   // the tab becomes visible again (display:none resets scroll position).
   const isAtBottomRef = useRef(true);
+  // Track whether the Messages tab is the active/visible tab so background
+  // polling doesn't accidentally mark messages as read while the user is
+  // on another page.
+  const isVisibleRef = useRef(location.pathname === '/messages');
 
   // Lightbox state
   const [lightboxUrl, setLightboxUrl] = useState(null);
@@ -141,20 +145,24 @@ function Messages() {
         return [...serverMessages, ...trulyPending, ...missingConfirmed];
       });
 
-      // Mark messages as read
-      await apiPost('/.netlify/functions/chat', {
-        action: 'mark-read',
-        coachId: cId,
-        clientId: clId,
-        readerType: isCoach ? 'coach' : 'client'
-      });
+      // Only mark messages as read when the Messages tab is actually visible.
+      // The component stays mounted (persistent tab) even on other pages —
+      // marking read in the background would prevent the unread badge from showing.
+      if (isVisibleRef.current) {
+        await apiPost('/.netlify/functions/chat', {
+          action: 'mark-read',
+          coachId: cId,
+          clientId: clId,
+          readerType: isCoach ? 'coach' : 'client'
+        });
 
-      // Update conversation unread count locally
-      setConversations(prev => prev.map(c => {
-        const matchId = isCoach ? c.clientId : c.coachId;
-        const activeId = isCoach ? activeConvo.clientId : activeConvo.coachId;
-        return matchId === activeId ? { ...c, unreadCount: 0 } : c;
-      }));
+        // Update conversation unread count locally
+        setConversations(prev => prev.map(c => {
+          const matchId = isCoach ? c.clientId : c.coachId;
+          const activeId = isCoach ? activeConvo.clientId : activeConvo.coachId;
+          return matchId === activeId ? { ...c, unreadCount: 0 } : c;
+        }));
+      }
     } catch (err) {
       console.error('Error fetching messages:', err);
     } finally {
@@ -501,6 +509,11 @@ function Messages() {
     return () => container.removeEventListener('scroll', handleScroll);
   }, [activeConvo]); // Re-attach when conversation changes (container re-renders)
 
+  // Keep visibility ref in sync with location changes
+  useEffect(() => {
+    isVisibleRef.current = location.pathname === '/messages';
+  }, [location.pathname]);
+
   // Restore scroll position when returning to the Messages tab.
   // display:none → display:block resets scroll, so we re-anchor to bottom.
   useEffect(() => {
@@ -568,14 +581,20 @@ function Messages() {
                 // (temp messages from self have string IDs starting with 'temp-')
                 return [...prev, newMsg];
               });
-              // Don't mark reaction messages as unread
+              // Only mark as read if Messages tab is visible; otherwise
+              // notify BottomNav to show the unread badge instantly.
               if (!newMsg.message?.startsWith('__REACTION__:')) {
-                apiPost('/.netlify/functions/chat', {
-                  action: 'mark-read',
-                  coachId: cId,
-                  clientId: clId,
-                  readerType: isCoach ? 'coach' : 'client'
-                });
+                if (isVisibleRef.current) {
+                  apiPost('/.netlify/functions/chat', {
+                    action: 'mark-read',
+                    coachId: cId,
+                    clientId: clId,
+                    readerType: isCoach ? 'coach' : 'client'
+                  });
+                } else {
+                  // Dispatch event so BottomNav updates badge immediately
+                  window.dispatchEvent(new CustomEvent('new-unread-message'));
+                }
               }
             } else {
               // Our own message came through real-time.
