@@ -747,15 +747,32 @@ function Messages() {
               <div
                 key={msg.id}
                 className={`chat-msg ${isMine ? 'mine' : 'theirs'} ${isReaction ? 'reaction-msg' : ''}`}
-                onClick={(e) => {
-                  if (isMine) {
-                    e.stopPropagation();
-                    setSelectedMsgId(selectedMsgId === msg.id ? null : msg.id);
-                  }
-                }}
               >
-                <div className="chat-msg-wrapper">
-                  <div className={`chat-msg-bubble ${hasMedia ? 'media-bubble' : ''} ${isReaction ? 'reaction-bubble' : ''}`}>
+                <div className="chat-msg-row">
+                  {/* Reaction trigger on left for own messages */}
+                  {isMine && (
+                    <button
+                      className="chat-reaction-trigger"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setReactionPickerMsgId(reactionPickerMsgId === msg.id ? null : msg.id);
+                        setSelectedMsgId(null);
+                      }}
+                      title="React"
+                    >
+                      <SmilePlus size={16} />
+                    </button>
+                  )}
+
+                  <div
+                    className={`chat-msg-bubble ${hasMedia ? 'media-bubble' : ''} ${isReaction ? 'reaction-bubble' : ''}`}
+                    onClick={(e) => {
+                      if (isMine) {
+                        e.stopPropagation();
+                        setSelectedMsgId(selectedMsgId === msg.id ? null : msg.id);
+                      }
+                    }}
+                  >
                     {renderMedia(msg)}
                     {msg.message && <p>{msg.message}</p>}
 
@@ -788,38 +805,39 @@ function Messages() {
                     )}
                   </div>
 
-                  {/* Reaction picker trigger - outside bubble to avoid click/overflow conflicts */}
-                  <button
-                    className={`chat-reaction-trigger ${isMine ? 'trigger-left' : 'trigger-right'}`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      e.preventDefault();
-                      setReactionPickerMsgId(reactionPickerMsgId === msg.id ? null : msg.id);
-                      setSelectedMsgId(null);
-                    }}
-                    title="React"
-                  >
-                    <SmilePlus size={16} />
-                  </button>
-
-                  {/* Emoji reaction picker */}
-                  {reactionPickerMsgId === msg.id && (
-                    <div className={`chat-reaction-picker ${isMine ? 'picker-left' : 'picker-right'}`} onClick={(e) => e.stopPropagation()}>
-                      {REACTION_EMOJIS.map(emoji => (
-                        <button
-                          key={emoji}
-                          className={`chat-reaction-emoji-btn ${emojiMap[emoji]?.myReaction ? 'active' : ''}`}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleReaction(msg.id, emoji);
-                          }}
-                        >
-                          {emoji}
-                        </button>
-                      ))}
-                    </div>
+                  {/* Reaction trigger on right for other's messages */}
+                  {!isMine && (
+                    <button
+                      className="chat-reaction-trigger"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setReactionPickerMsgId(reactionPickerMsgId === msg.id ? null : msg.id);
+                        setSelectedMsgId(null);
+                      }}
+                      title="React"
+                    >
+                      <SmilePlus size={16} />
+                    </button>
                   )}
                 </div>
+
+                {/* Emoji reaction picker */}
+                {reactionPickerMsgId === msg.id && (
+                  <div className={`chat-reaction-picker ${isMine ? 'picker-right' : 'picker-left'}`} onClick={(e) => e.stopPropagation()}>
+                    {REACTION_EMOJIS.map(emoji => (
+                      <button
+                        key={emoji}
+                        className={`chat-reaction-emoji-btn ${emojiMap[emoji]?.myReaction ? 'active' : ''}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleReaction(msg.id, emoji);
+                        }}
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                )}
 
                 {/* Reactions display below bubble */}
                 {groupedReactions.length > 0 && (
