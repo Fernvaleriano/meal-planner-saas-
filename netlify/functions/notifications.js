@@ -45,6 +45,9 @@ exports.handler = async (event) => {
         query = query.eq('is_read', false);
       }
 
+      // Exclude chat_message notifications — messages have their own tab/icon
+      query = query.neq('type', 'chat_message');
+
       const { data, error } = await query;
 
       if (error) {
@@ -75,6 +78,9 @@ exports.handler = async (event) => {
       } else if (clientId) {
         countQuery = countQuery.eq('client_id', clientId);
       }
+
+      // Exclude chat_message from unread count — messages have their own badge
+      countQuery = countQuery.neq('type', 'chat_message');
 
       const { count, error: countError } = await countQuery;
 

@@ -71,7 +71,6 @@ function Notifications() {
     switch (type) {
       case 'diary_reaction': return <Heart size={18} />;
       case 'diary_comment': return <MessageCircle size={18} />;
-      case 'chat_message': return <MessageCircle size={18} />;
       case 'diet_plan_published': return <UtensilsCrossed size={18} />;
       case 'workout_assigned': return <Dumbbell size={18} />;
       case 'pr_reaction': return <Trophy size={18} />;
@@ -84,7 +83,6 @@ function Notifications() {
     switch (type) {
       case 'diary_reaction': return 'notif-icon reaction';
       case 'diary_comment': return 'notif-icon comment';
-      case 'chat_message': return 'notif-icon message';
       case 'diet_plan_published': return 'notif-icon plan';
       case 'workout_assigned': return 'notif-icon workout';
       case 'pr_reaction': return 'notif-icon reaction';
@@ -110,8 +108,6 @@ function Notifications() {
 
     if (notif.type === 'diary_reaction' || notif.type === 'diary_comment') {
       setSelectedNotification(notif);
-    } else if (notif.type === 'chat_message') {
-      navigate('/messages');
     } else if (notif.type === 'diet_plan_published') {
       navigate('/plans');
     } else if (notif.type === 'workout_assigned') {
@@ -145,7 +141,7 @@ function Notifications() {
         <div className="notifications-page-empty">
           <Bell size={48} />
           <h2>No notifications yet</h2>
-          <p>When your coach reacts to your meals or sends you messages, they'll show up here.</p>
+          <p>When your coach reacts to your meals or updates your plans, they'll show up here.</p>
         </div>
       ) : (
         <div className="notifications-page-list">
