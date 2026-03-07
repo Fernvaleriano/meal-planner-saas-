@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback } from 'react';
-import { clearSessionCache, ensureFreshSession } from '../utils/api';
+import { clearSessionCache, ensureFreshSession, enableSwCacheBypass } from '../utils/api';
 
 /**
  * App Lifecycle Hook
@@ -105,6 +105,14 @@ async function triggerResume(backgroundMs) {
   // call fetches a fresh session instead of using a potentially expired cached one.
   // This is fast (synchronous) and ensures no stale tokens are used.
   clearSessionCache();
+
+  // STEP 1b: Enable SW cache bypass for resume refetches.
+  // For 10 seconds after resume, all GET requests include X-Cache-Bypass header
+  // which tells the service worker to go network-first instead of returning
+  // stale cached data from before the app was backgrounded.
+  if (backgroundMs > 5000) {
+    enableSwCacheBypass(10000);
+  }
 
   // STEP 2: Kick off session refresh in the background (non-blocking).
   // This refreshes the JWT token while pages are already refetching data.

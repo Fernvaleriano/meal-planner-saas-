@@ -33,6 +33,43 @@ const FETCH_TIMEOUT_MS = 15000;
 // we fall back to getSession() or 401-retry instead of blocking the data layer.
 const SESSION_REFRESH_TIMEOUT = 6000;
 
+// ── SW Cache Bypass ──
+// When true, authenticatedFetch adds X-Cache-Bypass header so the service worker
+// goes network-first instead of returning stale cached data. Set briefly on resume.
+let swCacheBypass = false;
+let swCacheBypassTimer = null;
+
+/**
+ * Enable SW cache bypass for a brief window (used on app resume).
+ * API calls during this window get fresh data from the network instead of
+ * stale SW cache entries from before the app was backgrounded.
+ */
+export function enableSwCacheBypass(durationMs = 10000) {
+  swCacheBypass = true;
+  clearTimeout(swCacheBypassTimer);
+  swCacheBypassTimer = setTimeout(() => { swCacheBypass = false; }, durationMs);
+}
+
+/**
+ * Fetch with AbortController timeout. Use for direct fetch() calls that bypass
+ * authenticatedFetch (e.g., water intake, file uploads). Without this, fetch()
+ * calls hang forever on iOS when the network connection dies during backgrounding.
+ */
+export function fetchWithTimeout(url, options = {}, timeoutMs = FETCH_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  return fetch(url, { ...options, signal: controller.signal })
+    .then(response => {
+      clearTimeout(timeoutId);
+      return response;
+    })
+    .catch(err => {
+      clearTimeout(timeoutId);
+      throw err;
+    });
+}
+
 /**
  * Get auth token with proactive session refresh.
  *
@@ -202,6 +239,11 @@ async function authenticatedFetch(url, options = {}) {
 
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  // Tell SW to go network-first during resume window (see enableSwCacheBypass)
+  if (swCacheBypass && options.method === 'GET') {
+    headers['X-Cache-Bypass'] = '1';
   }
 
   // Add timeout to prevent indefinite hangs on poor mobile connections
