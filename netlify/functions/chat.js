@@ -121,13 +121,14 @@ exports.handler = async (event) => {
           .single();
 
         // Get unread count (messages from coach that client hasn't read)
+        // Use .or() to match both false and NULL (older messages may have NULL is_read)
         const { count: unreadCount } = await supabase
           .from('chat_messages')
           .select('id', { count: 'exact', head: true })
           .eq('coach_id', client.coach_id)
           .eq('client_id', clientId)
           .eq('sender_type', 'coach')
-          .eq('is_read', false);
+          .or('is_read.eq.false,is_read.is.null');
 
         // Get last message
         const { data: lastMsg } = await supabase
@@ -211,7 +212,8 @@ exports.handler = async (event) => {
           coach_id: coachId,
           client_id: parseInt(clientId),
           sender_type: senderType,
-          message: message?.trim() || null
+          message: message?.trim() || null,
+          is_read: false
         };
 
         if (mediaUrl) {
@@ -276,13 +278,14 @@ exports.handler = async (event) => {
         // Mark messages from the OTHER party as read
         const senderToMark = readerType === 'coach' ? 'client' : 'coach';
 
+        // Match both false and NULL (older messages may have NULL is_read)
         const { error: updateError } = await supabase
           .from('chat_messages')
           .update({ is_read: true, read_at: new Date().toISOString() })
           .eq('coach_id', coachId)
           .eq('client_id', parseInt(clientId))
           .eq('sender_type', senderToMark)
-          .eq('is_read', false);
+          .or('is_read.eq.false,is_read.is.null');
 
         if (updateError) {
           console.error('Error marking as read:', updateError);
