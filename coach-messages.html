@@ -354,6 +354,92 @@
         .msg-context-menu button.delete-action { color: var(--error); }
         .msg-context-menu button.delete-action:hover { background: #fef2f2; }
 
+        /* Emoji reactions */
+        .msg-wrapper { position: relative; }
+        .msg-wrapper:hover .reaction-trigger { opacity: 1; }
+
+        .reaction-trigger {
+            position: absolute;
+            top: 4px;
+            opacity: 0;
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 10;
+            transition: opacity 0.15s;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+            padding: 0;
+        }
+        .reaction-trigger:hover { background: var(--gray-50); transform: scale(1.1); }
+        .msg.mine + .reaction-trigger,
+        .msg-wrapper .msg.mine ~ .reaction-trigger { right: calc(100% - 65% + 8px); }
+        .msg-wrapper:has(.msg.mine) .reaction-trigger { left: auto; right: calc(65% + 4px); }
+        .msg-wrapper:has(.msg.theirs) .reaction-trigger { left: calc(65% + 4px); right: auto; }
+
+        .reaction-picker {
+            position: absolute;
+            top: -44px;
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: 24px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+            display: flex;
+            gap: 2px;
+            padding: 6px 8px;
+            z-index: 300;
+            animation: fadeInMenu 0.15s ease;
+        }
+        .msg-wrapper:has(.msg.theirs) .reaction-picker { left: 0; }
+        .msg-wrapper:has(.msg.mine) .reaction-picker { right: 0; }
+
+        .reaction-picker button {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 4px 6px;
+            border-radius: 8px;
+            line-height: 1;
+            transition: transform 0.1s, background 0.1s;
+        }
+        .reaction-picker button:hover { background: var(--gray-100); transform: scale(1.2); }
+
+        .msg-reactions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-top: 2px;
+            padding: 0 4px;
+        }
+        .msg.mine ~ .msg-reactions { justify-content: flex-end; }
+        .msg-wrapper:has(.msg.mine) .msg-reactions { justify-content: flex-end; }
+        .msg-wrapper:has(.msg.theirs) .msg-reactions { justify-content: flex-start; }
+
+        .reaction-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            background: var(--gray-100);
+            border: 1px solid var(--gray-200);
+            border-radius: 12px;
+            padding: 2px 8px 2px 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .reaction-badge:hover { background: var(--gray-200); }
+        .reaction-badge.my-reaction {
+            background: rgba(13, 148, 136, 0.1);
+            border-color: rgba(13, 148, 136, 0.3);
+        }
+        .reaction-badge .reaction-count { font-size: 12px; color: var(--gray-500); font-weight: 500; }
+
         /* Image lightbox */
         .lightbox-overlay {
             position: fixed;
@@ -559,6 +645,15 @@
         [data-theme="dark"] .msg-context-menu button:hover { background: #334155; }
         [data-theme="dark"] .msg-context-menu button.delete-action { color: #f87171; }
         [data-theme="dark"] .msg-context-menu button.delete-action:hover { background: rgba(239,68,68,0.1); }
+
+        [data-theme="dark"] .reaction-trigger { background: #1e293b; border-color: #334155; }
+        [data-theme="dark"] .reaction-trigger:hover { background: #334155; }
+        [data-theme="dark"] .reaction-picker { background: #1e293b; border-color: #334155; box-shadow: 0 4px 16px rgba(0,0,0,0.3); }
+        [data-theme="dark"] .reaction-picker button:hover { background: #334155; }
+        [data-theme="dark"] .reaction-badge { background: #1e293b; border-color: #334155; }
+        [data-theme="dark"] .reaction-badge:hover { background: #334155; }
+        [data-theme="dark"] .reaction-badge.my-reaction { background: rgba(13, 148, 136, 0.15); border-color: rgba(13, 148, 136, 0.3); }
+        [data-theme="dark"] .reaction-badge .reaction-count { color: #94a3b8; }
 
         /* ===== MOBILE RESPONSIVE ===== */
         @media (max-width: 768px) {
@@ -857,6 +952,10 @@
         let realtimeChannel = null;
         let pendingAttachment = null; // { file, previewUrl, mediaType }
         let activeContextMenu = null;
+        let activeReactionPicker = null;
+        let allMessages = []; // Track all messages including reactions
+        const REACTION_EMOJIS = ['❤️', '💪', '🔥', '👏', '😂', '👍'];
+        const REACTION_PREFIX = '__REACTION__:';
         // Helpers
         function getInitials(name) {
             if (!name) return '?';
@@ -1004,11 +1103,30 @@
         }
 
         function renderMessages(messages) {
+            allMessages = messages;
             const area = document.getElementById('messagesArea');
             let html = '';
             let currentDate = null;
 
+            // Separate reactions from regular messages
+            const reactionMap = {}; // { targetMsgId: [{ emoji, senderType, msgId }] }
+            const regularMessages = [];
+
             messages.forEach(msg => {
+                if (msg.message && msg.message.startsWith(REACTION_PREFIX) && !msg.deleted_at) {
+                    const parts = msg.message.slice(REACTION_PREFIX.length).split(':');
+                    const targetId = parseInt(parts[0]);
+                    const emoji = parts.slice(1).join(':');
+                    if (targetId && emoji) {
+                        if (!reactionMap[targetId]) reactionMap[targetId] = [];
+                        reactionMap[targetId].push({ emoji, senderType: msg.sender_type, msgId: msg.id });
+                    }
+                } else if (!msg.deleted_at) {
+                    regularMessages.push(msg);
+                }
+            });
+
+            regularMessages.forEach(msg => {
                 const msgDate = new Date(msg.created_at).toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
                 if (msgDate !== currentDate) {
                     currentDate = msgDate;
@@ -1028,6 +1146,24 @@
                     }
                 }
 
+                // Build reactions display
+                const reactions = reactionMap[msg.id] || [];
+                let reactionsHtml = '';
+                if (reactions.length > 0) {
+                    const grouped = {};
+                    reactions.forEach(r => {
+                        if (!grouped[r.emoji]) grouped[r.emoji] = [];
+                        grouped[r.emoji].push(r);
+                    });
+                    const badges = Object.entries(grouped).map(([emoji, list]) => {
+                        const isMineReaction = list.some(r => r.senderType === 'coach');
+                        const cls = isMineReaction ? 'reaction-badge my-reaction' : 'reaction-badge';
+                        const count = list.length > 1 ? `<span class="reaction-count">${list.length}</span>` : '';
+                        return `<button class="${cls}" onclick="toggleReaction(${msg.id}, '${emoji}')">${emoji}${count}</button>`;
+                    }).join('');
+                    reactionsHtml = `<div class="msg-reactions">${badges}</div>`;
+                }
+
                 html += `
                     <div class="msg-wrapper">
                         <div class="msg ${isMine ? 'mine' : 'theirs'}" data-msg-id="${msg.id}" ${isMine ? 'oncontextmenu="showContextMenu(event, ' + msg.id + ')"' : ''}>
@@ -1037,6 +1173,10 @@
                                 <span class="msg-time">${formatMsgTime(msg.created_at)}</span>
                             </div>
                         </div>
+                        <button class="reaction-trigger" onclick="showReactionPicker(event, ${msg.id})" title="React">
+                            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke-width="2"/><path stroke-width="2" stroke-linecap="round" d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9" stroke-width="3" stroke-linecap="round"/><line x1="15" y1="9" x2="15.01" y2="9" stroke-width="3" stroke-linecap="round"/></svg>
+                        </button>
+                        ${reactionsHtml}
                     </div>`;
             });
 
@@ -1241,6 +1381,86 @@
             }
         }
 
+        // Emoji reaction picker
+        function showReactionPicker(event, msgId) {
+            event.stopPropagation();
+            closeReactionPicker();
+
+            const wrapper = event.currentTarget.closest('.msg-wrapper');
+            const picker = document.createElement('div');
+            picker.className = 'reaction-picker';
+            picker.innerHTML = REACTION_EMOJIS.map(emoji =>
+                `<button onclick="toggleReaction(${msgId}, '${emoji}')">${emoji}</button>`
+            ).join('');
+
+            wrapper.appendChild(picker);
+            activeReactionPicker = picker;
+
+            setTimeout(() => {
+                document.addEventListener('click', closeReactionPicker, { once: true });
+            }, 10);
+        }
+
+        function closeReactionPicker() {
+            if (activeReactionPicker) {
+                activeReactionPicker.remove();
+                activeReactionPicker = null;
+            }
+        }
+
+        async function toggleReaction(msgId, emoji) {
+            closeReactionPicker();
+            if (!activeClientId) return;
+
+            const reactionMsg = `${REACTION_PREFIX}${msgId}:${emoji}`;
+
+            // Check if we already have this reaction
+            const existing = allMessages.find(
+                m => m.message === reactionMsg && m.sender_type === 'coach' && !m.deleted_at
+            );
+
+            // Optimistic update
+            if (existing) {
+                existing.deleted_at = new Date().toISOString();
+            } else {
+                allMessages.push({
+                    id: `temp-${Date.now()}`,
+                    sender_type: 'coach',
+                    message: reactionMsg,
+                    is_read: true,
+                    created_at: new Date().toISOString()
+                });
+            }
+            renderMessages(allMessages);
+
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            try {
+                const res = await fetch('/.netlify/functions/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+                    body: JSON.stringify({
+                        action: 'toggle-reaction',
+                        messageId: msgId,
+                        emoji,
+                        reactorType: 'coach',
+                        coachId: currentUser.id,
+                        clientId: activeClientId
+                    })
+                });
+
+                if (!res.ok) throw new Error('Failed to toggle reaction');
+            } catch (err) {
+                console.error('Error toggling reaction:', err);
+                // Revert optimistic update by reloading
+                if (existing) {
+                    delete existing.deleted_at;
+                } else {
+                    allMessages = allMessages.filter(m => !String(m.id).startsWith('temp-'));
+                }
+                renderMessages(allMessages);
+            }
+        }
+
         async function sendMessage() {
             const input = document.getElementById('msgInput');
             const text = input.value.trim();
@@ -1356,6 +1576,8 @@
                     filter: `coach_id=eq.${currentUser.id}`
                 }, (payload) => {
                     const msg = payload.new;
+                    // Skip reaction messages in conversation list
+                    if (msg.message && msg.message.startsWith(REACTION_PREFIX)) return;
                     if (msg.sender_type === 'client') {
                         const convo = conversations.find(c => c.clientId === msg.client_id);
                         if (convo) {
@@ -1395,7 +1617,19 @@
                     filter: `coach_id=eq.${currentUser.id}`
                 }, async (payload) => {
                     const msg = payload.new;
-                    if (msg.client_id === clientId && msg.sender_type === 'client') {
+                    if (msg.client_id !== clientId) return;
+
+                    // Handle reaction messages by re-rendering
+                    if (msg.message && msg.message.startsWith(REACTION_PREFIX)) {
+                        // Remove temp reactions that match this real one
+                        allMessages = allMessages.filter(m => !String(m.id).startsWith('temp-'));
+                        allMessages.push(msg);
+                        renderMessages(allMessages);
+                        return;
+                    }
+
+                    if (msg.sender_type === 'client') {
+                        allMessages.push(msg);
                         const area = document.getElementById('messagesArea');
                         const msgDiv = document.createElement('div');
                         msgDiv.className = 'msg-wrapper';
@@ -1409,7 +1643,8 @@
                             }
                         }
                         const bubbleClass = msg.media_url ? 'msg-bubble media-bubble' : 'msg-bubble';
-                        msgDiv.innerHTML = `<div class="msg theirs" data-msg-id="${msg.id}"><div class="${bubbleClass}">${mediaHtml}${msg.message ? `<p>${escapeHtml(msg.message)}</p>` : ''}<span class="msg-time">${formatMsgTime(msg.created_at)}</span></div></div>`;
+                        msgDiv.innerHTML = `<div class="msg theirs" data-msg-id="${msg.id}"><div class="${bubbleClass}">${mediaHtml}${msg.message ? `<p>${escapeHtml(msg.message)}</p>` : ''}<span class="msg-time">${formatMsgTime(msg.created_at)}</span></div></div>
+                        <button class="reaction-trigger" onclick="showReactionPicker(event, ${msg.id})" title="React"><svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke-width="2"/><path stroke-width="2" stroke-linecap="round" d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9" stroke-width="3" stroke-linecap="round"/><line x1="15" y1="9" x2="15.01" y2="9" stroke-width="3" stroke-linecap="round"/></svg></button>`;
                         area.appendChild(msgDiv);
                         area.scrollTop = area.scrollHeight;
 
@@ -1420,6 +1655,23 @@
                             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
                             body: JSON.stringify({ action: 'mark-read', coachId: currentUser.id, clientId, readerType: 'coach' })
                         });
+                    }
+                })
+                .on('postgres_changes', {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'chat_messages',
+                    filter: `coach_id=eq.${currentUser.id}`
+                }, (payload) => {
+                    const msg = payload.new;
+                    if (msg.client_id !== clientId) return;
+                    // Handle soft-deleted reactions
+                    if (msg.deleted_at && msg.message && msg.message.startsWith(REACTION_PREFIX)) {
+                        const idx = allMessages.findIndex(m => m.id === msg.id);
+                        if (idx !== -1) {
+                            allMessages[idx].deleted_at = msg.deleted_at;
+                            renderMessages(allMessages);
+                        }
                     }
                 })
                 .subscribe();
