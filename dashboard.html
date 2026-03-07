@@ -6656,7 +6656,11 @@
             const section = document.getElementById('myStoriesSection');
             const collapsible = document.getElementById('myStoriesCollapsible');
             section.classList.toggle('my-stories-collapsed');
-            collapsible.style.display = section.classList.contains('my-stories-collapsed') ? 'none' : '';
+            const isCollapsed = section.classList.contains('my-stories-collapsed');
+            collapsible.style.display = isCollapsed ? 'none' : '';
+            if (!isCollapsed) {
+                loadMyStories();
+            }
         }
 
         // AI Client Assistant functions (uses hero search input)
