@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Workout Plans - Zique Fitness</title>
+    <script src="/js/theme.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --brand-primary: #0d9488;
+            --brand-secondary: #0284c7;
+            --brand-gradient: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-tertiary: #334155;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --border-color: #334155;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
+            --shadow-lg: 0 10px 40px rgba(0,0,0,0.5);
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 24px;
+        }
+
+        [data-theme="light"] {
+            --bg-primary: #f8fafc;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #f1f5f9;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #94a3b8;
+            --border-color: #e2e8f0;
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
+            --shadow-lg: 0 10px 40px rgba(0,0,0,0.15);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Animated background */
+        .bg-pattern {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background:
+                radial-gradient(circle at 20% 80%, rgba(13, 148, 136, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(2, 132, 199, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(139, 92, 246, 0.05) 0%, transparent 40%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Navigation */
+        .top-nav {
+            background: linear-gradient(135deg, rgba(13, 148, 136, 0.95) 0%, rgba(2, 132, 199, 0.95) 100%);
+            backdrop-filter: blur(20px);
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .nav-back {
+            color: white;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
+            opacity: 0.9;
+            transition: opacity 0.2s;
+        }
+
+        .nav-back:hover { opacity: 1; }
+
+        .nav-title {
+            color: white;
+            font-size: 1.25rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+
+        .nav-actions { display: flex; gap: 12px; }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: var(--radius-md);
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.875rem;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            backdrop-filter: blur(10px);
+        }
+
+        .btn-primary:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-1px);
+        }
+
+        /* Page Content */
+        .page-content {
+            position: relative;
+            z-index: 1;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 32px 24px 120px;
+        }
+
+        /* Page Header */
+        .page-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 28px;
+        }
+
+        .page-header h1 {
+            font-size: 1.75rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+        }
+
+        .btn-new-plan {
+            padding: 12px 24px;
+            border-radius: var(--radius-xl);
+            border: none;
+            background: var(--brand-gradient);
+            color: white;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+            text-decoration: none;
+            font-family: inherit;
+            box-shadow: 0 4px 14px rgba(13, 148, 136, 0.4);
+        }
+
+        .btn-new-plan:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(13, 148, 136, 0.5);
+        }
+
+        /* Layout: Filters sidebar + Plan cards */
+        .plans-layout {
+            display: flex;
+            gap: 32px;
+        }
+
+        /* Filters Sidebar */
+        .filters-sidebar {
+            width: 260px;
+            flex-shrink: 0;
+        }
+
+        .filter-section {
+            margin-bottom: 24px;
+        }
+
+        .filter-section input[type="text"] {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            font-size: 0.875rem;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            transition: border-color 0.2s;
+            font-family: inherit;
+        }
+
+        .filter-section input[type="text"]:focus {
+            outline: none;
+            border-color: var(--brand-primary);
+            box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.2);
+        }
+
+        .filter-section input[type="text"]::placeholder {
+            color: var(--text-muted);
+        }
+
+        .filter-label {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .filter-select {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            font-size: 0.875rem;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            cursor: pointer;
+            font-family: inherit;
+            appearance: auto;
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: var(--brand-primary);
+        }
+
+        /* Plans Grid */
+        .plans-list {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .plan-card {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            padding: 16px 20px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            color: inherit;
+            position: relative;
+        }
+
+        .plan-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+            border-color: rgba(13, 148, 136, 0.3);
+        }
+
+        .plan-card:active {
+            transform: scale(0.99);
+        }
+
+        .plan-card-image {
+            width: 120px;
+            height: 80px;
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            flex-shrink: 0;
+            background: var(--bg-tertiary);
+        }
+
+        .plan-card-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .plan-card-image .placeholder-img {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+        }
+
+        .plan-card-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .plan-card-name {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .plan-card-meta {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .plan-card-desc {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-top: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .plan-card-more {
+            color: var(--brand-primary);
+            font-size: 0.8rem;
+            font-weight: 500;
+            cursor: pointer;
+            margin-top: 4px;
+            display: inline-block;
+        }
+
+        .plan-card-more:hover {
+            text-decoration: underline;
+        }
+
+        /* Card Action Buttons */
+        .plan-card-actions {
+            display: flex;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        .plan-action-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border-color);
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .plan-action-btn:hover {
+            color: var(--text-primary);
+            border-color: var(--brand-primary);
+            background: rgba(13, 148, 136, 0.1);
+        }
+
+        .plan-action-btn.delete:hover {
+            color: var(--danger);
+            border-color: var(--danger);
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        /* Badge */
+        .club-badge {
+            font-size: 10px;
+            background: rgba(139,92,246,0.2);
+            color: #c4b5fd;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .difficulty-badge {
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+            text-transform: capitalize;
+        }
+
+        .difficulty-badge.beginner { background: rgba(16, 185, 129, 0.15); color: #10b981; }
+        .difficulty-badge.intermediate { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+        .difficulty-badge.advanced { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-muted);
+        }
+
+        .empty-state .empty-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .empty-state .empty-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        /* Loading */
+        .loading-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-muted);
+        }
+
+        .spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--brand-primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 12px;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Delete Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 28px;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+        }
+
+        .modal-content h3 {
+            font-size: 1.1rem;
+            margin-bottom: 12px;
+        }
+
+        .modal-content p {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .modal-btn {
+            flex: 1;
+            padding: 12px;
+            border-radius: var(--radius-md);
+            border: none;
+            font-weight: 600;
+            font-size: 0.875rem;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+
+        .modal-btn.cancel {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        .modal-btn.delete {
+            background: var(--danger);
+            color: white;
+        }
+
+        .modal-btn:hover {
+            opacity: 0.9;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            padding: 12px 24px;
+            border-radius: var(--radius-md);
+            font-size: 0.875rem;
+            color: var(--text-primary);
+            box-shadow: var(--shadow-lg);
+            z-index: 2000;
+            opacity: 0;
+            transition: all 0.3s ease;
+            pointer-events: none;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .toast.success { border-color: var(--success); }
+        .toast.error { border-color: var(--danger); }
+
+        /* Plan count */
+        .plans-count {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-bottom: 16px;
+        }
+
+        /* Coach Bottom Nav */
+        .coach-bottom-nav {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border-color);
+            padding: 8px 0;
+            padding-bottom: calc(8px + env(safe-area-inset-bottom));
+            z-index: 1000;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .coach-bottom-nav-inner {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .coach-nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            color: var(--text-muted);
+            padding: 8px 16px;
+            border-radius: 12px;
+            transition: all 0.2s ease;
+            min-width: 64px;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .coach-nav-item:active { transform: scale(0.95); }
+        .coach-nav-item.active { color: var(--brand-primary); }
+
+        .coach-nav-icon {
+            width: 48px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .coach-nav-item.active .coach-nav-icon {
+            background: rgba(13, 148, 136, 0.15);
+        }
+
+        .coach-nav-label {
+            font-size: 11px;
+            font-weight: 500;
+            margin-top: 4px;
+        }
+
+        [data-theme="light"] .coach-bottom-nav {
+            background: white;
+            border-top-color: #e2e8f0;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        [data-theme="light"] .coach-nav-item { color: #94a3b8; }
+        [data-theme="light"] .coach-nav-item.active { color: var(--brand-primary); }
+        [data-theme="light"] .coach-nav-item.active .coach-nav-icon { background: rgba(13, 148, 136, 0.1); }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            .coach-bottom-nav { display: block; }
+
+            .plans-layout {
+                flex-direction: column;
+                gap: 20px;
+            }
+
+            .filters-sidebar {
+                width: 100%;
+                display: flex;
+                gap: 12px;
+                flex-wrap: wrap;
+            }
+
+            .filter-section {
+                flex: 1;
+                min-width: 120px;
+                margin-bottom: 0;
+            }
+
+            .filter-section:first-child {
+                flex: 100%;
+            }
+
+            .page-content {
+                padding: 20px 16px 120px;
+            }
+
+            .page-header h1 {
+                font-size: 1.3rem;
+            }
+
+            .btn-new-plan {
+                padding: 10px 18px;
+                font-size: 0.8rem;
+            }
+
+            .plan-card {
+                flex-wrap: wrap;
+                gap: 12px;
+            }
+
+            .plan-card-image {
+                width: 80px;
+                height: 60px;
+            }
+
+            .plan-card-actions {
+                width: 100%;
+                justify-content: flex-end;
+                border-top: 1px solid var(--border-color);
+                padding-top: 10px;
+                margin-top: 4px;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .plan-card-image {
+                width: 64px;
+                height: 48px;
+            }
+
+            .page-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+            }
+
+            .top-nav {
+                padding: 12px 16px;
+            }
+        }
+
+        @media (min-width: 901px) {
+            .coach-bottom-nav { display: block; }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-pattern"></div>
+
+    <!-- Top Navigation -->
+    <nav class="top-nav">
+        <a href="dashboard.html" class="nav-back">
+            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+            Dashboard
+        </a>
+        <span class="nav-title">Workout Plans</span>
+        <div class="nav-actions">
+            <a href="coach-workouts.html" class="btn btn-primary">
+                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                </svg>
+                Workout Editor
+            </a>
+        </div>
+    </nav>
+
+    <!-- Page Content -->
+    <div class="page-content">
+        <!-- Header -->
+        <div class="page-header">
+            <h1>Workout Plans</h1>
+            <a href="coach-workouts.html" class="btn-new-plan">
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                New workout plan
+            </a>
+        </div>
+
+        <!-- Layout -->
+        <div class="plans-layout">
+            <!-- Filters Sidebar -->
+            <div class="filters-sidebar">
+                <div class="filter-section">
+                    <input type="text" id="searchInput" placeholder="Enter search word" oninput="filterPlans()">
+                </div>
+                <div class="filter-section">
+                    <label class="filter-label">Type:</label>
+                    <select class="filter-select" id="typeFilter" onchange="filterPlans()">
+                        <option value="">All plans</option>
+                        <option value="strength">Strength</option>
+                        <option value="hypertrophy">Hypertrophy</option>
+                        <option value="endurance">Endurance</option>
+                        <option value="weight_loss">Weight Loss</option>
+                        <option value="general">General Fitness</option>
+                    </select>
+                </div>
+                <div class="filter-section">
+                    <label class="filter-label">Order:</label>
+                    <select class="filter-select" id="orderFilter" onchange="filterPlans()">
+                        <option value="newest">Newest first</option>
+                        <option value="oldest">Oldest first</option>
+                        <option value="alphabetic">Alphabetic</option>
+                    </select>
+                </div>
+                <div class="filter-section">
+                    <label class="filter-label">Goal:</label>
+                    <select class="filter-select" id="goalFilter" onchange="filterPlans()">
+                        <option value="">All goals</option>
+                        <option value="strength">Strength</option>
+                        <option value="hypertrophy">Muscle Growth</option>
+                        <option value="weight_loss">Fat Loss</option>
+                        <option value="endurance">Endurance</option>
+                        <option value="general">General Fitness</option>
+                    </select>
+                </div>
+                <div class="filter-section">
+                    <label class="filter-label">Level:</label>
+                    <select class="filter-select" id="levelFilter" onchange="filterPlans()">
+                        <option value="">All Levels</option>
+                        <option value="beginner">Beginner</option>
+                        <option value="intermediate">Intermediate</option>
+                        <option value="advanced">Advanced</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Plans List -->
+            <div class="plans-list">
+                <div class="plans-count" id="plansCount"></div>
+                <div id="plansList">
+                    <div class="loading-state">
+                        <div class="spinner"></div>
+                        <p>Loading workout plans...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal-overlay" id="deleteModal">
+        <div class="modal-content">
+            <h3>Delete Workout Plan?</h3>
+            <p id="deleteMessage">Are you sure you want to delete this program? This action cannot be undone.</p>
+            <div class="modal-actions">
+                <button class="modal-btn cancel" onclick="closeDeleteModal()">Cancel</button>
+                <button class="modal-btn delete" onclick="confirmDelete()">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <!-- Coach Bottom Nav -->
+    <nav class="coach-bottom-nav">
+        <div class="coach-bottom-nav-inner">
+            <a href="dashboard.html" class="coach-nav-item">
+                <div class="coach-nav-icon">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="24" height="24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+                    </svg>
+                </div>
+                <span class="coach-nav-label">Dashboard</span>
+            </a>
+            <a href="manage-clients.html" class="coach-nav-item">
+                <div class="coach-nav-icon">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="24" height="24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+                    </svg>
+                </div>
+                <span class="coach-nav-label">Clients</span>
+            </a>
+            <a href="client-feed.html" class="coach-nav-item">
+                <div class="coach-nav-icon">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="24" height="24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                    </svg>
+                </div>
+                <span class="coach-nav-label">Feed</span>
+            </a>
+            <a href="planner.html" class="coach-nav-item">
+                <div class="coach-nav-icon">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="24" height="24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                    </svg>
+                </div>
+                <span class="coach-nav-label">Planner</span>
+            </a>
+            <a href="coach-workout-plans.html" class="coach-nav-item active">
+                <div class="coach-nav-icon">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="24" height="24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.24 12.24a6 6 0 00-8.49-8.49L5 10.5V19h8.5z"/>
+                        <line x1="16" y1="8" x2="2" y2="22" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+                        <line x1="17.5" y1="15" x2="9" y2="15" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+                    </svg>
+                </div>
+                <span class="coach-nav-label">Workouts</span>
+            </a>
+            <a href="coach-messages.html" class="coach-nav-item">
+                <div class="coach-nav-icon">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="24" height="24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+                    </svg>
+                </div>
+                <span class="coach-nav-label">Messages</span>
+            </a>
+        </div>
+    </nav>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        let currentCoachId = null;
+        let currentAccessToken = null;
+        let programs = [];
+        let pendingDeleteId = null;
+
+        // Auth & API
+        const SUPABASE_URL = 'https://qewqcjzlfqamqwbccapr.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFld3Fjanpsb' +
+            'nFhbXF3YmNjYXByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzM1MTUzNzksImV4cCI6MjA0OTA5MTM3OX0.lFz2WzsMsKFi7MsA_Bsz4a3slE6E24fFgmYfp_yREew';
+
+        async function initAuth() {
+            const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                window.location.href = 'login.html';
+                return;
+            }
+            currentCoachId = session.user.id;
+            currentAccessToken = session.access_token;
+            await loadPrograms();
+        }
+
+        async function apiCall(url, options = {}) {
+            const headers = {
+                'Content-Type': 'application/json',
+                ...(currentAccessToken && { 'Authorization': `Bearer ${currentAccessToken}` }),
+                ...options.headers
+            };
+            const response = await fetch(url, { ...options, headers });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error || 'API request failed');
+            return data;
+        }
+
+        // Load programs
+        async function loadPrograms() {
+            try {
+                const result = await apiCall(`/.netlify/functions/workout-programs?coachId=${currentCoachId}`);
+                programs = result.programs || [];
+                filterPlans();
+            } catch (err) {
+                console.error('Error loading programs:', err);
+                programs = [];
+                renderPlans([]);
+            }
+        }
+
+        // Filter and render
+        function filterPlans() {
+            const search = (document.getElementById('searchInput').value || '').toLowerCase().trim();
+            const type = document.getElementById('typeFilter').value;
+            const order = document.getElementById('orderFilter').value;
+            const goal = document.getElementById('goalFilter').value;
+            const level = document.getElementById('levelFilter').value;
+
+            let filtered = programs.filter(p => {
+                if (search && !(p.name || '').toLowerCase().includes(search)) return false;
+                if (type && p.program_type !== type) return false;
+                if (goal && p.program_type !== goal) return false;
+                if (level && p.difficulty !== level) return false;
+                return true;
+            });
+
+            // Sort
+            if (order === 'alphabetic') {
+                filtered.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+            } else if (order === 'oldest') {
+                filtered.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+            } else {
+                filtered.sort((a, b) => new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at));
+            }
+
+            renderPlans(filtered);
+        }
+
+        // Render plan cards
+        function renderPlans(filtered) {
+            const container = document.getElementById('plansList');
+            const countEl = document.getElementById('plansCount');
+
+            countEl.textContent = `${filtered.length} plan${filtered.length !== 1 ? 's' : ''}`;
+
+            if (filtered.length === 0) {
+                const hasFilters = document.getElementById('searchInput').value ||
+                    document.getElementById('typeFilter').value ||
+                    document.getElementById('goalFilter').value ||
+                    document.getElementById('levelFilter').value;
+
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">${hasFilters ? '🔍' : '🏋️'}</div>
+                        <div class="empty-title">${hasFilters ? 'No plans match your filters' : 'No workout plans yet'}</div>
+                        <p>${hasFilters ? 'Try adjusting your search or filters.' : 'Create your first workout plan to get started.'}</p>
+                        ${!hasFilters ? '<a href="coach-workouts.html" class="btn-new-plan" style="margin-top:16px;display:inline-flex;text-decoration:none;"><svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>Create Plan</a>' : ''}
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = filtered.map(p => {
+                const imageUrl = p.hero_image_url || p.program_data?.image_url || '';
+                const days = p.program_data?.days?.length || p.days_per_week || 0;
+                const difficulty = (p.difficulty || 'intermediate').toLowerCase();
+                const desc = p.description || '';
+                const exerciseCount = (p.program_data?.days || []).reduce((sum, d) => sum + (d.exercises?.length || 0), 0);
+
+                return `
+                    <a href="coach-workouts.html?programId=${p.id}" class="plan-card">
+                        <div class="plan-card-image">
+                            ${imageUrl
+                                ? `<img src="${imageUrl}" alt="${p.name}" onerror="this.parentElement.innerHTML='<div class=\\'placeholder-img\\'><svg width=\\'32\\' height=\\'32\\' fill=\\'none\\' stroke=\\'currentColor\\' viewBox=\\'0 0 24 24\\'><path stroke-linecap=\\'round\\' stroke-linejoin=\\'round\\' stroke-width=\\'2\\' d=\\'M20.24 12.24a6 6 0 00-8.49-8.49L5 10.5V19h8.5z\\'/></svg></div>'">`
+                                : `<div class="placeholder-img"><svg width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.24 12.24a6 6 0 00-8.49-8.49L5 10.5V19h8.5z"/></svg></div>`
+                            }
+                        </div>
+                        <div class="plan-card-info">
+                            <div class="plan-card-name">
+                                ${p.name}
+                                ${p.is_club_workout ? '<span class="club-badge">CLUB</span>' : ''}
+                            </div>
+                            <div class="plan-card-meta">
+                                <span class="difficulty-badge ${difficulty}">${difficulty}</span>
+                                <span>${days} Day${days !== 1 ? 's' : ''} per week</span>
+                                ${exerciseCount > 0 ? `<span>· ${exerciseCount} exercises</span>` : ''}
+                            </div>
+                            ${desc ? `<div class="plan-card-desc">${desc}</div>` : ''}
+                            <span class="plan-card-more">More..</span>
+                        </div>
+                        <div class="plan-card-actions" onclick="event.preventDefault(); event.stopPropagation();">
+                            <button class="plan-action-btn" onclick="editPlan(${p.id})" title="Edit">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                </svg>
+                            </button>
+                            <button class="plan-action-btn" onclick="duplicatePlan(${p.id})" title="Duplicate">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                                </svg>
+                            </button>
+                            <button class="plan-action-btn delete" onclick="openDeleteModal(${p.id}, '${(p.name || '').replace(/'/g, "\\'")}')" title="Delete">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </a>
+                `;
+            }).join('');
+        }
+
+        // Actions
+        function editPlan(id) {
+            window.location.href = `coach-workouts.html?programId=${id}`;
+        }
+
+        async function duplicatePlan(id) {
+            const program = programs.find(p => p.id === id);
+            if (!program) return;
+            try {
+                await apiCall('/.netlify/functions/workout-programs', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        coachId: currentCoachId,
+                        name: (program.name || 'Program') + ' (Copy)',
+                        description: program.description,
+                        programType: program.program_type,
+                        difficulty: program.difficulty,
+                        durationWeeks: program.duration_weeks,
+                        daysPerWeek: program.days_per_week,
+                        programData: program.program_data,
+                        isTemplate: program.is_template,
+                        isPublished: program.is_published,
+                        heroImageUrl: program.hero_image_url,
+                        isClubWorkout: program.is_club_workout
+                    })
+                });
+                showToast('Program duplicated', 'success');
+                await loadPrograms();
+            } catch (err) {
+                showToast('Failed to duplicate program', 'error');
+            }
+        }
+
+        function openDeleteModal(id, name) {
+            pendingDeleteId = id;
+            document.getElementById('deleteMessage').textContent = `Are you sure you want to delete "${name}"? This action cannot be undone.`;
+            document.getElementById('deleteModal').classList.add('active');
+        }
+
+        function closeDeleteModal() {
+            document.getElementById('deleteModal').classList.remove('active');
+            pendingDeleteId = null;
+        }
+
+        async function confirmDelete() {
+            if (!pendingDeleteId) return;
+            try {
+                await apiCall(`/.netlify/functions/workout-programs?programId=${pendingDeleteId}`, { method: 'DELETE' });
+                showToast('Program deleted', 'success');
+                closeDeleteModal();
+                await loadPrograms();
+            } catch (err) {
+                showToast('Failed to delete program', 'error');
+            }
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast ${type} show`;
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        // Init
+        document.addEventListener('DOMContentLoaded', initAuth);
+    </script>
+</body>
+</html>

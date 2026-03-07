@@ -1,4 +1,4 @@
-// Netlify Function to save a reaction to a diary entry and notify the client
+// Netlify Function to save/remove a reaction on a priority activity item (PR or workout note)
 const { createClient } = require('@supabase/supabase-js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
@@ -18,19 +18,20 @@ exports.handler = async (event) => {
   // DELETE to remove a reaction
   if (event.httpMethod === 'DELETE') {
     try {
-      const { entryId, coachId } = JSON.parse(event.body);
+      const { coachId, itemType, itemId } = JSON.parse(event.body);
 
-      if (!entryId || !coachId) {
-        return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'entryId and coachId required' }) };
+      if (!coachId || !itemType || !itemId) {
+        return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'coachId, itemType and itemId required' }) };
       }
 
       const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
       const { error } = await supabase
-        .from('diary_entry_reactions')
+        .from('activity_reactions')
         .delete()
-        .eq('entry_id', entryId)
-        .eq('coach_id', coachId);
+        .eq('coach_id', coachId)
+        .eq('item_type', itemType)
+        .eq('item_id', String(itemId));
 
       if (error) {
         console.error('Error removing reaction:', error);
@@ -53,36 +54,38 @@ exports.handler = async (event) => {
   }
 
   try {
-    const { entryId, coachId, clientId, reaction, entryType } = JSON.parse(event.body);
+    const { coachId, clientId, itemType, itemId, reaction } = JSON.parse(event.body);
 
-    if (!entryId || !coachId || !clientId || !reaction) {
-      return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'entryId, coachId, clientId and reaction required' }) };
+    if (!coachId || !clientId || !itemType || !itemId || !reaction) {
+      return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'coachId, clientId, itemType, itemId and reaction required' }) };
     }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
-    // Check if this is a new reaction (not an update)
-    const { data: existingReaction } = await supabase
-      .from('diary_entry_reactions')
+    // Check if this is a new reaction
+    const { data: existing } = await supabase
+      .from('activity_reactions')
       .select('id, reaction')
-      .eq('entry_id', entryId)
       .eq('coach_id', coachId)
+      .eq('item_type', itemType)
+      .eq('item_id', String(itemId))
       .single();
 
-    const isNewReaction = !existingReaction;
-    const reactionChanged = existingReaction && existingReaction.reaction !== reaction;
+    const isNew = !existing;
+    const changed = existing && existing.reaction !== reaction;
 
-    // Insert or update reaction
+    // Upsert the reaction
     const { error } = await supabase
-      .from('diary_entry_reactions')
+      .from('activity_reactions')
       .upsert({
-        entry_id: entryId,
         coach_id: coachId,
         client_id: clientId,
+        item_type: itemType,
+        item_id: String(itemId),
         reaction: reaction,
         created_at: new Date().toISOString()
       }, {
-        onConflict: 'entry_id,coach_id'
+        onConflict: 'coach_id,item_type,item_id'
       });
 
     if (error) {
@@ -90,33 +93,10 @@ exports.handler = async (event) => {
       return { statusCode: 500, headers: corsHeaders, body: JSON.stringify({ error: error.message }) };
     }
 
-    // Create notification and chat message for the client (only for new reactions)
-    if (isNewReaction || reactionChanged) {
+    // Create notification for the client (only for new or changed reactions)
+    if (isNew || changed) {
       try {
-        let mealType = 'meal';
-        let foodName = 'your meal';
-
-        if (entryType === 'workout') {
-          // For workout reactions, get workout name
-          const { data: workoutLog } = await supabase
-            .from('workout_logs')
-            .select('workout_name')
-            .eq('id', entryId)
-            .single();
-          mealType = 'workout';
-          foodName = workoutLog?.workout_name || 'workout';
-        } else {
-          // Get the diary entry to include food name
-          const { data: entry } = await supabase
-            .from('food_diary_entries')
-            .select('food_name, meal_type, entry_date')
-            .eq('id', entryId)
-            .single();
-          mealType = entry?.meal_type || 'meal';
-          foodName = entry?.food_name || 'your meal';
-        }
-
-        // Get the coach's name/business
+        // Get the coach's name
         const { data: coachProfile } = await supabase
           .from('coaches')
           .select('business_name')
@@ -125,20 +105,27 @@ exports.handler = async (event) => {
 
         const coachName = coachProfile?.business_name || 'Your coach';
 
-        // Create notification for the client with entry reference
+        let title, message;
+        if (itemType === 'client_pr') {
+          title = `${reaction} ${coachName} reacted to your PR!`;
+          message = `${coachName} reacted with ${reaction} to your new personal record`;
+        } else {
+          title = `${reaction} ${coachName} reacted to your workout note`;
+          message = `${coachName} reacted with ${reaction} to your workout note`;
+        }
+
         await supabase
           .from('notifications')
           .insert({
             client_id: clientId,
-            type: 'diary_reaction',
-            title: `${reaction} Your coach reacted to your ${mealType}`,
-            message: `Your coach reacted with ${reaction} to "${foodName}"`,
-            related_entry_id: entryType === 'workout' ? null : entryId,
+            type: itemType === 'client_pr' ? 'pr_reaction' : 'note_reaction',
+            title,
+            message,
             metadata: {
-              food_name: foodName,
-              meal_type: mealType,
-              reaction: reaction,
-              coach_name: coachName
+              reaction,
+              coach_name: coachName,
+              item_type: itemType,
+              item_id: itemId
             },
             is_read: false,
             created_at: new Date().toISOString()
@@ -147,12 +134,29 @@ exports.handler = async (event) => {
         console.error('Error creating notification:', notifError);
         // Don't fail the request if notification fails
       }
+
+      // Send a chat message so the reaction shows in Messages
+      try {
+        const chatMessage = itemType === 'client_pr'
+          ? `Reacted ${reaction} to your new PR!`
+          : `Reacted ${reaction} to your workout note`;
+        await supabase
+          .from('chat_messages')
+          .insert({
+            coach_id: coachId,
+            client_id: parseInt(clientId),
+            sender_type: 'coach',
+            message: chatMessage
+          });
+      } catch (chatError) {
+        console.error('Error sending reaction chat message:', chatError);
+      }
     }
 
     return {
       statusCode: 200,
       headers: corsHeaders,
-      body: JSON.stringify({ success: true, isNew: isNewReaction })
+      body: JSON.stringify({ success: true, isNew })
     };
 
   } catch (error) {

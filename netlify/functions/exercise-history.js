@@ -6,7 +6,7 @@ const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 const headers = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-  'Access-Control-Allow-Methods': 'GET, OPTIONS',
+  'Access-Control-Allow-Methods': 'GET, DELETE, OPTIONS',
   'Content-Type': 'application/json'
 };
 
@@ -15,7 +15,7 @@ exports.handler = async (event) => {
     return { statusCode: 200, headers, body: '' };
   }
 
-  if (event.httpMethod !== 'GET') {
+  if (event.httpMethod !== 'GET' && event.httpMethod !== 'DELETE') {
     return {
       statusCode: 405,
       headers,
@@ -34,6 +34,122 @@ exports.handler = async (event) => {
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
   try {
+    // DELETE - Remove a single exercise log entry and recalculate PRs
+    if (event.httpMethod === 'DELETE') {
+      const { exerciseLogId, clientId } = event.queryStringParameters || {};
+
+      if (!exerciseLogId) {
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({ error: 'exerciseLogId is required' })
+        };
+      }
+
+      // Fetch the exercise log before deleting (need exercise_name/exercise_id for PR recalc)
+      const { data: logToDelete, error: fetchError } = await supabase
+        .from('exercise_logs')
+        .select('id, exercise_id, exercise_name, max_weight, is_pr, workout_log_id')
+        .eq('id', exerciseLogId)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      // Delete the exercise log
+      const { error: deleteError } = await supabase
+        .from('exercise_logs')
+        .delete()
+        .eq('id', exerciseLogId);
+
+      if (deleteError) throw deleteError;
+
+      // Recalculate PRs for this exercise across all remaining logs for this client
+      if (logToDelete.exercise_name && clientId) {
+        try {
+          // Get all remaining logs for this exercise, ordered by date
+          const { data: remainingLogs } = await supabase
+            .from('exercise_logs')
+            .select('id, max_weight, sets_data, workout_logs!inner(workout_date, client_id)')
+            .eq('workout_logs.client_id', clientId)
+            .eq('exercise_name', logToDelete.exercise_name)
+            .order('created_at', { ascending: true });
+
+          if (remainingLogs && remainingLogs.length > 0) {
+            // Recalculate PRs chronologically: a PR is when max_weight exceeds all previous sessions
+            let runningMaxWeight = 0;
+            let runningBestReps = {}; // weight -> maxReps
+
+            for (const log of remainingLogs) {
+              const sets = Array.isArray(log.sets_data) ? log.sets_data : [];
+              const logMaxWeight = log.max_weight || 0;
+              let isPr = false;
+
+              // Weight PR: this session's max weight exceeds all previous
+              if (logMaxWeight > 0 && runningMaxWeight > 0 && logMaxWeight > runningMaxWeight) {
+                isPr = true;
+              }
+
+              // Rep PR: more reps at the same weight than any previous session
+              if (!isPr && runningMaxWeight > 0) {
+                for (const s of sets) {
+                  const w = Number(s.weight) || 0;
+                  const r = Number(s.reps) || 0;
+                  if (w > 0 && r > 0 && runningBestReps[w] && r > runningBestReps[w]) {
+                    isPr = true;
+                    break;
+                  }
+                }
+              }
+
+              // Update the is_pr flag if it changed
+              if (log.is_pr !== isPr) {
+                await supabase
+                  .from('exercise_logs')
+                  .update({ is_pr: isPr })
+                  .eq('id', log.id);
+              }
+
+              // Update running trackers
+              if (logMaxWeight > runningMaxWeight) runningMaxWeight = logMaxWeight;
+              for (const s of sets) {
+                const w = Number(s.weight) || 0;
+                const r = Number(s.reps) || 0;
+                if (w > 0 && r > (runningBestReps[w] || 0)) {
+                  runningBestReps[w] = r;
+                }
+              }
+            }
+          }
+        } catch (prError) {
+          console.warn('PR recalculation after delete failed:', prError.message);
+          // Non-critical - the entry is already deleted
+        }
+      }
+
+      // Check if the parent workout_log has any remaining exercise logs
+      // If not, optionally clean up the empty workout log
+      if (logToDelete.workout_log_id) {
+        const { data: remainingExercises } = await supabase
+          .from('exercise_logs')
+          .select('id')
+          .eq('workout_log_id', logToDelete.workout_log_id)
+          .limit(1);
+
+        // If no exercises remain, delete the empty workout log too
+        if (!remainingExercises || remainingExercises.length === 0) {
+          await supabase
+            .from('workout_logs')
+            .delete()
+            .eq('id', logToDelete.workout_log_id);
+        }
+      }
+
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({ success: true, deleted: exerciseLogId })
+      };
+    }
     const {
       clientId,
       exerciseId,

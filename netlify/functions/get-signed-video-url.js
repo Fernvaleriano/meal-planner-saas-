@@ -37,13 +37,47 @@ exports.handler = async (event) => {
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
   try {
-    const { filePath } = JSON.parse(event.body || '{}');
+    const { filePath, checkExists } = JSON.parse(event.body || '{}');
 
     if (!filePath) {
       return {
         statusCode: 400,
         headers,
         body: JSON.stringify({ error: 'filePath is required' })
+      };
+    }
+
+    // Verify the file actually exists in storage before signing
+    // This prevents generating signed URLs for deleted/missing files
+    const parts = filePath.split('/');
+    const folder = parts.slice(0, -1).join('/');
+    const fileName = parts[parts.length - 1];
+    let fileExists = null;
+
+    try {
+      const { data: files, error: listError } = await supabase.storage
+        .from('workout-assets')
+        .list(folder, { limit: 500 });
+      if (listError) {
+        console.error('[get-signed-video-url] list error:', listError.message);
+      } else {
+        fileExists = files?.some(f => f.name === fileName) || false;
+        console.log(`[get-signed-video-url] File "${fileName}" in "${folder}": ${fileExists ? 'EXISTS' : 'NOT FOUND'}. Files in folder:`, files?.map(f => f.name));
+      }
+    } catch (listErr) {
+      console.error('[get-signed-video-url] list exception:', listErr.message);
+    }
+
+    if (fileExists === false) {
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({
+          success: false,
+          error: 'File not found in storage',
+          filePath,
+          fileExists: false
+        })
       };
     }
 
@@ -64,6 +98,7 @@ exports.handler = async (event) => {
         success: true,
         url: signedUrlData.signedUrl,
         filePath: filePath,
+        fileExists,
         expiresIn: SIGNED_URL_EXPIRY
       })
     };

@@ -648,7 +648,7 @@
         }
     </style>
     <link rel="stylesheet" href="/css/coach-layout.css">
-    <script src="https://unpkg.com/lucide@0.312.0/dist/umd/lucide.min.js" onload="lucide.createIcons()"></script>
+    <script src="https://unpkg.com/lucide@0.312.0/dist/umd/lucide.min.js" onload="if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',()=>lucide.createIcons())}else{lucide.createIcons()}"></script>
 </head>
 <body>
     <!-- Sidebar (Desktop) -->
@@ -690,6 +690,10 @@
                     <a href="planner.html" class="sidebar-nav-item">
                         <span class="sidebar-nav-icon"><i data-lucide="sparkles"></i></span>
                         AI Planner
+                    </a>
+                    <a href="coach-workout-plans.html" class="sidebar-nav-item">
+                        <span class="sidebar-nav-icon"><i data-lucide="dumbbell"></i></span>
+                        Workouts
                     </a>
                 </div>
             </div>
@@ -809,7 +813,7 @@
                 </div>
                 <span class="coach-nav-label">Planner</span>
             </a>
-            <a href="coach-workouts.html" class="coach-nav-item">
+            <a href="coach-workout-plans.html" class="coach-nav-item">
                 <div class="coach-nav-icon">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="24" height="24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.24 12.24a6 6 0 00-8.49-8.49L5 10.5V19h8.5z"/>

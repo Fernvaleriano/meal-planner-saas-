@@ -23,6 +23,10 @@ function getActiveTab(pathname) {
   if (pathname === '/') return '/';
   // /plans and /plans/:id both map to the Plans tab
   if (pathname.startsWith('/plans')) return '/plans';
+  // /workouts/builder and /workouts/builder/:id are standalone pages, not the tab
+  if (pathname.startsWith('/workouts/builder')) return null;
+  // /workout-plans is a standalone page, not a tab
+  if (pathname === '/workout-plans') return null;
   const match = TAB_PATHS.find(t => t !== '/' && pathname.startsWith(t));
   return match || null;
 }
@@ -47,8 +51,10 @@ function Layout() {
   }, [activeTab]);
 
   // Hide top nav on pages that have their own navigation
-  const hideTopNav = path === '/workouts';
+  const hideTopNav = path === '/workouts' || path.startsWith('/workouts/builder') || path === '/workout-plans';
   const isMessagesPage = path === '/messages';
+  // Hide bottom nav on full-screen builder pages
+  const hideBottomNav = path.startsWith('/workouts/builder');
 
   // Tab page components — rendered once, then kept alive
   const TAB_COMPONENTS = {
@@ -90,7 +96,7 @@ function Layout() {
           </ErrorBoundary>
         </div>
       </main>
-      <BottomNav currentPath={path} />
+      {!hideBottomNav && <BottomNav currentPath={path} />}
     </div>
   );
 }

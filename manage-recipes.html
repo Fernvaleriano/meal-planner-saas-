@@ -695,7 +695,7 @@
         }
     </style>
     <link rel="stylesheet" href="/css/coach-layout.css">
-    <script src="https://unpkg.com/lucide@0.312.0/dist/umd/lucide.min.js" onload="lucide.createIcons()"></script>
+    <script src="https://unpkg.com/lucide@0.312.0/dist/umd/lucide.min.js" onload="if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',()=>lucide.createIcons())}else{lucide.createIcons()}"></script>
     <style>body{-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;overscroll-behavior:none;-webkit-overflow-scrolling:touch;}</style>
 </head>
 <body>
@@ -730,6 +730,10 @@
                     <a href="planner.html" class="sidebar-nav-item">
                         <span class="sidebar-nav-icon"><i data-lucide="sparkles"></i></span>
                         AI Planner
+                    </a>
+                    <a href="coach-workout-plans.html" class="sidebar-nav-item">
+                        <span class="sidebar-nav-icon"><i data-lucide="dumbbell"></i></span>
+                        Workouts
                     </a>
                 </div>
             </div>

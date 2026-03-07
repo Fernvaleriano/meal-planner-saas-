@@ -100,13 +100,9 @@
         }
 
         .sidebar-logo-img {
-            width: 36px;
-            height: 36px;
-        }
-
-        .sidebar-logo span {
-            font-weight: 700;
-            font-size: 1.1rem;
+            height: 50px;
+            width: auto;
+            object-fit: contain;
         }
 
         .sidebar-nav {
@@ -952,7 +948,6 @@
         <div class="sidebar-header">
             <a href="dashboard.html" class="sidebar-logo">
                 <img src="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/Untitled%20design%20(3).svg" alt="Zique Fitness" class="sidebar-logo-img">
-                <span>Zique Fitness</span>
             </a>
         </div>
         <nav class="sidebar-nav">
@@ -982,6 +977,10 @@
                     <a href="planner.html" class="sidebar-nav-item">
                         <span class="sidebar-nav-icon"><i data-lucide="sparkles"></i></span>
                         AI Planner
+                    </a>
+                    <a href="coach-workout-plans.html" class="sidebar-nav-item">
+                        <span class="sidebar-nav-icon"><i data-lucide="dumbbell"></i></span>
+                        Workouts
                     </a>
                 </div>
             </div>
@@ -1525,7 +1524,7 @@
                 </div>
                 <span class="coach-nav-label">Planner</span>
             </a>
-            <a href="coach-workouts.html" class="coach-nav-item">
+            <a href="coach-workout-plans.html" class="coach-nav-item">
                 <div class="coach-nav-icon">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="24" height="24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.24 12.24a6 6 0 00-8.49-8.49L5 10.5V19h8.5z"/>

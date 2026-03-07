@@ -179,11 +179,34 @@ exports.handler = async (event) => {
           return { statusCode: 500, headers: corsHeaders, body: JSON.stringify({ error: messagesError.message }) };
         }
 
+        const orderedMessages = (messages || []).reverse();
+
+        // Fetch reactions for these messages
+        if (orderedMessages.length > 0) {
+          const messageIds = orderedMessages.map(m => m.id);
+          const { data: reactions } = await supabase
+            .from('chat_message_reactions')
+            .select('id, message_id, reactor_type, reactor_id, emoji')
+            .in('message_id', messageIds);
+
+          // Group reactions by message_id
+          const reactionsByMsg = {};
+          (reactions || []).forEach(r => {
+            if (!reactionsByMsg[r.message_id]) reactionsByMsg[r.message_id] = [];
+            reactionsByMsg[r.message_id].push(r);
+          });
+
+          // Attach reactions to messages
+          orderedMessages.forEach(msg => {
+            msg.reactions = reactionsByMsg[msg.id] || [];
+          });
+        }
+
         // Reverse to chronological order for display
         return {
           statusCode: 200,
           headers: corsHeaders,
-          body: JSON.stringify({ messages: (messages || []).reverse() })
+          body: JSON.stringify({ messages: orderedMessages })
         };
       }
 
@@ -333,6 +356,69 @@ exports.handler = async (event) => {
           headers: corsHeaders,
           body: JSON.stringify({ success: true })
         };
+      }
+
+      // Toggle a reaction on a message (add or remove)
+      if (action === 'toggle-reaction') {
+        const { messageId, emoji, reactorType, reactorId } = body;
+
+        if (!messageId || !emoji || !reactorType || !reactorId) {
+          return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'messageId, emoji, reactorType, and reactorId required' }) };
+        }
+
+        if (!['coach', 'client'].includes(reactorType)) {
+          return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'reactorType must be coach or client' }) };
+        }
+
+        // Check if reaction already exists
+        const { data: existing } = await supabase
+          .from('chat_message_reactions')
+          .select('id')
+          .eq('message_id', messageId)
+          .eq('reactor_type', reactorType)
+          .eq('reactor_id', String(reactorId))
+          .eq('emoji', emoji)
+          .maybeSingle();
+
+        if (existing) {
+          // Remove existing reaction
+          const { error: deleteError } = await supabase
+            .from('chat_message_reactions')
+            .delete()
+            .eq('id', existing.id);
+
+          if (deleteError) {
+            return { statusCode: 500, headers: corsHeaders, body: JSON.stringify({ error: deleteError.message }) };
+          }
+
+          return {
+            statusCode: 200,
+            headers: corsHeaders,
+            body: JSON.stringify({ success: true, action: 'removed' })
+          };
+        } else {
+          // Add new reaction
+          const { data: newReaction, error: insertError } = await supabase
+            .from('chat_message_reactions')
+            .insert({
+              message_id: messageId,
+              reactor_type: reactorType,
+              reactor_id: String(reactorId),
+              emoji
+            })
+            .select()
+            .single();
+
+          if (insertError) {
+            return { statusCode: 500, headers: corsHeaders, body: JSON.stringify({ error: insertError.message }) };
+          }
+
+          return {
+            statusCode: 200,
+            headers: corsHeaders,
+            body: JSON.stringify({ success: true, action: 'added', reaction: newReaction })
+          };
+        }
       }
 
       return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'Invalid action' }) };

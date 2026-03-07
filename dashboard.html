@@ -3933,6 +3933,62 @@
             color: #6ee7b7;
         }
 
+        /* Emoji reaction picker for priority items */
+        .priority-reaction-row {
+            display: inline-flex;
+            align-items: center;
+            gap: 2px;
+            margin-left: 8px;
+            vertical-align: middle;
+        }
+        .priority-reaction-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            font-size: 14px;
+            background: transparent;
+            border: 1px solid transparent;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.15s, transform 0.15s, border-color 0.15s;
+            padding: 0;
+            opacity: 0.7;
+        }
+        .priority-reaction-btn:hover {
+            background: #f5f3ff;
+            border-color: #e9e5f5;
+            opacity: 1;
+            transform: scale(1.2);
+        }
+        .priority-reaction-btn.reacted {
+            opacity: 1;
+            background: #f5f3ff;
+            border-color: #c4b5fd;
+            transform: scale(1.15);
+        }
+        .priority-reaction-sent {
+            display: none;
+            align-items: center;
+            gap: 3px;
+            margin-left: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            color: #059669;
+            animation: fadeIn 0.2s ease;
+        }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        [data-theme="dark"] .priority-reaction-btn:hover {
+            background: #1e1033;
+            border-color: #2d2050;
+        }
+        [data-theme="dark"] .priority-reaction-btn.reacted {
+            background: #1e1033;
+            border-color: #7c3aed;
+        }
+
         /* Extended Stats Row */
         .stats-grid-extended {
             display: grid;
@@ -4137,7 +4193,7 @@
         }
     </style>
     <link rel="stylesheet" href="/css/coach-layout.css">
-    <script src="https://unpkg.com/lucide@0.312.0/dist/umd/lucide.min.js" onload="lucide.createIcons()"></script>
+    <script src="https://unpkg.com/lucide@0.312.0/dist/umd/lucide.min.js" onload="if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',()=>lucide.createIcons())}else{lucide.createIcons()}"></script>
     <style>body{-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;overscroll-behavior:none;-webkit-overflow-scrolling:touch;}</style>
 </head>
 <body>
@@ -4181,8 +4237,8 @@
                         <span class="sidebar-nav-icon"><i data-lucide="sparkles"></i></span>
                         AI Planner
                     </a>
-                    <a href="coach-workouts.html" class="sidebar-nav-item">
-                        <span class="sidebar-nav-icon"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 5v14"/><path d="M18 5v14"/><path d="M6 9h12"/><path d="M6 15h12"/><rect x="2" y="9" width="4" height="6" rx="1"/><rect x="18" y="9" width="4" height="6" rx="1"/></svg></span>
+                    <a href="coach-workout-plans.html" class="sidebar-nav-item">
+                        <span class="sidebar-nav-icon"><i data-lucide="dumbbell"></i></span>
                         Workouts
                     </a>
                 </div>
@@ -4646,7 +4702,7 @@
                 </div>
                 <span class="coach-nav-label">Planner</span>
             </a>
-            <a href="coach-workouts.html" class="coach-nav-item">
+            <a href="coach-workout-plans.html" class="coach-nav-item">
                 <div class="coach-nav-icon">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="24" height="24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.24 12.24a6 6 0 00-8.49-8.49L5 10.5V19h8.5z"/>
@@ -5271,6 +5327,81 @@
             }
         }
 
+        // Send a reply to a client PR via chat
+        async function sendPrReply(alertId, clientId, prMessage) {
+            const input = document.getElementById('reply-input-' + alertId);
+            const row = document.getElementById('reply-row-' + alertId);
+            const sent = document.getElementById('reply-sent-' + alertId);
+            if (!input || !input.value.trim()) return;
+
+            const btn = row.querySelector('button');
+            if (btn) { btn.disabled = true; btn.textContent = 'Sending...'; }
+
+            // Build message with the PR info quoted
+            let msg = 'Re: New PR';
+            if (prMessage) {
+                msg += ' — "' + prMessage + '"';
+            }
+            msg += ' — ' + input.value.trim();
+
+            try {
+                const res = await fetch('/.netlify/functions/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'send',
+                        coachId: _currentCoachId,
+                        clientId: clientId,
+                        senderType: 'coach',
+                        message: msg
+                    })
+                });
+                if (res.ok) {
+                    row.style.display = 'none';
+                    input.value = '';
+                    if (sent) {
+                        sent.style.display = 'inline-flex';
+                        setTimeout(() => { sent.style.display = 'none'; }, 4000);
+                    }
+                } else {
+                    alert('Failed to send reply. Please try again.');
+                }
+            } catch (e) {
+                console.error('Error sending PR reply:', e);
+                alert('Failed to send reply. Please try again.');
+            } finally {
+                if (btn) { btn.disabled = false; btn.textContent = 'Send'; }
+            }
+        }
+
+        // Toggle emoji reaction on a priority item — opens reply, prefills emoji, and auto-sends
+        async function toggleReaction(alertId, clientId, emoji, itemType, itemId) {
+            const btn = document.getElementById('react-' + alertId + '-' + (emoji === '👏' ? 'clap' : emoji === '👊' ? 'fist' : emoji === '💪' ? 'muscle' : 'fire'));
+            if (!btn) return;
+
+            // Optimistic UI: highlight the clicked emoji
+            const row = btn.parentElement;
+            row.querySelectorAll('.priority-reaction-btn').forEach(b => b.classList.remove('reacted'));
+            btn.classList.add('reacted');
+
+            // Open the reply row, prefill with emoji, and auto-send
+            const replyRow = document.getElementById('reply-row-' + alertId);
+            const input = document.getElementById('reply-input-' + alertId);
+            if (replyRow) replyRow.style.display = 'flex';
+            if (input) {
+                input.value = emoji;
+                // Use the appropriate send function based on item type
+                if (itemType === 'client_pr') {
+                    // Find the safePrMessage from the send button's onclick
+                    const sendBtn = replyRow.querySelector('button');
+                    if (sendBtn) sendBtn.click();
+                } else {
+                    const sendBtn = replyRow.querySelector('button');
+                    if (sendBtn) sendBtn.click();
+                }
+            }
+        }
+
         function renderPriorityAlertSections() {
             const alertsEl = document.getElementById('priorityAlerts');
             if (!alertsEl || _allPriorityAlerts.length === 0) return;
@@ -5550,8 +5681,10 @@
                     if (prNotifications && prNotifications.length > 0) {
                         prNotifications.slice(0, MAX_SHOWN).forEach(pr => {
                             const name = clientMap[pr.related_client_id] || '';
-                            const url = pr.related_client_id ? `client-profile.html?clientId=${pr.related_client_id}` : '#';
+                            const clientId = pr.related_client_id;
+                            const url = clientId ? `client-profile.html?clientId=${clientId}` : '#';
                             const aid = 'pr-' + pr.id;
+                            const safePrMessage = (pr.message || '').replace(/'/g, "\\'").replace(/"/g, '&quot;').replace(/\n/g, ' ');
                             addAlert(aid, `
                                 <div class="priority-alert priority-alert--clickable" onclick="reviewAndArchive('${aid}', '${url}')">
                                     __CHECKBOX__
@@ -5561,9 +5694,28 @@
                                         ${name ? `<strong>${name}</strong> — ` : ''}${pr.message}
                                         <span class="priority-alert-detail">· ${timeAgo(pr.created_at)}</span>
                                         <span class="priority-alert-link">View →</span>
+                                        <button class="priority-note-reply-btn" onclick="event.stopPropagation(); toggleNoteReply('${aid}')" title="Reply to this PR">
+                                            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                                            Reply
+                                        </button>
+                                        <span class="priority-reaction-row" onclick="event.stopPropagation()">
+                                            <button id="react-${aid}-clap" class="priority-reaction-btn" onclick="toggleReaction('${aid}','${clientId}','👏','client_pr','${pr.id}')" title="Clap">👏</button>
+                                            <button id="react-${aid}-fist" class="priority-reaction-btn" onclick="toggleReaction('${aid}','${clientId}','👊','client_pr','${pr.id}')" title="Fist bump">👊</button>
+                                            <button id="react-${aid}-muscle" class="priority-reaction-btn" onclick="toggleReaction('${aid}','${clientId}','💪','client_pr','${pr.id}')" title="Muscle">💪</button>
+                                            <button id="react-${aid}-fire" class="priority-reaction-btn" onclick="toggleReaction('${aid}','${clientId}','🔥','client_pr','${pr.id}')" title="Fire">🔥</button>
+                                            <span id="reaction-sent-${aid}" class="priority-reaction-sent">✓</span>
+                                        </span>
+                                        <div id="reply-row-${aid}" class="priority-note-reply-row" style="display:none;" onclick="event.stopPropagation()">
+                                            <input type="text" id="reply-input-${aid}" placeholder="Type your reply..." onkeydown="if(event.key==='Enter'){sendPrReply('${aid}','${clientId}','${safePrMessage}')}" />
+                                            <button onclick="sendPrReply('${aid}','${clientId}','${safePrMessage}')">Send</button>
+                                        </div>
+                                        <div id="reply-sent-${aid}" class="priority-note-reply-sent" style="display:none;">
+                                            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
+                                            Sent to messages
+                                        </div>
                                     </span>
                                 </div>
-                            `, pr.related_client_id, 'client_pr', pr.id);
+                            `, clientId, 'client_pr', pr.id);
                         });
                     }
                 } catch (e) {
@@ -5668,6 +5820,13 @@
                                                 <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                                                 Reply
                                             </button>
+                                            <span class="priority-reaction-row" onclick="event.stopPropagation()">
+                                                <button id="react-${aid}-clap" class="priority-reaction-btn" onclick="toggleReaction('${aid}','${clientId}','👏','workout_note','${note.id}')" title="Clap">👏</button>
+                                                <button id="react-${aid}-fist" class="priority-reaction-btn" onclick="toggleReaction('${aid}','${clientId}','👊','workout_note','${note.id}')" title="Fist bump">👊</button>
+                                                <button id="react-${aid}-muscle" class="priority-reaction-btn" onclick="toggleReaction('${aid}','${clientId}','💪','workout_note','${note.id}')" title="Muscle">💪</button>
+                                                <button id="react-${aid}-fire" class="priority-reaction-btn" onclick="toggleReaction('${aid}','${clientId}','🔥','workout_note','${note.id}')" title="Fire">🔥</button>
+                                                <span id="reaction-sent-${aid}" class="priority-reaction-sent">✓</span>
+                                            </span>
                                             ${voicePlayerHtml}
                                             ${textNoteHtml}
                                             <div id="reply-row-${aid}" class="priority-note-reply-row" style="display:none;" onclick="event.stopPropagation()">
@@ -6213,24 +6372,23 @@
                     console.warn('Notifications warning:', data.warning);
                 }
 
-                if (data.unreadCount > 0) {
-                    notificationBadge.textContent = data.unreadCount > 9 ? '9+' : data.unreadCount;
+                // Filter out client_pr from badge count since PRs are shown in Today's Priority
+                const prUnreadCount = (data.notifications || []).filter(n => n.type === 'client_pr' && !n.is_read).length;
+                const adjustedUnreadCount = Math.max(0, (data.unreadCount || 0) - prUnreadCount);
+
+                if (adjustedUnreadCount > 0) {
+                    notificationBadge.textContent = adjustedUnreadCount > 9 ? '9+' : adjustedUnreadCount;
                     notificationBadge.style.display = 'flex';
                 } else {
                     notificationBadge.style.display = 'none';
                 }
 
-                if (data.notifications && data.notifications.length > 0) {
-                    // Debug: log notification data from API
-                    console.log('Notifications loaded from API:', data.notifications.map(n => ({
-                        id: n.id,
-                        type: n.type,
-                        related_client_id: n.related_client_id,
-                        related_checkin_id: n.related_checkin_id,
-                        title: n.title
-                    })));
+                // Filter out client_pr notifications — those are already shown
+                // with richer UI (reactions, replies) in Today's Priority section
+                const filteredNotifications = (data.notifications || []).filter(n => n.type !== 'client_pr');
 
-                    notificationList.innerHTML = data.notifications.map(n => `
+                if (filteredNotifications.length > 0) {
+                    notificationList.innerHTML = filteredNotifications.map(n => `
                         <div class="notification-item ${n.is_read ? '' : 'unread'}" data-id="${n.id}" data-client-id="${n.related_client_id || ''}" data-type="${n.type || ''}" data-checkin-id="${n.related_checkin_id || ''}">
                             <div class="notification-title">${n.title}</div>
                             <div class="notification-message">${n.message}</div>
@@ -6498,7 +6656,11 @@
             const section = document.getElementById('myStoriesSection');
             const collapsible = document.getElementById('myStoriesCollapsible');
             section.classList.toggle('my-stories-collapsed');
-            collapsible.style.display = section.classList.contains('my-stories-collapsed') ? 'none' : '';
+            const isCollapsed = section.classList.contains('my-stories-collapsed');
+            collapsible.style.display = isCollapsed ? 'none' : '';
+            if (!isCollapsed) {
+                loadMyStories();
+            }
         }
 
         // AI Client Assistant functions (uses hero search input)

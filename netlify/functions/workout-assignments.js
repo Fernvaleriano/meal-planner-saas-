@@ -356,12 +356,13 @@ exports.handler = withTimeout(async (event) => {
                     day_index: di,
                     workout_data: {
                       ...day,
-                      exercises: (day.exercises || []).map(ex => ({ ...ex })),
+                      exercises: (day.exercises || []).map(ex => { const { completed, ...rest } = ex; return rest; }),
                       estimatedMinutes: day.estimatedMinutes || 45,
                       estimatedCalories: day.estimatedCalories || 300,
                       image_url: resolvedImageUrl
                     },
                     program_id: activeAssignment.program_id,
+                    coach_id: activeAssignment.coach_id,
                     client_id: activeAssignment.client_id,
                     is_override: true,
                     is_added: true
@@ -383,12 +384,13 @@ exports.handler = withTimeout(async (event) => {
                   day_index: naturalDayIndex,
                   workout_data: {
                     ...natDay,
-                    exercises: (natDay.exercises || []).map(ex => ({ ...ex })),
+                    exercises: (natDay.exercises || []).map(ex => { const { completed, ...rest } = ex; return rest; }),
                     estimatedMinutes: natDay.estimatedMinutes || 45,
                     estimatedCalories: natDay.estimatedCalories || 300,
                     image_url: resolvedImageUrl
                   },
                   program_id: activeAssignment.program_id,
+                  coach_id: activeAssignment.coach_id,
                   client_id: activeAssignment.client_id
                 };
               }
@@ -435,6 +437,82 @@ exports.handler = withTimeout(async (event) => {
                   });
                 }
               }
+            }
+          }
+
+          // Generate fresh signed URLs for custom videos and voice notes
+          // so the client gets playable URLs immediately without an extra roundtrip
+          const allCustomPaths = [];
+          const pathToExercise = {}; // for debug logging
+          for (const w of todayWorkouts) {
+            for (const ex of w.workout_data?.exercises || []) {
+              // If customVideoPath is missing but customVideoUrl exists (legacy data),
+              // extract the path from the signed URL so we can generate a fresh one
+              if (!ex.customVideoPath && ex.customVideoUrl) {
+                const signedMatch = ex.customVideoUrl.match(/\/object\/sign\/workout-assets\/(.+?)(?:\?|$)/);
+                if (signedMatch) {
+                  ex.customVideoPath = decodeURIComponent(signedMatch[1]);
+                  console.log(`[video-debug] Extracted customVideoPath for "${ex.name}": ${ex.customVideoPath}`);
+                } else {
+                  console.log(`[video-debug] "${ex.name}" has customVideoUrl but couldn't extract path:`, ex.customVideoUrl?.substring(0, 100));
+                }
+              }
+              if (ex.customVideoPath) {
+                allCustomPaths.push(ex.customVideoPath);
+                pathToExercise[ex.customVideoPath] = ex.name;
+              }
+              if (ex.voiceNotePath) allCustomPaths.push(ex.voiceNotePath);
+            }
+          }
+
+          console.log(`[video-debug] Found ${allCustomPaths.length} custom paths:`, allCustomPaths);
+
+          if (allCustomPaths.length > 0) {
+            try {
+              const SIGNED_URL_EXPIRY = 24 * 60 * 60; // 24 hours
+
+              // Generate signed URLs directly — no file listing needed.
+              // createSignedUrl succeeds even if the file is missing (it just signs the path),
+              // so the client gets a URL to try. If the file is truly gone, the player
+              // will fall back gracefully on its own.
+              const signedResults = await Promise.all(
+                allCustomPaths.map(filePath =>
+                  supabase.storage
+                    .from('workout-assets')
+                    .createSignedUrl(filePath, SIGNED_URL_EXPIRY)
+                    .then(({ data, error }) => {
+                      if (error) console.log(`[video-debug] createSignedUrl error for ${filePath}:`, error.message);
+                      return { filePath, url: error ? null : data?.signedUrl };
+                    })
+                )
+              );
+
+              const signedUrlMap = {};
+              for (const { filePath, url } of signedResults) {
+                if (url) signedUrlMap[filePath] = url;
+              }
+
+              console.log(`[video-debug] Generated ${Object.keys(signedUrlMap).length} signed URLs out of ${allCustomPaths.length} paths`);
+
+              // Apply fresh signed URLs to exercises
+              for (const w of todayWorkouts) {
+                if (w.workout_data?.exercises) {
+                  w.workout_data.exercises = w.workout_data.exercises.map(ex => {
+                    const updates = {};
+                    if (ex.customVideoPath && signedUrlMap[ex.customVideoPath]) {
+                      updates.customVideoUrl = signedUrlMap[ex.customVideoPath];
+                    }
+                    if (ex.voiceNotePath && signedUrlMap[ex.voiceNotePath]) {
+                      updates.voiceNoteUrl = signedUrlMap[ex.voiceNotePath];
+                    }
+                    if (Object.keys(updates).length === 0) return ex;
+                    return { ...ex, ...updates };
+                  });
+                }
+              }
+            } catch (signErr) {
+              console.error('Error generating signed URLs:', signErr);
+              // Non-fatal: client-side will retry via refreshSignedUrls
             }
           }
 

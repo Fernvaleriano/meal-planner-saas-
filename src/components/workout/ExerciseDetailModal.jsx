@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
 import { X, Check, Plus, ChevronLeft, Play, Timer, BarChart3, ArrowLeftRight, Trash2, Mic, MicOff, MessageCircle, Loader2, AlertCircle, History, TrendingUp, Award, ChevronDown, ChevronUp, Send, Square, Sparkles, ExternalLink, Camera } from 'lucide-react';
-import { apiGet, apiPost, apiPut } from '../../utils/api';
+import { apiGet, apiPost, apiPut, apiDelete } from '../../utils/api';
 import { onAppSuspend, onAppResume } from '../../hooks/useAppLifecycle';
 import Portal from '../Portal';
 import SetEditorModal from './SetEditorModal';
@@ -349,6 +349,8 @@ function ExerciseDetailModal({
   const [historyData, setHistoryData] = useState(null);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyStats, setHistoryStats] = useState(null);
+  const [deletingHistoryId, setDeletingHistoryId] = useState(null); // exercise_log id being deleted
+  const [confirmDeleteHistoryId, setConfirmDeleteHistoryId] = useState(null); // exercise_log id awaiting confirm
 
   // Progressive overload tip state
   const [progressTip, setProgressTip] = useState(null);
@@ -1431,6 +1433,10 @@ function ExerciseDetailModal({
     // Update local state
     setSets(newSets);
 
+    // Invalidate history cache so next view shows fresh data (including updated weights/PRs)
+    setHistoryData(null);
+    setHistoryStats(null);
+
     // Persist to backend via parent callback - use ref to avoid stale closure
     const currentExercise = exerciseRef.current;
     if (callbackRefs.current.onUpdateExercise && currentExercise) {
@@ -1497,6 +1503,33 @@ function ExerciseDetailModal({
       fetchExerciseHistory();
     }
   }, [showHistory, historyData, fetchExerciseHistory]);
+
+  // Re-fetch history if section is open but data was invalidated (e.g. after editing sets)
+  useEffect(() => {
+    if (showHistory && !historyData && !historyLoading) {
+      fetchExerciseHistory();
+    }
+  }, [showHistory, historyData, historyLoading, fetchExerciseHistory]);
+
+  // Delete a single exercise history entry and refresh
+  const handleDeleteHistoryEntry = useCallback(async (exerciseLogId) => {
+    if (!clientId || !exerciseLogId) return;
+    setDeletingHistoryId(exerciseLogId);
+    setConfirmDeleteHistoryId(null);
+    try {
+      await apiDelete(
+        `/.netlify/functions/exercise-history?exerciseLogId=${exerciseLogId}&clientId=${clientId}`
+      );
+      // Refresh history data after deletion
+      setHistoryData(null);
+      setHistoryStats(null);
+      await fetchExerciseHistory();
+    } catch (err) {
+      console.error('Error deleting history entry:', err);
+    } finally {
+      setDeletingHistoryId(null);
+    }
+  }, [clientId, fetchExerciseHistory]);
 
   // Reset history when exercise changes
   useEffect(() => {
@@ -1777,6 +1810,8 @@ function ExerciseDetailModal({
   // Debug: Log video URL when playing (helps identify mismatched videos in database)
   const handlePlayVideo = useCallback(() => {
     console.log(`Playing video for "${exercise?.name}":`, {
+      customVideoUrl: exercise?.customVideoUrl,
+      customVideoPath: exercise?.customVideoPath,
       video_url: exercise?.video_url,
       animation_url: exercise?.animation_url,
       using: videoUrl
@@ -1808,11 +1843,13 @@ function ExerciseDetailModal({
     setVideoKey(k => k + 1);
   }, [videoBlobUrl]);
 
-  // Fallback: fetch video as blob when direct src fails (fixes URL encoding issues)
+  // Fallback: when video fails, re-fetch a fresh signed URL if this is a custom video
   const handleVideoError = useCallback(async (e) => {
     const mediaError = e?.target?.error;
     console.error(`Video load failed for "${exercise?.name}":`, {
       url: videoUrl,
+      customVideoPath: exercise?.customVideoPath,
+      customVideoUrl: exercise?.customVideoUrl,
       errorCode: mediaError?.code,
       errorMessage: mediaError?.message
     });
@@ -1824,12 +1861,68 @@ function ExerciseDetailModal({
       return;
     }
 
-    // Try fetching the video as a blob (bypasses URL encoding issues)
+    // Determine the file path for custom videos — either from customVideoPath
+    // or by extracting it from the signed URL (legacy data may only have customVideoUrl)
+    let customPath = exercise?.customVideoPath;
+    if (!customPath && videoUrl) {
+      const match = videoUrl.match(/\/object\/sign\/workout-assets\/(.+?)(?:\?|$)/);
+      if (match) customPath = decodeURIComponent(match[1]);
+    }
+
+    // For custom videos, request a fresh signed URL on-demand
+    // This handles expired URLs, stale SW cache, and any other URL issues
+    if (customPath) {
+      try {
+        console.log('[video-fix] Requesting fresh signed URL for path:', customPath);
+        const resp = await fetch('/.netlify/functions/get-signed-video-url', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filePath: customPath })
+        });
+        const data = await resp.json();
+        console.log('[video-fix] get-signed-video-url response:', { ok: resp.ok, success: data.success, fileExists: data.fileExists, error: data.error, hasUrl: !!data.url });
+        if (data.fileExists === false) {
+          console.error('[video-fix] FILE DOES NOT EXIST in storage:', customPath);
+          // File is gone — skip all retries, show error
+          setVideoLoading(false);
+          setVideoError(true);
+          return;
+        }
+        if (resp.ok && data.success && data.url) {
+          console.log('[video-fix] Got fresh signed URL, fetching video as blob...');
+          const videoResp = await fetch(data.url);
+          if (videoResp.ok) {
+            const blob = await videoResp.blob();
+            const blobUrl = URL.createObjectURL(blob);
+            setVideoBlobUrl(blobUrl);
+            setVideoLoading(true);
+            setVideoError(false);
+            setVideoKey(k => k + 1);
+            return;
+          } else {
+            // Read error body from Supabase to understand why it returned 400
+            let errorBody = '';
+            try { errorBody = await videoResp.text(); } catch { /* ignore */ }
+            console.error('[video-fix] Fresh signed URL returned HTTP', videoResp.status, errorBody);
+          }
+        }
+      } catch (err) {
+        console.error('[video-fix] Fresh signed URL fallback failed:', err);
+      }
+    } else {
+      console.log('[video-fix] No custom path found — videoUrl:', videoUrl?.substring(0, 80));
+    }
+
+    // Generic blob fallback for non-custom videos (URL encoding issues)
     if (videoUrl) {
       try {
-        console.log('Trying blob fallback for video:', videoUrl);
+        console.log('[video-fix] Trying blob fallback for video:', videoUrl?.substring(0, 100));
         const resp = await fetch(videoUrl);
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        if (!resp.ok) {
+          let errorBody = '';
+          try { errorBody = await resp.text(); } catch { /* ignore */ }
+          throw new Error(`HTTP ${resp.status}: ${errorBody}`);
+        }
         const blob = await resp.blob();
         const blobUrl = URL.createObjectURL(blob);
         setVideoBlobUrl(blobUrl);
@@ -1837,7 +1930,7 @@ function ExerciseDetailModal({
         setVideoError(false);
         setVideoKey(k => k + 1);
       } catch (fetchErr) {
-        console.error('Blob fallback also failed:', fetchErr);
+        console.error('[video-fix] Blob fallback also failed:', fetchErr);
         setVideoLoading(false);
         setVideoError(true);
       }
@@ -1845,7 +1938,7 @@ function ExerciseDetailModal({
       setVideoLoading(false);
       setVideoError(true);
     }
-  }, [exercise?.name, videoUrl, videoBlobUrl]);
+  }, [exercise?.name, exercise?.customVideoPath, exercise?.customVideoUrl, videoUrl, videoBlobUrl]);
 
   // Parse reps helper - supports decimals like "1.5" (e.g. 1.5 miles)
   const parseReps = (reps) => {
@@ -2424,6 +2517,36 @@ function ExerciseDetailModal({
                                       )}
                                     </div>
                                   ))}
+                                  {/* Delete history entry */}
+                                  {confirmDeleteHistoryId === entry.id ? (
+                                    <div className="history-delete-confirm">
+                                      <span>Delete this entry?</span>
+                                      <button
+                                        className="history-delete-confirm-yes"
+                                        onClick={() => handleDeleteHistoryEntry(entry.id)}
+                                        disabled={deletingHistoryId === entry.id}
+                                        type="button"
+                                      >
+                                        {deletingHistoryId === entry.id ? <Loader2 size={12} className="spin" /> : 'Yes'}
+                                      </button>
+                                      <button
+                                        className="history-delete-confirm-no"
+                                        onClick={() => setConfirmDeleteHistoryId(null)}
+                                        type="button"
+                                      >
+                                        No
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <button
+                                      className="history-entry-delete-btn"
+                                      onClick={() => setConfirmDeleteHistoryId(entry.id)}
+                                      type="button"
+                                      title="Delete this entry"
+                                    >
+                                      <Trash2 size={12} />
+                                    </button>
+                                  )}
                                 </div>
                               </div>
                             );

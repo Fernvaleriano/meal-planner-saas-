@@ -69,18 +69,64 @@ const formatDuration = (minutes) => {
   return `${mins} min`;
 };
 
-// Helper to refresh signed URLs for private videos/audio
-const refreshSignedUrls = async (workoutData, coachId) => {
-  if (!workoutData?.days) return workoutData;
+// Helper to extract file path from a stale Supabase signed URL
+// Signed URL format: https://xxx.supabase.co/storage/v1/object/sign/workout-assets/{path}?token=...
+const extractPathFromSignedUrl = (url) => {
+  if (!url) return null;
+  const match = url.match(/\/object\/sign\/workout-assets\/(.+?)(?:\?|$)/);
+  return match ? decodeURIComponent(match[1]) : null;
+};
 
-  // Collect all file paths that need signed URLs
+// Helper to backfill customVideoPath from stale customVideoUrl (legacy data)
+const ensureCustomVideoPath = (ex) => {
+  if (!ex.customVideoPath && ex.customVideoUrl) {
+    const path = extractPathFromSignedUrl(ex.customVideoUrl);
+    if (path) ex.customVideoPath = path;
+  }
+};
+
+// Helper to apply signed URL mappings to an exercises array
+const applySignedUrls = (exercises, signedUrls, thumbnailUrls) => {
+  return (exercises || []).map(ex => {
+    const updated = { ...ex };
+    if (ex.customVideoPath && signedUrls[ex.customVideoPath]) {
+      updated.customVideoUrl = signedUrls[ex.customVideoPath];
+    }
+    if (ex.customVideoPath && thumbnailUrls?.[ex.customVideoPath]) {
+      updated.customVideoThumbnail = thumbnailUrls[ex.customVideoPath];
+    }
+    if (ex.voiceNotePath && signedUrls[ex.voiceNotePath]) {
+      updated.voiceNoteUrl = signedUrls[ex.voiceNotePath];
+    }
+    return updated;
+  });
+};
+
+// Helper to refresh signed URLs for private videos/audio
+// Handles both multi-day structure (workoutData.days[].exercises)
+// and flat structure (workoutData.exercises) returned by date-specific queries
+const refreshSignedUrls = async (workoutData, coachId) => {
+  if (!workoutData) return workoutData;
+
+  // Collect all file paths that need signed URLs from both structures
   const filePaths = [];
-  workoutData.days.forEach(day => {
-    (day.exercises || []).forEach(ex => {
+  if (workoutData.days) {
+    workoutData.days.forEach(day => {
+      (day.exercises || []).forEach(ex => {
+        ensureCustomVideoPath(ex);
+        if (ex.customVideoPath) filePaths.push(ex.customVideoPath);
+        if (ex.voiceNotePath) filePaths.push(ex.voiceNotePath);
+      });
+    });
+  }
+  // Also check flat structure (exercises directly on workoutData)
+  if (workoutData.exercises) {
+    workoutData.exercises.forEach(ex => {
+      ensureCustomVideoPath(ex);
       if (ex.customVideoPath) filePaths.push(ex.customVideoPath);
       if (ex.voiceNotePath) filePaths.push(ex.voiceNotePath);
     });
-  });
+  }
 
   if (filePaths.length === 0) return workoutData;
 
@@ -99,25 +145,22 @@ const refreshSignedUrls = async (workoutData, coachId) => {
 
     const { signedUrls, thumbnailUrls } = await response.json();
 
-    // Update workout data with fresh signed URLs and video thumbnails
-    const updatedDays = workoutData.days.map(day => ({
-      ...day,
-      exercises: (day.exercises || []).map(ex => {
-        const updated = { ...ex };
-        if (ex.customVideoPath && signedUrls[ex.customVideoPath]) {
-          updated.customVideoUrl = signedUrls[ex.customVideoPath];
-        }
-        if (ex.customVideoPath && thumbnailUrls?.[ex.customVideoPath]) {
-          updated.customVideoThumbnail = thumbnailUrls[ex.customVideoPath];
-        }
-        if (ex.voiceNotePath && signedUrls[ex.voiceNotePath]) {
-          updated.voiceNoteUrl = signedUrls[ex.voiceNotePath];
-        }
-        return updated;
-      })
-    }));
+    const result = { ...workoutData };
 
-    return { ...workoutData, days: updatedDays };
+    // Update multi-day structure
+    if (workoutData.days) {
+      result.days = workoutData.days.map(day => ({
+        ...day,
+        exercises: applySignedUrls(day.exercises, signedUrls, thumbnailUrls)
+      }));
+    }
+
+    // Update flat structure
+    if (workoutData.exercises) {
+      result.exercises = applySignedUrls(workoutData.exercises, signedUrls, thumbnailUrls);
+    }
+
+    return result;
   } catch (err) {
     console.error('Error refreshing signed URLs:', err);
     return workoutData;
@@ -342,6 +385,13 @@ function WorkoutReadyConfirmation({ readinessData, workoutName, exerciseCount, o
 }
 
 // Extract completed exercise IDs from workout_data's exercise objects + localStorage fallback
+// Build a localStorage key that is unique per workout + day so completion
+// state from one day doesn't bleed into another day of the same program.
+function completionStorageKey(workoutId, dayIndex) {
+  if (!workoutId) return null;
+  return `completedExercises_${workoutId}_day${dayIndex ?? 0}`;
+}
+
 function getCompletedFromWorkoutData(workoutData, dayIndex = 0, workoutId = null) {
   let exercises = [];
   if (Array.isArray(workoutData?.exercises) && workoutData.exercises.length > 0) {
@@ -354,14 +404,21 @@ function getCompletedFromWorkoutData(workoutData, dayIndex = 0, workoutId = null
     exercises.filter(ex => ex?.id && ex.completed).map(ex => ex.id)
   );
   // Merge with localStorage fallback (covers cases where API save was in-flight during app close)
-  if (workoutId) {
+  const key = completionStorageKey(workoutId, dayIndex);
+  if (key) {
     try {
-      const stored = localStorage.getItem(`completedExercises_${workoutId}`);
+      const stored = localStorage.getItem(key);
       if (stored) {
         const ids = JSON.parse(stored);
         if (Array.isArray(ids)) {
           ids.forEach(id => fromData.add(id));
         }
+      }
+      // Clean up legacy key (without day index) to prevent stale data from being
+      // picked up if old code is ever used or if we fall back
+      const legacyKey = `completedExercises_${workoutId}`;
+      if (localStorage.getItem(legacyKey)) {
+        localStorage.removeItem(legacyKey);
       }
     } catch (e) { /* ignore */ }
   }
@@ -626,6 +683,7 @@ function Workouts() {
   useEffect(() => {
     const flushPendingSave = () => {
       if (document.visibilityState !== 'hidden') return;
+
       const pending = pendingSaveRef.current;
       if (!pending) return;
 
@@ -894,8 +952,17 @@ function Workouts() {
 
         const allWorkouts = [];
 
+        // Process assignments - refresh signed URLs for custom videos
         if (assignmentRes?.assignments?.length > 0) {
-          assignmentRes.assignments.forEach(a => allWorkouts.push(a));
+          const refreshedAssignments = await Promise.all(
+            assignmentRes.assignments.map(async (assignment) => {
+              if (assignment.workout_data) {
+                assignment.workout_data = await refreshSignedUrls(assignment.workout_data, assignment.coach_id);
+              }
+              return assignment;
+            })
+          );
+          refreshedAssignments.forEach(a => allWorkouts.push(a));
         }
 
         if (adhocRes?.workouts?.length > 0) {
@@ -912,6 +979,7 @@ function Workouts() {
           });
         }
 
+        if (!mounted) return;
         setTodayWorkouts(allWorkouts);
 
         // Cache workout data for instant display on next visit / resume
@@ -1280,93 +1348,19 @@ function Workouts() {
       // Save to localStorage immediately so it survives app close
       try {
         const workout = todayWorkoutRef.current;
-        if (workout?.id) {
-          const key = `completedExercises_${workout.id}`;
+        const key = completionStorageKey(workout?.id, workout?.day_index);
+        if (key) {
           localStorage.setItem(key, JSON.stringify([...newCompleted]));
         }
       } catch (e) { /* ignore localStorage errors */ }
       return newCompleted;
     });
 
-    // Persist the completed flag into workout_data using functional state update
-    // Capture the updated data via ref so we can make the API call outside the updater
-    let capturedWorkoutData = null;
-    let capturedWorkout = null;
-
-    setTodayWorkout(prev => {
-      if (!prev?.workout_data) return prev;
-
-      let currentExercises = [];
-      let isUsingDays = false;
-      const dayIndex = prev.day_index || 0;
-
-      if (Array.isArray(prev.workout_data.exercises) && prev.workout_data.exercises.length > 0) {
-        currentExercises = [...prev.workout_data.exercises];
-      } else if (prev.workout_data.days && Array.isArray(prev.workout_data.days)) {
-        isUsingDays = true;
-        const dayData = prev.workout_data.days[dayIndex];
-        if (dayData?.exercises && Array.isArray(dayData.exercises)) {
-          currentExercises = [...dayData.exercises];
-        }
-      }
-
-      const updatedExercises = currentExercises.map(ex => {
-        if (ex?.id === exerciseId) {
-          return { ...ex, completed: isNowCompleted };
-        }
-        return ex;
-      });
-
-      let updatedWorkoutData;
-      if (isUsingDays) {
-        const updatedDays = [...prev.workout_data.days];
-        updatedDays[dayIndex] = { ...updatedDays[dayIndex], exercises: updatedExercises };
-        updatedWorkoutData = { ...prev.workout_data, days: updatedDays };
-      } else {
-        updatedWorkoutData = { ...prev.workout_data, exercises: updatedExercises };
-      }
-
-      // Capture for API call (outside updater)
-      capturedWorkoutData = updatedWorkoutData;
-      capturedWorkout = prev;
-
-      return { ...prev, workout_data: updatedWorkoutData };
-    });
-
-    // Make the API call outside the state updater (updater should be pure)
-    // Use a small delay to ensure state has been committed and ref is available
-    await new Promise(r => setTimeout(r, 50));
-
-    const workout = capturedWorkout || todayWorkoutRef.current;
-    const updatedWorkoutData = capturedWorkoutData;
-    if (!workout || !updatedWorkoutData) return;
-
-    // Store pending save for visibilitychange flush
-    pendingSaveRef.current = { workout, updatedWorkoutData };
-
-    try {
-      if (workout.is_adhoc) {
-        const isRealId = workout.id && !String(workout.id).startsWith('adhoc-') && !String(workout.id).startsWith('custom-');
-        const dateStr = workout.workout_date || new Date().toISOString().split('T')[0];
-        await apiPut('/.netlify/functions/adhoc-workouts', {
-          ...(isRealId ? { workoutId: workout.id } : {}),
-          clientId: workout.client_id,
-          workoutDate: dateStr,
-          workoutData: updatedWorkoutData,
-          name: workout.name
-        });
-      } else {
-        await apiPut('/.netlify/functions/client-workout-log', {
-          assignmentId: workout.id,
-          dayIndex: workout.day_index,
-          workout_data: updatedWorkoutData
-        });
-      }
-      pendingSaveRef.current = null;
-    } catch (err) {
-      console.error('Error persisting exercise completion:', err);
-      // localStorage already has the data as backup
-    }
+    // Completion state is tracked ONLY in the completedExercises Set + localStorage.
+    // We intentionally do NOT write completed flags into workout_data or save to the
+    // database here, because the master program template is shared across all dates
+    // that map to the same day_index. Writing completed flags there would cause
+    // exercises to appear checked on future dates.
   }, []);
 
   // Uncheck all completed exercises
@@ -1378,9 +1372,8 @@ function Workouts() {
     // Clear localStorage cache
     try {
       const workout = todayWorkoutRef.current;
-      if (workout?.id) {
-        localStorage.removeItem(`completedExercises_${workout.id}`);
-      }
+      const key = completionStorageKey(workout?.id, workout?.day_index);
+      if (key) localStorage.removeItem(key);
     } catch (e) { /* ignore */ }
 
     // Update workout_data to clear completed flags on all exercises
@@ -2006,9 +1999,8 @@ function Workouts() {
           next.add(updatedExercise.id);
           // Persist to localStorage
           try {
-            if (workout?.id) {
-              localStorage.setItem(`completedExercises_${workout.id}`, JSON.stringify([...next]));
-            }
+            const key = completionStorageKey(workout?.id, workout?.day_index);
+            if (key) localStorage.setItem(key, JSON.stringify([...next]));
           } catch (e) { /* ignore */ }
           return next;
         });
@@ -2032,15 +2024,14 @@ function Workouts() {
 
     if (currentExercises.length === 0) return;
 
-    // Update the exercise in the workout data, preserving completed flags
-    const completed = completedExercisesRef.current;
+    // Update the exercise in the workout data
+    // NOTE: Do NOT stamp completed flags here — completion state is tracked
+    // separately via completedExercises/localStorage to avoid contaminating
+    // the master program template in the database.
     const updatedExercises = currentExercises.map(ex => {
       if (ex?.id === updatedExercise.id) {
-        return { ...updatedExercise, completed: completed.has(updatedExercise.id) || false };
-      }
-      // Preserve completed flag from completedExercises ref (source of truth)
-      if (ex?.id && completed.has(ex.id)) {
-        return { ...ex, completed: true };
+        const { completed, ...rest } = updatedExercise;
+        return rest;
       }
       return ex;
     });
@@ -2539,7 +2530,8 @@ function Workouts() {
       // Clear localStorage completion cache since workout is done
       try {
         const workout = todayWorkoutRef.current;
-        if (workout?.id) localStorage.removeItem(`completedExercises_${workout.id}`);
+        const key = completionStorageKey(workout?.id, workout?.day_index);
+        if (key) localStorage.removeItem(key);
       } catch (e) { /* ignore */ }
       // Show summary modal
       setCompletingWorkout(false);
@@ -3248,7 +3240,17 @@ function Workouts() {
               <ChevronLeft size={24} />
             </button>
             <span className="nav-title">{isToday ? 'Today' : formatDisplayDate(selectedDate)}</span>
-            <div className="nav-spacer" style={{ width: 40 }}></div>
+            {clientData?.is_coach && (
+              <button
+                className="nav-plans-btn"
+                aria-label="Manage workout plans"
+                onClick={() => navigate('/workout-plans')}
+                title="Workout Plans"
+              >
+                <Settings size={20} />
+              </button>
+            )}
+            {!clientData?.is_coach && <div className="nav-spacer" style={{ width: 40 }}></div>}
           </div>
 
           {/* Beta Testing Banner */}
@@ -3723,7 +3725,8 @@ function Workouts() {
                         setWorkoutStartTime(null);
                         try {
                           const w = todayWorkoutRef.current;
-                          if (w?.id) localStorage.removeItem(`completedExercises_${w.id}`);
+                          const k = completionStorageKey(w?.id, w?.day_index);
+                          if (k) localStorage.removeItem(k);
                         } catch (ex) { /* ignore */ }
                       }}
                     >

@@ -75,7 +75,6 @@ function DesktopSidebar() {
     <aside className="desktop-nav">
       <div className="desktop-nav-logo">
         <img src="/icons/logo.png" alt="Zique Fitness" />
-        <span>Zique Fitness</span>
       </div>
 
       <div className="desktop-nav-items">

@@ -3162,6 +3162,57 @@
             color: #fca5a5;
         }
 
+        /* Swap exercise styles for client-profile */
+        .equipment-alert-banner .alert-item.swappable {
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 6px 12px;
+            border-radius: 6px;
+            transition: background 0.15s;
+        }
+        .equipment-alert-banner .alert-item.swappable:hover {
+            background: rgba(220, 38, 38, 0.08);
+        }
+        [data-theme="dark"] .equipment-alert-banner .alert-item.swappable:hover {
+            background: rgba(220, 38, 38, 0.15);
+        }
+        .alert-item .swap-btn {
+            font-size: 11px; padding: 2px 8px; border-radius: 4px;
+            background: var(--brand-primary, #6366f1); color: #fff; border: none;
+            cursor: pointer; white-space: nowrap; font-weight: 600;
+        }
+        .alert-item .swap-btn:hover { opacity: 0.85; }
+        .alert-item .swapped-label {
+            font-size: 11px; color: #16a34a; font-weight: 600;
+        }
+        [data-theme="dark"] .alert-item .swapped-label { color: #4ade80; }
+        .swap-exercise-list { display: flex; flex-direction: column; gap: 8px; max-height: 350px; overflow-y: auto; }
+        .swap-exercise-item {
+            display: flex; align-items: center; gap: 12px; padding: 12px;
+            background: var(--bg-secondary, #f3f4f6); border-radius: 8px;
+            cursor: pointer; transition: all 0.2s; border: 2px solid transparent;
+        }
+        .swap-exercise-item:hover { background: var(--bg-tertiary, #e5e7eb); border-color: var(--brand-primary, #6366f1); }
+        .swap-exercise-item.selected { border-color: var(--brand-primary, #6366f1); background: var(--bg-tertiary, #e5e7eb); }
+        .swap-exercise-thumb { width: 60px; height: 60px; border-radius: 8px; object-fit: cover; background: var(--bg-tertiary, #e5e7eb); }
+        .swap-exercise-info { flex: 1; }
+        .swap-exercise-name { font-weight: 600; margin-bottom: 4px; }
+        .swap-exercise-meta { font-size: 12px; color: var(--text-muted, #6b7280); }
+        .swap-search-container { margin-bottom: 12px; }
+        .swap-search-container input {
+            width: 100%; padding: 10px 12px; border-radius: 8px;
+            border: 1px solid var(--border-color, #e5e7eb);
+            background: var(--bg-secondary, #f3f4f6); color: var(--text-primary, #111);
+            font-size: 14px; box-sizing: border-box;
+        }
+        .swap-section-label {
+            font-size: 12px; font-weight: 600; color: var(--text-muted, #6b7280);
+            text-transform: uppercase; letter-spacing: 0.5px; margin: 12px 0 8px;
+        }
+        .swap-loading { text-align: center; padding: 20px; color: var(--text-muted, #6b7280); }
+
         .workout-programs-section {
             background: white;
             border-radius: 12px;
@@ -7282,7 +7333,7 @@
             }
         }
     </style>
-    <script src="https://unpkg.com/lucide@0.312.0/dist/umd/lucide.min.js" onload="lucide.createIcons()"></script>
+    <script src="https://unpkg.com/lucide@0.312.0/dist/umd/lucide.min.js" onload="if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',()=>lucide.createIcons())}else{lucide.createIcons()}"></script>
     <style>body{-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;overscroll-behavior:none;-webkit-overflow-scrolling:touch;}</style>
 </head>
 <body>
@@ -7317,6 +7368,10 @@
                     <a href="planner.html" class="sidebar-nav-item">
                         <span class="sidebar-nav-icon"><i data-lucide="sparkles"></i></span>
                         AI Planner
+                    </a>
+                    <a href="coach-workout-plans.html" class="sidebar-nav-item">
+                        <span class="sidebar-nav-icon"><i data-lucide="dumbbell"></i></span>
+                        Workouts
                     </a>
                 </div>
             </div>
@@ -13648,11 +13703,12 @@
             const conflicts = [];
             const restrictedLower = unavailableEquip.map(e => e.toLowerCase());
             const days = workoutData?.days || [];
-            // Also handle flat structure (exercises on root)
             const allDays = days.length > 0 ? days : (workoutData?.exercises ? [workoutData] : []);
-            for (const day of allDays) {
+            for (let dayIdx = 0; dayIdx < allDays.length; dayIdx++) {
+                const day = allDays[dayIdx];
                 const exercises = day.exercises || [];
-                for (const ex of exercises) {
+                for (let exIdx = 0; exIdx < exercises.length; exIdx++) {
+                    const ex = exercises[exIdx];
                     const exEquipLower = (ex.equipment || '').toLowerCase();
                     const exNameLower = (ex.name || '').toLowerCase();
                     const matched = restrictedLower.find(r =>
@@ -13661,7 +13717,14 @@
                     );
                     if (matched) {
                         const matchedOriginal = unavailableEquip.find(e => e.toLowerCase() === matched);
-                        conflicts.push({ exerciseName: ex.name || 'Unknown exercise', equipment: matchedOriginal || ex.equipment || 'restricted equipment', dayName: day.name || '' });
+                        conflicts.push({
+                            exerciseName: ex.name || 'Unknown exercise',
+                            equipment: matchedOriginal || ex.equipment || 'restricted equipment',
+                            dayName: day.name || '',
+                            dayIdx, exIdx,
+                            muscleGroup: ex.muscle_group || '',
+                            exerciseId: ex.id
+                        });
                     }
                 }
             }
@@ -13669,11 +13732,10 @@
         }
 
         /**
-         * Build an HTML alert banner for equipment conflicts
+         * Build an HTML alert banner for equipment conflicts with swap buttons
          */
         function buildEquipmentAlertHTML(clientName, conflicts) {
             if (!conflicts || conflicts.length === 0) return '';
-            // Dedupe by exercise name + equipment
             const seen = new Set();
             const unique = conflicts.filter(c => {
                 const key = `${c.exerciseName}|${c.equipment}`;
@@ -13683,13 +13745,144 @@
             });
             const items = unique.map(c => {
                 const dayLabel = c.dayName ? ` (${c.dayName})` : '';
-                return `<div class="alert-item"><strong>${c.exerciseName}</strong> requires <strong>${c.equipment}</strong>${dayLabel}</div>`;
+                const swapKey = `${c.dayIdx}|${c.exIdx}`;
+                const existingSwap = cpExerciseSwaps[swapKey];
+                const actionHTML = existingSwap
+                    ? `<span class="swapped-label">Swapped to: ${existingSwap.name}</span>`
+                    : `<button class="swap-btn" onclick="openCpSwapModal(${c.dayIdx}, ${c.exIdx}, '${(c.exerciseName || '').replace(/'/g, "\\'")}', '${(c.muscleGroup || '').replace(/'/g, "\\'")}', '${(c.equipment || '').replace(/'/g, "\\'")}')">Swap</button>`;
+                return `<div class="alert-item swappable"><span><strong>${c.exerciseName}</strong> requires <strong>${c.equipment}</strong>${dayLabel}</span>${actionHTML}</div>`;
             }).join('');
             return `<div class="equipment-alert-banner">
                 <div class="alert-title">⚠️ ${clientName} doesn't have access to some equipment:</div>
                 ${items}
             </div>`;
         }
+
+        // ============ CLIENT-PROFILE EXERCISE SWAP SYSTEM ============
+        let cpExerciseSwaps = {};
+        let cpSwapContext = null;
+        let cpSelectedSwap = null;
+        let cpSwapDebounce = null;
+
+        function openCpSwapModal(dayIdx, exIdx, originalName, muscleGroup, restrictedEquip) {
+            cpSwapContext = { dayIdx, exIdx, originalName, muscleGroup, restrictedEquip };
+            cpSelectedSwap = null;
+            document.getElementById('cpSwapOriginalInfo').innerHTML = `
+                <div style="font-size:13px;color:var(--text-muted,#6b7280);">Replacing:</div>
+                <div style="font-weight:600;font-size:15px;">${originalName}</div>
+                <div style="font-size:12px;color:var(--text-muted,#6b7280);">Restricted: ${restrictedEquip} | Muscle: ${muscleGroup || 'unknown'}</div>
+            `;
+            document.getElementById('cpSwapSearchInput').value = '';
+            document.getElementById('cpSwapSearchResultsSection').style.display = 'none';
+            document.getElementById('cpSwapSuggestionsSection').style.display = 'block';
+            document.getElementById('cpConfirmSwapBtn').disabled = true;
+            document.getElementById('cpSwapSuggestionsList').innerHTML = '<div class="swap-loading">Loading suggestions...</div>';
+            document.getElementById('cpEquipmentSwapModal').style.display = 'flex';
+            loadCpSwapSuggestions(muscleGroup);
+        }
+
+        function closeCpSwapModal() {
+            document.getElementById('cpEquipmentSwapModal').style.display = 'none';
+            cpSwapContext = null;
+            cpSelectedSwap = null;
+        }
+
+        async function loadCpSwapSuggestions(muscleGroup) {
+            try {
+                const restrictedLower = (clientUnavailableEquipment || []).map(e => e.toLowerCase());
+                const params = new URLSearchParams({ coachId: currentUser.id, limit: '50' });
+                if (muscleGroup) params.set('muscleGroup', muscleGroup);
+                const res = await fetch(`/.netlify/functions/exercises?${params}`);
+                const data = await res.json();
+                const exercises = (data.exercises || []).filter(ex => {
+                    const equipLower = (ex.equipment || '').toLowerCase();
+                    const nameLower = (ex.name || '').toLowerCase();
+                    return !restrictedLower.some(r =>
+                        (equipLower && (equipLower.includes(r) || r.includes(equipLower))) ||
+                        nameLower.includes(r)
+                    );
+                });
+                const container = document.getElementById('cpSwapSuggestionsList');
+                if (exercises.length === 0) {
+                    container.innerHTML = '<div class="swap-loading">No compatible exercises found. Use search.</div>';
+                    return;
+                }
+                container.innerHTML = exercises.map(ex => buildCpSwapItem(ex)).join('');
+            } catch (err) {
+                document.getElementById('cpSwapSuggestionsList').innerHTML = '<div class="swap-loading">Failed to load suggestions.</div>';
+            }
+        }
+
+        function onCpSwapSearch(query) {
+            clearTimeout(cpSwapDebounce);
+            if (!query.trim()) {
+                document.getElementById('cpSwapSearchResultsSection').style.display = 'none';
+                document.getElementById('cpSwapSuggestionsSection').style.display = 'block';
+                return;
+            }
+            cpSwapDebounce = setTimeout(() => searchCpSwapExercises(query.trim()), 300);
+        }
+
+        async function searchCpSwapExercises(query) {
+            document.getElementById('cpSwapSuggestionsSection').style.display = 'none';
+            document.getElementById('cpSwapSearchResultsSection').style.display = 'block';
+            document.getElementById('cpSwapSearchResultsList').innerHTML = '<div class="swap-loading">Searching...</div>';
+            try {
+                const params = new URLSearchParams({ coachId: currentUser.id, search: query, limit: '30' });
+                const res = await fetch(`/.netlify/functions/exercises?${params}`);
+                const data = await res.json();
+                const exercises = data.exercises || [];
+                const container = document.getElementById('cpSwapSearchResultsList');
+                container.innerHTML = exercises.length === 0
+                    ? '<div class="swap-loading">No exercises found.</div>'
+                    : exercises.map(ex => buildCpSwapItem(ex)).join('');
+            } catch (err) {
+                document.getElementById('cpSwapSearchResultsList').innerHTML = '<div class="swap-loading">Search failed.</div>';
+            }
+        }
+
+        function buildCpSwapItem(ex) {
+            const thumb = ex.thumbnail_url || ex.animation_url || '';
+            const thumbHTML = thumb
+                ? `<img class="swap-exercise-thumb" src="${thumb}" alt="" onerror="this.style.display='none'">`
+                : `<div class="swap-exercise-thumb" style="display:flex;align-items:center;justify-content:center;font-size:20px;">&#x1F3CB;</div>`;
+            const meta = [ex.muscle_group, ex.equipment].filter(Boolean).join(' | ');
+            const isSelected = cpSelectedSwap && cpSelectedSwap.id === ex.id;
+            return `<div class="swap-exercise-item ${isSelected ? 'selected' : ''}" onclick="selectCpSwap(${ex.id}, this)" data-ex-id="${ex.id}" data-ex-name="${(ex.name || '').replace(/"/g, '&quot;')}" data-ex-equip="${(ex.equipment || '').replace(/"/g, '&quot;')}" data-ex-muscle="${(ex.muscle_group || '').replace(/"/g, '&quot;')}" data-ex-thumb="${(thumb).replace(/"/g, '&quot;')}" data-ex-anim="${(ex.animation_url || '').replace(/"/g, '&quot;')}" data-ex-video="${(ex.video_url || '').replace(/"/g, '&quot;')}">
+                ${thumbHTML}
+                <div class="swap-exercise-info">
+                    <div class="swap-exercise-name">${ex.name}</div>
+                    <div class="swap-exercise-meta">${meta}</div>
+                </div>
+            </div>`;
+        }
+
+        function selectCpSwap(exId, el) {
+            document.querySelectorAll('#cpEquipmentSwapModal .swap-exercise-item.selected').forEach(i => i.classList.remove('selected'));
+            el.classList.add('selected');
+            cpSelectedSwap = {
+                id: exId, name: el.dataset.exName, equipment: el.dataset.exEquip,
+                muscle_group: el.dataset.exMuscle, thumbnail_url: el.dataset.exThumb,
+                animation_url: el.dataset.exAnim, video_url: el.dataset.exVideo
+            };
+            document.getElementById('cpConfirmSwapBtn').disabled = false;
+        }
+
+        function confirmCpSwap() {
+            if (!cpSwapContext || !cpSelectedSwap) return;
+            const swapKey = `${cpSwapContext.dayIdx}|${cpSwapContext.exIdx}`;
+            cpExerciseSwaps[swapKey] = cpSelectedSwap;
+            closeCpSwapModal();
+            // Re-render the conflicts banner in the assignment dialog
+            if (cpCurrentConflicts && cpCurrentConflicts.length > 0) {
+                const bannerEl = document.getElementById('cpEquipmentAlertBanner');
+                if (bannerEl) {
+                    bannerEl.innerHTML = buildEquipmentAlertHTML(currentClient?.client_name || 'Client', cpCurrentConflicts);
+                }
+            }
+        }
+
+        let cpCurrentConflicts = [];
 
         // ============ WORKOUT PROGRAMS FUNCTIONS ============
         let coachPrograms = [];
@@ -13898,27 +14091,86 @@
             if (currentClient && clientUnavailableEquipment.length > 0) {
                 const conflicts = checkEquipmentConflicts(program.program_data, clientUnavailableEquipment);
                 if (conflicts.length > 0) {
-                    const conflictList = conflicts.map(c => `  - ${c.exerciseName} (requires ${c.equipment})`).join('\n');
-                    const proceed = confirm(
-                        `⚠️ Equipment Alert for ${currentClient.client_name}:\n\n` +
-                        `This program includes exercises that use equipment this client doesn't have access to:\n\n` +
-                        conflictList + '\n\n' +
-                        `Do you still want to assign this program?`
-                    );
-                    if (!proceed) return;
+                    cpCurrentConflicts = conflicts;
+                    cpExerciseSwaps = {};
+                    // Show conflict modal with swap options instead of simple confirm
+                    showCpConflictDialog(conflicts, program, clientId, selectedDays, startDate);
+                    return; // Assignment will continue from the dialog
                 }
             }
 
+            await executeCpAssignment(program, clientId, selectedDays, startDate, {});
+        }
+
+        function showCpConflictDialog(conflicts, program, clientId, selectedDays, startDate) {
+            const alertHTML = buildEquipmentAlertHTML(currentClient?.client_name || 'Client', conflicts);
+            // Create an inline conflict dialog within the existing modal area
+            const overlay = document.createElement('div');
+            overlay.id = 'cpConflictOverlay';
+            overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:10000;display:flex;align-items:center;justify-content:center;';
+            overlay.innerHTML = `
+                <div style="background:var(--bg-primary,#fff);border-radius:12px;max-width:520px;width:95%;max-height:80vh;display:flex;flex-direction:column;overflow:hidden;">
+                    <div style="padding:16px 20px;border-bottom:1px solid var(--border-color,#e5e7eb);">
+                        <h3 style="margin:0;font-size:16px;">⚠️ Equipment Conflicts</h3>
+                        <p style="margin:8px 0 0;font-size:13px;color:var(--text-muted,#6b7280);">Swap exercises or assign anyway.</p>
+                    </div>
+                    <div style="padding:16px 20px;overflow-y:auto;flex:1;" id="cpEquipmentAlertBanner">
+                        ${alertHTML}
+                    </div>
+                    <div style="display:flex;gap:8px;padding:12px 20px;border-top:1px solid var(--border-color,#e5e7eb);justify-content:flex-end;">
+                        <button onclick="closeCpConflictDialog()" style="padding:8px 16px;border-radius:8px;border:1px solid var(--border-color,#e5e7eb);background:transparent;cursor:pointer;color:var(--text-primary,#111);">Cancel</button>
+                        <button onclick="assignWithSwaps()" style="padding:8px 16px;border-radius:8px;border:none;background:var(--brand-primary,#6366f1);color:#fff;cursor:pointer;font-weight:600;">Assign${conflicts.length > 0 ? ' (with swaps)' : ''}</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+
+            // Store assignment context for later
+            window._cpPendingAssignment = { program, clientId, selectedDays, startDate };
+        }
+
+        function closeCpConflictDialog() {
+            const overlay = document.getElementById('cpConflictOverlay');
+            if (overlay) overlay.remove();
+            window._cpPendingAssignment = null;
+        }
+
+        async function assignWithSwaps() {
+            const pending = window._cpPendingAssignment;
+            if (!pending) return;
+            closeCpConflictDialog();
+            await executeCpAssignment(pending.program, pending.clientId, pending.selectedDays, pending.startDate, cpExerciseSwaps);
+        }
+
+        async function executeCpAssignment(program, clientId, selectedDays, startDate, swaps) {
             try {
+                // Deep copy and apply swaps
+                const workoutData = JSON.parse(JSON.stringify(program.program_data));
+                const days = workoutData.days || [];
+                for (const [swapKey, replacement] of Object.entries(swaps || {})) {
+                    const [dayIdx, exIdx] = swapKey.split('|').map(Number);
+                    const day = days[dayIdx];
+                    if (!day || !day.exercises) continue;
+                    const original = day.exercises[exIdx];
+                    if (!original) continue;
+                    original.id = replacement.id;
+                    original.name = replacement.name;
+                    original.equipment = replacement.equipment || original.equipment;
+                    original.muscle_group = replacement.muscle_group || original.muscle_group;
+                    original.thumbnail_url = replacement.thumbnail_url || '';
+                    original.animation_url = replacement.animation_url || '';
+                    original.video_url = replacement.video_url || '';
+                }
+
                 const res = await fetch('/.netlify/functions/workout-assignments', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         clientId: clientId,
                         coachId: currentUser.id,
-                        programId: programId,
+                        programId: program.id,
                         name: program.name,
-                        workoutData: program.program_data,
+                        workoutData: workoutData,
                         schedule: { days: selectedDays },
                         startDate: startDate
                     })
@@ -13927,6 +14179,7 @@
                 if (!res.ok) throw new Error('Failed to assign program');
 
                 closeWorkoutModal();
+                cpExerciseSwaps = {};
                 await loadWorkoutPrograms(clientId);
                 await loadWorkoutCalendar(clientId);
             } catch (err) {
@@ -15144,6 +15397,34 @@
             if (e.target === this) closeRenamePlan();
         });
     </script>
+
+    <!-- Equipment Swap Modal (client-profile) -->
+    <div class="modal-overlay" id="cpEquipmentSwapModal" style="display:none; z-index: 10001; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); align-items:center; justify-content:center;">
+        <div style="background: var(--bg-primary, #fff); border-radius: 12px; max-width: 560px; width: 95%; max-height: 80vh; display: flex; flex-direction: column; overflow: hidden;">
+            <div style="display:flex; justify-content:space-between; align-items:center; padding: 16px 20px; border-bottom: 1px solid var(--border-color, #e5e7eb);">
+                <h3 style="margin:0; font-size: 16px;">Swap Exercise</h3>
+                <button onclick="closeCpSwapModal()" style="background:none; border:none; font-size:20px; cursor:pointer; color: var(--text-primary, #111);">&times;</button>
+            </div>
+            <div style="padding: 16px 20px; overflow-y: auto; flex: 1;">
+                <div id="cpSwapOriginalInfo" style="margin-bottom: 12px; padding: 10px; background: var(--bg-secondary, #f3f4f6); border-radius: 8px;"></div>
+                <div class="swap-search-container">
+                    <input type="text" id="cpSwapSearchInput" placeholder="Search for any exercise..." oninput="onCpSwapSearch(this.value)">
+                </div>
+                <div id="cpSwapSuggestionsSection">
+                    <div class="swap-section-label">Suggested Alternatives (same muscle group)</div>
+                    <div class="swap-exercise-list" id="cpSwapSuggestionsList"><div class="swap-loading">Loading...</div></div>
+                </div>
+                <div id="cpSwapSearchResultsSection" style="display:none;">
+                    <div class="swap-section-label">Search Results</div>
+                    <div class="swap-exercise-list" id="cpSwapSearchResultsList"></div>
+                </div>
+            </div>
+            <div style="display:flex; gap:8px; padding: 12px 20px; border-top: 1px solid var(--border-color, #e5e7eb); justify-content: flex-end;">
+                <button onclick="closeCpSwapModal()" style="padding: 8px 16px; border-radius: 8px; border: 1px solid var(--border-color, #e5e7eb); background: transparent; cursor: pointer; color: var(--text-primary, #111);">Cancel</button>
+                <button id="cpConfirmSwapBtn" onclick="confirmCpSwap()" disabled style="padding: 8px 16px; border-radius: 8px; border: none; background: var(--brand-primary, #6366f1); color: #fff; cursor: pointer; font-weight: 600;">Confirm Swap</button>
+            </div>
+        </div>
+    </div>
 
     <!-- PWA Install Prompt -->
     <script src="/js/pwa-install-prompt.js"></script>
