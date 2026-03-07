@@ -6,6 +6,25 @@ import { apiGet, apiPost } from '../utils/api';
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
 import { onAppResume } from '../hooks/useAppLifecycle';
 
+// Build a proxy URL for voice notes that never expires
+// Falls back to extracting the storage path from old signed URLs
+const getVoiceNoteProxyUrl = (meal) => {
+  const path = meal.voice_note_path || extractPathFromSignedUrl(meal.voice_note_url);
+  if (!path) return meal.voice_note_url || null;
+  return `/.netlify/functions/serve-voice-note?path=${encodeURIComponent(path)}`;
+};
+
+// Extract the storage file path from an old Supabase signed URL
+const extractPathFromSignedUrl = (url) => {
+  if (!url || typeof url !== 'string') return null;
+  try {
+    // Supabase signed URL format: .../storage/v1/object/sign/workout-assets/<path>?token=...
+    const match = url.match(/\/storage\/v1\/object\/sign\/workout-assets\/([^?]+)/);
+    if (match) return decodeURIComponent(match[1]);
+  } catch (e) { /* ignore */ }
+  return null;
+};
+
 // localStorage cache helpers
 const getCache = (key) => {
   try {
@@ -380,81 +399,10 @@ function Plans() {
     }
   };
 
-  // Refresh voice note URLs (signed URLs expire, so we need fresh ones)
-  const refreshVoiceNoteUrls = async (planToLoad) => {
-    if (!planToLoad) return;
-
-    const days = getPlanDays(planToLoad);
-    const voiceNotePaths = [];
-
-    // Collect all meals with voice_note_path
-    days.forEach((day, dayIdx) => {
-      (day.plan || []).forEach((meal, mealIdx) => {
-        if (meal.voice_note_path) {
-          voiceNotePaths.push({
-            dayIdx,
-            mealIdx,
-            path: meal.voice_note_path
-          });
-        }
-      });
-    });
-
-    if (voiceNotePaths.length === 0) return;
-
-    // Fetch fresh signed URLs for each voice note
-    const urlUpdates = await Promise.all(
-      voiceNotePaths.map(async ({ dayIdx, mealIdx, path }) => {
-        try {
-          const response = await apiPost('/.netlify/functions/get-signed-video-url', {
-            filePath: path
-          });
-          if (response.success && response.url) {
-            return { dayIdx, mealIdx, url: response.url };
-          }
-        } catch (err) {
-          console.error('Error refreshing voice note URL:', err);
-        }
-        return null;
-      })
-    );
-
-    // Filter out failed requests
-    const validUpdates = urlUpdates.filter(u => u !== null);
-    if (validUpdates.length === 0) return;
-
-    // Update plan with fresh URLs
-    setSelectedPlan(prevPlan => {
-      if (!prevPlan) return prevPlan;
-
-      const updatedPlan = { ...prevPlan, plan_data: { ...prevPlan.plan_data } };
-      const prevDays = getPlanDays(prevPlan);
-
-      const updatedDays = prevDays.map((day, dayIdx) => ({
-        ...day,
-        plan: (day.plan || []).map((meal, mealIdx) => {
-          const update = validUpdates.find(u => u.dayIdx === dayIdx && u.mealIdx === mealIdx);
-          if (update) {
-            return { ...meal, voice_note_url: update.url };
-          }
-          return meal;
-        })
-      }));
-
-      if (updatedPlan.plan_data.currentPlan) {
-        updatedPlan.plan_data.currentPlan = updatedDays;
-      } else if (updatedPlan.plan_data.days) {
-        updatedPlan.plan_data.days = updatedDays;
-      }
-      return updatedPlan;
-    });
-  };
-
-  // Load meal images and refresh voice note URLs when plan is selected
+  // Load meal images when plan is selected
   useEffect(() => {
     if (!selectedPlan) return;
     loadMealImagesForPlan(selectedPlan);
-    refreshVoiceNoteUrls(selectedPlan);
   }, [selectedPlan?.id]);
 
   // Save undo states to localStorage (cap at 10 plans)
@@ -1870,8 +1818,8 @@ Keep it practical and brief. Format with clear sections.`;
                         </div>
                       )}
 
-                      {/* Voice Note */}
-                      {meal.voice_note_url && (
+                      {/* Voice Note - uses proxy URL that never expires */}
+                      {(meal.voice_note_url || meal.voice_note_path) && (
                         <div
                           className="meal-voice-note"
                           onClick={(e) => e.stopPropagation()}
@@ -1879,29 +1827,15 @@ Keep it practical and brief. Format with clear sections.`;
                           <span className="meal-voice-note-label">🎙️ Voice Note:</span>
                           <audio
                             controls
-                            src={meal.voice_note_url}
+                            src={getVoiceNoteProxyUrl(meal)}
                             className="meal-voice-audio"
                             preload="none"
                             onClick={(e) => e.stopPropagation()}
                             onPlay={(e) => e.stopPropagation()}
                             onError={(e) => {
-                              const audio = e.target;
-                              if (meal.voice_note_path && !audio.dataset.retried) {
-                                audio.dataset.retried = 'true';
-                                fetch('/.netlify/functions/get-signed-video-url', {
-                                  method: 'POST',
-                                  headers: { 'Content-Type': 'application/json' },
-                                  body: JSON.stringify({ filePath: meal.voice_note_path })
-                                })
-                                  .then(r => r.json())
-                                  .then(data => {
-                                    if (data.success && data.url) {
-                                      audio.src = data.url;
-                                      audio.load();
-                                    }
-                                  })
-                                  .catch(() => {});
-                              }
+                              // Hide voice note if file is missing/deleted
+                              const container = e.target.closest('.meal-voice-note');
+                              if (container) container.style.display = 'none';
                             }}
                           />
                         </div>

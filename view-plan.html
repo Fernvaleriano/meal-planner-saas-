@@ -2289,8 +2289,6 @@
 
                 displayMealPlan();
 
-                // Refresh voice note signed URLs (they expire after 7 days)
-                refreshMealVoiceNoteUrls();
 
                 // Update header with client name
                 const clientName = currentPlan.clientName || 'Client';
@@ -2496,8 +2494,6 @@
 
                 displayMealPlan();
 
-                // Refresh voice note signed URLs (they expire after 7 days)
-                refreshMealVoiceNoteUrls();
 
                 // Show "Log Entire Plan" button for client view
                 if (isClientView) {
@@ -3737,6 +3733,27 @@
             showNotification(`Custom meal created: ${customMealData.calories} cal, ${customMealData.protein}g protein`, 'success');
         }
 
+        // Extract storage file path from an old Supabase signed URL
+        function extractVoiceNotePath(url) {
+            if (!url || typeof url !== 'string') return null;
+            try {
+                const match = url.match(/\/storage\/v1\/object\/sign\/workout-assets\/([^?]+)/);
+                if (match) return decodeURIComponent(match[1]);
+            } catch (e) { /* ignore */ }
+            return null;
+        }
+
+        // Hide voice note container when audio fails (file deleted/missing)
+        function handleVoiceNoteError(audioEl) {
+            const container = audioEl.closest('.voice-note-container, [style*="Voice"]');
+            if (container) {
+                container.style.display = 'none';
+            } else {
+                // Fallback: hide the audio element's parent
+                audioEl.parentElement.style.display = 'none';
+            }
+        }
+
         function displayMealPlan() {
             console.log('📋 displayMealPlan called, currentPlan:', currentPlan);
 
@@ -3945,7 +3962,11 @@
 
             // Get existing note for this meal
             const mealNote = meal.coach_note || '';
-            const voiceNoteUrl = meal.voice_note_url || '';
+            // Use proxy URL for voice notes so they never expire
+            const voiceNotePath = meal.voice_note_path || extractVoiceNotePath(meal.voice_note_url);
+            const voiceNoteUrl = voiceNotePath
+                ? '/.netlify/functions/serve-voice-note?path=' + encodeURIComponent(voiceNotePath)
+                : (meal.voice_note_url || '');
             const mealRefLinks = meal.reference_links || [];
 
             // Build reference links section (shown in both client and coach views)
@@ -3985,7 +4006,7 @@
                             ${voiceNoteUrl ? `
                                 <div style="margin-top: 10px;">
                                     <div style="font-weight: 600; color: #92400e; font-size: 0.85em; margin-bottom: 6px;">🎤 Voice Message:</div>
-                                    <audio controls src="${voiceNoteUrl}" ${meal.voice_note_path ? `data-voice-path="${meal.voice_note_path}"` : ''} onerror="retryVoiceNoteAudio(this)" style="width: 100%; max-width: 300px;"></audio>
+                                    <audio controls src="${voiceNoteUrl}" onerror="handleVoiceNoteError(this)" style="width: 100%; max-width: 300px;"></audio>
                                 </div>
                             ` : ''}
                         </div>
@@ -4000,7 +4021,7 @@
                             <span style="font-weight: 600; color: #047857; font-size: 0.85em;">🎤 Voice Message:</span>
                             <button onclick="deleteMealVoiceNote('${index}', ${dayIndex}, ${mealIndex})" style="background: #dc2626; color: white; padding: 2px 8px; font-size: 0.75em; border-radius: 4px; border: none; cursor: pointer;">Delete</button>
                         </div>
-                        <audio controls src="${voiceNoteUrl}" ${meal.voice_note_path ? `data-voice-path="${meal.voice_note_path}"` : ''} onerror="retryVoiceNoteAudio(this)" style="width: 100%; max-width: 300px;"></audio>
+                        <audio controls src="${voiceNoteUrl}" onerror="handleVoiceNoteError(this)" style="width: 100%; max-width: 300px;"></audio>
                     </div>
                 ` : '';
 
@@ -4695,110 +4716,6 @@
                 localStorage.setItem('currentMealPlan', JSON.stringify(currentPlan));
                 displayMealPlan();
                 showNotification('Voice note deleted', 'success');
-            }
-        }
-
-        // Refresh expired signed URLs for meal voice notes
-        async function refreshMealVoiceNoteUrls() {
-            if (!currentPlan) return;
-
-            // Collect all meals with voice_note_path
-            const voiceNotePaths = [];
-            const meals = currentPlan.meals || [];
-            const days = currentPlan.days || [];
-
-            if (days.length > 0) {
-                days.forEach((day, dayIdx) => {
-                    (day.plan || []).forEach((meal, mealIdx) => {
-                        if (meal.voice_note_path) {
-                            voiceNotePaths.push({
-                                dayIdx,
-                                mealIdx,
-                                path: meal.voice_note_path
-                            });
-                        }
-                    });
-                });
-            } else if (meals.length > 0) {
-                meals.forEach((meal, idx) => {
-                    if (meal.voice_note_path) {
-                        voiceNotePaths.push({ mealIdx: idx, path: meal.voice_note_path });
-                    }
-                });
-            }
-
-            if (voiceNotePaths.length === 0) return;
-
-            try {
-                const filePaths = voiceNotePaths.map(v => v.path);
-                const response = await fetch('/.netlify/functions/get-signed-urls', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ filePaths, coachId: currentCoachId })
-                });
-
-                if (!response.ok) return;
-
-                const data = await response.json();
-                if (!data.success || !data.signedUrls) return;
-
-                let updated = false;
-                voiceNotePaths.forEach(({ dayIdx, mealIdx, path }) => {
-                    const freshUrl = data.signedUrls[path];
-                    if (!freshUrl) return;
-
-                    let meal;
-                    if (dayIdx !== undefined && currentPlan.days) {
-                        meal = currentPlan.days[dayIdx].plan[mealIdx];
-                    } else if (currentPlan.meals) {
-                        meal = currentPlan.meals[mealIdx];
-                    }
-
-                    if (meal && meal.voice_note_url !== freshUrl) {
-                        meal.voice_note_url = freshUrl;
-                        updated = true;
-                    }
-                });
-
-                if (updated) {
-                    // Update audio elements in place without full re-render
-                    document.querySelectorAll('audio[data-voice-path]').forEach(audio => {
-                        const path = audio.getAttribute('data-voice-path');
-                        if (data.signedUrls[path]) {
-                            audio.src = data.signedUrls[path];
-                            audio.load();
-                        }
-                    });
-                    console.log('Refreshed', voiceNotePaths.length, 'meal voice note URLs');
-                }
-            } catch (err) {
-                console.error('Error refreshing meal voice note URLs:', err);
-            }
-        }
-
-        // Retry loading a single voice note audio element with a fresh signed URL
-        async function retryVoiceNoteAudio(audioElement) {
-            const path = audioElement.getAttribute('data-voice-path');
-            if (!path || audioElement.dataset.retried) return;
-            audioElement.dataset.retried = 'true';
-
-            try {
-                const response = await fetch('/.netlify/functions/get-signed-video-url', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ filePath: path })
-                });
-
-                const data = await response.json();
-                if (data.success && data.url) {
-                    audioElement.src = data.url;
-                    audioElement.load();
-                } else {
-                    // File doesn't exist - hide the audio element
-                    audioElement.parentElement.style.display = 'none';
-                }
-            } catch (err) {
-                console.error('Error retrying voice note:', err);
             }
         }
 

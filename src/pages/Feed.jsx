@@ -288,7 +288,7 @@ function WorkoutFeedCard({ workout, coachId, onUpdate, weightUnit = 'lbs' }) {
   const [showComments, setShowComments] = useState(false);
   const [showReactions, setShowReactions] = useState(false);
   const [exercisesExpanded, setExercisesExpanded] = useState(workout.hasClientNotes || false);
-  const [voiceNoteUrls, setVoiceNoteUrls] = useState({});
+  // Voice note URLs no longer needed - proxy URLs handle it
   const [comment, setComment] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -305,28 +305,6 @@ function WorkoutFeedCard({ workout, coachId, onUpdate, weightUnit = 'lbs' }) {
 
   const workoutId = workout.id || workout.workoutId;
 
-  // Resolve signed URLs for client voice notes
-  useEffect(() => {
-    const voicePaths = (workout.exercises || [])
-      .filter(ex => ex.clientVoiceNotePath)
-      .map(ex => ex.clientVoiceNotePath);
-    if (voicePaths.length === 0) return;
-
-    const fetchUrls = async () => {
-      try {
-        const res = await apiPost('/.netlify/functions/get-signed-urls', {
-          filePaths: voicePaths,
-          coachId
-        });
-        if (res?.signedUrls) {
-          setVoiceNoteUrls(res.signedUrls);
-        }
-      } catch (err) {
-        console.error('Error fetching voice note URLs:', err);
-      }
-    };
-    fetchUrls();
-  }, [workout.exercises, coachId]);
 
   const handleReaction = async (reaction) => {
     if (loading || !workoutId) return;
@@ -623,40 +601,21 @@ function WorkoutFeedCard({ workout, coachId, onUpdate, weightUnit = 'lbs' }) {
                       </div>
                     )}
 
-                    {/* Client voice note */}
+                    {/* Client voice note - uses proxy URL that never expires */}
                     {exercise.clientVoiceNotePath && (
                       <div className="workout-feed-client-voice-note">
                         <Mic size={12} />
-                        {voiceNoteUrls[exercise.clientVoiceNotePath] ? (
-                          <audio
-                            controls
-                            src={voiceNoteUrls[exercise.clientVoiceNotePath]}
-                            preload="metadata"
-                            className="feed-voice-note-player"
-                            onError={(e) => {
-                              const audio = e.target;
-                              const path = exercise.clientVoiceNotePath;
-                              if (path && !audio.dataset.retried) {
-                                audio.dataset.retried = 'true';
-                                fetch('/.netlify/functions/get-signed-video-url', {
-                                  method: 'POST',
-                                  headers: { 'Content-Type': 'application/json' },
-                                  body: JSON.stringify({ filePath: path })
-                                })
-                                  .then(r => r.json())
-                                  .then(data => {
-                                    if (data.success && data.url) {
-                                      audio.src = data.url;
-                                      audio.load();
-                                    }
-                                  })
-                                  .catch(() => {});
-                              }
-                            }}
-                          />
-                        ) : (
-                          <span className="voice-note-loading">Loading...</span>
-                        )}
+                        <audio
+                          controls
+                          src={`/.netlify/functions/serve-voice-note?path=${encodeURIComponent(exercise.clientVoiceNotePath)}`}
+                          preload="metadata"
+                          className="feed-voice-note-player"
+                          onError={(e) => {
+                            // Hide voice note if file is missing/deleted
+                            const container = e.target.closest('.workout-feed-client-voice-note');
+                            if (container) container.style.display = 'none';
+                          }}
+                        />
                       </div>
                     )}
                   </div>
