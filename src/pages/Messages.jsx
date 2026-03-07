@@ -457,16 +457,17 @@ function Messages() {
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
           console.warn('[Messages] Chat channel died:', status, err);
           const now = Date.now();
-          // Reset counter if last attempt was more than 60s ago (not a rapid loop)
-          if (now - lastResubscribeTimeRef.current > 60000) {
+          // Reset counter if last attempt was more than 2 minutes ago (not a rapid loop)
+          if (now - lastResubscribeTimeRef.current > 120000) {
             resubscribeAttemptsRef.current = 0;
           }
           resubscribeAttemptsRef.current++;
           lastResubscribeTimeRef.current = now;
 
           if (resubscribeAttemptsRef.current <= 3) {
-            // Try to reconnect with increasing delay
-            const delay = resubscribeAttemptsRef.current * 2000;
+            // Try to reconnect with increasing delay — give Supabase time
+            // to self-heal before we force a resubscribe
+            const delay = resubscribeAttemptsRef.current * 3000;
             console.log('[Messages] Reconnect attempt', resubscribeAttemptsRef.current, 'in', delay, 'ms');
             setTimeout(() => setResubscribeKey(k => k + 1), delay);
           } else {
@@ -477,19 +478,7 @@ function Messages() {
         }
       });
 
-    // Periodic health check: if the channel isn't in 'joined' state after
-    // being subscribed for a while, something silently broke.
-    const channelHealthCheck = setInterval(() => {
-      const state = channel?.state;
-      if (state && state !== 'joined' && state !== 'joining') {
-        console.warn('[Messages] Chat channel unhealthy, state:', state);
-        window.dispatchEvent(new CustomEvent('app-resume-sync', { detail: { phase: 'stuck' } }));
-        clearInterval(channelHealthCheck);
-      }
-    }, 15000);
-
     return () => {
-      clearInterval(channelHealthCheck);
       supabase.removeChannel(channel);
     };
   }, [activeConvo, isCoach, coachId, clientId, scrollToBottom, resubscribeKey]);
@@ -549,33 +538,22 @@ function Messages() {
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
           console.warn('[Messages] List channel died:', status, err);
           const now = Date.now();
-          if (now - lastResubscribeTimeRef.current > 60000) {
+          if (now - lastResubscribeTimeRef.current > 120000) {
             resubscribeAttemptsRef.current = 0;
           }
           resubscribeAttemptsRef.current++;
           lastResubscribeTimeRef.current = now;
 
           if (resubscribeAttemptsRef.current <= 3) {
-            const delay = resubscribeAttemptsRef.current * 2000;
+            const delay = resubscribeAttemptsRef.current * 3000;
             setTimeout(() => setResubscribeKey(k => k + 1), delay);
           } else {
             console.warn('[Messages] List channel keeps dying — showing reload');
             window.dispatchEvent(new CustomEvent('app-resume-sync', { detail: { phase: 'stuck' } }));
           }
-        }
       });
 
-    const listHealthCheck = setInterval(() => {
-      const state = channel?.state;
-      if (state && state !== 'joined' && state !== 'joining') {
-        console.warn('[Messages] List channel unhealthy, state:', state);
-        window.dispatchEvent(new CustomEvent('app-resume-sync', { detail: { phase: 'stuck' } }));
-        clearInterval(listHealthCheck);
-      }
-    }, 15000);
-
     return () => {
-      clearInterval(listHealthCheck);
       supabase.removeChannel(channel);
     };
   }, [user?.id, isCoach, coachId, clientId, activeConvo, resubscribeKey]);
