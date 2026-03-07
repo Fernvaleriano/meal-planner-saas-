@@ -385,6 +385,13 @@ function WorkoutReadyConfirmation({ readinessData, workoutName, exerciseCount, o
 }
 
 // Extract completed exercise IDs from workout_data's exercise objects + localStorage fallback
+// Build a localStorage key that is unique per workout + day so completion
+// state from one day doesn't bleed into another day of the same program.
+function completionStorageKey(workoutId, dayIndex) {
+  if (!workoutId) return null;
+  return `completedExercises_${workoutId}_day${dayIndex ?? 0}`;
+}
+
 function getCompletedFromWorkoutData(workoutData, dayIndex = 0, workoutId = null) {
   let exercises = [];
   if (Array.isArray(workoutData?.exercises) && workoutData.exercises.length > 0) {
@@ -397,14 +404,21 @@ function getCompletedFromWorkoutData(workoutData, dayIndex = 0, workoutId = null
     exercises.filter(ex => ex?.id && ex.completed).map(ex => ex.id)
   );
   // Merge with localStorage fallback (covers cases where API save was in-flight during app close)
-  if (workoutId) {
+  const key = completionStorageKey(workoutId, dayIndex);
+  if (key) {
     try {
-      const stored = localStorage.getItem(`completedExercises_${workoutId}`);
+      const stored = localStorage.getItem(key);
       if (stored) {
         const ids = JSON.parse(stored);
         if (Array.isArray(ids)) {
           ids.forEach(id => fromData.add(id));
         }
+      }
+      // Clean up legacy key (without day index) to prevent stale data from being
+      // picked up if old code is ever used or if we fall back
+      const legacyKey = `completedExercises_${workoutId}`;
+      if (localStorage.getItem(legacyKey)) {
+        localStorage.removeItem(legacyKey);
       }
     } catch (e) { /* ignore */ }
   }
@@ -1345,8 +1359,8 @@ function Workouts() {
       // Save to localStorage immediately so it survives app close
       try {
         const workout = todayWorkoutRef.current;
-        if (workout?.id) {
-          const key = `completedExercises_${workout.id}`;
+        const key = completionStorageKey(workout?.id, workout?.day_index);
+        if (key) {
           localStorage.setItem(key, JSON.stringify([...newCompleted]));
         }
       } catch (e) { /* ignore localStorage errors */ }
@@ -1443,9 +1457,8 @@ function Workouts() {
     // Clear localStorage cache
     try {
       const workout = todayWorkoutRef.current;
-      if (workout?.id) {
-        localStorage.removeItem(`completedExercises_${workout.id}`);
-      }
+      const key = completionStorageKey(workout?.id, workout?.day_index);
+      if (key) localStorage.removeItem(key);
     } catch (e) { /* ignore */ }
 
     // Update workout_data to clear completed flags on all exercises
@@ -2071,9 +2084,8 @@ function Workouts() {
           next.add(updatedExercise.id);
           // Persist to localStorage
           try {
-            if (workout?.id) {
-              localStorage.setItem(`completedExercises_${workout.id}`, JSON.stringify([...next]));
-            }
+            const key = completionStorageKey(workout?.id, workout?.day_index);
+            if (key) localStorage.setItem(key, JSON.stringify([...next]));
           } catch (e) { /* ignore */ }
           return next;
         });
@@ -2604,7 +2616,8 @@ function Workouts() {
       // Clear localStorage completion cache since workout is done
       try {
         const workout = todayWorkoutRef.current;
-        if (workout?.id) localStorage.removeItem(`completedExercises_${workout.id}`);
+        const key = completionStorageKey(workout?.id, workout?.day_index);
+        if (key) localStorage.removeItem(key);
       } catch (e) { /* ignore */ }
       // Show summary modal
       setCompletingWorkout(false);
@@ -3798,7 +3811,8 @@ function Workouts() {
                         setWorkoutStartTime(null);
                         try {
                           const w = todayWorkoutRef.current;
-                          if (w?.id) localStorage.removeItem(`completedExercises_${w.id}`);
+                          const k = completionStorageKey(w?.id, w?.day_index);
+                          if (k) localStorage.removeItem(k);
                         } catch (ex) { /* ignore */ }
                       }}
                     >
