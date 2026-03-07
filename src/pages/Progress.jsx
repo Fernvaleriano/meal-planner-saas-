@@ -16,7 +16,7 @@ const getLocalDateString = () => {
 
 // Image compression utility
 const compressImage = (file, maxWidth = 1200, quality = 0.8) => {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => {
       const img = new Image();
@@ -34,8 +34,10 @@ const compressImage = (file, maxWidth = 1200, quality = 0.8) => {
         ctx.drawImage(img, 0, 0, width, height);
         resolve(canvas.toDataURL('image/jpeg', quality));
       };
+      img.onerror = () => reject(new Error('Failed to load image'));
       img.src = e.target.result;
     };
+    reader.onerror = () => reject(new Error('Failed to read file'));
     reader.readAsDataURL(file);
   });
 };

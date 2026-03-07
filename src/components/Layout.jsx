@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo, useMemo } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import TopNav from './TopNav';
 import BottomNav from './BottomNav';
@@ -18,6 +18,23 @@ import Plans from '../pages/Plans';
 // These pages are kept alive (mounted but hidden) after first visit
 // so switching tabs is instant — no remount, no refetch, no flash.
 const TAB_PATHS = ['/', '/diary', '/messages', '/workouts', '/plans'];
+
+// Memoize tab components so they don't re-render when Layout re-renders.
+// Without this, every route change triggers all 5 mounted tab trees to re-render
+// even when hidden with display:none — wasted CPU, dropped frames, scroll jank.
+const MemoizedDashboard = memo(Dashboard);
+const MemoizedDiary = memo(Diary);
+const MemoizedMessages = memo(Messages);
+const MemoizedWorkouts = memo(Workouts);
+const MemoizedPlans = memo(Plans);
+
+const TAB_COMPONENTS = {
+  '/': MemoizedDashboard,
+  '/diary': MemoizedDiary,
+  '/messages': MemoizedMessages,
+  '/workouts': MemoizedWorkouts,
+  '/plans': MemoizedPlans,
+};
 
 function getActiveTab(pathname) {
   if (pathname === '/') return '/';
@@ -55,15 +72,6 @@ function Layout() {
   const isMessagesPage = path === '/messages';
   // Hide bottom nav on full-screen builder pages
   const hideBottomNav = path.startsWith('/workouts/builder');
-
-  // Tab page components — rendered once, then kept alive
-  const TAB_COMPONENTS = {
-    '/': Dashboard,
-    '/diary': Diary,
-    '/messages': Messages,
-    '/workouts': Workouts,
-    '/plans': Plans,
-  };
 
   return (
     <div className="app-layout">
