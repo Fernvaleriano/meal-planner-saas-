@@ -5581,7 +5581,7 @@ function displayDietPlan(multiDayData) {
                                         <span style="font-weight: 600; color: #047857; font-size: 11px;"><svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:2px;"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>Voice Message:</span>
                                         <button onclick="deleteMealVoiceNote(${dayIndex}, ${mealIndex})" style="background: #dc2626; color: white; padding: 2px 8px; font-size: 10px; border-radius: 4px; border: none; cursor: pointer;">Delete</button>
                                     </div>
-                                    <audio controls src="${voiceNoteUrl}" style="width: 100%; height: 32px;"></audio>
+                                    <audio controls src="${voiceNoteUrl}" ${meal.voice_note_path ? `data-voice-path="${meal.voice_note_path}"` : ''} onerror="if(this.dataset.voicePath && !this.dataset.retried){this.dataset.retried='true';fetch('/.netlify/functions/get-signed-video-url',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({filePath:this.dataset.voicePath})}).then(r=>r.json()).then(d=>{if(d.success&&d.url){this.src=d.url;this.load()}}).catch(()=>{})}" style="width: 100%; height: 32px;"></audio>
                                 </div>
                                 ` : ''}
                             </div>

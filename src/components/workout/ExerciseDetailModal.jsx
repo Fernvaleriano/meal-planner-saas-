@@ -2585,6 +2585,25 @@ function ExerciseDetailModal({
               src={exercise.voiceNoteUrl}
               className="voice-note-audio-player"
               preload="none"
+              onError={(e) => {
+                const audio = e.target;
+                if (exercise.voiceNotePath && !audio.dataset.retried) {
+                  audio.dataset.retried = 'true';
+                  fetch('/.netlify/functions/get-signed-video-url', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ filePath: exercise.voiceNotePath })
+                  })
+                    .then(r => r.json())
+                    .then(data => {
+                      if (data.success && data.url) {
+                        audio.src = data.url;
+                        audio.load();
+                      }
+                    })
+                    .catch(() => {});
+                }
+              }}
             />
           </div>
         )}

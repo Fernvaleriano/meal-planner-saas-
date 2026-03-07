@@ -633,6 +633,26 @@ function WorkoutFeedCard({ workout, coachId, onUpdate, weightUnit = 'lbs' }) {
                             src={voiceNoteUrls[exercise.clientVoiceNotePath]}
                             preload="metadata"
                             className="feed-voice-note-player"
+                            onError={(e) => {
+                              const audio = e.target;
+                              const path = exercise.clientVoiceNotePath;
+                              if (path && !audio.dataset.retried) {
+                                audio.dataset.retried = 'true';
+                                fetch('/.netlify/functions/get-signed-video-url', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ filePath: path })
+                                })
+                                  .then(r => r.json())
+                                  .then(data => {
+                                    if (data.success && data.url) {
+                                      audio.src = data.url;
+                                      audio.load();
+                                    }
+                                  })
+                                  .catch(() => {});
+                              }
+                            }}
                           />
                         ) : (
                           <span className="voice-note-loading">Loading...</span>
