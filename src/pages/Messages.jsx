@@ -456,7 +456,7 @@ function Messages() {
             if (newMsg.sender_type !== myType) {
               setMessages(prev => {
                 if (prev.some(m => m.id === newMsg.id)) return prev;
-                return [...prev, newMsg];
+                return [...prev, { ...newMsg, reactions: [] }];
               });
               apiPost('/.netlify/functions/chat', {
                 action: 'mark-read',
@@ -824,47 +824,49 @@ function Messages() {
                   if (isMine) {
                     e.stopPropagation();
                     setSelectedMsgId(selectedMsgId === msg.id ? null : msg.id);
-                    setReactionPickerMsgId(null);
                   }
                 }}
               >
-                <div className={`chat-msg-bubble ${hasMedia ? 'media-bubble' : ''} ${isReaction ? 'reaction-bubble' : ''}`}>
-                  {renderMedia(msg)}
-                  {msg.message && <p>{msg.message}</p>}
+                <div className="chat-msg-wrapper">
+                  <div className={`chat-msg-bubble ${hasMedia ? 'media-bubble' : ''} ${isReaction ? 'reaction-bubble' : ''}`}>
+                    {renderMedia(msg)}
+                    {msg.message && <p>{msg.message}</p>}
 
-                  {/* Time + read receipt */}
-                  <span className="chat-msg-time">
-                    {formatMessageTime(msg.created_at)}
-                    {isMine && (
-                      <span className="chat-read-receipt">
-                        {msg.is_read ? (
-                          <CheckCheck size={14} className="chat-read-icon read" />
-                        ) : (
-                          <Check size={14} className="chat-read-icon" />
-                        )}
-                      </span>
+                    {/* Time + read receipt */}
+                    <span className="chat-msg-time">
+                      {formatMessageTime(msg.created_at)}
+                      {isMine && (
+                        <span className="chat-read-receipt">
+                          {msg.is_read ? (
+                            <CheckCheck size={14} className="chat-read-icon read" />
+                          ) : (
+                            <Check size={14} className="chat-read-icon" />
+                          )}
+                        </span>
+                      )}
+                    </span>
+
+                    {/* Unsend button */}
+                    {isMine && selectedMsgId === msg.id && (
+                      <button
+                        className="chat-unsend-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleUnsend(msg.id);
+                        }}
+                      >
+                        <Trash2 size={13} />
+                        Unsend
+                      </button>
                     )}
-                  </span>
+                  </div>
 
-                  {/* Unsend button */}
-                  {isMine && selectedMsgId === msg.id && (
-                    <button
-                      className="chat-unsend-btn"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleUnsend(msg.id);
-                      }}
-                    >
-                      <Trash2 size={13} />
-                      Unsend
-                    </button>
-                  )}
-
-                  {/* Reaction picker trigger */}
+                  {/* Reaction picker trigger - outside bubble to avoid click/overflow conflicts */}
                   <button
-                    className={`chat-reaction-trigger ${isMine ? 'left' : 'right'}`}
+                    className={`chat-reaction-trigger ${isMine ? 'trigger-left' : 'trigger-right'}`}
                     onClick={(e) => {
                       e.stopPropagation();
+                      e.preventDefault();
                       setReactionPickerMsgId(reactionPickerMsgId === msg.id ? null : msg.id);
                       setSelectedMsgId(null);
                     }}
