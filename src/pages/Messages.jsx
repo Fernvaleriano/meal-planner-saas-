@@ -306,22 +306,20 @@ function Messages() {
 
   // Toggle emoji reaction on a message
   const handleReaction = async (msgId, emoji) => {
-    const cId = isCoach ? coachId : activeConvo.coachId;
-    const clId = isCoach ? activeConvo.clientId : clientId;
-    const reactorType = isCoach ? 'coach' : 'client';
-    const reactorId = isCoach ? coachId : clientId;
+    const myReactorType = isCoach ? 'coach' : 'client';
+    const myReactorId = String(isCoach ? coachId : clientId);
 
     // Optimistic update
     setMessages(prev => prev.map(m => {
       if (m.id !== msgId) return m;
       const reactions = [...(m.reactions || [])];
       const existingIdx = reactions.findIndex(
-        r => r.emoji === emoji && r.reactor_type === reactorType && r.reactor_id === String(reactorId)
+        r => r.emoji === emoji && r.reactorType === myReactorType && r.reactorId === myReactorId
       );
       if (existingIdx >= 0) {
         reactions.splice(existingIdx, 1);
       } else {
-        reactions.push({ id: Date.now(), message_id: msgId, reactor_type: reactorType, reactor_id: String(reactorId), emoji });
+        reactions.push({ emoji, reactorType: myReactorType, reactorId: myReactorId });
       }
       return { ...m, reactions };
     }));
@@ -333,12 +331,11 @@ function Messages() {
         action: 'toggle-reaction',
         messageId: msgId,
         emoji,
-        reactorType,
-        reactorId: String(reactorId)
+        reactorType: myReactorType,
+        reactorId: myReactorId
       });
     } catch (err) {
       console.error('Error toggling reaction:', err);
-      // Revert on failure by re-fetching
       fetchMessages();
     }
   };
@@ -483,9 +480,9 @@ function Messages() {
             if (updated.deleted_at) {
               setMessages(prev => prev.filter(m => m.id !== updated.id));
             } else {
-              // Update read status
+              // Update read status + reactions (reactions stored as JSONB on the message)
               setMessages(prev => prev.map(m =>
-                m.id === updated.id ? { ...m, is_read: updated.is_read, read_at: updated.read_at } : m
+                m.id === updated.id ? { ...m, is_read: updated.is_read, read_at: updated.read_at, reactions: updated.reactions || [] } : m
               ));
             }
           }
@@ -524,41 +521,8 @@ function Messages() {
         }
       });
 
-    // Separate channel for reaction changes
-    const reactionsChannel = supabase
-      .channel(`chat-reactions-${cId}-${clId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'chat_message_reactions'
-        },
-        (payload) => {
-          if (payload.eventType === 'INSERT') {
-            const newReaction = payload.new;
-            setMessages(prev => prev.map(m => {
-              if (m.id !== newReaction.message_id) return m;
-              const reactions = [...(m.reactions || [])];
-              if (!reactions.some(r => r.id === newReaction.id)) {
-                reactions.push(newReaction);
-              }
-              return { ...m, reactions };
-            }));
-          } else if (payload.eventType === 'DELETE') {
-            const removed = payload.old;
-            setMessages(prev => prev.map(m => {
-              if (m.id !== removed.message_id) return m;
-              return { ...m, reactions: (m.reactions || []).filter(r => r.id !== removed.id) };
-            }));
-          }
-        }
-      )
-      .subscribe();
-
     return () => {
       supabase.removeChannel(channel);
-      supabase.removeChannel(reactionsChannel);
     };
   }, [activeConvo, isCoach, coachId, clientId, scrollToBottom, resubscribeKey]);
 
@@ -778,8 +742,8 @@ function Messages() {
             const hasMedia = !!msg.media_url;
             const isReaction = msg.message && /^Reacted .+ to your (breakfast|lunch|dinner|snack|meal|workout|new PR!|workout note)$/i.test(msg.message);
             const msgReactions = msg.reactions || [];
-            const reactorType = isCoach ? 'coach' : 'client';
-            const reactorId = String(isCoach ? coachId : clientId);
+            const myReactorType = isCoach ? 'coach' : 'client';
+            const myReactorId = String(isCoach ? coachId : clientId);
 
             // Group reactions by emoji with count and whether current user reacted
             const groupedReactions = [];
@@ -790,7 +754,7 @@ function Messages() {
                 groupedReactions.push(emojiMap[r.emoji]);
               }
               emojiMap[r.emoji].count++;
-              if (r.reactor_type === reactorType && r.reactor_id === reactorId) {
+              if (r.reactorType === myReactorType && r.reactorId === myReactorId) {
                 emojiMap[r.emoji].myReaction = true;
               }
             });
@@ -799,15 +763,32 @@ function Messages() {
               <div
                 key={msg.id}
                 className={`chat-msg ${isMine ? 'mine' : 'theirs'} ${isReaction ? 'reaction-msg' : ''}`}
-                onClick={(e) => {
-                  if (isMine) {
-                    e.stopPropagation();
-                    setSelectedMsgId(selectedMsgId === msg.id ? null : msg.id);
-                  }
-                }}
               >
-                <div className="chat-msg-wrapper">
-                  <div className={`chat-msg-bubble ${hasMedia ? 'media-bubble' : ''} ${isReaction ? 'reaction-bubble' : ''}`}>
+                <div className="chat-msg-row">
+                  {/* Reaction trigger on left for own messages */}
+                  {isMine && (
+                    <button
+                      className="chat-reaction-trigger"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setReactionPickerMsgId(reactionPickerMsgId === msg.id ? null : msg.id);
+                        setSelectedMsgId(null);
+                      }}
+                      title="React"
+                    >
+                      <SmilePlus size={16} />
+                    </button>
+                  )}
+
+                  <div
+                    className={`chat-msg-bubble ${hasMedia ? 'media-bubble' : ''} ${isReaction ? 'reaction-bubble' : ''}`}
+                    onClick={(e) => {
+                      if (isMine) {
+                        e.stopPropagation();
+                        setSelectedMsgId(selectedMsgId === msg.id ? null : msg.id);
+                      }
+                    }}
+                  >
                     {renderMedia(msg)}
                     {msg.message && <p>{msg.message}</p>}
 
@@ -840,38 +821,39 @@ function Messages() {
                     )}
                   </div>
 
-                  {/* Reaction picker trigger - outside bubble to avoid click/overflow conflicts */}
-                  <button
-                    className={`chat-reaction-trigger ${isMine ? 'trigger-left' : 'trigger-right'}`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      e.preventDefault();
-                      setReactionPickerMsgId(reactionPickerMsgId === msg.id ? null : msg.id);
-                      setSelectedMsgId(null);
-                    }}
-                    title="React"
-                  >
-                    <SmilePlus size={16} />
-                  </button>
-
-                  {/* Emoji reaction picker */}
-                  {reactionPickerMsgId === msg.id && (
-                    <div className={`chat-reaction-picker ${isMine ? 'picker-left' : 'picker-right'}`} onClick={(e) => e.stopPropagation()}>
-                      {REACTION_EMOJIS.map(emoji => (
-                        <button
-                          key={emoji}
-                          className={`chat-reaction-emoji-btn ${emojiMap[emoji]?.myReaction ? 'active' : ''}`}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleReaction(msg.id, emoji);
-                          }}
-                        >
-                          {emoji}
-                        </button>
-                      ))}
-                    </div>
+                  {/* Reaction trigger on right for other's messages */}
+                  {!isMine && (
+                    <button
+                      className="chat-reaction-trigger"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setReactionPickerMsgId(reactionPickerMsgId === msg.id ? null : msg.id);
+                        setSelectedMsgId(null);
+                      }}
+                      title="React"
+                    >
+                      <SmilePlus size={16} />
+                    </button>
                   )}
                 </div>
+
+                {/* Emoji reaction picker */}
+                {reactionPickerMsgId === msg.id && (
+                  <div className={`chat-reaction-picker ${isMine ? 'picker-right' : 'picker-left'}`} onClick={(e) => e.stopPropagation()}>
+                    {REACTION_EMOJIS.map(emoji => (
+                      <button
+                        key={emoji}
+                        className={`chat-reaction-emoji-btn ${emojiMap[emoji]?.myReaction ? 'active' : ''}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleReaction(msg.id, emoji);
+                        }}
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                )}
 
                 {/* Reactions display below bubble */}
                 {groupedReactions.length > 0 && (

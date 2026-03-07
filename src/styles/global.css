@@ -32111,6 +32111,7 @@ a.nav-left {
     padding: 10px 14px;
     border-radius: 18px;
     max-width: 100%;
+    min-width: 0;
     word-wrap: break-word;
 }
 
@@ -32458,52 +32459,40 @@ a.nav-left {
 
 /* ===== Message Reactions ===== */
 
-/* Wrapper for bubble + reaction trigger */
-.chat-msg-wrapper {
-    position: relative;
-    display: inline-flex;
+/* Row containing bubble + reaction trigger side by side */
+.chat-msg-row {
+    display: flex;
     align-items: center;
+    gap: 4px;
     max-width: 100%;
 }
 
-/* Reaction trigger button (SmilePlus icon) - outside bubble */
+/* Reaction trigger button (SmilePlus icon) - inline next to bubble */
 .chat-reaction-trigger {
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
     width: 28px;
     height: 28px;
+    min-width: 28px;
     border-radius: 50%;
     border: none;
-    background: var(--gray-100);
-    color: var(--gray-400);
+    background: transparent;
+    color: var(--gray-300);
     cursor: pointer;
-    display: none;
+    display: flex;
     align-items: center;
     justify-content: center;
     transition: all 0.15s;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    z-index: 5;
+    opacity: 0;
+    flex-shrink: 0;
 }
 
-.chat-reaction-trigger.trigger-left {
-    left: -34px;
-}
-
-.chat-reaction-trigger.trigger-right {
-    right: -34px;
-}
-
-.chat-msg:hover .chat-reaction-trigger,
-.chat-reaction-trigger:focus {
-    display: flex;
+.chat-msg:hover .chat-reaction-trigger {
+    opacity: 1;
 }
 
 /* Always show trigger on touch devices */
 @media (hover: none) {
     .chat-reaction-trigger {
-        display: flex;
-        opacity: 0.5;
+        opacity: 0.4;
     }
     .chat-reaction-trigger:active {
         opacity: 1;
@@ -32511,24 +32500,21 @@ a.nav-left {
 }
 
 .chat-reaction-trigger:hover {
-    background: var(--gray-200);
+    background: var(--gray-100);
     color: var(--brand-primary);
 }
 
 [data-theme="dark"] .chat-reaction-trigger {
-    background: var(--gray-200);
-    color: var(--gray-500);
+    color: var(--gray-400);
 }
 
 [data-theme="dark"] .chat-reaction-trigger:hover {
-    background: var(--gray-300);
+    background: var(--gray-200);
     color: var(--brand-primary);
 }
 
-/* Emoji picker popup */
+/* Emoji picker popup - positioned relative to the chat-msg */
 .chat-reaction-picker {
-    position: absolute;
-    top: -44px;
     display: flex;
     gap: 2px;
     padding: 6px 8px;
@@ -32537,14 +32523,15 @@ a.nav-left {
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15), 0 1px 4px rgba(0, 0, 0, 0.08);
     z-index: 10;
     animation: reaction-picker-in 0.15s ease-out;
+    width: fit-content;
 }
 
 .chat-reaction-picker.picker-left {
-    right: 0;
+    align-self: flex-start;
 }
 
 .chat-reaction-picker.picker-right {
-    left: 0;
+    align-self: flex-end;
 }
 
 @keyframes reaction-picker-in {
@@ -32678,7 +32665,7 @@ a.nav-left {
 }
 
 /* Tap hint cursor on own messages */
-.chat-msg.mine {
+.chat-msg.mine .chat-msg-bubble {
     cursor: pointer;
 }
 

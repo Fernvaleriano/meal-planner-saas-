@@ -161,7 +161,7 @@ exports.handler = async (event) => {
       if (action === 'messages' && coachId && clientId) {
         let query = supabase
           .from('chat_messages')
-          .select('id, sender_type, message, media_url, media_type, is_read, created_at')
+          .select('id, sender_type, message, media_url, media_type, is_read, created_at, reactions')
           .eq('coach_id', coachId)
           .eq('client_id', clientId)
           .is('deleted_at', null)
@@ -179,30 +179,12 @@ exports.handler = async (event) => {
           return { statusCode: 500, headers: corsHeaders, body: JSON.stringify({ error: messagesError.message }) };
         }
 
-        const orderedMessages = (messages || []).reverse();
+        // Ensure reactions is always an array
+        const orderedMessages = (messages || []).reverse().map(m => ({
+          ...m,
+          reactions: m.reactions || []
+        }));
 
-        // Fetch reactions for these messages
-        if (orderedMessages.length > 0) {
-          const messageIds = orderedMessages.map(m => m.id);
-          const { data: reactions } = await supabase
-            .from('chat_message_reactions')
-            .select('id, message_id, reactor_type, reactor_id, emoji')
-            .in('message_id', messageIds);
-
-          // Group reactions by message_id
-          const reactionsByMsg = {};
-          (reactions || []).forEach(r => {
-            if (!reactionsByMsg[r.message_id]) reactionsByMsg[r.message_id] = [];
-            reactionsByMsg[r.message_id].push(r);
-          });
-
-          // Attach reactions to messages
-          orderedMessages.forEach(msg => {
-            msg.reactions = reactionsByMsg[msg.id] || [];
-          });
-        }
-
-        // Reverse to chronological order for display
         return {
           statusCode: 200,
           headers: corsHeaders,
@@ -370,55 +352,50 @@ exports.handler = async (event) => {
           return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'reactorType must be coach or client' }) };
         }
 
-        // Check if reaction already exists
-        const { data: existing } = await supabase
-          .from('chat_message_reactions')
-          .select('id')
-          .eq('message_id', messageId)
-          .eq('reactor_type', reactorType)
-          .eq('reactor_id', String(reactorId))
-          .eq('emoji', emoji)
-          .maybeSingle();
+        // Fetch current reactions from the message's JSONB column
+        const { data: msg, error: fetchError } = await supabase
+          .from('chat_messages')
+          .select('reactions')
+          .eq('id', messageId)
+          .single();
 
-        if (existing) {
+        if (fetchError) {
+          console.error('Error fetching message for reaction:', fetchError);
+          return { statusCode: 500, headers: corsHeaders, body: JSON.stringify({ error: fetchError.message }) };
+        }
+
+        let reactions = msg.reactions || [];
+        const existingIdx = reactions.findIndex(
+          r => r.emoji === emoji && r.reactorType === reactorType && r.reactorId === String(reactorId)
+        );
+
+        let resultAction;
+        if (existingIdx >= 0) {
           // Remove existing reaction
-          const { error: deleteError } = await supabase
-            .from('chat_message_reactions')
-            .delete()
-            .eq('id', existing.id);
-
-          if (deleteError) {
-            return { statusCode: 500, headers: corsHeaders, body: JSON.stringify({ error: deleteError.message }) };
-          }
-
-          return {
-            statusCode: 200,
-            headers: corsHeaders,
-            body: JSON.stringify({ success: true, action: 'removed' })
-          };
+          reactions.splice(existingIdx, 1);
+          resultAction = 'removed';
         } else {
           // Add new reaction
-          const { data: newReaction, error: insertError } = await supabase
-            .from('chat_message_reactions')
-            .insert({
-              message_id: messageId,
-              reactor_type: reactorType,
-              reactor_id: String(reactorId),
-              emoji
-            })
-            .select()
-            .single();
-
-          if (insertError) {
-            return { statusCode: 500, headers: corsHeaders, body: JSON.stringify({ error: insertError.message }) };
-          }
-
-          return {
-            statusCode: 200,
-            headers: corsHeaders,
-            body: JSON.stringify({ success: true, action: 'added', reaction: newReaction })
-          };
+          reactions.push({ emoji, reactorType, reactorId: String(reactorId) });
+          resultAction = 'added';
         }
+
+        // Save updated reactions back to the message
+        const { error: updateError } = await supabase
+          .from('chat_messages')
+          .update({ reactions })
+          .eq('id', messageId);
+
+        if (updateError) {
+          console.error('Error updating reactions:', updateError);
+          return { statusCode: 500, headers: corsHeaders, body: JSON.stringify({ error: updateError.message }) };
+        }
+
+        return {
+          statusCode: 200,
+          headers: corsHeaders,
+          body: JSON.stringify({ success: true, action: resultAction, reactions })
+        };
       }
 
       return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'Invalid action' }) };
