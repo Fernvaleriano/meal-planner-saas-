@@ -32455,6 +32455,200 @@ a.nav-left {
     background: rgba(239, 68, 68, 0.2);
 }
 
+/* ===== Message Reactions ===== */
+
+/* Reaction trigger button (SmilePlus icon) */
+.chat-reaction-trigger {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: none;
+    background: var(--gray-100);
+    color: var(--gray-400);
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    z-index: 2;
+}
+
+.chat-reaction-trigger.left {
+    left: -34px;
+}
+
+.chat-reaction-trigger.right {
+    right: -34px;
+}
+
+.chat-msg:hover .chat-reaction-trigger,
+.chat-reaction-trigger:focus {
+    display: flex;
+}
+
+/* Always show trigger on touch devices */
+@media (hover: none) {
+    .chat-reaction-trigger {
+        display: flex;
+        opacity: 0.5;
+    }
+    .chat-reaction-trigger:active {
+        opacity: 1;
+    }
+}
+
+.chat-reaction-trigger:hover {
+    background: var(--gray-200);
+    color: var(--brand-primary);
+}
+
+[data-theme="dark"] .chat-reaction-trigger {
+    background: var(--gray-200);
+    color: var(--gray-500);
+}
+
+[data-theme="dark"] .chat-reaction-trigger:hover {
+    background: var(--gray-300);
+    color: var(--brand-primary);
+}
+
+/* Emoji picker popup */
+.chat-reaction-picker {
+    position: absolute;
+    top: -44px;
+    display: flex;
+    gap: 2px;
+    padding: 6px 8px;
+    border-radius: 24px;
+    background: white;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15), 0 1px 4px rgba(0, 0, 0, 0.08);
+    z-index: 10;
+    animation: reaction-picker-in 0.15s ease-out;
+}
+
+.chat-reaction-picker.picker-left {
+    right: 0;
+}
+
+.chat-reaction-picker.picker-right {
+    left: 0;
+}
+
+@keyframes reaction-picker-in {
+    from {
+        opacity: 0;
+        transform: scale(0.8) translateY(4px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+[data-theme="dark"] .chat-reaction-picker {
+    background: var(--gray-100);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+.chat-reaction-emoji-btn {
+    width: 36px;
+    height: 36px;
+    border: none;
+    background: transparent;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.12s;
+    line-height: 1;
+}
+
+.chat-reaction-emoji-btn:hover {
+    transform: scale(1.25);
+    background: var(--gray-100);
+}
+
+.chat-reaction-emoji-btn.active {
+    background: rgba(13, 148, 136, 0.12);
+}
+
+[data-theme="dark"] .chat-reaction-emoji-btn:hover {
+    background: var(--gray-200);
+}
+
+/* Reactions row displayed below message bubble */
+.chat-reactions-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: -4px;
+    margin-bottom: 4px;
+    padding: 0 4px;
+}
+
+.chat-reactions-row.reactions-right {
+    justify-content: flex-end;
+}
+
+.chat-reactions-row.reactions-left {
+    justify-content: flex-start;
+}
+
+.chat-reaction-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 2px 8px;
+    border-radius: 12px;
+    border: 1px solid var(--gray-200);
+    background: white;
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1.4;
+    transition: all 0.15s;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+.chat-reaction-chip:hover {
+    border-color: var(--brand-primary);
+    background: rgba(13, 148, 136, 0.04);
+}
+
+.chat-reaction-chip.my-reaction {
+    border-color: var(--brand-primary);
+    background: rgba(13, 148, 136, 0.08);
+}
+
+.reaction-count {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--gray-500);
+}
+
+.chat-reaction-chip.my-reaction .reaction-count {
+    color: var(--brand-primary);
+}
+
+[data-theme="dark"] .chat-reaction-chip {
+    background: var(--gray-100);
+    border-color: var(--gray-300);
+}
+
+[data-theme="dark"] .chat-reaction-chip:hover {
+    background: var(--gray-200);
+}
+
+[data-theme="dark"] .chat-reaction-chip.my-reaction {
+    background: rgba(13, 148, 136, 0.15);
+    border-color: var(--brand-primary);
+}
+
 /* Send spinner */
 .chat-send-spinner {
     width: 20px;
