@@ -918,16 +918,29 @@ function Workouts() {
         return;
       }
 
-      // Only show loading spinner if we don't have cached data
-      if (!cachedWorkouts) {
+      // Check per-date cache for the selected date (not always today).
+      // If we have cached data for this specific date, show it instantly
+      // while the fresh fetch runs in the background.
+      const dateStr = formatDate(selectedDate);
+      const dateCacheKey = `workouts_${clientData.id}_${dateStr}`;
+      const dateCache = getCache(dateCacheKey);
+
+      if (dateCache) {
+        // Show cached data instantly — no loading spinner
+        setTodayWorkout(dateCache.todayWorkout || null);
+        setTodayWorkouts(dateCache.todayWorkouts || []);
+        setWorkoutLog(dateCache.workoutLog || null);
+      } else {
+        // No cache for this date — show loading and clear stale content
         setLoading(true);
+        setTodayWorkout(null);
+        setTodayWorkouts([]);
+        setWorkoutLog(null);
       }
       setError(null);
       setExpandedWorkout(false);
 
       try {
-        const dateStr = formatDate(selectedDate);
-
         // apiGet() handles auth internally — no ensureFreshSession() needed.
         // The old call was adding 2-5s of delay on every date change because
         // it forced a full Supabase session refresh before data loading started.
@@ -952,17 +965,11 @@ function Workouts() {
 
         const allWorkouts = [];
 
-        // Process assignments - refresh signed URLs for custom videos
+        // Add assignments immediately (WITHOUT waiting for signed URL refresh).
+        // This eliminates the 3-10s delay where the UI showed nothing while
+        // signed URLs were being fetched for custom exercise videos.
         if (assignmentRes?.assignments?.length > 0) {
-          const refreshedAssignments = await Promise.all(
-            assignmentRes.assignments.map(async (assignment) => {
-              if (assignment.workout_data) {
-                assignment.workout_data = await refreshSignedUrls(assignment.workout_data, assignment.coach_id);
-              }
-              return assignment;
-            })
-          );
-          refreshedAssignments.forEach(a => allWorkouts.push(a));
+          assignmentRes.assignments.forEach(a => allWorkouts.push(a));
         }
 
         if (adhocRes?.workouts?.length > 0) {
@@ -1029,6 +1036,32 @@ function Workouts() {
           setWorkoutLog(null);
           setCompletedExercises(new Set());
           setCache(cacheKey, { todayWorkout: null, todayWorkouts: [], workoutLog: null });
+        }
+
+        // Refresh signed URLs in the background AFTER state is set.
+        // This way the UI shows workout content immediately, and video
+        // thumbnails/URLs update non-blockingly once signed URLs arrive.
+        if (assignmentRes?.assignments?.length > 0 && mounted) {
+          Promise.all(
+            assignmentRes.assignments.map(async (assignment) => {
+              if (assignment.workout_data) {
+                assignment.workout_data = await refreshSignedUrls(assignment.workout_data, assignment.coach_id);
+              }
+              return assignment;
+            })
+          ).then((refreshedAssignments) => {
+            if (!mounted) return;
+            setTodayWorkouts(prev => prev.map(w => {
+              const refreshed = refreshedAssignments.find(r => r.id === w.id);
+              return refreshed || w;
+            }));
+            // Also update the selected workout if it was refreshed
+            setTodayWorkout(prev => {
+              if (!prev) return prev;
+              const refreshed = refreshedAssignments.find(r => r.id === prev.id);
+              return refreshed || prev;
+            });
+          }).catch(() => { /* signed URL refresh is best-effort */ });
         }
       } catch (err) {
         console.error('Error fetching workout:', err);

@@ -419,6 +419,19 @@ function Messages() {
     }
   }, [activeConvo, fetchMessages]);
 
+  // Polling fallback: refetch messages every 15s when a conversation is open.
+  // Supabase Realtime can silently fail (RLS blocks events, WebSocket drops
+  // without error). This ensures messages always appear within 15 seconds
+  // even when realtime is broken. The polling is lightweight — it only runs
+  // when a conversation is actively open, and stops when the user leaves.
+  useEffect(() => {
+    if (!activeConvo) return;
+    const interval = setInterval(() => {
+      fetchMessages();
+    }, 15000);
+    return () => clearInterval(interval);
+  }, [activeConvo, fetchMessages]);
+
   // Auto-scroll to bottom whenever messages change
   useEffect(() => {
     if (messages.length > 0) {
@@ -445,8 +458,11 @@ function Messages() {
     const cId = isCoach ? coachId : activeConvo.coachId;
     const clId = isCoach ? activeConvo.clientId : clientId;
 
+    // Include resubscribeKey in channel name to avoid collision with the
+    // channel being torn down. Without this, removeChannel (async) and the
+    // new subscription race, and the new channel silently fails to connect.
     const channel = supabase
-      .channel(`chat-${cId}-${clId}`)
+      .channel(`chat-${cId}-${clId}-${resubscribeKey}`)
       .on(
         'postgres_changes',
         {
@@ -457,7 +473,9 @@ function Messages() {
         },
         (payload) => {
           const newMsg = payload.new;
-          if (newMsg.client_id === parseInt(clId)) {
+          // Use == for type-coerced comparison — Supabase payload types
+          // may differ from local JS types (string vs number)
+          if (String(newMsg.client_id) === String(clId)) {
             const myType = isCoach ? 'coach' : 'client';
             if (newMsg.sender_type !== myType) {
               setMessages(prev => {
@@ -503,7 +521,7 @@ function Messages() {
         },
         (payload) => {
           const updated = payload.new;
-          if (updated.client_id === parseInt(clId)) {
+          if (String(updated.client_id) === String(clId)) {
             // If soft-deleted, remove from view (also handles reaction removal)
             if (updated.deleted_at) {
               setMessages(prev => prev.filter(m => m.id !== updated.id));
@@ -562,7 +580,7 @@ function Messages() {
     const filterValue = isCoach ? coachId : clientId;
 
     const channel = supabase
-      .channel(`chat-list-${filterValue}`)
+      .channel(`chat-list-${filterValue}-${resubscribeKey}`)
       .on(
         'postgres_changes',
         {
