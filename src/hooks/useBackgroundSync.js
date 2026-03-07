@@ -17,7 +17,7 @@
  */
 
 import { useEffect, useRef, useCallback } from 'react';
-import { onAppResume, getBackgroundDuration } from './useAppLifecycle';
+import { onAppResume } from './useAppLifecycle';
 
 /**
  * @param {Function} refreshFn   Async function that fetches fresh data.

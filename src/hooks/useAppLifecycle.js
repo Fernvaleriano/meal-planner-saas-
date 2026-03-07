@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback } from 'react';
-import { ensureFreshSession, _setResumeGate } from '../utils/api';
+import { clearSessionCache, ensureFreshSession } from '../utils/api';
 
 /**
  * App Lifecycle Hook
@@ -10,108 +10,30 @@ import { ensureFreshSession, _setResumeGate } from '../utils/api';
  *
  * Provides:
  * - visibilitychange detection (app backgrounded/foregrounded)
- * - Session refresh on resume
+ * - Session refresh on resume (non-blocking — pages can fetch immediately)
  * - Subscriber pattern so components can register their own resume/suspend handlers
  * - Watchdog that catches stuck body styles even if visibilitychange doesn't fire
- * - Resume gate: blocks ALL API calls until the session is refreshed, preventing
- *   race conditions where pages fetch with stale tokens
- * - Keep-alive: Web Lock + silent ping to resist OS from killing the process
  * - Network reconnection detection (online/offline events)
- * - Stuck-state recovery: detects when resume hangs and forces recovery
+ *
+ * KEY DESIGN DECISION: Session refresh is NON-BLOCKING on resume.
+ * The old "resume gate" pattern blocked ALL API calls until the session refresh
+ * completed. On iOS, supabase.auth.refreshSession() can hang for 8-30 seconds
+ * because the HTTP connection died during suspension. This caused the exact
+ * "data stops loading" symptom users reported. Instead, we:
+ * 1. Immediately invalidate the session cache (forces fresh getSession on next call)
+ * 2. Fire session refresh in the background (non-blocking)
+ * 3. Notify all page subscribers immediately so they can refetch data
+ * 4. Pages that get a 401 will auto-retry after the refresh completes (existing logic)
+ *
+ * The old "keep-alive" system (Web Lock, silent AudioContext, background pings) has
+ * been removed. iOS freezes all JS execution when backgrounded regardless of these
+ * workarounds, so they only wasted battery without preventing suspension.
  */
 
 // Global subscriber registry — persists across renders and component mounts
 const subscribers = new Set();
 let lastSuspendTime = null;
-
-// Track whether the app is currently in a stuck/failed resume state.
-// Components (like SyncIndicator) can read this to show recovery UI.
-let resumeStuck = false;
 let lastSuccessfulResume = Date.now();
-
-// ── KEEP-ALIVE: Resist OS from killing the app process ──
-// Uses multiple strategies because no single one works on all platforms:
-// 1. Web Locks API — tells the browser this tab is "in use, don't discard"
-// 2. Periodic silent ping — lightweight network activity keeps the process warm
-// 3. Silent AudioContext — keeps iOS WebView active (iOS kills silent tabs)
-
-let keepAliveActive = false;
-let keepAlivePingInterval = null;
-let webLockController = null;
-let keepAliveAudioCtx = null;
-
-function startKeepAlive() {
-  if (keepAliveActive) return;
-  keepAliveActive = true;
-
-  // Strategy 1: Web Locks API — hold a lock for the app lifetime.
-  // Signals to the browser that this tab shouldn't be discarded.
-  if (navigator.locks) {
-    const controller = new AbortController();
-    webLockController = controller;
-    navigator.locks.request('zique-keep-alive', { signal: controller.signal }, () => {
-      // Return a promise that never resolves — holds the lock forever
-      return new Promise(() => {});
-    }).catch(() => {});
-  }
-
-  // Strategy 2: Periodic silent ping every 20s while backgrounded.
-  // A tiny HEAD request to our own origin keeps the network stack alive
-  // and prevents the OS from marking the WebView as idle.
-  keepAlivePingInterval = setInterval(() => {
-    if (document.visibilityState === 'hidden') {
-      fetch('/manifest.json', { method: 'HEAD', cache: 'no-store' }).catch(() => {});
-    }
-  }, 20000);
-
-  // Strategy 3: Silent AudioContext — on iOS, having an active audio session
-  // prevents the WebView from being suspended. The gain is 0 so no sound plays.
-  try {
-    const AC = window.AudioContext || window.webkitAudioContext;
-    if (AC) {
-      keepAliveAudioCtx = new AC();
-      const oscillator = keepAliveAudioCtx.createOscillator();
-      const gain = keepAliveAudioCtx.createGain();
-      gain.gain.value = 0; // completely silent
-      oscillator.connect(gain);
-      gain.connect(keepAliveAudioCtx.destination);
-      oscillator.start();
-
-      // iOS requires user interaction to start audio
-      const resumeAudio = () => {
-        if (keepAliveAudioCtx && keepAliveAudioCtx.state === 'suspended') {
-          keepAliveAudioCtx.resume().catch(() => {});
-        }
-      };
-      document.addEventListener('touchstart', resumeAudio, { once: true, passive: true });
-      document.addEventListener('click', resumeAudio, { once: true });
-    }
-  } catch {
-    // AudioContext not available — skip
-  }
-
-  console.log('[AppLifecycle] Keep-alive started');
-}
-
-function stopKeepAlive() {
-  if (!keepAliveActive) return;
-  keepAliveActive = false;
-
-  if (keepAlivePingInterval) {
-    clearInterval(keepAlivePingInterval);
-    keepAlivePingInterval = null;
-  }
-  if (webLockController) {
-    webLockController.abort();
-    webLockController = null;
-  }
-  if (keepAliveAudioCtx) {
-    keepAliveAudioCtx.close().catch(() => {});
-    keepAliveAudioCtx = null;
-  }
-
-  console.log('[AppLifecycle] Keep-alive stopped');
-}
 
 /**
  * Subscribe a handler to app lifecycle events.
@@ -136,14 +58,6 @@ export function onAppSuspend(handler) {
 export function getBackgroundDuration() {
   if (!lastSuspendTime) return 0;
   return Date.now() - lastSuspendTime;
-}
-
-/**
- * Check if the app is in a stuck resume state.
- * Used by SyncIndicator to decide whether to show the reload button.
- */
-export function isResumeStuck() {
-  return resumeStuck;
 }
 
 /**
@@ -176,84 +90,32 @@ function cleanupStuckScrollLock() {
 
 /**
  * Notify all resume subscribers and perform cleanup.
- * Extracted so both visibilitychange AND the heartbeat can call it.
  *
- * Includes a stuck-state safety net: if the entire resume flow takes longer
- * than RESUME_STUCK_TIMEOUT, we dispatch a 'stuck' phase so the SyncIndicator
- * can show a "Reload" button. This prevents the user from being stuck with
- * "Reconnecting..." forever.
+ * The session refresh runs in the background — it does NOT block subscribers.
+ * Pages get notified immediately and can start refetching. If their token is
+ * stale, the existing 401-retry logic in authenticatedFetch handles it.
  */
-const RESUME_STUCK_TIMEOUT = 25000; // 25 seconds — generous timeout to avoid false positives
-
 async function triggerResume(backgroundMs) {
-  resumeStuck = false;
-
-  // Let the UI know we're syncing (used by SyncIndicator)
+  // Show the syncing indicator briefly for long backgrounds
   if (backgroundMs > 5000) {
     window.dispatchEvent(new CustomEvent('app-resume-sync', { detail: { phase: 'start' } }));
   }
 
-  // Safety net: if the resume flow hangs, tell the UI we're stuck so it can
-  // show a reload button. The user shouldn't have to pull-to-refresh or
-  // kill the app to recover.
-  let stuckTimer;
+  // STEP 1: Immediately invalidate session cache so the next getAuthToken()
+  // call fetches a fresh session instead of using a potentially expired cached one.
+  // This is fast (synchronous) and ensures no stale tokens are used.
+  clearSessionCache();
+
+  // STEP 2: Kick off session refresh in the background (non-blocking).
+  // This refreshes the JWT token while pages are already refetching data.
+  // If pages get a 401, the authenticatedFetch retry logic handles it.
   if (backgroundMs > 5000) {
-    stuckTimer = setTimeout(() => {
-      // Only show stuck banner if actually offline. If the device is online
-      // the app is almost certainly working fine — showing the banner is a
-      // false positive that makes the app feel broken when it isn't.
-      if (!navigator.onLine) {
-        resumeStuck = true;
-        console.warn('[AppLifecycle] Resume stuck + offline after', RESUME_STUCK_TIMEOUT, 'ms');
-        window.dispatchEvent(new CustomEvent('app-resume-sync', { detail: { phase: 'stuck' } }));
-      } else {
-        console.log('[AppLifecycle] Resume slow but online — suppressing stuck banner');
-        // Still dispatch 'done' to clean up the syncing bar if it's showing
-        window.dispatchEvent(new CustomEvent('app-resume-sync', { detail: { phase: 'done' } }));
-      }
-    }, RESUME_STUCK_TIMEOUT);
+    ensureFreshSession().catch((e) => {
+      console.error('[AppLifecycle] background session refresh error:', e);
+    });
   }
 
-  // If backgrounded for more than 5 seconds, refresh auth session.
-  // CRITICAL: We set a "resume gate" that blocks ALL getAuthToken() calls
-  // until the session refresh completes. This prevents the race condition
-  // where page useEffects fire API calls with the old expired token
-  // before ensureFreshSession() has finished.
-  if (backgroundMs > 5000) {
-    let resolveGate;
-    const gate = new Promise((resolve) => { resolveGate = resolve; });
-    _setResumeGate(gate);
-
-    try {
-      // CRITICAL: _bypassGate must be true here. We just set the resume gate
-      // above, and ensureFreshSession → getAuthToken normally waits on it.
-      // Without the bypass this would deadlock: getAuthToken waits for a gate
-      // that can't resolve until this very call returns.
-      //
-      // TIMEOUT: Cap session refresh at 8 seconds. On poor mobile connections,
-      // supabase.auth.refreshSession() can hang for 20-30s. Rather than blocking
-      // the entire app, let the gate open after 8s and let pages try with whatever
-      // token we have (they'll get a 401 and retry if needed).
-      const SESSION_REFRESH_TIMEOUT = 8000;
-      await Promise.race([
-        ensureFreshSession({ _bypassGate: true }),
-        new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Session refresh timeout')), SESSION_REFRESH_TIMEOUT)
-        )
-      ]);
-    } catch (e) {
-      console.error('[AppLifecycle] session refresh error:', e);
-    } finally {
-      resolveGate();
-      _setResumeGate(null);
-    }
-  }
-
-  // Clean up any stuck scroll locks — but only if no full-screen overlay
-  // (like GuidedWorkoutModal) is actively managing the lock.
-  // GuidedWorkoutModal re-applies overflow:hidden in its own resume handler,
-  // but if we clear it first there's a brief window where touch events can
-  // scroll the body on iOS Safari, causing the viewport to freeze.
+  // STEP 3: Clean up stuck scroll locks — but only if no overlay is active
   if (backgroundMs > 3000) {
     const activeOverlay = document.querySelector(
       '.guided-workout-overlay, .exercise-modal-overlay-v2, .swap-modal-overlay, ' +
@@ -266,7 +128,8 @@ async function triggerResume(backgroundMs) {
     }
   }
 
-  // Notify all resume subscribers with how long we were away
+  // STEP 4: Notify all resume subscribers IMMEDIATELY — don't wait for session refresh.
+  // Each page re-fetches its own data. authenticatedFetch handles token issues.
   for (const entry of subscribers) {
     if (entry.type === 'resume') {
       try {
@@ -277,16 +140,14 @@ async function triggerResume(backgroundMs) {
     }
   }
 
-  // Clear the stuck timer — we completed successfully
-  if (stuckTimer) {
-    clearTimeout(stuckTimer);
-  }
-  resumeStuck = false;
   lastSuccessfulResume = Date.now();
 
-  // Signal sync complete (used by SyncIndicator)
+  // Signal sync complete
   if (backgroundMs > 5000) {
-    window.dispatchEvent(new CustomEvent('app-resume-sync', { detail: { phase: 'done' } }));
+    // Small delay so the indicator is visible briefly (feels like something happened)
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('app-resume-sync', { detail: { phase: 'done' } }));
+    }, 800);
   }
 }
 
@@ -294,7 +155,7 @@ async function triggerResume(backgroundMs) {
  * Core lifecycle hook — mount this ONCE at the app root level.
  * It listens for visibilitychange and coordinates all resume/suspend work.
  *
- * CRITICAL: Also uses a heartbeat timer to detect app resume on iOS devices
+ * Also uses a heartbeat timer to detect app resume on iOS devices
  * where visibilitychange doesn't fire (common in PWAs and WebViews).
  * The heartbeat fires every 2s — if >5s elapsed since the last tick,
  * the app was suspended and we trigger all resume handlers.
@@ -302,35 +163,24 @@ async function triggerResume(backgroundMs) {
 export function useAppLifecycle() {
   const suspendTimeRef = useRef(null);
   const isResumingRef = useRef(false);
-  const resumeStartedAtRef = useRef(null);
 
   const handleResume = useCallback(async (backgroundMs) => {
-    // Prevent double-fires, but with a safety valve: if the previous resume
-    // has been running for over 15 seconds, it's stuck. Force-reset and retry.
-    if (isResumingRef.current) {
-      const elapsed = resumeStartedAtRef.current
-        ? Date.now() - resumeStartedAtRef.current
-        : 0;
-      if (elapsed < 15000) return; // genuinely still running, skip
-      console.warn('[AppLifecycle] Previous resume stuck for', elapsed, 'ms — forcing reset');
-      isResumingRef.current = false;
-      // Also force-clear any stuck resume gate
-      _setResumeGate(null);
-    }
+    // Prevent double-fires from heartbeat + visibilitychange both detecting the same resume.
+    // Simple guard: if we're already resuming and it's been less than 3 seconds, skip.
+    if (isResumingRef.current) return;
 
     isResumingRef.current = true;
-    resumeStartedAtRef.current = Date.now();
-
     suspendTimeRef.current = null;
+
     try {
       await triggerResume(backgroundMs);
     } catch (e) {
       console.error('[AppLifecycle] triggerResume threw:', e);
-      // Ensure the gate is always cleared even on unexpected errors
-      _setResumeGate(null);
     } finally {
-      isResumingRef.current = false;
-      resumeStartedAtRef.current = null;
+      // Allow next resume after a brief cooldown to prevent rapid re-fires
+      setTimeout(() => {
+        isResumingRef.current = false;
+      }, 2000);
     }
   }, []);
 
@@ -351,11 +201,6 @@ export function useAppLifecycle() {
         }
       }
     } else if (document.visibilityState === 'visible') {
-      // Re-activate the silent audio context on resume (iOS suspends it)
-      if (keepAliveAudioCtx && keepAliveAudioCtx.state === 'suspended') {
-        keepAliveAudioCtx.resume().catch(() => {});
-      }
-
       const backgroundMs = suspendTimeRef.current
         ? Date.now() - suspendTimeRef.current
         : 0;
@@ -364,10 +209,6 @@ export function useAppLifecycle() {
   }, [handleResume]);
 
   useEffect(() => {
-    // Start the keep-alive system immediately — this is what keeps the app
-    // alive in the background as long as possible
-    startKeepAlive();
-
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
     // Also handle the pageshow event for bfcache restoration (iOS Safari)
@@ -379,17 +220,11 @@ export function useAppLifecycle() {
     window.addEventListener('pageshow', handlePageShow);
 
     // ── ONLINE/OFFLINE: Detect network reconnection ──
-    // When the device comes back online after being offline (common during
-    // workouts with poor gym WiFi), trigger a resume-like sync. This handles
-    // the case where visibilitychange fired but the network wasn't available yet.
     const handleOnline = () => {
       console.log('[AppLifecycle] Network reconnected');
-      // Only trigger if we're visible (not in background) and it's been a while
-      // since the last successful resume
       if (document.visibilityState === 'visible') {
         const sinceLastResume = Date.now() - lastSuccessfulResume;
         if (sinceLastResume > 5000) {
-          console.log('[AppLifecycle] Triggering sync after network reconnection');
           handleResume(sinceLastResume);
         }
       }
@@ -397,7 +232,6 @@ export function useAppLifecycle() {
 
     const handleOffline = () => {
       console.log('[AppLifecycle] Network lost');
-      // Dispatch an event so the SyncIndicator can show "No connection"
       window.dispatchEvent(new CustomEvent('app-resume-sync', { detail: { phase: 'offline' } }));
     };
 
@@ -405,17 +239,14 @@ export function useAppLifecycle() {
     window.addEventListener('offline', handleOffline);
 
     // ── HEARTBEAT: Detect app resume when visibilitychange doesn't fire ──
-    // On iOS PWAs / WebViews, visibilitychange is unreliable.
-    // setInterval callbacks are paused during suspend and fire on resume.
-    // If the gap between ticks is >5s, the app was backgrounded.
+    // On iOS PWAs, visibilitychange is unreliable. setInterval callbacks are
+    // paused during suspend and fire on resume. If the gap is >5s, we resumed.
     let lastHeartbeat = Date.now();
     const heartbeatInterval = setInterval(() => {
       const now = Date.now();
       const gap = now - lastHeartbeat;
       lastHeartbeat = now;
 
-      // If more than 5 seconds elapsed between 2-second ticks,
-      // the app was suspended. Trigger resume cleanup.
       if (gap > 5000) {
         console.log('[AppLifecycle] Heartbeat detected resume after', gap, 'ms');
         handleResume(gap);
@@ -423,9 +254,6 @@ export function useAppLifecycle() {
     }, 2000);
 
     // ── WATCHDOG: Detect stuck scroll locks on first touch ──
-    // Even after heartbeat fires, the first touch/click is a safety net.
-    // Throttled to run at most once per 2 seconds to avoid running an
-    // expensive querySelector on every single touch/click event.
     let lastWatchdogRun = 0;
     const handleTouchStart = () => {
       const now = Date.now();
@@ -439,7 +267,6 @@ export function useAppLifecycle() {
 
       if (!hasScrollLock) return;
 
-      // Check if any modal overlay is actually rendered and visible
       const activeOverlay = document.querySelector(
         '.exercise-modal-overlay-v2, .swap-modal-overlay, .readiness-overlay, ' +
         '.workout-summary-overlay, .workout-history-overlay, .delete-confirm-overlay, ' +
@@ -447,12 +274,10 @@ export function useAppLifecycle() {
       );
 
       if (!activeOverlay) {
-        // Scroll lock is stuck with no visible modal — clean it up
         cleanupStuckScrollLock();
       }
     };
 
-    // Use capture phase so we see the event even if something else calls stopPropagation
     document.addEventListener('touchstart', handleTouchStart, { capture: true, passive: true });
     document.addEventListener('click', handleTouchStart, { capture: true });
 
@@ -464,7 +289,6 @@ export function useAppLifecycle() {
       clearInterval(heartbeatInterval);
       document.removeEventListener('touchstart', handleTouchStart, { capture: true });
       document.removeEventListener('click', handleTouchStart, { capture: true });
-      stopKeepAlive();
     };
   }, [handleVisibilityChange, handleResume]);
 }

@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, apiPut, apiDelete } from '../utils/api';
 import { FavoritesModal, SnapPhotoModal, ScanLabelModal, SearchFoodsModal } from '../components/FoodModals';
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
+import { onAppResume } from '../hooks/useAppLifecycle';
 
 // localStorage cache helpers
 const getCache = (key) => {
@@ -310,6 +311,16 @@ function Diary() {
 
   // Setup pull-to-refresh
   const { isRefreshing, indicatorRef, bindToContainer, threshold } = usePullToRefresh(refreshDiaryData);
+
+  // Re-fetch data when app resumes from background.
+  // Without this, backgrounding for >5s leaves stale diary data on screen.
+  useEffect(() => {
+    const unsub = onAppResume((backgroundMs) => {
+      if (backgroundMs < 3000) return;
+      refreshDiaryData();
+    });
+    return () => unsub();
+  }, [refreshDiaryData]);
 
   // Cleanup timers and microphone on component unmount
   useEffect(() => {

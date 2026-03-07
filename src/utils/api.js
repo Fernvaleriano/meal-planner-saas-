@@ -19,21 +19,7 @@ let sessionCache = {
   refreshPromise: null
 };
 
-// Resume gate: a Promise that resolves once the app lifecycle's
-// ensureFreshSession() call completes after returning from background.
-// Any getAuthToken() call will await this before proceeding, which
-// prevents the race condition where page fetches fire with a stale token.
-let resumeGate = null;
-
-/**
- * Set or clear the resume gate. Called only by useAppLifecycle.
- * @param {Promise|null} gate
- */
-export function _setResumeGate(gate) {
-  resumeGate = gate;
-}
-
-// Session is considered fresh if retrieved within the last 2 minutes (reduced API overhead)
+// Session is considered fresh if retrieved within the last 2 minutes
 const SESSION_CACHE_TTL = 120000;
 
 // Session is considered stale if it expires within the next 5 minutes
@@ -42,63 +28,44 @@ const SESSION_EXPIRY_BUFFER = 5 * 60 * 1000;
 // Network request timeout — prevents indefinite hangs on poor mobile connections
 const FETCH_TIMEOUT_MS = 15000;
 
-// Maximum time to wait on the resume gate before proceeding anyway.
-// This prevents API calls from hanging indefinitely if the gate promise
-// never resolves (e.g., triggerResume crashes or the network is dead).
-const RESUME_GATE_TIMEOUT = 12000;
+// Session refresh timeout — on iOS resume, supabase.auth.refreshSession() can
+// hang for 20-30s because the HTTP connection died during suspension. Cap it so
+// we fall back to getSession() or 401-retry instead of blocking the data layer.
+const SESSION_REFRESH_TIMEOUT = 6000;
 
 /**
- * Get auth token with proactive session refresh
- * This ensures the session is valid before making API calls
+ * Get auth token with proactive session refresh.
  *
- * @param {boolean} bypassGate  If true, skip waiting on the resume gate.
- *   ONLY used by ensureFreshSession when called from triggerResume(),
- *   which is the function that created the gate in the first place.
- *   Without this, triggerResume → ensureFreshSession → getAuthToken
- *   would deadlock (waiting on a gate that can't resolve until this returns).
+ * After app resume, the session cache is cleared (by clearSessionCache),
+ * so the first call after resume will always fetch a fresh session via
+ * supabase.auth.getSession() — which reads from local storage first (fast).
+ *
+ * If a refresh is already in progress (from another caller or the lifecycle
+ * hook), we DON'T block waiting for it. Instead we try getSession() which
+ * returns whatever token Supabase has locally. If that token is expired,
+ * the 401-retry path in authenticatedFetch will handle it.
  */
-
-async function getAuthToken(bypassGate = false) {
-  // If the app just resumed from background, wait for the session refresh
-  // to complete before returning any token. This is the key fix that prevents
-  // the race condition where pages fetch with expired tokens.
-  if (!bypassGate && resumeGate) {
-    try {
-      await Promise.race([
-        resumeGate,
-        new Promise((resolve) => setTimeout(resolve, RESUME_GATE_TIMEOUT))
-      ]);
-    } catch {
-      // Gate rejected — proceed anyway, refreshSession below will handle it
-    }
-  }
-
+async function getAuthToken() {
   const now = Date.now();
-
-  // If we have a refresh in progress, wait for it
-  if (sessionCache.refreshPromise) {
-    try {
-      await sessionCache.refreshPromise;
-    } catch (e) {
-      // Ignore - we'll try to get a fresh session below
-    }
-  }
 
   // Check if cached session is still valid
   if (sessionCache.session && (now - sessionCache.timestamp) < SESSION_CACHE_TTL) {
     // Check if token is expiring soon
     const expiresAt = sessionCache.session.expires_at;
     if (expiresAt) {
-      const expiryTime = expiresAt * 1000; // Convert to milliseconds
+      const expiryTime = expiresAt * 1000;
       if (expiryTime - now < SESSION_EXPIRY_BUFFER) {
-        // Token expiring soon - refresh proactively
-        return await refreshSession();
+        // Kick off refresh but don't block — return current token immediately.
+        // The 401-retry path handles the case where this token is already expired.
+        refreshSession();
+        return sessionCache.session.access_token;
       }
     }
     return sessionCache.session.access_token;
   }
 
-  // Get current session
+  // No cached session (cleared on resume, or first call).
+  // supabase.auth.getSession() reads from local storage first — fast even offline.
   try {
     const { data: { session }, error } = await supabase.auth.getSession();
 
@@ -108,22 +75,22 @@ async function getAuthToken(bypassGate = false) {
     }
 
     if (session) {
-      // Check if token is expiring soon
+      // Cache it
+      sessionCache = {
+        ...sessionCache,
+        session,
+        timestamp: now
+      };
+
+      // If expiring soon, kick off background refresh (non-blocking)
       const expiresAt = session.expires_at;
       if (expiresAt) {
         const expiryTime = expiresAt * 1000;
         if (expiryTime - now < SESSION_EXPIRY_BUFFER) {
-          // Token expiring soon - refresh proactively
-          return await refreshSession();
+          refreshSession();
         }
       }
 
-      // Cache the session
-      sessionCache = {
-        session,
-        timestamp: now,
-        refreshPromise: null
-      };
       return session.access_token;
     }
 
@@ -135,59 +102,65 @@ async function getAuthToken(bypassGate = false) {
 }
 
 /**
- * Proactively refresh the session before it expires
+ * Refresh the session token.
+ *
+ * Coalesces concurrent calls: if a refresh is already in flight, all callers
+ * share the same promise (no TOCTOU race — the promise is stored synchronously
+ * before any await). Includes a 6-second timeout so iOS resume hangs don't
+ * block the data layer.
  */
 async function refreshSession() {
-  // Prevent concurrent refresh calls
+  // If a refresh is already in flight, piggyback on it
   if (sessionCache.refreshPromise) {
     try {
       const session = await sessionCache.refreshPromise;
       return session?.access_token || null;
     } catch (e) {
-      // Fall through to try again
+      return null;
     }
   }
 
-  const refreshPromise = (async () => {
-    try {
+  // Create and store the promise SYNCHRONOUSLY before any await.
+  // This eliminates the TOCTOU race where two callers both pass
+  // the if-check before either stores their promise.
+  const refreshPromise = Promise.race([
+    (async () => {
       const { data: { session }, error } = await supabase.auth.refreshSession();
-
       if (error) {
         console.error('Session refresh failed:', error);
-        // Clear cache on refresh failure
-        sessionCache = { session: null, timestamp: 0, refreshPromise: null };
         return null;
       }
-
+      return session || null;
+    })(),
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Session refresh timed out')), SESSION_REFRESH_TIMEOUT)
+    )
+  ]).then(
+    (session) => {
       if (session) {
-        sessionCache = {
-          session,
-          timestamp: Date.now(),
-          refreshPromise: null
-        };
-        return session;
+        sessionCache = { session, timestamp: Date.now(), refreshPromise: null };
+      } else {
+        sessionCache = { ...sessionCache, refreshPromise: null };
       }
-
-      return null;
-    } catch (error) {
-      console.error('Session refresh error:', error);
-      sessionCache = { session: null, timestamp: 0, refreshPromise: null };
+      return session;
+    },
+    (error) => {
+      console.error('Session refresh error:', error.message);
+      sessionCache = { ...sessionCache, refreshPromise: null };
       return null;
     }
-  })();
+  );
 
   sessionCache.refreshPromise = refreshPromise;
 
-  try {
-    const session = await refreshPromise;
-    return session?.access_token || null;
-  } finally {
-    sessionCache.refreshPromise = null;
-  }
+  const session = await refreshPromise;
+  return session?.access_token || null;
 }
 
 /**
- * Clear the session cache (call on logout or auth state change)
+ * Clear the session cache (call on logout, auth state change, or app resume).
+ * After clearing, the next getAuthToken() call will fetch a fresh session
+ * from Supabase instead of using a potentially stale cached token.
  */
 export function clearSessionCache() {
   sessionCache = { session: null, timestamp: 0, refreshPromise: null };
@@ -195,50 +168,32 @@ export function clearSessionCache() {
 }
 
 // Timestamp of the last successful session refresh via ensureFreshSession.
-// Used to skip redundant refresh calls that happen within a short window
-// (e.g. resume gate refreshes session, then each page also calls ensureFreshSession).
 let lastEnsureFreshTimestamp = 0;
 
-// If ensureFreshSession was called less than 5 seconds ago, skip the redundant refresh.
-// This is the key fix for the 30-35s resume delay: the resume gate already refreshes
-// the session, so pages calling ensureFreshSession immediately after don't need to
-// do it again.
+// Debounce window for ensureFreshSession calls
 const ENSURE_FRESH_DEBOUNCE = 5000;
 
 /**
- * Force a session refresh (useful after returning from background)
- *
- * @param {object} options
- * @param {boolean} options._bypassGate  Pass true ONLY when called from the
- *   resume flow (triggerResume) that owns the gate. Otherwise the call would
- *   deadlock: triggerResume sets gate → ensureFreshSession → getAuthToken
- *   awaits gate → gate resolves after ensureFreshSession returns → deadlock.
+ * Force a session refresh (useful after returning from background).
+ * Debounced: if called within 5s of a previous call, returns the cached token.
  */
-export async function ensureFreshSession({ _bypassGate = false } = {}) {
+export async function ensureFreshSession() {
   const now = Date.now();
 
-  // If the session was JUST refreshed (by the resume gate or a recent call),
-  // skip the redundant refresh — the cached token is still perfectly valid.
-  // This prevents the "double refresh" that was adding 10-20s on resume.
-  if (!_bypassGate && (now - lastEnsureFreshTimestamp) < ENSURE_FRESH_DEBOUNCE) {
-    // Session was refreshed very recently — use the cached token
-    return sessionCache.session?.access_token || await getAuthToken(_bypassGate);
+  if ((now - lastEnsureFreshTimestamp) < ENSURE_FRESH_DEBOUNCE) {
+    return sessionCache.session?.access_token || await getAuthToken();
   }
 
   // Clear cache to force a fresh check
   sessionCache.timestamp = 0;
-  const token = await getAuthToken(_bypassGate);
+  const token = await getAuthToken();
   lastEnsureFreshTimestamp = Date.now();
   return token;
 }
 
 // Authenticated fetch wrapper with improved error handling and timeout
 async function authenticatedFetch(url, options = {}) {
-  // GET requests skip the resume gate so the Service Worker can serve cached
-  // data instantly on resume. Writes (POST/PUT/DELETE) still wait for a fresh
-  // token because mutations with a stale token would fail and can't be cached.
-  const isRead = !options.method || options.method === 'GET';
-  const token = await getAuthToken(isRead && !!resumeGate);
+  const token = await getAuthToken();
 
   const headers = {
     'Content-Type': 'application/json',
@@ -280,8 +235,7 @@ async function authenticatedFetch(url, options = {}) {
       const newToken = await refreshSession();
 
       if (newToken && newToken !== token) {
-        // Retry with new token — with the same timeout protection as the original fetch.
-        // Without this, the retry can hang indefinitely on poor mobile connections.
+        // Retry with new token
         headers['Authorization'] = `Bearer ${newToken}`;
         const retryController = new AbortController();
         const retryTimeoutId = setTimeout(() => retryController.abort(), FETCH_TIMEOUT_MS);
@@ -331,7 +285,6 @@ async function authenticatedFetch(url, options = {}) {
 
 // API helper methods
 export async function apiGet(url, options = {}) {
-  // Add timezone to query parameters for date-aware endpoints
   const timezone = getUserTimezone();
   const separator = url.includes('?') ? '&' : '?';
   const urlWithTimezone = `${url}${separator}timezone=${encodeURIComponent(timezone)}`;
@@ -339,7 +292,6 @@ export async function apiGet(url, options = {}) {
 }
 
 export async function apiPost(url, data, options = {}) {
-  // Add timezone to request body for date-aware endpoints
   const timezone = getUserTimezone();
   return authenticatedFetch(url, {
     method: 'POST',
@@ -349,7 +301,6 @@ export async function apiPost(url, data, options = {}) {
 }
 
 export async function apiPut(url, data) {
-  // Add timezone to request body for date-aware endpoints
   const timezone = getUserTimezone();
   return authenticatedFetch(url, {
     method: 'PUT',
@@ -358,7 +309,6 @@ export async function apiPut(url, data) {
 }
 
 export async function apiDelete(url, data) {
-  // Add timezone to query parameters for date-aware endpoints
   const timezone = getUserTimezone();
   const separator = url.includes('?') ? '&' : '?';
   const urlWithTimezone = `${url}${separator}timezone=${encodeURIComponent(timezone)}`;
