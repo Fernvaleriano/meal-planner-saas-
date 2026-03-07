@@ -50,6 +50,9 @@ function Messages() {
   const [resubscribeKey, setResubscribeKey] = useState(0); // Incremented on resume to force Supabase channel re-subscribe
   const resubscribeAttemptsRef = useRef(0); // Track consecutive reconnection attempts
   const lastResubscribeTimeRef = useRef(0); // Timestamp of last resubscribe
+  // IDs of messages confirmed by handleSend's API response — kept so the
+  // fetchMessages merge never drops them even if the server response is stale.
+  const confirmedSentIdsRef = useRef(new Set());
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
   const inputRef = useRef(null);
@@ -124,7 +127,18 @@ function Messages() {
         const trulyPending = pendingOptimistic.filter(m =>
           !confirmedTexts.has(`${m.sender_type}:${m.message}`)
         );
-        return [...serverMessages, ...trulyPending];
+        // Safety net: preserve messages that handleSend confirmed but the
+        // server response doesn't include yet (can happen with stale cache
+        // or replication lag).  Once the server response includes them,
+        // clear them from the confirmed set.
+        const missingConfirmed = prev.filter(m =>
+          confirmedSentIdsRef.current.has(m.id) && !serverIds.has(m.id)
+        );
+        // Clean up confirmed IDs that are now in the server response
+        for (const id of confirmedSentIdsRef.current) {
+          if (serverIds.has(id)) confirmedSentIdsRef.current.delete(id);
+        }
+        return [...serverMessages, ...trulyPending, ...missingConfirmed];
       });
 
       // Mark messages as read
@@ -281,6 +295,7 @@ function Messages() {
 
       // Replace the optimistic message with the server-confirmed one
       if (result?.message) {
+        confirmedSentIdsRef.current.add(result.message.id);
         setMessages(prev => prev.map(m => m.id === optimisticId ? result.message : m));
       }
 

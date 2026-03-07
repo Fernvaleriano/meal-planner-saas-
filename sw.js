@@ -69,8 +69,13 @@ const CACHEABLE_API_PATTERNS = [
   /\/\.netlify\/functions\/workout-logs/,
   /\/\.netlify\/functions\/adhoc-workouts/,
   // Navigation-time endpoints — cached so switching between pages in the
-  // bottom nav doesn't trigger a full reload (especially Messages)
-  /\/\.netlify\/functions\/chat/,
+  // bottom nav doesn't trigger a full reload
+  // NOTE: chat is intentionally excluded — real-time messaging must never
+  // serve stale data from the SW cache.  The React component is persistent
+  // (stays mounted across tab switches) so its own state already provides
+  // instant display.  SW caching caused sent messages to vanish because the
+  // stale cached response (from before the send) would overwrite fresh state
+  // on the next polling cycle.
   /\/\.netlify\/functions\/get-measurements/,
   /\/\.netlify\/functions\/get-progress-photos/,
   /\/\.netlify\/functions\/get-coach-stories/,
