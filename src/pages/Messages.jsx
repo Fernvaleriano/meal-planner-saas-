@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Send, Search, MessageCircle, Image, X, Trash2, Check, CheckCheck, Paperclip, Loader, SmilePlus } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost } from '../utils/api';
@@ -25,6 +26,7 @@ const REACTION_EMOJIS = ['❤️', '💪', '🔥', '👏', '😂', '👍'];
 
 function Messages() {
   const { user, clientData } = useAuth();
+  const location = useLocation();
   const isCoach = clientData?.is_coach === true;
   const coachId = isCoach ? user?.id : null;
   const clientId = clientData?.id;
@@ -52,6 +54,9 @@ function Messages() {
   const messagesContainerRef = useRef(null);
   const inputRef = useRef(null);
   const fileInputRef = useRef(null);
+  // Track whether the user is scrolled to bottom so we can restore it when
+  // the tab becomes visible again (display:none resets scroll position).
+  const isAtBottomRef = useRef(true);
 
   // Lightbox state
   const [lightboxUrl, setLightboxUrl] = useState(null);
@@ -102,7 +107,25 @@ function Messages() {
       const result = await apiGet(
         `/.netlify/functions/chat?action=messages&coachId=${cId}&clientId=${clId}&limit=100`
       );
-      setMessages(result.messages || []);
+      const serverMessages = result.messages || [];
+      // Merge instead of replace: keep any optimistic messages that haven't
+      // been confirmed by the server yet. This prevents recently-sent messages
+      // from disappearing when the 15s polling refetch fires.
+      setMessages(prev => {
+        const serverIds = new Set(serverMessages.map(m => m.id));
+        const pendingOptimistic = prev.filter(m =>
+          typeof m.id === 'string' &&
+          (m.id.startsWith('optimistic-') || m.id.startsWith('temp-')) &&
+          !serverIds.has(m.id)
+        );
+        // Also check if any optimistic message's content matches a server message
+        // (meaning it was confirmed) — if so, don't keep the optimistic version
+        const confirmedTexts = new Set(serverMessages.map(m => `${m.sender_type}:${m.message}`));
+        const trulyPending = pendingOptimistic.filter(m =>
+          !confirmedTexts.has(`${m.sender_type}:${m.message}`)
+        );
+        return [...serverMessages, ...trulyPending];
+      });
 
       // Mark messages as read
       await apiPost('/.netlify/functions/chat', {
@@ -230,9 +253,11 @@ function Messages() {
         setUploading(false);
       }
 
-      // Optimistic update
+      // Optimistic update — use a string ID prefixed with 'optimistic-' so the
+      // realtime handler and polling merge can recognize and replace it.
+      const optimisticId = `optimistic-${Date.now()}`;
       const optimisticMsg = {
-        id: Date.now(),
+        id: optimisticId,
         sender_type: isCoach ? 'coach' : 'client',
         message: msgText || null,
         media_url: mediaUrl,
@@ -240,10 +265,11 @@ function Messages() {
         created_at: new Date().toISOString(),
         is_read: false
       };
+      isAtBottomRef.current = true; // Always scroll to see your own sent message
       setMessages(prev => [...prev, optimisticMsg]);
       setMediaPreview(null);
 
-      await apiPost('/.netlify/functions/chat', {
+      const result = await apiPost('/.netlify/functions/chat', {
         action: 'send',
         coachId: cId,
         clientId: clId,
@@ -252,6 +278,11 @@ function Messages() {
         mediaUrl,
         mediaType
       });
+
+      // Replace the optimistic message with the server-confirmed one
+      if (result?.message) {
+        setMessages(prev => prev.map(m => m.id === optimisticId ? result.message : m));
+      }
 
       // Update conversation list with new last message
       const previewText = msgText || (mediaType === 'video' ? 'Sent a video' : 'Sent a photo');
@@ -317,12 +348,13 @@ function Messages() {
     );
 
     // Optimistic update
+    let tempId = null;
     if (existingReaction) {
       // Remove it locally
       setMessages(prev => prev.filter(m => m.id !== existingReaction.id));
     } else {
       // Add a temporary reaction message
-      const tempId = `temp-${Date.now()}`;
+      tempId = `temp-${Date.now()}`;
       setMessages(prev => [...prev, {
         id: tempId,
         sender_type: myReactorType,
@@ -345,7 +377,15 @@ function Messages() {
       });
     } catch (err) {
       console.error('Error toggling reaction:', err);
-      fetchMessages();
+      // Revert the optimistic update instead of doing a full refetch
+      // which would replace the entire message array and cause disappearances.
+      if (existingReaction) {
+        // We removed it — add it back
+        setMessages(prev => [...prev, existingReaction]);
+      } else if (tempId) {
+        // We added a temp — remove it
+        setMessages(prev => prev.filter(m => m.id !== tempId));
+      }
     }
   };
 
@@ -362,6 +402,7 @@ function Messages() {
     setActiveConvo(convo);
     setMessages([]);
     setSelectedMsgId(null);
+    isAtBottomRef.current = true; // New conversation always starts at bottom
     setMediaPreview(null);
   };
 
@@ -432,9 +473,36 @@ function Messages() {
     return () => clearInterval(interval);
   }, [activeConvo, fetchMessages]);
 
-  // Auto-scroll to bottom whenever messages change
+  // Track scroll position — update isAtBottomRef on every scroll event
   useEffect(() => {
-    if (messages.length > 0) {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      // Consider "at bottom" if within 80px of the end
+      isAtBottomRef.current = scrollHeight - scrollTop - clientHeight < 80;
+    };
+    container.addEventListener('scroll', handleScroll, { passive: true });
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [activeConvo]); // Re-attach when conversation changes (container re-renders)
+
+  // Restore scroll position when returning to the Messages tab.
+  // display:none → display:block resets scroll, so we re-anchor to bottom.
+  useEffect(() => {
+    if (location.pathname !== '/messages') return;
+    // Tab just became visible — restore scroll if user was at bottom
+    const container = messagesContainerRef.current;
+    if (container && messages.length > 0 && isAtBottomRef.current) {
+      // Use rAF to wait for the browser to finish layout after display:block
+      requestAnimationFrame(() => {
+        scrollToBottom(true);
+      });
+    }
+  }, [location.pathname, scrollToBottom, messages.length]);
+
+  // Auto-scroll to bottom when new messages arrive (only if user is at bottom)
+  useEffect(() => {
+    if (messages.length > 0 && isAtBottomRef.current) {
       // Immediate scroll attempt
       scrollToBottom(true);
       // Double-rAF ensures the browser has completed layout before scrolling
@@ -445,7 +513,7 @@ function Messages() {
       });
       // Delayed attempt to handle images/media loading and affecting layout
       const timer = setTimeout(() => {
-        scrollToBottom(true);
+        if (isAtBottomRef.current) scrollToBottom(true);
       }, 300);
       return () => clearTimeout(timer);
     }
@@ -495,17 +563,19 @@ function Messages() {
                 });
               }
             } else {
-              // Our own message came through real-time (e.g. reaction we just sent)
-              // Replace any temp message with the real one
+              // Our own message came through real-time — replace any optimistic
+              // or temp message with the server-confirmed version.
               setMessages(prev => {
-                const withoutTemp = prev.filter(m => {
-                  if (typeof m.id === 'string' && m.id.startsWith('temp-') && m.message === newMsg.message) {
-                    return false; // Remove the temp
+                const withoutOptimistic = prev.filter(m => {
+                  if (typeof m.id === 'string' &&
+                      (m.id.startsWith('temp-') || m.id.startsWith('optimistic-')) &&
+                      m.message === newMsg.message) {
+                    return false; // Remove the optimistic version
                   }
                   return true;
                 });
-                if (withoutTemp.some(m => m.id === newMsg.id)) return withoutTemp;
-                return [...withoutTemp, newMsg];
+                if (withoutOptimistic.some(m => m.id === newMsg.id)) return withoutOptimistic;
+                return [...withoutOptimistic, newMsg];
               });
             }
           }
