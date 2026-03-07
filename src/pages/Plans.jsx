@@ -1884,6 +1884,25 @@ Keep it practical and brief. Format with clear sections.`;
                             preload="none"
                             onClick={(e) => e.stopPropagation()}
                             onPlay={(e) => e.stopPropagation()}
+                            onError={(e) => {
+                              const audio = e.target;
+                              if (meal.voice_note_path && !audio.dataset.retried) {
+                                audio.dataset.retried = 'true';
+                                fetch('/.netlify/functions/get-signed-video-url', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ filePath: meal.voice_note_path })
+                                })
+                                  .then(r => r.json())
+                                  .then(data => {
+                                    if (data.success && data.url) {
+                                      audio.src = data.url;
+                                      audio.load();
+                                    }
+                                  })
+                                  .catch(() => {});
+                              }
+                            }}
                           />
                         </div>
                       )}

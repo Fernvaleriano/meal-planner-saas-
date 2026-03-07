@@ -1449,9 +1449,50 @@ function GuidedWorkoutModal({
     });
 
     audio.addEventListener('error', () => {
-      setPlayingVoiceNote(false);
-      setIsPaused(false);
-      voiceNoteRef.current = null;
+      // Try refreshing the signed URL if we have the path
+      if (currentExercise.voiceNotePath && !audio.dataset?.retried) {
+        fetch('/.netlify/functions/get-signed-video-url', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filePath: currentExercise.voiceNotePath })
+        })
+          .then(r => r.json())
+          .then(data => {
+            if (data.success && data.url) {
+              const retryAudio = new Audio(data.url);
+              retryAudio.dataset = { retried: 'true' };
+              retryAudio.volume = 1.0;
+              retryAudio.addEventListener('ended', () => {
+                setPlayingVoiceNote(false);
+                setIsPaused(false);
+                voiceNoteRef.current = null;
+              });
+              retryAudio.addEventListener('error', () => {
+                setPlayingVoiceNote(false);
+                setIsPaused(false);
+                voiceNoteRef.current = null;
+              });
+              retryAudio.play().catch(() => {
+                setPlayingVoiceNote(false);
+                setIsPaused(false);
+              });
+              voiceNoteRef.current = retryAudio;
+            } else {
+              setPlayingVoiceNote(false);
+              setIsPaused(false);
+              voiceNoteRef.current = null;
+            }
+          })
+          .catch(() => {
+            setPlayingVoiceNote(false);
+            setIsPaused(false);
+            voiceNoteRef.current = null;
+          });
+      } else {
+        setPlayingVoiceNote(false);
+        setIsPaused(false);
+        voiceNoteRef.current = null;
+      }
     });
 
     audio.play().catch(() => {
