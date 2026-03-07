@@ -57,13 +57,13 @@ function DesktopSidebar() {
   }, [location.pathname, fetchUnread]);
 
   const navItems = [
-    { path: '/', icon: Home, label: '🏠 Home' },
-    { path: '/diary', icon: NotebookPen, label: '📓 Diary' },
-    ...(isCoach ? [{ path: '/feed', icon: Activity, label: '📋 Client Feed' }] : []),
-    { path: '/messages', icon: MessageCircle, label: '💬 Messages', badge: unreadMessages },
-    { path: '/workouts', icon: Dumbbell, label: '🏋️ Workouts' },
-    { path: '/plans', icon: CalendarDays, label: '🍽️ Planner' },
-    { path: '/settings', icon: User, label: '👤 Profile' }
+    { path: '/', icon: Home, label: 'Home' },
+    { path: '/diary', icon: NotebookPen, label: 'Diary' },
+    ...(isCoach ? [{ path: '/feed', icon: Activity, label: 'Client Feed' }] : []),
+    { path: '/messages', icon: MessageCircle, label: 'Messages', badge: unreadMessages },
+    { path: '/workouts', icon: Dumbbell, label: 'Workouts' },
+    { path: '/plans', icon: CalendarDays, label: 'Planner' },
+    { path: '/settings', icon: User, label: 'Profile' }
   ];
 
   const getInitials = (name) => {

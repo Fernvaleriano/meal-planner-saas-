@@ -50,11 +50,11 @@ function BottomNav({ currentPath }) {
   }, [currentPath, fetchUnread]);
 
   const navItems = [
-    { path: '/', icon: Home, label: '🏠 Home' },
-    { path: '/diary', icon: NotebookPen, label: '📓 Diary' },
-    { path: '/messages', icon: MessageCircle, label: '💬 Messages', badge: unreadMessages },
-    { path: '/workouts', icon: Dumbbell, label: '🏋️ Workouts' },
-    { path: '/plans', icon: UtensilsCrossed, label: '🍽️ Meals' }
+    { path: '/', icon: Home, label: 'Home' },
+    { path: '/diary', icon: NotebookPen, label: 'Diary' },
+    { path: '/messages', icon: MessageCircle, label: 'Messages', badge: unreadMessages },
+    { path: '/workouts', icon: Dumbbell, label: 'Workouts' },
+    { path: '/plans', icon: UtensilsCrossed, label: 'Meals' }
   ];
 
   return (
