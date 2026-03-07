@@ -18,14 +18,20 @@ export default function SyncIndicator() {
   const [offline, setOffline] = useState(false);
 
   const handleReload = useCallback(() => {
-    // Reload the current page. This is equivalent to the user closing and
-    // reopening the app but faster — it preserves the current URL so the
-    // user lands back on the same page.
     window.location.reload();
   }, []);
 
   useEffect(() => {
     let hideTimer;
+    let autoDismissTimer;
+
+    const dismiss = () => {
+      setSyncing(false);
+      setStuck(false);
+      setOffline(false);
+      clearTimeout(hideTimer);
+      clearTimeout(autoDismissTimer);
+    };
 
     const handler = (e) => {
       const phase = e.detail?.phase;
@@ -34,41 +40,41 @@ export default function SyncIndicator() {
         setSyncing(true);
         setStuck(false);
         setOffline(false);
-        // Safety: auto-hide after 20s in case 'done' never fires.
-        // Session refresh can take up to 15s on slow mobile connections,
-        // but after 20s something is clearly wrong — the stuck phase
-        // should have fired by then.
         clearTimeout(hideTimer);
-        hideTimer = setTimeout(() => {
-          setStuck(true);
-        }, 20000);
+        clearTimeout(autoDismissTimer);
+        // Auto-hide after 30s no matter what — prevents banner from lingering forever
+        hideTimer = setTimeout(dismiss, 30000);
       } else if (phase === 'done') {
-        // Small delay so the bar is visible long enough to be noticed
         clearTimeout(hideTimer);
+        clearTimeout(autoDismissTimer);
         setStuck(false);
         setOffline(false);
         hideTimer = setTimeout(() => setSyncing(false), 600);
       } else if (phase === 'stuck') {
-        // Either resume is taking too long OR a realtime channel died.
-        // Show the reload button so the user can recover.
-        clearTimeout(hideTimer);
-        setSyncing(true); // Ensure banner is visible even without a prior 'start'
-        setStuck(true);
+        // Only show if actually offline — if online, the app is working fine
+        if (!navigator.onLine) {
+          clearTimeout(hideTimer);
+          clearTimeout(autoDismissTimer);
+          setSyncing(true);
+          setStuck(true);
+        } else {
+          // Online but "stuck" — just dismiss, the app is fine
+          dismiss();
+        }
       } else if (phase === 'offline') {
-        // Device went offline
         setSyncing(true);
         setStuck(false);
         setOffline(true);
         clearTimeout(hideTimer);
+        clearTimeout(autoDismissTimer);
       }
     };
 
-    // Also listen for the device coming back online to clear offline state
     const handleOnline = () => {
-      if (offline) {
-        setOffline(false);
-        // The lifecycle hook will trigger a resume sync, so just clear offline
-      }
+      // Device came back online — auto-dismiss after a brief moment
+      // (lifecycle hook will handle the actual resync)
+      clearTimeout(autoDismissTimer);
+      autoDismissTimer = setTimeout(dismiss, 2000);
     };
 
     window.addEventListener('app-resume-sync', handler);
@@ -77,8 +83,9 @@ export default function SyncIndicator() {
       window.removeEventListener('app-resume-sync', handler);
       window.removeEventListener('online', handleOnline);
       clearTimeout(hideTimer);
+      clearTimeout(autoDismissTimer);
     };
-  }, [offline]);
+  }, []);
 
   if (!syncing) return null;
 
