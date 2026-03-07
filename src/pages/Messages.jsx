@@ -646,7 +646,7 @@ function Messages() {
             const msg = item.data;
             const isMine = msg.sender_type === myType;
             const hasMedia = !!msg.media_url;
-            const isReaction = msg.message && /^Reacted .+ to your (breakfast|lunch|dinner|snack|meal|workout)$/i.test(msg.message);
+            const isReaction = msg.message && /^Reacted .+ to your (breakfast|lunch|dinner|snack|meal|workout|new PR!|workout note)$/i.test(msg.message);
 
             return (
               <div
