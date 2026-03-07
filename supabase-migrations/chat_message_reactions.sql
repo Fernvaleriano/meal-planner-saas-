@@ -1,4 +1,4 @@
--- Message Reactions - Store emoji reactions as JSONB on chat_messages
--- Format: [{"emoji": "❤️", "reactorType": "coach", "reactorId": "uuid-here"}, ...]
-
-ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS reactions JSONB DEFAULT '[]';
+-- Message Reactions
+-- No migration needed! Reactions are stored as regular chat_messages
+-- with a special message format: __REACTION__:{targetMessageId}:{emoji}
+-- This approach requires zero schema changes.
