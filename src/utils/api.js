@@ -28,26 +28,25 @@ const SESSION_EXPIRY_BUFFER = 5 * 60 * 1000;
 // Network request timeout — prevents indefinite hangs on poor mobile connections
 const FETCH_TIMEOUT_MS = 15000;
 
+// Session refresh timeout — on iOS resume, supabase.auth.refreshSession() can
+// hang for 20-30s because the HTTP connection died during suspension. Cap it so
+// we fall back to getSession() or 401-retry instead of blocking the data layer.
+const SESSION_REFRESH_TIMEOUT = 6000;
+
 /**
  * Get auth token with proactive session refresh.
- * This ensures the session is valid before making API calls.
  *
  * After app resume, the session cache is cleared (by clearSessionCache),
- * so the first call after resume will always fetch a fresh session.
- * No blocking gate is needed — if the token is expired, the 401-retry
- * logic in authenticatedFetch handles it transparently.
+ * so the first call after resume will always fetch a fresh session via
+ * supabase.auth.getSession() — which reads from local storage first (fast).
+ *
+ * If a refresh is already in progress (from another caller or the lifecycle
+ * hook), we DON'T block waiting for it. Instead we try getSession() which
+ * returns whatever token Supabase has locally. If that token is expired,
+ * the 401-retry path in authenticatedFetch will handle it.
  */
 async function getAuthToken() {
   const now = Date.now();
-
-  // If we have a refresh in progress, wait for it
-  if (sessionCache.refreshPromise) {
-    try {
-      await sessionCache.refreshPromise;
-    } catch (e) {
-      // Ignore - we'll try to get a fresh session below
-    }
-  }
 
   // Check if cached session is still valid
   if (sessionCache.session && (now - sessionCache.timestamp) < SESSION_CACHE_TTL) {
@@ -56,13 +55,17 @@ async function getAuthToken() {
     if (expiresAt) {
       const expiryTime = expiresAt * 1000;
       if (expiryTime - now < SESSION_EXPIRY_BUFFER) {
-        return await refreshSession();
+        // Kick off refresh but don't block — return current token immediately.
+        // The 401-retry path handles the case where this token is already expired.
+        refreshSession();
+        return sessionCache.session.access_token;
       }
     }
     return sessionCache.session.access_token;
   }
 
-  // Get current session
+  // No cached session (cleared on resume, or first call).
+  // supabase.auth.getSession() reads from local storage first — fast even offline.
   try {
     const { data: { session }, error } = await supabase.auth.getSession();
 
@@ -72,21 +75,22 @@ async function getAuthToken() {
     }
 
     if (session) {
-      // Check if token is expiring soon
+      // Cache it
+      sessionCache = {
+        ...sessionCache,
+        session,
+        timestamp: now
+      };
+
+      // If expiring soon, kick off background refresh (non-blocking)
       const expiresAt = session.expires_at;
       if (expiresAt) {
         const expiryTime = expiresAt * 1000;
         if (expiryTime - now < SESSION_EXPIRY_BUFFER) {
-          return await refreshSession();
+          refreshSession();
         }
       }
 
-      // Cache the session
-      sessionCache = {
-        session,
-        timestamp: now,
-        refreshPromise: null
-      };
       return session.access_token;
     }
 
@@ -98,54 +102,59 @@ async function getAuthToken() {
 }
 
 /**
- * Proactively refresh the session before it expires
+ * Refresh the session token.
+ *
+ * Coalesces concurrent calls: if a refresh is already in flight, all callers
+ * share the same promise (no TOCTOU race — the promise is stored synchronously
+ * before any await). Includes a 6-second timeout so iOS resume hangs don't
+ * block the data layer.
  */
 async function refreshSession() {
-  // Prevent concurrent refresh calls
+  // If a refresh is already in flight, piggyback on it
   if (sessionCache.refreshPromise) {
     try {
       const session = await sessionCache.refreshPromise;
       return session?.access_token || null;
     } catch (e) {
-      // Fall through to try again
+      return null;
     }
   }
 
-  const refreshPromise = (async () => {
-    try {
+  // Create and store the promise SYNCHRONOUSLY before any await.
+  // This eliminates the TOCTOU race where two callers both pass
+  // the if-check before either stores their promise.
+  const refreshPromise = Promise.race([
+    (async () => {
       const { data: { session }, error } = await supabase.auth.refreshSession();
-
       if (error) {
         console.error('Session refresh failed:', error);
-        sessionCache = { session: null, timestamp: 0, refreshPromise: null };
         return null;
       }
-
+      return session || null;
+    })(),
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Session refresh timed out')), SESSION_REFRESH_TIMEOUT)
+    )
+  ]).then(
+    (session) => {
       if (session) {
-        sessionCache = {
-          session,
-          timestamp: Date.now(),
-          refreshPromise: null
-        };
-        return session;
+        sessionCache = { session, timestamp: Date.now(), refreshPromise: null };
+      } else {
+        sessionCache = { ...sessionCache, refreshPromise: null };
       }
-
-      return null;
-    } catch (error) {
-      console.error('Session refresh error:', error);
-      sessionCache = { session: null, timestamp: 0, refreshPromise: null };
+      return session;
+    },
+    (error) => {
+      console.error('Session refresh error:', error.message);
+      sessionCache = { ...sessionCache, refreshPromise: null };
       return null;
     }
-  })();
+  );
 
   sessionCache.refreshPromise = refreshPromise;
 
-  try {
-    const session = await refreshPromise;
-    return session?.access_token || null;
-  } finally {
-    sessionCache.refreshPromise = null;
-  }
+  const session = await refreshPromise;
+  return session?.access_token || null;
 }
 
 /**
