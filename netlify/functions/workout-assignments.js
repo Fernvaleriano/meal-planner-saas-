@@ -356,7 +356,7 @@ exports.handler = withTimeout(async (event) => {
                     day_index: di,
                     workout_data: {
                       ...day,
-                      exercises: (day.exercises || []).map(ex => ({ ...ex })),
+                      exercises: (day.exercises || []).map(ex => { const { completed, ...rest } = ex; return rest; }),
                       estimatedMinutes: day.estimatedMinutes || 45,
                       estimatedCalories: day.estimatedCalories || 300,
                       image_url: resolvedImageUrl
@@ -384,7 +384,7 @@ exports.handler = withTimeout(async (event) => {
                   day_index: naturalDayIndex,
                   workout_data: {
                     ...natDay,
-                    exercises: (natDay.exercises || []).map(ex => ({ ...ex })),
+                    exercises: (natDay.exercises || []).map(ex => { const { completed, ...rest } = ex; return rest; }),
                     estimatedMinutes: natDay.estimatedMinutes || 45,
                     estimatedCalories: natDay.estimatedCalories || 300,
                     image_url: resolvedImageUrl
