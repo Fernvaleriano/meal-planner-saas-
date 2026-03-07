@@ -5374,61 +5374,30 @@
             }
         }
 
-        // Toggle emoji reaction on a priority item (PR or note)
+        // Toggle emoji reaction on a priority item — opens reply, prefills emoji, and auto-sends
         async function toggleReaction(alertId, clientId, emoji, itemType, itemId) {
-            const emojiKey = emoji === '👏' ? 'clap' : emoji === '👊' ? 'fist' : emoji === '💪' ? 'muscle' : 'fire';
-            const btn = document.getElementById('react-' + alertId + '-' + emojiKey);
+            const btn = document.getElementById('react-' + alertId + '-' + (emoji === '👏' ? 'clap' : emoji === '👊' ? 'fist' : emoji === '💪' ? 'muscle' : 'fire'));
             if (!btn) return;
 
-            const isReacted = btn.classList.contains('reacted');
+            // Optimistic UI: highlight the clicked emoji
+            const row = btn.parentElement;
+            row.querySelectorAll('.priority-reaction-btn').forEach(b => b.classList.remove('reacted'));
+            btn.classList.add('reacted');
 
-            // Optimistically toggle the UI
-            if (isReacted) {
-                btn.classList.remove('reacted');
-            } else {
-                // Remove 'reacted' from siblings
-                const row = btn.parentElement;
-                row.querySelectorAll('.priority-reaction-btn').forEach(b => b.classList.remove('reacted'));
-                btn.classList.add('reacted');
-            }
-
-            try {
-                if (isReacted) {
-                    await fetch('/.netlify/functions/react-to-activity', {
-                        method: 'DELETE',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            coachId: _currentCoachId,
-                            itemType: itemType,
-                            itemId: itemId
-                        })
-                    });
+            // Open the reply row, prefill with emoji, and auto-send
+            const replyRow = document.getElementById('reply-row-' + alertId);
+            const input = document.getElementById('reply-input-' + alertId);
+            if (replyRow) replyRow.style.display = 'flex';
+            if (input) {
+                input.value = emoji;
+                // Use the appropriate send function based on item type
+                if (itemType === 'client_pr') {
+                    // Find the safePrMessage from the send button's onclick
+                    const sendBtn = replyRow.querySelector('button');
+                    if (sendBtn) sendBtn.click();
                 } else {
-                    await fetch('/.netlify/functions/react-to-activity', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            coachId: _currentCoachId,
-                            clientId: clientId,
-                            itemType: itemType,
-                            itemId: itemId,
-                            reaction: emoji
-                        })
-                    });
-                    // Show brief confirmation
-                    const sentEl = document.getElementById('reaction-sent-' + alertId);
-                    if (sentEl) {
-                        sentEl.style.display = 'inline-flex';
-                        setTimeout(() => { sentEl.style.display = 'none'; }, 2000);
-                    }
-                }
-            } catch (e) {
-                console.error('Error toggling reaction:', e);
-                // Revert on failure
-                if (isReacted) {
-                    btn.classList.add('reacted');
-                } else {
-                    btn.classList.remove('reacted');
+                    const sendBtn = replyRow.querySelector('button');
+                    if (sendBtn) sendBtn.click();
                 }
             }
         }
