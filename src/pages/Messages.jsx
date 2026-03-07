@@ -307,22 +307,30 @@ function Messages() {
   // Toggle emoji reaction on a message
   const handleReaction = async (msgId, emoji) => {
     const myReactorType = isCoach ? 'coach' : 'client';
-    const myReactorId = String(isCoach ? coachId : clientId);
+    const cId = isCoach ? coachId : activeConvo.coachId;
+    const clId = isCoach ? activeConvo.clientId : clientId;
+    const reactionMsg = `__REACTION__:${msgId}:${emoji}`;
+
+    // Check if we already have this reaction in messages
+    const existingReaction = messages.find(
+      m => m.message === reactionMsg && m.sender_type === myReactorType && !m.deleted_at
+    );
 
     // Optimistic update
-    setMessages(prev => prev.map(m => {
-      if (m.id !== msgId) return m;
-      const reactions = [...(m.reactions || [])];
-      const existingIdx = reactions.findIndex(
-        r => r.emoji === emoji && r.reactorType === myReactorType && r.reactorId === myReactorId
-      );
-      if (existingIdx >= 0) {
-        reactions.splice(existingIdx, 1);
-      } else {
-        reactions.push({ emoji, reactorType: myReactorType, reactorId: myReactorId });
-      }
-      return { ...m, reactions };
-    }));
+    if (existingReaction) {
+      // Remove it locally
+      setMessages(prev => prev.filter(m => m.id !== existingReaction.id));
+    } else {
+      // Add a temporary reaction message
+      const tempId = `temp-${Date.now()}`;
+      setMessages(prev => [...prev, {
+        id: tempId,
+        sender_type: myReactorType,
+        message: reactionMsg,
+        is_read: true,
+        created_at: new Date().toISOString()
+      }]);
+    }
 
     setReactionPickerMsgId(null);
 
@@ -332,7 +340,8 @@ function Messages() {
         messageId: msgId,
         emoji,
         reactorType: myReactorType,
-        reactorId: myReactorId
+        coachId: cId,
+        clientId: clId
       });
     } catch (err) {
       console.error('Error toggling reaction:', err);
@@ -452,14 +461,33 @@ function Messages() {
             const myType = isCoach ? 'coach' : 'client';
             if (newMsg.sender_type !== myType) {
               setMessages(prev => {
+                // Replace temp reaction message or add new
                 if (prev.some(m => m.id === newMsg.id)) return prev;
-                return [...prev, { ...newMsg, reactions: [] }];
+                // If it's a reaction message from the other party, just add it
+                // (temp messages from self have string IDs starting with 'temp-')
+                return [...prev, newMsg];
               });
-              apiPost('/.netlify/functions/chat', {
-                action: 'mark-read',
-                coachId: cId,
-                clientId: clId,
-                readerType: isCoach ? 'coach' : 'client'
+              // Don't mark reaction messages as unread
+              if (!newMsg.message?.startsWith('__REACTION__:')) {
+                apiPost('/.netlify/functions/chat', {
+                  action: 'mark-read',
+                  coachId: cId,
+                  clientId: clId,
+                  readerType: isCoach ? 'coach' : 'client'
+                });
+              }
+            } else {
+              // Our own message came through real-time (e.g. reaction we just sent)
+              // Replace any temp message with the real one
+              setMessages(prev => {
+                const withoutTemp = prev.filter(m => {
+                  if (typeof m.id === 'string' && m.id.startsWith('temp-') && m.message === newMsg.message) {
+                    return false; // Remove the temp
+                  }
+                  return true;
+                });
+                if (withoutTemp.some(m => m.id === newMsg.id)) return withoutTemp;
+                return [...withoutTemp, newMsg];
               });
             }
           }
@@ -476,13 +504,13 @@ function Messages() {
         (payload) => {
           const updated = payload.new;
           if (updated.client_id === parseInt(clId)) {
-            // If soft-deleted, remove from view
+            // If soft-deleted, remove from view (also handles reaction removal)
             if (updated.deleted_at) {
               setMessages(prev => prev.filter(m => m.id !== updated.id));
             } else {
-              // Update read status + reactions (reactions stored as JSONB on the message)
+              // Update read status
               setMessages(prev => prev.map(m =>
-                m.id === updated.id ? { ...m, is_read: updated.is_read, read_at: updated.read_at, reactions: updated.reactions || [] } : m
+                m.id === updated.id ? { ...m, is_read: updated.is_read, read_at: updated.read_at } : m
               ));
             }
           }
@@ -546,6 +574,9 @@ function Messages() {
         (payload) => {
           const newMsg = payload.new;
           const myType = isCoach ? 'coach' : 'client';
+
+          // Skip reaction messages in conversation list preview
+          if (newMsg.message?.startsWith('__REACTION__:')) return;
 
           setConversations(prev => {
             const updated = prev.map(c => {
@@ -660,8 +691,29 @@ function Messages() {
   // Total unread count
   const totalUnread = conversations.reduce((sum, c) => sum + (c.unreadCount || 0), 0);
 
-  const grouped = groupMessagesByDate(messages);
   const myType = isCoach ? 'coach' : 'client';
+
+  // Separate reaction messages from regular messages and build a reaction map
+  const REACTION_PREFIX = '__REACTION__:';
+  const reactionMap = {}; // { targetMsgId: [{ emoji, senderType, msgId }] }
+  const regularMessages = [];
+
+  messages.forEach(msg => {
+    if (msg.message && msg.message.startsWith(REACTION_PREFIX)) {
+      // Parse: __REACTION__:{targetId}:{emoji}
+      const parts = msg.message.slice(REACTION_PREFIX.length).split(':');
+      const targetId = parseInt(parts[0]);
+      const emoji = parts.slice(1).join(':'); // emoji might contain colons
+      if (targetId && emoji) {
+        if (!reactionMap[targetId]) reactionMap[targetId] = [];
+        reactionMap[targetId].push({ emoji, senderType: msg.sender_type, msgId: msg.id });
+      }
+    } else {
+      regularMessages.push(msg);
+    }
+  });
+
+  const grouped = groupMessagesByDate(regularMessages);
 
   // Render media content in a message bubble
   const renderMedia = (msg) => {
@@ -740,21 +792,19 @@ function Messages() {
             const msg = item.data;
             const isMine = msg.sender_type === myType;
             const hasMedia = !!msg.media_url;
-            const isReaction = msg.message && /^Reacted .+ to your (breakfast|lunch|dinner|snack|meal|workout|new PR!|workout note)$/i.test(msg.message);
-            const msgReactions = msg.reactions || [];
-            const myReactorType = isCoach ? 'coach' : 'client';
-            const myReactorId = String(isCoach ? coachId : clientId);
+            const isOldReaction = msg.message && /^Reacted .+ to your (breakfast|lunch|dinner|snack|meal|workout|new PR!|workout note)$/i.test(msg.message);
 
-            // Group reactions by emoji with count and whether current user reacted
+            // Build grouped reactions from the reactionMap for this message
+            const msgReactionList = reactionMap[msg.id] || [];
             const groupedReactions = [];
             const emojiMap = {};
-            msgReactions.forEach(r => {
+            msgReactionList.forEach(r => {
               if (!emojiMap[r.emoji]) {
                 emojiMap[r.emoji] = { emoji: r.emoji, count: 0, myReaction: false };
                 groupedReactions.push(emojiMap[r.emoji]);
               }
               emojiMap[r.emoji].count++;
-              if (r.reactorType === myReactorType && r.reactorId === myReactorId) {
+              if (r.senderType === myType) {
                 emojiMap[r.emoji].myReaction = true;
               }
             });
@@ -762,7 +812,7 @@ function Messages() {
             return (
               <div
                 key={msg.id}
-                className={`chat-msg ${isMine ? 'mine' : 'theirs'} ${isReaction ? 'reaction-msg' : ''}`}
+                className={`chat-msg ${isMine ? 'mine' : 'theirs'} ${isOldReaction ? 'reaction-msg' : ''}`}
               >
                 <div className="chat-msg-row">
                   {/* Reaction trigger on left for own messages */}
@@ -781,7 +831,7 @@ function Messages() {
                   )}
 
                   <div
-                    className={`chat-msg-bubble ${hasMedia ? 'media-bubble' : ''} ${isReaction ? 'reaction-bubble' : ''}`}
+                    className={`chat-msg-bubble ${hasMedia ? 'media-bubble' : ''} ${isOldReaction ? 'reaction-bubble' : ''}`}
                     onClick={(e) => {
                       if (isMine) {
                         e.stopPropagation();

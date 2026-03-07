@@ -161,7 +161,7 @@ exports.handler = async (event) => {
       if (action === 'messages' && coachId && clientId) {
         let query = supabase
           .from('chat_messages')
-          .select('id, sender_type, message, media_url, media_type, is_read, created_at, reactions')
+          .select('id, sender_type, message, media_url, media_type, is_read, created_at')
           .eq('coach_id', coachId)
           .eq('client_id', clientId)
           .is('deleted_at', null)
@@ -179,16 +179,11 @@ exports.handler = async (event) => {
           return { statusCode: 500, headers: corsHeaders, body: JSON.stringify({ error: messagesError.message }) };
         }
 
-        // Ensure reactions is always an array
-        const orderedMessages = (messages || []).reverse().map(m => ({
-          ...m,
-          reactions: m.reactions || []
-        }));
-
+        // Reverse to chronological order for display
         return {
           statusCode: 200,
           headers: corsHeaders,
-          body: JSON.stringify({ messages: orderedMessages })
+          body: JSON.stringify({ messages: (messages || []).reverse() })
         };
       }
 
@@ -341,61 +336,70 @@ exports.handler = async (event) => {
       }
 
       // Toggle a reaction on a message (add or remove)
+      // Reactions are stored as regular chat_messages with a special message format:
+      // __REACTION__:{targetMessageId}:{emoji}
       if (action === 'toggle-reaction') {
-        const { messageId, emoji, reactorType, reactorId } = body;
+        const { messageId, emoji, reactorType, reactorId, coachId, clientId } = body;
 
-        if (!messageId || !emoji || !reactorType || !reactorId) {
-          return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'messageId, emoji, reactorType, and reactorId required' }) };
+        if (!messageId || !emoji || !reactorType || !coachId || !clientId) {
+          return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'messageId, emoji, reactorType, coachId, and clientId required' }) };
         }
 
-        if (!['coach', 'client'].includes(reactorType)) {
-          return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'reactorType must be coach or client' }) };
-        }
+        const reactionMsg = `__REACTION__:${messageId}:${emoji}`;
 
-        // Fetch current reactions from the message's JSONB column
-        const { data: msg, error: fetchError } = await supabase
+        // Check if this exact reaction already exists
+        const { data: existing } = await supabase
           .from('chat_messages')
-          .select('reactions')
-          .eq('id', messageId)
-          .single();
+          .select('id')
+          .eq('coach_id', coachId)
+          .eq('client_id', parseInt(clientId))
+          .eq('sender_type', reactorType)
+          .eq('message', reactionMsg)
+          .is('deleted_at', null)
+          .maybeSingle();
 
-        if (fetchError) {
-          console.error('Error fetching message for reaction:', fetchError);
-          return { statusCode: 500, headers: corsHeaders, body: JSON.stringify({ error: fetchError.message }) };
-        }
+        if (existing) {
+          // Remove: soft-delete the reaction message
+          const { error: deleteError } = await supabase
+            .from('chat_messages')
+            .update({ deleted_at: new Date().toISOString() })
+            .eq('id', existing.id);
 
-        let reactions = msg.reactions || [];
-        const existingIdx = reactions.findIndex(
-          r => r.emoji === emoji && r.reactorType === reactorType && r.reactorId === String(reactorId)
-        );
+          if (deleteError) {
+            console.error('Error removing reaction:', deleteError);
+            return { statusCode: 500, headers: corsHeaders, body: JSON.stringify({ error: deleteError.message }) };
+          }
 
-        let resultAction;
-        if (existingIdx >= 0) {
-          // Remove existing reaction
-          reactions.splice(existingIdx, 1);
-          resultAction = 'removed';
+          return {
+            statusCode: 200,
+            headers: corsHeaders,
+            body: JSON.stringify({ success: true, action: 'removed', removedId: existing.id })
+          };
         } else {
-          // Add new reaction
-          reactions.push({ emoji, reactorType, reactorId: String(reactorId) });
-          resultAction = 'added';
+          // Add: insert a new reaction message
+          const { data: newMsg, error: insertError } = await supabase
+            .from('chat_messages')
+            .insert({
+              coach_id: coachId,
+              client_id: parseInt(clientId),
+              sender_type: reactorType,
+              message: reactionMsg,
+              is_read: true  // Don't trigger unread badge for reactions
+            })
+            .select()
+            .single();
+
+          if (insertError) {
+            console.error('Error adding reaction:', insertError);
+            return { statusCode: 500, headers: corsHeaders, body: JSON.stringify({ error: insertError.message }) };
+          }
+
+          return {
+            statusCode: 200,
+            headers: corsHeaders,
+            body: JSON.stringify({ success: true, action: 'added', reactionMessage: newMsg })
+          };
         }
-
-        // Save updated reactions back to the message
-        const { error: updateError } = await supabase
-          .from('chat_messages')
-          .update({ reactions })
-          .eq('id', messageId);
-
-        if (updateError) {
-          console.error('Error updating reactions:', updateError);
-          return { statusCode: 500, headers: corsHeaders, body: JSON.stringify({ error: updateError.message }) };
-        }
-
-        return {
-          statusCode: 200,
-          headers: corsHeaders,
-          body: JSON.stringify({ success: true, action: resultAction, reactions })
-        };
       }
 
       return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'Invalid action' }) };
