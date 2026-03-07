@@ -1,7 +1,7 @@
 // Zique Fitness PWA Service Worker
 const CACHE_NAME = 'zique-fitness-v13';
 const STATIC_CACHE = 'zique-static-v13';
-const DATA_CACHE = 'zique-data-v10';
+const DATA_CACHE = 'zique-data-v11';
 const CDN_CACHE = 'zique-cdn-v7';
 
 // Files to cache for offline use
@@ -167,38 +167,77 @@ self.addEventListener('fetch', (event) => {
   }
 
   // Handle cacheable API calls with stale-while-revalidate
+  // When request has X-Cache-Bypass header (set on resume), go network-first:
+  // try network, fall back to cache. This ensures resume refetches get FRESH data
+  // instead of stale cache entries from before the app was backgrounded.
   if (url.pathname.startsWith('/.netlify/') && isCacheableAPI(url)) {
+    const bypassCache = request.headers.get('X-Cache-Bypass') === '1';
+
+    if (bypassCache) {
+      // NETWORK-FIRST: Resume refetch — get fresh data, fall back to cache
+      event.respondWith(
+        caches.open(DATA_CACHE).then(async (cache) => {
+          try {
+            const networkResponse = await fetch(request);
+            if (networkResponse.ok) {
+              const headers = new Headers(networkResponse.headers);
+              headers.set('sw-cache-time', String(Date.now()));
+              const timestampedResponse = new Response(networkResponse.clone().body, {
+                status: networkResponse.status,
+                statusText: networkResponse.statusText,
+                headers
+              });
+              cache.put(request, timestampedResponse);
+            }
+            return networkResponse;
+          } catch {
+            // Network failed — fall back to cache (stale data > no data)
+            const cachedResponse = await cache.match(request);
+            return cachedResponse || new Response('{"error":"offline"}', {
+              status: 503,
+              headers: { 'Content-Type': 'application/json' }
+            });
+          }
+        })
+      );
+      return;
+    }
+
+    // STALE-WHILE-REVALIDATE: Normal navigation — serve cache, update in background
     event.respondWith(
       caches.open(DATA_CACHE).then(async (cache) => {
         const cachedResponse = await cache.match(request);
 
-        // Fetch fresh data in background
-        const fetchPromise = fetch(request).then((networkResponse) => {
-          if (networkResponse.ok) {
-            // Clone and add a timestamp header so we know how old the cache is
-            const headers = new Headers(networkResponse.headers);
-            headers.set('sw-cache-time', String(Date.now()));
-            const timestampedResponse = new Response(networkResponse.clone().body, {
-              status: networkResponse.status,
-              statusText: networkResponse.statusText,
-              headers
-            });
-            cache.put(request, timestampedResponse);
-          }
-          return networkResponse;
-        }).catch(() => null);
+        // Only start background fetch if cache is stale (>30s old) or missing
+        const cacheTime = cachedResponse?.headers.get('sw-cache-time');
+        const isFresh = cacheTime && (Date.now() - Number(cacheTime)) < 30000;
 
-        // Return cached immediately if available, otherwise wait for network
-        if (cachedResponse) {
-          // Check cache age — if it's very fresh (<30s), skip background fetch
-          const cacheTime = cachedResponse.headers.get('sw-cache-time');
-          if (!cacheTime || (Date.now() - Number(cacheTime)) > 30000) {
-            // Cache is stale or has no timestamp — revalidate in background
-            // fetchPromise runs in background, result ignored here
+        if (!isFresh) {
+          // Background revalidation — protected with waitUntil so the browser
+          // doesn't kill it when the SW goes idle (critical on iOS)
+          const revalidation = fetch(request).then((networkResponse) => {
+            if (networkResponse.ok) {
+              const headers = new Headers(networkResponse.headers);
+              headers.set('sw-cache-time', String(Date.now()));
+              const timestampedResponse = new Response(networkResponse.clone().body, {
+                status: networkResponse.status,
+                statusText: networkResponse.statusText,
+                headers
+              });
+              cache.put(request, timestampedResponse);
+            }
+            return networkResponse;
+          }).catch(() => null);
+
+          event.waitUntil(revalidation);
+
+          // No cache? Wait for network
+          if (!cachedResponse) {
+            return revalidation;
           }
-          return cachedResponse;
         }
-        return fetchPromise;
+
+        return cachedResponse;
       })
     );
     return;
