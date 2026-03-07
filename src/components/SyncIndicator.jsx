@@ -49,8 +49,10 @@ export default function SyncIndicator() {
         setOffline(false);
         hideTimer = setTimeout(() => setSyncing(false), 600);
       } else if (phase === 'stuck') {
-        // Resume is taking too long — show the reload button
+        // Either resume is taking too long OR a realtime channel died.
+        // Show the reload button so the user can recover.
         clearTimeout(hideTimer);
+        setSyncing(true); // Ensure banner is visible even without a prior 'start'
         setStuck(true);
       } else if (phase === 'offline') {
         // Device went offline
