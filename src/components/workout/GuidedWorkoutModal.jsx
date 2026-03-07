@@ -1424,7 +1424,7 @@ function GuidedWorkoutModal({
 
   // --- Play coach voice note (tap to play, pauses timer) ---
   const handlePlayVoiceNote = useCallback(() => {
-    if (!currentExercise?.voiceNoteUrl) return;
+    if (!currentExercise?.voiceNoteUrl && !currentExercise?.voiceNotePath) return;
 
     // If already playing, stop it
     if (playingVoiceNote && voiceNoteRef.current) {
@@ -1435,11 +1435,16 @@ function GuidedWorkoutModal({
       return;
     }
 
+    // Use proxy URL that never expires
+    const audioUrl = currentExercise.voiceNotePath
+      ? `/.netlify/functions/serve-voice-note?path=${encodeURIComponent(currentExercise.voiceNotePath)}`
+      : currentExercise.voiceNoteUrl;
+
     // Pause the workout timer while voice note plays
     setIsPaused(true);
     setPlayingVoiceNote(true);
 
-    const audio = new Audio(currentExercise.voiceNoteUrl);
+    const audio = new Audio(audioUrl);
     audio.volume = 1.0;
 
     audio.addEventListener('ended', () => {
@@ -1449,50 +1454,9 @@ function GuidedWorkoutModal({
     });
 
     audio.addEventListener('error', () => {
-      // Try refreshing the signed URL if we have the path
-      if (currentExercise.voiceNotePath && !audio.dataset?.retried) {
-        fetch('/.netlify/functions/get-signed-video-url', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ filePath: currentExercise.voiceNotePath })
-        })
-          .then(r => r.json())
-          .then(data => {
-            if (data.success && data.url) {
-              const retryAudio = new Audio(data.url);
-              retryAudio.dataset = { retried: 'true' };
-              retryAudio.volume = 1.0;
-              retryAudio.addEventListener('ended', () => {
-                setPlayingVoiceNote(false);
-                setIsPaused(false);
-                voiceNoteRef.current = null;
-              });
-              retryAudio.addEventListener('error', () => {
-                setPlayingVoiceNote(false);
-                setIsPaused(false);
-                voiceNoteRef.current = null;
-              });
-              retryAudio.play().catch(() => {
-                setPlayingVoiceNote(false);
-                setIsPaused(false);
-              });
-              voiceNoteRef.current = retryAudio;
-            } else {
-              setPlayingVoiceNote(false);
-              setIsPaused(false);
-              voiceNoteRef.current = null;
-            }
-          })
-          .catch(() => {
-            setPlayingVoiceNote(false);
-            setIsPaused(false);
-            voiceNoteRef.current = null;
-          });
-      } else {
-        setPlayingVoiceNote(false);
-        setIsPaused(false);
-        voiceNoteRef.current = null;
-      }
+      setPlayingVoiceNote(false);
+      setIsPaused(false);
+      voiceNoteRef.current = null;
     });
 
     audio.play().catch(() => {

@@ -967,9 +967,9 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
           </div>
         )}
 
-        {/* Coach's Voice Note — preload="none" prevents 10+ concurrent audio
-            metadata loads that can overwhelm iOS media subsystem */}
-        {exercise.voiceNoteUrl && (
+        {/* Coach's Voice Note — uses proxy URL that never expires.
+            preload="none" prevents concurrent audio metadata loads on iOS */}
+        {(exercise.voiceNoteUrl || exercise.voiceNotePath) && (
           <div className="coach-voice-note">
             <span className="note-label">
               <Mic size={14} />
@@ -977,27 +977,15 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
             </span>
             <audio
               controls
-              src={exercise.voiceNoteUrl}
+              src={exercise.voiceNotePath
+                ? `/.netlify/functions/serve-voice-note?path=${encodeURIComponent(exercise.voiceNotePath)}`
+                : exercise.voiceNoteUrl}
               className="voice-note-audio"
               preload="none"
               onError={(e) => {
-                const audio = e.target;
-                if (exercise.voiceNotePath && !audio.dataset.retried) {
-                  audio.dataset.retried = 'true';
-                  fetch('/.netlify/functions/get-signed-video-url', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ filePath: exercise.voiceNotePath })
-                  })
-                    .then(r => r.json())
-                    .then(data => {
-                      if (data.success && data.url) {
-                        audio.src = data.url;
-                        audio.load();
-                      }
-                    })
-                    .catch(() => {});
-                }
+                // Hide voice note if file is missing/deleted
+                const container = e.target.closest('.coach-voice-note');
+                if (container) container.style.display = 'none';
               }}
             />
           </div>

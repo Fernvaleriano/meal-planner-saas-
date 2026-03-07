@@ -2572,9 +2572,8 @@ function ExerciseDetailModal({
         </div>
 
 
-        {/* Coach Voice Note — only one audio element at a time (inside the modal),
-            and preload="none" so it doesn't load until user taps play */}
-        {exercise.voiceNoteUrl && (
+        {/* Coach Voice Note — uses proxy URL that never expires */}
+        {(exercise.voiceNoteUrl || exercise.voiceNotePath) && (
           <div className="coach-voice-note-section">
             <div className="voice-note-header">
               <Mic size={16} />
@@ -2582,27 +2581,15 @@ function ExerciseDetailModal({
             </div>
             <audio
               controls
-              src={exercise.voiceNoteUrl}
+              src={exercise.voiceNotePath
+                ? `/.netlify/functions/serve-voice-note?path=${encodeURIComponent(exercise.voiceNotePath)}`
+                : exercise.voiceNoteUrl}
               className="voice-note-audio-player"
               preload="none"
               onError={(e) => {
-                const audio = e.target;
-                if (exercise.voiceNotePath && !audio.dataset.retried) {
-                  audio.dataset.retried = 'true';
-                  fetch('/.netlify/functions/get-signed-video-url', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ filePath: exercise.voiceNotePath })
-                  })
-                    .then(r => r.json())
-                    .then(data => {
-                      if (data.success && data.url) {
-                        audio.src = data.url;
-                        audio.load();
-                      }
-                    })
-                    .catch(() => {});
-                }
+                // Hide voice note if file is missing/deleted
+                const container = e.target.closest('.coach-voice-note-section');
+                if (container) container.style.display = 'none';
               }}
             />
           </div>
