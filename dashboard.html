@@ -6372,24 +6372,23 @@
                     console.warn('Notifications warning:', data.warning);
                 }
 
-                if (data.unreadCount > 0) {
-                    notificationBadge.textContent = data.unreadCount > 9 ? '9+' : data.unreadCount;
+                // Filter out client_pr from badge count since PRs are shown in Today's Priority
+                const prUnreadCount = (data.notifications || []).filter(n => n.type === 'client_pr' && !n.is_read).length;
+                const adjustedUnreadCount = Math.max(0, (data.unreadCount || 0) - prUnreadCount);
+
+                if (adjustedUnreadCount > 0) {
+                    notificationBadge.textContent = adjustedUnreadCount > 9 ? '9+' : adjustedUnreadCount;
                     notificationBadge.style.display = 'flex';
                 } else {
                     notificationBadge.style.display = 'none';
                 }
 
-                if (data.notifications && data.notifications.length > 0) {
-                    // Debug: log notification data from API
-                    console.log('Notifications loaded from API:', data.notifications.map(n => ({
-                        id: n.id,
-                        type: n.type,
-                        related_client_id: n.related_client_id,
-                        related_checkin_id: n.related_checkin_id,
-                        title: n.title
-                    })));
+                // Filter out client_pr notifications — those are already shown
+                // with richer UI (reactions, replies) in Today's Priority section
+                const filteredNotifications = (data.notifications || []).filter(n => n.type !== 'client_pr');
 
-                    notificationList.innerHTML = data.notifications.map(n => `
+                if (filteredNotifications.length > 0) {
+                    notificationList.innerHTML = filteredNotifications.map(n => `
                         <div class="notification-item ${n.is_read ? '' : 'unread'}" data-id="${n.id}" data-client-id="${n.related_client_id || ''}" data-type="${n.type || ''}" data-checkin-id="${n.related_checkin_id || ''}">
                             <div class="notification-title">${n.title}</div>
                             <div class="notification-message">${n.message}</div>
