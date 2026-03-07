@@ -565,7 +565,6 @@ function Workouts() {
   const isRefreshingRef = useRef(false);
   const completedExercisesRef = useRef(new Set());
   const pendingSaveRef = useRef(null); // Track pending completion saves for visibilitychange flush
-  const completionSaveTimerRef = useRef(null); // Debounce timer for coalescing rapid completion toggles
   const globalExerciseRefsRef = useRef({}); // Coach's global exercise references keyed by lowercase exercise name
   const refreshWorkoutDataRef = useRef(null); // Stable ref for resume handler (defined later via useCallback)
 
@@ -684,16 +683,6 @@ function Workouts() {
   useEffect(() => {
     const flushPendingSave = () => {
       if (document.visibilityState !== 'hidden') return;
-
-      // If there's a debounced completion save waiting, flush it now using latest state
-      if (completionSaveTimerRef.current) {
-        clearTimeout(completionSaveTimerRef.current);
-        completionSaveTimerRef.current = null;
-        const workout = todayWorkoutRef.current;
-        if (workout?.workout_data) {
-          pendingSaveRef.current = { workout, updatedWorkoutData: workout.workout_data };
-        }
-      }
 
       const pending = pendingSaveRef.current;
       if (!pending) return;
@@ -1367,85 +1356,11 @@ function Workouts() {
       return newCompleted;
     });
 
-    // Persist the completed flag into workout_data using functional state update
-    setTodayWorkout(prev => {
-      if (!prev?.workout_data) return prev;
-
-      let currentExercises = [];
-      let isUsingDays = false;
-      const dayIndex = prev.day_index || 0;
-
-      if (Array.isArray(prev.workout_data.exercises) && prev.workout_data.exercises.length > 0) {
-        currentExercises = [...prev.workout_data.exercises];
-      } else if (prev.workout_data.days && Array.isArray(prev.workout_data.days)) {
-        isUsingDays = true;
-        const dayData = prev.workout_data.days[dayIndex];
-        if (dayData?.exercises && Array.isArray(dayData.exercises)) {
-          currentExercises = [...dayData.exercises];
-        }
-      }
-
-      const updatedExercises = currentExercises.map(ex => {
-        if (ex?.id === exerciseId) {
-          return { ...ex, completed: isNowCompleted };
-        }
-        return ex;
-      });
-
-      let updatedWorkoutData;
-      if (isUsingDays) {
-        const updatedDays = [...prev.workout_data.days];
-        updatedDays[dayIndex] = { ...updatedDays[dayIndex], exercises: updatedExercises };
-        updatedWorkoutData = { ...prev.workout_data, days: updatedDays };
-      } else {
-        updatedWorkoutData = { ...prev.workout_data, exercises: updatedExercises };
-      }
-
-      return { ...prev, workout_data: updatedWorkoutData };
-    });
-
-    // Debounce the API call so rapid toggles coalesce into a single save
-    // with the latest workout_data. This prevents earlier calls from overwriting
-    // later ones when network responses arrive out of order.
-    if (completionSaveTimerRef.current) {
-      clearTimeout(completionSaveTimerRef.current);
-    }
-    completionSaveTimerRef.current = setTimeout(async () => {
-      completionSaveTimerRef.current = null;
-
-      // Read the LATEST state from refs (not the stale captured values)
-      // By now React has re-rendered and todayWorkoutRef.current is up to date
-      const workout = todayWorkoutRef.current;
-      if (!workout?.workout_data) return;
-      const updatedWorkoutData = workout.workout_data;
-
-      // Store pending save for visibilitychange flush
-      pendingSaveRef.current = { workout, updatedWorkoutData };
-
-      try {
-        if (workout.is_adhoc) {
-          const isRealId = workout.id && !String(workout.id).startsWith('adhoc-') && !String(workout.id).startsWith('custom-');
-          const dateStr = workout.workout_date || new Date().toISOString().split('T')[0];
-          await apiPut('/.netlify/functions/adhoc-workouts', {
-            ...(isRealId ? { workoutId: workout.id } : {}),
-            clientId: workout.client_id,
-            workoutDate: dateStr,
-            workoutData: updatedWorkoutData,
-            name: workout.name
-          });
-        } else {
-          await apiPut('/.netlify/functions/client-workout-log', {
-            assignmentId: workout.id,
-            dayIndex: workout.day_index,
-            workout_data: updatedWorkoutData
-          });
-        }
-        pendingSaveRef.current = null;
-      } catch (err) {
-        console.error('Error persisting exercise completion:', err);
-        // localStorage already has the data as backup
-      }
-    }, 300);
+    // Completion state is tracked ONLY in the completedExercises Set + localStorage.
+    // We intentionally do NOT write completed flags into workout_data or save to the
+    // database here, because the master program template is shared across all dates
+    // that map to the same day_index. Writing completed flags there would cause
+    // exercises to appear checked on future dates.
   }, []);
 
   // Uncheck all completed exercises
@@ -2109,15 +2024,14 @@ function Workouts() {
 
     if (currentExercises.length === 0) return;
 
-    // Update the exercise in the workout data, preserving completed flags
-    const completed = completedExercisesRef.current;
+    // Update the exercise in the workout data
+    // NOTE: Do NOT stamp completed flags here — completion state is tracked
+    // separately via completedExercises/localStorage to avoid contaminating
+    // the master program template in the database.
     const updatedExercises = currentExercises.map(ex => {
       if (ex?.id === updatedExercise.id) {
-        return { ...updatedExercise, completed: completed.has(updatedExercise.id) || false };
-      }
-      // Preserve completed flag from completedExercises ref (source of truth)
-      if (ex?.id && completed.has(ex.id)) {
-        return { ...ex, completed: true };
+        const { completed, ...rest } = updatedExercise;
+        return rest;
       }
       return ex;
     });
