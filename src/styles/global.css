@@ -32092,18 +32092,19 @@ a.nav-left {
 /* Message bubbles */
 .chat-msg {
     display: flex;
+    flex-direction: column;
     max-width: 80%;
     margin-bottom: 2px;
 }
 
 .chat-msg.mine {
     margin-left: auto;
-    justify-content: flex-end;
+    align-items: flex-end;
 }
 
 .chat-msg.theirs {
     margin-right: auto;
-    justify-content: flex-start;
+    align-items: flex-start;
 }
 
 .chat-msg-bubble {
@@ -32457,7 +32458,15 @@ a.nav-left {
 
 /* ===== Message Reactions ===== */
 
-/* Reaction trigger button (SmilePlus icon) */
+/* Wrapper for bubble + reaction trigger */
+.chat-msg-wrapper {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    max-width: 100%;
+}
+
+/* Reaction trigger button (SmilePlus icon) - outside bubble */
 .chat-reaction-trigger {
     position: absolute;
     top: 50%;
@@ -32474,14 +32483,14 @@ a.nav-left {
     justify-content: center;
     transition: all 0.15s;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    z-index: 2;
+    z-index: 5;
 }
 
-.chat-reaction-trigger.left {
+.chat-reaction-trigger.trigger-left {
     left: -34px;
 }
 
-.chat-reaction-trigger.right {
+.chat-reaction-trigger.trigger-right {
     right: -34px;
 }
 
