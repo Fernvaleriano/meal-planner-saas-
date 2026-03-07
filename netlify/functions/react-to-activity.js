@@ -134,6 +134,23 @@ exports.handler = async (event) => {
         console.error('Error creating notification:', notifError);
         // Don't fail the request if notification fails
       }
+
+      // Send a chat message so the reaction shows in Messages
+      try {
+        const chatMessage = itemType === 'client_pr'
+          ? `Reacted ${reaction} to your new PR!`
+          : `Reacted ${reaction} to your workout note`;
+        await supabase
+          .from('chat_messages')
+          .insert({
+            coach_id: coachId,
+            client_id: parseInt(clientId),
+            sender_type: 'coach',
+            message: chatMessage
+          });
+      } catch (chatError) {
+        console.error('Error sending reaction chat message:', chatError);
+      }
     }
 
     return {
