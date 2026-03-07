@@ -46,8 +46,25 @@ function BottomNav({ currentPath }) {
   }, [clientData?.id, fetchUnread]);
 
   useEffect(() => {
-    if (currentPath !== '/messages') fetchUnread();
+    if (currentPath === '/messages') {
+      // Clear badge immediately when entering Messages
+      setUnreadMessages(0);
+    } else {
+      fetchUnread();
+    }
   }, [currentPath, fetchUnread]);
+
+  // Instant badge update: Messages.jsx dispatches 'new-unread-message' when
+  // a realtime message arrives while the user is on another tab.
+  useEffect(() => {
+    const handleNewUnread = () => {
+      if (currentPath !== '/messages') {
+        setUnreadMessages(prev => prev + 1);
+      }
+    };
+    window.addEventListener('new-unread-message', handleNewUnread);
+    return () => window.removeEventListener('new-unread-message', handleNewUnread);
+  }, [currentPath]);
 
   const navItems = [
     { path: '/', icon: Home, label: 'Home' },
