@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Send, Search, MessageCircle, Image, X, Trash2, Check, CheckCheck, Paperclip, Loader } from 'lucide-react';
+import { Send, Search, MessageCircle, Image, X, Trash2, Check, CheckCheck, Paperclip, Loader, SmilePlus } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost } from '../utils/api';
 import { supabase } from '../utils/supabase';
@@ -20,6 +20,8 @@ const setMsgCache = (key, data) => {
     localStorage.setItem(key, JSON.stringify(data));
   } catch { /* ignore */ }
 };
+
+const REACTION_EMOJIS = ['❤️', '💪', '🔥', '👏', '😂', '👍'];
 
 function Messages() {
   const { user, clientData } = useAuth();
@@ -42,6 +44,7 @@ function Messages() {
   const [mediaPreview, setMediaPreview] = useState(null); // { file, dataUrl, type }
   const [uploading, setUploading] = useState(false);
   const [selectedMsgId, setSelectedMsgId] = useState(null); // for unsend menu
+  const [reactionPickerMsgId, setReactionPickerMsgId] = useState(null); // for emoji reaction picker
   const [resubscribeKey, setResubscribeKey] = useState(0); // Incremented on resume to force Supabase channel re-subscribe
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
@@ -299,6 +302,45 @@ function Messages() {
     }
   };
 
+  // Toggle emoji reaction on a message
+  const handleReaction = async (msgId, emoji) => {
+    const cId = isCoach ? coachId : activeConvo.coachId;
+    const clId = isCoach ? activeConvo.clientId : clientId;
+    const reactorType = isCoach ? 'coach' : 'client';
+    const reactorId = isCoach ? coachId : clientId;
+
+    // Optimistic update
+    setMessages(prev => prev.map(m => {
+      if (m.id !== msgId) return m;
+      const reactions = [...(m.reactions || [])];
+      const existingIdx = reactions.findIndex(
+        r => r.emoji === emoji && r.reactor_type === reactorType && r.reactor_id === String(reactorId)
+      );
+      if (existingIdx >= 0) {
+        reactions.splice(existingIdx, 1);
+      } else {
+        reactions.push({ id: Date.now(), message_id: msgId, reactor_type: reactorType, reactor_id: String(reactorId), emoji });
+      }
+      return { ...m, reactions };
+    }));
+
+    setReactionPickerMsgId(null);
+
+    try {
+      await apiPost('/.netlify/functions/chat', {
+        action: 'toggle-reaction',
+        messageId: msgId,
+        emoji,
+        reactorType,
+        reactorId: String(reactorId)
+      });
+    } catch (err) {
+      console.error('Error toggling reaction:', err);
+      // Revert on failure by re-fetching
+      fetchMessages();
+    }
+  };
+
   // Handle enter key
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -315,16 +357,19 @@ function Messages() {
     setMediaPreview(null);
   };
 
-  // Close unsend menu when clicking elsewhere
+  // Close unsend menu or reaction picker when clicking elsewhere
   useEffect(() => {
-    if (selectedMsgId === null) return;
-    const handleClick = () => setSelectedMsgId(null);
+    if (selectedMsgId === null && reactionPickerMsgId === null) return;
+    const handleClick = () => {
+      setSelectedMsgId(null);
+      setReactionPickerMsgId(null);
+    };
     const timer = setTimeout(() => document.addEventListener('click', handleClick), 0);
     return () => {
       clearTimeout(timer);
       document.removeEventListener('click', handleClick);
     };
-  }, [selectedMsgId]);
+  }, [selectedMsgId, reactionPickerMsgId]);
 
   // For client: auto-open single conversation
   useEffect(() => {
@@ -446,8 +491,41 @@ function Messages() {
       )
       .subscribe();
 
+    // Separate channel for reaction changes
+    const reactionsChannel = supabase
+      .channel(`chat-reactions-${cId}-${clId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'chat_message_reactions'
+        },
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            const newReaction = payload.new;
+            setMessages(prev => prev.map(m => {
+              if (m.id !== newReaction.message_id) return m;
+              const reactions = [...(m.reactions || [])];
+              if (!reactions.some(r => r.id === newReaction.id)) {
+                reactions.push(newReaction);
+              }
+              return { ...m, reactions };
+            }));
+          } else if (payload.eventType === 'DELETE') {
+            const removed = payload.old;
+            setMessages(prev => prev.map(m => {
+              if (m.id !== removed.message_id) return m;
+              return { ...m, reactions: (m.reactions || []).filter(r => r.id !== removed.id) };
+            }));
+          }
+        }
+      )
+      .subscribe();
+
     return () => {
       supabase.removeChannel(channel);
+      supabase.removeChannel(reactionsChannel);
     };
   }, [activeConvo, isCoach, coachId, clientId, scrollToBottom, resubscribeKey]);
 
@@ -647,6 +725,23 @@ function Messages() {
             const isMine = msg.sender_type === myType;
             const hasMedia = !!msg.media_url;
             const isReaction = msg.message && /^Reacted .+ to your (breakfast|lunch|dinner|snack|meal|workout|new PR!|workout note)$/i.test(msg.message);
+            const msgReactions = msg.reactions || [];
+            const reactorType = isCoach ? 'coach' : 'client';
+            const reactorId = String(isCoach ? coachId : clientId);
+
+            // Group reactions by emoji with count and whether current user reacted
+            const groupedReactions = [];
+            const emojiMap = {};
+            msgReactions.forEach(r => {
+              if (!emojiMap[r.emoji]) {
+                emojiMap[r.emoji] = { emoji: r.emoji, count: 0, myReaction: false };
+                groupedReactions.push(emojiMap[r.emoji]);
+              }
+              emojiMap[r.emoji].count++;
+              if (r.reactor_type === reactorType && r.reactor_id === reactorId) {
+                emojiMap[r.emoji].myReaction = true;
+              }
+            });
 
             return (
               <div
@@ -656,6 +751,7 @@ function Messages() {
                   if (isMine) {
                     e.stopPropagation();
                     setSelectedMsgId(selectedMsgId === msg.id ? null : msg.id);
+                    setReactionPickerMsgId(null);
                   }
                 }}
               >
@@ -690,7 +786,57 @@ function Messages() {
                       Unsend
                     </button>
                   )}
+
+                  {/* Reaction picker trigger */}
+                  <button
+                    className={`chat-reaction-trigger ${isMine ? 'left' : 'right'}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setReactionPickerMsgId(reactionPickerMsgId === msg.id ? null : msg.id);
+                      setSelectedMsgId(null);
+                    }}
+                    title="React"
+                  >
+                    <SmilePlus size={16} />
+                  </button>
+
+                  {/* Emoji reaction picker */}
+                  {reactionPickerMsgId === msg.id && (
+                    <div className={`chat-reaction-picker ${isMine ? 'picker-left' : 'picker-right'}`} onClick={(e) => e.stopPropagation()}>
+                      {REACTION_EMOJIS.map(emoji => (
+                        <button
+                          key={emoji}
+                          className={`chat-reaction-emoji-btn ${emojiMap[emoji]?.myReaction ? 'active' : ''}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleReaction(msg.id, emoji);
+                          }}
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
+
+                {/* Reactions display below bubble */}
+                {groupedReactions.length > 0 && (
+                  <div className={`chat-reactions-row ${isMine ? 'reactions-right' : 'reactions-left'}`}>
+                    {groupedReactions.map(r => (
+                      <button
+                        key={r.emoji}
+                        className={`chat-reaction-chip ${r.myReaction ? 'my-reaction' : ''}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleReaction(msg.id, r.emoji);
+                        }}
+                      >
+                        <span>{r.emoji}</span>
+                        {r.count > 1 && <span className="reaction-count">{r.count}</span>}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             );
           })}
