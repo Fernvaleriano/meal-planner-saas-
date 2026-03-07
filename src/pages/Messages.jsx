@@ -516,9 +516,10 @@ function Messages() {
             console.log('[Messages] Reconnect attempt', resubscribeAttemptsRef.current, 'in', delay, 'ms');
             setTimeout(() => setResubscribeKey(k => k + 1), delay);
           } else {
-            // Gave up — show the reload banner
-            console.warn('[Messages] Channel keeps dying after', resubscribeAttemptsRef.current, 'attempts — showing reload');
-            window.dispatchEvent(new CustomEvent('app-resume-sync', { detail: { phase: 'stuck' } }));
+            // Gave up — just log it. Don't dispatch a global stuck banner
+            // because the rest of the app still works fine. The user can
+            // navigate away and back to Messages to retry.
+            console.warn('[Messages] Channel keeps dying after', resubscribeAttemptsRef.current, 'attempts');
           }
         }
       });
@@ -626,8 +627,7 @@ function Messages() {
             const delay = resubscribeAttemptsRef.current * 3000;
             setTimeout(() => setResubscribeKey(k => k + 1), delay);
           } else {
-            console.warn('[Messages] List channel keeps dying — showing reload');
-            window.dispatchEvent(new CustomEvent('app-resume-sync', { detail: { phase: 'stuck' } }));
+            console.warn('[Messages] List channel keeps dying');
           }
         }
       });

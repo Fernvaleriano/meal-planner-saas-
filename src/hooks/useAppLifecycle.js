@@ -183,7 +183,7 @@ function cleanupStuckScrollLock() {
  * can show a "Reload" button. This prevents the user from being stuck with
  * "Reconnecting..." forever.
  */
-const RESUME_STUCK_TIMEOUT = 10000; // 10 seconds — if resume takes longer, offer reload
+const RESUME_STUCK_TIMEOUT = 25000; // 25 seconds — generous timeout to avoid false positives
 
 async function triggerResume(backgroundMs) {
   resumeStuck = false;
@@ -199,9 +199,18 @@ async function triggerResume(backgroundMs) {
   let stuckTimer;
   if (backgroundMs > 5000) {
     stuckTimer = setTimeout(() => {
-      resumeStuck = true;
-      console.warn('[AppLifecycle] Resume appears stuck after', RESUME_STUCK_TIMEOUT, 'ms — offering reload');
-      window.dispatchEvent(new CustomEvent('app-resume-sync', { detail: { phase: 'stuck' } }));
+      // Only show stuck banner if actually offline. If the device is online
+      // the app is almost certainly working fine — showing the banner is a
+      // false positive that makes the app feel broken when it isn't.
+      if (!navigator.onLine) {
+        resumeStuck = true;
+        console.warn('[AppLifecycle] Resume stuck + offline after', RESUME_STUCK_TIMEOUT, 'ms');
+        window.dispatchEvent(new CustomEvent('app-resume-sync', { detail: { phase: 'stuck' } }));
+      } else {
+        console.log('[AppLifecycle] Resume slow but online — suppressing stuck banner');
+        // Still dispatch 'done' to clean up the syncing bar if it's showing
+        window.dispatchEvent(new CustomEvent('app-resume-sync', { detail: { phase: 'done' } }));
+      }
     }, RESUME_STUCK_TIMEOUT);
   }
 
