@@ -629,6 +629,7 @@ function Messages() {
             console.warn('[Messages] List channel keeps dying — showing reload');
             window.dispatchEvent(new CustomEvent('app-resume-sync', { detail: { phase: 'stuck' } }));
           }
+        }
       });
 
     return () => {
