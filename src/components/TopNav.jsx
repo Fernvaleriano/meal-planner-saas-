@@ -109,10 +109,19 @@ function TopNav() {
       }
     });
 
+    const handleNotificationsRead = (e) => {
+      const newCount = e.detail?.unreadCount ?? 0;
+      setUnreadCount(newCount);
+      notificationCache.data = { ...notificationCache.data, unreadCount: newCount };
+      notificationCache.timestamp = Date.now();
+    };
+    window.addEventListener('notifications-read', handleNotificationsRead);
+
     return () => {
       if (interval) clearInterval(interval);
       unsubSuspend();
       unsubResume();
+      window.removeEventListener('notifications-read', handleNotificationsRead);
     };
   }, [fetchNotifications]);
 

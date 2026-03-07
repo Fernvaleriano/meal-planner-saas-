@@ -47,6 +47,7 @@ function Notifications() {
       });
       setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
       setUnreadCount(0);
+      window.dispatchEvent(new CustomEvent('notifications-read', { detail: { unreadCount: 0 } }));
     } catch (err) {
       console.error('Error marking notifications read:', err);
     }
@@ -100,7 +101,11 @@ function Notifications() {
         setNotifications(prev => prev.map(n =>
           n.id === notif.id ? { ...n, is_read: true } : n
         ));
-        setUnreadCount(prev => Math.max(0, prev - 1));
+        setUnreadCount(prev => {
+          const newCount = Math.max(0, prev - 1);
+          window.dispatchEvent(new CustomEvent('notifications-read', { detail: { unreadCount: newCount } }));
+          return newCount;
+        });
       } catch (err) {
         console.error('Error marking notification read:', err);
       }
