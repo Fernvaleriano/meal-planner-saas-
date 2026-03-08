@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { ChevronLeft, Clock, X, Search, Sparkles, Globe, BookOpen, Heart, Download, Plus, Trash2, Edit3, Eye, EyeOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -72,9 +72,35 @@ function Recipes() {
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
 
+  const loadRecipes = useCallback(async () => {
+    if (!coachId) return;
+    setLoading(true);
+    try {
+      const data = await apiGet(`/.netlify/functions/get-recipes?clientId=${clientData?.id}&coachId=${coachId}`);
+      setRecipes(data?.recipes || []);
+    } catch (err) {
+      console.error('Error loading recipes:', err);
+      setRecipes([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [clientData?.id, coachId]);
+
+  const loadRandomRecipes = useCallback(async () => {
+    setDiscoverLoading(true);
+    try {
+      const data = await apiGet('/.netlify/functions/spoonacular-recipes?action=random&number=12');
+      setDiscoverRecipes(data.recipes || []);
+    } catch (err) {
+      console.error('Error loading discover recipes:', err);
+    } finally {
+      setDiscoverLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     loadRecipes();
-  }, [clientData?.id, coachId]);
+  }, [loadRecipes]);
 
   // Respond to global pull-to-refresh gesture
   usePullToRefreshEvent(loadRecipes);
@@ -90,32 +116,6 @@ function Recipes() {
       loadRandomRecipes();
     }
   }, [activeTab]);
-
-  const loadRecipes = async () => {
-    if (!coachId) return;
-    setLoading(true);
-    try {
-      const data = await apiGet(`/.netlify/functions/get-recipes?clientId=${clientData?.id}&coachId=${coachId}`);
-      setRecipes(data?.recipes || []);
-    } catch (err) {
-      console.error('Error loading recipes:', err);
-      setRecipes([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadRandomRecipes = async () => {
-    setDiscoverLoading(true);
-    try {
-      const data = await apiGet('/.netlify/functions/spoonacular-recipes?action=random&number=12');
-      setDiscoverRecipes(data.recipes || []);
-    } catch (err) {
-      console.error('Error loading discover recipes:', err);
-    } finally {
-      setDiscoverLoading(false);
-    }
-  };
 
   const searchSpoonacular = async (e) => {
     e?.preventDefault();
