@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ChevronLeft, Clock, X, Search, Sparkles, Globe, BookOpen, Heart, Download, Plus, Trash2, Edit3, Eye, EyeOff } from 'lucide-react';
+import { ChevronLeft, Clock, X, Search, Sparkles, Globe, BookOpen, Heart, Download, Plus, Trash2, Edit3, Eye, EyeOff, Upload, Link, Camera } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, apiPut, apiDelete } from '../utils/api';
@@ -44,6 +44,7 @@ const EMPTY_FORM = {
   ingredients: '',
   instructions: '',
   image_url: '',
+  source_url: '',
   is_public: true
 };
 
@@ -71,6 +72,58 @@ function Recipes() {
   const [editingRecipe, setEditingRecipe] = useState(null); // null = creating, object = editing
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [imagePreview, setImagePreview] = useState(null);
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file.');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Image must be under 5MB.');
+      return;
+    }
+
+    // Show preview immediately
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const imageData = event.target.result;
+      setImagePreview(imageData);
+      setUploadingImage(true);
+
+      try {
+        const result = await apiPost('/.netlify/functions/upload-recipe-image', {
+          coachId,
+          imageData,
+          fileName: file.name
+        });
+
+        if (result?.imageUrl) {
+          handleFormChange('image_url', result.imageUrl);
+        } else {
+          alert('Failed to upload image. Please try again.');
+          setImagePreview(null);
+        }
+      } catch (err) {
+        console.error('Error uploading image:', err);
+        alert('Failed to upload image. Please try again.');
+        setImagePreview(null);
+      } finally {
+        setUploadingImage(false);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removeImage = () => {
+    setImagePreview(null);
+    handleFormChange('image_url', '');
+  };
 
   const loadRecipes = useCallback(async () => {
     if (!coachId) return;
@@ -159,11 +212,13 @@ function Recipes() {
   const openCreateForm = () => {
     setEditingRecipe(null);
     setFormData(EMPTY_FORM);
+    setImagePreview(null);
     setShowRecipeForm(true);
   };
 
   const openEditForm = (recipe) => {
     setEditingRecipe(recipe);
+    setImagePreview(null);
     setFormData({
       name: recipe.name || '',
       description: recipe.description || '',
@@ -178,6 +233,7 @@ function Recipes() {
       ingredients: recipe.ingredients || '',
       instructions: recipe.instructions || '',
       image_url: recipe.image_url || '',
+      source_url: recipe.source_url || '',
       is_public: recipe.is_public !== false
     });
     setShowRecipeForm(true);
@@ -211,6 +267,7 @@ function Recipes() {
         ingredients: formData.ingredients.trim() || null,
         instructions: formData.instructions.trim() || null,
         image_url: formData.image_url.trim() || null,
+        source_url: formData.source_url.trim() || null,
         is_public: formData.is_public
       };
 
@@ -224,6 +281,7 @@ function Recipes() {
       setShowRecipeForm(false);
       setEditingRecipe(null);
       setFormData(EMPTY_FORM);
+      setImagePreview(null);
       await loadRecipes();
     } catch (err) {
       console.error('Error saving recipe:', err);
@@ -657,7 +715,7 @@ function Recipes() {
                 </div>
               )}
 
-              {/* Source link for Spoonacular recipes */}
+              {/* Source link */}
               {selectedRecipe.source_url && (
                 <a
                   href={selectedRecipe.source_url}
@@ -665,7 +723,15 @@ function Recipes() {
                   rel="noopener noreferrer"
                   className="recipe-source-link"
                 >
-                  <Globe size={14} /> View Original Recipe
+                  <Link size={14} /> {
+                    selectedRecipe.source_url.includes('youtube.com') || selectedRecipe.source_url.includes('youtu.be')
+                      ? 'Watch on YouTube'
+                      : selectedRecipe.source_url.includes('instagram.com')
+                      ? 'View on Instagram'
+                      : selectedRecipe.source_url.includes('tiktok.com')
+                      ? 'View on TikTok'
+                      : 'View Recipe Link'
+                  }
                 </a>
               )}
 
@@ -876,16 +942,99 @@ function Recipes() {
                   />
                 </div>
 
-                {/* Image URL */}
+                {/* Image Upload */}
                 <div className="form-group">
-                  <label className="form-label">Image URL (optional)</label>
+                  <label className="form-label">Recipe Photo (optional)</label>
+                  {(imagePreview || formData.image_url) ? (
+                    <div style={{
+                      position: 'relative',
+                      borderRadius: '12px',
+                      overflow: 'hidden',
+                      border: '2px solid #e2e8f0'
+                    }}>
+                      <img
+                        src={imagePreview || formData.image_url}
+                        alt="Recipe preview"
+                        style={{
+                          width: '100%',
+                          height: '180px',
+                          objectFit: 'cover',
+                          display: 'block'
+                        }}
+                      />
+                      {uploadingImage && (
+                        <div style={{
+                          position: 'absolute', inset: 0,
+                          background: 'rgba(0,0,0,0.5)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          color: 'white', fontSize: '14px', fontWeight: '600'
+                        }}>
+                          Uploading...
+                        </div>
+                      )}
+                      <button
+                        type="button"
+                        onClick={removeImage}
+                        style={{
+                          position: 'absolute', top: '8px', right: '8px',
+                          background: 'rgba(0,0,0,0.6)', color: 'white',
+                          border: 'none', borderRadius: '50%',
+                          width: '28px', height: '28px',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                  ) : (
+                    <label style={{
+                      display: 'flex', flexDirection: 'column',
+                      alignItems: 'center', justifyContent: 'center',
+                      gap: '8px', padding: '24px',
+                      border: '2px dashed #cbd5e1',
+                      borderRadius: '12px',
+                      cursor: 'pointer',
+                      transition: 'border-color 0.2s, background 0.2s',
+                      background: '#f8fafc'
+                    }}
+                    onMouseOver={(e) => { e.currentTarget.style.borderColor = '#3b82f6'; e.currentTarget.style.background = '#eff6ff'; }}
+                    onMouseOut={(e) => { e.currentTarget.style.borderColor = '#cbd5e1'; e.currentTarget.style.background = '#f8fafc'; }}
+                    >
+                      <Camera size={32} color="#94a3b8" />
+                      <span style={{ fontSize: '14px', color: '#64748b', fontWeight: '500' }}>
+                        Tap to upload a photo
+                      </span>
+                      <span style={{ fontSize: '12px', color: '#94a3b8' }}>
+                        JPG, PNG up to 5MB
+                      </span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        style={{ display: 'none' }}
+                      />
+                    </label>
+                  )}
+                </div>
+
+                {/* Source URL for links */}
+                <div className="form-group">
+                  <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Link size={14} /> Recipe Link (optional)
+                  </label>
                   <input
                     type="url"
-                    value={formData.image_url}
-                    onChange={(e) => handleFormChange('image_url', e.target.value)}
-                    placeholder="https://..."
+                    value={formData.source_url}
+                    onChange={(e) => handleFormChange('source_url', e.target.value)}
+                    placeholder="YouTube, Instagram, website URL..."
                     className="form-input"
                   />
+                  {formData.source_url && (
+                    <span style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px', display: 'block' }}>
+                      This link will be shown on the recipe for clients to view
+                    </span>
+                  )}
                 </div>
 
                 {/* Visibility toggle */}
