@@ -76,12 +76,13 @@ exports.handler = async (event) => {
 Rules:
 - Extract EVERY meal (breakfast, lunch, dinner, snacks, pre-workout, post-workout, etc.)
 - Assign a meal type to each: "Breakfast", "Lunch", "Dinner", or "Snack"
-- Preserve exact meal/food names from the source
+- For "name": use a short descriptive meal name (e.g. "Scrambled Eggs with Oats and Blueberries")
+- CRITICAL - "ingredients" array: ALWAYS include every food item with its EXACT portion/quantity from the source text. Each ingredient string MUST include the amount (e.g. "4 whole eggs", "3 egg whites", "120g oats", "1/2 cup blueberries"). This is the most important field - users need to see exact portions.
+- If the source lists items like "4 whole eggs, 3 egg whites, 120g oats" - each of those becomes a separate ingredient string WITH the quantity preserved exactly as written.
 - Extract or estimate calories, protein (g), carbs (g), and fat (g) for each meal
 - If macros are provided in the source, use those exact values
 - If only calories are given, estimate macros with a balanced split
 - If no nutrition info is given, estimate based on common food knowledge
-- Extract ingredients if listed (as array of strings)
 - Extract cooking instructions or prep notes if available
 - Combine items that are clearly part of the same meal into one meal entry
 
@@ -97,7 +98,7 @@ Return JSON:
         system: daySystemPrompt,
         messages: [{
           role: 'user',
-          content: `Parse ALL meals from this diet plan day. Return only valid JSON.\n\n${chunk}`
+          content: `Parse ALL meals from this diet plan day. IMPORTANT: Include every ingredient with its exact portion/quantity in the "ingredients" array. Return only valid JSON.\n\n${chunk}`
         }]
       }).then(msg => {
         const text = msg.content[0]?.text || '';
