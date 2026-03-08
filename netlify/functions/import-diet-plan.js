@@ -89,9 +89,10 @@ Return JSON:
 {"dayName":"Monday","meals":[{"name":"Grilled Chicken with Brown Rice and Broccoli","type":"Lunch","calories":450,"protein":35,"carbs":45,"fat":10,"ingredients":["6oz chicken breast","1 cup brown rice","1 cup broccoli"],"instructions":"Grill chicken, steam broccoli, serve over rice."}]}`;
 
     // Parse each day chunk in parallel with Haiku
+    const parseErrors = [];
     const dayParsePromises = dayChunks.map((chunk, i) =>
       anthropic.messages.create({
-        model: 'claude-3-5-haiku-20241022',
+        model: 'claude-haiku-4-5-20251001',
         max_tokens: 4096,
         system: daySystemPrompt,
         messages: [{
@@ -106,10 +107,12 @@ Return JSON:
           const match = text.match(/\{[\s\S]*\}/);
           if (match) return JSON.parse(match[0]);
           console.error(`Failed to parse day ${i + 1}:`, text.substring(0, 200));
+          parseErrors.push(`Day ${i + 1}: Could not parse AI response`);
           return null;
         }
       }).catch(err => {
         console.error(`Error parsing day ${i + 1}:`, err.message);
+        parseErrors.push(`Day ${i + 1}: ${err.message}`);
         return null;
       })
     );
@@ -132,7 +135,8 @@ Return JSON:
     console.log(`Parsed ${parsedDays.length}/${dayChunks.length} days`);
 
     if (parsedDays.length === 0) {
-      throw new Error('Could not parse any days from the diet plan. Please check the format and try again.');
+      const detail = parseErrors.length > 0 ? ` Errors: ${parseErrors.join('; ')}` : '';
+      throw new Error(`Could not parse any days from the diet plan. Please check the format and try again.${detail}`);
     }
 
     // Build the plan in the format expected by the planner
