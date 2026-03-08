@@ -20,7 +20,7 @@ exports.handler = async (event) => {
         const body = JSON.parse(event.body || '{}');
         const { coachId, name, description, time_category, prep_time_minutes, cook_time_minutes,
                 servings, calories, protein, carbs, fat, ingredients, instructions,
-                image_url, tags, is_public } = body;
+                image_url, source_url, tags, is_public } = body;
 
         if (!coachId || !name || !time_category) {
             return {
@@ -52,6 +52,7 @@ exports.handler = async (event) => {
                 ingredients: ingredients || null,
                 instructions: instructions || null,
                 image_url: image_url || null,
+                source_url: source_url || null,
                 source: 'custom',
                 tags: tags || [],
                 is_public: is_public !== false // default true
