@@ -104,6 +104,14 @@ Look for and extract:
 4. Protein (in grams)
 5. Total Carbohydrates (in grams)
 6. Total Fat (in grams)
+7. Dietary Fiber (in grams)
+8. Total Sugars (in grams)
+9. Sodium (in mg)
+10. Potassium (in mg)
+11. Calcium (in mg)
+12. Iron (in mg)
+13. Vitamin C (in mg)
+14. Cholesterol (in mg)
 
 Return ONLY a valid JSON object with this exact format (no markdown, no explanation, no code blocks):
 {
@@ -113,7 +121,15 @@ Return ONLY a valid JSON object with this exact format (no markdown, no explanat
   "calories": 000,
   "protein": 00,
   "carbs": 00,
-  "fat": 00
+  "fat": 00,
+  "fiber": 0,
+  "sugar": 0,
+  "sodium": 0,
+  "potassium": 0,
+  "calcium": 0,
+  "iron": 0.0,
+  "vitaminC": 0,
+  "cholesterol": 0
 }
 
 Important:
@@ -122,6 +138,7 @@ Important:
 - servingSize must be a number (the numeric portion of the serving size)
 - servingUnit must be a string (the unit portion like "cup", "g", "oz", "cookies", "pieces", "serving")
 - Round calories, protein, carbs, and fat to whole numbers
+- For micronutrients shown as %DV on the label, convert to absolute values using these daily values: Fiber 28g, Sodium 2300mg, Potassium 4700mg, Calcium 1300mg, Iron 18mg, Vitamin C 90mg, Cholesterol 300mg
 - If a value is not visible or unclear, use 0
 - If this is NOT a nutrition label, return: {"error": "No nutrition label detected"}
 
@@ -275,7 +292,15 @@ Return ONLY the JSON object, nothing else.`;
             calories: Math.max(0, Math.round(result.calories || 0)),
             protein: Math.max(0, Math.round(result.protein || 0)),
             carbs: Math.max(0, Math.round(result.carbs || 0)),
-            fat: Math.max(0, Math.round(result.fat || 0))
+            fat: Math.max(0, Math.round(result.fat || 0)),
+            fiber: Math.max(0, Math.round(result.fiber || 0)),
+            sugar: Math.max(0, Math.round(result.sugar || 0)),
+            sodium: Math.max(0, Math.round(result.sodium || 0)),
+            potassium: Math.max(0, Math.round(result.potassium || 0)),
+            calcium: Math.max(0, Math.round(result.calcium || 0)),
+            iron: Math.max(0, Math.round((result.iron || 0) * 10) / 10),
+            vitaminC: Math.max(0, Math.round(result.vitaminC || 0)),
+            cholesterol: Math.max(0, Math.round(result.cholesterol || 0))
         };
 
         return {

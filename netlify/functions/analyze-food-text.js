@@ -173,7 +173,15 @@ Return ONLY a valid JSON array with this exact format (no markdown, no explanati
     "calories": 000,
     "protein": 00,
     "carbs": 00,
-    "fat": 00
+    "fat": 00,
+    "fiber": 0,
+    "sugar": 0,
+    "sodium": 0,
+    "potassium": 0,
+    "calcium": 0,
+    "iron": 0.0,
+    "vitaminC": 0,
+    "cholesterol": 0
   }
 ]
 
@@ -216,6 +224,8 @@ Guidelines:
 - Use common sense for preparations (e.g., "fried eggs" vs "boiled eggs" have different fat)
 - If the description is unclear, make reasonable assumptions based on typical meals
 - Return empty array [] if no food items can be identified
+- For micronutrients: fiber (g), sugar (g), sodium (mg), potassium (mg), calcium (mg), iron (mg with 1 decimal), vitaminC (mg), cholesterol (mg)
+- Use USDA reference values for micronutrient estimates. If unsure, use 0
 
 Return ONLY the JSON array, nothing else.`;
 
@@ -281,7 +291,15 @@ Return ONLY the JSON array, nothing else.`;
             calories: Math.max(0, Math.round(f.calories)),
             protein: Math.max(0, Math.round(f.protein || 0)),
             carbs: Math.max(0, Math.round(f.carbs || 0)),
-            fat: Math.max(0, Math.round(f.fat || 0))
+            fat: Math.max(0, Math.round(f.fat || 0)),
+            fiber: Math.max(0, Math.round(f.fiber || 0)),
+            sugar: Math.max(0, Math.round(f.sugar || 0)),
+            sodium: Math.max(0, Math.round(f.sodium || 0)),
+            potassium: Math.max(0, Math.round(f.potassium || 0)),
+            calcium: Math.max(0, Math.round(f.calcium || 0)),
+            iron: Math.max(0, Math.round((f.iron || 0) * 10) / 10),
+            vitaminC: Math.max(0, Math.round(f.vitaminC || 0)),
+            cholesterol: Math.max(0, Math.round(f.cholesterol || 0))
         }));
 
         // Server-side validation: correct countable foods with known per-piece values

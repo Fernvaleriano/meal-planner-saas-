@@ -49,7 +49,7 @@ exports.handler = withTimeout(async (event) => {
       // Note: Only select columns that exist in the database schema
       let entriesQuery = supabase
         .from('food_diary_entries')
-        .select('id, entry_date, meal_type, food_name, brand, serving_size, serving_unit, number_of_servings, calories, protein, carbs, fat, fiber, sugar, sodium')
+        .select('id, entry_date, meal_type, food_name, brand, serving_size, serving_unit, number_of_servings, calories, protein, carbs, fat, fiber, sugar, sodium, potassium, calcium, iron, vitamin_c, cholesterol')
         .eq('client_id', clientId)
         .order('meal_type', { ascending: true })
         .order('created_at', { ascending: true });
@@ -68,7 +68,7 @@ exports.handler = withTimeout(async (event) => {
       // Build goals query
       const goalsQuery = supabase
         .from('calorie_goals')
-        .select('calorie_goal, protein_goal, carbs_goal, fat_goal')
+        .select('calorie_goal, protein_goal, carbs_goal, fat_goal, fiber_goal, sugar_goal, sodium_goal, potassium_goal, calcium_goal, iron_goal, vitamin_c_goal, cholesterol_goal')
         .eq('client_id', clientId)
         .single();
 
@@ -210,6 +210,11 @@ exports.handler = withTimeout(async (event) => {
         fiber,
         sugar,
         sodium,
+        potassium,
+        calcium,
+        iron,
+        vitaminC,
+        cholesterol,
         externalId,
         foodSource,
         isQuickAdd,
@@ -250,6 +255,11 @@ exports.handler = withTimeout(async (event) => {
         fiber: fiber != null ? safeNum(fiber, 0) : null,
         sugar: sugar != null ? safeNum(sugar, 0) : null,
         sodium: sodium != null ? safeNum(sodium, 0) : null,
+        potassium: potassium != null ? safeNum(potassium, 0) : null,
+        calcium: calcium != null ? safeNum(calcium, 0) : null,
+        iron: iron != null ? parseFloat(parseFloat(iron).toFixed(1)) : null,
+        vitamin_c: vitaminC != null ? safeNum(vitaminC, 0) : null,
+        cholesterol: cholesterol != null ? safeNum(cholesterol, 0) : null,
         external_id: externalId || null,
         food_source: foodSource || 'custom',
         is_quick_add: isQuickAdd || false,
