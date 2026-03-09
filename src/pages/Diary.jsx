@@ -313,20 +313,21 @@ function Diary() {
         setInteractions({ reactions: {}, comments: {} });
       }
 
-      // Calculate totals
-      const calculatedTotals = newEntries.reduce((acc, entry) => ({
-        calories: acc.calories + (entry.calories || 0),
-        protein: acc.protein + (entry.protein || 0),
-        carbs: acc.carbs + (entry.carbs || 0),
-        fat: acc.fat + (entry.fat || 0),
-        fiber: acc.fiber + (entry.fiber || 0),
-        sugar: acc.sugar + (entry.sugar || 0),
-        sodium: acc.sodium + (entry.sodium || 0),
-        potassium: acc.potassium + (entry.potassium || 0),
-        calcium: acc.calcium + (entry.calcium || 0),
-        iron: acc.iron + (entry.iron || 0),
-        vitaminC: acc.vitaminC + (entry.vitamin_c || entry.vitaminC || 0),
-        cholesterol: acc.cholesterol + (entry.cholesterol || 0)
+      // Calculate totals - use server-side totals if available (they handle DECIMAL types correctly)
+      // Fall back to client-side calculation with parseFloat for DECIMAL columns
+      const calculatedTotals = diaryData?.totals || newEntries.reduce((acc, entry) => ({
+        calories: acc.calories + (Number(entry.calories) || 0),
+        protein: acc.protein + (parseFloat(entry.protein) || 0),
+        carbs: acc.carbs + (parseFloat(entry.carbs) || 0),
+        fat: acc.fat + (parseFloat(entry.fat) || 0),
+        fiber: acc.fiber + (parseFloat(entry.fiber) || 0),
+        sugar: acc.sugar + (parseFloat(entry.sugar) || 0),
+        sodium: acc.sodium + (parseFloat(entry.sodium) || 0),
+        potassium: acc.potassium + (parseFloat(entry.potassium) || 0),
+        calcium: acc.calcium + (parseFloat(entry.calcium) || 0),
+        iron: acc.iron + (parseFloat(entry.iron) || 0),
+        vitaminC: acc.vitaminC + (parseFloat(entry.vitamin_c || entry.vitaminC) || 0),
+        cholesterol: acc.cholesterol + (parseFloat(entry.cholesterol) || 0)
       }), { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, sugar: 0, sodium: 0, potassium: 0, calcium: 0, iron: 0, vitaminC: 0, cholesterol: 0 });
 
       setEntries(newEntries);
@@ -711,20 +712,20 @@ function Diary() {
         setInteractions({ reactions: {}, comments: {} });
       }
 
-      // Calculate totals (including micronutrients)
-      const calculatedTotals = newEntries.reduce((acc, entry) => ({
-        calories: acc.calories + (entry.calories || 0),
-        protein: acc.protein + (entry.protein || 0),
-        carbs: acc.carbs + (entry.carbs || 0),
-        fat: acc.fat + (entry.fat || 0),
-        fiber: acc.fiber + (entry.fiber || 0),
-        sugar: acc.sugar + (entry.sugar || 0),
-        sodium: acc.sodium + (entry.sodium || 0),
-        potassium: acc.potassium + (entry.potassium || 0),
-        calcium: acc.calcium + (entry.calcium || 0),
-        iron: acc.iron + (entry.iron || 0),
-        vitaminC: acc.vitaminC + (entry.vitamin_c || entry.vitaminC || 0),
-        cholesterol: acc.cholesterol + (entry.cholesterol || 0)
+      // Use server-side totals (handles DECIMAL types correctly), fall back to client calculation
+      const calculatedTotals = diaryData?.totals || newEntries.reduce((acc, entry) => ({
+        calories: acc.calories + (Number(entry.calories) || 0),
+        protein: acc.protein + (parseFloat(entry.protein) || 0),
+        carbs: acc.carbs + (parseFloat(entry.carbs) || 0),
+        fat: acc.fat + (parseFloat(entry.fat) || 0),
+        fiber: acc.fiber + (parseFloat(entry.fiber) || 0),
+        sugar: acc.sugar + (parseFloat(entry.sugar) || 0),
+        sodium: acc.sodium + (parseFloat(entry.sodium) || 0),
+        potassium: acc.potassium + (parseFloat(entry.potassium) || 0),
+        calcium: acc.calcium + (parseFloat(entry.calcium) || 0),
+        iron: acc.iron + (parseFloat(entry.iron) || 0),
+        vitaminC: acc.vitaminC + (parseFloat(entry.vitamin_c || entry.vitaminC) || 0),
+        cholesterol: acc.cholesterol + (parseFloat(entry.cholesterol) || 0)
       }), { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, sugar: 0, sodium: 0, potassium: 0, calcium: 0, iron: 0, vitaminC: 0, cholesterol: 0 });
 
       // Update state
