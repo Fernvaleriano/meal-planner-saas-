@@ -385,7 +385,14 @@ function ExerciseDetailModal({
   const [localThumbnailUrl, setLocalThumbnailUrl] = useState(null);
   const thumbnailInputRef = useRef(null);
   const activityThumbsRef = useRef(null);
+  const modalOverlayRef = useRef(null);
 
+  // Scroll modal to top when exercise changes or modal opens
+  useEffect(() => {
+    if (modalOverlayRef.current) {
+      modalOverlayRef.current.scrollTop = 0;
+    }
+  }, [currentIndex]);
 
   // Voice input state
   const [isListening, setIsListening] = useState(false);
@@ -395,12 +402,19 @@ function ExerciseDetailModal({
   const recognitionRef = useRef(null);
 
   // Auto-scroll activity thumbnails to keep current exercise visible
+  // Use manual scrollLeft instead of scrollIntoView to avoid scrolling the parent modal
   useEffect(() => {
     if (activityThumbsRef.current && currentIndex >= 0) {
       const container = activityThumbsRef.current;
       const activeThumb = container.children[currentIndex];
       if (activeThumb) {
-        activeThumb.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+        const thumbLeft = activeThumb.offsetLeft;
+        const thumbWidth = activeThumb.offsetWidth;
+        const containerWidth = container.offsetWidth;
+        container.scrollTo({
+          left: thumbLeft - containerWidth / 2 + thumbWidth / 2,
+          behavior: 'smooth',
+        });
       }
     }
   }, [currentIndex]);
@@ -2008,7 +2022,7 @@ function ExerciseDetailModal({
   }
 
   return (
-    <div className="exercise-modal-overlay-v2" key={`modal-${resumeKey}`} onClick={handleClose}>
+    <div className="exercise-modal-overlay-v2" key={`modal-${resumeKey}`} ref={modalOverlayRef} onClick={handleClose}>
       <div className="exercise-modal-v2 modal-v3" onClick={stopPropagation}>
         {/* Header */}
         <div className="modal-header-v3">
