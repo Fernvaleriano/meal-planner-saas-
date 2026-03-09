@@ -1359,6 +1359,21 @@
             document.getElementById('youtubeImportModal').classList.remove('active');
         }
 
+        // Extract video ID from YouTube URL
+        function extractVideoId(url) {
+            const patterns = [
+                /youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/,
+                /youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})/,
+                /youtu\.be\/([a-zA-Z0-9_-]{11})/,
+                /youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/,
+            ];
+            for (const p of patterns) {
+                const m = url.match(p);
+                if (m) return m[1];
+            }
+            return null;
+        }
+
         async function extractYoutubeRecipe() {
             const url = document.getElementById('youtubeUrlInput').value.trim();
             if (!url) return;
@@ -1373,16 +1388,41 @@
             extractBtn.textContent = 'Extracting...';
 
             try {
+                // Step 1: Extract video ID
+                const videoId = extractVideoId(url);
+                if (!videoId) throw new Error('Invalid YouTube URL');
+
                 const { data: { session } } = await supabaseClient.auth.getSession();
                 if (!session) throw new Error('Not authenticated');
 
+                const authHeaders = {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + session.access_token
+                };
+
+                // Step 2: Fetch transcript via our proxy (avoids CORS issues)
+                const transcriptResp = await fetch('/.netlify/functions/youtube-transcript', {
+                    method: 'POST',
+                    headers: authHeaders,
+                    body: JSON.stringify({ videoId, coachId: currentUserId })
+                });
+
+                const transcriptData = await transcriptResp.json();
+
+                if (!transcriptResp.ok) {
+                    throw new Error(transcriptData.error || 'Could not get video transcript');
+                }
+
+                // Step 3: Send transcript to AI for recipe extraction
                 const resp = await fetch('/.netlify/functions/extract-youtube-recipe', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': 'Bearer ' + session.access_token
-                    },
-                    body: JSON.stringify({ coachId: currentUserId, youtubeUrl: url })
+                    headers: authHeaders,
+                    body: JSON.stringify({
+                        coachId: currentUserId,
+                        youtubeUrl: url,
+                        transcript: transcriptData.transcript,
+                        videoTitle: transcriptData.videoTitle
+                    })
                 });
 
                 const result = await resp.json();
@@ -1427,6 +1467,8 @@
                     errorEl.textContent = "This video doesn't have captions available. Try a different video or enter the recipe manually.";
                 } else if (msg.includes('Invalid YouTube')) {
                     errorEl.textContent = 'Invalid YouTube URL. Please paste a valid YouTube or Shorts link.';
+                } else if (msg.includes('Failed to fetch')) {
+                    errorEl.textContent = 'Could not connect to YouTube. Please check the URL and try again.';
                 } else {
                     errorEl.textContent = msg || 'Could not extract recipe from this video. Try a different video or enter manually.';
                 }
