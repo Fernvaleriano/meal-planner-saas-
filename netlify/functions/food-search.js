@@ -325,7 +325,7 @@ exports.handler = async (event) => {
                   protein: Math.round((nutrients.PROCNT || 0) * multiplier * 10) / 10,
                   carbs: Math.round((nutrients.CHOCDF || 0) * multiplier * 10) / 10,
                   fat: Math.round((nutrients.FAT || 0) * multiplier * 10) / 10,
-                  // Micronutrients
+                  // Micronutrients per default serving
                   fiber: Math.round((nutrients.FIBTG || 0) * multiplier * 10) / 10,
                   sugar: Math.round((nutrients.SUGAR || 0) * multiplier * 10) / 10,
                   sodium: Math.round((nutrients.NA || 0) * multiplier),
@@ -334,6 +334,15 @@ exports.handler = async (event) => {
                   iron: Math.round((nutrients.FE || 0) * multiplier * 10) / 10,
                   vitaminC: Math.round((nutrients.VITC || 0) * multiplier * 10) / 10,
                   cholesterol: Math.round((nutrients.CHOLE || 0) * multiplier),
+                  // Micronutrients per 100g (for proper scaling when measure changes)
+                  fiberPer100g: Math.round((nutrients.FIBTG || 0) * 10) / 10,
+                  sugarPer100g: Math.round((nutrients.SUGAR || 0) * 10) / 10,
+                  sodiumPer100g: Math.round(nutrients.NA || 0),
+                  potassiumPer100g: Math.round(nutrients.K || 0),
+                  calciumPer100g: Math.round(nutrients.CA || 0),
+                  ironPer100g: Math.round((nutrients.FE || 0) * 10) / 10,
+                  vitaminCPer100g: Math.round((nutrients.VITC || 0) * 10) / 10,
+                  cholesterolPer100g: Math.round(nutrients.CHOLE || 0),
                   servingSize: Math.round(defaultMeasure.weight),
                   servingUnit: defaultMeasure.label === 'g' ? 'g' : defaultMeasure.label.toLowerCase(),
                   measures: measures.length > 0 ? measures : [{ label: 'g', weight: 100 }],
@@ -376,7 +385,7 @@ exports.handler = async (event) => {
                   protein: Math.round((nutrients.PROCNT || 0) * multiplier * 10) / 10,
                   carbs: Math.round((nutrients.CHOCDF || 0) * multiplier * 10) / 10,
                   fat: Math.round((nutrients.FAT || 0) * multiplier * 10) / 10,
-                  // Micronutrients
+                  // Micronutrients per default serving
                   fiber: Math.round((nutrients.FIBTG || 0) * multiplier * 10) / 10,
                   sugar: Math.round((nutrients.SUGAR || 0) * multiplier * 10) / 10,
                   sodium: Math.round((nutrients.NA || 0) * multiplier),
@@ -385,6 +394,15 @@ exports.handler = async (event) => {
                   iron: Math.round((nutrients.FE || 0) * multiplier * 10) / 10,
                   vitaminC: Math.round((nutrients.VITC || 0) * multiplier * 10) / 10,
                   cholesterol: Math.round((nutrients.CHOLE || 0) * multiplier),
+                  // Micronutrients per 100g (for proper scaling when measure changes)
+                  fiberPer100g: Math.round((nutrients.FIBTG || 0) * 10) / 10,
+                  sugarPer100g: Math.round((nutrients.SUGAR || 0) * 10) / 10,
+                  sodiumPer100g: Math.round(nutrients.NA || 0),
+                  potassiumPer100g: Math.round(nutrients.K || 0),
+                  calciumPer100g: Math.round(nutrients.CA || 0),
+                  ironPer100g: Math.round((nutrients.FE || 0) * 10) / 10,
+                  vitaminCPer100g: Math.round((nutrients.VITC || 0) * 10) / 10,
+                  cholesterolPer100g: Math.round(nutrients.CHOLE || 0),
                   servingSize: Math.round(defaultMeasure.weight),
                   servingUnit: defaultMeasure.label === 'g' ? 'g' : defaultMeasure.label.toLowerCase(),
                   measures: measures.length > 0 ? measures : [{ label: 'g', weight: 100 }],

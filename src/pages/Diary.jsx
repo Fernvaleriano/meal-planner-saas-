@@ -3239,16 +3239,9 @@ function Diary() {
         onClose={() => setShowFavoritesModal(false)}
         mealType={selectedMealType}
         clientData={clientData}
-        onFoodLogged={(nutrition) => {
-          // Update totals after logging from favorites
-          const updatedTotals = buildTotals(totals, nutrition, 'add');
-          setTotals(updatedTotals);
-
-          // Update cache
-          const dateStr = formatDate(currentDate);
-          const cacheKey = `diary_${clientData?.id}_${dateStr}`;
-          const cached = getCache(cacheKey) || {};
-          setCache(cacheKey, { ...cached, totals: updatedTotals });
+        onFoodLogged={() => {
+          // Re-fetch diary data so new entries appear and all totals (including micronutrients) are correct
+          refreshDiaryData();
         }}
       />
 
@@ -3430,11 +3423,9 @@ function Diary() {
                     }
 
                     const dateStr = formatDate(currentDate);
-                    let newEntries = [];
-                    let addedTotals = { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, sugar: 0, sodium: 0, potassium: 0, calcium: 0, iron: 0, vitaminC: 0, cholesterol: 0 };
 
                     for (const food of aiData.foods) {
-                      const result = await apiPost('/.netlify/functions/food-diary', {
+                      await apiPost('/.netlify/functions/food-diary', {
                         clientId: clientData.id,
                         coachId: clientData.coach_id,
                         entryDate: dateStr,
@@ -3457,48 +3448,12 @@ function Diary() {
                         numberOfServings: 1,
                         foodSource: 'ai'
                       });
-
-                      if (result.entry) {
-                        newEntries.push(result.entry);
-                      }
-
-                      addedTotals.calories += food.calories || 0;
-                      addedTotals.protein += food.protein || 0;
-                      addedTotals.carbs += food.carbs || 0;
-                      addedTotals.fat += food.fat || 0;
-                      addedTotals.fiber += food.fiber || 0;
-                      addedTotals.sugar += food.sugar || 0;
-                      addedTotals.sodium += food.sodium || 0;
-                      addedTotals.potassium += food.potassium || 0;
-                      addedTotals.calcium += food.calcium || 0;
-                      addedTotals.iron += food.iron || 0;
-                      addedTotals.vitaminC += food.vitaminC || 0;
-                      addedTotals.cholesterol += food.cholesterol || 0;
                     }
 
-                    const updatedEntries = [...entries, ...newEntries];
-                    const updatedTotals = {
-                      calories: totals.calories + addedTotals.calories,
-                      protein: totals.protein + addedTotals.protein,
-                      carbs: totals.carbs + addedTotals.carbs,
-                      fat: totals.fat + addedTotals.fat,
-                      fiber: (totals.fiber || 0) + addedTotals.fiber,
-                      sugar: (totals.sugar || 0) + addedTotals.sugar,
-                      sodium: (totals.sodium || 0) + addedTotals.sodium,
-                      potassium: (totals.potassium || 0) + addedTotals.potassium,
-                      calcium: (totals.calcium || 0) + addedTotals.calcium,
-                      iron: (totals.iron || 0) + addedTotals.iron,
-                      vitaminC: (totals.vitaminC || 0) + addedTotals.vitaminC,
-                      cholesterol: (totals.cholesterol || 0) + addedTotals.cholesterol
-                    };
-
-                    setEntries(updatedEntries);
-                    setTotals(updatedTotals);
                     setAiInput('');
 
-                    const cacheKey = `diary_${clientData.id}_${dateStr}`;
-                    const cached = getCache(cacheKey) || {};
-                    setCache(cacheKey, { ...cached, entries: updatedEntries, totals: updatedTotals });
+                    // Re-fetch diary data so entries appear and server-side totals (including micronutrients) are correct
+                    refreshDiaryData();
 
                     alert(`Added ${aiData.foods.length} food(s) to ${selectedMealType}!`);
                   } catch (err) {
@@ -3524,16 +3479,9 @@ function Diary() {
         onClose={() => setShowPhotoModal(false)}
         mealType={selectedMealType}
         clientData={clientData}
-        onFoodLogged={(nutrition) => {
-          // Update totals after logging from photo
-          const updatedTotals = buildTotals(totals, nutrition, 'add');
-          setTotals(updatedTotals);
-
-          // Update cache
-          const dateStr = formatDate(currentDate);
-          const cacheKey = `diary_${clientData?.id}_${dateStr}`;
-          const cached = getCache(cacheKey) || {};
-          setCache(cacheKey, { ...cached, totals: updatedTotals });
+        onFoodLogged={() => {
+          // Re-fetch diary data so new entries appear and all totals (including micronutrients) are correct
+          refreshDiaryData();
         }}
       />
 
@@ -3543,16 +3491,9 @@ function Diary() {
         onClose={() => setShowScanLabelModal(false)}
         mealType={selectedMealType}
         clientData={clientData}
-        onFoodLogged={(nutrition) => {
-          // Update totals after logging from scan
-          const updatedTotals = buildTotals(totals, nutrition, 'add');
-          setTotals(updatedTotals);
-
-          // Update cache
-          const dateStr = formatDate(currentDate);
-          const cacheKey = `diary_${clientData?.id}_${dateStr}`;
-          const cached = getCache(cacheKey) || {};
-          setCache(cacheKey, { ...cached, totals: updatedTotals });
+        onFoodLogged={() => {
+          // Re-fetch diary data so new entries appear and all totals (including micronutrients) are correct
+          refreshDiaryData();
         }}
       />
 
@@ -3562,16 +3503,9 @@ function Diary() {
         onClose={() => setShowSearchModal(false)}
         mealType={selectedMealType}
         clientData={clientData}
-        onFoodLogged={(nutrition) => {
-          // Update totals after logging from search
-          const updatedTotals = buildTotals(totals, nutrition, 'add');
-          setTotals(updatedTotals);
-
-          // Update cache
-          const dateStr = formatDate(currentDate);
-          const cacheKey = `diary_${clientData?.id}_${dateStr}`;
-          const cached = getCache(cacheKey) || {};
-          setCache(cacheKey, { ...cached, totals: updatedTotals });
+        onFoodLogged={() => {
+          // Re-fetch diary data so new entries appear and all totals (including micronutrients) are correct
+          refreshDiaryData();
         }}
       />
 
