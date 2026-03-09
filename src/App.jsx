@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import { useAppLifecycle } from './hooks/useAppLifecycle';
+import { useNativeFeel } from './hooks/useNativeFeel';
 import Layout from './components/Layout';
 // Tab pages (Dashboard, Diary, Messages, Workouts, Plans) are imported
 // by Layout.jsx directly — they stay mounted persistently for instant switching.
@@ -51,6 +52,7 @@ function CoachOnlyRoute({ children }) {
 function App() {
   // Initialize app lifecycle handling (visibilitychange, session refresh on resume)
   useAppLifecycle();
+  useNativeFeel();
 
   return (
     <Routes>
