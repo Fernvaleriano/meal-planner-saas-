@@ -264,6 +264,27 @@
             border-color: var(--gray-700);
         }
 
+        .recipe-card-image {
+            width: 100%;
+            height: 160px;
+            object-fit: cover;
+            display: block;
+        }
+
+        .recipe-card-image-placeholder {
+            width: 100%;
+            height: 160px;
+            background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+        }
+
+        [data-theme="dark"] .recipe-card-image-placeholder {
+            background: linear-gradient(135deg, var(--gray-700) 0%, var(--gray-600) 100%);
+        }
+
         .recipe-card-header {
             padding: 20px;
             border-bottom: 1px solid var(--gray-100);
@@ -1172,6 +1193,10 @@ Ingredients: 6oz chicken breast, 2 cups mixed greens, 1/2 avocado, cherry tomato
 
             return `
                 <div class="recipe-card">
+                    ${recipe.image_url
+                        ? `<img src="${recipe.image_url}" alt="${recipe.name}" class="recipe-card-image" loading="lazy" decoding="async">`
+                        : `<div class="recipe-card-image-placeholder">🍳</div>`
+                    }
                     <div class="recipe-card-header">
                         <div class="recipe-category-badge">${categoryLabel}</div>
                         <div class="recipe-name">${recipe.name}</div>
