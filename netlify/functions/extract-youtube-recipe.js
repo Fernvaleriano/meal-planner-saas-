@@ -1,4 +1,5 @@
 const Anthropic = require('@anthropic-ai/sdk');
+const { YoutubeTranscript } = require('youtube-transcript');
 const { handleCors, authenticateCoach, corsHeaders } = require('./utils/auth');
 
 const headers = {
@@ -24,153 +25,48 @@ function extractVideoId(url) {
 }
 
 /**
- * Fetch YouTube transcript using the innertube API (works reliably server-side)
+ * Fetch YouTube transcript using the youtube-transcript package
  */
 async function fetchTranscript(videoId) {
     const thumbnailUrl = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
 
-    // Step 1: Use innertube player API to get video details and caption tracks
-    const playerRes = await fetch('https://www.youtube.com/youtubei/v1/player', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        },
-        body: JSON.stringify({
-            context: {
-                client: {
-                    hl: 'en',
-                    gl: 'US',
-                    clientName: 'WEB',
-                    clientVersion: '2.20240101.00.00',
-                }
-            },
-            videoId: videoId,
-        })
-    });
-
-    if (!playerRes.ok) {
-        throw new Error('Failed to fetch video data from YouTube');
-    }
-
-    const playerData = await playerRes.json();
-
-    const videoTitle = playerData?.videoDetails?.title || '';
-
-    // Check for captions
-    const captionTracks = playerData?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
-    if (!captionTracks || captionTracks.length === 0) {
-        // Fallback: try fetching the video page HTML as a backup method
-        return await fetchTranscriptFromPage(videoId, videoTitle, thumbnailUrl);
-    }
-
-    // Prefer manual English captions, then auto-generated English, then first available
-    let captionTrack = captionTracks.find(t => t.languageCode === 'en' && !t.kind);
-    if (!captionTrack) {
-        captionTrack = captionTracks.find(t => t.languageCode === 'en');
-    }
-    if (!captionTrack) {
-        captionTrack = captionTracks[0];
-    }
-
-    const transcript = await fetchCaptionText(captionTrack.baseUrl);
-
-    return { transcript, videoTitle, thumbnailUrl };
-}
-
-/**
- * Fallback: fetch transcript by scraping the video page HTML
- */
-async function fetchTranscriptFromPage(videoId, existingTitle, thumbnailUrl) {
-    const videoPageRes = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
-        headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept-Language': 'en-US,en;q=0.9',
-            'Cookie': 'CONSENT=YES+1',
-        }
-    });
-
-    if (!videoPageRes.ok) {
-        throw new Error('NO_CAPTIONS');
-    }
-
-    const html = await videoPageRes.text();
-
-    // Try multiple patterns for extracting player response
-    let playerResponse;
-    const patterns = [
-        /ytInitialPlayerResponse\s*=\s*(\{.+?\})\s*;\s*(?:var|let|const|<\/script)/s,
-        /ytInitialPlayerResponse\s*=\s*(\{.+?\});/s,
-    ];
-
-    for (const pattern of patterns) {
-        const match = html.match(pattern);
-        if (match) {
-            try {
-                playerResponse = JSON.parse(match[1]);
-                break;
-            } catch {
-                continue;
-            }
+    // Use the youtube-transcript package which handles all the innertube complexity
+    let transcriptItems;
+    try {
+        transcriptItems = await YoutubeTranscript.fetchTranscript(videoId, { lang: 'en' });
+    } catch (engErr) {
+        console.log('English captions not found, trying any language:', engErr.message);
+        try {
+            transcriptItems = await YoutubeTranscript.fetchTranscript(videoId);
+        } catch (anyErr) {
+            console.error('No captions found at all:', anyErr.message);
+            throw new Error('NO_CAPTIONS');
         }
     }
 
-    if (!playerResponse) {
+    if (!transcriptItems || transcriptItems.length === 0) {
         throw new Error('NO_CAPTIONS');
     }
 
-    const videoTitle = existingTitle || playerResponse?.videoDetails?.title || '';
+    const transcript = transcriptItems.map(item => item.text).join(' ');
 
-    const captionTracks = playerResponse?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
-    if (!captionTracks || captionTracks.length === 0) {
+    if (transcript.length < 10) {
         throw new Error('NO_CAPTIONS');
     }
 
-    let captionTrack = captionTracks.find(t => t.languageCode === 'en' && !t.kind);
-    if (!captionTrack) {
-        captionTrack = captionTracks.find(t => t.languageCode === 'en');
-    }
-    if (!captionTrack) {
-        captionTrack = captionTracks[0];
+    // Try to get video title from the page
+    let videoTitle = '';
+    try {
+        const pageRes = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`);
+        if (pageRes.ok) {
+            const data = await pageRes.json();
+            videoTitle = data.title || '';
+        }
+    } catch {
+        // Title is optional, continue without it
     }
 
-    const transcript = await fetchCaptionText(captionTrack.baseUrl);
     return { transcript, videoTitle, thumbnailUrl };
-}
-
-/**
- * Fetch and parse caption text from a YouTube caption URL
- */
-async function fetchCaptionText(captionUrl) {
-    const captionRes = await fetch(captionUrl);
-    if (!captionRes.ok) {
-        throw new Error('Failed to fetch captions');
-    }
-
-    const captionXml = await captionRes.text();
-
-    const textSegments = [];
-    const textRegex = /<text[^>]*>([\s\S]*?)<\/text>/g;
-    let match;
-    while ((match = textRegex.exec(captionXml)) !== null) {
-        const decoded = match[1]
-            .replace(/&amp;/g, '&')
-            .replace(/&lt;/g, '<')
-            .replace(/&gt;/g, '>')
-            .replace(/&quot;/g, '"')
-            .replace(/&#39;/g, "'")
-            .replace(/\n/g, ' ')
-            .trim();
-        if (decoded) textSegments.push(decoded);
-    }
-
-    const transcript = textSegments.join(' ');
-
-    if (!transcript || transcript.length < 10) {
-        throw new Error('NO_CAPTIONS');
-    }
-
-    return transcript;
 }
 
 /**
@@ -178,6 +74,12 @@ async function fetchCaptionText(captionUrl) {
  */
 async function extractRecipeFromTranscript(transcript, videoTitle) {
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+    // Truncate very long transcripts to avoid token limits
+    const maxTranscriptLength = 8000;
+    const truncatedTranscript = transcript.length > maxTranscriptLength
+        ? transcript.substring(0, maxTranscriptLength) + '...'
+        : transcript;
 
     const message = await anthropic.messages.create({
         model: 'claude-sonnet-4-20250514',
@@ -190,7 +92,7 @@ async function extractRecipeFromTranscript(transcript, videoTitle) {
 Video title: "${videoTitle}"
 
 Transcript:
-"${transcript}"
+"${truncatedTranscript}"
 
 Extract and return a JSON object with these fields:
 - name: Recipe name (string, create a clear name based on the content)
@@ -285,7 +187,7 @@ exports.handler = async (event) => {
     } catch (err) {
         console.error('Error extracting recipe:', err.message, err.stack);
 
-        if (err.message === 'NO_CAPTIONS') {
+        if (err.message === 'NO_CAPTIONS' || err.message?.includes('Could not get the transcript') || err.message?.includes('Transcript is disabled')) {
             return {
                 statusCode: 422,
                 headers,
