@@ -169,17 +169,17 @@ User's food description: "${foodDescription}"
 Return ONLY a valid JSON array with this exact format (no markdown, no explanation, no code blocks):
 [
   {
-    "name": "Food item name with estimated portion size",
-    "calories": 000,
-    "protein": 00,
-    "carbs": 00,
-    "fat": 00,
-    "fiber": 0,
-    "sugar": 0,
-    "sodium": 0,
-    "potassium": 0,
-    "calcium": 0,
-    "iron": 0.0,
+    "name": "Oatmeal, 1 cup cooked",
+    "calories": 155,
+    "protein": 5,
+    "carbs": 27,
+    "fat": 3,
+    "fiber": 4,
+    "sugar": 1,
+    "sodium": 115,
+    "potassium": 143,
+    "calcium": 21,
+    "iron": 2.1,
     "vitaminC": 0,
     "cholesterol": 0
   }
@@ -204,12 +204,16 @@ MANDATORY CALORIE REFERENCE TABLE — use these per-piece values for countable f
 | Mozzarella stick         | 90        | 4    | 7    | 5    | 30g    |
 | Taquito                  | 130       | 4    | 13   | 7    | 55g    |
 
-Common whole foods per 100g:
-- Chicken breast (grilled): 165 cal, 31g P, 0g C, 4g F
-- Salmon (baked): 208 cal, 20g P, 0g C, 13g F
-- White rice (cooked): 130 cal, 2.7g P, 28g C, 0.3g F
-- Pasta (cooked): 131 cal, 5g P, 25g C, 1g F
-- Egg (large, 50g): 72 cal, 6g P, 0.4g C, 5g F
+Common whole foods per 100g (with key micronutrients):
+- Chicken breast (grilled): 165 cal, 31g P, 0g C, 4g F | fiber: 0g, sugar: 0g, sodium: 74mg, cholesterol: 85mg
+- Salmon (baked): 208 cal, 20g P, 0g C, 13g F | fiber: 0g, sugar: 0g, sodium: 59mg, potassium: 363mg, cholesterol: 55mg
+- White rice (cooked): 130 cal, 2.7g P, 28g C, 0.3g F | fiber: 0.4g, sugar: 0g, sodium: 1mg, potassium: 35mg
+- Oatmeal (cooked, 1 cup): 155 cal, 5g P, 27g C, 3g F | fiber: 4g, sugar: 1g, sodium: 115mg, iron: 2.1mg
+- Banana (medium, 118g): 105 cal, 1g P, 27g C, 0.4g F | fiber: 3g, sugar: 14g, potassium: 422mg, vitaminC: 10mg
+- Egg (large, 50g): 72 cal, 6g P, 0.4g C, 5g F | cholesterol: 186mg, sodium: 71mg, iron: 0.9mg
+- Apple (medium): 95 cal, 0.5g P, 25g C, 0.3g F | fiber: 4g, sugar: 19g, potassium: 195mg, vitaminC: 8mg
+- Broccoli (1 cup, cooked): 55 cal, 4g P, 11g C, 0.6g F | fiber: 5g, vitaminC: 101mg, calcium: 62mg, iron: 1.0mg
+- Sweet potato (medium, baked): 103 cal, 2g P, 24g C, 0.1g F | fiber: 4g, sugar: 7g, potassium: 542mg, vitaminC: 22mg
 
 CALCULATION: For countable items, MULTIPLY per-piece values by count.
 Example: "24 steamed pork dumplings" → 24 × 50 = 1200 cal, 24 × 2.5 = 60g P, 24 × 5 = 120g C, 24 × 2 = 48g F
@@ -224,8 +228,15 @@ Guidelines:
 - Use common sense for preparations (e.g., "fried eggs" vs "boiled eggs" have different fat)
 - If the description is unclear, make reasonable assumptions based on typical meals
 - Return empty array [] if no food items can be identified
-- For micronutrients: fiber (g), sugar (g), sodium (mg), potassium (mg), calcium (mg), iron (mg with 1 decimal), vitaminC (mg), cholesterol (mg)
-- Use USDA reference values for micronutrient estimates. If unsure, use 0
+- IMPORTANT: You MUST provide realistic micronutrient values for ALL foods. Use USDA reference data.
+  - fiber (g): Most fruits/vegetables/grains have 2-8g per serving. Do NOT default to 0.
+  - sugar (g): Most fruits have 10-20g, dairy has 5-12g. Estimate realistically.
+  - sodium (mg): Most prepared foods have 100-600mg. Even plain foods have some sodium.
+  - potassium (mg): Bananas ~422mg, potatoes ~620mg, most foods have 100-400mg per serving.
+  - calcium (mg): Dairy ~200-300mg per serving, vegetables ~30-60mg.
+  - iron (mg): Meat ~2-3mg, grains ~1-2mg, spinach ~3mg per serving. Use 1 decimal place.
+  - vitaminC (mg): Citrus ~70mg, peppers ~80mg, broccoli ~100mg. 0 for meat/grains is correct.
+  - cholesterol (mg): Eggs ~186mg, meat ~70-90mg per serving. 0 for plants is correct.
 
 Return ONLY the JSON array, nothing else.`;
 
