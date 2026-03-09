@@ -1,4 +1,5 @@
 const Anthropic = require('@anthropic-ai/sdk');
+const { YoutubeTranscript } = require('youtube-transcript');
 const { handleCors, authenticateCoach, corsHeaders } = require('./utils/auth');
 
 const headers = {
@@ -24,85 +25,45 @@ function extractVideoId(url) {
 }
 
 /**
- * Fetch YouTube transcript using the innertube API
+ * Fetch YouTube transcript using the youtube-transcript package
  */
 async function fetchTranscript(videoId) {
-    // First, fetch the video page to get the initial player response
-    const videoPageRes = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
-        headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept-Language': 'en-US,en;q=0.9',
-        }
-    });
-
-    if (!videoPageRes.ok) {
-        throw new Error('Failed to fetch YouTube video page');
-    }
-
-    const html = await videoPageRes.text();
-
-    // Extract the serialized player response
-    const ytInitialPlayerMatch = html.match(/ytInitialPlayerResponse\s*=\s*(\{.+?\});/s);
-    if (!ytInitialPlayerMatch) {
-        throw new Error('Could not parse video page data');
-    }
-
-    let playerResponse;
-    try {
-        playerResponse = JSON.parse(ytInitialPlayerMatch[1]);
-    } catch {
-        throw new Error('Could not parse player response JSON');
-    }
-
-    // Get video title and thumbnail
-    const videoTitle = playerResponse?.videoDetails?.title || '';
     const thumbnailUrl = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
 
-    // Check for captions
-    const captionTracks = playerResponse?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
-    if (!captionTracks || captionTracks.length === 0) {
+    // Use the youtube-transcript package which handles all the innertube complexity
+    let transcriptItems;
+    try {
+        transcriptItems = await YoutubeTranscript.fetchTranscript(videoId, { lang: 'en' });
+    } catch (engErr) {
+        console.log('English captions not found, trying any language:', engErr.message);
+        try {
+            transcriptItems = await YoutubeTranscript.fetchTranscript(videoId);
+        } catch (anyErr) {
+            console.error('No captions found at all:', anyErr.message);
+            throw new Error('NO_CAPTIONS');
+        }
+    }
+
+    if (!transcriptItems || transcriptItems.length === 0) {
         throw new Error('NO_CAPTIONS');
     }
 
-    // Prefer English captions, then auto-generated English, then first available
-    let captionTrack = captionTracks.find(t => t.languageCode === 'en' && !t.kind);
-    if (!captionTrack) {
-        captionTrack = captionTracks.find(t => t.languageCode === 'en');
-    }
-    if (!captionTrack) {
-        captionTrack = captionTracks[0];
-    }
+    const transcript = transcriptItems.map(item => item.text).join(' ');
 
-    // Fetch the caption XML
-    const captionUrl = captionTrack.baseUrl;
-    const captionRes = await fetch(captionUrl);
-    if (!captionRes.ok) {
-        throw new Error('Failed to fetch captions');
-    }
-
-    const captionXml = await captionRes.text();
-
-    // Parse XML to extract text (simple regex-based parsing for the <text> elements)
-    const textSegments = [];
-    const textRegex = /<text[^>]*>([\s\S]*?)<\/text>/g;
-    let match;
-    while ((match = textRegex.exec(captionXml)) !== null) {
-        // Decode HTML entities
-        const decoded = match[1]
-            .replace(/&amp;/g, '&')
-            .replace(/&lt;/g, '<')
-            .replace(/&gt;/g, '>')
-            .replace(/&quot;/g, '"')
-            .replace(/&#39;/g, "'")
-            .replace(/\n/g, ' ')
-            .trim();
-        if (decoded) textSegments.push(decoded);
-    }
-
-    const transcript = textSegments.join(' ');
-
-    if (!transcript || transcript.length < 10) {
+    if (transcript.length < 10) {
         throw new Error('NO_CAPTIONS');
+    }
+
+    // Try to get video title from the page
+    let videoTitle = '';
+    try {
+        const pageRes = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`);
+        if (pageRes.ok) {
+            const data = await pageRes.json();
+            videoTitle = data.title || '';
+        }
+    } catch {
+        // Title is optional, continue without it
     }
 
     return { transcript, videoTitle, thumbnailUrl };
@@ -113,6 +74,12 @@ async function fetchTranscript(videoId) {
  */
 async function extractRecipeFromTranscript(transcript, videoTitle) {
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+    // Truncate very long transcripts to avoid token limits
+    const maxTranscriptLength = 8000;
+    const truncatedTranscript = transcript.length > maxTranscriptLength
+        ? transcript.substring(0, maxTranscriptLength) + '...'
+        : transcript;
 
     const message = await anthropic.messages.create({
         model: 'claude-sonnet-4-20250514',
@@ -125,7 +92,7 @@ async function extractRecipeFromTranscript(transcript, videoTitle) {
 Video title: "${videoTitle}"
 
 Transcript:
-"${transcript}"
+"${truncatedTranscript}"
 
 Extract and return a JSON object with these fields:
 - name: Recipe name (string, create a clear name based on the content)
@@ -196,7 +163,9 @@ exports.handler = async (event) => {
 
     try {
         // Fetch transcript
+        console.log(`Fetching transcript for video: ${videoId}`);
         const { transcript, videoTitle, thumbnailUrl } = await fetchTranscript(videoId);
+        console.log(`Transcript fetched: ${transcript.length} chars, title: "${videoTitle}"`);
 
         // Extract recipe using Claude AI
         const recipe = await extractRecipeFromTranscript(transcript, videoTitle);
@@ -216,9 +185,9 @@ exports.handler = async (event) => {
             })
         };
     } catch (err) {
-        console.error('Error extracting recipe:', err);
+        console.error('Error extracting recipe:', err.message, err.stack);
 
-        if (err.message === 'NO_CAPTIONS') {
+        if (err.message === 'NO_CAPTIONS' || err.message?.includes('Could not get the transcript') || err.message?.includes('Transcript is disabled')) {
             return {
                 statusCode: 422,
                 headers,
