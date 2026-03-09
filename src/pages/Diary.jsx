@@ -164,6 +164,24 @@ function Diary() {
     }
   }, [searchParams]);
 
+  // Pick up pendingFoodLog from sessionStorage (set by Recipes "Log to Diary")
+  useEffect(() => {
+    const action = searchParams.get('action');
+    if (action === 'log') {
+      try {
+        const stored = sessionStorage.getItem('pendingFoodLog');
+        if (stored) {
+          const foodData = JSON.parse(stored);
+          setPendingFoodLog(foodData);
+          setAiExpanded(true);
+          sessionStorage.removeItem('pendingFoodLog');
+        }
+      } catch (e) {
+        console.error('Failed to read pendingFoodLog from sessionStorage:', e);
+      }
+    }
+  }, [searchParams]);
+
   // Persist AI chat history to localStorage (expires after 5 minutes)
   useEffect(() => {
     if (aiMessages.length > 0) {
@@ -1555,7 +1573,7 @@ function Diary() {
         servingSize: 1,
         servingUnit: 'serving',
         numberOfServings: 1,
-        foodSource: 'ai'
+        foodSource: food.food_source || 'ai'
       });
 
       // Update local state
