@@ -406,7 +406,9 @@ function Recipes() {
       calories: selectedRecipe.calories || 0,
       protein: selectedRecipe.protein || 0,
       carbs: selectedRecipe.carbs || 0,
-      fat: selectedRecipe.fat || 0
+      fat: selectedRecipe.fat || 0,
+      food_source: 'recipe',
+      confirmation: `Log "${selectedRecipe.name}" to your diary?`
     };
 
     sessionStorage.setItem('pendingFoodLog', JSON.stringify(recipeData));
