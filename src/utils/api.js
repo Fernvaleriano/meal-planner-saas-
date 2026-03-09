@@ -230,6 +230,7 @@ export async function ensureFreshSession() {
 
 // Authenticated fetch wrapper with improved error handling and timeout
 async function authenticatedFetch(url, options = {}) {
+  const method = (options.method || 'GET').toUpperCase();
   const token = await getAuthToken();
 
   const headers = {
@@ -242,7 +243,7 @@ async function authenticatedFetch(url, options = {}) {
   }
 
   // Tell SW to go network-first during resume window (see enableSwCacheBypass)
-  if (swCacheBypass && options.method === 'GET') {
+  if (swCacheBypass && method === 'GET') {
     headers['X-Cache-Bypass'] = '1';
   }
 
@@ -322,7 +323,30 @@ async function authenticatedFetch(url, options = {}) {
     throw error;
   }
 
-  return response.json();
+  const data = await response.json();
+
+  // After successful mutations, force subsequent GETs to bypass stale SW cache
+  // for a short window and notify screens to refresh in-place.
+  if (method !== 'GET') {
+    enableSwCacheBypass(15000);
+
+    // Keep event dispatch best-effort (safe in non-browser contexts/tests)
+    if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+      try {
+        window.dispatchEvent(new CustomEvent('app:data-changed', {
+          detail: {
+            url,
+            method,
+            timestamp: Date.now()
+          }
+        }));
+      } catch {
+        // no-op
+      }
+    }
+  }
+
+  return data;
 }
 
 // API helper methods

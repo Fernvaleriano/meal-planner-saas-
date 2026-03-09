@@ -360,6 +360,19 @@ function Diary() {
     return () => unsub();
   }, [refreshDiaryData]);
 
+  // Keep Diary in sync when food is logged/edited from other screens (e.g., Home)
+  useEffect(() => {
+    const onDataChanged = (event) => {
+      const changedUrl = event?.detail?.url || '';
+      if (changedUrl.includes('/.netlify/functions/food-diary')) {
+        refreshDiaryData();
+      }
+    };
+
+    window.addEventListener('app:data-changed', onDataChanged);
+    return () => window.removeEventListener('app:data-changed', onDataChanged);
+  }, [refreshDiaryData]);
+
   // Cleanup timers and microphone on component unmount
   useEffect(() => {
     return () => {

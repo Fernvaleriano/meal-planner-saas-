@@ -142,6 +142,19 @@ function Dashboard() {
     }
   }, [clientData?.id, clientData?.coach_id]);
 
+  // Keep Home in sync with Diary when food entries are changed elsewhere
+  useEffect(() => {
+    const onDataChanged = (event) => {
+      const changedUrl = event?.detail?.url || '';
+      if (changedUrl.includes('/.netlify/functions/food-diary')) {
+        refreshData();
+      }
+    };
+
+    window.addEventListener('app:data-changed', onDataChanged);
+    return () => window.removeEventListener('app:data-changed', onDataChanged);
+  }, [refreshData]);
+
   // Setup pull-to-refresh using the reusable hook
   const { isRefreshing, indicatorRef, bindToContainer, threshold } = usePullToRefresh(refreshData);
 
@@ -157,23 +170,20 @@ function Dashboard() {
 
   // Handle food logged from modals
   const handleFoodLogged = (nutrition) => {
-    setTodayProgress(prev => ({
-      calories: prev.calories + nutrition.calories,
-      protein: prev.protein + nutrition.protein,
-      carbs: prev.carbs + nutrition.carbs,
-      fat: prev.fat + nutrition.fat
-    }));
-
-    // Update cache
     const dateKey = getTodayKey();
-    const currentCache = getCache(`dashboard_${clientData.id}_${dateKey}`) || {};
-    const newProgress = {
-      calories: todayProgress.calories + nutrition.calories,
-      protein: todayProgress.protein + nutrition.protein,
-      carbs: todayProgress.carbs + nutrition.carbs,
-      fat: todayProgress.fat + nutrition.fat
-    };
-    setCache(`dashboard_${clientData.id}_${dateKey}`, { ...currentCache, progress: newProgress });
+    setTodayProgress(prev => {
+      const newProgress = {
+        calories: prev.calories + nutrition.calories,
+        protein: prev.protein + nutrition.protein,
+        carbs: prev.carbs + nutrition.carbs,
+        fat: prev.fat + nutrition.fat
+      };
+
+      // Update cache using latest state (avoids stale closure totals)
+      const currentCache = getCache(`dashboard_${clientData.id}_${dateKey}`) || {};
+      setCache(`dashboard_${clientData.id}_${dateKey}`, { ...currentCache, progress: newProgress });
+      return newProgress;
+    });
 
     // Show success feedback
     setLogSuccess(true);
