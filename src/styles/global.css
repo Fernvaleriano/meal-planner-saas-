@@ -8017,6 +8017,13 @@ a.nav-left {
     padding: 16px;
 }
 
+.recipe-time-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
 .recipe-time-badge {
     display: inline-flex;
     align-items: center;
@@ -8027,7 +8034,6 @@ a.nav-left {
     border-radius: 20px;
     font-size: 12px;
     font-weight: 600;
-    margin-bottom: 8px;
 }
 
 [data-theme="dark"] .recipe-time-badge {
