@@ -19769,22 +19769,30 @@ textarea,
 
 /* Workout Hero V3 - Light */
 [data-theme="light"] .workout-hero-v3 .hero-title-v3 {
-    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
 }
 
 [data-theme="light"] .workout-hero-v3 .hero-day-label {
-    color: #6b7280;
-    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
+    color: #d1d5db;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+
+[data-theme="light"] .workout-hero-v3 .hero-overlay {
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.55) 0%, rgba(0, 0, 0, 0.15) 60%, transparent 100%);
 }
 
 [data-theme="light"] .workout-hero-v3 .stat-item {
-    color: #374151;
-    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
+    color: #e5e7eb;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+
+[data-theme="light"] .workout-hero-v3 .stat-item svg {
+    color: #d1d5db;
 }
 
 [data-theme="light"] .workout-hero-v3 .hero-description {
-    color: #6b7280;
-    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
+    color: #d1d5db;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
 }
 
 /* Workout Card V3 - Light */
