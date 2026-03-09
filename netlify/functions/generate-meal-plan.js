@@ -1051,6 +1051,219 @@ const FOOD_DATABASE = {
   'dairy_generic': { per: '100g', cal: 70, protein: 8, carbs: 5, fat: 2 }
 };
 
+// Fiber & micronutrient data per same serving unit as FOOD_DATABASE (USDA-based estimates)
+// Keys match FOOD_DATABASE. Foods not listed default to category-based estimates.
+const FOOD_MICRONUTRIENTS = {
+  // ===== PROTEINS - POULTRY (per 100g) =====
+  'chicken_breast': { fiber: 0, sugar: 0, sodium: 74, potassium: 256, calcium: 11, iron: 0.4, vitaminC: 0, cholesterol: 85 },
+  'chicken_thigh_skinless': { fiber: 0, sugar: 0, sodium: 84, potassium: 222, calcium: 9, iron: 0.8, vitaminC: 0, cholesterol: 121 },
+  'ground_turkey': { fiber: 0, sugar: 0, sodium: 72, potassium: 237, calcium: 17, iron: 1.1, vitaminC: 0, cholesterol: 84 },
+  'turkey_breast': { fiber: 0, sugar: 0, sodium: 50, potassium: 249, calcium: 10, iron: 0.5, vitaminC: 0, cholesterol: 65 },
+  // ===== PROTEINS - BEEF (per 100g) =====
+  'ground_beef_93': { fiber: 0, sugar: 0, sodium: 66, potassium: 305, calcium: 12, iron: 2.2, vitaminC: 0, cholesterol: 70 },
+  'ground_beef_90': { fiber: 0, sugar: 0, sodium: 72, potassium: 290, calcium: 18, iron: 2.4, vitaminC: 0, cholesterol: 78 },
+  'sirloin_steak': { fiber: 0, sugar: 0, sodium: 54, potassium: 340, calcium: 15, iron: 2.6, vitaminC: 0, cholesterol: 71 },
+  'flank_steak': { fiber: 0, sugar: 0, sodium: 60, potassium: 356, calcium: 7, iron: 1.9, vitaminC: 0, cholesterol: 58 },
+  // ===== PROTEINS - SEAFOOD =====
+  'salmon': { fiber: 0, sugar: 0, sodium: 44, potassium: 363, calcium: 12, iron: 0.3, vitaminC: 0, cholesterol: 55 },
+  'tilapia': { fiber: 0, sugar: 0, sodium: 56, potassium: 380, calcium: 14, iron: 0.7, vitaminC: 0, cholesterol: 50 },
+  'cod': { fiber: 0, sugar: 0, sodium: 54, potassium: 413, calcium: 16, iron: 0.4, vitaminC: 1, cholesterol: 43 },
+  'shrimp': { fiber: 0, sugar: 0, sodium: 119, potassium: 182, calcium: 64, iron: 0.5, vitaminC: 2, cholesterol: 189 },
+  'tuna_canned_water': { fiber: 0, sugar: 0, sodium: 247, potassium: 237, calcium: 11, iron: 1.3, vitaminC: 0, cholesterol: 42 },
+  // ===== EGGS & DAIRY =====
+  'egg_large': { fiber: 0, sugar: 0.4, sodium: 71, potassium: 69, calcium: 28, iron: 0.9, vitaminC: 0, cholesterol: 186 },
+  'egg_white': { fiber: 0, sugar: 0.2, sodium: 80, potassium: 54, calcium: 3, iron: 0, vitaminC: 0, cholesterol: 0 },
+  'greek_yogurt_nonfat': { fiber: 0, sugar: 3.2, sodium: 36, potassium: 141, calcium: 110, iron: 0.1, vitaminC: 0, cholesterol: 5 },
+  'cottage_cheese_low': { fiber: 0, sugar: 2.7, sodium: 364, potassium: 104, calcium: 83, iron: 0.1, vitaminC: 0, cholesterol: 17 },
+  'milk_whole': { fiber: 0, sugar: 5.1, sodium: 43, potassium: 132, calcium: 113, iron: 0, vitaminC: 0, cholesterol: 14 },
+  'milk_2pct': { fiber: 0, sugar: 5.1, sodium: 47, potassium: 140, calcium: 120, iron: 0, vitaminC: 0, cholesterol: 8 },
+  'cheddar_cheese': { fiber: 0, sugar: 0.3, sodium: 621, potassium: 76, calcium: 721, iron: 0.7, vitaminC: 0, cholesterol: 105 },
+  // ===== GRAINS (cooked unless noted) =====
+  'white_rice_cooked': { fiber: 0.4, sugar: 0, sodium: 1, potassium: 35, calcium: 10, iron: 1.2, vitaminC: 0, cholesterol: 0 },
+  'brown_rice_cooked': { fiber: 1.8, sugar: 0.4, sodium: 5, potassium: 43, calcium: 10, iron: 0.4, vitaminC: 0, cholesterol: 0 },
+  'quinoa_cooked': { fiber: 2.8, sugar: 0.9, sodium: 7, potassium: 172, calcium: 17, iron: 1.5, vitaminC: 0, cholesterol: 0 },
+  'oats_rolled_dry': { fiber: 10.6, sugar: 0.9, sodium: 2, potassium: 429, calcium: 54, iron: 4.7, vitaminC: 0, cholesterol: 0 },
+  'oats_cooked': { fiber: 1.7, sugar: 0.3, sodium: 2, potassium: 61, calcium: 9, iron: 0.6, vitaminC: 0, cholesterol: 0 },
+  'steel_cut_oats_dry': { fiber: 10.6, sugar: 0.9, sodium: 2, potassium: 429, calcium: 54, iron: 4.7, vitaminC: 0, cholesterol: 0 },
+  'pasta_cooked': { fiber: 1.8, sugar: 0.6, sodium: 1, potassium: 44, calcium: 7, iron: 1.3, vitaminC: 0, cholesterol: 0 },
+  'whole_wheat_pasta_cooked': { fiber: 3.9, sugar: 0.6, sodium: 3, potassium: 44, calcium: 15, iron: 1.4, vitaminC: 0, cholesterol: 0 },
+  'whole_wheat_bread': { fiber: 6.8, sugar: 4.4, sodium: 450, potassium: 254, calcium: 161, iron: 2.5, vitaminC: 0, cholesterol: 0 },
+  'white_bread': { fiber: 2.7, sugar: 5, sodium: 491, potassium: 100, calcium: 151, iron: 3.6, vitaminC: 0, cholesterol: 0 },
+  'ezekiel_bread': { fiber: 5.3, sugar: 0, sodium: 320, potassium: 120, calcium: 20, iron: 1.8, vitaminC: 0, cholesterol: 0 },
+  'tortilla_flour': { fiber: 2.2, sugar: 2.5, sodium: 520, potassium: 84, calcium: 110, iron: 2.8, vitaminC: 0, cholesterol: 0 },
+  'tortilla_corn': { fiber: 5.3, sugar: 0.7, sodium: 11, potassium: 157, calcium: 46, iron: 1.2, vitaminC: 0, cholesterol: 0 },
+  'sweet_potato': { fiber: 3, sugar: 4.2, sodium: 36, potassium: 337, calcium: 30, iron: 0.6, vitaminC: 2.4, cholesterol: 0 },
+  'russet_potato': { fiber: 2.1, sugar: 0.6, sodium: 6, potassium: 421, calcium: 12, iron: 0.8, vitaminC: 5.7, cholesterol: 0 },
+  'cream_of_rice_dry': { fiber: 0.8, sugar: 0, sodium: 2, potassium: 35, calcium: 10, iron: 4.3, vitaminC: 0, cholesterol: 0 },
+  // ===== LEGUMES (per 100g cooked) =====
+  'lentils_cooked': { fiber: 7.9, sugar: 1.8, sodium: 2, potassium: 369, calcium: 19, iron: 3.3, vitaminC: 1.5, cholesterol: 0 },
+  'black_beans': { fiber: 8.7, sugar: 0.3, sodium: 1, potassium: 355, calcium: 27, iron: 2.1, vitaminC: 0, cholesterol: 0 },
+  'chickpeas': { fiber: 7.6, sugar: 4.8, sodium: 7, potassium: 291, calcium: 49, iron: 2.9, vitaminC: 1.3, cholesterol: 0 },
+  'kidney_beans': { fiber: 6.4, sugar: 2, sodium: 2, potassium: 403, calcium: 28, iron: 2.9, vitaminC: 1.2, cholesterol: 0 },
+  'pinto_beans': { fiber: 9, sugar: 0.3, sodium: 1, potassium: 436, calcium: 46, iron: 2.1, vitaminC: 0.8, cholesterol: 0 },
+  'edamame': { fiber: 5.2, sugar: 2.2, sodium: 6, potassium: 436, calcium: 63, iron: 2.3, vitaminC: 6.1, cholesterol: 0 },
+  // ===== TOFU/TEMPEH =====
+  'tofu_firm': { fiber: 0.3, sugar: 0.5, sodium: 7, potassium: 121, calcium: 350, iron: 5.4, vitaminC: 0.1, cholesterol: 0 },
+  'tofu_extra_firm': { fiber: 0.9, sugar: 0.7, sodium: 11, potassium: 148, calcium: 683, iron: 2.7, vitaminC: 0, cholesterol: 0 },
+  'tempeh': { fiber: 7.2, sugar: 2.5, sodium: 9, potassium: 412, calcium: 111, iron: 2.7, vitaminC: 0, cholesterol: 0 },
+  // ===== VEGETABLES (per 100g) =====
+  'broccoli': { fiber: 2.6, sugar: 1.7, sodium: 33, potassium: 316, calcium: 47, iron: 0.7, vitaminC: 89.2, cholesterol: 0 },
+  'cauliflower': { fiber: 2, sugar: 1.9, sodium: 30, potassium: 299, calcium: 22, iron: 0.4, vitaminC: 48.2, cholesterol: 0 },
+  'brussels_sprouts': { fiber: 3.8, sugar: 2.2, sodium: 25, potassium: 389, calcium: 42, iron: 1.4, vitaminC: 85, cholesterol: 0 },
+  'kale': { fiber: 3.6, sugar: 0.8, sodium: 38, potassium: 491, calcium: 150, iron: 1.5, vitaminC: 120, cholesterol: 0 },
+  'spinach': { fiber: 2.2, sugar: 0.4, sodium: 79, potassium: 558, calcium: 99, iron: 2.7, vitaminC: 28.1, cholesterol: 0 },
+  'bell_pepper': { fiber: 1.7, sugar: 4.2, sodium: 3, potassium: 175, calcium: 10, iron: 0.3, vitaminC: 128, cholesterol: 0 },
+  'asparagus': { fiber: 2.1, sugar: 1.9, sodium: 2, potassium: 202, calcium: 24, iron: 2.1, vitaminC: 5.6, cholesterol: 0 },
+  'green_beans': { fiber: 3.4, sugar: 3.3, sodium: 6, potassium: 209, calcium: 37, iron: 1, vitaminC: 12.2, cholesterol: 0 },
+  'zucchini': { fiber: 1, sugar: 2.5, sodium: 8, potassium: 261, calcium: 16, iron: 0.4, vitaminC: 17.9, cholesterol: 0 },
+  'cucumber': { fiber: 0.5, sugar: 1.7, sodium: 2, potassium: 147, calcium: 16, iron: 0.3, vitaminC: 2.8, cholesterol: 0 },
+  'tomato': { fiber: 1.2, sugar: 2.6, sodium: 5, potassium: 237, calcium: 10, iron: 0.3, vitaminC: 13.7, cholesterol: 0 },
+  'carrots': { fiber: 2.8, sugar: 4.7, sodium: 69, potassium: 320, calcium: 33, iron: 0.3, vitaminC: 5.9, cholesterol: 0 },
+  'mushrooms_white': { fiber: 1, sugar: 2, sodium: 5, potassium: 318, calcium: 3, iron: 0.5, vitaminC: 2.1, cholesterol: 0 },
+  'onion': { fiber: 1.7, sugar: 4.2, sodium: 4, potassium: 146, calcium: 23, iron: 0.2, vitaminC: 7.4, cholesterol: 0 },
+  'corn': { fiber: 2.4, sugar: 3.2, sodium: 1, potassium: 270, calcium: 2, iron: 0.5, vitaminC: 6.8, cholesterol: 0 },
+  'peas_green': { fiber: 5.7, sugar: 5.7, sodium: 5, potassium: 244, calcium: 25, iron: 1.5, vitaminC: 40, cholesterol: 0 },
+  'butternut_squash': { fiber: 2, sugar: 2.2, sodium: 4, potassium: 352, calcium: 48, iron: 0.7, vitaminC: 21, cholesterol: 0 },
+  // ===== FRUITS =====
+  'banana': { fiber: 2.6, sugar: 12.2, sodium: 1, potassium: 358, calcium: 5, iron: 0.3, vitaminC: 8.7, cholesterol: 0 },
+  'apple': { fiber: 2.4, sugar: 10.4, sodium: 1, potassium: 107, calcium: 6, iron: 0.1, vitaminC: 4.6, cholesterol: 0 },
+  'blueberries': { fiber: 2.4, sugar: 10, sodium: 1, potassium: 77, calcium: 6, iron: 0.3, vitaminC: 9.7, cholesterol: 0 },
+  'strawberries': { fiber: 2, sugar: 4.9, sodium: 1, potassium: 153, calcium: 16, iron: 0.4, vitaminC: 58.8, cholesterol: 0 },
+  'raspberries': { fiber: 6.5, sugar: 4.4, sodium: 1, potassium: 151, calcium: 25, iron: 0.7, vitaminC: 26.2, cholesterol: 0 },
+  'orange': { fiber: 2.4, sugar: 9.4, sodium: 0, potassium: 181, calcium: 40, iron: 0.1, vitaminC: 53.2, cholesterol: 0 },
+  'mango': { fiber: 1.6, sugar: 13.7, sodium: 1, potassium: 168, calcium: 11, iron: 0.2, vitaminC: 36.4, cholesterol: 0 },
+  'pineapple': { fiber: 1.4, sugar: 10, sodium: 1, potassium: 109, calcium: 13, iron: 0.3, vitaminC: 47.8, cholesterol: 0 },
+  // ===== NUTS & SEEDS (per 28g) =====
+  'almonds': { fiber: 3.5, sugar: 1.2, sodium: 0, potassium: 200, calcium: 76, iron: 1.1, vitaminC: 0, cholesterol: 0 },
+  'walnuts': { fiber: 1.9, sugar: 0.7, sodium: 1, potassium: 125, calcium: 28, iron: 0.8, vitaminC: 0.4, cholesterol: 0 },
+  'cashews': { fiber: 0.9, sugar: 1.7, sodium: 3, potassium: 187, calcium: 10, iron: 1.9, vitaminC: 0, cholesterol: 0 },
+  'pistachios': { fiber: 2.9, sugar: 2.2, sodium: 0, potassium: 290, calcium: 30, iron: 1.1, vitaminC: 1.6, cholesterol: 0 },
+  'chia_seeds': { fiber: 9.8, sugar: 0, sodium: 5, potassium: 115, calcium: 179, iron: 2.2, vitaminC: 0.5, cholesterol: 0 },
+  'flax_seeds': { fiber: 7.7, sugar: 0.4, sodium: 8, potassium: 229, calcium: 72, iron: 1.6, vitaminC: 0.2, cholesterol: 0 },
+  'hemp_seeds': { fiber: 1.1, sugar: 0.4, sodium: 1, potassium: 335, calcium: 21, iron: 2.2, vitaminC: 0, cholesterol: 0 },
+  'pumpkin_seeds': { fiber: 1.7, sugar: 0.4, sodium: 5, potassium: 229, calcium: 13, iron: 2.5, vitaminC: 0.1, cholesterol: 0 },
+  'sunflower_seeds': { fiber: 2.4, sugar: 0.7, sodium: 3, potassium: 186, calcium: 22, iron: 1.5, vitaminC: 0.4, cholesterol: 0 },
+  // ===== FATS & OILS =====
+  'peanut_butter': { fiber: 1.6, sugar: 3, sodium: 136, potassium: 189, calcium: 17, iron: 0.6, vitaminC: 0, cholesterol: 0 },
+  'almond_butter': { fiber: 3.3, sugar: 3.4, sodium: 72, potassium: 228, calcium: 111, iron: 1.1, vitaminC: 0, cholesterol: 0 },
+  'avocado': { fiber: 6.7, sugar: 0.7, sodium: 7, potassium: 485, calcium: 12, iron: 0.6, vitaminC: 10, cholesterol: 0 },
+  'olive_oil': { fiber: 0, sugar: 0, sodium: 0, potassium: 1, calcium: 1, iron: 0.1, vitaminC: 0, cholesterol: 0 },
+  // ===== PROTEIN SUPPLEMENTS =====
+  'whey_protein': { fiber: 0, sugar: 1, sodium: 100, potassium: 160, calcium: 120, iron: 0.5, vitaminC: 0, cholesterol: 30 },
+  'casein_protein': { fiber: 0, sugar: 1, sodium: 110, potassium: 150, calcium: 500, iron: 0, vitaminC: 0, cholesterol: 15 },
+  'pea_protein': { fiber: 1, sugar: 0, sodium: 350, potassium: 50, calcium: 40, iron: 5, vitaminC: 0, cholesterol: 0 },
+  // ===== MISC =====
+  'honey': { fiber: 0, sugar: 17, sodium: 1, potassium: 11, calcium: 1, iron: 0.1, vitaminC: 0.1, cholesterol: 0 },
+  'dark_chocolate_85': { fiber: 3.1, sugar: 4, sodium: 6, potassium: 203, calcium: 20, iron: 3.3, vitaminC: 0, cholesterol: 2 },
+  'granola': { fiber: 4.8, sugar: 14, sodium: 246, potassium: 300, calcium: 47, iron: 3.2, vitaminC: 0, cholesterol: 0 },
+  'popcorn_air_popped': { fiber: 14.5, sugar: 0.9, sodium: 8, potassium: 329, calcium: 7, iron: 3.2, vitaminC: 0, cholesterol: 0 },
+};
+
+// Category-based micronutrient fallback (per 100g equivalent)
+function getCategoryMicronutrients(foodKey) {
+  const lower = foodKey.toLowerCase();
+  // Meats/Poultry
+  if (lower.includes('chicken') || lower.includes('turkey') || lower.includes('poultry'))
+    return { fiber: 0, sugar: 0, sodium: 70, potassium: 240, calcium: 12, iron: 0.6, vitaminC: 0, cholesterol: 85 };
+  if (lower.includes('beef') || lower.includes('steak') || lower.includes('bison') || lower.includes('venison'))
+    return { fiber: 0, sugar: 0, sodium: 60, potassium: 310, calcium: 12, iron: 2.3, vitaminC: 0, cholesterol: 73 };
+  if (lower.includes('pork') || lower.includes('ham') || lower.includes('bacon'))
+    return { fiber: 0, sugar: 0, sodium: 60, potassium: 280, calcium: 10, iron: 0.8, vitaminC: 0, cholesterol: 70 };
+  if (lower.includes('lamb'))
+    return { fiber: 0, sugar: 0, sodium: 65, potassium: 300, calcium: 15, iron: 1.7, vitaminC: 0, cholesterol: 80 };
+  if (lower.includes('fish') || lower.includes('salmon') || lower.includes('tuna') || lower.includes('cod') || lower.includes('tilapia') || lower.includes('halibut') || lower.includes('mahi') || lower.includes('bass') || lower.includes('sardine') || lower.includes('mackerel'))
+    return { fiber: 0, sugar: 0, sodium: 50, potassium: 370, calcium: 15, iron: 0.5, vitaminC: 0, cholesterol: 50 };
+  if (lower.includes('shrimp') || lower.includes('crab') || lower.includes('lobster') || lower.includes('scallop') || lower.includes('mussel') || lower.includes('clam') || lower.includes('oyster') || lower.includes('shellfish'))
+    return { fiber: 0, sugar: 0, sodium: 100, potassium: 200, calcium: 50, iron: 1, vitaminC: 1, cholesterol: 150 };
+  // Eggs & Dairy
+  if (lower.includes('egg'))
+    return { fiber: 0, sugar: 0.4, sodium: 71, potassium: 69, calcium: 28, iron: 0.9, vitaminC: 0, cholesterol: 186 };
+  if (lower.includes('yogurt') || lower.includes('skyr') || lower.includes('kefir'))
+    return { fiber: 0, sugar: 4, sodium: 40, potassium: 140, calcium: 115, iron: 0.1, vitaminC: 0, cholesterol: 8 };
+  if (lower.includes('cheese') || lower.includes('mozzarella') || lower.includes('parmesan') || lower.includes('feta') || lower.includes('cheddar') || lower.includes('ricotta'))
+    return { fiber: 0, sugar: 1, sodium: 500, potassium: 80, calcium: 500, iron: 0.5, vitaminC: 0, cholesterol: 80 };
+  if (lower.includes('cottage'))
+    return { fiber: 0, sugar: 3, sodium: 364, potassium: 104, calcium: 83, iron: 0.1, vitaminC: 0, cholesterol: 17 };
+  if (lower.includes('milk') || lower.includes('cream'))
+    return { fiber: 0, sugar: 5, sodium: 43, potassium: 132, calcium: 113, iron: 0, vitaminC: 0, cholesterol: 10 };
+  // Grains
+  if (lower.includes('oat') || lower.includes('oatmeal') || lower.includes('proats'))
+    return { fiber: 10, sugar: 1, sodium: 2, potassium: 360, calcium: 50, iron: 4, vitaminC: 0, cholesterol: 0 };
+  if (lower.includes('rice'))
+    return { fiber: 1, sugar: 0.2, sodium: 3, potassium: 40, calcium: 10, iron: 0.8, vitaminC: 0, cholesterol: 0 };
+  if (lower.includes('pasta') || lower.includes('noodle') || lower.includes('couscous') || lower.includes('farro'))
+    return { fiber: 2.5, sugar: 0.5, sodium: 2, potassium: 44, calcium: 10, iron: 1.3, vitaminC: 0, cholesterol: 0 };
+  if (lower.includes('quinoa'))
+    return { fiber: 2.8, sugar: 0.9, sodium: 7, potassium: 172, calcium: 17, iron: 1.5, vitaminC: 0, cholesterol: 0 };
+  if (lower.includes('bread') || lower.includes('bagel') || lower.includes('muffin') || lower.includes('tortilla') || lower.includes('wrap'))
+    return { fiber: 4, sugar: 3, sodium: 400, potassium: 150, calcium: 100, iron: 2.5, vitaminC: 0, cholesterol: 0 };
+  if (lower.includes('potato') || lower.includes('sweet_potato'))
+    return { fiber: 2.5, sugar: 2, sodium: 20, potassium: 380, calcium: 20, iron: 0.7, vitaminC: 4, cholesterol: 0 };
+  // Legumes
+  if (lower.includes('bean') || lower.includes('lentil') || lower.includes('chickpea') || lower.includes('legume'))
+    return { fiber: 7.5, sugar: 2, sodium: 3, potassium: 370, calcium: 35, iron: 2.5, vitaminC: 1, cholesterol: 0 };
+  if (lower.includes('tofu') || lower.includes('tempeh') || lower.includes('seitan') || lower.includes('edamame'))
+    return { fiber: 2, sugar: 1, sodium: 8, potassium: 200, calcium: 250, iron: 3, vitaminC: 0, cholesterol: 0 };
+  // Vegetables
+  if (lower.includes('broccoli') || lower.includes('cauliflower') || lower.includes('brussels') || lower.includes('cabbage'))
+    return { fiber: 2.6, sugar: 2, sodium: 30, potassium: 300, calcium: 40, iron: 0.7, vitaminC: 70, cholesterol: 0 };
+  if (lower.includes('spinach') || lower.includes('kale') || lower.includes('chard') || lower.includes('greens') || lower.includes('lettuce') || lower.includes('arugula'))
+    return { fiber: 2.5, sugar: 0.5, sodium: 50, potassium: 500, calcium: 100, iron: 2, vitaminC: 50, cholesterol: 0 };
+  if (lower.includes('pepper') || lower.includes('tomato') || lower.includes('zucchini') || lower.includes('cucumber') || lower.includes('eggplant') || lower.includes('squash') || lower.includes('mushroom') || lower.includes('asparagus') || lower.includes('celery') || lower.includes('carrot') || lower.includes('onion') || lower.includes('garlic') || lower.includes('vegetable'))
+    return { fiber: 2, sugar: 3, sodium: 10, potassium: 250, calcium: 20, iron: 0.5, vitaminC: 15, cholesterol: 0 };
+  if (lower.includes('corn') || lower.includes('peas') || lower.includes('beet'))
+    return { fiber: 3, sugar: 4, sodium: 3, potassium: 260, calcium: 15, iron: 1, vitaminC: 10, cholesterol: 0 };
+  // Fruits
+  if (lower.includes('berry') || lower.includes('blueberr') || lower.includes('strawberr') || lower.includes('raspberr') || lower.includes('blackberr'))
+    return { fiber: 3, sugar: 7, sodium: 1, potassium: 120, calcium: 15, iron: 0.4, vitaminC: 30, cholesterol: 0 };
+  if (lower.includes('banana'))
+    return { fiber: 2.6, sugar: 12, sodium: 1, potassium: 358, calcium: 5, iron: 0.3, vitaminC: 8.7, cholesterol: 0 };
+  if (lower.includes('apple') || lower.includes('pear') || lower.includes('peach') || lower.includes('plum') || lower.includes('nectarine') || lower.includes('fruit'))
+    return { fiber: 2.4, sugar: 10, sodium: 1, potassium: 130, calcium: 8, iron: 0.2, vitaminC: 6, cholesterol: 0 };
+  if (lower.includes('orange') || lower.includes('citrus') || lower.includes('grapefruit') || lower.includes('lemon'))
+    return { fiber: 2.4, sugar: 9, sodium: 0, potassium: 180, calcium: 40, iron: 0.1, vitaminC: 50, cholesterol: 0 };
+  if (lower.includes('mango') || lower.includes('pineapple') || lower.includes('papaya') || lower.includes('melon') || lower.includes('watermelon'))
+    return { fiber: 1.5, sugar: 11, sodium: 1, potassium: 150, calcium: 12, iron: 0.2, vitaminC: 40, cholesterol: 0 };
+  // Nuts & Seeds
+  if (lower.includes('almond'))
+    return { fiber: 12.5, sugar: 4.3, sodium: 1, potassium: 733, calcium: 269, iron: 3.7, vitaminC: 0, cholesterol: 0 };
+  if (lower.includes('peanut'))
+    return { fiber: 5.7, sugar: 11, sodium: 136, potassium: 650, calcium: 54, iron: 1.7, vitaminC: 0, cholesterol: 0 };
+  if (lower.includes('nut') || lower.includes('walnut') || lower.includes('cashew') || lower.includes('pecan') || lower.includes('pistachio') || lower.includes('hazelnut') || lower.includes('macadamia'))
+    return { fiber: 3, sugar: 1.5, sodium: 2, potassium: 200, calcium: 30, iron: 1.2, vitaminC: 0.3, cholesterol: 0 };
+  if (lower.includes('seed') || lower.includes('chia') || lower.includes('flax') || lower.includes('hemp') || lower.includes('pumpkin') || lower.includes('sunflower'))
+    return { fiber: 5, sugar: 0.5, sodium: 4, potassium: 200, calcium: 60, iron: 2, vitaminC: 0.2, cholesterol: 0 };
+  // Fats/Oils
+  if (lower.includes('oil') || lower.includes('butter') || lower.includes('ghee') || lower.includes('mayo'))
+    return { fiber: 0, sugar: 0, sodium: 0, potassium: 1, calcium: 1, iron: 0, vitaminC: 0, cholesterol: 0 };
+  if (lower.includes('avocado'))
+    return { fiber: 6.7, sugar: 0.7, sodium: 7, potassium: 485, calcium: 12, iron: 0.6, vitaminC: 10, cholesterol: 0 };
+  // Protein supplements
+  if (lower.includes('whey') || lower.includes('casein') || lower.includes('protein') || lower.includes('collagen'))
+    return { fiber: 0, sugar: 1, sodium: 100, potassium: 150, calcium: 100, iron: 0.5, vitaminC: 0, cholesterol: 20 };
+  // Honey/sweeteners
+  if (lower.includes('honey') || lower.includes('syrup') || lower.includes('sugar'))
+    return { fiber: 0, sugar: 17, sodium: 1, potassium: 11, calcium: 1, iron: 0.1, vitaminC: 0, cholesterol: 0 };
+  // Default: moderate estimates
+  return { fiber: 1, sugar: 2, sodium: 30, potassium: 100, calcium: 20, iron: 0.5, vitaminC: 2, cholesterol: 5 };
+}
+
+// Get micronutrient data for a food key with multiplier
+function getMicronutrientsForFood(foodKey, multiplier) {
+  // First check specific lookup, then fall back to category
+  const data = FOOD_MICRONUTRIENTS[foodKey] || getCategoryMicronutrients(foodKey);
+  return {
+    fiber: Math.round(data.fiber * multiplier * 10) / 10,
+    sugar: Math.round(data.sugar * multiplier * 10) / 10,
+    sodium: Math.round(data.sodium * multiplier),
+    potassium: Math.round(data.potassium * multiplier),
+    calcium: Math.round(data.calcium * multiplier),
+    iron: Math.round(data.iron * multiplier * 10) / 10,
+    vitaminC: Math.round(data.vitaminC * multiplier * 10) / 10,
+    cholesterol: Math.round(data.cholesterol * multiplier)
+  };
+}
+
 /**
  * PORTION_LIMITS - Realistic portion size ranges per meal
  * Prevents unrealistic portions (e.g., 160g dry oats)
@@ -3169,6 +3382,14 @@ function validateAndFixMealDistribution(meals, targetDailyCalories) {
         protein: recalculated.totals.protein,
         carbs: recalculated.totals.carbs,
         fat: recalculated.totals.fat,
+        fiber: recalculated.totals.fiber,
+        sugar: recalculated.totals.sugar,
+        sodium: recalculated.totals.sodium,
+        potassium: recalculated.totals.potassium,
+        calcium: recalculated.totals.calcium,
+        iron: recalculated.totals.iron,
+        vitaminC: recalculated.totals.vitaminC,
+        cholesterol: recalculated.totals.cholesterol,
         breakdown: recalculated.breakdown
       };
     }
@@ -3208,6 +3429,14 @@ function validateAndFixMealDistribution(meals, targetDailyCalories) {
             protein: recalculated.totals.protein,
             carbs: recalculated.totals.carbs,
             fat: recalculated.totals.fat,
+            fiber: recalculated.totals.fiber,
+            sugar: recalculated.totals.sugar,
+            sodium: recalculated.totals.sodium,
+            potassium: recalculated.totals.potassium,
+            calcium: recalculated.totals.calcium,
+            iron: recalculated.totals.iron,
+            vitaminC: recalculated.totals.vitaminC,
+            cholesterol: recalculated.totals.cholesterol,
             breakdown: recalculated.breakdown
           };
         }
@@ -3282,6 +3511,14 @@ function scalePortionsToTargets(meals, actualTotals, targetTotals) {
       protein: recalculated.totals.protein,
       carbs: recalculated.totals.carbs,
       fat: recalculated.totals.fat,
+      fiber: recalculated.totals.fiber,
+      sugar: recalculated.totals.sugar,
+      sodium: recalculated.totals.sodium,
+      potassium: recalculated.totals.potassium,
+      calcium: recalculated.totals.calcium,
+      iron: recalculated.totals.iron,
+      vitaminC: recalculated.totals.vitaminC,
+      cholesterol: recalculated.totals.cholesterol,
       breakdown: recalculated.breakdown,
       calculation_notes: `Scaled by ${scalingFactor.toFixed(3)}x, re-validated, and recalculated from ${scaledIngredients.length} ingredients`
     };
@@ -3443,6 +3680,14 @@ function balanceMacrosToTargets(meals, actualTotals, targetTotals) {
       protein: recalculated.totals.protein,
       carbs: recalculated.totals.carbs,
       fat: recalculated.totals.fat,
+      fiber: recalculated.totals.fiber,
+      sugar: recalculated.totals.sugar,
+      sodium: recalculated.totals.sodium,
+      potassium: recalculated.totals.potassium,
+      calcium: recalculated.totals.calcium,
+      iron: recalculated.totals.iron,
+      vitaminC: recalculated.totals.vitaminC,
+      cholesterol: recalculated.totals.cholesterol,
       breakdown: recalculated.breakdown,
       _macroBalanced: true
     };
@@ -3711,6 +3956,11 @@ function estimateUnmatchedIngredient(ingredientString, amountStr) {
     baseCalories = 200; baseProtein = 5; baseCarbs = 25; baseFat = 8; // per 100g
   }
 
+  // Estimate micronutrients based on ingredient category
+  const categoryMicros = getCategoryMicronutrients(lowerIng);
+  // Scale micronutrients by quantity (assuming quantity is roughly in serving units)
+  const microMultiplier = quantity;
+
   // Apply quantity multiplier
   let calories = Math.round(baseCalories * quantity);
   let protein = Math.round(baseProtein * quantity);
@@ -3737,7 +3987,17 @@ function estimateUnmatchedIngredient(ingredientString, amountStr) {
     protein = 50;
   }
 
-  return { calories, protein, carbs, fat };
+  return {
+    calories, protein, carbs, fat,
+    fiber: Math.round(categoryMicros.fiber * microMultiplier * 10) / 10,
+    sugar: Math.round(categoryMicros.sugar * microMultiplier * 10) / 10,
+    sodium: Math.round(categoryMicros.sodium * microMultiplier),
+    potassium: Math.round(categoryMicros.potassium * microMultiplier),
+    calcium: Math.round(categoryMicros.calcium * microMultiplier),
+    iron: Math.round(categoryMicros.iron * microMultiplier * 10) / 10,
+    vitaminC: Math.round(categoryMicros.vitaminC * microMultiplier * 10) / 10,
+    cholesterol: Math.round(categoryMicros.cholesterol * microMultiplier)
+  };
 }
 
 // Simple in-memory cache for Spoonacular results (persists during function execution)
@@ -3985,7 +4245,7 @@ async function getSpoonacularNutrition(ingredients) {
     console.log(`✅ Spoonacular returned data for ${data.length} ingredients`);
 
     // Process the response and calculate totals
-    let totals = { calories: 0, protein: 0, carbs: 0, fat: 0 };
+    let totals = { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, sugar: 0, sodium: 0, potassium: 0, calcium: 0, iron: 0, vitaminC: 0, cholesterol: 0 };
     const breakdown = [];
 
     for (const item of data) {
@@ -4000,20 +4260,36 @@ async function getSpoonacularNutrition(ingredients) {
         const nutrient = nutrition.nutrients.find(n =>
           n.name.toLowerCase() === name.toLowerCase()
         );
-        return nutrient ? Math.round(nutrient.amount) : 0;
+        return nutrient ? Math.round(nutrient.amount * 10) / 10 : 0;
       };
 
       const macros = {
-        calories: findNutrient('Calories'),
-        protein: findNutrient('Protein'),
-        carbs: findNutrient('Carbohydrates'),
-        fat: findNutrient('Fat')
+        calories: Math.round(findNutrient('Calories')),
+        protein: Math.round(findNutrient('Protein')),
+        carbs: Math.round(findNutrient('Carbohydrates')),
+        fat: Math.round(findNutrient('Fat')),
+        fiber: findNutrient('Fiber'),
+        sugar: findNutrient('Sugar'),
+        sodium: Math.round(findNutrient('Sodium')),
+        potassium: Math.round(findNutrient('Potassium')),
+        calcium: Math.round(findNutrient('Calcium')),
+        iron: findNutrient('Iron'),
+        vitaminC: findNutrient('Vitamin C'),
+        cholesterol: Math.round(findNutrient('Cholesterol'))
       };
 
       totals.calories += macros.calories;
       totals.protein += macros.protein;
       totals.carbs += macros.carbs;
       totals.fat += macros.fat;
+      totals.fiber += macros.fiber;
+      totals.sugar += macros.sugar;
+      totals.sodium += macros.sodium;
+      totals.potassium += macros.potassium;
+      totals.calcium += macros.calcium;
+      totals.iron += macros.iron;
+      totals.vitaminC += macros.vitaminC;
+      totals.cholesterol += macros.cholesterol;
 
       breakdown.push({
         food: item.name || item.original,
@@ -4042,7 +4318,7 @@ async function getSpoonacularNutrition(ingredients) {
  * Supports both string-based ("Chicken Breast (200g)") and structured ({food: "chicken_breast", amount: "200g"}) formats
  */
 function calculateMacrosFromIngredients(ingredients) {
-  let totals = { calories: 0, protein: 0, carbs: 0, fat: 0 };
+  let totals = { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, sugar: 0, sodium: 0, potassium: 0, calcium: 0, iron: 0, vitaminC: 0, cholesterol: 0 };
   const breakdown = [];
 
   for (const ing of ingredients) {
@@ -4065,6 +4341,14 @@ function calculateMacrosFromIngredients(ingredients) {
         totals.protein += estimated.protein;
         totals.carbs += estimated.carbs;
         totals.fat += estimated.fat;
+        totals.fiber += estimated.fiber || 0;
+        totals.sugar += estimated.sugar || 0;
+        totals.sodium += estimated.sodium || 0;
+        totals.potassium += estimated.potassium || 0;
+        totals.calcium += estimated.calcium || 0;
+        totals.iron += estimated.iron || 0;
+        totals.vitaminC += estimated.vitaminC || 0;
+        totals.cholesterol += estimated.cholesterol || 0;
 
         breakdown.push({
           food: parsed.name,
@@ -4100,6 +4384,14 @@ function calculateMacrosFromIngredients(ingredients) {
       totals.protein += estimated.protein;
       totals.carbs += estimated.carbs;
       totals.fat += estimated.fat;
+      totals.fiber += estimated.fiber || 0;
+      totals.sugar += estimated.sugar || 0;
+      totals.sodium += estimated.sodium || 0;
+      totals.potassium += estimated.potassium || 0;
+      totals.calcium += estimated.calcium || 0;
+      totals.iron += estimated.iron || 0;
+      totals.vitaminC += estimated.vitaminC || 0;
+      totals.cholesterol += estimated.cholesterol || 0;
 
       breakdown.push({
         food: foodKey,
@@ -4121,6 +4413,9 @@ function calculateMacrosFromIngredients(ingredients) {
     const carbs = Math.round(foodData.carbs * multiplier);
     const fat = Math.round(foodData.fat * multiplier);
 
+    // Calculate micronutrients
+    const micros = getMicronutrientsForFood(foodKey, multiplier);
+
     // SAFEGUARD: Skip ingredients with unreasonable values (likely parsing errors)
     if (calories > 5000) {
       console.warn(`⚠️ SKIPPING unreasonable ingredient "${originalString}" - ${calories} calories is too high for a single ingredient`);
@@ -4131,13 +4426,21 @@ function calculateMacrosFromIngredients(ingredients) {
     totals.protein += protein;
     totals.carbs += carbs;
     totals.fat += fat;
+    totals.fiber += micros.fiber;
+    totals.sugar += micros.sugar;
+    totals.sodium += micros.sodium;
+    totals.potassium += micros.potassium;
+    totals.calcium += micros.calcium;
+    totals.iron += micros.iron;
+    totals.vitaminC += micros.vitaminC;
+    totals.cholesterol += micros.cholesterol;
 
     breakdown.push({
       food: foodKey,
       amount: amount,
       original: originalString,
       multiplier: multiplier.toFixed(2),
-      macros: { calories, protein, carbs, fat }
+      macros: { calories, protein, carbs, fat, ...micros }
     });
   }
 
@@ -4971,6 +5274,14 @@ async function optimizeMealMacros(geminiMeal, mealTargets, skipAutoScale = false
       protein: scaled.totals.protein,
       carbs: scaled.totals.carbs,
       fat: scaled.totals.fat,
+      fiber: scaled.totals.fiber,
+      sugar: scaled.totals.sugar,
+      sodium: scaled.totals.sodium,
+      potassium: scaled.totals.potassium,
+      calcium: scaled.totals.calcium,
+      iron: scaled.totals.iron,
+      vitaminC: scaled.totals.vitaminC,
+      cholesterol: scaled.totals.cholesterol,
       instructions: validatedInstructions,
       breakdown: scaled.breakdown,
       calculation_notes: originalScaleFactor !== scaleFactor
@@ -5362,6 +5673,14 @@ exports.handler = async (event, context) => {
               protein: recalculated.totals.protein,
               carbs: recalculated.totals.carbs,
               fat: recalculated.totals.fat,
+              fiber: recalculated.totals.fiber,
+              sugar: recalculated.totals.sugar,
+              sodium: recalculated.totals.sodium,
+              potassium: recalculated.totals.potassium,
+              calcium: recalculated.totals.calcium,
+              iron: recalculated.totals.iron,
+              vitaminC: recalculated.totals.vitaminC,
+              cholesterol: recalculated.totals.cholesterol,
               breakdown: recalculated.breakdown,
               calculation_notes: `${meal.calculation_notes || ''} | Re-capped after scaling (${validatedResult.violations.length} violations fixed)`
             };
@@ -5456,6 +5775,14 @@ exports.handler = async (event, context) => {
               protein: recalculated.totals.protein,
               carbs: recalculated.totals.carbs,
               fat: recalculated.totals.fat,
+              fiber: recalculated.totals.fiber,
+              sugar: recalculated.totals.sugar,
+              sodium: recalculated.totals.sodium,
+              potassium: recalculated.totals.potassium,
+              calcium: recalculated.totals.calcium,
+              iron: recalculated.totals.iron,
+              vitaminC: recalculated.totals.vitaminC,
+              cholesterol: recalculated.totals.cholesterol,
               breakdown: recalculated.breakdown,
               calculation_notes: `${meal.calculation_notes || ''} | Re-capped after scaling (${validatedResult.violations.length} violations fixed)`
             };
@@ -5605,6 +5932,14 @@ exports.handler = async (event, context) => {
             protein: recalculated.totals.protein,
             carbs: recalculated.totals.carbs,
             fat: recalculated.totals.fat,
+            fiber: recalculated.totals.fiber,
+            sugar: recalculated.totals.sugar,
+            sodium: recalculated.totals.sodium,
+            potassium: recalculated.totals.potassium,
+            calcium: recalculated.totals.calcium,
+            iron: recalculated.totals.iron,
+            vitaminC: recalculated.totals.vitaminC,
+            cholesterol: recalculated.totals.cholesterol,
             breakdown: recalculated.breakdown,
             _forcedScale: finalScale.toFixed(2),
             _syncVerified: syncCheck < 100 // Flag to indicate if sync check passed
@@ -5656,6 +5991,14 @@ exports.handler = async (event, context) => {
           meal.protein = verification.totals.protein;
           meal.carbs = verification.totals.carbs;
           meal.fat = verification.totals.fat;
+          meal.fiber = verification.totals.fiber;
+          meal.sugar = verification.totals.sugar;
+          meal.sodium = verification.totals.sodium;
+          meal.potassium = verification.totals.potassium;
+          meal.calcium = verification.totals.calcium;
+          meal.iron = verification.totals.iron;
+          meal.vitaminC = verification.totals.vitaminC;
+          meal.cholesterol = verification.totals.cholesterol;
           meal.breakdown = verification.breakdown;
           meal._autoFixed = true;
         }
@@ -5725,6 +6068,14 @@ exports.handler = async (event, context) => {
             meal.protein = Math.min(recalculated.totals.protein, 100);
             meal.carbs = Math.min(recalculated.totals.carbs, 200);
             meal.fat = Math.min(recalculated.totals.fat, 80);
+            meal.fiber = recalculated.totals.fiber;
+            meal.sugar = recalculated.totals.sugar;
+            meal.sodium = recalculated.totals.sodium;
+            meal.potassium = recalculated.totals.potassium;
+            meal.calcium = recalculated.totals.calcium;
+            meal.iron = recalculated.totals.iron;
+            meal.vitaminC = recalculated.totals.vitaminC;
+            meal.cholesterol = recalculated.totals.cholesterol;
             meal.breakdown = recalculated.breakdown;
             meal._sanityCapped = true;
             console.log(`   ✅ Capped values: ${meal.calories}cal, ${meal.protein}g protein`);

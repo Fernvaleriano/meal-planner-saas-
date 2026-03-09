@@ -639,6 +639,14 @@ function Plans() {
         protein: mealToLog.protein || 0,
         carbs: mealToLog.carbs || 0,
         fat: mealToLog.fat || 0,
+        fiber: mealToLog.fiber || null,
+        sugar: mealToLog.sugar || null,
+        sodium: mealToLog.sodium || null,
+        potassium: mealToLog.potassium || null,
+        calcium: mealToLog.calcium || null,
+        iron: mealToLog.iron || null,
+        vitaminC: mealToLog.vitaminC || null,
+        cholesterol: mealToLog.cholesterol || null,
         foodSource: 'meal_plan'
       });
 
@@ -1082,6 +1090,7 @@ Return ONLY valid JSON:
   // Calculate totals from ingredients
   const getCalculatedTotals = () => {
     let calories = 0, protein = 0, carbs = 0, fat = 0;
+    let fiber = 0, sugar = 0, sodium = 0, potassium = 0, calcium = 0, iron = 0, vitaminC = 0, cholesterol = 0;
     selectedIngredients.forEach(ing => {
       const grams = ing.quantityGrams || ing.quantity;
       const factor = grams / 100;
@@ -1089,12 +1098,28 @@ Return ONLY valid JSON:
       protein += ing.proteinPer100g * factor;
       carbs += ing.carbsPer100g * factor;
       fat += ing.fatPer100g * factor;
+      fiber += (ing.fiberPer100g || 0) * factor;
+      sugar += (ing.sugarPer100g || 0) * factor;
+      sodium += (ing.sodiumPer100g || 0) * factor;
+      potassium += (ing.potassiumPer100g || 0) * factor;
+      calcium += (ing.calciumPer100g || 0) * factor;
+      iron += (ing.ironPer100g || 0) * factor;
+      vitaminC += (ing.vitaminCPer100g || 0) * factor;
+      cholesterol += (ing.cholesterolPer100g || 0) * factor;
     });
     return {
       calories: Math.round(calories),
       protein: Math.round(protein),
       carbs: Math.round(carbs),
-      fat: Math.round(fat)
+      fat: Math.round(fat),
+      fiber: Math.round(fiber * 10) / 10,
+      sugar: Math.round(sugar * 10) / 10,
+      sodium: Math.round(sodium),
+      potassium: Math.round(potassium),
+      calcium: Math.round(calcium),
+      iron: Math.round(iron * 10) / 10,
+      vitaminC: Math.round(vitaminC * 10) / 10,
+      cholesterol: Math.round(cholesterol)
     };
   };
 
@@ -1166,6 +1191,14 @@ Return ONLY valid JSON:
       protein: meal.protein,
       carbs: meal.carbs,
       fat: meal.fat,
+      fiber: meal.fiber,
+      sugar: meal.sugar,
+      sodium: meal.sodium,
+      potassium: meal.potassium,
+      calcium: meal.calcium,
+      iron: meal.iron,
+      vitaminC: meal.vitaminC,
+      cholesterol: meal.cholesterol,
       instructions: meal.instructions || '',
       ingredients: meal.ingredients || [],
       ingredientData: meal.ingredientData,
@@ -1213,6 +1246,14 @@ Return ONLY valid JSON:
       protein: totals.protein,
       carbs: totals.carbs,
       fat: totals.fat,
+      fiber: totals.fiber,
+      sugar: totals.sugar,
+      sodium: totals.sodium,
+      potassium: totals.potassium,
+      calcium: totals.calcium,
+      iron: totals.iron,
+      vitaminC: totals.vitaminC,
+      cholesterol: totals.cholesterol,
       instructions: calculatedInstructions || 'Prepare as desired.',
       ingredients: ingredients,
       ingredientData: JSON.parse(JSON.stringify(selectedIngredients)),
@@ -1561,7 +1602,7 @@ Keep it practical and brief. Format with clear sections.`;
         content += `
           <div class="meal">
             <div class="meal-name">${meal.type || meal.meal_type || 'Meal'}: ${getMealDisplayName(meal)}</div>
-            <div class="meal-macros">${meal.calories || 0} cal | P: ${meal.protein || 0}g | C: ${meal.carbs || 0}g | F: ${meal.fat || 0}g</div>
+            <div class="meal-macros">${meal.calories || 0} cal | P: ${meal.protein || 0}g | C: ${meal.carbs || 0}g | F: ${meal.fat || 0}g${meal.fiber > 0 ? ` | Fiber: ${meal.fiber}g` : ''}</div>
             ${meal.ingredients?.length ? `
               <div class="ingredients">
                 <strong>Ingredients:</strong>
@@ -1808,6 +1849,7 @@ Keep it practical and brief. Format with clear sections.`;
                         {meal.protein && <span className="macro-item">P: {meal.protein}g</span>}
                         {meal.carbs && <span className="macro-item">C: {meal.carbs}g</span>}
                         {meal.fat && <span className="macro-item">F: {meal.fat}g</span>}
+                        {meal.fiber > 0 && <span className="macro-item">Fiber: {meal.fiber}g</span>}
                       </div>
 
                       {/* Coach Note */}
@@ -2122,7 +2164,25 @@ Keep it practical and brief. Format with clear sections.`;
                   <span className="macro-value">{selectedMeal.fat || 0}g</span>
                   <span className="macro-label">Fat</span>
                 </div>
+                {selectedMeal.fiber > 0 && (
+                  <div className="meal-modal-macro fiber">
+                    <span className="macro-value">{selectedMeal.fiber}g</span>
+                    <span className="macro-label">Fiber</span>
+                  </div>
+                )}
               </div>
+
+              {/* Micronutrients */}
+              {(selectedMeal.sodium > 0 || selectedMeal.potassium > 0 || selectedMeal.calcium > 0 || selectedMeal.iron > 0 || selectedMeal.vitaminC > 0) && (
+                <div className="meal-modal-micros">
+                  {selectedMeal.sodium > 0 && <span className="micro-item">Sodium: {selectedMeal.sodium}mg</span>}
+                  {selectedMeal.potassium > 0 && <span className="micro-item">Potassium: {selectedMeal.potassium}mg</span>}
+                  {selectedMeal.calcium > 0 && <span className="micro-item">Calcium: {selectedMeal.calcium}mg</span>}
+                  {selectedMeal.iron > 0 && <span className="micro-item">Iron: {selectedMeal.iron}mg</span>}
+                  {selectedMeal.vitaminC > 0 && <span className="micro-item">Vit C: {selectedMeal.vitaminC}mg</span>}
+                  {selectedMeal.cholesterol > 0 && <span className="micro-item">Cholesterol: {selectedMeal.cholesterol}mg</span>}
+                </div>
+              )}
 
               {/* Action Buttons Grid */}
               <div className="meal-action-buttons">
@@ -2473,7 +2533,7 @@ Keep it practical and brief. Format with clear sections.`;
                           <div className="saved-meal-info">
                             <div className="saved-meal-name">{getMealDisplayName(meal)}</div>
                             <div className="saved-meal-macros">
-                              {meal.calories} cal | {meal.protein}g P | {meal.carbs}g C | {meal.fat}g F
+                              {meal.calories} cal | {meal.protein}g P | {meal.carbs}g C | {meal.fat}g F{meal.fiber > 0 ? ` | ${meal.fiber}g Fiber` : ''}
                             </div>
                           </div>
                           <div className="saved-meal-actions">
