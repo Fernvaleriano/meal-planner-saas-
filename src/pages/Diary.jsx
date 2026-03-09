@@ -64,6 +64,25 @@ function Diary() {
   const [totals, setTotals] = useState(cachedDiary?.totals || { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, sugar: 0, sodium: 0, potassium: 0, calcium: 0, iron: 0, vitaminC: 0, cholesterol: 0 });
   const [goals, setGoals] = useState(cachedDiary?.goals || getGenderBasedDefaults(clientData?.gender));
   const [waterIntake, setWaterIntake] = useState(cachedDiary?.water || 0);
+
+  // Helper to build full totals including micronutrients
+  const buildTotals = (base, delta, operation = 'add') => {
+    const op = operation === 'add' ? 1 : -1;
+    return {
+      calories: (base.calories || 0) + op * (parseFloat(delta.calories) || 0),
+      protein: (base.protein || 0) + op * (parseFloat(delta.protein) || 0),
+      carbs: (base.carbs || 0) + op * (parseFloat(delta.carbs) || 0),
+      fat: (base.fat || 0) + op * (parseFloat(delta.fat) || 0),
+      fiber: (base.fiber || 0) + op * (parseFloat(delta.fiber) || 0),
+      sugar: (base.sugar || 0) + op * (parseFloat(delta.sugar) || 0),
+      sodium: (base.sodium || 0) + op * (parseFloat(delta.sodium) || 0),
+      potassium: (base.potassium || 0) + op * (parseFloat(delta.potassium) || 0),
+      calcium: (base.calcium || 0) + op * (parseFloat(delta.calcium) || 0),
+      iron: (base.iron || 0) + op * (parseFloat(delta.iron) || 0),
+      vitaminC: (base.vitaminC || 0) + op * (parseFloat(delta.vitaminC || delta.vitamin_c) || 0),
+      cholesterol: (base.cholesterol || 0) + op * (parseFloat(delta.cholesterol) || 0)
+    };
+  };
   const [waterGoal] = useState(8);
   const [aiInput, setAiInput] = useState('');
   const [aiLogging, setAiLogging] = useState(false);
@@ -487,8 +506,16 @@ function Diary() {
         calories: acc.calories + (e.calories || 0),
         protein: acc.protein + (e.protein || 0),
         carbs: acc.carbs + (e.carbs || 0),
-        fat: acc.fat + (e.fat || 0)
-      }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
+        fat: acc.fat + (e.fat || 0),
+        fiber: acc.fiber + (parseFloat(e.fiber) || 0),
+        sugar: acc.sugar + (parseFloat(e.sugar) || 0),
+        sodium: acc.sodium + (parseFloat(e.sodium) || 0),
+        potassium: acc.potassium + (parseFloat(e.potassium) || 0),
+        calcium: acc.calcium + (parseFloat(e.calcium) || 0),
+        iron: acc.iron + (parseFloat(e.iron) || 0),
+        vitaminC: acc.vitaminC + (parseFloat(e.vitamin_c) || 0),
+        cholesterol: acc.cholesterol + (parseFloat(e.cholesterol) || 0)
+      }), { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, sugar: 0, sodium: 0, potassium: 0, calcium: 0, iron: 0, vitaminC: 0, cholesterol: 0 });
 
       // Update state - only remove successfully deleted entries
       const updatedEntries = entries.filter(e => !successfulIds.has(e.id));
@@ -496,7 +523,15 @@ function Diary() {
         calories: totals.calories - subtractTotals.calories,
         protein: totals.protein - subtractTotals.protein,
         carbs: totals.carbs - subtractTotals.carbs,
-        fat: totals.fat - subtractTotals.fat
+        fat: totals.fat - subtractTotals.fat,
+        fiber: (totals.fiber || 0) - subtractTotals.fiber,
+        sugar: (totals.sugar || 0) - subtractTotals.sugar,
+        sodium: (totals.sodium || 0) - subtractTotals.sodium,
+        potassium: (totals.potassium || 0) - subtractTotals.potassium,
+        calcium: (totals.calcium || 0) - subtractTotals.calcium,
+        iron: (totals.iron || 0) - subtractTotals.iron,
+        vitaminC: (totals.vitaminC || 0) - subtractTotals.vitaminC,
+        cholesterol: (totals.cholesterol || 0) - subtractTotals.cholesterol
       };
 
       setEntries(updatedEntries);
@@ -814,8 +849,16 @@ function Diary() {
         calories: acc.calories + (food.calories || 0),
         protein: acc.protein + (food.protein || 0),
         carbs: acc.carbs + (food.carbs || 0),
-        fat: acc.fat + (food.fat || 0)
-      }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
+        fat: acc.fat + (food.fat || 0),
+        fiber: acc.fiber + (food.fiber || 0),
+        sugar: acc.sugar + (food.sugar || 0),
+        sodium: acc.sodium + (food.sodium || 0),
+        potassium: acc.potassium + (food.potassium || 0),
+        calcium: acc.calcium + (food.calcium || 0),
+        iron: acc.iron + (food.iron || 0),
+        vitaminC: acc.vitaminC + (food.vitaminC || 0),
+        cholesterol: acc.cholesterol + (food.cholesterol || 0)
+      }), { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, sugar: 0, sodium: 0, potassium: 0, calcium: 0, iron: 0, vitaminC: 0, cholesterol: 0 });
 
       // Update local state
       const updatedEntries = [...entries, ...newEntries];
@@ -823,7 +866,15 @@ function Diary() {
         calories: totals.calories + addedTotals.calories,
         protein: totals.protein + addedTotals.protein,
         carbs: totals.carbs + addedTotals.carbs,
-        fat: totals.fat + addedTotals.fat
+        fat: totals.fat + addedTotals.fat,
+        fiber: (totals.fiber || 0) + addedTotals.fiber,
+        sugar: (totals.sugar || 0) + addedTotals.sugar,
+        sodium: (totals.sodium || 0) + addedTotals.sodium,
+        potassium: (totals.potassium || 0) + addedTotals.potassium,
+        calcium: (totals.calcium || 0) + addedTotals.calcium,
+        iron: (totals.iron || 0) + addedTotals.iron,
+        vitaminC: (totals.vitaminC || 0) + addedTotals.vitaminC,
+        cholesterol: (totals.cholesterol || 0) + addedTotals.cholesterol
       };
 
       setEntries(updatedEntries);
@@ -857,7 +908,15 @@ function Diary() {
           calories: totals.calories - (deletedEntry.calories || 0),
           protein: totals.protein - (deletedEntry.protein || 0),
           carbs: totals.carbs - (deletedEntry.carbs || 0),
-          fat: totals.fat - (deletedEntry.fat || 0)
+          fat: totals.fat - (deletedEntry.fat || 0),
+          fiber: (totals.fiber || 0) - (parseFloat(deletedEntry.fiber) || 0),
+          sugar: (totals.sugar || 0) - (parseFloat(deletedEntry.sugar) || 0),
+          sodium: (totals.sodium || 0) - (parseFloat(deletedEntry.sodium) || 0),
+          potassium: (totals.potassium || 0) - (parseFloat(deletedEntry.potassium) || 0),
+          calcium: (totals.calcium || 0) - (parseFloat(deletedEntry.calcium) || 0),
+          iron: (totals.iron || 0) - (parseFloat(deletedEntry.iron) || 0),
+          vitaminC: (totals.vitaminC || 0) - (parseFloat(deletedEntry.vitamin_c) || 0),
+          cholesterol: (totals.cholesterol || 0) - (parseFloat(deletedEntry.cholesterol) || 0)
         };
         setTotals(updatedTotals);
       }
@@ -917,7 +976,15 @@ function Diary() {
             calories: totals.calories - (oldEntry.calories || 0) + (result.entry.calories || 0),
             protein: totals.protein - (oldEntry.protein || 0) + (result.entry.protein || 0),
             carbs: totals.carbs - (oldEntry.carbs || 0) + (result.entry.carbs || 0),
-            fat: totals.fat - (oldEntry.fat || 0) + (result.entry.fat || 0)
+            fat: totals.fat - (oldEntry.fat || 0) + (result.entry.fat || 0),
+            fiber: (totals.fiber || 0) - (parseFloat(oldEntry.fiber) || 0) + (parseFloat(result.entry.fiber) || 0),
+            sugar: (totals.sugar || 0) - (parseFloat(oldEntry.sugar) || 0) + (parseFloat(result.entry.sugar) || 0),
+            sodium: (totals.sodium || 0) - (parseFloat(oldEntry.sodium) || 0) + (parseFloat(result.entry.sodium) || 0),
+            potassium: (totals.potassium || 0) - (parseFloat(oldEntry.potassium) || 0) + (parseFloat(result.entry.potassium) || 0),
+            calcium: (totals.calcium || 0) - (parseFloat(oldEntry.calcium) || 0) + (parseFloat(result.entry.calcium) || 0),
+            iron: (totals.iron || 0) - (parseFloat(oldEntry.iron) || 0) + (parseFloat(result.entry.iron) || 0),
+            vitaminC: (totals.vitaminC || 0) - (parseFloat(oldEntry.vitamin_c) || 0) + (parseFloat(result.entry.vitamin_c) || 0),
+            cholesterol: (totals.cholesterol || 0) - (parseFloat(oldEntry.cholesterol) || 0) + (parseFloat(result.entry.cholesterol) || 0)
           };
           setTotals(updatedTotals);
         }
@@ -1072,7 +1139,15 @@ function Diary() {
           calories: totals.calories + (food.calories || 0),
           protein: totals.protein + (food.protein || 0),
           carbs: totals.carbs + (food.carbs || 0),
-          fat: totals.fat + (food.fat || 0)
+          fat: totals.fat + (food.fat || 0),
+          fiber: (totals.fiber || 0) + (parseFloat(food.fiber) || 0),
+          sugar: (totals.sugar || 0) + (parseFloat(food.sugar) || 0),
+          sodium: (totals.sodium || 0) + (parseFloat(food.sodium) || 0),
+          potassium: (totals.potassium || 0) + (parseFloat(food.potassium) || 0),
+          calcium: (totals.calcium || 0) + (parseFloat(food.calcium) || 0),
+          iron: (totals.iron || 0) + (parseFloat(food.iron) || 0),
+          vitaminC: (totals.vitaminC || 0) + (parseFloat(food.vitaminC) || 0),
+          cholesterol: (totals.cholesterol || 0) + (parseFloat(food.cholesterol) || 0)
         };
         setEntries(updatedEntries);
         setTotals(updatedTotals);
@@ -1619,7 +1694,15 @@ function Diary() {
           calories: totals.calories + (food.calories || 0),
           protein: totals.protein + (food.protein || 0),
           carbs: totals.carbs + (food.carbs || 0),
-          fat: totals.fat + (food.fat || 0)
+          fat: totals.fat + (food.fat || 0),
+          fiber: (totals.fiber || 0) + (parseFloat(food.fiber) || 0),
+          sugar: (totals.sugar || 0) + (parseFloat(food.sugar) || 0),
+          sodium: (totals.sodium || 0) + (parseFloat(food.sodium) || 0),
+          potassium: (totals.potassium || 0) + (parseFloat(food.potassium) || 0),
+          calcium: (totals.calcium || 0) + (parseFloat(food.calcium) || 0),
+          iron: (totals.iron || 0) + (parseFloat(food.iron) || 0),
+          vitaminC: (totals.vitaminC || 0) + (parseFloat(food.vitaminC || food.vitamin_c) || 0),
+          cholesterol: (totals.cholesterol || 0) + (parseFloat(food.cholesterol) || 0)
         };
         setEntries(updatedEntries);
         setTotals(updatedTotals);
@@ -1670,12 +1753,7 @@ function Diary() {
       // Update local state
       const updatedEntries = entries.filter(e => e.id !== entryId);
       if (entryToUndo) {
-        const updatedTotals = {
-          calories: totals.calories - (entryToUndo.calories || 0),
-          protein: totals.protein - (entryToUndo.protein || 0),
-          carbs: totals.carbs - (entryToUndo.carbs || 0),
-          fat: totals.fat - (entryToUndo.fat || 0)
-        };
+        const updatedTotals = buildTotals(totals, entryToUndo, 'subtract');
         setTotals(updatedTotals);
 
         // Update cache
@@ -1748,7 +1826,7 @@ function Diary() {
 
     try {
       let newEntries = [];
-      let addedTotals = { calories: 0, protein: 0, carbs: 0, fat: 0 };
+      let addedTotals = { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, sugar: 0, sodium: 0, potassium: 0, calcium: 0, iron: 0, vitaminC: 0, cholesterol: 0 };
 
       for (const food of favorite.foods) {
         const result = await apiPost('/.netlify/functions/food-diary', {
@@ -1778,19 +1856,11 @@ function Diary() {
         if (result.entry) {
           newEntries.push(result.entry);
         }
-        addedTotals.calories += food.calories || 0;
-        addedTotals.protein += food.protein || 0;
-        addedTotals.carbs += food.carbs || 0;
-        addedTotals.fat += food.fat || 0;
+        addedTotals = buildTotals(addedTotals, food, 'add');
       }
 
       const updatedEntries = [...entries, ...newEntries];
-      const updatedTotals = {
-        calories: totals.calories + addedTotals.calories,
-        protein: totals.protein + addedTotals.protein,
-        carbs: totals.carbs + addedTotals.carbs,
-        fat: totals.fat + addedTotals.fat
-      };
+      const updatedTotals = buildTotals(totals, addedTotals, 'add');
 
       setEntries(updatedEntries);
       setTotals(updatedTotals);
@@ -3170,12 +3240,7 @@ function Diary() {
         clientData={clientData}
         onFoodLogged={(nutrition) => {
           // Update totals after logging from favorites
-          const updatedTotals = {
-            calories: totals.calories + (nutrition.calories || 0),
-            protein: totals.protein + (nutrition.protein || 0),
-            carbs: totals.carbs + (nutrition.carbs || 0),
-            fat: totals.fat + (nutrition.fat || 0)
-          };
+          const updatedTotals = buildTotals(totals, nutrition, 'add');
           setTotals(updatedTotals);
 
           // Update cache
@@ -3365,7 +3430,7 @@ function Diary() {
 
                     const dateStr = formatDate(currentDate);
                     let newEntries = [];
-                    let addedTotals = { calories: 0, protein: 0, carbs: 0, fat: 0 };
+                    let addedTotals = { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, sugar: 0, sodium: 0, potassium: 0, calcium: 0, iron: 0, vitaminC: 0, cholesterol: 0 };
 
                     for (const food of aiData.foods) {
                       const result = await apiPost('/.netlify/functions/food-diary', {
@@ -3400,6 +3465,14 @@ function Diary() {
                       addedTotals.protein += food.protein || 0;
                       addedTotals.carbs += food.carbs || 0;
                       addedTotals.fat += food.fat || 0;
+                      addedTotals.fiber += food.fiber || 0;
+                      addedTotals.sugar += food.sugar || 0;
+                      addedTotals.sodium += food.sodium || 0;
+                      addedTotals.potassium += food.potassium || 0;
+                      addedTotals.calcium += food.calcium || 0;
+                      addedTotals.iron += food.iron || 0;
+                      addedTotals.vitaminC += food.vitaminC || 0;
+                      addedTotals.cholesterol += food.cholesterol || 0;
                     }
 
                     const updatedEntries = [...entries, ...newEntries];
@@ -3407,7 +3480,15 @@ function Diary() {
                       calories: totals.calories + addedTotals.calories,
                       protein: totals.protein + addedTotals.protein,
                       carbs: totals.carbs + addedTotals.carbs,
-                      fat: totals.fat + addedTotals.fat
+                      fat: totals.fat + addedTotals.fat,
+                      fiber: (totals.fiber || 0) + addedTotals.fiber,
+                      sugar: (totals.sugar || 0) + addedTotals.sugar,
+                      sodium: (totals.sodium || 0) + addedTotals.sodium,
+                      potassium: (totals.potassium || 0) + addedTotals.potassium,
+                      calcium: (totals.calcium || 0) + addedTotals.calcium,
+                      iron: (totals.iron || 0) + addedTotals.iron,
+                      vitaminC: (totals.vitaminC || 0) + addedTotals.vitaminC,
+                      cholesterol: (totals.cholesterol || 0) + addedTotals.cholesterol
                     };
 
                     setEntries(updatedEntries);
@@ -3444,12 +3525,7 @@ function Diary() {
         clientData={clientData}
         onFoodLogged={(nutrition) => {
           // Update totals after logging from photo
-          const updatedTotals = {
-            calories: totals.calories + (nutrition.calories || 0),
-            protein: totals.protein + (nutrition.protein || 0),
-            carbs: totals.carbs + (nutrition.carbs || 0),
-            fat: totals.fat + (nutrition.fat || 0)
-          };
+          const updatedTotals = buildTotals(totals, nutrition, 'add');
           setTotals(updatedTotals);
 
           // Update cache
@@ -3468,12 +3544,7 @@ function Diary() {
         clientData={clientData}
         onFoodLogged={(nutrition) => {
           // Update totals after logging from scan
-          const updatedTotals = {
-            calories: totals.calories + (nutrition.calories || 0),
-            protein: totals.protein + (nutrition.protein || 0),
-            carbs: totals.carbs + (nutrition.carbs || 0),
-            fat: totals.fat + (nutrition.fat || 0)
-          };
+          const updatedTotals = buildTotals(totals, nutrition, 'add');
           setTotals(updatedTotals);
 
           // Update cache
@@ -3492,12 +3563,7 @@ function Diary() {
         clientData={clientData}
         onFoodLogged={(nutrition) => {
           // Update totals after logging from search
-          const updatedTotals = {
-            calories: totals.calories + (nutrition.calories || 0),
-            protein: totals.protein + (nutrition.protein || 0),
-            carbs: totals.carbs + (nutrition.carbs || 0),
-            fat: totals.fat + (nutrition.fat || 0)
-          };
+          const updatedTotals = buildTotals(totals, nutrition, 'add');
           setTotals(updatedTotals);
 
           // Update cache
