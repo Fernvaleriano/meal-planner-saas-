@@ -791,9 +791,9 @@
             </button>
             <h1 class="main-header-title">📖 Manage Recipes</h1>
             <div class="main-header-actions" style="display:flex; gap:8px;">
-                <button class="btn-primary" onclick="openYoutubeImportModal()" style="background:#dc2626; display:flex; align-items:center; gap:6px; white-space:nowrap;">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M23.5 6.2c-.3-1-1-1.8-2-2C19.6 3.6 12 3.6 12 3.6s-7.6 0-9.5.6c-1 .3-1.7 1-2 2C0 8.1 0 12 0 12s0 3.9.5 5.8c.3 1 1 1.8 2 2 1.9.6 9.5.6 9.5.6s7.6 0 9.5-.6c1-.3 1.7-1 2-2 .5-1.9.5-5.8.5-5.8s0-3.9-.5-5.8zM9.6 15.6V8.4l6.4 3.6-6.4 3.6z"/></svg>
-                    Import from YouTube
+                <button class="btn-primary" onclick="openImportRecipesModal()" style="background:linear-gradient(135deg, #f59e0b 0%, #d97706 100%); display:flex; align-items:center; gap:6px; white-space:nowrap;">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+                    Import Recipes
                 </button>
                 <button class="btn-primary" onclick="openAddModal()">+ Add Recipe</button>
             </div>
@@ -941,34 +941,87 @@
         </div>
     </div>
 
-    <!-- YouTube Import Modal -->
-    <div class="modal-overlay" id="youtubeImportModal">
-        <div class="modal" style="max-width:500px;">
+    <!-- Import Recipes Modal -->
+    <div class="modal-overlay" id="importRecipesModal">
+        <div class="modal" style="max-width:640px;">
             <div class="modal-header">
-                <h2 style="display:flex; align-items:center; gap:8px;">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="#dc2626"><path d="M23.5 6.2c-.3-1-1-1.8-2-2C19.6 3.6 12 3.6 12 3.6s-7.6 0-9.5.6c-1 .3-1.7 1-2 2C0 8.1 0 12 0 12s0 3.9.5 5.8c.3 1 1 1.8 2 2 1.9.6 9.5.6 9.5.6s7.6 0 9.5-.6c1-.3 1.7-1 2-2 .5-1.9.5-5.8.5-5.8s0-3.9-.5-5.8zM9.6 15.6V8.4l6.4 3.6-6.4 3.6z"/></svg>
-                    Import from YouTube
+                <h2 style="display:flex; align-items:center; gap:8px; color:#d97706;">
+                    <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+                    Import Recipes
                 </h2>
-                <button class="modal-close" onclick="closeYoutubeModal()">&times;</button>
+                <button class="modal-close" onclick="closeImportRecipesModal()">&times;</button>
             </div>
             <div class="modal-body">
-                <p style="color:var(--gray-500); font-size:14px; margin-bottom:16px; line-height:1.5;">
-                    Paste a YouTube or YouTube Shorts URL. We'll extract the recipe from the video's captions using AI and pre-fill the recipe form for you.
-                </p>
-                <div class="form-group">
-                    <label class="form-label">YouTube URL</label>
-                    <input type="url" class="form-input" id="youtubeUrlInput" placeholder="https://www.youtube.com/shorts/..." onkeydown="if(event.key==='Enter'){event.preventDefault();extractYoutubeRecipe();}">
+                <!-- Step 1: Input -->
+                <div id="importRecipeStep1">
+                    <p style="color:var(--gray-500); font-size:14px; margin-bottom:16px; line-height:1.6;">
+                        Upload a file or paste recipe text below. AI will extract recipe names, ingredients, instructions, and nutrition info, then create recipes for you.
+                    </p>
+
+                    <div id="importRecipeDropZone" onclick="document.getElementById('importRecipeFileInput').click()" style="border:2px dashed var(--gray-300); border-radius:12px; padding:32px 20px; text-align:center; cursor:pointer; transition:all 0.2s; margin-bottom:16px;" onmouseover="this.style.borderColor='#d97706'; this.style.background='#fffbeb'" onmouseout="this.style.borderColor='var(--gray-300)'; this.style.background='transparent'">
+                        <svg width="40" height="40" fill="none" stroke="#94a3b8" stroke-width="1.5" viewBox="0 0 24 24" style="margin:0 auto 8px;display:block;">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        <div style="font-size:15px; font-weight:600; color:#d97706; margin-bottom:4px;">Drop your file here or click to browse</div>
+                        <div style="font-size:13px; color:var(--gray-400);">Supports .txt, .csv, and .pdf files</div>
+                    </div>
+                    <input type="file" id="importRecipeFileInput" accept=".txt,.csv,.pdf,.text" style="display:none" onchange="handleImportRecipeFile(event)">
+                    <div id="importRecipeFileInfo" style="display:none; background:var(--gray-50); border:1px solid var(--gray-200); border-radius:8px; padding:10px 14px; margin-bottom:12px; font-size:13px; color:var(--gray-600);"></div>
+
+                    <div style="text-align:center; color:var(--gray-400); font-size:13px; margin:12px 0; font-weight:500;">or paste text</div>
+
+                    <textarea class="form-textarea" id="importRecipePasteArea" rows="8" style="font-size:14px;" placeholder="Paste your recipes here...
+
+Example:
+Protein Smoothie Bowl
+Ingredients: 1 scoop whey protein, 1 banana, 1/2 cup Greek yogurt, 1/2 cup mixed berries, 2 tbsp granola
+Instructions: Blend protein, banana, yogurt and berries until smooth. Pour into bowl. Top with granola.
+Calories: 380, Protein: 35g, Carbs: 45g, Fat: 8g
+
+Grilled Chicken Salad
+Ingredients: 6oz chicken breast, 2 cups mixed greens, 1/2 avocado, cherry tomatoes, olive oil dressing
+..."></textarea>
                 </div>
-                <div id="youtubeError" style="display:none; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); border-radius:8px; padding:12px; margin-bottom:16px; color:#ef4444; font-size:13px; line-height:1.5;"></div>
-                <div id="youtubeLoading" style="display:none; background:rgba(13,148,136,0.1); border:1px solid rgba(13,148,136,0.2); border-radius:8px; padding:16px; margin-bottom:16px; text-align:center;">
-                    <div style="display:inline-block; width:24px; height:24px; border:3px solid rgba(13,148,136,0.3); border-top-color:var(--brand-primary); border-radius:50%; animation:spin 1s linear infinite;"></div>
-                    <p style="color:var(--brand-primary); font-size:14px; font-weight:500; margin-top:8px;">Extracting recipe from video...</p>
-                    <p style="color:var(--gray-500); font-size:12px; margin-top:4px;">Reading captions and organizing ingredients with AI</p>
+
+                <!-- Step 2: Processing -->
+                <div id="importRecipeStep2" style="display:none; text-align:center; padding:40px 20px;">
+                    <div style="display:inline-block; width:32px; height:32px; border:3px solid rgba(217,119,6,0.3); border-top-color:#d97706; border-radius:50%; animation:spin 1s linear infinite;"></div>
+                    <p style="color:#d97706; font-size:15px; font-weight:600; margin-top:12px;">Parsing your recipes...</p>
+                    <p style="color:var(--gray-500); font-size:13px; margin-top:4px;">Extracting ingredients, instructions, and nutrition info</p>
                 </div>
+
+                <!-- Step 3: Results -->
+                <div id="importRecipeStep3" style="display:none;">
+                    <div style="background:#f0fdf4; border:1px solid #86efac; border-radius:8px; padding:16px; margin-bottom:16px;">
+                        <h4 style="font-weight:700; color:#166534; margin-bottom:12px;">Import Summary</h4>
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                            <div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid #dcfce7;">
+                                <span style="color:#166534; font-size:14px;">Recipes found</span>
+                                <span style="font-weight:700; color:#166534;" id="importRecipeStatCount">0</span>
+                            </div>
+                            <div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid #dcfce7;">
+                                <span style="color:#166534; font-size:14px;">With nutrition</span>
+                                <span style="font-weight:700; color:#166534;" id="importRecipeStatNutrition">0</span>
+                            </div>
+                            <div style="display:flex; justify-content:space-between; padding:6px 0;">
+                                <span style="color:#166534; font-size:14px;">With ingredients</span>
+                                <span style="font-weight:700; color:#166534;" id="importRecipeStatIngredients">0</span>
+                            </div>
+                            <div style="display:flex; justify-content:space-between; padding:6px 0;">
+                                <span style="color:#166534; font-size:14px;">With instructions</span>
+                                <span style="font-weight:700; color:#166534;" id="importRecipeStatInstructions">0</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="importRecipePreview" style="max-height:300px; overflow-y:auto; border:1px solid var(--gray-200); border-radius:8px; padding:12px;"></div>
+                </div>
+
+                <!-- Error -->
+                <div id="importRecipeError" style="display:none; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); border-radius:8px; padding:12px; margin-top:12px; color:#ef4444; font-size:13px; line-height:1.5;"></div>
             </div>
             <div class="modal-footer">
-                <button class="btn-secondary" onclick="closeYoutubeModal()">Cancel</button>
-                <button class="btn-primary" id="youtubeExtractBtn" onclick="extractYoutubeRecipe()" style="background:#dc2626;">Extract Recipe with AI</button>
+                <button class="btn-secondary" onclick="closeImportRecipesModal()">Cancel</button>
+                <button class="btn-primary" id="importRecipeBtn" onclick="startRecipeImport()" style="background:linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">Import Recipes</button>
             </div>
         </div>
     </div>
@@ -1344,139 +1397,208 @@
             window.location.href = 'login.html';
         }
 
-        // ── YouTube Import ──
+        // ── Import Recipes ──
 
-        function openYoutubeImportModal() {
-            document.getElementById('youtubeUrlInput').value = '';
-            document.getElementById('youtubeError').style.display = 'none';
-            document.getElementById('youtubeLoading').style.display = 'none';
-            document.getElementById('youtubeExtractBtn').disabled = false;
-            document.getElementById('youtubeExtractBtn').textContent = 'Extract Recipe with AI';
-            document.getElementById('youtubeImportModal').classList.add('active');
+        let importedRecipesData = null;
+
+        function openImportRecipesModal() {
+            document.getElementById('importRecipeStep1').style.display = 'block';
+            document.getElementById('importRecipeStep2').style.display = 'none';
+            document.getElementById('importRecipeStep3').style.display = 'none';
+            document.getElementById('importRecipeError').style.display = 'none';
+            document.getElementById('importRecipePasteArea').value = '';
+            document.getElementById('importRecipeFileInfo').style.display = 'none';
+            document.getElementById('importRecipeFileInput').value = '';
+            document.getElementById('importRecipeBtn').textContent = 'Import Recipes';
+            document.getElementById('importRecipeBtn').onclick = startRecipeImport;
+            importedRecipesData = null;
+            document.getElementById('importRecipesModal').classList.add('active');
         }
 
-        function closeYoutubeModal() {
-            document.getElementById('youtubeImportModal').classList.remove('active');
+        function closeImportRecipesModal() {
+            document.getElementById('importRecipesModal').classList.remove('active');
         }
 
-        // Extract video ID from YouTube URL
-        function extractVideoId(url) {
-            const patterns = [
-                /youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/,
-                /youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})/,
-                /youtu\.be\/([a-zA-Z0-9_-]{11})/,
-                /youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/,
-            ];
-            for (const p of patterns) {
-                const m = url.match(p);
-                if (m) return m[1];
+        function handleImportRecipeFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const fileInfoEl = document.getElementById('importRecipeFileInfo');
+            const pasteArea = document.getElementById('importRecipePasteArea');
+
+            const ext = file.name.split('.').pop().toLowerCase();
+            if (!['txt', 'csv', 'text', 'pdf'].includes(ext)) {
+                fileInfoEl.innerHTML = '<span style="color:#ef4444;">Unsupported file type. Please use .txt, .csv, or .pdf</span>';
+                fileInfoEl.style.display = 'block';
+                return;
             }
-            return null;
+
+            if (ext === 'pdf') {
+                fileInfoEl.innerHTML = `<strong>${file.name}</strong> (${(file.size/1024).toFixed(1)} KB) — Reading PDF...`;
+                fileInfoEl.style.display = 'block';
+
+                const reader = new FileReader();
+                reader.onload = async function(e) {
+                    try {
+                        if (typeof pdfjsLib === 'undefined') {
+                            const script = document.createElement('script');
+                            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+                            document.head.appendChild(script);
+                            await new Promise((resolve, reject) => {
+                                script.onload = resolve;
+                                script.onerror = reject;
+                            });
+                            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+                        }
+                        const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(e.target.result) }).promise;
+                        let text = '';
+                        for (let i = 1; i <= pdf.numPages; i++) {
+                            const page = await pdf.getPage(i);
+                            const content = await page.getTextContent();
+                            text += content.items.map(item => item.str).join(' ') + '\n\n';
+                        }
+                        pasteArea.value = text.trim();
+                        fileInfoEl.innerHTML = `<strong>${file.name}</strong> (${pdf.numPages} pages) — Text extracted`;
+                    } catch (err) {
+                        console.error('PDF parse error:', err);
+                        fileInfoEl.innerHTML = '<span style="color:#ef4444;">Could not read PDF. Try copy-pasting the text instead.</span>';
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+            } else {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    pasteArea.value = e.target.result;
+                    fileInfoEl.innerHTML = `<strong>${file.name}</strong> (${(file.size/1024).toFixed(1)} KB) — Content loaded`;
+                    fileInfoEl.style.display = 'block';
+                };
+                reader.readAsText(file);
+            }
         }
 
-        async function extractYoutubeRecipe() {
-            const url = document.getElementById('youtubeUrlInput').value.trim();
-            if (!url) return;
+        async function startRecipeImport() {
+            const text = document.getElementById('importRecipePasteArea').value.trim();
+            if (!text || text.length < 20) {
+                const errorEl = document.getElementById('importRecipeError');
+                errorEl.textContent = 'Please provide recipe text (at least 20 characters). Upload a file or paste recipe content.';
+                errorEl.style.display = 'block';
+                return;
+            }
 
-            const errorEl = document.getElementById('youtubeError');
-            const loadingEl = document.getElementById('youtubeLoading');
-            const extractBtn = document.getElementById('youtubeExtractBtn');
-
-            errorEl.style.display = 'none';
-            loadingEl.style.display = 'block';
-            extractBtn.disabled = true;
-            extractBtn.textContent = 'Extracting...';
+            document.getElementById('importRecipeStep1').style.display = 'none';
+            document.getElementById('importRecipeStep2').style.display = 'block';
+            document.getElementById('importRecipeStep3').style.display = 'none';
+            document.getElementById('importRecipeError').style.display = 'none';
+            document.getElementById('importRecipeBtn').disabled = true;
 
             try {
-                // Step 1: Extract video ID
-                const videoId = extractVideoId(url);
-                if (!videoId) throw new Error('Invalid YouTube URL');
-
                 const { data: { session } } = await supabaseClient.auth.getSession();
                 if (!session) throw new Error('Not authenticated');
 
-                const authHeaders = {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + session.access_token
-                };
-
-                // Step 2: Fetch transcript via our proxy (avoids CORS issues)
-                const transcriptResp = await fetch('/.netlify/functions/youtube-transcript', {
+                const resp = await fetch('/.netlify/functions/import-recipes', {
                     method: 'POST',
-                    headers: authHeaders,
-                    body: JSON.stringify({ videoId, coachId: currentUserId })
-                });
-
-                const transcriptData = await transcriptResp.json();
-
-                if (!transcriptResp.ok) {
-                    throw new Error(transcriptData.error || 'Could not get video transcript');
-                }
-
-                // Step 3: Send transcript to AI for recipe extraction
-                const resp = await fetch('/.netlify/functions/extract-youtube-recipe', {
-                    method: 'POST',
-                    headers: authHeaders,
-                    body: JSON.stringify({
-                        coachId: currentUserId,
-                        youtubeUrl: url,
-                        transcript: transcriptData.transcript,
-                        videoTitle: transcriptData.videoTitle
-                    })
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + session.access_token
+                    },
+                    body: JSON.stringify({ coachId: currentUserId, fileContent: text })
                 });
 
                 const result = await resp.json();
-
-                if (!resp.ok) {
-                    throw new Error(result.error || 'Failed to extract recipe');
+                if (!resp.ok || !result.success) {
+                    throw new Error(result.error || 'Failed to parse recipes');
                 }
 
-                const recipe = result.recipe;
+                importedRecipesData = result.recipes;
 
-                // Close YouTube modal
-                closeYoutubeModal();
+                // Show Step 3 - Results
+                document.getElementById('importRecipeStep2').style.display = 'none';
+                document.getElementById('importRecipeStep3').style.display = 'block';
 
-                // Open the add recipe modal pre-filled with extracted data
-                openAddModal();
-                document.getElementById('recipeName').value = recipe.name || '';
-                document.getElementById('recipeDescription').value = recipe.description || '';
-                document.getElementById('recipeCategory').value = recipe.time_category || '';
-                document.getElementById('recipePrepTime').value = recipe.prep_time_minutes || '';
-                document.getElementById('recipeCookTime').value = recipe.cook_time_minutes || '';
-                document.getElementById('recipeServings').value = recipe.servings || 1;
-                document.getElementById('recipeCalories').value = recipe.calories || '';
-                document.getElementById('recipeProtein').value = recipe.protein || '';
-                document.getElementById('recipeCarbs').value = recipe.carbs || '';
-                document.getElementById('recipeFat').value = recipe.fat || '';
-                document.getElementById('recipeIngredients').value = recipe.ingredients || '';
-                document.getElementById('recipeInstructions').value = recipe.instructions || '';
-                document.getElementById('recipeSourceUrl').value = recipe.source_url || url;
+                const recipes = result.recipes;
+                const withNutrition = recipes.filter(r => r.calories > 0).length;
+                const withIngredients = recipes.filter(r => r.ingredients && r.ingredients.length > 5).length;
+                const withInstructions = recipes.filter(r => r.instructions && r.instructions.length > 5).length;
 
-                // Set thumbnail as recipe image
-                if (recipe.image_url) {
-                    document.getElementById('recipeImage').value = recipe.image_url;
-                    document.getElementById('imagePreview').src = recipe.image_url;
-                    document.getElementById('imagePreviewContainer').style.display = 'block';
-                    document.getElementById('imageUploadLabel').style.display = 'none';
-                }
+                document.getElementById('importRecipeStatCount').textContent = recipes.length;
+                document.getElementById('importRecipeStatNutrition').textContent = withNutrition;
+                document.getElementById('importRecipeStatIngredients').textContent = withIngredients;
+                document.getElementById('importRecipeStatInstructions').textContent = withInstructions;
+
+                // Build preview
+                const previewEl = document.getElementById('importRecipePreview');
+                previewEl.innerHTML = recipes.map((r, i) => `
+                    <div style="padding:10px 0; ${i > 0 ? 'border-top:1px solid var(--gray-200);' : ''}">
+                        <div style="font-weight:600; color:var(--gray-800); font-size:14px;">${r.name || 'Unnamed Recipe'}</div>
+                        <div style="font-size:12px; color:var(--gray-500); margin-top:2px;">
+                            ${r.calories ? r.calories + ' cal' : ''}
+                            ${r.protein ? ' · ' + r.protein + 'g protein' : ''}
+                            ${r.time_category ? ' · ' + r.time_category.replace('_', ' ') : ''}
+                            ${r.servings ? ' · ' + r.servings + ' serving' + (r.servings > 1 ? 's' : '') : ''}
+                        </div>
+                        ${r.description ? '<div style="font-size:12px; color:var(--gray-400); margin-top:2px;">' + r.description + '</div>' : ''}
+                    </div>
+                `).join('');
+
+                // Change button to "Save All Recipes"
+                document.getElementById('importRecipeBtn').textContent = 'Save All Recipes';
+                document.getElementById('importRecipeBtn').onclick = applyImportedRecipes;
+                document.getElementById('importRecipeBtn').disabled = false;
 
             } catch (err) {
-                console.error('YouTube import error:', err);
-                const msg = err.message || '';
-                if (msg.includes('captions') || msg.includes('NO_CAPTIONS')) {
-                    errorEl.textContent = "This video doesn't have captions available. Try a different video or enter the recipe manually.";
-                } else if (msg.includes('Invalid YouTube')) {
-                    errorEl.textContent = 'Invalid YouTube URL. Please paste a valid YouTube or Shorts link.';
-                } else if (msg.includes('Failed to fetch')) {
-                    errorEl.textContent = 'Could not connect to YouTube. Please check the URL and try again.';
-                } else {
-                    errorEl.textContent = msg || 'Could not extract recipe from this video. Try a different video or enter manually.';
-                }
+                console.error('Recipe import error:', err);
+                document.getElementById('importRecipeStep2').style.display = 'none';
+                document.getElementById('importRecipeStep1').style.display = 'block';
+                const errorEl = document.getElementById('importRecipeError');
+                errorEl.textContent = err.message || 'Failed to parse recipes. Please check the format and try again.';
                 errorEl.style.display = 'block';
-            } finally {
-                loadingEl.style.display = 'none';
-                extractBtn.disabled = false;
-                extractBtn.textContent = 'Extract Recipe with AI';
+                document.getElementById('importRecipeBtn').disabled = false;
+            }
+        }
+
+        async function applyImportedRecipes() {
+            if (!importedRecipesData || importedRecipesData.length === 0) return;
+
+            document.getElementById('importRecipeBtn').disabled = true;
+            document.getElementById('importRecipeBtn').textContent = 'Saving...';
+
+            try {
+                const recipesToInsert = importedRecipesData.map(r => ({
+                    coach_id: currentUserId,
+                    name: r.name || 'Imported Recipe',
+                    description: r.description || null,
+                    time_category: r.time_category || 'quick',
+                    prep_time_minutes: r.prep_time_minutes || null,
+                    cook_time_minutes: r.cook_time_minutes || null,
+                    servings: r.servings || 1,
+                    calories: r.calories || null,
+                    protein: r.protein || null,
+                    carbs: r.carbs || null,
+                    fat: r.fat || null,
+                    ingredients: r.ingredients || null,
+                    instructions: r.instructions || null,
+                    image_url: null,
+                    source_url: null,
+                    is_public: false
+                }));
+
+                const { error } = await supabaseClient
+                    .from('recipes')
+                    .insert(recipesToInsert);
+
+                if (error) throw error;
+
+                closeImportRecipesModal();
+                await loadRecipes();
+                alert(`Successfully imported ${recipesToInsert.length} recipe${recipesToInsert.length > 1 ? 's' : ''}!`);
+
+            } catch (err) {
+                console.error('Error saving imported recipes:', err);
+                const errorEl = document.getElementById('importRecipeError');
+                errorEl.textContent = 'Error saving recipes: ' + (err.message || 'Unknown error');
+                errorEl.style.display = 'block';
+                document.getElementById('importRecipeBtn').disabled = false;
+                document.getElementById('importRecipeBtn').textContent = 'Save All Recipes';
             }
         }
 
@@ -1487,9 +1609,9 @@
             }
         });
 
-        document.getElementById('youtubeImportModal').addEventListener('click', (e) => {
-            if (e.target === document.getElementById('youtubeImportModal')) {
-                closeYoutubeModal();
+        document.getElementById('importRecipesModal').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('importRecipesModal')) {
+                closeImportRecipesModal();
             }
         });
 
