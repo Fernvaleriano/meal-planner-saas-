@@ -489,10 +489,13 @@ export function SearchFoodsModal({ isOpen, onClose, mealType, clientData, onFood
     const foodToAdd = { ...selectedFood };
 
     try {
-      // Scale micronutrients the same way as macros
+      // Scale micronutrients from per-100g values (same approach as macros) to avoid double-scaling
       const measure = foodToAdd.measures?.[selectedMeasure];
       const weight = measure?.weight || foodToAdd.servingSize || 100;
       const microMultiplier = (weight / 100) * servings;
+
+      // Use per-100g values if available (Edamam), otherwise fall back to stored values scaled by servings only
+      const hasPer100g = foodToAdd.fiberPer100g != null;
 
       await apiPost('/.netlify/functions/food-diary', {
         clientId: clientData.id,
@@ -504,14 +507,14 @@ export function SearchFoodsModal({ isOpen, onClose, mealType, clientData, onFood
         protein: nutrition.protein,
         carbs: nutrition.carbs,
         fat: nutrition.fat,
-        fiber: foodToAdd.fiber != null ? Math.round(foodToAdd.fiber * microMultiplier * 10) / 10 : null,
-        sugar: foodToAdd.sugar != null ? Math.round(foodToAdd.sugar * microMultiplier * 10) / 10 : null,
-        sodium: foodToAdd.sodium != null ? Math.round(foodToAdd.sodium * microMultiplier) : null,
-        potassium: foodToAdd.potassium != null ? Math.round(foodToAdd.potassium * microMultiplier) : null,
-        calcium: foodToAdd.calcium != null ? Math.round(foodToAdd.calcium * microMultiplier) : null,
-        iron: foodToAdd.iron != null ? Math.round(foodToAdd.iron * microMultiplier * 10) / 10 : null,
-        vitaminC: foodToAdd.vitaminC != null ? Math.round(foodToAdd.vitaminC * microMultiplier) : null,
-        cholesterol: foodToAdd.cholesterol != null ? Math.round(foodToAdd.cholesterol * microMultiplier) : null,
+        fiber: hasPer100g ? Math.round(foodToAdd.fiberPer100g * microMultiplier * 10) / 10 : (foodToAdd.fiber != null ? Math.round(foodToAdd.fiber * servings * 10) / 10 : null),
+        sugar: hasPer100g ? Math.round(foodToAdd.sugarPer100g * microMultiplier * 10) / 10 : (foodToAdd.sugar != null ? Math.round(foodToAdd.sugar * servings * 10) / 10 : null),
+        sodium: hasPer100g ? Math.round(foodToAdd.sodiumPer100g * microMultiplier) : (foodToAdd.sodium != null ? Math.round(foodToAdd.sodium * servings) : null),
+        potassium: hasPer100g ? Math.round(foodToAdd.potassiumPer100g * microMultiplier) : (foodToAdd.potassium != null ? Math.round(foodToAdd.potassium * servings) : null),
+        calcium: hasPer100g ? Math.round(foodToAdd.calciumPer100g * microMultiplier) : (foodToAdd.calcium != null ? Math.round(foodToAdd.calcium * servings) : null),
+        iron: hasPer100g ? Math.round(foodToAdd.ironPer100g * microMultiplier * 10) / 10 : (foodToAdd.iron != null ? Math.round(foodToAdd.iron * servings * 10) / 10 : null),
+        vitaminC: hasPer100g ? Math.round(foodToAdd.vitaminCPer100g * microMultiplier) : (foodToAdd.vitaminC != null ? Math.round(foodToAdd.vitaminC * servings) : null),
+        cholesterol: hasPer100g ? Math.round(foodToAdd.cholesterolPer100g * microMultiplier) : (foodToAdd.cholesterol != null ? Math.round(foodToAdd.cholesterol * servings) : null),
         servingSize: foodToAdd.measures?.[selectedMeasure]?.weight || 100,
         servingUnit: foodToAdd.measures?.[selectedMeasure]?.label || 'g',
         numberOfServings: servings,
