@@ -441,6 +441,7 @@ function Recipes() {
       <body>
         <h1>${selectedRecipe.name}</h1>
         ${selectedRecipe.prep_time_minutes ? `<p class="subtitle">Prep time: ${selectedRecipe.prep_time_minutes} minutes</p>` : ''}
+        ${selectedRecipe.cook_time_minutes ? `<p class="subtitle">Cook time: ${selectedRecipe.cook_time_minutes} minutes</p>` : ''}
 
         <div class="nutrition">
           <div class="nutrition-item">
@@ -605,9 +606,25 @@ function Recipes() {
                       <div className="recipe-image-placeholder">🍳</div>
                     )}
                     <div className="recipe-card-content">
-                      <div className="recipe-time-badge">
-                        <Clock size={12} />
-                        {recipe.prep_time_minutes ? `${recipe.prep_time_minutes} min` : CATEGORY_LABELS[recipe.time_category] || recipe.time_category}
+                      <div className="recipe-time-badges">
+                        {recipe.prep_time_minutes ? (
+                          <div className="recipe-time-badge">
+                            <Clock size={12} />
+                            Prep {recipe.prep_time_minutes} min
+                          </div>
+                        ) : null}
+                        {recipe.cook_time_minutes ? (
+                          <div className="recipe-time-badge">
+                            <Clock size={12} />
+                            Cook {recipe.cook_time_minutes} min
+                          </div>
+                        ) : null}
+                        {!recipe.prep_time_minutes && !recipe.cook_time_minutes && (
+                          <div className="recipe-time-badge">
+                            <Clock size={12} />
+                            {CATEGORY_LABELS[recipe.time_category] || recipe.time_category}
+                          </div>
+                        )}
                       </div>
                       <h3 className="recipe-name">{recipe.name}</h3>
                       <div className="recipe-macros">
@@ -693,9 +710,25 @@ function Recipes() {
                         <div className="recipe-image-placeholder">🍳</div>
                       )}
                       <div className="recipe-card-content">
-                        <div className="recipe-time-badge spoonacular">
-                          <Globe size={12} />
-                          {recipe.prep_time_minutes ? `${recipe.prep_time_minutes} min` : 'Recipe'}
+                        <div className="recipe-time-badges">
+                          {recipe.prep_time_minutes ? (
+                            <div className="recipe-time-badge spoonacular">
+                              <Globe size={12} />
+                              Prep {recipe.prep_time_minutes} min
+                            </div>
+                          ) : null}
+                          {recipe.cook_time_minutes ? (
+                            <div className="recipe-time-badge spoonacular">
+                              <Globe size={12} />
+                              Cook {recipe.cook_time_minutes} min
+                            </div>
+                          ) : null}
+                          {!recipe.prep_time_minutes && !recipe.cook_time_minutes && (
+                            <div className="recipe-time-badge spoonacular">
+                              <Globe size={12} />
+                              Recipe
+                            </div>
+                          )}
                         </div>
                         <h3 className="recipe-name">{recipe.name}</h3>
                         <div className="recipe-macros">

@@ -69,14 +69,15 @@ exports.handler = async (event) => {
                     spoonacular_id: recipe.id,
                     name: recipe.title,
                     image_url: recipe.image,
-                    prep_time_minutes: recipe.readyInMinutes || 0,
+                    prep_time_minutes: recipe.preparationMinutes || recipe.readyInMinutes || 0,
+                    cook_time_minutes: recipe.cookingMinutes || 0,
                     servings: recipe.servings || 1,
                     calories: Math.round(calories),
                     protein: Math.round(protein),
                     carbs: Math.round(carbs),
                     fat: Math.round(fat),
                     source: 'spoonacular',
-                    // Map time category based on prep time
+                    // Map time category based on total time
                     time_category: recipe.readyInMinutes <= 10 ? 'grab_go'
                         : recipe.readyInMinutes <= 20 ? 'quick'
                         : recipe.readyInMinutes <= 45 ? 'meal_prep'
@@ -139,7 +140,8 @@ exports.handler = async (event) => {
                     name: recipe.title,
                     description: recipe.summary?.replace(/<[^>]*>/g, '').substring(0, 200) + '...',
                     image_url: recipe.image,
-                    prep_time_minutes: recipe.readyInMinutes || 0,
+                    prep_time_minutes: recipe.preparationMinutes || recipe.readyInMinutes || 0,
+                    cook_time_minutes: recipe.cookingMinutes || 0,
                     servings: recipe.servings || 1,
                     calories: Math.round(calories),
                     protein: Math.round(protein),
@@ -185,7 +187,8 @@ exports.handler = async (event) => {
                     spoonacular_id: recipe.id,
                     name: recipe.title,
                     image_url: recipe.image,
-                    prep_time_minutes: recipe.readyInMinutes || 0,
+                    prep_time_minutes: recipe.preparationMinutes || recipe.readyInMinutes || 0,
+                    cook_time_minutes: recipe.cookingMinutes || 0,
                     servings: recipe.servings || 1,
                     calories: Math.round(calories),
                     protein: Math.round(protein),
