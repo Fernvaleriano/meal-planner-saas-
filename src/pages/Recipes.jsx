@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ChevronLeft, Clock, X, Search, Sparkles, Globe, BookOpen, Heart, Download, Plus, Trash2, Edit3, Eye, EyeOff, Upload, Link, Camera } from 'lucide-react';
+import { ChevronLeft, Clock, X, Search, Sparkles, Globe, BookOpen, Heart, Download, Plus, Trash2, Edit3, Eye, EyeOff, Upload, Link, Camera, Youtube, Loader } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, apiPut, apiDelete } from '../utils/api';
@@ -74,6 +74,12 @@ function Recipes() {
   const [saving, setSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
+
+  // YouTube import state
+  const [showYoutubeImport, setShowYoutubeImport] = useState(false);
+  const [youtubeUrl, setYoutubeUrl] = useState('');
+  const [youtubeLoading, setYoutubeLoading] = useState(false);
+  const [youtubeError, setYoutubeError] = useState('');
 
   const handleImageUpload = async (e) => {
     const file = e.target.files?.[0];
@@ -208,6 +214,63 @@ function Recipes() {
     : recipes.filter(r => r.time_category === activeCategory);
 
   // ── Coach: Recipe CRUD ──
+
+  const handleYoutubeImport = async () => {
+    if (!youtubeUrl.trim()) return;
+
+    setYoutubeLoading(true);
+    setYoutubeError('');
+
+    try {
+      const result = await apiPost('/.netlify/functions/extract-youtube-recipe', {
+        coachId,
+        youtubeUrl: youtubeUrl.trim()
+      });
+
+      const recipe = result.recipe;
+
+      // Pre-fill the recipe form with extracted data
+      setFormData({
+        name: recipe.name || '',
+        description: recipe.description || '',
+        time_category: recipe.time_category || 'quick',
+        prep_time_minutes: recipe.prep_time_minutes || '',
+        cook_time_minutes: recipe.cook_time_minutes || '',
+        servings: recipe.servings || '1',
+        calories: recipe.calories || '',
+        protein: recipe.protein || '',
+        carbs: recipe.carbs || '',
+        fat: recipe.fat || '',
+        ingredients: recipe.ingredients || '',
+        instructions: recipe.instructions || '',
+        image_url: recipe.image_url || '',
+        source_url: recipe.source_url || youtubeUrl.trim(),
+        is_public: true
+      });
+
+      if (recipe.image_url) {
+        setImagePreview(recipe.image_url);
+      }
+
+      // Close YouTube modal and open recipe form
+      setShowYoutubeImport(false);
+      setYoutubeUrl('');
+      setEditingRecipe(null);
+      setShowRecipeForm(true);
+    } catch (err) {
+      console.error('YouTube import error:', err);
+      const errorMsg = err?.message || err?.error || '';
+      if (errorMsg.includes('NO_CAPTIONS') || errorMsg.includes('captions')) {
+        setYoutubeError('This video doesn\'t have captions available. Try a different video or enter the recipe manually.');
+      } else if (errorMsg.includes('Invalid YouTube')) {
+        setYoutubeError('Invalid YouTube URL. Please paste a valid YouTube or Shorts link.');
+      } else {
+        setYoutubeError('Could not extract recipe from this video. Try a different video or enter manually.');
+      }
+    } finally {
+      setYoutubeLoading(false);
+    }
+  };
 
   const openCreateForm = () => {
     setEditingRecipe(null);
@@ -467,7 +530,7 @@ function Recipes() {
         <>
           {/* Coach: Add Recipe button */}
           {isCoach && (
-            <div style={{ padding: '12px 16px 0' }}>
+            <div style={{ padding: '12px 16px 0', display: 'flex', gap: '8px' }}>
               <button
                 className="recipe-add-btn"
                 onClick={openCreateForm}
@@ -475,12 +538,24 @@ function Recipes() {
                   display: 'flex', alignItems: 'center', gap: '8px',
                   background: '#3b82f6', color: 'white', border: 'none',
                   borderRadius: '10px', padding: '12px 20px', fontSize: '15px',
-                  fontWeight: '600', cursor: 'pointer', width: '100%',
+                  fontWeight: '600', cursor: 'pointer', flex: '1',
                   justifyContent: 'center'
                 }}
               >
                 <Plus size={18} />
                 Add New Recipe
+              </button>
+              <button
+                onClick={() => { setShowYoutubeImport(true); setYoutubeUrl(''); setYoutubeError(''); }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '8px',
+                  background: '#dc2626', color: 'white', border: 'none',
+                  borderRadius: '10px', padding: '12px 16px', fontSize: '15px',
+                  fontWeight: '600', cursor: 'pointer',
+                  justifyContent: 'center'
+                }}
+              >
+                <Youtube size={18} />
               </button>
             </div>
           )}
@@ -1066,6 +1141,100 @@ function Recipes() {
                   {saving ? 'Saving...' : (editingRecipe ? 'Update Recipe' : 'Create Recipe')}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* YouTube Import Modal */}
+      {showYoutubeImport && (
+        <div className="modal-overlay" onClick={() => !youtubeLoading && setShowYoutubeImport(false)}>
+          <div className="modal-content modal-bottom-sheet" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Youtube size={22} color="#dc2626" />
+                Import from YouTube
+              </h2>
+              <button className="modal-close" onClick={() => !youtubeLoading && setShowYoutubeImport(false)}>
+                <X size={24} />
+              </button>
+            </div>
+            <div className="modal-body">
+              <p style={{ color: '#9ca3af', fontSize: '14px', marginBottom: '16px', lineHeight: '1.5' }}>
+                Paste a YouTube or YouTube Shorts URL. We'll extract the recipe from the video's captions using AI and pre-fill the recipe form for you.
+              </p>
+
+              <div className="form-group">
+                <label className="form-label">YouTube URL</label>
+                <input
+                  type="url"
+                  value={youtubeUrl}
+                  onChange={(e) => { setYoutubeUrl(e.target.value); setYoutubeError(''); }}
+                  placeholder="https://www.youtube.com/shorts/..."
+                  className="form-input"
+                  disabled={youtubeLoading}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleYoutubeImport(); }}
+                />
+              </div>
+
+              {youtubeError && (
+                <div style={{
+                  background: 'rgba(239, 68, 68, 0.1)',
+                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                  borderRadius: '8px',
+                  padding: '12px',
+                  marginBottom: '16px',
+                  color: '#ef4444',
+                  fontSize: '13px',
+                  lineHeight: '1.5'
+                }}>
+                  {youtubeError}
+                </div>
+              )}
+
+              {youtubeLoading && (
+                <div style={{
+                  background: 'rgba(59, 130, 246, 0.1)',
+                  border: '1px solid rgba(59, 130, 246, 0.2)',
+                  borderRadius: '8px',
+                  padding: '16px',
+                  marginBottom: '16px',
+                  textAlign: 'center'
+                }}>
+                  <Loader size={24} color="#3b82f6" style={{ animation: 'spin 1s linear infinite' }} />
+                  <p style={{ color: '#3b82f6', fontSize: '14px', fontWeight: '500', marginTop: '8px' }}>
+                    Extracting recipe from video...
+                  </p>
+                  <p style={{ color: '#64748b', fontSize: '12px', marginTop: '4px' }}>
+                    Reading captions and organizing ingredients with AI
+                  </p>
+                </div>
+              )}
+
+              <button
+                onClick={handleYoutubeImport}
+                disabled={youtubeLoading || !youtubeUrl.trim()}
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                  background: youtubeLoading ? '#6b7280' : '#dc2626', color: 'white', border: 'none',
+                  borderRadius: '10px', padding: '14px 24px', fontSize: '16px',
+                  fontWeight: '600', cursor: youtubeLoading ? 'not-allowed' : 'pointer',
+                  width: '100%', marginTop: '8px',
+                  opacity: !youtubeUrl.trim() ? 0.5 : 1
+                }}
+              >
+                {youtubeLoading ? (
+                  <>Extracting Recipe...</>
+                ) : (
+                  <>
+                    <Sparkles size={18} />
+                    Extract Recipe with AI
+                  </>
+                )}
+              </button>
+
+              <p style={{ color: '#64748b', fontSize: '12px', textAlign: 'center', marginTop: '12px' }}>
+                Works with YouTube Shorts, regular videos, and youtu.be links
+              </p>
             </div>
           </div>
         </div>
