@@ -24,47 +24,47 @@ function extractVideoId(url) {
 }
 
 /**
- * Fetch YouTube transcript using the innertube API
+ * Fetch YouTube transcript using the innertube API (works reliably server-side)
  */
 async function fetchTranscript(videoId) {
-    // First, fetch the video page to get the initial player response
-    const videoPageRes = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
-        headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept-Language': 'en-US,en;q=0.9',
-        }
-    });
-
-    if (!videoPageRes.ok) {
-        throw new Error('Failed to fetch YouTube video page');
-    }
-
-    const html = await videoPageRes.text();
-
-    // Extract the serialized player response
-    const ytInitialPlayerMatch = html.match(/ytInitialPlayerResponse\s*=\s*(\{.+?\});/s);
-    if (!ytInitialPlayerMatch) {
-        throw new Error('Could not parse video page data');
-    }
-
-    let playerResponse;
-    try {
-        playerResponse = JSON.parse(ytInitialPlayerMatch[1]);
-    } catch {
-        throw new Error('Could not parse player response JSON');
-    }
-
-    // Get video title and thumbnail
-    const videoTitle = playerResponse?.videoDetails?.title || '';
     const thumbnailUrl = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
 
-    // Check for captions
-    const captionTracks = playerResponse?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
-    if (!captionTracks || captionTracks.length === 0) {
-        throw new Error('NO_CAPTIONS');
+    // Step 1: Use innertube player API to get video details and caption tracks
+    const playerRes = await fetch('https://www.youtube.com/youtubei/v1/player', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        },
+        body: JSON.stringify({
+            context: {
+                client: {
+                    hl: 'en',
+                    gl: 'US',
+                    clientName: 'WEB',
+                    clientVersion: '2.20240101.00.00',
+                }
+            },
+            videoId: videoId,
+        })
+    });
+
+    if (!playerRes.ok) {
+        throw new Error('Failed to fetch video data from YouTube');
     }
 
-    // Prefer English captions, then auto-generated English, then first available
+    const playerData = await playerRes.json();
+
+    const videoTitle = playerData?.videoDetails?.title || '';
+
+    // Check for captions
+    const captionTracks = playerData?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
+    if (!captionTracks || captionTracks.length === 0) {
+        // Fallback: try fetching the video page HTML as a backup method
+        return await fetchTranscriptFromPage(videoId, videoTitle, thumbnailUrl);
+    }
+
+    // Prefer manual English captions, then auto-generated English, then first available
     let captionTrack = captionTracks.find(t => t.languageCode === 'en' && !t.kind);
     if (!captionTrack) {
         captionTrack = captionTracks.find(t => t.languageCode === 'en');
@@ -73,8 +73,75 @@ async function fetchTranscript(videoId) {
         captionTrack = captionTracks[0];
     }
 
-    // Fetch the caption XML
-    const captionUrl = captionTrack.baseUrl;
+    const transcript = await fetchCaptionText(captionTrack.baseUrl);
+
+    return { transcript, videoTitle, thumbnailUrl };
+}
+
+/**
+ * Fallback: fetch transcript by scraping the video page HTML
+ */
+async function fetchTranscriptFromPage(videoId, existingTitle, thumbnailUrl) {
+    const videoPageRes = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
+        headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Cookie': 'CONSENT=YES+1',
+        }
+    });
+
+    if (!videoPageRes.ok) {
+        throw new Error('NO_CAPTIONS');
+    }
+
+    const html = await videoPageRes.text();
+
+    // Try multiple patterns for extracting player response
+    let playerResponse;
+    const patterns = [
+        /ytInitialPlayerResponse\s*=\s*(\{.+?\})\s*;\s*(?:var|let|const|<\/script)/s,
+        /ytInitialPlayerResponse\s*=\s*(\{.+?\});/s,
+    ];
+
+    for (const pattern of patterns) {
+        const match = html.match(pattern);
+        if (match) {
+            try {
+                playerResponse = JSON.parse(match[1]);
+                break;
+            } catch {
+                continue;
+            }
+        }
+    }
+
+    if (!playerResponse) {
+        throw new Error('NO_CAPTIONS');
+    }
+
+    const videoTitle = existingTitle || playerResponse?.videoDetails?.title || '';
+
+    const captionTracks = playerResponse?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
+    if (!captionTracks || captionTracks.length === 0) {
+        throw new Error('NO_CAPTIONS');
+    }
+
+    let captionTrack = captionTracks.find(t => t.languageCode === 'en' && !t.kind);
+    if (!captionTrack) {
+        captionTrack = captionTracks.find(t => t.languageCode === 'en');
+    }
+    if (!captionTrack) {
+        captionTrack = captionTracks[0];
+    }
+
+    const transcript = await fetchCaptionText(captionTrack.baseUrl);
+    return { transcript, videoTitle, thumbnailUrl };
+}
+
+/**
+ * Fetch and parse caption text from a YouTube caption URL
+ */
+async function fetchCaptionText(captionUrl) {
     const captionRes = await fetch(captionUrl);
     if (!captionRes.ok) {
         throw new Error('Failed to fetch captions');
@@ -82,12 +149,10 @@ async function fetchTranscript(videoId) {
 
     const captionXml = await captionRes.text();
 
-    // Parse XML to extract text (simple regex-based parsing for the <text> elements)
     const textSegments = [];
     const textRegex = /<text[^>]*>([\s\S]*?)<\/text>/g;
     let match;
     while ((match = textRegex.exec(captionXml)) !== null) {
-        // Decode HTML entities
         const decoded = match[1]
             .replace(/&amp;/g, '&')
             .replace(/&lt;/g, '<')
@@ -105,7 +170,7 @@ async function fetchTranscript(videoId) {
         throw new Error('NO_CAPTIONS');
     }
 
-    return { transcript, videoTitle, thumbnailUrl };
+    return transcript;
 }
 
 /**
@@ -196,7 +261,9 @@ exports.handler = async (event) => {
 
     try {
         // Fetch transcript
+        console.log(`Fetching transcript for video: ${videoId}`);
         const { transcript, videoTitle, thumbnailUrl } = await fetchTranscript(videoId);
+        console.log(`Transcript fetched: ${transcript.length} chars, title: "${videoTitle}"`);
 
         // Extract recipe using Claude AI
         const recipe = await extractRecipeFromTranscript(transcript, videoTitle);
@@ -216,7 +283,7 @@ exports.handler = async (event) => {
             })
         };
     } catch (err) {
-        console.error('Error extracting recipe:', err);
+        console.error('Error extracting recipe:', err.message, err.stack);
 
         if (err.message === 'NO_CAPTIONS') {
             return {
