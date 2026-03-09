@@ -47,9 +47,13 @@ exports.handler = withTimeout(async (event) => {
       // Build entries query - only select columns used by the UI (reduces payload ~15%)
       // Removed: client_id (already known), created_at (only used for ordering, not display)
       // Note: Only select columns that exist in the database schema
+      // Try with all micronutrient columns first, fallback to basic columns if they don't exist yet
+      const fullColumns = 'id, entry_date, meal_type, food_name, brand, serving_size, serving_unit, number_of_servings, calories, protein, carbs, fat, fiber, sugar, sodium, potassium, calcium, iron, vitamin_c, cholesterol';
+      const basicColumns = 'id, entry_date, meal_type, food_name, brand, serving_size, serving_unit, number_of_servings, calories, protein, carbs, fat, fiber, sugar, sodium';
+
       let entriesQuery = supabase
         .from('food_diary_entries')
-        .select('id, entry_date, meal_type, food_name, brand, serving_size, serving_unit, number_of_servings, calories, protein, carbs, fat, fiber, sugar, sodium, potassium, calcium, iron, vitamin_c, cholesterol')
+        .select(fullColumns)
         .eq('client_id', clientId)
         .order('meal_type', { ascending: true })
         .order('created_at', { ascending: true });
@@ -65,10 +69,10 @@ exports.handler = withTimeout(async (event) => {
         entriesQuery = entriesQuery.eq('entry_date', today);
       }
 
-      // Build goals query
+      // Build goals query - use select('*') to avoid errors if micronutrient goal columns don't exist yet
       const goalsQuery = supabase
         .from('calorie_goals')
-        .select('calorie_goal, protein_goal, carbs_goal, fat_goal, fiber_goal, sugar_goal, sodium_goal, potassium_goal, calcium_goal, iron_goal, vitamin_c_goal, cholesterol_goal')
+        .select('*')
         .eq('client_id', clientId)
         .single();
 
@@ -86,11 +90,33 @@ exports.handler = withTimeout(async (event) => {
         clientQuery
       ]);
 
-      const { data: entries, error } = entriesResult;
+      let { data: entries, error } = entriesResult;
       const { data: goals } = goalsResult;
       const { data: clientInfo } = clientResult;
 
-      if (error) throw error;
+      // If entries query failed (likely missing micronutrient columns), retry with basic columns
+      if (error) {
+        console.warn('GET - Entries query failed, retrying with basic columns:', error.message);
+        let retryQuery = supabase
+          .from('food_diary_entries')
+          .select(basicColumns)
+          .eq('client_id', clientId)
+          .order('meal_type', { ascending: true })
+          .order('created_at', { ascending: true });
+
+        if (date) {
+          retryQuery = retryQuery.eq('entry_date', date);
+        } else if (startDate && endDate) {
+          retryQuery = retryQuery.gte('entry_date', startDate).lte('entry_date', endDate);
+        } else {
+          const today = getDefaultDate(null, timezone);
+          retryQuery = retryQuery.eq('entry_date', today);
+        }
+
+        const retryResult = await retryQuery;
+        if (retryResult.error) throw retryResult.error;
+        entries = retryResult.data;
+      }
 
       // Calculate totals
       const totals = {
@@ -287,24 +313,42 @@ exports.handler = withTimeout(async (event) => {
       }
       console.log('POST - Inserting:', JSON.stringify(insertData));
 
-      const { data: entry, error } = await supabase
+      let { data: entry, error } = await supabase
         .from('food_diary_entries')
         .insert([insertData])
         .select()
         .single();
 
+      // If insert fails (likely missing micronutrient columns), retry without them
       if (error) {
-        console.error('POST - Insert error:', error);
-        return {
-          statusCode: 500,
-          headers,
-          body: JSON.stringify({
-            error: error.message || 'Database insert failed',
-            details: error.details || null,
-            hint: error.hint || null,
-            code: error.code || null
-          })
-        };
+        console.warn('POST - Insert failed, retrying without micronutrient columns:', error.message);
+        const fallbackData = { ...insertData };
+        delete fallbackData.potassium;
+        delete fallbackData.calcium;
+        delete fallbackData.iron;
+        delete fallbackData.vitamin_c;
+        delete fallbackData.cholesterol;
+
+        const fallbackResult = await supabase
+          .from('food_diary_entries')
+          .insert([fallbackData])
+          .select()
+          .single();
+
+        if (fallbackResult.error) {
+          console.error('POST - Fallback insert also failed:', fallbackResult.error);
+          return {
+            statusCode: 500,
+            headers,
+            body: JSON.stringify({
+              error: fallbackResult.error.message || 'Database insert failed',
+              details: fallbackResult.error.details || null,
+              hint: fallbackResult.error.hint || null,
+              code: fallbackResult.error.code || null
+            })
+          };
+        }
+        entry = fallbackResult.data;
       }
 
       console.log('POST - Successfully inserted entry:', JSON.stringify(entry));
@@ -350,14 +394,32 @@ exports.handler = withTimeout(async (event) => {
       if (updateData.mealType !== undefined) updateFields.meal_type = updateData.mealType;
       if (updateData.notes !== undefined) updateFields.notes = updateData.notes;
 
-      const { data: entry, error } = await supabase
+      let { data: entry, error } = await supabase
         .from('food_diary_entries')
         .update(updateFields)
         .eq('id', entryId)
         .select()
         .single();
 
-      if (error) throw error;
+      // If update fails (likely missing micronutrient columns), retry without them
+      if (error) {
+        console.warn('PUT - Update failed, retrying without micronutrient columns:', error.message);
+        delete updateFields.potassium;
+        delete updateFields.calcium;
+        delete updateFields.iron;
+        delete updateFields.vitamin_c;
+        delete updateFields.cholesterol;
+
+        const retryResult = await supabase
+          .from('food_diary_entries')
+          .update(updateFields)
+          .eq('id', entryId)
+          .select()
+          .single();
+
+        if (retryResult.error) throw retryResult.error;
+        entry = retryResult.data;
+      }
 
       return {
         statusCode: 200,
