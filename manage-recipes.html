@@ -790,7 +790,11 @@
                 </svg>
             </button>
             <h1 class="main-header-title">📖 Manage Recipes</h1>
-            <div class="main-header-actions">
+            <div class="main-header-actions" style="display:flex; gap:8px;">
+                <button class="btn-primary" onclick="openYoutubeImportModal()" style="background:#dc2626; display:flex; align-items:center; gap:6px; white-space:nowrap;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M23.5 6.2c-.3-1-1-1.8-2-2C19.6 3.6 12 3.6 12 3.6s-7.6 0-9.5.6c-1 .3-1.7 1-2 2C0 8.1 0 12 0 12s0 3.9.5 5.8c.3 1 1 1.8 2 2 1.9.6 9.5.6 9.5.6s7.6 0 9.5-.6c1-.3 1.7-1 2-2 .5-1.9.5-5.8.5-5.8s0-3.9-.5-5.8zM9.6 15.6V8.4l6.4 3.6-6.4 3.6z"/></svg>
+                    Import from YouTube
+                </button>
                 <button class="btn-primary" onclick="openAddModal()">+ Add Recipe</button>
             </div>
         </header>
@@ -936,6 +940,42 @@
             </div>
         </div>
     </div>
+
+    <!-- YouTube Import Modal -->
+    <div class="modal-overlay" id="youtubeImportModal">
+        <div class="modal" style="max-width:500px;">
+            <div class="modal-header">
+                <h2 style="display:flex; align-items:center; gap:8px;">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="#dc2626"><path d="M23.5 6.2c-.3-1-1-1.8-2-2C19.6 3.6 12 3.6 12 3.6s-7.6 0-9.5.6c-1 .3-1.7 1-2 2C0 8.1 0 12 0 12s0 3.9.5 5.8c.3 1 1 1.8 2 2 1.9.6 9.5.6 9.5.6s7.6 0 9.5-.6c1-.3 1.7-1 2-2 .5-1.9.5-5.8.5-5.8s0-3.9-.5-5.8zM9.6 15.6V8.4l6.4 3.6-6.4 3.6z"/></svg>
+                    Import from YouTube
+                </h2>
+                <button class="modal-close" onclick="closeYoutubeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="color:var(--gray-500); font-size:14px; margin-bottom:16px; line-height:1.5;">
+                    Paste a YouTube or YouTube Shorts URL. We'll extract the recipe from the video's captions using AI and pre-fill the recipe form for you.
+                </p>
+                <div class="form-group">
+                    <label class="form-label">YouTube URL</label>
+                    <input type="url" class="form-input" id="youtubeUrlInput" placeholder="https://www.youtube.com/shorts/..." onkeydown="if(event.key==='Enter'){event.preventDefault();extractYoutubeRecipe();}">
+                </div>
+                <div id="youtubeError" style="display:none; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); border-radius:8px; padding:12px; margin-bottom:16px; color:#ef4444; font-size:13px; line-height:1.5;"></div>
+                <div id="youtubeLoading" style="display:none; background:rgba(13,148,136,0.1); border:1px solid rgba(13,148,136,0.2); border-radius:8px; padding:16px; margin-bottom:16px; text-align:center;">
+                    <div style="display:inline-block; width:24px; height:24px; border:3px solid rgba(13,148,136,0.3); border-top-color:var(--brand-primary); border-radius:50%; animation:spin 1s linear infinite;"></div>
+                    <p style="color:var(--brand-primary); font-size:14px; font-weight:500; margin-top:8px;">Extracting recipe from video...</p>
+                    <p style="color:var(--gray-500); font-size:12px; margin-top:4px;">Reading captions and organizing ingredients with AI</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeYoutubeModal()">Cancel</button>
+                <button class="btn-primary" id="youtubeExtractBtn" onclick="extractYoutubeRecipe()" style="background:#dc2626;">Extract Recipe with AI</button>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
@@ -1304,10 +1344,110 @@
             window.location.href = 'login.html';
         }
 
+        // ── YouTube Import ──
+
+        function openYoutubeImportModal() {
+            document.getElementById('youtubeUrlInput').value = '';
+            document.getElementById('youtubeError').style.display = 'none';
+            document.getElementById('youtubeLoading').style.display = 'none';
+            document.getElementById('youtubeExtractBtn').disabled = false;
+            document.getElementById('youtubeExtractBtn').textContent = 'Extract Recipe with AI';
+            document.getElementById('youtubeImportModal').classList.add('active');
+        }
+
+        function closeYoutubeModal() {
+            document.getElementById('youtubeImportModal').classList.remove('active');
+        }
+
+        async function extractYoutubeRecipe() {
+            const url = document.getElementById('youtubeUrlInput').value.trim();
+            if (!url) return;
+
+            const errorEl = document.getElementById('youtubeError');
+            const loadingEl = document.getElementById('youtubeLoading');
+            const extractBtn = document.getElementById('youtubeExtractBtn');
+
+            errorEl.style.display = 'none';
+            loadingEl.style.display = 'block';
+            extractBtn.disabled = true;
+            extractBtn.textContent = 'Extracting...';
+
+            try {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                if (!session) throw new Error('Not authenticated');
+
+                const resp = await fetch('/.netlify/functions/extract-youtube-recipe', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + session.access_token
+                    },
+                    body: JSON.stringify({ coachId: currentUserId, youtubeUrl: url })
+                });
+
+                const result = await resp.json();
+
+                if (!resp.ok) {
+                    throw new Error(result.error || 'Failed to extract recipe');
+                }
+
+                const recipe = result.recipe;
+
+                // Close YouTube modal
+                closeYoutubeModal();
+
+                // Open the add recipe modal pre-filled with extracted data
+                openAddModal();
+                document.getElementById('recipeName').value = recipe.name || '';
+                document.getElementById('recipeDescription').value = recipe.description || '';
+                document.getElementById('recipeCategory').value = recipe.time_category || '';
+                document.getElementById('recipePrepTime').value = recipe.prep_time_minutes || '';
+                document.getElementById('recipeCookTime').value = recipe.cook_time_minutes || '';
+                document.getElementById('recipeServings').value = recipe.servings || 1;
+                document.getElementById('recipeCalories').value = recipe.calories || '';
+                document.getElementById('recipeProtein').value = recipe.protein || '';
+                document.getElementById('recipeCarbs').value = recipe.carbs || '';
+                document.getElementById('recipeFat').value = recipe.fat || '';
+                document.getElementById('recipeIngredients').value = recipe.ingredients || '';
+                document.getElementById('recipeInstructions').value = recipe.instructions || '';
+                document.getElementById('recipeSourceUrl').value = recipe.source_url || url;
+
+                // Set thumbnail as recipe image
+                if (recipe.image_url) {
+                    document.getElementById('recipeImage').value = recipe.image_url;
+                    document.getElementById('imagePreview').src = recipe.image_url;
+                    document.getElementById('imagePreviewContainer').style.display = 'block';
+                    document.getElementById('imageUploadLabel').style.display = 'none';
+                }
+
+            } catch (err) {
+                console.error('YouTube import error:', err);
+                const msg = err.message || '';
+                if (msg.includes('captions') || msg.includes('NO_CAPTIONS')) {
+                    errorEl.textContent = "This video doesn't have captions available. Try a different video or enter the recipe manually.";
+                } else if (msg.includes('Invalid YouTube')) {
+                    errorEl.textContent = 'Invalid YouTube URL. Please paste a valid YouTube or Shorts link.';
+                } else {
+                    errorEl.textContent = msg || 'Could not extract recipe from this video. Try a different video or enter manually.';
+                }
+                errorEl.style.display = 'block';
+            } finally {
+                loadingEl.style.display = 'none';
+                extractBtn.disabled = false;
+                extractBtn.textContent = 'Extract Recipe with AI';
+            }
+        }
+
         // Close modal on overlay click
         document.getElementById('recipeModal').addEventListener('click', (e) => {
             if (e.target === document.getElementById('recipeModal')) {
                 closeModal();
+            }
+        });
+
+        document.getElementById('youtubeImportModal').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('youtubeImportModal')) {
+                closeYoutubeModal();
             }
         });
 
