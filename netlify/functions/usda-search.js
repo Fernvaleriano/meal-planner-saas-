@@ -119,6 +119,128 @@ const LOCAL_FOODS = {
   'smoothie_fruit_protein': { name: 'Smoothie (fruit, protein)', cal: 250, protein: 20, carbs: 35, fat: 3, per: '1 cup (300ml)', grams: 300 },
 };
 
+// Micronutrient estimates per 100g by food category (USDA-based)
+function estimateMicronutrientsPer100g(key, name) {
+  const lower = `${key} ${name}`.toLowerCase();
+  // Meats/Poultry
+  if (lower.includes('chicken') || lower.includes('turkey'))
+    return { fiber: 0, sugar: 0, sodium: 70, potassium: 240, calcium: 12, iron: 0.6, vitaminC: 0, cholesterol: 85 };
+  if (lower.includes('beef') || lower.includes('steak') || lower.includes('bison'))
+    return { fiber: 0, sugar: 0, sodium: 60, potassium: 310, calcium: 12, iron: 2.3, vitaminC: 0, cholesterol: 73 };
+  if (lower.includes('pork') || lower.includes('ham') || lower.includes('bacon'))
+    return { fiber: 0, sugar: 0, sodium: 800, potassium: 280, calcium: 10, iron: 0.8, vitaminC: 0, cholesterol: 70 };
+  if (lower.includes('jerky') || lower.includes('chomps'))
+    return { fiber: 0, sugar: 3, sodium: 590, potassium: 200, calcium: 10, iron: 2, vitaminC: 0, cholesterol: 45 };
+  // Seafood
+  if (lower.includes('salmon'))
+    return { fiber: 0, sugar: 0, sodium: 44, potassium: 363, calcium: 12, iron: 0.3, vitaminC: 0, cholesterol: 55 };
+  if (lower.includes('tuna'))
+    return { fiber: 0, sugar: 0, sodium: 247, potassium: 237, calcium: 11, iron: 1.3, vitaminC: 0, cholesterol: 42 };
+  if (lower.includes('shrimp'))
+    return { fiber: 0, sugar: 0, sodium: 119, potassium: 182, calcium: 64, iron: 0.5, vitaminC: 2, cholesterol: 189 };
+  if (lower.includes('fish') || lower.includes('tilapia') || lower.includes('cod') || lower.includes('halibut') || lower.includes('mahi'))
+    return { fiber: 0, sugar: 0, sodium: 50, potassium: 380, calcium: 15, iron: 0.5, vitaminC: 0, cholesterol: 50 };
+  // Eggs
+  if (lower.includes('egg'))
+    return { fiber: 0, sugar: 0.4, sodium: 142, potassium: 138, calcium: 56, iron: 1.8, vitaminC: 0, cholesterol: 372 };
+  // Dairy/Yogurt
+  if (lower.includes('yogurt') || lower.includes('skyr') || lower.includes('oikos') || lower.includes('chobani') || lower.includes('fage') || lower.includes('siggis') || lower.includes('two_good'))
+    return { fiber: 0, sugar: 4, sodium: 40, potassium: 140, calcium: 115, iron: 0.1, vitaminC: 0, cholesterol: 8 };
+  if (lower.includes('cottage'))
+    return { fiber: 0, sugar: 3, sodium: 364, potassium: 104, calcium: 83, iron: 0.1, vitaminC: 0, cholesterol: 17 };
+  if (lower.includes('cheese') || lower.includes('cream_cheese'))
+    return { fiber: 0, sugar: 1, sodium: 500, potassium: 80, calcium: 500, iron: 0.5, vitaminC: 0, cholesterol: 80 };
+  if (lower.includes('milk') || lower.includes('latte') || lower.includes('fairlife'))
+    return { fiber: 0, sugar: 5, sodium: 43, potassium: 132, calcium: 113, iron: 0, vitaminC: 0, cholesterol: 10 };
+  if (lower.includes('halo top') || lower.includes('enlightened') || lower.includes('ice cream'))
+    return { fiber: 3, sugar: 10, sodium: 100, potassium: 200, calcium: 150, iron: 0.5, vitaminC: 0, cholesterol: 20 };
+  // Protein bars/shakes
+  if (lower.includes('quest') || lower.includes('rxbar') || lower.includes('built') || lower.includes('barebells') || lower.includes('one_bar') || lower.includes('think') || lower.includes('kind') || lower.includes('larabar') || lower.includes('protein bar'))
+    return { fiber: 14, sugar: 3, sodium: 200, potassium: 150, calcium: 150, iron: 2, vitaminC: 0, cholesterol: 10 };
+  if (lower.includes('premier') || lower.includes('core_power') || lower.includes('muscle_milk') || lower.includes('protein shake') || lower.includes('whey') || lower.includes('protein_powder'))
+    return { fiber: 0, sugar: 2, sodium: 250, potassium: 300, calcium: 350, iron: 1, vitaminC: 0, cholesterol: 20 };
+  // Grains/Bread
+  if (lower.includes('oat') || lower.includes('oatmeal') || lower.includes('kodiak'))
+    return { fiber: 10, sugar: 1, sodium: 2, potassium: 360, calcium: 50, iron: 4, vitaminC: 0, cholesterol: 0 };
+  if (lower.includes('rice'))
+    return { fiber: 1, sugar: 0.2, sodium: 3, potassium: 40, calcium: 10, iron: 0.8, vitaminC: 0, cholesterol: 0 };
+  if (lower.includes('quinoa'))
+    return { fiber: 2.8, sugar: 0.9, sodium: 7, potassium: 172, calcium: 17, iron: 1.5, vitaminC: 0, cholesterol: 0 };
+  if (lower.includes('pasta') || lower.includes('noodle') || lower.includes('lo_mein'))
+    return { fiber: 2.5, sugar: 0.5, sodium: 2, potassium: 44, calcium: 10, iron: 1.3, vitaminC: 0, cholesterol: 0 };
+  if (lower.includes('bread') || lower.includes('bagel') || lower.includes('ezekiel') || lower.includes('dave'))
+    return { fiber: 6, sugar: 4, sodium: 400, potassium: 200, calcium: 100, iron: 2.5, vitaminC: 0, cholesterol: 0 };
+  if (lower.includes('tortilla') || lower.includes('wrap') || lower.includes('naan'))
+    return { fiber: 3, sugar: 2, sodium: 400, potassium: 80, calcium: 80, iron: 2, vitaminC: 0, cholesterol: 0 };
+  if (lower.includes('pancake') || lower.includes('waffle') || lower.includes('french_toast'))
+    return { fiber: 1.5, sugar: 5, sodium: 400, potassium: 100, calcium: 100, iron: 1.5, vitaminC: 0, cholesterol: 40 };
+  // Vegetables
+  if (lower.includes('broccoli') || lower.includes('cauliflower') || lower.includes('brussels'))
+    return { fiber: 2.6, sugar: 2, sodium: 30, potassium: 300, calcium: 40, iron: 0.7, vitaminC: 70, cholesterol: 0 };
+  if (lower.includes('sweet_potato'))
+    return { fiber: 3, sugar: 4.2, sodium: 36, potassium: 337, calcium: 30, iron: 0.6, vitaminC: 2.4, cholesterol: 0 };
+  if (lower.includes('avocado'))
+    return { fiber: 6.7, sugar: 0.7, sodium: 7, potassium: 485, calcium: 12, iron: 0.6, vitaminC: 10, cholesterol: 0 };
+  // Fruits
+  if (lower.includes('banana'))
+    return { fiber: 2.6, sugar: 12, sodium: 1, potassium: 358, calcium: 5, iron: 0.3, vitaminC: 8.7, cholesterol: 0 };
+  if (lower.includes('apple'))
+    return { fiber: 2.4, sugar: 10.4, sodium: 1, potassium: 107, calcium: 6, iron: 0.1, vitaminC: 4.6, cholesterol: 0 };
+  if (lower.includes('blueberr'))
+    return { fiber: 2.4, sugar: 10, sodium: 1, potassium: 77, calcium: 6, iron: 0.3, vitaminC: 9.7, cholesterol: 0 };
+  if (lower.includes('strawberr'))
+    return { fiber: 2, sugar: 4.9, sodium: 1, potassium: 153, calcium: 16, iron: 0.4, vitaminC: 58.8, cholesterol: 0 };
+  if (lower.includes('orange'))
+    return { fiber: 0.2, sugar: 8.4, sodium: 1, potassium: 200, calcium: 11, iron: 0.2, vitaminC: 50, cholesterol: 0 };
+  // Nuts/Nut butters
+  if (lower.includes('almond'))
+    return { fiber: 12.5, sugar: 4, sodium: 1, potassium: 733, calcium: 269, iron: 3.7, vitaminC: 0, cholesterol: 0 };
+  if (lower.includes('peanut') || lower.includes('pb'))
+    return { fiber: 5.7, sugar: 6, sodium: 136, potassium: 650, calcium: 54, iron: 1.7, vitaminC: 0, cholesterol: 0 };
+  if (lower.includes('cashew'))
+    return { fiber: 3.3, sugar: 6, sodium: 12, potassium: 660, calcium: 37, iron: 6.7, vitaminC: 0, cholesterol: 0 };
+  if (lower.includes('trail_mix') || lower.includes('granola'))
+    return { fiber: 4, sugar: 14, sodium: 100, potassium: 300, calcium: 50, iron: 2, vitaminC: 0, cholesterol: 0 };
+  // Oils
+  if (lower.includes('oil'))
+    return { fiber: 0, sugar: 0, sodium: 0, potassium: 0, calcium: 0, iron: 0, vitaminC: 0, cholesterol: 0 };
+  // Prepared/restaurant foods
+  if (lower.includes('pizza'))
+    return { fiber: 2, sugar: 3, sodium: 640, potassium: 170, calcium: 180, iron: 2, vitaminC: 2, cholesterol: 25 };
+  if (lower.includes('burrito') || lower.includes('taco') || lower.includes('empanada'))
+    return { fiber: 4, sugar: 2, sodium: 700, potassium: 300, calcium: 100, iron: 2.5, vitaminC: 3, cholesterol: 40 };
+  if (lower.includes('burger') || lower.includes('cheeseburger'))
+    return { fiber: 1.5, sugar: 5, sodium: 750, potassium: 250, calcium: 100, iron: 3, vitaminC: 1, cholesterol: 65 };
+  if (lower.includes('fried_rice') || lower.includes('pad_thai') || lower.includes('bibimbap'))
+    return { fiber: 2, sugar: 3, sodium: 800, potassium: 200, calcium: 40, iron: 1.5, vitaminC: 3, cholesterol: 30 };
+  if (lower.includes('pho') || lower.includes('ramen') || lower.includes('soup'))
+    return { fiber: 1, sugar: 2, sodium: 1200, potassium: 300, calcium: 30, iron: 2, vitaminC: 2, cholesterol: 25 };
+  if (lower.includes('sushi') || lower.includes('dumpling') || lower.includes('gyoza') || lower.includes('spring_roll'))
+    return { fiber: 1, sugar: 2, sodium: 500, potassium: 150, calcium: 20, iron: 1, vitaminC: 1, cholesterol: 20 };
+  if (lower.includes('hummus') || lower.includes('falafel'))
+    return { fiber: 6, sugar: 0.5, sodium: 400, potassium: 200, calcium: 40, iron: 2.5, vitaminC: 3, cholesterol: 0 };
+  if (lower.includes('samosa'))
+    return { fiber: 2, sugar: 1, sodium: 400, potassium: 200, calcium: 20, iron: 1.5, vitaminC: 3, cholesterol: 10 };
+  if (lower.includes('tikka') || lower.includes('shawarma') || lower.includes('curry'))
+    return { fiber: 2, sugar: 3, sodium: 600, potassium: 300, calcium: 40, iron: 2, vitaminC: 5, cholesterol: 50 };
+  if (lower.includes('mac_and_cheese') || lower.includes('grilled_cheese'))
+    return { fiber: 1, sugar: 3, sodium: 700, potassium: 150, calcium: 200, iron: 1.5, vitaminC: 0, cholesterol: 40 };
+  if (lower.includes('nugget') || lower.includes('wing'))
+    return { fiber: 0.5, sugar: 0.5, sodium: 500, potassium: 180, calcium: 15, iron: 0.8, vitaminC: 0, cholesterol: 60 };
+  if (lower.includes('fries') || lower.includes('french'))
+    return { fiber: 3, sugar: 0.3, sodium: 280, potassium: 500, calcium: 12, iron: 0.8, vitaminC: 5, cholesterol: 0 };
+  if (lower.includes('acai'))
+    return { fiber: 5, sugar: 20, sodium: 10, potassium: 300, calcium: 80, iron: 1, vitaminC: 15, cholesterol: 0 };
+  if (lower.includes('smoothie'))
+    return { fiber: 3, sugar: 20, sodium: 50, potassium: 400, calcium: 100, iron: 0.5, vitaminC: 30, cholesterol: 5 };
+  if (lower.includes('popcorn'))
+    return { fiber: 14.5, sugar: 0.9, sodium: 8, potassium: 329, calcium: 7, iron: 3.2, vitaminC: 0, cholesterol: 0 };
+  if (lower.includes('smart_sweets') || lower.includes('candy') || lower.includes('chocolate') || lower.includes('lily'))
+    return { fiber: 2, sugar: 30, sodium: 20, potassium: 50, calcium: 20, iron: 1, vitaminC: 0, cholesterol: 5 };
+  // Default
+  return { fiber: 1, sugar: 2, sodium: 200, potassium: 150, calcium: 30, iron: 1, vitaminC: 1, cholesterol: 15 };
+}
+
 // Parse serving label from "per" field - e.g., "1 large egg (50g)" -> "Large"
 function parseServingLabel(perString, foodName) {
   if (!perString) return null;
@@ -179,6 +301,10 @@ function searchLocalDatabase(query) {
         });
       }
 
+      // Get micronutrient estimates for this food
+      const micros = estimateMicronutrientsPer100g(key, food.name);
+      const microFactor = grams / 100;
+
       results.push({
         fdcId: `local_${key}`,
         name: food.name,
@@ -191,11 +317,27 @@ function searchLocalDatabase(query) {
         proteinPerServing: food.protein,
         carbsPerServing: food.carbs,
         fatPerServing: food.fat,
+        fiberPerServing: Math.round(micros.fiber * microFactor * 10) / 10,
+        sugarPerServing: Math.round(micros.sugar * microFactor * 10) / 10,
+        sodiumPerServing: Math.round(micros.sodium * microFactor),
+        potassiumPerServing: Math.round(micros.potassium * microFactor),
+        calciumPerServing: Math.round(micros.calcium * microFactor),
+        ironPerServing: Math.round(micros.iron * microFactor * 10) / 10,
+        vitaminCPerServing: Math.round(micros.vitaminC * microFactor * 10) / 10,
+        cholesterolPerServing: Math.round(micros.cholesterol * microFactor),
         // Per 100g (calculated)
         caloriesPer100g: Math.round(food.cal * 100 / grams),
         proteinPer100g: Math.round(food.protein * 100 / grams * 10) / 10,
         carbsPer100g: Math.round(food.carbs * 100 / grams * 10) / 10,
         fatPer100g: Math.round(food.fat * 100 / grams * 10) / 10,
+        fiberPer100g: micros.fiber,
+        sugarPer100g: micros.sugar,
+        sodiumPer100g: micros.sodium,
+        potassiumPer100g: micros.potassium,
+        calciumPer100g: micros.calcium,
+        ironPer100g: micros.iron,
+        vitaminCPer100g: micros.vitaminC,
+        cholesterolPer100g: micros.cholesterol,
         // Include measures array for UI dropdown
         measures: measures,
         source: 'local'
@@ -318,11 +460,21 @@ exports.handler = async (event, context) => {
         const nutrients = food.nutrients || {};
         const serving = getBestServing(item.measures);
 
-        // Calculate per 100g
+        // Calculate per 100g - macros
         const calPer100g = Math.round(nutrients.ENERC_KCAL || 0);
         const proteinPer100g = Math.round((nutrients.PROCNT || 0) * 10) / 10;
         const carbsPer100g = Math.round((nutrients.CHOCDF || 0) * 10) / 10;
         const fatPer100g = Math.round((nutrients.FAT || 0) * 10) / 10;
+
+        // Calculate per 100g - micronutrients
+        const fiberPer100g = Math.round((nutrients.FIBTG || 0) * 10) / 10;
+        const sugarPer100g = Math.round((nutrients.SUGAR || 0) * 10) / 10;
+        const sodiumPer100g = Math.round(nutrients.NA || 0);
+        const potassiumPer100g = Math.round(nutrients.K || 0);
+        const calciumPer100g = Math.round(nutrients.CA || 0);
+        const ironPer100g = Math.round((nutrients.FE || 0) * 10) / 10;
+        const vitaminCPer100g = Math.round((nutrients.VITC || 0) * 10) / 10;
+        const cholesterolPer100g = Math.round(nutrients.CHOLE || 0);
 
         // Calculate per serving if serving info available
         let servingInfo = null;
@@ -334,7 +486,15 @@ exports.handler = async (event, context) => {
             caloriesPerServing: Math.round(calPer100g * factor),
             proteinPerServing: Math.round(proteinPer100g * factor * 10) / 10,
             carbsPerServing: Math.round(carbsPer100g * factor * 10) / 10,
-            fatPerServing: Math.round(fatPer100g * factor * 10) / 10
+            fatPerServing: Math.round(fatPer100g * factor * 10) / 10,
+            fiberPerServing: Math.round(fiberPer100g * factor * 10) / 10,
+            sugarPerServing: Math.round(sugarPer100g * factor * 10) / 10,
+            sodiumPerServing: Math.round(sodiumPer100g * factor),
+            potassiumPerServing: Math.round(potassiumPer100g * factor),
+            calciumPerServing: Math.round(calciumPer100g * factor),
+            ironPerServing: Math.round(ironPer100g * factor * 10) / 10,
+            vitaminCPerServing: Math.round(vitaminCPer100g * factor * 10) / 10,
+            cholesterolPerServing: Math.round(cholesterolPer100g * factor)
           };
         }
 
@@ -344,11 +504,20 @@ exports.handler = async (event, context) => {
           brand: food.brand || null,
           category: food.category || food.categoryLabel || null,
           image: food.image || null,
-          // Per 100g
+          // Per 100g - macros
           caloriesPer100g: calPer100g,
           proteinPer100g: proteinPer100g,
           carbsPer100g: carbsPer100g,
           fatPer100g: fatPer100g,
+          // Per 100g - micronutrients
+          fiberPer100g: fiberPer100g,
+          sugarPer100g: sugarPer100g,
+          sodiumPer100g: sodiumPer100g,
+          potassiumPer100g: potassiumPer100g,
+          calciumPer100g: calciumPer100g,
+          ironPer100g: ironPer100g,
+          vitaminCPer100g: vitaminCPer100g,
+          cholesterolPer100g: cholesterolPer100g,
           // Per serving (if available)
           ...(servingInfo || {}),
           // All available measures for UI dropdown
