@@ -125,7 +125,15 @@ Return ONLY a valid JSON array with this exact format (no markdown, no explanati
     "calories": 000,
     "protein": 00,
     "carbs": 00,
-    "fat": 00
+    "fat": 00,
+    "fiber": 0,
+    "sugar": 0,
+    "sodium": 0,
+    "potassium": 0,
+    "calcium": 0,
+    "iron": 0.0,
+    "vitaminC": 0,
+    "cholesterol": 0
   }
 ]
 
@@ -140,6 +148,7 @@ Guidelines for ACCURATE estimation:
 - Round calories to nearest 5, macros to nearest gram
 - List each item separately
 - Return empty array [] if no food is visible
+- For micronutrients: fiber (g), sugar (g), sodium (mg), potassium (mg), calcium (mg), iron (mg with 1 decimal), vitaminC (mg), cholesterol (mg). Use USDA values. If unsure, use 0
 ${processedImages.length > 1 ? '- Use multiple angles to better estimate portion sizes' : ''}
 
 Return ONLY the JSON array.`;
@@ -237,7 +246,15 @@ Return ONLY the JSON array.`;
             calories: Math.max(0, Math.round(f.calories)),
             protein: Math.max(0, Math.round(f.protein || 0)),
             carbs: Math.max(0, Math.round(f.carbs || 0)),
-            fat: Math.max(0, Math.round(f.fat || 0))
+            fat: Math.max(0, Math.round(f.fat || 0)),
+            fiber: Math.max(0, Math.round(f.fiber || 0)),
+            sugar: Math.max(0, Math.round(f.sugar || 0)),
+            sodium: Math.max(0, Math.round(f.sodium || 0)),
+            potassium: Math.max(0, Math.round(f.potassium || 0)),
+            calcium: Math.max(0, Math.round(f.calcium || 0)),
+            iron: Math.max(0, Math.round((f.iron || 0) * 10) / 10),
+            vitaminC: Math.max(0, Math.round(f.vitaminC || 0)),
+            cholesterol: Math.max(0, Math.round(f.cholesterol || 0))
         }));
 
         return {

@@ -88,7 +88,12 @@ exports.handler = async (event) => {
         fatGoal,
         fiberGoal,
         sugarGoal,
-        sodiumGoal
+        sodiumGoal,
+        potassiumGoal,
+        calciumGoal,
+        ironGoal,
+        vitaminCGoal,
+        cholesterolGoal
       } = body;
 
       if (!clientId) {
@@ -144,7 +149,12 @@ exports.handler = async (event) => {
             fat_goal: fatGoal,
             fiber_goal: fiberGoal || null,
             sugar_goal: sugarGoal || null,
-            sodium_goal: sodiumGoal || null
+            sodium_goal: sodiumGoal || null,
+            potassium_goal: potassiumGoal || null,
+            calcium_goal: calciumGoal || null,
+            iron_goal: ironGoal || null,
+            vitamin_c_goal: vitaminCGoal || null,
+            cholesterol_goal: cholesterolGoal || null
           })
           .eq('client_id', clientId)
           .select()
@@ -178,7 +188,12 @@ exports.handler = async (event) => {
             fat_goal: fatGoal || defaults.fat,
             fiber_goal: fiberGoal || null,
             sugar_goal: sugarGoal || null,
-            sodium_goal: sodiumGoal || null
+            sodium_goal: sodiumGoal || null,
+            potassium_goal: potassiumGoal || null,
+            calcium_goal: calciumGoal || null,
+            iron_goal: ironGoal || null,
+            vitamin_c_goal: vitaminCGoal || null,
+            cholesterol_goal: cholesterolGoal || null
           }])
           .select()
           .single();

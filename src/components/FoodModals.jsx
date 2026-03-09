@@ -202,6 +202,14 @@ export function SnapPhotoModal({ isOpen, onClose, mealType, clientData, onFoodLo
           protein: Math.round((food.protein * foodServings) * 10) / 10,
           carbs: Math.round((food.carbs * foodServings) * 10) / 10,
           fat: Math.round((food.fat * foodServings) * 10) / 10,
+          fiber: food.fiber != null ? Math.round((food.fiber * foodServings) * 10) / 10 : null,
+          sugar: food.sugar != null ? Math.round((food.sugar * foodServings) * 10) / 10 : null,
+          sodium: food.sodium != null ? Math.round(food.sodium * foodServings) : null,
+          potassium: food.potassium != null ? Math.round(food.potassium * foodServings) : null,
+          calcium: food.calcium != null ? Math.round(food.calcium * foodServings) : null,
+          iron: food.iron != null ? Math.round((food.iron * foodServings) * 10) / 10 : null,
+          vitaminC: food.vitaminC != null ? Math.round(food.vitaminC * foodServings) : null,
+          cholesterol: food.cholesterol != null ? Math.round(food.cholesterol * foodServings) : null,
           servingSize: 1,
           servingUnit: 'serving',
           numberOfServings: foodServings,
@@ -481,6 +489,11 @@ export function SearchFoodsModal({ isOpen, onClose, mealType, clientData, onFood
     const foodToAdd = { ...selectedFood };
 
     try {
+      // Scale micronutrients the same way as macros
+      const measure = foodToAdd.measures?.[selectedMeasure];
+      const weight = measure?.weight || foodToAdd.servingSize || 100;
+      const microMultiplier = (weight / 100) * servings;
+
       await apiPost('/.netlify/functions/food-diary', {
         clientId: clientData.id,
         coachId: clientData.coach_id,
@@ -491,6 +504,14 @@ export function SearchFoodsModal({ isOpen, onClose, mealType, clientData, onFood
         protein: nutrition.protein,
         carbs: nutrition.carbs,
         fat: nutrition.fat,
+        fiber: foodToAdd.fiber != null ? Math.round(foodToAdd.fiber * microMultiplier * 10) / 10 : null,
+        sugar: foodToAdd.sugar != null ? Math.round(foodToAdd.sugar * microMultiplier * 10) / 10 : null,
+        sodium: foodToAdd.sodium != null ? Math.round(foodToAdd.sodium * microMultiplier) : null,
+        potassium: foodToAdd.potassium != null ? Math.round(foodToAdd.potassium * microMultiplier) : null,
+        calcium: foodToAdd.calcium != null ? Math.round(foodToAdd.calcium * microMultiplier) : null,
+        iron: foodToAdd.iron != null ? Math.round(foodToAdd.iron * microMultiplier * 10) / 10 : null,
+        vitaminC: foodToAdd.vitaminC != null ? Math.round(foodToAdd.vitaminC * microMultiplier) : null,
+        cholesterol: foodToAdd.cholesterol != null ? Math.round(foodToAdd.cholesterol * microMultiplier) : null,
         servingSize: foodToAdd.measures?.[selectedMeasure]?.weight || 100,
         servingUnit: foodToAdd.measures?.[selectedMeasure]?.label || 'g',
         numberOfServings: servings,
@@ -710,6 +731,14 @@ export function FavoritesModal({ isOpen, onClose, mealType, clientData, onFoodLo
         protein: favorite.protein,
         carbs: favorite.carbs,
         fat: favorite.fat,
+        fiber: favorite.fiber,
+        sugar: favorite.sugar,
+        sodium: favorite.sodium,
+        potassium: favorite.potassium,
+        calcium: favorite.calcium,
+        iron: favorite.iron,
+        vitaminC: favorite.vitaminC || favorite.vitamin_c,
+        cholesterol: favorite.cholesterol,
         servingSize: 1,
         servingUnit: 'meal',
         numberOfServings: 1,
@@ -942,6 +971,14 @@ export function ScanLabelModal({ isOpen, onClose, mealType, clientData, onFoodLo
         protein: nutrition.protein,
         carbs: nutrition.carbs,
         fat: nutrition.fat,
+        fiber: resultToAdd.fiber != null ? Math.round(resultToAdd.fiber * servings * 10) / 10 : null,
+        sugar: resultToAdd.sugar != null ? Math.round(resultToAdd.sugar * servings * 10) / 10 : null,
+        sodium: resultToAdd.sodium != null ? Math.round(resultToAdd.sodium * servings) : null,
+        potassium: resultToAdd.potassium != null ? Math.round(resultToAdd.potassium * servings) : null,
+        calcium: resultToAdd.calcium != null ? Math.round(resultToAdd.calcium * servings) : null,
+        iron: resultToAdd.iron != null ? Math.round(resultToAdd.iron * servings * 10) / 10 : null,
+        vitaminC: resultToAdd.vitaminC != null ? Math.round(resultToAdd.vitaminC * servings) : null,
+        cholesterol: resultToAdd.cholesterol != null ? Math.round(resultToAdd.cholesterol * servings) : null,
         servingSize: resultToAdd.servingSize || 1,
         servingUnit: resultToAdd.servingUnit || 'serving',
         numberOfServings: servings,
