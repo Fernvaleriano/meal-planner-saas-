@@ -2422,8 +2422,8 @@ function Diary() {
 
             {/* Scrollable Content Area */}
             <div className="ai-modal-content" ref={aiContentRef}>
-              {/* Welcome Screen - when no messages */}
-              {aiMessages.length === 0 && !aiLogging && (
+              {/* Welcome Screen - when no messages and no pending food log */}
+              {aiMessages.length === 0 && !aiLogging && !pendingFoodLog && (
                 <div className="ai-modal-welcome">
                   <p className="ai-modal-greeting">Hi {clientData?.name?.split(' ')[0] || 'there'},</p>
                   <h2 className="ai-modal-headline">How can I help with nutrition today?</h2>
@@ -2491,7 +2491,7 @@ function Diary() {
               )}
 
               {/* Chat Messages */}
-              {aiMessages.length > 0 && (
+              {(aiMessages.length > 0 || pendingFoodLog) && (
                 <div className="ai-modal-messages">
                   {aiMessages.map((msg, idx) => (
                     <div key={idx} className={`ai-modal-message ${msg.role}`}>
