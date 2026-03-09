@@ -257,10 +257,14 @@ exports.handler = withTimeout(async (event) => {
         };
       }
 
-      // Helper to safely parse numbers
-      const safeNum = (val, defaultVal = 0) => {
+      // Helper to safely parse numbers with optional decimal precision
+      const safeNum = (val, defaultVal = 0, decimals = 0) => {
         const num = parseFloat(val);
-        return isNaN(num) ? defaultVal : Math.round(num);
+        if (isNaN(num)) return defaultVal;
+        if (decimals <= 0) return Math.round(num);
+
+        const factor = 10 ** decimals;
+        return Math.round(num * factor) / factor;
       };
 
       // Build insert data - only include coach_id if it's a valid value
@@ -271,21 +275,21 @@ exports.handler = withTimeout(async (event) => {
         meal_type: mealType,
         food_name: foodName,
         brand: brand || null,
-        serving_size: safeNum(servingSize, 1),
+        serving_size: safeNum(servingSize, 1, 2),
         serving_unit: servingUnit || 'serving',
-        number_of_servings: safeNum(numberOfServings, 1),
+        number_of_servings: safeNum(numberOfServings, 1, 2),
         calories: safeNum(calories, 0),
-        protein: safeNum(protein, 0),
-        carbs: safeNum(carbs, 0),
-        fat: safeNum(fat, 0),
-        fiber: fiber != null ? safeNum(fiber, 0) : null,
-        sugar: sugar != null ? safeNum(sugar, 0) : null,
-        sodium: sodium != null ? safeNum(sodium, 0) : null,
-        potassium: potassium != null ? safeNum(potassium, 0) : null,
-        calcium: calcium != null ? safeNum(calcium, 0) : null,
-        iron: iron != null ? parseFloat(parseFloat(iron).toFixed(1)) : null,
-        vitamin_c: vitaminC != null ? safeNum(vitaminC, 0) : null,
-        cholesterol: cholesterol != null ? safeNum(cholesterol, 0) : null,
+        protein: safeNum(protein, 0, 1),
+        carbs: safeNum(carbs, 0, 1),
+        fat: safeNum(fat, 0, 1),
+        fiber: fiber != null ? safeNum(fiber, 0, 1) : null,
+        sugar: sugar != null ? safeNum(sugar, 0, 1) : null,
+        sodium: sodium != null ? safeNum(sodium, 0, 1) : null,
+        potassium: potassium != null ? safeNum(potassium, 0, 1) : null,
+        calcium: calcium != null ? safeNum(calcium, 0, 1) : null,
+        iron: iron != null ? safeNum(iron, 0, 1) : null,
+        vitamin_c: vitaminC != null ? safeNum(vitaminC, 0, 1) : null,
+        cholesterol: cholesterol != null ? safeNum(cholesterol, 0, 1) : null,
         external_id: externalId || null,
         food_source: foodSource || 'custom',
         is_quick_add: isQuickAdd || false,
