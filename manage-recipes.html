@@ -1374,63 +1374,6 @@
             return null;
         }
 
-        // Fetch transcript client-side (browser won't be blocked by YouTube)
-        async function fetchTranscriptClientSide(videoId) {
-            // Use YouTube's innertube API from the browser
-            const playerRes = await fetch('https://www.youtube.com/youtubei/v1/player?prettyPrint=false', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    context: {
-                        client: {
-                            hl: 'en',
-                            gl: 'US',
-                            clientName: 'WEB',
-                            clientVersion: '2.20240101.00.00',
-                        }
-                    },
-                    videoId: videoId,
-                })
-            });
-
-            if (!playerRes.ok) throw new Error('Failed to fetch video data');
-            const playerData = await playerRes.json();
-
-            const videoTitle = playerData?.videoDetails?.title || '';
-            const captionTracks = playerData?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
-
-            if (!captionTracks || captionTracks.length === 0) {
-                throw new Error('NO_CAPTIONS');
-            }
-
-            // Prefer manual English, then auto English, then first available
-            let track = captionTracks.find(t => t.languageCode === 'en' && !t.kind);
-            if (!track) track = captionTracks.find(t => t.languageCode === 'en');
-            if (!track) track = captionTracks[0];
-
-            // Fetch the caption XML
-            const capRes = await fetch(track.baseUrl);
-            if (!capRes.ok) throw new Error('Failed to fetch captions');
-
-            const xml = await capRes.text();
-
-            // Parse <text> elements from the XML
-            const segments = [];
-            const regex = /<text[^>]*>([\s\S]*?)<\/text>/g;
-            let m;
-            while ((m = regex.exec(xml)) !== null) {
-                const decoded = m[1]
-                    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
-                    .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/\n/g, ' ').trim();
-                if (decoded) segments.push(decoded);
-            }
-
-            const transcript = segments.join(' ');
-            if (transcript.length < 10) throw new Error('NO_CAPTIONS');
-
-            return { transcript, videoTitle };
-        }
-
         async function extractYoutubeRecipe() {
             const url = document.getElementById('youtubeUrlInput').value.trim();
             if (!url) return;
@@ -1449,24 +1392,36 @@
                 const videoId = extractVideoId(url);
                 if (!videoId) throw new Error('Invalid YouTube URL');
 
-                // Step 2: Fetch transcript from browser (won't be blocked by YouTube)
-                const { transcript, videoTitle } = await fetchTranscriptClientSide(videoId);
-
-                // Step 3: Send transcript to AI for recipe extraction
                 const { data: { session } } = await supabaseClient.auth.getSession();
                 if (!session) throw new Error('Not authenticated');
 
+                const authHeaders = {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + session.access_token
+                };
+
+                // Step 2: Fetch transcript via our proxy (avoids CORS issues)
+                const transcriptResp = await fetch('/.netlify/functions/youtube-transcript', {
+                    method: 'POST',
+                    headers: authHeaders,
+                    body: JSON.stringify({ videoId, coachId: currentUserId })
+                });
+
+                const transcriptData = await transcriptResp.json();
+
+                if (!transcriptResp.ok) {
+                    throw new Error(transcriptData.error || 'Could not get video transcript');
+                }
+
+                // Step 3: Send transcript to AI for recipe extraction
                 const resp = await fetch('/.netlify/functions/extract-youtube-recipe', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': 'Bearer ' + session.access_token
-                    },
+                    headers: authHeaders,
                     body: JSON.stringify({
                         coachId: currentUserId,
                         youtubeUrl: url,
-                        transcript: transcript,
-                        videoTitle: videoTitle
+                        transcript: transcriptData.transcript,
+                        videoTitle: transcriptData.videoTitle
                     })
                 });
 
