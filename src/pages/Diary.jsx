@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, ChevronDown, Plus, Camera, Search, Heart, Copy, ArrowLeft, FileText, Sunrise, Sun, Moon, Apple, Droplets, Bot, Maximize2, BarChart3, Check, Trash2, Dumbbell, UtensilsCrossed, Mic, X, ChefHat, Sparkles, Send, Zap, MapPin, Salad, RotateCcw, Pencil } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronDown, Plus, Camera, Search, Heart, Copy, ArrowLeft, FileText, Sunrise, Sun, Moon, Apple, Droplets, Bot, Maximize2, BarChart3, Check, Trash2, Dumbbell, UtensilsCrossed, Mic, X, ChefHat, Sparkles, Send, Zap, MapPin, Salad, RotateCcw, Pencil, Share2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, apiPut, apiDelete, fetchWithTimeout } from '../utils/api';
 import { FavoritesModal, SnapPhotoModal, ScanLabelModal, SearchFoodsModal } from '../components/FoodModals';
@@ -98,6 +98,17 @@ function Diary() {
   const [showFavoritesModal, setShowFavoritesModal] = useState(false);
   const [showSaveMealModal, setShowSaveMealModal] = useState(false);
   const [showScanLabelModal, setShowScanLabelModal] = useState(false);
+  const [showShareDiaryModal, setShowShareDiaryModal] = useState(false);
+  const [shareDiaryToggles, setShareDiaryToggles] = useState({
+    calories: true,
+    protein: true,
+    carbs: true,
+    fat: true,
+    water: true,
+    meals: true
+  });
+  const [shareDiaryBgImage, setShareDiaryBgImage] = useState(null);
+  const shareDiaryBgInputRef = useRef(null);
   const [saveMealType, setSaveMealType] = useState('');
   const [copyDateInput, setCopyDateInput] = useState('');
   const [copyMode, setCopyMode] = useState('from');
@@ -1937,6 +1948,196 @@ function Diary() {
     }
   };
 
+  // Handle share diary background image change
+  const handleShareDiaryBgChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (ev) => setShareDiaryBgImage(ev.target.result);
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Generate share diary card as canvas image and share/save
+  const handleShareDiary = async () => {
+    try {
+      const width = 720;
+      const height = 720;
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+
+      const drawCard = (logoImg) => {
+        // Background
+        if (!shareDiaryBgImage) {
+          const grad = ctx.createLinearGradient(0, 0, width, height);
+          grad.addColorStop(0, '#0f2027');
+          grad.addColorStop(0.5, '#203a43');
+          grad.addColorStop(1, '#2c5364');
+          ctx.fillStyle = grad;
+          ctx.fillRect(0, 0, width, height);
+        }
+
+        // Dark overlay for text readability
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+        ctx.fillRect(0, 0, width, height);
+
+        // Brand logo
+        if (logoImg) {
+          const maxLogoWidth = width * 0.5;
+          const maxLogoHeight = 100;
+          const logoScale = Math.min(maxLogoWidth / logoImg.naturalWidth, maxLogoHeight / logoImg.naturalHeight);
+          const logoWidth = logoImg.naturalWidth * logoScale;
+          const logoHeight = logoImg.naturalHeight * logoScale;
+          ctx.drawImage(logoImg, (width - logoWidth) / 2, 20, logoWidth, logoHeight);
+        }
+
+        // Title - date
+        ctx.fillStyle = '#e5e7eb';
+        ctx.font = '20px -apple-system, BlinkMacSystemFont, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(formatFullDate(), width / 2, logoImg ? 150 : 60);
+
+        // Build active stats
+        const activeToggles = [];
+        if (shareDiaryToggles.calories) activeToggles.push({ label: 'Calories', value: String(Math.round(totals.calories)) });
+        if (shareDiaryToggles.protein) activeToggles.push({ label: 'Protein', value: `${Math.round(totals.protein)}g` });
+        if (shareDiaryToggles.carbs) activeToggles.push({ label: 'Carbs', value: `${Math.round(totals.carbs)}g` });
+        if (shareDiaryToggles.fat) activeToggles.push({ label: 'Fat', value: `${Math.round(totals.fat)}g` });
+
+        // Stats row
+        if (activeToggles.length > 0) {
+          const statY = height * 0.38;
+          const spacing = width / (activeToggles.length + 1);
+          activeToggles.forEach((stat, i) => {
+            const x = spacing * (i + 1);
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 44px -apple-system, BlinkMacSystemFont, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(stat.value, x, statY);
+            ctx.fillStyle = '#9ca3af';
+            ctx.font = '16px -apple-system, BlinkMacSystemFont, sans-serif';
+            ctx.fillText(stat.label, x, statY + 28);
+          });
+        }
+
+        // Progress bars section
+        const progressY = height * 0.55;
+        const barWidth = width * 0.6;
+        const barHeight = 10;
+        const barX = (width - barWidth) / 2;
+
+        const drawProgressBar = (label, current, goal, color, yPos) => {
+          const pct = Math.min(1, current / goal);
+          // Label
+          ctx.fillStyle = '#d1d5db';
+          ctx.font = '14px -apple-system, BlinkMacSystemFont, sans-serif';
+          ctx.textAlign = 'left';
+          ctx.fillText(label, barX, yPos - 6);
+          // Percentage
+          ctx.textAlign = 'right';
+          ctx.fillText(`${Math.round(pct * 100)}%`, barX + barWidth, yPos - 6);
+          // Background bar
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+          ctx.beginPath();
+          ctx.roundRect(barX, yPos, barWidth, barHeight, 5);
+          ctx.fill();
+          // Fill bar
+          ctx.fillStyle = color;
+          ctx.beginPath();
+          ctx.roundRect(barX, yPos, barWidth * pct, barHeight, 5);
+          ctx.fill();
+        };
+
+        if (shareDiaryToggles.calories) drawProgressBar('Calories', totals.calories, goals.calorie_goal, '#3b82f6', progressY);
+        if (shareDiaryToggles.protein) drawProgressBar('Protein', totals.protein, goals.protein_goal, '#10b981', progressY + 36);
+        if (shareDiaryToggles.carbs) drawProgressBar('Carbs', totals.carbs, goals.carbs_goal, '#f59e0b', progressY + 72);
+        if (shareDiaryToggles.fat) drawProgressBar('Fat', totals.fat, goals.fat_goal, '#ef4444', progressY + 108);
+
+        // Water section
+        if (shareDiaryToggles.water) {
+          const waterY = progressY + 155;
+          ctx.fillStyle = '#38bdf8';
+          ctx.font = 'bold 18px -apple-system, BlinkMacSystemFont, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText(`💧 ${waterIntake} / ${waterGoal} glasses`, width / 2, waterY);
+        }
+
+        // Meals logged section
+        if (shareDiaryToggles.meals && entries.length > 0) {
+          const mealsY = shareDiaryToggles.water ? progressY + 190 : progressY + 160;
+          ctx.fillStyle = '#d1d5db';
+          ctx.font = '15px -apple-system, BlinkMacSystemFont, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText(`${entries.length} food${entries.length !== 1 ? 's' : ''} logged today`, width / 2, mealsY);
+        }
+
+        // Footer
+        ctx.fillStyle = '#9ca3af';
+        ctx.font = '18px -apple-system, BlinkMacSystemFont, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('Powered by Zique Fitness', width / 2, height - 30);
+
+        // Convert and share
+        canvas.toBlob(async (blob) => {
+          if (!blob) return;
+
+          if (navigator.share && navigator.canShare) {
+            const file = new File([blob], 'diary-summary.png', { type: 'image/png' });
+            const shareData = { files: [file] };
+            if (navigator.canShare(shareData)) {
+              try {
+                await navigator.share(shareData);
+                return;
+              } catch (e) {
+                if (e.name === 'AbortError') return;
+              }
+            }
+          }
+
+          // Fallback: download
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'diary-summary.png';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        }, 'image/png');
+      };
+
+      // Load logo image, then draw card
+      const renderCard = (logoImg) => {
+        if (shareDiaryBgImage) {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.onload = () => {
+            const scale = Math.max(width / img.width, height / img.height);
+            const sw = img.width * scale;
+            const sh = img.height * scale;
+            ctx.drawImage(img, (width - sw) / 2, (height - sh) / 2, sw, sh);
+            drawCard(logoImg);
+          };
+          img.onerror = () => drawCard(logoImg);
+          img.src = shareDiaryBgImage;
+        } else {
+          drawCard(logoImg);
+        }
+      };
+
+      const logoUrl = 'https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/Untitled%20design%20-%202026-02-10T171903.769.png';
+      const logo = new Image();
+      logo.crossOrigin = 'anonymous';
+      logo.onload = () => renderCard(logo);
+      logo.onerror = () => renderCard(null);
+      logo.src = logoUrl;
+    } catch (err) {
+      console.error('Error sharing diary:', err);
+    }
+  };
+
   // Group entries by meal type
   const groupedEntries = {
     breakfast: entries.filter(e => e.meal_type === 'breakfast'),
@@ -2276,6 +2477,10 @@ function Diary() {
         <button className="diary-action-btn" onClick={() => { fetchWeeklyData(); setShowWeeklySummaryModal(true); }}>
           <BarChart3 size={16} />
           Weekly
+        </button>
+        <button className="diary-action-btn" onClick={() => setShowShareDiaryModal(true)}>
+          <Share2 size={16} />
+          Share
         </button>
       </div>
 
@@ -2889,6 +3094,147 @@ function Diary() {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Share Diary Modal */}
+      {showShareDiaryModal && (
+        <div className="workout-summary-overlay share-overlay" onClick={() => setShowShareDiaryModal(false)}>
+          <div className="share-results-modal" onClick={e => e.stopPropagation()}>
+            <div className="share-modal-header">
+              <button className="summary-close-btn" onClick={() => setShowShareDiaryModal(false)}>
+                <X size={24} />
+              </button>
+              <h2>Share your diary!</h2>
+            </div>
+
+            {/* Preview Card */}
+            <div className="share-card-preview">
+              <div className="share-card-bg diary-share-bg" style={shareDiaryBgImage ? { backgroundImage: `url(${shareDiaryBgImage})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}>
+                <div className="share-card-overlay" />
+                <div className="share-card-content diary-share-content">
+                  <div className="share-card-brand">
+                    <img src="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/Untitled%20design%20-%202026-02-10T171903.769.png" alt="Zique Fitness" className="share-card-logo" />
+                  </div>
+                  <div className="diary-share-date">{formatFullDate()}</div>
+                  <div className="share-card-stats">
+                    {shareDiaryToggles.calories && (
+                      <div className="share-stat">
+                        <span className="share-stat-value">{Math.round(totals.calories)}</span>
+                        <span className="share-stat-label">Calories</span>
+                      </div>
+                    )}
+                    {shareDiaryToggles.protein && (
+                      <div className="share-stat">
+                        <span className="share-stat-value">{Math.round(totals.protein)}g</span>
+                        <span className="share-stat-label">Protein</span>
+                      </div>
+                    )}
+                    {shareDiaryToggles.carbs && (
+                      <div className="share-stat">
+                        <span className="share-stat-value">{Math.round(totals.carbs)}g</span>
+                        <span className="share-stat-label">Carbs</span>
+                      </div>
+                    )}
+                    {shareDiaryToggles.fat && (
+                      <div className="share-stat">
+                        <span className="share-stat-value">{Math.round(totals.fat)}g</span>
+                        <span className="share-stat-label">Fat</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="diary-share-progress">
+                    {shareDiaryToggles.calories && (
+                      <div className="diary-share-progress-row">
+                        <span className="diary-share-progress-label">Calories</span>
+                        <div className="diary-share-progress-bar">
+                          <div className="diary-share-progress-fill calories" style={{ width: `${calorieProgress}%` }} />
+                        </div>
+                        <span className="diary-share-progress-pct">{calorieProgress}%</span>
+                      </div>
+                    )}
+                    {shareDiaryToggles.protein && (
+                      <div className="diary-share-progress-row">
+                        <span className="diary-share-progress-label">Protein</span>
+                        <div className="diary-share-progress-bar">
+                          <div className="diary-share-progress-fill protein" style={{ width: `${proteinProgress}%` }} />
+                        </div>
+                        <span className="diary-share-progress-pct">{proteinProgress}%</span>
+                      </div>
+                    )}
+                    {shareDiaryToggles.carbs && (
+                      <div className="diary-share-progress-row">
+                        <span className="diary-share-progress-label">Carbs</span>
+                        <div className="diary-share-progress-bar">
+                          <div className="diary-share-progress-fill carbs" style={{ width: `${carbsProgress}%` }} />
+                        </div>
+                        <span className="diary-share-progress-pct">{carbsProgress}%</span>
+                      </div>
+                    )}
+                    {shareDiaryToggles.fat && (
+                      <div className="diary-share-progress-row">
+                        <span className="diary-share-progress-label">Fat</span>
+                        <div className="diary-share-progress-bar">
+                          <div className="diary-share-progress-fill fat" style={{ width: `${fatProgress}%` }} />
+                        </div>
+                        <span className="diary-share-progress-pct">{fatProgress}%</span>
+                      </div>
+                    )}
+                  </div>
+                  {shareDiaryToggles.water && (
+                    <div className="diary-share-water">💧 {waterIntake} / {waterGoal} glasses</div>
+                  )}
+                  {shareDiaryToggles.meals && entries.length > 0 && (
+                    <div className="diary-share-meals">{entries.length} food{entries.length !== 1 ? 's' : ''} logged today</div>
+                  )}
+                  <div className="share-card-footer">Powered by Zique Fitness</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Change Image */}
+            <input
+              type="file"
+              accept="image/*"
+              ref={shareDiaryBgInputRef}
+              style={{ display: 'none' }}
+              onChange={handleShareDiaryBgChange}
+            />
+            <button className="change-image-btn" onClick={() => shareDiaryBgInputRef.current?.click()}>
+              Change image
+            </button>
+
+            {/* Toggle Controls */}
+            <div className="share-toggles">
+              <h3>Statistics</h3>
+              {[
+                { key: 'calories', label: 'Calories', value: `${Math.round(totals.calories)} / ${goals.calorie_goal}` },
+                { key: 'protein', label: 'Protein', value: `${Math.round(totals.protein)}g / ${goals.protein_goal}g` },
+                { key: 'carbs', label: 'Carbs', value: `${Math.round(totals.carbs)}g / ${goals.carbs_goal}g` },
+                { key: 'fat', label: 'Fat', value: `${Math.round(totals.fat)}g / ${goals.fat_goal}g` },
+                { key: 'water', label: 'Water', value: `${waterIntake} / ${waterGoal} glasses` },
+                { key: 'meals', label: 'Foods Logged', value: `${entries.length} item${entries.length !== 1 ? 's' : ''}` }
+              ].map(({ key, label, value }) => (
+                <div className="share-toggle-row" key={key}>
+                  <div className="toggle-info">
+                    <span className="toggle-label">{label}</span>
+                    <span className="toggle-value">{value}</span>
+                  </div>
+                  <button
+                    className={`toggle-switch ${shareDiaryToggles[key] ? 'active' : ''}`}
+                    onClick={() => setShareDiaryToggles(prev => ({ ...prev, [key]: !prev[key] }))}
+                  >
+                    <span className="toggle-knob" />
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <button className="share-results-btn" onClick={handleShareDiary}>
+              <Share2 size={18} />
+              Share diary
+            </button>
           </div>
         </div>
       )}
