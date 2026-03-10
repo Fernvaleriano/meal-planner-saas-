@@ -3252,6 +3252,7 @@ function Diary() {
         onClose={() => setShowFavoritesModal(false)}
         mealType={selectedMealType}
         clientData={clientData}
+        selectedDate={formatDate(currentDate)}
         onFoodLogged={() => {
           // Re-fetch diary data so new entries appear and all totals (including micronutrients) are correct
           refreshDiaryData();
@@ -3492,6 +3493,7 @@ function Diary() {
         onClose={() => setShowPhotoModal(false)}
         mealType={selectedMealType}
         clientData={clientData}
+        selectedDate={formatDate(currentDate)}
         onFoodLogged={() => {
           // Re-fetch diary data so new entries appear and all totals (including micronutrients) are correct
           refreshDiaryData();
@@ -3504,6 +3506,7 @@ function Diary() {
         onClose={() => setShowScanLabelModal(false)}
         mealType={selectedMealType}
         clientData={clientData}
+        selectedDate={formatDate(currentDate)}
         onFoodLogged={() => {
           // Re-fetch diary data so new entries appear and all totals (including micronutrients) are correct
           refreshDiaryData();
@@ -3516,6 +3519,7 @@ function Diary() {
         onClose={() => setShowSearchModal(false)}
         mealType={selectedMealType}
         clientData={clientData}
+        selectedDate={formatDate(currentDate)}
         onFoodLogged={() => {
           // Re-fetch diary data so new entries appear and all totals (including micronutrients) are correct
           refreshDiaryData();
