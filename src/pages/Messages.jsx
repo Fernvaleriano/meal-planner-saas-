@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Send, Search, MessageCircle, Image, X, Trash2, Check, CheckCheck, Paperclip, Loader, SmilePlus } from 'lucide-react';
+import { Send, Search, MessageCircle, X, Trash2, Check, CheckCheck, Paperclip, Loader, SmilePlus } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost } from '../utils/api';
 import { supabase } from '../utils/supabase';
@@ -48,6 +48,10 @@ function Messages() {
   const [selectedMsgId, setSelectedMsgId] = useState(null); // for unsend menu
   const [reactionPickerMsgId, setReactionPickerMsgId] = useState(null); // for emoji reaction picker
   const [resubscribeKey, setResubscribeKey] = useState(0); // Incremented on resume to force Supabase channel re-subscribe
+  const [bulkMode, setBulkMode] = useState(false);
+  const [selectedClientIds, setSelectedClientIds] = useState([]);
+  const [bulkMessage, setBulkMessage] = useState('');
+  const [bulkSending, setBulkSending] = useState(false);
   const resubscribeAttemptsRef = useRef(0); // Track consecutive reconnection attempts
   const lastResubscribeTimeRef = useRef(0); // Timestamp of last resubscribe
   // IDs of messages confirmed by handleSend's API response — kept so the
@@ -833,6 +837,51 @@ function Messages() {
     return name.toLowerCase().includes(searchQuery.toLowerCase());
   });
 
+  const toggleBulkClient = (clientId) => {
+    setSelectedClientIds(prev => prev.includes(clientId)
+      ? prev.filter(id => id !== clientId)
+      : [...prev, clientId]
+    );
+  };
+
+  const selectAllBulkClients = () => {
+    const allIds = conversations.map(c => c.clientId).filter(Boolean);
+    setSelectedClientIds(allIds);
+  };
+
+  const clearBulkSelection = () => setSelectedClientIds([]);
+
+  const handleBulkSend = async () => {
+    if (!isCoach || !coachId) return;
+    if (!bulkMessage.trim() || selectedClientIds.length === 0 || bulkSending) return;
+
+    setBulkSending(true);
+    try {
+      await apiPost('/.netlify/functions/chat', {
+        action: 'bulk-send',
+        coachId,
+        clientIds: selectedClientIds,
+        message: bulkMessage.trim()
+      });
+
+      const now = new Date().toISOString();
+      setConversations(prev => prev.map(c => selectedClientIds.includes(c.clientId)
+        ? { ...c, lastMessage: bulkMessage.trim(), lastMessageAt: now, lastMessageSender: 'coach', hasMessages: true }
+        : c
+      ));
+
+      setBulkMessage('');
+      setSelectedClientIds([]);
+      setBulkMode(false);
+      alert('Message sent to selected clients.');
+    } catch (err) {
+      console.error('Error sending bulk message:', err);
+      alert('Failed to send bulk message. Please try again.');
+    } finally {
+      setBulkSending(false);
+    }
+  };
+
   // Total unread count
   const totalUnread = conversations.reduce((sum, c) => sum + (c.unreadCount || 0), 0);
 
@@ -1147,8 +1196,47 @@ function Messages() {
     <div className="chat-page">
       <div className="chat-list-header">
         <h1>Messages</h1>
-        {totalUnread > 0 && <span className="chat-total-badge">{totalUnread}</span>}
+        <div className="chat-list-header-actions">
+          {totalUnread > 0 && <span className="chat-total-badge">{totalUnread}</span>}
+          {isCoach && (
+            <button
+              className={`chat-bulk-toggle ${bulkMode ? 'active' : ''}`}
+              onClick={() => {
+                setBulkMode(prev => !prev);
+                setSelectedClientIds([]);
+              }}
+            >
+              {bulkMode ? 'Cancel' : 'Mass message'}
+            </button>
+          )}
+        </div>
       </div>
+
+      {isCoach && bulkMode && (
+        <div className="chat-bulk-panel">
+          <div className="chat-bulk-row">
+            <span>{selectedClientIds.length} selected</span>
+            <div>
+              <button className="chat-bulk-link" onClick={selectAllBulkClients}>Select all</button>
+              <button className="chat-bulk-link" onClick={clearBulkSelection}>Clear</button>
+            </div>
+          </div>
+          <textarea
+            className="chat-bulk-input"
+            rows={3}
+            placeholder="Write a message to selected clients..."
+            value={bulkMessage}
+            onChange={(e) => setBulkMessage(e.target.value)}
+          />
+          <button
+            className="chat-bulk-send"
+            disabled={!bulkMessage.trim() || selectedClientIds.length === 0 || bulkSending}
+            onClick={handleBulkSend}
+          >
+            {bulkSending ? 'Sending...' : `Send to ${selectedClientIds.length || 0} client${selectedClientIds.length === 1 ? '' : 's'}`}
+          </button>
+        </div>
+      )}
 
       {isCoach && (
         <div className="chat-search-bar">
@@ -1176,13 +1264,23 @@ function Messages() {
             const preview = convo.lastMessage
               ? (convo.lastMessageSender === myType ? 'You: ' : '') + convo.lastMessage
               : 'No messages yet';
+            const isSelected = selectedClientIds.includes(convo.clientId);
 
             return (
               <button
                 key={convo.clientId || convo.coachId}
-                className={`chat-convo-item ${convo.unreadCount > 0 ? 'unread' : ''}`}
-                onClick={() => openConversation(convo)}
+                className={`chat-convo-item ${convo.unreadCount > 0 ? 'unread' : ''} ${isSelected ? 'selected' : ''}`}
+                onClick={() => bulkMode && isCoach ? toggleBulkClient(convo.clientId) : openConversation(convo)}
               >
+                {isCoach && bulkMode && (
+                  <input
+                    type="checkbox"
+                    className="chat-bulk-checkbox"
+                    checked={isSelected}
+                    onChange={() => toggleBulkClient(convo.clientId)}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                )}
                 <div className="chat-convo-avatar">
                   {convo.profilePhoto || convo.coachPhoto ? (
                     <img src={convo.profilePhoto || convo.coachPhoto} alt={name} loading="lazy" decoding="async" />

@@ -267,6 +267,65 @@ exports.handler = async (event) => {
         };
       }
 
+      // Send the same text message to multiple clients (coach only)
+      if (action === 'bulk-send') {
+        const { coachId, clientIds, message } = body;
+
+        if (!coachId || !Array.isArray(clientIds) || clientIds.length === 0 || !message?.trim()) {
+          return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'coachId, clientIds[], and message are required' }) };
+        }
+
+        const normalizedClientIds = [...new Set(clientIds.map(id => parseInt(id)).filter(id => Number.isInteger(id)))];
+
+        if (normalizedClientIds.length === 0) {
+          return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'No valid client IDs provided' }) };
+        }
+
+        const messageText = message.trim();
+        const createdAt = new Date().toISOString();
+
+        const bulkMessages = normalizedClientIds.map(clientId => ({
+          coach_id: coachId,
+          client_id: clientId,
+          sender_type: 'coach',
+          message: messageText,
+          is_read: false,
+          created_at: createdAt
+        }));
+
+        const { data: inserted, error: insertError } = await supabase
+          .from('chat_messages')
+          .insert(bulkMessages)
+          .select('id, client_id, sender_type, message, created_at, is_read');
+
+        if (insertError) {
+          console.error('Error sending bulk messages:', insertError);
+          return { statusCode: 500, headers: corsHeaders, body: JSON.stringify({ error: insertError.message }) };
+        }
+
+        const notifications = normalizedClientIds.map(clientId => ({
+          client_id: clientId,
+          type: 'chat_message',
+          title: 'New message from your coach',
+          message: messageText.substring(0, 100)
+        }));
+
+        const { error: notifError } = await supabase.from('notifications').insert(notifications);
+        if (notifError) {
+          console.error('Bulk notifications failed:', notifError);
+        }
+
+        return {
+          statusCode: 200,
+          headers: corsHeaders,
+          body: JSON.stringify({
+            success: true,
+            sentCount: inserted?.length || normalizedClientIds.length,
+            messages: inserted || []
+          })
+        };
+      }
+
       // Mark messages as read
       if (action === 'mark-read') {
         const { coachId, clientId, readerType } = body;
