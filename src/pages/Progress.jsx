@@ -243,6 +243,19 @@ function Progress() {
     );
   };
 
+  // Delete photo handler
+  const handleDeletePhoto = async (photoId) => {
+    if (!clientData?.id || !clientData?.coach_id) return;
+
+    try {
+      await apiDelete(`/.netlify/functions/delete-progress-photo?photoId=${photoId}&coachId=${clientData.coach_id}`);
+      setPhotos(prev => prev.filter(p => p.id !== photoId));
+    } catch (err) {
+      console.error('Error deleting photo:', err);
+      alert('Failed to delete photo. Please try again.');
+    }
+  };
+
   // Photo handlers
   const handlePhotoSelect = async (e) => {
     const file = e.target.files?.[0];
@@ -395,8 +408,20 @@ function Progress() {
               ) : (
                 <div className="photos-grid">
                   {photos.map((photo, idx) => (
-                    <div key={idx} className="photo-item" onClick={() => window.open(photo.url || photo.photo_url, '_blank')}>
+                    <div key={photo.id || idx} className="photo-item" onClick={() => window.open(photo.url || photo.photo_url, '_blank')}>
                       <img src={photo.url || photo.photo_url} alt="Progress" loading="lazy" />
+                      <button
+                        className="photo-delete-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const dateStr = new Date(photo.taken_date || photo.date_taken).toLocaleDateString();
+                          if (window.confirm(`Delete photo from ${dateStr}?`)) {
+                            handleDeletePhoto(photo.id);
+                          }
+                        }}
+                      >
+                        <Trash2 size={14} />
+                      </button>
                       <div className="photo-date-overlay">
                         {new Date(photo.taken_date || photo.date_taken).toLocaleDateString()}
                       </div>
