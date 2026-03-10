@@ -9098,6 +9098,33 @@ textarea,
     object-fit: cover;
 }
 
+.photo-delete-btn {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 2;
+    padding: 0;
+    transition: background 0.2s;
+}
+
+.photo-delete-btn:hover {
+    background: rgba(220, 38, 38, 0.8);
+}
+
+.photo-delete-btn:active {
+    background: rgba(220, 38, 38, 1);
+}
+
 .photo-date-overlay {
     position: absolute;
     bottom: 0;
