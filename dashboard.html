@@ -5327,6 +5327,53 @@
             }
         }
 
+        // Send a reply to a client plateau via chat
+        async function sendPlateauReply(alertId, clientId, plateauMessage) {
+            const input = document.getElementById('reply-input-' + alertId);
+            const row = document.getElementById('reply-row-' + alertId);
+            const sent = document.getElementById('reply-sent-' + alertId);
+            if (!input || !input.value.trim()) return;
+
+            const btn = row.querySelector('button');
+            if (btn) { btn.disabled = true; btn.textContent = 'Sending...'; }
+
+            // Build message with the plateau info quoted
+            let msg = 'Re: Plateau';
+            if (plateauMessage) {
+                msg += ' — "' + plateauMessage + '"';
+            }
+            msg += ' — ' + input.value.trim();
+
+            try {
+                const res = await fetch('/.netlify/functions/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'send',
+                        coachId: _currentCoachId,
+                        clientId: clientId,
+                        senderType: 'coach',
+                        message: msg
+                    })
+                });
+                if (res.ok) {
+                    row.style.display = 'none';
+                    input.value = '';
+                    if (sent) {
+                        sent.style.display = 'inline-flex';
+                        setTimeout(() => { sent.style.display = 'none'; }, 4000);
+                    }
+                } else {
+                    alert('Failed to send reply. Please try again.');
+                }
+            } catch (e) {
+                console.error('Error sending plateau reply:', e);
+                alert('Failed to send reply. Please try again.');
+            } finally {
+                if (btn) { btn.disabled = false; btn.textContent = 'Send'; }
+            }
+        }
+
         // Send a reply to a client PR via chat
         async function sendPrReply(alertId, clientId, prMessage) {
             const input = document.getElementById('reply-input-' + alertId);
@@ -5935,6 +5982,7 @@
                                             const name = clientMap[g.clientId] || 'Unknown Client';
                                             const aid = `plateau-${g.clientId}-${g.exercise.replace(/\s/g,'-')}`;
                                             const url = `client-profile.html?clientId=${g.clientId}&tab=workouts`;
+                                            const safePlateauMsg = (`${name} stuck at ${last3[0]} kg on ${g.exercise}`).replace(/'/g, "\\'").replace(/"/g, '&quot;').replace(/\n/g, ' ');
                                             addAlert(aid, `
                                                 <div class="priority-alert priority-alert--clickable" onclick="reviewAndArchive('${aid}', '${url}')">
                                                     __CHECKBOX__
@@ -5943,6 +5991,25 @@
                                                         <span class="priority-label priority-label--pending"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:3px;"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>Plateau:</span>
                                                         <strong>${name}</strong> stuck at ${last3[0]} kg on ${g.exercise} (3+ sessions)
                                                         <span class="priority-alert-link">Review →</span>
+                                                        <button class="priority-note-reply-btn" onclick="event.stopPropagation(); toggleNoteReply('${aid}')" title="Reply about this plateau">
+                                                            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                                                            Reply
+                                                        </button>
+                                                        <span class="priority-reaction-row" onclick="event.stopPropagation()">
+                                                            <button id="react-${aid}-clap" class="priority-reaction-btn" onclick="toggleReaction('${aid}','${g.clientId}','👏','plateau','${g.clientId}-${g.exercise.replace(/\\s/g,'-')}')" title="Clap">👏</button>
+                                                            <button id="react-${aid}-fist" class="priority-reaction-btn" onclick="toggleReaction('${aid}','${g.clientId}','👊','plateau','${g.clientId}-${g.exercise.replace(/\\s/g,'-')}')" title="Fist bump">👊</button>
+                                                            <button id="react-${aid}-muscle" class="priority-reaction-btn" onclick="toggleReaction('${aid}','${g.clientId}','💪','plateau','${g.clientId}-${g.exercise.replace(/\\s/g,'-')}')" title="Muscle">💪</button>
+                                                            <button id="react-${aid}-fire" class="priority-reaction-btn" onclick="toggleReaction('${aid}','${g.clientId}','🔥','plateau','${g.clientId}-${g.exercise.replace(/\\s/g,'-')}')" title="Fire">🔥</button>
+                                                            <span id="reaction-sent-${aid}" class="priority-reaction-sent">✓</span>
+                                                        </span>
+                                                        <div id="reply-row-${aid}" class="priority-note-reply-row" style="display:none;" onclick="event.stopPropagation()">
+                                                            <input type="text" id="reply-input-${aid}" placeholder="Type your reply..." onkeydown="if(event.key==='Enter'){sendPlateauReply('${aid}','${g.clientId}','${safePlateauMsg}')}" />
+                                                            <button onclick="sendPlateauReply('${aid}','${g.clientId}','${safePlateauMsg}')">Send</button>
+                                                        </div>
+                                                        <div id="reply-sent-${aid}" class="priority-note-reply-sent" style="display:none;">
+                                                            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
+                                                            Sent to messages
+                                                        </div>
                                                     </span>
                                                 </div>
                                             `, g.clientId, 'plateau', `${g.clientId}-${g.exercise.replace(/\s/g,'-')}`);
