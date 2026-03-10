@@ -2359,42 +2359,42 @@ function Diary() {
               </div>
             </div>
             <div className="macro-bar-item">
-              <span className="macro-bar-label sodium">Na:</span>
+              <span className="macro-bar-label sodium">Sodium:</span>
               <span className="macro-bar-value">{Math.round(totals.sodium || 0)}/{goals.sodium_goal || 2300}mg</span>
               <div className="macro-bar-track">
                 <div className="macro-bar-fill sodium" style={{ width: `${sodiumProgress}%` }} />
               </div>
             </div>
             <div className="macro-bar-item">
-              <span className="macro-bar-label potassium">K:</span>
+              <span className="macro-bar-label potassium">Potassium:</span>
               <span className="macro-bar-value">{Math.round(totals.potassium || 0)}/{goals.potassium_goal || 3500}mg</span>
               <div className="macro-bar-track">
                 <div className="macro-bar-fill potassium" style={{ width: `${potassiumProgress}%` }} />
               </div>
             </div>
             <div className="macro-bar-item">
-              <span className="macro-bar-label calcium">Ca:</span>
+              <span className="macro-bar-label calcium">Calcium:</span>
               <span className="macro-bar-value">{Math.round(totals.calcium || 0)}/{goals.calcium_goal || 1000}mg</span>
               <div className="macro-bar-track">
                 <div className="macro-bar-fill calcium" style={{ width: `${calciumProgress}%` }} />
               </div>
             </div>
             <div className="macro-bar-item">
-              <span className="macro-bar-label iron">Fe:</span>
+              <span className="macro-bar-label iron">Iron:</span>
               <span className="macro-bar-value">{(totals.iron || 0).toFixed(1)}/{goals.iron_goal || 18}mg</span>
               <div className="macro-bar-track">
                 <div className="macro-bar-fill iron" style={{ width: `${ironProgress}%` }} />
               </div>
             </div>
             <div className="macro-bar-item">
-              <span className="macro-bar-label vitaminC">Vit C:</span>
+              <span className="macro-bar-label vitaminC">Vitamin C:</span>
               <span className="macro-bar-value">{Math.round(totals.vitaminC || 0)}/{goals.vitamin_c_goal || 90}mg</span>
               <div className="macro-bar-track">
                 <div className="macro-bar-fill vitaminC" style={{ width: `${vitaminCProgress}%` }} />
               </div>
             </div>
             <div className="macro-bar-item">
-              <span className="macro-bar-label cholesterol">Chol:</span>
+              <span className="macro-bar-label cholesterol">Cholesterol:</span>
               <span className="macro-bar-value">{Math.round(totals.cholesterol || 0)}/{goals.cholesterol_goal || 300}mg</span>
               <div className="macro-bar-track">
                 <div className="macro-bar-fill cholesterol" style={{ width: `${cholesterolProgress}%` }} />
