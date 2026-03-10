@@ -94,6 +94,95 @@
             padding: 0 6px;
         }
 
+        .convo-header-actions {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .bulk-toggle-btn {
+            border: 1px solid var(--gray-200);
+            background: white;
+            color: var(--gray-700);
+            border-radius: 999px;
+            padding: 6px 10px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .bulk-toggle-btn.active {
+            border-color: var(--brand-primary);
+            color: var(--brand-primary);
+        }
+
+        .bulk-panel {
+            margin: 0 16px 12px;
+            padding: 12px;
+            border: 1px solid var(--gray-200);
+            border-radius: 12px;
+            background: var(--gray-50);
+            display: none;
+        }
+
+        .bulk-panel.visible { display: block; }
+
+        .bulk-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: var(--gray-600);
+            margin-bottom: 8px;
+        }
+
+        .bulk-link {
+            border: none;
+            background: none;
+            color: var(--brand-primary);
+            font-size: 12px;
+            margin-left: 8px;
+            cursor: pointer;
+        }
+
+        .bulk-input {
+            width: 100%;
+            border: 1px solid var(--gray-200);
+            border-radius: 10px;
+            padding: 10px;
+            resize: vertical;
+            font-size: 14px;
+            min-height: 72px;
+            margin-bottom: 8px;
+            font-family: inherit;
+            color: var(--gray-800);
+            background: white;
+        }
+
+        .bulk-send-btn {
+            width: 100%;
+            border: none;
+            border-radius: 10px;
+            background: var(--brand-primary);
+            color: white;
+            padding: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .bulk-send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .bulk-checkbox {
+            width: 16px;
+            height: 16px;
+            accent-color: var(--brand-primary);
+            flex-shrink: 0;
+        }
+
+        .convo-item.selected { background: rgba(13, 148, 136, 0.12); }
+
         .convo-search {
             display: flex;
             align-items: center;
@@ -617,7 +706,10 @@
         [data-theme="dark"] .convo-name { color: #f1f5f9; }
         [data-theme="dark"] .convo-time { color: #64748b; }
         [data-theme="dark"] .convo-preview { color: #94a3b8; }
-        [data-theme="dark"] .convo-item.unread .convo-preview { color: #cbd5e1; }
+        [data-theme="dark"] .bulk-toggle-btn { background: #1e293b; border-color: #334155; color: #e2e8f0; }
+        [data-theme="dark"] .bulk-panel { background: #111827; border-color: #334155; }
+        [data-theme="dark"] .bulk-row { color: #94a3b8; }
+        [data-theme="dark"] .bulk-input { background: #1e293b; border-color: #334155; color: #e2e8f0; }
 
         [data-theme="dark"] .thread-panel { background: #0f172a; }
         [data-theme="dark"] .thread-header { border-color: #334155; }
@@ -827,11 +919,25 @@
         <div class="convo-list-panel">
             <div class="convo-list-header">
                 <h1>Messages</h1>
-                <span class="convo-total-badge" id="totalBadge" style="display:none;">0</span>
+                <div class="convo-header-actions">
+                    <span class="convo-total-badge" id="totalBadge" style="display:none;">0</span>
+                    <button class="bulk-toggle-btn" id="bulkToggleBtn" onclick="toggleBulkMode()">Mass message</button>
+                </div>
             </div>
             <div class="convo-search">
                 <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
                 <input type="text" placeholder="Search clients..." id="searchInput">
+            </div>
+            <div class="bulk-panel" id="bulkPanel">
+                <div class="bulk-row">
+                    <span id="bulkSelectedCount">0 selected</span>
+                    <div>
+                        <button class="bulk-link" onclick="selectAllBulkClients()">Select all</button>
+                        <button class="bulk-link" onclick="clearBulkSelection()">Clear</button>
+                    </div>
+                </div>
+                <textarea id="bulkInput" class="bulk-input" placeholder="Write a message to selected clients..."></textarea>
+                <button class="bulk-send-btn" id="bulkSendBtn" onclick="sendBulkMessage()" disabled>Send to 0 clients</button>
             </div>
             <div class="convo-list" id="convoList">
                 <div class="loading-text">Loading conversations...</div>
@@ -954,6 +1060,8 @@
         let activeContextMenu = null;
         let activeReactionPicker = null;
         let allMessages = []; // Track all messages including reactions
+        let bulkMode = false;
+        let selectedClientIds = new Set();
         const REACTION_EMOJIS = ['❤️', '💪', '🔥', '👏', '😂', '👍'];
         const REACTION_PREFIX = '__REACTION__:';
         // Helpers
@@ -1000,6 +1108,7 @@
 
             await loadConversations();
             setupSearch();
+            document.getElementById('bulkInput').addEventListener('input', updateBulkPanelState);
             setupRealtimeList();
         }
 
@@ -1031,6 +1140,7 @@
 
             if (filtered.length === 0) {
                 list.innerHTML = '<div class="convo-empty"><svg width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg><p>No conversations</p></div>';
+                updateBulkPanelState();
                 return;
             }
 
@@ -1038,9 +1148,15 @@
                 const preview = c.lastMessage
                     ? (c.lastMessageSender === 'coach' ? 'You: ' : '') + c.lastMessage
                     : 'No messages yet';
+                const safeName = c.clientName.replace(/'/g, "\\'");
+                const isSelected = selectedClientIds.has(c.clientId);
+                const clickAction = bulkMode
+                    ? `toggleBulkClient(${c.clientId}, event)`
+                    : `openThread(${c.clientId}, '${safeName}', '${c.profilePhoto || ''}')`;
                 return `
-                    <button class="convo-item ${c.unreadCount > 0 ? 'unread' : ''} ${activeClientId === c.clientId ? 'active' : ''}"
-                            onclick="openThread(${c.clientId}, '${c.clientName.replace(/'/g, "\\'")}', '${c.profilePhoto || ''}')">
+                    <button class="convo-item ${c.unreadCount > 0 ? 'unread' : ''} ${activeClientId === c.clientId ? 'active' : ''} ${isSelected ? 'selected' : ''}"
+                            onclick="${clickAction}">
+                        ${bulkMode ? `<input type="checkbox" class="bulk-checkbox" ${isSelected ? 'checked' : ''} onclick="event.stopPropagation(); toggleBulkClient(${c.clientId});">` : ''}
                         <div class="convo-avatar">
                             ${c.profilePhoto ? `<img src="${c.profilePhoto}" alt="${c.clientName}">` : getInitials(c.clientName)}
                         </div>
@@ -1056,6 +1172,8 @@
                         </div>
                     </button>`;
             }).join('');
+
+            updateBulkPanelState();
         }
 
         // Open a thread
@@ -1563,6 +1681,96 @@
             document.getElementById('searchInput').addEventListener('input', (e) => {
                 renderConversations(e.target.value);
             });
+        }
+
+        function toggleBulkMode() {
+            bulkMode = !bulkMode;
+            if (bulkMode) {
+                closeThread();
+                selectedClientIds.clear();
+            }
+            const toggleBtn = document.getElementById('bulkToggleBtn');
+            toggleBtn.classList.toggle('active', bulkMode);
+            toggleBtn.textContent = bulkMode ? 'Cancel' : 'Mass message';
+            document.getElementById('bulkPanel').classList.toggle('visible', bulkMode);
+            renderConversations(document.getElementById('searchInput').value);
+        }
+
+        function toggleBulkClient(clientId, event) {
+            if (event) event.preventDefault();
+            if (!bulkMode) return;
+            if (selectedClientIds.has(clientId)) {
+                selectedClientIds.delete(clientId);
+            } else {
+                selectedClientIds.add(clientId);
+            }
+            renderConversations(document.getElementById('searchInput').value);
+        }
+
+        function selectAllBulkClients() {
+            selectedClientIds = new Set(conversations.map(c => c.clientId));
+            renderConversations(document.getElementById('searchInput').value);
+        }
+
+        function clearBulkSelection() {
+            selectedClientIds.clear();
+            renderConversations(document.getElementById('searchInput').value);
+        }
+
+        function updateBulkPanelState() {
+            const count = selectedClientIds.size;
+            const countEl = document.getElementById('bulkSelectedCount');
+            if (!countEl) return;
+            countEl.textContent = `${count} selected`;
+            const msg = document.getElementById('bulkInput').value.trim();
+            const btn = document.getElementById('bulkSendBtn');
+            btn.disabled = count === 0 || !msg;
+            btn.textContent = `Send to ${count} client${count === 1 ? '' : 's'}`;
+        }
+
+        async function sendBulkMessage() {
+            if (!bulkMode) return;
+            const input = document.getElementById('bulkInput');
+            const message = input.value.trim();
+            const clientIds = [...selectedClientIds];
+            if (!message || clientIds.length === 0) return;
+
+            const btn = document.getElementById('bulkSendBtn');
+            btn.disabled = true;
+            btn.textContent = 'Sending...';
+
+            try {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                const res = await fetch('/.netlify/functions/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+                    body: JSON.stringify({ action: 'bulk-send', coachId: currentUser.id, clientIds, message })
+                });
+                const data = await res.json();
+                if (!res.ok || !data.success) {
+                    throw new Error(data.error || 'Failed to send bulk message');
+                }
+
+                const now = new Date().toISOString();
+                conversations = conversations.map(c => clientIds.includes(c.clientId)
+                    ? { ...c, lastMessage: message, lastMessageAt: now, lastMessageSender: 'coach', hasMessages: true }
+                    : c
+                );
+
+                input.value = '';
+                selectedClientIds.clear();
+                bulkMode = false;
+                document.getElementById('bulkPanel').classList.remove('visible');
+                const toggleBtn = document.getElementById('bulkToggleBtn');
+                toggleBtn.classList.remove('active');
+                toggleBtn.textContent = 'Mass message';
+                renderConversations(document.getElementById('searchInput').value);
+                alert(`Message sent to ${clientIds.length} client${clientIds.length === 1 ? '' : 's'}.`);
+            } catch (err) {
+                console.error('Bulk send failed:', err);
+                alert(err.message || 'Failed to send bulk message.');
+                updateBulkPanelState();
+            }
         }
 
         // Realtime: conversation list updates
