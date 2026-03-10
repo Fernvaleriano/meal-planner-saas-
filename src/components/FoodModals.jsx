@@ -13,6 +13,8 @@ const getLocalDateString = () => {
   return `${year}-${month}-${day}`;
 };
 
+const getEntryDate = (selectedDate) => selectedDate || getLocalDateString();
+
 // Image compression utility
 const compressImage = (file, maxWidth = 1200, quality = 0.8) => {
   return new Promise((resolve, reject) => {
@@ -62,7 +64,7 @@ const MealTypeSelector = ({ selected, onChange }) => (
 );
 
 // ==================== SNAP PHOTO MODAL ====================
-export function SnapPhotoModal({ isOpen, onClose, mealType, clientData, onFoodLogged }) {
+export function SnapPhotoModal({ isOpen, onClose, mealType, clientData, onFoodLogged, selectedDate }) {
   const [previews, setPreviews] = useState([]); // Array of images
   const [details, setDetails] = useState('');
   const [analyzing, setAnalyzing] = useState(false);
@@ -182,7 +184,7 @@ export function SnapPhotoModal({ isOpen, onClose, mealType, clientData, onFoodLo
 
     isAddingRef.current = true;
     setIsAdding(true);
-    const today = getLocalDateString();
+    const entryDate = getEntryDate(selectedDate);
     let addedTotals = { calories: 0, protein: 0, carbs: 0, fat: 0 };
 
     // Store results for retry
@@ -195,7 +197,7 @@ export function SnapPhotoModal({ isOpen, onClose, mealType, clientData, onFoodLo
         return apiPost('/.netlify/functions/food-diary', {
           clientId: clientData.id,
           coachId: clientData.coach_id,
-          entryDate: today,
+          entryDate,
           mealType: selectedMealType,
           foodName: food.name,
           calories: Math.round(food.calories * foodServings),
@@ -234,7 +236,7 @@ export function SnapPhotoModal({ isOpen, onClose, mealType, clientData, onFoodLo
     } finally {
       setIsAdding(false);
     }
-  }, [results, clientData, selectedMealType, servings, onFoodLogged, showError, showSuccess]);
+  }, [results, clientData, selectedMealType, servings, onFoodLogged, showError, showSuccess, selectedDate]);
 
   const handleClose = () => {
     setPreviews([]);
@@ -418,7 +420,7 @@ export function SnapPhotoModal({ isOpen, onClose, mealType, clientData, onFoodLo
 }
 
 // ==================== SEARCH FOODS MODAL ====================
-export function SearchFoodsModal({ isOpen, onClose, mealType, clientData, onFoodLogged }) {
+export function SearchFoodsModal({ isOpen, onClose, mealType, clientData, onFoodLogged, selectedDate }) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [searching, setSearching] = useState(false);
@@ -485,7 +487,7 @@ export function SearchFoodsModal({ isOpen, onClose, mealType, clientData, onFood
     isAddingRef.current = true;
     setIsAdding(true);
     const nutrition = getScaledNutrition();
-    const today = getLocalDateString();
+    const entryDate = getEntryDate(selectedDate);
     const foodToAdd = { ...selectedFood };
 
     try {
@@ -500,7 +502,7 @@ export function SearchFoodsModal({ isOpen, onClose, mealType, clientData, onFood
       await apiPost('/.netlify/functions/food-diary', {
         clientId: clientData.id,
         coachId: clientData.coach_id,
-        entryDate: today,
+        entryDate,
         mealType: mealType,
         foodName: foodToAdd.name,
         calories: nutrition.calories,
@@ -531,7 +533,7 @@ export function SearchFoodsModal({ isOpen, onClose, mealType, clientData, onFood
     } finally {
       setIsAdding(false);
     }
-  }, [selectedFood, clientData, mealType, servings, selectedMeasure, onFoodLogged, showError, showSuccess]);
+  }, [selectedFood, clientData, mealType, servings, selectedMeasure, onFoodLogged, showError, showSuccess, selectedDate]);
 
   const handleClose = () => {
     setQuery('');
@@ -661,7 +663,7 @@ export function SearchFoodsModal({ isOpen, onClose, mealType, clientData, onFood
 }
 
 // ==================== FAVORITES MODAL ====================
-export function FavoritesModal({ isOpen, onClose, mealType, clientData, onFoodLogged }) {
+export function FavoritesModal({ isOpen, onClose, mealType, clientData, onFoodLogged, selectedDate }) {
   // Load from cache for instant display
   const getCachedFavorites = () => {
     if (!clientData?.id) return [];
@@ -719,7 +721,7 @@ export function FavoritesModal({ isOpen, onClose, mealType, clientData, onFoodLo
 
     addingRef.current = true;
     setAddingId(favorite.id);
-    const today = getLocalDateString();
+    const entryDate = getEntryDate(selectedDate);
 
     try {
       await ensureFreshSession();
@@ -727,7 +729,7 @@ export function FavoritesModal({ isOpen, onClose, mealType, clientData, onFoodLo
       await apiPost('/.netlify/functions/food-diary', {
         clientId: clientData.id,
         coachId: clientData.coach_id,
-        entryDate: today,
+        entryDate,
         mealType: selectedMealType,
         foodName: favorite.meal_name,
         calories: favorite.calories,
@@ -764,7 +766,7 @@ export function FavoritesModal({ isOpen, onClose, mealType, clientData, onFoodLo
     } finally {
       setAddingId(null);
     }
-  }, [clientData, selectedMealType, onFoodLogged, onClose, showError, showSuccess]);
+  }, [clientData, selectedMealType, onFoodLogged, onClose, showError, showSuccess, selectedDate]);
 
   const deleteFavorite = async (favoriteId, e) => {
     e.stopPropagation();
@@ -873,7 +875,7 @@ export function FavoritesModal({ isOpen, onClose, mealType, clientData, onFoodLo
 }
 
 // ==================== SCAN LABEL MODAL ====================
-export function ScanLabelModal({ isOpen, onClose, mealType, clientData, onFoodLogged }) {
+export function ScanLabelModal({ isOpen, onClose, mealType, clientData, onFoodLogged, selectedDate }) {
   const [previews, setPreviews] = useState([]); // Array of images
   const [analyzing, setAnalyzing] = useState(false);
   const [result, setResult] = useState(null);
@@ -960,14 +962,14 @@ export function ScanLabelModal({ isOpen, onClose, mealType, clientData, onFoodLo
     isAddingRef.current = true;
     setIsAdding(true);
     const nutrition = getScaledNutrition();
-    const today = getLocalDateString();
+    const entryDate = getEntryDate(selectedDate);
     const resultToAdd = { ...result };
 
     try {
       await apiPost('/.netlify/functions/food-diary', {
         clientId: clientData.id,
         coachId: clientData.coach_id,
-        entryDate: today,
+        entryDate,
         mealType: selectedMealType,
         foodName: resultToAdd.name || 'Scanned Food',
         calories: nutrition.calories,
@@ -1000,7 +1002,7 @@ export function ScanLabelModal({ isOpen, onClose, mealType, clientData, onFoodLo
     } finally {
       setIsAdding(false);
     }
-  }, [result, clientData, selectedMealType, servings, onFoodLogged, showError, showSuccess]);
+  }, [result, clientData, selectedMealType, servings, onFoodLogged, showError, showSuccess, selectedDate]);
 
   const handleClose = () => {
     setPreviews([]);
