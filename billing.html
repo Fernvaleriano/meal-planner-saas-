@@ -448,12 +448,14 @@
 
             // Plan names and prices for new tiers
             const planInfo = {
-                starter: { name: 'Starter', price: '$49/mo', clients: '10 clients' },
-                growth: { name: 'Growth', price: '$99/mo', clients: '50 clients' },
-                professional: { name: 'Professional', price: '$199/mo', clients: 'Unlimited clients' },
+                starter: { name: 'Starter', price: '$59/mo', clients: '15 clients' },
+                growth: { name: 'Growth', price: '$129/mo', clients: '50 clients' },
+                scale: { name: 'Scale', price: '$249/mo', clients: '150 clients' },
+                pro: { name: 'Pro', price: '$399/mo', clients: '300 clients' },
                 // Legacy support
-                basic: { name: 'Starter', price: '$49/mo', clients: '10 clients' },
-                branded: { name: 'Professional', price: '$199/mo', clients: 'Unlimited clients' }
+                basic: { name: 'Starter', price: '$59/mo', clients: '15 clients' },
+                professional: { name: 'Scale', price: '$249/mo', clients: '150 clients' },
+                branded: { name: 'Pro', price: '$399/mo', clients: '300 clients' }
             };
 
             const currentPlan = planInfo[tier] || planInfo.starter;

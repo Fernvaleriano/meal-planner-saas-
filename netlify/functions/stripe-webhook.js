@@ -355,8 +355,10 @@ async function handleSubscriptionUpdated(subscription) {
             tier = 'starter';
         } else if (priceId === process.env.STRIPE_PRICE_GROWTH) {
             tier = 'growth';
-        } else if (priceId === process.env.STRIPE_PRICE_PROFESSIONAL || priceId === process.env.STRIPE_PRICE_BRANDED) {
-            tier = 'professional';
+        } else if (priceId === process.env.STRIPE_PRICE_SCALE || priceId === process.env.STRIPE_PRICE_PROFESSIONAL) {
+            tier = 'scale';
+        } else if (priceId === process.env.STRIPE_PRICE_PRO || priceId === process.env.STRIPE_PRICE_BRANDED) {
+            tier = 'pro';
         }
 
         await supabase

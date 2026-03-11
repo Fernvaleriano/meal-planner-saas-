@@ -134,7 +134,7 @@ exports.handler = async (event, context) => {
 
     const coachName = coach?.full_name || coach?.email || 'Your Coach';
     const hasWhiteLabel = coach?.white_label_enabled && coach?.email_from_verified;
-    const hasBranding = ['professional', 'branded'].includes(coach?.subscription_tier);
+    const hasBranding = ['scale', 'pro', 'professional', 'branded'].includes(coach?.subscription_tier);
     const primaryColor = (hasBranding && coach?.brand_primary_color) || '#0d9488';
     const brandName = (hasBranding && coach?.brand_name) || (hasWhiteLabel ? coachName : 'Zique Fitness Nutrition');
     const footerText = (hasBranding && coach?.brand_email_footer) || brandName;

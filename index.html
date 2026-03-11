@@ -470,7 +470,7 @@
 
         .pricing-cards {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(4, 1fr);
             gap: 24px;
             max-width: 1000px;
             margin: 64px auto 0;
@@ -813,8 +813,8 @@
             }
 
             .pricing-card:last-child {
-                grid-column: span 2;
-                max-width: 400px;
+                grid-column: span 1;
+                max-width: none;
                 margin: 0 auto;
             }
         }
@@ -1315,11 +1315,11 @@
                 <div class="pricing-card">
                     <h3>Starter</h3>
                     <div class="pricing-price">
-                        <span class="pricing-price-amount">$49</span>
+                        <span class="pricing-price-amount">$59</span>
                         <span class="pricing-price-period">/month</span>
                     </div>
                     <ul class="pricing-features">
-                        <li>Up to 10 active clients</li>
+                        <li>Up to 15 active clients</li>
                         <li>AI meal plan generator</li>
                         <li>Client food diary</li>
                         <li>Weekly check-in forms</li>
@@ -1332,7 +1332,7 @@
                     <span class="pricing-card-badge">MOST POPULAR</span>
                     <h3>Growth</h3>
                     <div class="pricing-price">
-                        <span class="pricing-price-amount">$99</span>
+                        <span class="pricing-price-amount">$129</span>
                         <span class="pricing-price-period">/month</span>
                     </div>
                     <ul class="pricing-features">
@@ -1345,18 +1345,33 @@
                 </div>
 
                 <div class="pricing-card">
-                    <h3>Professional</h3>
+                    <h3>Scale</h3>
                     <div class="pricing-price">
-                        <span class="pricing-price-amount">$199</span>
+                        <span class="pricing-price-amount">$249</span>
                         <span class="pricing-price-period">/month</span>
                     </div>
                     <ul class="pricing-features">
-                        <li>Up to 300 active clients</li>
+                        <li>Up to 150 active clients</li>
                         <li>Everything in Growth</li>
                         <li>Custom branding & logo</li>
                         <li>Priority support</li>
                     </ul>
-                    <a href="signup.html?plan=professional" class="btn btn-secondary">Start Free Trial</a>
+                    <a href="signup.html?plan=scale" class="btn btn-secondary">Start Free Trial</a>
+                </div>
+
+                <div class="pricing-card">
+                    <h3>Pro</h3>
+                    <div class="pricing-price">
+                        <span class="pricing-price-amount">$399</span>
+                        <span class="pricing-price-period">/month</span>
+                    </div>
+                    <ul class="pricing-features">
+                        <li>Up to 300 active clients</li>
+                        <li>Everything in Scale</li>
+                        <li>Premium support</li>
+                        <li>Early access features</li>
+                    </ul>
+                    <a href="signup.html?plan=pro" class="btn btn-secondary">Start Free Trial</a>
                 </div>
             </div>
         </div>
