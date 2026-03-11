@@ -6769,9 +6769,17 @@ async function sendAiBrainstorm(dayIndex, mealIndex, quickAction = null) {
         if (dislikesEl?.value) clientPreferences.dislikes = dislikesEl.value;
         if (dietTypeEl?.value) clientPreferences.dietType = dietTypeEl.value;
 
+        // Get auth token for authenticated request
+        const { data: { session: brainstormSession } } = await supabaseClient.auth.getSession();
+        const brainstormToken = brainstormSession?.access_token;
+        if (!brainstormToken) throw new Error('Not authenticated. Please log in.');
+
         const response = await fetch('/.netlify/functions/meal-brainstorm', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${brainstormToken}`
+            },
             body: JSON.stringify({
                 meal: {
                     type: meal.type,

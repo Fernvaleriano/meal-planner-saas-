@@ -11104,9 +11104,17 @@
             askBtn.textContent = 'Analyzing...';
 
             try {
+                // Get auth token for authenticated request
+                const { data: { session: aiAssistSession } } = await supabaseClient.auth.getSession();
+                const aiAssistToken = aiAssistSession?.access_token;
+                if (!aiAssistToken) throw new Error('Not authenticated. Please log in.');
+
                 const response = await fetch('/.netlify/functions/coach-ai-assistant', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${aiAssistToken}`
+                    },
                     body: JSON.stringify({
                         clientId: clientId,
                         question: question,
