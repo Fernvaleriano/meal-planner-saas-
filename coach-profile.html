@@ -1808,11 +1808,13 @@
 
             // Format tier name (including legacy tier names)
             const tierNames = {
-                'starter': 'Starter Plan ($49/mo)',
-                'basic': 'Starter Plan ($49/mo)',
-                'growth': 'Growth Plan ($99/mo)',
-                'professional': 'Professional Plan ($199/mo)',
-                'branded': 'Professional Plan ($199/mo)'
+                'starter': 'Starter Plan ($59/mo)',
+                'growth': 'Growth Plan ($129/mo)',
+                'scale': 'Scale Plan ($249/mo)',
+                'pro': 'Pro Plan ($399/mo)',
+                'basic': 'Starter Plan ($59/mo)',
+                'professional': 'Scale Plan ($249/mo)',
+                'branded': 'Pro Plan ($399/mo)'
             };
             planDisplay.textContent = tierNames[coachData.subscription_tier] || 'Starter Plan';
 

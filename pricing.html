@@ -123,9 +123,9 @@
 
         .pricing-cards {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(4, 1fr);
             gap: 24px;
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
         }
 
@@ -457,8 +457,8 @@
             }
 
             .pricing-card:last-child {
-                grid-column: span 2;
-                max-width: 400px;
+                grid-column: span 1;
+                max-width: none;
                 margin: 0 auto;
             }
 
@@ -697,12 +697,12 @@
                 <div class="plan-description">Perfect for coaches just getting started</div>
                 <div class="plan-price">
                     <span class="price-currency">$</span>
-                    <span class="price-amount">49</span>
+                    <span class="price-amount">59</span>
                     <span class="price-period">/month</span>
                 </div>
                 <div class="plan-billing">Billed monthly. Cancel anytime.</div>
                 <ul class="plan-features">
-                    <li>Up to 10 active clients</li>
+                    <li>Up to 15 active clients</li>
                     <li>AI meal plan generator</li>
                     <li>Client food diary tracking</li>
                     <li>AI nutrition assistant</li>
@@ -722,7 +722,7 @@
                 <div class="plan-description">For growing coaching businesses</div>
                 <div class="plan-price">
                     <span class="price-currency">$</span>
-                    <span class="price-amount">99</span>
+                    <span class="price-amount">129</span>
                     <span class="price-period">/month</span>
                 </div>
                 <div class="plan-billing">Billed monthly. Cancel anytime.</div>
@@ -740,13 +740,37 @@
                 <a href="signup.html?plan=growth" class="btn-select primary" data-plan="growth">Get Started</a>
             </div>
 
-            <!-- Professional Plan -->
+            <!-- Scale Plan -->
             <div class="pricing-card">
-                <div class="plan-name">Professional</div>
-                <div class="plan-description">For established coaches who want it all</div>
+                <div class="plan-name">Scale</div>
+                <div class="plan-description">For established coaches scaling up</div>
                 <div class="plan-price">
                     <span class="price-currency">$</span>
-                    <span class="price-amount">199</span>
+                    <span class="price-amount">249</span>
+                    <span class="price-period">/month</span>
+                </div>
+                <div class="plan-billing">Billed monthly. Cancel anytime.</div>
+                <ul class="plan-features">
+                    <li>Up to 150 active clients</li>
+                    <li>AI meal plan generator</li>
+                    <li>Client food diary tracking</li>
+                    <li>AI nutrition assistant</li>
+                    <li>Weekly check-in forms</li>
+                    <li>Recipe management</li>
+                    <li>Supplement protocols</li>
+                    <li>Priority support</li>
+                    <li>Custom branding & logo</li>
+                </ul>
+                <a href="signup.html?plan=scale" class="btn-select secondary" data-plan="scale">Get Started</a>
+            </div>
+
+            <!-- Pro Plan -->
+            <div class="pricing-card">
+                <div class="plan-name">Pro</div>
+                <div class="plan-description">For agencies who want it all</div>
+                <div class="plan-price">
+                    <span class="price-currency">$</span>
+                    <span class="price-amount">399</span>
                     <span class="price-period">/month</span>
                 </div>
                 <div class="plan-billing">Billed monthly. Cancel anytime.</div>
@@ -758,10 +782,10 @@
                     <li>Weekly check-in forms</li>
                     <li>Recipe management</li>
                     <li>Supplement protocols</li>
-                    <li>Priority support</li>
+                    <li>Premium support</li>
                     <li>Custom branding & logo</li>
                 </ul>
-                <a href="signup.html?plan=professional" class="btn-select secondary" data-plan="professional">Get Started</a>
+                <a href="signup.html?plan=pro" class="btn-select secondary" data-plan="pro">Get Started</a>
             </div>
         </div>
     </section>
