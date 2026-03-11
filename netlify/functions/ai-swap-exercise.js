@@ -1,5 +1,6 @@
 const { createClient } = require("@supabase/supabase-js");
 const Anthropic = require("@anthropic-ai/sdk");
+const { handleCors, authenticateRequest, checkRateLimit, rateLimitResponse, corsHeaders } = require('./utils/auth');
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
@@ -548,19 +549,25 @@ function shouldExcludeAlternative(original, alt, origMovement) {
 
 exports.handler = async (event) => {
   const headers = {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    ...corsHeaders,
     "Content-Type": "application/json",
   };
 
-  if (event.httpMethod === "OPTIONS") {
-    return { statusCode: 200, headers, body: "" };
-  }
+  // Handle CORS preflight
+  const corsResponse = handleCors(event);
+  if (corsResponse) return corsResponse;
 
   if (event.httpMethod !== "POST") {
     return { statusCode: 405, headers, body: JSON.stringify({ error: "Method not allowed" }) };
   }
+
+  // Authenticate request
+  const { user, error: authError } = await authenticateRequest(event);
+  if (authError) return authError;
+
+  // Rate limit: 20 swaps per minute
+  const { allowed, resetIn } = checkRateLimit(user.id, 'ai-swap-exercise', 20, 60000);
+  if (!allowed) return rateLimitResponse(resetIn);
 
   try {
     const { exercise, workoutExercises = [], equipment = "", coachId = null, previousSuggestionIds = [] } = JSON.parse(event.body);

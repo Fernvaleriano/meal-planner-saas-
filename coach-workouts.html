@@ -9726,9 +9726,17 @@
             btn.innerHTML = '<span class="generating-text"><span class="spinner"></span>Generating...</span>';
 
             try {
+                // Get auth token for authenticated request
+                const { data: { session: aiWorkoutSession } } = await supabaseClient.auth.getSession();
+                const aiWorkoutToken = aiWorkoutSession?.access_token;
+                if (!aiWorkoutToken) throw new Error('Not authenticated. Please log in.');
+
                 const response = await fetch('/.netlify/functions/generate-workout-claude', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${aiWorkoutToken}`
+                    },
                     body: JSON.stringify(requestBody)
                 });
 

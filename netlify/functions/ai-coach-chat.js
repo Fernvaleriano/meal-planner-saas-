@@ -1,18 +1,17 @@
 const OpenAI = require('openai');
+const { handleCors, authenticateRequest, checkRateLimit, rateLimitResponse, corsHeaders } = require('./utils/auth');
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 const headers = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  ...corsHeaders,
   'Content-Type': 'application/json'
 };
 
 exports.handler = async (event) => {
-  if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 200, headers, body: '' };
-  }
+  // Handle CORS preflight
+  const corsResponse = handleCors(event);
+  if (corsResponse) return corsResponse;
 
   if (event.httpMethod !== 'POST') {
     return {
@@ -21,6 +20,14 @@ exports.handler = async (event) => {
       body: JSON.stringify({ error: 'Method not allowed' })
     };
   }
+
+  // Authenticate request
+  const { user, error: authError } = await authenticateRequest(event);
+  if (authError) return authError;
+
+  // Rate limit: 15 chat messages per minute
+  const { allowed, resetIn } = checkRateLimit(user.id, 'ai-coach-chat', 15, 60000);
+  if (!allowed) return rateLimitResponse(resetIn);
 
   try {
     const { message, context } = JSON.parse(event.body || '{}');

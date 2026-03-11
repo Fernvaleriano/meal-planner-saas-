@@ -6749,9 +6749,17 @@
             `;
 
             try {
+                // Get auth token for authenticated request
+                const { data: { session: aiSession } } = await supabaseClient.auth.getSession();
+                const aiToken = aiSession?.access_token;
+                if (!aiToken) throw new Error('Not authenticated. Please log in.');
+
                 const response = await fetch('/.netlify/functions/ai-activity-summary', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${aiToken}`
+                    },
                     body: JSON.stringify({
                         coachId: currentUserId,
                         question: question

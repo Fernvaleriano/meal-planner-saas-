@@ -1,14 +1,13 @@
 // Netlify Function for AI workout program generation using Claude
 const Anthropic = require('@anthropic-ai/sdk');
 const { createClient } = require('@supabase/supabase-js');
+const { handleCors, authenticateRequest, checkRateLimit, rateLimitResponse, corsHeaders } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
 const headers = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  ...corsHeaders,
   'Content-Type': 'application/json'
 };
 
@@ -244,9 +243,8 @@ function findBestExerciseMatch(aiName, aiMuscleGroup, exercises) {
 
 exports.handler = async (event) => {
   // Handle CORS preflight
-  if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 200, headers, body: '' };
-  }
+  const corsResponse = handleCors(event);
+  if (corsResponse) return corsResponse;
 
   if (event.httpMethod !== 'POST') {
     return {
@@ -255,6 +253,14 @@ exports.handler = async (event) => {
       body: JSON.stringify({ error: 'Method not allowed' })
     };
   }
+
+  // Authenticate request
+  const { user, error: authError } = await authenticateRequest(event);
+  if (authError) return authError;
+
+  // Rate limit: 5 workout generations per minute
+  const { allowed, resetIn } = checkRateLimit(user.id, 'generate-workout', 5, 60000);
+  if (!allowed) return rateLimitResponse(resetIn);
 
   const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 

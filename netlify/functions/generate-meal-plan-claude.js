@@ -2,6 +2,7 @@
 const AnthropicModule = require('@anthropic-ai/sdk');
 // Handle both CommonJS and ES module exports
 const Anthropic = AnthropicModule.default || AnthropicModule;
+const { handleCors, authenticateRequest, checkRateLimit, rateLimitResponse, corsHeaders } = require('./utils/auth');
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
@@ -50,19 +51,33 @@ const FOOD_DATABASE = {
 };
 
 exports.handler = async (event, context) => {
+  // Handle CORS preflight
+  const corsResponse = handleCors(event);
+  if (corsResponse) return corsResponse;
+
   // Only allow POST requests
   if (event.httpMethod !== 'POST') {
     return {
       statusCode: 405,
+      headers: corsHeaders,
       body: JSON.stringify({ error: 'Method not allowed' })
     };
   }
+
+  // Authenticate request
+  const { user, error: authError } = await authenticateRequest(event);
+  if (authError) return authError;
+
+  // Rate limit: 5 meal plan generations per minute
+  const { allowed, remaining, resetIn } = checkRateLimit(user.id, 'generate-meal-plan', 5, 60000);
+  if (!allowed) return rateLimitResponse(resetIn);
 
   // Check if API key is configured
   if (!ANTHROPIC_API_KEY) {
     console.error('❌ ANTHROPIC_API_KEY not configured in environment variables');
     return {
       statusCode: 500,
+      headers: corsHeaders,
       body: JSON.stringify({ error: 'API key not configured' })
     };
   }
