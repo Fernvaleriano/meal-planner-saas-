@@ -1,4 +1,5 @@
 const { createClient } = require('@supabase/supabase-js');
+const { handleCors, authenticateRequest, checkRateLimit, rateLimitResponse, corsHeaders } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -6,20 +7,26 @@ const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
 const headers = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  ...corsHeaders,
   'Content-Type': 'application/json'
 };
 
 exports.handler = async (event) => {
-  if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 200, headers, body: '' };
-  }
+  // Handle CORS preflight
+  const corsResponse = handleCors(event);
+  if (corsResponse) return corsResponse;
 
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method not allowed' }) };
   }
+
+  // Authenticate request
+  const { user, error: authError } = await authenticateRequest(event);
+  if (authError) return authError;
+
+  // Rate limit: 10 workout AI queries per minute
+  const { allowed, resetIn } = checkRateLimit(user.id, 'coach-workout-ai', 10, 60000);
+  if (!allowed) return rateLimitResponse(resetIn);
 
   if (!SUPABASE_SERVICE_KEY || !GEMINI_API_KEY) {
     return { statusCode: 500, headers, body: JSON.stringify({ error: 'Server configuration error' }) };

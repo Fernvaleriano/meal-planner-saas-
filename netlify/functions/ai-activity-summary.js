@@ -1,6 +1,7 @@
 // Netlify Function for AI-powered coach assistant
 // Supports GET for client data and POST for asking questions about clients
 const { createClient } = require('@supabase/supabase-js');
+const { handleCors, authenticateRequest, checkRateLimit, rateLimitResponse, corsHeaders: sharedCorsHeaders } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -8,8 +9,7 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  ...sharedCorsHeaders,
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS'
 };
 
@@ -18,6 +18,14 @@ exports.handler = async (event, context) => {
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers: corsHeaders, body: '' };
   }
+
+  // Authenticate request
+  const { user, error: authError } = await authenticateRequest(event);
+  if (authError) return authError;
+
+  // Rate limit: 10 AI summaries per minute
+  const { allowed, resetIn } = checkRateLimit(user.id, 'ai-activity-summary', 10, 60000);
+  if (!allowed) return rateLimitResponse(resetIn);
 
   // Handle POST requests for asking questions
   if (event.httpMethod === 'POST') {
