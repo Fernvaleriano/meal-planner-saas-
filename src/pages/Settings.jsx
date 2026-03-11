@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Moon, Camera, Lock, LogOut, ChevronRight, Loader, Users, Scale } from 'lucide-react';
-import { apiGet, apiPost } from '../utils/api';
+import { Moon, Camera, Lock, LogOut, ChevronRight, Loader, Users, Scale, User, Utensils, Edit3, X } from 'lucide-react';
+import { apiGet, apiPost, apiPut } from '../utils/api';
 import { supabase } from '../utils/supabase';
 import { usePullToRefreshEvent } from '../hooks/usePullToRefreshEvent';
 
@@ -48,6 +48,95 @@ function Settings() {
     clientData?.unit_preference || 'imperial'
   );
   const [unitPrefLoading, setUnitPrefLoading] = useState(false);
+
+  // Profile edit states
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileForm, setProfileForm] = useState({});
+
+  const openProfileModal = () => {
+    setProfileForm({
+      age: clientData?.age || '',
+      gender: clientData?.gender || '',
+      weight: clientData?.weight || '',
+      heightFt: clientData?.height_ft || '',
+      heightIn: clientData?.height_in || '',
+      activityLevel: clientData?.activity_level || '',
+      dietType: clientData?.diet_type || '',
+      allergies: clientData?.allergies || '',
+      dislikedFoods: clientData?.disliked_foods || '',
+      preferredFoods: clientData?.preferred_foods || '',
+      mealCount: clientData?.meal_count || '',
+      cookingEquipment: Array.isArray(clientData?.cooking_equipment) ? clientData.cooking_equipment.join(', ') : (clientData?.cooking_equipment || ''),
+      useProteinPowder: clientData?.use_protein_powder || false,
+      proteinPowderBrand: clientData?.protein_powder_brand || '',
+      proteinPowderCalories: clientData?.protein_powder_calories || '',
+      proteinPowderProtein: clientData?.protein_powder_protein || '',
+      proteinPowderCarbs: clientData?.protein_powder_carbs || '',
+      proteinPowderFat: clientData?.protein_powder_fat || '',
+      budget: clientData?.budget || ''
+    });
+    setShowProfileModal(true);
+  };
+
+  const handleProfileSave = async () => {
+    if (!clientData?.id) return;
+    setProfileSaving(true);
+    try {
+      const equipmentArray = profileForm.cookingEquipment
+        ? profileForm.cookingEquipment.split(',').map(s => s.trim()).filter(Boolean)
+        : [];
+
+      const response = await apiPut('/.netlify/functions/update-client-profile', {
+        clientId: clientData.id,
+        age: profileForm.age ? parseInt(profileForm.age) : null,
+        gender: profileForm.gender || null,
+        weight: profileForm.weight ? parseFloat(profileForm.weight) : null,
+        heightFt: profileForm.heightFt ? parseInt(profileForm.heightFt) : null,
+        heightIn: profileForm.heightIn ? parseInt(profileForm.heightIn) : null,
+        activityLevel: profileForm.activityLevel ? parseFloat(profileForm.activityLevel) : null,
+        dietType: profileForm.dietType || null,
+        allergies: profileForm.allergies || null,
+        dislikedFoods: profileForm.dislikedFoods || null,
+        preferredFoods: profileForm.preferredFoods || null,
+        mealCount: profileForm.mealCount ? parseInt(profileForm.mealCount) : null,
+        cookingEquipment: equipmentArray,
+        useProteinPowder: profileForm.useProteinPowder,
+        proteinPowderBrand: profileForm.proteinPowderBrand || null,
+        proteinPowderCalories: profileForm.proteinPowderCalories ? parseInt(profileForm.proteinPowderCalories) : null,
+        proteinPowderProtein: profileForm.proteinPowderProtein ? parseInt(profileForm.proteinPowderProtein) : null,
+        proteinPowderCarbs: profileForm.proteinPowderCarbs ? parseInt(profileForm.proteinPowderCarbs) : null,
+        proteinPowderFat: profileForm.proteinPowderFat ? parseInt(profileForm.proteinPowderFat) : null,
+        budget: profileForm.budget || null
+      });
+
+      if (response.success) {
+        await refreshClientData();
+        setShowProfileModal(false);
+      } else {
+        throw new Error(response.error || 'Failed to save');
+      }
+    } catch (err) {
+      console.error('Error saving profile:', err);
+      alert('Failed to save profile. Please try again.');
+    } finally {
+      setProfileSaving(false);
+    }
+  };
+
+  const activityLevelLabels = {
+    '1.2': 'Sedentary',
+    '1.375': 'Lightly Active',
+    '1.55': 'Moderately Active',
+    '1.725': 'Very Active',
+    '1.9': 'Extra Active'
+  };
+
+  const getActivityLabel = (val) => {
+    if (!val) return 'Not set';
+    const key = String(parseFloat(val));
+    return activityLevelLabels[key] || `${val}`;
+  };
 
   // Scroll to top on mount
   useEffect(() => {
@@ -356,6 +445,137 @@ function Settings() {
         </div>
       </div>
 
+      {/* My Profile Section */}
+      <div className="settings-card">
+        <div className="settings-card-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          MY PROFILE
+          <button
+            onClick={openProfileModal}
+            style={{
+              background: 'none', border: 'none', cursor: 'pointer',
+              color: 'var(--teal-500, #0d9488)', fontSize: '0.75rem', fontWeight: 600,
+              display: 'flex', alignItems: 'center', gap: '4px', padding: 0
+            }}
+          >
+            <Edit3 size={14} /> Edit
+          </button>
+        </div>
+
+        <div className="settings-item">
+          <div className="settings-item-left">
+            <div className="settings-icon-box blue">
+              <User size={20} />
+            </div>
+            <div className="settings-item-text">
+              <div className="settings-item-title">Physical Stats</div>
+              <div className="settings-item-subtitle">
+                {[
+                  clientData?.age ? `${clientData.age}yo` : null,
+                  clientData?.gender ? clientData.gender.charAt(0).toUpperCase() + clientData.gender.slice(1) : null,
+                  clientData?.weight ? `${clientData.weight} ${unitPref === 'metric' ? 'kg' : 'lbs'}` : null,
+                  (clientData?.height_ft || clientData?.height_in) ? `${clientData.height_ft || 0}'${clientData.height_in || 0}"` : null,
+                ].filter(Boolean).join(' / ') || 'Not set'}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="settings-divider"></div>
+
+        <div className="settings-item">
+          <div className="settings-item-left">
+            <div className="settings-icon-box green">
+              <Utensils size={20} />
+            </div>
+            <div className="settings-item-text">
+              <div className="settings-item-title">Activity Level</div>
+              <div className="settings-item-subtitle">{getActivityLabel(clientData?.activity_level)}</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="settings-divider"></div>
+
+        <div className="settings-item">
+          <div className="settings-item-left">
+            <div className="settings-icon-box orange">
+              <Utensils size={20} />
+            </div>
+            <div className="settings-item-text">
+              <div className="settings-item-title">Diet & Food Preferences</div>
+              <div className="settings-item-subtitle">
+                {[
+                  clientData?.diet_type ? clientData.diet_type.charAt(0).toUpperCase() + clientData.diet_type.slice(1) : null,
+                  clientData?.meal_count ? `${clientData.meal_count} meals/day` : null,
+                ].filter(Boolean).join(' / ') || 'Not set'}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {clientData?.allergies && (
+          <>
+            <div className="settings-divider"></div>
+            <div className="settings-item">
+              <div className="settings-item-left">
+                <div className="settings-item-text" style={{ marginLeft: '44px' }}>
+                  <div className="settings-item-title" style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>Allergies</div>
+                  <div className="settings-item-subtitle">{clientData.allergies}</div>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
+        {clientData?.disliked_foods && (
+          <>
+            <div className="settings-divider"></div>
+            <div className="settings-item">
+              <div className="settings-item-left">
+                <div className="settings-item-text" style={{ marginLeft: '44px' }}>
+                  <div className="settings-item-title" style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>Disliked Foods</div>
+                  <div className="settings-item-subtitle">{clientData.disliked_foods}</div>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
+        {clientData?.preferred_foods && (
+          <>
+            <div className="settings-divider"></div>
+            <div className="settings-item">
+              <div className="settings-item-left">
+                <div className="settings-item-text" style={{ marginLeft: '44px' }}>
+                  <div className="settings-item-title" style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>Preferred Foods</div>
+                  <div className="settings-item-subtitle">{clientData.preferred_foods}</div>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
+        {clientData?.use_protein_powder && (
+          <>
+            <div className="settings-divider"></div>
+            <div className="settings-item">
+              <div className="settings-item-left">
+                <div className="settings-item-text" style={{ marginLeft: '44px' }}>
+                  <div className="settings-item-title" style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>Protein Powder</div>
+                  <div className="settings-item-subtitle">
+                    {[
+                      clientData.protein_powder_brand,
+                      clientData.protein_powder_calories ? `${clientData.protein_powder_calories}cal` : null,
+                      clientData.protein_powder_protein ? `${clientData.protein_powder_protein}g protein` : null,
+                    ].filter(Boolean).join(' / ') || 'Yes'}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+
       {/* Preferences Section */}
       <div className="settings-card">
         <div className="settings-card-title">PREFERENCES</div>
@@ -530,8 +750,188 @@ function Settings() {
           </div>
         </div>
       )}
+
+      {/* Edit Profile Modal */}
+      {showProfileModal && (
+        <div className="modal-overlay active" onClick={() => setShowProfileModal(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}>
+            <div className="modal-header">
+              <button className="modal-close" onClick={() => setShowProfileModal(false)}><X size={20} /></button>
+              <span style={{ fontWeight: 600 }}>Edit Profile</span>
+            </div>
+            <div className="modal-body" style={{ padding: '16px', overflowY: 'auto', flex: 1 }}>
+              {/* Physical Stats */}
+              <div style={{ marginBottom: '20px' }}>
+                <div style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--gray-500)', marginBottom: '12px', textTransform: 'uppercase' }}>Physical Stats</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <label style={labelStyle}>
+                    <span style={labelTextStyle}>Age</span>
+                    <input type="number" value={profileForm.age} onChange={e => setProfileForm(f => ({ ...f, age: e.target.value }))} style={inputStyle} placeholder="e.g. 30" />
+                  </label>
+                  <label style={labelStyle}>
+                    <span style={labelTextStyle}>Gender</span>
+                    <select value={profileForm.gender} onChange={e => setProfileForm(f => ({ ...f, gender: e.target.value }))} style={inputStyle}>
+                      <option value="">Select</option>
+                      <option value="male">Male</option>
+                      <option value="female">Female</option>
+                    </select>
+                  </label>
+                  <label style={labelStyle}>
+                    <span style={labelTextStyle}>Weight ({unitPref === 'metric' ? 'kg' : 'lbs'})</span>
+                    <input type="number" step="0.1" value={profileForm.weight} onChange={e => setProfileForm(f => ({ ...f, weight: e.target.value }))} style={inputStyle} placeholder="e.g. 185" />
+                  </label>
+                  <label style={labelStyle}>
+                    <span style={labelTextStyle}>Height</span>
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      <input type="number" value={profileForm.heightFt} onChange={e => setProfileForm(f => ({ ...f, heightFt: e.target.value }))} style={{ ...inputStyle, flex: 1 }} placeholder="ft" />
+                      <input type="number" value={profileForm.heightIn} onChange={e => setProfileForm(f => ({ ...f, heightIn: e.target.value }))} style={{ ...inputStyle, flex: 1 }} placeholder="in" />
+                    </div>
+                  </label>
+                </div>
+                <label style={{ ...labelStyle, marginTop: '12px' }}>
+                  <span style={labelTextStyle}>Activity Level</span>
+                  <select value={profileForm.activityLevel} onChange={e => setProfileForm(f => ({ ...f, activityLevel: e.target.value }))} style={inputStyle}>
+                    <option value="">Select</option>
+                    <option value="1.2">Sedentary</option>
+                    <option value="1.375">Lightly Active</option>
+                    <option value="1.55">Moderately Active</option>
+                    <option value="1.725">Very Active</option>
+                    <option value="1.9">Extra Active</option>
+                  </select>
+                </label>
+              </div>
+
+              {/* Diet Preferences */}
+              <div style={{ marginBottom: '20px' }}>
+                <div style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--gray-500)', marginBottom: '12px', textTransform: 'uppercase' }}>Diet & Food Preferences</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <label style={labelStyle}>
+                    <span style={labelTextStyle}>Diet Type</span>
+                    <select value={profileForm.dietType} onChange={e => setProfileForm(f => ({ ...f, dietType: e.target.value }))} style={inputStyle}>
+                      <option value="">Select</option>
+                      <option value="omnivore">Omnivore</option>
+                      <option value="vegetarian">Vegetarian</option>
+                      <option value="vegan">Vegan</option>
+                      <option value="keto">Keto</option>
+                      <option value="paleo">Paleo</option>
+                    </select>
+                  </label>
+                  <label style={labelStyle}>
+                    <span style={labelTextStyle}>Meals Per Day</span>
+                    <select value={profileForm.mealCount} onChange={e => setProfileForm(f => ({ ...f, mealCount: e.target.value }))} style={inputStyle}>
+                      <option value="">Select</option>
+                      <option value="2">2</option>
+                      <option value="3">3</option>
+                      <option value="4">4</option>
+                      <option value="5">5</option>
+                      <option value="6">6</option>
+                    </select>
+                  </label>
+                </div>
+                <label style={{ ...labelStyle, marginTop: '12px' }}>
+                  <span style={labelTextStyle}>Allergies</span>
+                  <input type="text" value={profileForm.allergies} onChange={e => setProfileForm(f => ({ ...f, allergies: e.target.value }))} style={inputStyle} placeholder="e.g. Shellfish, Peanuts" />
+                </label>
+                <label style={{ ...labelStyle, marginTop: '12px' }}>
+                  <span style={labelTextStyle}>Disliked Foods</span>
+                  <input type="text" value={profileForm.dislikedFoods} onChange={e => setProfileForm(f => ({ ...f, dislikedFoods: e.target.value }))} style={inputStyle} placeholder="e.g. Mushrooms, Olives" />
+                </label>
+                <label style={{ ...labelStyle, marginTop: '12px' }}>
+                  <span style={labelTextStyle}>Preferred Foods</span>
+                  <input type="text" value={profileForm.preferredFoods} onChange={e => setProfileForm(f => ({ ...f, preferredFoods: e.target.value }))} style={inputStyle} placeholder="e.g. Chicken, Rice, Broccoli" />
+                </label>
+                <label style={{ ...labelStyle, marginTop: '12px' }}>
+                  <span style={labelTextStyle}>Cooking Equipment</span>
+                  <input type="text" value={profileForm.cookingEquipment} onChange={e => setProfileForm(f => ({ ...f, cookingEquipment: e.target.value }))} style={inputStyle} placeholder="e.g. Oven, Air Fryer, Stovetop" />
+                </label>
+                <label style={{ ...labelStyle, marginTop: '12px' }}>
+                  <span style={labelTextStyle}>Budget</span>
+                  <select value={profileForm.budget} onChange={e => setProfileForm(f => ({ ...f, budget: e.target.value }))} style={inputStyle}>
+                    <option value="">Select</option>
+                    <option value="budget">Budget-Friendly</option>
+                    <option value="moderate">Moderate</option>
+                    <option value="premium">Premium</option>
+                  </select>
+                </label>
+              </div>
+
+              {/* Protein Powder */}
+              <div style={{ marginBottom: '20px' }}>
+                <div style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--gray-500)', marginBottom: '12px', textTransform: 'uppercase' }}>Protein Powder</div>
+                <label style={{ ...labelStyle, display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '10px' }}>
+                  <input type="checkbox" checked={profileForm.useProteinPowder} onChange={e => setProfileForm(f => ({ ...f, useProteinPowder: e.target.checked }))} />
+                  <span style={{ fontSize: '0.9rem', color: 'var(--gray-700)' }}>I use protein powder</span>
+                </label>
+                {profileForm.useProteinPowder && (
+                  <div style={{ marginTop: '12px' }}>
+                    <label style={labelStyle}>
+                      <span style={labelTextStyle}>Brand</span>
+                      <input type="text" value={profileForm.proteinPowderBrand} onChange={e => setProfileForm(f => ({ ...f, proteinPowderBrand: e.target.value }))} style={inputStyle} placeholder="e.g. Optimum Nutrition" />
+                    </label>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '12px' }}>
+                      <label style={labelStyle}>
+                        <span style={labelTextStyle}>Calories</span>
+                        <input type="number" value={profileForm.proteinPowderCalories} onChange={e => setProfileForm(f => ({ ...f, proteinPowderCalories: e.target.value }))} style={inputStyle} placeholder="120" />
+                      </label>
+                      <label style={labelStyle}>
+                        <span style={labelTextStyle}>Protein (g)</span>
+                        <input type="number" value={profileForm.proteinPowderProtein} onChange={e => setProfileForm(f => ({ ...f, proteinPowderProtein: e.target.value }))} style={inputStyle} placeholder="24" />
+                      </label>
+                      <label style={labelStyle}>
+                        <span style={labelTextStyle}>Carbs (g)</span>
+                        <input type="number" value={profileForm.proteinPowderCarbs} onChange={e => setProfileForm(f => ({ ...f, proteinPowderCarbs: e.target.value }))} style={inputStyle} placeholder="3" />
+                      </label>
+                      <label style={labelStyle}>
+                        <span style={labelTextStyle}>Fat (g)</span>
+                        <input type="number" value={profileForm.proteinPowderFat} onChange={e => setProfileForm(f => ({ ...f, proteinPowderFat: e.target.value }))} style={inputStyle} placeholder="1" />
+                      </label>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <button
+                onClick={handleProfileSave}
+                disabled={profileSaving}
+                style={{
+                  width: '100%',
+                  padding: '14px',
+                  borderRadius: '8px',
+                  background: profileSaving ? '#94a3b8' : '#0d9488',
+                  color: 'white',
+                  border: 'none',
+                  fontWeight: 600,
+                  fontSize: '1rem',
+                  cursor: profileSaving ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px'
+                }}
+              >
+                {profileSaving && <Loader size={18} className="spin" />}
+                {profileSaving ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
+const labelStyle = { display: 'flex', flexDirection: 'column', gap: '4px' };
+const labelTextStyle = { fontSize: '0.8rem', fontWeight: 500, color: 'var(--gray-500)' };
+const inputStyle = {
+  padding: '10px 12px',
+  borderRadius: '8px',
+  border: '1px solid var(--gray-200, #e2e8f0)',
+  fontSize: '0.9rem',
+  backgroundColor: 'var(--gray-50, #f8fafc)',
+  color: 'var(--gray-800, #1e293b)',
+  outline: 'none',
+  width: '100%',
+  boxSizing: 'border-box'
+};
 
 export default Settings;
