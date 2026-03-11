@@ -106,7 +106,7 @@ export function AuthProvider({ children }) {
       // Fetch client data and check coach status in parallel
       const fetchPromise = supabase
         .from('clients')
-        .select('id, coach_id, client_name, email, avatar_url, profile_photo_url, can_edit_goals, calorie_goal, protein_goal, carbs_goal, fat_goal, gender, preferred_exercise_gender, unit_preference')
+        .select('id, coach_id, client_name, email, avatar_url, profile_photo_url, can_edit_goals, calorie_goal, protein_goal, carbs_goal, fat_goal, gender, preferred_exercise_gender, unit_preference, age, weight, height_ft, height_in, activity_level, diet_type, allergies, disliked_foods, preferred_foods, cooking_equipment, meal_count, use_protein_powder, protein_powder_brand, protein_powder_calories, protein_powder_protein, protein_powder_carbs, protein_powder_fat, budget, unit_system')
         .eq('user_id', userId)
         .single();
 
