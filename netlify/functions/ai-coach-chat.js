@@ -133,12 +133,18 @@ Respond in this exact JSON format:
 
   } catch (error) {
     console.error('AI Coach Chat error:', error);
+
+    // OpenAI failed — use smart fallback so the client still gets useful coaching
+    const { message, context } = JSON.parse(event.body || '{}');
+    const fallback = getFallbackResponse(message, context);
     return {
-      statusCode: 500,
+      statusCode: 200,
       headers,
       body: JSON.stringify({
-        error: 'Failed to process request',
-        reply: "I'm having trouble connecting right now. A good rule of thumb: if you're feeling good, try adding 1 rep. If you're tired, match your last session."
+        reply: fallback.reply,
+        suggestedReps: fallback.suggestedReps,
+        suggestedWeight: fallback.suggestedWeight,
+        reasoning: fallback.reasoning
       })
     };
   }
