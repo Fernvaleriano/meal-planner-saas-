@@ -3863,6 +3863,7 @@ function Workouts() {
                       isLast={index === exercises.length - 1}
                       onUpdateExercise={handleUpdateExercise}
                       weightUnit={weightUnit}
+                      clientId={clientData?.id}
                     />
                   </ErrorBoundary>
                 );
