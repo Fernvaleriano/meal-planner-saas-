@@ -4,6 +4,7 @@ import { Sunrise, Sun, Moon, Apple, Filter, ChevronDown, ChevronUp, User, Calend
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, apiDelete } from '../utils/api';
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
+import ProgramsEndingSoon from '../components/ProgramsEndingSoon';
 
 // Available reaction emojis
 const REACTIONS = ['👏', '💪', '🔥', '⭐', '❤️'];
@@ -956,6 +957,9 @@ function Feed() {
           <Filter size={20} />
         </button>
       </div>
+
+      {/* Programs Ending Soon Widget */}
+      <ProgramsEndingSoon coachId={coachId} />
 
       {/* Tab buttons */}
       <div className="feed-tabs">
