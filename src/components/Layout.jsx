@@ -6,6 +6,8 @@ import DesktopSidebar from './DesktopSidebar';
 import ErrorBoundary from './ErrorBoundary';
 import PullToRefreshWrapper from './PullToRefreshWrapper';
 import SyncIndicator from './SyncIndicator';
+import { useAuth } from '../context/AuthContext';
+import { useBranding } from '../context/BrandingContext';
 
 // Lazy-import tab pages — these stay mounted once visited (like native app tabs)
 import Dashboard from '../pages/Dashboard';
@@ -14,14 +16,19 @@ import Messages from '../pages/Messages';
 import Workouts from '../pages/Workouts';
 import Plans from '../pages/Plans';
 
-// Tab paths that correspond to bottom nav items.
-// These pages are kept alive (mounted but hidden) after first visit
-// so switching tabs is instant — no remount, no refetch, no flash.
-const TAB_PATHS = ['/', '/diary', '/messages', '/workouts', '/plans'];
+// All possible tab paths — filtered at runtime by module visibility
+const ALL_TAB_PATHS = ['/', '/diary', '/messages', '/workouts', '/plans'];
+
+// Module key for each tab path (null = always visible)
+const TAB_MODULE_MAP = {
+  '/': null,
+  '/diary': 'diary',
+  '/messages': 'messages',
+  '/workouts': 'workouts',
+  '/plans': 'plans',
+};
 
 // Memoize tab components so they don't re-render when Layout re-renders.
-// Without this, every route change triggers all 5 mounted tab trees to re-render
-// even when hidden with display:none — wasted CPU, dropped frames, scroll jank.
 const MemoizedDashboard = memo(Dashboard);
 const MemoizedDiary = memo(Diary);
 const MemoizedMessages = memo(Messages);
@@ -36,22 +43,35 @@ const TAB_COMPONENTS = {
   '/plans': MemoizedPlans,
 };
 
-function getActiveTab(pathname) {
+function getActiveTab(pathname, tabPaths) {
   if (pathname === '/') return '/';
   // /plans and /plans/:id both map to the Plans tab
-  if (pathname.startsWith('/plans')) return '/plans';
+  if (pathname.startsWith('/plans')) return tabPaths.includes('/plans') ? '/plans' : null;
   // /workouts/builder and /workouts/builder/:id are standalone pages, not the tab
   if (pathname.startsWith('/workouts/builder')) return null;
   // /workout-plans is a standalone page, not a tab
   if (pathname === '/workout-plans') return null;
-  const match = TAB_PATHS.find(t => t !== '/' && pathname.startsWith(t));
+  const match = tabPaths.find(t => t !== '/' && pathname.startsWith(t));
   return match || null;
 }
 
 function Layout() {
   const location = useLocation();
   const path = location.pathname;
-  const activeTab = getActiveTab(path);
+  const { clientData } = useAuth();
+  const { isModuleVisible } = useBranding();
+  const isCoach = clientData?.is_coach === true;
+
+  // Filter tab paths based on module visibility (coaches see all tabs)
+  const tabPaths = useMemo(() => {
+    if (isCoach) return ALL_TAB_PATHS;
+    return ALL_TAB_PATHS.filter(tabPath => {
+      const moduleKey = TAB_MODULE_MAP[tabPath];
+      return !moduleKey || isModuleVisible(moduleKey);
+    });
+  }, [isCoach, isModuleVisible]);
+
+  const activeTab = getActiveTab(path, tabPaths);
 
   // Lazy mount: only render a tab after the user first navigates to it.
   // This avoids mounting all 5 pages on initial load.
@@ -94,7 +114,7 @@ function Layout() {
               {/* Persistent tab pages — mounted once, shown/hidden with CSS.
                   This is what makes tab switching feel instant (like a native app).
                   Hidden tabs keep their scroll position, state, and subscriptions. */}
-              {TAB_PATHS.map(tabPath => {
+              {tabPaths.map(tabPath => {
                 if (!visited.has(tabPath)) return null;
                 const Component = TAB_COMPONENTS[tabPath];
                 return (

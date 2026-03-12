@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Bell } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useBranding } from '../context/BrandingContext';
 import { apiGet } from '../utils/api';
 import { onAppResume, onAppSuspend } from '../hooks/useAppLifecycle';
 import StoryViewer from './StoryViewer';
@@ -24,6 +25,7 @@ const STORY_CACHE_TTL = 60000; // 1 minute cache
 
 function TopNav() {
   const { clientData } = useAuth();
+  const { branding } = useBranding();
   const navigate = useNavigate();
   const [unreadCount, setUnreadCount] = useState(() => {
     if (notificationCache.data &&
@@ -197,8 +199,8 @@ function TopNav() {
       {/* Left: Logo */}
       <Link to="/" className="nav-left" aria-label="Go to home">
         <img
-          src="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/Untitled%20design%20(7).svg"
-          alt="Zique Fitness"
+          src={branding?.brand_logo_url || 'https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/Untitled%20design%20(7).svg'}
+          alt={branding?.brand_name || 'Zique Fitness'}
           className="nav-logo-left"
         />
       </Link>

@@ -1,11 +1,13 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Home, NotebookPen, Dumbbell, MessageCircle, UtensilsCrossed } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useBranding } from '../context/BrandingContext';
 import { apiGet } from '../utils/api';
 
 function BottomNav({ currentPath }) {
   const { user, clientData } = useAuth();
+  const { isModuleVisible, getLabel } = useBranding();
   const isCoach = clientData?.is_coach === true;
   const [unreadMessages, setUnreadMessages] = useState(0);
 
@@ -66,13 +68,20 @@ function BottomNav({ currentPath }) {
     return () => window.removeEventListener('new-unread-message', handleNewUnread);
   }, [currentPath]);
 
-  const navItems = [
-    { path: '/', icon: Home, label: 'Home' },
-    { path: '/diary', icon: NotebookPen, label: 'Diary' },
-    { path: '/messages', icon: MessageCircle, label: 'Messages', badge: unreadMessages },
-    { path: '/workouts', icon: Dumbbell, label: 'Workouts' },
-    { path: '/plans', icon: UtensilsCrossed, label: 'Meals' }
-  ];
+  // Build nav items, filtering by module visibility for clients
+  // Coaches always see all tabs
+  const navItems = useMemo(() => {
+    const allItems = [
+      { path: '/', icon: Home, label: getLabel('home'), moduleKey: null },
+      { path: '/diary', icon: NotebookPen, label: getLabel('diary'), moduleKey: 'diary' },
+      { path: '/messages', icon: MessageCircle, label: getLabel('messages'), badge: unreadMessages, moduleKey: 'messages' },
+      { path: '/workouts', icon: Dumbbell, label: getLabel('workouts'), moduleKey: 'workouts' },
+      { path: '/plans', icon: UtensilsCrossed, label: getLabel('plans'), moduleKey: 'plans' }
+    ];
+
+    if (isCoach) return allItems;
+    return allItems.filter(item => !item.moduleKey || isModuleVisible(item.moduleKey));
+  }, [isCoach, isModuleVisible, getLabel, unreadMessages]);
 
   return (
     <nav className="bottom-nav" role="navigation" aria-label="Main navigation">

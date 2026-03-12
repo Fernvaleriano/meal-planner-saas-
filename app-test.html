@@ -12,7 +12,7 @@
     <meta property="og:description" content="Your personalized fitness and nutrition companion">
     <meta property="og:type" content="website">
     <meta property="og:image" content="/icons/logo.png">
-    <link rel="manifest" href="/manifest.json">
+    <link rel="manifest" href="/manifest.json" id="manifest-link">
     <link rel="icon" type="image/png" href="/icons/logo.png">
     <link rel="apple-touch-icon" href="/icons/logo.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -82,6 +82,7 @@
     </div>
     <script>
         // Apply cached coach branding to splash screen instantly (no network calls)
+        // Also point the manifest link to the dynamic manifest for branded homescreen saves
         (function() {
             try {
                 var cached = sessionStorage.getItem('zique_branding');
@@ -100,6 +101,20 @@
                     if (spinner) {
                         spinner.style.borderColor = b.brand_primary_color + '33';
                         spinner.style.borderTopColor = b.brand_primary_color;
+                    }
+                }
+                // Update manifest link for branded PWA homescreen saves
+                if (b.coach_id && b.has_branding_access) {
+                    var manifestLink = document.getElementById('manifest-link');
+                    if (manifestLink) {
+                        manifestLink.href = '/.netlify/functions/dynamic-manifest?coachId=' + b.coach_id;
+                    }
+                    // Update page title
+                    if (b.brand_name) document.title = b.brand_name;
+                    // Update apple-touch-icon
+                    if (b.brand_logo_url) {
+                        var touchIcon = document.querySelector('link[rel="apple-touch-icon"]');
+                        if (touchIcon) touchIcon.href = b.brand_logo_url;
                     }
                 }
             } catch (e) { /* silent fail */ }
