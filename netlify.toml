@@ -131,6 +131,10 @@
 [functions."send-checkin-reminders"]
   schedule = "@hourly"
 
+# Scheduled function - runs daily at 8 AM UTC to check for ending workout programs
+[functions."send-workout-end-notifications"]
+  schedule = "0 8 * * *"
+
 # HTTP Caching Headers for optimal performance
 [[headers]]
   for = "/*.js"
