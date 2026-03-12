@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect, memo, useCallback } from 'react';
-import { Check, Plus, Clock, Minus, Play, Timer, Zap, Flame, Leaf, ArrowLeftRight, Trash2, ChevronUp, ChevronDown, GripVertical, Mic, MicOff, ExternalLink } from 'lucide-react';
+import { Check, Plus, Clock, Minus, Play, Timer, Zap, Flame, Leaf, ArrowLeftRight, Trash2, ChevronUp, ChevronDown, GripVertical, Mic, MicOff, ExternalLink, Bot } from 'lucide-react';
 import SmartThumbnail from './SmartThumbnail';
 import SetEditorModal from './SetEditorModal';
+import AskAIChatModal from './AskAIChatModal';
 import Portal from '../Portal';
 import { onAppResume, onAppSuspend } from '../../hooks/useAppLifecycle';
 
@@ -140,7 +141,7 @@ const parseVoiceInputForSets = (transcript) => {
   }
 };
 
-function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick, workoutStarted, onSwapExercise, onDeleteExercise, onMoveUp, onMoveDown, isFirst, isLast, onUpdateExercise, weightUnit = 'lbs' }) {
+function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick, workoutStarted, onSwapExercise, onDeleteExercise, onMoveUp, onMoveDown, isFirst, isLast, onUpdateExercise, weightUnit = 'lbs', clientId }) {
   // Early return if exercise is invalid
   if (!exercise || typeof exercise !== 'object') {
     return null;
@@ -215,6 +216,9 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
   const [voiceError, setVoiceError] = useState(null);
   const [lastTranscript, setLastTranscript] = useState('');
   const recognitionRef = useRef(null);
+
+  // Ask AI chat state
+  const [showAskAI, setShowAskAI] = useState(false);
 
   // Check for voice support on mount
   useEffect(() => {
@@ -1015,6 +1019,17 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
             </div>
           </div>
         )}
+
+        {/* Ask AI Coach Button */}
+        {!isWarmup && !isStretch && (
+          <button
+            className="ask-ai-card-btn"
+            onClick={(e) => { e.stopPropagation(); setShowAskAI(true); }}
+          >
+            <Bot size={14} />
+            <span>Ask AI Coach</span>
+          </button>
+        )}
       </div>
 
       {/* Set Editor Modal */}
@@ -1027,6 +1042,20 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
             onSave={handleSaveSets}
             onClose={() => setShowSetEditor(false)}
             weightUnit={weightUnit}
+          />
+        </Portal>
+      )}
+
+      {/* Ask AI Coach Modal */}
+      {showAskAI && (
+        <Portal>
+          <AskAIChatModal
+            exerciseName={exercise.name}
+            exerciseId={exercise.id}
+            exerciseType={exercise.exercise_type || 'strength'}
+            clientId={clientId}
+            weightUnit={weightUnit}
+            onClose={() => setShowAskAI(false)}
           />
         </Portal>
       )}
@@ -1079,6 +1108,7 @@ const arePropsEqual = (prev, next) => {
   if (prev.isFirst !== next.isFirst) return false;
   if (prev.isLast !== next.isLast) return false;
   if (prev.weightUnit !== next.weightUnit) return false;
+  if (prev.clientId !== next.clientId) return false;
 
   // Skip comparing function props (onToggleComplete, onClick, onSwapExercise, etc.)
   // — they change reference on every parent render but their behavior is stable

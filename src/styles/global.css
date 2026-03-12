@@ -17731,6 +17731,16 @@ textarea,
     color: #78350f;
 }
 
+[data-theme="light"] .exercise-card-v2 .ask-ai-card-btn {
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.1), rgba(37, 99, 235, 0.1));
+    color: #7c3aed;
+    border-color: rgba(124, 58, 237, 0.3);
+}
+
+[data-theme="light"] .exercise-card-v2 .ask-ai-card-btn:active {
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.2), rgba(37, 99, 235, 0.2));
+}
+
 /* Coach Voice Note */
 .exercise-card-v2 .coach-voice-note {
     padding: 12px 14px;
@@ -17852,6 +17862,32 @@ textarea,
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+/* Ask AI Coach Button on Exercise Cards */
+.exercise-card-v2 .ask-ai-card-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 8px 12px 12px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(59, 130, 246, 0.15));
+    color: #a78bfa;
+    border: 1px solid rgba(139, 92, 246, 0.3);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.exercise-card-v2 .ask-ai-card-btn:active {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(59, 130, 246, 0.3));
+    transform: scale(0.97);
+}
+
+.exercise-card-v2 .ask-ai-card-btn svg {
+    flex-shrink: 0;
 }
 
 /* Rest Timer Active State */
