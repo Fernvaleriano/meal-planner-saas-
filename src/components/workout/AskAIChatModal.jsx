@@ -38,11 +38,11 @@ export default function AskAIChatModal({
 
   const buildInitialMessage = (session) => ({
     role: 'assistant',
-    content: `Hi! I'm here to help with your ${exerciseName || 'exercise'}. ${
+    content: `Hey! Let's make this ${exerciseName || 'exercise'} count. ${
       session
-        ? `Last session you did ${session.reps} reps at ${session.weight}${weightUnit}.`
-        : "This looks like your first time with this exercise!"
-    } ${recommendation?.reasoning || ''}\n\nHow can I help? You can ask me things like:\n- "I'm feeling tired today"\n- "Should I go heavier?"\n- "My shoulder hurts a bit"`
+        ? `Last session you hit ${session.reps} reps at ${session.weight}${weightUnit}.`
+        : "This looks like your first time with this exercise — let's set a strong baseline!"
+    } ${recommendation?.reasoning || ''}\n\nWhat's the game plan today?`
   });
 
   const [messages, setMessages] = useState(() => [buildInitialMessage(lastSessionProp)]);
@@ -102,9 +102,11 @@ export default function AskAIChatModal({
   }, []);
 
   const quickSuggestions = [
+    "I feel strong, push me",
     "I'm feeling tired today",
-    "Should I go heavier?",
-    "Keep it the same as last time"
+    "Something feels off",
+    "I want to hit a PR",
+    "What's my progress?"
   ];
 
   const handleSend = async (text) => {
