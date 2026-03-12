@@ -158,7 +158,7 @@ function AskAIChatModal({ messages, loading, onSend, onClose, exerciseName, reco
         <div className="ask-ai-header">
           <div className="ask-ai-header-left">
             <Bot size={20} />
-            <span>AI Coach</span>
+            <span>Coach</span>
           </div>
           <button className="ask-ai-close" onClick={onClose}>
             <X size={20} />
@@ -2560,7 +2560,7 @@ function GuidedWorkoutModal({
                 </button>
                 <button className="ai-rec-btn ask" onClick={handleOpenAskAI}>
                   <MessageCircle size={16} />
-                  <span>Ask AI</span>
+                  <span>Adjust</span>
                 </button>
               </div>
             )}

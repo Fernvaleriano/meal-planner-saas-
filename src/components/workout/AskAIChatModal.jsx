@@ -170,7 +170,7 @@ export default function AskAIChatModal({
         <div className="ask-ai-header">
           <div className="ask-ai-header-left">
             <Bot size={20} />
-            <span>AI Coach</span>
+            <span>Coach</span>
           </div>
           <button className="ask-ai-close" onClick={onClose}>
             <X size={20} />
