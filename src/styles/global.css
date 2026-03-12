@@ -17731,15 +17731,7 @@ textarea,
     color: #78350f;
 }
 
-[data-theme="light"] .exercise-card-v2 .ask-ai-card-btn {
-    background: linear-gradient(135deg, rgba(124, 58, 237, 0.1), rgba(37, 99, 235, 0.1));
-    color: #7c3aed;
-    border-color: rgba(124, 58, 237, 0.3);
-}
 
-[data-theme="light"] .exercise-card-v2 .ask-ai-card-btn:active {
-    background: linear-gradient(135deg, rgba(124, 58, 237, 0.2), rgba(37, 99, 235, 0.2));
-}
 
 /* Coach Voice Note */
 .exercise-card-v2 .coach-voice-note {
@@ -17862,32 +17854,6 @@ textarea,
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-}
-
-/* Ask AI Coach Button on Exercise Cards */
-.exercise-card-v2 .ask-ai-card-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    margin: 8px 12px 12px;
-    padding: 6px 14px;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 600;
-    background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(59, 130, 246, 0.15));
-    color: #a78bfa;
-    border: 1px solid rgba(139, 92, 246, 0.3);
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.exercise-card-v2 .ask-ai-card-btn:active {
-    background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(59, 130, 246, 0.3));
-    transform: scale(0.97);
-}
-
-.exercise-card-v2 .ask-ai-card-btn svg {
-    flex-shrink: 0;
 }
 
 /* Rest Timer Active State */
@@ -19783,42 +19749,21 @@ textarea,
     transform: scale(0.98);
 }
 
-/* Ask AI Coach Button in Exercise Detail Modal */
-.ask-ai-detail-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    width: calc(100% - 32px);
-    margin: 12px 16px;
-    padding: 10px 16px;
-    border-radius: 12px;
-    font-size: 14px;
-    font-weight: 600;
-    background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(59, 130, 246, 0.15));
+.coaching-rec-btn.ask-ai {
+    background: rgba(139, 92, 246, 0.15);
     color: #a78bfa;
     border: 1px solid rgba(139, 92, 246, 0.3);
-    cursor: pointer;
-    transition: all 0.2s;
 }
 
-.ask-ai-detail-btn:active {
-    background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(59, 130, 246, 0.3));
+.coaching-rec-btn.ask-ai:active {
+    background: rgba(139, 92, 246, 0.3);
     transform: scale(0.98);
 }
 
-.ask-ai-detail-btn svg {
-    flex-shrink: 0;
-}
-
-[data-theme="light"] .ask-ai-detail-btn {
-    background: linear-gradient(135deg, rgba(124, 58, 237, 0.1), rgba(37, 99, 235, 0.1));
+[data-theme="light"] .coaching-rec-btn.ask-ai {
+    background: rgba(124, 58, 237, 0.1);
     color: #7c3aed;
     border-color: rgba(124, 58, 237, 0.3);
-}
-
-[data-theme="light"] .ask-ai-detail-btn:active {
-    background: linear-gradient(135deg, rgba(124, 58, 237, 0.2), rgba(37, 99, 235, 0.2));
 }
 
 /* ========================================

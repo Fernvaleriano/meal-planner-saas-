@@ -2295,20 +2295,13 @@ function ExerciseDetailModal({
                   <Check size={16} />
                   <span>Accept</span>
                 </button>
+                <button className="coaching-rec-btn ask-ai" onClick={() => setShowAskAI(true)}>
+                  <MessageCircle size={16} />
+                  <span>Ask AI</span>
+                </button>
               </div>
             )}
           </div>
-        )}
-
-        {/* Ask AI Coach Button */}
-        {!isTimedExercise && exercise?.exercise_type !== 'cardio' && (
-          <button
-            className="ask-ai-detail-btn"
-            onClick={() => setShowAskAI(true)}
-          >
-            <Bot size={16} />
-            <span>Ask AI Coach</span>
-          </button>
         )}
 
         {/* Leave a Note to Coach */}
