@@ -151,7 +151,7 @@ exports.handler = async (event, context) => {
 
             // Brand identity (with fallbacks)
             brand_name: coach.brand_name || DEFAULT_BRANDING.brand_name,
-            brand_logo_url: coach.brand_logo_url || coach.profile_photo_url || DEFAULT_BRANDING.brand_logo_url,
+            brand_logo_url: coach.brand_logo_url || DEFAULT_BRANDING.brand_logo_url,
             brand_favicon_url: coach.brand_favicon_url || DEFAULT_BRANDING.brand_favicon_url,
 
             // Colors (with fallbacks)
