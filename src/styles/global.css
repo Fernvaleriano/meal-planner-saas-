@@ -19783,6 +19783,44 @@ textarea,
     transform: scale(0.98);
 }
 
+/* Ask AI Coach Button in Exercise Detail Modal */
+.ask-ai-detail-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: calc(100% - 32px);
+    margin: 12px 16px;
+    padding: 10px 16px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(59, 130, 246, 0.15));
+    color: #a78bfa;
+    border: 1px solid rgba(139, 92, 246, 0.3);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.ask-ai-detail-btn:active {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(59, 130, 246, 0.3));
+    transform: scale(0.98);
+}
+
+.ask-ai-detail-btn svg {
+    flex-shrink: 0;
+}
+
+[data-theme="light"] .ask-ai-detail-btn {
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.1), rgba(37, 99, 235, 0.1));
+    color: #7c3aed;
+    border-color: rgba(124, 58, 237, 0.3);
+}
+
+[data-theme="light"] .ask-ai-detail-btn:active {
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.2), rgba(37, 99, 235, 0.2));
+}
+
 /* ========================================
    EXERCISE MODAL V3 / IMAGES V3 / TIME BOXES / COACHING REC - LIGHT MODE
    ======================================== */

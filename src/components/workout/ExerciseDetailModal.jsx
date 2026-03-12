@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
-import { X, Check, Plus, ChevronLeft, Play, Timer, BarChart3, ArrowLeftRight, Trash2, Mic, MicOff, MessageCircle, Loader2, AlertCircle, History, TrendingUp, Award, ChevronDown, ChevronUp, Send, Square, Sparkles, ExternalLink, Camera } from 'lucide-react';
+import { X, Check, Plus, ChevronLeft, Play, Timer, BarChart3, ArrowLeftRight, Trash2, Mic, MicOff, MessageCircle, Loader2, AlertCircle, History, TrendingUp, Award, ChevronDown, ChevronUp, Send, Square, Sparkles, ExternalLink, Camera, Bot } from 'lucide-react';
 import { apiGet, apiPost, apiPut, apiDelete } from '../../utils/api';
 import { onAppSuspend, onAppResume } from '../../hooks/useAppLifecycle';
 import Portal from '../Portal';
 import SetEditorModal from './SetEditorModal';
 import SwapExerciseModal from './SwapExerciseModal';
 import AskCoachChat from './AskCoachChat';
+import AskAIChatModal from './AskAIChatModal';
 
 // Number words to digits mapping for voice input (expanded)
 const numberWords = {
@@ -343,6 +344,7 @@ function ExerciseDetailModal({
   const [videoBlobUrl, setVideoBlobUrl] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showAskCoach, setShowAskCoach] = useState(false);
+  const [showAskAI, setShowAskAI] = useState(false);
 
   // Exercise history state
   const [showHistory, setShowHistory] = useState(false);
@@ -2298,6 +2300,17 @@ function ExerciseDetailModal({
           </div>
         )}
 
+        {/* Ask AI Coach Button */}
+        {!isTimedExercise && exercise?.exercise_type !== 'cardio' && (
+          <button
+            className="ask-ai-detail-btn"
+            onClick={() => setShowAskAI(true)}
+          >
+            <Bot size={16} />
+            <span>Ask AI Coach</span>
+          </button>
+        )}
+
         {/* Leave a Note to Coach */}
         <div className="client-note-for-coach-section">
           <button
@@ -2735,6 +2748,22 @@ function ExerciseDetailModal({
           <AskCoachChat
             exercise={exercise}
             onClose={() => setShowAskCoach(false)}
+          />
+        </Portal>
+      )}
+
+      {/* Ask AI Coach Chat Modal */}
+      {showAskAI && (
+        <Portal>
+          <AskAIChatModal
+            exerciseName={exercise?.name}
+            exerciseId={exercise?.id}
+            exerciseType={exercise?.exercise_type || 'strength'}
+            clientId={clientId}
+            lastSession={coachingRecommendation?.lastSession || null}
+            recommendation={coachingRecommendation}
+            weightUnit={weightUnit}
+            onClose={() => setShowAskAI(false)}
           />
         </Portal>
       )}
