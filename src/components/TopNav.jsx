@@ -68,13 +68,7 @@ function TopNav() {
   const [showStoryViewer, setShowStoryViewer] = useState(false);
   const hasFetchedStoriesRef = useRef(false);
 
-  const defaultLogo = 'https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/ZFN%20Logo%20for%20PWA%20&%20Site/zique%20fitness%20white%20logo.png';
-  const fallbackLogo = '/icons/logo.png';
-  const [logoSrc, setLogoSrc] = useState(branding?.brand_logo_url || defaultLogo);
-
-  useEffect(() => {
-    setLogoSrc(branding?.brand_logo_url || defaultLogo);
-  }, [branding?.brand_logo_url]);
+  const ORIGINAL_LOGO = 'https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/Untitled%20design%20(7).svg';
 
   // Fetch notifications (only for unread count badge)
   const fetchNotifications = useCallback(async (force = false) => {
@@ -207,14 +201,9 @@ function TopNav() {
       {/* Left: Logo */}
       <Link to="/" className="nav-left" aria-label="Go to home">
         <img
-          src={logoSrc}
-          alt={branding?.brand_name || 'Zique Fitness'}
+          src={ORIGINAL_LOGO}
+          alt="Zique Fitness"
           className="nav-logo-left"
-          onError={() => {
-            if (logoSrc !== fallbackLogo) {
-              setLogoSrc(fallbackLogo);
-            }
-          }}
         />
       </Link>
 
