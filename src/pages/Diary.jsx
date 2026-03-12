@@ -1907,7 +1907,15 @@ function Diary() {
       calorie_goal: goals.calorie_goal || 2000,
       protein_goal: goals.protein_goal || 150,
       carbs_goal: goals.carbs_goal || 200,
-      fat_goal: goals.fat_goal || 67
+      fat_goal: goals.fat_goal || 67,
+      fiber_goal: goals.fiber_goal || 28,
+      sugar_goal: goals.sugar_goal || 50,
+      sodium_goal: goals.sodium_goal || 2300,
+      potassium_goal: goals.potassium_goal || 3500,
+      calcium_goal: goals.calcium_goal || 1000,
+      iron_goal: goals.iron_goal || 18,
+      vitamin_c_goal: goals.vitamin_c_goal || 90,
+      cholesterol_goal: goals.cholesterol_goal || 300
     });
     setShowEditGoalsModal(true);
   };
@@ -1922,14 +1930,14 @@ function Diary() {
         proteinGoal: editGoalsForm.protein_goal,
         carbsGoal: editGoalsForm.carbs_goal,
         fatGoal: editGoalsForm.fat_goal,
-        fiberGoal: goals.fiber_goal || null,
-        sugarGoal: goals.sugar_goal || null,
-        sodiumGoal: goals.sodium_goal || null,
-        potassiumGoal: goals.potassium_goal || null,
-        calciumGoal: goals.calcium_goal || null,
-        ironGoal: goals.iron_goal || null,
-        vitaminCGoal: goals.vitamin_c_goal || goals.vitamin_c_goal || null,
-        cholesterolGoal: goals.cholesterol_goal || null
+        fiberGoal: editGoalsForm.fiber_goal,
+        sugarGoal: editGoalsForm.sugar_goal,
+        sodiumGoal: editGoalsForm.sodium_goal,
+        potassiumGoal: editGoalsForm.potassium_goal,
+        calciumGoal: editGoalsForm.calcium_goal,
+        ironGoal: editGoalsForm.iron_goal,
+        vitaminCGoal: editGoalsForm.vitamin_c_goal,
+        cholesterolGoal: editGoalsForm.cholesterol_goal
       });
       if (res?.goals) {
         const newGoals = { ...goals, ...res.goals };
@@ -3939,7 +3947,15 @@ function Diary() {
                 { key: 'calorie_goal', label: 'Calories', unit: 'kcal', color: '#f97316', step: 50 },
                 { key: 'protein_goal', label: 'Protein', unit: 'g', color: '#3b82f6', step: 5 },
                 { key: 'carbs_goal', label: 'Carbs', unit: 'g', color: '#10b981', step: 5 },
-                { key: 'fat_goal', label: 'Fat', unit: 'g', color: '#f59e0b', step: 5 }
+                { key: 'fat_goal', label: 'Fat', unit: 'g', color: '#f59e0b', step: 5 },
+                { key: 'fiber_goal', label: 'Fiber', unit: 'g', color: '#8b5cf6', step: 1 },
+                { key: 'sugar_goal', label: 'Sugar', unit: 'g', color: '#ec4899', step: 1 },
+                { key: 'sodium_goal', label: 'Sodium', unit: 'mg', color: '#6366f1', step: 50 },
+                { key: 'potassium_goal', label: 'Potassium', unit: 'mg', color: '#14b8a6', step: 50 },
+                { key: 'calcium_goal', label: 'Calcium', unit: 'mg', color: '#06b6d4', step: 50 },
+                { key: 'iron_goal', label: 'Iron', unit: 'mg', color: '#ef4444', step: 1 },
+                { key: 'vitamin_c_goal', label: 'Vitamin C', unit: 'mg', color: '#22c55e', step: 5 },
+                { key: 'cholesterol_goal', label: 'Cholesterol', unit: 'mg', color: '#f97316', step: 10 }
               ].map(({ key, label, unit, color, step }) => (
                 <div key={key} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <label style={{ fontSize: '0.85rem', fontWeight: 600, color }}>

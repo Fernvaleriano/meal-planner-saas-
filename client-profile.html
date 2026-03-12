@@ -7679,6 +7679,38 @@
                         <label>Fat (g)</label>
                         <input type="number" id="goalFat" value="65" min="0" max="500">
                     </div>
+                    <div class="goal-item">
+                        <label>Fiber (g)</label>
+                        <input type="number" id="goalFiber" value="28" min="0" max="200">
+                    </div>
+                    <div class="goal-item">
+                        <label>Sugar (g)</label>
+                        <input type="number" id="goalSugar" value="50" min="0" max="300">
+                    </div>
+                    <div class="goal-item">
+                        <label>Sodium (mg)</label>
+                        <input type="number" id="goalSodium" value="2300" min="0" max="10000">
+                    </div>
+                    <div class="goal-item">
+                        <label>Potassium (mg)</label>
+                        <input type="number" id="goalPotassium" value="3500" min="0" max="10000">
+                    </div>
+                    <div class="goal-item">
+                        <label>Calcium (mg)</label>
+                        <input type="number" id="goalCalcium" value="1000" min="0" max="5000">
+                    </div>
+                    <div class="goal-item">
+                        <label>Iron (mg)</label>
+                        <input type="number" id="goalIron" value="18" min="0" max="100" step="0.1">
+                    </div>
+                    <div class="goal-item">
+                        <label>Vitamin C (mg)</label>
+                        <input type="number" id="goalVitaminC" value="90" min="0" max="1000">
+                    </div>
+                    <div class="goal-item">
+                        <label>Cholesterol (mg)</label>
+                        <input type="number" id="goalCholesterol" value="300" min="0" max="1000">
+                    </div>
                 </div>
             </div>
 
@@ -9280,6 +9312,14 @@
                     const protein = data.goals.protein_goal || 150;
                     const carbs = data.goals.carbs_goal || 200;
                     const fat = data.goals.fat_goal || 65;
+                    const fiber = data.goals.fiber_goal || 28;
+                    const sugar = data.goals.sugar_goal || 50;
+                    const sodium = data.goals.sodium_goal || 2300;
+                    const potassium = data.goals.potassium_goal || 3500;
+                    const calcium = data.goals.calcium_goal || 1000;
+                    const iron = data.goals.iron_goal || 18;
+                    const vitaminC = data.goals.vitamin_c_goal || 90;
+                    const cholesterol = data.goals.cholesterol_goal || 300;
 
                     // Set values in both modes
                     document.getElementById('goalCalories').value = calories;
@@ -9287,6 +9327,14 @@
                     document.getElementById('goalProtein').value = protein;
                     document.getElementById('goalCarbs').value = carbs;
                     document.getElementById('goalFat').value = fat;
+                    document.getElementById('goalFiber').value = fiber;
+                    document.getElementById('goalSugar').value = sugar;
+                    document.getElementById('goalSodium').value = sodium;
+                    document.getElementById('goalPotassium').value = potassium;
+                    document.getElementById('goalCalcium').value = calcium;
+                    document.getElementById('goalIron').value = iron;
+                    document.getElementById('goalVitaminC').value = vitaminC;
+                    document.getElementById('goalCholesterol').value = cholesterol;
 
                     // Calculate and display percentages
                     calculatePercentagesFromGrams();
@@ -9305,12 +9353,21 @@
             try {
                 // Get values based on current mode
                 let calories, protein, carbs, fat;
+                let fiber, sugar, sodium, potassium, calcium, iron, vitaminC, cholesterol;
 
                 if (currentGoalsMode === 'custom') {
                     calories = parseInt(document.getElementById('goalCaloriesCustom').value) || 2000;
                     protein = parseInt(document.getElementById('goalProtein').value) || 150;
                     carbs = parseInt(document.getElementById('goalCarbs').value) || 200;
                     fat = parseInt(document.getElementById('goalFat').value) || 65;
+                    fiber = parseInt(document.getElementById('goalFiber').value) || 28;
+                    sugar = parseInt(document.getElementById('goalSugar').value) || 50;
+                    sodium = parseInt(document.getElementById('goalSodium').value) || 2300;
+                    potassium = parseInt(document.getElementById('goalPotassium').value) || 3500;
+                    calcium = parseInt(document.getElementById('goalCalcium').value) || 1000;
+                    iron = parseFloat(document.getElementById('goalIron').value) || 18;
+                    vitaminC = parseInt(document.getElementById('goalVitaminC').value) || 90;
+                    cholesterol = parseInt(document.getElementById('goalCholesterol').value) || 300;
                 } else {
                     // For both calculate and percentage modes, use the percentage mode values
                     // (which are synced from calculate mode when Apply is clicked)
@@ -9318,6 +9375,14 @@
                     protein = parseInt(document.getElementById('goalProtein').value) || 150;
                     carbs = parseInt(document.getElementById('goalCarbs').value) || 200;
                     fat = parseInt(document.getElementById('goalFat').value) || 65;
+                    fiber = parseInt(document.getElementById('goalFiber').value) || 28;
+                    sugar = parseInt(document.getElementById('goalSugar').value) || 50;
+                    sodium = parseInt(document.getElementById('goalSodium').value) || 2300;
+                    potassium = parseInt(document.getElementById('goalPotassium').value) || 3500;
+                    calcium = parseInt(document.getElementById('goalCalcium').value) || 1000;
+                    iron = parseFloat(document.getElementById('goalIron').value) || 18;
+                    vitaminC = parseInt(document.getElementById('goalVitaminC').value) || 90;
+                    cholesterol = parseInt(document.getElementById('goalCholesterol').value) || 300;
                 }
 
                 const response = await fetch('/.netlify/functions/calorie-goals', {
@@ -9329,7 +9394,15 @@
                         calorieGoal: calories,
                         proteinGoal: protein,
                         carbsGoal: carbs,
-                        fatGoal: fat
+                        fatGoal: fat,
+                        fiberGoal: fiber,
+                        sugarGoal: sugar,
+                        sodiumGoal: sodium,
+                        potassiumGoal: potassium,
+                        calciumGoal: calcium,
+                        ironGoal: iron,
+                        vitaminCGoal: vitaminC,
+                        cholesterolGoal: cholesterol
                     })
                 });
 
