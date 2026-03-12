@@ -852,10 +852,40 @@
 
         let currentCoachId = null;
         let currentSettings = null;
+        let alertTimeout = null;
+
+        const elements = {
+            loadingDiv: document.getElementById('loadingDiv'),
+            content: document.getElementById('content'),
+            sidebarEmail: document.getElementById('sidebarEmail'),
+            remindersEnabled: document.getElementById('remindersEnabled'),
+            reminderDay: document.getElementById('reminderDay'),
+            daysBeforeDeadline: document.getElementById('daysBeforeDeadline'),
+            reminderHour: document.getElementById('reminderHour'),
+            sendFollowup: document.getElementById('sendFollowup'),
+            followupHours: document.getElementById('followupHours'),
+            followupHoursGroup: document.getElementById('followupHoursGroup'),
+            emailSubject: document.getElementById('emailSubject'),
+            emailMessage: document.getElementById('emailMessage'),
+            statusBadge: document.getElementById('statusBadge'),
+            statusText: document.getElementById('statusText'),
+            alertContainer: document.getElementById('alertContainer'),
+            historyList: document.getElementById('historyList'),
+            statTotal: document.getElementById('statTotal'),
+            statInitial: document.getElementById('statInitial'),
+            statFollowup: document.getElementById('statFollowup'),
+            statConversion: document.getElementById('statConversion'),
+            saveBtn: document.getElementById('saveBtn'),
+            previewSubject: document.getElementById('previewSubject'),
+            previewBody: document.getElementById('previewBody')
+        };
 
         // Initialize
         document.addEventListener('DOMContentLoaded', async () => {
-            await checkAuth();
+            const isAuthenticated = await checkAuth();
+            if (!isAuthenticated) {
+                return;
+            }
             await loadSettings();
             setupEventListeners();
         });
@@ -865,36 +895,52 @@
 
             if (!session) {
                 window.location.href = 'login.html';
-                return;
+                return false;
             }
 
             currentCoachId = session.user.id;
-            document.getElementById('sidebarEmail').textContent = session.user.email;
+            elements.sidebarEmail.textContent = session.user.email;
+            return true;
+        }
+
+        async function parseJsonResponse(response, fallbackMessage) {
+            let data;
+            try {
+                data = await response.json();
+            } catch {
+                throw new Error(fallbackMessage);
+            }
+
+            if (!response.ok) {
+                throw new Error(data?.error || data?.message || fallbackMessage);
+            }
+
+            return data;
         }
 
         async function loadSettings() {
             try {
                 const response = await fetch(`/.netlify/functions/reminder-settings?coachId=${currentCoachId}`);
-                const data = await response.json();
+                const data = await parseJsonResponse(response, 'Failed to load reminder settings.');
 
                 if (data.needsMigration) {
                     showAlert('info', 'Reminder feature is being set up. Please run the database migration to enable this feature.');
-                    document.getElementById('loadingDiv').style.display = 'none';
-                    document.getElementById('content').style.display = 'block';
+                    elements.loadingDiv.style.display = 'none';
+                    elements.content.style.display = 'block';
                     return;
                 }
 
                 currentSettings = data.settings;
 
                 // Populate form
-                document.getElementById('remindersEnabled').checked = currentSettings.reminders_enabled;
-                document.getElementById('reminderDay').value = currentSettings.reminder_day;
-                document.getElementById('daysBeforeDeadline').value = currentSettings.days_before_deadline;
-                document.getElementById('reminderHour').value = currentSettings.reminder_hour;
-                document.getElementById('sendFollowup').checked = currentSettings.send_followup;
-                document.getElementById('followupHours').value = currentSettings.followup_hours;
-                document.getElementById('emailSubject').value = currentSettings.email_subject || '';
-                document.getElementById('emailMessage').value = currentSettings.email_message || '';
+                elements.remindersEnabled.checked = currentSettings.reminders_enabled;
+                elements.reminderDay.value = currentSettings.reminder_day;
+                elements.daysBeforeDeadline.value = currentSettings.days_before_deadline;
+                elements.reminderHour.value = currentSettings.reminder_hour;
+                elements.sendFollowup.checked = currentSettings.send_followup;
+                elements.followupHours.value = currentSettings.followup_hours;
+                elements.emailSubject.value = currentSettings.email_subject || '';
+                elements.emailMessage.value = currentSettings.email_message || '';
 
                 updateStatusBadge();
                 updatePreview();
@@ -903,40 +949,40 @@
                 // Load stats
                 await loadStats();
 
-                document.getElementById('loadingDiv').style.display = 'none';
-                document.getElementById('content').style.display = 'block';
+                elements.loadingDiv.style.display = 'none';
+                elements.content.style.display = 'block';
 
             } catch (error) {
                 console.error('Error loading settings:', error);
                 showAlert('error', 'Failed to load settings. Please try again.');
-                document.getElementById('loadingDiv').style.display = 'none';
-                document.getElementById('content').style.display = 'block';
+                elements.loadingDiv.style.display = 'none';
+                elements.content.style.display = 'block';
             }
         }
 
         async function loadStats() {
             try {
                 const response = await fetch(`/.netlify/functions/reminder-settings/stats?coachId=${currentCoachId}&days=30`);
-                const data = await response.json();
+                const data = await parseJsonResponse(response, 'Failed to load reminder stats.');
 
                 if (data.stats) {
-                    document.getElementById('statTotal').textContent = data.stats.totalRemindersSent;
-                    document.getElementById('statInitial').textContent = data.stats.initialReminders;
-                    document.getElementById('statFollowup').textContent = data.stats.followupReminders;
-                    document.getElementById('statConversion').textContent = data.stats.conversionRate + '%';
+                    elements.statTotal.textContent = data.stats.totalRemindersSent;
+                    elements.statInitial.textContent = data.stats.initialReminders;
+                    elements.statFollowup.textContent = data.stats.followupReminders;
+                    elements.statConversion.textContent = data.stats.conversionRate + '%';
                 }
 
                 if (data.recentReminders && data.recentReminders.length > 0) {
                     const historyHtml = data.recentReminders.slice(0, 10).map(r => `
                         <div class="reminder-item">
                             <div>
-                                <div class="reminder-client">${r.client?.client_name || 'Unknown'}</div>
-                                <div class="reminder-meta">${formatDate(r.created_at)} - ${r.reminder_type}</div>
+                                <div class="reminder-client">${escapeHtml(r.client?.client_name || 'Unknown')}</div>
+                                <div class="reminder-meta">${formatDate(r.created_at)} - ${escapeHtml(r.reminder_type || 'unknown')}</div>
                             </div>
-                            <span class="reminder-status ${r.status}">${r.status}</span>
+                            <span class="reminder-status ${escapeHtml(r.status || 'unknown')}">${escapeHtml(r.status || 'unknown')}</span>
                         </div>
                     `).join('');
-                    document.getElementById('historyList').innerHTML = historyHtml;
+                    elements.historyList.innerHTML = historyHtml;
                 }
             } catch (error) {
                 console.error('Error loading stats:', error);
@@ -945,26 +991,25 @@
 
         function setupEventListeners() {
             // Toggle visibility based on main switch
-            document.getElementById('remindersEnabled').addEventListener('change', () => {
+            elements.remindersEnabled.addEventListener('change', () => {
                 updateStatusBadge();
                 updateFormVisibility();
             });
 
             // Toggle follow-up hours visibility
-            document.getElementById('sendFollowup').addEventListener('change', () => {
-                document.getElementById('followupHoursGroup').style.display =
-                    document.getElementById('sendFollowup').checked ? 'block' : 'none';
+            elements.sendFollowup.addEventListener('change', () => {
+                updateFormVisibility();
             });
 
             // Update preview on input change
-            document.getElementById('emailSubject').addEventListener('input', updatePreview);
-            document.getElementById('emailMessage').addEventListener('input', updatePreview);
+            elements.emailSubject.addEventListener('input', updatePreview);
+            elements.emailMessage.addEventListener('input', updatePreview);
         }
 
         function updateStatusBadge() {
-            const enabled = document.getElementById('remindersEnabled').checked;
-            const badge = document.getElementById('statusBadge');
-            const text = document.getElementById('statusText');
+            const enabled = elements.remindersEnabled.checked;
+            const badge = elements.statusBadge;
+            const text = elements.statusText;
 
             if (enabled) {
                 badge.className = 'status-badge active';
@@ -976,7 +1021,7 @@
         }
 
         function updateFormVisibility() {
-            const enabled = document.getElementById('remindersEnabled').checked;
+            const enabled = elements.remindersEnabled.checked;
             const cards = ['scheduleCard', 'followupCard', 'emailCard'];
 
             cards.forEach(cardId => {
@@ -984,11 +1029,13 @@
                 card.style.opacity = enabled ? '1' : '0.5';
                 card.style.pointerEvents = enabled ? 'auto' : 'none';
             });
+
+            elements.followupHoursGroup.style.display = (enabled && elements.sendFollowup.checked) ? 'block' : 'none';
         }
 
         function updatePreview() {
-            const subject = document.getElementById('emailSubject').value || 'Time for your weekly check-in!';
-            const message = document.getElementById('emailMessage').value || getDefaultMessage();
+            const subject = elements.emailSubject.value || 'Time for your weekly check-in!';
+            const message = elements.emailMessage.value || getDefaultMessage();
 
             // Replace placeholders with sample data
             const previewSubject = subject
@@ -1000,8 +1047,13 @@
                 .replace(/{coach_name}/g, 'Your Coach')
                 .replace(/{checkin_link}/g, window.location.origin + '/app');
 
-            document.getElementById('previewSubject').textContent = previewSubject;
-            document.getElementById('previewBody').textContent = previewBody;
+            elements.previewSubject.textContent = previewSubject;
+            elements.previewBody.textContent = previewBody;
+        }
+
+        function safeParseInt(value, fallback) {
+            const parsed = Number.parseInt(value, 10);
+            return Number.isNaN(parsed) ? fallback : parsed;
         }
 
         function getDefaultMessage() {
@@ -1017,21 +1069,21 @@ Best,
         }
 
         async function saveSettings() {
-            const saveBtn = document.getElementById('saveBtn');
+            const saveBtn = elements.saveBtn;
             saveBtn.disabled = true;
             saveBtn.textContent = 'Saving...';
 
             try {
                 const settings = {
                     coachId: currentCoachId,
-                    remindersEnabled: document.getElementById('remindersEnabled').checked,
-                    reminderDay: parseInt(document.getElementById('reminderDay').value),
-                    daysBeforeDeadline: parseInt(document.getElementById('daysBeforeDeadline').value),
-                    reminderHour: parseInt(document.getElementById('reminderHour').value),
-                    sendFollowup: document.getElementById('sendFollowup').checked,
-                    followupHours: parseInt(document.getElementById('followupHours').value),
-                    emailSubject: document.getElementById('emailSubject').value,
-                    emailMessage: document.getElementById('emailMessage').value
+                    remindersEnabled: elements.remindersEnabled.checked,
+                    reminderDay: safeParseInt(elements.reminderDay.value, 0),
+                    daysBeforeDeadline: safeParseInt(elements.daysBeforeDeadline.value, 1),
+                    reminderHour: safeParseInt(elements.reminderHour.value, 9),
+                    sendFollowup: elements.sendFollowup.checked,
+                    followupHours: safeParseInt(elements.followupHours.value, 24),
+                    emailSubject: elements.emailSubject.value,
+                    emailMessage: elements.emailMessage.value
                 };
 
                 const response = await fetch('/.netlify/functions/reminder-settings', {
@@ -1040,7 +1092,7 @@ Best,
                     body: JSON.stringify(settings)
                 });
 
-                const data = await response.json();
+                const data = await parseJsonResponse(response, 'Failed to save settings.');
 
                 if (data.success) {
                     showAlert('success', 'Settings saved successfully! Your clients will receive automated reminders based on your configuration.');
@@ -1113,7 +1165,7 @@ Best,
         }
 
         function showAlert(type, message) {
-            const container = document.getElementById('alertContainer');
+            const container = elements.alertContainer;
             const alertHtml = `
                 <div class="alert alert-${type}">
                     <span>${message}</span>
@@ -1122,9 +1174,21 @@ Best,
             container.innerHTML = alertHtml;
 
             // Auto-hide after 5 seconds
-            setTimeout(() => {
+            if (alertTimeout) {
+                clearTimeout(alertTimeout);
+            }
+            alertTimeout = setTimeout(() => {
                 container.innerHTML = '';
             }, 5000);
+        }
+
+        function escapeHtml(value) {
+            return String(value)
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#39;');
         }
 
         function formatDate(dateString) {
