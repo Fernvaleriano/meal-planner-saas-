@@ -68,11 +68,12 @@ function TopNav() {
   const [showStoryViewer, setShowStoryViewer] = useState(false);
   const hasFetchedStoriesRef = useRef(false);
 
+  const defaultLogo = 'https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/ZFN%20Logo%20for%20PWA%20&%20Site/zique%20fitness%20white%20logo.png';
   const fallbackLogo = '/icons/logo.png';
-  const [logoSrc, setLogoSrc] = useState(branding?.brand_logo_url || fallbackLogo);
+  const [logoSrc, setLogoSrc] = useState(branding?.brand_logo_url || defaultLogo);
 
   useEffect(() => {
-    setLogoSrc(branding?.brand_logo_url || fallbackLogo);
+    setLogoSrc(branding?.brand_logo_url || defaultLogo);
   }, [branding?.brand_logo_url]);
 
   // Fetch notifications (only for unread count badge)
