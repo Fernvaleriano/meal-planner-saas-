@@ -2295,9 +2295,9 @@ function ExerciseDetailModal({
                   <Check size={16} />
                   <span>Accept</span>
                 </button>
-                <button className="coaching-rec-btn ask-ai" onClick={() => setShowAskAI(true)}>
+                <button className="coaching-rec-btn adjust" onClick={() => setShowAskAI(true)}>
                   <MessageCircle size={16} />
-                  <span>Ask AI</span>
+                  <span>Adjust</span>
                 </button>
               </div>
             )}
