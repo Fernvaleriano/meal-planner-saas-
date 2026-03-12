@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import { AuthProvider } from './context/AuthContext';
+import { BrandingProvider } from './context/BrandingContext';
 import { ToastProvider } from './components/Toast';
 import './styles/global.css';
 
@@ -10,9 +11,11 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter basename="/app">
       <AuthProvider>
-        <ToastProvider>
-          <App />
-        </ToastProvider>
+        <BrandingProvider>
+          <ToastProvider>
+            <App />
+          </ToastProvider>
+        </BrandingProvider>
       </AuthProvider>
     </BrowserRouter>
   </React.StrictMode>

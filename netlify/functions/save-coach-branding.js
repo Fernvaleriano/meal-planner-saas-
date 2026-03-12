@@ -106,14 +106,31 @@ exports.handler = async (event, context) => {
             brand_primary_color,
             brand_secondary_color,
             brand_accent_color,
-            brand_email_footer
+            brand_email_footer,
+            brand_bg_color,
+            brand_bg_secondary_color,
+            brand_card_color,
+            brand_text_color,
+            brand_text_secondary_color,
+            brand_font,
+            brand_button_style,
+            brand_welcome_message,
+            brand_app_name,
+            brand_short_name,
+            client_modules,
+            custom_terminology
         } = body;
 
-        // Validate colors
+        // Validate all color fields
         const colors = [
             { name: 'primary', value: brand_primary_color },
             { name: 'secondary', value: brand_secondary_color },
-            { name: 'accent', value: brand_accent_color }
+            { name: 'accent', value: brand_accent_color },
+            { name: 'background', value: brand_bg_color },
+            { name: 'background secondary', value: brand_bg_secondary_color },
+            { name: 'card', value: brand_card_color },
+            { name: 'text', value: brand_text_color },
+            { name: 'text secondary', value: brand_text_secondary_color }
         ];
 
         for (const color of colors) {
@@ -146,26 +163,139 @@ exports.handler = async (event, context) => {
             };
         }
 
+        // Validate welcome message length
+        if (brand_welcome_message && brand_welcome_message.length > 200) {
+            return {
+                statusCode: 400,
+                headers: { 'Access-Control-Allow-Origin': '*' },
+                body: JSON.stringify({ error: 'Welcome message must be 200 characters or less' })
+            };
+        }
+
+        // Validate short name length
+        if (brand_short_name && brand_short_name.length > 12) {
+            return {
+                statusCode: 400,
+                headers: { 'Access-Control-Allow-Origin': '*' },
+                body: JSON.stringify({ error: 'Short name must be 12 characters or less' })
+            };
+        }
+
+        // Validate button style
+        const validButtonStyles = ['rounded', 'sharp', 'pill'];
+        if (brand_button_style && !validButtonStyles.includes(brand_button_style)) {
+            return {
+                statusCode: 400,
+                headers: { 'Access-Control-Allow-Origin': '*' },
+                body: JSON.stringify({ error: 'Button style must be: rounded, sharp, or pill' })
+            };
+        }
+
+        // Validate font
+        const validFonts = ['System Default', 'Inter', 'Poppins', 'Montserrat', 'Raleway', 'Open Sans', 'Lato', 'Nunito', 'Roboto', 'DM Sans'];
+        if (brand_font && !validFonts.includes(brand_font)) {
+            return {
+                statusCode: 400,
+                headers: { 'Access-Control-Allow-Origin': '*' },
+                body: JSON.stringify({ error: 'Invalid font selection' })
+            };
+        }
+
+        // Validate client_modules structure
+        const validModuleKeys = ['diary', 'plans', 'workouts', 'messages', 'recipes', 'check_in', 'progress'];
+        if (client_modules) {
+            if (typeof client_modules !== 'object' || Array.isArray(client_modules)) {
+                return {
+                    statusCode: 400,
+                    headers: { 'Access-Control-Allow-Origin': '*' },
+                    body: JSON.stringify({ error: 'client_modules must be an object' })
+                };
+            }
+            for (const key of Object.keys(client_modules)) {
+                if (!validModuleKeys.includes(key)) {
+                    return {
+                        statusCode: 400,
+                        headers: { 'Access-Control-Allow-Origin': '*' },
+                        body: JSON.stringify({ error: `Invalid module key: ${key}` })
+                    };
+                }
+                if (typeof client_modules[key] !== 'boolean') {
+                    return {
+                        statusCode: 400,
+                        headers: { 'Access-Control-Allow-Origin': '*' },
+                        body: JSON.stringify({ error: `Module value for ${key} must be true or false` })
+                    };
+                }
+            }
+        }
+
+        // Validate custom_terminology structure
+        const validTermKeys = ['home', 'diary', 'plans', 'workouts', 'messages', 'meals', 'check_in', 'progress', 'recipes'];
+        if (custom_terminology) {
+            if (typeof custom_terminology !== 'object' || Array.isArray(custom_terminology)) {
+                return {
+                    statusCode: 400,
+                    headers: { 'Access-Control-Allow-Origin': '*' },
+                    body: JSON.stringify({ error: 'custom_terminology must be an object' })
+                };
+            }
+            for (const [key, value] of Object.entries(custom_terminology)) {
+                if (!validTermKeys.includes(key)) {
+                    return {
+                        statusCode: 400,
+                        headers: { 'Access-Control-Allow-Origin': '*' },
+                        body: JSON.stringify({ error: `Invalid terminology key: ${key}` })
+                    };
+                }
+                if (typeof value !== 'string' || value.length > 30) {
+                    return {
+                        statusCode: 400,
+                        headers: { 'Access-Control-Allow-Origin': '*' },
+                        body: JSON.stringify({ error: `Terminology label for ${key} must be a string of 30 characters or less` })
+                    };
+                }
+            }
+        }
+
         // Build update object (only include fields that were provided)
         const updateData = {
             branding_updated_at: new Date().toISOString()
         };
 
-        // Only update fields that were explicitly provided
-        if (body.hasOwnProperty('brand_name')) {
-            updateData.brand_name = brand_name || null;
+        // Helper: set field if it was explicitly provided in the request
+        const setIfProvided = (field, value) => {
+            if (body.hasOwnProperty(field)) {
+                updateData[field] = value || null;
+            }
+        };
+
+        // V1 fields
+        setIfProvided('brand_name', brand_name);
+        setIfProvided('brand_primary_color', brand_primary_color);
+        setIfProvided('brand_secondary_color', brand_secondary_color);
+        setIfProvided('brand_accent_color', brand_accent_color);
+        setIfProvided('brand_email_footer', brand_email_footer);
+
+        // V2: Extended palette
+        setIfProvided('brand_bg_color', brand_bg_color);
+        setIfProvided('brand_bg_secondary_color', brand_bg_secondary_color);
+        setIfProvided('brand_card_color', brand_card_color);
+        setIfProvided('brand_text_color', brand_text_color);
+        setIfProvided('brand_text_secondary_color', brand_text_secondary_color);
+        setIfProvided('brand_font', brand_font === 'System Default' ? null : brand_font);
+        setIfProvided('brand_button_style', brand_button_style);
+
+        // V2: Client experience
+        setIfProvided('brand_welcome_message', brand_welcome_message);
+        setIfProvided('brand_app_name', brand_app_name);
+        setIfProvided('brand_short_name', brand_short_name);
+
+        // V2: Module visibility & terminology (JSONB — store directly)
+        if (body.hasOwnProperty('client_modules')) {
+            updateData.client_modules = client_modules || null;
         }
-        if (body.hasOwnProperty('brand_primary_color')) {
-            updateData.brand_primary_color = brand_primary_color || null;
-        }
-        if (body.hasOwnProperty('brand_secondary_color')) {
-            updateData.brand_secondary_color = brand_secondary_color || null;
-        }
-        if (body.hasOwnProperty('brand_accent_color')) {
-            updateData.brand_accent_color = brand_accent_color || null;
-        }
-        if (body.hasOwnProperty('brand_email_footer')) {
-            updateData.brand_email_footer = brand_email_footer || null;
+        if (body.hasOwnProperty('custom_terminology')) {
+            updateData.custom_terminology = custom_terminology || null;
         }
 
         // Update branding
@@ -200,6 +330,18 @@ exports.handler = async (event, context) => {
                     brand_favicon_url: updated.brand_favicon_url,
                     brand_email_logo_url: updated.brand_email_logo_url,
                     brand_email_footer: updated.brand_email_footer,
+                    brand_bg_color: updated.brand_bg_color,
+                    brand_bg_secondary_color: updated.brand_bg_secondary_color,
+                    brand_card_color: updated.brand_card_color,
+                    brand_text_color: updated.brand_text_color,
+                    brand_text_secondary_color: updated.brand_text_secondary_color,
+                    brand_font: updated.brand_font,
+                    brand_button_style: updated.brand_button_style,
+                    brand_welcome_message: updated.brand_welcome_message,
+                    brand_app_name: updated.brand_app_name,
+                    brand_short_name: updated.brand_short_name,
+                    client_modules: updated.client_modules,
+                    custom_terminology: updated.custom_terminology,
                     branding_updated_at: updated.branding_updated_at
                 }
             })

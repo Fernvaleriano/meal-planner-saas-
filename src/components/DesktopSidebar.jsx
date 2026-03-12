@@ -1,12 +1,14 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Home, NotebookPen, CalendarDays, User, LogOut, Activity, Dumbbell, MessageCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useBranding } from '../context/BrandingContext';
 import { apiGet } from '../utils/api';
 
 function DesktopSidebar() {
   const location = useLocation();
   const { user, clientData, logout } = useAuth();
+  const { isModuleVisible, getLabel, branding } = useBranding();
   const [unreadMessages, setUnreadMessages] = useState(0);
 
   // Check if user is a coach (has entry in coaches table)
@@ -56,15 +58,20 @@ function DesktopSidebar() {
     }
   }, [location.pathname, fetchUnread]);
 
-  const navItems = [
-    { path: '/', icon: Home, label: 'Home' },
-    { path: '/diary', icon: NotebookPen, label: 'Diary' },
-    ...(isCoach ? [{ path: '/feed', icon: Activity, label: 'Client Feed' }] : []),
-    { path: '/messages', icon: MessageCircle, label: 'Messages', badge: unreadMessages },
-    { path: '/workouts', icon: Dumbbell, label: 'Workouts' },
-    { path: '/plans', icon: CalendarDays, label: 'Planner' },
-    { path: '/settings', icon: User, label: 'Profile' }
-  ];
+  const navItems = useMemo(() => {
+    const allItems = [
+      { path: '/', icon: Home, label: getLabel('home'), moduleKey: null },
+      { path: '/diary', icon: NotebookPen, label: getLabel('diary'), moduleKey: 'diary' },
+      ...(isCoach ? [{ path: '/feed', icon: Activity, label: 'Client Feed', moduleKey: null }] : []),
+      { path: '/messages', icon: MessageCircle, label: getLabel('messages'), badge: unreadMessages, moduleKey: 'messages' },
+      { path: '/workouts', icon: Dumbbell, label: getLabel('workouts'), moduleKey: 'workouts' },
+      { path: '/plans', icon: CalendarDays, label: getLabel('plans'), moduleKey: 'plans' },
+      { path: '/settings', icon: User, label: 'Profile', moduleKey: null }
+    ];
+
+    if (isCoach) return allItems;
+    return allItems.filter(item => !item.moduleKey || isModuleVisible(item.moduleKey));
+  }, [isCoach, isModuleVisible, getLabel, unreadMessages]);
 
   const getInitials = (name) => {
     if (!name) return '?';
@@ -74,7 +81,10 @@ function DesktopSidebar() {
   return (
     <aside className="desktop-nav">
       <div className="desktop-nav-logo">
-        <img src="/icons/logo.png" alt="Zique Fitness" />
+        <img
+          src={branding?.brand_logo_url || '/icons/logo.png'}
+          alt={branding?.brand_name || 'Zique Fitness'}
+        />
       </div>
 
       <div className="desktop-nav-items">

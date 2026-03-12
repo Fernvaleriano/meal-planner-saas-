@@ -23,7 +23,20 @@ const DEFAULT_BRANDING = {
     brand_logo_url: null,
     brand_favicon_url: null,
     brand_email_logo_url: null,
-    brand_email_footer: null
+    brand_email_footer: null,
+    // V2 fields
+    brand_bg_color: null,
+    brand_bg_secondary_color: null,
+    brand_card_color: null,
+    brand_text_color: null,
+    brand_text_secondary_color: null,
+    brand_font: null,
+    brand_button_style: null,
+    brand_welcome_message: null,
+    brand_app_name: null,
+    brand_short_name: null,
+    client_modules: { diary: true, plans: true, workouts: true, messages: true, recipes: true, check_in: true, progress: true },
+    custom_terminology: null
 };
 
 exports.handler = async (event, context) => {
@@ -100,7 +113,19 @@ exports.handler = async (event, context) => {
                 brand_email_logo_url,
                 brand_email_footer,
                 branding_updated_at,
-                profile_photo_url
+                profile_photo_url,
+                brand_bg_color,
+                brand_bg_secondary_color,
+                brand_card_color,
+                brand_text_color,
+                brand_text_secondary_color,
+                brand_font,
+                brand_button_style,
+                brand_welcome_message,
+                brand_app_name,
+                brand_short_name,
+                client_modules,
+                custom_terminology
             `)
             .eq('id', coachId)
             .single();
@@ -138,6 +163,24 @@ exports.handler = async (event, context) => {
             brand_email_logo_url: coach.brand_email_logo_url || coach.brand_logo_url || DEFAULT_BRANDING.brand_email_logo_url,
             brand_email_footer: coach.brand_email_footer || DEFAULT_BRANDING.brand_email_footer,
 
+            // V2: Extended palette
+            brand_bg_color: coach.brand_bg_color || DEFAULT_BRANDING.brand_bg_color,
+            brand_bg_secondary_color: coach.brand_bg_secondary_color || DEFAULT_BRANDING.brand_bg_secondary_color,
+            brand_card_color: coach.brand_card_color || DEFAULT_BRANDING.brand_card_color,
+            brand_text_color: coach.brand_text_color || DEFAULT_BRANDING.brand_text_color,
+            brand_text_secondary_color: coach.brand_text_secondary_color || DEFAULT_BRANDING.brand_text_secondary_color,
+            brand_font: coach.brand_font || DEFAULT_BRANDING.brand_font,
+            brand_button_style: coach.brand_button_style || DEFAULT_BRANDING.brand_button_style,
+
+            // V2: Client experience
+            brand_welcome_message: coach.brand_welcome_message || DEFAULT_BRANDING.brand_welcome_message,
+            brand_app_name: coach.brand_app_name || DEFAULT_BRANDING.brand_app_name,
+            brand_short_name: coach.brand_short_name || DEFAULT_BRANDING.brand_short_name,
+
+            // V2: Module visibility & terminology
+            client_modules: coach.client_modules || DEFAULT_BRANDING.client_modules,
+            custom_terminology: coach.custom_terminology || DEFAULT_BRANDING.custom_terminology,
+
             // Metadata
             branding_updated_at: coach.branding_updated_at,
 
@@ -150,7 +193,19 @@ exports.handler = async (event, context) => {
                 brand_secondary_color: coach.brand_secondary_color,
                 brand_accent_color: coach.brand_accent_color,
                 brand_email_logo_url: coach.brand_email_logo_url,
-                brand_email_footer: coach.brand_email_footer
+                brand_email_footer: coach.brand_email_footer,
+                brand_bg_color: coach.brand_bg_color,
+                brand_bg_secondary_color: coach.brand_bg_secondary_color,
+                brand_card_color: coach.brand_card_color,
+                brand_text_color: coach.brand_text_color,
+                brand_text_secondary_color: coach.brand_text_secondary_color,
+                brand_font: coach.brand_font,
+                brand_button_style: coach.brand_button_style,
+                brand_welcome_message: coach.brand_welcome_message,
+                brand_app_name: coach.brand_app_name,
+                brand_short_name: coach.brand_short_name,
+                client_modules: coach.client_modules,
+                custom_terminology: coach.custom_terminology
             } : null
         };
 

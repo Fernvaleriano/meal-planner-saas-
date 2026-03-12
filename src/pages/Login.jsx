@@ -1,7 +1,33 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '../utils/supabase';
 import { useAuth } from '../context/AuthContext';
+
+const DEFAULT_LOGO = 'https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/Untitled%20design%20(3).svg';
+const DEFAULT_PRIMARY = '#0d9488';
+
+/**
+ * Try to load coach branding for the login page.
+ * Sources: URL ?coachId= param, or localStorage from previous session.
+ */
+function getLoginBranding(coachIdParam) {
+  if (coachIdParam) {
+    localStorage.setItem('login_coach_id', coachIdParam);
+  }
+
+  const coachId = coachIdParam || localStorage.getItem('login_coach_id');
+  if (!coachId) return null;
+
+  try {
+    const cached = localStorage.getItem(`coach_branding_v2_${coachId}`);
+    if (cached) {
+      const { data } = JSON.parse(cached);
+      if (data?.has_branding_access) return data;
+    }
+  } catch { /* ignore */ }
+
+  return { coach_id: coachId };
+}
 
 function Login() {
   const [email, setEmail] = useState('');
@@ -10,6 +36,32 @@ function Login() {
   const [error, setError] = useState('');
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+
+  const coachIdParam = searchParams.get('coachId');
+  const [brandingData, setBrandingData] = useState(() => getLoginBranding(coachIdParam));
+
+  // Fetch branding from API if we have a coach ID but no cached data
+  useEffect(() => {
+    const coachId = coachIdParam || localStorage.getItem('login_coach_id');
+    if (!coachId) return;
+    if (brandingData?.brand_name && brandingData.brand_name !== 'Zique Fitness Nutrition') return;
+
+    fetch(`/.netlify/functions/get-coach-branding?coachId=${coachId}`)
+      .then(r => r.json())
+      .then(data => {
+        if (data && !data.error) {
+          setBrandingData(data);
+          try {
+            localStorage.setItem(`coach_branding_v2_${coachId}`, JSON.stringify({
+              data,
+              timestamp: Date.now(),
+            }));
+          } catch { /* ignore */ }
+        }
+      })
+      .catch(() => { /* use defaults */ });
+  }, [coachIdParam]);
 
   // Redirect if already logged in
   useEffect(() => {
@@ -51,21 +103,29 @@ function Login() {
     }
   };
 
+  // Resolve branding values
+  const logoUrl = brandingData?.brand_logo_url || DEFAULT_LOGO;
+  const primaryColor = brandingData?.brand_primary_color || DEFAULT_PRIMARY;
+  const brandName = brandingData?.brand_name || 'Zique Fitness';
+  const welcomeMessage = brandingData?.brand_welcome_message;
+  const hasCustomBranding = brandingData?.has_branding_access;
+
   return (
     <div className="login-page">
       <div className="login-container">
         {/* Logo */}
         <div className="login-logo">
           <img
-            src="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/Untitled%20design%20(3).svg"
-            alt="Zique Fitness"
+            src={logoUrl}
+            alt={brandName}
+            style={hasCustomBranding && brandingData?.brand_logo_url ? { borderRadius: '12px', objectFit: 'contain' } : undefined}
           />
         </div>
 
         {/* Header */}
         <div className="login-header">
-          <h1>Welcome Back</h1>
-          <p>Sign in to your client portal</p>
+          <h1>{welcomeMessage || 'Welcome Back'}</h1>
+          <p>{hasCustomBranding ? `Sign in to ${brandName}` : 'Sign in to your client portal'}</p>
         </div>
 
         {/* Form */}
@@ -128,7 +188,7 @@ function Login() {
 
         {/* Footer */}
         <div className="login-footer">
-          <p>Powered by Zique Fitness</p>
+          <p>{hasCustomBranding ? `Powered by ${brandName}` : 'Powered by Zique Fitness'}</p>
         </div>
       </div>
 
@@ -162,6 +222,7 @@ function Login() {
         .login-logo img {
           height: 80px;
           width: auto;
+          max-width: 200px;
         }
 
         .login-header {
@@ -227,16 +288,16 @@ function Login() {
 
         .login-field input:focus {
           outline: none;
-          border-color: #0d9488;
+          border-color: ${primaryColor};
           background: rgba(15, 23, 42, 0.8);
-          box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.2);
+          box-shadow: 0 0 0 3px ${primaryColor}33;
         }
 
         .login-button {
           width: 100%;
           padding: 16px;
           margin-top: 8px;
-          background: linear-gradient(135deg, #0d9488 0%, #14b8a6 100%);
+          background: linear-gradient(135deg, ${primaryColor} 0%, ${primaryColor}dd 100%);
           border: none;
           border-radius: 12px;
           color: white;
@@ -249,12 +310,12 @@ function Login() {
           align-items: center;
           justify-content: center;
           gap: 8px;
-          box-shadow: 0 4px 14px rgba(13, 148, 136, 0.4);
+          box-shadow: 0 4px 14px ${primaryColor}66;
         }
 
         .login-button:hover:not(:disabled) {
           transform: translateY(-2px);
-          box-shadow: 0 6px 20px rgba(13, 148, 136, 0.5);
+          box-shadow: 0 6px 20px ${primaryColor}80;
         }
 
         .login-button:active:not(:disabled) {
@@ -292,7 +353,7 @@ function Login() {
         }
 
         .forgot-password-link a:hover {
-          color: #14b8a6;
+          color: ${primaryColor};
         }
 
         .login-back-link {
@@ -310,7 +371,7 @@ function Login() {
         }
 
         .login-back-link a:hover {
-          color: #14b8a6;
+          color: ${primaryColor};
         }
 
         .login-footer {

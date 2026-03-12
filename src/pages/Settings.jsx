@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Moon, Camera, Lock, LogOut, ChevronRight, Loader, Users, Scale, User, Utensils, Edit3, X } from 'lucide-react';
+import { useBranding } from '../context/BrandingContext';
+import { Moon, Camera, Lock, LogOut, ChevronRight, Loader, Users, Scale, User, Utensils, Edit3, X, Palette } from 'lucide-react';
 import { apiGet, apiPost, apiPut } from '../utils/api';
 import { supabase } from '../utils/supabase';
 import { usePullToRefreshEvent } from '../hooks/usePullToRefreshEvent';
@@ -23,6 +24,8 @@ const setCache = (key, data) => {
 
 function Settings() {
   const { clientData, theme, toggleTheme, logout, refreshClientData } = useAuth();
+  const { branding } = useBranding();
+  const isCoach = clientData?.is_coach === true;
 
   // Load from cache for instant display
   const cachedCoach = clientData?.coach_id ? getCache(`coach_branding_${clientData.coach_id}`) : null;
@@ -660,6 +663,25 @@ function Settings() {
         </div>
       </div>
 
+      {/* Branding Section - Coach Only */}
+      {isCoach && (
+        <div className="settings-card">
+          <div className="settings-card-title">COACH TOOLS</div>
+          <Link to="/branding" className="settings-item clickable" style={{ textDecoration: 'none', color: 'inherit' }}>
+            <div className="settings-item-left">
+              <div className="settings-icon-box purple">
+                <Palette size={20} />
+              </div>
+              <div className="settings-item-text">
+                <div className="settings-item-title">Branding Settings</div>
+                <div className="settings-item-subtitle">Colors, fonts, modules, terminology</div>
+              </div>
+            </div>
+            <ChevronRight size={20} className="settings-chevron" />
+          </Link>
+        </div>
+      )}
+
       {/* Account Section */}
       <div className="settings-card">
         <div className="settings-card-title">ACCOUNT</div>
@@ -692,7 +714,7 @@ function Settings() {
 
       {/* Version Footer */}
       <div className="settings-version">
-        Zique Fitness Nutrition v1.0
+        {branding?.brand_name || 'Zique Fitness Nutrition'} v1.0
       </div>
 
 

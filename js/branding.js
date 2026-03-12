@@ -99,6 +99,9 @@
         }
     }
 
+    // Button style map
+    const BUTTON_STYLES = { rounded: '10px', sharp: '4px', pill: '9999px' };
+
     /**
      * Apply branding to the page
      */
@@ -128,6 +131,46 @@
                 '--brand-gradient',
                 `linear-gradient(135deg, ${branding.brand_primary_color} 0%, ${branding.brand_secondary_color} 100%)`
             );
+        }
+
+        // V2: Extended palette
+        if (branding.brand_bg_color) {
+            root.style.setProperty('--bg-primary', branding.brand_bg_color);
+        }
+        if (branding.brand_bg_secondary_color) {
+            root.style.setProperty('--bg-secondary', branding.brand_bg_secondary_color);
+        }
+        if (branding.brand_card_color) {
+            root.style.setProperty('--bg-card', branding.brand_card_color);
+            root.style.setProperty('--bg-secondary', branding.brand_card_color);
+        }
+        if (branding.brand_text_color) {
+            root.style.setProperty('--text-primary', branding.brand_text_color);
+        }
+        if (branding.brand_text_secondary_color) {
+            root.style.setProperty('--text-secondary', branding.brand_text_secondary_color);
+        }
+
+        // V2: Button style
+        if (branding.brand_button_style && BUTTON_STYLES[branding.brand_button_style]) {
+            root.style.setProperty('--btn-radius', BUTTON_STYLES[branding.brand_button_style]);
+        }
+
+        // V2: Font
+        if (branding.brand_font && branding.brand_font !== 'System Default') {
+            var fontFamily = "'" + branding.brand_font + "', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+            root.style.setProperty('--font-family', fontFamily);
+            document.body.style.fontFamily = fontFamily;
+
+            // Load the Google Font if not already loaded
+            var fontId = 'brand-font-' + branding.brand_font.replace(/\s+/g, '-').toLowerCase();
+            if (!document.getElementById(fontId)) {
+                var link = document.createElement('link');
+                link.id = fontId;
+                link.rel = 'stylesheet';
+                link.href = 'https://fonts.googleapis.com/css2?family=' + encodeURIComponent(branding.brand_font) + ':wght@400;500;600;700&display=swap';
+                document.head.appendChild(link);
+            }
         }
 
         // Update favicon
