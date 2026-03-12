@@ -199,7 +199,7 @@ function TopNav() {
       {/* Left: Logo */}
       <Link to="/" className="nav-left" aria-label="Go to home">
         <img
-          src={branding?.brand_logo_url || 'https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/Untitled%20design%20(7).svg'}
+          src={branding?.brand_logo_url || 'https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/zique%20fitness%20white%20logo.png'}
           alt={branding?.brand_name || 'Zique Fitness'}
           className="nav-logo-left"
         />
