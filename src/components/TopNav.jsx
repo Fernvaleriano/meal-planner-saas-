@@ -69,6 +69,8 @@ function TopNav() {
   const hasFetchedStoriesRef = useRef(false);
 
   const ORIGINAL_LOGO = 'https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/Untitled%20design%20(7).svg';
+  // Use coach's custom logo if they uploaded one, otherwise always show the original
+  const logoUrl = (branding?.has_branding_access && branding?.brand_logo_url) ? branding.brand_logo_url : ORIGINAL_LOGO;
 
   // Fetch notifications (only for unread count badge)
   const fetchNotifications = useCallback(async (force = false) => {
@@ -201,9 +203,10 @@ function TopNav() {
       {/* Left: Logo */}
       <Link to="/" className="nav-left" aria-label="Go to home">
         <img
-          src={ORIGINAL_LOGO}
-          alt="Zique Fitness"
+          src={logoUrl}
+          alt={branding?.brand_name || 'Zique Fitness'}
           className="nav-logo-left"
+          onError={(e) => { e.target.src = ORIGINAL_LOGO; }}
         />
       </Link>
 

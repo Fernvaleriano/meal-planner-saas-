@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Palette, Type, ToggleLeft, MessageSquare, Smartphone, Tag, Save, RotateCcw, Loader, Check, Eye, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, Palette, Type, ToggleLeft, MessageSquare, Smartphone, Tag, Save, RotateCcw, Loader, Check, Eye, ChevronDown, ChevronUp, Upload, Trash2, Image } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useBranding, AVAILABLE_FONTS, BUTTON_STYLES, DEFAULT_TERMINOLOGY } from '../context/BrandingContext';
-import { apiGet, apiPost } from '../utils/api';
+import { apiGet, apiPost, apiDelete } from '../utils/api';
 
 const MODULE_OPTIONS = [
   { key: 'diary', label: 'Food Diary', description: 'Daily food logging and macro tracking' },
@@ -113,6 +113,13 @@ function BrandingSettings() {
     custom_terminology: {},
   });
 
+  // Logo state
+  const [logoUrl, setLogoUrl] = useState(null);
+  const [faviconUrl, setFaviconUrl] = useState(null);
+  const [uploadingLogo, setUploadingLogo] = useState(null); // 'logo' | 'favicon' | null
+  const logoInputRef = useRef(null);
+  const faviconInputRef = useRef(null);
+
   const [showPreview, setShowPreview] = useState(false);
   const formRef = useRef(form);
   formRef.current = form;
@@ -125,6 +132,8 @@ function BrandingSettings() {
       .then(data => {
         setHasAccess(data.has_branding_access);
         if (data.raw) {
+          setLogoUrl(data.raw.brand_logo_url || null);
+          setFaviconUrl(data.raw.brand_favicon_url || null);
           setForm({
             brand_name: data.raw.brand_name || '',
             brand_primary_color: data.raw.brand_primary_color || '',
@@ -170,6 +179,50 @@ function BrandingSettings() {
     }));
     setSaved(false);
   }, []);
+
+  const handleLogoUpload = useCallback(async (file, logoType) => {
+    if (!file) return;
+    setUploadingLogo(logoType);
+    setError('');
+    try {
+      const reader = new FileReader();
+      const imageData = await new Promise((resolve, reject) => {
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const result = await apiPost('/.netlify/functions/upload-brand-logo', { logoType, imageData });
+      if (result.success) {
+        if (logoType === 'logo') setLogoUrl(result.logoUrl);
+        else if (logoType === 'favicon') setFaviconUrl(result.logoUrl);
+        await refreshBranding();
+      } else {
+        setError(result.error || 'Failed to upload');
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to upload logo');
+    } finally {
+      setUploadingLogo(null);
+    }
+  }, [refreshBranding]);
+
+  const handleLogoDelete = useCallback(async (logoType) => {
+    if (!window.confirm('Remove this logo?')) return;
+    setUploadingLogo(logoType);
+    setError('');
+    try {
+      const result = await apiDelete('/.netlify/functions/upload-brand-logo', { logoType });
+      if (result.success) {
+        if (logoType === 'logo') setLogoUrl(null);
+        else if (logoType === 'favicon') setFaviconUrl(null);
+        await refreshBranding();
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to remove logo');
+    } finally {
+      setUploadingLogo(null);
+    }
+  }, [refreshBranding]);
 
   const applyPreset = useCallback((preset) => {
     setForm(prev => ({
@@ -327,6 +380,74 @@ function BrandingSettings() {
                 maxLength={100}
               />
               <span className="bs-hint">Your company/brand name shown to clients</span>
+            </div>
+
+            <div className="bs-divider" />
+
+            {/* Logo Upload */}
+            <div className="bs-field">
+              <label className="bs-label">Logo</label>
+              <span className="bs-hint" style={{ display: 'block', marginBottom: '10px' }}>
+                Replaces the default Zique Fitness logo in the header. PNG, JPG, or SVG (max 1MB).
+              </span>
+              <input
+                ref={logoInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/svg+xml"
+                style={{ display: 'none' }}
+                onChange={(e) => { if (e.target.files[0]) handleLogoUpload(e.target.files[0], 'logo'); e.target.value = ''; }}
+              />
+              {logoUrl ? (
+                <div className="bs-logo-preview">
+                  <img src={logoUrl} alt="Brand logo" className="bs-logo-img" />
+                  <div className="bs-logo-actions">
+                    <button className="bs-logo-change-btn" onClick={() => logoInputRef.current?.click()} disabled={uploadingLogo === 'logo'}>
+                      {uploadingLogo === 'logo' ? <Loader size={14} className="spin" /> : <Upload size={14} />} Change
+                    </button>
+                    <button className="bs-logo-remove-btn" onClick={() => handleLogoDelete('logo')} disabled={uploadingLogo === 'logo'}>
+                      <Trash2 size={14} /> Remove
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button className="bs-logo-upload-btn" onClick={() => logoInputRef.current?.click()} disabled={uploadingLogo === 'logo'}>
+                  {uploadingLogo === 'logo' ? <Loader size={16} className="spin" /> : <Upload size={16} />}
+                  Upload Logo
+                </button>
+              )}
+            </div>
+
+            {/* Favicon Upload */}
+            <div className="bs-field">
+              <label className="bs-label">Favicon</label>
+              <span className="bs-hint" style={{ display: 'block', marginBottom: '10px' }}>
+                Browser tab icon. PNG or ICO (max 100KB).
+              </span>
+              <input
+                ref={faviconInputRef}
+                type="file"
+                accept="image/png,image/x-icon,image/jpeg"
+                style={{ display: 'none' }}
+                onChange={(e) => { if (e.target.files[0]) handleLogoUpload(e.target.files[0], 'favicon'); e.target.value = ''; }}
+              />
+              {faviconUrl ? (
+                <div className="bs-logo-preview">
+                  <img src={faviconUrl} alt="Favicon" className="bs-favicon-img" />
+                  <div className="bs-logo-actions">
+                    <button className="bs-logo-change-btn" onClick={() => faviconInputRef.current?.click()} disabled={uploadingLogo === 'favicon'}>
+                      {uploadingLogo === 'favicon' ? <Loader size={14} className="spin" /> : <Upload size={14} />} Change
+                    </button>
+                    <button className="bs-logo-remove-btn" onClick={() => handleLogoDelete('favicon')} disabled={uploadingLogo === 'favicon'}>
+                      <Trash2 size={14} /> Remove
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button className="bs-logo-upload-btn" onClick={() => faviconInputRef.current?.click()} disabled={uploadingLogo === 'favicon'}>
+                  {uploadingLogo === 'favicon' ? <Loader size={16} className="spin" /> : <Image size={16} />}
+                  Upload Favicon
+                </button>
+              )}
             </div>
           </Section>
 
@@ -1027,6 +1148,76 @@ function BrandingSettings() {
           border-radius: 50%;
           background: transparent;
         }
+
+        /* Logo upload styles */
+        .bs-logo-upload-btn {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 12px 20px;
+          background: var(--bg-primary, #0f172a);
+          border: 2px dashed var(--gray-700, #334155);
+          border-radius: 10px;
+          color: var(--text-secondary, #94a3b8);
+          cursor: pointer;
+          font-size: 0.9rem;
+          width: 100%;
+          justify-content: center;
+          transition: all 0.2s;
+        }
+        .bs-logo-upload-btn:hover:not(:disabled) {
+          border-color: var(--brand-primary, #0d9488);
+          color: var(--brand-primary, #0d9488);
+        }
+        .bs-logo-upload-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+        .bs-logo-preview {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 12px;
+          background: var(--bg-primary, #0f172a);
+          border: 1px solid var(--gray-700, #334155);
+          border-radius: 10px;
+        }
+        .bs-logo-img {
+          height: 48px;
+          max-width: 160px;
+          object-fit: contain;
+          border-radius: 6px;
+        }
+        .bs-favicon-img {
+          width: 32px;
+          height: 32px;
+          object-fit: contain;
+          border-radius: 4px;
+        }
+        .bs-logo-actions {
+          display: flex;
+          gap: 8px;
+          margin-left: auto;
+        }
+        .bs-logo-change-btn, .bs-logo-remove-btn {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          padding: 6px 10px;
+          border-radius: 6px;
+          font-size: 0.75rem;
+          font-weight: 500;
+          cursor: pointer;
+          border: none;
+        }
+        .bs-logo-change-btn {
+          background: var(--bg-secondary, #1e293b);
+          color: var(--text-secondary, #94a3b8);
+        }
+        .bs-logo-change-btn:hover { color: var(--text-primary, #f1f5f9); }
+        .bs-logo-remove-btn {
+          background: rgba(239, 68, 68, 0.15);
+          color: #f87171;
+        }
+        .bs-logo-remove-btn:hover { background: rgba(239, 68, 68, 0.25); }
+        .bs-logo-change-btn:disabled, .bs-logo-remove-btn:disabled { opacity: 0.5; cursor: not-allowed; }
       `}</style>
     </div>
   );
