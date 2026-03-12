@@ -10,7 +10,7 @@ const DEFAULT_BRANDING = {
   brand_primary_color: '#0d9488',
   brand_secondary_color: '#0284c7',
   brand_accent_color: '#10b981',
-  brand_logo_url: null,
+  brand_logo_url: 'https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/Untitled%20design%20(7).svg',
   brand_favicon_url: null,
   brand_bg_color: null,
   brand_bg_secondary_color: null,
@@ -69,7 +69,7 @@ export const BUTTON_STYLES = {
   pill: '9999px',
 };
 
-const CACHE_KEY = 'coach_branding_v2';
+const CACHE_KEY = 'coach_branding_v3';
 const CACHE_TTL = 30 * 60 * 1000; // 30 minutes
 
 function getCachedBranding(coachId) {
