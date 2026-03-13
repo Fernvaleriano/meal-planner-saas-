@@ -136,9 +136,10 @@ The client has uploaded these two photos for a side-by-side comparison.
 ${coachInstructions}`
             : `${coachContext}
 
-Photo 1 (earlier): ${date1 ? `taken ${date1}` : 'earlier photo'}
-Photo 2 (more recent): ${date2 ? `taken ${date2}` : 'more recent photo'}
+Photo 1 (before): ${date1 ? `taken ${date1}` : 'before photo'}
+Photo 2 (after): ${date2 ? `taken ${date2}` : 'after photo'}
 ${timeSpan ? `Time between photos: approximately ${timeSpan}` : ''}
+${date1 && date2 && date1 === date2 ? 'Note: Both photos were logged on the same date. The user selected Photo 1 as their "before" and Photo 2 as their "after" — trust their ordering.' : ''}
 
 ${coachInstructions}`;
 

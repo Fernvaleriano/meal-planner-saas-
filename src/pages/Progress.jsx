@@ -340,8 +340,12 @@ function Progress() {
       const updated = [...selectedPhotos, photo];
       setSelectedPhotos(updated);
       if (updated.length === 2) {
-        // Sort by date so earlier photo is first
-        updated.sort((a, b) => new Date(a.taken_date || a.date_taken) - new Date(b.taken_date || b.date_taken));
+        // Sort by date so earlier photo is first, but if same date keep tap order (first tap = before)
+        const d1 = new Date(updated[0].taken_date || updated[0].date_taken).getTime();
+        const d2 = new Date(updated[1].taken_date || updated[1].date_taken).getTime();
+        if (d1 !== d2) {
+          updated.sort((a, b) => new Date(a.taken_date || a.date_taken) - new Date(b.taken_date || b.date_taken));
+        }
         setSelectedPhotos(updated);
         setShowComparison(true);
         setAiAnalysis('');
@@ -482,7 +486,7 @@ function Progress() {
 
             {compareMode && (
               <div className="compare-hint">
-                Tap 2 photos to compare them side by side
+                Tap the before photo first, then the after photo
               </div>
             )}
 
