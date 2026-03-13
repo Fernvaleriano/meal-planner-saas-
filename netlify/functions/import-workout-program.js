@@ -140,15 +140,33 @@ const CRITICAL_MOVEMENT_TOKENS = ['press', 'row', 'curl', 'fly', 'raise', 'exten
 
 const CRITICAL_EQUIPMENT_TOKENS = ['barbell', 'dumbbell', 'cable', 'machine', 'band', 'bodyweight', 'ez'];
 
+const DISAMBIGUATION_TOKENS = ['preacher', 'incline', 'decline', 'seated', 'standing', 'lying', 'bent', 'reverse', 'single', 'one', 'arm', 'smith'];
+
 function extractCriticalTokens(name, tokenList) {
   const normalized = normalizeExerciseName(name);
   return tokenList.filter(token => new RegExp(`\\b${token}\\b`, 'i').test(normalized));
 }
 
-function tokensOverlap(tokensA, tokensB) {
-  if (!tokensA.length || !tokensB.length) return true;
-  const setB = new Set(tokensB);
-  return tokensA.some(t => setB.has(t));
+function tokensOverlap(requiredTokens, candidateTokens) {
+  // If import name has no critical tokens for this category, do not gate on it.
+  if (!requiredTokens.length) return true;
+  // If import name has critical tokens, candidate must expose at least one of them.
+  if (!candidateTokens.length) return false;
+
+  const candidateSet = new Set(candidateTokens);
+  return requiredTokens.some(token => candidateSet.has(token));
+}
+
+
+function hasUnexpectedQualifiers(pdfName, candidateName) {
+  const pdfTokens = extractCriticalTokens(pdfName, DISAMBIGUATION_TOKENS);
+  const candidateTokens = extractCriticalTokens(candidateName, DISAMBIGUATION_TOKENS);
+
+  if (!candidateTokens.length) return false;
+  if (!pdfTokens.length) return candidateTokens.length > 0;
+
+  const pdfSet = new Set(pdfTokens);
+  return candidateTokens.some(token => !pdfSet.has(token));
 }
 
 function isMuscleCompatible(pdfMuscleGroup, exercise) {
@@ -218,6 +236,10 @@ function findBestExerciseMatch(pdfName, pdfMuscleGroup, exercises) {
 
     const baseSimilarity = calculateSimilarity(pdfName, exercise.name);
     if (baseSimilarity < minBaseSimilarity) {
+      continue;
+    }
+
+    if (hasUnexpectedQualifiers(pdfName, exercise.name)) {
       continue;
     }
 
