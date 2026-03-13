@@ -122,6 +122,8 @@ STANDOUT IMPROVEMENTS: Call out the 1-2 most impressive changes — the things t
 
 OVERALL ASSESSMENT: Give a brief overall coach's verdict on the progress.
 
+IMPORTANT: Be completely honest. If the two photos look identical or nearly identical, say so clearly — do NOT fabricate or exaggerate differences that aren't there. It's perfectly fine to say "these two photos look essentially the same to me" and leave it at that. Never invent progress that doesn't exist. Credibility matters more than positivity.
+
 Keep the tone real and direct like a coach who genuinely cares — honest, specific, and motivating. Avoid generic praise. If you see real progress, get excited about it. If changes are subtle, acknowledge the grind and point out the small wins.
 
 Format the response as plain text with short paragraph breaks between sections. Do NOT use markdown headers, bullet points, or bold text. Use natural section transitions instead (e.g. start paragraphs with phrases like "Looking at your shoulders..." or "From a body comp standpoint..." or "The thing that jumps out most...").`;
