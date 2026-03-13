@@ -9,15 +9,25 @@ const headers = {
     'Content-Type': 'application/json'
 };
 
+// Max image size: 4MB (Gemini accepts up to 20MB but we want to keep payloads reasonable)
+const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
+
 // Fetch image from URL and convert to base64
 async function fetchImageAsBase64(url) {
     const response = await fetch(url);
-    if (!response.ok) throw new Error(`Failed to fetch image: ${response.status}`);
+    if (!response.ok) throw new Error(`Failed to load photo (status ${response.status}). The image may have expired — try re-uploading it.`);
 
     const contentType = response.headers.get('content-type') || 'image/jpeg';
-    const arrayBuffer = await response.arrayBuffer();
-    const base64 = Buffer.from(arrayBuffer).toString('base64');
+    if (!contentType.startsWith('image/')) {
+        throw new Error('One of the selected files is not an image.');
+    }
 
+    const arrayBuffer = await response.arrayBuffer();
+    if (arrayBuffer.byteLength > MAX_IMAGE_BYTES) {
+        throw new Error('One of the photos is too large for analysis. Please upload a smaller image.');
+    }
+
+    const base64 = Buffer.from(arrayBuffer).toString('base64');
     return { base64, mimeType: contentType };
 }
 
@@ -39,8 +49,8 @@ exports.handler = async (event, context) => {
         const { user, error: authError } = await authenticateRequest(event);
         if (authError) return authError;
 
-        // Rate limit - 10 analyses per minute per user
-        const rateLimit = checkRateLimit(user.id, 'analyze-progress-photos', 10, 60000);
+        // Rate limit - 5 analyses per minute per user
+        const rateLimit = checkRateLimit(user.id, 'analyze-progress-photos', 5, 60000);
         if (!rateLimit.allowed) {
             return rateLimitResponse(rateLimit.resetIn);
         }
@@ -122,7 +132,19 @@ STANDOUT IMPROVEMENTS: Call out the 1-2 most impressive changes — the things t
 
 OVERALL ASSESSMENT: Give a brief overall coach's verdict on the progress.
 
-IMPORTANT: Be completely honest. If the two photos look identical or nearly identical, just say something short like "These two photos look essentially the same to me — no visible changes to call out yet. Keep grinding and we'll compare again soon!" and STOP THERE. Do NOT go through each section repeating that there's no change. Never invent or exaggerate progress that doesn't exist. Credibility matters more than positivity.
+IMPORTANT CHECKS — run these BEFORE doing a full analysis. If any apply, give a short response and STOP:
+
+1. NOT A FITNESS PHOTO: If either photo is not a body/physique photo (e.g. a screenshot, food pic, pet, random image), say something like "One of these doesn't look like a progress photo — double-check your selection and try again!" and STOP.
+
+2. DIFFERENT PEOPLE: If the two photos clearly appear to be different people (different body type, skin tone, tattoos, setting suggesting different individuals, etc.), say something like "Heads up — these two photos don't look like the same person to me. Double-check you selected the right photos and try again!" and STOP.
+
+3. NO VISIBLE CHANGE: If the two photos look identical or nearly identical, just say something short like "These two photos look essentially the same to me — no visible changes to call out yet. Keep grinding and we'll compare again soon!" and STOP. Do NOT go through each section repeating that there's no change.
+
+4. VERY DIFFERENT ANGLES: If the photos are taken from significantly different angles (e.g. front vs back, or front vs side), note upfront that a direct comparison is limited because of the angle difference, then only comment on what IS comparable between the two.
+
+5. LIGHTING OR CLOTHING DIFFERENCE: If one photo has dramatically different lighting, a filter, or different clothing coverage (e.g. shirtless vs wearing a shirt), mention it briefly so the client knows it affects the comparison. Do NOT attribute lighting changes to actual body composition changes.
+
+Never invent or exaggerate progress that doesn't exist. Credibility matters more than positivity.
 
 Keep the tone real and direct like a coach who genuinely cares — honest, specific, and motivating. Avoid generic praise. If you see real progress, get excited about it. If changes are subtle, acknowledge the grind and point out the small wins.
 
@@ -131,7 +153,7 @@ Format the response as plain text with short paragraph breaks between sections. 
         const prompt = sameDate
             ? `${coachContext}
 
-The client has uploaded these two photos for a side-by-side comparison.
+The client has uploaded these two photos for a side-by-side comparison. Both were logged on the same date — the user selected Photo 1 as "before" and Photo 2 as "after", so trust their ordering.
 
 ${coachInstructions}`
             : `${coachContext}
@@ -139,7 +161,6 @@ ${coachInstructions}`
 Photo 1 (before): ${date1 ? `taken ${date1}` : 'before photo'}
 Photo 2 (after): ${date2 ? `taken ${date2}` : 'after photo'}
 ${timeSpan ? `Time between photos: approximately ${timeSpan}` : ''}
-${date1 && date2 && date1 === date2 ? 'Note: Both photos were logged on the same date. The user selected Photo 1 as their "before" and Photo 2 as their "after" — trust their ordering.' : ''}
 
 ${coachInstructions}`;
 
