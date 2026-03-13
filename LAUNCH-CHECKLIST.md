@@ -113,15 +113,32 @@ There is no `.env` or `.env.example` file. The codebase references these environ
 
 **Fix needed:** Create a `.env.example` documenting all required vars so you don't forget anything when setting up production.
 
+Also missing from the list above:
+- `EDAMAM_APP_ID` + `EDAMAM_API_KEY` — used by `validate-nutrition.js` with **no fallback** (returns 500 if unset)
+- `SPOONACULAR_API_KEY` — used by `spoonacular-recipes.js` with **no fallback**
+
 ---
 
-## 8. MEDIUM — `test-fixes.js` Debug File in Root
+## 8. HIGH — Stripe Price IDs May Not Be Set
+
+`create-checkout-session.js` falls back to hardcoded `'price_starter_monthly'` strings if `STRIPE_PRICE_*` env vars aren't set. These hardcoded IDs almost certainly don't match your actual Stripe price objects, meaning **checkout would fail silently or create wrong subscriptions**.
+
+Verify these env vars are set in Netlify:
+- `STRIPE_PRICE_STARTER`
+- `STRIPE_PRICE_BASIC`
+- `STRIPE_PRICE_GROWTH`
+- `STRIPE_PRICE_PROFESSIONAL`
+- `STRIPE_PRICE_BRANDED`
+
+---
+
+## 9. MEDIUM — `test-fixes.js` Debug File in Root
 
 `test-fixes.js` (42 console.logs) is a test/debug script sitting in the project root. Should be removed or moved to a `scripts/` folder before publishing.
 
 ---
 
-## 9. MEDIUM — Legacy HTML Pages (37 files) vs. React SPA (17 pages)
+## 10. MEDIUM — Legacy HTML Pages (37 files) vs. React SPA (17 pages)
 
 You have **37 HTML files** in the root (the old multi-page app) and **17 React JSX pages** (the new SPA). The Netlify redirects route `/app` to the SPA and some old URLs redirect to `/app`.
 
@@ -131,7 +148,7 @@ You have **37 HTML files** in the root (the old multi-page app) and **17 React J
 
 ---
 
-## 10. MEDIUM — Play Store Listing Assets Still Needed
+## 11. MEDIUM — Play Store Listing Assets Still Needed
 
 Per your own `PLAY_STORE_RELEASE.md`, you still need:
 - [ ] Feature Graphic (1024x500 PNG)
@@ -145,7 +162,7 @@ Per your own `PLAY_STORE_RELEASE.md`, you still need:
 
 ---
 
-## 11. MEDIUM — App Store (iOS) Setup Not Started
+## 12. MEDIUM — App Store (iOS) Setup Not Started
 
 The `ios/` directory exists with a basic Capacitor scaffold, but:
 - No App Store release guide equivalent to `PLAY_STORE_RELEASE.md`
@@ -156,7 +173,7 @@ The `ios/` directory exists with a basic Capacitor scaffold, but:
 
 ---
 
-## 12. MEDIUM — No Automated Tests
+## 13. MEDIUM — No Automated Tests
 
 - Zero test files found in the project (no `*.test.js`, `*.spec.js`, `__tests__/` directories)
 - No testing framework in dependencies (no jest, vitest, cypress, etc.)
@@ -166,7 +183,7 @@ Not a hard blocker for launch, but means you're shipping without a safety net.
 
 ---
 
-## 13. LOW — Stale SQL Migration Files in Root
+## 14. LOW — Stale SQL Migration Files in Root
 
 Several `.sql` files are scattered in the project root (not in `supabase-migrations/`):
 - `database-setup.sql`
@@ -187,13 +204,13 @@ These appear to be one-off fixes that have likely already been run. Clean up bef
 
 ---
 
-## 14. LOW — Spec/Design Docs Still in Repo
+## 15. LOW — Spec/Design Docs Still in Repo
 
 Files like `SPA-DASHBOARD-SPEC.md`, `SPA-DIARY-SPEC.md`, and `PLAY_STORE_RELEASE.md` are useful for development but shouldn't ship in the final app bundle. Consider adding to `.gitignore` or a `docs/` folder that's excluded from the build.
 
 ---
 
-## 15. MEDIUM — ~30 Native `alert()` Calls Should Be Toast Notifications
+## 16. MEDIUM — ~30 Native `alert()` Calls Should Be Toast Notifications
 
 Browser `alert()` and `window.confirm()` calls look bad in a native app wrapper. Found in:
 
@@ -213,13 +230,13 @@ You already have a `Toast` component — these should use it instead. The `windo
 
 ---
 
-## 16. LOW — WorkoutBuilder Language Dropdown Non-Functional
+## 17. LOW — WorkoutBuilder Language Dropdown Non-Functional
 
 `WorkoutBuilder.jsx:97` — Language dropdown is hardcoded to "English" with state tracked but no actual language switching logic. Either remove it or wire it up.
 
 ---
 
-## 17. MEDIUM — Deep Linking URL Schemes Not Declared
+## 18. MEDIUM — Deep Linking URL Schemes Not Declared
 
 iOS `AppDelegate.swift` has URL handling code (lines 36-46) and supports Universal Links, but:
 - **iOS**: No `URLTypes` section in `Info.plist` to register a custom URL scheme
@@ -234,21 +251,23 @@ Without this, the app can't handle `ziquecoach://` style links or respond to web
 ### Must Fix Before Submitting to Stores
 1. **Fix Capacitor build** — Make `build:mobile` / `cap:sync` use the Vite-built SPA, not legacy HTML files
 2. **Fix the typo domain** in `send-client-password-reset.js` (`ziquefitnutrition.com` → correct domain)
-3. **Decide final App ID** before first store submission (can't change later)
-4. **Create signing keystore** for Android (if not done yet)
+3. **Verify Stripe price env vars** are set correctly in Netlify (hardcoded fallbacks won't match your actual Stripe prices)
+4. **Decide final App ID** before first store submission (can't change later)
+5. **Create signing keystore** for Android (if not done yet)
 
 ### Should Fix Before Launch
-5. Remove client-side `console.log` from JSX files
-6. Replace `alert()` / `window.confirm()` with Toast and custom dialogs
-7. Update service worker to cache SPA assets
-8. Set up push notifications (FCM/APNs)
-9. Create `.env.example`
-10. Clean up `test-fixes.js`
+6. Remove client-side `console.log` from JSX files
+7. Replace `alert()` / `window.confirm()` with Toast and custom dialogs
+8. Update service worker to cache SPA assets
+9. Set up push notifications (FCM/APNs)
+10. Create `.env.example`
+11. Clean up `test-fixes.js`
+12. Set up deep linking URL schemes in iOS/Android configs
 
 ### Nice to Have
-11. Clean up root SQL files
-12. Remove/organize spec docs
-13. Prepare store listing assets (screenshots, descriptions)
-14. Set up basic testing
-15. Resolve legacy HTML vs SPA page overlap
-16. Fix or remove WorkoutBuilder language dropdown
+13. Clean up root SQL files
+14. Remove/organize spec docs
+15. Prepare store listing assets (screenshots, descriptions)
+16. Set up basic testing
+17. Resolve legacy HTML vs SPA page overlap
+18. Fix or remove WorkoutBuilder language dropdown
