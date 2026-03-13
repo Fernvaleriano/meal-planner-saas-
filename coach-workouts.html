@@ -7235,7 +7235,7 @@
                 let badges = '';
                 if (exercise.isWarmup) badges += '<span class="wb-ex-row-badge" style="background:rgba(245,158,11,0.2);color:#f59e0b;">Warmup</span>';
                 if (exercise.isStretch) badges += '<span class="wb-ex-row-badge" style="background:rgba(16,185,129,0.2);color:#10b981;">Stretch</span>';
-                if (exercise.isSuperset) badges += '<span class="wb-ex-row-badge" style="background:rgba(99,102,241,0.2);color:#6366f1;">SS ${exercise.supersetGroup || ''}</span>';
+                if (exercise.isSuperset) badges += '<span class="wb-ex-row-badge" style="background:rgba(99,102,241,0.2);color:#6366f1;">SS ' + (exercise.supersetGroup || '') + '</span>';
                 return `
                     <div class="wb-ex-row ${selectedExerciseIndex === exIndex ? 'selected' : ''}" onclick="selectExercise(${exIndex})">
                         <div class="wb-ex-row-thumb">
@@ -7271,7 +7271,7 @@
             // Preview
             let previewHtml;
             if (hasVideo) {
-                previewHtml = `<video src="${videoSrc}" muted loop playsinline autoplay poster="${thumbSrc}" style="width:100%;height:100%;object-fit:contain;" onerror="this.outerHTML='<img src=\\'${thumbSrc}\\' style=\\'width:100%;height:100%;object-fit:contain;\\'>'"></video>`;
+                previewHtml = '<video src="' + videoSrc + '" muted loop playsinline autoplay poster="' + thumbSrc + '" style="width:100%;height:100%;object-fit:contain;" onerror="this.outerHTML=\'<img src=&quot;' + thumbSrc + '&quot; style=&quot;width:100%;height:100%;object-fit:contain;&quot;>\'"></video>';
             } else {
                 previewHtml = `<img src="${thumbSrc}" style="width:100%;height:100%;object-fit:contain;" onerror="this.src='/img/exercise-placeholder.svg'">`;
             }
