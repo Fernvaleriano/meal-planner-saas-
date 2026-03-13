@@ -116,11 +116,11 @@ exports.handler = async (event, context) => {
     try {
       const { data: clientRow } = await supabase
         .from('clients')
-        .select('name')
+        .select('client_name')
         .eq('id', clientId)
         .single();
 
-      const clientName = clientRow?.name || 'A client';
+      const clientName = clientRow?.client_name || 'A client';
       const unit = weightUnit || 'lbs';
       const details = weight ? `Weight: ${weight} ${unit}` : 'New measurement logged';
 
