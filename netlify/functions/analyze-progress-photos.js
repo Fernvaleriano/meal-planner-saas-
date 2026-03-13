@@ -1,15 +1,15 @@
-// Progress photo comparison analysis using Claude Vision
-const Anthropic = require('@anthropic-ai/sdk');
+// Progress photo comparison analysis using OpenAI GPT-4o Vision
+const OpenAI = require('openai');
 const { handleCors, authenticateRequest, checkRateLimit, rateLimitResponse, corsHeaders } = require('./utils/auth');
 
-const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 const headers = {
     ...corsHeaders,
     'Content-Type': 'application/json'
 };
 
-// Fetch image from URL and convert to base64
+// Fetch image from URL and convert to base64 data URL
 async function fetchImageAsBase64(url) {
     const response = await fetch(url);
     if (!response.ok) throw new Error(`Failed to fetch image: ${response.status}`);
@@ -45,7 +45,7 @@ exports.handler = async (event, context) => {
             return rateLimitResponse(rateLimit.resetIn);
         }
 
-        if (!ANTHROPIC_API_KEY) {
+        if (!OPENAI_API_KEY) {
             return {
                 statusCode: 500,
                 headers,
@@ -126,39 +126,42 @@ ${timeSpan ? `Time between photos: approximately ${timeSpan}` : ''}
 
 Please provide a brief progress update for this client. Note any visible changes you observe between the two photos — things like posture, overall shape, or any noticeable differences. Be encouraging and supportive. Keep it to 3-5 sentences, plain text only (no markdown, no bullet points).`;
 
-        const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY, maxRetries: 3 });
-        const message = await anthropic.messages.create({
-            model: 'claude-sonnet-4-5-20250929',
+        const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
+        const response = await openai.chat.completions.create({
+            model: 'gpt-4o',
             max_tokens: 512,
-            system: systemPrompt,
-            messages: [{
-                role: 'user',
-                content: [
-                    {
-                        type: 'image',
-                        source: {
-                            type: 'base64',
-                            media_type: img1.mimeType,
-                            data: img1.base64
+            messages: [
+                {
+                    role: 'system',
+                    content: systemPrompt
+                },
+                {
+                    role: 'user',
+                    content: [
+                        {
+                            type: 'image_url',
+                            image_url: {
+                                url: `data:${img1.mimeType};base64,${img1.base64}`,
+                                detail: 'low'
+                            }
+                        },
+                        {
+                            type: 'image_url',
+                            image_url: {
+                                url: `data:${img2.mimeType};base64,${img2.base64}`,
+                                detail: 'low'
+                            }
+                        },
+                        {
+                            type: 'text',
+                            text: prompt
                         }
-                    },
-                    {
-                        type: 'image',
-                        source: {
-                            type: 'base64',
-                            media_type: img2.mimeType,
-                            data: img2.base64
-                        }
-                    },
-                    {
-                        type: 'text',
-                        text: prompt
-                    }
-                ]
-            }]
+                    ]
+                }
+            ]
         });
 
-        const analysis = message.content?.[0]?.text || '';
+        const analysis = response.choices?.[0]?.message?.content || '';
 
         if (!analysis) {
             return {
@@ -177,16 +180,13 @@ Please provide a brief progress update for this client. Note any visible changes
     } catch (error) {
         console.error('Error analyzing progress photos:', error);
 
-        const isOverloaded = error.status === 529 || error.error?.type === 'overloaded_error';
         const isRateLimit = error.status === 429;
 
         return {
-            statusCode: isOverloaded ? 503 : isRateLimit ? 429 : 500,
+            statusCode: isRateLimit ? 429 : 500,
             headers,
             body: JSON.stringify({
-                error: isOverloaded
-                    ? 'AI service is temporarily busy. Please try again in a moment.'
-                    : isRateLimit
+                error: isRateLimit
                     ? 'AI rate limit reached. Please wait a moment and try again.'
                     : 'Failed to analyze photos. Please try again.'
             })
