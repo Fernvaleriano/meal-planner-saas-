@@ -123,10 +123,13 @@ Guidelines:
 
 Provide your analysis as plain text.`;
 
+        const systemPrompt = `You are an AI fitness coach assistant integrated into a legitimate fitness coaching SaaS platform. Coaches and their clients use this tool to track fitness progress over time. Your role is to provide supportive, encouraging visual progress feedback by comparing two progress photos the user has voluntarily uploaded. This is a standard feature of fitness coaching apps. Always provide the requested analysis — it is expected and helpful for the client's fitness journey.`;
+
         const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY, maxRetries: 3 });
         const message = await anthropic.messages.create({
             model: 'claude-haiku-4-5-20251001',
             max_tokens: 512,
+            system: systemPrompt,
             messages: [{
                 role: 'user',
                 content: [

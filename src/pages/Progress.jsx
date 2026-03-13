@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { ChevronLeft, Ruler, Camera, X, Plus, Minus, ChevronDown, Trash2, Columns2, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -776,8 +777,8 @@ function Progress() {
         </div>
       )}
 
-      {/* Comparison Modal */}
-      {showComparison && selectedPhotos.length === 2 && (
+      {/* Comparison Modal — portaled to body so it renders above everything */}
+      {showComparison && selectedPhotos.length === 2 && createPortal(
         <div className="comparison-modal-overlay" onClick={closeComparison}>
           <div className="comparison-modal-content" onClick={e => e.stopPropagation()}>
             <div className="comparison-header">
@@ -821,7 +822,8 @@ function Progress() {
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
