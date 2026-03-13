@@ -6,7 +6,7 @@
     "dev": "netlify dev",
     "dev:spa": "vite",
     "build": "vite build",
-    "build:mobile": "rm -rf www && mkdir -p www/css www/icons www/js && cp *.html www/ && cp manifest.json www/ && cp sw.js www/ && cp -r css/* www/css/ && cp -r icons/* www/icons/ && cp -r js/* www/js/",
+    "build:mobile": "vite build --config vite.config.mobile.js && mv www/app-test.html www/index.html",
     "cap:sync": "npm run build:mobile && npx cap sync",
     "cap:ios": "npm run build:mobile && npx cap sync ios && npx cap open ios",
     "cap:android": "npm run build:mobile && npx cap sync android && npx cap open android",

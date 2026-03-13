@@ -45,6 +45,17 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.ziquefitness.mealplanner</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>ziquefitness</string>
+			</array>
+		</dict>
+	</array>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Zique Fitness needs microphone access for voice food logging and voice notes.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
