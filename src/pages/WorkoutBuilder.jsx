@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   ChevronLeft, Save, Plus, Dumbbell, Trash2, Clock, Hash, ArrowLeftRight,
   ChevronDown, MoreVertical, Pencil, X, Loader2, Users, Search, Copy,
-  GripVertical, Link2, Image
+  GripVertical, Link2, Image, FileDown
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, apiPut } from '../utils/api';
@@ -11,6 +11,7 @@ import { useToast } from '../components/Toast';
 import AddActivityModal from '../components/workout/AddActivityModal';
 import SwapExerciseModal from '../components/workout/SwapExerciseModal';
 import SmartThumbnail from '../components/workout/SmartThumbnail';
+import PrintPlanModal from '../components/workout/PrintPlanModal';
 
 const DIFFICULTY_OPTIONS = ['Beginner', 'Novice', 'Intermediate', 'Advanced'];
 const CATEGORY_OPTIONS = ['Main Workout Programs', 'Strength Training', 'Hypertrophy', 'Fat Loss', 'HIIT', 'Cardio', 'Mobility', 'Sport Specific', 'Rehabilitation', 'Custom'];
@@ -51,6 +52,7 @@ function WorkoutBuilder() {
   const [sidebarLoading, setSidebarLoading] = useState(false);
   const [sidebarSearch, setSidebarSearch] = useState('');
   const [showSettings, setShowSettings] = useState(!programId); // Show settings when creating new
+  const [showPrintModal, setShowPrintModal] = useState(false);
 
   // Load existing program
   useEffect(() => {
@@ -366,6 +368,19 @@ function WorkoutBuilder() {
             title="Your programs"
           >
             <Dumbbell size={20} />
+          </button>
+          <button
+            className="wb-programs-toggle"
+            onClick={() => {
+              if (days.some(d => d.exercises.length > 0)) {
+                setShowPrintModal(true);
+              } else {
+                showError('Add some exercises before downloading PDF');
+              }
+            }}
+            title="Download PDF"
+          >
+            <FileDown size={20} />
           </button>
           <button
             className={`wb-save-btn ${hasUnsavedChanges ? 'unsaved' : ''}`}
@@ -818,6 +833,21 @@ function WorkoutBuilder() {
           onSwap={handleSwapExercise}
           onClose={() => setSwapExerciseData(null)}
           coachId={coachId}
+        />
+      )}
+
+      {/* Print Plan Modal */}
+      {showPrintModal && (
+        <PrintPlanModal
+          program={{
+            name: programName || 'Workout Program',
+            program_type: category,
+            difficulty,
+            days_per_week: frequency,
+            description,
+            program_data: { days }
+          }}
+          onClose={() => setShowPrintModal(false)}
         />
       )}
     </div>
