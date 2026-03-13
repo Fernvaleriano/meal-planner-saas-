@@ -189,11 +189,11 @@ exports.handler = async (event, context) => {
     try {
       const { data: clientRow } = await supabase
         .from('clients')
-        .select('name')
+        .select('client_name')
         .eq('id', clientId)
         .single();
 
-      const clientName = clientRow?.name || 'A client';
+      const clientName = clientRow?.client_name || 'A client';
       const typeLabel = { front: 'front', side: 'side', back: 'back', progress: 'progress' }[photoType] || 'progress';
 
       await supabase.from('notifications').insert([{
