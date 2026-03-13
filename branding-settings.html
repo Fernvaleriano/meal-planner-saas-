@@ -1892,10 +1892,18 @@
                 document.getElementById('accentColor').value = currentBranding.brand_accent_color;
                 document.getElementById('emailFooter').value = currentBranding.brand_email_footer;
 
-                // Update color swatches
-                document.getElementById('primarySwatch').style.background = currentBranding.brand_primary_color;
-                document.getElementById('secondarySwatch').style.background = currentBranding.brand_secondary_color;
-                document.getElementById('accentSwatch').style.background = currentBranding.brand_accent_color;
+                // Update color swatches (may be null if Pickr has replaced them)
+                var primarySwatch = document.getElementById('primarySwatch');
+                var secondarySwatch = document.getElementById('secondarySwatch');
+                var accentSwatch = document.getElementById('accentSwatch');
+                if (primarySwatch) primarySwatch.style.background = currentBranding.brand_primary_color;
+                if (secondarySwatch) secondarySwatch.style.background = currentBranding.brand_secondary_color;
+                if (accentSwatch) accentSwatch.style.background = currentBranding.brand_accent_color;
+
+                // Also update Pickr instances if they exist
+                if (colorPickers.primary) colorPickers.primary.setColor(currentBranding.brand_primary_color);
+                if (colorPickers.secondary) colorPickers.secondary.setColor(currentBranding.brand_secondary_color);
+                if (colorPickers.accent) colorPickers.accent.setColor(currentBranding.brand_accent_color);
 
                 // Update logo previews
                 updateLogoPreview('logo', currentBranding.brand_logo_url);
@@ -1990,12 +1998,7 @@
             document.getElementById('secondaryColor').value = preset.secondary;
             document.getElementById('accentColor').value = preset.accent;
 
-            // Update swatches
-            document.getElementById('primarySwatch').style.background = preset.primary;
-            document.getElementById('secondarySwatch').style.background = preset.secondary;
-            document.getElementById('accentSwatch').style.background = preset.accent;
-
-            // Update pickers
+            // Update pickers (Pickr replaces original swatch elements, so use Pickr API)
             if (colorPickers.primary) colorPickers.primary.setColor(preset.primary);
             if (colorPickers.secondary) colorPickers.secondary.setColor(preset.secondary);
             if (colorPickers.accent) colorPickers.accent.setColor(preset.accent);
@@ -2290,12 +2293,7 @@
             document.getElementById('accentColor').value = '#10b981';
             document.getElementById('emailFooter').value = '';
 
-            // Update swatches
-            document.getElementById('primarySwatch').style.background = '#0d9488';
-            document.getElementById('secondarySwatch').style.background = '#0284c7';
-            document.getElementById('accentSwatch').style.background = '#10b981';
-
-            // Update pickers
+            // Update pickers (Pickr replaces original swatch elements, so use Pickr API)
             if (colorPickers.primary) colorPickers.primary.setColor('#0d9488');
             if (colorPickers.secondary) colorPickers.secondary.setColor('#0284c7');
             if (colorPickers.accent) colorPickers.accent.setColor('#10b981');
