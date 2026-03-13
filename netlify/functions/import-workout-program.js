@@ -376,6 +376,142 @@ function guessMusclGroup(name) {
   return 'full_body';
 }
 
+// Deterministic parser for common coach text formats.
+// This catches structured plans more reliably than LLM parsing for notes/superset attribution.
+function parseStructuredDay(chunk) {
+  const lines = chunk
+    .split('\n')
+    .map(l => l.replace(/\s+/g, ' ').trim())
+    .filter(Boolean);
+
+  if (lines.length === 0) return null;
+
+  const dayName = lines[0].match(/^DAY\s+\d+/i)
+    ? lines[0]
+    : (lines[0].length < 100 ? lines[0] : 'Workout');
+
+  const exercises = [];
+  let currentSection = 'working';
+  let activeSupersetGroup = null;
+  let supersetRemaining = 0;
+  let lastExerciseIndices = [];
+
+  const isSkippableLine = (line) => {
+    if (/^(?:CLIENT PROFILE|PROGRESSION FROM PART|INTENSITY TECHNIQUES SUMMARY|VOLUME INCREASE|INTENSITY INCREASE|LOADING|\d+-WEEK PROGRESSION CYCLE)$/i.test(line)) return true;
+    if (/^(?:Name|Age|Height|Weight|Goal|Program):/i.test(line)) return true;
+    if (/^[-•]/.test(line)) return true;
+    if (/^DAY\s+\d+\s*\(/i.test(line)) return true;
+    if (/^Week\s+\d+/i.test(line)) return true;
+    return false;
+  };
+
+  for (const line of lines.slice(1)) {
+    if (/^warm[- ]?up:?$/i.test(line)) {
+      currentSection = 'warmup';
+      activeSupersetGroup = null;
+      supersetRemaining = 0;
+      continue;
+    }
+
+    if (/^(?:working sets|main sets?|working block):?$/i.test(line)) {
+      currentSection = 'working';
+      activeSupersetGroup = null;
+      supersetRemaining = 0;
+      continue;
+    }
+
+    if (/^cool[- ]?down:?$/i.test(line)) {
+      currentSection = 'cooldown';
+      activeSupersetGroup = null;
+      supersetRemaining = 0;
+      continue;
+    }
+
+    const supersetHeader = line.match(/^([A-Z])1\s*\/\s*\1?2\s+SUPERSET:?$/i) || line.match(/^([A-Z])1\s*\/\s*([A-Z])2\s+SUPERSET:?$/i);
+    if (supersetHeader) {
+      activeSupersetGroup = (supersetHeader[1] || 'A').toUpperCase();
+      supersetRemaining = 2;
+      lastExerciseIndices = [];
+      continue;
+    }
+
+    if (isSkippableLine(line)) continue;
+
+    if (/^Coach note:/i.test(line)) {
+      const noteText = line.replace(/^Coach note:\s*/i, '').trim();
+      if (noteText && lastExerciseIndices.length > 0) {
+        for (const idx of lastExerciseIndices) {
+          const prior = exercises[idx].notes;
+          exercises[idx].notes = prior ? `${prior} ${noteText}` : noteText;
+        }
+      }
+      continue;
+    }
+
+    if (/:$/.test(line)) continue;
+
+    const exMatch = line.match(/^([^,|][^,|]{1,120}?)\s*,\s*(.+)$/);
+    if (!exMatch) continue;
+
+    const originalName = exMatch[1].trim();
+    const prescription = exMatch[2].trim();
+
+    let sets = null;
+    let reps = '';
+
+    const setsRepsMatch = prescription.match(/^(\d+)\s*x\s*(.+)$/i);
+    if (setsRepsMatch) {
+      sets = parseInt(setsRepsMatch[1], 10);
+      reps = setsRepsMatch[2].trim();
+    } else {
+      const durationMatch = prescription.match(/^(\d+(?:-\d+)?)\s*(min(?:utes?)?|sec(?:onds?)?|s)\b(.*)$/i);
+      if (durationMatch) {
+        sets = 1;
+        const extra = durationMatch[3] ? durationMatch[3].trim() : '';
+        reps = `${durationMatch[1]} ${durationMatch[2].toLowerCase().startsWith('m') ? 'min' : 'sec'}${extra ? ` ${extra}` : ''}`.trim();
+      }
+    }
+
+    if (!sets || !reps) continue;
+
+    const isWarmup = currentSection === 'warmup' || isWarmupExercise(originalName);
+    const isStretch = currentSection === 'cooldown' || isStretchExercise(originalName);
+    const isSuperset = Boolean(activeSupersetGroup && supersetRemaining > 0);
+
+    const exercise = {
+      originalName,
+      muscleGroup: guessMusclGroup(originalName),
+      sets,
+      reps,
+      restSeconds: isWarmup || isStretch ? 0 : 60,
+      notes: '',
+      isWarmup,
+      isStretch,
+      isSuperset,
+      supersetGroup: isSuperset ? activeSupersetGroup : null
+    };
+
+    exercises.push(exercise);
+
+    if (isSuperset) {
+      lastExerciseIndices.push(exercises.length - 1);
+      supersetRemaining -= 1;
+      if (supersetRemaining <= 0) {
+        activeSupersetGroup = null;
+      }
+    } else {
+      lastExerciseIndices = [exercises.length - 1];
+    }
+  }
+
+  if (exercises.length === 0) return null;
+
+  return {
+    name: dayName,
+    exercises
+  };
+}
+
 // --- AI parsing functions ---
 
 const PARSE_SYSTEM_PROMPT = `You are a fitness program parser. Extract workout data from ONE day of a program and return valid JSON.
@@ -486,6 +622,18 @@ async function parseWithHaiku(anthropic, chunk, chunkIndex) {
 // Parse a single day chunk with GPT-4o-mini → Haiku fallback → regex fallback
 async function parseDayChunk(anthropic, chunk, chunkIndex) {
   const errors = [];
+
+  // Attempt 0: deterministic parser for structured plans
+  try {
+    const deterministicResult = parseStructuredDay(chunk);
+    if (deterministicResult && deterministicResult.exercises?.length >= 3) {
+      console.log(`Day ${chunkIndex + 1}: deterministic parser extracted ${deterministicResult.exercises.length} exercises`);
+      return deterministicResult;
+    }
+  } catch (err) {
+    errors.push(`Deterministic parser: ${err.message}`);
+    console.error(`Day ${chunkIndex + 1} deterministic parser failed:`, err.message);
+  }
 
   // Attempt 1: GPT-4o-mini with JSON mode
   try {
