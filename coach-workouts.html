@@ -1492,8 +1492,8 @@
         .wb-day-row {
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            padding: 14px 16px;
+            gap: 8px;
+            padding: 10px 12px;
             cursor: pointer;
             border-bottom: 1px solid var(--border-color);
             transition: background 0.12s;
@@ -1506,6 +1506,30 @@
         .wb-day-row.active {
             background: var(--bg-tertiary);
             border-left: 3px solid var(--brand-primary);
+        }
+
+        .wb-day-row.dragging {
+            opacity: 0.4;
+        }
+        .wb-day-row.drag-over {
+            border-top: 2px solid var(--brand-primary);
+        }
+
+        .wb-day-row-reorder {
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+            flex-shrink: 0;
+        }
+
+        .wb-day-row-count {
+            font-size: 11px;
+            color: var(--text-muted);
+            background: var(--bg-tertiary);
+            border-radius: 10px;
+            padding: 1px 7px;
+            flex-shrink: 0;
+            margin-left: auto;
         }
 
         .wb-day-row-name {
@@ -7225,9 +7249,15 @@
                 container.innerHTML = '<div class="wb-empty-panel"><p>No days yet</p><span>Add your first workout day</span></div>';
                 return;
             }
+            const totalDays = workoutDays.length;
             container.innerHTML = workoutDays.map((day, dayIndex) => `
-                <div class="wb-day-row ${activeDayIndex === dayIndex ? 'active' : ''}" onclick="selectDay(${dayIndex})">
+                <div class="wb-day-row ${activeDayIndex === dayIndex ? 'active' : ''}" draggable="true" data-day-index="${dayIndex}" ondragstart="onDayDragStart(event)" ondragover="onDayDragOver(event)" ondrop="onDayDrop(event)" ondragend="onDayDragEnd(event)" ondragleave="onDayDragLeave(event)" onclick="selectDay(${dayIndex})">
+                    <div class="wb-day-row-reorder" onclick="event.stopPropagation()">
+                        <button class="wb-ex-move-btn" onclick="event.stopPropagation(); moveDayInPanel(${dayIndex},-1)" title="Move up" ${dayIndex === 0 ? 'disabled' : ''}>&#9650;</button>
+                        <button class="wb-ex-move-btn" onclick="event.stopPropagation(); moveDayInPanel(${dayIndex},1)" title="Move down" ${dayIndex === totalDays - 1 ? 'disabled' : ''}>&#9660;</button>
+                    </div>
                     <span class="wb-day-row-name" ondblclick="event.stopPropagation(); startInlineDayRename(${dayIndex})">${escapeHtml(day.name)}</span>
+                    <span class="wb-day-row-count">${day.exercises.length}</span>
                     ${activeDayIndex === dayIndex ? `
                         <div class="wb-day-row-actions">
                             <button class="wb-day-row-menu-btn" onclick="event.stopPropagation(); toggleDayRowMenu(${dayIndex})" title="Options">
@@ -7244,6 +7274,68 @@
                     ` : ''}
                 </div>
             `).join('');
+        }
+
+        // Day drag-and-drop reorder
+        let dragSrcDayPanelIndex = null;
+
+        function onDayDragStart(e) {
+            const item = e.target.closest('.wb-day-row');
+            dragSrcDayPanelIndex = parseInt(item.dataset.dayIndex);
+            item.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', '');
+        }
+        function onDayDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            const item = e.target.closest('.wb-day-row');
+            if (item) {
+                document.querySelectorAll('.wb-day-row.drag-over').forEach(el => el.classList.remove('drag-over'));
+                item.classList.add('drag-over');
+            }
+        }
+        function onDayDragLeave(e) {
+            const item = e.target.closest('.wb-day-row');
+            if (item) item.classList.remove('drag-over');
+        }
+        function onDayDrop(e) {
+            e.preventDefault();
+            const item = e.target.closest('.wb-day-row');
+            if (!item) return;
+            const destIndex = parseInt(item.dataset.dayIndex);
+            if (dragSrcDayPanelIndex === destIndex) { onDayDragEnd(e); return; }
+            const [moved] = workoutDays.splice(dragSrcDayPanelIndex, 1);
+            workoutDays.splice(destIndex, 0, moved);
+            // Track active day through the move
+            if (activeDayIndex === dragSrcDayPanelIndex) {
+                activeDayIndex = destIndex;
+            } else if (dragSrcDayPanelIndex < destIndex && activeDayIndex > dragSrcDayPanelIndex && activeDayIndex <= destIndex) {
+                activeDayIndex--;
+            } else if (dragSrcDayPanelIndex > destIndex && activeDayIndex >= destIndex && activeDayIndex < dragSrcDayPanelIndex) {
+                activeDayIndex++;
+            }
+            dragSrcDayPanelIndex = null;
+            renderWorkoutDays();
+        }
+        function onDayDragEnd(e) {
+            document.querySelectorAll('.wb-day-row.dragging').forEach(el => el.classList.remove('dragging'));
+            document.querySelectorAll('.wb-day-row.drag-over').forEach(el => el.classList.remove('drag-over'));
+            dragSrcDayPanelIndex = null;
+        }
+
+        function moveDayInPanel(dayIndex, direction) {
+            const newIndex = dayIndex + direction;
+            if (newIndex < 0 || newIndex >= workoutDays.length) return;
+            const [moved] = workoutDays.splice(dayIndex, 1);
+            workoutDays.splice(newIndex, 0, moved);
+            if (activeDayIndex === dayIndex) {
+                activeDayIndex = newIndex;
+            } else if (activeDayIndex === newIndex) {
+                activeDayIndex = dayIndex;
+            }
+            selectedExerciseIndex = null;
+            renderWorkoutDays();
         }
 
         // Day row menu toggle
