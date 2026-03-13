@@ -290,7 +290,7 @@
             doc.setFontSize(7);
             doc.setTextColor(...MEDIUM_GRAY);
             doc.text(`Page ${i} of ${totalPages}`, pageWidth / 2, pageHeight - 5, { align: 'center' });
-            doc.text('Zique Fitness', pageWidth - margin, pageHeight - 5, { align: 'right' });
+            doc.text('Zique Fitness Nutrition', pageWidth - margin, pageHeight - 5, { align: 'right' });
         }
 
         // Download
