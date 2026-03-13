@@ -500,7 +500,8 @@ function Progress() {
               ) : photos.length === 0 ? (
                 <div className="empty-state-inline">
                   <Camera size={40} strokeWidth={1.5} className="empty-state-icon" />
-                  <p>No photos yet. Tap "+ Add Photo" to upload!</p>
+                  <p className="empty-state-title">No progress photos yet</p>
+                  <p className="empty-state-subtitle">Take your first photo to track your transformation journey!</p>
                 </div>
               ) : (
                 <div className="photos-grid">
