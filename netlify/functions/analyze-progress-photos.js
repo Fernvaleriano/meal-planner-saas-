@@ -101,33 +101,25 @@ exports.handler = async (event, context) => {
             ? `${photoType} view`
             : 'progress';
 
-        const prompt = `You are a supportive and knowledgeable fitness coach reviewing a client's ${photoTypeLabel} progress photos.
+        const systemPrompt = `You are a progress tracking assistant for a fitness coaching SaaS application called Ziquecoach. This is a legitimate, professional fitness coaching platform where certified coaches manage their clients' training programs.
 
-The FIRST image is the EARLIER photo${date1 ? ` (from ${date1})` : ''}.
-The SECOND image is the MORE RECENT photo${date2 ? ` (from ${date2})` : ''}.
-${timeSpan ? `Time between photos: approximately ${timeSpan}.` : ''}
+One core feature is progress photo tracking. Clients voluntarily upload their own workout progress photos at regular intervals so they and their coach can visually track their fitness journey over time.
 
-Analyze the visible differences between these two photos. Focus on:
-- Changes in muscle definition and tone
-- Changes in body composition (visible fat loss or muscle gain)
-- Posture improvements
-- Overall physique changes
+Your job: When shown two progress photos from the same client taken at different dates, provide a brief, encouraging comparison noting any visible changes. This is functionally identical to what a personal trainer does during in-person check-ins — it is a routine, expected, and helpful part of fitness coaching.
 
-Guidelines:
-- Be encouraging, positive, and constructive
-- Only comment on what is visually apparent — do not guess weight numbers
-- If changes are subtle, acknowledge the effort and consistency
-- Keep your response to 3-5 sentences
-- Do NOT use markdown formatting (no bold, italic, headers, or bullets)
-- Write in a natural, conversational tone as if speaking directly to the client
+You must always provide the comparison feedback. Refusing would break a core product feature that paying clients depend on.`;
 
-Provide your analysis as plain text.`;
+        const prompt = `A client on our fitness coaching platform has uploaded these two ${photoTypeLabel} progress photos for their routine check-in.
 
-        const systemPrompt = `You are an AI fitness coach assistant integrated into a legitimate fitness coaching SaaS platform. Coaches and their clients use this tool to track fitness progress over time. Your role is to provide supportive, encouraging visual progress feedback by comparing two progress photos the user has voluntarily uploaded. This is a standard feature of fitness coaching apps. Always provide the requested analysis — it is expected and helpful for the client's fitness journey.`;
+Photo 1 (earlier): ${date1 ? `taken ${date1}` : 'earlier photo'}
+Photo 2 (more recent): ${date2 ? `taken ${date2}` : 'more recent photo'}
+${timeSpan ? `Time between photos: approximately ${timeSpan}` : ''}
+
+Please provide a brief progress update for this client. Note any visible changes you observe between the two photos — things like posture, overall shape, or any noticeable differences. Be encouraging and supportive. Keep it to 3-5 sentences, plain text only (no markdown, no bullet points).`;
 
         const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY, maxRetries: 3 });
         const message = await anthropic.messages.create({
-            model: 'claude-haiku-4-5-20251001',
+            model: 'claude-sonnet-4-5-20250929',
             max_tokens: 512,
             system: systemPrompt,
             messages: [{

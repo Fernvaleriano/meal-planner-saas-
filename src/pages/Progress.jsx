@@ -345,6 +345,7 @@ function Progress() {
         setSelectedPhotos(updated);
         setShowComparison(true);
         setAiAnalysis('');
+        document.body.style.overflow = 'hidden';
       }
     }
   };
@@ -355,6 +356,7 @@ function Progress() {
     setAnalyzingPhotos(false);
     setSelectedPhotos([]);
     setCompareMode(false);
+    document.body.style.overflow = '';
   };
 
   const handleAiAnalysis = async () => {
