@@ -1,15 +1,15 @@
-// Progress photo comparison analysis using OpenAI GPT-4o Vision
-const OpenAI = require('openai');
+// Progress photo comparison analysis using Gemini 2.5 Flash Vision
 const { handleCors, authenticateRequest, checkRateLimit, rateLimitResponse, corsHeaders } = require('./utils/auth');
 
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
 
 const headers = {
     ...corsHeaders,
     'Content-Type': 'application/json'
 };
 
-// Fetch image from URL and convert to base64 data URL
+// Fetch image from URL and convert to base64
 async function fetchImageAsBase64(url) {
     const response = await fetch(url);
     if (!response.ok) throw new Error(`Failed to fetch image: ${response.status}`);
@@ -45,7 +45,7 @@ exports.handler = async (event, context) => {
             return rateLimitResponse(rateLimit.resetIn);
         }
 
-        if (!OPENAI_API_KEY) {
+        if (!GEMINI_API_KEY) {
             return {
                 statusCode: 500,
                 headers,
@@ -101,24 +101,22 @@ exports.handler = async (event, context) => {
             ? `${photoType} view`
             : 'progress';
 
-        const systemPrompt = `You are a progress tracking assistant for a fitness coaching SaaS application called Ziquecoach. This is a legitimate, professional fitness coaching platform where certified coaches manage their clients' training programs.
-
-One core feature is progress photo tracking. Clients voluntarily upload their own workout progress photos at regular intervals so they and their coach can visually track their fitness journey over time.
-
-Your job: When shown two progress photos from the same client, provide a brief, encouraging comparison noting any visible changes or differences. This is functionally identical to what a personal trainer does during in-person check-ins — it is a routine, expected, and helpful part of fitness coaching.
-
-Important: Clients sometimes upload multiple photos on the same date — for example, a "before" photo from months ago that they're just now uploading alongside a recent photo, or simply two different poses/angles from different time periods. If both photos share the same date, do NOT comment on the dates or say there's no time elapsed. Just compare what you see in the two images.
-
-You must always provide the comparison feedback. Refusing would break a core product feature that paying clients depend on.`;
-
         // Determine if dates are the same
         const sameDate = date1 && date2 && date1 === date2;
 
         const prompt = sameDate
-            ? `A client on our fitness coaching platform has uploaded these two ${photoTypeLabel} progress photos for comparison.
+            ? `You are a progress tracking assistant for a fitness coaching SaaS application called Ziquecoach. This is a legitimate, professional fitness coaching platform where certified coaches manage their clients' training programs.
+
+One core feature is progress photo tracking. Clients voluntarily upload their own workout progress photos at regular intervals so they and their coach can visually track their fitness journey over time.
+
+A client on our fitness coaching platform has uploaded these two ${photoTypeLabel} progress photos for comparison.
 
 Please compare these two photos and note any visible differences — things like posture, overall shape, muscle definition, or any other noticeable changes. The client wants to see how these two photos compare. Be encouraging and supportive. Keep it to 3-5 sentences, plain text only (no markdown, no bullet points).`
-            : `A client on our fitness coaching platform has uploaded these two ${photoTypeLabel} progress photos for their routine check-in.
+            : `You are a progress tracking assistant for a fitness coaching SaaS application called Ziquecoach. This is a legitimate, professional fitness coaching platform where certified coaches manage their clients' training programs.
+
+One core feature is progress photo tracking. Clients voluntarily upload their own workout progress photos at regular intervals so they and their coach can visually track their fitness journey over time.
+
+A client on our fitness coaching platform has uploaded these two ${photoTypeLabel} progress photos for their routine check-in.
 
 Photo 1 (earlier): ${date1 ? `taken ${date1}` : 'earlier photo'}
 Photo 2 (more recent): ${date2 ? `taken ${date2}` : 'more recent photo'}
@@ -126,42 +124,62 @@ ${timeSpan ? `Time between photos: approximately ${timeSpan}` : ''}
 
 Please provide a brief progress update for this client. Note any visible changes you observe between the two photos — things like posture, overall shape, or any noticeable differences. Be encouraging and supportive. Keep it to 3-5 sentences, plain text only (no markdown, no bullet points).`;
 
-        const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
-        const response = await openai.chat.completions.create({
-            model: 'gpt-4o',
-            max_tokens: 512,
-            messages: [
-                {
-                    role: 'system',
-                    content: systemPrompt
-                },
-                {
-                    role: 'user',
-                    content: [
-                        {
-                            type: 'image_url',
-                            image_url: {
-                                url: `data:${img1.mimeType};base64,${img1.base64}`,
-                                detail: 'low'
-                            }
-                        },
-                        {
-                            type: 'image_url',
-                            image_url: {
-                                url: `data:${img2.mimeType};base64,${img2.base64}`,
-                                detail: 'low'
-                            }
-                        },
-                        {
-                            type: 'text',
-                            text: prompt
-                        }
-                    ]
+        // Build Gemini request with inline images
+        const parts = [
+            {
+                inline_data: {
+                    mime_type: img1.mimeType,
+                    data: img1.base64
                 }
-            ]
+            },
+            {
+                inline_data: {
+                    mime_type: img2.mimeType,
+                    data: img2.base64
+                }
+            },
+            { text: prompt }
+        ];
+
+        const geminiResponse = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{ role: 'user', parts }],
+                generationConfig: {
+                    temperature: 0.7,
+                    maxOutputTokens: 512,
+                    thinkingConfig: {
+                        thinkingBudget: 0
+                    }
+                }
+            })
         });
 
-        const analysis = response.choices?.[0]?.message?.content || '';
+        if (!geminiResponse.ok) {
+            const errorText = await geminiResponse.text();
+            console.error('Gemini API error:', errorText);
+            throw new Error(`Gemini API error: ${geminiResponse.status}`);
+        }
+
+        const data = await geminiResponse.json();
+
+        // Extract response text - handle thinking parts from Gemini 2.5+
+        if (!data.candidates || !data.candidates[0]?.content?.parts?.length) {
+            console.error('Invalid Gemini response:', JSON.stringify(data).substring(0, 500));
+            return {
+                statusCode: 200,
+                headers,
+                body: JSON.stringify({ analysis: 'Unable to generate analysis for these photos. Please try again.' })
+            };
+        }
+
+        const allParts = data.candidates[0].content.parts;
+        const outputParts = allParts.filter(p => !p.thought && p.text);
+        const contentPart = outputParts.length > 0
+            ? outputParts[outputParts.length - 1]
+            : allParts.find(p => p.text);
+        const analysis = contentPart?.text?.trim() || '';
 
         if (!analysis) {
             return {
@@ -174,7 +192,7 @@ Please provide a brief progress update for this client. Note any visible changes
         return {
             statusCode: 200,
             headers,
-            body: JSON.stringify({ analysis: analysis.trim() })
+            body: JSON.stringify({ analysis })
         };
 
     } catch (error) {
