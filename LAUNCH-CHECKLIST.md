@@ -219,6 +219,16 @@ You already have a `Toast` component — these should use it instead. The `windo
 
 ---
 
+## 17. MEDIUM — Deep Linking URL Schemes Not Declared
+
+iOS `AppDelegate.swift` has URL handling code (lines 36-46) and supports Universal Links, but:
+- **iOS**: No `URLTypes` section in `Info.plist` to register a custom URL scheme
+- **Android**: No deep link intent filters in `AndroidManifest.xml` (only the basic MAIN/LAUNCHER filter)
+
+Without this, the app can't handle `ziquecoach://` style links or respond to web-based deep links. Needed for things like email password-reset links opening directly in the app.
+
+---
+
 ## Summary — Priority Order for This Weekend
 
 ### Must Fix Before Submitting to Stores
