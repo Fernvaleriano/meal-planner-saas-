@@ -135,50 +135,117 @@ function calculateSimilarity(pdfName, dbName) {
   return score;
 }
 
+const CRITICAL_MOVEMENT_TOKENS = ['press', 'row', 'curl', 'fly', 'raise', 'extension', 'pulldown', 'pushdown',
+  'squat', 'lunge', 'deadlift', 'crunch', 'plank', 'thrust', 'bridge', 'stretch', 'twist'];
+
+const CRITICAL_EQUIPMENT_TOKENS = ['barbell', 'dumbbell', 'cable', 'machine', 'band', 'bodyweight', 'ez'];
+
+function extractCriticalTokens(name, tokenList) {
+  const normalized = normalizeExerciseName(name);
+  return tokenList.filter(token => new RegExp(`\\b${token}\\b`, 'i').test(normalized));
+}
+
+function tokensOverlap(tokensA, tokensB) {
+  if (!tokensA.length || !tokensB.length) return true;
+  const setB = new Set(tokensB);
+  return tokensA.some(t => setB.has(t));
+}
+
+function isMuscleCompatible(pdfMuscleGroup, exercise) {
+  if (!pdfMuscleGroup || !exercise?.muscle_group) return true;
+  const normalizedPdfMuscle = pdfMuscleGroup.toLowerCase();
+  const normalizedDbMuscle = exercise.muscle_group.toLowerCase();
+
+  if (normalizedPdfMuscle === normalizedDbMuscle ||
+      normalizedPdfMuscle.includes(normalizedDbMuscle) ||
+      normalizedDbMuscle.includes(normalizedPdfMuscle)) {
+    return true;
+  }
+
+  if (exercise.secondary_muscles && Array.isArray(exercise.secondary_muscles)) {
+    return exercise.secondary_muscles.some(secondary => {
+      const s = String(secondary || '').toLowerCase();
+      return s.includes(normalizedPdfMuscle) || normalizedPdfMuscle.includes(s);
+    });
+  }
+
+  return false;
+}
+
+
+function extractRestSecondsFromNote(noteText) {
+  if (!noteText) return null;
+  const lower = noteText.toLowerCase();
+  const matches = [...lower.matchAll(/(\d+)\s*(?:sec|seconds?)\b/g)];
+  if (matches.length > 0) {
+    // Prefer the final explicit rest cue (e.g. "No rest ...; 90 sec after each round")
+    return parseInt(matches[matches.length - 1][1], 10);
+  }
+  if (/\bno\s+rest\b/.test(lower)) return 0;
+  return null;
+}
+
 function findBestExerciseMatch(pdfName, pdfMuscleGroup, exercises) {
-  const normalizedName = pdfName.toLowerCase().trim();
-  const exactMatch = exercises.find(e => e.name.toLowerCase().trim() === normalizedName);
-  if (exactMatch) return exactMatch;
+  const rawName = String(pdfName || '').toLowerCase().trim();
+  const exactRawMatch = exercises.find(e => String(e.name || '').toLowerCase().trim() === rawName);
+  if (exactRawMatch) return exactRawMatch;
+
+  const normalizedName = normalizeExerciseName(pdfName);
+  const exactNormalizedMatch = exercises.find(e => normalizeExerciseName(e.name) === normalizedName);
+  if (exactNormalizedMatch) return exactNormalizedMatch;
+
+  const pdfMovementTokens = extractCriticalTokens(pdfName, CRITICAL_MOVEMENT_TOKENS);
+  const pdfEquipmentTokens = extractCriticalTokens(pdfName, CRITICAL_EQUIPMENT_TOKENS);
 
   let bestMatch = null;
-  let bestScore = 0;
-  const threshold = 0.35;
+  let bestFinalScore = 0;
+  let bestBaseSimilarity = 0;
+
+  // Keep fuzzy fallback very strict to avoid wrong substitutions.
+  const minBaseSimilarity = 0.88;
+  const minFinalScore = 0.9;
 
   for (const exercise of exercises) {
-    let score = calculateSimilarity(pdfName, exercise.name);
+    const dbMovementTokens = extractCriticalTokens(exercise.name, CRITICAL_MOVEMENT_TOKENS);
+    if (!tokensOverlap(pdfMovementTokens, dbMovementTokens)) {
+      continue;
+    }
 
-    if (pdfMuscleGroup && exercise.muscle_group) {
-      const normalizedPdfMuscle = pdfMuscleGroup.toLowerCase();
-      const normalizedDbMuscle = exercise.muscle_group.toLowerCase();
+    const dbEquipmentTokens = extractCriticalTokens(exercise.name, CRITICAL_EQUIPMENT_TOKENS);
+    if (!tokensOverlap(pdfEquipmentTokens, dbEquipmentTokens)) {
+      continue;
+    }
 
-      if (normalizedPdfMuscle === normalizedDbMuscle ||
-          normalizedPdfMuscle.includes(normalizedDbMuscle) ||
-          normalizedDbMuscle.includes(normalizedPdfMuscle)) {
-        score += 0.15;
-      }
+    const baseSimilarity = calculateSimilarity(pdfName, exercise.name);
+    if (baseSimilarity < minBaseSimilarity) {
+      continue;
+    }
 
-      if (exercise.secondary_muscles && Array.isArray(exercise.secondary_muscles)) {
-        for (const secondary of exercise.secondary_muscles) {
-          if (secondary.toLowerCase().includes(normalizedPdfMuscle) ||
-              normalizedPdfMuscle.includes(secondary.toLowerCase())) {
-            score += 0.1;
-            break;
-          }
-        }
-      }
+    let finalScore = baseSimilarity;
+    const muscleCompatible = isMuscleCompatible(pdfMuscleGroup, exercise);
+
+    if (muscleCompatible) {
+      finalScore += 0.05;
+    } else {
+      finalScore -= 0.2;
     }
 
     if (exercise.video_url || exercise.animation_url) {
-      score += 0.05;
+      finalScore += 0.01;
     }
 
-    if (score > bestScore && score >= threshold) {
-      bestScore = score;
+    if (finalScore > bestFinalScore && finalScore >= minFinalScore) {
+      bestFinalScore = finalScore;
+      bestBaseSimilarity = baseSimilarity;
       bestMatch = exercise;
     }
   }
 
-  return bestMatch;
+  if (bestMatch && bestBaseSimilarity >= minBaseSimilarity && bestFinalScore >= minFinalScore) {
+    return bestMatch;
+  }
+
+  return null;
 }
 
 function isWarmupExercise(name) {
@@ -376,6 +443,146 @@ function guessMusclGroup(name) {
   return 'full_body';
 }
 
+// Deterministic parser for common coach text formats.
+// This catches structured plans more reliably than LLM parsing for notes/superset attribution.
+function parseStructuredDay(chunk) {
+  const lines = chunk
+    .split('\n')
+    .map(l => l.replace(/\s+/g, ' ').trim())
+    .filter(Boolean);
+
+  if (lines.length === 0) return null;
+
+  const dayName = lines[0].match(/^DAY\s+\d+/i)
+    ? lines[0]
+    : (lines[0].length < 100 ? lines[0] : 'Workout');
+
+  const exercises = [];
+  let currentSection = 'working';
+  let activeSupersetGroup = null;
+  let supersetRemaining = 0;
+  let lastExerciseIndices = [];
+
+  const isSkippableLine = (line) => {
+    if (/^(?:CLIENT PROFILE|PROGRESSION FROM PART|INTENSITY TECHNIQUES SUMMARY|VOLUME INCREASE|INTENSITY INCREASE|LOADING|\d+-WEEK PROGRESSION CYCLE)$/i.test(line)) return true;
+    if (/^(?:Name|Age|Height|Weight|Goal|Program):/i.test(line)) return true;
+    if (/^[-•]/.test(line)) return true;
+    if (/^DAY\s+\d+\s*\(/i.test(line)) return true;
+    if (/^Week\s+\d+/i.test(line)) return true;
+    return false;
+  };
+
+  for (const line of lines.slice(1)) {
+    if (/^warm[- ]?up:?$/i.test(line)) {
+      currentSection = 'warmup';
+      activeSupersetGroup = null;
+      supersetRemaining = 0;
+      continue;
+    }
+
+    if (/^(?:working sets|main sets?|working block):?$/i.test(line)) {
+      currentSection = 'working';
+      activeSupersetGroup = null;
+      supersetRemaining = 0;
+      continue;
+    }
+
+    if (/^(?:cool[- ]?down|stretch|mobility):?$/i.test(line)) {
+      currentSection = 'cooldown';
+      activeSupersetGroup = null;
+      supersetRemaining = 0;
+      continue;
+    }
+
+    const supersetHeader = line.match(/^([A-Z])1\s*\/\s*\1?2\s+SUPERSET:?$/i) || line.match(/^([A-Z])1\s*\/\s*([A-Z])2\s+SUPERSET:?$/i);
+    if (supersetHeader) {
+      activeSupersetGroup = (supersetHeader[1] || 'A').toUpperCase();
+      supersetRemaining = 2;
+      lastExerciseIndices = [];
+      continue;
+    }
+
+    if (isSkippableLine(line)) continue;
+
+    if (/^Coach note:/i.test(line)) {
+      const noteText = line.replace(/^Coach note:\s*/i, '').trim();
+      if (noteText && lastExerciseIndices.length > 0) {
+        const detectedRestSeconds = extractRestSecondsFromNote(noteText);
+        for (const idx of lastExerciseIndices) {
+          const prior = exercises[idx].notes;
+          exercises[idx].notes = prior ? `${prior} ${noteText}` : noteText;
+          if (detectedRestSeconds != null) {
+            exercises[idx].restSeconds = detectedRestSeconds;
+          }
+        }
+      }
+      continue;
+    }
+
+    if (/:$/.test(line)) continue;
+
+    const exMatch = line.match(/^([^,|][^,|]{1,120}?)\s*,\s*(.+)$/);
+    if (!exMatch) continue;
+
+    const originalName = exMatch[1].trim();
+    const prescription = exMatch[2].trim();
+
+    let sets = null;
+    let reps = '';
+
+    const setsRepsMatch = prescription.match(/^(\d+)\s*x\s*(.+)$/i);
+    if (setsRepsMatch) {
+      sets = parseInt(setsRepsMatch[1], 10);
+      reps = setsRepsMatch[2].trim();
+    } else {
+      const durationMatch = prescription.match(/^(\d+(?:-\d+)?)\s*(min(?:utes?)?|sec(?:onds?)?|s)\b(.*)$/i);
+      if (durationMatch) {
+        sets = 1;
+        const extra = durationMatch[3] ? durationMatch[3].trim() : '';
+        reps = `${durationMatch[1]} ${durationMatch[2].toLowerCase().startsWith('m') ? 'min' : 'sec'}${extra ? ` ${extra}` : ''}`.trim();
+      }
+    }
+
+    if (!sets || !reps) continue;
+
+    const isWarmup = currentSection === 'warmup' || isWarmupExercise(originalName);
+    const isStretch = currentSection === 'cooldown' || isStretchExercise(originalName);
+    const isSuperset = Boolean(activeSupersetGroup && supersetRemaining > 0);
+
+    const exercise = {
+      originalName,
+      muscleGroup: guessMusclGroup(originalName),
+      sets,
+      reps,
+      restSeconds: isWarmup || isStretch ? 0 : 60,
+      notes: '',
+      isWarmup,
+      isStretch,
+      isSuperset,
+      supersetGroup: isSuperset ? activeSupersetGroup : null
+    };
+
+    exercises.push(exercise);
+
+    if (isSuperset) {
+      lastExerciseIndices.push(exercises.length - 1);
+      supersetRemaining -= 1;
+      if (supersetRemaining <= 0) {
+        activeSupersetGroup = null;
+      }
+    } else {
+      lastExerciseIndices = [exercises.length - 1];
+    }
+  }
+
+  if (exercises.length === 0) return null;
+
+  return {
+    name: dayName,
+    exercises
+  };
+}
+
 // --- AI parsing functions ---
 
 const PARSE_SYSTEM_PROMPT = `You are a fitness program parser. Extract workout data from ONE day of a program and return valid JSON.
@@ -486,6 +693,18 @@ async function parseWithHaiku(anthropic, chunk, chunkIndex) {
 // Parse a single day chunk with GPT-4o-mini → Haiku fallback → regex fallback
 async function parseDayChunk(anthropic, chunk, chunkIndex) {
   const errors = [];
+
+  // Attempt 0: deterministic parser for structured plans
+  try {
+    const deterministicResult = parseStructuredDay(chunk);
+    if (deterministicResult && deterministicResult.exercises?.length >= 3) {
+      console.log(`Day ${chunkIndex + 1}: deterministic parser extracted ${deterministicResult.exercises.length} exercises`);
+      return deterministicResult;
+    }
+  } catch (err) {
+    errors.push(`Deterministic parser: ${err.message}`);
+    console.error(`Day ${chunkIndex + 1} deterministic parser failed:`, err.message);
+  }
 
   // Attempt 1: GPT-4o-mini with JSON mode
   try {
