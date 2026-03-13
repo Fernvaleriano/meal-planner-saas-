@@ -93,8 +93,6 @@ function WorkoutBuilder() {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [showSettings, setShowSettings] = useState(!programId);
   const [showPrintModal, setShowPrintModal] = useState(false);
-  // Language dropdown (visual only for now)
-  const [language, setLanguage] = useState('English');
 
   // Load existing program
   useEffect(() => {
@@ -441,14 +439,6 @@ function WorkoutBuilder() {
           <ChevronLeft size={24} />
         </button>
         <h1 className="wb-title">Workout Editor</h1>
-        <select
-          className="wb-language-select"
-          value={language}
-          onChange={(e) => setLanguage(e.target.value)}
-        >
-          <option value="English">English</option>
-          <option value="Spanish">Spanish</option>
-        </select>
         <div className="wb-top-actions">
           <button
             className="wb-icon-btn"
