@@ -4424,7 +4424,7 @@
                         <button class="hero-chip" onclick="askQuickQuestion('Which clients hit new PRs this week?')">PRs this week</button>
                         <button class="hero-chip" onclick="askQuickQuestion('Who hasn\'t logged a workout this week?')">Inactive clients</button>
                         <button class="hero-chip" onclick="askQuickQuestion('Which clients are at risk of dropping off based on activity and check-ins?')">At risk</button>
-                        <button class="hero-chip" onclick="askQuickQuestion('Which clients have a workout program ending this week?')">Programs ending</button>
+                        <button class="hero-chip" onclick="showProgramsEnding()">Programs ending</button>
                         <button class="hero-chip" onclick="askQuickQuestion('Give me a weekly summary of all client activity, check-ins, workouts, PRs, and anything that needs my attention')">Weekly summary</button>
                     </div>
                 </div>
@@ -5714,6 +5714,52 @@
                     console.warn('Could not check expiring plans:', e);
                 }
 
+                // --- EXPIRING WORKOUT PROGRAMS ---
+                try {
+                    const fourteenDaysFromNow = new Date();
+                    fourteenDaysFromNow.setDate(fourteenDaysFromNow.getDate() + 14);
+                    const threeDaysAgo = new Date();
+                    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+                    const today = new Date().toISOString().split('T')[0];
+
+                    const { data: endingPrograms } = await supabaseClient
+                        .from('client_workout_assignments')
+                        .select('id, client_id, name, end_date, is_active')
+                        .eq('coach_id', coachId)
+                        .eq('is_active', true)
+                        .not('end_date', 'is', null)
+                        .gte('end_date', threeDaysAgo.toISOString().split('T')[0])
+                        .lte('end_date', fourteenDaysFromNow.toISOString().split('T')[0])
+                        .order('end_date', { ascending: true })
+                        .limit(10);
+
+                    if (endingPrograms && endingPrograms.length > 0) {
+                        endingPrograms.slice(0, MAX_SHOWN).forEach(wp => {
+                            const name = clientMap[wp.client_id] || 'Unknown Client';
+                            const daysLeft = Math.ceil((new Date(wp.end_date) - new Date()) / 86400000);
+                            const isExpired = daysLeft <= 0;
+                            const urgency = isExpired ? 'Program ended' : daysLeft <= 1 ? 'Ends tomorrow' : `Ends in ${daysLeft} days`;
+                            const dotColor = isExpired ? 'priority-dot--red' : daysLeft <= 3 ? 'priority-dot--amber' : 'priority-dot--amber';
+                            const labelClass = isExpired ? 'priority-label--action' : 'priority-label--pending';
+                            const aid = 'workout-program-' + wp.id;
+                            const url = `client-profile.html?clientId=${wp.client_id}&tab=workouts`;
+                            addAlert(aid, `
+                                <div class="priority-alert priority-alert--clickable" onclick="reviewAndArchive('${aid}', '${url}')">
+                                    __CHECKBOX__
+                                    <span class="priority-dot ${dotColor}"></span>
+                                    <span>
+                                        <span class="priority-label ${labelClass}"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:3px;"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>${urgency}:</span>
+                                        <strong>${name}</strong>'s program "${wp.name || 'Workout Program'}"
+                                        <span class="priority-alert-link">Assign new →</span>
+                                    </span>
+                                </div>
+                            `, wp.client_id, 'expiring_workout', wp.id);
+                        });
+                    }
+                } catch (e) {
+                    console.warn('Could not check expiring workout programs:', e);
+                }
+
                 // --- PR ALERTS ---
                 try {
                     const { data: prNotifications } = await supabaseClient
@@ -6778,6 +6824,94 @@
         function askQuickQuestion(question) {
             document.getElementById('heroAiInput').value = question;
             askAIAssistant();
+        }
+
+        // Show programs ending soon — calls the real API instead of AI
+        async function showProgramsEnding() {
+            const responseArea = document.getElementById('aiResponseArea');
+            const searchBtn = document.querySelector('.ai-hero-send-btn');
+            searchBtn.disabled = true;
+            responseArea.style.display = 'block';
+            responseArea.innerHTML = `
+                <div class="ai-response-loading">
+                    <div class="ai-loading-spinner"></div>
+                    <span>Loading programs...</span>
+                </div>
+            `;
+
+            try {
+                const response = await fetch(`/.netlify/functions/programs-ending-soon?coachId=${currentUserId}`);
+                const data = await response.json();
+
+                if (!response.ok) throw new Error(data.error || 'Failed to fetch');
+
+                const programs = data.programs || [];
+                if (programs.length === 0) {
+                    responseArea.innerHTML = `
+                        <div class="ai-response-section">
+                            <div class="ai-section-header" style="background: var(--primary-color, #0d9488); color: #fff;">
+                                <span class="ai-section-icon">✅</span>
+                                <span class="ai-section-title">All Good</span>
+                            </div>
+                            <div class="ai-section-body">
+                                <p>No workout programs ending in the next 14 days.</p>
+                            </div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const expired = programs.filter(p => p.isExpired);
+                const upcoming = programs.filter(p => !p.isExpired);
+
+                let html = '';
+
+                if (expired.length > 0) {
+                    html += `
+                        <div class="ai-response-section">
+                            <div class="ai-section-header" style="background: #dc2626; color: #fff;">
+                                <span class="ai-section-icon">⚠️</span>
+                                <span class="ai-section-title">Action Needed</span>
+                            </div>
+                            <div class="ai-section-body"><ul>
+                    `;
+                    expired.forEach(p => {
+                        const completionStr = p.plannedWorkouts > 0
+                            ? ` (${p.completedWorkouts}/${p.plannedWorkouts} workouts completed)`
+                            : p.completedWorkouts > 0 ? ` (${p.completedWorkouts} workouts completed)` : '';
+                        const replacementStr = p.hasReplacement ? ' <em style="color:#059669">— replacement assigned</em>' : ' — <strong style="color:#dc2626">needs new program</strong>';
+                        html += `<li><strong>${p.clientName}</strong> — "${p.programName}" ended${completionStr}${replacementStr}</li>`;
+                    });
+                    html += '</ul></div></div>';
+                }
+
+                if (upcoming.length > 0) {
+                    html += `
+                        <div class="ai-response-section">
+                            <div class="ai-section-header" style="background: #f59e0b; color: #fff;">
+                                <span class="ai-section-icon">⏰</span>
+                                <span class="ai-section-title">Ending Soon</span>
+                            </div>
+                            <div class="ai-section-body"><ul>
+                    `;
+                    upcoming.forEach(p => {
+                        const completionStr = p.plannedWorkouts > 0
+                            ? ` (${p.completedWorkouts}/${p.plannedWorkouts} workouts)`
+                            : '';
+                        const replacementStr = p.hasReplacement ? ' <em style="color:#059669">— replacement ready</em>' : '';
+                        html += `<li><strong>${p.clientName}</strong> — "${p.programName}" ends in ${p.daysRemaining} day${p.daysRemaining !== 1 ? 's' : ''} (${p.endDate})${completionStr}${replacementStr}</li>`;
+                    });
+                    html += '</ul></div></div>';
+                }
+
+                responseArea.innerHTML = html;
+
+            } catch (error) {
+                console.error('Error fetching programs ending:', error);
+                responseArea.innerHTML = `<p class="ai-response-text" style="color: var(--gray-500);">Could not load programs. Please try again.</p>`;
+            } finally {
+                searchBtn.disabled = false;
+            }
         }
 
         function formatSectionContent(text) {
