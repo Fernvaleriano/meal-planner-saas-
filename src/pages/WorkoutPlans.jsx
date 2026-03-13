@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Plus, Dumbbell, Clock, Users, Filter, ChevronRight, Trash2, Copy, Edit3, MoreVertical, X, Loader2, Calendar, TrendingUp, Layers } from 'lucide-react';
+import { Search, Plus, Dumbbell, Clock, Users, Filter, ChevronRight, Trash2, Copy, Edit3, MoreVertical, X, Loader2, Calendar, TrendingUp, Layers, FileDown } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, apiDelete } from '../utils/api';
 import { useToast } from '../components/Toast';
 import SmartThumbnail from '../components/workout/SmartThumbnail';
+import PrintPlanModal from '../components/workout/PrintPlanModal';
 
 const CATEGORY_OPTIONS = [
   { key: '', label: 'All Types' },
@@ -49,6 +50,7 @@ function WorkoutPlans() {
   const [menuOpenId, setMenuOpenId] = useState(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   const [duplicating, setDuplicating] = useState(null);
+  const [pdfProgram, setPdfProgram] = useState(null);
 
   // Fetch programs
   const fetchPrograms = useCallback(async () => {
@@ -368,6 +370,10 @@ function WorkoutPlans() {
                             <Edit3 size={16} />
                             Edit
                           </button>
+                          <button onClick={() => { setPdfProgram(program); setMenuOpenId(null); }}>
+                            <FileDown size={16} />
+                            Download PDF
+                          </button>
                           <button onClick={() => handleDuplicate(program)} disabled={duplicating === program.id}>
                             {duplicating === program.id ? <Loader2 size={16} className="wp-spinner" /> : <Copy size={16} />}
                             Duplicate
@@ -394,6 +400,14 @@ function WorkoutPlans() {
       <div className="wp-stats-bar">
         <span>{filteredPrograms.length} plan{filteredPrograms.length !== 1 ? 's' : ''}</span>
       </div>
+
+      {/* PDF Download Modal */}
+      {pdfProgram && (
+        <PrintPlanModal
+          program={pdfProgram}
+          onClose={() => setPdfProgram(null)}
+        />
+      )}
 
       {/* Delete Confirmation */}
       {deleteConfirmId && (

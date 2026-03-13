@@ -35072,3 +35072,149 @@ textarea,
     from { transform: translateY(-100%); opacity: 0; }
     to { transform: translateY(0); opacity: 1; }
 }
+
+/* ===== Print Plan Modal (PDF Download) ===== */
+.print-plan-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+.print-plan-modal {
+    background: var(--bg-secondary, #1e293b);
+    border: 1px solid var(--border-color, #334155);
+    border-radius: 16px;
+    width: 100%;
+    max-width: 440px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+}
+.print-plan-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border-color, #334155);
+}
+.print-plan-header h3 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    margin: 0;
+}
+.print-plan-close {
+    width: 32px; height: 32px;
+    border: none;
+    background: var(--bg-tertiary, #334155);
+    color: var(--text-secondary, #94a3b8);
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+}
+.print-plan-close:hover { background: var(--danger, #ef4444); color: white; }
+.print-plan-body { padding: 24px; }
+.print-plan-layouts {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+.print-plan-layout-opt {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    padding: 12px;
+    border-radius: 12px;
+    border: 2px solid transparent;
+    transition: all 0.2s;
+}
+.print-plan-layout-opt:hover { background: var(--bg-tertiary, #334155); }
+.print-plan-layout-opt input[type="radio"] { display: none; }
+.print-plan-layout-opt.selected { border-color: var(--brand-primary, #0d9488); }
+.print-plan-layout-opt.selected .layout-preview { border-color: var(--brand-primary, #0d9488); box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.2); }
+.print-plan-layout-opt.selected > span { color: var(--brand-primary, #0d9488); font-weight: 600; }
+.print-plan-layout-opt > span { font-size: 0.85rem; color: var(--text-secondary, #94a3b8); font-weight: 500; }
+.layout-preview {
+    width: 100px; height: 70px;
+    border: 2px solid var(--border-color, #334155);
+    border-radius: 8px;
+    padding: 8px;
+    display: flex; flex-wrap: wrap; gap: 4px;
+    align-content: flex-start;
+    background: var(--bg-tertiary, #334155);
+    transition: all 0.2s;
+}
+.lp-row { height: 6px; border-radius: 2px; background: rgba(245, 215, 160, 0.6); }
+.lp-row.full { width: 100%; }
+.lp-row.half { width: calc(50% - 2px); }
+.print-plan-options { display: flex; flex-direction: column; }
+.print-plan-check {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    cursor: pointer;
+    font-size: 0.9rem;
+    border-bottom: 1px solid var(--border-color, #334155);
+}
+.print-plan-check:last-child { border-bottom: none; }
+.print-plan-check input[type="checkbox"] {
+    width: 20px; height: 20px;
+    border-radius: 4px;
+    accent-color: var(--brand-primary, #0d9488);
+    cursor: pointer; flex-shrink: 0;
+}
+.print-plan-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 24px;
+    border-top: 1px solid var(--border-color, #334155);
+}
+.print-plan-cancel {
+    padding: 10px 20px;
+    border: 1px solid var(--border-color, #334155);
+    background: var(--bg-tertiary, #334155);
+    color: var(--text-primary, #f8fafc);
+    border-radius: 10px;
+    font-weight: 600; font-size: 0.875rem;
+    cursor: pointer; font-family: inherit;
+    transition: all 0.2s;
+}
+.print-plan-cancel:hover { background: var(--bg-primary, #0f172a); }
+.print-plan-download {
+    padding: 10px 24px;
+    border: none;
+    background: var(--brand-primary, #0d9488);
+    color: white;
+    border-radius: 10px;
+    font-weight: 600; font-size: 0.875rem;
+    cursor: pointer; font-family: inherit;
+    display: inline-flex; align-items: center; gap: 8px;
+    transition: all 0.2s;
+}
+.print-plan-download:hover { filter: brightness(1.1); transform: translateY(-1px); }
+.print-plan-download:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+/* PDF button in workout plans card dropdown */
+.wp-card-pdf-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 8px 12px;
+    border: none;
+    background: none;
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.15s;
+}
+.wp-card-pdf-btn:hover { background: var(--bg-tertiary); }
