@@ -3778,6 +3778,119 @@
             right: -5px;
         }
 
+        /* Photo Compare */
+        .compare-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: 2px solid #0d9488;
+            background: transparent;
+            color: #0d9488;
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .compare-btn:hover { background: #f0fdfa; }
+        .compare-btn.active { background: #0d9488; color: white; }
+
+        .compare-hint {
+            text-align: center;
+            color: #0d9488;
+            font-size: 13px;
+            font-weight: 500;
+            padding: 8px;
+            margin-bottom: 8px;
+            background: #f0fdfa;
+            border-radius: 8px;
+        }
+
+        .photo-card.selected {
+            outline: 3px solid #0d9488;
+            outline-offset: -3px;
+        }
+
+        .comparison-modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            width: 100vw; height: 100vh;
+            background: #000000;
+            z-index: 99999;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+        .comparison-modal-content {
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+        .comparison-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+        .comparison-header h2 { color: white; font-size: 18px; margin: 0; }
+        .comparison-close-btn {
+            background: rgba(255,255,255,0.15);
+            border: none; color: white;
+            width: 36px; height: 36px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; font-size: 16px;
+        }
+        .comparison-close-btn:hover { background: rgba(255,255,255,0.25); }
+        .comparison-photos { display: flex; gap: 12px; margin-bottom: 20px; }
+        .comparison-photo-card { flex: 1; min-width: 0; }
+        .comparison-photo-label {
+            color: rgba(255,255,255,0.7);
+            font-size: 12px; margin-bottom: 6px; text-align: center;
+        }
+        .comparison-photo-label strong { color: white; font-size: 13px; display: block; }
+        .comparison-photo-card img {
+            width: 100%; border-radius: 12px;
+            object-fit: cover; aspect-ratio: 3/4;
+        }
+        .comparison-photo-badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.15);
+            color: rgba(255,255,255,0.8);
+            font-size: 11px; padding: 2px 8px;
+            border-radius: 4px; margin-top: 4px;
+        }
+        .ai-analysis-section {
+            background: rgba(255,255,255,0.08);
+            border-radius: 16px; padding: 20px;
+        }
+        .ai-analysis-btn {
+            width: 100%; padding: 14px; border-radius: 12px;
+            border: none;
+            background: linear-gradient(135deg, #0d9488, #0891b2);
+            color: white; font-weight: 600; font-size: 15px;
+            cursor: pointer; display: flex;
+            align-items: center; justify-content: center; gap: 8px;
+        }
+        .ai-analysis-btn:hover { opacity: 0.9; }
+        .ai-analysis-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+        .ai-analysis-label {
+            color: #14b8a6; font-size: 12px; font-weight: 600;
+            text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;
+        }
+        .ai-analysis-text {
+            color: rgba(255,255,255,0.9); font-size: 15px; line-height: 1.6;
+            margin-top: 16px; padding: 16px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px; border-left: 3px solid #0d9488;
+        }
+
+        @media (max-width: 480px) {
+            .comparison-photos { flex-direction: column; }
+            .comparison-photo-card img { aspect-ratio: 4/5; }
+        }
+
         /* Upload Modal */
         .photo-modal {
             display: none;
@@ -8602,6 +8715,8 @@
         let clientPlans = [];
         let selectedPlans = new Set();
         let selectedPhotoFile = null;
+        let photoCompareMode = false;
+        let compareSelectedPhotos = [];
         let clientPhotos = [];
         let clientMeasurements = [];
         let clientCheckins = [];
@@ -9974,25 +10089,232 @@
                 'progress': 'Progress'
             };
 
+            const compareBtn = clientPhotos.length >= 2
+                ? `<button class="compare-btn ${photoCompareMode ? 'active' : ''}" onclick="togglePhotoCompareMode()" style="margin-bottom: 12px;">
+                    ${photoCompareMode ? '✕ Cancel' : '⊞ Compare Photos'}
+                   </button>`
+                : '';
+
+            const compareHint = photoCompareMode
+                ? `<div class="compare-hint">Click 2 photos to compare them side by side</div>`
+                : '';
+
             container.innerHTML = `
+                ${compareBtn}
+                ${compareHint}
                 <div class="photo-carousel-wrapper">
                     <button class="carousel-nav prev" onclick="scrollCarousel(-1)">‹</button>
                     <div class="photo-carousel" id="photoCarousel">
-                        ${clientPhotos.map(photo => `
-                            <div class="photo-card" onclick="openLightbox('${photo.photo_url}')">
+                        ${clientPhotos.map((photo, idx) => {
+                            const isSelected = compareSelectedPhotos.some(p => p.id === photo.id);
+                            const selectedIdx = compareSelectedPhotos.findIndex(p => p.id === photo.id);
+                            return `
+                            <div class="photo-card ${photoCompareMode ? 'selectable' : ''} ${isSelected ? 'selected' : ''}"
+                                 onclick="${photoCompareMode ? `handlePhotoCompareClick(${idx})` : `openLightbox('${photo.photo_url}')`}"
+                                 style="${isSelected ? 'outline: 3px solid #0d9488; outline-offset: -3px;' : ''}">
                                 <img src="${photo.photo_url}" alt="Progress photo" loading="lazy">
+                                ${isSelected ? `<div style="position:absolute;top:6px;left:6px;width:24px;height:24px;border-radius:50%;background:#0d9488;color:white;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;z-index:3;">${selectedIdx + 1}</div>` : ''}
                                 <div class="photo-overlay">
                                     <div class="photo-type">${photoTypeLabels[photo.photo_type] || photo.photo_type}</div>
                                     <div class="photo-date">${new Date(photo.taken_date).toLocaleDateString()}</div>
                                     ${photo.notes ? `<div class="photo-notes-text">${photo.notes}</div>` : ''}
                                 </div>
-                                <button class="photo-delete" onclick="event.stopPropagation(); deletePhoto(${photo.id})" title="Delete">×</button>
-                            </div>
-                        `).join('')}
+                                ${!photoCompareMode ? `<button class="photo-delete" onclick="event.stopPropagation(); deletePhoto(${photo.id})" title="Delete">×</button>` : ''}
+                            </div>`;
+                        }).join('')}
                     </div>
                     <button class="carousel-nav next" onclick="scrollCarousel(1)">›</button>
                 </div>
             `;
+        }
+
+        function togglePhotoCompareMode() {
+            photoCompareMode = !photoCompareMode;
+            compareSelectedPhotos = [];
+            displayPhotos();
+        }
+
+        function handlePhotoCompareClick(photoIndex) {
+            const photo = clientPhotos[photoIndex];
+            const existingIdx = compareSelectedPhotos.findIndex(p => p.id === photo.id);
+
+            if (existingIdx >= 0) {
+                compareSelectedPhotos.splice(existingIdx, 1);
+                displayPhotos();
+                return;
+            }
+
+            if (compareSelectedPhotos.length >= 2) return;
+
+            compareSelectedPhotos.push(photo);
+
+            if (compareSelectedPhotos.length === 2) {
+                // Sort by date (earlier first)
+                compareSelectedPhotos.sort((a, b) => new Date(a.taken_date) - new Date(b.taken_date));
+                displayPhotos();
+                openComparisonModal();
+            } else {
+                displayPhotos();
+            }
+        }
+
+        function openComparisonModal() {
+            const [photo1, photo2] = compareSelectedPhotos;
+            const photoTypeLabels = { front: 'Front', side: 'Side', back: 'Back', progress: 'Progress' };
+
+            // Create modal if it doesn't exist
+            let modal = document.getElementById('comparisonModal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'comparisonModal';
+                document.body.appendChild(modal);
+            }
+
+            modal.className = 'comparison-modal-overlay';
+            modal.style.display = 'flex';
+            modal.innerHTML = `
+                <div class="comparison-modal-content" onclick="event.stopPropagation()">
+                    <div class="comparison-header">
+                        <h2>Photo Comparison</h2>
+                        <button class="comparison-close-btn" onclick="closeComparisonModal()">✕</button>
+                    </div>
+                    <div class="comparison-photos">
+                        <div class="comparison-photo-card">
+                            <div class="comparison-photo-label">
+                                <strong>Before</strong>
+                                ${new Date(photo1.taken_date).toLocaleDateString()}
+                            </div>
+                            <img src="${photo1.photo_url}" alt="Before">
+                            <div class="comparison-photo-badge">${photoTypeLabels[photo1.photo_type] || photo1.photo_type}</div>
+                        </div>
+                        <div class="comparison-photo-card">
+                            <div class="comparison-photo-label">
+                                <strong>After</strong>
+                                ${new Date(photo2.taken_date).toLocaleDateString()}
+                            </div>
+                            <img src="${photo2.photo_url}" alt="After">
+                            <div class="comparison-photo-badge">${photoTypeLabels[photo2.photo_type] || photo2.photo_type}</div>
+                        </div>
+                    </div>
+                    <div class="ai-analysis-section" id="aiAnalysisSection">
+                        <button class="ai-analysis-btn" id="aiAnalysisBtn" onclick="runAiAnalysis()">
+                            ✨ Get AI Analysis
+                        </button>
+                    </div>
+                </div>
+            `;
+            modal.onclick = closeComparisonModal;
+        }
+
+        function closeComparisonModal() {
+            const modal = document.getElementById('comparisonModal');
+            if (modal) modal.style.display = 'none';
+            compareSelectedPhotos = [];
+            photoCompareMode = false;
+            displayPhotos();
+        }
+
+        async function runAiAnalysis() {
+            const btn = document.getElementById('aiAnalysisBtn');
+            const section = document.getElementById('aiAnalysisSection');
+            btn.disabled = true;
+            btn.textContent = 'Analyzing...';
+
+            try {
+                const [photo1, photo2] = compareSelectedPhotos;
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                const token = session?.access_token || '';
+
+                const response = await fetch('/.netlify/functions/analyze-progress-photos', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        photoUrl1: photo1.photo_url,
+                        photoUrl2: photo2.photo_url,
+                        photoType: photo1.photo_type || 'progress',
+                        date1: photo1.taken_date,
+                        date2: photo2.taken_date
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) throw new Error(data.error || 'Analysis failed');
+
+                section.innerHTML = `
+                    <div class="ai-analysis-label">AI Coach Analysis</div>
+                    <div class="ai-analysis-text">${data.analysis}</div>
+                    <div style="margin-top: 16px;">
+                        <label style="color: rgba(255,255,255,0.7); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 6px;">Add your notes (optional)</label>
+                        <textarea id="coachNoteInput" style="width: 100%; min-height: 60px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.08); color: white; padding: 10px; font-size: 14px; resize: vertical; box-sizing: border-box;" placeholder="Add your coaching notes here..."></textarea>
+                        <button id="sendToClientBtn" onclick="sendAnalysisToClient()" style="width: 100%; margin-top: 10px; padding: 12px; border-radius: 10px; border: none; background: #0d9488; color: white; font-weight: 600; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                            Send to Client
+                        </button>
+                    </div>
+                `;
+            } catch (error) {
+                console.error('AI analysis error:', error);
+                section.innerHTML = `
+                    <div class="ai-analysis-text" style="border-left-color: #ef4444;">
+                        Unable to analyze photos right now. Please try again later.
+                    </div>
+                `;
+            }
+        }
+
+        async function sendAnalysisToClient() {
+            const btn = document.getElementById('sendToClientBtn');
+            const analysisText = document.querySelector('.ai-analysis-text')?.textContent || '';
+            const coachNote = document.getElementById('coachNoteInput')?.value?.trim() || '';
+
+            if (!analysisText && !coachNote) return;
+
+            btn.disabled = true;
+            btn.textContent = 'Sending...';
+
+            // Build message
+            let msg = 'Progress Photo Analysis:\n\n' + analysisText;
+            if (coachNote) {
+                msg += '\n\nCoach Notes:\n' + coachNote;
+            }
+
+            try {
+                const res = await fetch('/.netlify/functions/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'send',
+                        coachId: window.coachUserId || currentUser?.id || '',
+                        clientId: currentClient.id,
+                        senderType: 'coach',
+                        message: msg
+                    })
+                });
+
+                if (res.ok) {
+                    btn.textContent = 'Sent!';
+                    btn.style.background = '#059669';
+                    setTimeout(() => {
+                        btn.textContent = 'Send to Client';
+                        btn.style.background = '#0d9488';
+                        btn.disabled = false;
+                    }, 3000);
+                } else {
+                    throw new Error('Failed to send');
+                }
+            } catch (e) {
+                console.error('Error sending analysis:', e);
+                btn.textContent = 'Failed — try again';
+                btn.style.background = '#ef4444';
+                btn.disabled = false;
+                setTimeout(() => {
+                    btn.textContent = 'Send to Client';
+                    btn.style.background = '#0d9488';
+                }, 3000);
+            }
         }
 
         function scrollCarousel(direction) {
@@ -10174,6 +10496,7 @@
                 closeLightbox();
                 closeUploadModal();
                 closeMeasurementModal();
+                closeComparisonModal();
             }
         });
 

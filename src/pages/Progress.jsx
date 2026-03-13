@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { ChevronLeft, Ruler, Camera, X, Plus, Minus, ChevronDown, Trash2 } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { ChevronLeft, Ruler, Camera, X, Plus, Minus, ChevronDown, Trash2, Columns2, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, apiDelete } from '../utils/api';
@@ -80,6 +81,13 @@ function Progress() {
   const [photoDate, setPhotoDate] = useState(getLocalDateString());
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const photoInputRef = useRef(null);
+
+  // Compare mode
+  const [compareMode, setCompareMode] = useState(false);
+  const [selectedPhotos, setSelectedPhotos] = useState([]);
+  const [showComparison, setShowComparison] = useState(false);
+  const [aiAnalysis, setAiAnalysis] = useState('');
+  const [analyzingPhotos, setAnalyzingPhotos] = useState(false);
 
   // Scroll to top on mount
   useEffect(() => {
@@ -308,6 +316,74 @@ function Progress() {
     }
   };
 
+  // Compare mode handlers
+  const toggleCompareMode = () => {
+    if (compareMode) {
+      setCompareMode(false);
+      setSelectedPhotos([]);
+    } else {
+      setCompareMode(true);
+      setSelectedPhotos([]);
+    }
+  };
+
+  const handlePhotoClick = (photo) => {
+    if (!compareMode) {
+      window.open(photo.url || photo.photo_url, '_blank');
+      return;
+    }
+
+    const isSelected = selectedPhotos.some(p => p.id === photo.id);
+    if (isSelected) {
+      setSelectedPhotos(prev => prev.filter(p => p.id !== photo.id));
+    } else if (selectedPhotos.length < 2) {
+      const updated = [...selectedPhotos, photo];
+      setSelectedPhotos(updated);
+      if (updated.length === 2) {
+        // Sort by date so earlier photo is first
+        updated.sort((a, b) => new Date(a.taken_date || a.date_taken) - new Date(b.taken_date || b.date_taken));
+        setSelectedPhotos(updated);
+        setShowComparison(true);
+        setAiAnalysis('');
+        document.body.style.overflow = 'hidden';
+      }
+    }
+  };
+
+  const closeComparison = () => {
+    setShowComparison(false);
+    setAiAnalysis('');
+    setAnalyzingPhotos(false);
+    setSelectedPhotos([]);
+    setCompareMode(false);
+    document.body.style.overflow = '';
+  };
+
+  const handleAiAnalysis = async () => {
+    if (selectedPhotos.length !== 2) return;
+
+    setAnalyzingPhotos(true);
+    setAiAnalysis('');
+    try {
+      const [photo1, photo2] = selectedPhotos;
+      const data = await apiPost('/.netlify/functions/analyze-progress-photos', {
+        photoUrl1: photo1.url || photo1.photo_url,
+        photoUrl2: photo2.url || photo2.photo_url,
+        photoType: photo1.photo_type || 'progress',
+        date1: photo1.taken_date || photo1.date_taken,
+        date2: photo2.taken_date || photo2.date_taken
+      });
+      setAiAnalysis(data.analysis || 'Unable to generate analysis.');
+    } catch (err) {
+      console.error('Error analyzing photos:', err);
+      setAiAnalysis('Unable to analyze photos right now. Please try again later.');
+    } finally {
+      setAnalyzingPhotos(false);
+    }
+  };
+
+  const photoTypeLabels = { front: 'Front', side: 'Side', back: 'Back', progress: 'Progress' };
+
   return (
     <div className="progress-page" ref={bindToContainer}>
       {/* Pull-to-refresh indicator */}
@@ -389,9 +465,26 @@ function Progress() {
           </>
         ) : (
           <>
-            <button className="btn-primary full-width add-btn" onClick={() => setShowPhotoModal(true)}>
-              + Add Progress Photo
-            </button>
+            <div className="photos-action-bar">
+              <button className="btn-primary full-width add-btn" onClick={() => setShowPhotoModal(true)}>
+                + Add Photo
+              </button>
+              {photos.length >= 2 && (
+                <button
+                  className={`compare-btn ${compareMode ? 'active' : ''}`}
+                  onClick={toggleCompareMode}
+                >
+                  <Columns2 size={18} />
+                  {compareMode ? 'Cancel' : 'Compare'}
+                </button>
+              )}
+            </div>
+
+            {compareMode && (
+              <div className="compare-hint">
+                Tap 2 photos to compare them side by side
+              </div>
+            )}
 
             <div className="section-card">
               <h3 className="section-title">Progress Photos</h3>
@@ -403,30 +496,43 @@ function Progress() {
               ) : photos.length === 0 ? (
                 <div className="empty-state-inline">
                   <Camera size={40} strokeWidth={1.5} className="empty-state-icon" />
-                  <p>No photos yet. Tap "+ Add Progress Photo" to upload!</p>
+                  <p>No photos yet. Tap "+ Add Photo" to upload!</p>
                 </div>
               ) : (
                 <div className="photos-grid">
-                  {photos.map((photo, idx) => (
-                    <div key={photo.id || idx} className="photo-item" onClick={() => window.open(photo.url || photo.photo_url, '_blank')}>
-                      <img src={photo.url || photo.photo_url} alt="Progress" loading="lazy" />
-                      <button
-                        className="photo-delete-btn"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          const dateStr = new Date(photo.taken_date || photo.date_taken).toLocaleDateString();
-                          if (window.confirm(`Delete photo from ${dateStr}?`)) {
-                            handleDeletePhoto(photo.id);
-                          }
-                        }}
+                  {photos.map((photo, idx) => {
+                    const isSelected = selectedPhotos.some(p => p.id === photo.id);
+                    const selectedIndex = selectedPhotos.findIndex(p => p.id === photo.id);
+                    return (
+                      <div
+                        key={photo.id || idx}
+                        className={`photo-item ${compareMode ? 'selectable' : ''} ${isSelected ? 'selected' : ''}`}
+                        onClick={() => handlePhotoClick(photo)}
                       >
-                        <Trash2 size={14} />
-                      </button>
-                      <div className="photo-date-overlay">
-                        {new Date(photo.taken_date || photo.date_taken).toLocaleDateString()}
+                        <img src={photo.url || photo.photo_url} alt="Progress" loading="lazy" />
+                        {isSelected && (
+                          <div className="photo-selected-badge">{selectedIndex + 1}</div>
+                        )}
+                        {!compareMode && (
+                          <button
+                            className="photo-delete-btn"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const dateStr = new Date(photo.taken_date || photo.date_taken).toLocaleDateString();
+                              if (window.confirm(`Delete photo from ${dateStr}?`)) {
+                                handleDeletePhoto(photo.id);
+                              }
+                            }}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
+                        <div className="photo-date-overlay">
+                          {new Date(photo.taken_date || photo.date_taken).toLocaleDateString()}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -671,6 +777,55 @@ function Progress() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Comparison Modal — portaled to body so it renders above everything */}
+      {showComparison && selectedPhotos.length === 2 && createPortal(
+        <div className="comparison-modal-overlay" onClick={closeComparison}>
+          <div className="comparison-modal-content" onClick={e => e.stopPropagation()}>
+            <div className="comparison-header">
+              <h2>Photo Comparison</h2>
+              <button className="comparison-close-btn" onClick={closeComparison}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="comparison-photos">
+              {selectedPhotos.map((photo, i) => (
+                <div key={photo.id} className="comparison-photo-card">
+                  <div className="comparison-photo-label">
+                    <strong>{i === 0 ? 'Before' : 'After'}</strong>
+                    {new Date(photo.taken_date || photo.date_taken).toLocaleDateString()}
+                  </div>
+                  <img src={photo.url || photo.photo_url} alt={i === 0 ? 'Before' : 'After'} />
+                  <div className="comparison-photo-badge">
+                    {photoTypeLabels[photo.photo_type] || photo.photo_type || 'Progress'}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="ai-analysis-section">
+              {!aiAnalysis && (
+                <button
+                  className="ai-analysis-btn"
+                  onClick={handleAiAnalysis}
+                  disabled={analyzingPhotos}
+                >
+                  <Sparkles size={18} />
+                  {analyzingPhotos ? 'Analyzing...' : 'Get AI Analysis'}
+                </button>
+              )}
+              {aiAnalysis && (
+                <div>
+                  <div className="ai-analysis-label">AI Coach Analysis</div>
+                  <div className="ai-analysis-text">{aiAnalysis}</div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   );

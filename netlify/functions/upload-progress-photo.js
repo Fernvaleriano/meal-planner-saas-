@@ -185,6 +185,29 @@ exports.handler = async (event, context) => {
       };
     }
 
+    // Create notification for coach (non-blocking)
+    try {
+      const { data: clientRow } = await supabase
+        .from('clients')
+        .select('client_name')
+        .eq('id', clientId)
+        .single();
+
+      const clientName = clientRow?.client_name || 'A client';
+      const typeLabel = { front: 'front', side: 'side', back: 'back', progress: 'progress' }[photoType] || 'progress';
+
+      await supabase.from('notifications').insert([{
+        user_id: coachId,
+        type: 'progress_photo',
+        title: `${clientName} uploaded a progress photo`,
+        message: `${typeLabel.charAt(0).toUpperCase() + typeLabel.slice(1)} photo uploaded`,
+        related_client_id: clientId,
+        is_read: false
+      }]);
+    } catch (notifErr) {
+      console.error('Non-critical: Failed to create notification:', notifErr);
+    }
+
     return {
       statusCode: 200,
       headers: { 'Access-Control-Allow-Origin': '*' },

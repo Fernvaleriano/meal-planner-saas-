@@ -13,6 +13,7 @@
     <script src="/js/theme.js"></script>
     <script src="/js/gym-features.js"></script>
     <link rel="stylesheet" href="/css/voice-to-text.css">
+    <link rel="stylesheet" href="/css/workout-pdf.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -1402,12 +1403,618 @@
             font-size: 14px;
         }
 
-        /* Builder Area */
+        /* Builder Area - 3 Panel Layout */
         .builder-area {
-            padding: 32px;
+            display: flex;
+            height: calc(100vh - 68px);
+            overflow: hidden;
+            max-width: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Program Details - collapsible settings bar */
+        .builder-settings-bar {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 24px;
+        }
+
+        .builder-settings-bar .builder-card {
+            margin-bottom: 0;
+            box-shadow: none;
+            border: none;
+            padding: 0;
+        }
+
+        /* Panel shared styles */
+        .wb-panel {
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid var(--border-color);
+            background: var(--bg-secondary);
+            overflow: hidden;
+        }
+
+        .wb-panel:last-child {
+            border-right: none;
+        }
+
+        .wb-panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border-color);
+            background: var(--bg-tertiary);
+            flex-shrink: 0;
+        }
+
+        .wb-panel-header span {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .wb-panel-add-btn {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            background: none;
+            border: none;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-muted);
+            cursor: pointer;
+            border-radius: 6px;
+            font-family: inherit;
+        }
+
+        .wb-panel-add-btn:hover {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        .wb-panel-body {
+            flex: 1;
             overflow-y: auto;
-            max-width: 960px;
-            margin: 0 auto;
+            padding: 0;
+        }
+
+        /* Panel 1: Training Plan (Days) */
+        .wb-panel-days {
+            width: 220px;
+            min-width: 220px;
+            flex-shrink: 0;
+        }
+
+        .wb-day-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 16px;
+            cursor: pointer;
+            border-bottom: 1px solid var(--border-color);
+            transition: background 0.12s;
+        }
+
+        .wb-day-row:hover {
+            background: var(--bg-tertiary);
+        }
+
+        .wb-day-row.active {
+            background: var(--bg-tertiary);
+            border-left: 3px solid var(--brand-primary);
+        }
+
+        .wb-day-row-name {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .wb-day-row.active .wb-day-row-name {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .wb-day-name-inline-input {
+            padding: 4px 8px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--brand-primary);
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-primary);
+            outline: none;
+            width: 100%;
+            max-width: 140px;
+            font-family: inherit;
+        }
+
+        .wb-day-row-actions {
+            display: flex;
+            align-items: center;
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .wb-day-row-menu-btn {
+            width: 24px;
+            height: 24px;
+            background: none;
+            border: none;
+            border-radius: 6px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .wb-day-row-menu-btn:hover {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        .wb-day-row-menu {
+            position: absolute;
+            top: 28px;
+            right: 0;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            box-shadow: var(--shadow-lg);
+            overflow: hidden;
+            min-width: 130px;
+            z-index: 10;
+        }
+
+        .wb-day-row-menu button {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            width: 100%;
+            padding: 8px 12px;
+            background: none;
+            border: none;
+            font-size: 12px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            text-align: left;
+            font-family: inherit;
+        }
+
+        .wb-day-row-menu button:hover {
+            background: var(--bg-tertiary);
+        }
+
+        .wb-day-row-menu button.danger {
+            color: var(--danger);
+        }
+
+        /* Panel 2: Exercises List */
+        .wb-panel-exercises {
+            flex: 1;
+            min-width: 280px;
+        }
+
+        .wb-empty-panel {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            padding: 40px 20px;
+            text-align: center;
+            color: var(--text-muted);
+        }
+
+        .wb-empty-panel p {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .wb-empty-panel span {
+            font-size: 12px;
+        }
+
+        .wb-ex-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 16px;
+            cursor: pointer;
+            border-bottom: 1px solid var(--border-color);
+            transition: background 0.12s;
+        }
+
+        .wb-ex-row:hover {
+            background: var(--bg-tertiary);
+        }
+
+        .wb-ex-row.selected {
+            background: rgba(13, 148, 136, 0.1);
+            border-left: 3px solid var(--brand-primary);
+        }
+
+        .wb-ex-row-thumb {
+            width: 48px;
+            height: 48px;
+            border-radius: 8px;
+            overflow: hidden;
+            flex-shrink: 0;
+            background: var(--bg-tertiary);
+            position: relative;
+        }
+
+        .wb-ex-row-thumb img,
+        .wb-ex-row-thumb video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .wb-ex-row-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .wb-ex-row-name {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .wb-ex-row-summary {
+            display: block;
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .wb-ex-row-check {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--brand-primary);
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .wb-ex-row-badge {
+            display: inline-block;
+            padding: 1px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+            margin-left: 4px;
+            vertical-align: middle;
+        }
+
+        .wb-ex-row-badge.pro {
+            background: var(--brand-primary);
+            color: white;
+        }
+
+        /* Panel 3: Exercise Detail */
+        .wb-panel-detail {
+            width: 360px;
+            min-width: 360px;
+            flex-shrink: 0;
+            background: var(--bg-primary);
+            overflow-y: auto;
+        }
+
+        .wb-detail-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border-color);
+            background: var(--bg-tertiary);
+        }
+
+        .wb-detail-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .wb-detail-actions {
+            display: flex;
+            gap: 4px;
+            flex-shrink: 0;
+        }
+
+        .wb-detail-action-btn {
+            width: 28px;
+            height: 28px;
+            background: none;
+            border: none;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--text-muted);
+        }
+
+        .wb-detail-action-btn:hover {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        .wb-detail-action-btn.danger:hover {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--danger);
+        }
+
+        .wb-detail-preview {
+            width: 100%;
+            aspect-ratio: 16/10;
+            background: var(--bg-tertiary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .wb-detail-preview img,
+        .wb-detail-preview video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .wb-detail-play-btn {
+            position: absolute;
+            width: 48px;
+            height: 48px;
+            background: rgba(0,0,0,0.5);
+            border-radius: 50%;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: white;
+        }
+
+        /* Tracking Type Toggle */
+        .wb-detail-type-toggle {
+            display: flex;
+            gap: 16px;
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .wb-type-radio {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .wb-type-radio.active {
+            color: var(--text-primary);
+        }
+
+        .wb-type-radio input[type="radio"] {
+            accent-color: var(--brand-primary);
+        }
+
+        /* Per-Set Editor */
+        .wb-detail-sets {
+            padding: 0 16px 8px;
+        }
+
+        .wb-sets-header-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 0 6px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .wb-sets-col-num {
+            width: 24px;
+            flex-shrink: 0;
+        }
+
+        .wb-sets-col-label {
+            flex: 1;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            color: var(--text-muted);
+            text-align: center;
+        }
+
+        .wb-set-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .wb-set-num {
+            width: 24px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--brand-primary);
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        .wb-set-input {
+            flex: 1;
+            padding: 8px 10px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 14px;
+            color: var(--text-primary);
+            text-align: center;
+            outline: none;
+            font-family: inherit;
+        }
+
+        .wb-set-input:focus {
+            border-color: var(--brand-primary);
+            background: var(--bg-secondary);
+        }
+
+        /* Add/Delete Set Actions */
+        .wb-detail-set-actions {
+            display: flex;
+            gap: 16px;
+            padding: 12px 16px;
+        }
+
+        .wb-add-set-btn {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            background: none;
+            border: none;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--brand-primary);
+            cursor: pointer;
+            padding: 4px 0;
+            font-family: inherit;
+        }
+
+        .wb-add-set-btn:hover {
+            text-decoration: underline;
+        }
+
+        .wb-delete-set-btn {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            background: none;
+            border: none;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 4px 0;
+            font-family: inherit;
+        }
+
+        .wb-delete-set-btn:hover {
+            color: var(--text-secondary);
+        }
+
+        .wb-delete-set-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        /* Detail exercise fields (notes, voice, refs, etc.) */
+        .wb-detail-section {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .wb-detail-section label {
+            display: block;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+
+        .wb-detail-notes-input {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 13px;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            font-family: inherit;
+        }
+
+        .wb-detail-notes-input:focus {
+            outline: none;
+            border-color: var(--brand-primary);
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .wb-panel-detail {
+                width: 300px;
+                min-width: 300px;
+            }
+
+            .wb-panel-days {
+                width: 180px;
+                min-width: 180px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .builder-area {
+                flex-direction: column;
+                height: auto;
+                min-height: calc(100vh - 68px);
+            }
+
+            .wb-panel-days {
+                width: 100%;
+                min-width: 100%;
+                max-height: none;
+                border-right: none;
+                border-bottom: 1px solid var(--border-color);
+            }
+
+            .wb-panel-days .wb-panel-body {
+                display: flex;
+                overflow-x: auto;
+                overflow-y: hidden;
+            }
+
+            .wb-day-row {
+                white-space: nowrap;
+                border-bottom: none;
+                border-right: 1px solid var(--border-color);
+                padding: 10px 14px;
+            }
+
+            .wb-day-row.active {
+                border-left: none;
+                border-bottom: 3px solid var(--brand-primary);
+            }
+
+            .wb-panel-exercises {
+                min-width: 100%;
+                border-right: none;
+                border-bottom: 1px solid var(--border-color);
+            }
+
+            .wb-panel-detail {
+                width: 100%;
+                min-width: 100%;
+            }
         }
 
         .builder-card {
@@ -4710,6 +5317,20 @@
         </a>
         <span class="nav-title">Workout Builder</span>
         <div class="nav-actions">
+            <!-- Settings toggle button -->
+            <button class="btn btn-secondary" onclick="toggleProgramSettings()" style="display: inline-flex; margin-right: 8px;" title="Program settings">
+                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                </svg>
+            </button>
+            <!-- Download PDF button -->
+            <button class="btn btn-secondary" id="downloadPDFBtn" onclick="downloadCurrentPDF()" style="display: inline-flex; margin-right: 8px;" title="Download PDF">
+                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                PDF
+            </button>
             <!-- Import button -->
             <button class="btn btn-secondary" id="openImportModalBtn" onclick="openImportModal()" style="display: inline-flex; margin-right: 8px;">
                 <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -4793,16 +5414,9 @@
             </a>
         </div>
 
-        <!-- Builder Area -->
-        <div class="builder-area">
-            <!-- Program Details -->
+        <!-- Program Details (hidden by default, toggled via settings icon) -->
+        <div class="builder-settings-bar" id="programSettingsBar" style="display: none;">
             <div class="builder-card">
-                <h2 class="builder-title">
-                    <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                    </svg>
-                    Program Details
-                </h2>
                 <div class="form-row">
                     <div class="form-group">
                         <label class="form-label">Program Name</label>
@@ -4932,41 +5546,45 @@
                     <input type="hidden" id="heroImageUrl" value="">
                 </div>
             </div>
+        </div>
 
-            <!-- Workout Days -->
-            <div class="builder-card">
-                <h2 class="builder-title">
-                    <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                    </svg>
-                    Workout Days
-                </h2>
-                <div id="workoutDays">
-                    <!-- Days will be rendered here -->
+        <!-- 3-Panel Builder Area -->
+        <div class="builder-area">
+            <!-- Panel 1: Training Plan (Days) -->
+            <div class="wb-panel wb-panel-days">
+                <div class="wb-panel-header">
+                    <span>Training Plan</span>
+                    <button class="wb-panel-add-btn" onclick="addWorkoutDay()">
+                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                        </svg>
+                        Add
+                    </button>
                 </div>
-                <button class="add-day-btn" onclick="addWorkoutDay()">
-                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                    </svg>
-                    Add Workout Day
-                </button>
+                <div class="wb-panel-body" id="daysList">
+                    <!-- Days rendered here by renderDaysList() -->
+                </div>
             </div>
 
-            <!-- Assign to Clients -->
-            <div class="builder-card">
-                <h2 class="builder-title">
-                    <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
-                    </svg>
-                    Assign Program
-                </h2>
-                <p class="assign-description">Save your program first, then assign it to one or more clients with a schedule.</p>
-                <button class="assign-btn" onclick="openAssignModal()" id="assignBtn" disabled>
-                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
-                    </svg>
-                    Assign to Clients
-                </button>
+            <!-- Panel 2: Exercises -->
+            <div class="wb-panel wb-panel-exercises">
+                <div class="wb-panel-header">
+                    <span>Exercises</span>
+                    <button class="wb-panel-add-btn" onclick="openExerciseModal(getActiveDay())">
+                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                        </svg>
+                        Add
+                    </button>
+                </div>
+                <div class="wb-panel-body" id="exercisesList">
+                    <!-- Exercises rendered here by renderExercisesList() -->
+                </div>
+            </div>
+
+            <!-- Panel 3: Exercise Detail -->
+            <div class="wb-panel wb-panel-detail" id="exerciseDetailPanel">
+                <!-- Exercise detail rendered here by renderExerciseDetail() -->
             </div>
         </div>
     </div>
@@ -6202,6 +6820,8 @@
         let workoutDays = [];
         let selectedClients = new Set();
         let currentDayIndex = null;
+        let activeDayIndex = 0; // For 3-panel layout: which day is selected in left panel
+        let selectedExerciseIndex = null; // For 3-panel layout: which exercise is selected for detail panel
         let insertExerciseAtIndex = null;
         let currentExerciseFilter = 'all';
         let currentSearchTerm = '';
@@ -6284,9 +6904,12 @@
                 }
             }
 
-            // Add initial day
+            // Add initial day and show settings for new programs
             if (workoutDays.length === 0) {
                 addWorkoutDay();
+                // Show settings bar for new programs
+                const settingsBar = document.getElementById('programSettingsBar');
+                if (settingsBar) settingsBar.style.display = 'block';
             }
         }
 
@@ -6378,6 +7001,8 @@
                 // Enrich exercises with fresh video URLs from the database
                 await enrichWorkoutDaysWithVideos(workoutDays);
                 document.getElementById('isClubWorkout').checked = !!program.is_club_workout;
+                activeDayIndex = 0;
+                selectedExerciseIndex = null;
                 renderWorkoutDays();
                 // Check superset consistency for loaded program
                 workoutDays.forEach((_, d) => checkSupersetWarnings(d));
@@ -6403,12 +7028,337 @@
 
             workoutDays = [];
             selectedClients.clear();
+            activeDayIndex = 0;
+            selectedExerciseIndex = null;
             addWorkoutDay();
             renderProgramList();
+            // Show settings bar for new programs
+            const settingsBar = document.getElementById('programSettingsBar');
+            if (settingsBar) settingsBar.style.display = 'block';
             // Disable assign button until program is saved
             const btn = document.getElementById('assignBtn');
             if (btn) btn.disabled = true;
             updateSaveButtonMode();
+        }
+
+        // Toggle program settings panel
+        function toggleProgramSettings() {
+            const bar = document.getElementById('programSettingsBar');
+            if (bar) {
+                bar.style.display = bar.style.display === 'none' ? 'block' : 'none';
+            }
+        }
+
+        // Get the currently active day index for the 3-panel layout
+        function getActiveDay() {
+            return activeDayIndex;
+        }
+
+        // Select a day in the left panel
+        function selectDay(dayIndex) {
+            activeDayIndex = dayIndex;
+            selectedExerciseIndex = null;
+            renderDaysList();
+            renderExercisesList();
+            renderExerciseDetail();
+        }
+
+        // Select an exercise in the middle panel
+        function selectExercise(exIndex) {
+            selectedExerciseIndex = exIndex;
+            renderExercisesList();
+            renderExerciseDetail();
+        }
+
+        // Format set summary for exercise list (e.g. "10x 10x 10x")
+        function formatSetsSummary(exercise) {
+            const numSets = parseInt(exercise.sets) || 3;
+            if (exercise.trackingType === 'time') {
+                const dur = parseInt(exercise.duration) || 30;
+                if (dur >= 60) return `${Math.floor(dur / 60)} minute${Math.floor(dur / 60) !== 1 ? 's' : ''}`;
+                return `${dur} seconds`;
+            }
+            if (exercise.trackingType === 'distance') {
+                return `${exercise.distance || 1} ${exercise.distanceUnit || 'miles'}`;
+            }
+            if (Array.isArray(exercise.setsData) && exercise.setsData.length > 0) {
+                return exercise.setsData.map(s => `${s.reps || 0}x`).join(' ');
+            }
+            const reps = exercise.reps || '10';
+            return Array(numSets).fill(`${reps}x`).join(' ');
+        }
+
+        // Build per-set arrays from exercise config
+        function buildSetsArray(exercise) {
+            const numSets = parseInt(exercise.sets) || 3;
+            const existingSets = Array.isArray(exercise.setsData) ? exercise.setsData : [];
+            const result = [];
+            for (let i = 0; i < numSets; i++) {
+                if (existingSets[i]) {
+                    result.push({ ...existingSets[i] });
+                } else {
+                    const isTimed = exercise.trackingType === 'time';
+                    const isDistance = exercise.trackingType === 'distance';
+                    result.push({
+                        reps: isTimed ? undefined : (parseInt(exercise.reps) || 10),
+                        duration: isTimed ? (parseInt(exercise.duration) || 30) : undefined,
+                        distance: isDistance ? (parseFloat(exercise.distance) || 1) : undefined,
+                        restSeconds: parseInt(exercise.restSeconds) || 30,
+                    });
+                }
+            }
+            return result;
+        }
+
+        // Update a single set in an exercise
+        function updateExerciseSet(dayIndex, exIndex, setIndex, field, value) {
+            const exercise = workoutDays[dayIndex].exercises[exIndex];
+            const setsArr = buildSetsArray(exercise);
+            setsArr[setIndex] = { ...setsArr[setIndex], [field]: value };
+            exercise.setsData = setsArr;
+            renderExerciseDetail();
+        }
+
+        // Add a set to an exercise
+        function addSetToExercise(dayIndex, exIndex) {
+            const exercise = workoutDays[dayIndex].exercises[exIndex];
+            const setsArr = buildSetsArray(exercise);
+            const lastSet = setsArr[setsArr.length - 1] || { reps: 10, restSeconds: 30 };
+            setsArr.push({ ...lastSet });
+            exercise.sets = setsArr.length;
+            exercise.setsData = setsArr;
+            renderExercisesList();
+            renderExerciseDetail();
+        }
+
+        // Delete last set from an exercise
+        function deleteSetFromExercise(dayIndex, exIndex) {
+            const exercise = workoutDays[dayIndex].exercises[exIndex];
+            const setsArr = buildSetsArray(exercise);
+            if (setsArr.length <= 1) return;
+            setsArr.pop();
+            exercise.sets = setsArr.length;
+            exercise.setsData = setsArr;
+            renderExercisesList();
+            renderExerciseDetail();
+        }
+
+        // Change tracking type from detail panel
+        function changeTrackingType(dayIndex, exIndex, type) {
+            const exercise = workoutDays[dayIndex].exercises[exIndex];
+            exercise.trackingType = type;
+            exercise.repType = null;
+            renderExercisesList();
+            renderExerciseDetail();
+        }
+
+        // Render the days list (Panel 1)
+        function renderDaysList() {
+            const container = document.getElementById('daysList');
+            if (!container) return;
+            if (workoutDays.length === 0) {
+                container.innerHTML = '<div class="wb-empty-panel"><p>No days yet</p><span>Add your first workout day</span></div>';
+                return;
+            }
+            container.innerHTML = workoutDays.map((day, dayIndex) => `
+                <div class="wb-day-row ${activeDayIndex === dayIndex ? 'active' : ''}" onclick="selectDay(${dayIndex})">
+                    <span class="wb-day-row-name" ondblclick="event.stopPropagation(); startInlineDayRename(${dayIndex})">${escapeHtml(day.name)}</span>
+                    ${activeDayIndex === dayIndex ? `
+                        <div class="wb-day-row-actions">
+                            <button class="wb-day-row-menu-btn" onclick="event.stopPropagation(); toggleDayRowMenu(${dayIndex})" title="Options">
+                                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/>
+                                </svg>
+                            </button>
+                            <div class="wb-day-row-menu" id="dayRowMenu-${dayIndex}" style="display:none;" onclick="event.stopPropagation()">
+                                <button onclick="startInlineDayRename(${dayIndex})">Rename</button>
+                                <button onclick="duplicateDay(${dayIndex})">Duplicate</button>
+                                ${workoutDays.length > 1 ? `<button class="danger" onclick="removeWorkoutDay(${dayIndex})">Delete</button>` : ''}
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('');
+        }
+
+        // Day row menu toggle
+        function toggleDayRowMenu(dayIndex) {
+            const menu = document.getElementById(`dayRowMenu-${dayIndex}`);
+            if (menu) {
+                menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+            }
+        }
+
+        // Inline day rename
+        function startInlineDayRename(dayIndex) {
+            const container = document.getElementById('daysList');
+            if (!container) return;
+            const rows = container.querySelectorAll('.wb-day-row');
+            if (!rows[dayIndex]) return;
+            const nameEl = rows[dayIndex].querySelector('.wb-day-row-name');
+            if (!nameEl) return;
+            const currentName = workoutDays[dayIndex].name;
+            nameEl.outerHTML = `<input type="text" class="wb-day-name-inline-input" value="${escapeHtml(currentName)}" onblur="finishInlineDayRename(${dayIndex}, this.value)" onkeydown="if(event.key==='Enter'){finishInlineDayRename(${dayIndex},this.value)}else if(event.key==='Escape'){renderDaysList()}" onclick="event.stopPropagation()" autofocus>`;
+            const input = container.querySelector('.wb-day-name-inline-input');
+            if (input) { input.focus(); input.select(); }
+        }
+
+        function finishInlineDayRename(dayIndex, newName) {
+            if (newName.trim()) {
+                workoutDays[dayIndex].name = newName.trim();
+            }
+            renderDaysList();
+        }
+
+        // Duplicate day
+        function duplicateDay(dayIndex) {
+            const dayToCopy = workoutDays[dayIndex];
+            workoutDays.push({
+                name: `${dayToCopy.name} (Copy)`,
+                exercises: dayToCopy.exercises.map(ex => ({ ...ex }))
+            });
+            renderDaysList();
+        }
+
+        // Render the exercises list (Panel 2)
+        function renderExercisesList() {
+            const container = document.getElementById('exercisesList');
+            if (!container) return;
+            const day = workoutDays[activeDayIndex];
+            if (!day || day.exercises.length === 0) {
+                container.innerHTML = '<div class="wb-empty-panel"><svg width="36" height="36" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg><p>No exercises yet</p><span>Add exercises to this day</span></div>';
+                return;
+            }
+            container.innerHTML = day.exercises.map((exercise, exIndex) => {
+                const thumbSrc = exercise.thumbnail_url || '/img/exercise-placeholder.svg';
+                const summary = formatSetsSummary(exercise);
+                let badges = '';
+                if (exercise.isWarmup) badges += '<span class="wb-ex-row-badge" style="background:rgba(245,158,11,0.2);color:#f59e0b;">Warmup</span>';
+                if (exercise.isStretch) badges += '<span class="wb-ex-row-badge" style="background:rgba(16,185,129,0.2);color:#10b981;">Stretch</span>';
+                if (exercise.isSuperset) badges += '<span class="wb-ex-row-badge" style="background:rgba(99,102,241,0.2);color:#6366f1;">SS ' + (exercise.supersetGroup || '') + '</span>';
+                return `
+                    <div class="wb-ex-row ${selectedExerciseIndex === exIndex ? 'selected' : ''}" onclick="selectExercise(${exIndex})">
+                        <div class="wb-ex-row-thumb">
+                            <img src="${thumbSrc}" alt="${escapeHtml(exercise.name)}" onerror="this.src='/img/exercise-placeholder.svg'">
+                        </div>
+                        <div class="wb-ex-row-info">
+                            <span class="wb-ex-row-name">${escapeHtml(exercise.name)}${badges}</span>
+                            <span class="wb-ex-row-summary">${summary}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Render the exercise detail (Panel 3)
+        function renderExerciseDetail() {
+            const container = document.getElementById('exerciseDetailPanel');
+            if (!container) return;
+            const day = workoutDays[activeDayIndex];
+            if (!day || selectedExerciseIndex === null || !day.exercises[selectedExerciseIndex]) {
+                container.innerHTML = '<div class="wb-empty-panel" style="height:100%;justify-content:center;"><svg width="36" height="36" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"/></svg><p>Select an exercise</p><span>Click an exercise to edit its details</span></div>';
+                return;
+            }
+
+            const exercise = day.exercises[selectedExerciseIndex];
+            const di = activeDayIndex;
+            const ei = selectedExerciseIndex;
+            const hasVideo = exercise.video_url || exercise.animation_url;
+            const videoSrc = exercise.video_url || exercise.animation_url;
+            const thumbSrc = exercise.thumbnail_url || '/img/exercise-placeholder.svg';
+            const trackingType = exercise.trackingType || 'reps';
+
+            // Preview
+            let previewHtml;
+            if (hasVideo) {
+                previewHtml = '<video src="' + videoSrc + '" muted loop playsinline autoplay poster="' + thumbSrc + '" style="width:100%;height:100%;object-fit:contain;" onerror="this.outerHTML=\'<img src=&quot;' + thumbSrc + '&quot; style=&quot;width:100%;height:100%;object-fit:contain;&quot;>\'"></video>';
+            } else {
+                previewHtml = `<img src="${thumbSrc}" style="width:100%;height:100%;object-fit:contain;" onerror="this.src='/img/exercise-placeholder.svg'">`;
+            }
+
+            // Build sets
+            const setsArr = buildSetsArray(exercise);
+            let setsHeaderLabel, setsInputField;
+            if (trackingType === 'time') {
+                setsHeaderLabel = 'Duration (s)';
+                setsInputField = (set, si) => `<input type="number" class="wb-set-input" value="${set.duration || 30}" min="1" onchange="updateExerciseSet(${di},${ei},${si},'duration',parseInt(this.value)||1)">`;
+            } else if (trackingType === 'distance') {
+                setsHeaderLabel = `Distance (${exercise.distanceUnit || 'miles'})`;
+                setsInputField = (set, si) => `<input type="number" class="wb-set-input" value="${set.distance || 1}" step="any" min="0.1" onchange="updateExerciseSet(${di},${ei},${si},'distance',parseFloat(this.value)||1)">`;
+            } else {
+                setsHeaderLabel = 'Reps (x)';
+                setsInputField = (set, si) => `<input type="number" class="wb-set-input" value="${set.reps || 10}" min="1" onchange="updateExerciseSet(${di},${ei},${si},'reps',parseInt(this.value)||1)">`;
+            }
+
+            container.innerHTML = `
+                <div class="wb-detail-header">
+                    <span class="wb-detail-title">${escapeHtml(exercise.name)}</span>
+                    <div class="wb-detail-actions">
+                        <button class="wb-detail-action-btn" onclick="openSwapModal(${di},${ei})" title="Swap exercise">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+                        </button>
+                        <button class="wb-detail-action-btn danger" onclick="removeExercise(${di},${ei}); selectedExerciseIndex=null; renderExercisesList(); renderExerciseDetail();" title="Remove exercise">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="wb-detail-preview">${previewHtml}</div>
+
+                <div class="wb-detail-type-toggle">
+                    <label class="wb-type-radio ${trackingType === 'reps' ? 'active' : ''}">
+                        <input type="radio" name="trackingType-${ei}" ${trackingType === 'reps' ? 'checked' : ''} onchange="changeTrackingType(${di},${ei},'reps')">
+                        <span>Repetition-based</span>
+                    </label>
+                    <label class="wb-type-radio ${trackingType === 'time' ? 'active' : ''}">
+                        <input type="radio" name="trackingType-${ei}" ${trackingType === 'time' ? 'checked' : ''} onchange="changeTrackingType(${di},${ei},'time')">
+                        <span>Time-based</span>
+                    </label>
+                </div>
+
+                <div class="wb-detail-sets">
+                    <div class="wb-sets-header-row">
+                        <span class="wb-sets-col-num"></span>
+                        <span class="wb-sets-col-label">${setsHeaderLabel}</span>
+                        <span class="wb-sets-col-label">Rest (s)</span>
+                    </div>
+                    ${setsArr.map((set, si) => `
+                        <div class="wb-set-row">
+                            <span class="wb-set-num">${si + 1}</span>
+                            ${setsInputField(set, si)}
+                            <input type="number" class="wb-set-input" value="${set.restSeconds ?? 30}" min="0" onchange="updateExerciseSet(${di},${ei},${si},'restSeconds',parseInt(this.value)||0)">
+                        </div>
+                    `).join('')}
+                </div>
+
+                <div class="wb-detail-set-actions">
+                    <button class="wb-add-set-btn" onclick="addSetToExercise(${di},${ei})">
+                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                        Add a set
+                    </button>
+                    <button class="wb-delete-set-btn" onclick="deleteSetFromExercise(${di},${ei})" ${setsArr.length <= 1 ? 'disabled' : ''}>
+                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01"/></svg>
+                        Delete set
+                    </button>
+                </div>
+
+                <div class="wb-detail-section">
+                    <label>Notes</label>
+                    <input type="text" class="wb-detail-notes-input" value="${escapeHtml(exercise.notes || '')}" placeholder="Add notes (e.g., tempo, form tips...)" onchange="updateExercise(${di},${ei},'notes',this.value)">
+                </div>
+
+                <div class="wb-detail-section">
+                    <label>Label</label>
+                    <select class="form-select" style="padding:8px 10px;font-size:13px;" onchange="updateExerciseLabel(${di},${ei},this.value)">
+                        <option value="none" ${!exercise.isWarmup && !exercise.isStretch && !exercise.isSuperset ? 'selected' : ''}>No Label</option>
+                        <option value="warmup" ${exercise.isWarmup ? 'selected' : ''}>Warm-up</option>
+                        <option value="stretch" ${exercise.isStretch ? 'selected' : ''}>Stretch</option>
+                        <option value="supersetA" ${exercise.isSuperset && exercise.supersetGroup === 'A' ? 'selected' : ''}>Superset A</option>
+                        <option value="supersetB" ${exercise.isSuperset && exercise.supersetGroup === 'B' ? 'selected' : ''}>Superset B</option>
+                        <option value="supersetC" ${exercise.isSuperset && exercise.supersetGroup === 'C' ? 'selected' : ''}>Superset C</option>
+                    </select>
+                </div>
+            `;
         }
 
         // Add workout day
@@ -6418,10 +7368,12 @@
                 name: `Day ${dayNum}`,
                 exercises: []
             });
+            activeDayIndex = workoutDays.length - 1;
+            selectedExerciseIndex = null;
             renderWorkoutDays();
         }
 
-        // Render workout days
+        // Render workout days - now calls all 3 panel renders
         function sortExercisesByStructure(exercises) {
             // Enforce warm-up → main workout → stretching order
             const warmups = exercises.filter(ex => ex.isWarmup);
@@ -6431,43 +7383,19 @@
         }
 
         function renderWorkoutDays() {
-            const container = document.getElementById('workoutDays');
-            if (workoutDays.length === 0) {
-                container.innerHTML = '<div class="empty-state"><p>Add your first workout day</p></div>';
-                return;
+            // Ensure activeDayIndex is valid
+            if (activeDayIndex >= workoutDays.length) {
+                activeDayIndex = Math.max(0, workoutDays.length - 1);
             }
-
-            container.innerHTML = workoutDays.map((day, dayIndex) => `
-                <div class="workout-day">
-                    <div class="workout-day-header">
-                        <input type="text" class="day-name-input" value="${day.name}" onchange="updateDayName(${dayIndex}, this.value)">
-                        <div class="workout-day-actions">
-                            <button class="icon-btn" onclick="removeWorkoutDay(${dayIndex})" title="Remove day">
-                                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="exercise-list">
-                        ${day.exercises.map((ex, exIndex) => {
-                            let html = '';
-                            if (exIndex === 0) {
-                                html += renderInsertButton(dayIndex, 0);
-                            }
-                            html += renderExerciseItem(ex, dayIndex, exIndex);
-                            html += renderInsertButton(dayIndex, exIndex + 1);
-                            return html;
-                        }).join('')}
-                    </div>
-                    <button class="add-exercise-btn" onclick="openExerciseModal(${dayIndex})">
-                        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                        </svg>
-                        Add Exercise
-                    </button>
-                </div>
-            `).join('');
+            if (selectedExerciseIndex !== null) {
+                const day = workoutDays[activeDayIndex];
+                if (!day || selectedExerciseIndex >= day.exercises.length) {
+                    selectedExerciseIndex = null;
+                }
+            }
+            renderDaysList();
+            renderExercisesList();
+            renderExerciseDetail();
         }
 
         // Render insert-between button
@@ -7003,12 +7931,22 @@
         function removeWorkoutDay(dayIndex) {
             if (confirm('Remove this workout day?')) {
                 workoutDays.splice(dayIndex, 1);
+                if (activeDayIndex >= workoutDays.length) {
+                    activeDayIndex = Math.max(0, workoutDays.length - 1);
+                }
+                selectedExerciseIndex = null;
                 renderWorkoutDays();
             }
         }
 
         function removeExercise(dayIndex, exIndex) {
             workoutDays[dayIndex].exercises.splice(exIndex, 1);
+            // Update selectedExerciseIndex
+            if (selectedExerciseIndex === exIndex) {
+                selectedExerciseIndex = null;
+            } else if (selectedExerciseIndex !== null && selectedExerciseIndex > exIndex) {
+                selectedExerciseIndex--;
+            }
             renderWorkoutDays();
         }
 
@@ -8165,6 +9103,12 @@
                 } else {
                     dayExercises.push(newExercise);
                 }
+            }
+
+            // Auto-select this exercise in the detail panel
+            const addedIndex = workoutDays[currentDayIndex].exercises.indexOf(newExercise);
+            if (addedIndex !== -1) {
+                selectedExerciseIndex = addedIndex;
             }
 
             renderWorkoutDays();
@@ -10259,6 +11203,31 @@
         let importFilter = 'all'; // 'all' or 'matched'
         let importFileContent = null;
 
+        // Download current workout as PDF
+        function downloadCurrentPDF() {
+            const name = document.getElementById('programName').value || 'Workout Program';
+            const programType = document.getElementById('programType').value;
+            const difficulty = document.getElementById('programDifficulty').value;
+            const daysPerWeek = document.getElementById('daysPerWeek').value;
+            const description = document.getElementById('programDescription').value;
+
+            if (!workoutDays || workoutDays.length === 0) {
+                showToast('Add some exercises before downloading PDF', 'error');
+                return;
+            }
+
+            const program = {
+                name,
+                program_type: programType,
+                difficulty,
+                days_per_week: parseInt(daysPerWeek) || workoutDays.length,
+                description,
+                program_data: { days: workoutDays }
+            };
+
+            openWorkoutPrintDialog(program);
+        }
+
         function openImportModal() {
             // Reset state
             importedProgramData = null;
@@ -10921,5 +11890,7 @@
         });
     </script>
     <script src="/js/voice-to-text.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
+    <script src="/js/workout-pdf.js"></script>
 </body>
 </html>

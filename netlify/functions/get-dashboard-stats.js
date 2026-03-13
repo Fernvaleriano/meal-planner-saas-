@@ -204,13 +204,19 @@ function buildRecentActivity(measurements, photos, plans, checkins, clients) {
     clients.forEach(c => { clientMap[c.id] = c.client_name; });
 
     const activities = [
-        ...measurements.slice(0, 10).map(m => ({
-            type: 'measurement',
-            clientId: m.client_id,
-            clientName: clientMap[m.client_id] || 'Unknown',
-            date: m.created_at,
-            details: m.weight ? `Logged weight: ${m.weight} ${m.weight_unit || 'lbs'}` : 'Logged measurements'
-        })),
+        ...measurements.slice(0, 10).map(m => {
+            const parts = [];
+            if (m.weight) parts.push(`Weight: ${m.weight} ${m.weight_unit || 'lbs'}`);
+            if (m.body_fat_percentage) parts.push(`BF: ${m.body_fat_percentage}%`);
+            if (m.waist) parts.push(`Waist: ${m.waist}"`);
+            return {
+                type: 'measurement',
+                clientId: m.client_id,
+                clientName: clientMap[m.client_id] || 'Unknown',
+                date: m.created_at,
+                details: parts.length > 0 ? `Logged: ${parts.join(', ')}` : 'Logged measurements'
+            };
+        }),
         ...photos.slice(0, 10).map(p => ({
             type: 'photo',
             clientId: p.client_id,
