@@ -135,50 +135,139 @@ function calculateSimilarity(pdfName, dbName) {
   return score;
 }
 
+const CRITICAL_MOVEMENT_TOKENS = ['press', 'row', 'curl', 'fly', 'raise', 'extension', 'pulldown', 'pushdown',
+  'squat', 'lunge', 'deadlift', 'crunch', 'plank', 'thrust', 'bridge', 'stretch', 'twist'];
+
+const CRITICAL_EQUIPMENT_TOKENS = ['barbell', 'dumbbell', 'cable', 'machine', 'band', 'bodyweight', 'ez'];
+
+const DISAMBIGUATION_TOKENS = ['preacher', 'incline', 'decline', 'seated', 'standing', 'lying', 'bent', 'reverse', 'single', 'one', 'arm', 'smith'];
+
+function extractCriticalTokens(name, tokenList) {
+  const normalized = normalizeExerciseName(name);
+  return tokenList.filter(token => new RegExp(`\\b${token}\\b`, 'i').test(normalized));
+}
+
+function tokensOverlap(requiredTokens, candidateTokens) {
+  // If import name has no critical tokens for this category, do not gate on it.
+  if (!requiredTokens.length) return true;
+  // If import name has critical tokens, candidate must expose at least one of them.
+  if (!candidateTokens.length) return false;
+
+  const candidateSet = new Set(candidateTokens);
+  return requiredTokens.some(token => candidateSet.has(token));
+}
+
+
+function hasUnexpectedQualifiers(pdfName, candidateName) {
+  const pdfTokens = extractCriticalTokens(pdfName, DISAMBIGUATION_TOKENS);
+  const candidateTokens = extractCriticalTokens(candidateName, DISAMBIGUATION_TOKENS);
+
+  if (!candidateTokens.length) return false;
+  if (!pdfTokens.length) return candidateTokens.length > 0;
+
+  const pdfSet = new Set(pdfTokens);
+  return candidateTokens.some(token => !pdfSet.has(token));
+}
+
+function isMuscleCompatible(pdfMuscleGroup, exercise) {
+  if (!pdfMuscleGroup || !exercise?.muscle_group) return true;
+  const normalizedPdfMuscle = pdfMuscleGroup.toLowerCase();
+  const normalizedDbMuscle = exercise.muscle_group.toLowerCase();
+
+  if (normalizedPdfMuscle === normalizedDbMuscle ||
+      normalizedPdfMuscle.includes(normalizedDbMuscle) ||
+      normalizedDbMuscle.includes(normalizedPdfMuscle)) {
+    return true;
+  }
+
+  if (exercise.secondary_muscles && Array.isArray(exercise.secondary_muscles)) {
+    return exercise.secondary_muscles.some(secondary => {
+      const s = String(secondary || '').toLowerCase();
+      return s.includes(normalizedPdfMuscle) || normalizedPdfMuscle.includes(s);
+    });
+  }
+
+  return false;
+}
+
+
+function extractRestSecondsFromNote(noteText) {
+  if (!noteText) return null;
+  const lower = noteText.toLowerCase();
+  const matches = [...lower.matchAll(/(\d+)\s*(?:sec|seconds?)\b/g)];
+  if (matches.length > 0) {
+    // Prefer the final explicit rest cue (e.g. "No rest ...; 90 sec after each round")
+    return parseInt(matches[matches.length - 1][1], 10);
+  }
+  if (/\bno\s+rest\b/.test(lower)) return 0;
+  return null;
+}
+
 function findBestExerciseMatch(pdfName, pdfMuscleGroup, exercises) {
-  const normalizedName = pdfName.toLowerCase().trim();
-  const exactMatch = exercises.find(e => e.name.toLowerCase().trim() === normalizedName);
-  if (exactMatch) return exactMatch;
+  const rawName = String(pdfName || '').toLowerCase().trim();
+  const exactRawMatch = exercises.find(e => String(e.name || '').toLowerCase().trim() === rawName);
+  if (exactRawMatch) return exactRawMatch;
+
+  const normalizedName = normalizeExerciseName(pdfName);
+  const exactNormalizedMatch = exercises.find(e => normalizeExerciseName(e.name) === normalizedName);
+  if (exactNormalizedMatch) return exactNormalizedMatch;
+
+  const pdfMovementTokens = extractCriticalTokens(pdfName, CRITICAL_MOVEMENT_TOKENS);
+  const pdfEquipmentTokens = extractCriticalTokens(pdfName, CRITICAL_EQUIPMENT_TOKENS);
 
   let bestMatch = null;
-  let bestScore = 0;
-  const threshold = 0.35;
+  let bestFinalScore = 0;
+  let bestBaseSimilarity = 0;
+
+  // Keep fuzzy fallback very strict to avoid wrong substitutions.
+  const minBaseSimilarity = 0.9;
+  const minFinalScore = 0.92;
 
   for (const exercise of exercises) {
-    let score = calculateSimilarity(pdfName, exercise.name);
+    const dbMovementTokens = extractCriticalTokens(exercise.name, CRITICAL_MOVEMENT_TOKENS);
+    if (!tokensOverlap(pdfMovementTokens, dbMovementTokens)) {
+      continue;
+    }
 
-    if (pdfMuscleGroup && exercise.muscle_group) {
-      const normalizedPdfMuscle = pdfMuscleGroup.toLowerCase();
-      const normalizedDbMuscle = exercise.muscle_group.toLowerCase();
+    const dbEquipmentTokens = extractCriticalTokens(exercise.name, CRITICAL_EQUIPMENT_TOKENS);
+    if (!tokensOverlap(pdfEquipmentTokens, dbEquipmentTokens)) {
+      continue;
+    }
 
-      if (normalizedPdfMuscle === normalizedDbMuscle ||
-          normalizedPdfMuscle.includes(normalizedDbMuscle) ||
-          normalizedDbMuscle.includes(normalizedPdfMuscle)) {
-        score += 0.15;
-      }
+    const baseSimilarity = calculateSimilarity(pdfName, exercise.name);
+    if (baseSimilarity < minBaseSimilarity) {
+      continue;
+    }
 
-      if (exercise.secondary_muscles && Array.isArray(exercise.secondary_muscles)) {
-        for (const secondary of exercise.secondary_muscles) {
-          if (secondary.toLowerCase().includes(normalizedPdfMuscle) ||
-              normalizedPdfMuscle.includes(secondary.toLowerCase())) {
-            score += 0.1;
-            break;
-          }
-        }
-      }
+    if (hasUnexpectedQualifiers(pdfName, exercise.name)) {
+      continue;
+    }
+
+    let finalScore = baseSimilarity;
+    const muscleCompatible = isMuscleCompatible(pdfMuscleGroup, exercise);
+
+    if (muscleCompatible) {
+      finalScore += 0.05;
+    } else {
+      finalScore -= 0.2;
     }
 
     if (exercise.video_url || exercise.animation_url) {
-      score += 0.05;
+      finalScore += 0.01;
     }
 
-    if (score > bestScore && score >= threshold) {
-      bestScore = score;
+    if (finalScore > bestFinalScore && finalScore >= minFinalScore) {
+      bestFinalScore = finalScore;
+      bestBaseSimilarity = baseSimilarity;
       bestMatch = exercise;
     }
   }
 
-  return bestMatch;
+  if (bestMatch && bestBaseSimilarity >= minBaseSimilarity && bestFinalScore >= minFinalScore) {
+    return bestMatch;
+  }
+
+  return null;
 }
 
 function isWarmupExercise(name) {
@@ -420,7 +509,7 @@ function parseStructuredDay(chunk) {
       continue;
     }
 
-    if (/^cool[- ]?down:?$/i.test(line)) {
+    if (/^(?:cool[- ]?down|stretch|mobility):?$/i.test(line)) {
       currentSection = 'cooldown';
       activeSupersetGroup = null;
       supersetRemaining = 0;
@@ -440,9 +529,13 @@ function parseStructuredDay(chunk) {
     if (/^Coach note:/i.test(line)) {
       const noteText = line.replace(/^Coach note:\s*/i, '').trim();
       if (noteText && lastExerciseIndices.length > 0) {
+        const detectedRestSeconds = extractRestSecondsFromNote(noteText);
         for (const idx of lastExerciseIndices) {
           const prior = exercises[idx].notes;
           exercises[idx].notes = prior ? `${prior} ${noteText}` : noteText;
+          if (detectedRestSeconds != null) {
+            exercises[idx].restSeconds = detectedRestSeconds;
+          }
         }
       }
       continue;
