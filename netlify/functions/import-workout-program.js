@@ -202,8 +202,8 @@ function findBestExerciseMatch(pdfName, pdfMuscleGroup, exercises) {
   let bestBaseSimilarity = 0;
 
   // Keep fuzzy fallback very strict to avoid wrong substitutions.
-  const minBaseSimilarity = 0.88;
-  const minFinalScore = 0.9;
+  const minBaseSimilarity = 0.9;
+  const minFinalScore = 0.92;
 
   for (const exercise of exercises) {
     const dbMovementTokens = extractCriticalTokens(exercise.name, CRITICAL_MOVEMENT_TOKENS);
