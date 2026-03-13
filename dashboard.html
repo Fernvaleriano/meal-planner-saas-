@@ -6501,9 +6501,19 @@
                 const filteredNotifications = (data.notifications || []).filter(n => n.type !== 'client_pr');
 
                 if (filteredNotifications.length > 0) {
+                    const notifIcons = {
+                        progress_photo: '📸',
+                        measurement_logged: '📏',
+                        checkin_submitted: '📋',
+                        chat_message: '💬',
+                        diary_reaction: '❤️',
+                        diary_comment: '💬',
+                        diet_plan_published: '🍽️',
+                        workout_assigned: '💪'
+                    };
                     notificationList.innerHTML = filteredNotifications.map(n => `
                         <div class="notification-item ${n.is_read ? '' : 'unread'}" data-id="${n.id}" data-client-id="${n.related_client_id || ''}" data-type="${n.type || ''}" data-checkin-id="${n.related_checkin_id || ''}">
-                            <div class="notification-title">${n.title}</div>
+                            <div class="notification-title">${notifIcons[n.type] || '🔔'} ${n.title}</div>
                             <div class="notification-message">${n.message}</div>
                             <div class="notification-time">${formatTimeAgo(n.created_at)}</div>
                         </div>
@@ -7512,6 +7522,20 @@
                     .gte('created_at', weekAgo.toISOString())
                     .or('client_notes.not.is.null,client_voice_note_path.not.is.null');
 
+                // Fetch progress photos this week
+                const { data: recentPhotos } = await supabaseClient
+                    .from('progress_photos')
+                    .select('client_id, photo_type, created_at')
+                    .in('client_id', clientIds)
+                    .gte('created_at', weekAgo.toISOString());
+
+                // Fetch measurements this week
+                const { data: recentMeasurements } = await supabaseClient
+                    .from('client_measurements')
+                    .select('client_id, weight, weight_unit, created_at')
+                    .in('client_id', clientIds)
+                    .gte('created_at', weekAgo.toISOString());
+
                 // Build per-client data
                 const clientData = {};
                 clients.forEach(c => {
@@ -7523,6 +7547,8 @@
                         prs: 0,
                         checkedIn: false,
                         hasNotes: false,
+                        photos: 0,
+                        measurements: 0,
                         lastWorkout: null
                     };
                 });
@@ -7564,6 +7590,16 @@
                     if (cId && clientData[cId]) clientData[cId].hasNotes = true;
                 });
 
+                // Photos
+                (recentPhotos || []).forEach(p => {
+                    if (clientData[p.client_id]) clientData[p.client_id].photos++;
+                });
+
+                // Measurements
+                (recentMeasurements || []).forEach(m => {
+                    if (clientData[m.client_id]) clientData[m.client_id].measurements++;
+                });
+
                 // Update extended stats
                 const totalWorkouts = (thisWeekWorkouts || []).length;
                 const totalPRs = (prNotifs || []).length;
@@ -7586,8 +7622,8 @@
                 });
 
                 // Split into notable (active) and inactive
-                const notable = sorted.filter(([, d]) => d.workouts > 0 || d.prs > 0 || d.checkedIn || d.hasNotes);
-                const inactive = sorted.filter(([, d]) => d.workouts === 0 && d.prs === 0 && !d.checkedIn && !d.hasNotes);
+                const notable = sorted.filter(([, d]) => d.workouts > 0 || d.prs > 0 || d.checkedIn || d.hasNotes || d.photos > 0 || d.measurements > 0);
+                const inactive = sorted.filter(([, d]) => d.workouts === 0 && d.prs === 0 && !d.checkedIn && !d.hasNotes && d.photos === 0 && d.measurements === 0);
                 const inactiveCount = inactive.length;
 
                 // Only render notable clients by default
@@ -7615,6 +7651,8 @@
                         badges.push('<span class="cag-badge red" title="No completed workouts this week">No activity</span>');
                     }
                     if (d.prs > 0) badges.push(`<span class="cag-badge purple" title="${d.prs} new personal record${d.prs !== 1 ? 's' : ''} set this week">${d.prs} PR${d.prs !== 1 ? 's' : ''} this wk</span>`);
+                    if (d.photos > 0) badges.push(`<span class="cag-badge blue" title="${d.photos} progress photo${d.photos !== 1 ? 's' : ''} uploaded this week">📸 ${d.photos} photo${d.photos !== 1 ? 's' : ''}</span>`);
+                    if (d.measurements > 0) badges.push(`<span class="cag-badge blue" title="Logged ${d.measurements} measurement${d.measurements !== 1 ? 's' : ''} this week">📏 ${d.measurements} measurement${d.measurements !== 1 ? 's' : ''}</span>`);
                     if (d.hasNotes) badges.push('<span class="cag-badge blue"><svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>');
                     if (trendHtml) badges.push(trendHtml);
 
@@ -7626,6 +7664,8 @@
                         detail = 'No completed workouts this week';
                     }
                     if (d.checkedIn) detail += ' · Checked in';
+                    if (d.photos > 0) detail += ' · Uploaded photos';
+                    if (d.measurements > 0) detail += ' · Logged measurements';
 
                     return `
                         <div class="cag-row" onclick="window.location.href='client-profile.html?clientId=${cId}'">

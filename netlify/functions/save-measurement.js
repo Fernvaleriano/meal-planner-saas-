@@ -112,6 +112,30 @@ exports.handler = async (event, context) => {
       };
     }
 
+    // Create notification for coach (non-blocking)
+    try {
+      const { data: clientRow } = await supabase
+        .from('clients')
+        .select('name')
+        .eq('id', clientId)
+        .single();
+
+      const clientName = clientRow?.name || 'A client';
+      const unit = weightUnit || 'lbs';
+      const details = weight ? `Weight: ${weight} ${unit}` : 'New measurement logged';
+
+      await supabase.from('notifications').insert([{
+        user_id: coachId,
+        type: 'measurement_logged',
+        title: `${clientName} logged a measurement`,
+        message: details,
+        related_client_id: clientId,
+        is_read: false
+      }]);
+    } catch (notifErr) {
+      console.error('Non-critical: Failed to create notification:', notifErr);
+    }
+
     return {
       statusCode: 200,
       headers: { 'Access-Control-Allow-Origin': '*' },
