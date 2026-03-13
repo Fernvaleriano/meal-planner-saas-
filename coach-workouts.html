@@ -1703,6 +1703,71 @@
             color: white;
         }
 
+        .wb-ex-row-drag {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1px;
+            padding: 2px 0;
+            min-width: 20px;
+            flex-shrink: 0;
+        }
+        .wb-ex-move-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 8px;
+            padding: 1px 2px;
+            line-height: 1;
+            border-radius: 3px;
+        }
+        .wb-ex-move-btn:hover:not(:disabled) {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+        .wb-ex-move-btn:disabled {
+            opacity: 0.2;
+            cursor: default;
+        }
+        .wb-ex-row.dragging {
+            opacity: 0.4;
+        }
+        .wb-ex-row.drag-over {
+            border-top: 2px solid var(--brand-primary);
+        }
+
+        .wb-insert-divider {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2px 0;
+            opacity: 0;
+            transition: opacity 0.15s;
+        }
+        .wb-panel-exercises .wb-panel-body:hover .wb-insert-divider {
+            opacity: 1;
+        }
+        .wb-insert-btn {
+            background: none;
+            border: 1px dashed var(--border-color);
+            border-radius: 4px;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 2px 12px;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            width: 100%;
+            justify-content: center;
+        }
+        .wb-insert-btn:hover {
+            border-color: var(--brand-primary);
+            color: var(--brand-primary);
+            background: rgba(99,102,241,0.05);
+        }
+
         /* Panel 3: Exercise Detail */
         .wb-panel-detail {
             width: 360px;
@@ -7229,6 +7294,7 @@
                 container.innerHTML = '<div class="wb-empty-panel"><svg width="36" height="36" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg><p>No exercises yet</p><span>Add exercises to this day</span></div>';
                 return;
             }
+            const totalEx = day.exercises.length;
             container.innerHTML = day.exercises.map((exercise, exIndex) => {
                 const thumbSrc = exercise.thumbnail_url || '/img/exercise-placeholder.svg';
                 const summary = formatSetsSummary(exercise);
@@ -7236,18 +7302,35 @@
                 if (exercise.isWarmup) badges += '<span class="wb-ex-row-badge" style="background:rgba(245,158,11,0.2);color:#f59e0b;">Warmup</span>';
                 if (exercise.isStretch) badges += '<span class="wb-ex-row-badge" style="background:rgba(16,185,129,0.2);color:#10b981;">Stretch</span>';
                 if (exercise.isSuperset) badges += '<span class="wb-ex-row-badge" style="background:rgba(99,102,241,0.2);color:#6366f1;">SS ' + (exercise.supersetGroup || '') + '</span>';
-                return `
-                    <div class="wb-ex-row ${selectedExerciseIndex === exIndex ? 'selected' : ''}" onclick="selectExercise(${exIndex})">
-                        <div class="wb-ex-row-thumb">
-                            <img src="${thumbSrc}" alt="${escapeHtml(exercise.name)}" onerror="this.src='/img/exercise-placeholder.svg'">
-                        </div>
-                        <div class="wb-ex-row-info">
-                            <span class="wb-ex-row-name">${escapeHtml(exercise.name)}${badges}</span>
-                            <span class="wb-ex-row-summary">${summary}</span>
-                        </div>
-                    </div>
-                `;
+                const insertBtn = '<div class="wb-insert-divider"><button class="wb-insert-btn" onclick="event.stopPropagation(); openExerciseModal(' + activeDayIndex + ', ' + (exIndex + 1) + ')" title="Insert exercise here"><svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg></button></div>';
+                return '<div class="wb-ex-row exercise-item ' + (selectedExerciseIndex === exIndex ? 'selected' : '') + '" draggable="true" data-day="' + activeDayIndex + '" data-index="' + exIndex + '" ondragstart="onExDragStart(event)" ondragover="onExDragOver(event)" ondrop="onExDrop(event)" ondragend="onExDragEnd(event)" ondragleave="onExDragLeave(event)" onclick="selectExercise(' + exIndex + ')">' +
+                    '<div class="wb-ex-row-drag" onclick="event.stopPropagation()">' +
+                        '<button class="wb-ex-move-btn" onclick="event.stopPropagation(); moveExerciseInPanel(' + activeDayIndex + ',' + exIndex + ',-1)" title="Move up"' + (exIndex === 0 ? ' disabled' : '') + '>&#9650;</button>' +
+                        '<svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24" style="opacity:0.3;cursor:grab;"><circle cx="9" cy="5" r="1.5"/><circle cx="15" cy="5" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="19" r="1.5"/><circle cx="15" cy="19" r="1.5"/></svg>' +
+                        '<button class="wb-ex-move-btn" onclick="event.stopPropagation(); moveExerciseInPanel(' + activeDayIndex + ',' + exIndex + ',1)" title="Move down"' + (exIndex === totalEx - 1 ? ' disabled' : '') + '>&#9660;</button>' +
+                    '</div>' +
+                    '<div class="wb-ex-row-thumb"><img src="' + thumbSrc + '" alt="' + escapeHtml(exercise.name) + '" onerror="this.src=\'/img/exercise-placeholder.svg\'"></div>' +
+                    '<div class="wb-ex-row-info">' +
+                        '<span class="wb-ex-row-name">' + escapeHtml(exercise.name) + badges + '</span>' +
+                        '<span class="wb-ex-row-summary">' + summary + '</span>' +
+                    '</div>' +
+                '</div>' + (exIndex < totalEx - 1 ? insertBtn : '');
             }).join('');
+        }
+
+        // Move exercise in middle panel and keep selection tracking
+        function moveExerciseInPanel(dayIndex, exIndex, direction) {
+            const exercises = workoutDays[dayIndex].exercises;
+            const newIndex = exIndex + direction;
+            if (newIndex < 0 || newIndex >= exercises.length) return;
+            const [moved] = exercises.splice(exIndex, 1);
+            exercises.splice(newIndex, 0, moved);
+            if (selectedExerciseIndex === exIndex) {
+                selectedExerciseIndex = newIndex;
+            } else if (selectedExerciseIndex === newIndex) {
+                selectedExerciseIndex = exIndex;
+            }
+            renderExercisesList();
         }
 
         // Render the exercise detail (Panel 3)
@@ -7357,6 +7440,128 @@
                         <option value="supersetB" ${exercise.isSuperset && exercise.supersetGroup === 'B' ? 'selected' : ''}>Superset B</option>
                         <option value="supersetC" ${exercise.isSuperset && exercise.supersetGroup === 'C' ? 'selected' : ''}>Superset C</option>
                     </select>
+                </div>
+
+                <div class="wb-detail-section">
+                    <label>Voice Note</label>
+                    <div class="voice-note-container" id="voiceNote-${di}-${ei}">
+                        ${exercise.voiceNoteUrl ? `
+                            <div class="voice-note-player">
+                                <audio controls src="${exercise.voiceNoteUrl}" style="height: 28px; width: 100%;"></audio>
+                                <button class="voice-note-delete" onclick="deleteVoiceNote(${di}, ${ei})" title="Delete voice note">×</button>
+                            </div>
+                        ` : `
+                            <button class="voice-note-btn" id="voiceBtn-${di}-${ei}" onclick="toggleVoiceRecording(${di}, ${ei})" title="Record voice note">
+                                <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+                                    <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+                                </svg>
+                            </button>
+                            <span style="font-size: 11px; color: var(--text-muted);">Add voice tip for client</span>
+                        `}
+                    </div>
+                </div>
+
+                <div class="wb-detail-section">
+                    <label>Custom Video</label>
+                    <div class="custom-video-container" id="customVideo-${di}-${ei}">
+                        ${exercise.customVideoUrl ? `
+                            <div class="custom-video-preview">
+                                <video src="${exercise.customVideoUrl}" muted></video>
+                                <div class="video-info">
+                                    <span class="video-label">Custom Demo</span><br>
+                                    Your video will show to client
+                                </div>
+                                <button class="custom-video-delete" onclick="deleteCustomVideo(${di}, ${ei})" title="Delete video">×</button>
+                            </div>
+                        ` : `
+                            <button class="custom-video-btn" id="videoRecordBtn-${di}-${ei}" onclick="startVideoRecording(${di}, ${ei})" title="Record custom demo">
+                                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                                </svg>
+                                Record Demo
+                            </button>
+                            <span style="font-size: 11px; color: var(--text-muted);">or</span>
+                            <label class="custom-video-btn" style="margin: 0;">
+                                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                                </svg>
+                                Upload
+                                <input type="file" class="video-upload-input" accept="video/*" onchange="handleVideoUpload(event, ${di}, ${ei})">
+                            </label>
+                        `}
+                    </div>
+                </div>
+
+                <div class="wb-detail-section">
+                    <label>Reference Links</label>
+                    <div class="reference-links-container" id="refLinks-${di}-${ei}">
+                        <div class="reference-links-header">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+                            </svg>
+                            Reference Links
+                            ${hasGlobalRefs(exercise.name) ? '<span class="global-ref-badge"><svg width="10" height="10" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg> Saved globally</span>' : ''}
+                        </div>
+                        ${(exercise.reference_links && exercise.reference_links.length > 0) ? `
+                            <div class="reference-links-list">
+                                ${exercise.reference_links.map((link, linkIdx) => `
+                                    <div class="reference-link-item">
+                                        <a href="${escapeHtml(link.url)}" target="_blank" rel="noopener noreferrer" class="ref-link-clickable" onclick="event.stopPropagation()">
+                                            <span class="link-icon ${detectLinkType(link.url)}">${getLinkTypeIcon(detectLinkType(link.url))}</span>
+                                            <span class="link-title" title="${escapeHtml(link.url)}">${escapeHtml(link.title || link.url)}</span>
+                                        </a>
+                                        <button class="link-delete" onclick="removeReferenceLink(${di}, ${ei}, ${linkIdx})" title="Remove link">x</button>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        ` : ''}
+                        <div class="add-reference-link-row">
+                            <input type="text" id="refLinkInput-${di}-${ei}" placeholder="Paste YouTube, Instagram, or any URL..." onkeydown="if(event.key==='Enter'){addReferenceLink(${di}, ${ei})}">
+                            <button class="add-link-btn" onclick="addReferenceLink(${di}, ${ei})">
+                                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                                Add
+                            </button>
+                        </div>
+                        <div class="global-ref-actions">
+                            ${(exercise.reference_links && exercise.reference_links.length > 0) ? `
+                                <button class="save-global-btn ${hasGlobalRefs(exercise.name) ? 'saved' : ''}" onclick="saveRefsGlobally(${di}, ${ei})" title="Save these links globally so they auto-load for this exercise in future workouts">
+                                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6l4 2"/></svg>
+                                    ${hasGlobalRefs(exercise.name) ? 'Update Global Links' : 'Save Globally'}
+                                </button>
+                            ` : ''}
+                            ${(!exercise.reference_links || exercise.reference_links.length === 0) && hasGlobalRefs(exercise.name) ? `
+                                <button class="load-global-btn" onclick="loadGlobalRefsForExercise(${di}, ${ei})" title="Load your saved global reference links for this exercise">
+                                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                                    Load Saved Links
+                                </button>
+                            ` : ''}
+                            ${(exercise.reference_links && exercise.reference_links.length > 0) && hasGlobalRefs(exercise.name) ? `
+                                <button class="load-global-btn" onclick="loadGlobalRefsForExercise(${di}, ${ei})" title="Load any additional saved global links">
+                                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                                    Load Saved
+                                </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="wb-detail-section">
+                    <label>Swap Options</label>
+                    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                        <button class="custom-video-btn" onclick="openRecommendedSwapsModal(${di}, ${ei})" title="Manage recommended swaps">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>
+                            </svg>
+                            Recommended Swaps ${exercise.recommendedSwaps && exercise.recommendedSwaps.length > 0 ? '(' + exercise.recommendedSwaps.length + ')' : ''}
+                        </button>
+                        <button class="custom-video-btn" onclick="openSwapModal(${di}, ${ei})" title="Swap exercise">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                            </svg>
+                            Swap Exercise
+                        </button>
+                    </div>
                 </div>
             `;
         }
@@ -7997,6 +8202,15 @@
             const [moved] = exercises.splice(dragSrcExIndex, 1);
             exercises.splice(destExIndex, 0, moved);
 
+            // Track selected exercise through the move
+            if (selectedExerciseIndex === dragSrcExIndex) {
+                selectedExerciseIndex = destExIndex;
+            } else if (dragSrcExIndex < destExIndex && selectedExerciseIndex > dragSrcExIndex && selectedExerciseIndex <= destExIndex) {
+                selectedExerciseIndex--;
+            } else if (dragSrcExIndex > destExIndex && selectedExerciseIndex >= destExIndex && selectedExerciseIndex < dragSrcExIndex) {
+                selectedExerciseIndex++;
+            }
+
             dragSrcDayIndex = null;
             dragSrcExIndex = null;
             renderWorkoutDays();
@@ -8368,11 +8582,16 @@
             if (insertExerciseAtIndex !== null) {
                 // Insert at the specified position
                 workoutDays[currentDayIndex].exercises.splice(insertExerciseAtIndex, 0, ...newExercises);
+                selectedExerciseIndex = insertExerciseAtIndex;
             } else {
                 // Append to end (default behavior)
+                const startIdx = workoutDays[currentDayIndex].exercises.length;
                 workoutDays[currentDayIndex].exercises.push(...newExercises);
+                selectedExerciseIndex = startIdx;
             }
 
+            // Sync activeDayIndex with currentDayIndex
+            activeDayIndex = currentDayIndex;
             renderWorkoutDays();
             const count = exercises.length;
             const action = insertExerciseAtIndex !== null ? 'Inserted' : 'Added';
