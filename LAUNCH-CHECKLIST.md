@@ -193,6 +193,32 @@ Files like `SPA-DASHBOARD-SPEC.md`, `SPA-DIARY-SPEC.md`, and `PLAY_STORE_RELEASE
 
 ---
 
+## 15. MEDIUM — ~30 Native `alert()` Calls Should Be Toast Notifications
+
+Browser `alert()` and `window.confirm()` calls look bad in a native app wrapper. Found in:
+
+| Page | alert() | confirm() |
+|------|---------|-----------|
+| `Progress.jsx` | 7 | 2 |
+| `Plans.jsx` | 8 | 1 |
+| `Recipes.jsx` | 8 | 0 |
+| `Settings.jsx` | 5 | 1 |
+| `CheckIn.jsx` | 2 | 0 |
+| `Diary.jsx` | 0 | 2 |
+| `Workouts.jsx` | 0 | 1 |
+| `BrandingSettings.jsx` | 0 | 2 |
+| `AskCoachChat.jsx` | 3 | 0 |
+
+You already have a `Toast` component — these should use it instead. The `window.confirm()` calls should use a custom confirmation dialog.
+
+---
+
+## 16. LOW — WorkoutBuilder Language Dropdown Non-Functional
+
+`WorkoutBuilder.jsx:97` — Language dropdown is hardcoded to "English" with state tracked but no actual language switching logic. Either remove it or wire it up.
+
+---
+
 ## Summary — Priority Order for This Weekend
 
 ### Must Fix Before Submitting to Stores
@@ -203,14 +229,16 @@ Files like `SPA-DASHBOARD-SPEC.md`, `SPA-DIARY-SPEC.md`, and `PLAY_STORE_RELEASE
 
 ### Should Fix Before Launch
 5. Remove client-side `console.log` from JSX files
-6. Update service worker to cache SPA assets
-7. Set up push notifications (FCM/APNs)
-8. Create `.env.example`
-9. Clean up `test-fixes.js`
+6. Replace `alert()` / `window.confirm()` with Toast and custom dialogs
+7. Update service worker to cache SPA assets
+8. Set up push notifications (FCM/APNs)
+9. Create `.env.example`
+10. Clean up `test-fixes.js`
 
 ### Nice to Have
-10. Clean up root SQL files
-11. Remove/organize spec docs
-12. Prepare store listing assets (screenshots, descriptions)
-13. Set up basic testing
-14. Resolve legacy HTML vs SPA page overlap
+11. Clean up root SQL files
+12. Remove/organize spec docs
+13. Prepare store listing assets (screenshots, descriptions)
+14. Set up basic testing
+15. Resolve legacy HTML vs SPA page overlap
+16. Fix or remove WorkoutBuilder language dropdown
