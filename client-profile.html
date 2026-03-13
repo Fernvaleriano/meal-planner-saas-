@@ -10247,6 +10247,13 @@
                 section.innerHTML = `
                     <div class="ai-analysis-label">AI Coach Analysis</div>
                     <div class="ai-analysis-text">${data.analysis}</div>
+                    <div style="margin-top: 16px;">
+                        <label style="color: rgba(255,255,255,0.7); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 6px;">Add your notes (optional)</label>
+                        <textarea id="coachNoteInput" style="width: 100%; min-height: 60px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.08); color: white; padding: 10px; font-size: 14px; resize: vertical; box-sizing: border-box;" placeholder="Add your coaching notes here..."></textarea>
+                        <button id="sendToClientBtn" onclick="sendAnalysisToClient()" style="width: 100%; margin-top: 10px; padding: 12px; border-radius: 10px; border: none; background: #0d9488; color: white; font-weight: 600; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                            Send to Client
+                        </button>
+                    </div>
                 `;
             } catch (error) {
                 console.error('AI analysis error:', error);
@@ -10255,6 +10262,58 @@
                         Unable to analyze photos right now. Please try again later.
                     </div>
                 `;
+            }
+        }
+
+        async function sendAnalysisToClient() {
+            const btn = document.getElementById('sendToClientBtn');
+            const analysisText = document.querySelector('.ai-analysis-text')?.textContent || '';
+            const coachNote = document.getElementById('coachNoteInput')?.value?.trim() || '';
+
+            if (!analysisText && !coachNote) return;
+
+            btn.disabled = true;
+            btn.textContent = 'Sending...';
+
+            // Build message
+            let msg = 'Progress Photo Analysis:\n\n' + analysisText;
+            if (coachNote) {
+                msg += '\n\nCoach Notes:\n' + coachNote;
+            }
+
+            try {
+                const res = await fetch('/.netlify/functions/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'send',
+                        coachId: window.coachUserId || currentUser?.id || '',
+                        clientId: currentClient.id,
+                        senderType: 'coach',
+                        message: msg
+                    })
+                });
+
+                if (res.ok) {
+                    btn.textContent = 'Sent!';
+                    btn.style.background = '#059669';
+                    setTimeout(() => {
+                        btn.textContent = 'Send to Client';
+                        btn.style.background = '#0d9488';
+                        btn.disabled = false;
+                    }, 3000);
+                } else {
+                    throw new Error('Failed to send');
+                }
+            } catch (e) {
+                console.error('Error sending analysis:', e);
+                btn.textContent = 'Failed — try again';
+                btn.style.background = '#ef4444';
+                btn.disabled = false;
+                setTimeout(() => {
+                    btn.textContent = 'Send to Client';
+                    btn.style.background = '#0d9488';
+                }, 3000);
             }
         }
 
