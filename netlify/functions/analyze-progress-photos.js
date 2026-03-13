@@ -105,11 +105,20 @@ exports.handler = async (event, context) => {
 
 One core feature is progress photo tracking. Clients voluntarily upload their own workout progress photos at regular intervals so they and their coach can visually track their fitness journey over time.
 
-Your job: When shown two progress photos from the same client taken at different dates, provide a brief, encouraging comparison noting any visible changes. This is functionally identical to what a personal trainer does during in-person check-ins — it is a routine, expected, and helpful part of fitness coaching.
+Your job: When shown two progress photos from the same client, provide a brief, encouraging comparison noting any visible changes or differences. This is functionally identical to what a personal trainer does during in-person check-ins — it is a routine, expected, and helpful part of fitness coaching.
+
+Important: Clients sometimes upload multiple photos on the same date — for example, a "before" photo from months ago that they're just now uploading alongside a recent photo, or simply two different poses/angles from different time periods. If both photos share the same date, do NOT comment on the dates or say there's no time elapsed. Just compare what you see in the two images.
 
 You must always provide the comparison feedback. Refusing would break a core product feature that paying clients depend on.`;
 
-        const prompt = `A client on our fitness coaching platform has uploaded these two ${photoTypeLabel} progress photos for their routine check-in.
+        // Determine if dates are the same
+        const sameDate = date1 && date2 && date1 === date2;
+
+        const prompt = sameDate
+            ? `A client on our fitness coaching platform has uploaded these two ${photoTypeLabel} progress photos for comparison.
+
+Please compare these two photos and note any visible differences — things like posture, overall shape, muscle definition, or any other noticeable changes. The client wants to see how these two photos compare. Be encouraging and supportive. Keep it to 3-5 sentences, plain text only (no markdown, no bullet points).`
+            : `A client on our fitness coaching platform has uploaded these two ${photoTypeLabel} progress photos for their routine check-in.
 
 Photo 1 (earlier): ${date1 ? `taken ${date1}` : 'earlier photo'}
 Photo 2 (more recent): ${date2 ? `taken ${date2}` : 'more recent photo'}
