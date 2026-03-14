@@ -451,13 +451,15 @@ exports.handler = async (event) => {
 RESPONSE GUIDELINES:
 - Be helpful, friendly, and concise
 - Answer in 2-4 short paragraphs max
-- Use bullet points for step-by-step instructions
-- If the question is about a specific feature, give the exact navigation path (e.g., "Go to Branding → Module Visibility")
-- If you're not sure about something, say so honestly rather than making up information
-- You're talking to a fitness/nutrition COACH who uses this platform to manage clients
-- Don't use markdown headers or overly formatted responses — keep it conversational
+- Use plain numbered lists for step-by-step instructions (1. 2. 3.)
+- NEVER use special characters like bullet points, asterisks, bold markers, em dashes, arrows, or any markdown formatting
+- NEVER use *, **, --, ->, =>, bullet dots, or unicode symbols in your responses
+- Write in plain conversational English only, like you are texting a friend
+- For navigation paths use "greater than" in words, like "Go to Branding then Module Visibility"
+- If you are not sure about something, say so honestly rather than making up information
+- You are talking to a fitness/nutrition COACH who uses this platform to manage clients
 - If the coach asks something unrelated to the platform, gently redirect them to platform-related questions
-- Be encouraging — coaches are busy and you're here to save them time`,
+- Be encouraging, coaches are busy and you are here to save them time`,
       messages
     });
 
@@ -497,28 +499,28 @@ function getFallbackResponse(message) {
   const msg = (message || '').toLowerCase();
 
   if (msg.includes('add') && msg.includes('client')) {
-    return "To add a client, go to Settings and find your unique invite link/coach code. Share it with your client — when they sign up using your link, they'll automatically appear in your client list.";
+    return "To add a client, go to Settings and find your unique invite link or coach code. Share it with your client. When they sign up using your link, they will automatically appear in your client list.";
   }
   if (msg.includes('meal plan') || msg.includes('create plan')) {
     return "To create a meal plan, go to the Plans tab and click 'Create New Plan'. You can generate one with AI (just enter targets and preferences) or build one manually. Once created, assign it to clients from the plan detail page.";
   }
   if (msg.includes('workout') && (msg.includes('create') || msg.includes('build') || msg.includes('make'))) {
-    return "To create a workout, go to Workouts → Create Workout (or Workout Builder). You can pick exercises from the 1500+ exercise library, set sets/reps/weight, and add notes. You can also use AI to generate a workout — just describe what you want.";
+    return "To create a workout, go to Workouts then Create Workout (or Workout Builder). You can pick exercises from the 1500+ exercise library, set sets/reps/weight, and add notes. You can also use AI to generate a workout, just describe what you want.";
   }
   if (msg.includes('brand') || msg.includes('logo') || msg.includes('color') || msg.includes('white label')) {
     return "To customize your branding, go to the Branding page (in the sidebar). You can change colors, upload your logo and favicon, set a custom app name, choose fonts, pick button styles, and control which modules your clients can see.";
   }
   if (msg.includes('billing') || msg.includes('payment') || msg.includes('stripe') || msg.includes('charge') || msg.includes('subscription')) {
-    return "To set up payments, go to the Billing page and connect your Stripe account. Once connected, you can create payment plans (subscriptions, one-time, or tiered), set trial periods, create promo codes, and manage client subscriptions — all from the Billing page.";
+    return "To set up payments, go to the Billing page and connect your Stripe account. Once connected, you can create payment plans (subscriptions, one-time, or tiered), set trial periods, create promo codes, and manage client subscriptions, all from the Billing page.";
   }
   if (msg.includes('message') || msg.includes('chat') || msg.includes('bulk')) {
     return "To message clients, go to the Messages tab and select a conversation. You can send text, photos, and videos (up to 250MB). For bulk messaging, use the bulk message icon to send the same message to multiple clients at once.";
   }
   if (msg.includes('feed') || msg.includes('activity')) {
-    return "The Client Feed shows all your clients' meal logs in real-time. You can react with emojis (👏 💪 🔥 ⭐ ❤️) and leave comments. Access it from the Feed tab in the sidebar. Use it daily to keep clients engaged!";
+    return "The Client Feed shows all your clients meal logs in real-time. You can react with emojis and leave comments on their meals. Access it from the Feed tab in the sidebar. Use it daily to keep clients engaged!";
   }
   if (msg.includes('module') || msg.includes('hide') || msg.includes('visibility') || msg.includes('toggle')) {
-    return "To control which features your clients see, go to Branding → Module Visibility. Toggle modules on/off: Diary, Plans, Workouts, Messages, Recipes, Check-in, Progress. Hidden modules are completely invisible to clients.";
+    return "To control which features your clients see, go to Branding then Module Visibility. Toggle modules on or off: Diary, Plans, Workouts, Messages, Recipes, Check-in, Progress. Hidden modules are completely invisible to clients.";
   }
   if (msg.includes('archive') || msg.includes('remove') && msg.includes('client')) {
     return "To archive a client, find them in your client list and use the archive option. Archived clients are hidden from your active list but their data is preserved. You can restore them anytime.";
@@ -536,24 +538,24 @@ function getFallbackResponse(message) {
     return "Clients can submit check-ins with their current weight, progress photos (front, side, back), and notes. Review check-ins in the Progress section to track their journey with photo comparisons and weight history charts.";
   }
   if (msg.includes('story') || msg.includes('stories')) {
-    return "Coach Stories work like Instagram Stories — post photos and updates that all your clients see at the top of the app. Great for daily motivation, tips, or announcements. Stories are ephemeral content.";
+    return "Coach Stories work like Instagram Stories. Post photos and updates that all your clients see at the top of the app. Great for daily motivation, tips, or announcements. Stories are temporary content.";
   }
   if (msg.includes('challenge')) {
     return "Create group challenges from the Challenges section to boost engagement (e.g., '30-day consistency challenge'). Track client participation and progress. Challenges are great for building community among your clients.";
   }
   if (msg.includes('photo') && msg.includes('food')) {
-    return "Clients can log food by snapping a photo — the AI analyzes the image and estimates calories and macros automatically. It's the fastest way for clients to log meals. They can also search by text, scan barcodes, or use favorites.";
+    return "Clients can log food by snapping a photo. The AI analyzes the image and estimates calories and macros automatically. Its the fastest way for clients to log meals. They can also search by text, scan barcodes, or use favorites.";
   }
   if (msg.includes('invite') || msg.includes('link') || msg.includes('code') || msg.includes('signup') || msg.includes('sign up')) {
-    return "Your unique invite link and coach code are in Settings. Share the link with new clients — when they sign up through it, they're automatically connected to your account. You can also have clients enter your code during registration.";
+    return "Your unique invite link and coach code are in Settings. Share the link with new clients. When they sign up through it, they are automatically connected to your account. You can also have clients enter your code during registration.";
   }
   if (msg.includes('notification')) {
     return "Notifications appear via the bell icon in the top navigation bar. You'll get notified when clients send messages, complete check-ins, or perform other actions. Manage notification preferences in Settings.";
   }
   if (msg.includes('help') || msg.includes('what can') || msg.includes('how do')) {
-    return "I can help you with anything on the platform! Ask me about: adding clients, creating meal plans, building workouts, branding & white-labeling, billing & payments, messaging, the activity feed, module visibility, check-ins, recipes, challenges, stories, and more. What would you like to know?";
+    return "I can help you with anything on the platform! Ask me about adding clients, creating meal plans, building workouts, branding and white-labeling, billing and payments, messaging, the activity feed, module visibility, check-ins, recipes, challenges, stories, and more. What would you like to know?";
   }
 
   // Default
-  return "I'm your platform support assistant! I can help you with:\n\n• Adding & managing clients\n• Creating meal plans & workouts\n• Branding & white-labeling\n• Billing & payments (Stripe)\n• Messaging & bulk messaging\n• Client activity feed\n• Module visibility settings\n• Check-ins & progress tracking\n• And much more!\n\nWhat would you like help with?";
+  return "I'm your platform support assistant! I can help you with adding and managing clients, creating meal plans and workouts, branding and white-labeling, billing and payments with Stripe, messaging and bulk messaging, the client activity feed, module visibility settings, check-ins and progress tracking, and much more. What would you like help with?";
 }
