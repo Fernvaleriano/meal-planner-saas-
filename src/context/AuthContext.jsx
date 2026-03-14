@@ -108,7 +108,8 @@ export function AuthProvider({ children }) {
         .from('clients')
         .select('id, coach_id, client_name, email, avatar_url, profile_photo_url, can_edit_goals, can_edit_micronutrient_goals, calorie_goal, protein_goal, carbs_goal, fat_goal, gender, preferred_exercise_gender, unit_preference, age, weight, height_ft, height_in, activity_level, diet_type, allergies, disliked_foods, preferred_foods, cooking_equipment, meal_count, use_protein_powder, protein_powder_brand, protein_powder_calories, protein_powder_protein, protein_powder_carbs, protein_powder_fat, budget, unit_system')
         .eq('user_id', userId)
-        .single();
+        .limit(1)
+        .maybeSingle();
 
       const [clientResult, isCoach] = await Promise.all([
         Promise.race([fetchPromise, timeoutPromise]),
@@ -120,6 +121,11 @@ export function AuthProvider({ children }) {
       if (error) {
         console.error('SPA: Error fetching client data:', error.message, error.code);
         throw new Error(error.message);
+      }
+
+      if (!data) {
+        console.warn('SPA: No client record found for user:', userId);
+        return { id: null, client_name: 'User', error: true, errorMessage: 'No client record found' };
       }
 
       // Add isCoach flag to the client data
