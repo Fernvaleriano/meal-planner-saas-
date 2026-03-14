@@ -12,6 +12,20 @@ const headers = {
 
 const SIGNED_URL_EXPIRY = 7 * 24 * 60 * 60;
 
+// Video storage quotas by subscription tier (in bytes)
+const STORAGE_QUOTAS = {
+  starter: 5 * 1024 * 1024 * 1024,       // 5 GB
+  growth: 25 * 1024 * 1024 * 1024,        // 25 GB
+  scale: 50 * 1024 * 1024 * 1024,         // 50 GB
+  'pro-agency': 100 * 1024 * 1024 * 1024, // 100 GB
+  // Legacy tier mappings
+  basic: 5 * 1024 * 1024 * 1024,          // 5 GB
+  professional: 100 * 1024 * 1024 * 1024, // 100 GB
+  branded: 100 * 1024 * 1024 * 1024       // 100 GB
+};
+
+const DEFAULT_QUOTA = 5 * 1024 * 1024 * 1024; // 5 GB fallback
+
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers, body: '' };
@@ -133,10 +147,32 @@ exports.handler = async (event) => {
       displayName: videoMeta[f.name]?.displayName || null
     }));
 
+    // Calculate storage usage and quota
+    const totalStorageUsed = files
+      .filter(f => !f.id?.endsWith('/'))
+      .reduce((sum, f) => sum + (f.metadata?.size || 0), 0);
+
+    // Get coach's subscription tier for quota
+    const { data: coach } = await supabase
+      .from('coaches')
+      .select('subscription_tier')
+      .eq('id', coachId)
+      .single();
+
+    const tier = coach?.subscription_tier || 'starter';
+    const storageQuota = STORAGE_QUOTAS[tier] || DEFAULT_QUOTA;
+
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify({ videos })
+      body: JSON.stringify({
+        videos,
+        storage: {
+          used: totalStorageUsed,
+          quota: storageQuota,
+          tier: tier
+        }
+      })
     };
 
   } catch (err) {

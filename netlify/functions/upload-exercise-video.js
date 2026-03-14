@@ -10,8 +10,8 @@ const headers = {
   'Content-Type': 'application/json'
 };
 
-// Max file size: 500MB
-const MAX_FILE_SIZE = 500 * 1024 * 1024;
+// Max file size per video: 2GB
+const MAX_FILE_SIZE = 2 * 1024 * 1024 * 1024;
 
 // Signed URL expiry: 7 days (in seconds)
 const SIGNED_URL_EXPIRY = 7 * 24 * 60 * 60;

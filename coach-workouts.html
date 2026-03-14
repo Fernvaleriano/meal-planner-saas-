@@ -10354,9 +10354,9 @@
         // ============ VIDEO COMPRESSION ============
         // Compresses video to 720p before upload to prevent large file playback issues
         async function compressVideo(file) {
-            const MAX_WIDTH = 720;
-            const TARGET_BITRATE = 1500000; // 1.5 Mbps
-            const COMPRESS_THRESHOLD = 2 * 1024 * 1024; // 2MB
+            const MAX_WIDTH = 1080;
+            const TARGET_BITRATE = 5000000; // 5 Mbps (good quality at 1080p)
+            const COMPRESS_THRESHOLD = 50 * 1024 * 1024; // 50MB
 
             // Skip compression if small enough
             if (file.size <= COMPRESS_THRESHOLD) {
@@ -11296,15 +11296,15 @@
             const file = event.target.files[0];
             if (!file) return;
 
-            // Check file size (max 500MB)
-            if (file.size > 500 * 1024 * 1024) {
-                showToast('Video too large. Max 500MB', 'error');
+            // Check file size (max 2GB)
+            if (file.size > 2 * 1024 * 1024 * 1024) {
+                showToast('Video too large. Max 2GB per video', 'error');
                 return;
             }
 
-            // Compress video before storing (reduces 4K/large files to 720p)
+            // Compress video before storing (reduces 4K/large files to 1080p)
             let videoFile = file;
-            if (file.size > 2 * 1024 * 1024) {
+            if (file.size > 50 * 1024 * 1024) {
                 showToast('Compressing video for optimal playback...', 'success');
                 videoFile = await compressVideo(file);
                 if (videoFile !== file) {
@@ -11375,13 +11375,15 @@
                 // Show recording indicator
                 document.getElementById('ceRecordingIndicator').style.display = 'flex';
 
-                // Timer (max 20 seconds)
+                // Timer (max 2 minutes)
                 let seconds = 0;
                 ceRecordingInterval = setInterval(() => {
                     seconds++;
-                    document.getElementById('ceRecordingTimer').textContent = `0:${seconds.toString().padStart(2, '0')}`;
+                    const mins = Math.floor(seconds / 60);
+                    const secs = seconds % 60;
+                    document.getElementById('ceRecordingTimer').textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
 
-                    if (seconds >= 20) {
+                    if (seconds >= 120) {
                         stopCEVideoRecording();
                     }
                 }, 1000);
@@ -11526,6 +11528,15 @@
                     });
 
                     if (!uploadUrlResult.success) {
+                        // Check if it's a storage quota error
+                        if (uploadUrlResult.storageQuota) {
+                            const usedGB = (uploadUrlResult.storageUsed / (1024 * 1024 * 1024)).toFixed(1);
+                            const quotaGB = (uploadUrlResult.storageQuota / (1024 * 1024 * 1024)).toFixed(0);
+                            showToast(`Storage full (${usedGB}/${quotaGB} GB). Upgrade your plan for more space.`, 'error');
+                            saveBtn.disabled = false;
+                            saveBtn.innerHTML = isEditing ? 'Save Changes' : 'Create Exercise';
+                            return;
+                        }
                         throw new Error(uploadUrlResult.error || 'Failed to get upload URL');
                     }
 
@@ -12125,6 +12136,11 @@
 
                 myVideosCache = result.videos || [];
                 renderMyVideos(myVideosCache);
+
+                // Show storage warning only when nearing limit (80%+)
+                if (result.storage) {
+                    renderStorageUsage(result.storage, myVideosCache.length);
+                }
             } catch (err) {
                 console.error('Failed to load videos:', err);
                 grid.innerHTML = '<div class="my-videos-empty"><p>Failed to load videos</p></div>';
@@ -12141,6 +12157,42 @@
                 (v.displayName || v.name).toLowerCase().includes(query)
             );
             renderMyVideos(filtered);
+        }
+
+        function renderStorageUsage(storage, videoCount) {
+            const percent = Math.min(100, Math.round((storage.used / storage.quota) * 100));
+
+            let storageEl = document.getElementById('videoStorageBar');
+            if (!storageEl) {
+                storageEl = document.createElement('div');
+                storageEl.id = 'videoStorageBar';
+                const grid = document.getElementById('myVideosGrid');
+                grid.parentNode.insertBefore(storageEl, grid);
+            }
+
+            // Only show the bar when usage is above 80%
+            if (percent < 80) {
+                storageEl.innerHTML = '';
+                return;
+            }
+
+            const usedGB = (storage.used / (1024 * 1024 * 1024)).toFixed(1);
+            const quotaGB = (storage.quota / (1024 * 1024 * 1024)).toFixed(0);
+            const barColor = percent >= 90 ? '#ef4444' : '#f59e0b';
+            const message = percent >= 90
+                ? `Running low on space — ${usedGB} GB of ${quotaGB} GB used. Upgrade for more.`
+                : `${usedGB} GB of ${quotaGB} GB used`;
+
+            storageEl.innerHTML = `
+                <div style="padding:10px 16px;font-size:12px;color:${percent >= 90 ? '#fca5a5' : '#fcd34d'};background:${percent >= 90 ? 'rgba(239,68,68,0.1)' : 'rgba(245,158,11,0.08)'};border-radius:8px;margin:0 16px 8px">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z"/></svg>
+                        <span>${message}</span>
+                    </div>
+                    <div style="height:4px;background:rgba(255,255,255,0.1);border-radius:2px;overflow:hidden">
+                        <div style="width:${percent}%;height:100%;background:${barColor};border-radius:2px"></div>
+                    </div>
+                </div>`;
         }
 
         function getVideoDisplayName(v) {
