@@ -11109,7 +11109,7 @@
                             <span class="checkin-date">${new Date(c.checkin_date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
                             <div>
                                 ${hasDietRequest ? `<span class="checkin-badge" style="background: #f59e0b; color: white;">🍽️ Diet Requested</span>` : ''}
-                                ${c.meal_plan_adherence !== null ? `<span class="checkin-badge adherence">${c.meal_plan_adherence}% adherence</span>` : ''}
+                                ${c.meal_plan_adherence != null ? `<span class="checkin-badge adherence">${c.meal_plan_adherence}% adherence</span>` : ''}
                                 ${needsResponse ? `<span class="checkin-badge pending">Needs Response</span>` : ''}
                             </div>
                         </div>
@@ -11123,6 +11123,12 @@
                         ` : ''}
 
                         <div class="checkin-ratings">
+                            ${c.meal_plan_adherence != null ? `
+                                <div class="checkin-rating-item">
+                                    <div class="checkin-rating-value" style="color: ${c.meal_plan_adherence >= 80 ? '#22c55e' : c.meal_plan_adherence >= 50 ? '#eab308' : '#ef4444'}">${c.meal_plan_adherence}%</div>
+                                    <div class="checkin-rating-label">Adherence</div>
+                                </div>
+                            ` : ''}
                             ${c.energy_level ? `
                                 <div class="checkin-rating-item">
                                     <div class="checkin-rating-value">${c.energy_level}/5</div>
