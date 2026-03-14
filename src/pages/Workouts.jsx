@@ -3536,8 +3536,8 @@ function Workouts() {
                       <Target size={20} />
                     </div>
                     <div className="gym-proof-banner-text">
-                      <span className="gym-proof-banner-title">Prove You Were Here!</span>
-                      <span className="gym-proof-banner-sub">Snap a photo to check in</span>
+                      <span className="gym-proof-banner-title">Gym Check-In</span>
+                      <span className="gym-proof-banner-sub">Snap a photo to prove you were at the gym</span>
                     </div>
                     <ChevronRight size={18} className="gym-proof-banner-arrow" />
                   </button>
@@ -3671,8 +3671,8 @@ function Workouts() {
                       <Target size={20} />
                     </div>
                     <div className="gym-proof-banner-text">
-                      <span className="gym-proof-banner-title">Prove You Were Here!</span>
-                      <span className="gym-proof-banner-sub">Snap a photo to check in</span>
+                      <span className="gym-proof-banner-title">Gym Check-In</span>
+                      <span className="gym-proof-banner-sub">Snap a photo to prove you were at the gym</span>
                     </div>
                     <ChevronRight size={18} className="gym-proof-banner-arrow" />
                   </button>

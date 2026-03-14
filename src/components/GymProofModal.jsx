@@ -250,9 +250,9 @@ function GymProofModal({ isOpen, onClose }) {
               <div className="gym-proof-icon-wrap">
                 <Camera size={40} />
               </div>
-              <h3>Prove You Were Here!</h3>
+              <h3>Gym Check-In</h3>
               <p className="gym-proof-subtitle">
-                Snap a quick photo to prove you showed up. Your coach will see it.
+                Snap a photo to prove you were at the gym. Your coach will see it.
               </p>
 
               <div className="gym-proof-guidelines">
