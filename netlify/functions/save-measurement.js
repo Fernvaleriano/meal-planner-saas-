@@ -54,6 +54,8 @@ exports.handler = async (event, context) => {
       leftThigh,
       rightThigh,
       measurementUnit,
+      bloodPressureSystolic,
+      bloodPressureDiastolic,
       notes,
       timezone
     } = body;
@@ -98,6 +100,8 @@ exports.handler = async (event, context) => {
         left_thigh: leftThigh || null,
         right_thigh: rightThigh || null,
         measurement_unit: measurementUnit || 'in',
+        blood_pressure_systolic: bloodPressureSystolic || null,
+        blood_pressure_diastolic: bloodPressureDiastolic || null,
         notes: notes || null
       }])
       .select()
