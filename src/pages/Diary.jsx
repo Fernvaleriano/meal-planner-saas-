@@ -1907,7 +1907,15 @@ function Diary() {
       calorie_goal: goals.calorie_goal || 2000,
       protein_goal: goals.protein_goal || 150,
       carbs_goal: goals.carbs_goal || 200,
-      fat_goal: goals.fat_goal || 67
+      fat_goal: goals.fat_goal || 67,
+      fiber_goal: goals.fiber_goal || '',
+      sugar_goal: goals.sugar_goal || '',
+      sodium_goal: goals.sodium_goal || '',
+      potassium_goal: goals.potassium_goal || '',
+      calcium_goal: goals.calcium_goal || '',
+      iron_goal: goals.iron_goal || '',
+      vitamin_c_goal: goals.vitamin_c_goal || '',
+      cholesterol_goal: goals.cholesterol_goal || ''
     });
     setShowEditGoalsModal(true);
   };
@@ -1916,21 +1924,29 @@ function Diary() {
   const handleSaveGoals = async () => {
     setSavingGoals(true);
     try {
-      const res = await apiPost('/.netlify/functions/calorie-goals', {
-        clientId: clientData.id,
-        calorieGoal: editGoalsForm.calorie_goal,
-        proteinGoal: editGoalsForm.protein_goal,
-        carbsGoal: editGoalsForm.carbs_goal,
-        fatGoal: editGoalsForm.fat_goal,
-        fiberGoal: goals.fiber_goal || null,
-        sugarGoal: goals.sugar_goal || null,
-        sodiumGoal: goals.sodium_goal || null,
-        potassiumGoal: goals.potassium_goal || null,
-        calciumGoal: goals.calcium_goal || null,
-        ironGoal: goals.iron_goal || null,
-        vitaminCGoal: goals.vitamin_c_goal || goals.vitamin_c_goal || null,
-        cholesterolGoal: goals.cholesterol_goal || null
-      });
+      const payload = { clientId: clientData.id };
+
+      // Only include macro goals if client has permission
+      if (clientData?.can_edit_goals) {
+        payload.calorieGoal = editGoalsForm.calorie_goal;
+        payload.proteinGoal = editGoalsForm.protein_goal;
+        payload.carbsGoal = editGoalsForm.carbs_goal;
+        payload.fatGoal = editGoalsForm.fat_goal;
+      }
+
+      // Only include micronutrient goals if client has permission
+      if (clientData?.can_edit_micronutrient_goals) {
+        payload.fiberGoal = editGoalsForm.fiber_goal || null;
+        payload.sugarGoal = editGoalsForm.sugar_goal || null;
+        payload.sodiumGoal = editGoalsForm.sodium_goal || null;
+        payload.potassiumGoal = editGoalsForm.potassium_goal || null;
+        payload.calciumGoal = editGoalsForm.calcium_goal || null;
+        payload.ironGoal = editGoalsForm.iron_goal || null;
+        payload.vitaminCGoal = editGoalsForm.vitamin_c_goal || null;
+        payload.cholesterolGoal = editGoalsForm.cholesterol_goal || null;
+      }
+
+      const res = await apiPost('/.netlify/functions/calorie-goals', payload);
       if (res?.goals) {
         const newGoals = { ...goals, ...res.goals };
         setGoals(newGoals);
@@ -2488,7 +2504,7 @@ function Diary() {
       <div className="calorie-summary">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
           <h3 className="calorie-title" style={{ margin: 0 }}>Calories</h3>
-          {clientData?.can_edit_goals && (
+          {(clientData?.can_edit_goals || clientData?.can_edit_micronutrient_goals) && (
             <button
               onClick={openEditGoalsModal}
               aria-label="Edit calorie and macro goals"
@@ -3934,9 +3950,9 @@ function Diary() {
               <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600 }}>Edit Goals</h3>
               <button className="modal-close" onClick={() => setShowEditGoalsModal(false)}>&times;</button>
             </div>
-            <div className="modal-body" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {[
-                { key: 'calorie_goal', label: 'Calories', unit: 'kcal', color: '#f97316', step: 50 },
+            <div className="modal-body" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px', maxHeight: '70vh', overflowY: 'auto' }}>
+              {clientData?.can_edit_goals && [{
+                  key: 'calorie_goal', label: 'Calories', unit: 'kcal', color: '#f97316', step: 50 },
                 { key: 'protein_goal', label: 'Protein', unit: 'g', color: '#3b82f6', step: 5 },
                 { key: 'carbs_goal', label: 'Carbs', unit: 'g', color: '#10b981', step: 5 },
                 { key: 'fat_goal', label: 'Fat', unit: 'g', color: '#f59e0b', step: 5 }
@@ -3988,6 +4004,76 @@ function Diary() {
                   </div>
                 </div>
               ))}
+
+              {/* Micronutrient Goals - only if client has permission */}
+              {clientData?.can_edit_micronutrient_goals && (
+                <>
+                  <div style={{ borderTop: '1px solid var(--border-color, #e2e8f0)', paddingTop: '12px', marginTop: '4px' }}>
+                    <p style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary, #64748b)', margin: '0 0 12px' }}>
+                      Micronutrient Targets
+                    </p>
+                  </div>
+                  {[
+                    { key: 'fiber_goal', label: 'Fiber', unit: 'g', color: '#8b5cf6', step: 1, placeholder: 28 },
+                    { key: 'sugar_goal', label: 'Sugar', unit: 'g', color: '#ec4899', step: 5, placeholder: 50 },
+                    { key: 'sodium_goal', label: 'Sodium', unit: 'mg', color: '#ef4444', step: 100, placeholder: 2300 },
+                    { key: 'potassium_goal', label: 'Potassium', unit: 'mg', color: '#14b8a6', step: 100, placeholder: 3500 },
+                    { key: 'calcium_goal', label: 'Calcium', unit: 'mg', color: '#a8a29e', step: 50, placeholder: 1000 },
+                    { key: 'iron_goal', label: 'Iron', unit: 'mg', color: '#b91c1c', step: 1, placeholder: 18 },
+                    { key: 'vitamin_c_goal', label: 'Vitamin C', unit: 'mg', color: '#f59e0b', step: 5, placeholder: 90 },
+                    { key: 'cholesterol_goal', label: 'Cholesterol', unit: 'mg', color: '#6366f1', step: 10, placeholder: 300 }
+                  ].map(({ key, label, unit, color, step, placeholder }) => (
+                    <div key={key} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <label style={{ fontSize: '0.85rem', fontWeight: 600, color }}>
+                        {label} ({unit})
+                      </label>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <button
+                          onClick={() => setEditGoalsForm(prev => ({ ...prev, [key]: Math.max(0, (parseFloat(prev[key]) || placeholder) - step) }))}
+                          style={{
+                            width: '36px', height: '36px', borderRadius: '50%',
+                            border: '1px solid var(--border-color, #e2e8f0)',
+                            background: 'var(--bg-secondary, #f8fafc)',
+                            color: 'var(--text-primary, #1e293b)',
+                            fontSize: '1.2rem', cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center'
+                          }}
+                        >
+                          −
+                        </button>
+                        <input
+                          type="number"
+                          inputMode="numeric"
+                          value={editGoalsForm[key] || ''}
+                          placeholder={placeholder}
+                          onChange={(e) => setEditGoalsForm(prev => ({ ...prev, [key]: e.target.value ? parseFloat(e.target.value) : '' }))}
+                          style={{
+                            flex: 1, textAlign: 'center', fontSize: '1.2rem', fontWeight: 600,
+                            padding: '8px', borderRadius: '8px',
+                            border: '1px solid var(--border-color, #e2e8f0)',
+                            background: 'var(--bg-secondary, #f8fafc)',
+                            color: 'var(--text-primary, #1e293b)'
+                          }}
+                        />
+                        <button
+                          onClick={() => setEditGoalsForm(prev => ({ ...prev, [key]: (parseFloat(prev[key]) || placeholder) + step }))}
+                          style={{
+                            width: '36px', height: '36px', borderRadius: '50%',
+                            border: '1px solid var(--border-color, #e2e8f0)',
+                            background: 'var(--bg-secondary, #f8fafc)',
+                            color: 'var(--text-primary, #1e293b)',
+                            fontSize: '1.2rem', cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center'
+                          }}
+                        >
+                          +
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </>
+              )}
+
               <button
                 onClick={handleSaveGoals}
                 disabled={savingGoals}
