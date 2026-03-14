@@ -85,7 +85,8 @@ function Diary() {
       cholesterol: (base.cholesterol || 0) + op * (parseFloat(delta.cholesterol) || 0)
     };
   };
-  const [waterGoal] = useState(8);
+  const [waterGoal, setWaterGoal] = useState(clientData?.water_goal || 8);
+  const [waterUnit, setWaterUnit] = useState(clientData?.water_unit || 'glasses');
   const [aiInput, setAiInput] = useState('');
   const [aiLogging, setAiLogging] = useState(false);
   const [selectedMealType, setSelectedMealType] = useState('snack');
@@ -299,6 +300,8 @@ function Diary() {
       .then(waterData => {
         const newWater = waterData?.glasses || 0;
         setWaterIntake(newWater);
+        if (waterData?.goal) setWaterGoal(waterData.goal);
+        if (waterData?.unit) setWaterUnit(waterData.unit);
         const existing = getCache(cacheKey) || {};
         setCache(cacheKey, { ...existing, water: newWater });
       })
@@ -707,6 +710,8 @@ function Diary() {
       .then(data => {
         const w = data?.glasses || 0;
         setWaterIntake(w);
+        if (data?.goal) setWaterGoal(data.goal);
+        if (data?.unit) setWaterUnit(data.unit);
         const c = getCache(cacheKey) || {};
         setCache(cacheKey, { ...c, water: w });
       })
@@ -2064,7 +2069,7 @@ function Diary() {
           ctx.fillStyle = '#38bdf8';
           ctx.font = 'bold 18px -apple-system, BlinkMacSystemFont, sans-serif';
           ctx.textAlign = 'center';
-          ctx.fillText(`💧 ${waterIntake} / ${waterGoal} glasses`, width / 2, waterY);
+          ctx.fillText(`💧 ${waterIntake} / ${waterGoal} ${waterUnit === 'glasses' ? (waterGoal === 1 ? 'glass' : 'glasses') : waterUnit}`, width / 2, waterY);
         }
 
         // Meals logged section
@@ -2655,14 +2660,14 @@ function Diary() {
         <div className="water-intake-left">
           <Droplets size={18} className="water-icon" />
           <span className="water-label">Water</span>
-          <span className="water-progress">{waterIntake}/{waterGoal}</span>
+          <span className="water-progress">{waterIntake}/{waterGoal} {waterUnit === 'glasses' ? (waterGoal === 1 ? 'glass' : 'glasses') : waterUnit}</span>
         </div>
         <div className="water-intake-controls">
           <button
             className="water-btn-compact"
             onClick={() => handleWaterAction('remove', 1)}
             disabled={waterIntake <= 0}
-            aria-label="Remove one glass"
+            aria-label="Remove one"
           >
             −
           </button>
@@ -2676,7 +2681,7 @@ function Diary() {
             className="water-btn-compact"
             onClick={() => handleWaterAction('add', 1)}
             disabled={waterIntake >= waterGoal}
-            aria-label="Add one glass"
+            aria-label="Add one"
           >
             +
           </button>
@@ -3216,7 +3221,7 @@ function Diary() {
                 { key: 'protein', label: 'Protein', value: `${Math.round(totals.protein)}g / ${goals.protein_goal}g` },
                 { key: 'carbs', label: 'Carbs', value: `${Math.round(totals.carbs)}g / ${goals.carbs_goal}g` },
                 { key: 'fat', label: 'Fat', value: `${Math.round(totals.fat)}g / ${goals.fat_goal}g` },
-                { key: 'water', label: 'Water', value: `${waterIntake} / ${waterGoal} glasses` },
+                { key: 'water', label: 'Water', value: `${waterIntake} / ${waterGoal} ${waterUnit === 'glasses' ? (waterGoal === 1 ? 'glass' : 'glasses') : waterUnit}` },
                 { key: 'meals', label: 'Foods Logged', value: `${entries.length} item${entries.length !== 1 ? 's' : ''}` }
               ].map(({ key, label, value }) => (
                 <div className="share-toggle-row" key={key}>

@@ -52,7 +52,7 @@ exports.handler = async (event) => {
 
       const { data, error } = await supabase
         .from('clients')
-        .select('id, preferred_exercise_gender, unit_preference')
+        .select('id, preferred_exercise_gender, unit_preference, water_goal, water_unit')
         .eq('id', clientId)
         .single();
 
@@ -66,7 +66,9 @@ exports.handler = async (event) => {
               preferences: {
                 client_id: parseInt(clientId),
                 preferred_exercise_gender: 'all',
-                unit_preference: 'imperial'
+                unit_preference: 'imperial',
+                water_goal: 8,
+                water_unit: 'glasses'
               },
               needsMigration: true
             })
@@ -82,7 +84,9 @@ exports.handler = async (event) => {
           preferences: {
             client_id: data.id,
             preferred_exercise_gender: data.preferred_exercise_gender || 'all',
-            unit_preference: data.unit_preference || 'metric'
+            unit_preference: data.unit_preference || 'metric',
+            water_goal: data.water_goal || 8,
+            water_unit: data.water_unit || 'glasses'
           }
         })
       };
@@ -91,7 +95,7 @@ exports.handler = async (event) => {
     // POST - Update client workout preferences
     if (event.httpMethod === 'POST') {
       const body = JSON.parse(event.body || '{}');
-      const { clientId, preferredExerciseGender, unitPreference } = body;
+      const { clientId, preferredExerciseGender, unitPreference, waterGoal, waterUnit } = body;
 
       if (!clientId) {
         return {
@@ -125,12 +129,44 @@ exports.handler = async (event) => {
         };
       }
 
+      // Validate waterUnit value
+      const validWaterUnits = ['glasses', 'oz', 'ml', 'L'];
+      if (waterUnit && !validWaterUnits.includes(waterUnit)) {
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({
+            error: 'Invalid waterUnit. Must be: glasses, oz, ml, or L'
+          })
+        };
+      }
+
+      // Validate waterGoal value
+      if (waterGoal !== undefined) {
+        const parsedGoal = parseInt(waterGoal, 10);
+        if (isNaN(parsedGoal) || parsedGoal < 1 || parsedGoal > 200) {
+          return {
+            statusCode: 400,
+            headers,
+            body: JSON.stringify({
+              error: 'Invalid waterGoal. Must be between 1 and 200'
+            })
+          };
+        }
+      }
+
       const updateData = {};
       if (preferredExerciseGender !== undefined) {
         updateData.preferred_exercise_gender = preferredExerciseGender;
       }
       if (unitPreference !== undefined) {
         updateData.unit_preference = unitPreference;
+      }
+      if (waterGoal !== undefined) {
+        updateData.water_goal = parseInt(waterGoal, 10);
+      }
+      if (waterUnit !== undefined) {
+        updateData.water_unit = waterUnit;
       }
 
       if (Object.keys(updateData).length === 0) {
@@ -145,7 +181,7 @@ exports.handler = async (event) => {
         .from('clients')
         .update(updateData)
         .eq('id', clientId)
-        .select('id, preferred_exercise_gender, unit_preference')
+        .select('id, preferred_exercise_gender, unit_preference, water_goal, water_unit')
         .single();
 
       if (error) {
@@ -172,7 +208,9 @@ exports.handler = async (event) => {
           preferences: {
             client_id: data.id,
             preferred_exercise_gender: data.preferred_exercise_gender || 'all',
-            unit_preference: data.unit_preference || 'metric'
+            unit_preference: data.unit_preference || 'metric',
+            water_goal: data.water_goal || 8,
+            water_unit: data.water_unit || 'glasses'
           }
         })
       };

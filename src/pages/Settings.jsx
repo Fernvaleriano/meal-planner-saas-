@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useBranding } from '../context/BrandingContext';
-import { Moon, Camera, Lock, LogOut, ChevronRight, Loader, Users, Scale, User, Utensils, Edit3, X, Palette, CreditCard } from 'lucide-react';
+import { Moon, Camera, Lock, LogOut, ChevronRight, Loader, Users, Scale, User, Utensils, Edit3, X, Palette, Droplets, CreditCard } from 'lucide-react';
 import { apiGet, apiPost, apiPut } from '../utils/api';
 import { supabase } from '../utils/supabase';
 import { usePullToRefreshEvent } from '../hooks/usePullToRefreshEvent';
@@ -53,6 +53,11 @@ function Settings() {
     clientData?.unit_preference || 'imperial'
   );
   const [unitPrefLoading, setUnitPrefLoading] = useState(false);
+
+  // Water intake preference states
+  const [waterGoal, setWaterGoal] = useState(clientData?.water_goal || 8);
+  const [waterUnit, setWaterUnit] = useState(clientData?.water_unit || 'glasses');
+  const [waterPrefLoading, setWaterPrefLoading] = useState(false);
 
   // Profile edit states
   const [showProfileModal, setShowProfileModal] = useState(false);
@@ -164,6 +169,12 @@ function Settings() {
       setUnitPref(clientData.unit_preference);
     }
   }, [clientData?.unit_preference]);
+
+  // Sync water preferences when clientData loads
+  useEffect(() => {
+    if (clientData?.water_goal) setWaterGoal(clientData.water_goal);
+    if (clientData?.water_unit) setWaterUnit(clientData.water_unit);
+  }, [clientData?.water_goal, clientData?.water_unit]);
 
   // Load coach data with caching
   useEffect(() => {
@@ -367,6 +378,38 @@ function Settings() {
       showError('Failed to update preference. Please try again.');
     } finally {
       setUnitPrefLoading(false);
+    }
+  };
+
+  // Handle water preference changes (goal or unit)
+  const handleWaterPrefChange = async (newGoal, newUnit) => {
+    if (!clientData?.id || waterPrefLoading) return;
+
+    setWaterPrefLoading(true);
+    const previousGoal = waterGoal;
+    const previousUnit = waterUnit;
+    if (newGoal !== undefined) setWaterGoal(newGoal);
+    if (newUnit !== undefined) setWaterUnit(newUnit);
+
+    try {
+      const payload = { clientId: clientData.id };
+      if (newGoal !== undefined) payload.waterGoal = newGoal;
+      if (newUnit !== undefined) payload.waterUnit = newUnit;
+
+      const response = await apiPost('/.netlify/functions/client-workout-preferences', payload);
+
+      if (response.success) {
+        await refreshClientData();
+      } else {
+        throw new Error(response.error || 'Failed to update water preference');
+      }
+    } catch (err) {
+      console.error('Error updating water preference:', err);
+      setWaterGoal(previousGoal);
+      setWaterUnit(previousUnit);
+      showError('Failed to update water preference. Please try again.');
+    } finally {
+      setWaterPrefLoading(false);
     }
   };
 
@@ -660,6 +703,55 @@ function Settings() {
                 <option value="metric">kg</option>
                 <option value="imperial">lbs</option>
               </select>
+            )}
+          </div>
+        </div>
+
+        <div className="settings-divider"></div>
+
+        {/* Water Intake Goal */}
+        <div className="settings-item">
+          <div className="settings-item-left">
+            <div className="settings-icon-box blue" style={{ background: 'linear-gradient(135deg, #0ea5e9, #0284c7)' }}>
+              <Droplets size={20} />
+            </div>
+            <div className="settings-item-text">
+              <div className="settings-item-title">Water Goal</div>
+              <div className="settings-item-subtitle">Daily intake target</div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {waterPrefLoading ? (
+              <Loader size={20} className="spin" style={{ color: 'var(--gray-400)' }} />
+            ) : (
+              <>
+                <input
+                  type="number"
+                  min="1"
+                  max="200"
+                  value={waterGoal}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value, 10);
+                    if (!isNaN(val) && val >= 1 && val <= 200) {
+                      handleWaterPrefChange(val, undefined);
+                    }
+                  }}
+                  className="gender-select"
+                  style={{ width: '60px', textAlign: 'center' }}
+                  disabled={waterPrefLoading}
+                />
+                <select
+                  value={waterUnit}
+                  onChange={(e) => handleWaterPrefChange(undefined, e.target.value)}
+                  className="gender-select"
+                  disabled={waterPrefLoading}
+                >
+                  <option value="glasses">glasses</option>
+                  <option value="oz">oz</option>
+                  <option value="ml">mL</option>
+                  <option value="L">liters</option>
+                </select>
+              </>
             )}
           </div>
         </div>

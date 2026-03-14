@@ -49,12 +49,23 @@ exports.handler = async (event) => {
 
       const row = rows && rows.length > 0 ? rows[0] : null;
 
+      // Fetch client's custom water goal and unit
+      const { data: clientRows } = await supabase
+        .from('clients')
+        .select('water_goal, water_unit')
+        .eq('id', clientId)
+        .limit(1);
+      const client = clientRows && clientRows.length > 0 ? clientRows[0] : null;
+      const clientGoal = client?.water_goal || 8;
+      const clientUnit = client?.water_unit || 'glasses';
+
       return {
         statusCode: 200,
         headers,
         body: JSON.stringify({
           glasses: row?.glasses || 0,
-          goal: row?.goal || 8,
+          goal: clientGoal,
+          unit: clientUnit,
           date: targetDate
         })
       };
@@ -69,7 +80,15 @@ exports.handler = async (event) => {
       }
 
       const targetDate = getDefaultDate(date, timezone);
-      const goal = 8;
+
+      // Fetch client's custom water goal
+      const { data: clientRows } = await supabase
+        .from('clients')
+        .select('water_goal')
+        .eq('id', clientId)
+        .limit(1);
+      const clientData = clientRows && clientRows.length > 0 ? clientRows[0] : null;
+      const goal = clientData?.water_goal || 8;
       let newGlasses = 0;
 
       // Check for existing row (use .limit(1) — never .single())
