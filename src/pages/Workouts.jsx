@@ -3662,7 +3662,7 @@ function Workouts() {
                 </div>
 
                 {/* Gym Check-In Banner (Rest Day) */}
-                {!isCoach && (
+                {!clientData?.is_coach && (
                   <button
                     className="gym-proof-banner rest-day-gym-proof"
                     onClick={() => setShowGymProof(true)}
