@@ -8439,30 +8439,6 @@
             </div>
         </div>
 
-        <!-- Check-ins Section -->
-        <div class="checkins-section">
-            <div class="checkins-header collapsible-header" onclick="toggleSection('checkins')" style="cursor: pointer;">
-                <h2 class="checkins-title">📝 Check-ins</h2>
-                <button class="section-toggle-btn" type="button">
-                    <span class="toggle-icon" id="checkinsToggleIcon">▼</span>
-                </button>
-            </div>
-            <div id="checkinsContent" class="collapsible-content">
-                <div id="checkinsContainer">
-                    <div class="loading skeleton-loading">
-                        <div class="skeleton-checkin">
-                            <div class="skeleton skeleton-checkin-date"></div>
-                            <div class="skeleton skeleton-checkin-content"></div>
-                        </div>
-                        <div class="skeleton-checkin">
-                            <div class="skeleton skeleton-checkin-date"></div>
-                            <div class="skeleton skeleton-checkin-content"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <!-- Gym Check-Ins Section -->
         <div class="checkins-section" id="gymProofsSection">
             <div class="checkins-header collapsible-header" onclick="toggleSection('gymProofs')" style="cursor: pointer;">
@@ -8474,6 +8450,30 @@
             <div id="gymProofsContent" class="collapsible-content">
                 <div id="gymProofsContainer">
                     <div class="loading skeleton-loading">
+                        <div class="skeleton-checkin">
+                            <div class="skeleton skeleton-checkin-date"></div>
+                            <div class="skeleton skeleton-checkin-content"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Check-ins Section (collapsed by default) -->
+        <div class="checkins-section">
+            <div class="checkins-header collapsible-header" onclick="toggleSection('checkins')" style="cursor: pointer;">
+                <h2 class="checkins-title">📝 Check-ins</h2>
+                <button class="section-toggle-btn" type="button">
+                    <span class="toggle-icon collapsed" id="checkinsToggleIcon">▼</span>
+                </button>
+            </div>
+            <div id="checkinsContent" class="collapsible-content collapsed">
+                <div id="checkinsContainer">
+                    <div class="loading skeleton-loading">
+                        <div class="skeleton-checkin">
+                            <div class="skeleton skeleton-checkin-date"></div>
+                            <div class="skeleton skeleton-checkin-content"></div>
+                        </div>
                         <div class="skeleton-checkin">
                             <div class="skeleton skeleton-checkin-date"></div>
                             <div class="skeleton skeleton-checkin-content"></div>
