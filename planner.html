@@ -776,6 +776,35 @@
             background: #8b5cf6;
             color: white;
         }
+        .prompt-suggestion {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.625rem;
+            padding: 0.625rem 0.75rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 0.75rem;
+            background: white;
+            cursor: pointer;
+            transition: all 0.15s;
+            text-align: left;
+            width: 100%;
+            font-size: 0.8125rem;
+            line-height: 1.4;
+            color: #374151;
+        }
+        .prompt-suggestion:hover {
+            border-color: #8b5cf6;
+            background: #f5f3ff;
+        }
+        .prompt-suggestion.selected {
+            border-color: #8b5cf6;
+            background: #ede9fe;
+        }
+        .prompt-suggestion-icon {
+            flex-shrink: 0;
+            font-size: 1.125rem;
+            margin-top: 1px;
+        }
 
         .prose h3 { margin-bottom: 0.5em; }
         .prose ul { list-style-type: disc; padding-left: 1.5em; }
@@ -2548,21 +2577,17 @@
                 <h3 class="text-xl font-bold text-purple-600"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:6px;"><circle cx="13.5" cy="6.5" r="2.5"/><circle cx="6" cy="12" r="2.5" fill="currentColor" opacity="0.3"/><circle cx="18" cy="16" r="2.5"/><path d="M17 2l-4 4M6 9.5V4M18 13.5V22"/></svg>Style Your Image</h3>
                 <button onclick="closeImageStylingModal()" class="text-2xl font-bold">&times;</button>
             </div>
-            <p class="text-gray-600 mb-4">Meal: <strong id="styling-meal-name"></strong></p>
+            <p class="text-gray-600 mb-3">Meal: <strong id="styling-meal-name"></strong></p>
 
-            <!-- Questions Container -->
-            <div id="styling-questions-container">
-                <div class="flex items-center justify-center py-8">
-                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
-                    <span class="ml-3 text-gray-600">Preparing styling options...</span>
-                </div>
-            </div>
+            <p class="text-sm text-gray-500 mb-2">Pick a style or write your own:</p>
 
-            <!-- Custom Input Option -->
-            <div id="styling-custom-input" class="mt-4 hidden">
-                <p class="text-sm text-gray-500 mb-2">Or describe your own style:</p>
+            <!-- Prompt Suggestions -->
+            <div id="prompt-suggestions-container" class="flex flex-col gap-2 mb-3"></div>
+
+            <!-- Custom Input -->
+            <div>
                 <input type="text" id="styling-custom-text" class="input-field w-full"
-                       placeholder="e.g., rustic wooden board, herbs scattered around">
+                       placeholder="Or describe your own style...">
             </div>
 
             <!-- Action Buttons -->
@@ -11525,100 +11550,99 @@ let stylingState = {
 };
 
 // Open styling questions modal
-async function openImageStylingModal(mealName, imageId) {
+function openImageStylingModal(mealName, imageId) {
     stylingState = {
         mealName: mealName,
         imageId: imageId,
         questions: [],
-        answers: {}
+        answers: {},
+        selectedPrompt: null
     };
 
-    // Update modal title
     document.getElementById('styling-meal-name').textContent = mealName;
-
-    // Reset container with loading state
-    document.getElementById('styling-questions-container').innerHTML = `
-        <div class="flex items-center justify-center py-8">
-            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
-            <span class="ml-3 text-gray-600">Preparing styling options...</span>
-        </div>
-    `;
-
-    // Hide custom input and disable generate button
-    document.getElementById('styling-custom-input').classList.add('hidden');
     document.getElementById('styling-custom-text').value = '';
     document.getElementById('generate-styled-image-btn').disabled = true;
 
-    // Show modal
+    // Generate and render smart prompt suggestions
+    const suggestions = generatePromptSuggestions(mealName);
+    const container = document.getElementById('prompt-suggestions-container');
+    container.innerHTML = suggestions.map((s, i) => `
+        <button type="button" class="prompt-suggestion" onclick="selectPromptSuggestion(${i}, this)">
+            <span class="prompt-suggestion-icon">${s.icon}</span>
+            <span>${s.text}</span>
+        </button>
+    `).join('');
+
     document.getElementById('image-styling-modal').classList.remove('hidden');
-
-    // Fetch styling questions from API
-    try {
-        const data = await apiPost('/.netlify/functions/image-style-questions', { mealName });
-
-        if (data.questions && data.questions.length > 0) {
-            stylingState.questions = data.questions;
-            renderStylingQuestions(data.questions);
-        } else {
-            throw new Error('No questions returned');
-        }
-    } catch (error) {
-        console.error('Error fetching styling questions:', error);
-        // Fallback to simple text input
-        document.getElementById('styling-questions-container').innerHTML = `
-            <p class="text-gray-600 mb-3">Describe how you want the image to look:</p>
-            <input type="text" id="styling-fallback-input" class="input-field w-full"
-                   placeholder="e.g., white plate, sliced to show inside, roasted vegetables">
-        `;
-        document.getElementById('styling-custom-input').classList.add('hidden');
-        document.getElementById('generate-styled-image-btn').disabled = false;
-    }
 }
 
-// Render styling questions with button options
-function renderStylingQuestions(questions) {
-    const container = document.getElementById('styling-questions-container');
-    let html = '';
+// Generate 3 smart prompt suggestions based on meal ingredients
+function generatePromptSuggestions(mealName) {
+    // Parse out ingredient names (strip grams/quantities)
+    const cleaned = mealName.replace(/\([^)]*\)/g, '').replace(/\d+\s*(g|whole|oz|ml|cups?|tbsp|tsp)\b/gi, '');
+    const parts = cleaned.split(/,|\band\b|with/i).map(s => s.trim()).filter(Boolean);
+    const mainItem = parts[0] || mealName;
+    const ingredients = parts.length > 1 ? parts.slice(1).join(', ') : '';
 
-    questions.forEach((q, index) => {
-        html += `
-            <div class="styling-question" data-question="${index}">
-                <label class="styling-question-label">${q.question}</label>
-                <div class="styling-options">
-                    ${q.options.map((opt, optIndex) => `
-                        <button type="button" class="styling-option-btn"
-                                data-question="${index}"
-                                data-option="${optIndex}"
-                                onclick="selectStylingOption(${index}, ${optIndex}, '${opt.replace(/'/g, "\\'")}')">
-                            ${opt}
-                        </button>
-                    `).join('')}
-                </div>
-            </div>
-        `;
-    });
+    const hasEggs = /egg/i.test(mealName);
+    const hasMeat = /turkey|chicken|beef|steak|salmon|fish|shrimp|pork|lamb/i.test(mealName);
+    const hasRice = /rice/i.test(mealName);
+    const hasPasta = /pasta|spaghetti|noodle/i.test(mealName);
+    const hasVeggies = /pepper|onion|broccoli|spinach|tomato|lettuce|cucumber|zucchini|asparagus|kale|carrot/i.test(mealName);
+    const hasPotato = /potato|sweet potato/i.test(mealName);
+    const isBreakfast = hasEggs || /oat|pancake|waffle|toast|cereal|yogurt|smoothie/i.test(mealName);
+    const isSalad = /salad/i.test(mealName);
 
-    container.innerHTML = html;
-    document.getElementById('styling-custom-input').classList.remove('hidden');
-    updateGenerateButtonState();
+    // Plating style
+    let plating;
+    if (isBreakfast) {
+        plating = `Breakfast spread on a clean white plate, ${mainItem} cooked golden, arranged neatly with ${ingredients || 'sides'} visible`;
+    } else if (isSalad) {
+        plating = `Fresh colorful salad in a wide bowl, ingredients layered and vibrant, top-down view`;
+    } else if (hasMeat) {
+        plating = `${mainItem} seared and sliced to show the inside, plated on a white dish with ${ingredients || 'sides'} arranged around it`;
+    } else {
+        plating = `${mainItem} beautifully plated on a clean white dish, ${ingredients ? ingredients + ' visible on the side' : 'garnished with fresh herbs'}`;
+    }
+
+    // Lifestyle/setting style
+    let lifestyle;
+    if (isBreakfast) {
+        lifestyle = `Morning kitchen setting, ${mainItem} on a wooden table with a coffee cup nearby, warm natural sunlight`;
+    } else {
+        lifestyle = `${mainItem} served on a rustic wooden table, warm ambient lighting, restaurant-quality presentation with a linen napkin`;
+    }
+
+    // Close-up / texture style
+    let closeup;
+    if (hasEggs) {
+        closeup = `Close-up shot of ${mainItem} with runny yolk, steam rising, crispy edges, ${hasVeggies ? 'colorful peppers and onions sautéed alongside' : 'seasoned with herbs'}`;
+    } else if (hasMeat) {
+        closeup = `Close-up of juicy ${mainItem} showing texture and seasoning, ${hasVeggies ? 'grilled vegetables glistening beside it' : hasPotato ? 'golden roasted potatoes on the side' : 'garnished with fresh herbs'}`;
+    } else if (hasPasta || hasRice) {
+        closeup = `Close-up of ${mainItem} with steam rising, ${ingredients ? ingredients + ' mixed in' : 'topped with fresh herbs'}, shallow depth of field`;
+    } else {
+        closeup = `Macro close-up of ${mainItem} showing colors and textures, ${ingredients || 'fresh herbs'} in sharp detail, shallow depth of field`;
+    }
+
+    return [
+        { icon: '🍽️', text: plating },
+        { icon: '📸', text: lifestyle },
+        { icon: '🔍', text: closeup }
+    ];
 }
 
-// Handle option button click
-function selectStylingOption(questionIndex, optionIndex, optionText) {
-    // Store answer
-    stylingState.answers[questionIndex] = optionText;
+// Handle prompt suggestion click
+function selectPromptSuggestion(index, btnEl) {
+    // Deselect all
+    document.querySelectorAll('.prompt-suggestion').forEach(b => b.classList.remove('selected'));
+    // Select this one
+    btnEl.classList.add('selected');
 
-    // Update button styles for this question
-    const questionEl = document.querySelector(`.styling-question[data-question="${questionIndex}"]`);
-    if (questionEl) {
-        questionEl.querySelectorAll('.styling-option-btn').forEach((btn, idx) => {
-            if (idx === optionIndex) {
-                btn.classList.add('selected');
-            } else {
-                btn.classList.remove('selected');
-            }
-        });
-    }
+    // Put the suggestion text into the input
+    const text = btnEl.querySelector('span:last-child').textContent.trim();
+    document.getElementById('styling-custom-text').value = text;
+    stylingState.selectedPrompt = text;
 
     updateGenerateButtonState();
 }
@@ -11626,14 +11650,8 @@ function selectStylingOption(questionIndex, optionIndex, optionText) {
 // Update generate button state
 function updateGenerateButtonState() {
     const btn = document.getElementById('generate-styled-image-btn');
-    const answeredCount = Object.keys(stylingState.answers).length;
-    const totalQuestions = stylingState.questions.length;
     const customText = document.getElementById('styling-custom-text').value.trim();
-    const fallbackInput = document.getElementById('styling-fallback-input');
-    const fallbackText = fallbackInput ? fallbackInput.value.trim() : '';
-
-    // Enable if at least one answer selected, custom text provided, or fallback text provided
-    btn.disabled = (answeredCount === 0 && !customText && !fallbackText);
+    btn.disabled = !customText;
 }
 
 // Close styling modal
@@ -11648,28 +11666,9 @@ async function generateStyledImage() {
     const mealName = stylingState.mealName;
     const imageId = stylingState.imageId;
 
-    // Build prompt from selections
-    let promptParts = [];
-
-    // Check for fallback input first
-    const fallbackInput = document.getElementById('styling-fallback-input');
-    if (fallbackInput && fallbackInput.value.trim()) {
-        promptParts.push(fallbackInput.value.trim());
-    } else {
-        // Add selected answers
-        Object.keys(stylingState.answers).forEach(key => {
-            promptParts.push(stylingState.answers[key]);
-        });
-
-        // Add custom text if provided
-        const customText = document.getElementById('styling-custom-text').value.trim();
-        if (customText) {
-            promptParts.push(customText);
-        }
-    }
-
-    // Build final prompt
-    const customPrompt = `${mealName}: ${promptParts.join(', ')}`;
+    // Build prompt from the text input (filled by suggestion or typed manually)
+    const promptText = document.getElementById('styling-custom-text').value.trim();
+    const customPrompt = `${mealName}: ${promptText}`;
     console.log('Generating image with prompt:', customPrompt);
 
     btn.disabled = true;
@@ -11721,7 +11720,10 @@ async function generateStyledImage() {
 
 // Listen for custom text input changes
 document.addEventListener('input', (e) => {
-    if (e.target.id === 'styling-custom-text' || e.target.id === 'styling-fallback-input') {
+    if (e.target.id === 'styling-custom-text') {
+        // Deselect suggestion cards when user manually edits
+        document.querySelectorAll('.prompt-suggestion').forEach(b => b.classList.remove('selected'));
+        stylingState.selectedPrompt = null;
         updateGenerateButtonState();
     }
 });
