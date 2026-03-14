@@ -3197,7 +3197,8 @@ function updateClientSummary() {
         const genderText = gender === 'male' ? 'M' : 'F';
         const goalText = goal === 'lose weight' ? 'Lose' : goal === 'gain muscle' ? 'Gain' : 'Maintain';
         const dietText = dietType.charAt(0).toUpperCase() + dietType.slice(1);
-        let parts = [`${age}yo ${genderText}, ${weight}lbs`, goalText, dietText];
+        const weightUnit = currentUnitSystem === 'metric' ? 'kg' : 'lbs';
+        let parts = [`${age}yo ${genderText}, ${weight}${weightUnit}`, goalText, dietText];
         if (allergies && allergies.trim()) parts.push(allergies.trim());
         summaryText.textContent = parts.join(' · ');
         summary.classList.remove('hidden');
@@ -3233,10 +3234,18 @@ async function fetchLatestWeight(clientId) {
     try {
         const data = await apiGet(`/.netlify/functions/get-measurements?clientId=${clientId}&limit=1`);
         if (data.measurements && data.measurements.length > 0) {
-            const latestWeight = data.measurements[0].weight;
+            let latestWeight = data.measurements[0].weight;
+            const measurementUnit = data.measurements[0].weight_unit || 'lbs';
             if (latestWeight) {
+                // Convert measurement weight to match the current display unit system
+                if (measurementUnit === 'kg' && currentUnitSystem === 'imperial') {
+                    latestWeight = Math.round(latestWeight * 2.20462 * 10) / 10;
+                } else if (measurementUnit === 'lbs' && currentUnitSystem === 'metric') {
+                    latestWeight = Math.round(latestWeight * 0.453592 * 10) / 10;
+                }
                 document.getElementById('dp_weight').value = latestWeight;
-                console.log(`📊 Updated weight from measurements: ${latestWeight}lbs`);
+                const unitLabel = currentUnitSystem === 'metric' ? 'kg' : 'lbs';
+                console.log(`📊 Updated weight from measurements: ${latestWeight}${unitLabel}`);
                 updateClientSummary();
             }
         }
@@ -3528,6 +3537,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 console.log('✅ All fields auto-populated from client profile');
+
+                // Detect and set unit system from client's preference
+                // skipConversion=true because the data is already in the client's native units
+                const clientUnitPref = client.unit_preference || client.unit_system || 'imperial';
+                toggleUnitSystem(clientUnitPref === 'metric' ? 'metric' : 'imperial', true);
 
                 // Update client summary
                 updateClientSummary();
@@ -10574,10 +10588,51 @@ document.addEventListener('DOMContentLoaded', () => {
 // UNIT SYSTEM STATE
 let currentUnitSystem = 'imperial';
 
-function toggleUnitSystem(system) {
+function toggleUnitSystem(system, skipConversion) {
+    const previousSystem = currentUnitSystem;
     currentUnitSystem = system;
     document.getElementById('unit-imperial').className = system === 'imperial' ? 'btn btn-primary text-sm py-1 px-3' : 'btn btn-secondary text-sm py-1 px-3';
     document.getElementById('unit-metric').className = system === 'metric' ? 'btn btn-primary text-sm py-1 px-3' : 'btn btn-secondary text-sm py-1 px-3';
+
+    // Convert weight and height values if switching systems (skip when loading client data)
+    if (previousSystem !== system && !skipConversion) {
+        const weightInput = document.getElementById('dp_weight');
+        const heightFtInput = document.getElementById('dp_height_ft');
+        const heightInInput = document.getElementById('dp_height_in');
+
+        if (weightInput.value) {
+            const w = parseFloat(weightInput.value);
+            if (system === 'metric') {
+                // lbs → kg
+                weightInput.value = Math.round(w * 0.453592 * 10) / 10;
+            } else {
+                // kg → lbs
+                weightInput.value = Math.round(w * 2.20462 * 10) / 10;
+            }
+        }
+
+        if (heightFtInput.value) {
+            if (system === 'metric') {
+                // ft/in → cm
+                const ft = parseInt(heightFtInput.value) || 0;
+                const inches = parseInt(heightInInput.value) || 0;
+                const totalCm = Math.round((ft * 30.48) + (inches * 2.54));
+                heightFtInput.value = totalCm;
+                heightInInput.value = '';
+            } else {
+                // cm → ft/in
+                const cm = parseFloat(heightFtInput.value) || 0;
+                const totalInches = cm / 2.54;
+                const ft = Math.floor(totalInches / 12);
+                const remainingIn = Math.round(totalInches % 12);
+                heightFtInput.value = ft;
+                heightInInput.value = remainingIn;
+            }
+        }
+
+        // Update client summary with new units
+        updateClientSummary();
+    }
 
     // Update labels
     const weightLabel = system === 'imperial' ? 'Weight (lbs)' : 'Weight (kg)';
@@ -10587,7 +10642,11 @@ function toggleUnitSystem(system) {
     document.querySelector('label[for="dp_weight"]').textContent = weightLabel;
     document.querySelector('label[for="dp_height_ft"]').textContent = heightLabel1;
     document.querySelector('label[for="dp_height_in"]').textContent = heightLabel2;
+    document.getElementById('dp_weight').placeholder = system === 'imperial' ? '155' : '70';
+    document.getElementById('dp_height_ft').placeholder = system === 'imperial' ? '5' : '170';
+    document.getElementById('dp_height_in').placeholder = system === 'imperial' ? '10' : '';
     document.getElementById('dp_height_in').style.display = system === 'imperial' ? 'block' : 'none';
+    document.getElementById('dp_height_in').closest('div').style.display = system === 'imperial' ? 'block' : 'none';
 }
 
 // EVENT HANDLERS
