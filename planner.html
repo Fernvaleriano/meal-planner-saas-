@@ -2461,21 +2461,8 @@
                     <input type="checkbox" id="equip_blender" value="Blender" checked>
                 </div>
 
-                <!-- Advanced Options: hidden with defaults -->
-                <div style="display:none;">
-                    <input type="checkbox" id="dp_use_branded_foods">
-                    <input type="checkbox" id="dp_start_from_scratch">
-                    <input type="checkbox" id="dp_use_template">
-                    <select id="dp_template_select"><option value="">Select a template...</option></select>
-                    <div id="template-selector-fields" class="hidden"></div>
-                    <div id="template-preview" class="hidden"></div>
-                    <button id="edit-template-btn" disabled></button>
-                    <button id="delete-template-btn" disabled></button>
-                    <button id="bulk-post-template-btn" disabled></button>
-                </div>
-
                 <!-- Plan Name - Right before generate -->
-                <div class="p-4 bg-purple-50 border-2 border-purple-400 rounded-lg">
+                <div id="plan-name-section" class="p-4 bg-purple-50 border-2 border-purple-400 rounded-lg">
                     <label class="font-bold text-purple-900 block mb-2">Plan Name <span class="text-red-500">*</span></label>
                     <input type="text" id="dp_plan_name" class="input-field border-2 border-purple-500" placeholder="e.g., John's Cutting Phase, Week 1 Meal Prep..." required>
                 </div>
@@ -2487,9 +2474,40 @@
                     <div class="or-divider-line" style="position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: #e5e7eb;"></div>
                 </div>
 
-                <button data-action="open-import-diet-plan" id="import-diet-plan-btn" class="btn w-full text-lg" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; font-weight: 600;">
-                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:6px;"><path d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>Import Diet Plan
-                </button>
+                <!-- Quick action buttons row: Start from Scratch, Use Template, Import -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <button data-action="toggle-scratch" id="scratch-toggle-btn" class="btn w-full text-sm py-3" style="background: #334155; color: white; font-weight: 600;" onclick="document.getElementById('dp_start_from_scratch').checked = !document.getElementById('dp_start_from_scratch').checked; this.style.background = document.getElementById('dp_start_from_scratch').checked ? '#0d9488' : '#334155'; this.innerHTML = document.getElementById('dp_start_from_scratch').checked ? '<svg width=\'16\' height=\'16\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' viewBox=\'0 0 24 24\' style=\'display:inline;vertical-align:middle;margin-right:6px;\'><polyline points=\'20 6 9 17 4 12\'/></svg>DIY Mode On' : '<svg width=\'16\' height=\'16\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' viewBox=\'0 0 24 24\' style=\'display:inline;vertical-align:middle;margin-right:6px;\'><line x1=\'12\' y1=\'5\' x2=\'12\' y2=\'19\'/><line x1=\'5\' y1=\'12\' x2=\'19\' y2=\'12\'/></svg>Start from Scratch';">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:6px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Start from Scratch
+                    </button>
+
+                    <button data-action="toggle-template" id="template-toggle-btn" class="btn w-full text-sm py-3" style="background: #7c3aed; color: white; font-weight: 600;" onclick="toggleUseTemplate()">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:6px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Use Template
+                    </button>
+
+                    <button data-action="open-import-diet-plan" id="import-diet-plan-btn" class="btn w-full text-sm py-3" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; font-weight: 600;">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:6px;"><path d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>Import Plan
+                    </button>
+                </div>
+
+                <!-- Template selector (shown when Use Template is toggled on) -->
+                <div id="template-selector-fields" class="hidden p-4 bg-purple-50 border-2 border-purple-300 rounded-lg">
+                    <div class="flex gap-2 items-center">
+                        <select id="dp_template_select" class="input-field border-purple-400 flex-1 text-sm">
+                            <option value="">Select a template...</option>
+                        </select>
+                        <button id="edit-template-btn" onclick="editSelectedTemplate()" class="btn" style="background: #7c3aed; color: white; padding: 6px 10px; font-size: 11px;" title="Edit template" disabled><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+                        <button id="delete-template-btn" onclick="deleteSelectedTemplate()" class="btn" style="background: #dc2626; color: white; padding: 6px 10px; font-size: 11px;" title="Delete template" disabled><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+                        <button id="bulk-post-template-btn" onclick="bulkPostTemplate()" class="btn" style="background: #7c3aed; color: white; padding: 6px 10px; font-size: 11px;" title="Post template to multiple clients" disabled><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></button>
+                    </div>
+                    <div id="template-preview" class="mt-2 text-sm text-purple-600 hidden"></div>
+                </div>
+
+                <!-- Hidden checkboxes for JS compatibility -->
+                <div style="display:none;">
+                    <input type="checkbox" id="dp_use_branded_foods">
+                    <input type="checkbox" id="dp_start_from_scratch">
+                    <input type="checkbox" id="dp_use_template">
+                </div>
             </div>
         </div>
         <div id="diet-plan-result"></div>
@@ -3111,7 +3129,7 @@ function setPlannerMode(mode) {
     const templateBtn = document.getElementById('mode-template');
     const clientSection = document.getElementById('client-selector-section');
     const generateBtn = document.getElementById('generate-plan-btn');
-    const planNameSection = document.getElementById('dp_plan_name')?.closest('.p-4');
+    const planNameSection = document.getElementById('plan-name-section');
     const templateFields = document.getElementById('template-simple-fields');
     const detailsWrapper = document.getElementById('client-details-wrapper');
     const prefsWrapper = document.getElementById('plan-preferences-wrapper');
@@ -10925,7 +10943,27 @@ document.getElementById('dp_fat_pct').addEventListener('input', function() {
     autoFillRemainingPercentage('fat');
 });
 
-// Template checkbox toggle
+// Toggle Use Template from the button
+function toggleUseTemplate() {
+    const checkbox = document.getElementById('dp_use_template');
+    checkbox.checked = !checkbox.checked;
+    checkbox.dispatchEvent(new Event('change'));
+    const btn = document.getElementById('template-toggle-btn');
+    if (checkbox.checked) {
+        btn.style.background = '#0d9488';
+        btn.innerHTML = '<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg>Template Selected';
+        // Uncheck scratch mode
+        document.getElementById('dp_start_from_scratch').checked = false;
+        const scratchBtn = document.getElementById('scratch-toggle-btn');
+        scratchBtn.style.background = '#334155';
+        scratchBtn.innerHTML = '<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:6px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Start from Scratch';
+    } else {
+        btn.style.background = '#7c3aed';
+        btn.innerHTML = '<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:6px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Use Template';
+    }
+}
+
+// Template checkbox toggle (syncs UI with hidden checkbox)
 document.getElementById('dp_use_template').addEventListener('change', function() {
     const fields = document.getElementById('template-selector-fields');
     if (this.checked) {
@@ -10943,6 +10981,10 @@ document.getElementById('dp_start_from_scratch').addEventListener('change', func
     if (this.checked) {
         document.getElementById('dp_use_template').checked = false;
         document.getElementById('template-selector-fields').classList.add('hidden');
+        // Reset template button
+        const templateBtn = document.getElementById('template-toggle-btn');
+        templateBtn.style.background = '#7c3aed';
+        templateBtn.innerHTML = '<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:6px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Use Template';
     }
 });
 
