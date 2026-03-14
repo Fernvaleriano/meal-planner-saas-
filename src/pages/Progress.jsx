@@ -209,6 +209,7 @@ function Progress() {
   const [showComparison, setShowComparison] = useState(false);
   const [aiAnalysis, setAiAnalysis] = useState('');
   const [analyzingPhotos, setAnalyzingPhotos] = useState(false);
+  const [pendingPhoto, setPendingPhoto] = useState(null);
 
   // Scroll to top on mount
   useEffect(() => {
@@ -482,6 +483,7 @@ function Progress() {
   const toggleCompareMode = () => {
     setCompareMode(!compareMode);
     setSelectedPhotos([]);
+    setPendingPhoto(null);
   };
 
   const handlePhotoClick = (photo) => {
@@ -494,14 +496,19 @@ function Progress() {
     if (isSelected) {
       setSelectedPhotos(prev => prev.filter(p => p.id !== photo.id));
     } else if (selectedPhotos.length < 2) {
-      const updated = [...selectedPhotos, photo];
-      setSelectedPhotos(updated);
-      if (updated.length === 2) {
-        // Respect user's selection order: first tap = before, second tap = after
-        setShowComparison(true);
-        setAiAnalysis('');
-        document.body.style.overflow = 'hidden';
-      }
+      setPendingPhoto(photo);
+    }
+  };
+
+  const confirmPhotoSelection = () => {
+    if (!pendingPhoto) return;
+    const updated = [...selectedPhotos, pendingPhoto];
+    setSelectedPhotos(updated);
+    setPendingPhoto(null);
+    if (updated.length === 2) {
+      setShowComparison(true);
+      setAiAnalysis('');
+      document.body.style.overflow = 'hidden';
     }
   };
 
@@ -945,6 +952,36 @@ function Progress() {
                 </button>
               )}
               <button className="btn-secondary full-width" onClick={() => setShowPhotoModal(false)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Photo Selection Confirmation Modal */}
+      {pendingPhoto && (
+        <div className="delete-confirm-overlay" onClick={() => setPendingPhoto(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999, padding: '20px' }}>
+          <div className="delete-confirm-modal" onClick={e => e.stopPropagation()} style={{ background: 'var(--card-bg, white)', borderRadius: '16px', padding: '24px', maxWidth: '320px', width: '100%', textAlign: 'center' }}>
+            <img
+              src={pendingPhoto.url || pendingPhoto.photo_url}
+              alt="Selected"
+              style={{ width: '100%', maxHeight: '200px', objectFit: 'cover', borderRadius: '12px', marginBottom: '16px' }}
+            />
+            <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px' }}>{selectedPhotos.length === 0 ? 'Use as your BEFORE photo?' : 'Use as your AFTER photo?'}</h3>
+            <p style={{ fontSize: '14px', color: '#94a3b8', marginBottom: '24px', lineHeight: 1.5 }}>
+              {selectedPhotos.length === 0
+                ? 'This will be your starting point for comparison.'
+                : 'This will be compared against your before photo.'}
+            </p>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button className="delete-cancel-btn" onClick={() => setPendingPhoto(null)} style={{ flex: 1, padding: '12px 16px', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: 500, cursor: 'pointer' }}>
+                Cancel
+              </button>
+              <button
+                onClick={confirmPhotoSelection}
+                style={{ flex: 1, padding: '12px 16px', background: '#14b8a6', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: 600, color: 'white', cursor: 'pointer' }}
+              >
+                {selectedPhotos.length === 0 ? 'Yes, Before' : 'Yes, After'}
+              </button>
             </div>
           </div>
         </div>
