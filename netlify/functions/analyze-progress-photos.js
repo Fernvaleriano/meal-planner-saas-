@@ -1,8 +1,8 @@
-// Progress photo comparison analysis using Gemini 2.5 Flash-Lite Vision
+// Progress photo comparison analysis using Gemini 2.5 Flash Vision
 const { handleCors, authenticateRequest, checkRateLimit, rateLimitResponse, corsHeaders } = require('./utils/auth');
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent';
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
 
 const headers = {
     ...corsHeaders,
