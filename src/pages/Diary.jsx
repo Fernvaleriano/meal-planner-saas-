@@ -2668,7 +2668,6 @@ function Diary() {
       <div className="water-intake-compact">
         <div className="water-intake-left">
           <Droplets size={18} className="water-icon" />
-          <span className="water-label">Water</span>
           <span className="water-progress">{waterIntake}/{waterGoal} {waterUnit === 'glasses' ? (waterGoal === 1 ? 'glass' : 'glasses') : waterUnit}</span>
         </div>
         <div className="water-intake-controls">
