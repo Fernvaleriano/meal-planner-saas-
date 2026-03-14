@@ -2559,13 +2559,13 @@
                 <button onclick="closeImagePromptModal()" class="text-2xl font-bold">&times;</button>
             </div>
             <p class="text-gray-600 mb-2">Meal: <strong id="image-prompt-meal-name"></strong></p>
-            <p class="text-gray-600 mb-3">Describe how you want the image to look:</p>
+            <p class="text-sm text-gray-500 mb-2">Pick a style or write your own:</p>
+            <div id="prompt-suggestions-container-custom" class="flex flex-col gap-2 mb-3"></div>
             <input type="text" id="custom-image-prompt" class="input-field w-full mb-3"
-                   placeholder="e.g., Shaker cup with protein shake and a banana on the side">
-            <p class="text-xs text-gray-500 mb-4">Tip: Be specific - mention shaker cups, plates, bowls, arrangement, etc.</p>
+                   placeholder="Or describe your own style...">
             <div class="flex gap-2">
                 <button onclick="closeImagePromptModal()" class="btn btn-secondary flex-1">Cancel</button>
-                <button onclick="submitCustomImagePrompt()" id="generate-custom-image-btn" class="btn btn-primary flex-1"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><circle cx="13.5" cy="6.5" r="2.5"/><circle cx="6" cy="12" r="2.5" fill="currentColor" opacity="0.3"/><circle cx="18" cy="16" r="2.5"/><path d="M17 2l-4 4M6 9.5V4M18 13.5V22"/></svg>Generate</button>
+                <button onclick="submitCustomImagePrompt()" id="generate-custom-image-btn" class="btn btn-primary flex-1" disabled><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><circle cx="13.5" cy="6.5" r="2.5"/><circle cx="6" cy="12" r="2.5" fill="currentColor" opacity="0.3"/><circle cx="18" cy="16" r="2.5"/><path d="M17 2l-4 4M6 9.5V4M18 13.5V22"/></svg>Generate</button>
             </div>
         </div>
     </div>
@@ -11471,6 +11471,18 @@ function openImagePromptModal(container, mealName) {
 
     document.getElementById('image-prompt-meal-name').textContent = mealName;
     document.getElementById('custom-image-prompt').value = '';
+    document.getElementById('generate-custom-image-btn').disabled = true;
+
+    // Generate and render smart prompt suggestions
+    const suggestions = generatePromptSuggestions(mealName);
+    const sugContainer = document.getElementById('prompt-suggestions-container-custom');
+    sugContainer.innerHTML = suggestions.map((s, i) => `
+        <button type="button" class="prompt-suggestion" onclick="selectCustomPromptSuggestion(${i}, this)">
+            <span class="prompt-suggestion-icon">${s.icon}</span>
+            <span>${s.text}</span>
+        </button>
+    `).join('');
+
     document.getElementById('image-prompt-modal').classList.remove('hidden');
     document.getElementById('custom-image-prompt').focus();
 }
@@ -11480,6 +11492,15 @@ function closeImagePromptModal() {
     document.getElementById('image-prompt-modal').classList.add('hidden');
     currentImageContainer = null;
     currentMealName = null;
+}
+
+// Handle suggestion click in custom image prompt modal
+function selectCustomPromptSuggestion(index, btnEl) {
+    document.querySelectorAll('#prompt-suggestions-container-custom .prompt-suggestion').forEach(b => b.classList.remove('selected'));
+    btnEl.classList.add('selected');
+    const text = btnEl.querySelector('span:last-child').textContent.trim();
+    document.getElementById('custom-image-prompt').value = text;
+    document.getElementById('generate-custom-image-btn').disabled = false;
 }
 
 // ===== IMAGE STYLING QUESTIONS MODAL =====
@@ -11662,10 +11683,13 @@ async function generateStyledImage() {
 // Listen for custom text input changes
 document.addEventListener('input', (e) => {
     if (e.target.id === 'styling-custom-text') {
-        // Deselect suggestion cards when user manually edits
-        document.querySelectorAll('.prompt-suggestion').forEach(b => b.classList.remove('selected'));
+        document.querySelectorAll('#prompt-suggestions-container .prompt-suggestion').forEach(b => b.classList.remove('selected'));
         stylingState.selectedPrompt = null;
         updateGenerateButtonState();
+    }
+    if (e.target.id === 'custom-image-prompt') {
+        document.querySelectorAll('#prompt-suggestions-container-custom .prompt-suggestion').forEach(b => b.classList.remove('selected'));
+        document.getElementById('generate-custom-image-btn').disabled = !e.target.value.trim();
     }
 });
 
