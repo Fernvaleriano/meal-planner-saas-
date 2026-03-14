@@ -958,35 +958,33 @@ function Progress() {
       )}
 
       {/* Photo Selection Confirmation Modal */}
-      {pendingPhoto && createPortal(
-        <div className="delete-confirm-overlay" onClick={() => setPendingPhoto(null)}>
-          <div className="delete-confirm-modal" onClick={e => e.stopPropagation()}>
+      {pendingPhoto && (
+        <div className="delete-confirm-overlay" onClick={() => setPendingPhoto(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999, padding: '20px' }}>
+          <div className="delete-confirm-modal" onClick={e => e.stopPropagation()} style={{ background: 'var(--card-bg, white)', borderRadius: '16px', padding: '24px', maxWidth: '320px', width: '100%', textAlign: 'center' }}>
             <img
               src={pendingPhoto.url || pendingPhoto.photo_url}
               alt="Selected"
               style={{ width: '100%', maxHeight: '200px', objectFit: 'cover', borderRadius: '12px', marginBottom: '16px' }}
             />
-            <h3>{selectedPhotos.length === 0 ? 'Use as your BEFORE photo?' : 'Use as your AFTER photo?'}</h3>
-            <p>
+            <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px' }}>{selectedPhotos.length === 0 ? 'Use as your BEFORE photo?' : 'Use as your AFTER photo?'}</h3>
+            <p style={{ fontSize: '14px', color: '#94a3b8', marginBottom: '24px', lineHeight: 1.5 }}>
               {selectedPhotos.length === 0
                 ? 'This will be your starting point for comparison.'
                 : 'This will be compared against your before photo.'}
             </p>
-            <div className="delete-confirm-actions">
-              <button className="delete-cancel-btn" onClick={() => setPendingPhoto(null)}>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button className="delete-cancel-btn" onClick={() => setPendingPhoto(null)} style={{ flex: 1, padding: '12px 16px', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: 500, cursor: 'pointer' }}>
                 Cancel
               </button>
               <button
-                className="delete-confirm-btn"
-                style={{ background: 'var(--teal-500, #14b8a6)' }}
                 onClick={confirmPhotoSelection}
+                style={{ flex: 1, padding: '12px 16px', background: '#14b8a6', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: 600, color: 'white', cursor: 'pointer' }}
               >
                 {selectedPhotos.length === 0 ? 'Yes, Before' : 'Yes, After'}
               </button>
             </div>
           </div>
-        </div>,
-        document.body
+        </div>
       )}
 
       {/* Comparison Modal */}
