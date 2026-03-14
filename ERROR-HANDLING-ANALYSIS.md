@@ -23,11 +23,11 @@
 
 ## 1. Executive Summary
 
-**Total issues found: 69**
+**Total issues found: 74**
 - CRITICAL: 12
-- HIGH: 19
-- MEDIUM: 26
-- LOW: 12
+- HIGH: 21
+- MEDIUM: 28
+- LOW: 13
 
 ### The Five Worst Things That Will Bite You
 
@@ -399,7 +399,7 @@ Pattern: `process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co'
 
 ### HIGH-FE-1: Stale Closure in Token Refresh
 
-**File:** `api.js`
+**File:** `src/utils/api.js`
 
 Token refresh is non-blocking — returns potentially-expiring token immediately while refresh happens in background:
 ```javascript
@@ -410,36 +410,136 @@ if (expiryTime - now < SESSION_EXPIRY_BUFFER) {
 ```
 Subsequent API calls may use expired token, get 401, then retry — causing visible errors and data loss if writes were in flight.
 
-### HIGH-FE-2: No Error Boundaries
+**Bright spot:** `api.js:141-195` has excellent promise coalescing that prevents concurrent refresh calls — the session refresh itself is well-implemented, just the pre-emptive return is risky.
 
-No `ErrorBoundary` components found in the React component tree. Any unhandled JavaScript error in a component crashes the entire app with a white screen. No graceful degradation, no error reporting, no recovery.
+### HIGH-FE-2: Error Boundary Exists But Insufficient
 
-### HIGH-FE-3: Double-Submit on Forms
+**File:** `src/components/ErrorBoundary.jsx`
 
-No debouncing or disabled-during-submit pattern on most form submissions. User can:
-- Double-click "Save Meal Plan" → two plans created
-- Double-click "Send Message" → duplicate messages
-- Double-click "Create Client" → duplicate client attempt (may fail on unique constraint, may not)
+An `ErrorBoundary` component exists and is used in `Layout.jsx:113`, but:
+- Only catches render-phase errors (not event handlers or async operations)
+- Logs to `console.error` only — no error telemetry (Sentry, LogRocket, etc.)
+- No granular recovery per component section
+- Single boundary wraps entire app — one crash = full white screen
 
-### MEDIUM-FE-4: Subscription Status Not Checked Mid-Session
+### HIGH-FE-3: FoodModals Double-Submit with No Timeout Reset
+
+**File:** `src/components/FoodModals.jsx:181-240`
+
+Uses `isAddingRef.current` toggle to prevent duplicate form submissions, but **no timeout reset** if API hangs:
+```javascript
+const addAllTooDiary = useCallback(async () => {
+  if (!results || !clientData?.id || isAddingRef.current) return;
+  isAddingRef.current = true;
+  setIsAdding(true);
+  try {
+    const logPromises = foodsToAdd.map((food, idx) =>
+      apiPost('/.netlify/functions/food-diary', { ... })
+    );
+    await Promise.all(logPromises);
+  } finally {
+    isAddingRef.current = false; // Only resets after completion
+  }
+}, [programId, clearDraft, saveDraft]);
+```
+If network timeout (15s from `FETCH_TIMEOUT_MS`) occurs, user cannot add foods again until page reload. Silent failure — no error message shown.
+
+### HIGH-FE-4: Messages Optimistic Update ID Collision
+
+**File:** `src/pages/Messages.jsx:284-313`
+
+Optimistic message IDs use `Date.now()` which can collide in rapid submissions:
+```javascript
+const optimisticId = `optimistic-${Date.now()}`;
+```
+If two messages sent within 1-2ms, IDs match. Deduplication logic `prev.some(m => m.id === newMsg.id)` returns wrong result — duplicate messages appear or real messages get swallowed.
+
+**Fix:** Use `crypto.randomUUID()` or `Date.now()-${Math.random()}`.
+
+### MEDIUM-FE-5: Supabase Realtime Channel Cleanup Race
+
+**File:** `src/pages/Messages.jsx:556-705`
+
+`removeChannel()` is async but cleanup doesn't await it:
+```javascript
+return () => {
+  supabase.removeChannel(channel); // NOT awaited
+};
+```
+New effect may run immediately while old channel is still being torn down → duplicate message handlers → messages processed twice.
+
+**Partial mitigation in code:** Channel name includes `resubscribeKey` counter to avoid collision, but brief overlap still possible.
+
+### MEDIUM-FE-6: Subscription Status Not Checked Mid-Session
 
 Subscription status fetched once on page load. If subscription expires or is canceled during a session (via Stripe webhook), user continues using premium features until they refresh. No realtime subscription status check on API calls.
 
-### MEDIUM-FE-5: Cached Data Staleness Invisible to User
+### MEDIUM-FE-7: Cached Data Staleness Invisible to User
 
 Service worker serves stale cached data with no visual indicator. User sees "Meal Plan: Chicken & Rice" but it could be from last week's cache. No timestamp, no "last updated" badge, no stale data warning.
 
-### MEDIUM-FE-6: localStorage Cache Never Expires
+### MEDIUM-FE-8: localStorage Cache Never Expires + Tampering Risk
 
-`cachedClientData` persists indefinitely in localStorage. If user logs out on one device and someone else uses the browser, cached data still accessible. No TTL, no encryption.
+`cachedClientData` persists indefinitely in localStorage. Multiple risks:
+- **No TTL:** If user logs out, cached data (health info, meal plans) still accessible
+- **No encryption:** Sensitive client data stored in plaintext
+- **No integrity checks:** Malicious scripts could modify cached meal plans, settings, check-in history
+- **Affected files:** `Plans.jsx:40`, `Diary.jsx:22-24`, `Messages.jsx:22-24`, `BrandingContext.jsx:90-97`, `Login.jsx:15`
+- **Mitigation:** Server-side validation on submission (appears implemented)
 
-### MEDIUM-FE-7: Resume Timeout Too Short for iOS
+### MEDIUM-FE-9: Feed Comment Submission Hangs Silently
+
+**File:** `src/pages/Feed.jsx:110-137`
+
+No timeout on comment submission; no user-facing error on failure:
+```javascript
+} catch (err) {
+  console.error('Error adding comment:', err);
+  // No user-facing error message — comment silently fails
+}
+```
+Comment button appears stuck for 15s on slow networks with no feedback.
+
+### MEDIUM-FE-10: Resume Timeout Too Short for iOS
 
 `SESSION_REFRESH_TIMEOUT = 6000` (6 seconds) but iOS PWA HTTP connections can hang 20-30 seconds during app resume. Premature timeout falls back to potentially-invalid cached token.
 
-### LOW-FE-8: No Offline Queue for Writes
+**Bright spot:** `useAppLifecycle.js` has excellent non-blocking resume pattern with heartbeat timer fallback for iOS Safari PWA (which doesn't fire `visibilitychange` consistently).
+
+### MEDIUM-FE-11: Branding URL Injection
+
+**File:** `src/context/BrandingContext.jsx:120-194`
+
+Coach-provided URLs used without validation:
+```javascript
+const logoUrl = brandingData?.brand_logo_url || DEFAULT_LOGO;
+// Used as: <img src={logoUrl} />
+```
+Coach branding URLs could redirect to unexpected destinations. Low risk for images (no XSS via `<img src>`), but CSS custom properties from coach data applied directly to document root.
+
+### LOW-FE-12: No Offline Queue for Writes
 
 When offline, all write operations fail immediately. No queue to retry when connectivity returns. User loses work (typed meal plans, logged workouts, chat messages).
+
+**Bright spot:** Workout autosave (`useWorkoutAutosave.js`) is gold-standard — two-layer protection with localStorage drafts + DB periodic saves, `beforeunload` handler, and stale draft cleanup. This pattern should be extended to other write-heavy features.
+
+### LOW-FE-13: BrandingContext useCallback Inefficiency
+
+**File:** `src/context/BrandingContext.jsx:296-303`
+
+Callbacks memoized but `terminology` dependency changes frequently, defeating memoization. Performance issue, not correctness.
+
+### Architecture Bright Spots (Frontend)
+
+Things done well that should be preserved:
+- **Session refresh promise coalescing** (`api.js:141-195`) — prevents concurrent refresh calls
+- **401/403 auto-retry with token refresh** (`api.js:272-313`) — stale tokens handled transparently
+- **Diary optimistic UI with cache-first rendering** (`Diary.jsx:60-82`) — instant load from cache, background refresh
+- **Workout autosave two-layer pattern** (`useWorkoutAutosave.js`) — survives tab close, browser crash
+- **Messages optimistic message merging** (`Messages.jsx:124-151`) — deduplicates by ID, falls back to content matching, handles replication lag
+- **Protected routes** (`App.jsx:25-54`) — proper auth checks with loading states
+- **Non-blocking app resume** (`useAppLifecycle.js:98-160`) — solves iOS freeze issue
+- **No `dangerouslySetInnerHTML`** — zero instances found in entire codebase (XSS safe)
 
 ---
 
@@ -566,12 +666,18 @@ iOS PWA: 5-10 MB localStorage limit. Large cached datasets may not fit. Session 
 | 27 | get-signed-urls ownership bypass | HIGH | API | No |
 | 28 | Bulk send no array limit | HIGH | API | No |
 | 29 | Stale closure in token refresh | HIGH | Frontend | Partial |
-| 30 | No error boundaries | HIGH | Frontend | No |
-| 31 | Static asset cache too aggressive | HIGH | PWA | No |
-| 32 | HTML cache too long | HIGH | PWA | No |
-| 33 | App ID change = new store listing | HIGH | PWA | No |
-| 34 | No app version detection | HIGH | PWA | No |
-| 35-69 | (See MEDIUM/LOW items above) | MED/LOW | Various | Various |
+| 30 | Error boundary exists but insufficient | HIGH | Frontend | No |
+| 31 | FoodModals double-submit no timeout reset | HIGH | Frontend | No |
+| 32 | Optimistic message ID collision (Date.now) | HIGH | Frontend | No |
+| 33 | Static asset cache too aggressive | HIGH | PWA | No |
+| 34 | HTML cache too long | HIGH | PWA | No |
+| 35 | App ID change = new store listing | HIGH | PWA | No |
+| 36 | No app version detection | HIGH | PWA | No |
+| 37 | Supabase channel cleanup race | MEDIUM | Frontend | Partial |
+| 38 | Feed comment silent failure | MEDIUM | Frontend | No |
+| 39 | Branding URL injection | MEDIUM | Frontend | No |
+| 40 | localStorage tampering risk | MEDIUM | Frontend | Partial |
+| 41-74 | (See MEDIUM/LOW items above) | MED/LOW | Various | Various |
 
 ---
 
@@ -611,8 +717,10 @@ iOS PWA: 5-10 MB localStorage limit. Large cached datasets may not fit. Session 
 8. **Add file type whitelisting** — Reject SVG, allow only jpeg/png/webp/gif
 9. **Add timeout wrappers** — All AI endpoints need `withTimeout(8500)`
 10. **Fix form response RLS** — Require valid form_template_id
-11. **Add error boundaries** — Wrap top-level React components
-12. **Restrict CORS** — Whitelist known domains instead of `*`
+11. **Improve error boundaries** — Add error telemetry, granular recovery per section
+12. **Fix FoodModals submission** — Add timeout wrapper + reset logic to prevent permanent lock
+13. **Fix optimistic message IDs** — Use `crypto.randomUUID()` instead of `Date.now()`
+14. **Restrict CORS** — Whitelist known domains instead of `*`
 13. **Add rate limiting** — At minimum on auth, upload, AI, and chat endpoints
 14. **Fix signed URL ownership bypass** — Require clientId for all requests
 15. **Add failed payment notifications** — Email on `invoice.payment_failed`
@@ -645,6 +753,8 @@ iOS PWA: 5-10 MB localStorage limit. Large cached datasets may not fit. Session 
 ## Closing Thoughts
 
 The authentication infrastructure is **solid where it's applied** — `authenticateCoach()` and `authenticateClientAccess()` are well-designed. The problem is they're only used on ~77% of endpoints. The Stripe integration follows reasonable patterns but lacks the defensive programming (idempotency, transactions, circuit breakers) needed for production payment processing. The PWA layer is sophisticated but the cache invalidation and domain migration story needs work.
+
+The frontend is actually in better shape than the backend — no `dangerouslySetInnerHTML` anywhere, proper protected routes, excellent workout autosave with two-layer persistence, sophisticated optimistic update merging in messages, and a solid non-blocking app resume pattern. The main frontend risks are concentrated in form submission handling (missing timeouts, ID collisions) and async subscription cleanup.
 
 The single most impactful thing you can do is add auth checks to those 38 unprotected functions. That alone eliminates the largest attack surface in the application.
 
