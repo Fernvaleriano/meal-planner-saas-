@@ -43,7 +43,7 @@ CREATE INDEX IF NOT EXISTS idx_coach_payment_plans_active ON coach_payment_plans
 -- 3. Client subscriptions (clients subscribed to coach plans)
 CREATE TABLE IF NOT EXISTS client_subscriptions (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  client_id UUID NOT NULL,
+  client_id BIGINT NOT NULL,
   coach_id UUID NOT NULL REFERENCES coaches(id) ON DELETE CASCADE,
   plan_id UUID NOT NULL REFERENCES coach_payment_plans(id),
   -- Stripe IDs (on the coach's connected account)
@@ -69,7 +69,7 @@ CREATE INDEX IF NOT EXISTS idx_client_subscriptions_stripe ON client_subscriptio
 -- 4. Client payment history
 CREATE TABLE IF NOT EXISTS client_payments (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  client_id UUID NOT NULL,
+  client_id BIGINT NOT NULL,
   coach_id UUID NOT NULL REFERENCES coaches(id) ON DELETE CASCADE,
   plan_id UUID REFERENCES coach_payment_plans(id),
   subscription_id UUID REFERENCES client_subscriptions(id),
@@ -134,7 +134,7 @@ ALTER TABLE client_subscriptions ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Clients can view their own subscriptions" ON client_subscriptions
   FOR SELECT USING (client_id IN (
-    SELECT id FROM clients WHERE user_id = auth.uid()
+    SELECT id::bigint FROM clients WHERE user_id = auth.uid()
   ));
 
 CREATE POLICY "Coaches can view their clients subscriptions" ON client_subscriptions
@@ -145,7 +145,7 @@ ALTER TABLE client_payments ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Clients can view their own payments" ON client_payments
   FOR SELECT USING (client_id IN (
-    SELECT id FROM clients WHERE user_id = auth.uid()
+    SELECT id::bigint FROM clients WHERE user_id = auth.uid()
   ));
 
 CREATE POLICY "Coaches can view their clients payments" ON client_payments
