@@ -500,6 +500,11 @@
             box-shadow: 0 0 6px rgba(139, 92, 246, 0.4);
         }
 
+        .priority-dot--blue {
+            background: #3b82f6;
+            box-shadow: 0 0 6px rgba(59, 130, 246, 0.4);
+        }
+
         .priority-dot--muted {
             background: var(--gray-400);
         }
@@ -4548,7 +4553,7 @@
                 <div class="welcome-card" style="grid-column: 1 / -1;">
                     <span id="tierBadge" class="tier-badge" style="margin-bottom: 8px;">LOADING</span>
                     <div class="action-center" id="actionCenter">
-                        <div class="action-center-heading">Today's Priority</div>
+                        <div class="action-center-heading">Overview</div>
                         <div class="priority-alerts" id="priorityAlerts">
                             <div class="priority-alert priority-alert--loading">
                                 <span class="priority-dot priority-dot--muted"></span>
@@ -4564,19 +4569,7 @@
             <!-- extendedStats container kept for JS compatibility -->
             <div id="extendedStats" style="display:none;"></div>
 
-            <!-- Notifications Overview -->
-            <div class="cag-section" id="notificationsOverviewSection">
-                <div class="cag-header" style="cursor: default;">
-                    <div>
-                        <div class="cag-title">🔔 Notifications</div>
-                        <div class="cag-subtitle">All client activity updates</div>
-                    </div>
-                    <button id="markAllReadOverview" class="mark-all-read-btn" style="display:none;" onclick="markAllOverviewRead()">Mark all read</button>
-                </div>
-                <div class="notif-overview-list" id="notifOverviewList">
-                    <div class="cag-empty">Loading notifications...</div>
-                </div>
-            </div>
+            <!-- Notifications now merged into Today's Priority above -->
 
             <!-- Client Activity At-a-Glance - Collapsed by default -->
             <div class="cag-section cag-collapsed" id="clientActivityGrid">
@@ -5166,6 +5159,24 @@
             return _dismissedFromDb.has(alertId);
         }
 
+        // Navigate and auto-archive a notification item from the overview
+        function reviewAndArchiveNotif(alertId, notifDbId, url) {
+            // Mark notification as read via API
+            fetch('/.netlify/functions/notifications', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ notificationIds: [notifDbId] }),
+                keepalive: true
+            }).catch(e => console.warn('Could not mark notification read:', e));
+
+            // Dismiss from overview
+            _dismissedFromDb.add(alertId);
+            saveLocalDismissed(_dismissedFromDb);
+
+            // Navigate
+            window.location.href = url;
+        }
+
         async function dismissPriorityAlert(e, alertId, el) {
             if (e) {
                 e.stopPropagation();
@@ -5180,6 +5191,41 @@
             }
 
             const isDismissed = _dismissedFromDb.has(alertId);
+
+            // Handle notification-type items differently
+            if (alert.isNotification) {
+                if (isDismissed) {
+                    // Un-dismiss: mark as unread (not supported by API, just remove from local)
+                    _dismissedFromDb.delete(alertId);
+                    saveLocalDismissed(_dismissedFromDb);
+                    renderPriorityAlertSections();
+                } else {
+                    // Dismiss: mark as read
+                    _dismissedFromDb.add(alertId);
+                    saveLocalDismissed(_dismissedFromDb);
+
+                    const alertRow = el ? el.closest('.priority-alert') : null;
+                    if (alertRow) {
+                        alertRow.style.maxHeight = alertRow.offsetHeight + 'px';
+                        requestAnimationFrame(() => alertRow.classList.add('priority-alert--fadeout'));
+                        setTimeout(() => renderPriorityAlertSections(), 450);
+                    } else {
+                        renderPriorityAlertSections();
+                    }
+
+                    // Mark as read via notifications API
+                    try {
+                        await fetch('/.netlify/functions/notifications', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ notificationIds: [alert.notificationId] })
+                        });
+                    } catch (err) {
+                        console.warn('Could not mark notification as read:', err);
+                    }
+                }
+                return;
+            }
 
             if (isDismissed) {
                 // Un-dismiss: remove from local state and localStorage (optimistic)
@@ -6722,9 +6768,7 @@
         }
 
         function renderOverviewNotifications(notifications) {
-            const listEl = document.getElementById('notifOverviewList');
-            const markAllBtn = document.getElementById('markAllReadOverview');
-            if (!listEl) return;
+            if (!notifications || notifications.length === 0) return;
 
             const notifIcons = {
                 progress_photo: '📸',
@@ -6734,57 +6778,75 @@
                 diary_reaction: '❤️',
                 diary_comment: '💬',
                 diet_plan_published: '🍽️',
-                workout_assigned: '💪'
+                workout_assigned: '💪',
+                gym_checkin: '🏋️'
             };
 
-            if (!notifications || notifications.length === 0) {
-                listEl.innerHTML = '<div class="notif-overview-empty">No notifications yet</div>';
-                if (markAllBtn) markAllBtn.style.display = 'none';
-                return;
-            }
+            const notifDotColors = {
+                progress_photo: 'purple',
+                checkin_submitted: 'amber',
+                chat_message: 'blue',
+                gym_checkin: 'green',
+                measurement_logged: 'green'
+            };
 
-            const hasUnread = notifications.some(n => !n.is_read);
-            if (markAllBtn) markAllBtn.style.display = hasUnread ? 'inline' : 'none';
+            // Remove any previously added notification alerts (to avoid duplicates on reload)
+            _allPriorityAlerts = _allPriorityAlerts.filter(a => !a.id.startsWith('notif-'));
 
-            listEl.innerHTML = notifications.map(n => `
-                <div class="notif-overview-row ${n.is_read ? '' : 'unread'}" data-id="${n.id}" data-client-id="${n.related_client_id || ''}" data-type="${n.type || ''}" data-checkin-id="${n.related_checkin_id || ''}">
-                    <div class="notif-overview-icon">${notifIcons[n.type] || '🔔'}</div>
-                    <div class="notif-overview-content">
-                        <div class="notif-overview-title">${n.title}</div>
-                        <div class="notif-overview-message">${n.message || ''}</div>
-                        <div class="notif-overview-time">${formatTimeAgo(n.created_at)}</div>
+            // Add each notification as a priority alert item
+            notifications.forEach(n => {
+                const aid = 'notif-' + n.id;
+                const icon = notifIcons[n.type] || '🔔';
+                const dotColor = notifDotColors[n.type] || 'blue';
+                const clientId = n.related_client_id || '';
+                const checkinId = n.related_checkin_id || '';
+                const timeStr = formatTimeAgo(n.created_at);
+
+                // Build navigation URL
+                let url = '';
+                const isValidClientId = clientId && clientId !== '' && clientId !== 'null' && clientId !== 'undefined';
+                const isValidCheckinId = checkinId && checkinId !== '' && checkinId !== 'null' && checkinId !== 'undefined';
+                if (n.type === 'checkin_submitted' && isValidClientId && isValidCheckinId) {
+                    url = `client-profile.html?clientId=${clientId}#checkin-${checkinId}`;
+                } else if (isValidClientId) {
+                    url = `client-profile.html?clientId=${clientId}`;
+                }
+
+                const clickAction = url ? `onclick="reviewAndArchiveNotif('${aid}', ${n.id}, '${url}')"` : '';
+                const clickableClass = url ? 'priority-alert--clickable' : '';
+                const linkHtml = url ? '<span class="priority-alert-link">View →</span>' : '';
+
+                const html = `
+                    <div class="priority-alert ${clickableClass}" ${clickAction}>
+                        __CHECKBOX__
+                        <span class="priority-dot priority-dot--${dotColor}"></span>
+                        <span>
+                            ${icon} <strong>${n.title || ''}</strong>
+                            ${n.message ? `<span class="priority-alert-detail">${n.message}</span>` : ''}
+                            <span class="priority-alert-detail">· ${timeStr}</span>
+                            ${linkHtml}
+                        </span>
                     </div>
-                </div>
-            `).join('');
+                `;
 
-            // Add click handlers
-            listEl.querySelectorAll('.notif-overview-row').forEach(row => {
-                row.addEventListener('click', async () => {
-                    const notifId = row.dataset.id;
-                    const clientId = row.dataset.clientId;
-                    const notifType = row.dataset.type;
-                    const checkinId = row.dataset.checkinId;
-
-                    // Mark as read
-                    await fetch('/.netlify/functions/notifications', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ notificationIds: [parseInt(notifId)] })
-                    });
-
-                    const isValidClientId = clientId && clientId !== '' && clientId !== 'null' && clientId !== 'undefined';
-                    const isValidCheckinId = checkinId && checkinId !== '' && checkinId !== 'null' && checkinId !== 'undefined';
-
-                    if (notifType === 'checkin_submitted' && isValidClientId && isValidCheckinId) {
-                        window.location.href = `client-profile.html?clientId=${clientId}#checkin-${checkinId}`;
-                    } else if (isValidClientId) {
-                        window.location.href = `client-profile.html?clientId=${clientId}`;
-                    } else {
-                        row.classList.remove('unread');
-                        loadNotifications(currentUserId);
-                    }
+                _allPriorityAlerts.push({
+                    id: aid,
+                    html: html,
+                    clientId: clientId,
+                    reason: 'notification',
+                    relatedCheckinId: checkinId || null,
+                    isNotification: true,
+                    notificationId: n.id
                 });
+
+                // If already read, pre-dismiss it so it goes to Archived
+                if (n.is_read) {
+                    _dismissedFromDb.add(aid);
+                }
             });
+
+            // Re-render the unified priority alerts section
+            renderPriorityAlertSections();
         }
 
         async function markAllOverviewRead() {
@@ -6794,6 +6856,11 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ userId: currentUserId, markAllRead: true })
             });
+            // Also dismiss all notification items in the overview
+            _allPriorityAlerts.filter(a => a.isNotification).forEach(a => {
+                _dismissedFromDb.add(a.id);
+            });
+            saveLocalDismissed(_dismissedFromDb);
             loadNotifications(currentUserId);
         }
 
