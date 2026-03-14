@@ -12137,9 +12137,9 @@
                 myVideosCache = result.videos || [];
                 renderMyVideos(myVideosCache);
 
-                // Show storage usage bar
+                // Show storage warning only when nearing limit (80%+)
                 if (result.storage) {
-                    renderStorageUsage(result.storage);
+                    renderStorageUsage(result.storage, myVideosCache.length);
                 }
             } catch (err) {
                 console.error('Failed to load videos:', err);
@@ -12159,13 +12159,9 @@
             renderMyVideos(filtered);
         }
 
-        function renderStorageUsage(storage) {
-            const usedGB = (storage.used / (1024 * 1024 * 1024)).toFixed(1);
-            const quotaGB = (storage.quota / (1024 * 1024 * 1024)).toFixed(0);
+        function renderStorageUsage(storage, videoCount) {
             const percent = Math.min(100, Math.round((storage.used / storage.quota) * 100));
-            const barColor = percent >= 90 ? '#ef4444' : percent >= 70 ? '#f59e0b' : '#10b981';
 
-            // Insert or update storage bar above the grid
             let storageEl = document.getElementById('videoStorageBar');
             if (!storageEl) {
                 storageEl = document.createElement('div');
@@ -12173,13 +12169,29 @@
                 const grid = document.getElementById('myVideosGrid');
                 grid.parentNode.insertBefore(storageEl, grid);
             }
+
+            // Only show the bar when usage is above 80%
+            if (percent < 80) {
+                storageEl.innerHTML = '';
+                return;
+            }
+
+            const usedGB = (storage.used / (1024 * 1024 * 1024)).toFixed(1);
+            const quotaGB = (storage.quota / (1024 * 1024 * 1024)).toFixed(0);
+            const barColor = percent >= 90 ? '#ef4444' : '#f59e0b';
+            const message = percent >= 90
+                ? `Running low on space — ${usedGB} GB of ${quotaGB} GB used. Upgrade for more.`
+                : `${usedGB} GB of ${quotaGB} GB used`;
+
             storageEl.innerHTML = `
-                <div style="padding:8px 16px;font-size:12px;color:#aaa;display:flex;align-items:center;gap:8px">
-                    <span>Storage: ${usedGB} GB / ${quotaGB} GB</span>
-                    <div style="flex:1;height:6px;background:#333;border-radius:3px;overflow:hidden">
-                        <div style="width:${percent}%;height:100%;background:${barColor};border-radius:3px;transition:width 0.3s"></div>
+                <div style="padding:10px 16px;font-size:12px;color:${percent >= 90 ? '#fca5a5' : '#fcd34d'};background:${percent >= 90 ? 'rgba(239,68,68,0.1)' : 'rgba(245,158,11,0.08)'};border-radius:8px;margin:0 16px 8px">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z"/></svg>
+                        <span>${message}</span>
                     </div>
-                    <span>${percent}%</span>
+                    <div style="height:4px;background:rgba(255,255,255,0.1);border-radius:2px;overflow:hidden">
+                        <div style="width:${percent}%;height:100%;background:${barColor};border-radius:2px"></div>
+                    </div>
                 </div>`;
         }
 
