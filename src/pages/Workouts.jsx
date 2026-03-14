@@ -15,6 +15,8 @@ import ErrorBoundary from '../components/ErrorBoundary';
 import { useToast } from '../components/Toast';
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
 
+const GymProofModal = React.lazy(() => import('../components/GymProofModal'));
+
 // Helper to get date string in LOCAL timezone (NOT UTC)
 // Using toISOString() would give UTC which causes wrong dates near midnight
 const formatDate = (date) => {
@@ -539,6 +541,7 @@ function Workouts() {
   const [showCreateWorkout, setShowCreateWorkout] = useState(false);
   const [showClubWorkouts, setShowClubWorkouts] = useState(false);
   const [showGuidedWorkout, setShowGuidedWorkout] = useState(false);
+  const [showGymProof, setShowGymProof] = useState(false);
   const [showFinishConfirm, setShowFinishConfirm] = useState(false);
   const [showBetaBanner, setShowBetaBanner] = useState(() => {
     return !localStorage.getItem('workouts_beta_banner_dismissed');
@@ -3523,6 +3526,23 @@ function Workouts() {
                   </button>
                 </div>
 
+                {/* Gym Check-In Banner */}
+                {!clientData?.is_coach && (
+                  <button
+                    className="gym-proof-banner"
+                    onClick={() => setShowGymProof(true)}
+                  >
+                    <div className="gym-proof-banner-icon">
+                      <Target size={20} />
+                    </div>
+                    <div className="gym-proof-banner-text">
+                      <span className="gym-proof-banner-title">Gym Check-In</span>
+                      <span className="gym-proof-banner-sub">Snap a photo to prove you were at the gym</span>
+                    </div>
+                    <ChevronRight size={18} className="gym-proof-banner-arrow" />
+                  </button>
+                )}
+
                 {/* Weekly Progress Section */}
                 {weekSchedule && weeklyStats && weeklyStats.totalWorkouts > 0 && (
                   <div className="week-progress-section">
@@ -3640,6 +3660,23 @@ function Workouts() {
                     </button>
                   </div>
                 </div>
+
+                {/* Gym Check-In Banner (Rest Day) */}
+                {!clientData?.is_coach && (
+                  <button
+                    className="gym-proof-banner rest-day-gym-proof"
+                    onClick={() => setShowGymProof(true)}
+                  >
+                    <div className="gym-proof-banner-icon">
+                      <Target size={20} />
+                    </div>
+                    <div className="gym-proof-banner-text">
+                      <span className="gym-proof-banner-title">Gym Check-In</span>
+                      <span className="gym-proof-banner-sub">Snap a photo to prove you were at the gym</span>
+                    </div>
+                    <ChevronRight size={18} className="gym-proof-banner-arrow" />
+                  </button>
+                )}
 
                 {/* Upcoming Schedule Section (Rest Day view) */}
                 {upcomingWorkouts.length > 0 && (
@@ -4427,6 +4464,16 @@ function Workouts() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Gym Proof Modal */}
+      {showGymProof && (
+        <React.Suspense fallback={null}>
+          <GymProofModal
+            isOpen={showGymProof}
+            onClose={() => setShowGymProof(false)}
+          />
+        </React.Suspense>
       )}
     </div>
   );

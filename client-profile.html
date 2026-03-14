@@ -7795,13 +7795,67 @@
                 </div>
             </div>
 
+            <!-- Micronutrient Targets -->
+            <div class="micronutrient-section">
+                <div class="micronutrient-header" onclick="toggleMicronutrientSection()" style="cursor: pointer; display: flex; align-items: center; justify-content: space-between; padding: 12px 0;">
+                    <h4 style="margin: 0; font-size: 14px; color: var(--gray-700);">Micronutrient Targets</h4>
+                    <span id="micronutrientToggleIcon" style="font-size: 12px; color: var(--gray-500); transition: transform 0.2s;">▼</span>
+                </div>
+                <div id="micronutrientFields" style="display: none;">
+                    <div class="goals-grid" style="grid-template-columns: 1fr 1fr;">
+                        <div class="goal-item" style="border-left: 3px solid #8b5cf6;">
+                            <label>Fiber (g)</label>
+                            <input type="number" id="goalFiber" value="" min="0" max="100" step="1" placeholder="28">
+                        </div>
+                        <div class="goal-item" style="border-left: 3px solid #ec4899;">
+                            <label>Sugar (g)</label>
+                            <input type="number" id="goalSugar" value="" min="0" max="200" step="1" placeholder="50">
+                        </div>
+                        <div class="goal-item" style="border-left: 3px solid #ef4444;">
+                            <label>Sodium (mg)</label>
+                            <input type="number" id="goalSodium" value="" min="0" max="10000" step="50" placeholder="2300">
+                        </div>
+                        <div class="goal-item" style="border-left: 3px solid #14b8a6;">
+                            <label>Potassium (mg)</label>
+                            <input type="number" id="goalPotassium" value="" min="0" max="10000" step="50" placeholder="3500">
+                        </div>
+                        <div class="goal-item" style="border-left: 3px solid #f5f5f4; border-left-color: #a8a29e;">
+                            <label>Calcium (mg)</label>
+                            <input type="number" id="goalCalcium" value="" min="0" max="5000" step="50" placeholder="1000">
+                        </div>
+                        <div class="goal-item" style="border-left: 3px solid #b91c1c;">
+                            <label>Iron (mg)</label>
+                            <input type="number" id="goalIron" value="" min="0" max="100" step="1" placeholder="18">
+                        </div>
+                        <div class="goal-item" style="border-left: 3px solid #f59e0b;">
+                            <label>Vitamin C (mg)</label>
+                            <input type="number" id="goalVitaminC" value="" min="0" max="2000" step="5" placeholder="90">
+                        </div>
+                        <div class="goal-item" style="border-left: 3px solid #6366f1;">
+                            <label>Cholesterol (mg)</label>
+                            <input type="number" id="goalCholesterol" value="" min="0" max="1000" step="10" placeholder="300">
+                        </div>
+                    </div>
+                    <p style="font-size: 12px; color: var(--gray-500); margin: 8px 0 0; padding: 0 4px;">Leave blank to use default values. Defaults are shown as placeholders.</p>
+                </div>
+            </div>
+
             <div class="goals-footer">
-                <div class="permission-toggle">
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="canEditGoalsToggle" onchange="toggleClientGoalPermission()">
-                        <span class="toggle-slider"></span>
-                    </label>
-                    <label for="canEditGoalsToggle">Allow client to edit their own goals</label>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <div class="permission-toggle">
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="canEditGoalsToggle" onchange="toggleClientGoalPermission()">
+                            <span class="toggle-slider"></span>
+                        </label>
+                        <label for="canEditGoalsToggle">Allow client to edit macro goals</label>
+                    </div>
+                    <div class="permission-toggle">
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="canEditMicroGoalsToggle" onchange="toggleClientMicroGoalPermission()">
+                            <span class="toggle-slider"></span>
+                        </label>
+                        <label for="canEditMicroGoalsToggle">Allow client to edit micronutrient goals</label>
+                    </div>
                 </div>
                 <button class="goals-save-btn" onclick="saveClientGoals()" id="saveGoalsBtn">Save Goals</button>
             </div>
@@ -8385,15 +8439,35 @@
             </div>
         </div>
 
-        <!-- Check-ins Section -->
+        <!-- Gym Check-Ins Section -->
+        <div class="checkins-section" id="gymProofsSection">
+            <div class="checkins-header collapsible-header" onclick="toggleSection('gymProofs')" style="cursor: pointer;">
+                <h2 class="checkins-title">📸 Gym Check-Ins</h2>
+                <button class="section-toggle-btn" type="button">
+                    <span class="toggle-icon" id="gymProofsToggleIcon">▼</span>
+                </button>
+            </div>
+            <div id="gymProofsContent" class="collapsible-content">
+                <div id="gymProofsContainer">
+                    <div class="loading skeleton-loading">
+                        <div class="skeleton-checkin">
+                            <div class="skeleton skeleton-checkin-date"></div>
+                            <div class="skeleton skeleton-checkin-content"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Check-ins Section (collapsed by default) -->
         <div class="checkins-section">
             <div class="checkins-header collapsible-header" onclick="toggleSection('checkins')" style="cursor: pointer;">
                 <h2 class="checkins-title">📝 Check-ins</h2>
                 <button class="section-toggle-btn" type="button">
-                    <span class="toggle-icon" id="checkinsToggleIcon">▼</span>
+                    <span class="toggle-icon collapsed" id="checkinsToggleIcon">▼</span>
                 </button>
             </div>
-            <div id="checkinsContent" class="collapsible-content">
+            <div id="checkinsContent" class="collapsible-content collapsed">
                 <div id="checkinsContainer">
                     <div class="loading skeleton-loading">
                         <div class="skeleton-checkin">
@@ -8707,6 +8781,7 @@
         const GET_MEASUREMENTS_ENDPOINT = '/.netlify/functions/get-measurements';
         const CHECKIN_ENDPOINT = '/.netlify/functions/save-checkin';
         const RESPOND_CHECKIN_ENDPOINT = '/.netlify/functions/respond-checkin';
+        const GYM_PROOF_ENDPOINT = '/.netlify/functions/save-gym-proof';
         const FAVORITES_ENDPOINT = '/.netlify/functions/toggle-favorite';
         const CLIENT_PROTOCOLS_ENDPOINT = '/.netlify/functions/client-protocols';
 
@@ -8924,6 +8999,7 @@
                 loadPhotos(clientId),
                 loadMeasurements(clientId),
                 loadCheckins(clientId),
+                loadGymProofs(clientId),
                 loadFavorites(clientId),
                 loadFoodDiary(clientId),
                 loadWorkoutLogs(clientId),
@@ -9019,8 +9095,9 @@
             // Load goals (drawer handles visibility)
             loadClientGoals(client.id);
 
-            // Set the can_edit_goals toggle based on client data
+            // Set the can_edit_goals toggles based on client data
             document.getElementById('canEditGoalsToggle').checked = client.can_edit_goals || false;
+            document.getElementById('canEditMicroGoalsToggle').checked = client.can_edit_micronutrient_goals || false;
 
             // Display client stats and calculate initial values
             displayClientStats();
@@ -9403,6 +9480,16 @@
                     document.getElementById('goalCarbs').value = carbs;
                     document.getElementById('goalFat').value = fat;
 
+                    // Populate micronutrient fields (leave blank if null to show placeholder defaults)
+                    document.getElementById('goalFiber').value = data.goals.fiber_goal || '';
+                    document.getElementById('goalSugar').value = data.goals.sugar_goal || '';
+                    document.getElementById('goalSodium').value = data.goals.sodium_goal || '';
+                    document.getElementById('goalPotassium').value = data.goals.potassium_goal || '';
+                    document.getElementById('goalCalcium').value = data.goals.calcium_goal || '';
+                    document.getElementById('goalIron').value = data.goals.iron_goal || '';
+                    document.getElementById('goalVitaminC').value = data.goals.vitamin_c_goal || '';
+                    document.getElementById('goalCholesterol').value = data.goals.cholesterol_goal || '';
+
                     // Calculate and display percentages
                     calculatePercentagesFromGrams();
                 }
@@ -9435,6 +9522,16 @@
                     fat = parseInt(document.getElementById('goalFat').value) || 65;
                 }
 
+                // Get micronutrient values (send null if empty to use defaults)
+                const fiberVal = document.getElementById('goalFiber').value;
+                const sugarVal = document.getElementById('goalSugar').value;
+                const sodiumVal = document.getElementById('goalSodium').value;
+                const potassiumVal = document.getElementById('goalPotassium').value;
+                const calciumVal = document.getElementById('goalCalcium').value;
+                const ironVal = document.getElementById('goalIron').value;
+                const vitaminCVal = document.getElementById('goalVitaminC').value;
+                const cholesterolVal = document.getElementById('goalCholesterol').value;
+
                 const response = await fetch('/.netlify/functions/calorie-goals', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -9444,7 +9541,15 @@
                         calorieGoal: calories,
                         proteinGoal: protein,
                         carbsGoal: carbs,
-                        fatGoal: fat
+                        fatGoal: fat,
+                        fiberGoal: fiberVal ? parseFloat(fiberVal) : null,
+                        sugarGoal: sugarVal ? parseFloat(sugarVal) : null,
+                        sodiumGoal: sodiumVal ? parseFloat(sodiumVal) : null,
+                        potassiumGoal: potassiumVal ? parseFloat(potassiumVal) : null,
+                        calciumGoal: calciumVal ? parseFloat(calciumVal) : null,
+                        ironGoal: ironVal ? parseFloat(ironVal) : null,
+                        vitaminCGoal: vitaminCVal ? parseFloat(vitaminCVal) : null,
+                        cholesterolGoal: cholesterolVal ? parseFloat(cholesterolVal) : null
                     })
                 });
 
@@ -9488,6 +9593,44 @@
                 // Revert toggle on error
                 document.getElementById('canEditGoalsToggle').checked = !canEdit;
                 alert('Failed to update permission');
+            }
+        }
+
+        // Toggle whether client can edit their own micronutrient goals
+        async function toggleClientMicroGoalPermission() {
+            const canEdit = document.getElementById('canEditMicroGoalsToggle').checked;
+
+            try {
+                const { error } = await supabaseClient
+                    .from('clients')
+                    .update({ can_edit_micronutrient_goals: canEdit })
+                    .eq('id', clientId)
+                    .eq('coach_id', currentUser.id);
+
+                if (error) throw error;
+
+                if (currentClient) {
+                    currentClient.can_edit_micronutrient_goals = canEdit;
+                }
+
+                console.log('Client micronutrient goal permission updated:', canEdit);
+            } catch (err) {
+                console.error('Error updating micronutrient goal permission:', err);
+                document.getElementById('canEditMicroGoalsToggle').checked = !canEdit;
+                alert('Failed to update permission');
+            }
+        }
+
+        // Toggle micronutrient section visibility
+        function toggleMicronutrientSection() {
+            const fields = document.getElementById('micronutrientFields');
+            const icon = document.getElementById('micronutrientToggleIcon');
+            if (fields.style.display === 'none') {
+                fields.style.display = 'block';
+                icon.textContent = '▲';
+            } else {
+                fields.style.display = 'none';
+                icon.textContent = '▼';
             }
         }
 
@@ -11074,6 +11217,60 @@
                 btn.textContent = 'Send Response';
                 btn.disabled = false;
             }
+        }
+
+        // ========== GYM PROOFS FUNCTIONS ==========
+
+        let gymProofs = [];
+
+        async function loadGymProofs(clientId) {
+            try {
+                const response = await fetch(`${GYM_PROOF_ENDPOINT}?clientId=${clientId}&limit=50`);
+                if (!response.ok) throw new Error('Failed to load gym proofs');
+                const data = await response.json();
+                gymProofs = data.proofs || [];
+                displayGymProofs(data.streak || 0);
+            } catch (error) {
+                console.error('Error loading gym proofs:', error);
+                document.getElementById('gymProofsContainer').innerHTML = `
+                    <div class="empty-state">
+                        <p>Unable to load gym check-ins</p>
+                    </div>
+                `;
+            }
+        }
+
+        function displayGymProofs(streak) {
+            const container = document.getElementById('gymProofsContainer');
+
+            if (gymProofs.length === 0) {
+                document.getElementById('gymProofsSection').style.display = 'none';
+                return;
+            }
+
+            const streakBadge = streak > 0
+                ? `<div style="display: inline-flex; align-items: center; gap: 4px; background: linear-gradient(135deg, #f97316, #ef4444); color: white; padding: 4px 10px; border-radius: 12px; font-size: 13px; font-weight: 600; margin-bottom: 12px;">🔥 ${streak} day streak</div>`
+                : '';
+
+            container.innerHTML = `
+                ${streakBadge}
+                <div class="gym-proofs-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px;">
+                    ${gymProofs.map(p => {
+                        const date = new Date(p.proof_date + 'T00:00:00');
+                        const dateStr = date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                        const timeStr = p.proof_time ? new Date(p.proof_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : '';
+                        return `
+                            <div class="gym-proof-card" style="border-radius: 10px; overflow: hidden; background: var(--card-bg, #f7fafc); box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                                <img src="${p.photo_url}" alt="Gym proof" style="width: 100%; aspect-ratio: 3/4; object-fit: cover; cursor: pointer;" onclick="window.open('${p.photo_url}', '_blank')" />
+                                <div style="padding: 8px; text-align: center;">
+                                    <div style="font-size: 12px; font-weight: 600; color: var(--text-primary, #2d3748);">${dateStr}</div>
+                                    ${timeStr ? `<div style="font-size: 11px; color: var(--text-secondary, #718096);">${timeStr}</div>` : ''}
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
         }
 
         // ========== FAVORITES FUNCTIONS ==========

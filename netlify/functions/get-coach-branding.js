@@ -181,6 +181,9 @@ exports.handler = async (event, context) => {
             client_modules: coach.client_modules || DEFAULT_BRANDING.client_modules,
             custom_terminology: coach.custom_terminology || DEFAULT_BRANDING.custom_terminology,
 
+            // Coach profile
+            profile_photo_url: coach.profile_photo_url || null,
+
             // Metadata
             branding_updated_at: coach.branding_updated_at,
 

@@ -265,7 +265,7 @@
                     </svg>
                 </div>
                 <div class="pwa-install-text">
-                    <div class="pwa-install-title">Install Zique Fitness</div>
+                    <div class="pwa-install-title">Install Zique Fitness Nutrition</div>
                     <p class="pwa-install-description">Add to your home screen for quick access, offline support, and a native app experience.</p>
                 </div>
             </div>

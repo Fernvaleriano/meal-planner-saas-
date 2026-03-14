@@ -108,7 +108,7 @@ exports.handler = async (event) => {
       if (!coachId) {
         const { data: client, error: clientError } = await supabase
           .from('clients')
-          .select('can_edit_goals')
+          .select('can_edit_goals, can_edit_micronutrient_goals')
           .eq('id', clientId)
           .single();
 
@@ -121,7 +121,28 @@ exports.handler = async (event) => {
           };
         }
 
-        if (!client || !client.can_edit_goals) {
+        const hasMacroChanges = calorieGoal !== undefined || proteinGoal !== undefined || carbsGoal !== undefined || fatGoal !== undefined;
+        const hasMicroChanges = fiberGoal !== undefined || sugarGoal !== undefined || sodiumGoal !== undefined ||
+          potassiumGoal !== undefined || calciumGoal !== undefined || ironGoal !== undefined ||
+          vitaminCGoal !== undefined || cholesterolGoal !== undefined;
+
+        if (hasMacroChanges && (!client || !client.can_edit_goals)) {
+          return {
+            statusCode: 403,
+            headers,
+            body: JSON.stringify({ error: 'You do not have permission to edit macro goals. Please contact your coach.' })
+          };
+        }
+
+        if (hasMicroChanges && (!client || !client.can_edit_micronutrient_goals)) {
+          return {
+            statusCode: 403,
+            headers,
+            body: JSON.stringify({ error: 'You do not have permission to edit micronutrient goals. Please contact your coach.' })
+          };
+        }
+
+        if (!hasMacroChanges && !hasMicroChanges) {
           return {
             statusCode: 403,
             headers,

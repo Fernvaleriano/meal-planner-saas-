@@ -69,7 +69,7 @@ exports.handler = async (event) => {
         // Create Stripe billing portal session
         const session = await stripe.billingPortal.sessions.create({
             customer: coach.stripe_customer_id,
-            return_url: `${process.env.URL || 'https://ziquefitness.com'}/dashboard.html`
+            return_url: `${process.env.URL || 'https://ziquefitnessnutrition.com'}/dashboard.html`
         });
 
         return {

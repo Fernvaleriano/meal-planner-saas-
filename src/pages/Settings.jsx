@@ -412,9 +412,9 @@ function Settings() {
         <div className="settings-card-title">MY COACH</div>
         <div className="settings-item coach-item">
           <div className="coach-info">
-            {coachData?.brand_logo_url ? (
+            {coachData?.profile_photo_url ? (
               <img
-                src={coachData.brand_logo_url}
+                src={coachData.profile_photo_url}
                 alt={coachData.coach_name}
                 className="coach-avatar-img"
               />

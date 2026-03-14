@@ -32,15 +32,6 @@ function CheckIn() {
     window.scrollTo(0, 0);
   }, []);
 
-  useEffect(() => {
-    if (clientData?.id) {
-      loadHistory();
-    }
-  }, [clientData?.id]);
-
-  // Respond to global pull-to-refresh gesture
-  usePullToRefreshEvent(loadHistory);
-
   const loadHistory = async () => {
     setLoadingHistory(true);
     try {
@@ -56,6 +47,15 @@ function CheckIn() {
       setLoadingHistory(false);
     }
   };
+
+  useEffect(() => {
+    if (clientData?.id) {
+      loadHistory();
+    }
+  }, [clientData?.id]);
+
+  // Respond to global pull-to-refresh gesture
+  usePullToRefreshEvent(loadHistory);
 
   const handleRating = (type, value) => {
     setRatings(prev => ({ ...prev, [type]: value }));
