@@ -15426,14 +15426,20 @@ textarea,
     width: calc(100% - 32px);
     margin: 12px 16px 18px;
     padding: 18px 18px;
-    background: linear-gradient(135deg, rgba(13, 148, 136, 0.2) 0%, rgba(59, 130, 246, 0.18) 50%, rgba(168, 85, 247, 0.14) 100%);
-    border: 1.5px solid rgba(13, 148, 136, 0.35);
+    background: linear-gradient(135deg, rgba(13, 148, 136, 0.1) 0%, rgba(59, 130, 246, 0.08) 50%, rgba(168, 85, 247, 0.06) 100%);
+    border: 1.5px solid rgba(13, 148, 136, 0.25);
     border-radius: 16px;
     cursor: pointer;
     transition: all 0.2s ease;
     -webkit-tap-highlight-color: transparent;
     position: relative;
     overflow: hidden;
+    box-shadow: 0 2px 8px rgba(13, 148, 136, 0.08);
+}
+
+[data-theme="dark"] .gym-proof-banner {
+    background: linear-gradient(135deg, rgba(13, 148, 136, 0.2) 0%, rgba(59, 130, 246, 0.18) 50%, rgba(168, 85, 247, 0.14) 100%);
+    border: 1.5px solid rgba(13, 148, 136, 0.35);
     box-shadow: 0 0 20px rgba(13, 148, 136, 0.15), 0 0 40px rgba(59, 130, 246, 0.08);
 }
 
@@ -15456,6 +15462,10 @@ textarea,
 
 .gym-proof-banner:active {
     transform: scale(0.97);
+    background: linear-gradient(135deg, rgba(13, 148, 136, 0.15) 0%, rgba(59, 130, 246, 0.12) 50%, rgba(168, 85, 247, 0.1) 100%);
+}
+
+[data-theme="dark"] .gym-proof-banner:active {
     background: linear-gradient(135deg, rgba(13, 148, 136, 0.3) 0%, rgba(59, 130, 246, 0.25) 50%, rgba(168, 85, 247, 0.2) 100%);
 }
 
@@ -15487,18 +15497,31 @@ textarea,
 .gym-proof-banner-title {
     font-size: 16px;
     font-weight: 800;
-    color: rgba(255, 255, 255, 0.95);
+    color: #0d7377;
     letter-spacing: -0.2px;
 }
 
 .gym-proof-banner-sub {
     font-size: 13px;
-    color: rgba(255, 255, 255, 0.55);
+    color: #4a7c80;
 }
 
 .gym-proof-banner-arrow {
-    color: rgba(255, 255, 255, 0.4);
+    color: #5a9ca0;
     flex-shrink: 0;
+}
+
+/* Dark mode overrides for gym proof banner */
+[data-theme="dark"] .gym-proof-banner-title {
+    color: rgba(255, 255, 255, 0.95);
+}
+
+[data-theme="dark"] .gym-proof-banner-sub {
+    color: rgba(255, 255, 255, 0.55);
+}
+
+[data-theme="dark"] .gym-proof-banner-arrow {
+    color: rgba(255, 255, 255, 0.4);
 }
 
 /* ===== Gym Proof Modal ===== */
