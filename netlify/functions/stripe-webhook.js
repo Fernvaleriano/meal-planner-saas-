@@ -294,6 +294,14 @@ async function handleCheckoutComplete(session) {
             console.error('Error sending admin notification:', notifyError);
         }
 
+        // Seed sample data for new coaches so they can explore the platform
+        try {
+            const { seedSampleData } = require('./utils/seed-sample-data-helper');
+            await seedSampleData(supabase, userId);
+        } catch (seedError) {
+            console.error('Error seeding sample data (non-fatal):', seedError);
+        }
+
     }
 }
 
