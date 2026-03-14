@@ -3,11 +3,12 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   ChevronLeft, Save, Plus, Dumbbell, Trash2, Clock, Hash, ArrowLeftRight,
   ChevronDown, MoreVertical, Pencil, X, Loader2, Users, Search, Copy,
-  GripVertical, Link2, Image, FileDown, Info, Play
+  GripVertical, Link2, Image, FileDown, Info, Play, CloudOff, Check, RefreshCw
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, apiPut } from '../utils/api';
 import { useToast } from '../components/Toast';
+import { useWorkoutAutosave, loadWorkoutDraft, cleanupStaleDrafts } from '../hooks/useWorkoutAutosave';
 import AddActivityModal from '../components/workout/AddActivityModal';
 import SwapExerciseModal from '../components/workout/SwapExerciseModal';
 import SmartThumbnail from '../components/workout/SmartThumbnail';
@@ -93,6 +94,53 @@ function WorkoutBuilder() {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [showSettings, setShowSettings] = useState(!programId);
   const [showPrintModal, setShowPrintModal] = useState(false);
+  const [draftRecovery, setDraftRecovery] = useState(null);
+
+  // Autosave hook
+  const getAutosaveState = useCallback(() => ({
+    programName,
+    description,
+    difficulty,
+    category,
+    frequency,
+    heroImageUrl,
+    days,
+  }), [programName, description, difficulty, category, frequency, heroImageUrl, days]);
+
+  const { autosaveStatus, onManualSave, clearDraft } = useWorkoutAutosave({
+    programId,
+    getState: getAutosaveState,
+    hasChanges: hasUnsavedChanges,
+    onDbSaved: () => setHasUnsavedChanges(false),
+  });
+
+  // Check for draft recovery on mount
+  useEffect(() => {
+    cleanupStaleDrafts();
+    const draft = loadWorkoutDraft(programId);
+    if (draft) {
+      setDraftRecovery(draft);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const restoreDraft = useCallback((draft) => {
+    const d = draft.data;
+    if (d.programName != null) setProgramName(d.programName);
+    if (d.description != null) setDescription(d.description);
+    if (d.difficulty) setDifficulty(d.difficulty);
+    if (d.category) setCategory(d.category);
+    if (d.frequency) setFrequency(d.frequency);
+    if (d.heroImageUrl != null) setHeroImageUrl(d.heroImageUrl);
+    if (d.days?.length > 0) setDays(d.days);
+    setDraftRecovery(null);
+    clearDraft();
+    showSuccess('Draft restored');
+  }, [clearDraft, showSuccess]);
+
+  const dismissDraft = useCallback(() => {
+    setDraftRecovery(null);
+    clearDraft();
+  }, [clearDraft]);
 
   // Load existing program
   useEffect(() => {
@@ -411,6 +459,7 @@ function WorkoutBuilder() {
       }
 
       setHasUnsavedChanges(false);
+      onManualSave();
     } catch (err) {
       console.error('Error saving program:', err);
       showError('Failed to save program');
@@ -482,6 +531,24 @@ function WorkoutBuilder() {
           >
             <FileDown size={20} />
           </button>
+          {autosaveStatus === 'saving' && (
+            <span className="wb-autosave-status saving">
+              <Loader2 size={14} className="wp-spinner" />
+              <span>Saving...</span>
+            </span>
+          )}
+          {autosaveStatus === 'saved' && (
+            <span className="wb-autosave-status saved">
+              <Check size={14} />
+              <span>Saved</span>
+            </span>
+          )}
+          {autosaveStatus === 'error' && (
+            <span className="wb-autosave-status error">
+              <CloudOff size={14} />
+              <span>Offline</span>
+            </span>
+          )}
           <button
             className={`wb-save-btn ${hasUnsavedChanges ? 'unsaved' : ''}`}
             onClick={handleSave}
@@ -492,6 +559,28 @@ function WorkoutBuilder() {
           </button>
         </div>
       </div>
+
+      {/* Draft Recovery Banner */}
+      {draftRecovery && (
+        <div className="wb-draft-banner">
+          <div className="wb-draft-banner-content">
+            <CloudOff size={16} />
+            <span>
+              Unsaved draft found from {new Date(draftRecovery.timestamp).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+            </span>
+          </div>
+          <div className="wb-draft-banner-actions">
+            <button className="wb-draft-restore-btn" onClick={() => restoreDraft(draftRecovery)}>
+              <RefreshCw size={14} />
+              Restore
+            </button>
+            <button className="wb-draft-dismiss-btn" onClick={dismissDraft}>
+              <X size={14} />
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Program Settings Dropdown */}
       {showSettings && (

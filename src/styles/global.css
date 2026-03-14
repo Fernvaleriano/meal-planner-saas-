@@ -35171,6 +35171,92 @@ textarea,
     cursor: not-allowed;
 }
 
+/* Autosave Status Indicator */
+.wb-autosave-status {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 4px 8px;
+    border-radius: 6px;
+    white-space: nowrap;
+}
+
+.wb-autosave-status.saving {
+    color: #1976D2;
+}
+
+.wb-autosave-status.saved {
+    color: #2E7D32;
+}
+
+.wb-autosave-status.error {
+    color: #D32F2F;
+}
+
+/* Draft Recovery Banner */
+.wb-draft-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    background: #FFF3E0;
+    border-bottom: 1px solid #FFE0B2;
+    gap: 12px;
+}
+
+.wb-draft-banner-content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: #E65100;
+    font-weight: 500;
+}
+
+.wb-draft-banner-actions {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.wb-draft-restore-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 14px;
+    background: #FF9800;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.wb-draft-restore-btn:hover {
+    background: #F57C00;
+}
+
+.wb-draft-dismiss-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 14px;
+    background: transparent;
+    color: #999;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.wb-draft-dismiss-btn:hover {
+    background: #f5f5f5;
+}
+
 /* Program Settings Dropdown */
 .wb-settings-dropdown {
     background: white;
