@@ -789,15 +789,15 @@
         }
 
         .mockup-macro-ring .ring-fill.protein {
-            stroke: #3b82f6;
+            stroke: var(--preview-secondary, #3b82f6);
         }
 
         .mockup-macro-ring .ring-fill.carbs {
-            stroke: #f59e0b;
+            stroke: var(--preview-accent, #f59e0b);
         }
 
         .mockup-macro-ring .ring-fill.fat {
-            stroke: #ef4444;
+            stroke: var(--preview-secondary, #ef4444);
         }
 
         .mockup-macro-value {
@@ -2038,11 +2038,13 @@
         function updatePreview() {
             const primary = currentBranding.brand_primary_color;
             const secondary = currentBranding.brand_secondary_color;
+            const accent = currentBranding.brand_accent_color;
             const brandName = currentBranding.brand_name || 'Zique Fitness Nutrition';
 
             // Update CSS variables for preview
             document.documentElement.style.setProperty('--preview-primary', primary);
             document.documentElement.style.setProperty('--preview-secondary', secondary);
+            document.documentElement.style.setProperty('--preview-accent', accent);
 
             // Update mockup header
             document.getElementById('mockupHeader').style.background = primary;
@@ -2081,12 +2083,18 @@
                 item.style.color = primary;
             });
 
-            // Update AI badge
+            // Update AI badge with accent color
             var aiBadge = document.querySelector('.mockup-ai-badge');
             if (aiBadge) {
-                aiBadge.style.color = primary;
-                aiBadge.style.background = primary + '14';
+                aiBadge.style.color = accent;
+                aiBadge.style.background = accent + '14';
             }
+
+            // Update email preview buttons with secondary color
+            document.querySelectorAll('.email-preview-btn').forEach(function(btn) {
+                btn.style.background = secondary;
+                btn.style.borderColor = secondary;
+            });
         }
 
         // Logo upload functions
