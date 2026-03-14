@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useBranding } from '../context/BrandingContext';
-import { Moon, Camera, Lock, LogOut, ChevronRight, Loader, Users, Scale, User, Utensils, Edit3, X, Palette, Droplets } from 'lucide-react';
+import { Moon, Camera, Lock, LogOut, ChevronRight, Loader, Users, Scale, User, Utensils, Edit3, X, Palette, Droplets, CreditCard } from 'lucide-react';
 import { apiGet, apiPost, apiPut } from '../utils/api';
 import { supabase } from '../utils/supabase';
 import { usePullToRefreshEvent } from '../hooks/usePullToRefreshEvent';
@@ -769,6 +769,40 @@ function Settings() {
               <div className="settings-item-text">
                 <div className="settings-item-title">Branding Settings</div>
                 <div className="settings-item-subtitle">Colors, fonts, modules, terminology</div>
+              </div>
+            </div>
+            <ChevronRight size={20} className="settings-chevron" />
+          </Link>
+
+          <div className="settings-divider"></div>
+
+          <Link to="/billing" className="settings-item clickable" style={{ textDecoration: 'none', color: 'inherit' }}>
+            <div className="settings-item-left">
+              <div className="settings-icon-box green">
+                <CreditCard size={20} />
+              </div>
+              <div className="settings-item-text">
+                <div className="settings-item-title">Client Billing</div>
+                <div className="settings-item-subtitle">Payment plans, revenue, promo codes</div>
+              </div>
+            </div>
+            <ChevronRight size={20} className="settings-chevron" />
+          </Link>
+        </div>
+      )}
+
+      {/* Client Billing - Non-coach users */}
+      {!isCoach && (
+        <div className="settings-card">
+          <div className="settings-card-title">BILLING</div>
+          <Link to="/my-billing" className="settings-item clickable" style={{ textDecoration: 'none', color: 'inherit' }}>
+            <div className="settings-item-left">
+              <div className="settings-icon-box green">
+                <CreditCard size={20} />
+              </div>
+              <div className="settings-item-text">
+                <div className="settings-item-title">Billing & Subscription</div>
+                <div className="settings-item-subtitle">Manage your plan, payments, invoices</div>
               </div>
             </div>
             <ChevronRight size={20} className="settings-chevron" />
