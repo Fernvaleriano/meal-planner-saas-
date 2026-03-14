@@ -56,8 +56,10 @@ function Settings() {
 
   // Water intake preference states
   const [waterGoal, setWaterGoal] = useState(clientData?.water_goal || 8);
+  const [waterGoalInput, setWaterGoalInput] = useState(String(clientData?.water_goal || 8));
   const [waterUnit, setWaterUnit] = useState(clientData?.water_unit || 'glasses');
-  const [waterPrefLoading, setWaterPrefLoading] = useState(false);
+  const [waterGoalLoading, setWaterGoalLoading] = useState(false);
+  const [waterUnitLoading, setWaterUnitLoading] = useState(false);
 
   // Profile edit states
   const [showProfileModal, setShowProfileModal] = useState(false);
@@ -172,7 +174,10 @@ function Settings() {
 
   // Sync water preferences when clientData loads
   useEffect(() => {
-    if (clientData?.water_goal) setWaterGoal(clientData.water_goal);
+    if (clientData?.water_goal) {
+      setWaterGoal(clientData.water_goal);
+      setWaterGoalInput(String(clientData.water_goal));
+    }
     if (clientData?.water_unit) setWaterUnit(clientData.water_unit);
   }, [clientData?.water_goal, clientData?.water_unit]);
 
@@ -381,35 +386,60 @@ function Settings() {
     }
   };
 
-  // Handle water preference changes (goal or unit)
-  const handleWaterPrefChange = async (newGoal, newUnit) => {
-    if (!clientData?.id || waterPrefLoading) return;
+  // Handle water goal change (on blur from number input)
+  const handleWaterGoalSave = async (value) => {
+    const parsed = parseInt(value, 10);
+    if (!clientData?.id || waterGoalLoading || isNaN(parsed) || parsed < 1 || parsed > 200) return;
+    if (parsed === waterGoal) return; // No change
 
-    setWaterPrefLoading(true);
+    setWaterGoalLoading(true);
     const previousGoal = waterGoal;
-    const previousUnit = waterUnit;
-    if (newGoal !== undefined) setWaterGoal(newGoal);
-    if (newUnit !== undefined) setWaterUnit(newUnit);
+    setWaterGoal(parsed);
 
     try {
-      const payload = { clientId: clientData.id };
-      if (newGoal !== undefined) payload.waterGoal = newGoal;
-      if (newUnit !== undefined) payload.waterUnit = newUnit;
-
-      const response = await apiPost('/.netlify/functions/client-workout-preferences', payload);
-
+      const response = await apiPost('/.netlify/functions/client-workout-preferences', {
+        clientId: clientData.id,
+        waterGoal: parsed
+      });
       if (response.success) {
         await refreshClientData();
       } else {
-        throw new Error(response.error || 'Failed to update water preference');
+        throw new Error(response.error || 'Failed to update water goal');
       }
     } catch (err) {
-      console.error('Error updating water preference:', err);
+      console.error('Error updating water goal:', err);
       setWaterGoal(previousGoal);
-      setWaterUnit(previousUnit);
-      showError('Failed to update water preference. Please try again.');
+      setWaterGoalInput(String(previousGoal));
+      showError('Failed to update water goal. Please try again.');
     } finally {
-      setWaterPrefLoading(false);
+      setWaterGoalLoading(false);
+    }
+  };
+
+  // Handle water unit change (from dropdown)
+  const handleWaterUnitChange = async (newUnit) => {
+    if (!clientData?.id || waterUnitLoading) return;
+
+    setWaterUnitLoading(true);
+    const previousUnit = waterUnit;
+    setWaterUnit(newUnit);
+
+    try {
+      const response = await apiPost('/.netlify/functions/client-workout-preferences', {
+        clientId: clientData.id,
+        waterUnit: newUnit
+      });
+      if (response.success) {
+        await refreshClientData();
+      } else {
+        throw new Error(response.error || 'Failed to update water unit');
+      }
+    } catch (err) {
+      console.error('Error updating water unit:', err);
+      setWaterUnit(previousUnit);
+      showError('Failed to update water unit. Please try again.');
+    } finally {
+      setWaterUnitLoading(false);
     }
   };
 
@@ -721,37 +751,35 @@ function Settings() {
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            {waterPrefLoading ? (
+            {waterGoalLoading ? (
               <Loader size={20} className="spin" style={{ color: 'var(--gray-400)' }} />
             ) : (
-              <>
-                <input
-                  type="number"
-                  min="1"
-                  max="200"
-                  value={waterGoal}
-                  onChange={(e) => {
-                    const val = parseInt(e.target.value, 10);
-                    if (!isNaN(val) && val >= 1 && val <= 200) {
-                      handleWaterPrefChange(val, undefined);
-                    }
-                  }}
-                  className="gender-select"
-                  style={{ width: '60px', textAlign: 'center' }}
-                  disabled={waterPrefLoading}
-                />
-                <select
-                  value={waterUnit}
-                  onChange={(e) => handleWaterPrefChange(undefined, e.target.value)}
-                  className="gender-select"
-                  disabled={waterPrefLoading}
-                >
-                  <option value="glasses">glasses</option>
-                  <option value="oz">oz</option>
-                  <option value="ml">mL</option>
-                  <option value="L">liters</option>
-                </select>
-              </>
+              <input
+                type="number"
+                min="1"
+                max="200"
+                value={waterGoalInput}
+                onChange={(e) => setWaterGoalInput(e.target.value)}
+                onBlur={(e) => handleWaterGoalSave(e.target.value)}
+                className="gender-select"
+                style={{ width: '60px', textAlign: 'center' }}
+                disabled={waterGoalLoading}
+              />
+            )}
+            {waterUnitLoading ? (
+              <Loader size={20} className="spin" style={{ color: 'var(--gray-400)' }} />
+            ) : (
+              <select
+                value={waterUnit}
+                onChange={(e) => handleWaterUnitChange(e.target.value)}
+                className="gender-select"
+                disabled={waterUnitLoading}
+              >
+                <option value="glasses">glasses</option>
+                <option value="oz">oz</option>
+                <option value="ml">mL</option>
+                <option value="L">liters</option>
+              </select>
             )}
           </div>
         </div>
