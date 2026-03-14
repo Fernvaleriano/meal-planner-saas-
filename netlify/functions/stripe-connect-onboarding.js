@@ -81,8 +81,8 @@ exports.handler = async (event) => {
       // Create an account link for onboarding
       const accountLink = await stripe.accountLinks.create({
         account: accountId,
-        refresh_url: `${baseUrl}/billing`,
-        return_url: `${baseUrl}/billing?connect_complete=true`,
+        refresh_url: `${baseUrl}/coach-billing.html`,
+        return_url: `${baseUrl}/coach-billing.html?connect_complete=true`,
         type: 'account_onboarding'
       });
 
