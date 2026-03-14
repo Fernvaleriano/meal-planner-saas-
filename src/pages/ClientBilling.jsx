@@ -204,6 +204,10 @@ export default function ClientBilling() {
   }, [coachId]);
 
   useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
+  useEffect(() => {
     fetchData();
   }, [fetchData]);
 
