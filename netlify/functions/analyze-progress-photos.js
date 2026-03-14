@@ -135,7 +135,7 @@ Never invent or exaggerate progress. If you see regression (weight gain, lost de
 
 Tone: direct, specific, motivating. Skip generic praise. Get excited about real progress, acknowledge the grind for subtle changes, address setbacks head-on.
 
-Format as plain text with short paragraph breaks. No markdown, no headers, no bullet points.`;`;
+Format as plain text with short paragraph breaks. No markdown, no headers, no bullet points.`;
 
         const prompt = sameDate
             ? `${coachContext}

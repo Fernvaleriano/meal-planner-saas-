@@ -127,10 +127,6 @@
   directory = "netlify/functions"
   node_bundler = "esbuild"
 
-# Allow extra time for AI photo analysis (fetches 2 images + Gemini API call)
-[functions."analyze-progress-photos"]
-  timeout = 26
-
 # Scheduled function - runs every hour to send check-in reminders
 [functions."send-checkin-reminders"]
   schedule = "@hourly"
