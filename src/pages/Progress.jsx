@@ -665,15 +665,6 @@ function Progress() {
               <button className="btn-primary full-width add-btn" onClick={() => setShowPhotoModal(true)}>
                 + Add Photo
               </button>
-              {photos.length >= 2 && (
-                <button
-                  className={`compare-btn ${compareMode ? 'active' : ''}`}
-                  onClick={toggleCompareMode}
-                >
-                  <Columns2 size={18} />
-                  {compareMode ? 'Cancel' : 'Compare'}
-                </button>
-              )}
             </div>
 
             {compareMode && (
@@ -685,7 +676,18 @@ function Progress() {
             )}
 
             <div className="section-card">
-              <h3 className="section-title">Progress Photos</h3>
+              <div className="section-title-row">
+                <h3 className="section-title">Progress Photos</h3>
+                {photos.length >= 2 && (
+                  <button
+                    className={`compare-btn ${compareMode ? 'active' : ''}`}
+                    onClick={toggleCompareMode}
+                  >
+                    <Columns2 size={16} />
+                    {compareMode ? 'Cancel' : 'Compare'}
+                  </button>
+                )}
+              </div>
               {loadingPhotos ? (
                 <div className="loading-state">
                   <div className="spinner"></div>
