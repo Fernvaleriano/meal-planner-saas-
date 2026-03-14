@@ -4001,6 +4001,34 @@
             text-transform: uppercase;
         }
 
+        .edit-custom-exercise-btn {
+            position: absolute;
+            bottom: 6px;
+            right: 38px;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: rgba(30, 41, 59, 0.85);
+            color: #94a3b8;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            opacity: 0;
+            transition: all 0.2s;
+            z-index: 5;
+        }
+
+        .exercise-card:hover .edit-custom-exercise-btn {
+            opacity: 1;
+        }
+
+        .edit-custom-exercise-btn:hover {
+            background: #0d9488;
+            color: white;
+        }
+
         .delete-custom-exercise-btn {
             position: absolute;
             bottom: 6px;
@@ -7471,6 +7499,9 @@
                 <div class="wb-detail-header">
                     <span class="wb-detail-title">${escapeHtml(exercise.name)}</span>
                     <div class="wb-detail-actions">
+                        ${exercise.is_custom ? `<button class="wb-detail-action-btn" onclick="openEditCustomExerciseModal(${exercise.id})" title="Edit custom exercise">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                        </button>` : ''}
                         <button class="wb-detail-action-btn" onclick="openSwapModal(${di},${ei})" title="Swap exercise">
                             <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
                         </button>
@@ -8999,6 +9030,9 @@
                     </div>
                     <div class="exercise-card-meta">${ex.muscle_group || ex.primary_muscles || 'General'}${ex.equipment ? ' • ' + ex.equipment : ''}</div>
                     ${secondaryMuscles ? `<div class="exercise-card-secondary">Also: ${secondaryMuscles}</div>` : ''}
+                    ${ex.is_custom ? `<button class="edit-custom-exercise-btn" onclick="event.stopPropagation(); openEditCustomExerciseModal(${ex.id})" title="Edit custom exercise">
+                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                    </button>` : ''}
                     ${ex.is_custom ? `<button class="delete-custom-exercise-btn" onclick="event.stopPropagation(); deleteCustomExercise(${ex.id}, '${ex.name.replace(/'/g, "\\'")}')" title="Delete custom exercise">
                         <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                     </button>` : ''}
@@ -11083,6 +11117,9 @@
         // ============================================
 
         function openCustomExerciseModal() {
+            // Reset edit mode
+            editingExerciseId = null;
+
             // Reset form
             document.getElementById('ceExerciseName').value = '';
             document.getElementById('ceMuscleGroup').value = '';
@@ -11102,10 +11139,93 @@
             openPreviewEl.src = '';
             document.getElementById('ceRecordingIndicator').style.display = 'none';
 
+            // Reset thumbnail
+            removeCEThumbnail();
+
+            // Reset reference links
+            ceReferenceLinks = [];
+            const linksListEl = document.getElementById('ceReferenceLinksList');
+            if (linksListEl) linksListEl.innerHTML = '';
+            const linkInputEl = document.getElementById('ceReferenceLinkInput');
+            if (linkInputEl) linkInputEl.value = '';
+
+            // Set modal title and button for create mode
+            const modalTitle = document.querySelector('#customExerciseModal .modal-title');
+            if (modalTitle) modalTitle.innerHTML = '<svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg> Create Custom Exercise';
+            const saveBtn = document.getElementById('saveCustomExerciseBtn');
+            if (saveBtn) saveBtn.innerHTML = '<svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Create Exercise';
+
             document.getElementById('customExerciseModal').classList.add('active');
         }
 
+        function openEditCustomExerciseModal(exerciseId) {
+            // Find the exercise in the exercises array
+            const ex = exercises.find(e => e.id === exerciseId);
+            if (!ex) {
+                showToast('Exercise not found', 'error');
+                return;
+            }
+
+            // Set edit mode
+            editingExerciseId = exerciseId;
+
+            // Pre-fill form fields
+            document.getElementById('ceExerciseName').value = ex.name || '';
+            document.getElementById('ceMuscleGroup').value = ex.muscle_group || '';
+            document.getElementById('ceEquipment').value = ex.equipment || '';
+            document.getElementById('ceDifficulty').value = ex.difficulty || 'intermediate';
+            document.getElementById('ceExerciseType').value = ex.exercise_type || 'strength';
+            document.getElementById('ceInstructions').value = ex.instructions || '';
+
+            // Reset video state (user can upload new video)
+            ceVideoData = null;
+            ceVideoBlob = null;
+            const openPreviewEl = document.getElementById('cePreviewVideo');
+            if (openPreviewEl.src && openPreviewEl.src.startsWith('blob:')) {
+                URL.revokeObjectURL(openPreviewEl.src);
+            }
+            document.getElementById('ceVideoPreview').classList.remove('visible');
+            openPreviewEl.src = '';
+            document.getElementById('ceRecordingIndicator').style.display = 'none';
+
+            // Reset thumbnail state
+            removeCEThumbnail();
+
+            // Show existing thumbnail if available
+            if (ex.thumbnail_url) {
+                const preview = document.getElementById('cePreviewThumbnail');
+                if (preview) preview.src = ex.thumbnail_url;
+                document.getElementById('ceThumbnailPreview').classList.add('visible');
+                document.getElementById('ceThumbnailSize').textContent = 'Current thumbnail';
+            }
+
+            // Show existing video if available
+            const videoSrc = ex.video_url || ex.animation_url;
+            if (videoSrc) {
+                openPreviewEl.src = videoSrc;
+                document.getElementById('ceVideoPreview').classList.add('visible');
+                document.getElementById('ceVideoSize').textContent = 'Current video';
+            }
+
+            // Pre-fill reference links
+            ceReferenceLinks = (ex.reference_links && Array.isArray(ex.reference_links)) ? [...ex.reference_links] : [];
+            renderCEReferenceLinks();
+
+            // Set modal title and button for edit mode
+            const modalTitle = document.querySelector('#customExerciseModal .modal-title');
+            if (modalTitle) modalTitle.innerHTML = '<svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg> Edit Custom Exercise';
+            const saveBtn = document.getElementById('saveCustomExerciseBtn');
+            if (saveBtn) saveBtn.innerHTML = '<svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Save Changes';
+
+            document.getElementById('customExerciseModal').classList.add('active');
+        }
+
+        // renderCEReferenceLinks is defined later with the other CE helpers
+
         function closeCustomExerciseModal() {
+            // Reset edit mode
+            editingExerciseId = null;
+
             // Stop any active recording
             if (ceVideoRecorder && ceVideoRecorder.state === 'recording') {
                 ceVideoRecorder.stop();
@@ -11296,6 +11416,9 @@
         // Custom exercise reference links (temporary storage during creation)
         let ceReferenceLinks = [];
 
+        // Track whether the custom exercise modal is in edit mode
+        let editingExerciseId = null;
+
         function addCEReferenceLink() {
             const input = document.getElementById('ceReferenceLinkInput');
             const url = (input.value || '').trim();
@@ -11360,6 +11483,8 @@
             const exerciseType = document.getElementById('ceExerciseType').value;
             const instructions = document.getElementById('ceInstructions').value.trim();
 
+            const isEditing = !!editingExerciseId;
+
             // Validation
             if (!name) {
                 showToast('Please enter an exercise name', 'error');
@@ -11372,7 +11497,7 @@
 
             const saveBtn = document.getElementById('saveCustomExerciseBtn');
             saveBtn.disabled = true;
-            saveBtn.innerHTML = '<span class="spinner"></span> Creating...';
+            saveBtn.innerHTML = `<span class="spinner"></span> ${isEditing ? 'Saving...' : 'Creating...'}`;
 
             try {
                 let videoUrl = null;
@@ -11431,73 +11556,163 @@
                         videoFilePath = uploadUrlResult.filePath;
                     }
 
-                    saveBtn.innerHTML = '<span class="spinner"></span> Creating exercise...';
+                    saveBtn.innerHTML = `<span class="spinner"></span> ${isEditing ? 'Saving exercise...' : 'Creating exercise...'}`;
                 }
 
-                // Create the exercise
-                const result = await apiCall('/.netlify/functions/exercises', {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        coachId: currentCoachId,
+                if (isEditing) {
+                    // UPDATE existing custom exercise via PUT
+                    const updatePayload = {
+                        exerciseId: editingExerciseId,
                         name,
                         muscleGroup,
                         equipment: equipment || null,
                         difficulty,
                         exerciseType,
                         instructions: instructions || null,
-                        animationUrl: videoUrl,
-                        thumbnailUrl: null,
                         referenceLinks: ceReferenceLinks.length > 0 ? ceReferenceLinks : []
-                    })
-                });
-
-                if (result.success && result.exercise) {
-                    let finalExercise = result.exercise;
-
-                    // Upload thumbnail if provided
-                    if (ceThumbnailBase64 && ceThumbnailName) {
-                        saveBtn.innerHTML = '<span class="spinner"></span> Uploading thumbnail...';
-                        try {
-                            const thumbResult = await apiCall('/.netlify/functions/upload-exercise-thumbnail', {
-                                method: 'POST',
-                                body: JSON.stringify({
-                                    exerciseId: result.exercise.id,
-                                    imageBase64: ceThumbnailBase64,
-                                    imageName: ceThumbnailName
-                                })
-                            });
-                            if (thumbResult.success && thumbResult.exercise?.thumbnail_url) {
-                                finalExercise = { ...finalExercise, thumbnail_url: thumbResult.exercise.thumbnail_url };
-                            }
-                        } catch (thumbErr) {
-                            console.error('Thumbnail upload failed (exercise still created):', thumbErr);
-                            showToast('Exercise created but thumbnail upload failed', 'error');
-                        }
+                    };
+                    // Only send video URL if a new video was uploaded
+                    if (videoUrl) {
+                        updatePayload.animationUrl = videoUrl;
                     }
 
-                    // Add to local exercises array
-                    exercises.push({
-                        ...finalExercise,
-                        is_custom: true,
-                        // Store video file path for signed URL refresh
-                        video_file_path: videoFilePath
+                    const result = await apiCall('/.netlify/functions/exercises', {
+                        method: 'PUT',
+                        body: JSON.stringify(updatePayload)
                     });
 
-                    showToast(`Custom exercise "${name}" created!`);
-                    closeCustomExerciseModal();
+                    if (result.success && result.exercise) {
+                        let finalExercise = result.exercise;
 
-                    // Refresh exercise grid if the modal is open
-                    if (document.getElementById('exerciseModal').classList.contains('active')) {
-                        renderExerciseGrid();
+                        // Upload new thumbnail if provided
+                        if (ceThumbnailBase64 && ceThumbnailName) {
+                            saveBtn.innerHTML = '<span class="spinner"></span> Uploading thumbnail...';
+                            try {
+                                const thumbResult = await apiCall('/.netlify/functions/upload-exercise-thumbnail', {
+                                    method: 'POST',
+                                    body: JSON.stringify({
+                                        exerciseId: editingExerciseId,
+                                        imageBase64: ceThumbnailBase64,
+                                        imageName: ceThumbnailName
+                                    })
+                                });
+                                if (thumbResult.success && thumbResult.exercise?.thumbnail_url) {
+                                    finalExercise = { ...finalExercise, thumbnail_url: thumbResult.exercise.thumbnail_url };
+                                }
+                            } catch (thumbErr) {
+                                console.error('Thumbnail upload failed (exercise still updated):', thumbErr);
+                                showToast('Exercise updated but thumbnail upload failed', 'error');
+                            }
+                        }
+
+                        // Update local exercises array
+                        const localIdx = exercises.findIndex(e => e.id === editingExerciseId);
+                        if (localIdx !== -1) {
+                            exercises[localIdx] = {
+                                ...exercises[localIdx],
+                                ...finalExercise,
+                                is_custom: true,
+                                video_file_path: videoFilePath || exercises[localIdx].video_file_path
+                            };
+                        }
+
+                        // Also update any workout day exercises that reference this exercise
+                        for (const day of workoutDays) {
+                            for (const ex of day.exercises) {
+                                if (ex.id === editingExerciseId) {
+                                    ex.name = finalExercise.name;
+                                    ex.muscle_group = finalExercise.muscle_group;
+                                    ex.equipment = finalExercise.equipment;
+                                    ex.difficulty = finalExercise.difficulty;
+                                    ex.exercise_type = finalExercise.exercise_type;
+                                    ex.instructions = finalExercise.instructions;
+                                    if (finalExercise.thumbnail_url) ex.thumbnail_url = finalExercise.thumbnail_url;
+                                    if (finalExercise.animation_url) ex.animation_url = finalExercise.animation_url;
+                                    if (finalExercise.reference_links) ex.reference_links = finalExercise.reference_links;
+                                }
+                            }
+                        }
+
+                        showToast(`"${name}" updated!`, 'success');
+                        closeCustomExerciseModal();
+
+                        // Refresh UI
+                        if (document.getElementById('exerciseModal').classList.contains('active')) {
+                            renderExerciseGrid();
+                        }
+                        renderExercisesList();
+                        renderExerciseDetail();
+                    } else {
+                        throw new Error('Failed to update exercise');
                     }
+
                 } else {
-                    throw new Error('Failed to create exercise');
+                    // CREATE new custom exercise via POST
+                    const result = await apiCall('/.netlify/functions/exercises', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            coachId: currentCoachId,
+                            name,
+                            muscleGroup,
+                            equipment: equipment || null,
+                            difficulty,
+                            exerciseType,
+                            instructions: instructions || null,
+                            animationUrl: videoUrl,
+                            thumbnailUrl: null,
+                            referenceLinks: ceReferenceLinks.length > 0 ? ceReferenceLinks : []
+                        })
+                    });
+
+                    if (result.success && result.exercise) {
+                        let finalExercise = result.exercise;
+
+                        // Upload thumbnail if provided
+                        if (ceThumbnailBase64 && ceThumbnailName) {
+                            saveBtn.innerHTML = '<span class="spinner"></span> Uploading thumbnail...';
+                            try {
+                                const thumbResult = await apiCall('/.netlify/functions/upload-exercise-thumbnail', {
+                                    method: 'POST',
+                                    body: JSON.stringify({
+                                        exerciseId: result.exercise.id,
+                                        imageBase64: ceThumbnailBase64,
+                                        imageName: ceThumbnailName
+                                    })
+                                });
+                                if (thumbResult.success && thumbResult.exercise?.thumbnail_url) {
+                                    finalExercise = { ...finalExercise, thumbnail_url: thumbResult.exercise.thumbnail_url };
+                                }
+                            } catch (thumbErr) {
+                                console.error('Thumbnail upload failed (exercise still created):', thumbErr);
+                                showToast('Exercise created but thumbnail upload failed', 'error');
+                            }
+                        }
+
+                        // Add to local exercises array
+                        exercises.push({
+                            ...finalExercise,
+                            is_custom: true,
+                            // Store video file path for signed URL refresh
+                            video_file_path: videoFilePath
+                        });
+
+                        showToast(`Custom exercise "${name}" created!`);
+                        closeCustomExerciseModal();
+
+                        // Refresh exercise grid if the modal is open
+                        if (document.getElementById('exerciseModal').classList.contains('active')) {
+                            renderExerciseGrid();
+                        }
+                    } else {
+                        throw new Error('Failed to create exercise');
+                    }
                 }
 
             } catch (err) {
-                console.error('Error creating custom exercise:', err);
-                showToast(err.message || 'Failed to create exercise', 'error');
+                console.error(`Error ${isEditing ? 'updating' : 'creating'} custom exercise:`, err);
+                showToast(err.message || `Failed to ${isEditing ? 'update' : 'create'} exercise`, 'error');
             } finally {
+                editingExerciseId = null;
                 saveBtn.disabled = false;
                 saveBtn.innerHTML = `
                     <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
