@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { ChevronLeft, ChevronRight, Play, Clock, Flame, CheckCircle, Dumbbell, Target, Calendar, TrendingUp, Award, Heart, MoreVertical, X, History, Settings, LogOut, Plus, Copy, ArrowRightLeft, SkipForward, PenSquare, Trash2, MoveRight, Share2, Star, Weight, Users, RotateCcw, Zap, Camera } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Play, Clock, Flame, CheckCircle, Dumbbell, Target, Calendar, TrendingUp, Award, Heart, MoreVertical, X, History, Settings, LogOut, Plus, Copy, ArrowRightLeft, SkipForward, PenSquare, Trash2, MoveRight, Share2, Star, Weight, Users, RotateCcw, Zap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, apiPut, apiDelete } from '../utils/api';
@@ -14,7 +14,8 @@ import GuidedWorkoutModal from '../components/workout/GuidedWorkoutModal';
 import ErrorBoundary from '../components/ErrorBoundary';
 import { useToast } from '../components/Toast';
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
-import GymProofModal from '../components/GymProofModal';
+
+const GymProofModal = React.lazy(() => import('../components/GymProofModal'));
 
 // Helper to get date string in LOCAL timezone (NOT UTC)
 // Using toISOString() would give UTC which causes wrong dates near midnight
@@ -3532,7 +3533,7 @@ function Workouts() {
                     onClick={() => setShowGymProof(true)}
                   >
                     <div className="gym-proof-banner-icon">
-                      <Camera size={20} />
+                      <Target size={20} />
                     </div>
                     <div className="gym-proof-banner-text">
                       <span className="gym-proof-banner-title">Prove You Were Here!</span>
@@ -3667,7 +3668,7 @@ function Workouts() {
                     onClick={() => setShowGymProof(true)}
                   >
                     <div className="gym-proof-banner-icon">
-                      <Camera size={20} />
+                      <Target size={20} />
                     </div>
                     <div className="gym-proof-banner-text">
                       <span className="gym-proof-banner-title">Prove You Were Here!</span>
@@ -4466,10 +4467,14 @@ function Workouts() {
       )}
 
       {/* Gym Proof Modal */}
-      <GymProofModal
-        isOpen={showGymProof}
-        onClose={() => setShowGymProof(false)}
-      />
+      {showGymProof && (
+        <React.Suspense fallback={null}>
+          <GymProofModal
+            isOpen={showGymProof}
+            onClose={() => setShowGymProof(false)}
+          />
+        </React.Suspense>
+      )}
     </div>
   );
 }
