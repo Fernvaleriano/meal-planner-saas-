@@ -107,7 +107,9 @@ exports.handler = async (event) => {
 
       // Build notification message
       let notificationTitle = 'New Check-in';
-      let notificationMessage = `${clientName} submitted a check-in`;
+      let notificationMessage = body.mealPlanAdherence != null
+        ? `${clientName} submitted a check-in (${body.mealPlanAdherence}% adherence)`
+        : `${clientName} submitted a check-in`;
 
       if (hasDietRequest) {
         notificationTitle = 'New Diet Request';
