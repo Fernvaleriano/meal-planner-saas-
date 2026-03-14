@@ -24,6 +24,10 @@ CREATE TABLE IF NOT EXISTS client_measurements (
     right_thigh DECIMAL(5,1),
     measurement_unit VARCHAR(10) DEFAULT 'in',  -- 'in' or 'cm'
 
+    -- Blood pressure
+    blood_pressure_systolic DECIMAL(5,1),   -- e.g., 120
+    blood_pressure_diastolic DECIMAL(5,1),  -- e.g., 80
+
     -- Notes
     notes TEXT,
 

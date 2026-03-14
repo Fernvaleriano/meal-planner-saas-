@@ -64,6 +64,8 @@ const METRIC_CONFIGS = [
   { key: 'rightArm', label: 'Right Arm', dbField: 'right_arm', unitKey: 'circumference' },
   { key: 'leftThigh', label: 'Left Thigh', dbField: 'left_thigh', unitKey: 'circumference' },
   { key: 'rightThigh', label: 'Right Thigh', dbField: 'right_thigh', unitKey: 'circumference' },
+  { key: 'bpSystolic', label: 'Blood Pressure - Systolic', dbField: 'blood_pressure_systolic', unitKey: 'mmHg' },
+  { key: 'bpDiastolic', label: 'Blood Pressure - Diastolic', dbField: 'blood_pressure_diastolic', unitKey: 'mmHg' },
 ];
 
 // Mini line chart component (pure SVG)
@@ -185,7 +187,8 @@ function Progress() {
   const [measurementForm, setMeasurementForm] = useState({
     date: getLocalDateString(),
     weight: '', bodyFat: '', chest: '', waist: '', hips: '',
-    leftArm: '', rightArm: '', leftThigh: '', rightThigh: '', notes: ''
+    leftArm: '', rightArm: '', leftThigh: '', rightThigh: '',
+    bpSystolic: '', bpDiastolic: '', notes: ''
   });
   const [savingMeasurement, setSavingMeasurement] = useState(false);
 
@@ -295,6 +298,7 @@ function Progress() {
   const getUnit = (unitKey) => {
     if (unitKey === 'weight') return weightUnit;
     if (unitKey === 'percent') return '%';
+    if (unitKey === 'mmHg') return 'mmHg';
     return circumUnit;
   };
 
@@ -327,6 +331,8 @@ function Progress() {
         rightArm: 'rightArm',
         leftThigh: 'leftThigh',
         rightThigh: 'rightThigh',
+        bpSystolic: 'bloodPressureSystolic',
+        bpDiastolic: 'bloodPressureDiastolic',
       };
 
       const apiField = fieldMap[quickLogMetric.key];
@@ -373,6 +379,8 @@ function Progress() {
         rightArm: parseFloat(measurementForm.rightArm) || null,
         leftThigh: parseFloat(measurementForm.leftThigh) || null,
         rightThigh: parseFloat(measurementForm.rightThigh) || null,
+        bloodPressureSystolic: parseFloat(measurementForm.bpSystolic) || null,
+        bloodPressureDiastolic: parseFloat(measurementForm.bpDiastolic) || null,
         notes: measurementForm.notes || null
       });
 
@@ -380,7 +388,8 @@ function Progress() {
       setMeasurementForm({
         date: getLocalDateString(),
         weight: '', bodyFat: '', chest: '', waist: '', hips: '',
-        leftArm: '', rightArm: '', leftThigh: '', rightThigh: '', notes: ''
+        leftArm: '', rightArm: '', leftThigh: '', rightThigh: '',
+        bpSystolic: '', bpDiastolic: '', notes: ''
       });
       loadMeasurements();
     } catch (err) {
@@ -846,6 +855,21 @@ function Progress() {
                   <input type="number" inputMode="decimal" step="0.1"
                     value={measurementForm.rightThigh}
                     onChange={(e) => handleMeasurementChange('rightThigh', e.target.value)} />
+                </div>
+
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>BP Systolic (mmHg)</label>
+                    <input type="number" inputMode="decimal" step="1" placeholder="120"
+                      value={measurementForm.bpSystolic}
+                      onChange={(e) => handleMeasurementChange('bpSystolic', e.target.value)} />
+                  </div>
+                  <div className="form-group">
+                    <label>BP Diastolic (mmHg)</label>
+                    <input type="number" inputMode="decimal" step="1" placeholder="80"
+                      value={measurementForm.bpDiastolic}
+                      onChange={(e) => handleMeasurementChange('bpDiastolic', e.target.value)} />
+                  </div>
                 </div>
 
                 <div className="form-group">
