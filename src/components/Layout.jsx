@@ -6,6 +6,7 @@ import DesktopSidebar from './DesktopSidebar';
 import ErrorBoundary from './ErrorBoundary';
 import PullToRefreshWrapper from './PullToRefreshWrapper';
 import SyncIndicator from './SyncIndicator';
+import TrainerSupportAgent from './TrainerSupportAgent';
 import { useAuth } from '../context/AuthContext';
 import { useBranding } from '../context/BrandingContext';
 
@@ -134,6 +135,7 @@ function Layout() {
         </div>
       </main>
       {!hideBottomNav && <BottomNav currentPath={path} />}
+      {isCoach && <TrainerSupportAgent />}
     </div>
   );
 }
