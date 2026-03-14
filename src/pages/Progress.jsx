@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { ChevronLeft, Ruler, Camera, X, Plus, Minus, ChevronDown, Trash2, Columns2, Sparkles } from 'lucide-react';
+import { ChevronLeft, Ruler, Camera, X, Plus, Minus, ChevronDown, Trash2, Columns2, Sparkles, TrendingDown, TrendingUp, ChevronRight, Calendar } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, apiDelete } from '../utils/api';
@@ -43,12 +43,126 @@ const compressImage = (file, maxWidth = 1200, quality = 0.8) => {
   });
 };
 
+// Time frame options
+const TIME_FRAMES = [
+  { label: '1 Week', value: '1w', days: 7 },
+  { label: '1 Month', value: '1m', days: 30 },
+  { label: '3 Months', value: '3m', days: 90 },
+  { label: '6 Months', value: '6m', days: 180 },
+  { label: '1 Year', value: '1y', days: 365 },
+  { label: 'All Time', value: 'all', days: null },
+];
+
+// Metric definitions
+const METRIC_CONFIGS = [
+  { key: 'weight', label: 'Weight', dbField: 'weight', unitKey: 'weight' },
+  { key: 'bodyFat', label: 'Body Fat', dbField: 'body_fat_percentage', unitKey: 'percent' },
+  { key: 'waist', label: 'Waist', dbField: 'waist', unitKey: 'circumference' },
+  { key: 'chest', label: 'Chest', dbField: 'chest', unitKey: 'circumference' },
+  { key: 'hips', label: 'Hips', dbField: 'hips', unitKey: 'circumference' },
+  { key: 'leftArm', label: 'Left Arm', dbField: 'left_arm', unitKey: 'circumference' },
+  { key: 'rightArm', label: 'Right Arm', dbField: 'right_arm', unitKey: 'circumference' },
+  { key: 'leftThigh', label: 'Left Thigh', dbField: 'left_thigh', unitKey: 'circumference' },
+  { key: 'rightThigh', label: 'Right Thigh', dbField: 'right_thigh', unitKey: 'circumference' },
+];
+
+// Mini line chart component (pure SVG)
+function MiniChart({ dataPoints, color = '#14b8a6' }) {
+  if (!dataPoints || dataPoints.length < 2) return null;
+
+  const width = 320;
+  const height = 120;
+  const paddingX = 8;
+  const paddingTop = 10;
+  const paddingBottom = 20;
+  const chartWidth = width - paddingX * 2;
+  const chartHeight = height - paddingTop - paddingBottom;
+
+  const values = dataPoints.map(d => d.value);
+  const minVal = Math.min(...values);
+  const maxVal = Math.max(...values);
+  const range = maxVal - minVal || 1;
+
+  // Add 5% padding to value range
+  const padded = range * 0.05;
+  const yMin = minVal - padded;
+  const yMax = maxVal + padded;
+  const yRange = yMax - yMin;
+
+  const points = dataPoints.map((d, i) => ({
+    x: paddingX + (i / (dataPoints.length - 1)) * chartWidth,
+    y: paddingTop + chartHeight - ((d.value - yMin) / yRange) * chartHeight,
+  }));
+
+  const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x},${p.y}`).join(' ');
+
+  // Gradient fill area
+  const areaPath = `${linePath} L${points[points.length - 1].x},${height - paddingBottom} L${points[0].x},${height - paddingBottom} Z`;
+
+  // Y-axis labels (3 values)
+  const yLabels = [
+    { value: maxVal, y: paddingTop + 4 },
+    { value: ((maxVal + minVal) / 2), y: paddingTop + chartHeight / 2 + 4 },
+    { value: minVal, y: paddingTop + chartHeight + 4 },
+  ];
+
+  // Date labels
+  const firstDate = dataPoints[0].date;
+  const lastDate = dataPoints[dataPoints.length - 1].date;
+  const formatDate = (dateStr) => {
+    const d = new Date(dateStr);
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return `${d.getDate()} ${months[d.getMonth()]} ${String(d.getFullYear()).slice(2)}`;
+  };
+
+  return (
+    <svg viewBox={`0 0 ${width} ${height}`} className="metric-chart-svg" preserveAspectRatio="xMidYMid meet">
+      <defs>
+        <linearGradient id={`grad-${color.replace('#', '')}`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.3" />
+          <stop offset="100%" stopColor={color} stopOpacity="0.02" />
+        </linearGradient>
+      </defs>
+
+      {/* Grid lines */}
+      {yLabels.map((yl, i) => (
+        <line key={i} x1={paddingX} y1={yl.y - 4 + (i === 2 ? 0 : 0)} x2={width - paddingX} y2={yl.y - 4}
+          stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
+      ))}
+
+      {/* Area fill */}
+      <path d={areaPath} fill={`url(#grad-${color.replace('#', '')})`} />
+
+      {/* Line */}
+      <path d={linePath} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+
+      {/* Data points */}
+      {points.map((p, i) => (
+        <circle key={i} cx={p.x} cy={p.y} r="3" fill="#1e293b" stroke={color} strokeWidth="1.5" />
+      ))}
+
+      {/* Y-axis labels */}
+      {yLabels.map((yl, i) => (
+        <text key={i} x={width - paddingX} y={yl.y} textAnchor="end" fontSize="10" fill="rgba(255,255,255,0.4)">
+          {Number(yl.value).toFixed(1)}
+        </text>
+      ))}
+
+      {/* Date labels */}
+      <text x={paddingX} y={height - 4} fontSize="10" fill="rgba(255,255,255,0.4)">{formatDate(firstDate)}</text>
+      <text x={width - paddingX} y={height - 4} textAnchor="end" fontSize="10" fill="rgba(255,255,255,0.4)">{formatDate(lastDate)}</text>
+    </svg>
+  );
+}
+
 function Progress() {
   const navigate = useNavigate();
   const { clientData } = useAuth();
 
-  // Get user's preferred weight unit (default to lbs)
-  const weightUnit = clientData?.unit_preference === 'metric' ? 'kg' : 'lbs';
+  // Get user's preferred units
+  const isMetric = clientData?.unit_preference === 'metric';
+  const weightUnit = isMetric ? 'kg' : 'lbs';
+  const circumUnit = isMetric ? 'cm' : 'in';
 
   const [activeTab, setActiveTab] = useState('measurements');
   const [measurements, setMeasurements] = useState([]);
@@ -56,20 +170,22 @@ function Progress() {
   const [loadingMeasurements, setLoadingMeasurements] = useState(true);
   const [loadingPhotos, setLoadingPhotos] = useState(true);
 
-  // Measurement modal
+  // Time frame
+  const [timeFrame, setTimeFrame] = useState('1y');
+  const [showTimeFrameDropdown, setShowTimeFrameDropdown] = useState(false);
+
+  // Quick log modal
+  const [quickLogMetric, setQuickLogMetric] = useState(null);
+  const [quickLogValue, setQuickLogValue] = useState('');
+  const [quickLogDate, setQuickLogDate] = useState(getLocalDateString());
+  const [savingQuickLog, setSavingQuickLog] = useState(false);
+
+  // Full measurement modal
   const [showMeasurementModal, setShowMeasurementModal] = useState(false);
   const [measurementForm, setMeasurementForm] = useState({
     date: getLocalDateString(),
-    weight: '',
-    bodyFat: '',
-    chest: '',
-    waist: '',
-    hips: '',
-    leftArm: '',
-    rightArm: '',
-    leftThigh: '',
-    rightThigh: '',
-    notes: ''
+    weight: '', bodyFat: '', chest: '', waist: '', hips: '',
+    leftArm: '', rightArm: '', leftThigh: '', rightThigh: '', notes: ''
   });
   const [savingMeasurement, setSavingMeasurement] = useState(false);
 
@@ -94,16 +210,22 @@ function Progress() {
     window.scrollTo(0, 0);
   }, []);
 
-  // Pull-to-refresh: Refresh progress data
+  // Close time frame dropdown on outside click
+  useEffect(() => {
+    if (!showTimeFrameDropdown) return;
+    const handleClick = () => setShowTimeFrameDropdown(false);
+    document.addEventListener('click', handleClick);
+    return () => document.removeEventListener('click', handleClick);
+  }, [showTimeFrameDropdown]);
+
+  // Pull-to-refresh
   const refreshProgressData = useCallback(async () => {
     if (!clientData?.id) return;
-
     try {
       const [measurementsData, photosData] = await Promise.all([
-        apiGet(`/.netlify/functions/get-measurements?clientId=${clientData.id}&limit=20`).catch(() => null),
+        apiGet(`/.netlify/functions/get-measurements?clientId=${clientData.id}&limit=200`).catch(() => null),
         apiGet(`/.netlify/functions/get-progress-photos?clientId=${clientData.id}`).catch(() => null)
       ]);
-
       if (measurementsData?.measurements) setMeasurements(measurementsData.measurements);
       if (photosData?.photos) setPhotos(photosData.photos);
     } catch (err) {
@@ -111,7 +233,6 @@ function Progress() {
     }
   }, [clientData?.id]);
 
-  // Setup pull-to-refresh
   const { isRefreshing, indicatorRef, bindToContainer, threshold } = usePullToRefresh(refreshProgressData);
 
   useEffect(() => {
@@ -124,7 +245,7 @@ function Progress() {
   const loadMeasurements = async () => {
     setLoadingMeasurements(true);
     try {
-      const data = await apiGet(`/.netlify/functions/get-measurements?clientId=${clientData.id}&limit=20`);
+      const data = await apiGet(`/.netlify/functions/get-measurements?clientId=${clientData.id}&limit=200`);
       setMeasurements(data?.measurements || []);
     } catch (err) {
       console.error('Error loading measurements:', err);
@@ -145,20 +266,93 @@ function Progress() {
     }
   };
 
-  // Stats calculations
-  const currentWeight = measurements[0]?.weight || null;
-  const firstWeight = measurements[measurements.length - 1]?.weight || null;
-  const weightChange = currentWeight && firstWeight ? (currentWeight - firstWeight).toFixed(1) : null;
+  // Filter measurements by time frame
+  const filteredMeasurements = useMemo(() => {
+    const tf = TIME_FRAMES.find(t => t.value === timeFrame);
+    if (!tf || !tf.days) return measurements; // "All Time"
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - tf.days);
+    return measurements.filter(m => new Date(m.measured_date) >= cutoff);
+  }, [measurements, timeFrame]);
 
-  // Measurement form handlers
+  // Get data for a specific metric
+  const getMetricData = useCallback((dbField) => {
+    const points = filteredMeasurements
+      .filter(m => m[dbField] != null)
+      .map(m => ({ date: m.measured_date, value: parseFloat(m[dbField]) }))
+      .reverse(); // oldest first for chart
+
+    if (points.length === 0) return null;
+
+    const current = points[points.length - 1].value;
+    const first = points[0].value;
+    const change = points.length >= 2 ? parseFloat((current - first).toFixed(1)) : null;
+
+    return { points, current, change };
+  }, [filteredMeasurements]);
+
+  // Get unit for metric
+  const getUnit = (unitKey) => {
+    if (unitKey === 'weight') return weightUnit;
+    if (unitKey === 'percent') return '%';
+    return circumUnit;
+  };
+
+  // Quick log handlers
+  const openQuickLog = (metricConfig) => {
+    setQuickLogMetric(metricConfig);
+    setQuickLogValue('');
+    setQuickLogDate(getLocalDateString());
+  };
+
+  const handleQuickLogSave = async () => {
+    if (!quickLogMetric || !quickLogValue || !clientData?.id || !clientData?.coach_id) return;
+
+    setSavingQuickLog(true);
+    try {
+      const payload = {
+        clientId: clientData.id,
+        coachId: clientData.coach_id,
+        measuredDate: quickLogDate,
+      };
+
+      // Map metric key to the correct API field
+      const fieldMap = {
+        weight: 'weight',
+        bodyFat: 'bodyFatPercentage',
+        chest: 'chest',
+        waist: 'waist',
+        hips: 'hips',
+        leftArm: 'leftArm',
+        rightArm: 'rightArm',
+        leftThigh: 'leftThigh',
+        rightThigh: 'rightThigh',
+      };
+
+      const apiField = fieldMap[quickLogMetric.key];
+      if (apiField) {
+        payload[apiField] = parseFloat(quickLogValue);
+      }
+
+      await apiPost('/.netlify/functions/save-measurement', payload);
+      setQuickLogMetric(null);
+      setQuickLogValue('');
+      loadMeasurements();
+    } catch (err) {
+      console.error('Error saving measurement:', err);
+      alert(err.message || 'Error saving. Please try again.');
+    } finally {
+      setSavingQuickLog(false);
+    }
+  };
+
+  // Full measurement form handlers
   const handleMeasurementChange = (field, value) => {
     setMeasurementForm(prev => ({ ...prev, [field]: value }));
   };
 
   const handleSaveMeasurement = async (e) => {
     e.preventDefault();
-
-    // Validate required data
     if (!clientData?.id || !clientData?.coach_id) {
       alert('Session data missing. Please refresh the page and try again.');
       return;
@@ -182,7 +376,6 @@ function Progress() {
         notes: measurementForm.notes || null
       });
 
-      alert('Measurement saved!');
       setShowMeasurementModal(false);
       setMeasurementForm({
         date: getLocalDateString(),
@@ -201,10 +394,8 @@ function Progress() {
   // Delete measurement handler
   const handleDeleteMeasurement = async (measurementId) => {
     if (!clientData?.id) return;
-
     try {
       await apiDelete(`/.netlify/functions/delete-measurement?measurementId=${measurementId}&clientId=${clientData.id}`);
-      // Remove from local state immediately
       setMeasurements(prev => prev.filter(m => m.id !== measurementId));
     } catch (err) {
       console.error('Error deleting measurement:', err);
@@ -212,49 +403,9 @@ function Progress() {
     }
   };
 
-  // Measurement entry with visible delete button
-  const MeasurementEntry = ({ measurement }) => {
-    const [deleting, setDeleting] = useState(false);
-
-    const handleDelete = () => {
-      const dateStr = new Date(measurement.measured_date).toLocaleDateString();
-      if (window.confirm(`Delete measurement from ${dateStr}?`)) {
-        setDeleting(true);
-        handleDeleteMeasurement(measurement.id);
-      }
-    };
-
-    return (
-      <div className={`measurement-entry ${deleting ? 'deleting' : ''}`}>
-        <div className="measurement-entry-header">
-          <span className="measurement-date">
-            {new Date(measurement.measured_date).toLocaleDateString()}
-          </span>
-          <div className="measurement-header-right">
-            <span className="measurement-primary">
-              {measurement.weight && <span>{measurement.weight} {weightUnit}</span>}
-              {measurement.body_fat_percentage && <span> | {measurement.body_fat_percentage}% BF</span>}
-            </span>
-            <button className="measurement-trash-btn" onClick={handleDelete} disabled={deleting}>
-              <Trash2 size={16} />
-            </button>
-          </div>
-        </div>
-        {(measurement.chest || measurement.waist || measurement.hips) && (
-          <div className="measurement-secondary">
-            {measurement.chest && <span>Chest: {measurement.chest}"</span>}
-            {measurement.waist && <span>Waist: {measurement.waist}"</span>}
-            {measurement.hips && <span>Hips: {measurement.hips}"</span>}
-          </div>
-        )}
-      </div>
-    );
-  };
-
   // Delete photo handler
   const handleDeletePhoto = async (photoId) => {
     if (!clientData?.id || !clientData?.coach_id) return;
-
     try {
       await apiDelete(`/.netlify/functions/delete-progress-photo?photoId=${photoId}&coachId=${clientData.coach_id}`);
       setPhotos(prev => prev.filter(p => p.id !== photoId));
@@ -268,7 +419,6 @@ function Progress() {
   const handlePhotoSelect = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     try {
       setPhotoFile(file);
       const compressed = await compressImage(file);
@@ -280,12 +430,7 @@ function Progress() {
   };
 
   const handleUploadPhoto = async () => {
-    if (!photoPreview) {
-      alert('Please select a photo first.');
-      return;
-    }
-
-    // Validate required data
+    if (!photoPreview) { alert('Please select a photo first.'); return; }
     if (!clientData?.id || !clientData?.coach_id) {
       alert('Session data missing. Please refresh the page and try again.');
       return;
@@ -301,7 +446,6 @@ function Progress() {
         takenDate: photoDate
       });
 
-      alert('Photo uploaded!');
       setShowPhotoModal(false);
       setPhotoPreview(null);
       setPhotoFile(null);
@@ -318,13 +462,8 @@ function Progress() {
 
   // Compare mode handlers
   const toggleCompareMode = () => {
-    if (compareMode) {
-      setCompareMode(false);
-      setSelectedPhotos([]);
-    } else {
-      setCompareMode(true);
-      setSelectedPhotos([]);
-    }
+    setCompareMode(!compareMode);
+    setSelectedPhotos([]);
   };
 
   const handlePhotoClick = (photo) => {
@@ -340,7 +479,6 @@ function Progress() {
       const updated = [...selectedPhotos, photo];
       setSelectedPhotos(updated);
       if (updated.length === 2) {
-        // Sort by date so earlier photo is first, but if same date keep tap order (first tap = before)
         const d1 = new Date(updated[0].taken_date || updated[0].date_taken).getTime();
         const d2 = new Date(updated[1].taken_date || updated[1].date_taken).getTime();
         if (d1 !== d2) {
@@ -365,7 +503,6 @@ function Progress() {
 
   const handleAiAnalysis = async () => {
     if (selectedPhotos.length !== 2) return;
-
     setAnalyzingPhotos(true);
     setAiAnalysis('');
     try {
@@ -387,21 +524,58 @@ function Progress() {
   };
 
   const photoTypeLabels = { front: 'Front', side: 'Side', back: 'Back', progress: 'Progress' };
+  const currentTimeFrameLabel = TIME_FRAMES.find(t => t.value === timeFrame)?.label || '1 Year';
+
+  // Metric card component
+  const MetricCard = ({ config }) => {
+    const data = getMetricData(config.dbField);
+    const unit = getUnit(config.unitKey);
+
+    return (
+      <div className="metric-card">
+        <div className="metric-card-header">
+          <span className="metric-card-title">{config.label.toUpperCase()}</span>
+          {data && data.change !== null && (
+            <div className={`metric-change ${data.change < 0 ? 'decrease' : data.change > 0 ? 'increase' : ''}`}>
+              {data.change < 0 ? <TrendingDown size={14} /> : data.change > 0 ? <TrendingUp size={14} /> : null}
+              <span>{data.change > 0 ? '+' : ''}{data.change} {unit}</span>
+            </div>
+          )}
+        </div>
+
+        {data ? (
+          <>
+            <div className="metric-current-value">
+              {data.current} <span className="metric-unit">{unit}</span>
+            </div>
+            <div className="metric-chart-container">
+              <MiniChart dataPoints={data.points} />
+            </div>
+          </>
+        ) : (
+          <div className="metric-no-data">
+            No data for selected time frame
+          </div>
+        )}
+
+        <button className="metric-log-btn" onClick={() => openQuickLog(config)}>
+          <span>Log Value</span>
+          <ChevronRight size={18} />
+        </button>
+      </div>
+    );
+  };
 
   return (
     <div className="progress-page" ref={bindToContainer}>
-      {/* Pull-to-refresh indicator */}
-      <PullToRefreshIndicator
-        indicatorRef={indicatorRef}
-        threshold={threshold}
-      />
+      <PullToRefreshIndicator indicatorRef={indicatorRef} threshold={threshold} />
 
       {/* Header */}
       <div className="page-header-gradient">
         <button className="back-btn-circle" onClick={() => navigate(-1)}>
           <ChevronLeft size={24} />
         </button>
-        <h1 className="page-title">My Progress</h1>
+        <h1 className="page-title">Progress</h1>
       </div>
 
       {/* Tabs */}
@@ -424,48 +598,46 @@ function Progress() {
       <div className="progress-content">
         {activeTab === 'measurements' ? (
           <>
-            <button className="btn-primary full-width add-btn" onClick={() => setShowMeasurementModal(true)}>
-              + Log Measurement
-            </button>
-
-            {/* Stats */}
-            <div className="section-card">
-              <h3 className="section-title">Current Stats</h3>
-              <div className="stats-grid">
-                <div className="stat-card">
-                  <div className="stat-value">{currentWeight ? `${currentWeight} ${weightUnit}` : '--'}</div>
-                  <div className="stat-label">Current Weight</div>
-                </div>
-                <div className="stat-card">
-                  <div className={`stat-value ${weightChange && weightChange < 0 ? 'negative' : weightChange && weightChange > 0 ? 'positive' : ''}`}>
-                    {weightChange ? `${weightChange > 0 ? '+' : ''}${weightChange} ${weightUnit}` : '--'}
+            {/* Time Frame Selector */}
+            <div className="time-frame-bar">
+              <span className="time-frame-label">Time frame</span>
+              <div className="time-frame-selector" onClick={(e) => { e.stopPropagation(); setShowTimeFrameDropdown(!showTimeFrameDropdown); }}>
+                <span className="time-frame-value">{currentTimeFrameLabel}</span>
+                <ChevronDown size={16} />
+                {showTimeFrameDropdown && (
+                  <div className="time-frame-dropdown">
+                    {TIME_FRAMES.map(tf => (
+                      <button
+                        key={tf.value}
+                        className={`time-frame-option ${timeFrame === tf.value ? 'active' : ''}`}
+                        onClick={(e) => { e.stopPropagation(); setTimeFrame(tf.value); setShowTimeFrameDropdown(false); }}
+                      >
+                        {tf.label}
+                      </button>
+                    ))}
                   </div>
-                  <div className="stat-label">Total Change</div>
-                </div>
+                )}
               </div>
             </div>
 
-            {/* Recent Entries */}
-            <div className="section-card">
-              <h3 className="section-title">Recent Entries</h3>
-              {loadingMeasurements ? (
-                <div className="loading-state">
-                  <div className="spinner"></div>
-                  <p>Loading measurements...</p>
-                </div>
-              ) : measurements.length === 0 ? (
-                <div className="empty-state-inline">
-                  <span>📊</span>
-                  <p>No measurements yet. Tap "+ Log Measurement" to add your first entry!</p>
-                </div>
-              ) : (
-                <div className="measurements-list">
-                  {measurements.slice(0, 10).map((m) => (
-                    <MeasurementEntry key={m.id} measurement={m} />
-                  ))}
-                </div>
-              )}
-            </div>
+            {/* Log All Button */}
+            <button className="btn-log-all" onClick={() => setShowMeasurementModal(true)}>
+              <Plus size={18} />
+              <span>Log All Measurements</span>
+            </button>
+
+            {loadingMeasurements ? (
+              <div className="loading-state">
+                <div className="spinner"></div>
+                <p>Loading measurements...</p>
+              </div>
+            ) : (
+              <div className="metric-cards-list">
+                {METRIC_CONFIGS.map(config => (
+                  <MetricCard key={config.key} config={config} />
+                ))}
+              </div>
+            )}
           </>
         ) : (
           <>
@@ -545,12 +717,57 @@ function Progress() {
         )}
       </div>
 
-      {/* Measurement Modal */}
+      {/* Quick Log Modal */}
+      {quickLogMetric && (
+        <div className="modal-overlay" onClick={() => setQuickLogMetric(null)}>
+          <div className="quick-log-modal" onClick={e => e.stopPropagation()}>
+            <div className="quick-log-header">
+              <h2>{quickLogMetric.label}</h2>
+              <button className="modal-close" onClick={() => setQuickLogMetric(null)}>
+                <X size={24} />
+              </button>
+            </div>
+            <div className="quick-log-body">
+              <div className="quick-log-input-group">
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  step="0.1"
+                  placeholder="0.0"
+                  value={quickLogValue}
+                  onChange={(e) => setQuickLogValue(e.target.value)}
+                  className="quick-log-input"
+                  autoFocus
+                />
+                <span className="quick-log-unit">{getUnit(quickLogMetric.unitKey)}</span>
+              </div>
+              <div className="quick-log-date-row">
+                <Calendar size={16} />
+                <input
+                  type="date"
+                  value={quickLogDate}
+                  onChange={(e) => setQuickLogDate(e.target.value)}
+                  className="quick-log-date"
+                />
+              </div>
+              <button
+                className="btn-primary full-width"
+                onClick={handleQuickLogSave}
+                disabled={savingQuickLog || !quickLogValue}
+              >
+                {savingQuickLog ? 'Saving...' : 'Save'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Full Measurement Modal */}
       {showMeasurementModal && (
         <div className="modal-overlay" onClick={() => setShowMeasurementModal(false)}>
           <div className="modal-content" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>Log Measurement</h2>
+              <h2>Log All Measurements</h2>
               <button className="modal-close" onClick={() => setShowMeasurementModal(false)}>
                 <X size={24} />
               </button>
@@ -559,134 +776,83 @@ function Progress() {
               <form onSubmit={handleSaveMeasurement}>
                 <div className="form-group">
                   <label>Date</label>
-                  <input
-                    type="date"
-                    value={measurementForm.date}
-                    onChange={(e) => handleMeasurementChange('date', e.target.value)}
-                    required
-                  />
+                  <input type="date" value={measurementForm.date}
+                    onChange={(e) => handleMeasurementChange('date', e.target.value)} required />
                 </div>
 
                 <div className="form-row">
                   <div className="form-group">
                     <label>Weight ({weightUnit})</label>
-                    <input
-                      type="number"
-                      inputMode="decimal"
-                      step="0.1"
+                    <input type="number" inputMode="decimal" step="0.1"
                       placeholder={weightUnit === 'kg' ? '68.0' : '150.0'}
                       value={measurementForm.weight}
-                      onChange={(e) => handleMeasurementChange('weight', e.target.value)}
-                    />
+                      onChange={(e) => handleMeasurementChange('weight', e.target.value)} />
                   </div>
                   <div className="form-group">
                     <label>Body Fat %</label>
-                    <input
-                      type="number"
-                      inputMode="decimal"
-                      step="0.1"
-                      placeholder="20.0"
+                    <input type="number" inputMode="decimal" step="0.1" placeholder="20.0"
                       value={measurementForm.bodyFat}
-                      onChange={(e) => handleMeasurementChange('bodyFat', e.target.value)}
-                    />
+                      onChange={(e) => handleMeasurementChange('bodyFat', e.target.value)} />
                   </div>
                 </div>
 
                 <div className="form-row">
                   <div className="form-group">
-                    <label>Chest (in)</label>
-                    <input
-                      type="number"
-                      inputMode="decimal"
-                      step="0.1"
-                      placeholder="40.0"
+                    <label>Chest ({circumUnit})</label>
+                    <input type="number" inputMode="decimal" step="0.1"
                       value={measurementForm.chest}
-                      onChange={(e) => handleMeasurementChange('chest', e.target.value)}
-                    />
+                      onChange={(e) => handleMeasurementChange('chest', e.target.value)} />
                   </div>
                   <div className="form-group">
-                    <label>Waist (in)</label>
-                    <input
-                      type="number"
-                      inputMode="decimal"
-                      step="0.1"
-                      placeholder="32.0"
+                    <label>Waist ({circumUnit})</label>
+                    <input type="number" inputMode="decimal" step="0.1"
                       value={measurementForm.waist}
-                      onChange={(e) => handleMeasurementChange('waist', e.target.value)}
-                    />
+                      onChange={(e) => handleMeasurementChange('waist', e.target.value)} />
                   </div>
                 </div>
 
                 <div className="form-row">
                   <div className="form-group">
-                    <label>Hips (in)</label>
-                    <input
-                      type="number"
-                      inputMode="decimal"
-                      step="0.1"
-                      placeholder="38.0"
+                    <label>Hips ({circumUnit})</label>
+                    <input type="number" inputMode="decimal" step="0.1"
                       value={measurementForm.hips}
-                      onChange={(e) => handleMeasurementChange('hips', e.target.value)}
-                    />
+                      onChange={(e) => handleMeasurementChange('hips', e.target.value)} />
                   </div>
                   <div className="form-group">
-                    <label>Left Arm (in)</label>
-                    <input
-                      type="number"
-                      inputMode="decimal"
-                      step="0.1"
-                      placeholder="14.0"
+                    <label>Left Arm ({circumUnit})</label>
+                    <input type="number" inputMode="decimal" step="0.1"
                       value={measurementForm.leftArm}
-                      onChange={(e) => handleMeasurementChange('leftArm', e.target.value)}
-                    />
+                      onChange={(e) => handleMeasurementChange('leftArm', e.target.value)} />
                   </div>
                 </div>
 
                 <div className="form-row">
                   <div className="form-group">
-                    <label>Right Arm (in)</label>
-                    <input
-                      type="number"
-                      inputMode="decimal"
-                      step="0.1"
-                      placeholder="14.0"
+                    <label>Right Arm ({circumUnit})</label>
+                    <input type="number" inputMode="decimal" step="0.1"
                       value={measurementForm.rightArm}
-                      onChange={(e) => handleMeasurementChange('rightArm', e.target.value)}
-                    />
+                      onChange={(e) => handleMeasurementChange('rightArm', e.target.value)} />
                   </div>
                   <div className="form-group">
-                    <label>Left Thigh (in)</label>
-                    <input
-                      type="number"
-                      inputMode="decimal"
-                      step="0.1"
-                      placeholder="22.0"
+                    <label>Left Thigh ({circumUnit})</label>
+                    <input type="number" inputMode="decimal" step="0.1"
                       value={measurementForm.leftThigh}
-                      onChange={(e) => handleMeasurementChange('leftThigh', e.target.value)}
-                    />
+                      onChange={(e) => handleMeasurementChange('leftThigh', e.target.value)} />
                   </div>
                 </div>
 
                 <div className="form-group">
-                  <label>Right Thigh (in)</label>
-                  <input
-                    type="number"
-                    inputMode="decimal"
-                    step="0.1"
-                    placeholder="22.0"
+                  <label>Right Thigh ({circumUnit})</label>
+                  <input type="number" inputMode="decimal" step="0.1"
                     value={measurementForm.rightThigh}
-                    onChange={(e) => handleMeasurementChange('rightThigh', e.target.value)}
-                  />
+                    onChange={(e) => handleMeasurementChange('rightThigh', e.target.value)} />
                 </div>
 
                 <div className="form-group">
                   <label>Notes (optional)</label>
-                  <textarea
-                    placeholder="Any notes..."
-                    rows={2}
+                  <textarea placeholder="Any notes..." rows={2}
                     value={measurementForm.notes}
-                    onChange={(e) => handleMeasurementChange('notes', e.target.value)}
-                  />
+                    onChange={(e) => handleMeasurementChange('notes', e.target.value)} />
                 </div>
 
                 <button type="submit" className="btn-primary full-width" disabled={savingMeasurement}>
@@ -715,23 +881,12 @@ function Progress() {
               {photoPreview ? (
                 <img src={photoPreview} alt="Preview" className="photo-preview-large" />
               ) : (
-                <div
-                  className="upload-area"
-                  onClick={() => photoInputRef.current?.click()}
-                >
-                  <div className="upload-icon">
-                    <Camera size={48} strokeWidth={1.5} />
-                  </div>
+                <div className="upload-area" onClick={() => photoInputRef.current?.click()}>
+                  <div className="upload-icon"><Camera size={48} strokeWidth={1.5} /></div>
                   <div className="upload-text">Tap to select photo</div>
                 </div>
               )}
-              <input
-                ref={photoInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handlePhotoSelect}
-                style={{ display: 'none' }}
-              />
+              <input ref={photoInputRef} type="file" accept="image/*" onChange={handlePhotoSelect} style={{ display: 'none' }} />
 
               <div className="form-group">
                 <label>Photo Type</label>
@@ -745,46 +900,27 @@ function Progress() {
 
               <div className="form-group">
                 <label>Date</label>
-                <input
-                  type="date"
-                  value={photoDate}
-                  onChange={(e) => setPhotoDate(e.target.value)}
-                />
+                <input type="date" value={photoDate} onChange={(e) => setPhotoDate(e.target.value)} />
               </div>
 
-              <button
-                className="btn-primary full-width"
-                onClick={() => {
-                  if (photoPreview) {
-                    handleUploadPhoto();
-                  } else {
-                    photoInputRef.current?.click();
-                  }
-                }}
-                disabled={uploadingPhoto}
-              >
+              <button className="btn-primary full-width"
+                onClick={() => { if (photoPreview) { handleUploadPhoto(); } else { photoInputRef.current?.click(); } }}
+                disabled={uploadingPhoto}>
                 {uploadingPhoto ? 'Uploading...' : photoPreview ? 'Upload Photo' : 'Select Photo'}
               </button>
               {photoPreview && (
-                <button
-                  className="btn-secondary full-width"
-                  onClick={() => {
-                    setPhotoPreview(null);
-                    setPhotoFile(null);
-                  }}
-                >
+                <button className="btn-secondary full-width"
+                  onClick={() => { setPhotoPreview(null); setPhotoFile(null); }}>
                   Choose Different Photo
                 </button>
               )}
-              <button className="btn-secondary full-width" onClick={() => setShowPhotoModal(false)}>
-                Cancel
-              </button>
+              <button className="btn-secondary full-width" onClick={() => setShowPhotoModal(false)}>Cancel</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Comparison Modal — portaled to body so it renders above everything */}
+      {/* Comparison Modal */}
       {showComparison && selectedPhotos.length === 2 && createPortal(
         <div className="comparison-modal-overlay" onClick={closeComparison}>
           <div className="comparison-modal-content" onClick={e => e.stopPropagation()}>
@@ -812,11 +948,7 @@ function Progress() {
 
             <div className="ai-analysis-section">
               {!aiAnalysis && (
-                <button
-                  className="ai-analysis-btn"
-                  onClick={handleAiAnalysis}
-                  disabled={analyzingPhotos}
-                >
+                <button className="ai-analysis-btn" onClick={handleAiAnalysis} disabled={analyzingPhotos}>
                   <Sparkles size={18} />
                   {analyzingPhotos ? 'Analyzing...' : 'Get AI Analysis'}
                 </button>
