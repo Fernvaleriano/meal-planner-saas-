@@ -55,15 +55,26 @@ exports.handler = async (event) => {
     // Create notification for client
     if (checkin?.client_id) {
 
+      // Truncate feedback for notification message preview
+      const feedbackPreview = feedback
+        ? (feedback.length > 150 ? feedback.substring(0, 150) + '...' : feedback)
+        : '';
+
       const { data: notificationData, error: notificationError } = await supabase
         .from('notifications')
         .insert([{
           client_id: checkin.client_id,
           type: 'coach_responded',
           title: 'Coach Response',
-          message: 'Your coach responded to your check-in',
+          message: feedbackPreview
+            ? `Your coach responded to your check-in: "${feedbackPreview}"`
+            : 'Your coach responded to your check-in',
           related_checkin_id: parseInt(checkinId),
-          related_client_id: checkin.client_id
+          related_client_id: checkin.client_id,
+          metadata: {
+            coach_feedback: feedback || '',
+            checkin_id: parseInt(checkinId)
+          }
         }])
         .select()
         .single();
