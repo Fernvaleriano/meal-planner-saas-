@@ -12,6 +12,7 @@ function NotificationDetail({ notification, clientId, onClose, onReplySuccess })
   const metadata = notification.metadata || {};
   const isReaction = notification.type === 'diary_reaction';
   const isComment = notification.type === 'diary_comment';
+  const isCoachResponse = notification.type === 'coach_responded';
 
   // Format the entry date for display
   const formatDate = (dateStr) => {
@@ -71,41 +72,62 @@ function NotificationDetail({ notification, clientId, onClose, onReplySuccess })
         </div>
 
         <div className="notification-detail-content">
+          {/* Coach Response to Check-in */}
+          {isCoachResponse && (
+            <>
+              <div className="coach-action">
+                <div className="comment-display">
+                  <div className="comment-header">
+                    <MessageCircle size={16} />
+                    <span>Your coach responded to your check-in</span>
+                  </div>
+                  <div className="comment-text" style={{ whiteSpace: 'pre-wrap' }}>
+                    "{metadata.coach_feedback || notification.message?.replace(/^Your coach responded to your check-in: /, '').replace(/^"|"$/g, '')}"
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
           {/* Meal Info Card */}
-          <div className="meal-info-card">
-            <div className="meal-type-badge">{metadata.meal_type || 'Meal'}</div>
-            <div className="meal-name">{metadata.food_name || 'Your meal'}</div>
-            {metadata.entry_date && (
-              <div className="meal-date">{formatDate(metadata.entry_date)}</div>
-            )}
-          </div>
+          {!isCoachResponse && (
+            <div className="meal-info-card">
+              <div className="meal-type-badge">{metadata.meal_type || 'Meal'}</div>
+              <div className="meal-name">{metadata.food_name || 'Your meal'}</div>
+              {metadata.entry_date && (
+                <div className="meal-date">{formatDate(metadata.entry_date)}</div>
+              )}
+            </div>
+          )}
 
           {/* Coach Action */}
-          <div className="coach-action">
-            {isReaction && (
-              <div className="reaction-display">
-                <span className="reaction-emoji">{metadata.reaction}</span>
-                <span className="reaction-text">
-                  {metadata.coach_name || 'Your coach'} reacted to your {metadata.meal_type || 'meal'}
-                </span>
-              </div>
-            )}
+          {!isCoachResponse && (
+            <div className="coach-action">
+              {isReaction && (
+                <div className="reaction-display">
+                  <span className="reaction-emoji">{metadata.reaction}</span>
+                  <span className="reaction-text">
+                    {metadata.coach_name || 'Your coach'} reacted to your {metadata.meal_type || 'meal'}
+                  </span>
+                </div>
+              )}
 
-            {isComment && (
-              <div className="comment-display">
-                <div className="comment-header">
-                  <MessageCircle size={16} />
-                  <span>{metadata.coach_name || 'Your coach'}</span>
+              {isComment && (
+                <div className="comment-display">
+                  <div className="comment-header">
+                    <MessageCircle size={16} />
+                    <span>{metadata.coach_name || 'Your coach'}</span>
+                  </div>
+                  <div className="comment-text">
+                    {metadata.full_comment || notification.message?.replace(/^"|"$/g, '')}
+                  </div>
                 </div>
-                <div className="comment-text">
-                  {metadata.full_comment || notification.message?.replace(/^"|"$/g, '')}
-                </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
 
           {/* Reply Section */}
-          {isComment && notification.related_entry_id && (
+          {isComment && !isCoachResponse && notification.related_entry_id && (
             <div className="reply-section">
               {!showReplyInput ? (
                 <button
@@ -153,10 +175,16 @@ function NotificationDetail({ notification, clientId, onClose, onReplySuccess })
 
         {/* Footer Actions */}
         <div className="notification-detail-footer">
-          <button className="view-entry-btn" onClick={handleViewEntry}>
-            <ExternalLink size={16} />
-            View in Diary
-          </button>
+          {isCoachResponse ? (
+            <button className="view-entry-btn" onClick={onClose}>
+              Got it
+            </button>
+          ) : (
+            <button className="view-entry-btn" onClick={handleViewEntry}>
+              <ExternalLink size={16} />
+              View in Diary
+            </button>
+          )}
         </div>
       </div>
     </div>

@@ -76,6 +76,7 @@ function Notifications() {
       case 'workout_assigned': return <Dumbbell size={18} />;
       case 'pr_reaction': return <Trophy size={18} />;
       case 'note_reaction': return <Award size={18} />;
+      case 'coach_responded': return <MessageCircle size={18} />;
       default: return <Bell size={18} />;
     }
   };
@@ -88,6 +89,7 @@ function Notifications() {
       case 'workout_assigned': return 'notif-icon workout';
       case 'pr_reaction': return 'notif-icon reaction';
       case 'note_reaction': return 'notif-icon reaction';
+      case 'coach_responded': return 'notif-icon comment';
       default: return 'notif-icon default';
     }
   };
@@ -111,7 +113,7 @@ function Notifications() {
       }
     }
 
-    if (notif.type === 'diary_reaction' || notif.type === 'diary_comment') {
+    if (notif.type === 'diary_reaction' || notif.type === 'diary_comment' || notif.type === 'coach_responded') {
       setSelectedNotification(notif);
     } else if (notif.type === 'diet_plan_published') {
       navigate('/plans');
