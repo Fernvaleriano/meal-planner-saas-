@@ -9,7 +9,6 @@ import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefr
 import { useToast } from '../components/Toast';
 // Get today's date in local timezone (NOT UTC)
 const getLocalDateString = () => {
-  const { showError, showSuccess } = useToast();
   const now = new Date();
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, '0');
@@ -48,6 +47,7 @@ const compressImage = (file, maxWidth = 1200, quality = 0.8) => {
 function Progress() {
   const navigate = useNavigate();
   const { clientData } = useAuth();
+  const { showError, showSuccess } = useToast();
 
   // Get user's preferred weight unit (default to lbs)
   const weightUnit = clientData?.unit_preference === 'metric' ? 'kg' : 'lbs';

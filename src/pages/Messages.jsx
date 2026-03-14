@@ -10,7 +10,6 @@ import { onAppResume } from '../hooks/useAppLifecycle';
 import { useToast } from '../components/Toast';
 // localStorage cache helper for instant display on resume
 const getCache = (key) => {
-  const { showError, showSuccess } = useToast();
   try {
     const cached = localStorage.getItem(key);
     if (cached) return JSON.parse(cached);
@@ -29,6 +28,7 @@ const REACTION_EMOJIS = ['❤️', '💪', '🔥', '👏', '😂', '👍'];
 function Messages() {
   const { user, clientData } = useAuth();
   const location = useLocation();
+  const { showError, showSuccess } = useToast();
   const isCoach = clientData?.is_coach === true;
   const coachId = isCoach ? user?.id : null;
   const clientId = clientData?.id;

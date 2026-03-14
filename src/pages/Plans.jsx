@@ -10,7 +10,6 @@ import { useToast } from '../components/Toast';
 // Build a proxy URL for voice notes that never expires
 // Falls back to extracting the storage path from old signed URLs
 const getVoiceNoteProxyUrl = (meal) => {
-  const { showError, showSuccess } = useToast();
   const path = meal.voice_note_path || extractPathFromSignedUrl(meal.voice_note_url);
   if (!path) return meal.voice_note_url || null;
   return `/.netlify/functions/serve-voice-note?path=${encodeURIComponent(path)}`;
@@ -70,6 +69,7 @@ function Plans() {
   const { clientData } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+  const { showError, showSuccess } = useToast();
   // Read planId from URL path instead of useParams (component is mounted
   // persistently outside the Router, so useParams wouldn't work)
   const planId = location.pathname.match(/^\/plans\/(.+)/)?.[1];

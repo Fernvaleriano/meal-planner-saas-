@@ -5,7 +5,6 @@ import { apiPost } from '../../utils/api';
 import { useToast } from '../../components/Toast';
 // Helper function to strip markdown formatting from text
 const stripMarkdown = (text) => {
-  const { showError, showSuccess } = useToast();
   if (!text) return text;
   return text
     // Remove bold: **text** or __text__
@@ -23,6 +22,7 @@ const stripMarkdown = (text) => {
 };
 
 function AskCoachChat({ exercise, onClose }) {
+  const { showError, showSuccess } = useToast();
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);

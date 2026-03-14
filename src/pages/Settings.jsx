@@ -10,7 +10,6 @@ import { usePullToRefreshEvent } from '../hooks/usePullToRefreshEvent';
 import { useToast } from '../components/Toast';
 // localStorage cache helpers
 const getCache = (key) => {
-  const { showError, showSuccess } = useToast();
   try {
     const cached = localStorage.getItem(key);
     if (cached) return JSON.parse(cached);
@@ -27,6 +26,7 @@ const setCache = (key, data) => {
 function Settings() {
   const { clientData, theme, toggleTheme, logout, refreshClientData } = useAuth();
   const { branding } = useBranding();
+  const { showError, showSuccess } = useToast();
   const isCoach = clientData?.is_coach === true;
 
   // Load from cache for instant display

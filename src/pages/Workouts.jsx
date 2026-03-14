@@ -2652,7 +2652,7 @@ function Workouts() {
       console.error('Error rescheduling workout:', err);
       // If assignment not found (404), show specific error
       if (err.status === 404 || err.message?.includes('not found')) {
-        showSuccess('Could not find this workout. It may have been removed or updated. Please refresh and try again.');
+        showError('Could not find this workout. It may have been removed or updated. Please refresh and try again.');
       } else {
         showError('Failed to update workout schedule');
       }
