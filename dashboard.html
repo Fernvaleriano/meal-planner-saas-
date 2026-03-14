@@ -5046,10 +5046,12 @@
         let _allPriorityAlerts = [];
         let _dismissedFromDb = new Set(); // Alert IDs that are dismissed (merged DB + localStorage)
         let _dbDismissedIds = new Set(); // Alert IDs confirmed in database
+        let _dbDismissedRecords = []; // Full DB records for archive retention
         let _localOnlyDismissed = new Set(); // Alert IDs only in localStorage, need DB sync
         let _currentCoachId = null; // Set during loadPriorityAlerts
         let _dbAvailable = true; // Track if database is working
         let _loadingAlerts = false; // Guard against concurrent loadPriorityAlerts calls
+        const ARCHIVE_RETENTION_DAYS = 14; // Keep archived items visible for this many days
 
         const DISMISSED_STORAGE_KEY = 'dismissedPriorityAlerts';
 
@@ -5077,10 +5079,15 @@
             const localDismissed = getLocalDismissed();
 
             try {
+                // Only load dismissals from the last ARCHIVE_RETENTION_DAYS
+                const retentionCutoff = new Date();
+                retentionCutoff.setDate(retentionCutoff.getDate() - ARCHIVE_RETENTION_DAYS);
+
                 const { data, error } = await supabaseClient
                     .from('dismissed_activity_items')
-                    .select('client_id, reason, related_checkin_id')
-                    .eq('coach_id', coachId);
+                    .select('client_id, reason, related_checkin_id, dismissed_at')
+                    .eq('coach_id', coachId)
+                    .gte('dismissed_at', retentionCutoff.toISOString());
 
                 if (error) {
                     console.warn('Could not load dismissed items:', error.message);
@@ -5090,6 +5097,9 @@
 
                 _dbAvailable = true;
 
+                // Store full records for archive retention (creating placeholders later)
+                _dbDismissedRecords = data || [];
+
                 // Build a set of alert IDs from database
                 const dbDismissed = new Set();
                 const prefixMap = {
@@ -5097,6 +5107,7 @@
                     'low_energy': 'energy',
                     'pending_checkin': 'checkin',
                     'expiring_plan': 'plan',
+                    'expiring_workout': 'workout-program',
                     'client_pr': 'pr',
                     'workout_note': 'workout-note',
                     'ghost_client': 'ghost',
@@ -6195,21 +6206,67 @@
                     console.warn('Could not check workout logs:', e);
                 }
 
+                // --- ARCHIVE RETENTION: Create placeholder entries for DB-dismissed items ---
+                // Items that were dismissed within ARCHIVE_RETENTION_DAYS but whose source
+                // alerts no longer exist (data aged out) still appear in the Archived section
+                const currentAlertIds = new Set(_allPriorityAlerts.map(a => a.id));
+                const reasonLabels = {
+                    'high_stress': 'High stress',
+                    'low_energy': 'Low energy',
+                    'pending_checkin': 'Check-in reviewed',
+                    'expiring_plan': 'Meal plan',
+                    'expiring_workout': 'Workout program',
+                    'client_pr': 'PR noted',
+                    'workout_note': 'Workout note',
+                    'ghost_client': 'Inactive client',
+                    'plateau': 'Plateau'
+                };
+                const reasonPrefixMap = {
+                    'high_stress': 'stress',
+                    'low_energy': 'energy',
+                    'pending_checkin': 'checkin',
+                    'expiring_plan': 'plan',
+                    'expiring_workout': 'workout-program',
+                    'client_pr': 'pr',
+                    'workout_note': 'workout-note',
+                    'ghost_client': 'ghost',
+                    'plateau': 'plateau'
+                };
+                _dbDismissedRecords.forEach(rec => {
+                    const prefix = reasonPrefixMap[rec.reason];
+                    if (!prefix) return;
+                    const aid = rec.related_checkin_id != null
+                        ? `${prefix}-${rec.related_checkin_id}`
+                        : `${prefix}-${rec.client_id}`;
+                    // Only add placeholder if no current alert exists for this ID
+                    if (!currentAlertIds.has(aid)) {
+                        const name = clientMap[rec.client_id] || 'Unknown Client';
+                        const label = reasonLabels[rec.reason] || rec.reason;
+                        const dismissedDate = rec.dismissed_at ? new Date(rec.dismissed_at) : null;
+                        const dateStr = dismissedDate ? timeAgo(rec.dismissed_at) : '';
+                        addAlert(aid, `
+                            <div class="priority-alert priority-alert--clickable">
+                                __CHECKBOX__
+                                <span class="priority-dot priority-dot--green"></span>
+                                <span>
+                                    <span class="priority-label priority-label--positive">${label}:</span>
+                                    <strong>${name}</strong>
+                                    ${dateStr ? `<span class="priority-alert-detail">· handled ${dateStr}</span>` : ''}
+                                </span>
+                            </div>
+                        `, rec.client_id, rec.reason, rec.related_checkin_id);
+                        // Ensure it's marked as dismissed
+                        _dismissedFromDb.add(aid);
+                    }
+                });
+
                 // Render active vs handled sections
                 renderPriorityAlertSections();
 
-                // Clean up stale localStorage entries (dismissed items whose alerts no longer exist)
-                // Only remove entries that are BOTH: not in current alerts AND not confirmed in DB
-                // Be conservative — keep entries if there's any doubt, to prevent items reappearing
-                if (_dbAvailable && _allPriorityAlerts.length > 0) {
-                    const currentAlertIds = new Set(_allPriorityAlerts.map(a => a.id));
-                    const staleCleaned = new Set(
-                        [..._dismissedFromDb].filter(id => currentAlertIds.has(id) || _dbDismissedIds.has(id))
-                    );
-                    if (staleCleaned.size < _dismissedFromDb.size) {
-                        _dismissedFromDb = staleCleaned;
-                        saveLocalDismissed(_dismissedFromDb);
-                    }
+                // Sync localStorage with DB — DB is the source of truth
+                // Only keep localStorage items that are confirmed in DB or match current alerts
+                if (_dbAvailable) {
+                    saveLocalDismissed(_dismissedFromDb);
                 }
 
                 // Background: sync any localStorage-only dismissals to DB
