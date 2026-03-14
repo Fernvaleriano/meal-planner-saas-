@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, NotebookPen, CalendarDays, User, LogOut, Activity, Dumbbell, MessageCircle } from 'lucide-react';
+import { Home, NotebookPen, CalendarDays, User, LogOut, Activity, Dumbbell, MessageCircle, Trophy } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useBranding } from '../context/BrandingContext';
 import { apiGet } from '../utils/api';
@@ -63,6 +63,7 @@ function DesktopSidebar() {
       { path: '/', icon: Home, label: getLabel('home'), moduleKey: null },
       { path: '/diary', icon: NotebookPen, label: getLabel('diary'), moduleKey: 'diary' },
       ...(isCoach ? [{ path: '/feed', icon: Activity, label: 'Client Feed', moduleKey: null }] : []),
+      { path: '/challenges', icon: Trophy, label: 'Challenges', moduleKey: null },
       { path: '/messages', icon: MessageCircle, label: getLabel('messages'), badge: unreadMessages, moduleKey: 'messages' },
       { path: '/workouts', icon: Dumbbell, label: getLabel('workouts'), moduleKey: 'workouts' },
       { path: '/plans', icon: CalendarDays, label: getLabel('plans'), moduleKey: 'plans' },
