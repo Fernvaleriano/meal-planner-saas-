@@ -206,15 +206,19 @@ exports.handler = async (event) => {
           await supabase.from('challenge_participants').insert(rows);
 
           // Notify all clients
-          const notifications = clients.map(c => ({
-            client_id: c.id,
-            type: 'challenge_assigned',
-            title: 'New Challenge!',
-            message: `You've been added to: ${title}`,
-            data: { challengeId: challenge.id },
-            is_read: false
-          }));
-          await supabase.from('notifications').insert(notifications).catch(e => console.error('Notification error:', e));
+          try {
+            const notifications = clients.map(c => ({
+              client_id: c.id,
+              type: 'challenge_assigned',
+              title: 'New Challenge!',
+              message: `You've been added to: ${title}`,
+              data: { challengeId: challenge.id },
+              is_read: false
+            }));
+            await supabase.from('notifications').insert(notifications);
+          } catch (e) {
+            console.error('Notification error:', e);
+          }
         }
       } else if (clientIds?.length) {
         const rows = clientIds.map(id => ({
@@ -224,15 +228,19 @@ exports.handler = async (event) => {
         }));
         await supabase.from('challenge_participants').insert(rows);
 
-        const notifications = clientIds.map(id => ({
-          client_id: id,
-          type: 'challenge_assigned',
-          title: 'New Challenge!',
-          message: `You've been added to: ${title}`,
-          data: { challengeId: challenge.id },
-          is_read: false
-        }));
-        await supabase.from('notifications').insert(notifications).catch(e => console.error('Notification error:', e));
+        try {
+          const notifications = clientIds.map(id => ({
+            client_id: id,
+            type: 'challenge_assigned',
+            title: 'New Challenge!',
+            message: `You've been added to: ${title}`,
+            data: { challengeId: challenge.id },
+            is_read: false
+          }));
+          await supabase.from('notifications').insert(notifications);
+        } catch (e) {
+          console.error('Notification error:', e);
+        }
       }
 
       return { statusCode: 200, headers, body: JSON.stringify({ challenge }) };
