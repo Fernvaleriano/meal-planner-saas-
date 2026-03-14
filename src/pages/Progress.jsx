@@ -497,12 +497,7 @@ function Progress() {
       const updated = [...selectedPhotos, photo];
       setSelectedPhotos(updated);
       if (updated.length === 2) {
-        const d1 = new Date(updated[0].taken_date || updated[0].date_taken).getTime();
-        const d2 = new Date(updated[1].taken_date || updated[1].date_taken).getTime();
-        if (d1 !== d2) {
-          updated.sort((a, b) => new Date(a.taken_date || a.date_taken) - new Date(b.taken_date || b.date_taken));
-        }
-        setSelectedPhotos(updated);
+        // Respect user's selection order: first tap = before, second tap = after
         setShowComparison(true);
         setAiAnalysis('');
         document.body.style.overflow = 'hidden';
@@ -676,7 +671,9 @@ function Progress() {
 
             {compareMode && (
               <div className="compare-hint">
-                Tap the before photo first, then the after photo
+                {selectedPhotos.length === 0
+                  ? '① Select your BEFORE photo'
+                  : '② Now select your AFTER photo'}
               </div>
             )}
 
@@ -706,7 +703,7 @@ function Progress() {
                       >
                         <img src={photo.url || photo.photo_url} alt="Progress" loading="lazy" />
                         {isSelected && (
-                          <div className="photo-selected-badge">{selectedIndex + 1}</div>
+                          <div className="photo-selected-badge">{selectedIndex === 0 ? 'Before' : 'After'}</div>
                         )}
                         {!compareMode && (
                           <button
