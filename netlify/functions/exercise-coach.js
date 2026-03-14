@@ -330,7 +330,6 @@ function getExerciseCues(exerciseName) {
     if (regex.test(nameLower)) {
       const cueKey = movementMap[movement];
       if (EXERCISE_CUES[cueKey]) {
-        console.log(`Matched "${exerciseName}" to "${cueKey}" via movement "${movement}"`);
         return EXERCISE_CUES[cueKey];
       }
     }
@@ -624,7 +623,6 @@ NOW ANSWER THE CLIENT'S QUESTION: "${question}"`;
     }
 
     // Call GPT-4o Mini API
-    console.log(`Exercise coach: Calling GPT-4o Mini for ${mode} mode, exercise: ${exerciseName}`);
 
     let responseText;
     try {
@@ -648,8 +646,6 @@ NOW ANSWER THE CLIENT'S QUESTION: "${question}"`;
         })
       };
     }
-
-    console.log(`GPT-4o Mini response length: ${responseText.length} chars`);
 
     if (!responseText) {
       console.error('Empty response from GPT-4o Mini');

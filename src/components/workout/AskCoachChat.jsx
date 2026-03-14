@@ -2,8 +2,10 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { X, Send, Loader2, MessageCircle, Bot, ChevronLeft, Mic } from 'lucide-react';
 import { apiPost } from '../../utils/api';
 
+import { useToast } from '../../components/Toast';
 // Helper function to strip markdown formatting from text
 const stripMarkdown = (text) => {
+  const { showError, showSuccess } = useToast();
   if (!text) return text;
   return text
     // Remove bold: **text** or __text__
@@ -92,7 +94,7 @@ function AskCoachChat({ exercise, onClose }) {
 
   const toggleVoiceInput = () => {
     if (!voiceSupported) {
-      alert('Voice input is not supported in this browser. Please try Chrome or Safari.');
+      showError('Voice input is not supported in this browser. Please try Chrome or Safari.');
       return;
     }
     if (isRecording) {
@@ -124,9 +126,9 @@ function AskCoachChat({ exercise, onClose }) {
         stream.getTracks().forEach(t => t.stop());
       } catch (err) {
         if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-          alert('Microphone access denied. Please allow microphone access in your device settings.');
+          showError('Microphone access denied. Please allow microphone access in your device settings.');
         } else {
-          alert('Could not access microphone. Please check permissions.');
+          showError('Could not access microphone. Please check permissions.');
         }
         return;
       }
@@ -165,7 +167,7 @@ function AskCoachChat({ exercise, onClose }) {
     recognition.onerror = (event) => {
       console.warn('Speech recognition error:', event.error);
       if (event.error === 'not-allowed') {
-        alert('Microphone access denied. Please allow microphone access.');
+        showError('Microphone access denied. Please allow microphone access.');
       }
       setIsRecording(false);
       recognitionRef.current = null;

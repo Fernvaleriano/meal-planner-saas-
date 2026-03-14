@@ -70,8 +70,6 @@ exports.handler = async (event, context) => {
       };
     }
 
-    console.log(`✅ Retrieved ${data.length} clients for coach ${coachId} (archived: ${archivedOnly ? 'only' : includeArchived ? 'included' : 'excluded'})`);
-
     return {
       statusCode: 200,
       headers: {

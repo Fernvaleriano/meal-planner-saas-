@@ -104,13 +104,6 @@ exports.handler = async (event) => {
       const hasDietRequest = body.requestNewDiet === true;
 
       // Create notification for coach
-      console.log('Creating notification for coach:', {
-        coachId: body.coachId,
-        clientId: body.clientId,
-        checkinId: checkinData?.id,
-        clientName,
-        hasDietRequest
-      });
 
       // Build notification message
       let notificationTitle = 'New Check-in';
@@ -150,7 +143,6 @@ exports.handler = async (event) => {
           console.error('Notifications table does not exist. Please run the notifications migration in Supabase.');
         }
       } else {
-        console.log('Notification created successfully for coach:', body.coachId, 'notificationId:', notificationData?.id);
       }
 
       return {

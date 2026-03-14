@@ -91,14 +91,6 @@ exports.handler = async (event) => {
 
         try {
             // Log email configuration for debugging
-            console.log('Email notification attempt:', {
-                to: notificationTo,
-                formName: formName,
-                hasResendKey: !!process.env.RESEND_API_KEY,
-                hasSendGridKey: !!process.env.SENDGRID_API_KEY,
-                hasMailgunKey: !!process.env.MAILGUN_API_KEY,
-                responseId: responseRecord.id
-            });
 
             const emailResult = await sendFormNotificationEmail({
                 to: notificationTo,
@@ -110,7 +102,6 @@ exports.handler = async (event) => {
                 isTrialReview: isTrialReviewForm
             });
 
-            console.log('Email notification result:', emailResult);
         } catch (emailError) {
             // Don't fail the submission if email fails
             console.error('Failed to send notification email:', {

@@ -61,8 +61,6 @@ exports.handler = async (event, context) => {
       };
     }
 
-    console.log(`📍 Activity tracked for client: ${data?.client_name} (ID: ${data?.id})`);
-
     return {
       statusCode: 200,
       headers: {

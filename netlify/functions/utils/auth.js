@@ -79,7 +79,6 @@ async function verifyToken(token) {
     const { data: { user }, error } = await supabase.auth.getUser(token);
 
     if (error || !user) {
-      console.log('Token verification failed:', error?.message || 'No user found');
       return { user: null, error: 'Invalid or expired token' };
     }
 

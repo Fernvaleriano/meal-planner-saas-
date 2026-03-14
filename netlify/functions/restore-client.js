@@ -36,8 +36,6 @@ exports.handler = async (event, context) => {
     const { user, error: authError } = await authenticateCoach(event, coachId);
     if (authError) return authError;
 
-    console.log(`🔐 Authenticated coach ${user.id} restoring client ${clientId}`);
-
     // Initialize Supabase client with service key
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
@@ -64,8 +62,6 @@ exports.handler = async (event, context) => {
       };
     }
 
-    console.log(`♻️ Restoring client: ${client.client_name} (ID: ${clientId})`);
-
     // Update client record to restore
     const { data: updatedClient, error: updateError } = await supabase
       .from('clients')
@@ -88,8 +84,6 @@ exports.handler = async (event, context) => {
         })
       };
     }
-
-    console.log(`✅ Client restored: ${client.client_name} (ID: ${clientId})`);
 
     return {
       statusCode: 200,

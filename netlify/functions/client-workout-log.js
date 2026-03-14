@@ -287,7 +287,6 @@ exports.handler = async (event) => {
           days: updatedDays
         };
 
-        console.log(`[client-workout-log] Updated day ${safeDayIndex} exercises: ${(incomingExercises || []).length} exercises, completed: ${(incomingExercises || []).filter(e => e?.completed).length}`);
       } else {
         // Flat structure - update exercises directly
         updatedWorkoutData = {

@@ -100,8 +100,6 @@ exports.handler = async (event, context) => {
       };
     }
 
-    console.log(`Client ${clientId} reset plan ${planId} to original`);
-
     return {
       statusCode: 200,
       headers: {

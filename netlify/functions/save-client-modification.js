@@ -77,7 +77,6 @@ exports.handler = async (event, context) => {
 
     // If column doesn't exist, try adding it first (for older schemas)
     if (error && (error.message.includes('client_modified_data') || error.code === '42703')) {
-      console.log('client_modified_data column may not exist, attempting without timestamp...');
 
       // Try just the data column
       const { data: retryData, error: retryError } = await supabase
@@ -125,8 +124,6 @@ exports.handler = async (event, context) => {
         })
       };
     }
-
-    console.log(`Client ${clientId} modified plan ${planId}`);
 
     return {
       statusCode: 200,

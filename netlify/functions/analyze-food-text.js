@@ -67,7 +67,6 @@ function validateCountableFoods(foods, userText) {
         const tolerance = 0.30;
 
         if (calPerPiece < matchedRef.cal * (1 - tolerance) || calPerPiece > matchedRef.cal * (1 + tolerance)) {
-            console.log(`Nutritional correction: ${food.name} - AI said ${food.calories} cal (${Math.round(calPerPiece)}/piece), corrected to ${correctCal} cal (${matchedRef.cal}/piece) for ${count} pieces`);
             return {
                 ...food,
                 calories: correctCal,
@@ -240,8 +239,6 @@ Guidelines:
 
 Return ONLY the JSON array, nothing else.`;
 
-        console.log(`Text food analysis for user ${user.id}`);
-
         let content;
         try {
             const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY, maxRetries: 3 });
@@ -271,8 +268,6 @@ Return ONLY the JSON array, nothing else.`;
                 })
             };
         }
-
-        console.log('Claude response:', content);
 
         // Parse the response
         let foods = [];

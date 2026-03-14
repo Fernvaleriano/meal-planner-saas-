@@ -7,8 +7,10 @@ import { supabase } from '../utils/supabase';
 import { usePullToRefreshEvent } from '../hooks/usePullToRefreshEvent';
 import { onAppResume } from '../hooks/useAppLifecycle';
 
+import { useToast } from '../components/Toast';
 // localStorage cache helper for instant display on resume
 const getCache = (key) => {
+  const { showError, showSuccess } = useToast();
   try {
     const cached = localStorage.getItem(key);
     if (cached) return JSON.parse(cached);
@@ -181,13 +183,13 @@ function Messages() {
 
     // Validate file type
     if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
-      alert('Please select an image or video file.');
+      showError('Please select an image or video file.');
       return;
     }
 
     // Validate file size (250MB)
     if (file.size > 250 * 1024 * 1024) {
-      alert('File too large. Maximum size is 250MB.');
+      showError('File too large. Maximum size is 250MB.');
       return;
     }
 
@@ -329,7 +331,7 @@ function Messages() {
       }));
     } catch (err) {
       console.error('Error sending message:', err);
-      alert(err.message?.includes('upload') || err.message?.includes('storage')
+      showError(err.message?.includes('upload') || err.message?.includes('storage')
         ? 'Failed to upload media. Please try again or use a smaller file.'
         : 'Failed to send message. Please try again.');
       setUploading(false);
@@ -687,7 +689,6 @@ function Messages() {
             // Try to reconnect with increasing delay — give Supabase time
             // to self-heal before we force a resubscribe
             const delay = resubscribeAttemptsRef.current * 3000;
-            console.log('[Messages] Reconnect attempt', resubscribeAttemptsRef.current, 'in', delay, 'ms');
             setTimeout(() => setResubscribeKey(k => k + 1), delay);
           } else {
             // Gave up — just log it. Don't dispatch a global stuck banner
@@ -873,10 +874,10 @@ function Messages() {
       setBulkMessage('');
       setSelectedClientIds([]);
       setBulkMode(false);
-      alert('Message sent to selected clients.');
+      showSuccess('Message sent to selected clients.');
     } catch (err) {
       console.error('Error sending bulk message:', err);
-      alert('Failed to send bulk message. Please try again.');
+      showError('Failed to send bulk message. Please try again.');
     } finally {
       setBulkSending(false);
     }

@@ -40,8 +40,6 @@ exports.handler = async (event, context) => {
     const { user, role, error: authError } = await authenticateClientAccess(event, clientId);
     if (authError) return authError;
 
-    console.log(`🔐 Authenticated ${role} (${user.id}) updating client profile ${clientId}`);
-
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
     // Build update object — only include fields that were sent

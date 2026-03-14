@@ -151,8 +151,6 @@ exports.handler = async (event, context) => {
       // Continue anyway - image was uploaded successfully
     }
 
-    console.log('✅ Uploaded custom meal photo:', storagePath);
-
     return {
       statusCode: 200,
       headers: corsHeaders,

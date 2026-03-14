@@ -293,8 +293,6 @@ exports.handler = async (event, context) => {
             }
         }
 
-        console.log('Workout end notification processing complete', stats);
-
         return {
             statusCode: 200,
             headers,

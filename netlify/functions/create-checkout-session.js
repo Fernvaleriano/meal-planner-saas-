@@ -71,7 +71,6 @@ exports.handler = async (event) => {
                     // This covers: has stripe_customer_id, has any subscription_status (including canceled),
                     // or simply has an existing account
                     isExistingUser = true;
-                    console.log('Existing user detected:', { coachId, existingCustomerId, status: coach.subscription_status });
                 }
             }
         }

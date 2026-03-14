@@ -48,10 +48,6 @@ async function sendEmail({ to, subject, text, html, fromEmail, fromName }) {
     }
 
     // Dev mode fallback
-    console.log('=== TEST EMAIL (Dev Mode) ===');
-    console.log('To:', to);
-    console.log('Subject:', subject);
-    console.log('HTML:', html?.substring(0, 500) + '...');
     return { success: true, messageId: 'dev-' + Date.now() };
 }
 

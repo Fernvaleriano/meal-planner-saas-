@@ -34,8 +34,6 @@ exports.handler = async (event, context) => {
     const { user, error: authError } = await authenticateCoach(event, coachId);
     if (authError) return authError;
 
-    console.log(`🔐 Authenticated coach ${user.id} publishing plan ${planId}`);
-
     // Initialize Supabase client with service key
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
@@ -67,8 +65,6 @@ exports.handler = async (event, context) => {
       };
     }
 
-    console.log('✅ Plan published:', planId);
-
     // Create a notification for the client
     if (data.client_id) {
       try {
@@ -85,7 +81,6 @@ exports.handler = async (event, context) => {
               plan_name: planName
             }
           }]);
-        console.log('🔔 Notification sent to client', data.client_id);
       } catch (notifError) {
         // Don't fail the publish if notification fails
         console.error('⚠️ Failed to send notification:', notifError);

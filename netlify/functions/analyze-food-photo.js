@@ -53,8 +53,6 @@ exports.handler = async (event, context) => {
             return rateLimitResponse(rateLimit.resetIn);
         }
 
-        console.log(`📸 Photo analysis for user ${user.id}`);
-
         if (!ANTHROPIC_API_KEY) {
             console.error('ANTHROPIC_API_KEY is not configured');
             return {
@@ -105,8 +103,6 @@ exports.handler = async (event, context) => {
             });
         }
 
-        console.log(`📷 Processing ${processedImages.length} image(s) for food analysis`);
-
         // User-provided context
         const userContext = details ? details.trim() : null;
 
@@ -153,8 +149,6 @@ ${processedImages.length > 1 ? '- Use multiple angles to better estimate portion
 
 Return ONLY the JSON array.`;
 
-        console.log('🤖 Calling Claude Haiku for food analysis...');
-
         // Build content array with images for Claude
         const contentParts = [
             ...processedImages.map((img) => ({
@@ -200,8 +194,6 @@ Return ONLY the JSON array.`;
             };
         }
 
-        console.log('✅ Claude Haiku response received');
-
         // Extract response text
         const content = message.content?.[0]?.text || '';
         if (!content) {
@@ -212,8 +204,6 @@ Return ONLY the JSON array.`;
                 body: JSON.stringify({ foods: [] })
             };
         }
-
-        console.log('Response preview:', content.substring(0, 200));
 
         // Parse the response
         let foods = [];

@@ -36,8 +36,6 @@ exports.handler = async (event, context) => {
     const { user, error: authError } = await authenticateCoach(event, coachId);
     if (authError) return authError;
 
-    console.log(`🔐 Authenticated coach ${user.id} deleting client ${clientId}`);
-
     // Initialize Supabase client with service key
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
@@ -59,18 +57,15 @@ exports.handler = async (event, context) => {
 
     // Delete auth user if client has a user_id
     if (client.user_id) {
-      console.log(`🔑 Deleting auth user by user_id: ${client.user_id}`);
       const { error: authDeleteError } = await supabase.auth.admin.deleteUser(client.user_id);
       if (authDeleteError) {
         console.warn('⚠️ Warning: Could not delete auth user:', authDeleteError.message);
         // Continue with client deletion even if auth user deletion fails
       } else {
-        console.log(`✅ Auth user deleted: ${client.user_id}`);
       }
     } else if (client.email) {
       // No user_id set, but check for orphaned auth users with same email
       // This handles cases where auth user was created but DB update failed
-      console.log(`🔍 Checking for orphaned auth user with email: ${client.email}`);
 
       let page = 1;
       const perPage = 100;
@@ -89,12 +84,10 @@ exports.handler = async (event, context) => {
         orphanedUser = usersPage.users.find(u => u.email === client.email);
 
         if (orphanedUser) {
-          console.log(`🔑 Found orphaned auth user for email ${client.email}: ${orphanedUser.id}`);
           const { error: authDeleteError } = await supabase.auth.admin.deleteUser(orphanedUser.id);
           if (authDeleteError) {
             console.warn('⚠️ Warning: Could not delete orphaned auth user:', authDeleteError.message);
           } else {
-            console.log(`✅ Orphaned auth user deleted: ${orphanedUser.id}`);
           }
           break;
         }
@@ -137,8 +130,6 @@ exports.handler = async (event, context) => {
         body: JSON.stringify({ error: 'Client not found or unauthorized' })
       };
     }
-
-    console.log(`✅ Deleted client: ${data.client_name} (ID: ${clientId})`);
 
     return {
       statusCode: 200,

@@ -47,8 +47,6 @@ exports.handler = async (event, context) => {
       };
     }
 
-    console.log(`Found ${data.length} plans for client ${clientId}`);
-
     return {
       statusCode: 200,
       headers: {

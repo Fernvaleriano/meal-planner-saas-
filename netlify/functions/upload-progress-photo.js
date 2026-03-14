@@ -21,7 +21,6 @@ async function ensureBucketExists(supabase) {
     const bucketExists = buckets.some(b => b.name === BUCKET_NAME);
 
     if (!bucketExists) {
-      console.log(`Creating bucket: ${BUCKET_NAME}`);
       const { data, error: createError } = await supabase.storage.createBucket(BUCKET_NAME, {
         public: true,
         fileSizeLimit: 5242880 // 5MB
@@ -31,7 +30,6 @@ async function ensureBucketExists(supabase) {
         console.error('Error creating bucket:', createError);
         return { success: false, error: createError.message };
       }
-      console.log('Bucket created successfully');
     }
 
     return { success: true };
@@ -105,8 +103,6 @@ exports.handler = async (event, context) => {
         body: JSON.stringify({ error: 'Photo data is required. Please select a photo and try again.' })
       };
     }
-
-    console.log('Uploading photo for client:', clientId, 'coach:', coachId);
 
     // Initialize Supabase client with service key
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);

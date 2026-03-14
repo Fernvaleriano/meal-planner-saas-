@@ -7,8 +7,10 @@ import { apiGet, apiPost, apiPut } from '../utils/api';
 import { supabase } from '../utils/supabase';
 import { usePullToRefreshEvent } from '../hooks/usePullToRefreshEvent';
 
+import { useToast } from '../components/Toast';
 // localStorage cache helpers
 const getCache = (key) => {
+  const { showError, showSuccess } = useToast();
   try {
     const cached = localStorage.getItem(key);
     if (cached) return JSON.parse(cached);
@@ -121,7 +123,7 @@ function Settings() {
       }
     } catch (err) {
       console.error('Error saving profile:', err);
-      alert('Failed to save profile. Please try again.');
+      showError('Failed to save profile. Please try again.');
     } finally {
       setProfileSaving(false);
     }
@@ -226,7 +228,7 @@ function Settings() {
     if (!file) return;
 
     if (!clientData?.id) {
-      alert('Please wait for your profile to load');
+      showError('Please wait for your profile to load');
       return;
     }
 
@@ -246,13 +248,13 @@ function Settings() {
       if (response.success && response.photoUrl) {
         // Refresh client data to get updated photo
         await refreshClientData();
-        alert('Profile photo updated!');
+        showSuccess('Profile photo updated!');
       } else {
         throw new Error(response.error || 'Upload failed');
       }
     } catch (err) {
       console.error('Error uploading photo:', err);
-      alert(err.message || 'Failed to upload photo. Please try again.');
+      showError(err.message || 'Failed to upload photo. Please try again.');
     } finally {
       setUploadingPhoto(false);
       // Clear the input so the same file can be selected again
@@ -272,7 +274,7 @@ function Settings() {
   // Handle password reset
   const handlePasswordReset = async () => {
     if (!clientData?.email) {
-      alert('No email address found for your account');
+      showError('No email address found for your account');
       return;
     }
 
@@ -333,7 +335,7 @@ function Settings() {
     } catch (err) {
       console.error('Error updating exercise gender preference:', err);
       setExerciseGenderPref(previousValue); // Revert on error
-      alert('Failed to update preference. Please try again.');
+      showError('Failed to update preference. Please try again.');
     } finally {
       setExerciseGenderLoading(false);
     }
@@ -362,7 +364,7 @@ function Settings() {
     } catch (err) {
       console.error('Error updating weight unit preference:', err);
       setUnitPref(previousValue); // Revert on error
-      alert('Failed to update preference. Please try again.');
+      showError('Failed to update preference. Please try again.');
     } finally {
       setUnitPrefLoading(false);
     }

@@ -46,8 +46,6 @@ exports.handler = async (event, context) => {
       };
     }
 
-    console.log(`✅ Retrieved meal plan ${planId}`);
-
     return {
       statusCode: 200,
       headers: {

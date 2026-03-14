@@ -48,8 +48,6 @@ exports.handler = async (event, context) => {
     const { user, error: authError } = await authenticateCoach(event, coachId);
     if (authError) return authError;
 
-    console.log(`🔐 Authenticated coach ${user.id} updating client ${clientId}`);
-
     // Initialize Supabase client with service key
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
@@ -127,8 +125,6 @@ exports.handler = async (event, context) => {
         body: JSON.stringify({ error: 'Client not found or unauthorized' })
       };
     }
-
-    console.log(`✅ Updated client: ${data.client_name} (ID: ${clientId})`);
 
     return {
       statusCode: 200,

@@ -53,12 +53,6 @@ async function sendEmail({ to, subject, text, html, fromEmail, fromName }) {
     }
 
     // Development fallback - just log the email
-    console.log('=== EMAIL (Dev Mode - No provider configured) ===');
-    console.log('From:', `${emailFromName} <${emailFrom}>`);
-    console.log('To:', to);
-    console.log('Subject:', subject);
-    console.log('Body:', text.substring(0, 200) + '...');
-    console.log('================================================');
 
     return {
         success: true,

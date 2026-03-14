@@ -77,8 +77,6 @@ exports.handler = async (event, context) => {
       };
     }
 
-    console.log('Saving measurement for client:', clientId, 'coach:', coachId);
-
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
     const { data, error } = await supabase

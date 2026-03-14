@@ -34,8 +34,6 @@ exports.handler = async (event, context) => {
             return rateLimitResponse(rateLimit.resetIn);
         }
 
-        console.log(`📋 Nutrition label scan for user ${user.id} (${rateLimit.remaining} requests remaining)`);
-
         if (!GEMINI_API_KEY) {
             console.error('GEMINI_API_KEY is not configured');
             return {
@@ -85,10 +83,6 @@ exports.handler = async (event, context) => {
                 base64Data: matches[2]
             });
         }
-
-        console.log(`📋 Processing ${processedImages.length} image(s) for nutrition label analysis`);
-
-        console.log('📋 Calling Gemini to read nutrition label...');
 
         // Build the prompt for nutrition label reading
         const multiImageNote = processedImages.length > 1
@@ -191,7 +185,6 @@ Return ONLY the JSON object, nothing else.`;
         }
 
         const data = await response.json();
-        console.log('✅ Gemini response received');
 
         // Extract response text - handle thinking parts from Gemini 2.5+
         if (!data.candidates || !data.candidates[0]?.content?.parts?.length) {
@@ -219,8 +212,6 @@ Return ONLY the JSON object, nothing else.`;
                 body: JSON.stringify({ error: 'Invalid AI response - no text content' })
             };
         }
-
-        console.log('Gemini response:', content.substring(0, 300));
 
         // Parse the response
         let result;

@@ -318,14 +318,11 @@ exports.handler = async (event, context) => {
                 console.error('Error saving nutrition goals:', goalsError);
                 // Don't fail registration if goals insertion fails - coach can set manually
             } else {
-                console.log('Nutrition goals calculated and saved:', { calories, protein, carbs, fat });
             }
         } catch (calcError) {
             console.error('Error calculating nutrition goals:', calcError);
             // Don't fail registration if calculation fails
         }
-
-        console.log('Client registration completed:', client.id, 'User:', authUser.id);
 
         return {
             statusCode: 200,

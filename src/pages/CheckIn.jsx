@@ -4,10 +4,12 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost } from '../utils/api';
 import { usePullToRefreshEvent } from '../hooks/usePullToRefreshEvent';
+import { useToast } from '../components/Toast';
 
 function CheckIn() {
   const navigate = useNavigate();
   const { clientData } = useAuth();
+  const { showError, showSuccess } = useToast();
 
   const [ratings, setRatings] = useState({
     energy: null,
@@ -63,7 +65,7 @@ function CheckIn() {
     e.preventDefault();
 
     if (!ratings.energy || !ratings.sleep || !ratings.hunger || !ratings.stress) {
-      alert('Please rate all wellness metrics before submitting.');
+      showError('Please rate all wellness metrics before submitting.');
       return;
     }
 
@@ -82,7 +84,7 @@ function CheckIn() {
         questions: questions || null
       });
 
-      alert('Check-in submitted successfully!');
+      showSuccess('Check-in submitted successfully!');
 
       // Reset form
       setRatings({ energy: null, sleep: null, hunger: null, stress: null });
@@ -95,7 +97,7 @@ function CheckIn() {
       loadHistory();
     } catch (err) {
       console.error('Error submitting check-in:', err);
-      alert('Error submitting check-in. Please try again.');
+      showError('Error submitting check-in. Please try again.');
     } finally {
       setSubmitting(false);
     }

@@ -62,8 +62,6 @@ exports.handler = async (event, context) => {
     // Generate the share URL
     const shareUrl = `${event.headers.origin || 'https://your-site.netlify.app'}/view-plan.html?share=${shareId}`;
 
-    console.log('✅ Shared plan saved with ID:', shareId);
-
     return {
       statusCode: 200,
       headers: {

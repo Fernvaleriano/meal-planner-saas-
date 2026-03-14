@@ -331,7 +331,6 @@ exports.handler = async (event) => {
     }
 
     await listFilesRecursive();
-    console.log(`Found ${allImages.length} images in storage`);
 
     // Get all exercises
     const { data: exercises, error: exError } = await supabase

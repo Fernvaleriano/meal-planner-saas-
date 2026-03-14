@@ -274,7 +274,6 @@ async function authenticatedFetch(url, options = {}) {
 
     // If we get a 401/403, the token might be invalid - try refreshing once
     if ((response.status === 401 || response.status === 403) && token) {
-      console.log('Auth error - attempting session refresh...');
       const newToken = await refreshSession();
 
       if (newToken && newToken !== token) {

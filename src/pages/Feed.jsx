@@ -306,7 +306,6 @@ function WorkoutFeedCard({ workout, coachId, onUpdate, weightUnit = 'lbs' }) {
 
   const workoutId = workout.id || workout.workoutId;
 
-
   const handleReaction = async (reaction) => {
     if (loading || !workoutId) return;
     setLoading(true);
@@ -747,10 +746,8 @@ function Feed() {
 
   // Fetch feed data
   const fetchFeed = useCallback(async (reset = false) => {
-    console.log('Feed: fetchFeed called, reset=', reset, 'coachId=', coachId);
 
     if (!coachId) {
-      console.log('Feed: No coachId, skipping fetch');
       // Still need to clear loading state even if we can't fetch
       setLoading(false);
       return;
@@ -772,9 +769,7 @@ function Feed() {
       if (filterMealType) url += `&mealType=${filterMealType}`;
       if (filterDate) url += `&date=${filterDate}`;
 
-      console.log('Feed: Fetching from', url);
       const result = await apiGet(url);
-      console.log('Feed: Got result, meals count:', result.meals?.length || 0);
 
       if (result.error) {
         throw new Error(result.error);
@@ -800,7 +795,6 @@ function Feed() {
         setClients(clientList);
       }
 
-      console.log('Feed: Fetch complete, hasMore=', result.hasMore);
     } catch (err) {
       console.error('Feed: Error fetching feed:', err);
       setError(err.message || 'Failed to load feed');
@@ -853,7 +847,6 @@ function Feed() {
 
   // Initial fetch
   useEffect(() => {
-    console.log('Feed: useEffect triggered, calling fetchAll');
     fetchAll(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [coachId, filterClient, filterMealType, filterDate, activeTab]);

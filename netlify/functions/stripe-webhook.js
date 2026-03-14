@@ -32,8 +32,6 @@ exports.handler = async (event) => {
         };
     }
 
-    console.log('Stripe webhook event:', stripeEvent.type);
-
     try {
         switch (stripeEvent.type) {
             case 'checkout.session.completed':
@@ -61,7 +59,6 @@ exports.handler = async (event) => {
                 break;
 
             default:
-                console.log(`Unhandled event type: ${stripeEvent.type}`);
         }
 
         return {
@@ -80,7 +77,6 @@ exports.handler = async (event) => {
 
 // Handle successful checkout - create or update coach account
 async function handleCheckoutComplete(session) {
-    console.log('Processing checkout.session.completed:', session.id);
 
     // Normalize email to lowercase to avoid case sensitivity issues
     const rawEmail = session.customer_email || session.customer_details?.email;
@@ -137,7 +133,6 @@ async function handleCheckoutComplete(session) {
                     newStatus = subscription.status;
                 }
             } catch (e) {
-                console.log('Could not retrieve subscription:', e.message);
             }
         }
 
@@ -182,13 +177,11 @@ async function handleCheckoutComplete(session) {
                     plan: plan,
                     isReactivation: true
                 });
-                console.log('Sent reactivation email to:', email);
             } catch (emailError) {
                 console.error('Error sending reactivation email:', emailError);
             }
         }
 
-        console.log('Updated existing coach:', email, isReactivation ? '(reactivation)' : '');
     } else {
         // Try to create new auth user, handle if already exists
         let userId;
@@ -203,7 +196,6 @@ async function handleCheckoutComplete(session) {
         if (authError) {
             // If user already exists, find them
             if (authError.message && authError.message.includes('already been registered')) {
-                console.log('User already exists, looking up by email:', email);
 
                 // List users and find by email
                 const { data: userList } = await supabase.auth.admin.listUsers({
@@ -215,7 +207,6 @@ async function handleCheckoutComplete(session) {
                 const existingUser = userList?.users?.find(u => u.email?.toLowerCase() === email.toLowerCase());
                 if (existingUser) {
                     userId = existingUser.id;
-                    console.log('Found existing user ID:', userId);
                 } else {
                     console.error('Could not find existing user with email:', email);
                     throw new Error('User exists but could not be found');
@@ -226,7 +217,6 @@ async function handleCheckoutComplete(session) {
             }
         } else {
             userId = authUser.user.id;
-            console.log('Created new auth user:', email);
         }
 
         // Create coach record
@@ -283,7 +273,6 @@ async function handleCheckoutComplete(session) {
                 });
 
                 if (emailResult.success) {
-                    console.log('Welcome email sent to:', email);
                 } else {
                     console.error('Error sending welcome email:', emailResult.error);
                 }
@@ -301,18 +290,15 @@ async function handleCheckoutComplete(session) {
                 coach: { email, name: coachName },
                 plan: plan
             });
-            console.log('Sent new coach notification to admin');
         } catch (notifyError) {
             console.error('Error sending admin notification:', notifyError);
         }
 
-        console.log('Created new coach:', email);
     }
 }
 
 // Handle subscription created
 async function handleSubscriptionCreated(subscription) {
-    console.log('Subscription created:', subscription.id);
 
     const customerId = subscription.customer;
 
@@ -337,7 +323,6 @@ async function handleSubscriptionCreated(subscription) {
 
 // Handle subscription updated
 async function handleSubscriptionUpdated(subscription) {
-    console.log('Subscription updated:', subscription.id);
 
     const { data: coach } = await supabase
         .from('coaches')
@@ -382,7 +367,6 @@ async function handleSubscriptionUpdated(subscription) {
 
 // Handle subscription deleted/canceled
 async function handleSubscriptionDeleted(subscription) {
-    console.log('Subscription deleted:', subscription.id);
 
     const { data: coach } = await supabase
         .from('coaches')
@@ -408,7 +392,6 @@ async function handleSubscriptionDeleted(subscription) {
 
 // Handle successful payment
 async function handlePaymentSucceeded(invoice) {
-    console.log('Payment succeeded for invoice:', invoice.id);
 
     const subscriptionId = invoice.subscription;
     const customerId = invoice.customer;
@@ -457,13 +440,11 @@ async function handlePaymentSucceeded(invoice) {
             })
             .eq('coach_id', coach.id);
 
-        console.log('Payment succeeded for coach:', coach.email);
     }
 }
 
 // Handle failed payment
 async function handlePaymentFailed(invoice) {
-    console.log('Payment failed for invoice:', invoice.id);
 
     const subscriptionId = invoice.subscription;
     const customerId = invoice.customer;
@@ -505,12 +486,10 @@ async function handlePaymentFailed(invoice) {
         try {
             const { sendPaymentFailedEmail } = require('./utils/email-service');
             await sendPaymentFailedEmail({ coach });
-            console.log('Sent payment failed email to:', coach.email);
         } catch (emailError) {
             console.error('Error sending payment failed email:', emailError);
         }
 
-        console.log('Payment failed for coach:', coach.email);
     }
 }
 

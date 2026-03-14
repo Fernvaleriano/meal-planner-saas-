@@ -1234,7 +1234,6 @@ function GuidedWorkoutModal({
 
         // Guard: Don't process if component unmounted
         if (!isMountedRef.current) {
-          console.log('Voice note: Component unmounted, skipping save');
           return;
         }
 
@@ -1505,7 +1504,6 @@ function GuidedWorkoutModal({
     // Try fetching the video as a blob
     if (guidedVideoUrl) {
       try {
-        console.log('Trying blob fallback for guided video:', guidedVideoUrl);
         const resp = await fetch(guidedVideoUrl);
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
         const blob = await resp.blob();

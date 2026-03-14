@@ -51,8 +51,6 @@ exports.handler = async (event, context) => {
       };
     }
 
-    console.log('✅ Retrieved shared plan:', shareId);
-
     return {
       statusCode: 200,
       headers: {

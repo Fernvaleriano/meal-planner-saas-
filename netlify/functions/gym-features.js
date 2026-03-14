@@ -78,7 +78,6 @@ exports.handler = async (event) => {
 
         if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
           // Don't throw, just return false
-          console.log('No coach_settings found for', coachId);
         }
 
         return {

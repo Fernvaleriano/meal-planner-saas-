@@ -64,8 +64,6 @@ exports.handler = async (event, context) => {
       };
     }
 
-    console.log(`✅ Retrieved client: ${data.client_name} (ID: ${clientId})`);
-
     return {
       statusCode: 200,
       headers: {

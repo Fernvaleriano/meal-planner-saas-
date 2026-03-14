@@ -201,7 +201,6 @@ exports.handler = async (event) => {
           console.error('Error fetching active assignments for propagation:', fetchError);
         } else {
           totalActiveAssignments = activeAssignments ? activeAssignments.length : 0;
-          console.log(`Found ${totalActiveAssignments} active assignments for program ${programId}`);
 
           if (activeAssignments && activeAssignments.length > 0) {
             for (const assignment of activeAssignments) {
@@ -233,7 +232,6 @@ exports.handler = async (event) => {
                   console.error(`Error updating assignment ${assignment.id}:`, updateError);
                 } else {
                   updatedAssignments++;
-                  console.log(`Updated assignment ${assignment.id} for client ${assignment.client_id}`);
                 }
               }
             }

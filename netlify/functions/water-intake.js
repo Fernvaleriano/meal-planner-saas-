@@ -64,8 +64,6 @@ exports.handler = async (event) => {
       const body = JSON.parse(event.body || '{}');
       const { clientId, glasses, date, action, timezone } = body;
 
-      console.log('[water POST] Received:', JSON.stringify({ clientId, glasses, date, action }));
-
       if (!clientId) {
         return { statusCode: 400, headers, body: JSON.stringify({ error: 'clientId is required' }) };
       }
@@ -104,8 +102,6 @@ exports.handler = async (event) => {
         }
       }
 
-      console.log('[water POST] existing:', existing?.id, 'newGlasses:', newGlasses);
-
       if (existing) {
         // UPDATE by primary key
         const { error: updateErr } = await supabase
@@ -117,7 +113,6 @@ exports.handler = async (event) => {
           console.error('[water POST] Update error:', JSON.stringify(updateErr));
           throw updateErr;
         }
-        console.log('[water POST] Updated row', existing.id, 'to', newGlasses);
       } else {
         // INSERT new row
         const { error: insertErr } = await supabase
@@ -133,7 +128,6 @@ exports.handler = async (event) => {
           console.error('[water POST] Insert error:', JSON.stringify(insertErr));
           throw insertErr;
         }
-        console.log('[water POST] Inserted new row with', newGlasses);
       }
 
       return {

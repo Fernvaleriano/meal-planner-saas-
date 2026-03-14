@@ -6,9 +6,11 @@ import { apiGet, apiPost } from '../utils/api';
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
 import { onAppResume } from '../hooks/useAppLifecycle';
 
+import { useToast } from '../components/Toast';
 // Build a proxy URL for voice notes that never expires
 // Falls back to extracting the storage path from old signed URLs
 const getVoiceNoteProxyUrl = (meal) => {
+  const { showError, showSuccess } = useToast();
   const path = meal.voice_note_path || extractPathFromSignedUrl(meal.voice_note_url);
   if (!path) return meal.voice_note_url || null;
   return `/.netlify/functions/serve-voice-note?path=${encodeURIComponent(path)}`;
@@ -608,7 +610,7 @@ function Plans() {
           return newSet;
         });
       }
-      alert('Failed to update favorite');
+      showError('Failed to update favorite');
     }
   };
 
@@ -653,10 +655,10 @@ function Plans() {
       setShowLogConfirm(false);
       setMealToLog(null);
       closeMealModal();
-      alert('✅ Meal logged to diary!');
+      showSuccess('✅ Meal logged to diary!');
     } catch (err) {
       console.error('Error logging meal:', err);
-      alert('Failed to log meal');
+      showError('Failed to log meal');
     } finally {
       setActionLoading(null);
     }
@@ -794,7 +796,7 @@ Return ONLY valid JSON:
 
     } catch (err) {
       console.error('Change meal error:', err);
-      alert('Failed to change meal. Please try again.');
+      showError('Failed to change meal. Please try again.');
     } finally {
       setProcessingMeal(null);
     }
@@ -856,8 +858,6 @@ MEAL NAME FORMAT: Include ALL key ingredient portions inline in parentheses.
 Return ONLY valid JSON:
 {"type":"${meal.type || meal.meal_type || 'meal'}","name":"Revised Meal Name (with portions)","ingredients":["Ingredient (amount)"],"instructions":"Instructions"}`;
 
-      console.log('Sending revise request:', revisionText);
-
       const data = await apiPost('/.netlify/functions/generate-meal-plan', {
         prompt,
         isJson: true,
@@ -870,8 +870,6 @@ Return ONLY valid JSON:
         },
         mealsPerDay: 1
       });
-
-      console.log('Revise response:', data);
 
       let revisedMeal = data.success && data.data ? data.data : null;
 
@@ -899,8 +897,6 @@ Return ONLY valid JSON:
         ? revisedMeal.carbs : meal.carbs;
       revisedMeal.fat = (revisedMeal.fat !== undefined && revisedMeal.fat !== null)
         ? revisedMeal.fat : meal.fat;
-
-      console.log('Final revised meal:', revisedMeal);
 
       // Update the plan
       const updatedPlan = { ...selectedPlan };
@@ -936,11 +932,9 @@ Return ONLY valid JSON:
         action: 'revise'
       });
 
-      console.log('Meal revised successfully');
-
     } catch (err) {
       console.error('Revise meal error:', err);
-      alert('Failed to revise meal. Please try again.');
+      showError('Failed to revise meal. Please try again.');
     } finally {
       setProcessingMeal(null);
     }
@@ -1226,7 +1220,7 @@ Return ONLY valid JSON:
   // Submit calculated meal (from Calculate tab)
   const handleSubmitCalculatedMeal = async () => {
     if (selectedIngredients.length === 0) {
-      alert('Please add some ingredients first');
+      showError('Please add some ingredients first');
       return;
     }
 
@@ -1286,7 +1280,7 @@ Return ONLY valid JSON:
   // Submit manual meal (from Manual tab)
   const handleSubmitManualMeal = async () => {
     if (!customMealData.name || !customMealData.calories) {
-      alert('Please enter at least a name and calories');
+      showError('Please enter at least a name and calories');
       return;
     }
 
@@ -1380,7 +1374,7 @@ Return ONLY valid JSON:
       setUndoData(null);
     } catch (err) {
       console.error('Undo error:', err);
-      alert('Failed to undo. Please try again.');
+      showError('Failed to undo. Please try again.');
     }
   };
 
@@ -1408,10 +1402,10 @@ Return ONLY valid JSON:
       // Reload images for the reverted plan
       loadMealImagesForPlan(updatedPlan);
 
-      alert('✅ Plan reverted to original!');
+      showSuccess('✅ Plan reverted to original!');
     } catch (err) {
       console.error('Revert error:', err);
-      alert('Failed to revert. Please try again.');
+      showError('Failed to revert. Please try again.');
     }
   };
 

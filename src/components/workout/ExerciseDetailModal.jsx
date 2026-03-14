@@ -1053,7 +1053,6 @@ function ExerciseDetailModal({
 
         // Guard: Don't process if component unmounted or exercise changed
         if (!isMountedRef.current) {
-          console.log('Voice note: Component unmounted, skipping save');
           return;
         }
 
@@ -1143,7 +1142,6 @@ function ExerciseDetailModal({
 
             // Guard: Skip database save if exercise changed during recording
             if (exerciseIdAtRecordStartRef.current !== recordingExerciseId) {
-              console.log('Voice note: Exercise changed during recording, skipping save');
               setVoiceNoteUploading(false);
               return;
             }
@@ -1825,13 +1823,6 @@ function ExerciseDetailModal({
 
   // Debug: Log video URL when playing (helps identify mismatched videos in database)
   const handlePlayVideo = useCallback(() => {
-    console.log(`Playing video for "${exercise?.name}":`, {
-      customVideoUrl: exercise?.customVideoUrl,
-      customVideoPath: exercise?.customVideoPath,
-      video_url: exercise?.video_url,
-      animation_url: exercise?.animation_url,
-      using: videoUrl
-    });
     setVideoLoading(true);
     setVideoError(false);
     setVideoKey(0);
@@ -1889,14 +1880,12 @@ function ExerciseDetailModal({
     // This handles expired URLs, stale SW cache, and any other URL issues
     if (customPath) {
       try {
-        console.log('[video-fix] Requesting fresh signed URL for path:', customPath);
         const resp = await fetch('/.netlify/functions/get-signed-video-url', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ filePath: customPath })
         });
         const data = await resp.json();
-        console.log('[video-fix] get-signed-video-url response:', { ok: resp.ok, success: data.success, fileExists: data.fileExists, error: data.error, hasUrl: !!data.url });
         if (data.fileExists === false) {
           console.error('[video-fix] FILE DOES NOT EXIST in storage:', customPath);
           // File is gone — skip all retries, show error
@@ -1905,7 +1894,6 @@ function ExerciseDetailModal({
           return;
         }
         if (resp.ok && data.success && data.url) {
-          console.log('[video-fix] Got fresh signed URL, fetching video as blob...');
           const videoResp = await fetch(data.url);
           if (videoResp.ok) {
             const blob = await videoResp.blob();
@@ -1926,13 +1914,11 @@ function ExerciseDetailModal({
         console.error('[video-fix] Fresh signed URL fallback failed:', err);
       }
     } else {
-      console.log('[video-fix] No custom path found — videoUrl:', videoUrl?.substring(0, 80));
     }
 
     // Generic blob fallback for non-custom videos (URL encoding issues)
     if (videoUrl) {
       try {
-        console.log('[video-fix] Trying blob fallback for video:', videoUrl?.substring(0, 100));
         const resp = await fetch(videoUrl);
         if (!resp.ok) {
           let errorBody = '';
@@ -2590,7 +2576,6 @@ function ExerciseDetailModal({
             </span>
           </div>
         </div>
-
 
         {/* Coach Voice Note — uses proxy URL that never expires */}
         {(exercise.voiceNoteUrl || exercise.voiceNotePath) && (

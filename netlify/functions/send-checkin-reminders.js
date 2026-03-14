@@ -116,7 +116,6 @@ exports.handler = async (event, context) => {
         }
 
         // Scheduled or manual run - process all reminders
-        console.log('Processing reminders', { isScheduled, currentDay, currentHour });
 
         const stats = {
             coachesProcessed: 0,
@@ -142,8 +141,6 @@ exports.handler = async (event, context) => {
             };
         }
 
-        console.log(`Found ${reminderSettings?.length || 0} coaches with reminders enabled`);
-
         // Process each coach
         for (const settings of (reminderSettings || [])) {
             stats.coachesProcessed++;
@@ -154,11 +151,9 @@ exports.handler = async (event, context) => {
             // Skip if not the right day/hour (unless forced)
             if (!body.force) {
                 if (currentDay !== reminderDay) {
-                    console.log(`Skipping coach ${settings.coach_id}: not reminder day`);
                     continue;
                 }
                 if (currentHour !== reminderHour) {
-                    console.log(`Skipping coach ${settings.coach_id}: not reminder hour`);
                     continue;
                 }
             }
@@ -184,8 +179,6 @@ exports.handler = async (event, context) => {
                 stats.errors++;
                 continue;
             }
-
-            console.log(`Found ${clients?.length || 0} clients for coach`);
 
             // Process each client
             for (const client of (clients || [])) {
@@ -226,7 +219,6 @@ exports.handler = async (event, context) => {
                 }
 
                 // Send the reminder
-                console.log(`Sending reminder to ${client.email}`);
 
                 const result = await sendCheckinReminder({
                     client,
@@ -256,8 +248,6 @@ exports.handler = async (event, context) => {
                 }
             }
         }
-
-        console.log('Reminder processing complete', stats);
 
         return {
             statusCode: 200,

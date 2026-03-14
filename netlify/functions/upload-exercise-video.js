@@ -85,7 +85,6 @@ exports.handler = async (event) => {
 
     if (error) {
       if (error.message.includes('bucket') || error.statusCode === 404) {
-        console.log('Storage bucket may not exist:', error.message);
         return {
           statusCode: 500,
           headers,
