@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <link rel="icon" href="/icons/logo.png" type="image/png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <script src="/js/theme.js"></script>
     <title>Challenges - Zique Fitness Nutrition</title>
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
@@ -13,672 +16,834 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/coach-layout.css">
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        :root {
-            --brand-primary: #0d9488;
-            --brand-secondary: #0284c7;
-            --brand-primary-light: #14b8a6;
-            --brand-primary-dark: #0f766e;
-            --brand-gradient: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
-            --gray-50: #f8fafc;
-            --gray-100: #f1f5f9;
-            --gray-200: #e2e8f0;
-            --gray-300: #cbd5e1;
-            --gray-400: #94a3b8;
-            --gray-500: #64748b;
-            --gray-600: #475569;
-            --gray-700: #334155;
-            --gray-800: #1e293b;
-            --gray-900: #0f172a;
-            --success: #10b981;
-            --warning: #f59e0b;
-            --danger: #ef4444;
-        }
-
-        [data-theme="dark"] {
-            --gray-50: #0f172a;
-            --gray-100: #1e293b;
-            --gray-200: #334155;
-            --gray-300: #475569;
-            --gray-400: #64748b;
-            --gray-500: #94a3b8;
-            --gray-600: #cbd5e1;
-            --gray-700: #e2e8f0;
-            --gray-800: #f1f5f9;
-            --gray-900: #f8fafc;
-        }
-
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-
-        body {
-            font-family: 'Inter', -apple-system, sans-serif;
-            background: var(--gray-50);
-            color: var(--gray-800);
-            min-height: 100vh;
-        }
-
-        /* Sidebar */
-        .sidebar {
-            position: fixed;
-            left: 0;
-            top: 0;
-            bottom: 0;
-            width: 260px;
-            background: var(--gray-900);
-            color: #fff;
-            display: flex;
-            flex-direction: column;
-            z-index: 200;
-            transition: transform 0.3s ease;
-        }
-        .sidebar-header {
-            padding: 20px 24px;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-        }
-        .sidebar-logo { text-decoration: none; display: flex; align-items: center; gap: 12px; }
-        .sidebar-logo-img { height: 36px; width: auto; }
-        .sidebar-nav {
-            flex: 1;
-            overflow-y: auto;
-            padding: 12px 0;
-        }
-        .sidebar-nav-section { margin-bottom: 8px; }
-        .sidebar-nav-label {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 8px 24px;
-            font-size: 0.7rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: var(--gray-400);
-            cursor: pointer;
-            user-select: none;
-        }
-        .collapse-icon { transition: transform 0.2s; }
-        .sidebar-nav-section.collapsed .sidebar-nav-items { display: none; }
-        .sidebar-nav-section.collapsed .collapse-icon { transform: rotate(-90deg); }
-        .sidebar-nav-items { padding: 2px 0; }
-        .sidebar-nav-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 10px 24px;
-            color: var(--gray-400);
-            text-decoration: none;
-            font-size: 0.9rem;
-            font-weight: 500;
-            transition: all 0.15s;
-            border-left: 3px solid transparent;
-        }
-        .sidebar-nav-item:hover { color: #fff; background: rgba(255,255,255,0.05); }
-        .sidebar-nav-item.active {
-            color: #fff;
-            background: rgba(13, 148, 136, 0.15);
-            border-left-color: var(--brand-primary);
-        }
-        .sidebar-nav-icon { display: flex; align-items: center; width: 20px; height: 20px; }
-        .sidebar-nav-icon i, .sidebar-nav-icon svg { width: 20px; height: 20px; }
-        .sidebar-footer {
-            padding: 16px 20px;
-            border-top: 1px solid rgba(255,255,255,0.1);
-        }
-        .sidebar-user {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        .sidebar-user-avatar {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            background: var(--brand-gradient);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 600;
-            font-size: 0.85rem;
-            flex-shrink: 0;
-        }
-        .sidebar-user-info { flex: 1; min-width: 0; }
-        .sidebar-user-name {
-            font-size: 0.8rem;
-            font-weight: 500;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        .sidebar-user-role {
-            font-size: 0.7rem;
-            color: var(--gray-400);
-        }
-        .sidebar-logout {
-            background: none;
-            border: none;
-            color: var(--gray-400);
-            cursor: pointer;
-            padding: 6px;
-            border-radius: 6px;
-            transition: all 0.15s;
-        }
-        .sidebar-logout:hover { color: #fff; background: rgba(255,255,255,0.1); }
-        .sidebar-nav-logout { color: var(--gray-500); }
-        .sidebar-overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.5);
-            z-index: 199;
-        }
-        .sidebar-overlay.active { display: block; }
-
-        /* Mobile header */
-        .mobile-header {
-            display: none;
-            align-items: center;
-            gap: 12px;
-            padding: 16px 20px;
-            background: var(--gray-900);
-            color: #fff;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-        .mobile-header h1 { font-size: 1.1rem; font-weight: 600; }
-        .mobile-menu-btn {
-            background: none;
-            border: none;
-            color: #fff;
-            cursor: pointer;
-            padding: 4px;
-        }
-
-        /* Main content */
-        .main-content {
-            margin-left: 260px;
-            min-height: 100vh;
-            padding: 32px;
-        }
-
-        /* Page header */
-        .page-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 24px;
-            flex-wrap: wrap;
-            gap: 16px;
-        }
-        .page-header h1 {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--gray-900);
-        }
-        [data-theme="dark"] .page-header h1 { color: var(--gray-900); }
-
-        /* Buttons */
-        .btn-primary {
-            background: var(--brand-gradient);
-            color: #fff;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 10px;
-            font-size: 0.9rem;
-            font-weight: 600;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            transition: opacity 0.15s, transform 0.1s;
-        }
-        .btn-primary:hover { opacity: 0.9; }
-        .btn-primary:active { transform: scale(0.98); }
-        .btn-secondary {
-            background: var(--gray-100);
-            color: var(--gray-700);
-            border: 1px solid var(--gray-200);
-            padding: 8px 16px;
-            border-radius: 8px;
-            font-size: 0.85rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.15s;
-        }
-        .btn-secondary:hover { background: var(--gray-200); }
-        .btn-danger {
-            background: #fef2f2;
-            color: var(--danger);
-            border: 1px solid #fecaca;
-            padding: 8px 16px;
-            border-radius: 8px;
-            font-size: 0.85rem;
-            font-weight: 500;
-            cursor: pointer;
-        }
-        .btn-danger:hover { background: #fee2e2; }
-
-        /* Filter tabs */
+        /* ===== Filter Tabs ===== */
         .filter-tabs {
             display: flex;
             gap: 8px;
             margin-bottom: 24px;
             flex-wrap: wrap;
         }
+
         .filter-tab {
-            padding: 8px 16px;
-            border-radius: 8px;
+            padding: 8px 20px;
+            border-radius: 20px;
             border: 1px solid var(--gray-200);
-            background: var(--gray-50);
+            background: white;
             color: var(--gray-600);
-            font-size: 0.85rem;
+            font-size: 0.875rem;
             font-weight: 500;
             cursor: pointer;
-            transition: all 0.15s;
+            transition: all 0.2s;
+            font-family: inherit;
         }
-        .filter-tab:hover { border-color: var(--brand-primary); color: var(--brand-primary); }
+
+        .filter-tab:hover {
+            border-color: var(--brand-primary);
+            color: var(--brand-primary);
+        }
+
         .filter-tab.active {
             background: var(--brand-primary);
-            color: #fff;
+            color: white;
             border-color: var(--brand-primary);
         }
 
-        /* Challenge cards */
+        [data-theme="dark"] .filter-tab {
+            background: var(--gray-800);
+            border-color: var(--gray-700);
+            color: var(--gray-400);
+        }
+
+        [data-theme="dark"] .filter-tab:hover {
+            border-color: #2dd4bf;
+            color: #2dd4bf;
+        }
+
+        [data-theme="dark"] .filter-tab.active {
+            background: var(--brand-primary);
+            color: white;
+            border-color: var(--brand-primary);
+        }
+
+        /* ===== Challenge Cards Grid ===== */
         .challenges-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
             gap: 20px;
         }
+
         .challenge-card {
-            background: #fff;
+            background: white;
             border-radius: 16px;
-            padding: 24px;
-            border: 1px solid var(--gray-200);
+            border: 1px solid var(--gray-100);
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.03);
+            transition: all 0.2s ease;
             cursor: pointer;
-            transition: all 0.2s;
         }
-        [data-theme="dark"] .challenge-card {
-            background: var(--gray-100);
-            border-color: var(--gray-200);
-        }
+
         .challenge-card:hover {
-            border-color: var(--brand-primary);
-            box-shadow: 0 4px 20px rgba(13, 148, 136, 0.1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06), 0 8px 24px rgba(0, 0, 0, 0.04);
             transform: translateY(-2px);
         }
-        .challenge-card-header {
-            display: flex;
-            align-items: flex-start;
-            justify-content: space-between;
-            margin-bottom: 12px;
+
+        [data-theme="dark"] .challenge-card {
+            background: var(--gray-800);
+            border-color: var(--gray-700);
         }
+
+        .challenge-card-header {
+            padding: 20px 20px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
         .challenge-card-title {
             font-size: 1.1rem;
             font-weight: 700;
-            color: var(--gray-900);
+            color: var(--gray-800);
+            margin-bottom: 8px;
         }
-        [data-theme="dark"] .challenge-card-title { color: var(--gray-900); }
-        .challenge-badge {
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-size: 0.7rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.03em;
-            white-space: nowrap;
+
+        [data-theme="dark"] .challenge-card-title {
+            color: var(--gray-100);
         }
-        .badge-active { background: #d1fae5; color: #065f46; }
-        .badge-completed { background: #dbeafe; color: #1e40af; }
-        .badge-cancelled { background: #fee2e2; color: #991b1b; }
-        .challenge-type-badge {
+
+        .challenge-card-body {
+            padding: 12px 20px 20px;
+        }
+
+        .challenge-badges {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+        }
+
+        .badge {
             display: inline-flex;
             align-items: center;
             gap: 4px;
-            padding: 3px 8px;
-            border-radius: 6px;
-            font-size: 0.72rem;
-            font-weight: 500;
-            background: rgba(13, 148, 136, 0.1);
-            color: var(--brand-primary);
-            margin-bottom: 8px;
-        }
-        .challenge-card-desc {
-            color: var(--gray-500);
-            font-size: 0.85rem;
-            margin-bottom: 16px;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-        }
-        .challenge-card-meta {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 16px;
-            font-size: 0.8rem;
-            color: var(--gray-500);
-            margin-bottom: 16px;
-        }
-        .challenge-card-meta span {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-        .challenge-progress-bar {
-            height: 6px;
-            background: var(--gray-200);
-            border-radius: 3px;
-            overflow: hidden;
-        }
-        .challenge-progress-fill {
-            height: 100%;
-            background: var(--brand-gradient);
-            border-radius: 3px;
-            transition: width 0.3s;
-        }
-        .challenge-progress-label {
-            display: flex;
-            justify-content: space-between;
+            padding: 4px 10px;
+            border-radius: 20px;
             font-size: 0.75rem;
-            color: var(--gray-500);
-            margin-top: 6px;
+            font-weight: 600;
+            text-transform: capitalize;
         }
 
-        /* Empty state */
+        .badge-type {
+            background: rgba(13, 148, 136, 0.1);
+            color: var(--brand-primary);
+        }
+
+        [data-theme="dark"] .badge-type {
+            background: rgba(45, 212, 191, 0.15);
+            color: #2dd4bf;
+        }
+
+        .badge-status-active {
+            background: rgba(16, 185, 129, 0.1);
+            color: #059669;
+        }
+
+        [data-theme="dark"] .badge-status-active {
+            background: rgba(16, 185, 129, 0.15);
+            color: #34d399;
+        }
+
+        .badge-status-completed {
+            background: rgba(59, 130, 246, 0.1);
+            color: #2563eb;
+        }
+
+        [data-theme="dark"] .badge-status-completed {
+            background: rgba(59, 130, 246, 0.15);
+            color: #60a5fa;
+        }
+
+        .badge-status-cancelled {
+            background: rgba(239, 68, 68, 0.1);
+            color: #dc2626;
+        }
+
+        [data-theme="dark"] .badge-status-cancelled {
+            background: rgba(239, 68, 68, 0.15);
+            color: #f87171;
+        }
+
+        .badge-status-upcoming {
+            background: rgba(245, 158, 11, 0.1);
+            color: #d97706;
+        }
+
+        [data-theme="dark"] .badge-status-upcoming {
+            background: rgba(245, 158, 11, 0.15);
+            color: #fbbf24;
+        }
+
+        .challenge-dates {
+            font-size: 0.85rem;
+            color: var(--gray-500);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .challenge-participants {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.85rem;
+            color: var(--gray-500);
+            margin-bottom: 16px;
+        }
+
+        .challenge-progress {
+            margin-bottom: 16px;
+        }
+
+        .progress-bar-bg {
+            height: 8px;
+            background: var(--gray-100);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        [data-theme="dark"] .progress-bar-bg {
+            background: var(--gray-700);
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: var(--brand-gradient);
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        .progress-label {
+            font-size: 0.75rem;
+            color: var(--gray-500);
+            margin-top: 4px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .challenge-card-actions {
+            display: flex;
+            gap: 8px;
+            padding-top: 12px;
+            border-top: 1px solid var(--gray-100);
+        }
+
+        [data-theme="dark"] .challenge-card-actions {
+            border-color: var(--gray-700);
+        }
+
+        .challenge-card-actions .btn {
+            flex: 1;
+            min-height: 38px;
+            padding: 8px 12px;
+            font-size: 0.8125rem;
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--gray-600);
+            border: 1px solid var(--gray-200);
+        }
+
+        .btn-ghost:hover {
+            background: var(--gray-100);
+        }
+
+        [data-theme="dark"] .btn-ghost {
+            color: var(--gray-400);
+            border-color: var(--gray-700);
+        }
+
+        [data-theme="dark"] .btn-ghost:hover {
+            background: var(--gray-700);
+        }
+
+        .btn-danger {
+            background: transparent;
+            color: #dc2626;
+            border: 1px solid rgba(220, 38, 38, 0.3);
+        }
+
+        .btn-danger:hover {
+            background: rgba(220, 38, 38, 0.1);
+        }
+
+        [data-theme="dark"] .btn-danger {
+            color: #f87171;
+            border-color: rgba(248, 113, 113, 0.3);
+        }
+
+        /* ===== Empty State ===== */
         .empty-state {
             text-align: center;
             padding: 60px 20px;
             color: var(--gray-500);
         }
-        .empty-state h3 { font-size: 1.2rem; margin-bottom: 8px; color: var(--gray-700); }
-        .empty-state p { margin-bottom: 20px; }
 
-        /* Modal */
+        .empty-state-icon {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 16px;
+            background: rgba(13, 148, 136, 0.1);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--brand-primary);
+        }
+
+        .empty-state h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--gray-800);
+            margin-bottom: 8px;
+        }
+
+        [data-theme="dark"] .empty-state h3 {
+            color: var(--gray-100);
+        }
+
+        .empty-state p {
+            max-width: 400px;
+            margin: 0 auto 20px;
+        }
+
+        /* ===== Loading State ===== */
+        .loading-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--gray-500);
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--gray-200);
+            border-top-color: var(--brand-primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* ===== Modal ===== */
         .modal-overlay {
             display: none;
             position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.5);
-            z-index: 1000;
-            align-items: center;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            z-index: 200;
             justify-content: center;
+            align-items: center;
             padding: 20px;
         }
-        .modal-overlay.active { display: flex; }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
         .modal {
-            background: #fff;
-            border-radius: 16px;
+            background: white;
+            border-radius: 20px;
             width: 100%;
             max-width: 560px;
             max-height: 90vh;
             overflow-y: auto;
-            padding: 32px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
         }
-        [data-theme="dark"] .modal { background: var(--gray-100); }
-        .modal-title {
+
+        [data-theme="dark"] .modal {
+            background: var(--gray-800);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+        }
+
+        .modal-header {
+            padding: 24px 24px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
             font-size: 1.25rem;
             font-weight: 700;
-            margin-bottom: 24px;
-            color: var(--gray-900);
+            color: var(--gray-800);
         }
-        [data-theme="dark"] .modal-title { color: var(--gray-900); }
+
+        [data-theme="dark"] .modal-header h2 {
+            color: var(--gray-100);
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--gray-400);
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+
+        .modal-close:hover {
+            background: var(--gray-100);
+            color: var(--gray-600);
+        }
+
+        [data-theme="dark"] .modal-close:hover {
+            background: var(--gray-700);
+            color: var(--gray-300);
+        }
+
+        .modal-body {
+            padding: 24px;
+        }
+
+        .modal-footer {
+            padding: 0 24px 24px;
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+
+        /* ===== Form Styles ===== */
         .form-group {
             margin-bottom: 20px;
         }
-        .form-group label {
+
+        .form-label {
             display: block;
-            font-size: 0.85rem;
+            font-size: 0.875rem;
             font-weight: 600;
             color: var(--gray-700);
             margin-bottom: 6px;
         }
-        .form-group input,
-        .form-group select,
-        .form-group textarea {
-            width: 100%;
-            padding: 10px 14px;
-            border: 1px solid var(--gray-200);
-            border-radius: 10px;
-            font-size: 0.9rem;
-            font-family: inherit;
-            background: var(--gray-50);
-            color: var(--gray-800);
-            transition: border-color 0.15s;
+
+        [data-theme="dark"] .form-label {
+            color: var(--gray-300);
         }
-        .form-group input:focus,
-        .form-group select:focus,
-        .form-group textarea:focus {
+
+        .form-input,
+        .form-select,
+        .form-textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid var(--gray-200);
+            border-radius: 12px;
+            font-size: 0.9375rem;
+            font-family: inherit;
+            color: var(--gray-800);
+            background: white;
+            transition: border-color 0.2s;
+        }
+
+        .form-input:focus,
+        .form-select:focus,
+        .form-textarea:focus {
             outline: none;
             border-color: var(--brand-primary);
+            box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.1);
         }
-        .form-group textarea { resize: vertical; min-height: 80px; }
+
+        [data-theme="dark"] .form-input,
+        [data-theme="dark"] .form-select,
+        [data-theme="dark"] .form-textarea {
+            background: var(--gray-700);
+            border-color: var(--gray-600);
+            color: var(--gray-100);
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
         .form-row {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 16px;
-        }
-        .modal-actions {
-            display: flex;
             gap: 12px;
-            justify-content: flex-end;
-            margin-top: 24px;
         }
+
+        /* Client multi-select */
         .client-select-list {
             max-height: 200px;
             overflow-y: auto;
             border: 1px solid var(--gray-200);
-            border-radius: 10px;
+            border-radius: 12px;
             padding: 8px;
         }
+
+        [data-theme="dark"] .client-select-list {
+            border-color: var(--gray-600);
+        }
+
         .client-select-item {
             display: flex;
             align-items: center;
-            gap: 8px;
-            padding: 8px 12px;
+            gap: 10px;
+            padding: 10px 12px;
             border-radius: 8px;
             cursor: pointer;
-            font-size: 0.85rem;
-            transition: background 0.1s;
+            transition: background 0.15s;
         }
-        .client-select-item:hover { background: var(--gray-100); }
-        .client-select-item input { accent-color: var(--brand-primary); }
 
-        /* Detail view */
-        .detail-view { display: none; }
-        .detail-view.active { display: block; }
-        .list-view.hidden { display: none; }
+        .client-select-item:hover {
+            background: var(--gray-100);
+        }
+
+        [data-theme="dark"] .client-select-item:hover {
+            background: var(--gray-600);
+        }
+
+        .client-select-item input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--brand-primary);
+            cursor: pointer;
+        }
+
+        .client-select-item label {
+            font-size: 0.9rem;
+            color: var(--gray-700);
+            cursor: pointer;
+            flex: 1;
+        }
+
+        [data-theme="dark"] .client-select-item label {
+            color: var(--gray-300);
+        }
+
+        /* ===== Detail View ===== */
+        .detail-view {
+            display: none;
+        }
+
+        .detail-view.active {
+            display: block;
+        }
+
+        .list-view.hidden {
+            display: none;
+        }
+
         .detail-header {
             display: flex;
-            align-items: flex-start;
-            justify-content: space-between;
+            align-items: center;
             gap: 16px;
             margin-bottom: 24px;
             flex-wrap: wrap;
         }
-        .detail-back {
+
+        .detail-back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: none;
+            border: none;
+            color: var(--gray-500);
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            padding: 8px 12px;
+            border-radius: 8px;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        .detail-back-btn:hover {
+            background: var(--gray-100);
+            color: var(--gray-700);
+        }
+
+        [data-theme="dark"] .detail-back-btn:hover {
+            background: var(--gray-700);
+            color: var(--gray-300);
+        }
+
+        .detail-info-card {
+            background: white;
+            border-radius: 16px;
+            border: 1px solid var(--gray-100);
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+        }
+
+        [data-theme="dark"] .detail-info-card {
+            background: var(--gray-800);
+            border-color: var(--gray-700);
+        }
+
+        .detail-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--gray-800);
+            margin-bottom: 8px;
+        }
+
+        [data-theme="dark"] .detail-title {
+            color: var(--gray-100);
+        }
+
+        .detail-description {
+            font-size: 0.95rem;
+            color: var(--gray-600);
+            margin-bottom: 16px;
+            line-height: 1.6;
+        }
+
+        [data-theme="dark"] .detail-description {
+            color: var(--gray-400);
+        }
+
+        .detail-meta {
+            display: flex;
+            gap: 24px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+        }
+
+        .detail-meta-item {
             display: flex;
             align-items: center;
             gap: 6px;
-            color: var(--brand-primary);
-            font-size: 0.9rem;
-            font-weight: 500;
-            cursor: pointer;
-            background: none;
-            border: none;
-            margin-bottom: 16px;
-        }
-        .detail-back:hover { text-decoration: underline; }
-        .detail-info-card {
-            background: #fff;
-            border-radius: 16px;
-            padding: 24px;
-            border: 1px solid var(--gray-200);
-            margin-bottom: 24px;
-        }
-        [data-theme="dark"] .detail-info-card { background: var(--gray-100); }
-        .detail-info-card h2 {
-            font-size: 1.3rem;
-            font-weight: 700;
-            margin-bottom: 8px;
-            color: var(--gray-900);
-        }
-        [data-theme="dark"] .detail-info-card h2 { color: var(--gray-900); }
-        .detail-info-card p {
+            font-size: 0.875rem;
             color: var(--gray-500);
-            font-size: 0.9rem;
-            margin-bottom: 16px;
         }
-        .detail-stats {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
+
+        .detail-meta-item strong {
+            color: var(--gray-700);
         }
-        .detail-stat {
-            text-align: center;
+
+        [data-theme="dark"] .detail-meta-item strong {
+            color: var(--gray-300);
         }
-        .detail-stat-value {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--brand-primary);
-        }
-        .detail-stat-label {
-            font-size: 0.75rem;
-            color: var(--gray-500);
-            text-transform: uppercase;
-            letter-spacing: 0.03em;
-        }
+
         .detail-actions {
             display: flex;
             gap: 10px;
             flex-wrap: wrap;
         }
 
-        /* Leaderboard */
+        /* ===== Leaderboard Table ===== */
         .leaderboard-card {
-            background: #fff;
+            background: white;
             border-radius: 16px;
-            padding: 24px;
-            border: 1px solid var(--gray-200);
-        }
-        [data-theme="dark"] .leaderboard-card { background: var(--gray-100); }
-        .leaderboard-card h3 {
-            font-size: 1.1rem;
-            font-weight: 700;
-            margin-bottom: 16px;
-            color: var(--gray-900);
-        }
-        [data-theme="dark"] .leaderboard-card h3 { color: var(--gray-900); }
-        .leaderboard-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        .leaderboard-table th {
-            text-align: left;
-            padding: 10px 12px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.03em;
-            color: var(--gray-500);
-            border-bottom: 1px solid var(--gray-200);
-        }
-        .leaderboard-table td {
-            padding: 12px;
-            font-size: 0.85rem;
-            border-bottom: 1px solid var(--gray-100);
-            color: var(--gray-700);
-        }
-        .leaderboard-rank {
-            font-weight: 700;
-            color: var(--gray-800);
-            width: 40px;
-        }
-        .leaderboard-name {
-            font-weight: 600;
-            color: var(--gray-800);
-        }
-        .leaderboard-table tr:first-child .leaderboard-rank { color: var(--warning); }
-        .leaderboard-empty {
-            text-align: center;
-            padding: 40px 20px;
-            color: var(--gray-500);
-            font-size: 0.9rem;
+            border: 1px solid var(--gray-100);
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
         }
 
-        /* Coach bottom nav (mobile) */
+        [data-theme="dark"] .leaderboard-card {
+            background: var(--gray-800);
+            border-color: var(--gray-700);
+        }
+
+        .leaderboard-header {
+            padding: 20px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--gray-100);
+        }
+
+        [data-theme="dark"] .leaderboard-header {
+            border-color: var(--gray-700);
+        }
+
+        .leaderboard-header h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--gray-800);
+        }
+
+        [data-theme="dark"] .leaderboard-header h3 {
+            color: var(--gray-100);
+        }
+
+        .leaderboard-body {
+            overflow-x: auto;
+        }
+
+        .rank-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+
+        .rank-1 { background: rgba(245, 158, 11, 0.15); color: #d97706; }
+        .rank-2 { background: rgba(148, 163, 184, 0.2); color: #64748b; }
+        .rank-3 { background: rgba(180, 83, 9, 0.15); color: #b45309; }
+        .rank-other { background: var(--gray-100); color: var(--gray-500); }
+
+        [data-theme="dark"] .rank-other {
+            background: var(--gray-700);
+        }
+
+        .participant-name {
+            font-weight: 600;
+            color: var(--gray-800);
+        }
+
+        [data-theme="dark"] .participant-name {
+            color: var(--gray-100);
+        }
+
+        .participant-email {
+            font-size: 0.8rem;
+            color: var(--gray-500);
+        }
+
+        /* ===== Toast ===== */
+        .toast {
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: var(--gray-800);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            z-index: 999;
+            opacity: 0;
+            transition: all 0.3s ease;
+            pointer-events: none;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .toast.error {
+            background: #dc2626;
+        }
+
+        .toast.success {
+            background: #059669;
+        }
+
+        /* ===== Coach Bottom Nav ===== */
         .coach-bottom-nav {
             display: none;
             position: fixed;
             bottom: 0;
             left: 0;
             right: 0;
-            background: var(--gray-900);
-            border-top: 1px solid rgba(255,255,255,0.1);
-            z-index: 100;
-            padding-bottom: env(safe-area-inset-bottom);
+            background: white;
+            border-top: 1px solid var(--gray-200);
+            padding: 8px 0;
+            padding-bottom: calc(8px + env(safe-area-inset-bottom));
+            z-index: 1000;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
         }
+
         .coach-bottom-nav-inner {
             display: flex;
             justify-content: space-around;
-            padding: 8px 0;
+            align-items: center;
+            max-width: 500px;
+            margin: 0 auto;
         }
+
         .coach-nav-item {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 2px;
-            text-decoration: none;
-            color: var(--gray-400);
-            font-size: 0.65rem;
-            padding: 4px 8px;
-            transition: color 0.15s;
-        }
-        .coach-nav-item.active { color: var(--brand-primary); }
-        .coach-nav-item:active { opacity: 0.7; }
-        .coach-nav-icon { width: 24px; height: 24px; }
-        .coach-nav-label { font-weight: 500; }
-
-        /* Loading */
-        .loading-spinner {
-            display: flex;
             justify-content: center;
-            padding: 40px;
+            text-decoration: none;
+            color: var(--gray-500);
+            padding: 8px 16px;
+            border-radius: 12px;
+            transition: all 0.2s ease;
+            min-width: 64px;
+            -webkit-tap-highlight-color: transparent;
+            font-size: 10px;
         }
-        .spinner {
-            width: 32px;
-            height: 32px;
-            border: 3px solid var(--gray-200);
-            border-top-color: var(--brand-primary);
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
 
-        /* Responsive */
-        @media (max-width: 768px) {
-            .sidebar { transform: translateX(-100%); }
-            .sidebar.open { transform: translateX(0); }
-            .mobile-header { display: flex; }
-            .main-content { margin-left: 0; padding: 20px 16px; padding-bottom: 100px; }
+        .coach-nav-item:active { transform: scale(0.95); }
+        .coach-nav-item.active { color: var(--brand-primary); }
+
+        .coach-nav-icon {
+            width: 48px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .coach-nav-item.active .coach-nav-icon {
+            background: rgba(13, 148, 136, 0.1);
+        }
+
+        .coach-nav-label {
+            font-size: 11px;
+            font-weight: 500;
+            margin-top: 4px;
+        }
+
+        [data-theme="dark"] .coach-bottom-nav {
+            background: var(--gray-800);
+            border-color: var(--gray-700);
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        [data-theme="dark"] .coach-nav-item { color: #94a3b8; }
+        [data-theme="dark"] .coach-nav-item.active { color: #2dd4bf; }
+        [data-theme="dark"] .coach-nav-item.active .coach-nav-icon { background: rgba(45, 212, 191, 0.1); }
+
+        /* ===== Responsive ===== */
+        @media (max-width: 1024px) {
             .coach-bottom-nav { display: block; }
-            .challenges-grid { grid-template-columns: 1fr; }
-            .page-header { flex-direction: column; align-items: flex-start; }
-            .form-row { grid-template-columns: 1fr; }
-            .modal { padding: 24px 20px; margin: 10px; }
-            .detail-header { flex-direction: column; }
+            .main-content {
+                padding-bottom: calc(80px + env(safe-area-inset-bottom));
+            }
+        }
+
+        @media (max-width: 768px) {
+            .challenges-grid {
+                grid-template-columns: 1fr;
+            }
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            .detail-meta {
+                gap: 12px;
+            }
         }
     </style>
 </head>
 <body>
-    <!-- Mobile Header -->
-    <div class="mobile-header">
-        <button class="mobile-menu-btn" id="mobileMenuBtn">
-            <i data-lucide="menu" style="width:24px;height:24px;"></i>
-        </button>
-        <h1>Challenges</h1>
-    </div>
-
     <!-- Sidebar -->
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-header">
@@ -749,7 +914,7 @@
                         <span class="sidebar-nav-icon"><i data-lucide="bell"></i></span>
                         Reminders
                     </a>
-                    <a href="#" class="sidebar-nav-item sidebar-nav-logout" id="logoutLink" onclick="event.preventDefault(); logout();">
+                    <a href="#" class="sidebar-nav-item sidebar-nav-logout" id="logoutLink">
                         <span class="sidebar-nav-icon"><i data-lucide="log-out"></i></span>
                         Log Out
                     </a>
@@ -764,684 +929,191 @@
                     <div class="sidebar-user-role">Coach</div>
                 </div>
                 <button class="sidebar-logout" id="logoutBtn" title="Logout">
-                    <i data-lucide="log-out" style="width:18px;height:18px;"></i>
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                    </svg>
                 </button>
             </div>
         </div>
     </aside>
 
+    <!-- Mobile overlay -->
     <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
     <!-- Main Content -->
     <main class="main-content">
-        <!-- List View -->
-        <div class="list-view" id="listView">
-            <div class="page-header">
-                <h1>Challenges</h1>
-                <button class="btn-primary" onclick="openCreateModal()">
+        <header class="main-header">
+            <div style="display:flex;align-items:center;gap:12px;">
+                <button class="mobile-menu-btn" id="mobileMenuBtn">
+                    <i data-lucide="menu"></i>
+                </button>
+                <span class="main-header-title">Challenges</span>
+            </div>
+            <div class="main-header-actions">
+                <button class="btn btn-primary btn-sm" id="createChallengeBtn">
                     <i data-lucide="plus" style="width:18px;height:18px;"></i>
                     Create Challenge
                 </button>
             </div>
+        </header>
 
-            <div class="filter-tabs" id="filterTabs">
-                <button class="filter-tab active" data-filter="all" onclick="filterChallenges('all')">All</button>
-                <button class="filter-tab" data-filter="active" onclick="filterChallenges('active')">Active</button>
-                <button class="filter-tab" data-filter="completed" onclick="filterChallenges('completed')">Completed</button>
-                <button class="filter-tab" data-filter="cancelled" onclick="filterChallenges('cancelled')">Cancelled</button>
+        <div class="main-container">
+            <!-- List View -->
+            <div id="listView" class="list-view">
+                <div class="filter-tabs" id="filterTabs">
+                    <button class="filter-tab active" data-filter="all">All</button>
+                    <button class="filter-tab" data-filter="active">Active</button>
+                    <button class="filter-tab" data-filter="upcoming">Upcoming</button>
+                    <button class="filter-tab" data-filter="completed">Completed</button>
+                    <button class="filter-tab" data-filter="cancelled">Cancelled</button>
+                </div>
+
+                <div id="challengesContainer">
+                    <div class="loading-state">
+                        <div class="spinner"></div>
+                        <p>Loading challenges...</p>
+                    </div>
+                </div>
             </div>
 
-            <div id="challengesContainer">
-                <div class="loading-spinner"><div class="spinner"></div></div>
+            <!-- Detail View -->
+            <div id="detailView" class="detail-view">
+                <div id="detailContent"></div>
             </div>
-        </div>
-
-        <!-- Detail View -->
-        <div class="detail-view" id="detailView">
-            <button class="detail-back" onclick="showListView()">
-                <i data-lucide="arrow-left" style="width:18px;height:18px;"></i>
-                Back to Challenges
-            </button>
-            <div id="detailContent"></div>
         </div>
     </main>
 
     <!-- Create Challenge Modal -->
     <div class="modal-overlay" id="createModal">
         <div class="modal">
-            <h2 class="modal-title">Create Challenge</h2>
-            <form id="createForm" onsubmit="event.preventDefault(); createChallenge();">
-                <div class="form-group">
-                    <label>Title</label>
-                    <input type="text" id="challengeTitle" placeholder="e.g. 30-Day Water Challenge" required>
-                </div>
-                <div class="form-group">
-                    <label>Description (optional)</label>
-                    <textarea id="challengeDesc" placeholder="Describe the challenge rules and goals..."></textarea>
-                </div>
-                <div class="form-group">
-                    <label>Challenge Type</label>
-                    <select id="challengeType" onchange="updateTypeFields()">
-                        <option value="gym_checkin">Gym Check-in</option>
-                        <option value="water_intake">Water Intake</option>
-                        <option value="steps">Daily Steps</option>
-                        <option value="weight_loss">Weight Loss</option>
-                        <option value="consistency">Consistency Streak</option>
-                        <option value="custom">Custom</option>
-                    </select>
-                </div>
-                <div class="form-row" id="targetFields">
+            <div class="modal-header">
+                <h2 id="modalTitle">Create Challenge</h2>
+                <button class="modal-close" id="modalClose">
+                    <i data-lucide="x" style="width:20px;height:20px;"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="challengeForm">
                     <div class="form-group">
-                        <label>Target Value</label>
-                        <input type="number" id="targetValue" placeholder="64">
+                        <label class="form-label">Title *</label>
+                        <input type="text" class="form-input" id="challengeTitle" placeholder="e.g. 30-Day Water Challenge" required>
                     </div>
                     <div class="form-group">
-                        <label>Unit</label>
-                        <input type="text" id="targetUnit" placeholder="oz">
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Start Date</label>
-                        <input type="date" id="startDate" required>
+                        <label class="form-label">Description</label>
+                        <textarea class="form-textarea" id="challengeDescription" placeholder="Describe the challenge goals and rules..."></textarea>
                     </div>
                     <div class="form-group">
-                        <label>End Date</label>
-                        <input type="date" id="endDate" required>
+                        <label class="form-label">Challenge Type *</label>
+                        <select class="form-select" id="challengeType" required>
+                            <option value="">Select type...</option>
+                            <option value="gym_checkin">Gym Check-in</option>
+                            <option value="weight_loss">Weight Loss</option>
+                            <option value="consistency">Consistency Streak</option>
+                            <option value="water_intake">Water Intake</option>
+                            <option value="steps">Daily Steps</option>
+                            <option value="custom">Custom</option>
+                        </select>
                     </div>
-                </div>
-                <div class="form-group">
-                    <label>Assign To</label>
-                    <select id="assignTo" onchange="toggleClientSelect()">
-                        <option value="all">All Clients</option>
-                        <option value="selected">Select Clients</option>
-                    </select>
-                </div>
-                <div class="form-group" id="clientSelectGroup" style="display:none;">
-                    <label>Select Clients</label>
-                    <div class="client-select-list" id="clientSelectList">
-                        <div style="color:var(--gray-400);padding:12px;text-align:center;">Loading clients...</div>
+                    <div class="form-row" id="targetRow" style="display:none;">
+                        <div class="form-group">
+                            <label class="form-label">Target Value</label>
+                            <input type="number" class="form-input" id="targetValue" placeholder="e.g. 64">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Target Unit</label>
+                            <input type="text" class="form-input" id="targetUnit" placeholder="e.g. oz">
+                        </div>
                     </div>
-                </div>
-                <div class="modal-actions">
-                    <button type="button" class="btn-secondary" onclick="closeCreateModal()">Cancel</button>
-                    <button type="submit" class="btn-primary" id="createBtn">Create Challenge</button>
-                </div>
-            </form>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Start Date *</label>
+                            <input type="date" class="form-input" id="startDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">End Date *</label>
+                            <input type="date" class="form-input" id="endDate" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Assign To *</label>
+                        <select class="form-select" id="assignTo" required>
+                            <option value="all">All Clients</option>
+                            <option value="select">Select Clients</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="clientSelectGroup" style="display:none;">
+                        <label class="form-label">Select Clients</label>
+                        <div class="client-select-list" id="clientSelectList">
+                            <p style="padding:12px;color:var(--gray-500);font-size:0.85rem;">Loading clients...</p>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary btn-sm" id="modalCancel">Cancel</button>
+                <button class="btn btn-primary btn-sm" id="modalSubmit">Create Challenge</button>
+            </div>
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0"></script>
-    <script>
-        const SUPABASE_URL = 'https://qewqcjzlfqamqwbccapr.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFld3Fjanlsbnlhbnl3YmNjYXByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ1NTI0NzYsImV4cCI6MjA1MDEyODQ3Nn0.5sHN0zqXVhFDBUFT5TN0ajZ6uDMSI7ax8U4Fvocz3_E';
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-        let currentUser = null;
-        let allChallenges = [];
-        let allClients = [];
-        let currentFilter = 'all';
-
-        const TYPE_LABELS = {
-            gym_checkin: 'Gym Check-in',
-            weight_loss: 'Weight Loss',
-            consistency: 'Consistency Streak',
-            water_intake: 'Water Intake',
-            steps: 'Daily Steps',
-            custom: 'Custom'
-        };
-        const TYPE_ICONS = {
-            gym_checkin: 'map-pin',
-            weight_loss: 'trending-down',
-            consistency: 'flame',
-            water_intake: 'droplets',
-            steps: 'footprints',
-            custom: 'star'
-        };
-
-        // Sidebar
-        function toggleSidebarSection(label) {
-            const section = label.parentElement;
-            section.classList.toggle('collapsed');
-            const sectionName = section.dataset.section;
-            const collapsedSections = JSON.parse(localStorage.getItem('sidebarCollapsed') || '{}');
-            collapsedSections[sectionName] = section.classList.contains('collapsed');
-            localStorage.setItem('sidebarCollapsed', JSON.stringify(collapsedSections));
-        }
-
-        (function restoreSidebarState() {
-            const collapsedSections = JSON.parse(localStorage.getItem('sidebarCollapsed') || '{}');
-            document.querySelectorAll('.sidebar-nav-section').forEach(section => {
-                const sectionName = section.dataset.section;
-                if (collapsedSections[sectionName]) {
-                    section.classList.add('collapsed');
-                }
-            });
-        })();
-
-        async function logout() {
-            await supabase.auth.signOut();
-            window.location.href = 'index.html';
-        }
-
-        // Init
-        document.addEventListener('DOMContentLoaded', async () => {
-            lucide.createIcons();
-
-            try {
-                const sessionPromise = supabase.auth.getSession();
-                const timeoutPromise = new Promise((_, reject) =>
-                    setTimeout(() => reject(new Error('Session timeout')), 10000)
-                );
-
-                let session;
-                try {
-                    const result = await Promise.race([sessionPromise, timeoutPromise]);
-                    session = result.data?.session;
-                } catch (err) {
-                    document.getElementById('challengesContainer').innerHTML =
-                        '<div class="empty-state"><h3>Connection Error</h3><p>Could not connect. Please try again.</p><button class="btn-primary" onclick="location.reload()">Retry</button></div>';
-                    return;
-                }
-
-                if (!session) {
-                    window.location.href = 'index.html';
-                    return;
-                }
-
-                currentUser = session.user;
-                document.getElementById('userEmail').textContent = currentUser.email;
-                document.getElementById('userAvatar').textContent = currentUser.email.charAt(0).toUpperCase();
-
-                // Set default dates
-                const today = new Date();
-                document.getElementById('startDate').value = today.toISOString().split('T')[0];
-                const endDefault = new Date(today);
-                endDefault.setDate(endDefault.getDate() + 30);
-                document.getElementById('endDate').value = endDefault.toISOString().split('T')[0];
-
-                updateTypeFields();
-                await loadChallenges();
-                loadClients();
-
-            } catch (err) {
-                console.error('Init error:', err);
-                document.getElementById('challengesContainer').innerHTML =
-                    '<div class="empty-state"><h3>Error</h3><p>' + (err.message || 'Something went wrong') + '</p><button class="btn-primary" onclick="location.reload()">Retry</button></div>';
-            }
-
-            // Event listeners
-            document.getElementById('logoutBtn').addEventListener('click', logout);
-            document.getElementById('mobileMenuBtn')?.addEventListener('click', () => {
-                document.getElementById('sidebar').classList.toggle('open');
-                document.getElementById('sidebarOverlay').classList.toggle('active');
-            });
-            document.getElementById('sidebarOverlay')?.addEventListener('click', () => {
-                document.getElementById('sidebar').classList.remove('open');
-                document.getElementById('sidebarOverlay').classList.remove('active');
-            });
-        });
-
-        // Load challenges
-        async function loadChallenges() {
-            try {
-                const response = await fetch(`/.netlify/functions/coach-challenges?coachId=${currentUser.id}`, {
-                    headers: { 'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session.access_token}` }
-                });
-                const data = await response.json();
-                allChallenges = data.challenges || [];
-                renderChallenges();
-            } catch (err) {
-                console.error('Load challenges error:', err);
-                document.getElementById('challengesContainer').innerHTML =
-                    '<div class="empty-state"><h3>Error loading challenges</h3><p>Please try again.</p></div>';
-            }
-        }
-
-        // Load clients for create modal
-        async function loadClients() {
-            try {
-                const response = await fetch(`/.netlify/functions/get-clients?coachId=${currentUser.id}`, {
-                    headers: { 'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session.access_token}` }
-                });
-                const data = await response.json();
-                allClients = (data.clients || data || []).filter(c => !c.archived_at);
-            } catch (err) {
-                console.error('Load clients error:', err);
-            }
-        }
-
-        function renderChallenges() {
-            const container = document.getElementById('challengesContainer');
-            let filtered = allChallenges;
-            if (currentFilter !== 'all') {
-                filtered = allChallenges.filter(c => c.status === currentFilter);
-            }
-
-            if (filtered.length === 0) {
-                container.innerHTML = `
-                    <div class="empty-state">
-                        <i data-lucide="trophy" style="width:48px;height:48px;color:var(--gray-300);margin-bottom:16px;"></i>
-                        <h3>${currentFilter === 'all' ? 'No challenges yet' : 'No ' + currentFilter + ' challenges'}</h3>
-                        <p>${currentFilter === 'all' ? 'Create your first challenge to motivate your clients!' : 'No challenges match this filter.'}</p>
-                    </div>
-                `;
-                lucide.createIcons();
-                return;
-            }
-
-            const today = new Date();
-            container.innerHTML = `<div class="challenges-grid">${filtered.map(c => {
-                const start = new Date(c.start_date);
-                const end = new Date(c.end_date);
-                const totalDays = Math.max(1, Math.ceil((end - start) / (1000 * 60 * 60 * 24)));
-                const elapsed = Math.max(0, Math.min(totalDays, Math.ceil((today - start) / (1000 * 60 * 60 * 24))));
-                const pct = Math.min(100, Math.round((elapsed / totalDays) * 100));
-
-                return `
-                    <div class="challenge-card" onclick="viewChallenge(${c.id})">
-                        <div class="challenge-card-header">
-                            <div class="challenge-card-title">${escapeHtml(c.title)}</div>
-                            <span class="challenge-badge badge-${c.status}">${c.status}</span>
-                        </div>
-                        <div class="challenge-type-badge">
-                            <i data-lucide="${TYPE_ICONS[c.challenge_type] || 'star'}" style="width:14px;height:14px;"></i>
-                            ${TYPE_LABELS[c.challenge_type] || c.challenge_type}
-                        </div>
-                        ${c.description ? `<div class="challenge-card-desc">${escapeHtml(c.description)}</div>` : ''}
-                        <div class="challenge-card-meta">
-                            <span><i data-lucide="calendar" style="width:14px;height:14px;"></i> ${formatDate(c.start_date)} - ${formatDate(c.end_date)}</span>
-                            <span><i data-lucide="users" style="width:14px;height:14px;"></i> ${c.participant_count || 0} participants</span>
-                        </div>
-                        <div class="challenge-progress-bar">
-                            <div class="challenge-progress-fill" style="width:${pct}%"></div>
-                        </div>
-                        <div class="challenge-progress-label">
-                            <span>Day ${elapsed} of ${totalDays}</span>
-                            <span>${pct}%</span>
-                        </div>
-                    </div>
-                `;
-            }).join('')}</div>`;
-            lucide.createIcons();
-        }
-
-        function filterChallenges(filter) {
-            currentFilter = filter;
-            document.querySelectorAll('.filter-tab').forEach(t => t.classList.toggle('active', t.dataset.filter === filter));
-            renderChallenges();
-        }
-
-        // View challenge detail
-        async function viewChallenge(challengeId) {
-            document.getElementById('listView').classList.add('hidden');
-            document.getElementById('detailView').classList.add('active');
-            document.getElementById('detailContent').innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
-            lucide.createIcons();
-
-            try {
-                const response = await fetch(`/.netlify/functions/coach-challenges?coachId=${currentUser.id}&challengeId=${challengeId}`, {
-                    headers: { 'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session.access_token}` }
-                });
-                const data = await response.json();
-                renderDetail(data);
-            } catch (err) {
-                console.error('Load detail error:', err);
-                document.getElementById('detailContent').innerHTML = '<div class="empty-state"><h3>Error loading challenge</h3></div>';
-            }
-        }
-
-        function renderDetail(data) {
-            const { challenge, participants, leaderboard } = data;
-            const today = new Date();
-            const start = new Date(challenge.start_date);
-            const end = new Date(challenge.end_date);
-            const totalDays = Math.max(1, Math.ceil((end - start) / (1000 * 60 * 60 * 24)));
-            const elapsed = Math.max(0, Math.min(totalDays, Math.ceil((today - start) / (1000 * 60 * 60 * 24))));
-
-            let statLabel = 'Days Active';
-            let leaderboardHeaders = '';
-            let leaderboardMetric = '';
-
-            switch (challenge.challenge_type) {
-                case 'gym_checkin':
-                    statLabel = 'Target: Daily Check-in';
-                    leaderboardHeaders = '<th>Days Checked In</th><th>Streak</th>';
-                    leaderboardMetric = (p) => `<td>${p.totalDays}</td><td>${p.currentStreak} days</td>`;
-                    break;
-                case 'weight_loss':
-                    statLabel = `Target: ${challenge.target_value || '—'} ${challenge.target_unit || 'lbs'}`;
-                    leaderboardHeaders = '<th>Lost</th><th>Current</th>';
-                    leaderboardMetric = (p) => `<td>${p.totalValue ? p.totalValue.toFixed(1) + ' lbs' : '—'}</td><td>${p.latestValue ? p.latestValue.toFixed(1) + ' lbs' : '—'}</td>`;
-                    break;
-                case 'water_intake':
-                    statLabel = `Target: ${challenge.target_value || 64} ${challenge.target_unit || 'oz'}/day`;
-                    leaderboardHeaders = '<th>Days Logged</th><th>Total</th>';
-                    leaderboardMetric = (p) => `<td>${p.totalDays}</td><td>${p.totalValue ? Math.round(p.totalValue) + ' oz' : '—'}</td>`;
-                    break;
-                case 'steps':
-                    statLabel = `Target: ${challenge.target_value ? challenge.target_value.toLocaleString() : '10,000'} steps/day`;
-                    leaderboardHeaders = '<th>Days Logged</th><th>Total Steps</th>';
-                    leaderboardMetric = (p) => `<td>${p.totalDays}</td><td>${p.totalValue ? Math.round(p.totalValue).toLocaleString() : '—'}</td>`;
-                    break;
-                case 'consistency':
-                    statLabel = 'Track: Consecutive Days';
-                    leaderboardHeaders = '<th>Current Streak</th><th>Total Days</th>';
-                    leaderboardMetric = (p) => `<td>${p.currentStreak} days</td><td>${p.totalDays}</td>`;
-                    break;
-                default:
-                    statLabel = challenge.target_value ? `Target: ${challenge.target_value} ${challenge.target_unit || ''}` : 'Custom Challenge';
-                    leaderboardHeaders = '<th>Days Active</th><th>Progress</th>';
-                    leaderboardMetric = (p) => `<td>${p.totalDays}</td><td>${p.totalValue || '—'}</td>`;
-            }
-
-            const leaderboardRows = (leaderboard || []).map((p, i) => `
-                <tr>
-                    <td class="leaderboard-rank">#${i + 1}</td>
-                    <td class="leaderboard-name">${escapeHtml(p.clientName)}</td>
-                    ${leaderboardMetric(p)}
-                </tr>
-            `).join('');
-
-            document.getElementById('detailContent').innerHTML = `
-                <div class="detail-info-card">
-                    <div class="detail-header">
-                        <div>
-                            <div class="challenge-type-badge" style="margin-bottom:12px;">
-                                <i data-lucide="${TYPE_ICONS[challenge.challenge_type] || 'star'}" style="width:14px;height:14px;"></i>
-                                ${TYPE_LABELS[challenge.challenge_type] || challenge.challenge_type}
-                            </div>
-                            <h2>${escapeHtml(challenge.title)}</h2>
-                            ${challenge.description ? `<p>${escapeHtml(challenge.description)}</p>` : ''}
-                        </div>
-                        <span class="challenge-badge badge-${challenge.status}">${challenge.status}</span>
-                    </div>
-                    <div class="detail-stats">
-                        <div class="detail-stat">
-                            <div class="detail-stat-value">${participants.length}</div>
-                            <div class="detail-stat-label">Participants</div>
-                        </div>
-                        <div class="detail-stat">
-                            <div class="detail-stat-value">${elapsed}/${totalDays}</div>
-                            <div class="detail-stat-label">Days Elapsed</div>
-                        </div>
-                        <div class="detail-stat">
-                            <div class="detail-stat-value">${formatDate(challenge.start_date)}</div>
-                            <div class="detail-stat-label">Start Date</div>
-                        </div>
-                        <div class="detail-stat">
-                            <div class="detail-stat-value">${formatDate(challenge.end_date)}</div>
-                            <div class="detail-stat-label">End Date</div>
-                        </div>
-                    </div>
-                    <div style="margin-top:8px;font-size:0.85rem;color:var(--gray-500);">${statLabel}</div>
-                    <div style="margin-top:20px;" class="detail-actions">
-                        ${challenge.status === 'active' ? `
-                            <button class="btn-secondary" onclick="addParticipantsModal(${challenge.id})">
-                                <i data-lucide="user-plus" style="width:16px;height:16px;"></i> Add Participants
-                            </button>
-                            <button class="btn-danger" onclick="endChallenge(${challenge.id}, 'completed')">End Challenge</button>
-                            <button class="btn-danger" onclick="endChallenge(${challenge.id}, 'cancelled')">Cancel</button>
-                        ` : ''}
-                        <button class="btn-danger" onclick="deleteChallenge(${challenge.id})">Delete</button>
-                    </div>
+    <!-- Add Participants Modal -->
+    <div class="modal-overlay" id="addParticipantsModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>Add Participants</h2>
+                <button class="modal-close" id="addParticipantsClose">
+                    <i data-lucide="x" style="width:20px;height:20px;"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="client-select-list" id="addParticipantsList">
+                    <p style="padding:12px;color:var(--gray-500);font-size:0.85rem;">Loading clients...</p>
                 </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary btn-sm" id="addParticipantsCancel">Cancel</button>
+                <button class="btn btn-primary btn-sm" id="addParticipantsSubmit">Add Selected</button>
+            </div>
+        </div>
+    </div>
 
-                <div class="leaderboard-card">
-                    <h3>Leaderboard</h3>
-                    ${leaderboardRows ? `
-                        <table class="leaderboard-table">
-                            <thead>
-                                <tr>
-                                    <th>Rank</th>
-                                    <th>Client</th>
-                                    ${leaderboardHeaders}
-                                </tr>
-                            </thead>
-                            <tbody>${leaderboardRows}</tbody>
-                        </table>
-                    ` : '<div class="leaderboard-empty">No progress logged yet. Clients will appear here once they start logging.</div>'}
-                </div>
-            `;
-            lucide.createIcons();
-        }
+    <!-- Edit Challenge Modal -->
+    <div class="modal-overlay" id="editModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>Edit Challenge</h2>
+                <button class="modal-close" id="editModalClose">
+                    <i data-lucide="x" style="width:20px;height:20px;"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="editForm">
+                    <input type="hidden" id="editChallengeId">
+                    <div class="form-group">
+                        <label class="form-label">Title *</label>
+                        <input type="text" class="form-input" id="editTitle" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Description</label>
+                        <textarea class="form-textarea" id="editDescription"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">End Date</label>
+                        <input type="date" class="form-input" id="editEndDate">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary btn-sm" id="editModalCancel">Cancel</button>
+                <button class="btn btn-primary btn-sm" id="editModalSubmit">Save Changes</button>
+            </div>
+        </div>
+    </div>
 
-        function showListView() {
-            document.getElementById('listView').classList.remove('hidden');
-            document.getElementById('detailView').classList.remove('active');
-        }
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
 
-        // Create challenge
-        function openCreateModal() {
-            document.getElementById('createModal').classList.add('active');
-            updateTypeFields();
-            renderClientSelect();
-        }
-
-        function closeCreateModal() {
-            document.getElementById('createModal').classList.remove('active');
-            document.getElementById('createForm').reset();
-            // Reset defaults
-            const today = new Date();
-            document.getElementById('startDate').value = today.toISOString().split('T')[0];
-            const endDefault = new Date(today);
-            endDefault.setDate(endDefault.getDate() + 30);
-            document.getElementById('endDate').value = endDefault.toISOString().split('T')[0];
-            document.getElementById('clientSelectGroup').style.display = 'none';
-        }
-
-        function updateTypeFields() {
-            const type = document.getElementById('challengeType').value;
-            const targetFields = document.getElementById('targetFields');
-            const targetValue = document.getElementById('targetValue');
-            const targetUnit = document.getElementById('targetUnit');
-
-            switch (type) {
-                case 'gym_checkin':
-                    targetFields.style.display = 'none';
-                    break;
-                case 'water_intake':
-                    targetFields.style.display = 'grid';
-                    targetValue.value = '64';
-                    targetValue.placeholder = '64';
-                    targetUnit.value = 'oz';
-                    break;
-                case 'steps':
-                    targetFields.style.display = 'grid';
-                    targetValue.value = '10000';
-                    targetValue.placeholder = '10000';
-                    targetUnit.value = 'steps';
-                    break;
-                case 'weight_loss':
-                    targetFields.style.display = 'grid';
-                    targetValue.value = '';
-                    targetValue.placeholder = 'Target lbs to lose';
-                    targetUnit.value = 'lbs';
-                    break;
-                case 'consistency':
-                    targetFields.style.display = 'none';
-                    break;
-                case 'custom':
-                    targetFields.style.display = 'grid';
-                    targetValue.value = '';
-                    targetValue.placeholder = 'Target value';
-                    targetUnit.value = '';
-                    targetUnit.placeholder = 'Unit';
-                    break;
-            }
-        }
-
-        function toggleClientSelect() {
-            const show = document.getElementById('assignTo').value === 'selected';
-            document.getElementById('clientSelectGroup').style.display = show ? 'block' : 'none';
-            if (show) renderClientSelect();
-        }
-
-        function renderClientSelect() {
-            const list = document.getElementById('clientSelectList');
-            if (!allClients.length) {
-                list.innerHTML = '<div style="color:var(--gray-400);padding:12px;text-align:center;">No clients found</div>';
-                return;
-            }
-            list.innerHTML = allClients.map(c => `
-                <label class="client-select-item">
-                    <input type="checkbox" value="${c.id}" name="selectedClients">
-                    ${escapeHtml(c.client_name || c.email || 'Client #' + c.id)}
-                </label>
-            `).join('');
-        }
-
-        async function createChallenge() {
-            const btn = document.getElementById('createBtn');
-            btn.disabled = true;
-            btn.textContent = 'Creating...';
-
-            try {
-                const assignTo = document.getElementById('assignTo').value;
-                let clientIds = [];
-                if (assignTo === 'selected') {
-                    clientIds = Array.from(document.querySelectorAll('input[name="selectedClients"]:checked')).map(el => parseInt(el.value));
-                    if (clientIds.length === 0) {
-                        alert('Please select at least one client.');
-                        btn.disabled = false;
-                        btn.textContent = 'Create Challenge';
-                        return;
-                    }
-                }
-
-                const payload = {
-                    coachId: currentUser.id,
-                    title: document.getElementById('challengeTitle').value.trim(),
-                    description: document.getElementById('challengeDesc').value.trim() || null,
-                    challengeType: document.getElementById('challengeType').value,
-                    targetValue: document.getElementById('targetValue').value ? parseFloat(document.getElementById('targetValue').value) : null,
-                    targetUnit: document.getElementById('targetUnit').value.trim() || null,
-                    frequency: 'daily',
-                    startDate: document.getElementById('startDate').value,
-                    endDate: document.getElementById('endDate').value,
-                    assignTo,
-                    clientIds
-                };
-
-                const response = await fetch('/.netlify/functions/coach-challenges', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session.access_token}`
-                    },
-                    body: JSON.stringify(payload)
-                });
-
-                const data = await response.json();
-                if (!response.ok) throw new Error(data.error || 'Failed to create challenge');
-
-                closeCreateModal();
-                await loadChallenges();
-            } catch (err) {
-                console.error('Create error:', err);
-                alert('Error creating challenge: ' + err.message);
-            } finally {
-                btn.disabled = false;
-                btn.textContent = 'Create Challenge';
-            }
-        }
-
-        // Add participants
-        async function addParticipantsModal(challengeId) {
-            // Simple prompt approach - show available clients
-            const existingResponse = await fetch(`/.netlify/functions/coach-challenges?coachId=${currentUser.id}&challengeId=${challengeId}`, {
-                headers: { 'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session.access_token}` }
-            });
-            const existingData = await existingResponse.json();
-            const existingIds = new Set((existingData.participants || []).map(p => p.client_id));
-            const available = allClients.filter(c => !existingIds.has(c.id));
-
-            if (available.length === 0) {
-                alert('All your clients are already in this challenge!');
-                return;
-            }
-
-            const names = available.map((c, i) => `${i + 1}. ${c.client_name || c.email}`).join('\n');
-            const input = prompt(`Available clients:\n${names}\n\nEnter numbers separated by commas (e.g. 1,3,5):`);
-            if (!input) return;
-
-            const indices = input.split(',').map(s => parseInt(s.trim()) - 1).filter(i => i >= 0 && i < available.length);
-            if (indices.length === 0) return;
-
-            const clientIds = indices.map(i => available[i].id);
-
-            try {
-                const response = await fetch('/.netlify/functions/coach-challenges', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session.access_token}`
-                    },
-                    body: JSON.stringify({ action: 'add_participants', challengeId, clientIds })
-                });
-                if (!response.ok) throw new Error('Failed to add participants');
-                viewChallenge(challengeId);
-            } catch (err) {
-                alert('Error: ' + err.message);
-            }
-        }
-
-        // End/cancel challenge
-        async function endChallenge(challengeId, newStatus) {
-            if (!confirm(`Are you sure you want to ${newStatus === 'cancelled' ? 'cancel' : 'end'} this challenge?`)) return;
-
-            try {
-                const response = await fetch('/.netlify/functions/coach-challenges', {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session.access_token}`
-                    },
-                    body: JSON.stringify({ challengeId, coachId: currentUser.id, status: newStatus })
-                });
-                if (!response.ok) throw new Error('Failed to update challenge');
-                viewChallenge(challengeId);
-                loadChallenges(); // refresh list in background
-            } catch (err) {
-                alert('Error: ' + err.message);
-            }
-        }
-
-        // Delete challenge
-        async function deleteChallenge(challengeId) {
-            if (!confirm('Are you sure you want to permanently delete this challenge? This cannot be undone.')) return;
-
-            try {
-                const response = await fetch('/.netlify/functions/coach-challenges', {
-                    method: 'DELETE',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session.access_token}`
-                    },
-                    body: JSON.stringify({ challengeId, coachId: currentUser.id })
-                });
-                if (!response.ok) throw new Error('Failed to delete challenge');
-                showListView();
-                await loadChallenges();
-            } catch (err) {
-                alert('Error: ' + err.message);
-            }
-        }
-
-        // Helpers
-        function escapeHtml(str) {
-            if (!str) return '';
-            return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-        }
-
-        function formatDate(dateStr) {
-            if (!dateStr) return '';
-            const d = new Date(dateStr + 'T00:00:00');
-            return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-        }
-    </script>
-
-    <!-- Coach Bottom Navigation -->
+    <!-- Mobile Bottom Nav -->
     <nav class="coach-bottom-nav">
         <div class="coach-bottom-nav-inner">
             <a href="dashboard.html" class="coach-nav-item">
@@ -1466,5 +1138,770 @@
             </a>
         </div>
     </nav>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0"></script>
+    <script>
+        const SUPABASE_URL = 'https://qewqcjzlfqamqwbccapr.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFld3Fjanlsbnlhbnl3YmNjYXByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ1NTI0NzYsImV4cCI6MjA1MDEyODQ3Nn0.5sHN0zqXVhFDBUFT5TN0ajZ6uDMSI7ax8U4Fvocz3_E';
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        const API_BASE = '/.netlify/functions/coach-challenges';
+        const CLIENTS_API = '/.netlify/functions/get-clients';
+
+        let currentUser = null;
+        let allChallenges = [];
+        let allClients = [];
+        let currentFilter = 'all';
+        let currentDetailId = null;
+
+        const CHALLENGE_TYPE_LABELS = {
+            gym_checkin: 'Gym Check-in',
+            weight_loss: 'Weight Loss',
+            consistency: 'Consistency Streak',
+            water_intake: 'Water Intake',
+            steps: 'Daily Steps',
+            custom: 'Custom'
+        };
+
+        const TYPE_DEFAULTS = {
+            water_intake: { value: 64, unit: 'oz' },
+            steps: { value: 10000, unit: 'steps' },
+            weight_loss: { value: 10, unit: 'lbs' },
+            gym_checkin: { value: 20, unit: 'days' },
+            consistency: { value: 30, unit: 'days' },
+            custom: { value: '', unit: '' }
+        };
+
+        // ===== Sidebar Functions =====
+        function toggleSidebarSection(label) {
+            const section = label.parentElement;
+            section.classList.toggle('collapsed');
+            const sectionName = section.dataset.section;
+            const collapsedSections = JSON.parse(localStorage.getItem('sidebarCollapsed') || '{}');
+            collapsedSections[sectionName] = section.classList.contains('collapsed');
+            localStorage.setItem('sidebarCollapsed', JSON.stringify(collapsedSections));
+        }
+
+        // Restore sidebar collapsed state
+        (function restoreSidebarState() {
+            const collapsedSections = JSON.parse(localStorage.getItem('sidebarCollapsed') || '{}');
+            document.querySelectorAll('.sidebar-nav-section').forEach(section => {
+                const sectionName = section.dataset.section;
+                if (collapsedSections[sectionName]) {
+                    section.classList.add('collapsed');
+                }
+            });
+        })();
+
+        // ===== Utility Functions =====
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = 'toast ' + type + ' show';
+            setTimeout(() => { toast.classList.remove('show'); }, 3000);
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return 'N/A';
+            const d = new Date(dateStr + 'T00:00:00');
+            return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        }
+
+        function getStatusBadgeClass(status) {
+            const map = {
+                active: 'badge-status-active',
+                completed: 'badge-status-completed',
+                cancelled: 'badge-status-cancelled',
+                upcoming: 'badge-status-upcoming'
+            };
+            return map[status] || 'badge-status-active';
+        }
+
+        function getChallengeProgress(challenge) {
+            const now = new Date();
+            const start = new Date(challenge.start_date + 'T00:00:00');
+            const end = new Date(challenge.end_date + 'T00:00:00');
+            const totalDays = Math.max(1, Math.ceil((end - start) / (1000 * 60 * 60 * 24)));
+            const elapsed = Math.max(0, Math.ceil((now - start) / (1000 * 60 * 60 * 24)));
+            const pct = Math.min(100, Math.max(0, Math.round((elapsed / totalDays) * 100)));
+            return { totalDays, elapsed: Math.min(elapsed, totalDays), pct };
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        // ===== API Helpers =====
+        async function getAuthHeaders() {
+            const { data: { session } } = await supabase.auth.getSession();
+            return {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + (session?.access_token || '')
+            };
+        }
+
+        async function apiGet(url) {
+            const headers = await getAuthHeaders();
+            const res = await fetch(url, { headers });
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                throw new Error(err.error || 'Request failed');
+            }
+            return res.json();
+        }
+
+        async function apiPost(url, body) {
+            const headers = await getAuthHeaders();
+            const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                throw new Error(err.error || 'Request failed');
+            }
+            return res.json();
+        }
+
+        async function apiPut(url, body) {
+            const headers = await getAuthHeaders();
+            const res = await fetch(url, { method: 'PUT', headers, body: JSON.stringify(body) });
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                throw new Error(err.error || 'Request failed');
+            }
+            return res.json();
+        }
+
+        async function apiDelete(url, body) {
+            const headers = await getAuthHeaders();
+            const res = await fetch(url, { method: 'DELETE', headers, body: JSON.stringify(body) });
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                throw new Error(err.error || 'Request failed');
+            }
+            return res.json();
+        }
+
+        // ===== Data Loading =====
+        async function loadClients() {
+            try {
+                const data = await apiGet(`${CLIENTS_API}?coachId=${currentUser.id}`);
+                allClients = data.clients || data || [];
+            } catch (err) {
+                console.error('Failed to load clients:', err);
+                allClients = [];
+            }
+        }
+
+        async function loadChallenges() {
+            try {
+                const data = await apiGet(`${API_BASE}?coachId=${currentUser.id}`);
+                allChallenges = data.challenges || data || [];
+                renderChallengeList();
+            } catch (err) {
+                console.error('Failed to load challenges:', err);
+                document.getElementById('challengesContainer').innerHTML = `
+                    <div class="empty-state">
+                        <h3>Error Loading Challenges</h3>
+                        <p>${err.message}</p>
+                        <button class="btn btn-primary btn-sm" onclick="loadChallenges()">Retry</button>
+                    </div>
+                `;
+            }
+        }
+
+        async function loadChallengeDetail(challengeId) {
+            try {
+                const data = await apiGet(`${API_BASE}?coachId=${currentUser.id}&challengeId=${challengeId}`);
+                const challenge = data.challenge || data;
+                renderDetailView(challenge);
+            } catch (err) {
+                console.error('Failed to load challenge detail:', err);
+                showToast('Failed to load challenge details', 'error');
+            }
+        }
+
+        // ===== Rendering =====
+        function renderChallengeList() {
+            const container = document.getElementById('challengesContainer');
+            let filtered = allChallenges;
+
+            if (currentFilter !== 'all') {
+                filtered = allChallenges.filter(c => c.status === currentFilter);
+            }
+
+            if (filtered.length === 0) {
+                const msg = currentFilter === 'all'
+                    ? 'Create your first challenge to motivate your clients!'
+                    : `No ${currentFilter} challenges found.`;
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">
+                            <i data-lucide="trophy" style="width:32px;height:32px;"></i>
+                        </div>
+                        <h3>No Challenges Yet</h3>
+                        <p>${msg}</p>
+                        ${currentFilter === 'all' ? '<button class="btn btn-primary btn-sm" onclick="openCreateModal()">Create Challenge</button>' : ''}
+                    </div>
+                `;
+                lucide.createIcons();
+                return;
+            }
+
+            container.innerHTML = '<div class="challenges-grid">' + filtered.map(c => renderChallengeCard(c)).join('') + '</div>';
+            lucide.createIcons();
+        }
+
+        function renderChallengeCard(challenge) {
+            const progress = getChallengeProgress(challenge);
+            const participantCount = challenge.participant_count || challenge.participants?.length || 0;
+            const typeLabel = CHALLENGE_TYPE_LABELS[challenge.challenge_type] || challenge.challenge_type;
+            const statusClass = getStatusBadgeClass(challenge.status);
+
+            return `
+                <div class="challenge-card" onclick="viewChallenge('${challenge.id}')">
+                    <div class="challenge-card-header">
+                        <div>
+                            <div class="challenge-card-title">${escapeHtml(challenge.title)}</div>
+                            <div class="challenge-badges">
+                                <span class="badge badge-type">${typeLabel}</span>
+                                <span class="badge ${statusClass}">${challenge.status}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="challenge-card-body">
+                        <div class="challenge-dates">
+                            <i data-lucide="calendar" style="width:14px;height:14px;"></i>
+                            ${formatDate(challenge.start_date)} - ${formatDate(challenge.end_date)}
+                        </div>
+                        <div class="challenge-participants">
+                            <i data-lucide="users" style="width:14px;height:14px;"></i>
+                            ${participantCount} participant${participantCount !== 1 ? 's' : ''}
+                        </div>
+                        ${challenge.status === 'active' ? `
+                        <div class="challenge-progress">
+                            <div class="progress-bar-bg">
+                                <div class="progress-bar-fill" style="width:${progress.pct}%"></div>
+                            </div>
+                            <div class="progress-label">
+                                <span>Day ${progress.elapsed} of ${progress.totalDays}</span>
+                                <span>${progress.pct}%</span>
+                            </div>
+                        </div>
+                        ` : ''}
+                        <div class="challenge-card-actions">
+                            <button class="btn btn-ghost" onclick="event.stopPropagation(); viewChallenge('${challenge.id}')">
+                                <i data-lucide="eye" style="width:14px;height:14px;"></i> View
+                            </button>
+                            <button class="btn btn-ghost" onclick="event.stopPropagation(); openEditModal('${challenge.id}')">
+                                <i data-lucide="pencil" style="width:14px;height:14px;"></i> Edit
+                            </button>
+                            <button class="btn btn-danger" onclick="event.stopPropagation(); deleteChallenge('${challenge.id}', '${escapeHtml(challenge.title).replace(/'/g, "\\'")}')">
+                                <i data-lucide="trash-2" style="width:14px;height:14px;"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderDetailView(challenge) {
+            currentDetailId = challenge.id;
+            const typeLabel = CHALLENGE_TYPE_LABELS[challenge.challenge_type] || challenge.challenge_type;
+            const statusClass = getStatusBadgeClass(challenge.status);
+            const participants = challenge.participants || [];
+            const leaderboard = challenge.leaderboard || participants;
+
+            document.getElementById('listView').classList.add('hidden');
+            const detailView = document.getElementById('detailView');
+            detailView.classList.add('active');
+
+            let targetInfo = '';
+            if (challenge.target_value) {
+                targetInfo = `<div class="detail-meta-item"><strong>Target:</strong> ${challenge.target_value} ${challenge.target_unit || ''}</div>`;
+            }
+
+            let leaderboardHtml = '';
+            if (leaderboard.length > 0) {
+                const rows = leaderboard.map((p, i) => {
+                    const rank = i + 1;
+                    const rankClass = rank <= 3 ? `rank-${rank}` : 'rank-other';
+                    const progressCols = getProgressColumns(challenge.challenge_type, p);
+
+                    return `
+                        <tr>
+                            <td><span class="rank-badge ${rankClass}">${rank}</span></td>
+                            <td>
+                                <div class="participant-name">${escapeHtml(p.client_name || p.name || 'Unknown')}</div>
+                                <div class="participant-email">${escapeHtml(p.email || '')}</div>
+                            </td>
+                            ${progressCols}
+                        </tr>
+                    `;
+                }).join('');
+
+                const headerCols = getProgressHeaders(challenge.challenge_type);
+
+                leaderboardHtml = `
+                    <div class="leaderboard-card">
+                        <div class="leaderboard-header">
+                            <h3>Leaderboard</h3>
+                            <button class="btn btn-primary btn-sm" onclick="openAddParticipants('${challenge.id}')">
+                                <i data-lucide="user-plus" style="width:16px;height:16px;"></i> Add Participants
+                            </button>
+                        </div>
+                        <div class="leaderboard-body">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th style="width:50px;">#</th>
+                                        <th>Participant</th>
+                                        ${headerCols}
+                                    </tr>
+                                </thead>
+                                <tbody>${rows}</tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            } else {
+                leaderboardHtml = `
+                    <div class="leaderboard-card">
+                        <div class="leaderboard-header">
+                            <h3>Participants</h3>
+                            <button class="btn btn-primary btn-sm" onclick="openAddParticipants('${challenge.id}')">
+                                <i data-lucide="user-plus" style="width:16px;height:16px;"></i> Add Participants
+                            </button>
+                        </div>
+                        <div style="padding:40px;text-align:center;color:var(--gray-500);">
+                            <p>No participants yet. Add clients to this challenge.</p>
+                        </div>
+                    </div>
+                `;
+            }
+
+            let actionButtons = '';
+            if (challenge.status === 'active') {
+                actionButtons = `
+                    <button class="btn btn-secondary btn-sm" onclick="updateChallengeStatus('${challenge.id}', 'completed')">
+                        <i data-lucide="check-circle" style="width:16px;height:16px;"></i> End Challenge
+                    </button>
+                    <button class="btn btn-danger btn-sm" onclick="updateChallengeStatus('${challenge.id}', 'cancelled')">
+                        <i data-lucide="x-circle" style="width:16px;height:16px;"></i> Cancel Challenge
+                    </button>
+                `;
+            }
+
+            document.getElementById('detailContent').innerHTML = `
+                <div class="detail-header">
+                    <button class="detail-back-btn" onclick="backToList()">
+                        <i data-lucide="arrow-left" style="width:16px;height:16px;"></i> Back to Challenges
+                    </button>
+                </div>
+
+                <div class="detail-info-card">
+                    <div class="challenge-badges" style="margin-bottom:12px;">
+                        <span class="badge badge-type">${typeLabel}</span>
+                        <span class="badge ${statusClass}">${challenge.status}</span>
+                    </div>
+                    <div class="detail-title">${escapeHtml(challenge.title)}</div>
+                    ${challenge.description ? `<div class="detail-description">${escapeHtml(challenge.description)}</div>` : ''}
+                    <div class="detail-meta">
+                        <div class="detail-meta-item">
+                            <i data-lucide="calendar" style="width:14px;height:14px;"></i>
+                            <strong>Start:</strong> ${formatDate(challenge.start_date)}
+                        </div>
+                        <div class="detail-meta-item">
+                            <i data-lucide="calendar-check" style="width:14px;height:14px;"></i>
+                            <strong>End:</strong> ${formatDate(challenge.end_date)}
+                        </div>
+                        ${targetInfo}
+                        <div class="detail-meta-item">
+                            <i data-lucide="users" style="width:14px;height:14px;"></i>
+                            <strong>Participants:</strong> ${participants.length}
+                        </div>
+                    </div>
+                    ${actionButtons ? `<div class="detail-actions">${actionButtons}</div>` : ''}
+                </div>
+
+                ${leaderboardHtml}
+            `;
+
+            lucide.createIcons();
+        }
+
+        function getProgressHeaders(type) {
+            switch (type) {
+                case 'gym_checkin':
+                    return '<th>Days Checked In</th>';
+                case 'weight_loss':
+                    return '<th>Start Weight</th><th>Current Weight</th><th>Total Lost</th>';
+                case 'water_intake':
+                    return '<th>Avg Daily Oz</th>';
+                case 'steps':
+                    return '<th>Avg Daily Steps</th>';
+                case 'consistency':
+                    return '<th>Current Streak</th><th>Total Days</th>';
+                default:
+                    return '<th>Progress</th>';
+            }
+        }
+
+        function getProgressColumns(type, participant) {
+            const p = participant.progress || participant;
+            switch (type) {
+                case 'gym_checkin':
+                    return `<td>${p.days_checked_in || p.checkins || 0}</td>`;
+                case 'weight_loss':
+                    return `<td>${p.starting_weight || p.start_weight || '-'}</td><td>${p.current_weight || '-'}</td><td>${p.total_lost || p.weight_lost || '-'}</td>`;
+                case 'water_intake':
+                    return `<td>${p.avg_daily_oz || p.avg_intake || '-'}</td>`;
+                case 'steps': {
+                    const val = p.avg_daily_steps || p.avg_steps;
+                    return `<td>${val ? Math.round(val).toLocaleString() : '-'}</td>`;
+                }
+                case 'consistency':
+                    return `<td>${p.current_streak || 0}</td><td>${p.total_days || 0}</td>`;
+                default:
+                    return `<td>${p.value || p.progress_value || '-'}</td>`;
+            }
+        }
+
+        // ===== View Navigation =====
+        function viewChallenge(id) {
+            loadChallengeDetail(id);
+        }
+
+        function backToList() {
+            currentDetailId = null;
+            document.getElementById('detailView').classList.remove('active');
+            document.getElementById('listView').classList.remove('hidden');
+        }
+
+        // ===== Modal: Create Challenge =====
+        function openCreateModal() {
+            document.getElementById('modalTitle').textContent = 'Create Challenge';
+            document.getElementById('challengeForm').reset();
+            document.getElementById('targetRow').style.display = 'none';
+            document.getElementById('clientSelectGroup').style.display = 'none';
+            document.getElementById('modalSubmit').textContent = 'Create Challenge';
+
+            // Set default dates
+            const today = new Date();
+            document.getElementById('startDate').value = today.toISOString().split('T')[0];
+            const endDefault = new Date(today);
+            endDefault.setDate(endDefault.getDate() + 30);
+            document.getElementById('endDate').value = endDefault.toISOString().split('T')[0];
+
+            populateClientSelect('clientSelectList');
+            document.getElementById('createModal').classList.add('active');
+        }
+
+        function closeCreateModal() {
+            document.getElementById('createModal').classList.remove('active');
+        }
+
+        async function submitChallenge() {
+            const title = document.getElementById('challengeTitle').value.trim();
+            const description = document.getElementById('challengeDescription').value.trim();
+            const challengeType = document.getElementById('challengeType').value;
+            const targetValue = document.getElementById('targetValue').value;
+            const targetUnit = document.getElementById('targetUnit').value.trim();
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            const assignTo = document.getElementById('assignTo').value;
+
+            if (!title || !challengeType || !startDate || !endDate) {
+                showToast('Please fill in all required fields', 'error');
+                return;
+            }
+
+            if (new Date(endDate) <= new Date(startDate)) {
+                showToast('End date must be after start date', 'error');
+                return;
+            }
+
+            let clientIds = [];
+            if (assignTo === 'select') {
+                clientIds = getSelectedClients('clientSelectList');
+                if (clientIds.length === 0) {
+                    showToast('Please select at least one client', 'error');
+                    return;
+                }
+            }
+
+            const body = {
+                coachId: currentUser.id,
+                title,
+                description,
+                challengeType,
+                targetValue: targetValue ? Number(targetValue) : null,
+                targetUnit: targetUnit || null,
+                frequency: 'daily',
+                startDate,
+                endDate,
+                assignTo,
+                clientIds: assignTo === 'select' ? clientIds : undefined
+            };
+
+            try {
+                document.getElementById('modalSubmit').disabled = true;
+                document.getElementById('modalSubmit').textContent = 'Creating...';
+                await apiPost(API_BASE, body);
+                showToast('Challenge created successfully!');
+                closeCreateModal();
+                await loadChallenges();
+            } catch (err) {
+                showToast(err.message || 'Failed to create challenge', 'error');
+            } finally {
+                document.getElementById('modalSubmit').disabled = false;
+                document.getElementById('modalSubmit').textContent = 'Create Challenge';
+            }
+        }
+
+        // ===== Modal: Edit Challenge =====
+        function openEditModal(id) {
+            const challenge = allChallenges.find(c => c.id === id);
+            if (!challenge) return;
+
+            document.getElementById('editChallengeId').value = id;
+            document.getElementById('editTitle').value = challenge.title || '';
+            document.getElementById('editDescription').value = challenge.description || '';
+            document.getElementById('editEndDate').value = challenge.end_date || '';
+
+            document.getElementById('editModal').classList.add('active');
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').classList.remove('active');
+        }
+
+        async function submitEdit() {
+            const challengeId = document.getElementById('editChallengeId').value;
+            const title = document.getElementById('editTitle').value.trim();
+            const description = document.getElementById('editDescription').value.trim();
+            const endDate = document.getElementById('editEndDate').value;
+
+            if (!title) {
+                showToast('Title is required', 'error');
+                return;
+            }
+
+            try {
+                document.getElementById('editModalSubmit').disabled = true;
+                document.getElementById('editModalSubmit').textContent = 'Saving...';
+                await apiPut(API_BASE, {
+                    challengeId,
+                    coachId: currentUser.id,
+                    title,
+                    description,
+                    endDate: endDate || undefined
+                });
+                showToast('Challenge updated!');
+                closeEditModal();
+                await loadChallenges();
+                if (currentDetailId === challengeId) {
+                    loadChallengeDetail(challengeId);
+                }
+            } catch (err) {
+                showToast(err.message || 'Failed to update challenge', 'error');
+            } finally {
+                document.getElementById('editModalSubmit').disabled = false;
+                document.getElementById('editModalSubmit').textContent = 'Save Changes';
+            }
+        }
+
+        // ===== Delete Challenge =====
+        async function deleteChallenge(id, title) {
+            if (!confirm(`Are you sure you want to delete "${title}"? This cannot be undone.`)) return;
+
+            try {
+                await apiDelete(API_BASE, { challengeId: id, coachId: currentUser.id });
+                showToast('Challenge deleted');
+                await loadChallenges();
+            } catch (err) {
+                showToast(err.message || 'Failed to delete challenge', 'error');
+            }
+        }
+
+        // ===== Update Challenge Status =====
+        async function updateChallengeStatus(id, status) {
+            const action = status === 'completed' ? 'end' : 'cancel';
+            if (!confirm(`Are you sure you want to ${action} this challenge?`)) return;
+
+            try {
+                await apiPut(API_BASE, {
+                    challengeId: id,
+                    coachId: currentUser.id,
+                    status
+                });
+                showToast(`Challenge ${status}!`);
+                await loadChallenges();
+                loadChallengeDetail(id);
+            } catch (err) {
+                showToast(err.message || `Failed to ${action} challenge`, 'error');
+            }
+        }
+
+        // ===== Add Participants =====
+        function openAddParticipants(challengeId) {
+            currentDetailId = challengeId;
+            populateClientSelect('addParticipantsList');
+            document.getElementById('addParticipantsModal').classList.add('active');
+        }
+
+        function closeAddParticipants() {
+            document.getElementById('addParticipantsModal').classList.remove('active');
+        }
+
+        async function submitAddParticipants() {
+            const clientIds = getSelectedClients('addParticipantsList');
+            if (clientIds.length === 0) {
+                showToast('Please select at least one client', 'error');
+                return;
+            }
+
+            try {
+                document.getElementById('addParticipantsSubmit').disabled = true;
+                document.getElementById('addParticipantsSubmit').textContent = 'Adding...';
+                await apiPost(API_BASE, {
+                    action: 'add_participants',
+                    challengeId: currentDetailId,
+                    clientIds
+                });
+                showToast('Participants added!');
+                closeAddParticipants();
+                loadChallengeDetail(currentDetailId);
+                loadChallenges();
+            } catch (err) {
+                showToast(err.message || 'Failed to add participants', 'error');
+            } finally {
+                document.getElementById('addParticipantsSubmit').disabled = false;
+                document.getElementById('addParticipantsSubmit').textContent = 'Add Selected';
+            }
+        }
+
+        // ===== Client Select Helpers =====
+        function populateClientSelect(containerId) {
+            const container = document.getElementById(containerId);
+            if (allClients.length === 0) {
+                container.innerHTML = '<p style="padding:12px;color:var(--gray-500);font-size:0.85rem;">No clients found.</p>';
+                return;
+            }
+
+            container.innerHTML = allClients.map(client => `
+                <div class="client-select-item">
+                    <input type="checkbox" id="${containerId}_${client.id}" value="${client.id}">
+                    <label for="${containerId}_${client.id}">${escapeHtml(client.client_name || client.name || client.email)}</label>
+                </div>
+            `).join('');
+        }
+
+        function getSelectedClients(containerId) {
+            const checkboxes = document.querySelectorAll(`#${containerId} input[type="checkbox"]:checked`);
+            return Array.from(checkboxes).map(cb => cb.value);
+        }
+
+        // ===== Challenge Type Change Handler =====
+        function handleTypeChange() {
+            const type = document.getElementById('challengeType').value;
+            const targetRow = document.getElementById('targetRow');
+
+            if (type && type !== '') {
+                targetRow.style.display = 'grid';
+                const defaults = TYPE_DEFAULTS[type] || { value: '', unit: '' };
+                document.getElementById('targetValue').value = defaults.value;
+                document.getElementById('targetUnit').value = defaults.unit;
+            } else {
+                targetRow.style.display = 'none';
+            }
+        }
+
+        // ===== Logout =====
+        async function logout() {
+            await supabase.auth.signOut();
+            window.location.href = 'index.html';
+        }
+
+        // ===== Initialize =====
+        document.addEventListener('DOMContentLoaded', async () => {
+            lucide.createIcons();
+
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                if (!session) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                currentUser = session.user;
+                document.getElementById('userEmail').textContent = currentUser.email;
+                document.getElementById('userAvatar').textContent = currentUser.email.charAt(0).toUpperCase();
+
+                // Load data in parallel
+                await Promise.all([loadClients(), loadChallenges()]);
+
+            } catch (err) {
+                console.error('Initialization error:', err);
+                document.getElementById('challengesContainer').innerHTML = `
+                    <div class="empty-state">
+                        <h3>Error</h3>
+                        <p>${err.message || 'Failed to initialize. Please try again.'}</p>
+                        <button class="btn btn-primary btn-sm" onclick="window.location.reload()">Retry</button>
+                    </div>
+                `;
+            }
+
+            // Event Listeners
+            document.getElementById('createChallengeBtn').addEventListener('click', openCreateModal);
+            document.getElementById('modalClose').addEventListener('click', closeCreateModal);
+            document.getElementById('modalCancel').addEventListener('click', closeCreateModal);
+            document.getElementById('modalSubmit').addEventListener('click', submitChallenge);
+            document.getElementById('editModalClose').addEventListener('click', closeEditModal);
+            document.getElementById('editModalCancel').addEventListener('click', closeEditModal);
+            document.getElementById('editModalSubmit').addEventListener('click', submitEdit);
+            document.getElementById('addParticipantsClose').addEventListener('click', closeAddParticipants);
+            document.getElementById('addParticipantsCancel').addEventListener('click', closeAddParticipants);
+            document.getElementById('addParticipantsSubmit').addEventListener('click', submitAddParticipants);
+            document.getElementById('challengeType').addEventListener('change', handleTypeChange);
+            document.getElementById('logoutBtn').addEventListener('click', logout);
+            document.getElementById('logoutLink').addEventListener('click', (e) => { e.preventDefault(); logout(); });
+
+            // Assign To toggle
+            document.getElementById('assignTo').addEventListener('change', function() {
+                document.getElementById('clientSelectGroup').style.display = this.value === 'select' ? 'block' : 'none';
+            });
+
+            // Filter tabs
+            document.querySelectorAll('.filter-tab').forEach(tab => {
+                tab.addEventListener('click', function() {
+                    document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                    currentFilter = this.dataset.filter;
+                    renderChallengeList();
+                });
+            });
+
+            // Mobile menu
+            document.getElementById('mobileMenuBtn')?.addEventListener('click', () => {
+                document.getElementById('sidebar').classList.toggle('open');
+                document.getElementById('sidebarOverlay').classList.toggle('active');
+            });
+            document.getElementById('sidebarOverlay')?.addEventListener('click', () => {
+                document.getElementById('sidebar').classList.remove('open');
+                document.getElementById('sidebarOverlay').classList.remove('active');
+            });
+
+            // Close modals on overlay click
+            ['createModal', 'editModal', 'addParticipantsModal'].forEach(id => {
+                document.getElementById(id).addEventListener('click', function(e) {
+                    if (e.target === this) {
+                        this.classList.remove('active');
+                    }
+                });
+            });
+        });
+    </script>
 </body>
 </html>
