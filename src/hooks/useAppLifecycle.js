@@ -229,7 +229,6 @@ export function useAppLifecycle() {
 
     // ── ONLINE/OFFLINE: Detect network reconnection ──
     const handleOnline = () => {
-      console.log('[AppLifecycle] Network reconnected');
       if (document.visibilityState === 'visible') {
         const sinceLastResume = Date.now() - lastSuccessfulResume;
         if (sinceLastResume > 5000) {
@@ -239,7 +238,6 @@ export function useAppLifecycle() {
     };
 
     const handleOffline = () => {
-      console.log('[AppLifecycle] Network lost');
       window.dispatchEvent(new CustomEvent('app-resume-sync', { detail: { phase: 'offline' } }));
     };
 
@@ -256,7 +254,6 @@ export function useAppLifecycle() {
       lastHeartbeat = now;
 
       if (gap > 5000) {
-        console.log('[AppLifecycle] Heartbeat detected resume after', gap, 'ms');
         handleResume(gap);
       }
     }, 2000);

@@ -31,8 +31,6 @@ exports.handler = async (event, context) => {
       };
     }
 
-    console.log(`📤 Searching Edamam for: ${foodName}`);
-
     // Search for the food using Edamam
     const searchUrl = `${EDAMAM_API_URL}?app_id=${EDAMAM_APP_ID}&app_key=${EDAMAM_API_KEY}&ingr=${encodeURIComponent(foodName)}&nutrition-type=logging`;
 
@@ -69,8 +67,6 @@ exports.handler = async (event, context) => {
         if (hint.food) allFoods.push(hint.food);
       });
     }
-
-    console.log(`✅ Edamam returned ${allFoods.length} results`);
 
     if (allFoods.length === 0) {
       return {

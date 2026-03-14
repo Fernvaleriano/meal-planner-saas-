@@ -77,9 +77,6 @@ exports.handler = async (event, context) => {
       };
     }
 
-    console.log('📤 Calling Claude API...');
-    console.log('Targets:', targets);
-
     // Initialize Anthropic client
     const anthropic = new Anthropic({
       apiKey: ANTHROPIC_API_KEY,
@@ -101,11 +98,8 @@ exports.handler = async (event, context) => {
       ]
     });
 
-    console.log('✅ Claude API Response received');
-
     // Extract text from Claude's response
     const responseText = message.content[0].text;
-    console.log('🤖 Claude Response preview:', responseText.substring(0, 500));
 
     // Parse JSON (handle markdown-wrapped responses)
     const jsonData = extractJSON(responseText);

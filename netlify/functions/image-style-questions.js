@@ -146,8 +146,6 @@ exports.handler = async (event, context) => {
             };
         }
 
-        console.log(`🎨 Generating image styling questions for: ${mealName}`);
-
         let result;
 
         // Try Gemini first, fall back to Claude
@@ -170,8 +168,6 @@ exports.handler = async (event, context) => {
         if (!result || !result.questions || !Array.isArray(result.questions)) {
             throw new Error('Invalid response structure');
         }
-
-        console.log(`✅ Generated ${result.questions.length} styling questions`);
 
         return {
             statusCode: 200,

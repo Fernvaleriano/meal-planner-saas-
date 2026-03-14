@@ -17,7 +17,6 @@ const trackClientActivity = async (userId) => {
     });
 
     if (response.ok) {
-      console.log('SPA: Client activity tracked');
     }
   } catch (err) {
     // Silent fail - don't disrupt user experience for tracking
@@ -38,7 +37,6 @@ export function AuthProvider({ children }) {
         const parsed = JSON.parse(cached);
         // Only use cache if it's valid (has id and no error)
         if (parsed && parsed.id && !parsed.error) {
-          console.log('SPA: Using cached client data:', parsed.client_name);
           return parsed;
         }
       }
@@ -93,7 +91,6 @@ export function AuthProvider({ children }) {
   // Fetch client data from database with retry logic
   const fetchClientData = useCallback(async (userId, retryCount = 0) => {
     const maxRetries = 2;
-    console.log('SPA: Fetching client data for user:', userId, retryCount > 0 ? `(retry ${retryCount})` : '');
 
     try {
       // Add timeout to prevent hanging - 10 seconds
@@ -130,12 +127,10 @@ export function AuthProvider({ children }) {
 
       // Add isCoach flag to the client data
       const enrichedData = { ...data, is_coach: isCoach };
-      console.log('SPA: Got client data successfully:', { id: enrichedData?.id, name: enrichedData?.client_name, isCoach });
 
       // Cache successful result to localStorage
       try {
         localStorage.setItem('cachedClientData', JSON.stringify(enrichedData));
-        console.log('SPA: Cached client data to localStorage');
       } catch (e) {
         console.error('SPA: Failed to cache client data:', e);
       }
@@ -147,7 +142,6 @@ export function AuthProvider({ children }) {
       // Retry with exponential backoff
       if (retryCount < maxRetries) {
         const delay = Math.pow(2, retryCount) * 1000; // 1s, 2s
-        console.log(`SPA: Retrying client data fetch in ${delay}ms...`);
         await new Promise(resolve => setTimeout(resolve, delay));
         return fetchClientData(userId, retryCount + 1);
       }
@@ -158,7 +152,6 @@ export function AuthProvider({ children }) {
         if (cached) {
           const parsed = JSON.parse(cached);
           if (parsed && parsed.id && !parsed.error) {
-            console.log('SPA: Using cached client data after fetch failure:', parsed.client_name);
             return parsed;
           }
         }
@@ -176,7 +169,6 @@ export function AuthProvider({ children }) {
     let mounted = true;
 
     const initAuth = async () => {
-      console.log('SPA: Starting auth initialization...');
 
       // Check if we already have cached client data in localStorage
       let hasCachedData = false;
@@ -197,7 +189,6 @@ export function AuthProvider({ children }) {
       // CRITICAL: If we have valid cached data, show the app immediately!
       // Don't wait for getSession() - it can be slow on poor networks
       if (hasCachedData && cachedData) {
-        console.log('SPA: Have cached data, showing app immediately');
         setClientData(cachedData);
         setLoading(false);
 
@@ -228,7 +219,6 @@ export function AuthProvider({ children }) {
               });
             } else if (!session && mounted) {
               // Session expired, clear cached data and redirect to login
-              console.log('SPA: Session expired, clearing cache');
               localStorage.removeItem('cachedClientData');
               setClientData(null);
               setUser(null);
@@ -249,8 +239,6 @@ export function AuthProvider({ children }) {
 
         const sessionPromise = supabase.auth.getSession();
         const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]);
-
-        console.log('SPA: Got session:', !!session);
 
         if (session?.user && mounted) {
           setUser(session.user);
@@ -286,7 +274,6 @@ export function AuthProvider({ children }) {
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('SPA: Auth state change:', event);
       if (event === 'SIGNED_IN' && session?.user) {
         setUser(session.user);
 
@@ -301,7 +288,6 @@ export function AuthProvider({ children }) {
         // immediately clear the API session cache so subsequent API calls
         // use the new token instead of the old cached one (which could be
         // stale for up to the 2-minute SESSION_CACHE_TTL).
-        console.log('SPA: Token refreshed, clearing session cache');
         clearSessionCache();
       } else if (event === 'SIGNED_OUT') {
         setUser(null);

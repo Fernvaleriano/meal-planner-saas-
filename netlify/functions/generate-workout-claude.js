@@ -190,7 +190,6 @@ function findBestExerciseMatch(aiName, aiMuscleGroup, exercises) {
   const normalizedAiName = aiName.toLowerCase().trim();
   const exactMatch = exercises.find(e => e.name.toLowerCase().trim() === normalizedAiName);
   if (exactMatch) {
-    console.log(`Exact match found: "${aiName}" -> "${exactMatch.name}"`);
     return exactMatch;
   }
 
@@ -236,7 +235,6 @@ function findBestExerciseMatch(aiName, aiMuscleGroup, exercises) {
   }
 
   if (bestMatch) {
-    console.log(`Matched "${aiName}" -> "${bestMatch.name}" (score: ${bestScore.toFixed(2)})`);
   }
 
   return bestMatch;
@@ -291,7 +289,6 @@ exports.handler = async (event) => {
     } = body;
 
     const isSingleWorkout = mode === 'single';
-    console.log('Generating workout:', { mode, clientName, goal, experience, daysPerWeek, split, trainingStyle, targetMuscle });
 
     const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
 
@@ -325,11 +322,8 @@ exports.handler = async (event) => {
         offset += pageSize;
       }
 
-      console.log(`Fetched ${allExercises.length} exercises for AI selection`);
-
       // Filter to only exercises with videos and group by muscle group
       exercisesWithVideos = allExercises.filter(e => e.video_url || e.animation_url);
-      console.log(`${exercisesWithVideos.length} exercises have videos`);
 
       // CRITICAL: If no exercises have videos, log a warning
       if (exercisesWithVideos.length === 0) {
@@ -362,7 +356,6 @@ exports.handler = async (event) => {
       };
 
       const equipmentFilteredExercises = exercisesWithVideos.filter(matchesSelectedEquipment);
-      console.log(`${equipmentFilteredExercises.length} of ${exercisesWithVideos.length} exercises match selected equipment: ${equipment.join(', ')}`);
 
       // Group FILTERED exercises by muscle group for the prompt (only equipment-matching exercises)
       for (const ex of equipmentFilteredExercises) {
@@ -375,7 +368,6 @@ exports.handler = async (event) => {
 
       // Log what muscle groups we have available
       const groupCounts = Object.entries(exercisesByMuscleGroup).map(([g, ex]) => `${g}:${ex.length}`).join(', ');
-      console.log(`Exercise groups with videos: ${groupCounts || 'NONE'}`);
     }
 
     // If we have no exercises with videos, return an error with instructions
@@ -478,8 +470,6 @@ exports.handler = async (event) => {
       );
 
       // Log EXACTLY what we found
-      console.log(`Warmup exercises found: ${uniqueWarmups.length > 0 ? JSON.stringify(uniqueWarmups) : 'NONE'}`);
-      console.log(`Stretch exercises found: ${stretchExercises.length > 0 ? JSON.stringify(stretchExercises) : 'NONE'}`);
 
       // Build warmup/stretch instructions - always include structure
       if (uniqueWarmups.length > 0 || stretchExercises.length > 0) {
@@ -751,7 +741,6 @@ ${trainingStyle === 'supersets' || trainingStyle === 'mixed' ?
     });
 
     const responseText = message.content[0]?.text || '';
-    console.log('Claude response length:', responseText.length);
 
     // Extract JSON from response
     let programData;
@@ -786,10 +775,8 @@ ${trainingStyle === 'supersets' || trainingStyle === 'mixed' ?
     if (exercisesWithVideos.length === 0) {
       exercisesWithVideos = allExercises.filter(e => e.video_url || e.animation_url);
     }
-    console.log(`Exercises with videos for warmup/stretch matching: ${exercisesWithVideos.length}`);
 
     if (allExercises.length > 0) {
-      console.log(`Matching exercises against ${allExercises.length} database exercises`);
 
       // Match exercises in each workout
       for (const week of programData.weeks) {
@@ -805,7 +792,6 @@ ${trainingStyle === 'supersets' || trainingStyle === 'mixed' ?
               const isWarmupOrStretch = aiExercise.isWarmup || aiExercise.isStretch || detectedWarmup || detectedStretch;
 
               if (detectedWarmup || detectedStretch) {
-                console.log(`Detected ${detectedWarmup ? 'warmup' : 'stretch'} by name: "${aiExercise.name}"`);
               }
 
               // For warmups/stretches, ONLY match against exercises with videos
@@ -839,14 +825,12 @@ ${trainingStyle === 'supersets' || trainingStyle === 'mixed' ?
                 // No match found
                 if (isWarmupOrStretch) {
                   // For warmup/stretch without video match, skip (no video to show)
-                  console.log(`Skipping warmup/stretch without video match: ${aiExercise.name}`);
                   return null;
                 }
 
                 // For main exercises, keep them even without match
                 matchStats.unmatched++;
                 matchStats.unmatchedNames.push(aiExercise.name);
-                console.log(`No match found for: ${aiExercise.name}`);
                 return {
                   name: aiExercise.name,
                   muscle_group: aiExercise.muscleGroup,
@@ -870,9 +854,7 @@ ${trainingStyle === 'supersets' || trainingStyle === 'mixed' ?
     }
 
     // Log match statistics
-    console.log(`Match stats: ${matchStats.matched}/${matchStats.total} exercises matched (${matchStats.unmatched} unmatched)`);
     if (matchStats.unmatchedNames.length > 0) {
-      console.log(`Unmatched exercises: ${matchStats.unmatchedNames.join(', ')}`);
     }
 
     // Warmups and stretches are now kept in the output (proper workout structure)

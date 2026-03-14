@@ -337,7 +337,6 @@
         deferredPrompt.prompt();
         deferredPrompt.userChoice.then((choiceResult) => {
             if (choiceResult.outcome === 'accepted') {
-                console.log('PWA installed');
             }
             deferredPrompt = null;
             hideBanner();
@@ -392,7 +391,6 @@
 
         // Hide banner if app gets installed
         window.addEventListener('appinstalled', () => {
-            console.log('PWA was installed');
             hideBanner();
         });
     }

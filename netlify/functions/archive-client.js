@@ -37,8 +37,6 @@ exports.handler = async (event, context) => {
     const { user, error: authError } = await authenticateCoach(event, coachId);
     if (authError) return authError;
 
-    console.log(`🔐 Authenticated coach ${user.id} archiving client ${clientId}`);
-
     // Initialize Supabase client with service key
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
@@ -65,16 +63,12 @@ exports.handler = async (event, context) => {
       };
     }
 
-    console.log(`📦 Starting archive process for client: ${client.client_name} (ID: ${clientId})`);
-
     // Delete auth user if client has a user_id (revoke portal access)
     if (client.user_id) {
-      console.log(`🔑 Deleting auth user: ${client.user_id}`);
       const { error: authDeleteError } = await supabase.auth.admin.deleteUser(client.user_id);
       if (authDeleteError) {
         console.warn('⚠️ Warning: Could not delete auth user:', authDeleteError.message);
       } else {
-        console.log(`✅ Auth user deleted: ${client.user_id}`);
       }
     }
 
@@ -159,7 +153,6 @@ exports.handler = async (event, context) => {
     deletionResults.push({ table: 'notifications', count: notificationsCount, error: notificationsError?.message });
 
     // Log deletion results
-    console.log('📊 Deletion results:', deletionResults);
 
     // Update client record to mark as archived
     const { data: updatedClient, error: updateError } = await supabase
@@ -186,8 +179,6 @@ exports.handler = async (event, context) => {
         })
       };
     }
-
-    console.log(`✅ Client archived: ${client.client_name} (ID: ${clientId})`);
 
     return {
       statusCode: 200,

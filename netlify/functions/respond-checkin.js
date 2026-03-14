@@ -54,11 +54,6 @@ exports.handler = async (event) => {
 
     // Create notification for client
     if (checkin?.client_id) {
-      console.log('Creating notification for client:', {
-        clientId: checkin.client_id,
-        checkinId: checkinId,
-        coachId: coachId
-      });
 
       const { data: notificationData, error: notificationError } = await supabase
         .from('notifications')
@@ -86,7 +81,6 @@ exports.handler = async (event) => {
           console.error('Notifications table does not exist. Please run the notifications migration in Supabase.');
         }
       } else {
-        console.log('Notification created successfully for client:', checkin.client_id, 'notificationId:', notificationData?.id);
       }
     } else {
       console.error('No client_id found on checkin record, cannot create notification');

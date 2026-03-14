@@ -62,7 +62,6 @@ exports.handler = async (event) => {
         console.error('[get-signed-video-url] list error:', listError.message);
       } else {
         fileExists = files?.some(f => f.name === fileName) || false;
-        console.log(`[get-signed-video-url] File "${fileName}" in "${folder}": ${fileExists ? 'EXISTS' : 'NOT FOUND'}. Files in folder:`, files?.map(f => f.name));
       }
     } catch (listErr) {
       console.error('[get-signed-video-url] list exception:', listErr.message);

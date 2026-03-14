@@ -6,6 +6,7 @@ import { apiGet, apiPost, apiPut, apiDelete, fetchWithTimeout } from '../utils/a
 import { FavoritesModal, SnapPhotoModal, ScanLabelModal, SearchFoodsModal } from '../components/FoodModals';
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
 import { onAppResume } from '../hooks/useAppLifecycle';
+import { useToast } from '../components/Toast';
 
 // localStorage cache helpers
 const getCache = (key) => {
@@ -50,6 +51,7 @@ const getGenderBasedDefaults = (gender) => {
 };
 
 function Diary() {
+  const { showError, showSuccess } = useToast();
   const { clientData, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -240,7 +242,6 @@ function Diary() {
     // Only set timer if there are messages
     if (aiMessages.length > 0) {
       inactivityTimerRef.current = setTimeout(() => {
-        console.log('Clearing conversation due to inactivity');
         setAiMessages([]);
         localStorage.removeItem('ai_chat_history');
         setPendingFoodLog(null);
@@ -400,13 +401,11 @@ function Diary() {
         try {
           rec.stop();
         } catch (e) {
-          console.log('Cleanup: Error calling stop:', e);
         }
 
         try {
           rec.abort();
         } catch (e) {
-          console.log('Cleanup: Error calling abort:', e);
         }
       }
       // Also cleanup MediaRecorder if active
@@ -415,7 +414,6 @@ function Diary() {
           mediaRecorderRef.current.stream.getTracks().forEach(t => t.stop());
           mediaRecorderRef.current.stop();
         } catch (e) {
-          console.log('Cleanup: MediaRecorder stop error:', e);
         }
         mediaRecorderRef.current = null;
       }
@@ -431,7 +429,6 @@ function Diary() {
           mediaRecorderRef.current.stream.getTracks().forEach(t => t.stop());
           mediaRecorderRef.current.stop();
         } catch (e) {
-          console.log('Modal close cleanup: MediaRecorder stop error:', e);
         }
         mediaRecorderRef.current = null;
         setIsRecording(false);
@@ -446,7 +443,6 @@ function Diary() {
       try {
         rec.stop();
       } catch (e) {
-        console.log('Modal close cleanup: Error stopping recognition:', e);
       }
 
       // Clear handlers and force abort after stop completes
@@ -506,7 +502,6 @@ function Diary() {
 
     // Delete all selected entries in parallel
     const entriesToDelete = Array.from(selectedEntries);
-    console.log('Deleting entries:', entriesToDelete);
 
     const deletePromises = entriesToDelete.map(entryId =>
       apiDelete(`/.netlify/functions/food-diary?entryId=${entryId}`)
@@ -518,7 +513,6 @@ function Diary() {
     );
 
     const results = await Promise.all(deletePromises);
-    console.log('Delete results:', results);
 
     // Separate successful and failed deletions
     const successfulIds = new Set(results.filter(r => r.success).map(r => r.entryId));
@@ -574,7 +568,7 @@ function Diary() {
 
     // Show error if some failed
     if (failedCount > 0) {
-      alert(`Failed to delete ${failedCount} item${failedCount > 1 ? 's' : ''}. ${successfulIds.size > 0 ? `${successfulIds.size} item${successfulIds.size > 1 ? 's were' : ' was'} deleted successfully.` : ''}`);
+      showError(`Failed to delete ${failedCount} item${failedCount > 1 ? 's' : ''}. ${successfulIds.size > 0 ? `${successfulIds.size} item${successfulIds.size > 1 ? 's were' : ' was'} deleted successfully.` : ''}`);
     }
   };
 
@@ -810,15 +804,14 @@ function Diary() {
 
     // Check if auth is still loading
     if (authLoading || !clientData) {
-      console.log('AI Log: Auth still loading...');
-      alert('Loading your profile... Please try again in a moment.');
+      showError('Loading your profile... Please try again in a moment.');
       return;
     }
 
     // Check if there was an error fetching client data
     if (!clientData.id) {
       console.error('AI Log: clientData.id is null (fetch may have failed)', { clientData });
-      alert('Your profile is still loading. Please wait a moment and try again.');
+      showError('Your profile is still loading. Please wait a moment and try again.');
       return;
     }
 
@@ -1027,7 +1020,7 @@ function Diary() {
       setEditingEntry(null);
     } catch (err) {
       console.error('Error updating entry:', err);
-      alert('Failed to update entry');
+      showError('Failed to update entry');
     }
   };
 
@@ -1040,7 +1033,7 @@ function Diary() {
       const data = await apiGet(`/.netlify/functions/food-diary?clientId=${clientData.id}&date=${fromDate}`);
 
       if (!data.entries || data.entries.length === 0) {
-        alert('No entries to copy from that date');
+        showError('No entries to copy from that date');
         return;
       }
 
@@ -1076,7 +1069,7 @@ function Diary() {
         } catch (e) { /* ignore individual failures */ }
       }
 
-      alert(`Copied ${copiedCount} entries!`);
+      showSuccess(`Copied ${copiedCount} entries!`);
 
       // Reload if we copied to current date
       if (toDate === formatDate(currentDate)) {
@@ -1085,7 +1078,7 @@ function Diary() {
       }
     } catch (err) {
       console.error('Error copying entries:', err);
-      alert('Failed to copy entries');
+      showError('Failed to copy entries');
     }
   };
 
@@ -1099,7 +1092,7 @@ function Diary() {
   // Execute copy from date picker
   const executeCopyDate = async () => {
     if (!copyDateInput) {
-      alert('Please select a date');
+      showError('Please select a date');
       return;
     }
     setShowCopyDayModal(false);
@@ -1312,11 +1305,11 @@ function Diary() {
             const baseText = preVoiceInputRef.current;
             setAiInput(baseText ? `${baseText} ${res.transcript}` : res.transcript);
           } else {
-            alert('No speech detected. Please try again and speak clearly.');
+            showError('No speech detected. Please try again and speak clearly.');
           }
         } catch (err) {
           console.error('Transcription failed:', err);
-          alert('Could not transcribe audio. Please check your internet connection and try again.');
+          showError('Could not transcribe audio. Please check your internet connection and try again.');
         } finally {
           setIsTranscribing(false);
         }
@@ -1328,9 +1321,9 @@ function Diary() {
     } catch (err) {
       console.error('MediaRecorder start failed:', err);
       if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-        alert('Microphone access denied. Please allow microphone access in your device settings.');
+        showError('Microphone access denied. Please allow microphone access in your device settings.');
       } else {
-        alert('Could not access microphone. Please check your permissions.');
+        showError('Could not access microphone. Please check your permissions.');
       }
       resetVoiceUI();
     }
@@ -1343,7 +1336,7 @@ function Diary() {
         startMediaRecorderFallback();
         return;
       }
-      alert('Voice input is not supported on this device.');
+      showError('Voice input is not supported on this device.');
       return;
     }
 
@@ -1354,7 +1347,6 @@ function Diary() {
       try {
         recognitionRef.current.abort();
       } catch (e) {
-        console.log('Previous recognition cleanup:', e);
       }
       recognitionRef.current = null;
     }
@@ -1369,9 +1361,9 @@ function Diary() {
       } catch (err) {
         console.error('iOS microphone warmup failed:', err);
         if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-          alert('Microphone access denied. Please allow microphone access in your iPhone Settings > Safari > Microphone.');
+          showError('Microphone access denied. Please allow microphone access in your iPhone Settings > Safari > Microphone.');
         } else {
-          alert('Could not access microphone. Please check your microphone permissions in Settings.');
+          showError('Could not access microphone. Please check your microphone permissions in Settings.');
         }
         return;
       }
@@ -1436,7 +1428,7 @@ function Diary() {
 
       if (event.error !== 'aborted') {
         const message = errorMessages[event.error] || `Voice input error: ${event.error}. Please try again.`;
-        alert(message);
+        showError(message);
       }
       resetVoiceUI();
     };
@@ -1450,7 +1442,7 @@ function Diary() {
       recognitionRef.current = recognition;
     } catch (err) {
       console.error('Failed to start speech recognition:', err);
-      alert('Could not start microphone. Please try again.');
+      showError('Could not start microphone. Please try again.');
       resetVoiceUI();
     }
   };
@@ -1464,7 +1456,6 @@ function Diary() {
       try {
         mediaRecorderRef.current.stop(); // triggers onstop which does transcription
       } catch (e) {
-        console.log('Error stopping MediaRecorder:', e);
       }
       mediaRecorderRef.current = null;
       return;
@@ -1479,7 +1470,6 @@ function Diary() {
       try {
         rec.stop();
       } catch (e) {
-        console.log('Error calling stop():', e);
       }
 
       // Clear handlers and force abort after allowing stop() to complete
@@ -1506,7 +1496,6 @@ function Diary() {
         mediaRecorderRef.current.stream.getTracks().forEach(t => t.stop());
         mediaRecorderRef.current.stop();
       } catch (e) {
-        console.log('ResetVoiceUI: MediaRecorder stop error:', e);
       }
       mediaRecorderRef.current = null;
     }
@@ -1520,7 +1509,6 @@ function Diary() {
       try {
         rec.stop();
       } catch (e) {
-        console.log('ResetVoiceUI: Error stopping recognition:', e);
       }
 
       // Clear handlers and force abort after stop completes
@@ -1544,8 +1532,7 @@ function Diary() {
 
     // Check if auth is still loading
     if (authLoading || !clientData) {
-      console.log('AI Chat: Auth still loading, please wait...');
-      alert('Loading your profile... Please try again in a moment.');
+      showError('Loading your profile... Please try again in a moment.');
       return;
     }
 
@@ -1554,7 +1541,7 @@ function Diary() {
       console.error('AI Chat: clientData.id is null (fetch may have failed)', { clientData });
       // Don't show error - just let it fail gracefully or retry
       // This can happen on slow connections
-      alert('Your profile is still loading. Please wait a moment and try again.');
+      showError('Your profile is still loading. Please wait a moment and try again.');
       return;
     }
 
@@ -1809,7 +1796,7 @@ function Diary() {
 
     const mealEntries = groupedEntries[saveMealType];
     if (!mealEntries || mealEntries.length === 0) {
-      alert('No foods in this meal to save');
+      showError('No foods in this meal to save');
       return;
     }
 
@@ -1836,11 +1823,11 @@ function Diary() {
       });
       // Clear the favorites cache so the list shows the new favorite
       sessionStorage.removeItem(`favorites_${clientData.id}`);
-      alert('Meal saved to favorites!');
+      showSuccess('Meal saved to favorites!');
       setShowSaveMealModal(false);
     } catch (err) {
       console.error('Error saving meal:', err);
-      alert('Failed to save meal');
+      showError('Failed to save meal');
     }
   };
 
@@ -1958,7 +1945,7 @@ function Diary() {
       setShowEditGoalsModal(false);
     } catch (err) {
       console.error('Error saving goals:', err);
-      alert(err.message || 'Failed to save goals. Please try again.');
+      showError(err.message || 'Failed to save goals. Please try again.');
     } finally {
       setSavingGoals(false);
     }
@@ -2368,7 +2355,7 @@ function Diary() {
 
     const openSaveMeal = () => {
       if (entries.length === 0) {
-        alert('Add some foods first to save as a meal');
+        showError('Add some foods first to save as a meal');
         return;
       }
       setSaveMealType(mealType);
@@ -3794,7 +3781,7 @@ function Diary() {
                     });
 
                     if (!aiData?.foods || aiData.foods.length === 0) {
-                      alert('Could not recognize any foods. Please try again with more details.');
+                      showError('Could not recognize any foods. Please try again with more details.');
                       return;
                     }
 
@@ -3831,10 +3818,10 @@ function Diary() {
                     // Re-fetch diary data so entries appear and server-side totals (including micronutrients) are correct
                     refreshDiaryData();
 
-                    alert(`Added ${aiData.foods.length} food(s) to ${selectedMealType}!`);
+                    showSuccess(`Added ${aiData.foods.length} food(s) to ${selectedMealType}!`);
                   } catch (err) {
                     console.error('Error logging food:', err);
-                    alert('Failed to log food. Please try again.');
+                    showError('Failed to log food. Please try again.');
                   } finally {
                     setAiLogging(false);
                   }

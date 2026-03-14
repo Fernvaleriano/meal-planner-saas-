@@ -309,9 +309,6 @@ exports.handler = async (event) => {
   const showAll = params.showAll === 'true'; // Show all potential matches for debugging
 
   try {
-    console.log('Starting smart video linking...');
-    console.log(`Mode: ${dryRun ? 'DRY RUN (no updates)' : 'LIVE (will update DB)'}`);
-    console.log(`Minimum score: ${minScore}`);
 
     // Get all exercises
     const { data: allExercises, error: exError } = await supabase
@@ -325,8 +322,6 @@ exports.handler = async (event) => {
         body: JSON.stringify({ error: 'Failed to fetch exercises: ' + exError.message })
       };
     }
-
-    console.log(`Found ${allExercises?.length || 0} exercises in database`);
 
     // Create lookup structures
     const exerciseMap = new Map();
@@ -371,7 +366,6 @@ exports.handler = async (event) => {
     }
 
     await listFilesRecursive();
-    console.log(`Found ${allFiles.length} video files in storage`);
 
     if (allFiles.length === 0) {
       return {
@@ -514,7 +508,6 @@ exports.handler = async (event) => {
     // Apply updates if not dry run
     let updateErrors = 0;
     if (!dryRun && updates.length > 0) {
-      console.log(`Applying ${updates.length} updates...`);
       for (const update of updates) {
         const { error } = await supabase
           .from('exercises')

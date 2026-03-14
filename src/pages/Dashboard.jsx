@@ -7,6 +7,7 @@ import { apiGet, apiPost, apiDelete } from '../utils/api';
 import { SnapPhotoModal, SearchFoodsModal, FavoritesModal, ScanLabelModal } from '../components/FoodModals';
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
 import { onAppResume } from '../hooks/useAppLifecycle';
+import { useToast } from '../components/Toast';
 
 // localStorage cache helpers
 const getCache = (key) => {
@@ -34,6 +35,7 @@ const getTodayKey = () => {
 
 function Dashboard() {
   const { clientData } = useAuth();
+  const { showError, showSuccess } = useToast();
   const today = getTodayKey();
 
   // Load all cached data for instant display
@@ -217,13 +219,11 @@ function Dashboard() {
         try {
           rec.stop();
         } catch (e) {
-          console.log('Cleanup: Error calling stop:', e);
         }
 
         try {
           rec.abort();
         } catch (e) {
-          console.log('Cleanup: Error calling abort:', e);
         }
       }
       // Also cleanup MediaRecorder if active
@@ -232,7 +232,6 @@ function Dashboard() {
           mediaRecorderRef.current.stream.getTracks().forEach(t => t.stop());
           mediaRecorderRef.current.stop();
         } catch (e) {
-          console.log('Cleanup: MediaRecorder stop error:', e);
         }
         mediaRecorderRef.current = null;
       }
@@ -390,7 +389,7 @@ function Dashboard() {
       });
 
       if (!aiData?.foods || aiData.foods.length === 0) {
-        alert('Could not recognize the food. Please try describing it differently.');
+        showError('Could not recognize the food. Please try describing it differently.');
         return;
       }
 
@@ -401,15 +400,15 @@ function Dashboard() {
     } catch (err) {
       console.error('Error analyzing food:', err);
       if (err.isTimeout) {
-        alert('Food analysis timed out. Please check your connection and try again.');
+        showError('Food analysis timed out. Please check your connection and try again.');
       } else if (err.isAuthError) {
-        alert('Session expired. Please refresh the page and try again.');
+        showError('Session expired. Please refresh the page and try again.');
       } else if (err.status === 429) {
-        alert('Too many requests. Please wait a moment and try again.');
+        showError('Too many requests. Please wait a moment and try again.');
       } else if (err.status === 503 || (err.message && err.message.includes('busy'))) {
-        alert('AI service is temporarily busy. Please try again in a moment.');
+        showError('AI service is temporarily busy. Please try again in a moment.');
       } else {
-        alert(`Error analyzing food: ${err.message || 'Unknown error'}`);
+        showError(`Error analyzing food: ${err.message || 'Unknown error'}`);
       }
     } finally {
       setIsLogging(false);
@@ -421,7 +420,7 @@ function Dashboard() {
     if (!parsedFoods || parsedFoods.length === 0) return;
 
     if (!clientData?.id) {
-      alert('Please wait for your profile to load, then try again.');
+      showError('Please wait for your profile to load, then try again.');
       return;
     }
 
@@ -484,7 +483,7 @@ function Dashboard() {
       logSuccessTimerRef.current = setTimeout(() => setLogSuccess(false), 3000);
     } catch (err) {
       console.error('Error logging food:', err);
-      alert('Error logging food. Please try again.');
+      showError('Error logging food. Please try again.');
     } finally {
       setIsLogging(false);
     }
@@ -560,11 +559,11 @@ function Dashboard() {
             const baseText = preVoiceInputRef.current;
             setFoodInput(baseText ? `${baseText} ${res.transcript}` : res.transcript);
           } else {
-            alert('No speech detected. Please try again and speak clearly.');
+            showError('No speech detected. Please try again and speak clearly.');
           }
         } catch (err) {
           console.error('Transcription failed:', err);
-          alert('Could not transcribe audio. Please check your internet connection and try again.');
+          showError('Could not transcribe audio. Please check your internet connection and try again.');
         } finally {
           setIsTranscribing(false);
         }
@@ -576,9 +575,9 @@ function Dashboard() {
     } catch (err) {
       console.error('MediaRecorder start failed:', err);
       if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-        alert('Microphone access denied. Please allow microphone access in your device settings.');
+        showError('Microphone access denied. Please allow microphone access in your device settings.');
       } else {
-        alert('Could not access microphone. Please check your permissions.');
+        showError('Could not access microphone. Please check your permissions.');
       }
       resetVoiceUI();
     }
@@ -591,7 +590,7 @@ function Dashboard() {
         startMediaRecorderFallback();
         return;
       }
-      alert('Voice input is not supported on this device.');
+      showError('Voice input is not supported on this device.');
       return;
     }
 
@@ -602,7 +601,6 @@ function Dashboard() {
       try {
         recognitionRef.current.abort();
       } catch (e) {
-        console.log('Previous recognition cleanup:', e);
       }
       recognitionRef.current = null;
     }
@@ -617,9 +615,9 @@ function Dashboard() {
       } catch (err) {
         console.error('iOS microphone warmup failed:', err);
         if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-          alert('Microphone access denied. Please allow microphone access in your iPhone Settings > Safari > Microphone.');
+          showError('Microphone access denied. Please allow microphone access in your iPhone Settings > Safari > Microphone.');
         } else {
-          alert('Could not access microphone. Please check your microphone permissions in Settings.');
+          showError('Could not access microphone. Please check your microphone permissions in Settings.');
         }
         return;
       }
@@ -685,7 +683,7 @@ function Dashboard() {
 
       if (event.error !== 'aborted') {
         const message = errorMessages[event.error] || `Voice input error: ${event.error}. Please try again.`;
-        alert(message);
+        showError(message);
       }
       resetVoiceUI();
     };
@@ -699,7 +697,7 @@ function Dashboard() {
       recognitionRef.current = recognition;
     } catch (err) {
       console.error('Failed to start speech recognition:', err);
-      alert('Could not start microphone. Please try again.');
+      showError('Could not start microphone. Please try again.');
       resetVoiceUI();
     }
   };
@@ -713,7 +711,6 @@ function Dashboard() {
       try {
         mediaRecorderRef.current.stop(); // triggers onstop which does transcription
       } catch (e) {
-        console.log('Error stopping MediaRecorder:', e);
       }
       mediaRecorderRef.current = null;
       return;
@@ -728,7 +725,6 @@ function Dashboard() {
       try {
         rec.stop();
       } catch (e) {
-        console.log('Error calling stop():', e);
       }
 
       // Clear handlers and force abort after allowing stop() to complete
@@ -755,7 +751,6 @@ function Dashboard() {
         mediaRecorderRef.current.stream.getTracks().forEach(t => t.stop());
         mediaRecorderRef.current.stop();
       } catch (e) {
-        console.log('ResetVoiceUI: MediaRecorder stop error:', e);
       }
       mediaRecorderRef.current = null;
     }
@@ -769,7 +764,6 @@ function Dashboard() {
       try {
         rec.stop();
       } catch (e) {
-        console.log('ResetVoiceUI: Error stopping recognition:', e);
       }
 
       // Clear handlers and force abort after stop completes

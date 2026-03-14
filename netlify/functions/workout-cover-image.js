@@ -25,7 +25,6 @@ async function ensureBucketExists(supabase) {
 
     const bucketExists = buckets.some(b => b.name === BUCKET_NAME);
     if (!bucketExists) {
-      console.log(`Creating bucket: ${BUCKET_NAME}`);
       const { error: createError } = await supabase.storage.createBucket(BUCKET_NAME, {
         public: true,
         fileSizeLimit: 10485760 // 10MB
@@ -59,8 +58,6 @@ Composition: Wide aspect ratio suitable for a cover image.
 Technical: High quality, sharp focus, dramatic lighting.
 No text, words, logos, or watermarks.`;
 
-  console.log('Generating cover image with prompt:', prompt.substring(0, 150) + '...');
-
   // Use Google Imagen 4 Fast (same as meal-image.js)
   const response = await fetch('https://api.replicate.com/v1/models/google/imagen-4-fast/predictions', {
     method: 'POST',
@@ -85,7 +82,6 @@ No text, words, logos, or watermarks.`;
   }
 
   const prediction = await response.json();
-  console.log('Replicate prediction status:', prediction.status);
 
   if (prediction.status === 'succeeded' && prediction.output) {
     const imageUrl = Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
@@ -111,7 +107,6 @@ No text, words, logos, or watermarks.`;
       }
 
       result = await pollResponse.json();
-      console.log(`Poll attempt ${attempts}: ${result.status}`);
     }
 
     if (result.status === 'succeeded' && result.output) {
@@ -192,8 +187,6 @@ exports.handler = async (event) => {
       };
     }
 
-    console.log(`Generating cover image for: ${programName}`);
-
     // Generate the image
     const generatedImageUrl = await generateCoverImage(programName, programType, description);
 
@@ -225,8 +218,6 @@ exports.handler = async (event) => {
       .getPublicUrl(filename);
 
     const permanentImageUrl = urlData.publicUrl;
-
-    console.log('Cover image generated and uploaded:', permanentImageUrl);
 
     return {
       statusCode: 200,

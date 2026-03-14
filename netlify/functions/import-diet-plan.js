@@ -47,7 +47,6 @@ exports.handler = async (event) => {
 
     // Truncate very long inputs to avoid token limits
     const trimmedContent = fileContent.length > 25000 ? fileContent.substring(0, 25000) : fileContent;
-    console.log(`Importing diet plan from text (${trimmedContent.length} chars)`);
 
     const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
 
@@ -68,8 +67,6 @@ exports.handler = async (event) => {
     } else {
       dayChunks.push(...parts);
     }
-
-    console.log(`Split into ${dayChunks.length} day chunks`);
 
     const daySystemPrompt = `You are a nutrition plan parser. Extract meal data from ONE day of a diet plan. Return ONLY valid JSON, no markdown.
 
@@ -132,7 +129,6 @@ Return JSON:
     // Wait for all day parses
     const dayResults = await Promise.all(dayParsePromises);
     const parsedDays = dayResults.filter(Boolean);
-    console.log(`Parsed ${parsedDays.length}/${dayChunks.length} days`);
 
     if (parsedDays.length === 0) {
       const detail = parseErrors.length > 0 ? ` Errors: ${parseErrors.join('; ')}` : '';
@@ -214,8 +210,6 @@ Return JSON:
     const avgProtein = Math.round(planStats.totalProtein / parsedDays.length);
     const avgCarbs = Math.round(planStats.totalCarbs / parsedDays.length);
     const avgFat = Math.round(planStats.totalFat / parsedDays.length);
-
-    console.log(`Import stats: ${planStats.totalMeals} meals across ${parsedDays.length} days, avg ${avgCalories} cal/day`);
 
     return {
       statusCode: 200,

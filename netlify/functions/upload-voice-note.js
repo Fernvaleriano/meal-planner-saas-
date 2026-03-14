@@ -63,7 +63,6 @@ exports.handler = async (event) => {
 
     if (error) {
       if (error.message.includes('bucket') || error.statusCode === 404) {
-        console.log('Storage bucket not configured, returning null URL');
         return {
           statusCode: 200,
           headers,

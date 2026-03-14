@@ -173,7 +173,6 @@ exports.handler = withTimeout(async (event) => {
               }
             } catch (adhocError) {
               // Ad-hoc table might not exist, ignore
-              console.log('Adhoc lookup skipped:', adhocError.message);
             }
 
             return {
@@ -452,9 +451,7 @@ exports.handler = withTimeout(async (event) => {
                 const signedMatch = ex.customVideoUrl.match(/\/object\/sign\/workout-assets\/(.+?)(?:\?|$)/);
                 if (signedMatch) {
                   ex.customVideoPath = decodeURIComponent(signedMatch[1]);
-                  console.log(`[video-debug] Extracted customVideoPath for "${ex.name}": ${ex.customVideoPath}`);
                 } else {
-                  console.log(`[video-debug] "${ex.name}" has customVideoUrl but couldn't extract path:`, ex.customVideoUrl?.substring(0, 100));
                 }
               }
               if (ex.customVideoPath) {
@@ -464,8 +461,6 @@ exports.handler = withTimeout(async (event) => {
               if (ex.voiceNotePath) allCustomPaths.push(ex.voiceNotePath);
             }
           }
-
-          console.log(`[video-debug] Found ${allCustomPaths.length} custom paths:`, allCustomPaths);
 
           if (allCustomPaths.length > 0) {
             try {
@@ -481,7 +476,7 @@ exports.handler = withTimeout(async (event) => {
                     .from('workout-assets')
                     .createSignedUrl(filePath, SIGNED_URL_EXPIRY)
                     .then(({ data, error }) => {
-                      if (error) console.log(`[video-debug] createSignedUrl error for ${filePath}:`, error.message);
+                      if (error) console.error(`createSignedUrl error for ${filePath}:`, error.message);
                       return { filePath, url: error ? null : data?.signedUrl };
                     })
                 )
@@ -491,8 +486,6 @@ exports.handler = withTimeout(async (event) => {
               for (const { filePath, url } of signedResults) {
                 if (url) signedUrlMap[filePath] = url;
               }
-
-              console.log(`[video-debug] Generated ${Object.keys(signedUrlMap).length} signed URLs out of ${allCustomPaths.length} paths`);
 
               // Apply fresh signed URLs to exercises
               for (const w of todayWorkouts) {
@@ -653,7 +646,6 @@ exports.handler = withTimeout(async (event) => {
               program_name: programName
             }
           }]);
-        console.log('🔔 Notification sent to client', clientId);
       } catch (notifError) {
         // Don't fail the assignment if notification fails
         console.error('⚠️ Failed to send notification:', notifError);

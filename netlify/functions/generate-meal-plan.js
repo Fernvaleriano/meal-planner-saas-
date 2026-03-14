@@ -1493,12 +1493,10 @@ function sanitizeIngredient(ingredient) {
     // Reset regex lastIndex before replace
     const replacePattern = /\b(olive oil|avocado oil|coconut oil|vegetable oil|canola oil|sesame oil|butter|ghee)\s*\(1\s*tbsp\)/gi;
     sanitized = sanitized.replace(replacePattern, '$1 (1 tsp)');
-    console.log(`🛢️ REDUCED COOKING FAT: 1 tbsp → 1 tsp to save ~80 calories`);
   }
 
   // Log if we made changes
   if (sanitized !== ingredient) {
-    console.log(`🔧 SANITIZED: "${ingredient}" → "${sanitized}"`);
   }
 
   return sanitized;
@@ -1580,7 +1578,6 @@ function validateAndFixInstructions(instructions, ingredients) {
           return fullMatch; // Skip temperatures
         }
 
-        console.log(`🔧 QUANTITY FIX: "${foundNum}" -> "${ing.correctNum}" for "${keyword}" (ingredient: ${ing.original})`);
         return fullMatch.replace(foundNum, ing.correctNum);
       });
     });
@@ -1592,7 +1589,6 @@ function validateAndFixInstructions(instructions, ingredients) {
     // Pattern for "X eggs" anywhere in text
     fixed = fixed.replace(/(\d+)\s*eggs?\b/gi, (match, num) => {
       if (num !== eggIng.correctNum) {
-        console.log(`🔧 EGG FIX: "${num} eggs" -> "${eggIng.correctNum} eggs"`);
         return `${eggIng.correctNum} egg${parseInt(eggIng.correctNum) > 1 ? 's' : ''}`;
       }
       return match;
@@ -1614,7 +1610,6 @@ function validateAndFixInstructions(instructions, ingredients) {
   const ingredientText = ingredients.join(' ').toLowerCase();
   hallucinations.forEach(food => {
     if (fixed.toLowerCase().includes(food) && !ingredientText.includes(food)) {
-      console.log(`🚫 REMOVING HALLUCINATION: "${food}" not in ingredients`);
       // Remove phrases containing the hallucinated food
       fixed = fixed.replace(new RegExp(`[^.]*\\b${food}s?\\b[^.]*\\.?`, 'gi'), '');
     }
@@ -1676,7 +1671,6 @@ function detectAndFixFatStacking(ingredients, mealType) {
     if (hasEggs && hasGroundMeat) {
       shouldRemoveFat = true;
       reason = 'eggs + ground meat';
-      console.log(`🍳 BREAKFAST FAT STACK DETECTED: Eggs + Ground Meat found`);
     }
   }
 
@@ -1691,7 +1685,6 @@ function detectAndFixFatStacking(ingredients, mealType) {
   if (hasFattyFish) {
     shouldRemoveFat = true;
     reason = reason ? `${reason} + fatty fish` : 'fatty fish';
-    console.log(`🐟 FATTY FISH FAT STACK DETECTED: ${fattyFishPatterns.find(f => lowerIngredients.some(ing => ing.includes(f)))} found`);
   }
 
   // If we detected a fat stacking issue, remove butter/oil
@@ -1702,13 +1695,11 @@ function detectAndFixFatStacking(ingredients, mealType) {
       const shouldRemove = fatToRemove.some(fat => lowerIng.includes(fat));
       if (shouldRemove) {
         removed.push(ing);
-        console.log(`🚫 REMOVING: "${ing}" (${reason} = enough fat)`);
       }
       return !shouldRemove;
     });
 
     if (removed.length > 0) {
-      console.log(`✅ FAT STACKING FIX: Removed ${removed.length} oil/butter items - ${reason} provides sufficient fat`);
       return { ingredients: fixedIngredients, fixed: true, removed, reason };
     }
   }
@@ -3151,7 +3142,6 @@ function matchFoodToDatabase(foodName, amount = "") {
   for (const [key, value] of Object.entries(nameMap)) {
     if (value === null) continue; // Skip null entries in fuzzy matching
     if (normalizedName.includes(key) || key.includes(normalizedName)) {
-      console.log(`✅ Fuzzy matched "${foodName}" → "${value}"`);
       return value;
     }
   }
@@ -3194,11 +3184,9 @@ function matchFoodToDatabase(foodName, amount = "") {
 
   // If we stripped something, try matching the simplified name
   if (strippedName !== normalizedName && strippedName.length > 0) {
-    console.log(`🔄 Stripped "${normalizedName}" → "${strippedName}"`);
 
     // Try exact match with stripped name
     if (nameMap.hasOwnProperty(strippedName)) {
-      console.log(`✅ Matched stripped name "${strippedName}" → "${nameMap[strippedName]}"`);
       return nameMap[strippedName];
     }
 
@@ -3206,7 +3194,6 @@ function matchFoodToDatabase(foodName, amount = "") {
     for (const [key, value] of Object.entries(nameMap)) {
       if (value === null) continue;
       if (strippedName.includes(key) || key.includes(strippedName)) {
-        console.log(`✅ Fuzzy matched stripped "${strippedName}" → "${value}"`);
         return value;
       }
     }
@@ -3238,7 +3225,6 @@ function matchFoodToDatabase(foodName, amount = "") {
   for (const [genericKey, keywords] of Object.entries(categoryKeywords)) {
     for (const keyword of keywords) {
       if (searchText.includes(keyword)) {
-        console.log(`🔶 Using generic fallback: "${foodName}" → "${genericKey}" (matched keyword: "${keyword}")`);
         return genericKey;
       }
     }
@@ -3343,25 +3329,19 @@ function validateAndFixMealDistribution(meals, targetDailyCalories) {
   // Check for oversized meals
   meals.forEach((meal, idx) => {
     if (meal.calories > maxMealCalories) {
-      console.log(`⚠️ OVERSIZED MEAL DETECTED: ${meal.type} has ${meal.calories} cal (${((meal.calories / targetDailyCalories) * 100).toFixed(1)}% of daily)`);
       needsRedistribution = true;
     }
   });
 
   if (!needsRedistribution) {
-    console.log('✅ Meal distribution valid - all meals within 40% limit');
     return meals;
   }
-
-  console.log('🔧 REDISTRIBUTING oversized meals...');
 
   // Scale down oversized meals and track excess
   const adjustedMeals = meals.map((meal, idx) => {
     if (meal.calories > maxMealCalories) {
       const scaleFactor = maxMealCalories / meal.calories;
       excessCalories += meal.calories - maxMealCalories;
-
-      console.log(`   Scaling ${meal.type} from ${meal.calories} to ${Math.round(maxMealCalories)} cal (factor: ${scaleFactor.toFixed(2)})`);
 
       // Scale down ingredients
       const scaledIngredients = meal.ingredients.map(ing => {
@@ -3405,7 +3385,6 @@ function validateAndFixMealDistribution(meals, targetDailyCalories) {
 
     if (smallMealIndices.length > 0) {
       const excessPerMeal = excessCalories / smallMealIndices.length;
-      console.log(`   Distributing ${Math.round(excessCalories)} excess cal to ${smallMealIndices.length} smaller meals`);
 
       smallMealIndices.forEach(({ idx }) => {
         const meal = adjustedMeals[idx];
@@ -3457,12 +3436,10 @@ function scalePortionsToTargets(meals, actualTotals, targetTotals) {
 
   // Only scale if variance is significant (outside ±5%)
   if (Math.abs(scalingFactor - 1) < 0.05) {
-    console.log('⏭️ Skipping portion scaling - variance within acceptable range (<5%)');
     return meals;
   }
 
   const variancePercent = ((scalingFactor - 1) * 100).toFixed(1);
-  console.log(`🔧 SCALING PORTIONS by ${scalingFactor.toFixed(3)}x (${variancePercent}% adjustment) to hit targets`);
 
   // Scale each meal's ingredients
   const scaledMeals = meals.map(meal => {
@@ -3489,9 +3466,6 @@ function scalePortionsToTargets(meals, actualTotals, targetTotals) {
     scaledIngredients = postScaleValidation.ingredients;
 
     if (postScaleValidation.violations.length > 0) {
-      console.log(`📋 Post-scale violations in "${meal.name}":`, postScaleValidation.violations.map(v =>
-        `${v.ingredient} → ${v.capped}${v.unit}`
-      ).join(', '));
     }
 
     // Recalculate macros from scaled AND re-validated ingredients
@@ -3537,11 +3511,6 @@ function balanceMacrosToTargets(meals, actualTotals, targetTotals) {
   const carbsVariance = (actualTotals.carbs - targetTotals.carbs) / targetTotals.carbs;
   const fatVariance = (actualTotals.fat - targetTotals.fat) / targetTotals.fat;
 
-  console.log(`\n🎯 MACRO BALANCE CHECK:`);
-  console.log(`   Protein: ${actualTotals.protein}g vs ${targetTotals.protein}g target (${(proteinVariance * 100).toFixed(1)}%)`);
-  console.log(`   Carbs:   ${actualTotals.carbs}g vs ${targetTotals.carbs}g target (${(carbsVariance * 100).toFixed(1)}%)`);
-  console.log(`   Fat:     ${actualTotals.fat}g vs ${targetTotals.fat}g target (${(fatVariance * 100).toFixed(1)}%)`);
-
   // Define thresholds for when to intervene
   const PROTEIN_OVER_THRESHOLD = 0.15;  // >15% over
   const CARBS_UNDER_THRESHOLD = -0.10;  // >10% under
@@ -3553,11 +3522,8 @@ function balanceMacrosToTargets(meals, actualTotals, targetTotals) {
   const needsFatReduction = fatVariance > FAT_OVER_THRESHOLD;
 
   if (!needsProteinReduction && !needsCarbIncrease && !needsFatReduction) {
-    console.log(`✅ Macros within acceptable range - no rebalancing needed`);
     return meals;
   }
-
-  console.log(`⚖️ REBALANCING macros...`);
 
   // Define ingredient categories for smart scaling
   const proteinKeywords = ['chicken', 'beef', 'turkey', 'pork', 'fish', 'salmon', 'cod', 'tuna', 'shrimp',
@@ -3600,7 +3566,6 @@ function balanceMacrosToTargets(meals, actualTotals, targetTotals) {
         if (proteinKeywords.some(kw => ingLower.includes(kw))) {
           const scaled = scaleIngredientString(ing, proteinScaleFactor);
           if (scaled !== ing) {
-            console.log(`   📉 Reduced protein: ${ing} → ${scaled}`);
             madeAdjustments = true;
           }
           return scaled;
@@ -3621,7 +3586,6 @@ function balanceMacrosToTargets(meals, actualTotals, targetTotals) {
         if (carbKeywords.some(kw => ingLower.includes(kw))) {
           const scaled = scaleIngredientString(ing, carbScaleFactor);
           if (scaled !== ing) {
-            console.log(`   📈 Increased carbs: ${ing} → ${scaled}`);
             madeAdjustments = true;
           }
           return scaled;
@@ -3643,7 +3607,6 @@ function balanceMacrosToTargets(meals, actualTotals, targetTotals) {
         if (ingLower.includes('oil') || ingLower.includes('butter')) {
           const scaled = scaleIngredientString(ing, fatScaleFactor);
           if (scaled !== ing) {
-            console.log(`   📉 Reduced fat: ${ing} → ${scaled}`);
             madeAdjustments = true;
           }
           return scaled;
@@ -3661,9 +3624,6 @@ function balanceMacrosToTargets(meals, actualTotals, targetTotals) {
     adjustedIngredients = postBalanceValidation.ingredients;
 
     if (postBalanceValidation.violations.length > 0) {
-      console.log(`   🛡️ Post-balance violations capped:`, postBalanceValidation.violations.map(v =>
-        `${v.ingredient} → ${v.capped}${v.unit}`
-      ).join(', '));
     }
 
     // Recalculate macros with adjusted AND re-validated ingredients
@@ -3701,12 +3661,6 @@ function balanceMacrosToTargets(meals, actualTotals, targetTotals) {
     fat: acc.fat + (meal.fat || 0)
   }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
 
-  console.log(`✅ After macro balancing:`);
-  console.log(`   Calories: ${newTotals.calories} (target ${targetTotals.calories})`);
-  console.log(`   Protein: ${newTotals.protein}g (target ${targetTotals.protein}g)`);
-  console.log(`   Carbs: ${newTotals.carbs}g (target ${targetTotals.carbs}g)`);
-  console.log(`   Fat: ${newTotals.fat}g (target ${targetTotals.fat}g)`);
-
   return balancedMeals;
 }
 
@@ -3729,7 +3683,6 @@ function parseAmount(amountStr, foodData) {
     const numerator = parseFloat(fractionMatch[1]);
     const denominator = parseFloat(fractionMatch[2]);
     quantity = numerator / denominator;
-    console.log(`📐 Parsed fraction ${fractionMatch[0]} as ${quantity}`);
   } else {
     // Extract number from amount string
     const numMatch = amount.match(/(\d+\.?\d*)/);
@@ -3745,14 +3698,12 @@ function parseAmount(amountStr, foodData) {
       // Extract base grams from database unit
       if (dbUnit.includes('100g')) {
         const multiplier = grams / 100;
-        console.log(`🔄 Converted ${quantity}oz → ${grams.toFixed(0)}g → ${multiplier.toFixed(2)}x multiplier (per 100g)`);
         return multiplier;
       }
       const dbGramMatch = dbUnit.match(/(\d+)g/);
       if (dbGramMatch) {
         const dbGrams = parseFloat(dbGramMatch[1]);
         const multiplier = grams / dbGrams;
-        console.log(`🔄 Converted ${quantity}oz → ${grams.toFixed(0)}g → ${multiplier.toFixed(2)}x multiplier (per ${dbGrams}g)`);
         return multiplier;
       }
     }
@@ -3770,7 +3721,6 @@ function parseAmount(amountStr, foodData) {
       const grams = quantity * 30; // 1 cup leafy ≈ 30g
       if (dbUnit.includes('100g')) {
         const multiplier = grams / 100;
-        console.log(`🥬 Converted ${quantity} cup(s) leafy greens → ${grams.toFixed(0)}g → ${multiplier.toFixed(2)}x`);
         return multiplier;
       }
     }
@@ -3779,7 +3729,6 @@ function parseAmount(amountStr, foodData) {
     if (dbUnit.includes('100g') && foodData.cal < 100) {
       const grams = quantity * 150; // 1 cup chopped veg ≈ 150g
       const multiplier = grams / 100;
-      console.log(`🥕 Converted ${quantity} cup(s) vegetables → ${grams.toFixed(0)}g → ${multiplier.toFixed(2)}x`);
       return multiplier;
     }
 
@@ -4019,7 +3968,6 @@ async function getSpoonacularForUnknowns(unknownIngredients) {
   for (const ing of unknownIngredients) {
     const cacheKey = ing.toLowerCase().trim();
     if (spoonacularCache.has(cacheKey)) {
-      console.log(`📦 Cache hit for: ${ing}`);
       cachedResults.push(spoonacularCache.get(cacheKey));
     } else {
       uncachedIngredients.push(ing);
@@ -4028,12 +3976,10 @@ async function getSpoonacularForUnknowns(unknownIngredients) {
 
   // If all were cached, return cached results
   if (uncachedIngredients.length === 0) {
-    console.log(`✅ All ${unknownIngredients.length} unknown ingredients found in cache`);
     return cachedResults;
   }
 
   try {
-    console.log(`🥄 Calling Spoonacular for ${uncachedIngredients.length} unknown ingredients...`);
     const ingredientList = uncachedIngredients.join('\n');
 
     const response = await fetch(`${SPOONACULAR_API_URL}/recipes/parseIngredients?apiKey=${SPOONACULAR_API_KEY}`, {
@@ -4075,7 +4021,6 @@ async function getSpoonacularForUnknowns(unknownIngredients) {
       // Cache the result
       const cacheKey = item.original.toLowerCase().trim();
       spoonacularCache.set(cacheKey, result);
-      console.log(`💾 Cached: ${item.original} → ${result.macros.calories}cal`);
 
       results.push(result);
     }
@@ -4096,8 +4041,6 @@ async function calculateMacrosWithSpoonacular(ingredients) {
   let totals = { calories: 0, protein: 0, carbs: 0, fat: 0 };
   const breakdown = [];
   const unknownIngredients = [];
-
-  console.log(`🔍 Processing ${ingredients.length} ingredients (local DB first)...`);
 
   // STEP 1: Try local database for each ingredient
   for (const ing of ingredients) {
@@ -4131,15 +4074,11 @@ async function calculateMacrosWithSpoonacular(ingredients) {
         source: 'local_db'
       });
 
-      console.log(`📚 Local DB: ${ing} → ${macros.calories}cal`);
     } else {
       // Not in local database - add to unknown list
       unknownIngredients.push(ing);
     }
   }
-
-  console.log(`📊 Local DB matched: ${breakdown.length}/${ingredients.length} ingredients`);
-  console.log(`❓ Unknown ingredients: ${unknownIngredients.length}`);
 
   // STEP 2: Call Spoonacular ONLY for unknown ingredients
   if (unknownIngredients.length > 0 && SPOONACULAR_API_KEY) {
@@ -4152,7 +4091,6 @@ async function calculateMacrosWithSpoonacular(ingredients) {
         totals.carbs += result.macros.carbs;
         totals.fat += result.macros.fat;
         breakdown.push(result);
-        console.log(`🥄 Spoonacular: ${result.original} → ${result.macros.calories}cal`);
       }
     } else {
       // Spoonacular failed - use estimates for unknowns
@@ -4172,12 +4110,10 @@ async function calculateMacrosWithSpoonacular(ingredients) {
           macros: estimated,
           source: 'estimated'
         });
-        console.log(`📏 Estimated: ${ing} → ${estimated.calories}cal`);
       }
     }
   } else if (unknownIngredients.length > 0) {
     // No Spoonacular key - use estimates
-    console.log('⚠️ No Spoonacular API key - using estimates for unknown ingredients');
     for (const ing of unknownIngredients) {
       const parsed = parseIngredientString(ing);
       const estimated = estimateUnmatchedIngredient(ing, parsed.amount);
@@ -4197,8 +4133,6 @@ async function calculateMacrosWithSpoonacular(ingredients) {
     }
   }
 
-  console.log(`✅ Final totals: ${totals.calories}cal, ${totals.protein}P, ${totals.carbs}C, ${totals.fat}F`);
-
   return { totals, breakdown };
 }
 
@@ -4210,7 +4144,6 @@ async function calculateMacrosWithSpoonacular(ingredients) {
  */
 async function getSpoonacularNutrition(ingredients) {
   if (!SPOONACULAR_API_KEY) {
-    console.log('⚠️ Spoonacular API key not configured, skipping');
     return null;
   }
 
@@ -4221,11 +4154,8 @@ async function getSpoonacularNutrition(ingredients) {
       .join('\n');
 
     if (!ingredientList) {
-      console.log('⚠️ No string ingredients to parse');
       return null;
     }
-
-    console.log('🥄 Calling Spoonacular API for nutrition data...');
 
     const response = await fetch(`${SPOONACULAR_API_URL}/recipes/parseIngredients?apiKey=${SPOONACULAR_API_KEY}`, {
       method: 'POST',
@@ -4242,7 +4172,6 @@ async function getSpoonacularNutrition(ingredients) {
     }
 
     const data = await response.json();
-    console.log(`✅ Spoonacular returned data for ${data.length} ingredients`);
 
     // Process the response and calculate totals
     let totals = { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, sugar: 0, sodium: 0, potassium: 0, calcium: 0, iron: 0, vitaminC: 0, cholesterol: 0 };
@@ -4299,10 +4228,7 @@ async function getSpoonacularNutrition(ingredients) {
         source: 'spoonacular'
       });
 
-      console.log(`  📊 ${item.original}: ${macros.calories}cal, ${macros.protein}P, ${macros.carbs}C, ${macros.fat}F`);
     }
-
-    console.log(`🥄 Spoonacular totals: ${totals.calories}cal, ${totals.protein}P, ${totals.carbs}C, ${totals.fat}F`);
 
     return { totals, breakdown };
 
@@ -4527,7 +4453,6 @@ function syncMealNameWithIngredients(mealName, ingredients) {
   sanitizedName = sanitizedName.replace(countPattern, '$1 $2');
 
   if (sanitizedName !== mealName) {
-    console.log(`🧹 TITLE SANITIZED: "${mealName}" → "${sanitizedName}"`);
   }
 
   // Build a comprehensive map of food name variations -> actual amount
@@ -4900,8 +4825,6 @@ function stripPhantomIngredientsFromTitle(mealName, ingredients) {
     }
   }
 
-  console.log('📋 Ingredient map for title validation:', ingredientMap);
-
   // Pattern: Match parenthesized content in title like "(3 whole, 6g whites)" or "(81g, 28g almonds)"
   let correctedName = mealName.replace(
     /\(([^)]+)\)/g,
@@ -4973,7 +4896,6 @@ function stripPhantomIngredientsFromTitle(mealName, ingredients) {
   correctedName = correctedName.replace(/\s+/g, ' ').replace(/\s+\)/g, ')').replace(/\(\s+/g, '(').trim();
 
   if (correctedName !== mealName) {
-    console.log(`🔧 TITLE CLEANED: "${mealName}" → "${correctedName}"`);
   }
 
   return correctedName;
@@ -5140,9 +5062,7 @@ function validateAndCapPortions(ingredients, mealType = null) {
   }
 
   if (violations.length > 0) {
-    console.log(`⚠️ Portion violations detected and capped: ${violations.length} ingredients`);
   } else {
-    console.log(`✅ All portions within limits`);
   }
 
   return {
@@ -5152,9 +5072,7 @@ function validateAndCapPortions(ingredients, mealType = null) {
 }
 
 async function optimizeMealMacros(geminiMeal, mealTargets, skipAutoScale = false) {
-  console.log(`🔍 JS optimizing portions for: ${geminiMeal.name}`);
-  console.log(`🎯 Targets: ${mealTargets.calories}cal, ${mealTargets.protein}P, ${mealTargets.carbs}C, ${mealTargets.fat}F`);
-  if (skipAutoScale) console.log(`⏭️ Auto-scaling DISABLED for this request (user controls portions)`);
+  // skipAutoScale: user controls portions manually
 
   // Check if meal has ingredients array
   if (!geminiMeal.ingredients || !Array.isArray(geminiMeal.ingredients)) {
@@ -5174,7 +5092,6 @@ async function optimizeMealMacros(geminiMeal, mealTargets, skipAutoScale = false
   }
 
   // Step 0: VALIDATE AND CAP PORTIONS (enforce hard limits)
-  console.log(`🛡️ Validating portion sizes against limits...`);
   const validatedResult = validateAndCapPortions(geminiMeal.ingredients, geminiMeal.type);
 
   // Use capped ingredients for all subsequent calculations
@@ -5182,9 +5099,6 @@ async function optimizeMealMacros(geminiMeal, mealTargets, skipAutoScale = false
 
   // Log violations if any
   if (validatedResult.violations.length > 0) {
-    console.log(`📋 Violations capped:`, validatedResult.violations.map(v =>
-      `${v.ingredient} → ${v.capped}${v.unit}`
-    ).join(', '));
   }
 
   // Step 0.5: FIX BREAKFAST FAT STACKING (eggs + ground meat = no butter/oil)
@@ -5199,21 +5113,16 @@ async function optimizeMealMacros(geminiMeal, mealTargets, skipAutoScale = false
   const originalName = geminiMeal.name;
   geminiMeal.name = syncMealNameWithIngredients(geminiMeal.name, geminiMeal.ingredients);
   if (geminiMeal.name !== originalName) {
-    console.log(`📝 Synced meal name: "${originalName}" → "${geminiMeal.name}"`);
   }
 
   // Step 1: Calculate current macros from ingredients (using Spoonacular if available)
   const current = await calculateMacrosWithSpoonacular(geminiMeal.ingredients);
-  console.log(`📊 Current totals: ${current.totals.calories}cal, ${current.totals.protein}P, ${current.totals.carbs}C, ${current.totals.fat}F`);
-  console.log(`📝 Breakdown:`, current.breakdown);
 
   // Step 2: Determine adjustment needed
   const calDiff = mealTargets.calories - current.totals.calories;
   const proteinDiff = mealTargets.protein - current.totals.protein;
   const carbsDiff = mealTargets.carbs - current.totals.carbs;
   const fatDiff = mealTargets.fat - current.totals.fat;
-
-  console.log(`📈 Adjustments needed: ${calDiff}cal, ${proteinDiff}P, ${carbsDiff}C, ${fatDiff}F`);
 
   // Step 3: AUTO-SCALE portions if calories are off by more than 10%
   // Skip auto-scaling for revisions where user explicitly controls portions
@@ -5226,35 +5135,24 @@ async function optimizeMealMacros(geminiMeal, mealTargets, skipAutoScale = false
     // This ensures we at least get closer to target even if we can't hit it exactly
     const originalScaleFactor = scaleFactor;
     if (scaleFactor < 0.5) {
-      console.log(`⚠️ Scale factor ${scaleFactor.toFixed(2)}x too low, capping at 0.5x`);
       scaleFactor = 0.5;
     } else if (scaleFactor > 2.0) {
-      console.log(`⚠️ Scale factor ${scaleFactor.toFixed(2)}x too high, capping at 2.0x`);
       scaleFactor = 2.0;
     }
-
-    console.log(`⚖️ AUTO-SCALING portions by ${(scaleFactor * 100).toFixed(0)}% to match target calories`);
 
     // Scale all ingredient portions
     let scaledIngredients = scaleIngredientPortions(geminiMeal.ingredients, scaleFactor);
 
     // FIX: RE-VALIDATE after scaling to prevent reintroduced violations
     // Scaling can push portions back over limits (e.g., 300g capped, then scaled 1.08x = 324g)
-    console.log(`🛡️ Re-validating scaled portions against limits...`);
     const postScaleValidation = validateAndCapPortions(scaledIngredients, geminiMeal.type);
     scaledIngredients = postScaleValidation.ingredients;
 
     if (postScaleValidation.violations.length > 0) {
-      console.log(`📋 Post-scale violations capped:`, postScaleValidation.violations.map(v =>
-        `${v.ingredient} → ${v.capped}${v.unit}`
-      ).join(', '));
     }
 
     // Recalculate macros with scaled AND re-validated portions
     const scaled = calculateMacrosFromIngredients(scaledIngredients);
-
-    console.log(`✅ Scaled totals: ${scaled.totals.calories}cal, ${scaled.totals.protein}P, ${scaled.totals.carbs}C, ${scaled.totals.fat}F`);
-    console.log(`🎯 vs Target: ${mealTargets.calories}cal, ${mealTargets.protein}P, ${mealTargets.carbs}C, ${mealTargets.fat}F`);
 
     // FIX: Sync meal name with final ingredient amounts (after scaling AND capping)
     const finalMealName = syncMealNameWithIngredients(
@@ -5289,13 +5187,9 @@ async function optimizeMealMacros(geminiMeal, mealTargets, skipAutoScale = false
         : `Auto-scaled by ${(scaleFactor * 100).toFixed(0)}% to match ${mealTargets.calories}cal target`
     };
   } else {
-    console.log(`✅ Calories within 10% of target, no scaling needed`);
   }
 
   const optimized = current; // Use current calculated macros without adjustment
-
-  console.log(`✅ Optimized totals: ${optimized.totals.calories}cal, ${optimized.totals.protein}P, ${optimized.totals.carbs}C, ${optimized.totals.fat}F`);
-  console.log(`🎯 vs Target: ${mealTargets.calories}cal, ${mealTargets.protein}P, ${mealTargets.carbs}C, ${mealTargets.fat}F`);
 
   // Validate and fix instructions to match actual ingredients
   const validatedInstructions = validateAndFixInstructions(geminiMeal.instructions, geminiMeal.ingredients);
@@ -5323,8 +5217,6 @@ async function generateWithClaude(prompt, isJson = true) {
   if (!ANTHROPIC_API_KEY) {
     throw new Error('ANTHROPIC_API_KEY not configured');
   }
-
-  console.log('🤖 Calling Claude API for meal generation...');
 
   const anthropic = new Anthropic({
     apiKey: ANTHROPIC_API_KEY
@@ -5373,11 +5265,8 @@ Provide helpful, detailed meal prep guidance.`;
       system: systemPrompt
     });
 
-    console.log('✅ Claude API Response received');
-
     // Extract text from response
     const responseText = message.content[0].text;
-    console.log('🤖 Claude Response preview:', responseText.substring(0, 500));
 
     return responseText;
   } catch (error) {
@@ -5411,7 +5300,6 @@ ${prompt}`;
   let lastError = null;
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    console.log(`🤖 Calling Gemini API for meal generation (attempt ${attempt}/${maxRetries})...`);
 
     try {
       const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
@@ -5442,7 +5330,6 @@ ${prompt}`;
       }
 
       const data = await response.json();
-      console.log('✅ Gemini API Response received');
 
       // Validate response structure
       if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
@@ -5454,17 +5341,14 @@ ${prompt}`;
       }
 
       const responseText = data.candidates[0].content.parts[0].text;
-      console.log('🤖 Gemini Response preview:', responseText.substring(0, 500));
 
       // Pre-validate JSON before returning
       try {
         JSON.parse(responseText);
         return responseText; // Valid JSON, return it
       } catch (parseErr) {
-        console.log(`⚠️ Gemini returned invalid JSON on attempt ${attempt}: ${parseErr.message}`);
         lastError = parseErr;
         if (attempt < maxRetries) {
-          console.log('🔄 Retrying with lower temperature...');
           continue;
         }
         // On last attempt, return anyway and let extractJSON try to fix it
@@ -5473,7 +5357,6 @@ ${prompt}`;
     } catch (error) {
       lastError = error;
       if (attempt < maxRetries) {
-        console.log(`⚠️ Attempt ${attempt} failed: ${error.message}, retrying...`);
         continue;
       }
       throw error;
@@ -5511,8 +5394,6 @@ exports.handler = async (event, context) => {
     return rateLimitResponse(rateLimit.resetIn);
   }
 
-  console.log(`🔐 Authenticated user ${user.id} generating meal plan (${rateLimit.remaining} requests remaining)`);
-
   // Check if API key is configured (Claude primary, Gemini fallback)
   const hasClaudeKey = !!ANTHROPIC_API_KEY;
   const hasGeminiKey = !!GEMINI_API_KEY;
@@ -5537,10 +5418,7 @@ exports.handler = async (event, context) => {
       };
     }
 
-    console.log('isJson flag:', isJson);
     if (targets) {
-      console.log('Daily Targets:', targets);
-      console.log('Meals per day:', mealsPerDay);
     }
 
     // Determine which API to use (Claude by default, Gemini as fallback or if requested)
@@ -5549,7 +5427,6 @@ exports.handler = async (event, context) => {
     let generatorUsed;
 
     if (useClaude) {
-      console.log('📤 Using Claude API for generation...');
       try {
         responseText = await generateWithClaude(prompt, isJson !== false);
         generatorUsed = 'claude';
@@ -5563,16 +5440,12 @@ exports.handler = async (event, context) => {
         }
       }
     } else {
-      console.log('📤 Using Gemini API for generation...');
       responseText = await generateWithGemini(prompt);
       generatorUsed = 'gemini';
     }
 
-    console.log(`✅ Generation complete using: ${generatorUsed}`);
-
     // 🆕 NEW: Handle text-only responses (like Recipe or Meal Prep Guide)
     if (isJson === false) {
-      console.log('📝 Text-only response requested - skipping JSON parsing and optimization');
       return {
         statusCode: 200,
         headers: {
@@ -5591,10 +5464,8 @@ exports.handler = async (event, context) => {
 
     // Parse JSON (handle markdown-wrapped responses)
     const jsonData = extractJSON(responseText);
-    console.log('📋 Gemini generated meals:', JSON.stringify(jsonData, null, 2));
 
     // 🎯 NEW: Optimize meal portions using Claude
-    console.log('🔄 Starting Claude portion optimization...');
     let correctedData = jsonData;
 
     // Calculate per-meal targets
@@ -5606,22 +5477,18 @@ exports.handler = async (event, context) => {
     } : null;
 
     if (mealTargets) {
-      console.log(`📊 Per-meal targets: ${mealTargets.calories}cal, ${mealTargets.protein}P, ${mealTargets.carbs}C, ${mealTargets.fat}F`);
     }
 
     // Handle different response formats from Gemini
     if (jsonData.plan && Array.isArray(jsonData.plan)) {
       // Day object with plan array: { day: 1, targets: {...}, plan: [...] }
-      console.log(`📊 Optimizing day object with ${jsonData.plan.length} meals using JS algorithm...`);
       const optimizedMeals = [];
       for (let i = 0; i < jsonData.plan.length; i++) {
-        console.log(`⏳ Optimizing meal ${i + 1}/${jsonData.plan.length}...`);
         const optimizedMeal = mealTargets
           ? await optimizeMealMacros(jsonData.plan[i], mealTargets, skipAutoScale)
           : await optimizeMealMacros(jsonData.plan[i], { calories: 0, protein: 0, carbs: 0, fat: 0 }, skipAutoScale);
         optimizedMeals.push(optimizedMeal);
       }
-      console.log(`✅ All ${jsonData.plan.length} meals optimized!`);
 
       // Reconstruct day object with optimized meals
       correctedData = {
@@ -5638,18 +5505,11 @@ exports.handler = async (event, context) => {
           fat: acc.fat + (meal.fat || 0)
         }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
 
-        console.log('📊 DAILY TOTALS vs TARGETS (before scaling):');
-        console.log(`   Calories: ${dailyTotals.calories} / ${targets.calories} (${((dailyTotals.calories / targets.calories - 1) * 100).toFixed(1)}%)`);
-        console.log(`   Protein:  ${dailyTotals.protein}g / ${targets.protein}g (${((dailyTotals.protein / targets.protein - 1) * 100).toFixed(1)}%)`);
-        console.log(`   Carbs:    ${dailyTotals.carbs}g / ${targets.carbs}g (${((dailyTotals.carbs / targets.carbs - 1) * 100).toFixed(1)}%)`);
-        console.log(`   Fat:      ${dailyTotals.fat}g / ${targets.fat}g (${((dailyTotals.fat / targets.fat - 1) * 100).toFixed(1)}%)`);
-
         // Scale portions to hit targets
         const scaledMeals = scalePortionsToTargets(optimizedMeals, dailyTotals, targets);
 
         // RE-VALIDATE portion caps after scaling (critical!)
         // Scaling can push portions beyond limits, so we need to re-cap them
-        console.log(`🛡️ RE-VALIDATING portion caps after scaling...`);
         const revalidatedMeals = scaledMeals.map(meal => {
           if (!meal.ingredients || !Array.isArray(meal.ingredients)) {
             return meal;
@@ -5658,9 +5518,7 @@ exports.handler = async (event, context) => {
           const validatedResult = validateAndCapPortions(meal.ingredients, meal.type);
 
           if (validatedResult.violations.length > 0) {
-            console.log(`🛑 POST-SCALING VIOLATIONS in "${meal.name}":`);
             validatedResult.violations.forEach(v => {
-              console.log(`   ${v.ingredient} → CAPPED to ${v.capped}${v.unit}`);
             });
 
             // Recalculate macros with capped ingredients
@@ -5712,24 +5570,16 @@ exports.handler = async (event, context) => {
           fat: acc.fat + (meal.fat || 0)
         }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
 
-        console.log('📊 DAILY TOTALS vs TARGETS (after scaling, balancing & validation):');
-        console.log(`   Calories: ${finalTotals.calories} / ${targets.calories} (${((finalTotals.calories / targets.calories - 1) * 100).toFixed(1)}%)`);
-        console.log(`   Protein:  ${finalTotals.protein}g / ${targets.protein}g (${((finalTotals.protein / targets.protein - 1) * 100).toFixed(1)}%)`);
-        console.log(`   Carbs:    ${finalTotals.carbs}g / ${targets.carbs}g (${((finalTotals.carbs / targets.carbs - 1) * 100).toFixed(1)}%)`);
-        console.log(`   Fat:      ${finalTotals.fat}g / ${targets.fat}g (${((finalTotals.fat / targets.fat - 1) * 100).toFixed(1)}%)`);
       }
     } else if (Array.isArray(jsonData)) {
       // Array of meals: [meal1, meal2, meal3]
-      console.log(`📊 Optimizing ${jsonData.length} meals with JS algorithm...`);
       correctedData = [];
       for (let i = 0; i < jsonData.length; i++) {
-        console.log(`⏳ Optimizing meal ${i + 1}/${jsonData.length}...`);
         const optimizedMeal = mealTargets
           ? await optimizeMealMacros(jsonData[i], mealTargets, skipAutoScale)
           : await optimizeMealMacros(jsonData[i], { calories: 0, protein: 0, carbs: 0, fat: 0 }, skipAutoScale);
         correctedData.push(optimizedMeal);
       }
-      console.log(`✅ All ${jsonData.length} meals optimized!`);
 
       // Calculate and log daily totals vs targets
       if (mealTargets && targets) {
@@ -5740,18 +5590,11 @@ exports.handler = async (event, context) => {
           fat: acc.fat + (meal.fat || 0)
         }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
 
-        console.log('📊 DAILY TOTALS vs TARGETS (before scaling):');
-        console.log(`   Calories: ${dailyTotals.calories} / ${targets.calories} (${((dailyTotals.calories / targets.calories - 1) * 100).toFixed(1)}%)`);
-        console.log(`   Protein:  ${dailyTotals.protein}g / ${targets.protein}g (${((dailyTotals.protein / targets.protein - 1) * 100).toFixed(1)}%)`);
-        console.log(`   Carbs:    ${dailyTotals.carbs}g / ${targets.carbs}g (${((dailyTotals.carbs / targets.carbs - 1) * 100).toFixed(1)}%)`);
-        console.log(`   Fat:      ${dailyTotals.fat}g / ${targets.fat}g (${((dailyTotals.fat / targets.fat - 1) * 100).toFixed(1)}%)`);
-
         // Scale portions to hit targets
         let scaledData = scalePortionsToTargets(correctedData, dailyTotals, targets);
 
         // RE-VALIDATE portion caps after scaling (critical!)
         // Scaling can push portions beyond limits, so we need to re-cap them
-        console.log(`🛡️ RE-VALIDATING portion caps after scaling...`);
         const revalidatedData = scaledData.map(meal => {
           if (!meal.ingredients || !Array.isArray(meal.ingredients)) {
             return meal;
@@ -5760,9 +5603,7 @@ exports.handler = async (event, context) => {
           const validatedResult = validateAndCapPortions(meal.ingredients, meal.type);
 
           if (validatedResult.violations.length > 0) {
-            console.log(`🛑 POST-SCALING VIOLATIONS in "${meal.name}":`);
             validatedResult.violations.forEach(v => {
-              console.log(`   ${v.ingredient} → CAPPED to ${v.capped}${v.unit}`);
             });
 
             // Recalculate macros with capped ingredients
@@ -5813,24 +5654,16 @@ exports.handler = async (event, context) => {
           fat: acc.fat + (meal.fat || 0)
         }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
 
-        console.log('📊 DAILY TOTALS vs TARGETS (after scaling, balancing & validation):');
-        console.log(`   Calories: ${finalTotals.calories} / ${targets.calories} (${((finalTotals.calories / targets.calories - 1) * 100).toFixed(1)}%)`);
-        console.log(`   Protein:  ${finalTotals.protein}g / ${targets.protein}g (${((finalTotals.protein / targets.protein - 1) * 100).toFixed(1)}%)`);
-        console.log(`   Carbs:    ${finalTotals.carbs}g / ${targets.carbs}g (${((finalTotals.carbs / targets.carbs - 1) * 100).toFixed(1)}%)`);
-        console.log(`   Fat:      ${finalTotals.fat}g / ${targets.fat}g (${((finalTotals.fat / targets.fat - 1) * 100).toFixed(1)}%)`);
       }
     } else if (jsonData.name && jsonData.ingredients) {
       // Single meal object with structured ingredients
-      console.log('📊 Optimizing single meal with JS algorithm...');
       correctedData = mealTargets
         ? await optimizeMealMacros(jsonData, mealTargets, skipAutoScale)
         : await optimizeMealMacros(jsonData, { calories: 0, protein: 0, carbs: 0, fat: 0 }, skipAutoScale);
-      console.log('✅ Meal optimized!');
     } else if (jsonData.name && !jsonData.ingredients && mealTargets) {
       // Single meal WITHOUT ingredients - AI didn't follow format
       // Use target macros as fallback instead of AI's hallucinated values
       console.warn('⚠️ Single meal missing ingredients array - using target macros as fallback');
-      console.log('jsonData:', JSON.stringify(jsonData).substring(0, 200));
       correctedData = {
         ...jsonData,
         calories: mealTargets.calories,
@@ -5840,8 +5673,6 @@ exports.handler = async (event, context) => {
         calculation_notes: 'WARNING: No ingredients provided by AI, using target macros as approximation'
       };
     } else {
-      console.log('⚠️ Unexpected data format, skipping optimization');
-      console.log('jsonData:', JSON.stringify(jsonData).substring(0, 200));
       // Return as-is if format doesn't match any expected pattern
       correctedData = jsonData;
     }
@@ -5871,9 +5702,7 @@ exports.handler = async (event, context) => {
 
       // If total is off by more than 15%, force proportional scaling
       if (Math.abs(calorieVariance) > 0.15) {
-        console.log(`⚠️ FINAL SAFETY CHECK: Total ${finalTotals.calories} cal is ${(calorieVariance * 100).toFixed(1)}% off target ${targets.calories}`);
         const finalScale = targets.calories / finalTotals.calories;
-        console.log(`🔧 FORCING final scale of ${finalScale.toFixed(2)}x on all meals`);
 
         correctedData.plan = correctedData.plan.map(meal => {
           // Scale ingredients AND meal name to match scaled macros
@@ -5897,9 +5726,6 @@ exports.handler = async (event, context) => {
           scaledIngredients = postFinalScaleValidation.ingredients;
 
           if (postFinalScaleValidation.violations.length > 0) {
-            console.log(`   🛡️ Final scale violations capped in "${meal.name}":`, postFinalScaleValidation.violations.map(v =>
-              `${v.ingredient} → ${v.capped}${v.unit}`
-            ).join(', '));
           }
 
           const recalculated = calculateMacrosFromIngredients(scaledIngredients);
@@ -5950,13 +5776,11 @@ exports.handler = async (event, context) => {
           calories: acc.calories + meal.calories,
           protein: acc.protein + meal.protein
         }), { calories: 0, protein: 0 });
-        console.log(`✅ After forced scaling: ${newTotals.calories} cal, ${newTotals.protein}g protein`);
       }
     }
 
     // ===== FINAL VALIDATION: Check for macro/ingredient desync =====
     if (correctedData.plan && Array.isArray(correctedData.plan)) {
-      console.log('\n🔍 FINAL VALIDATION: Checking for macro/ingredient desync...');
       let hasDesyncIssues = false;
 
       correctedData.plan.forEach((meal, idx) => {
@@ -5986,7 +5810,6 @@ exports.handler = async (event, context) => {
           hasDesyncIssues = true;
 
           // Auto-fix: Replace with verified values
-          console.log(`   🔧 AUTO-FIX: Correcting macros to match ingredients`);
           meal.calories = verification.totals.calories;
           meal.protein = verification.totals.protein;
           meal.carbs = verification.totals.carbs;
@@ -6005,13 +5828,10 @@ exports.handler = async (event, context) => {
       });
 
       if (!hasDesyncIssues) {
-        console.log('✅ FINAL VALIDATION PASSED: All meals have matching macros and ingredients');
       } else {
-        console.log('⚠️ FINAL VALIDATION: Some issues detected and auto-fixed');
       }
 
       // ===== FINAL SANITY CHECK: Catch impossible macro values =====
-      console.log('\n🔍 FINAL SANITY CHECK: Checking for impossible macro values...');
       correctedData.plan.forEach((meal, idx) => {
         let needsReset = false;
         const issues = [];
@@ -6058,7 +5878,6 @@ exports.handler = async (event, context) => {
         if (needsReset) {
           console.error(`❌ SANITY CHECK FAILED for Meal ${idx + 1} "${meal.name}":`);
           issues.forEach(issue => console.error(`   - ${issue}`));
-          console.log('   🔧 AUTO-FIX: Recalculating macros from ingredients with sanity checks');
 
           // Force recalculation with sanity-checked estimates
           const recalculated = calculateMacrosFromIngredients(meal.ingredients);
@@ -6078,7 +5897,6 @@ exports.handler = async (event, context) => {
             meal.cholesterol = recalculated.totals.cholesterol;
             meal.breakdown = recalculated.breakdown;
             meal._sanityCapped = true;
-            console.log(`   ✅ Capped values: ${meal.calories}cal, ${meal.protein}g protein`);
           }
         }
       });
@@ -6194,8 +6012,6 @@ function extractJSON(text) {
   try {
     return JSON.parse(cleaned);
   } catch (error) {
-    console.log('First JSON parse failed, attempting recovery...');
-    console.log('Parse error:', error.message);
 
     // Try to extract JSON object or array from text
     let jsonMatch = cleaned.match(/\{[\s\S]*\}/);
@@ -6211,7 +6027,6 @@ function extractJSON(text) {
       try {
         return JSON.parse(extracted);
       } catch (e2) {
-        console.log('Second parse failed, attempting JSON repair...');
 
         // Try advanced repair
         let repaired = repairJSON(extracted);

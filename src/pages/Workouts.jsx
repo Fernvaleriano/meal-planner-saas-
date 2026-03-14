@@ -2655,9 +2655,9 @@ function Workouts() {
       console.error('Error rescheduling workout:', err);
       // If assignment not found (404), show specific error
       if (err.status === 404 || err.message?.includes('not found')) {
-        alert('Could not find this workout. It may have been removed or updated. Please refresh and try again.');
+        showError('Could not find this workout. It may have been removed or updated. Please refresh and try again.');
       } else {
-        alert('Failed to update workout schedule');
+        showError('Failed to update workout schedule');
       }
       setShowRescheduleModal(false);
       setRescheduleAction(null);
@@ -2680,13 +2680,13 @@ function Workouts() {
       refreshWeekSchedule();
 
       // Show success feedback
-      alert(`Workout ${action === 'duplicate' ? 'duplicated' : action === 'skip' ? 'skipped' : 'rescheduled'} successfully!`);
+      showSuccess(`Workout ${action === 'duplicate' ? 'duplicated' : action === 'skip' ? 'skipped' : 'rescheduled'} successfully!`);
     } else {
       // Unexpected state — close modal and inform user
       setShowRescheduleModal(false);
       setRescheduleAction(null);
       rescheduleWorkoutRef.current = null;
-      alert('Something went wrong. Please try again.');
+      showError('Something went wrong. Please try again.');
     }
   }, [todayWorkout, rescheduleAction, rescheduleTargetDate, selectedDate, refreshWorkoutData, refreshWeekSchedule, clientData?.id]);
 

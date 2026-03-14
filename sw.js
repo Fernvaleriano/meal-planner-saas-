@@ -1,6 +1,6 @@
 // Zique Fitness PWA Service Worker
-const CACHE_NAME = 'zique-fitness-v13';
-const STATIC_CACHE = 'zique-static-v13';
+const CACHE_NAME = 'zique-fitness-v14';
+const STATIC_CACHE = 'zique-static-v14';
 const DATA_CACHE = 'zique-data-v11';
 const CDN_CACHE = 'zique-cdn-v7';
 
@@ -8,27 +8,10 @@ const CDN_CACHE = 'zique-cdn-v7';
 const STATIC_FILES = [
   '/',
   '/index.html',
-  '/portal.html',
-  '/dashboard.html',
-  '/planner.html',
-  '/view-plan.html',
+  '/app',
   '/manifest.json',
-  // Client app pages
-  '/client-dashboard.html',
-  '/client-diary.html',
-  '/client-favorites.html',
-  '/client-recipes.html',
-  '/client-settings.html',
-  '/client-checkin.html',
-  '/client-progress.html',
-  '/client-plans.html',
-  '/client-login.html',
-  // Styles
-  '/styles/brand.css',
-  '/styles/coach-layout.css',
   // Core JS
-  '/js/theme.js',
-  '/js/branding.js'
+  '/js/theme.js'
 ];
 
 // CDN resources to cache (long-lived, rarely change)
@@ -92,19 +75,16 @@ const DATA_CACHE_MAX_AGE = 5 * 60 * 1000;
 
 // Install event - cache static files and CDN resources
 self.addEventListener('install', (event) => {
-  console.log('[SW] Installing service worker...');
   event.waitUntil(
     Promise.all([
       // Cache static files
       caches.open(STATIC_CACHE)
         .then((cache) => {
-          console.log('[SW] Caching static files');
           return cache.addAll(STATIC_FILES);
         }),
       // Cache CDN resources
       caches.open(CDN_CACHE)
         .then((cache) => {
-          console.log('[SW] Caching CDN resources');
           return Promise.all(
             CDN_FILES.map(url =>
               fetch(url, { mode: 'cors' })
@@ -113,19 +93,18 @@ self.addEventListener('install', (event) => {
                     return cache.put(url, response);
                   }
                 })
-                .catch(err => console.log('[SW] CDN cache error:', url, err))
+                .catch(() => {})
             )
           );
         })
     ])
     .then(() => self.skipWaiting())
-    .catch((err) => console.log('[SW] Cache error:', err))
+    .catch(() => {})
   );
 });
 
 // Activate event - clean up old caches
 self.addEventListener('activate', (event) => {
-  console.log('[SW] Activating service worker...');
   const keepCaches = [CACHE_NAME, STATIC_CACHE, DATA_CACHE, CDN_CACHE];
   event.waitUntil(
     caches.keys().then((cacheNames) => {
@@ -133,7 +112,6 @@ self.addEventListener('activate', (event) => {
         cacheNames
           .filter((name) => !keepCaches.includes(name))
           .map((name) => {
-            console.log('[SW] Deleting old cache:', name);
             return caches.delete(name);
           })
       );
@@ -159,7 +137,6 @@ self.addEventListener('fetch', (event) => {
   // CRITICAL: ALWAYS fetch client-feed.html fresh - never cache it
   // This must be first to prevent any caching issues
   if (url.pathname.includes('client-feed.html')) {
-    console.log('[SW] Bypassing ALL caching for client-feed.html');
     event.respondWith(
       fetch(request, { cache: 'no-store' }).catch(() => {
         return new Response('Client Feed temporarily unavailable', {
@@ -300,7 +277,7 @@ self.addEventListener('fetch', (event) => {
         .catch(() => {
           // Offline - try cache
           return caches.match(request).then((response) => {
-            return response || caches.match('/portal.html');
+            return response || caches.match('/app');
           });
         })
     );
@@ -340,7 +317,6 @@ self.addEventListener('message', (event) => {
     // Pre-fetch and cache API endpoints the user is likely to need next.
     // Called when the app resumes from background to make navigation instant.
     const urls = event.data.urls || [];
-    console.log('[SW] Warming cache for', urls.length, 'URLs');
 
     event.waitUntil(
       caches.open(DATA_CACHE).then((cache) => {
@@ -360,7 +336,6 @@ self.addEventListener('message', (event) => {
               }
             } catch (err) {
               // Silent fail — cache warming is best-effort
-              console.log('[SW] Warm cache miss:', url, err.message);
             }
           })
         );
@@ -384,7 +359,7 @@ self.addEventListener('push', (event) => {
       badge: '/icons/icon-72x72.png',
       vibrate: [100, 50, 100],
       data: {
-        url: data.url || '/portal.html'
+        url: data.url || '/app'
       }
     };
     event.waitUntil(
@@ -396,7 +371,7 @@ self.addEventListener('push', (event) => {
 // Handle notification clicks
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const url = event.notification.data?.url || '/portal.html';
+  const url = event.notification.data?.url || '/app';
   event.waitUntil(
     clients.openWindow(url)
   );

@@ -35,8 +35,6 @@ exports.handler = async (event, context) => {
     const { user, error: authError } = await authenticateCoach(event, coachId);
     if (authError) return authError;
 
-    console.log(`🔐 Authenticated coach ${user.id} deleting plan ${planId}`);
-
     // Initialize Supabase client with service key
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
@@ -51,7 +49,6 @@ exports.handler = async (event, context) => {
       console.warn('Warning: Could not delete shared plans:', sharedError.message);
       // Continue with coach plan deletion even if shared plan deletion fails
     } else {
-      console.log('Associated shared plans deleted for plan:', planId);
     }
 
     // Delete the meal plan (RLS policies ensure only the owner can delete)
@@ -71,8 +68,6 @@ exports.handler = async (event, context) => {
         })
       };
     }
-
-    console.log('Coach plan deleted:', planId);
 
     return {
       statusCode: 200,

@@ -260,13 +260,10 @@ exports.handler = async (event, context) => {
                 coach: coach,
                 client: { name: name.trim(), email: email.trim().toLowerCase() }
             });
-            console.log('Coach notification email sent for new client:', email);
         } catch (emailError) {
             console.error('Failed to send coach notification email:', emailError);
             // Don't fail registration if email fails
         }
-
-        console.log('Client self-registered:', newClient.id, 'Coach:', coach.id, 'User:', authUser.id);
 
         return {
             statusCode: 200,
@@ -383,7 +380,6 @@ async function completeExistingClientRegistration(supabase, clientId, coachId, b
                 coach: coachData,
                 client: { name: name.trim(), email: email.trim().toLowerCase() }
             });
-            console.log('Coach notification email sent for existing client registration:', email);
         }
     } catch (emailError) {
         console.error('Failed to send coach notification email:', emailError);
@@ -469,7 +465,6 @@ async function calculateAndSaveNutritionGoals(supabase, clientId, coachId, data)
                 }]);
         }
 
-        console.log('Nutrition goals saved:', { calories, protein, carbs, fat });
     } catch (error) {
         console.error('Error calculating nutrition goals:', error);
         // Don't fail registration if this fails

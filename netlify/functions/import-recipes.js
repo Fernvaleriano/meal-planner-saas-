@@ -30,7 +30,6 @@ exports.handler = async (event) => {
 
     try {
         const trimmed = fileContent.length > 25000 ? fileContent.substring(0, 25000) : fileContent;
-        console.log(`Importing recipes from text (${trimmed.length} chars)`);
 
         const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -83,8 +82,6 @@ Example output format:
         if (!Array.isArray(recipes) || recipes.length === 0) {
             throw new Error('No recipes could be extracted from the provided text.');
         }
-
-        console.log(`Extracted ${recipes.length} recipes`);
 
         return {
             statusCode: 200,

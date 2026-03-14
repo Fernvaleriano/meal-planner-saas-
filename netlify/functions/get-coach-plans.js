@@ -55,8 +55,6 @@ exports.handler = async (event, context) => {
       };
     }
 
-    console.log(`✅ Retrieved ${data.length} meal plans for coach ${coachId}`);
-
     return {
       statusCode: 200,
       headers: {

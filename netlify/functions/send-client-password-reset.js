@@ -43,8 +43,6 @@ exports.handler = async (event, context) => {
     const { user, error: authError } = await authenticateCoach(event, coachId);
     if (authError) return authError;
 
-    console.log(`🔐 Authenticated coach ${user.id} sending password reset for client ${clientId}`);
-
     // Initialize Supabase client with service key for admin operations
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
@@ -226,8 +224,6 @@ ${footerText}`;
         })
       };
     }
-
-    console.log(`✅ Password reset email sent to ${client.email} for client ${client.client_name}`);
 
     return {
       statusCode: 200,

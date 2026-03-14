@@ -29,7 +29,6 @@ exports.handler = async (event, context) => {
 
     try {
         const code = event.queryStringParameters?.code;
-        console.log('Validating signup code:', code);
 
         if (!code) {
             return {
@@ -40,7 +39,6 @@ exports.handler = async (event, context) => {
         }
 
         const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
-        console.log('Supabase client created, searching for code:', code.trim());
 
         // Find coach by signup code (case-insensitive)
         const { data: coach, error } = await supabase

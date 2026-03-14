@@ -16,7 +16,6 @@ const headers = {
 };
 
 exports.handler = async (event) => {
-    console.log('verify-checkout-session called');
 
     // Handle CORS preflight
     if (event.httpMethod === 'OPTIONS') {
@@ -84,7 +83,6 @@ exports.handler = async (event) => {
         }
 
         // Retrieve the checkout session from Stripe
-        console.log('Retrieving checkout session:', sessionId);
         let session;
         try {
             session = await stripe.checkout.sessions.retrieve(sessionId, {
@@ -107,8 +105,6 @@ exports.handler = async (event) => {
             };
         }
 
-        console.log('Session retrieved:', { status: session.status, customer: session.customer });
-
         // Verify the session belongs to this user
         const coachIdFromSession = session.metadata?.coach_id;
         const customerEmail = session.customer_email || session.customer_details?.email;
@@ -129,15 +125,12 @@ exports.handler = async (event) => {
             };
         }
 
-        console.log('Coach found:', { id: coach.id, email: coach.email });
-
         // Verify the session matches the coach (by ID or email)
         // Only check if coachIdFromSession is a non-empty string
         const coachIdMatches = !coachIdFromSession || coachIdFromSession === '' || coachIdFromSession === coach.id;
         const emailMatches = customerEmail && customerEmail.toLowerCase() === coach.email.toLowerCase();
 
         if (!coachIdMatches && !emailMatches) {
-            console.log('Session verification failed:', { coachIdFromSession, customerEmail, coachId: coach.id, coachEmail: coach.email });
             return {
                 statusCode: 403,
                 headers,
@@ -195,7 +188,6 @@ exports.handler = async (event) => {
                     newStatus = subDetails.status;
                 }
             } catch (e) {
-                console.log('Could not retrieve subscription details:', e.message);
             }
         }
 
@@ -235,8 +227,6 @@ exports.handler = async (event) => {
                 trial_ends_at: trialEndsAt,
                 updated_at: new Date().toISOString()
             }, { onConflict: 'coach_id' });
-
-        console.log('Verified and updated subscription for coach:', coach.email, 'Status:', newStatus);
 
         return {
             statusCode: 200,

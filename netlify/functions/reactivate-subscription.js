@@ -140,7 +140,6 @@ exports.handler = async (event) => {
                     };
                 }
             } catch (stripeError) {
-                console.log('Could not reactivate existing subscription:', stripeError.message);
                 // Fall through to create new subscription
             }
         }

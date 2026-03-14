@@ -129,7 +129,6 @@ exports.handler = async (event, context) => {
 
             // If insert failed due to missing frequency columns, retry without them
             if (error && error.message && error.message.includes('frequency')) {
-                console.log('Frequency columns not found, retrying without them');
                 const retryResult = await supabase
                     .from('supplement_library')
                     .insert([insertData])
@@ -216,7 +215,6 @@ exports.handler = async (event, context) => {
 
             // If update failed due to missing frequency columns, retry without them
             if (error && error.message && error.message.includes('frequency')) {
-                console.log('Frequency columns not found, retrying without them');
                 const retryResult = await supabase
                     .from('supplement_library')
                     .update(updateData)

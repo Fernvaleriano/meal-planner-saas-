@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, apiPut, apiDelete } from '../utils/api';
 import { usePullToRefreshEvent } from '../hooks/usePullToRefreshEvent';
 
+import { useToast } from '../components/Toast';
 const CATEGORIES = [
   { id: 'all', icon: '📖', label: 'All' },
   { id: 'grab_go', icon: '⚡', label: 'Grab & Go' },
@@ -51,6 +52,7 @@ const EMPTY_FORM = {
 function Recipes() {
   const navigate = useNavigate();
   const { user, clientData } = useAuth();
+  const { showError, showSuccess } = useToast();
   const isCoach = clientData?.is_coach === true;
   const coachId = isCoach ? user?.id : clientData?.coach_id;
 
@@ -86,12 +88,12 @@ function Recipes() {
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      alert('Please select an image file.');
+      showError('Please select an image file.');
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      alert('Image must be under 5MB.');
+      showError('Image must be under 5MB.');
       return;
     }
 
@@ -112,12 +114,12 @@ function Recipes() {
         if (result?.imageUrl) {
           handleFormChange('image_url', result.imageUrl);
         } else {
-          alert('Failed to upload image. Please try again.');
+          showError('Failed to upload image. Please try again.');
           setImagePreview(null);
         }
       } catch (err) {
         console.error('Error uploading image:', err);
-        alert('Failed to upload image. Please try again.');
+        showError('Failed to upload image. Please try again.');
         setImagePreview(null);
       } finally {
         setUploadingImage(false);
@@ -309,7 +311,7 @@ function Recipes() {
 
   const handleSaveRecipe = async () => {
     if (!formData.name.trim()) {
-      alert('Recipe name is required.');
+      showError('Recipe name is required.');
       return;
     }
 
@@ -348,7 +350,7 @@ function Recipes() {
       await loadRecipes();
     } catch (err) {
       console.error('Error saving recipe:', err);
-      alert('Failed to save recipe. Please try again.');
+      showError('Failed to save recipe. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -363,7 +365,7 @@ function Recipes() {
       await loadRecipes();
     } catch (err) {
       console.error('Error deleting recipe:', err);
-      alert('Failed to delete recipe. Please try again.');
+      showError('Failed to delete recipe. Please try again.');
     }
   };
 
@@ -371,7 +373,7 @@ function Recipes() {
 
   const handleFavorite = async () => {
     if (!selectedRecipe || !clientData?.id) {
-      alert('Unable to save. Please try again.');
+      showError('Unable to save. Please try again.');
       return;
     }
 
@@ -391,10 +393,10 @@ function Recipes() {
       if (clientData?.id) {
         sessionStorage.removeItem(`favorites_${clientData.id}`);
       }
-      alert('Recipe saved to favorites!');
+      showSuccess('Recipe saved to favorites!');
     } catch (err) {
       console.error('Error saving favorite:', err);
-      alert('Could not save to favorites. Please try again.');
+      showError('Could not save to favorites. Please try again.');
     }
   };
 

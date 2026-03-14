@@ -599,14 +599,6 @@ exports.handler = async (event) => {
     // (e.g. sumo deadlift stored as "arms" but detected as "legs")
     const effectiveMuscleGroup = detectedMuscleGroup || muscleGroup;
 
-    console.log("AI Swap - Exercise:", exerciseName, "| Stored muscle:", muscleGroup,
-      "| Detected muscle:", detectedMuscleGroup,
-      "| Effective:", effectiveMuscleGroup,
-      "| Pattern:", origMovement.pattern, "| Specific:", origMovement.muscle,
-      "| Sub:", JSON.stringify(origMovement.subPatterns),
-      "| Equipment filter:", equipment,
-      "| Refresh:", previousSuggestionIds.length > 0 ? `yes (excluding ${previousSuggestionIds.length} previous)` : "no");
-
     // Fetch potential alternatives from database - increased limit for better candidates
     let query = supabase
       .from("exercises")
@@ -681,9 +673,6 @@ exports.handler = async (event) => {
 
     // Clean internal fields for the sorted list
     const sortedAlternatives = scored.map(({ _score, _reasons, _altMovement, ...rest }) => rest);
-
-    console.log("AI Swap - After filtering:", sortedAlternatives.length,
-      "| Top 5:", scored.slice(0, 5).map(a => `${a.name} (${a._score})`));
 
     if (sortedAlternatives.length === 0) {
       return { statusCode: 200, headers, body: JSON.stringify({ suggestions: [], message: "No alternative exercises available" }) };
@@ -763,7 +752,6 @@ Select exactly 5.`;
       if (jsonMatch) {
         const parsed = JSON.parse(jsonMatch[0]);
         aiSuggestions = parsed.suggestions || [];
-        console.log("AI Swap - GPT-4o-mini returned", aiSuggestions.length, "suggestions");
       }
     } catch (openaiError) {
       console.error("GPT-4o-mini failed, trying Claude fallback:", openaiError.message);
@@ -785,7 +773,6 @@ Select exactly 5.`;
         if (jsonMatch) {
           const parsed = JSON.parse(jsonMatch[0]);
           aiSuggestions = parsed.suggestions || [];
-          console.log("AI Swap - Claude fallback returned", aiSuggestions.length, "suggestions");
         }
       } catch (claudeError) {
         console.error("Claude fallback also failed:", claudeError.message);

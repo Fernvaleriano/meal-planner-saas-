@@ -54,7 +54,6 @@ exports.handler = async (event, context) => {
             .single();
 
         if (clientError || !client) {
-            console.log('Token not found or error:', clientError?.message);
             return {
                 statusCode: 404,
                 headers,

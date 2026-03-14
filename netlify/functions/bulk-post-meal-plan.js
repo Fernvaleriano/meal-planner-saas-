@@ -70,8 +70,6 @@ exports.handler = async (event, context) => {
     const { user, error: authError } = await authenticateCoach(event, coachId);
     if (authError) return authError;
 
-    console.log(`🔵 Bulk post: Coach ${user.id} posting plan to ${clientIds.length} clients`);
-
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
       auth: { persistSession: false }
     });
@@ -155,8 +153,6 @@ exports.handler = async (event, context) => {
         };
       }
 
-      console.log(`✅ Bulk post (fallback): Created ${fallbackData.length} plans`);
-
       // Create notifications for fallback path (client_id may not be in result, use original clientIds)
       try {
         const notificationRows = clientIds.map(cId => ({
@@ -171,7 +167,6 @@ exports.handler = async (event, context) => {
 
         if (notificationRows.length > 0) {
           await supabase.from('notifications').insert(notificationRows);
-          console.log(`🔔 Notifications sent to ${notificationRows.length} client(s) (fallback)`);
         }
       } catch (notifError) {
         console.error('⚠️ Failed to send notifications (fallback):', notifError);
@@ -188,8 +183,6 @@ exports.handler = async (event, context) => {
         })
       };
     }
-
-    console.log(`✅ Bulk post: Created ${insertedPlans.length} plans`);
 
     // Create notifications for each client
     try {
@@ -208,7 +201,6 @@ exports.handler = async (event, context) => {
 
       if (notificationRows.length > 0) {
         await supabase.from('notifications').insert(notificationRows);
-        console.log(`🔔 Notifications sent to ${notificationRows.length} client(s)`);
       }
     } catch (notifError) {
       // Don't fail the bulk post if notifications fail

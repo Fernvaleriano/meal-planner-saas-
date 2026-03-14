@@ -123,7 +123,6 @@ exports.handler = async (event) => {
 
   try {
     const { query, clientId } = event.queryStringParameters || {};
-    console.log(`Food search request: query="${query}", clientId="${clientId}"`);
 
     if (!query || query.length < 2) {
       return {
@@ -426,7 +425,6 @@ exports.handler = async (event) => {
       }
     }
 
-    console.log(`Food search returning ${results.length} results for "${query}"`);
     return {
       statusCode: 200,
       headers,

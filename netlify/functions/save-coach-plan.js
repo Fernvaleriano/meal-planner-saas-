@@ -6,18 +6,15 @@ const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.s
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
 exports.handler = async (event, context) => {
-  console.log('🔵 save-coach-plan function invoked');
 
   // Handle CORS preflight requests
   const corsResponse = handleCors(event);
   if (corsResponse) {
-    console.log('✅ CORS preflight handled');
     return corsResponse;
   }
 
   // Only allow POST requests
   if (event.httpMethod !== 'POST') {
-    console.log('❌ Invalid method:', event.httpMethod);
     return {
       statusCode: 405,
       headers: corsHeaders,
@@ -38,7 +35,6 @@ exports.handler = async (event, context) => {
 
     // Log request body size
     const bodySize = event.body ? event.body.length : 0;
-    console.log(`📦 Request body size: ${(bodySize / 1024).toFixed(2)} KB`);
 
     let parsedBody;
     try {
@@ -54,8 +50,6 @@ exports.handler = async (event, context) => {
 
     const { coachId, clientName, planData, clientId, planId, planName } = parsedBody;
 
-    console.log('📝 Saving plan for coach:', coachId, 'client:', clientName, 'clientId:', clientId, 'planId:', planId, 'planName:', planName);
-
     if (!coachId || !planData) {
       return {
         statusCode: 400,
@@ -68,8 +62,6 @@ exports.handler = async (event, context) => {
     const { user, error: authError } = await authenticateCoach(event, coachId);
     if (authError) return authError;
 
-    console.log(`🔐 Authenticated coach ${user.id} saving meal plan`);
-
     // Initialize Supabase client with service key (bypasses RLS)
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
       auth: { persistSession: false }
@@ -79,7 +71,6 @@ exports.handler = async (event, context) => {
 
     // If planId exists, UPDATE the existing plan instead of creating a new one
     if (planId) {
-      console.log('📝 Updating existing plan:', planId);
 
       const updateData = {
         plan_data: planData,
@@ -113,12 +104,10 @@ exports.handler = async (event, context) => {
 
       // If error and we included optional columns, retry without them
       if (error && optionalColumns.length > 0) {
-        console.log('⚠️ Update failed with optional columns, retrying. Error:', error.message);
 
         // Remove all optional columns
         for (const col of optionalColumns) {
           if (updateData[col] !== undefined) {
-            console.log(`⚠️ Removing optional column: ${col}`);
             delete updateData[col];
           }
         }
@@ -137,11 +126,9 @@ exports.handler = async (event, context) => {
       if (error) {
         console.error('❌ Update error:', error);
       } else {
-        console.log('✅ Plan updated successfully:', planId);
       }
     } else {
       // No planId - INSERT a new plan
-      console.log('📝 Creating new plan');
 
       const insertData = {
         coach_id: coachId,
@@ -175,12 +162,10 @@ exports.handler = async (event, context) => {
 
       // If error and we included optional columns, retry without them one at a time
       if (error && optionalColumns.length > 0) {
-        console.log('⚠️ Insert failed with optional columns, retrying. Error:', error.message);
 
         // Try removing each optional column
         for (const col of optionalColumns) {
           if (insertData[col] !== undefined) {
-            console.log(`⚠️ Removing optional column: ${col}`);
             delete insertData[col];
           }
         }
@@ -197,7 +182,6 @@ exports.handler = async (event, context) => {
       if (error) {
         console.error('❌ Insert error:', error);
       } else {
-        console.log('✅ Plan created successfully with ID:', data.id);
       }
     }
 
@@ -223,8 +207,6 @@ exports.handler = async (event, context) => {
         })
       };
     }
-
-    console.log('✅ Meal plan saved with ID:', data.id);
 
     return {
       statusCode: 200,

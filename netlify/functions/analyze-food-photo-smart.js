@@ -53,8 +53,6 @@ exports.handler = async (event, context) => {
             return rateLimitResponse(rateLimit.resetIn);
         }
 
-        console.log(`🧠 Smart analysis for user ${user.id} (${rateLimit.remaining} requests remaining)`);
-
         if (!ANTHROPIC_API_KEY) {
             console.error('ANTHROPIC_API_KEY is not configured');
             return {
@@ -101,8 +99,6 @@ exports.handler = async (event, context) => {
 
         // User-provided context about the food (optional)
         const userContext = details ? details.trim() : null;
-
-        console.log('🧠 Calling Claude Sonnet for smart food analysis...');
 
         // Build the prompt
         const analysisPrompt = `Analyze this food image carefully and identify all food items visible. For each item, provide accurate nutritional estimates.
@@ -212,8 +208,6 @@ Take your time to be accurate. Return ONLY the JSON array.`;
             };
         }
 
-        console.log('✅ Claude Sonnet response received');
-
         const content = message.content?.[0]?.text || '';
         if (!content) {
             console.error('No content from Claude:', JSON.stringify(message).substring(0, 500));
@@ -223,8 +217,6 @@ Take your time to be accurate. Return ONLY the JSON array.`;
                 body: JSON.stringify({ foods: [], model: 'claude-haiku', smart: true })
             };
         }
-
-        console.log('Claude response:', content.substring(0, 200));
 
         // Parse the response
         let foods = [];

@@ -54,8 +54,6 @@ exports.handler = async (event, context) => {
     const { user, error: authError } = await authenticateCoach(event, coachId);
     if (authError) return authError;
 
-    console.log(`🔐 Authenticated coach ${user.id} inviting client ${clientId}`);
-
     // Initialize Supabase client with service key for admin operations
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
@@ -151,10 +149,7 @@ exports.handler = async (event, context) => {
       console.warn('Warning: Could not send invitation email:', emailResult.error);
       // Don't fail - token was still created
     } else {
-      console.log('Intake invitation email sent successfully:', emailResult.messageId);
     }
-
-    console.log('Client invited successfully with intake form:', clientId);
 
     return {
       statusCode: 200,

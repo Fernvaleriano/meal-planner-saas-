@@ -132,7 +132,6 @@ exports.handler = async (event, context) => {
 
             if (error) {
                 // Database error - return error status so frontend knows to revert
-                console.log('Dismiss error:', error.message);
                 return {
                     statusCode: 500,
                     headers: corsHeaders,
@@ -153,8 +152,6 @@ exports.handler = async (event, context) => {
                     .eq('id', relatedCheckinId)
                     .eq('coach_id', coachId);
             }
-
-            console.log(`✅ Dismissed activity: ${reason} for client ${clientId}`);
 
             return {
                 statusCode: 200,
@@ -187,7 +184,6 @@ exports.handler = async (event, context) => {
 
             if (error) {
                 // Database error - return error status so frontend knows to revert
-                console.log('Restore error:', error.message);
                 return {
                     statusCode: 500,
                     headers: corsHeaders,
@@ -198,8 +194,6 @@ exports.handler = async (event, context) => {
                     })
                 };
             }
-
-            console.log(`✅ Restored activity: ${reason} for client ${clientId}`);
 
             return {
                 statusCode: 200,
@@ -273,7 +267,6 @@ exports.handler = async (event, context) => {
             }
 
             if (error) {
-                console.log('Pin/unpin error:', error.message);
                 return {
                     statusCode: 500,
                     headers: corsHeaders,
@@ -284,8 +277,6 @@ exports.handler = async (event, context) => {
                     })
                 };
             }
-
-            console.log(`✅ ${isPinning ? 'Pinned' : 'Unpinned'} activity: ${reason} for client ${clientId}`);
 
             return {
                 statusCode: 200,

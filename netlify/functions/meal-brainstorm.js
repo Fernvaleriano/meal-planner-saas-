@@ -241,7 +241,6 @@ IMPORTANT:
                     responseMessage = parsed.message || 'Here are some suggestions:';
                 }
             } catch (parseError) {
-                console.log('Could not parse JSON response, using as plain text:', parseError.message);
                 // Fall back to plain text response
             }
         }

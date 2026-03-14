@@ -18,8 +18,6 @@ exports.handler = withTimeout(async (event) => {
     return { statusCode: 200, headers, body: '' };
   }
 
-  console.log('food-diary function called:', event.httpMethod);
-
   if (!SUPABASE_SERVICE_KEY) {
     console.error('SUPABASE_SERVICE_KEY is not configured!');
     return {
@@ -217,7 +215,6 @@ exports.handler = withTimeout(async (event) => {
           body: JSON.stringify({ error: 'Invalid JSON body' })
         };
       }
-      console.log('POST - Received body:', JSON.stringify(body));
 
       const {
         clientId,
@@ -249,7 +246,6 @@ exports.handler = withTimeout(async (event) => {
       } = body;
 
       if (!clientId || !foodName || !mealType) {
-        console.log('POST - Missing required fields:', { clientId, foodName, mealType });
         return {
           statusCode: 400,
           headers,
@@ -308,14 +304,12 @@ exports.handler = withTimeout(async (event) => {
 
         if (clientRecord?.coach_id) {
           resolvedCoachId = clientRecord.coach_id;
-          console.log('POST - Looked up coach_id from client record:', resolvedCoachId);
         }
       }
 
       if (resolvedCoachId && typeof resolvedCoachId === 'string' && resolvedCoachId.length > 0) {
         insertData.coach_id = resolvedCoachId;
       }
-      console.log('POST - Inserting:', JSON.stringify(insertData));
 
       let { data: entry, error } = await supabase
         .from('food_diary_entries')
@@ -355,7 +349,6 @@ exports.handler = withTimeout(async (event) => {
         entry = fallbackResult.data;
       }
 
-      console.log('POST - Successfully inserted entry:', JSON.stringify(entry));
       return {
         statusCode: 200,
         headers,
@@ -435,7 +428,6 @@ exports.handler = withTimeout(async (event) => {
     // DELETE - Remove an entry
     if (event.httpMethod === 'DELETE') {
       const { entryId } = event.queryStringParameters || {};
-      console.log('DELETE - Attempting to delete entryId:', entryId);
 
       if (!entryId) {
         return {
@@ -452,8 +444,6 @@ exports.handler = withTimeout(async (event) => {
         .eq('id', entryId)
         .single();
 
-      console.log('DELETE - Found entry:', existing, 'Error:', findError);
-
       if (findError || !existing) {
         return {
           statusCode: 404,
@@ -466,8 +456,6 @@ exports.handler = withTimeout(async (event) => {
         .from('food_diary_entries')
         .delete()
         .eq('id', entryId);
-
-      console.log('DELETE - Result error:', error, 'count:', count);
 
       if (error) {
         console.error('DELETE - Error:', error);

@@ -50,7 +50,6 @@ async function ensureBucketExists(supabase) {
         const bucketExists = buckets.some(b => b.name === BUCKET_NAME);
 
         if (!bucketExists) {
-            console.log(`Creating bucket: ${BUCKET_NAME}`);
             const { data, error: createError } = await supabase.storage.createBucket(BUCKET_NAME, {
                 public: true,
                 fileSizeLimit: MAX_FILE_SIZE
@@ -60,7 +59,6 @@ async function ensureBucketExists(supabase) {
                 console.error('Error creating bucket:', createError);
                 return { success: false, error: createError.message };
             }
-            console.log('Bucket created successfully');
         }
 
         return { success: true };
@@ -290,7 +288,6 @@ exports.handler = async (event, context) => {
         if (currentUrl) {
             const urlParts = currentUrl.split(`${BUCKET_NAME}/`);
             if (urlParts.length > 1) {
-                console.log('Deleting old logo:', urlParts[1]);
                 await supabase.storage.from(BUCKET_NAME).remove([urlParts[1]]);
             }
         }

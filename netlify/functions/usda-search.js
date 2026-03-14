@@ -404,7 +404,6 @@ exports.handler = async (event, context) => {
 
   // Always search local database first for curated, accurate results
   const localResults = searchLocalDatabase(query);
-  console.log(`🔍 Local database: ${localResults.length} results for "${query}"`);
 
   // Track names already in local results to avoid duplicates
   const seenNames = new Set(localResults.map(r => r.name.toLowerCase()));
@@ -414,8 +413,6 @@ exports.handler = async (event, context) => {
   if (EDAMAM_APP_ID && EDAMAM_API_KEY) {
     try {
       const searchUrl = `${EDAMAM_API_URL}?app_id=${EDAMAM_APP_ID}&app_key=${EDAMAM_API_KEY}&ingr=${encodeURIComponent(query)}&nutrition-type=logging`;
-
-      console.log(`🔍 Searching Edamam for: "${query}"`);
 
       // Add 5-second timeout to prevent hanging requests
       const controller = new AbortController();
@@ -529,8 +526,6 @@ exports.handler = async (event, context) => {
         };
       }).filter(food => food.caloriesPer100g > 0 && !seenNames.has(food.name.toLowerCase()));
 
-      console.log(`✅ Edamam returned ${edamamFoods.length} unique foods for "${query}"`);
-
     } catch (edamamError) {
       if (edamamError.name === 'AbortError') {
         console.error('❌ Edamam search timed out after 5s');
@@ -540,13 +535,11 @@ exports.handler = async (event, context) => {
       // Continue with local results only
     }
   } else {
-    console.log('⚠️ Edamam credentials not configured, using local database only');
   }
 
   // Merge: local curated results first, then Edamam results
   const allResults = [...localResults, ...edamamFoods].slice(0, 20);
   const source = edamamFoods.length > 0 ? 'local+edamam' : 'local';
-  console.log(`✅ Returning ${allResults.length} total results (${localResults.length} local + ${edamamFoods.length} edamam)`);
 
   return {
     statusCode: 200,

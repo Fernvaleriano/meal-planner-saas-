@@ -28,7 +28,6 @@ async function ensureBucketExists(supabase) {
     const bucketExists = buckets.some(b => b.name === BUCKET_NAME);
 
     if (!bucketExists) {
-      console.log(`Creating bucket: ${BUCKET_NAME}`);
       const { data, error: createError } = await supabase.storage.createBucket(BUCKET_NAME, {
         public: true,
         fileSizeLimit: 5242880 // 5MB
@@ -38,7 +37,6 @@ async function ensureBucketExists(supabase) {
         console.error('Error creating bucket:', createError);
         return false;
       }
-      console.log('Bucket created successfully');
     }
 
     return true;
@@ -78,8 +76,6 @@ async function generateMealImageCheap(mealName, customPrompt = null) {
     ? `Professional food photography: ${customPrompt}. Beautiful presentation. Top-down or 45-degree angle. Soft natural lighting. Appetizing and realistic. No text, words, or labels.`
     : `Professional food photography of a healthy fitness meal: ${mealName}. Show this as a complete, cohesive plated dish cooked together - NOT separate ingredients laid out. The meal should look like something served at a healthy restaurant. Beautiful presentation. Top-down or 45-degree angle. Soft natural lighting. Appetizing and realistic. No text, words, or labels.`;
 
-  console.log('Using Flux Schnell (cheap) for:', mealName);
-
   const response = await fetch('https://api.replicate.com/v1/models/black-forest-labs/flux-schnell/predictions', {
     method: 'POST',
     headers: {
@@ -104,7 +100,6 @@ async function generateMealImageCheap(mealName, customPrompt = null) {
   }
 
   const prediction = await response.json();
-  console.log('Flux Schnell prediction status:', prediction.status);
 
   if (prediction.status === 'succeeded' && prediction.output) {
     const imageUrl = Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
@@ -126,7 +121,6 @@ async function generateMealImageCheap(mealName, customPrompt = null) {
 
       if (!pollResponse.ok) throw new Error('Failed to poll prediction status');
       result = await pollResponse.json();
-      console.log(`Flux Schnell poll attempt ${attempts}: ${result.status}`);
     }
 
     if (result.status === 'succeeded' && result.output) {
@@ -150,10 +144,6 @@ async function generateMealImage(mealName, customPrompt = null) {
   const prompt = customPrompt
     ? `Professional food photography: ${customPrompt}. Beautiful presentation. Top-down or 45-degree angle. Soft natural lighting. Appetizing and realistic. No text, words, or labels.`
     : `Professional food photography of a healthy fitness meal: ${mealName}. Show this as a complete, cohesive plated dish cooked together - NOT separate ingredients laid out. The meal should look like something served at a healthy restaurant or home-cooked in a skillet/pan. Beautiful presentation. Top-down or 45-degree angle. Soft natural lighting. Appetizing and realistic. No text, words, or labels.`;
-
-  console.log('Using prompt:', customPrompt ? 'CUSTOM' : 'AUTO', '-', prompt.substring(0, 100) + '...');
-
-  console.log('Calling Replicate Imagen 4 Fast API...');
 
   // Create prediction using Google Imagen 4 Fast (fast, excellent photorealism)
   const response = await fetch('https://api.replicate.com/v1/models/google/imagen-4-fast/predictions', {
@@ -179,7 +169,6 @@ async function generateMealImage(mealName, customPrompt = null) {
   }
 
   const prediction = await response.json();
-  console.log('Replicate prediction status:', prediction.status);
 
   // If using 'Prefer: wait', result should be ready
   if (prediction.status === 'succeeded' && prediction.output) {
@@ -209,7 +198,6 @@ async function generateMealImage(mealName, customPrompt = null) {
       }
 
       result = await pollResponse.json();
-      console.log(`Poll attempt ${attempts}: ${result.status}`);
     }
 
     if (result.status === 'succeeded' && result.output) {
@@ -267,7 +255,6 @@ exports.handler = async (event, context) => {
       }
 
       const imageKey = normalizeMealName(mealName);
-      console.log(`Looking up image for "${mealName}" with key: ${imageKey}`);
 
       // Check if image exists in database by normalized name
       let { data: existingImage, error } = await supabase
@@ -337,7 +324,6 @@ exports.handler = async (event, context) => {
       }
 
       const imageKey = normalizeMealName(mealName);
-      console.log(`POST: Looking up image for "${mealName}" with key: ${imageKey}`);
 
       // Check if image already exists for this meal
       let { data: existingImage } = await supabase
@@ -368,7 +354,6 @@ exports.handler = async (event, context) => {
       if (existingImage) {
         // If regenerate flag is set, delete the old image first
         if (regenerate) {
-          console.log(`Regenerating image for: ${mealName}`);
 
           // Delete from storage
           if (existingImage.storage_path) {
@@ -406,9 +391,6 @@ exports.handler = async (event, context) => {
           body: JSON.stringify({ error: 'Failed to initialize storage bucket' })
         };
       }
-
-      console.log(`Generating image for: ${mealName}${customPrompt ? ' (custom prompt)' : ''}${cheapModel ? ' (Flux Schnell)' : ' (Imagen 4)'}`);
-      console.log(`Will be stored with key: ${imageKey}`);
 
       // Use Flux Schnell for swapped/revised meals (cheap), Imagen 4 for initial plans
       const imageUrl = cheapModel

@@ -80,7 +80,6 @@ exports.handler = async (event) => {
           .from('story-images')
           .remove([fileName]);
       } catch (e) {
-        console.log('Could not delete image from storage:', e);
         // Not critical, continue
       }
     }

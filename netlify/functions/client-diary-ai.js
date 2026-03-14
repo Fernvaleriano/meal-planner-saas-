@@ -74,7 +74,6 @@ function validateCountableFoodNutrition(parsedResponse, userMessage) {
     const tolerance = 0.30;
 
     if (calPerPiece < matchedRef.cal * (1 - tolerance) || calPerPiece > matchedRef.cal * (1 + tolerance)) {
-        console.log(`Nutritional correction: ${parsedResponse.food_name} - AI said ${parsedResponse.calories} cal (${Math.round(calPerPiece)}/piece), corrected to ${correctCal} cal (${matchedRef.cal}/piece) for ${count} ${matchedRef.label}(s)`);
         parsedResponse.calories = correctCal;
         parsedResponse.protein = Math.round(correctProtein);
         parsedResponse.carbs = Math.round(correctCarbs);
@@ -618,7 +617,6 @@ Look at the data and share 1-2 actionable insights:
                     const hasTapPrompt = /tap any option|tap to log/i.test(msg.content);
                     const hasFoodTags = /\[\[FOOD:/i.test(msg.content);
                     if (hasTapPrompt && !hasFoodTags) {
-                        console.log('Filtering out broken AI response from history');
                         continue; // Skip this bad example
                     }
                 }
@@ -682,7 +680,6 @@ Look at the data and share 1-2 actionable insights:
 
         // If response says "tap any option" but has no [[FOOD:...]] tags, retry once with a reminder
         if (isMissingFoodSuggestions(aiResponse)) {
-            console.log('AI response missing food suggestions, retrying with reminder...');
 
             // Add a reminder message and retry
             const retryContents = [...contents, {

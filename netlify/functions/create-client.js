@@ -47,8 +47,6 @@ exports.handler = async (event, context) => {
     const { user, error: authError } = await authenticateCoach(event, coachId);
     if (authError) return authError;
 
-    console.log(`🔐 Authenticated coach ${user.id} creating new client`);
-
     // Initialize Supabase client with service key
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
@@ -98,7 +96,6 @@ exports.handler = async (event, context) => {
     const limit = CLIENT_LIMITS[tier] || 10;
 
     if (currentClientCount >= limit) {
-      console.log(`⚠️ Client limit reached: ${currentClientCount}/${limit} for tier ${tier}`);
       return {
         statusCode: 403,
         headers: { 'Access-Control-Allow-Origin': '*' },
@@ -121,7 +118,6 @@ exports.handler = async (event, context) => {
         .single();
 
       if (existingCoach) {
-        console.log(`⚠️ Email ${email} is already registered as a coach`);
         return {
           statusCode: 400,
           headers: corsHeaders,
@@ -161,7 +157,6 @@ exports.handler = async (event, context) => {
     // If password is provided, create the auth user first
     let authUserId = null;
     if (password && email) {
-      console.log(`🔐 Creating auth user for client email: ${email}`);
 
       const { data: authData, error: authError } = await supabase.auth.admin.createUser({
         email: email,
@@ -172,7 +167,6 @@ exports.handler = async (event, context) => {
       if (authError) {
         // Check if user already exists
         if (authError.message.includes('already') || authError.message.includes('exists') || authError.message.includes('registered')) {
-          console.log(`⚠️ Email ${email} is already registered as a user`);
           return {
             statusCode: 400,
             headers: corsHeaders,
@@ -195,7 +189,6 @@ exports.handler = async (event, context) => {
       }
 
       authUserId = authData.user.id;
-      console.log(`✅ Auth user created with ID: ${authUserId}`);
     }
 
     // Insert new client with all fields
@@ -262,7 +255,6 @@ exports.handler = async (event, context) => {
     }
 
     const accountCreated = !!authUserId;
-    console.log(`✅ Created client: ${clientName} (ID: ${data.id})${accountCreated ? ' with account' : ''}`);
 
     return {
       statusCode: 200,

@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, apiDelete } from '../utils/api';
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
 
+import { useToast } from '../components/Toast';
 // Get today's date in local timezone (NOT UTC)
 const getLocalDateString = () => {
   const now = new Date();
@@ -160,6 +161,7 @@ function MiniChart({ dataPoints, color = '#14b8a6' }) {
 function Progress() {
   const navigate = useNavigate();
   const { clientData } = useAuth();
+  const { showError, showSuccess } = useToast();
 
   // Get user's preferred units
   const isMetric = clientData?.unit_preference === 'metric';
@@ -360,7 +362,7 @@ function Progress() {
   const handleSaveMeasurement = async (e) => {
     e.preventDefault();
     if (!clientData?.id || !clientData?.coach_id) {
-      alert('Session data missing. Please refresh the page and try again.');
+      showError('Session data missing. Please refresh the page and try again.');
       return;
     }
 
@@ -384,6 +386,7 @@ function Progress() {
         notes: measurementForm.notes || null
       });
 
+      showSuccess('Measurement saved!');
       setShowMeasurementModal(false);
       setMeasurementForm({
         date: getLocalDateString(),
@@ -394,7 +397,7 @@ function Progress() {
       loadMeasurements();
     } catch (err) {
       console.error('Error saving measurement:', err);
-      alert(err.message || 'Error saving measurement. Please try again.');
+      showError(err.message || 'Error saving measurement. Please try again.');
     } finally {
       setSavingMeasurement(false);
     }
@@ -408,7 +411,7 @@ function Progress() {
       setMeasurements(prev => prev.filter(m => m.id !== measurementId));
     } catch (err) {
       console.error('Error deleting measurement:', err);
-      alert('Failed to delete measurement. Please try again.');
+      showError('Failed to delete measurement. Please try again.');
     }
   };
 
@@ -420,7 +423,7 @@ function Progress() {
       setPhotos(prev => prev.filter(p => p.id !== photoId));
     } catch (err) {
       console.error('Error deleting photo:', err);
-      alert('Failed to delete photo. Please try again.');
+      showError('Failed to delete photo. Please try again.');
     }
   };
 
@@ -434,14 +437,19 @@ function Progress() {
       setPhotoPreview(compressed);
     } catch (err) {
       console.error('Error processing photo:', err);
-      alert('Error processing photo. Please try a different image.');
+      showError('Error processing photo. Please try a different image.');
     }
   };
 
   const handleUploadPhoto = async () => {
-    if (!photoPreview) { alert('Please select a photo first.'); return; }
+    if (!photoPreview) {
+      showError('Please select a photo first.');
+      return;
+    }
+
+    // Validate required data
     if (!clientData?.id || !clientData?.coach_id) {
-      alert('Session data missing. Please refresh the page and try again.');
+      showError('Session data missing. Please refresh the page and try again.');
       return;
     }
 
@@ -455,6 +463,7 @@ function Progress() {
         takenDate: photoDate
       });
 
+      showSuccess('Photo uploaded!');
       setShowPhotoModal(false);
       setPhotoPreview(null);
       setPhotoFile(null);
@@ -463,7 +472,7 @@ function Progress() {
       loadPhotos();
     } catch (err) {
       console.error('Error uploading photo:', err);
-      alert(err.message || 'Error uploading photo. Please try again.');
+      showError(err.message || 'Error uploading photo. Please try again.');
     } finally {
       setUploadingPhoto(false);
     }

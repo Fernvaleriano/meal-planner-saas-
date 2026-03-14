@@ -157,7 +157,6 @@ function tokensOverlap(requiredTokens, candidateTokens) {
   return requiredTokens.some(token => candidateSet.has(token));
 }
 
-
 function hasUnexpectedQualifiers(pdfName, candidateName) {
   const pdfTokens = extractCriticalTokens(pdfName, DISAMBIGUATION_TOKENS);
   const candidateTokens = extractCriticalTokens(candidateName, DISAMBIGUATION_TOKENS);
@@ -189,7 +188,6 @@ function isMuscleCompatible(pdfMuscleGroup, exercise) {
 
   return false;
 }
-
 
 function extractRestSecondsFromNote(noteText) {
   if (!noteText) return null;
@@ -656,7 +654,6 @@ async function parseWithGPT4oMini(chunk, chunkIndex) {
   if (!parsed.exercises || !Array.isArray(parsed.exercises)) {
     throw new Error('Response missing exercises array');
   }
-  console.log(`Day ${chunkIndex + 1}: GPT-4o-mini parsed ${parsed.exercises.length} exercises`);
   return parsed;
 }
 
@@ -680,7 +677,6 @@ async function parseWithHaiku(anthropic, chunk, chunkIndex) {
   try {
     const parsed = JSON.parse(text.trim());
     if (parsed.exercises && Array.isArray(parsed.exercises)) {
-      console.log(`Day ${chunkIndex + 1}: Haiku parsed ${parsed.exercises.length} exercises`);
       return parsed;
     }
   } catch (e) { /* try extraction */ }
@@ -691,7 +687,6 @@ async function parseWithHaiku(anthropic, chunk, chunkIndex) {
     try {
       const parsed = JSON.parse(fenceMatch[1].trim());
       if (parsed.exercises && Array.isArray(parsed.exercises)) {
-        console.log(`Day ${chunkIndex + 1}: Haiku parsed ${parsed.exercises.length} exercises (from fence)`);
         return parsed;
       }
     } catch (e) { /* try next */ }
@@ -703,7 +698,6 @@ async function parseWithHaiku(anthropic, chunk, chunkIndex) {
     try {
       const parsed = JSON.parse(jsonMatch[0]);
       if (parsed.exercises && Array.isArray(parsed.exercises)) {
-        console.log(`Day ${chunkIndex + 1}: Haiku parsed ${parsed.exercises.length} exercises (extracted)`);
         return parsed;
       }
     } catch (e) { /* fall through */ }
@@ -720,7 +714,6 @@ async function parseDayChunk(anthropic, chunk, chunkIndex) {
   try {
     const deterministicResult = parseStructuredDay(chunk);
     if (deterministicResult && deterministicResult.exercises?.length >= 3) {
-      console.log(`Day ${chunkIndex + 1}: deterministic parser extracted ${deterministicResult.exercises.length} exercises`);
       return deterministicResult;
     }
   } catch (err) {
@@ -750,7 +743,6 @@ async function parseDayChunk(anthropic, chunk, chunkIndex) {
   try {
     const result = fallbackParseDay(chunk);
     if (result && result.exercises && result.exercises.length > 0) {
-      console.log(`Day ${chunkIndex + 1}: Regex fallback parsed ${result.exercises.length} exercises`);
       return result;
     }
     errors.push('Regex fallback: No exercises found');
@@ -762,7 +754,6 @@ async function parseDayChunk(anthropic, chunk, chunkIndex) {
   console.error(`Day ${chunkIndex + 1} all parsers failed:`, errors.join(' | '));
   return { _errors: errors }; // Return errors instead of null so we can surface them
 }
-
 
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') {
@@ -816,8 +807,6 @@ exports.handler = async (event) => {
       .replace(/\t/g, '  ')
       .replace(/ {3,}/g, '  '); // Collapse excessive spaces
 
-    console.log(`Importing workout program from text (${trimmedContent.length} chars)`);
-
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
     const anthropic = ANTHROPIC_API_KEY ? new Anthropic({ apiKey: ANTHROPIC_API_KEY }) : null;
 
@@ -839,8 +828,6 @@ exports.handler = async (event) => {
     } else {
       dayChunks.push(...parts);
     }
-
-    console.log(`Split into ${dayChunks.length} day chunks`);
 
     // Run DB fetch and ALL day parses in PARALLEL
     const fetchExercisesPromise = (async () => {
@@ -905,8 +892,6 @@ exports.handler = async (event) => {
         allErrors.push(`Day ${i + 1}: All parsers returned null`);
       }
     }
-
-    console.log(`Fetched ${allExercises.length} exercises, parsed ${parsedDays.length}/${dayChunks.length} days`);
 
     if (parsedDays.length === 0) {
       const errorDetail = allErrors.length > 0
@@ -1016,8 +1001,6 @@ exports.handler = async (event) => {
         exercises: resultExercises
       });
     }
-
-    console.log(`Import match stats: ${matchStats.matched}/${matchStats.total} matched, ${matchStats.unmatched} unmatched`);
 
     return {
       statusCode: 200,
