@@ -8409,6 +8409,26 @@
             </div>
         </div>
 
+        <!-- Gym Check-Ins Section -->
+        <div class="checkins-section" id="gymProofsSection">
+            <div class="checkins-header collapsible-header" onclick="toggleSection('gymProofs')" style="cursor: pointer;">
+                <h2 class="checkins-title">📸 Gym Check-Ins</h2>
+                <button class="section-toggle-btn" type="button">
+                    <span class="toggle-icon" id="gymProofsToggleIcon">▼</span>
+                </button>
+            </div>
+            <div id="gymProofsContent" class="collapsible-content">
+                <div id="gymProofsContainer">
+                    <div class="loading skeleton-loading">
+                        <div class="skeleton-checkin">
+                            <div class="skeleton skeleton-checkin-date"></div>
+                            <div class="skeleton skeleton-checkin-content"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <!-- Measurement Modal -->
@@ -8707,6 +8727,7 @@
         const GET_MEASUREMENTS_ENDPOINT = '/.netlify/functions/get-measurements';
         const CHECKIN_ENDPOINT = '/.netlify/functions/save-checkin';
         const RESPOND_CHECKIN_ENDPOINT = '/.netlify/functions/respond-checkin';
+        const GYM_PROOF_ENDPOINT = '/.netlify/functions/save-gym-proof';
         const FAVORITES_ENDPOINT = '/.netlify/functions/toggle-favorite';
         const CLIENT_PROTOCOLS_ENDPOINT = '/.netlify/functions/client-protocols';
 
@@ -8924,6 +8945,7 @@
                 loadPhotos(clientId),
                 loadMeasurements(clientId),
                 loadCheckins(clientId),
+                loadGymProofs(clientId),
                 loadFavorites(clientId),
                 loadFoodDiary(clientId),
                 loadWorkoutLogs(clientId),
@@ -11074,6 +11096,60 @@
                 btn.textContent = 'Send Response';
                 btn.disabled = false;
             }
+        }
+
+        // ========== GYM PROOFS FUNCTIONS ==========
+
+        let gymProofs = [];
+
+        async function loadGymProofs(clientId) {
+            try {
+                const response = await fetch(`${GYM_PROOF_ENDPOINT}?clientId=${clientId}&limit=50`);
+                if (!response.ok) throw new Error('Failed to load gym proofs');
+                const data = await response.json();
+                gymProofs = data.proofs || [];
+                displayGymProofs(data.streak || 0);
+            } catch (error) {
+                console.error('Error loading gym proofs:', error);
+                document.getElementById('gymProofsContainer').innerHTML = `
+                    <div class="empty-state">
+                        <p>Unable to load gym check-ins</p>
+                    </div>
+                `;
+            }
+        }
+
+        function displayGymProofs(streak) {
+            const container = document.getElementById('gymProofsContainer');
+
+            if (gymProofs.length === 0) {
+                document.getElementById('gymProofsSection').style.display = 'none';
+                return;
+            }
+
+            const streakBadge = streak > 0
+                ? `<div style="display: inline-flex; align-items: center; gap: 4px; background: linear-gradient(135deg, #f97316, #ef4444); color: white; padding: 4px 10px; border-radius: 12px; font-size: 13px; font-weight: 600; margin-bottom: 12px;">🔥 ${streak} day streak</div>`
+                : '';
+
+            container.innerHTML = `
+                ${streakBadge}
+                <div class="gym-proofs-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px;">
+                    ${gymProofs.map(p => {
+                        const date = new Date(p.proof_date + 'T00:00:00');
+                        const dateStr = date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                        const timeStr = p.proof_time ? new Date(p.proof_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : '';
+                        return `
+                            <div class="gym-proof-card" style="border-radius: 10px; overflow: hidden; background: var(--card-bg, #f7fafc); box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                                <img src="${p.photo_url}" alt="Gym proof" style="width: 100%; aspect-ratio: 3/4; object-fit: cover; cursor: pointer;" onclick="window.open('${p.photo_url}', '_blank')" />
+                                <div style="padding: 8px; text-align: center;">
+                                    <div style="font-size: 12px; font-weight: 600; color: var(--text-primary, #2d3748);">${dateStr}</div>
+                                    ${timeStr ? `<div style="font-size: 11px; color: var(--text-secondary, #718096);">${timeStr}</div>` : ''}
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
         }
 
         // ========== FAVORITES FUNCTIONS ==========

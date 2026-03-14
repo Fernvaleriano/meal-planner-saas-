@@ -15418,6 +15418,462 @@ textarea,
     flex-shrink: 0;
 }
 
+/* ===== Gym Proof Banner (Workouts Page) ===== */
+.gym-proof-banner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: calc(100% - 32px);
+    margin: 8px 16px 16px;
+    padding: 14px 16px;
+    background: linear-gradient(135deg, rgba(13, 148, 136, 0.15) 0%, rgba(59, 130, 246, 0.12) 100%);
+    border: 1px solid rgba(13, 148, 136, 0.25);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.gym-proof-banner:active {
+    transform: scale(0.98);
+    background: linear-gradient(135deg, rgba(13, 148, 136, 0.25) 0%, rgba(59, 130, 246, 0.2) 100%);
+}
+
+.gym-proof-banner.rest-day-gym-proof {
+    margin: 16px 0;
+    width: 100%;
+}
+
+.gym-proof-banner-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, #0d9488, #3b82f6);
+    border-radius: 10px;
+    color: white;
+    flex-shrink: 0;
+}
+
+.gym-proof-banner-text {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.gym-proof-banner-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.95);
+}
+
+.gym-proof-banner-sub {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.gym-proof-banner-arrow {
+    color: rgba(255, 255, 255, 0.3);
+    flex-shrink: 0;
+}
+
+/* ===== Gym Proof Modal ===== */
+.gym-proof-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    animation: fadeIn 0.2s ease;
+}
+
+.gym-proof-modal {
+    width: 100%;
+    max-width: 480px;
+    max-height: 92vh;
+    background: #1a1f2e;
+    border-radius: 20px 20px 0 0;
+    overflow-y: auto;
+    animation: slideUp 0.3s ease;
+    -webkit-overflow-scrolling: touch;
+}
+
+@keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+}
+
+.gym-proof-header {
+    display: flex;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    position: sticky;
+    top: 0;
+    background: #1a1f2e;
+    z-index: 1;
+}
+
+.gym-proof-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.7);
+    border: none;
+    cursor: pointer;
+}
+
+.gym-proof-title {
+    flex: 1;
+    text-align: center;
+    font-size: 17px;
+    font-weight: 700;
+    color: white;
+    margin: 0;
+}
+
+.gym-proof-streak {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: linear-gradient(135deg, #f97316, #ef4444);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.gym-proof-body {
+    padding: 20px;
+}
+
+/* Already done state */
+.gym-proof-already-done {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 16px;
+}
+
+.gym-proof-done-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(34, 197, 94, 0.15);
+    color: #22c55e;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.done-check {
+    font-size: 18px;
+}
+
+.gym-proof-today-img {
+    width: 100%;
+    max-width: 300px;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.gym-proof-done-text {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 14px;
+}
+
+/* Instructions step */
+.gym-proof-instructions {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 12px;
+}
+
+.gym-proof-icon-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, rgba(13, 148, 136, 0.2), rgba(59, 130, 246, 0.15));
+    color: #0d9488;
+    margin-bottom: 4px;
+}
+
+.gym-proof-instructions h3 {
+    font-size: 22px;
+    font-weight: 800;
+    color: white;
+    margin: 0;
+}
+
+.gym-proof-subtitle {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 14px;
+    margin: 0;
+    max-width: 280px;
+}
+
+.gym-proof-guidelines {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 16px;
+    text-align: left;
+    margin-top: 8px;
+}
+
+.gym-proof-guidelines h4 {
+    font-size: 14px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.8);
+    margin: 0 0 8px;
+}
+
+.gym-proof-guidelines ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.gym-proof-guidelines li {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.55);
+    padding-left: 20px;
+    position: relative;
+}
+
+.gym-proof-guidelines li::before {
+    content: '•';
+    position: absolute;
+    left: 4px;
+    color: #0d9488;
+    font-weight: bold;
+}
+
+.gym-proof-stamp-note {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.4);
+    margin: 4px 0;
+}
+
+.gym-proof-capture-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 16px;
+    background: linear-gradient(135deg, #0d9488, #0284c7);
+    color: white;
+    border: none;
+    border-radius: 14px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: transform 0.15s ease;
+}
+
+.gym-proof-capture-btn:active {
+    transform: scale(0.97);
+}
+
+/* Preview step */
+.gym-proof-preview {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.gym-proof-preview-img {
+    width: 100%;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.gym-proof-preview-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.gym-proof-retake-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 14px;
+    background: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.gym-proof-send-btn {
+    flex: 1.5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 14px;
+    background: linear-gradient(135deg, #0d9488, #0284c7);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.gym-proof-send-btn:disabled,
+.gym-proof-retake-btn:disabled {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+/* Success step */
+.gym-proof-success {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 12px;
+    padding: 20px 0;
+}
+
+.gym-proof-success-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    color: white;
+    font-size: 32px;
+    font-weight: bold;
+}
+
+.gym-proof-success h3 {
+    font-size: 22px;
+    font-weight: 800;
+    color: white;
+    margin: 0;
+}
+
+.gym-proof-success p {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 14px;
+    margin: 0;
+}
+
+.gym-proof-streak-big {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: linear-gradient(135deg, #f97316, #ef4444);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 16px;
+    font-size: 18px;
+    font-weight: 800;
+    margin-top: 8px;
+}
+
+.gym-proof-done-btn {
+    width: 100%;
+    padding: 14px;
+    background: rgba(255, 255, 255, 0.08);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 8px;
+}
+
+/* History section */
+.gym-proof-history-section {
+    margin-top: 24px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding-top: 16px;
+}
+
+.gym-proof-history-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 10px 0;
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.gym-proof-history-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.gym-proof-history-item {
+    border-radius: 8px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.gym-proof-history-item img {
+    width: 100%;
+    aspect-ratio: 3/4;
+    object-fit: cover;
+}
+
+.gym-proof-history-date {
+    display: block;
+    padding: 6px;
+    text-align: center;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.5);
+    font-weight: 500;
+}
+
+.gym-proof-loading {
+    text-align: center;
+    padding: 20px;
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 13px;
+}
+
 /* ===== Workout Quick Links ===== */
 .workout-quick-links {
     margin: 4px 16px 20px;
