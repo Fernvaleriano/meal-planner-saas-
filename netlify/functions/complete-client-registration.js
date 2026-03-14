@@ -311,7 +311,14 @@ exports.handler = async (event, context) => {
                     protein_goal: protein,
                     carbs_goal: carbs,
                     fat_goal: fat,
-                    fiber_goal: 25  // Default fiber goal
+                    fiber_goal: 25,
+                    sugar_goal: 50,
+                    sodium_goal: 2300,
+                    potassium_goal: 3500,
+                    calcium_goal: 1000,
+                    iron_goal: 18,
+                    vitamin_c_goal: 90,
+                    cholesterol_goal: 300
                 }]);
 
             if (goalsError) {

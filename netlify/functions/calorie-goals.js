@@ -160,23 +160,24 @@ exports.handler = async (event) => {
 
       let result;
       if (existing) {
-        // Update existing
+        // Update existing - only include fields that were actually sent
+        const updateFields = {};
+        if (calorieGoal !== undefined) updateFields.calorie_goal = calorieGoal;
+        if (proteinGoal !== undefined) updateFields.protein_goal = proteinGoal;
+        if (carbsGoal !== undefined) updateFields.carbs_goal = carbsGoal;
+        if (fatGoal !== undefined) updateFields.fat_goal = fatGoal;
+        if (fiberGoal !== undefined) updateFields.fiber_goal = fiberGoal || null;
+        if (sugarGoal !== undefined) updateFields.sugar_goal = sugarGoal || null;
+        if (sodiumGoal !== undefined) updateFields.sodium_goal = sodiumGoal || null;
+        if (potassiumGoal !== undefined) updateFields.potassium_goal = potassiumGoal || null;
+        if (calciumGoal !== undefined) updateFields.calcium_goal = calciumGoal || null;
+        if (ironGoal !== undefined) updateFields.iron_goal = ironGoal || null;
+        if (vitaminCGoal !== undefined) updateFields.vitamin_c_goal = vitaminCGoal || null;
+        if (cholesterolGoal !== undefined) updateFields.cholesterol_goal = cholesterolGoal || null;
+
         const { data, error } = await supabase
           .from('calorie_goals')
-          .update({
-            calorie_goal: calorieGoal,
-            protein_goal: proteinGoal,
-            carbs_goal: carbsGoal,
-            fat_goal: fatGoal,
-            fiber_goal: fiberGoal || null,
-            sugar_goal: sugarGoal || null,
-            sodium_goal: sodiumGoal || null,
-            potassium_goal: potassiumGoal || null,
-            calcium_goal: calciumGoal || null,
-            iron_goal: ironGoal || null,
-            vitamin_c_goal: vitaminCGoal || null,
-            cholesterol_goal: cholesterolGoal || null
-          })
+          .update(updateFields)
           .eq('client_id', clientId)
           .select()
           .single();
