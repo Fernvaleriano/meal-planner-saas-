@@ -781,7 +781,8 @@ function Diary() {
     }).catch(err => console.error('Water save error:', err));
   };
 
-  // Handle water intake tap
+  // Handle water intake change (from slider, buttons, etc.)
+  const waterSaveTimerRef = useRef(null);
   const handleWaterAction = (action, amount = 1) => {
     if (!clientData?.id) return;
 
@@ -790,6 +791,7 @@ function Diary() {
     if (action === 'add') next = Math.min(waterGoal, current + amount);
     else if (action === 'remove') next = Math.max(0, current - amount);
     else if (action === 'complete') next = waterGoal;
+    else if (action === 'set') next = Math.max(0, Math.min(waterGoal, amount));
 
     // Update UI + cache + ref immediately
     setWaterIntake(next);
@@ -799,8 +801,15 @@ function Diary() {
     const c = getCache(cacheKey) || {};
     setCache(cacheKey, { ...c, water: next });
 
-    // Save immediately — keepalive:true means it survives page navigation
-    saveWater(clientData.id, dateStr, next);
+    // Debounce save for slider drags, immediate for button taps
+    if (action === 'set') {
+      clearTimeout(waterSaveTimerRef.current);
+      waterSaveTimerRef.current = setTimeout(() => {
+        saveWater(clientData.id, dateStr, next);
+      }, 300);
+    } else {
+      saveWater(clientData.id, dateStr, next);
+    }
   };
 
   // Handle AI food logging
@@ -2655,7 +2664,7 @@ function Diary() {
         </div>
       )}
 
-      {/* Water Intake - Compact */}
+      {/* Water Intake - Slider */}
       <div className="water-intake-compact">
         <div className="water-intake-left">
           <Droplets size={18} className="water-icon" />
@@ -2671,12 +2680,14 @@ function Diary() {
           >
             −
           </button>
-          <div className="water-progress-bar">
-            <div
-              className="water-progress-fill"
-              style={{ width: `${Math.min((waterIntake / waterGoal) * 100, 100)}%` }}
-            />
-          </div>
+          <input
+            type="range"
+            min="0"
+            max={waterGoal}
+            value={waterIntake}
+            onChange={(e) => handleWaterAction('set', parseInt(e.target.value, 10))}
+            className="water-slider"
+          />
           <button
             className="water-btn-compact"
             onClick={() => handleWaterAction('add', 1)}
