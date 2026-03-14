@@ -4455,7 +4455,7 @@ textarea,
 .water-intake-compact {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    gap: 12px;
     background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
     border-radius: 14px;
     padding: 14px 16px;
@@ -4467,6 +4467,8 @@ textarea,
     display: flex;
     align-items: center;
     gap: 8px;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .water-intake-compact .water-label {
@@ -4484,6 +4486,8 @@ textarea,
     display: flex;
     align-items: center;
     gap: 10px;
+    flex: 1;
+    min-width: 0;
 }
 
 .water-btn-compact {
@@ -4512,19 +4516,48 @@ textarea,
     cursor: not-allowed;
 }
 
-.water-progress-bar {
-    width: 100px;
+.water-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    flex: 1;
     height: 8px;
     background: rgba(255, 255, 255, 0.2);
     border-radius: 4px;
-    overflow: hidden;
+    outline: none;
+    cursor: pointer;
 }
 
-.water-progress-fill {
-    height: 100%;
-    background: rgba(255, 255, 255, 0.9);
+.water-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: white;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+}
+
+.water-slider::-moz-range-thumb {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: white;
+    border: none;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+}
+
+.water-slider::-webkit-slider-runnable-track {
+    height: 8px;
     border-radius: 4px;
-    transition: width 0.3s ease;
+}
+
+.water-slider::-moz-range-track {
+    height: 8px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    border: none;
 }
 
 /* AI Nutrition Assistant */
