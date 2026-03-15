@@ -235,6 +235,8 @@ export function SnapPhotoModal({ isOpen, onClose, mealType, clientData, onFoodLo
       showError('Failed to add food to diary');
     } finally {
       setIsAdding(false);
+      // Safety: always unlock after a delay in case ref wasn't reset (e.g. timeout/hang)
+      setTimeout(() => { isAddingRef.current = false; }, 2000);
     }
   }, [results, clientData, selectedMealType, servings, onFoodLogged, showError, showSuccess, selectedDate]);
 
@@ -532,6 +534,8 @@ export function SearchFoodsModal({ isOpen, onClose, mealType, clientData, onFood
       showError('Failed to add food to diary');
     } finally {
       setIsAdding(false);
+      // Safety: always unlock after a delay in case ref wasn't reset (e.g. timeout/hang)
+      setTimeout(() => { isAddingRef.current = false; }, 2000);
     }
   }, [selectedFood, clientData, mealType, servings, selectedMeasure, onFoodLogged, showError, showSuccess, selectedDate]);
 
@@ -1001,6 +1005,8 @@ export function ScanLabelModal({ isOpen, onClose, mealType, clientData, onFoodLo
       showError('Failed to add food to diary');
     } finally {
       setIsAdding(false);
+      // Safety: always unlock after a delay in case ref wasn't reset (e.g. timeout/hang)
+      setTimeout(() => { isAddingRef.current = false; }, 2000);
     }
   }, [result, clientData, selectedMealType, servings, onFoodLogged, showError, showSuccess, selectedDate]);
 

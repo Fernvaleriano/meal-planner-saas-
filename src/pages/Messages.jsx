@@ -283,7 +283,7 @@ function Messages() {
 
       // Optimistic update — use a string ID prefixed with 'optimistic-' so the
       // realtime handler and polling merge can recognize and replace it.
-      const optimisticId = `optimistic-${Date.now()}`;
+      const optimisticId = `optimistic-${Date.now()}-${Math.random().toString(36).slice(2)}`;
       const optimisticMsg = {
         id: optimisticId,
         sender_type: isCoach ? 'coach' : 'client',
