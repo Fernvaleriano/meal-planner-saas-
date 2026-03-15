@@ -1,14 +1,18 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Clock, AlertTriangle, CheckCircle, ChevronRight, Dumbbell, X } from 'lucide-react';
+import { Clock, AlertTriangle, CheckCircle, ChevronRight, Dumbbell, X, UserX } from 'lucide-react';
 import { apiGet } from '../utils/api';
 
 /**
- * Dashboard widget showing workout programs that are ending soon or have expired.
+ * Dashboard widget showing:
+ * 1. Workout programs that are ending soon or have expired
+ * 2. Clients with no active workout program at all
  * Displayed at the top of the coach Feed page for maximum visibility.
  */
 export default function ProgramsEndingSoon({ coachId }) {
   const [programs, setPrograms] = useState([]);
+  const [clientsWithoutPrograms, setClientsWithoutPrograms] = useState([]);
+  const [clientsWithExpiredOnly, setClientsWithExpiredOnly] = useState([]);
   const [loading, setLoading] = useState(true);
   const [dismissed, setDismissed] = useState(() => {
     try {
@@ -24,6 +28,8 @@ export default function ProgramsEndingSoon({ coachId }) {
       try {
         const result = await apiGet(`/.netlify/functions/programs-ending-soon?coachId=${coachId}`);
         setPrograms(result.programs || []);
+        setClientsWithoutPrograms(result.clientsWithoutPrograms || []);
+        setClientsWithExpiredOnly(result.clientsWithExpiredOnly || []);
       } catch (err) {
         console.error('Failed to fetch ending programs:', err);
       } finally {
@@ -34,8 +40,8 @@ export default function ProgramsEndingSoon({ coachId }) {
     fetchPrograms();
   }, [coachId]);
 
-  const handleDismiss = (assignmentId) => {
-    const newDismissed = [...dismissed, assignmentId];
+  const handleDismiss = (id) => {
+    const newDismissed = [...dismissed, id];
     setDismissed(newDismissed);
     localStorage.setItem('dismissedEndingPrograms', JSON.stringify(newDismissed));
   };
@@ -44,23 +50,105 @@ export default function ProgramsEndingSoon({ coachId }) {
   const visiblePrograms = programs.filter(
     p => !dismissed.includes(p.assignmentId) && !p.hasReplacement
   );
+  const visibleNoProgram = clientsWithoutPrograms.filter(
+    c => !dismissed.includes(`no-program-${c.clientId}`)
+  );
+  const visibleExpired = clientsWithExpiredOnly.filter(
+    c => !dismissed.includes(`expired-${c.clientId}`)
+  );
 
-  if (loading || visiblePrograms.length === 0) return null;
+  const totalVisible = visiblePrograms.length + visibleNoProgram.length + visibleExpired.length;
+
+  if (loading || totalVisible === 0) return null;
 
   const expiredCount = visiblePrograms.filter(p => p.isExpired).length;
-  const upcomingCount = visiblePrograms.length - expiredCount;
 
   return (
     <div className="programs-ending-widget">
       <div className="programs-ending-header">
         <div className="programs-ending-title">
           <AlertTriangle size={18} />
-          <span>Programs Ending Soon</span>
-          <span className="programs-ending-count">{visiblePrograms.length}</span>
+          <span>Program Alerts</span>
+          <span className="programs-ending-count">{totalVisible}</span>
         </div>
       </div>
 
       <div className="programs-ending-list">
+        {/* Clients with NO program at all */}
+        {visibleNoProgram.map(client => (
+          <div
+            key={`no-program-${client.clientId}`}
+            className="programs-ending-card expired"
+          >
+            <div className="programs-ending-card-main">
+              <div className="programs-ending-card-info">
+                <div className="programs-ending-client-name">{client.clientName}</div>
+                <div className="programs-ending-program-name">No workout program assigned</div>
+                <div className="programs-ending-meta">
+                  <span className="programs-ending-badge expired">
+                    <UserX size={12} />
+                    No program
+                  </span>
+                </div>
+              </div>
+              <div className="programs-ending-card-actions">
+                <button
+                  className="programs-ending-assign-btn"
+                  onClick={() => navigate('/workout-plans')}
+                  title="Assign program"
+                >
+                  <ChevronRight size={18} />
+                </button>
+                <button
+                  className="programs-ending-dismiss-btn"
+                  onClick={(e) => { e.stopPropagation(); handleDismiss(`no-program-${client.clientId}`); }}
+                  title="Dismiss"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+
+        {/* Clients whose programs expired long ago */}
+        {visibleExpired.map(client => (
+          <div
+            key={`expired-${client.clientId}`}
+            className="programs-ending-card expired"
+          >
+            <div className="programs-ending-card-main">
+              <div className="programs-ending-card-info">
+                <div className="programs-ending-client-name">{client.clientName}</div>
+                <div className="programs-ending-program-name">"{client.lastProgramName}" ended {client.lastProgramEndDate}</div>
+                <div className="programs-ending-meta">
+                  <span className="programs-ending-badge expired">
+                    <AlertTriangle size={12} />
+                    Needs new program
+                  </span>
+                </div>
+              </div>
+              <div className="programs-ending-card-actions">
+                <button
+                  className="programs-ending-assign-btn"
+                  onClick={() => navigate('/workout-plans')}
+                  title="Assign new program"
+                >
+                  <ChevronRight size={18} />
+                </button>
+                <button
+                  className="programs-ending-dismiss-btn"
+                  onClick={(e) => { e.stopPropagation(); handleDismiss(`expired-${client.clientId}`); }}
+                  title="Dismiss"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+
+        {/* Programs ending soon / recently expired */}
         {visiblePrograms.map(program => (
           <div
             key={program.assignmentId}

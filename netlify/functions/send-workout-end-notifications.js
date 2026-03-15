@@ -60,8 +60,41 @@ exports.handler = async (event, context) => {
             upcomingAlertsSent: 0,
             expiredAlertsSent: 0,
             alreadyNotified: 0,
+            programsDeactivated: 0,
             errors: 0
         };
+
+        // AUTO-DEACTIVATE: Find all assignments where end_date has passed by 3+ days
+        // and set is_active = false to keep data clean
+        try {
+            const deactivateCutoff = new Date(now);
+            deactivateCutoff.setDate(deactivateCutoff.getDate() - 3);
+            const deactivateCutoffStr = deactivateCutoff.toISOString().split('T')[0];
+
+            const { data: expiredAssignments } = await supabase
+                .from('client_workout_assignments')
+                .select('id')
+                .eq('is_active', true)
+                .not('end_date', 'is', null)
+                .lt('end_date', deactivateCutoffStr);
+
+            if (expiredAssignments && expiredAssignments.length > 0) {
+                const expiredIds = expiredAssignments.map(a => a.id);
+                const { error: deactivateError } = await supabase
+                    .from('client_workout_assignments')
+                    .update({ is_active: false })
+                    .in('id', expiredIds);
+
+                if (deactivateError) {
+                    console.error('Error deactivating expired programs:', deactivateError);
+                } else {
+                    stats.programsDeactivated = expiredIds.length;
+                    console.log(`Auto-deactivated ${expiredIds.length} expired workout programs`);
+                }
+            }
+        } catch (e) {
+            console.warn('Could not auto-deactivate expired programs:', e);
+        }
 
         // Get all coaches with workout end notifications enabled (or no settings row = default enabled)
         const { data: allCoaches, error: coachError } = await supabase

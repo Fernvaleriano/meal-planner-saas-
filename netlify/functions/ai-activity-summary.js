@@ -716,12 +716,12 @@ async function handleQuestion(event) {
         .gte('created_at', thirtyDaysAgo.toISOString())
         .order('created_at', { ascending: false })
         .limit(1000),
-      // Active workout assignments
+      // Workout assignments (active and recent) - need all to determine program status
       supabase
         .from('client_workout_assignments')
         .select('id, client_id, workout_data, is_active, start_date, end_date, name, created_at')
         .in('client_id', clientIds)
-        .eq('is_active', true),
+        .order('created_at', { ascending: false }),
       // Meal plans (active/recent)
       supabase
         .from('coach_meal_plans')
@@ -806,7 +806,9 @@ async function handleQuestion(event) {
       // Workout data
       const clientWorkoutLogs = workoutLogs.filter(w => w.client_id === client.id);
       const clientExerciseLogs = exerciseLogs.filter(e => e.client_id === client.id);
-      const clientAssignment = workoutAssignments.find(a => a.client_id === client.id);
+      const allClientAssignments = workoutAssignments.filter(a => a.client_id === client.id);
+      // Prefer active assignment, fall back to most recent (already sorted by created_at desc)
+      const clientAssignment = allClientAssignments.find(a => a.is_active) || allClientAssignments[0] || null;
 
       // Find PRs (heaviest weight per exercise)
       // Use the client's unit preference, fallback to sets_data unit, then 'lbs'
@@ -933,7 +935,30 @@ async function handleQuestion(event) {
           }),
           prs: Object.entries(prsByExercise).slice(0, 10).map(([exercise, data]) => ({ exercise, weight: data.weight, reps: data.reps, unit: data.unit, date: data.date })),
           newPrsThisWeek: newPrsThisWeek.slice(0, 10), // NEW: Actual new PRs achieved this week
-          currentProgram: clientAssignment?.workout_data?.name || null
+          currentProgram: clientAssignment?.workout_data?.name || clientAssignment?.name || null,
+          programStatus: (() => {
+            if (!clientAssignment) return 'no_program';
+            const endDate = clientAssignment.end_date;
+            if (!endDate) return 'active_no_end_date';
+            const end = new Date(endDate + 'T23:59:59');
+            const daysRemaining = Math.ceil((end - now) / (1000 * 60 * 60 * 24));
+            if (daysRemaining <= 0) return 'expired';
+            if (daysRemaining <= 7) return 'ending_soon';
+            return 'active';
+          })(),
+          programStartDate: clientAssignment?.start_date || null,
+          programEndDate: clientAssignment?.end_date || null,
+          programSchedule: clientAssignment?.workout_data?.schedule?.selectedDays || null,
+          hasMultiplePrograms: allClientAssignments.length > 1,
+          // Weekly adherence: workouts completed this week vs scheduled days
+          workoutsThisWeek: clientWorkoutLogs.filter(w => new Date(w.created_at) >= sevenDaysAgo).length,
+          scheduledDaysPerWeek: clientAssignment?.workout_data?.schedule?.selectedDays?.length || 0,
+          adherencePercent: (() => {
+            const scheduled = clientAssignment?.workout_data?.schedule?.selectedDays?.length || 0;
+            if (scheduled === 0) return null;
+            const thisWeek = clientWorkoutLogs.filter(w => new Date(w.created_at) >= sevenDaysAgo).length;
+            return Math.round((thisWeek / scheduled) * 100);
+          })()
         },
         body: {
           latestWeight: latestWeight ? { value: latestWeight.weight, unit: latestWeight.unit, date: latestWeight.created_at } : null,
@@ -1040,9 +1065,30 @@ async function handleQuestion(event) {
       }
 
       // Workouts
-      if (c.workouts.totalThisMonth > 0) {
+      if (c.workouts.totalThisMonth > 0 || c.workouts.programStatus !== 'no_program') {
         parts.push(`${c.workouts.totalThisMonth} workouts this month`);
-        if (c.workouts.currentProgram) parts.push(`program: ${c.workouts.currentProgram}`);
+        // Program status - be explicit (only flag "no program" for clients who have set up their account)
+        if (c.workouts.programStatus === 'no_program' && c.hasPortalAccess) {
+          parts.push('PROGRAM STATUS: NO workout program assigned');
+        } else if (c.workouts.programStatus === 'expired') {
+          parts.push(`PROGRAM STATUS: EXPIRED - program "${c.workouts.currentProgram}" ended on ${c.workouts.programEndDate} - NEEDS NEW PROGRAM`);
+        } else if (c.workouts.programStatus === 'ending_soon') {
+          const daysLeft = Math.ceil((new Date(c.workouts.programEndDate + 'T23:59:59') - now) / (1000 * 60 * 60 * 24));
+          parts.push(`PROGRAM STATUS: ENDING SOON - "${c.workouts.currentProgram}" ends ${c.workouts.programEndDate} (${daysLeft} days left)`);
+        } else if (c.workouts.programStatus === 'active') {
+          const daysLeft = Math.ceil((new Date(c.workouts.programEndDate + 'T23:59:59') - now) / (1000 * 60 * 60 * 24));
+          parts.push(`PROGRAM STATUS: Active - "${c.workouts.currentProgram}" (${c.workouts.programStartDate} to ${c.workouts.programEndDate}, ${daysLeft} days remaining)`);
+        } else if (c.workouts.programStatus === 'active_no_end_date') {
+          parts.push(`PROGRAM STATUS: Active - "${c.workouts.currentProgram}" (started ${c.workouts.programStartDate}, no end date)`);
+        }
+        if (c.workouts.programSchedule) {
+          parts.push(`scheduled days: ${c.workouts.programSchedule.join(', ')}`);
+        }
+        // Adherence tracking
+        if (c.workouts.adherencePercent !== null) {
+          const adherenceLabel = c.workouts.adherencePercent >= 80 ? 'GOOD' : c.workouts.adherencePercent >= 50 ? 'MODERATE' : 'LOW';
+          parts.push(`WEEKLY ADHERENCE: ${c.workouts.workoutsThisWeek}/${c.workouts.scheduledDaysPerWeek} workouts this week (${c.workouts.adherencePercent}% - ${adherenceLabel})`);
+        }
         if (c.workouts.recentExercises.length > 0) {
           const exerciseStrs = c.workouts.recentExercises.slice(0, 5).map(e => {
             let str = e.name;
@@ -1114,6 +1160,18 @@ async function handleQuestion(event) {
     const clientsWithNewPrs = clientData.filter(c => c.workouts.newPrsThisWeek && c.workouts.newPrsThisWeek.length > 0);
     const totalNewPrsThisWeek = clientData.reduce((sum, c) => sum + (c.workouts.newPrsThisWeek?.length || 0), 0);
 
+    // Program & adherence stats (only count clients who have actually set up their account)
+    const activePortalClients = clientData.filter(c => c.hasPortalAccess);
+    const clientsWithNoProgram = activePortalClients.filter(c => c.workouts.programStatus === 'no_program').length;
+    const clientsWithExpiredProgram = activePortalClients.filter(c => c.workouts.programStatus === 'expired').length;
+    const clientsWithEndingSoon = activePortalClients.filter(c => c.workouts.programStatus === 'ending_soon').length;
+    const clientsWithLowAdherence = activePortalClients.filter(c => c.workouts.adherencePercent !== null && c.workouts.adherencePercent < 50);
+    const avgAdherence = (() => {
+      const withAdherence = activePortalClients.filter(c => c.workouts.adherencePercent !== null);
+      if (withAdherence.length === 0) return null;
+      return Math.round(withAdherence.reduce((sum, c) => sum + c.workouts.adherencePercent, 0) / withAdherence.length);
+    })();
+
     // Build coach self-data context if available
     let coachSelfContext = '';
     if (coachSelfData) {
@@ -1164,6 +1222,11 @@ SUMMARY:
 - Total workouts logged (30 days): ${totalWorkouts}
 - Clients who hit NEW PRs this week: ${clientsWithNewPrs.length}${clientsWithNewPrs.length > 0 ? ` (${clientsWithNewPrs.map(c => c.name).join(', ')})` : ''}
 - Total new PRs achieved this week: ${totalNewPrsThisWeek}
+- Clients with NO program: ${clientsWithNoProgram}
+- Clients with EXPIRED program: ${clientsWithExpiredProgram}
+- Clients with program ENDING SOON: ${clientsWithEndingSoon}
+${avgAdherence !== null ? `- Average workout adherence: ${avgAdherence}%` : ''}
+${clientsWithLowAdherence.length > 0 ? `- LOW ADHERENCE (<50%): ${clientsWithLowAdherence.map(c => `${c.name} (${c.workouts.adherencePercent}%)`).join(', ')}` : ''}
 ${coachSelfContext}
 CLIENT DETAILS:
 ${clientContext}
@@ -1204,11 +1267,14 @@ IMPORTANT RULES:
 7. For workout/exercise questions, include specific weights, sets, reps, and PRs when available
 8. For nutrition questions, compare actual intake vs goals when both are available
 9. For body composition questions, mention weight changes and trends
-10. If the data needed to answer is not available, say so honestly rather than guessing
-11. Provide a thorough response - use as many words as needed to fully answer the question without cutting short
-12. IMPORTANT: Always use the exact weight units provided in the data (kg or lbs). Never convert or assume units - use exactly what is shown in the client data
-13. You MUST use the [Section Name] format for headers. Do not skip this formatting.
-14. NEVER write a wall of text. Always break content into separate lines for each client or data point.`;
+10. When asked about workout programs, give a DEFINITIVE answer. The PROGRAM STATUS field tells you exactly whether a client has an active program, an expired program, an ending-soon program, or no program at all. NEVER say "the data does not explicitly state" about program status - you HAVE this data.
+11. When a client's program has expired or is ending soon, always flag this as needing attention.
+12. If a client has no program assigned, recommend the coach assign one.
+13. If the data needed to answer is not available, say so honestly rather than guessing
+14. Provide a thorough response - use as many words as needed to fully answer the question without cutting short
+15. IMPORTANT: Always use the exact weight units provided in the data (kg or lbs). Never convert or assume units - use exactly what is shown in the client data
+16. You MUST use the [Section Name] format for headers. Do not skip this formatting.
+17. NEVER write a wall of text. Always break content into separate lines for each client or data point.`;
 
     const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
       method: 'POST',
