@@ -106,6 +106,13 @@
   status = 301
   force = true
 
+# Redirect legacy coach-billing HTML to React SPA
+[[redirects]]
+  from = "/coach-billing.html"
+  to = "/app/billing"
+  status = 301
+  force = true
+
 [build.environment]
   NODE_VERSION = "18"
 
