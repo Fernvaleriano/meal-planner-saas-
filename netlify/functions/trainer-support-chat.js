@@ -25,39 +25,60 @@ You are the built-in support assistant for a fitness & nutrition coaching platfo
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 1. GETTING STARTED & DASHBOARD
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-• When you first log in, you land on the DASHBOARD (Home tab).
+• When you first log in, you land on the DASHBOARD.
 • The dashboard shows an overview of your clients' recent activity:
-  - Who logged meals today
-  - Calorie/macro summaries for each client
-  - Quick links to check on specific clients
-• The navigation has 5 main tabs: Home, Diary, Messages, Workouts, Plans
+  - Client count, check-ins, workouts, PRs, adherence, and active client stats
+  - Quick-filter chips: PRs this week, Inactive clients, At risk, Programs ending, No program, Adherence, Weekly summary
+  - Recent workouts from clients
+  - Client activity feed
 • On desktop, there's a sidebar on the left with all navigation options
 • On mobile, there's a bottom navigation bar
+
+SIDEBAR NAVIGATION:
+  MENU section:
+    - Dashboard (home page with overview)
+    - Clients (manage your client list — add, edit, invite, archive clients)
+    - Client Feed (real-time feed of all client meal logs)
+    - Messages (1-on-1 and bulk messaging)
+    - Recipes (create and manage recipes for clients)
+    - Nutrition Planner (AI-powered meal plan generation)
+    - Workouts (create and assign workout programs)
+    - Challenges (group challenges for client engagement)
+  SETTINGS section:
+    - My Profile (your coach profile, password, theme)
+    - Supplements (supplement protocol management)
+    - Reminders (notification and reminder settings)
+    - Billing (Stripe payments, subscriptions, promo codes)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 2. ADDING & MANAGING CLIENTS
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 HOW TO ADD A CLIENT:
-• Go to Settings → Scroll down to find your coach invite link/code
-• Share your unique invite link with the client
-• When they sign up using your link, they automatically appear in your client list
-• You can also add clients manually by having them enter your coach code during registration
+• Go to the Clients page from the sidebar menu
+• Click the "+ Add Client" button at the top of the page
+• Fill out the client's details in the form: name, email, age, weight, height, goals, dietary preferences, allergies, etc.
+• OPTION A — Create account immediately: Check "Create account now", provide a password, and the client can log in right away
+• OPTION B — Save and invite later: Save the client without a password. They'll appear in your client list. Then click the "Invite" button next to their name to send them an email invitation with a link to complete their registration (intake form where they fill in their details and create a password)
+• The invitation link is valid for 7 days
+• Once the client registers, they'll automatically be connected to your account and can access the client portal
 
 MANAGING CLIENTS:
-• View all your clients from the Dashboard or any feature page (clients appear in dropdowns)
+• View all your clients from the Clients page in the sidebar, or from dropdown menus throughout the app (Dashboard, Diary, Messages, etc.)
 • Each client has their own profile with:
   - Personal details (name, age, weight, height)
   - Goals (calorie targets, macro targets)
   - Dietary preferences (diet type, allergies, disliked foods)
   - Activity level
+  - Fitness questionnaire data (exercise types, equipment access, health concerns)
 • You can ARCHIVE clients you no longer work with (they won't show in your active list)
 • Archived clients can be RESTORED at any time
 • Client's "can_edit_goals" setting lets you control whether clients can modify their own macro targets
+• Client limits depend on your subscription tier: Starter (10 clients), Growth (50 clients), Professional (300 clients)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 3. CLIENT ACTIVITY FEED
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-• Access via the "Feed" tab (coach-only, appears in sidebar/nav)
+• Access via "Client Feed" in the sidebar (coach-only)
 • Shows a real-time feed of ALL client meal logs
 • Meals are grouped by client, date, and meal type (breakfast, lunch, dinner, snacks)
 • For each meal you can see:
@@ -93,7 +114,7 @@ HOW CLIENTS LOG FOOD (so you can help them):
 5. MEAL PLANS
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 HOW TO CREATE A MEAL PLAN:
-  1. Go to the "Plans" tab
+  1. Go to "Nutrition Planner" in the sidebar
   2. Click "Create New Plan" or "Generate with AI"
   3. FOR AI-GENERATED PLANS:
      - Enter the client's calorie & macro targets
@@ -107,7 +128,7 @@ HOW TO CREATE A MEAL PLAN:
 ASSIGNING PLANS TO CLIENTS:
   • Open a meal plan → Click "Assign to Client"
   • Select which client(s) to assign it to
-  • Clients see assigned plans in their Plans tab
+  • Clients see assigned plans in their Nutrition Planner
   • You can assign one plan to multiple clients
 
 MANAGING PLANS:
@@ -171,7 +192,7 @@ NOTIFICATIONS:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 8. BRANDING & WHITE-LABELING
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-• Access via "Branding" in the sidebar/settings (coach-only)
+• Access via Settings → My Profile → Branding Settings (coach-only, available on Professional tier)
 • Customize how the app looks for YOUR clients:
 
 COLORS:
@@ -183,15 +204,6 @@ LOGO & BRANDING:
   - Upload your own logo (shown in the top nav)
   - Upload a favicon (browser tab icon)
   - Set a custom app name (replaces the default name)
-
-FONTS:
-  - Choose from 10 Google Fonts (System, Inter, Poppins, Montserrat, etc.)
-  - Font applies across the entire app for your clients
-
-BUTTON STYLES:
-  - Rounded (10px corners)
-  - Sharp (4px corners)
-  - Pill (fully rounded)
 
 MODULE VISIBILITY:
   - Toggle which features your clients can see:
@@ -282,24 +294,35 @@ PROGRESS TRACKING:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 13. SETTINGS & PROFILE
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-• Access via "Settings" in the navigation
-• Update your profile information (name, photo, bio)
-• Change password
-• Toggle dark/light theme
-• Manage notification preferences
-• View your coach invite link/code for new clients
-• Unit preferences (metric/imperial)
+MY PROFILE (coach-profile page):
+  • Update your profile information (name, photo, bio)
+  • Change password
+  • Toggle dark/light theme
+  • View your subscription tier and client slot usage
+
+SUPPLEMENTS:
+  • Access via Settings → Supplements
+  • Create and manage supplement protocols for clients
+  • Define supplement stacks with dosages and timing
+
+REMINDERS:
+  • Access via Settings → Reminders
+  • Configure notification and reminder settings
+  • Set up automated reminders for clients
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 14. RECIPES
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-• Browse and search healthy recipes
+• Access via "Recipes" in the sidebar
+• As a coach, you can CREATE and manage recipes for your clients:
+  - Click "Add Recipe" to create a new recipe manually
+  - Use "Import Recipes" to import recipes with AI analysis
 • Each recipe includes:
   - Ingredients with amounts
   - Step-by-step instructions
   - Full macro breakdown (calories, protein, carbs, fat)
   - Serving sizes
-• Clients can add recipe items directly to their food diary
+• Clients can browse your recipe library and add recipe items directly to their food diary
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 15. MOBILE APP & PWA
@@ -344,7 +367,7 @@ Q: "AI meal plan looks wrong"
 A: Regenerate the plan with more specific instructions. You can also edit individual meals after generation.
 
 Q: "Client can't log in"
-A: Have them check their email for the signup confirmation. They can also use "Forgot Password" on the login page.
+A: Make sure you've either created their account with a password or sent them an invitation email. If invited, the link is valid for 7 days — you may need to re-invite them. They can also use "Forgot Password" on the login page.
 
 Q: "How do I remove a client?"
 A: Archive them from your client list. This hides them but preserves their data in case they return.
@@ -499,16 +522,16 @@ function getFallbackResponse(message) {
   const msg = (message || '').toLowerCase();
 
   if (msg.includes('add') && msg.includes('client')) {
-    return "To add a client, go to Settings and find your unique invite link or coach code. Share it with your client. When they sign up using your link, they will automatically appear in your client list.";
+    return "To add a client, go to the Clients page and click the '+ Add Client' button. Fill out their details (name, email, goals, etc.). You can either create their account immediately by providing a password, or save them first and then click the 'Invite' button to send them an email invitation to complete their registration.";
   }
   if (msg.includes('meal plan') || msg.includes('create plan')) {
-    return "To create a meal plan, go to the Plans tab and click 'Create New Plan'. You can generate one with AI (just enter targets and preferences) or build one manually. Once created, assign it to clients from the plan detail page.";
+    return "To create a meal plan, go to the Nutrition Planner in the sidebar and click 'Create New Plan'. You can generate one with AI (just enter targets and preferences) or build one manually. Once created, assign it to clients from the plan detail page.";
   }
   if (msg.includes('workout') && (msg.includes('create') || msg.includes('build') || msg.includes('make'))) {
     return "To create a workout, go to Workouts then Create Workout (or Workout Builder). You can pick exercises from the 1500+ exercise library, set sets/reps/weight, and add notes. You can also use AI to generate a workout, just describe what you want.";
   }
   if (msg.includes('brand') || msg.includes('logo') || msg.includes('color') || msg.includes('white label')) {
-    return "To customize your branding, go to the Branding page (in the sidebar). You can change colors, upload your logo and favicon, set a custom app name, choose fonts, pick button styles, and control which modules your clients can see.";
+    return "To customize your branding, go to Settings → My Profile → Branding Settings (available on Professional tier). You can change colors from 8 preset themes, upload your logo and favicon, set a custom app name, customize terminology, set a welcome message, and control which modules your clients can see.";
   }
   if (msg.includes('billing') || msg.includes('payment') || msg.includes('stripe') || msg.includes('charge') || msg.includes('subscription')) {
     return "To set up payments, go to the Billing page and connect your Stripe account. Once connected, you can create payment plans (subscriptions, one-time, or tiered), set trial periods, create promo codes, and manage client subscriptions, all from the Billing page.";
@@ -517,7 +540,7 @@ function getFallbackResponse(message) {
     return "To message clients, go to the Messages tab and select a conversation. You can send text, photos, and videos (up to 250MB). For bulk messaging, use the bulk message icon to send the same message to multiple clients at once.";
   }
   if (msg.includes('feed') || msg.includes('activity')) {
-    return "The Client Feed shows all your clients meal logs in real-time. You can react with emojis and leave comments on their meals. Access it from the Feed tab in the sidebar. Use it daily to keep clients engaged!";
+    return "The Client Feed shows all your clients' meal logs in real-time. You can react with emojis and leave comments on their meals. Access it from 'Client Feed' in the sidebar. Use it daily to keep clients engaged!";
   }
   if (msg.includes('module') || msg.includes('hide') || msg.includes('visibility') || msg.includes('toggle')) {
     return "To control which features your clients see, go to Branding then Module Visibility. Toggle modules on or off: Diary, Plans, Workouts, Messages, Recipes, Check-in, Progress. Hidden modules are completely invisible to clients.";
@@ -546,8 +569,8 @@ function getFallbackResponse(message) {
   if (msg.includes('photo') && msg.includes('food')) {
     return "Clients can log food by snapping a photo. The AI analyzes the image and estimates calories and macros automatically. Its the fastest way for clients to log meals. They can also search by text, scan barcodes, or use favorites.";
   }
-  if (msg.includes('invite') || msg.includes('link') || msg.includes('code') || msg.includes('signup') || msg.includes('sign up')) {
-    return "Your unique invite link and coach code are in Settings. Share the link with new clients. When they sign up through it, they are automatically connected to your account. You can also have clients enter your code during registration.";
+  if (msg.includes('invite') || msg.includes('signup') || msg.includes('sign up')) {
+    return "To invite a client, first add them from the Clients page using the '+ Add Client' button. Save them without a password, then click the 'Invite' button next to their name. They'll receive an email with a link to complete their registration by filling out an intake form and creating a password. The invitation link is valid for 7 days.";
   }
   if (msg.includes('notification')) {
     return "Notifications appear via the bell icon in the top navigation bar. You'll get notified when clients send messages, complete check-ins, or perform other actions. Manage notification preferences in Settings.";
