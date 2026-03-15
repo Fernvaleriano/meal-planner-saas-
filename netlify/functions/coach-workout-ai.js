@@ -40,8 +40,12 @@ exports.handler = async (event) => {
     const dateStr = thirtyDaysAgo.toISOString().split('T')[0];
     const todayStr = new Date().toISOString().split('T')[0];
 
-    // Fetch workout logs, exercise logs, and program assignments in parallel
-    const [logsResult, assignmentsResult] = await Promise.all([
+    // Fetch workout logs, exercise logs, program assignments, and nutrition in parallel
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const sevenDaysStr = sevenDaysAgo.toISOString().split('T')[0];
+
+    const [logsResult, assignmentsResult, diaryResult, goalsResult] = await Promise.all([
       supabase
         .from('workout_logs')
         .select('*')
@@ -52,13 +56,28 @@ exports.handler = async (event) => {
         .from('client_workout_assignments')
         .select('id, client_id, coach_id, name, start_date, end_date, workout_data, is_active, created_at')
         .eq('client_id', clientId)
-        .order('created_at', { ascending: false })
+        .order('created_at', { ascending: false }),
+      // Nutrition data (last 7 days for context)
+      supabase
+        .from('food_diary_entries')
+        .select('entry_date, meal_type, food_name, calories, protein, carbs, fat')
+        .eq('client_id', clientId)
+        .gte('entry_date', sevenDaysStr)
+        .order('entry_date', { ascending: false })
+        .limit(200),
+      supabase
+        .from('calorie_goals')
+        .select('calorie_goal, protein_goal, carbs_goal, fat_goal')
+        .eq('client_id', clientId)
+        .maybeSingle()
     ]);
 
     const { data: workoutLogs, error: logsError } = logsResult;
     if (logsError) throw logsError;
 
     const assignments = assignmentsResult.data || [];
+    const diaryEntries = diaryResult.data || [];
+    const nutritionGoals = goalsResult.data || null;
 
     // Fetch exercise logs for these workouts
     let exerciseLogs = [];
@@ -300,9 +319,66 @@ OVERVIEW:
       clientContext += `- No workouts logged in the last 30 days. Client appears completely inactive.\n`;
     }
 
+    // Adherence tracking: compare this week's workouts vs scheduled days
+    const activeAssignment = assignments.find(a => a.is_active);
+    if (activeAssignment) {
+      const scheduledDays = activeAssignment.workout_data?.schedule?.selectedDays || [];
+      if (scheduledDays.length > 0) {
+        const thisWeekLogs = (workoutLogs || []).filter(w => {
+          const wDate = new Date(w.workout_date || w.created_at);
+          return wDate >= new Date(new Date().setDate(new Date().getDate() - 7));
+        });
+        const adherence = Math.round((thisWeekLogs.length / scheduledDays.length) * 100);
+        const adherenceLabel = adherence >= 80 ? 'GOOD' : adherence >= 50 ? 'MODERATE' : 'LOW';
+        clientContext += `\nWEEKLY ADHERENCE:\n`;
+        clientContext += `- Workouts this week: ${thisWeekLogs.length}/${scheduledDays.length} scheduled (${adherence}% - ${adherenceLabel})\n`;
+        clientContext += `- Scheduled training days: ${scheduledDays.join(', ')}\n`;
+        if (adherence < 50) {
+          clientContext += `- WARNING: Client is significantly below their scheduled workout frequency.\n`;
+        }
+      }
+    }
+
+    // Nutrition context (last 7 days)
+    if (diaryEntries.length > 0) {
+      const dailyTotals = {};
+      diaryEntries.forEach(e => {
+        if (!dailyTotals[e.entry_date]) {
+          dailyTotals[e.entry_date] = { calories: 0, protein: 0, carbs: 0, fat: 0 };
+        }
+        dailyTotals[e.entry_date].calories += e.calories || 0;
+        dailyTotals[e.entry_date].protein += parseFloat(e.protein) || 0;
+        dailyTotals[e.entry_date].carbs += parseFloat(e.carbs) || 0;
+        dailyTotals[e.entry_date].fat += parseFloat(e.fat) || 0;
+      });
+
+      const daysLogged = Object.keys(dailyTotals).length;
+      const avgCal = Math.round(Object.values(dailyTotals).reduce((s, d) => s + d.calories, 0) / daysLogged);
+      const avgProtein = Math.round(Object.values(dailyTotals).reduce((s, d) => s + d.protein, 0) / daysLogged);
+
+      clientContext += `\nNUTRITION SNAPSHOT (Last 7 Days):\n`;
+      clientContext += `- Days logged: ${daysLogged}/7\n`;
+      clientContext += `- Average daily calories: ${avgCal}\n`;
+      clientContext += `- Average daily protein: ${avgProtein}g\n`;
+      if (nutritionGoals) {
+        clientContext += `- Calorie goal: ${nutritionGoals.calorie_goal} | Protein goal: ${nutritionGoals.protein_goal}g\n`;
+        const calDiff = avgCal - nutritionGoals.calorie_goal;
+        const protDiff = avgProtein - nutritionGoals.protein_goal;
+        if (Math.abs(calDiff) > 200) {
+          clientContext += `- ${calDiff > 0 ? 'OVER' : 'UNDER'} calorie goal by ${Math.abs(calDiff)} cal/day\n`;
+        }
+        if (protDiff < -20) {
+          clientContext += `- WARNING: Protein intake ${Math.abs(protDiff)}g below goal\n`;
+        }
+      }
+    } else {
+      clientContext += `\nNUTRITION SNAPSHOT: No food diary entries in the last 7 days.\n`;
+    }
+
     // Send to Gemini
-    const prompt = `You are an AI assistant helping a fitness coach analyze their client's workout data.
+    const prompt = `You are an AI assistant helping a fitness coach analyze their client's workout AND nutrition data.
 Be helpful, specific, and actionable. You are speaking directly to the coach, not the client.
+You have access to workout logs, exercise details, PRs, program assignments, weekly adherence, and nutrition data.
 
 ${clientContext}
 
@@ -316,6 +392,8 @@ CRITICAL RULES:
 2. When a program is ending soon or has ended, ALWAYS flag this to the coach as urgent.
 3. When the client has stopped logging workouts, highlight this clearly with how many days since their last workout.
 4. If a client has no active program, recommend the coach assign one.
+5. When asked about overall progress, include both training AND nutrition observations.
+6. Flag adherence issues when a client is significantly below their scheduled workout frequency.
 
 IMPORTANT FORMATTING RULES:
 1. Do NOT use any markdown formatting like **bold**, *italics*, or bullet points with asterisks.

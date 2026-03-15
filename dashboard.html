@@ -4513,6 +4513,8 @@
                         <button class="hero-chip" onclick="askQuickQuestion('Who hasn\'t logged a workout this week?')">Inactive clients</button>
                         <button class="hero-chip" onclick="askQuickQuestion('Which clients are at risk of dropping off based on activity and check-ins?')">At risk</button>
                         <button class="hero-chip" onclick="showProgramsEnding()">Programs ending</button>
+                        <button class="hero-chip" onclick="showClientsWithoutPrograms()">No program</button>
+                        <button class="hero-chip" onclick="askQuickQuestion('Show me each client\'s workout adherence this week - how many workouts did they complete vs their scheduled days? Flag anyone below 50% adherence.')">Adherence</button>
                         <button class="hero-chip" onclick="askQuickQuestion('Give me a weekly summary of all client activity, check-ins, workouts, PRs, and anything that needs my attention')">Weekly summary</button>
                     </div>
                 </div>
@@ -7224,6 +7226,86 @@
             }
         }
 
+        // Show clients without any workout program assigned
+        async function showClientsWithoutPrograms() {
+            const responseArea = document.getElementById('aiResponseArea');
+            const searchBtn = document.querySelector('.ai-hero-send-btn');
+            searchBtn.disabled = true;
+            responseArea.style.display = 'block';
+            responseArea.innerHTML = `
+                <div class="ai-response-loading">
+                    <div class="ai-loading-spinner"></div>
+                    <span>Checking programs...</span>
+                </div>
+            `;
+
+            try {
+                const response = await fetch(`/.netlify/functions/programs-ending-soon?coachId=${currentUserId}`);
+                const data = await response.json();
+
+                if (!response.ok) throw new Error(data.error || 'Failed to fetch');
+
+                const noProgram = data.clientsWithoutPrograms || [];
+                const expiredOnly = data.clientsWithExpiredOnly || [];
+                const total = noProgram.length + expiredOnly.length;
+
+                if (total === 0) {
+                    responseArea.innerHTML = `
+                        <div class="ai-response-section">
+                            <div class="ai-section-header" style="background: var(--primary-color, #0d9488); color: #fff;">
+                                <span class="ai-section-icon">✅</span>
+                                <span class="ai-section-title">All Good</span>
+                            </div>
+                            <div class="ai-section-body">
+                                <p>All clients have an active workout program assigned.</p>
+                            </div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                let html = '';
+
+                if (noProgram.length > 0) {
+                    html += `
+                        <div class="ai-response-section">
+                            <div class="ai-section-header" style="background: #dc2626; color: #fff;">
+                                <span class="ai-section-icon">⚠️</span>
+                                <span class="ai-section-title">No Program Assigned (${noProgram.length})</span>
+                            </div>
+                            <div class="ai-section-body"><ul>
+                    `;
+                    noProgram.forEach(c => {
+                        html += `<li><strong>${c.clientName}</strong> — has never been assigned a workout program. <a href="client-profile.html?clientId=${c.clientId}&tab=workouts" style="color: var(--primary-color);">Assign now →</a></li>`;
+                    });
+                    html += '</ul></div></div>';
+                }
+
+                if (expiredOnly.length > 0) {
+                    html += `
+                        <div class="ai-response-section">
+                            <div class="ai-section-header" style="background: #f59e0b; color: #fff;">
+                                <span class="ai-section-icon">⏰</span>
+                                <span class="ai-section-title">Program Expired (${expiredOnly.length})</span>
+                            </div>
+                            <div class="ai-section-body"><ul>
+                    `;
+                    expiredOnly.forEach(c => {
+                        html += `<li><strong>${c.clientName}</strong> — "${c.lastProgramName}" ended ${c.lastProgramEndDate}. <a href="client-profile.html?clientId=${c.clientId}&tab=workouts" style="color: var(--primary-color);">Assign new →</a></li>`;
+                    });
+                    html += '</ul></div></div>';
+                }
+
+                responseArea.innerHTML = html;
+
+            } catch (error) {
+                console.error('Error fetching clients without programs:', error);
+                responseArea.innerHTML = `<p class="ai-response-text" style="color: var(--gray-500);">Could not check programs. Please try again.</p>`;
+            } finally {
+                searchBtn.disabled = false;
+            }
+        }
+
         function formatSectionContent(text) {
             if (!text) return '';
 
@@ -7784,7 +7866,7 @@
                 // Fetch this week's completed workout logs
                 const { data: thisWeekWorkouts } = await supabaseClient
                     .from('workout_logs')
-                    .select('id, client_id, total_volume, created_at, status')
+                    .select('id, client_id, total_volume, created_at, status, workout_date')
                     .in('client_id', clientIds)
                     .eq('status', 'completed')
                     .gte('created_at', weekAgo.toISOString());
@@ -7797,6 +7879,13 @@
                     .eq('status', 'completed')
                     .gte('created_at', prevWeekStart.toISOString())
                     .lt('created_at', weekAgo.toISOString());
+
+                // Fetch active workout assignments for adherence tracking
+                const { data: activeAssignments } = await supabaseClient
+                    .from('client_workout_assignments')
+                    .select('id, client_id, name, start_date, end_date, workout_data, is_active')
+                    .eq('coach_id', coachId)
+                    .eq('is_active', true);
 
                 // Fetch PRs this week
                 const { data: prNotifs } = await supabaseClient
@@ -7836,9 +7925,27 @@
                     .in('client_id', clientIds)
                     .gte('created_at', weekAgo.toISOString());
 
+                // Build assignment map for adherence tracking
+                const assignmentMap = {};
+                (activeAssignments || []).forEach(a => {
+                    // Find the client's most relevant active assignment
+                    if (!assignmentMap[a.client_id] || (a.end_date && !assignmentMap[a.client_id].end_date)) {
+                        const schedule = a.workout_data?.schedule || {};
+                        const selectedDays = schedule.selectedDays || [];
+                        assignmentMap[a.client_id] = {
+                            name: a.name,
+                            scheduledDaysPerWeek: selectedDays.length,
+                            selectedDays,
+                            endDate: a.end_date,
+                            isExpired: a.end_date ? new Date(a.end_date + 'T23:59:59') < new Date() : false
+                        };
+                    }
+                });
+
                 // Build per-client data
                 const clientData = {};
                 clients.forEach(c => {
+                    const assignment = assignmentMap[c.id];
                     clientData[c.id] = {
                         name: c.client_name || 'Client',
                         workouts: 0,
@@ -7849,7 +7956,11 @@
                         hasNotes: false,
                         photos: 0,
                         measurements: 0,
-                        lastWorkout: null
+                        lastWorkout: null,
+                        hasProgram: !!assignment,
+                        programName: assignment?.name || null,
+                        scheduledDaysPerWeek: assignment?.scheduledDaysPerWeek || 0,
+                        programExpired: assignment?.isExpired || false
                     };
                 });
 
@@ -7911,9 +8022,17 @@
                 document.getElementById('statPRs').textContent = totalPRs;
                 document.getElementById('statActiveRate').textContent = activeRate + '%';
 
-                // Calculate adherence (workouts done vs rough expected of 3-5/week)
-                // Simple: active clients / total as a percentage
-                document.getElementById('statAdherence').textContent = activeRate + '%';
+                // Calculate real adherence: workouts completed vs scheduled across all clients with programs
+                let totalScheduled = 0;
+                let totalCompleted = 0;
+                Object.values(clientData).forEach(c => {
+                    if (c.hasProgram && c.scheduledDaysPerWeek > 0 && !c.programExpired) {
+                        totalScheduled += c.scheduledDaysPerWeek;
+                        totalCompleted += Math.min(c.workouts, c.scheduledDaysPerWeek);
+                    }
+                });
+                const adherenceRate = totalScheduled > 0 ? Math.round((totalCompleted / totalScheduled) * 100) : activeRate;
+                document.getElementById('statAdherence').textContent = adherenceRate + '%';
 
                 // Sort: active clients first (by workouts desc), then inactive
                 const sorted = Object.entries(clientData).sort((a, b) => {
@@ -7946,9 +8065,26 @@
                     // Badges
                     let badges = [];
                     if (isActive) {
-                        badges.push(`<span class="cag-badge green" title="Completed ${d.workouts} workout${d.workouts !== 1 ? 's' : ''} this week">${d.workouts} workout${d.workouts !== 1 ? 's' : ''} this wk</span>`);
+                        // Show adherence if they have a program with scheduled days
+                        if (d.hasProgram && d.scheduledDaysPerWeek > 0 && !d.programExpired) {
+                            const adherencePct = Math.round((d.workouts / d.scheduledDaysPerWeek) * 100);
+                            const adherenceColor = adherencePct >= 80 ? 'green' : adherencePct >= 50 ? 'amber' : 'red';
+                            badges.push(`<span class="cag-badge ${adherenceColor}" title="${d.workouts}/${d.scheduledDaysPerWeek} scheduled workouts completed this week">${d.workouts}/${d.scheduledDaysPerWeek} workouts (${adherencePct}%)</span>`);
+                        } else {
+                            badges.push(`<span class="cag-badge green" title="Completed ${d.workouts} workout${d.workouts !== 1 ? 's' : ''} this week">${d.workouts} workout${d.workouts !== 1 ? 's' : ''} this wk</span>`);
+                        }
                     } else {
-                        badges.push('<span class="cag-badge red" title="No completed workouts this week">No activity</span>');
+                        if (d.hasProgram && !d.programExpired) {
+                            badges.push(`<span class="cag-badge red" title="Has a program but no workouts this week">0/${d.scheduledDaysPerWeek} workouts</span>`);
+                        } else {
+                            badges.push('<span class="cag-badge red" title="No completed workouts this week">No activity</span>');
+                        }
+                    }
+                    // Program status badges
+                    if (!d.hasProgram) {
+                        badges.push('<span class="cag-badge red" title="No workout program assigned">No program</span>');
+                    } else if (d.programExpired) {
+                        badges.push('<span class="cag-badge red" title="Workout program has expired">Program expired</span>');
                     }
                     if (d.prs > 0) badges.push(`<span class="cag-badge purple" title="${d.prs} new personal record${d.prs !== 1 ? 's' : ''} set this week">${d.prs} PR${d.prs !== 1 ? 's' : ''} this wk</span>`);
                     if (d.photos > 0) badges.push(`<span class="cag-badge blue" title="${d.photos} progress photo${d.photos !== 1 ? 's' : ''} uploaded this week">📸 ${d.photos} photo${d.photos !== 1 ? 's' : ''}</span>`);

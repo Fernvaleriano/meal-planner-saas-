@@ -949,7 +949,16 @@ async function handleQuestion(event) {
           programStartDate: clientAssignment?.start_date || null,
           programEndDate: clientAssignment?.end_date || null,
           programSchedule: clientAssignment?.workout_data?.schedule?.selectedDays || null,
-          hasMultiplePrograms: allClientAssignments.length > 1
+          hasMultiplePrograms: allClientAssignments.length > 1,
+          // Weekly adherence: workouts completed this week vs scheduled days
+          workoutsThisWeek: clientWorkoutLogs.filter(w => new Date(w.created_at) >= sevenDaysAgo).length,
+          scheduledDaysPerWeek: clientAssignment?.workout_data?.schedule?.selectedDays?.length || 0,
+          adherencePercent: (() => {
+            const scheduled = clientAssignment?.workout_data?.schedule?.selectedDays?.length || 0;
+            if (scheduled === 0) return null;
+            const thisWeek = clientWorkoutLogs.filter(w => new Date(w.created_at) >= sevenDaysAgo).length;
+            return Math.round((thisWeek / scheduled) * 100);
+          })()
         },
         body: {
           latestWeight: latestWeight ? { value: latestWeight.weight, unit: latestWeight.unit, date: latestWeight.created_at } : null,
@@ -1075,6 +1084,11 @@ async function handleQuestion(event) {
         if (c.workouts.programSchedule) {
           parts.push(`scheduled days: ${c.workouts.programSchedule.join(', ')}`);
         }
+        // Adherence tracking
+        if (c.workouts.adherencePercent !== null) {
+          const adherenceLabel = c.workouts.adherencePercent >= 80 ? 'GOOD' : c.workouts.adherencePercent >= 50 ? 'MODERATE' : 'LOW';
+          parts.push(`WEEKLY ADHERENCE: ${c.workouts.workoutsThisWeek}/${c.workouts.scheduledDaysPerWeek} workouts this week (${c.workouts.adherencePercent}% - ${adherenceLabel})`);
+        }
         if (c.workouts.recentExercises.length > 0) {
           const exerciseStrs = c.workouts.recentExercises.slice(0, 5).map(e => {
             let str = e.name;
@@ -1146,6 +1160,17 @@ async function handleQuestion(event) {
     const clientsWithNewPrs = clientData.filter(c => c.workouts.newPrsThisWeek && c.workouts.newPrsThisWeek.length > 0);
     const totalNewPrsThisWeek = clientData.reduce((sum, c) => sum + (c.workouts.newPrsThisWeek?.length || 0), 0);
 
+    // Program & adherence stats
+    const clientsWithNoProgram = clientData.filter(c => c.workouts.programStatus === 'no_program').length;
+    const clientsWithExpiredProgram = clientData.filter(c => c.workouts.programStatus === 'expired').length;
+    const clientsWithEndingSoon = clientData.filter(c => c.workouts.programStatus === 'ending_soon').length;
+    const clientsWithLowAdherence = clientData.filter(c => c.workouts.adherencePercent !== null && c.workouts.adherencePercent < 50);
+    const avgAdherence = (() => {
+      const withAdherence = clientData.filter(c => c.workouts.adherencePercent !== null);
+      if (withAdherence.length === 0) return null;
+      return Math.round(withAdherence.reduce((sum, c) => sum + c.workouts.adherencePercent, 0) / withAdherence.length);
+    })();
+
     // Build coach self-data context if available
     let coachSelfContext = '';
     if (coachSelfData) {
@@ -1196,6 +1221,11 @@ SUMMARY:
 - Total workouts logged (30 days): ${totalWorkouts}
 - Clients who hit NEW PRs this week: ${clientsWithNewPrs.length}${clientsWithNewPrs.length > 0 ? ` (${clientsWithNewPrs.map(c => c.name).join(', ')})` : ''}
 - Total new PRs achieved this week: ${totalNewPrsThisWeek}
+- Clients with NO program: ${clientsWithNoProgram}
+- Clients with EXPIRED program: ${clientsWithExpiredProgram}
+- Clients with program ENDING SOON: ${clientsWithEndingSoon}
+${avgAdherence !== null ? `- Average workout adherence: ${avgAdherence}%` : ''}
+${clientsWithLowAdherence.length > 0 ? `- LOW ADHERENCE (<50%): ${clientsWithLowAdherence.map(c => `${c.name} (${c.workouts.adherencePercent}%)`).join(', ')}` : ''}
 ${coachSelfContext}
 CLIENT DETAILS:
 ${clientContext}
