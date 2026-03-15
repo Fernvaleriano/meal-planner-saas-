@@ -38,15 +38,27 @@ exports.handler = async (event) => {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     const dateStr = thirtyDaysAgo.toISOString().split('T')[0];
+    const todayStr = new Date().toISOString().split('T')[0];
 
-    const { data: workoutLogs, error: logsError } = await supabase
-      .from('workout_logs')
-      .select('*')
-      .eq('client_id', clientId)
-      .gte('workout_date', dateStr)
-      .order('workout_date', { ascending: false });
+    // Fetch workout logs, exercise logs, and program assignments in parallel
+    const [logsResult, assignmentsResult] = await Promise.all([
+      supabase
+        .from('workout_logs')
+        .select('*')
+        .eq('client_id', clientId)
+        .gte('workout_date', dateStr)
+        .order('workout_date', { ascending: false }),
+      supabase
+        .from('client_workout_assignments')
+        .select('id, client_id, coach_id, name, start_date, end_date, workout_data, is_active, created_at')
+        .eq('client_id', clientId)
+        .order('created_at', { ascending: false })
+    ]);
 
+    const { data: workoutLogs, error: logsError } = logsResult;
     if (logsError) throw logsError;
+
+    const assignments = assignmentsResult.data || [];
 
     // Fetch exercise logs for these workouts
     let exerciseLogs = [];
@@ -205,6 +217,89 @@ OVERVIEW:
       clientContext += `- ${w.workout_date}: ${w.workout_name || 'Workout'} | Volume: ${w.total_volume || 0} kg | ${exercises.length} exercises (${exNames})\n`;
     });
 
+    // Build program assignment context
+    const activeAssignments = assignments.filter(a => a.is_active);
+    const expiredAssignments = assignments.filter(a => !a.is_active);
+
+    clientContext += `\nWORKOUT PROGRAM STATUS:\n`;
+
+    if (activeAssignments.length === 0 && assignments.length === 0) {
+      clientContext += `- This client has NO workout program assigned. They have never been assigned a program.\n`;
+      clientContext += `- RECOMMENDATION: The coach should assign a workout program to this client.\n`;
+    } else if (activeAssignments.length === 0 && expiredAssignments.length > 0) {
+      clientContext += `- This client has NO active workout program. Their program has ENDED.\n`;
+      clientContext += `- RECOMMENDATION: The coach needs to assign a new workout program.\n`;
+      const lastProgram = expiredAssignments[0];
+      clientContext += `- Last program: "${lastProgram.name || 'Workout Program'}" (ended ${lastProgram.end_date || 'unknown date'})\n`;
+    } else {
+      activeAssignments.forEach(a => {
+        const schedule = a.workout_data?.schedule || {};
+        const selectedDays = schedule.selectedDays || [];
+        const weeksAmount = schedule.weeksAmount || 0;
+        const programDays = a.workout_data?.days || [];
+        const dayNames = selectedDays.length > 0 ? selectedDays.join(', ') : 'not specified';
+
+        clientContext += `- ACTIVE PROGRAM: "${a.name || 'Workout Program'}"\n`;
+        clientContext += `  Start Date: ${a.start_date || 'not set'}\n`;
+        clientContext += `  End Date: ${a.end_date || 'no end date set'}\n`;
+
+        if (a.end_date) {
+          const endDate = new Date(a.end_date + 'T23:59:59');
+          const now = new Date();
+          const daysRemaining = Math.ceil((endDate - now) / (1000 * 60 * 60 * 24));
+          if (daysRemaining <= 0) {
+            clientContext += `  STATUS: EXPIRED (ended ${Math.abs(daysRemaining)} days ago) - needs a new program!\n`;
+          } else if (daysRemaining <= 7) {
+            clientContext += `  STATUS: ENDING SOON (${daysRemaining} days remaining) - coach should prepare next program\n`;
+          } else {
+            clientContext += `  STATUS: Active (${daysRemaining} days remaining)\n`;
+          }
+        } else {
+          clientContext += `  STATUS: Active (no end date)\n`;
+        }
+
+        clientContext += `  Scheduled Days: ${dayNames}\n`;
+        clientContext += `  Program Duration: ${weeksAmount} weeks\n`;
+        clientContext += `  Workout Days in Program: ${programDays.length}\n`;
+      });
+    }
+
+    // Detect gaps in workout activity (when workouts stop appearing on calendar)
+    if (workoutLogs && workoutLogs.length > 0) {
+      const sortedDates = [...new Set(workoutLogs.map(w => w.workout_date))].sort().reverse();
+      const lastWorkoutDate = sortedDates[0];
+      const daysSinceLastWorkout = Math.floor((new Date(todayStr) - new Date(lastWorkoutDate)) / (1000 * 60 * 60 * 24));
+
+      clientContext += `\nWORKOUT ACTIVITY STATUS:\n`;
+      clientContext += `- Last workout logged: ${lastWorkoutDate} (${daysSinceLastWorkout} days ago)\n`;
+
+      if (daysSinceLastWorkout >= 7) {
+        clientContext += `- WARNING: Client has NOT logged any workouts in ${daysSinceLastWorkout} days. They may have stopped training or are not following their program.\n`;
+      } else if (daysSinceLastWorkout >= 3) {
+        clientContext += `- NOTE: Client hasn't logged a workout in ${daysSinceLastWorkout} days.\n`;
+      } else {
+        clientContext += `- Client is actively logging workouts.\n`;
+      }
+
+      // Check for declining frequency
+      if (sortedDates.length >= 4) {
+        const recentWeekDates = sortedDates.filter(d => {
+          const diff = Math.floor((new Date(todayStr) - new Date(d)) / (1000 * 60 * 60 * 24));
+          return diff <= 7;
+        });
+        const priorWeekDates = sortedDates.filter(d => {
+          const diff = Math.floor((new Date(todayStr) - new Date(d)) / (1000 * 60 * 60 * 24));
+          return diff > 7 && diff <= 14;
+        });
+        if (priorWeekDates.length > 0 && recentWeekDates.length < priorWeekDates.length) {
+          clientContext += `- TREND: Workout frequency dropped from ${priorWeekDates.length} sessions last week to ${recentWeekDates.length} this week.\n`;
+        }
+      }
+    } else {
+      clientContext += `\nWORKOUT ACTIVITY STATUS:\n`;
+      clientContext += `- No workouts logged in the last 30 days. Client appears completely inactive.\n`;
+    }
+
     // Send to Gemini
     const prompt = `You are an AI assistant helping a fitness coach analyze their client's workout data.
 Be helpful, specific, and actionable. You are speaking directly to the coach, not the client.
@@ -215,6 +310,12 @@ COACH'S QUESTION: "${question}"
 
 Provide a helpful, concise response based on the client's actual data. Include specific numbers, exercise names, and observations where relevant. If suggesting programming changes, be specific about exercises, sets, reps, and periodization approaches.
 Keep response under 300 words unless more detail is needed.
+
+CRITICAL RULES:
+1. When asked about workout programs, give a DEFINITIVE answer based on the WORKOUT PROGRAM STATUS data. Never say "the data does not explicitly state" - you HAVE the program assignment data. State clearly whether the client has an active program, an expired program, or no program at all.
+2. When a program is ending soon or has ended, ALWAYS flag this to the coach as urgent.
+3. When the client has stopped logging workouts, highlight this clearly with how many days since their last workout.
+4. If a client has no active program, recommend the coach assign one.
 
 IMPORTANT FORMATTING RULES:
 1. Do NOT use any markdown formatting like **bold**, *italics*, or bullet points with asterisks.
