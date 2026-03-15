@@ -59,11 +59,12 @@ exports.handler = async (event) => {
                 .gte('end_date', lookBackStr)
                 .lte('end_date', lookAheadStr)
                 .order('end_date', { ascending: true }),
-            // Get all active (non-archived) clients for this coach
+            // Get all active (non-archived) clients who have actually set up their account
             supabase
                 .from('clients')
-                .select('id, client_name, created_at')
+                .select('id, client_name, created_at, user_id, last_activity_at')
                 .eq('coach_id', coachId)
+                .not('user_id', 'is', null)
                 .or('is_archived.eq.false,is_archived.is.null'),
             // Get ALL active assignments for this coach (to find clients without programs)
             supabase

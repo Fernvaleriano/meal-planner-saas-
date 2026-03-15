@@ -1067,8 +1067,8 @@ async function handleQuestion(event) {
       // Workouts
       if (c.workouts.totalThisMonth > 0 || c.workouts.programStatus !== 'no_program') {
         parts.push(`${c.workouts.totalThisMonth} workouts this month`);
-        // Program status - be explicit
-        if (c.workouts.programStatus === 'no_program') {
+        // Program status - be explicit (only flag "no program" for clients who have set up their account)
+        if (c.workouts.programStatus === 'no_program' && c.hasPortalAccess) {
           parts.push('PROGRAM STATUS: NO workout program assigned');
         } else if (c.workouts.programStatus === 'expired') {
           parts.push(`PROGRAM STATUS: EXPIRED - program "${c.workouts.currentProgram}" ended on ${c.workouts.programEndDate} - NEEDS NEW PROGRAM`);
@@ -1160,13 +1160,14 @@ async function handleQuestion(event) {
     const clientsWithNewPrs = clientData.filter(c => c.workouts.newPrsThisWeek && c.workouts.newPrsThisWeek.length > 0);
     const totalNewPrsThisWeek = clientData.reduce((sum, c) => sum + (c.workouts.newPrsThisWeek?.length || 0), 0);
 
-    // Program & adherence stats
-    const clientsWithNoProgram = clientData.filter(c => c.workouts.programStatus === 'no_program').length;
-    const clientsWithExpiredProgram = clientData.filter(c => c.workouts.programStatus === 'expired').length;
-    const clientsWithEndingSoon = clientData.filter(c => c.workouts.programStatus === 'ending_soon').length;
-    const clientsWithLowAdherence = clientData.filter(c => c.workouts.adherencePercent !== null && c.workouts.adherencePercent < 50);
+    // Program & adherence stats (only count clients who have actually set up their account)
+    const activePortalClients = clientData.filter(c => c.hasPortalAccess);
+    const clientsWithNoProgram = activePortalClients.filter(c => c.workouts.programStatus === 'no_program').length;
+    const clientsWithExpiredProgram = activePortalClients.filter(c => c.workouts.programStatus === 'expired').length;
+    const clientsWithEndingSoon = activePortalClients.filter(c => c.workouts.programStatus === 'ending_soon').length;
+    const clientsWithLowAdherence = activePortalClients.filter(c => c.workouts.adherencePercent !== null && c.workouts.adherencePercent < 50);
     const avgAdherence = (() => {
-      const withAdherence = clientData.filter(c => c.workouts.adherencePercent !== null);
+      const withAdherence = activePortalClients.filter(c => c.workouts.adherencePercent !== null);
       if (withAdherence.length === 0) return null;
       return Math.round(withAdherence.reduce((sum, c) => sum + c.workouts.adherencePercent, 0) / withAdherence.length);
     })();

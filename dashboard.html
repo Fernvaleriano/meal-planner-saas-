@@ -8080,8 +8080,8 @@
                             badges.push('<span class="cag-badge red" title="No completed workouts this week">No activity</span>');
                         }
                     }
-                    // Program status badges
-                    if (!d.hasProgram) {
+                    // Program status badges (only show for clients who have some activity — skip ghost accounts)
+                    if (!d.hasProgram && (d.workouts > 0 || d.checkedIn || d.hasNotes || d.photos > 0)) {
                         badges.push('<span class="cag-badge red" title="No workout program assigned">No program</span>');
                     } else if (d.programExpired) {
                         badges.push('<span class="cag-badge red" title="Workout program has expired">Program expired</span>');
