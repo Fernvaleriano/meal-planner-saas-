@@ -2399,14 +2399,55 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" onerror="loadSupabaseFallback()"></script>
     <script>
+        // Fallback loader if primary CDN fails
+        function loadSupabaseFallback() {
+            console.warn('Primary Supabase CDN failed, trying fallback...');
+            var s = document.createElement('script');
+            s.src = 'https://unpkg.com/@supabase/supabase-js@2';
+            s.onerror = function() {
+                console.error('All Supabase CDN sources failed. Please check your network/browser extensions.');
+                var loadingDiv = document.getElementById('loadingDiv');
+                if (loadingDiv) {
+                    loadingDiv.innerHTML = '<div style="text-align:center;padding:40px;"><h3>Failed to load required scripts</h3><p>Please disable any content-blocking browser extensions and reload the page.</p><button onclick="location.reload()" style="padding:10px 20px;margin-top:10px;cursor:pointer;">Reload Page</button></div>';
+                }
+            };
+            document.head.appendChild(s);
+        }
+    </script>
+    <script>
+        // Wait for supabase to be available (handles async fallback loading)
+        function waitForSupabase(callback, retries) {
+            retries = retries || 0;
+            if (typeof supabase !== 'undefined') {
+                callback();
+            } else if (retries < 50) {
+                setTimeout(function() { waitForSupabase(callback, retries + 1); }, 100);
+            }
+        }
+
         // Initialize Supabase client
         const SUPABASE_URL = 'https://qewqcjzlfqamqwbccapr.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFld3FjanpsZnFhbXF3YmNjYXByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM2OTg0NzAsImV4cCI6MjA3OTI3NDQ3MH0.mQnMC33O88oLkLLGWD2oG-oaSHGI-NfHmtQCZxnxSLs';
 
-        const { createClient } = supabase;
-        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        let supabaseClient;
+
+        function initSupabaseClient() {
+            if (typeof supabase === 'undefined') return false;
+            const { createClient } = supabase;
+            supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            return true;
+        }
+
+        // Try immediate init, or wait for fallback
+        if (!initSupabaseClient()) {
+            waitForSupabase(function() {
+                initSupabaseClient();
+                setupAuthListener();
+                initPage();
+            });
+        }
 
         let currentCoachId = null;
         let clients = [];
@@ -2464,7 +2505,10 @@
         let isInitializing = false;
 
         // Listen for auth state changes to handle session expiration
-        supabaseClient.auth.onAuthStateChange((event, session) => {
+        // Setup auth listener (may be deferred if supabase loaded via fallback)
+        function setupAuthListener() {
+            if (!supabaseClient) return;
+            supabaseClient.auth.onAuthStateChange((event, session) => {
             console.log('Auth state changed:', event, session ? 'Session exists' : 'No session');
 
             if (event === 'SIGNED_OUT') {
@@ -2475,6 +2519,8 @@
                 loadClients();
             }
         });
+        }
+        setupAuthListener();
 
         // Initialize page
         async function initPage() {
@@ -3504,8 +3550,10 @@
             }
         });
 
-        // Initialize page on load
-        initPage();
+        // Initialize page on load (only if supabase loaded directly; fallback handles its own init)
+        if (supabaseClient) {
+            initPage();
+        }
     </script>
 
     <!-- Mobile Sidebar Toggle -->
