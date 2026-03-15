@@ -9690,17 +9690,25 @@ textarea,
     position: absolute;
     top: 6px;
     left: 6px;
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
+    padding: 4px 10px;
+    border-radius: 6px;
     background: #0d9488;
     color: white;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 700;
+    letter-spacing: 0.5px;
     z-index: 3;
+}
+
+.photo-selected-badge.before {
+    background: #6366f1;
+}
+
+.photo-selected-badge.after {
+    background: #14b8a6;
 }
 
 /* Comparison Modal */
@@ -9784,7 +9792,16 @@ textarea,
 .comparison-photo-label strong {
     color: white;
     font-size: 13px;
+    letter-spacing: 0.5px;
     display: block;
+}
+
+.comparison-photo-label.before strong {
+    color: #a5b4fc;
+}
+
+.comparison-photo-label.after strong {
+    color: #5eead4;
 }
 
 .comparison-photo-card img {

@@ -670,8 +670,8 @@ function Progress() {
             {compareMode && (
               <div className="compare-hint">
                 {selectedPhotos.length === 0
-                  ? '① Select your BEFORE photo'
-                  : '② Now select your AFTER photo'}
+                  ? '① Tap the OLDER photo (Before)'
+                  : '② Now tap the NEWER photo (After)'}
               </div>
             )}
 
@@ -712,7 +712,9 @@ function Progress() {
                       >
                         <img src={photo.url || photo.photo_url} alt="Progress" loading="lazy" />
                         {isSelected && (
-                          <div className="photo-selected-badge">{selectedIndex === 0 ? 'Before' : 'After'}</div>
+                          <div className={`photo-selected-badge ${selectedIndex === 0 ? 'before' : 'after'}`}>
+                            {selectedIndex === 0 ? 'BEFORE' : 'AFTER'}
+                          </div>
                         )}
                         {!compareMode && (
                           <button
@@ -969,10 +971,13 @@ function Progress() {
               style={{ width: '100%', maxHeight: '200px', objectFit: 'cover', borderRadius: '12px', marginBottom: '16px' }}
             />
             <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px' }}>{selectedPhotos.length === 0 ? 'Use as your BEFORE photo?' : 'Use as your AFTER photo?'}</h3>
-            <p style={{ fontSize: '14px', color: '#94a3b8', marginBottom: '24px', lineHeight: 1.5 }}>
+            <p style={{ fontSize: '14px', color: '#94a3b8', marginBottom: '8px', lineHeight: 1.5 }}>
               {selectedPhotos.length === 0
-                ? 'This will be your starting point for comparison.'
-                : 'This will be compared against your before photo.'}
+                ? 'This will be your starting point (older photo).'
+                : 'This will be your current progress (newer photo).'}
+            </p>
+            <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '24px' }}>
+              {new Date(pendingPhoto.taken_date || pendingPhoto.date_taken).toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' })}
             </p>
             <div style={{ display: 'flex', gap: '12px' }}>
               <button className="delete-cancel-btn" onClick={() => setPendingPhoto(null)} style={{ flex: 1, padding: '12px 16px', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: 500, cursor: 'pointer' }}>
@@ -1001,18 +1006,21 @@ function Progress() {
             </div>
 
             <div className="comparison-photos">
-              {selectedPhotos.map((photo, i) => (
-                <div key={photo.id} className="comparison-photo-card">
-                  <div className="comparison-photo-label">
-                    <strong>{i === 0 ? 'Before' : 'After'}</strong>
-                    {new Date(photo.taken_date || photo.date_taken).toLocaleDateString()}
+              {selectedPhotos.map((photo, i) => {
+                const photoDate = new Date(photo.taken_date || photo.date_taken);
+                return (
+                  <div key={photo.id} className="comparison-photo-card">
+                    <div className={`comparison-photo-label ${i === 0 ? 'before' : 'after'}`}>
+                      <strong>{i === 0 ? 'BEFORE' : 'AFTER'}</strong>
+                      {photoDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </div>
+                    <img src={photo.url || photo.photo_url} alt={i === 0 ? 'Before' : 'After'} />
+                    <div className="comparison-photo-badge">
+                      {photoTypeLabels[photo.photo_type] || photo.photo_type || 'Progress'}
+                    </div>
                   </div>
-                  <img src={photo.url || photo.photo_url} alt={i === 0 ? 'Before' : 'After'} />
-                  <div className="comparison-photo-badge">
-                    {photoTypeLabels[photo.photo_type] || photo.photo_type || 'Progress'}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             <div className="ai-analysis-section">
