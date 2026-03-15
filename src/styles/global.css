@@ -7102,18 +7102,19 @@ textarea,
     justify-content: space-between;
     align-items: center;
     padding: 24px 24px 20px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    background: rgba(255, 255, 255, 0.02);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    background: rgba(0, 0, 0, 0.02);
 }
 
 [data-theme="dark"] .modal-header {
     border-color: rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.02);
 }
 
 .modal-header h2 {
     font-size: 1.35rem;
     font-weight: 700;
-    color: #f1f5f9;
+    color: #1e293b;
     margin: 0;
     letter-spacing: -0.3px;
 }
@@ -7123,9 +7124,9 @@ textarea,
 }
 
 .modal-close {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: #94a3b8;
+    background: rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    color: #475569;
     cursor: pointer;
     padding: 8px;
     border-radius: 12px;
@@ -7140,6 +7141,12 @@ textarea,
     border-color: rgba(239, 68, 68, 0.3);
     color: #f87171;
     transform: rotate(90deg);
+}
+
+[data-theme="dark"] .modal-close {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #94a3b8;
 }
 
 [data-theme="dark"] .modal-close:hover {
@@ -12148,7 +12155,7 @@ textarea,
     gap: 8px;
     margin-bottom: 10px;
     font-weight: 600;
-    color: #e2e8f0;
+    color: #1e293b;
     font-size: 0.9rem;
     letter-spacing: 0.2px;
 }
@@ -12161,10 +12168,10 @@ textarea,
 .modal-body .form-group select {
     width: 100%;
     padding: 14px 16px;
-    border: 2px solid rgba(255, 255, 255, 0.08);
+    border: 2px solid rgba(0, 0, 0, 0.12);
     border-radius: 14px;
-    background: rgba(15, 23, 42, 0.6);
-    color: #f1f5f9;
+    background: #ffffff;
+    color: #1e293b;
     font-size: 0.95rem;
     font-family: inherit;
     transition: all 0.25s ease;
@@ -12176,7 +12183,7 @@ textarea,
 .checkin-page .form-group textarea::placeholder,
 .modal-body .form-group input::placeholder,
 .modal-body .form-group textarea::placeholder {
-    color: #64748b;
+    color: #94a3b8;
 }
 
 .checkin-page .form-group input:focus,
@@ -12186,9 +12193,9 @@ textarea,
 .modal-body .form-group textarea:focus,
 .modal-body .form-group select:focus {
     outline: none;
-    border-color: rgba(20, 184, 166, 0.5);
-    background: rgba(15, 23, 42, 0.8);
-    box-shadow: 0 0 0 4px rgba(20, 184, 166, 0.1);
+    border-color: rgba(13, 148, 136, 0.5);
+    background: #ffffff;
+    box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.1);
 }
 
 .checkin-page .form-group textarea,
@@ -12251,6 +12258,41 @@ textarea,
     border-color: var(--brand-primary);
     background: white;
     box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.1);
+}
+
+/* Dark mode form overrides */
+[data-theme="dark"] .checkin-page .form-group label,
+[data-theme="dark"] .modal-body .form-group label {
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .checkin-page .form-group input,
+[data-theme="dark"] .checkin-page .form-group textarea,
+[data-theme="dark"] .checkin-page .form-group select,
+[data-theme="dark"] .modal-body .form-group input,
+[data-theme="dark"] .modal-body .form-group textarea,
+[data-theme="dark"] .modal-body .form-group select {
+    border: 2px solid rgba(255, 255, 255, 0.08);
+    background: rgba(15, 23, 42, 0.6);
+    color: #f1f5f9;
+}
+
+[data-theme="dark"] .checkin-page .form-group input::placeholder,
+[data-theme="dark"] .checkin-page .form-group textarea::placeholder,
+[data-theme="dark"] .modal-body .form-group input::placeholder,
+[data-theme="dark"] .modal-body .form-group textarea::placeholder {
+    color: #64748b;
+}
+
+[data-theme="dark"] .checkin-page .form-group input:focus,
+[data-theme="dark"] .checkin-page .form-group textarea:focus,
+[data-theme="dark"] .checkin-page .form-group select:focus,
+[data-theme="dark"] .modal-body .form-group input:focus,
+[data-theme="dark"] .modal-body .form-group textarea:focus,
+[data-theme="dark"] .modal-body .form-group select:focus {
+    border-color: rgba(20, 184, 166, 0.5);
+    background: rgba(15, 23, 42, 0.8);
+    box-shadow: 0 0 0 4px rgba(20, 184, 166, 0.1);
 }
 
 /* Upload area modernization */
