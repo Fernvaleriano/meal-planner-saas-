@@ -1108,10 +1108,10 @@ function Recipes() {
                       borderRadius: '12px',
                       cursor: 'pointer',
                       transition: 'border-color 0.2s, background 0.2s',
-                      background: '#f8fafc'
+                      background: 'var(--gray-50)'
                     }}
-                    onMouseOver={(e) => { e.currentTarget.style.borderColor = '#3b82f6'; e.currentTarget.style.background = '#eff6ff'; }}
-                    onMouseOut={(e) => { e.currentTarget.style.borderColor = '#cbd5e1'; e.currentTarget.style.background = '#f8fafc'; }}
+                    onMouseOver={(e) => { e.currentTarget.style.borderColor = '#3b82f6'; e.currentTarget.style.background = 'var(--gray-100)'; }}
+                    onMouseOut={(e) => { e.currentTarget.style.borderColor = 'var(--gray-300)'; e.currentTarget.style.background = 'var(--gray-50)'; }}
                     >
                       <Camera size={32} color="#94a3b8" />
                       <span style={{ fontSize: '14px', color: '#64748b', fontWeight: '500' }}>

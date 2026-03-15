@@ -3374,8 +3374,9 @@ function Diary() {
                       width: '40px',
                       height: '40px',
                       borderRadius: '50%',
-                      border: '2px solid #e2e8f0',
-                      background: 'white',
+                      border: '2px solid var(--gray-200)',
+                      background: 'var(--gray-50)',
+                      color: 'var(--gray-900)',
                       fontSize: '1.2rem',
                       cursor: 'pointer',
                       display: 'flex',
@@ -3405,8 +3406,9 @@ function Diary() {
                       width: '40px',
                       height: '40px',
                       borderRadius: '50%',
-                      border: '2px solid #e2e8f0',
-                      background: 'white',
+                      border: '2px solid var(--gray-200)',
+                      background: 'var(--gray-50)',
+                      color: 'var(--gray-900)',
                       fontSize: '1.2rem',
                       cursor: 'pointer',
                       display: 'flex',
@@ -3420,24 +3422,24 @@ function Diary() {
               </div>
 
               {/* Nutrition Preview */}
-              <div style={{ background: '#f8fafc', borderRadius: '12px', padding: '16px', marginBottom: '20px' }}>
-                <div style={{ fontWeight: 500, marginBottom: '12px', color: '#374151' }}>Nutrition</div>
+              <div style={{ background: 'var(--gray-100)', borderRadius: '12px', padding: '16px', marginBottom: '20px' }}>
+                <div style={{ fontWeight: 500, marginBottom: '12px', color: 'var(--gray-700)' }}>Nutrition</div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <div style={{ textAlign: 'center' }}>
                     <div style={{ fontSize: '1.3rem', fontWeight: 600, color: '#f97316' }}>{editingEntry.calories || 0}</div>
-                    <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Calories</div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--gray-400)' }}>Calories</div>
                   </div>
                   <div style={{ textAlign: 'center' }}>
                     <div style={{ fontSize: '1.3rem', fontWeight: 600, color: '#3b82f6' }}>{editingEntry.protein || 0}g</div>
-                    <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Protein</div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--gray-400)' }}>Protein</div>
                   </div>
                   <div style={{ textAlign: 'center' }}>
                     <div style={{ fontSize: '1.3rem', fontWeight: 600, color: '#10b981' }}>{editingEntry.carbs || 0}g</div>
-                    <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Carbs</div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--gray-400)' }}>Carbs</div>
                   </div>
                   <div style={{ textAlign: 'center' }}>
                     <div style={{ fontSize: '1.3rem', fontWeight: 600, color: '#f59e0b' }}>{editingEntry.fat || 0}g</div>
-                    <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Fat</div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--gray-400)' }}>Fat</div>
                   </div>
                 </div>
               </div>
@@ -3450,8 +3452,9 @@ function Diary() {
                     flex: 1,
                     padding: '14px',
                     borderRadius: '12px',
-                    border: '1px solid #e2e8f0',
-                    background: 'white',
+                    border: '1px solid var(--gray-200)',
+                    background: 'var(--gray-50)',
+                    color: 'var(--gray-900)',
                     fontWeight: 600,
                     cursor: 'pointer'
                   }}
