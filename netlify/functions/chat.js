@@ -1,9 +1,14 @@
 // Netlify Function for coach-client direct messaging
 const { createClient } = require('@supabase/supabase-js');
-const { extractToken, verifyToken, corsHeaders, handleCors } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS'
+};
 
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') {
@@ -201,27 +206,6 @@ exports.handler = async (event) => {
 
         if (!['coach', 'client'].includes(senderType)) {
           return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'senderType must be coach or client' }) };
-        }
-
-        // Verify the authenticated user matches the claimed senderType
-        const token = extractToken(event);
-        if (token) {
-          const { user: authUser } = await verifyToken(token);
-          if (authUser) {
-            if (senderType === 'coach' && authUser.id !== coachId) {
-              return { statusCode: 403, headers: corsHeaders, body: JSON.stringify({ error: 'Not authorized to send as this coach' }) };
-            }
-            if (senderType === 'client') {
-              const { data: client } = await supabase
-                .from('clients')
-                .select('id, user_id')
-                .eq('id', parseInt(clientId))
-                .single();
-              if (!client || client.user_id !== authUser.id) {
-                return { statusCode: 403, headers: corsHeaders, body: JSON.stringify({ error: 'Not authorized to send as this client' }) };
-              }
-            }
-          }
         }
 
         const insertData = {

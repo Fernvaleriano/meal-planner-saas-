@@ -4,7 +4,6 @@ import { Sunrise, Sun, Moon, Apple, Filter, ChevronDown, ChevronUp, User, Calend
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, apiDelete } from '../utils/api';
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
-import { useToast } from '../components/Toast';
 import ProgramsEndingSoon from '../components/ProgramsEndingSoon';
 
 // Available reaction emojis
@@ -45,7 +44,6 @@ const formatRelativeTime = (dateStr) => {
 
 // Meal card component - shows grouped food items
 function MealCard({ meal, coachId, onUpdate }) {
-  const { showError } = useToast();
   const [showComments, setShowComments] = useState(false);
   const [showReactions, setShowReactions] = useState(false);
   const [expanded, setExpanded] = useState(true);
@@ -133,7 +131,6 @@ function MealCard({ meal, coachId, onUpdate }) {
       }
     } catch (err) {
       console.error('Error adding comment:', err);
-      showError('Failed to send comment. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -289,7 +286,6 @@ function MealCard({ meal, coachId, onUpdate }) {
 
 // Workout feed card component - shows workout completions
 function WorkoutFeedCard({ workout, coachId, onUpdate, weightUnit = 'lbs' }) {
-  const { showError } = useToast();
   const [showComments, setShowComments] = useState(false);
   const [showReactions, setShowReactions] = useState(false);
   const [exercisesExpanded, setExercisesExpanded] = useState(workout.hasClientNotes || false);
@@ -380,7 +376,6 @@ function WorkoutFeedCard({ workout, coachId, onUpdate, weightUnit = 'lbs' }) {
       }
     } catch (err) {
       console.error('Error adding comment:', err);
-      showError('Failed to send comment. Please try again.');
     } finally {
       setLoading(false);
     }
