@@ -35776,9 +35776,8 @@ textarea,
 
 /* Panel 1: Training Plan (Days) */
 .wb-panel-days {
-    width: 220px;
-    min-width: 220px;
-    flex-shrink: 0;
+    flex: 1;
+    min-width: 200px;
 }
 
 .wb-day-row {
@@ -35890,7 +35889,7 @@ textarea,
 /* Panel 2: Exercises */
 .wb-panel-exercises {
     flex: 1;
-    min-width: 280px;
+    min-width: 250px;
 }
 
 .wb-empty-exercises {
@@ -35912,25 +35911,36 @@ textarea,
     font-size: 12px;
 }
 
+.wb-panel-exercises .wb-panel-body {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px;
+}
+
 .wb-ex-row {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 10px 16px;
-    min-height: 68px;
+    padding: 12px 14px;
+    min-height: 72px;
     box-sizing: border-box;
     cursor: pointer;
-    border-bottom: 1px solid var(--gray-100);
-    transition: background 0.12s;
+    border: 1px solid var(--gray-200);
+    border-radius: 10px;
+    background: var(--white, #fff);
+    transition: background 0.12s, border-color 0.12s, box-shadow 0.12s;
 }
 
 .wb-ex-row:hover {
     background: var(--gray-50);
+    border-color: var(--gray-300);
 }
 
 .wb-ex-row.selected {
     background: #E3F2FD;
-    border-left: 3px solid #2196F3;
+    border-color: #2196F3;
+    box-shadow: 0 0 0 1px #2196F3;
 }
 
 .wb-ex-row-thumb {
@@ -35974,9 +35984,8 @@ textarea,
 
 /* Panel 3: Exercise Detail */
 .wb-panel-detail {
-    width: 340px;
-    min-width: 340px;
-    flex-shrink: 0;
+    flex: 1;
+    min-width: 280px;
     background: var(--gray-50);
     overflow-y: auto;
 }
@@ -36203,14 +36212,11 @@ textarea,
 
 /* === Responsive: Tablet/Mobile === */
 @media (max-width: 1024px) {
+    .wb-panel-days,
+    .wb-panel-exercises,
     .wb-panel-detail {
-        width: 280px;
-        min-width: 280px;
-    }
-
-    .wb-panel-days {
-        width: 180px;
-        min-width: 180px;
+        flex: 1;
+        min-width: 0;
     }
 }
 
