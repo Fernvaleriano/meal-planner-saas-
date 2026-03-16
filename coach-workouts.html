@@ -7230,9 +7230,10 @@
                     (day.exercises || []).forEach((ex, i) => {
                         if (!ex.id || !freshMap.has(ex.id)) return;
                         const fresh = freshMap.get(ex.id);
-                        if (fresh.video_url && !ex.video_url) day.exercises[i].video_url = fresh.video_url;
-                        if (fresh.animation_url && !ex.animation_url) day.exercises[i].animation_url = fresh.animation_url;
-                        if (fresh.thumbnail_url && !ex.thumbnail_url) day.exercises[i].thumbnail_url = fresh.thumbnail_url;
+                        // Always update video URLs from DB (stale/expired URLs in saved workout data should be refreshed)
+                        if (fresh.video_url) day.exercises[i].video_url = fresh.video_url;
+                        if (fresh.animation_url) day.exercises[i].animation_url = fresh.animation_url;
+                        if (fresh.thumbnail_url) day.exercises[i].thumbnail_url = fresh.thumbnail_url;
                         // Always enrich equipment from DB so equipment conflict checks work
                         if (fresh.equipment && !ex.equipment) day.exercises[i].equipment = fresh.equipment;
                     });
@@ -7767,16 +7768,17 @@
             const exercise = day.exercises[selectedExerciseIndex];
             const di = activeDayIndex;
             const ei = selectedExerciseIndex;
-            const hasVideo = exercise.video_url || exercise.animation_url;
-            const videoSrc = exercise.video_url || exercise.animation_url;
+            const videoSrc = exercise.customVideoUrl || exercise.video_url || exercise.animation_url;
+            const hasVideo = !!videoSrc;
             const thumbSrc = exercise.thumbnail_url || '/img/exercise-placeholder.svg';
             const trackingType = exercise.trackingType || 'reps';
 
             // Preview - always show the exercise animation/thumbnail
             let previewHtml;
             if (hasVideo) {
-                previewHtml = '<video src="' + videoSrc + '" muted loop playsinline autoplay poster="' + thumbSrc + '" onerror="this.outerHTML=\'<img src=&quot;' + thumbSrc + '&quot; onerror=&quot;this.src=\\\'/img/exercise-placeholder.svg\\\'&quot;>\'"></video>';
+                previewHtml = '<video src="' + videoSrc + '" muted loop playsinline autoplay poster="' + thumbSrc + '" onerror="console.warn(\'[VideoDebug] Failed to load video:\', this.src); this.outerHTML=\'<img src=&quot;' + thumbSrc + '&quot; onerror=&quot;this.src=\\\'/img/exercise-placeholder.svg\\\'&quot;>\'"></video>';
             } else {
+                console.warn('[VideoDebug] No video URL for exercise:', exercise.name, { video_url: exercise.video_url, animation_url: exercise.animation_url, customVideoUrl: exercise.customVideoUrl });
                 previewHtml = '<img src="' + thumbSrc + '" onerror="this.src=\'/img/exercise-placeholder.svg\'">';
             }
 
@@ -8049,13 +8051,13 @@
 
         // Render single exercise item
         function renderExerciseItem(exercise, dayIndex, exIndex) {
-            const hasVideo = exercise.video_url || exercise.animation_url;
-            const videoSrc = exercise.video_url || exercise.animation_url;
+            const videoSrc = exercise.customVideoUrl || exercise.video_url || exercise.animation_url;
+            const hasVideo = !!videoSrc;
             // Use <video> with poster for hover-to-play preview; fall back to <img> if no video
             let thumbHtml;
             if (hasVideo) {
                 const posterAttr = exercise.thumbnail_url ? ` poster="${exercise.thumbnail_url}"` : '';
-                thumbHtml = `<video class="exercise-thumb-video" src="${videoSrc}" muted loop playsinline preload="metadata"${posterAttr} onmouseenter="this.play().catch(()=>{})" onmouseleave="this.pause();this.currentTime=0" onerror="this.outerHTML='<img class=\\'exercise-thumb\\' src=\\'${exercise.thumbnail_url || '/img/exercise-placeholder.svg'}\\' alt=\\'exercise\\'>'"></video>`;
+                thumbHtml = `<video class="exercise-thumb-video" src="${videoSrc}" muted loop playsinline preload="metadata"${posterAttr} onmouseenter="this.play().catch(()=>{})" onmouseleave="this.pause();this.currentTime=0" onerror="console.warn('[VideoDebug] List thumb failed:', this.src); this.outerHTML='<img class=\\'exercise-thumb\\' src=\\'${exercise.thumbnail_url || '/img/exercise-placeholder.svg'}\\' alt=\\'exercise\\'>'"></video>`;
             } else if (exercise.thumbnail_url) {
                 thumbHtml = `<img class="exercise-thumb" src="${exercise.thumbnail_url}" alt="${exercise.name}" onerror="this.src='/img/exercise-placeholder.svg'">`;
             } else {
@@ -9698,10 +9700,12 @@
                 newVideo.onplaying = () => {
                     loader.style.display = 'none';
                 };
-                newVideo.onerror = () => {
+                newVideo.onerror = (e) => {
+                    console.warn('[VideoDebug] Preview video failed to load:', videoUrl, e);
                     loader.innerHTML = '<span style="color: #f66;">Failed to load video</span>';
                 };
 
+                console.log('[VideoDebug] Loading preview video:', videoUrl);
                 newVideo.src = videoUrl;
                 newVideo.load();
             } else {
