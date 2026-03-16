@@ -9776,7 +9776,7 @@
                 : `<div class="swap-exercise-thumb" style="display:flex;align-items:center;justify-content:center;font-size:20px;">&#x1F3CB;</div>`;
             const meta = [ex.muscle_group, ex.equipment].filter(Boolean).join(' | ');
             const isSelected = selectedSwapExercise && selectedSwapExercise.id === ex.id;
-            return `<div class="swap-exercise-item ${isSelected ? 'selected' : ''}" onclick="selectSwapExercise(${ex.id}, this)" data-ex-id="${ex.id}" data-ex-name="${(ex.name || '').replace(/"/g, '&quot;')}" data-ex-equip="${(ex.equipment || '').replace(/"/g, '&quot;')}" data-ex-muscle="${(ex.muscle_group || '').replace(/"/g, '&quot;')}" data-ex-thumb="${(thumb).replace(/"/g, '&quot;')}" data-ex-anim="${(ex.animation_url || '').replace(/"/g, '&quot;')}" data-ex-video="${(ex.video_url || '').replace(/"/g, '&quot;')}">
+            return `<div class="swap-exercise-item ${isSelected ? 'selected' : ''}" onclick="selectEquipmentSwapExercise(${ex.id}, this)" data-ex-id="${ex.id}" data-ex-name="${(ex.name || '').replace(/"/g, '&quot;')}" data-ex-equip="${(ex.equipment || '').replace(/"/g, '&quot;')}" data-ex-muscle="${(ex.muscle_group || '').replace(/"/g, '&quot;')}" data-ex-thumb="${(thumb).replace(/"/g, '&quot;')}" data-ex-anim="${(ex.animation_url || '').replace(/"/g, '&quot;')}" data-ex-video="${(ex.video_url || '').replace(/"/g, '&quot;')}">
                 ${thumbHTML}
                 <div class="swap-exercise-info">
                     <div class="swap-exercise-name">${ex.name}</div>
@@ -9785,7 +9785,7 @@
             </div>`;
         }
 
-        function selectSwapExercise(exId, el) {
+        function selectEquipmentSwapExercise(exId, el) {
             // Deselect previous
             document.querySelectorAll('#equipmentSwapModal .swap-exercise-item.selected').forEach(item => item.classList.remove('selected'));
             el.classList.add('selected');
