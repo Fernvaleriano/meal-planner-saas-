@@ -1692,17 +1692,23 @@
             color: #94a3b8 !important;
         }
 
+        [data-theme="dark"] .main-content {
+            background: #0f172a !important;
+        }
+
         [data-theme="dark"] .card {
             background: #1e293b !important;
-            border-color: #334155;
+            border: 1px solid #475569 !important;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4) !important;
         }
 
         [data-theme="dark"] .bg-gray-50 {
-            background: #334155 !important;
+            background: rgba(255, 255, 255, 0.08) !important;
+            border-color: #475569 !important;
         }
 
         [data-theme="dark"] .bg-teal-50 {
-            background: rgba(13, 148, 136, 0.15) !important;
+            background: rgba(13, 148, 136, 0.2) !important;
         }
 
         [data-theme="dark"] .bg-blue-50 {
@@ -1716,7 +1722,7 @@
 
         [data-theme="dark"] .border-teal-400,
         [data-theme="dark"] .border-blue-400 {
-            border-color: rgba(255, 255, 255, 0.2) !important;
+            border-color: rgba(13, 148, 136, 0.4) !important;
         }
 
         /* Dark mode for input fields and selects */
@@ -1782,7 +1788,7 @@
 
         /* Purple (Plan Name, Templates, Branded Foods) */
         [data-theme="dark"] .bg-purple-50 {
-            background: rgba(124, 58, 237, 0.1) !important;
+            background: rgba(124, 58, 237, 0.15) !important;
         }
 
         [data-theme="dark"] .text-purple-900 {
@@ -1796,7 +1802,7 @@
 
         [data-theme="dark"] .border-purple-300,
         [data-theme="dark"] .border-purple-400 {
-            border-color: rgba(124, 58, 237, 0.25) !important;
+            border-color: rgba(124, 58, 237, 0.4) !important;
         }
 
         [data-theme="dark"] .border-purple-500 {
@@ -1886,8 +1892,8 @@
 
         /* Planner mode toggle wrapper */
         [data-theme="dark"] .planner-mode-wrapper {
-            background: rgba(255, 255, 255, 0.05) !important;
-            border-color: #334155 !important;
+            background: rgba(255, 255, 255, 0.08) !important;
+            border-color: #475569 !important;
         }
 
         /* Or-divider between buttons */
@@ -2315,26 +2321,26 @@
         <div class="card">
             <h2 class="text-2xl font-bold text-gray-800 mb-8" style="display: flex; align-items: center; gap: 12px;"><span style="width: 40px; height: 40px; background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.2rem;">&#127869;</span> Full Diet Plan Generator</h2>
 
-            <!-- Unit System Toggle -->
-            <div class="flex justify-center items-center gap-3 mb-8 p-3 bg-gray-50 rounded-lg">
-                <span class="text-sm font-semibold text-gray-700">Unit System:</span>
-                <div class="flex gap-2">
-                    <button id="unit-imperial" class="btn btn-primary text-sm py-1 px-3">Imperial (lbs/ft)</button>
-                    <button id="unit-metric" class="btn btn-secondary text-sm py-1 px-3">Metric (kg/cm)</button>
+            <!-- Unit System & Mode Toggles - compact row -->
+            <div class="flex flex-col sm:flex-row gap-4 mb-8">
+                <div class="flex items-center gap-3 p-4 bg-gray-50 rounded-xl flex-1" style="border: 1px solid #e2e8f0;">
+                    <span class="text-sm font-semibold text-gray-700 whitespace-nowrap">Unit System:</span>
+                    <div class="flex gap-2">
+                        <button id="unit-imperial" class="btn btn-primary text-sm py-1.5 px-4">Imperial (lbs/ft)</button>
+                        <button id="unit-metric" class="btn btn-secondary text-sm py-1.5 px-4">Metric (kg/cm)</button>
+                    </div>
                 </div>
-            </div>
-
-            <!-- Planner Mode Toggle -->
-            <div class="flex justify-center items-center gap-3 mb-8 p-3 rounded-xl planner-mode-wrapper" style="background: #f1f5f9; border: 1px solid #e2e8f0;">
-                <div class="flex gap-3 w-full">
-                    <button id="mode-client" class="flex-1 py-3 px-4 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2" style="background: #0d9488; color: white; border: none; box-shadow: 0 2px 8px rgba(13,148,136,0.3);" onclick="setPlannerMode('client')">
-                        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                        Build for Client
-                    </button>
-                    <button id="mode-template" class="flex-1 py-3 px-4 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2" style="background: transparent; color: #64748b; border: none;" onclick="setPlannerMode('template')">
-                        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-                        Create Template
-                    </button>
+                <div class="flex items-center gap-3 p-4 rounded-xl flex-1 planner-mode-wrapper" style="background: #f1f5f9; border: 1px solid #e2e8f0;">
+                    <div class="flex gap-3 w-full">
+                        <button id="mode-client" class="flex-1 py-3 px-4 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2" style="background: #0d9488; color: white; border: none; box-shadow: 0 2px 8px rgba(13,148,136,0.3);" onclick="setPlannerMode('client')">
+                            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                            Build for Client
+                        </button>
+                        <button id="mode-template" class="flex-1 py-3 px-4 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2" style="background: transparent; color: #64748b; border: none;" onclick="setPlannerMode('template')">
+                            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                            Create Template
+                        </button>
+                    </div>
                 </div>
             </div>
 
