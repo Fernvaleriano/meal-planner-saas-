@@ -3158,6 +3158,37 @@
             background: var(--bg-tertiary);
         }
 
+        .swap-filters-bar {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 14px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .swap-filters-bar label {
+            font-size: 12px;
+            color: var(--text-muted);
+            font-weight: 600;
+            margin-right: 2px;
+        }
+
+        .swap-filter-select {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 5px 10px;
+            font-size: 12px;
+            cursor: pointer;
+            outline: none;
+            min-width: 100px;
+        }
+
+        .swap-filter-select:focus {
+            border-color: var(--brand-primary);
+        }
+
         /* Clickable alert items for swapping */
         .equipment-alert-banner .alert-item.swappable {
             cursor: pointer;
@@ -5985,6 +6016,17 @@
                     <p style="margin: 0; font-weight: 600;" id="swapCurrentName">-</p>
                 </div>
 
+                <!-- Swap Filters -->
+                <div class="swap-filters-bar" id="swapFiltersBar">
+                    <label>Filters:</label>
+                    <select class="swap-filter-select" id="swapFilterEquipment" onchange="applySwapFilters()">
+                        <option value="">Any Equipment</option>
+                    </select>
+                    <select class="swap-filter-select" id="swapFilterMuscle" onchange="applySwapFilters()">
+                        <option value="">Same Muscle Group</option>
+                    </select>
+                </div>
+
                 <!-- AI Smart Suggestions -->
                 <div id="swapAISuggestionsSection" style="margin-bottom: 16px;">
                     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
@@ -8723,32 +8765,11 @@
             document.getElementById('swapCurrentName').textContent = currentExercise.name;
             document.getElementById('swapSearchInput').value = '';
 
-            // Filter exercises by same muscle group for browse section
-            const muscleGroup = currentExercise.muscle_group || currentExercise.muscleGroup || '';
+            // Populate filter dropdowns
+            populateSwapFilters(currentExercise);
 
-            // Helper to detect stretch/mobility/warmup exercises by name
-            const isStretchExercise = (n) => {
-                const lower = (n || '').toLowerCase();
-                return lower.includes('stretch') || lower.includes('mobility') || lower.includes('foam roll') || lower.includes('warmup') || lower.includes('warm up') || lower.includes('cool down') || lower.includes('cooldown');
-            };
-            const currentIsStretch = isStretchExercise(currentExercise.name);
-
-            swapExerciseCache = exercises.filter(ex => {
-                const exMuscle = ex.muscle_group || '';
-                const isMatch = exMuscle.toLowerCase() === muscleGroup.toLowerCase() ||
-                    (ex.secondary_muscles && ex.secondary_muscles.some(m =>
-                        m.toLowerCase() === muscleGroup.toLowerCase()));
-                if (!isMatch || ex.id === currentExercise.id) return false;
-
-                // Enforce stretch ↔ strength boundary
-                const altIsStretch = isStretchExercise(ex.name);
-                if (currentIsStretch && !altIsStretch) return false;
-                if (!currentIsStretch && altIsStretch) return false;
-
-                return true;
-            });
-
-            renderSwapExerciseList(swapExerciseCache);
+            // Build the browse list with current filters
+            rebuildSwapBrowseList();
 
             // Show loading state for AI suggestions
             const aiContainer = document.getElementById('swapAISuggestionsList');
@@ -8764,6 +8785,94 @@
             fetchSwapAISuggestions(currentExercise, dayIndex);
         }
 
+        function populateSwapFilters(currentExercise) {
+            const equipmentSet = new Set();
+            const muscleSet = new Set();
+            exercises.forEach(ex => {
+                if (ex.equipment) equipmentSet.add(ex.equipment.toLowerCase());
+                if (ex.muscle_group) muscleSet.add(ex.muscle_group.toLowerCase());
+            });
+
+            const equipSelect = document.getElementById('swapFilterEquipment');
+            const currentEquip = (currentExercise.equipment || '').toLowerCase();
+            equipSelect.innerHTML = '<option value="">Any Equipment</option>' +
+                [...equipmentSet].sort().map(e => {
+                    const label = e.charAt(0).toUpperCase() + e.slice(1);
+                    const selected = e === currentEquip ? ' selected' : '';
+                    return `<option value="${e}"${selected}>${label}</option>`;
+                }).join('');
+
+            const muscleSelect = document.getElementById('swapFilterMuscle');
+            const currentMuscle = (currentExercise.muscle_group || currentExercise.muscleGroup || '').toLowerCase();
+            muscleSelect.innerHTML = '<option value="">Any Muscle Group</option>' +
+                [...muscleSet].sort().map(m => {
+                    const label = m.charAt(0).toUpperCase() + m.slice(1);
+                    const selected = m === currentMuscle ? ' selected' : '';
+                    return `<option value="${m}"${selected}>${label}</option>`;
+                }).join('');
+        }
+
+        function getSwapFilters() {
+            return {
+                equipment: (document.getElementById('swapFilterEquipment')?.value || '').toLowerCase(),
+                muscle: (document.getElementById('swapFilterMuscle')?.value || '').toLowerCase()
+            };
+        }
+
+        // Helper to detect stretch/mobility/warmup exercises by name
+        function isStretchExercise(n) {
+            const lower = (n || '').toLowerCase();
+            return lower.includes('stretch') || lower.includes('mobility') || lower.includes('foam roll') || lower.includes('warmup') || lower.includes('warm up') || lower.includes('cool down') || lower.includes('cooldown');
+        }
+
+        function rebuildSwapBrowseList() {
+            if (swapDayIndex === null || swapExIndex === null) return;
+            const currentExercise = workoutDays[swapDayIndex].exercises[swapExIndex];
+            const filters = getSwapFilters();
+            const currentIsStretch = isStretchExercise(currentExercise.name);
+
+            swapExerciseCache = exercises.filter(ex => {
+                if (ex.id === currentExercise.id) return false;
+
+                // Enforce stretch ↔ strength boundary
+                const altIsStretch = isStretchExercise(ex.name);
+                if (currentIsStretch && !altIsStretch) return false;
+                if (!currentIsStretch && altIsStretch) return false;
+
+                // Equipment filter
+                if (filters.equipment && (ex.equipment || '').toLowerCase() !== filters.equipment) return false;
+
+                // Muscle group filter
+                if (filters.muscle) {
+                    const exMuscle = (ex.muscle_group || '').toLowerCase();
+                    const secondaryMatch = ex.secondary_muscles && ex.secondary_muscles.some(m =>
+                        m.toLowerCase() === filters.muscle);
+                    if (exMuscle !== filters.muscle && !secondaryMatch) return false;
+                }
+
+                return true;
+            });
+
+            renderSwapExerciseList(swapExerciseCache);
+        }
+
+        function applySwapFilters() {
+            rebuildSwapBrowseList();
+
+            // Re-fetch AI suggestions with the new filters
+            if (swapDayIndex === null || swapExIndex === null) return;
+            const currentExercise = workoutDays[swapDayIndex].exercises[swapExIndex];
+
+            const aiContainer = document.getElementById('swapAISuggestionsList');
+            aiContainer.innerHTML = `
+                <div style="padding: 16px; text-align: center; color: var(--text-muted); font-size: 13px;">
+                    <div style="margin: 0 auto 8px; width: 24px; height: 24px; border: 2px solid var(--border-color); border-top-color: #10b981; border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+                    Finding best alternatives...
+                </div>`;
+
+            fetchSwapAISuggestions(currentExercise, swapDayIndex);
+        }
+
         async function fetchSwapAISuggestions(currentExercise, dayIndex) {
             const aiContainer = document.getElementById('swapAISuggestionsList');
 
@@ -8774,6 +8883,7 @@
                     name: ex.name
                 }));
 
+                const filters = getSwapFilters();
                 const response = await fetch('/.netlify/functions/ai-swap-exercise', {
                     method: 'POST',
                     headers: {
@@ -8791,7 +8901,9 @@
                             exercise_type: currentExercise.exercise_type || ''
                         },
                         workoutExercises: workoutExercises,
-                        coachId: currentCoachId
+                        coachId: currentCoachId,
+                        equipmentFilter: filters.equipment || '',
+                        muscleFilter: filters.muscle || ''
                     })
                 });
 
@@ -8862,13 +8974,21 @@
                 renderSwapExerciseList(swapExerciseCache);
                 return;
             }
-            // When user types a search query, search ALL exercises so they can
-            // find any exercise in the library, not just same-muscle-group ones
+            // When user types a search query, search exercises respecting active filters
             const lowerQuery = query.toLowerCase();
             const currentExercise = workoutDays[swapDayIndex]?.exercises[swapExIndex];
+            const filters = getSwapFilters();
             const filtered = exercises.filter(ex => {
                 if (currentExercise && ex.id === currentExercise.id) return false;
-                return ex.name.toLowerCase().includes(lowerQuery);
+                if (!ex.name.toLowerCase().includes(lowerQuery)) return false;
+                if (filters.equipment && (ex.equipment || '').toLowerCase() !== filters.equipment) return false;
+                if (filters.muscle) {
+                    const exMuscle = (ex.muscle_group || '').toLowerCase();
+                    const secondaryMatch = ex.secondary_muscles && ex.secondary_muscles.some(m =>
+                        m.toLowerCase() === filters.muscle);
+                    if (exMuscle !== filters.muscle && !secondaryMatch) return false;
+                }
+                return true;
             });
             renderSwapExerciseList(filtered);
         }
