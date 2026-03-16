@@ -5977,12 +5977,21 @@
 
                 <!-- AI Smart Suggestions -->
                 <div id="swapAISuggestionsSection" style="margin-bottom: 16px;">
-                    <h4 style="margin: 0 0 10px 0; font-size: 13px; color: #10b981; display: flex; align-items: center; gap: 6px;">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2">
-                            <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                        Smart Suggestions
-                    </h4>
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                        <h4 style="margin: 0; font-size: 13px; color: #10b981; display: flex; align-items: center; gap: 6px;">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2">
+                                <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            Smart Suggestions
+                        </h4>
+                        <button id="refreshSwapSuggestionsBtn" onclick="refreshSwapSuggestions()" style="background: none; border: 1px solid #10b981; color: #10b981; font-size: 12px; padding: 4px 10px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 4px;" title="Get new suggestions">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M23 4v6h-6M1 20v-6h6" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            Refresh
+                        </button>
+                    </div>
                     <div id="swapAISuggestionsList">
                         <div style="padding: 16px; text-align: center; color: var(--text-muted); font-size: 13px;">
                             <div class="spinner" style="margin: 0 auto 8px; width: 24px; height: 24px; border: 2px solid var(--border-color); border-top-color: #10b981; border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
@@ -8763,6 +8772,30 @@
                 console.error('Swap AI suggestions error:', err);
                 aiContainer.innerHTML = '<div style="padding: 12px; text-align: center; color: var(--text-muted); font-size: 13px;">Could not load suggestions</div>';
             }
+        }
+
+        function refreshSwapSuggestions() {
+            if (swapDayIndex === null || swapExIndex === null) return;
+            const currentExercise = workoutDays[swapDayIndex].exercises[swapExIndex];
+            if (!currentExercise) return;
+
+            // Show loading state
+            const aiContainer = document.getElementById('swapAISuggestionsList');
+            aiContainer.innerHTML = `
+                <div style="padding: 16px; text-align: center; color: var(--text-muted); font-size: 13px;">
+                    <div style="margin: 0 auto 8px; width: 24px; height: 24px; border: 2px solid var(--border-color); border-top-color: #10b981; border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+                    Finding new alternatives...
+                </div>`;
+
+            // Disable refresh button while loading
+            const btn = document.getElementById('refreshSwapSuggestionsBtn');
+            btn.disabled = true;
+            btn.style.opacity = '0.5';
+
+            fetchSwapAISuggestions(currentExercise, swapDayIndex).then(() => {
+                btn.disabled = false;
+                btn.style.opacity = '1';
+            });
         }
 
         function closeSwapModal() {
