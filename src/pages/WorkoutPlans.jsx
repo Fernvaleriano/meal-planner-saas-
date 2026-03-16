@@ -6,6 +6,7 @@ import { apiGet, apiPost, apiDelete } from '../utils/api';
 import { useToast } from '../components/Toast';
 import SmartThumbnail from '../components/workout/SmartThumbnail';
 import PrintPlanModal from '../components/workout/PrintPlanModal';
+import AssignWorkoutModal from '../components/workout/AssignWorkoutModal';
 
 const CATEGORY_OPTIONS = [
   { key: '', label: 'All Types' },
@@ -51,6 +52,7 @@ function WorkoutPlans() {
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   const [duplicating, setDuplicating] = useState(null);
   const [pdfProgram, setPdfProgram] = useState(null);
+  const [assignProgram, setAssignProgram] = useState(null);
 
   // Fetch programs
   const fetchPrograms = useCallback(async () => {
@@ -370,6 +372,10 @@ function WorkoutPlans() {
                             <Edit3 size={16} />
                             Edit
                           </button>
+                          <button onClick={() => { setAssignProgram(program); setMenuOpenId(null); }}>
+                            <Users size={16} />
+                            Assign to Clients
+                          </button>
                           <button onClick={() => { setPdfProgram(program); setMenuOpenId(null); }}>
                             <FileDown size={16} />
                             Download PDF
@@ -406,6 +412,16 @@ function WorkoutPlans() {
         <PrintPlanModal
           program={pdfProgram}
           onClose={() => setPdfProgram(null)}
+        />
+      )}
+
+      {/* Assign Workout Modal */}
+      {assignProgram && (
+        <AssignWorkoutModal
+          program={assignProgram}
+          coachId={isCoach ? user.id : clientData?.coach_id}
+          onClose={() => setAssignProgram(null)}
+          onAssigned={() => setAssignProgram(null)}
         />
       )}
 
