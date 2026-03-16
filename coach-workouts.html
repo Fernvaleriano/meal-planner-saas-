@@ -8263,12 +8263,32 @@
         }
 
         function updateExercise(dayIndex, exIndex, field, value) {
+            const exercise = workoutDays[dayIndex].exercises[exIndex];
             if (field === 'sets' || field === 'restSeconds' || field === 'duration') {
-                workoutDays[dayIndex].exercises[exIndex][field] = parseInt(value) || 0;
+                exercise[field] = parseInt(value) || 0;
             } else if (field === 'distance') {
-                workoutDays[dayIndex].exercises[exIndex][field] = parseFloat(value) || 1;
+                exercise[field] = parseFloat(value) || 1;
             } else {
-                workoutDays[dayIndex].exercises[exIndex][field] = value;
+                exercise[field] = value;
+            }
+            // Sync reps/restSeconds/sets changes to setsData so per-set data stays consistent
+            if (field === 'reps' && Array.isArray(exercise.setsData)) {
+                const numReps = parseInt(value) || 10;
+                exercise.setsData.forEach(s => { s.reps = numReps; });
+            }
+            if (field === 'restSeconds' && Array.isArray(exercise.setsData)) {
+                const rest = parseInt(value) || 0;
+                exercise.setsData.forEach(s => { s.restSeconds = rest; });
+            }
+            if (field === 'sets' && Array.isArray(exercise.setsData)) {
+                const newCount = parseInt(value) || 1;
+                while (exercise.setsData.length < newCount) {
+                    const last = exercise.setsData[exercise.setsData.length - 1] || { reps: 10, restSeconds: 30 };
+                    exercise.setsData.push({ ...last });
+                }
+                if (exercise.setsData.length > newCount) {
+                    exercise.setsData.length = newCount;
+                }
             }
             // Re-check superset warnings when sets change
             if (field === 'sets') {

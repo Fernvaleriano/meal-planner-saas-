@@ -12448,7 +12448,16 @@
                 setsData = exercise.setsData.map(s => ({ reps: s.reps || 0, weight: s.weight || 0, weightUnit: s.weightUnit || 'lbs' }));
             } else {
                 const numSets = exercise.sets || 3;
-                const reps = parseFloat(exercise.reps) || 10;
+                // Handle range strings like "8-12" by averaging instead of truncating
+                let reps = 10;
+                if (exercise.reps) {
+                    const rangeMatch = String(exercise.reps).match(/^(\d+)\s*-\s*(\d+)$/);
+                    if (rangeMatch) {
+                        reps = Math.round((parseInt(rangeMatch[1]) + parseInt(rangeMatch[2])) / 2);
+                    } else {
+                        reps = parseFloat(exercise.reps) || 10;
+                    }
+                }
                 for (let i = 0; i < numSets; i++) {
                     setsData.push({ reps, weight: 0, weightUnit: 'lbs' });
                 }
@@ -12923,7 +12932,8 @@
                 reps: ex.reps || '10',
                 restSeconds: ex.restSeconds || 60,
                 trackingType: ex.trackingType || 'reps',
-                notes: ex.notes || ''
+                notes: ex.notes || '',
+                setsData: ex.setsData || undefined
             }));
 
             const name = `${program.name} - ${day.name || 'Day ' + (dayIndex + 1)}`;
@@ -14061,7 +14071,11 @@
                     if (planned && planned.length > 0) {
                         exercisesHtml = '<div class="wc-detail-exercises">' + planned.map(ex => {
                             const sets = ex.sets || 3;
-                            const reps = ex.reps || 10;
+                            // Prefer per-set reps from setsData, fall back to exercise.reps
+                            let reps = ex.reps || 10;
+                            if (ex.setsData && Array.isArray(ex.setsData) && ex.setsData.length > 0) {
+                                reps = ex.setsData[0].reps || reps;
+                            }
                             return `<div class="wc-detail-exercise"><span class="wc-detail-ex-name">${escapeHtml(ex.name || 'Exercise')}</span><span class="wc-detail-ex-info">${sets} x ${reps}</span></div>`;
                         }).join('') + '</div>';
                     }
@@ -14481,7 +14495,11 @@
             const daysExercises = days.map((d, i) => {
                 const exercises = (d.exercises || []).map((ex, ei) => {
                     const sets = ex.sets || 3;
-                    const reps = ex.reps || 10;
+                    // Prefer per-set reps from setsData, fall back to exercise.reps
+                    let reps = ex.reps || 10;
+                    if (ex.setsData && Array.isArray(ex.setsData) && ex.setsData.length > 0) {
+                        reps = ex.setsData[0].reps || reps;
+                    }
                     const weight = ex.weight ? `${ex.weight} kg` : '';
                     return `<div class="wpr-exercise-row">
                         <span class="wpr-ex-name">${escapeHtml(ex.name || 'Exercise')}</span>
@@ -14886,7 +14904,7 @@
                             </div>
                             <div class="wpr-form-group">
                                 <label class="wpr-form-label">Reps</label>
-                                <input type="number" class="wpr-form-input" id="editExReps" value="${exercise.reps || 10}" min="1" max="100">
+                                <input type="number" class="wpr-form-input" id="editExReps" value="${(exercise.setsData && exercise.setsData[0]?.reps) || exercise.reps || 10}" min="1" max="100">
                             </div>
                         </div>
                         <div class="wpr-form-row">
@@ -14930,6 +14948,10 @@
             exercise.rest_seconds = rest;
             exercise.restSeconds = rest;
             exercise.notes = notes;
+            // Sync reps to setsData so per-set data stays consistent
+            if (Array.isArray(exercise.setsData)) {
+                exercise.setsData.forEach(s => { s.reps = reps; });
+            }
 
             try {
                 const res = await fetch('/.netlify/functions/workout-assignments', {
