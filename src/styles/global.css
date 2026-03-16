@@ -35134,6 +35134,242 @@ textarea,
     cursor: pointer;
 }
 
+/* Assign Workout Modal */
+.assign-workout-modal {
+    background: var(--gray-100);
+    border-radius: 16px;
+    padding: 24px;
+    max-width: 480px;
+    width: 100%;
+    max-height: 85vh;
+    overflow-y: auto;
+}
+
+.assign-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+}
+
+.assign-modal-title-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--gray-900);
+}
+
+.assign-modal-title-row h3 {
+    font-size: 18px;
+    margin: 0;
+}
+
+.assign-modal-close {
+    background: none;
+    border: none;
+    color: var(--gray-500);
+    cursor: pointer;
+    padding: 4px;
+}
+
+.assign-modal-program-name {
+    font-size: 14px;
+    color: var(--gray-500);
+    margin: 0 0 16px;
+}
+
+.assign-modal-section {
+    margin-bottom: 16px;
+}
+
+.assign-modal-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--gray-700);
+    margin-bottom: 8px;
+}
+
+.assign-modal-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: var(--gray-200);
+    border-radius: 10px;
+    margin-bottom: 8px;
+}
+
+.assign-modal-search input {
+    flex: 1;
+    background: none;
+    border: none;
+    outline: none;
+    font-size: 14px;
+    color: var(--gray-900);
+}
+
+.assign-modal-search svg {
+    color: var(--gray-500);
+    flex-shrink: 0;
+}
+
+.assign-modal-client-list {
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid var(--gray-200);
+    border-radius: 10px;
+}
+
+.assign-modal-client-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.assign-modal-client-row:last-child {
+    border-bottom: none;
+}
+
+.assign-modal-client-row:hover {
+    background: var(--gray-200);
+}
+
+.assign-modal-client-row input[type="checkbox"] {
+    flex-shrink: 0;
+}
+
+.assign-client-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--gray-900);
+}
+
+.assign-client-email {
+    font-size: 12px;
+    color: var(--gray-500);
+    margin-left: auto;
+}
+
+.assign-modal-loading,
+.assign-modal-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 20px;
+    color: var(--gray-500);
+    font-size: 14px;
+}
+
+.assign-modal-selected-count {
+    font-size: 12px;
+    color: var(--primary);
+    font-weight: 500;
+    margin-top: 6px;
+}
+
+.assign-modal-schedule-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.assign-modal-field {
+    flex: 1;
+}
+
+.assign-modal-field label {
+    display: block;
+    font-size: 12px;
+    color: var(--gray-500);
+    margin-bottom: 4px;
+}
+
+.assign-modal-field input {
+    width: 100%;
+    padding: 8px 10px;
+    background: var(--gray-200);
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    color: var(--gray-900);
+    box-sizing: border-box;
+}
+
+.assign-modal-days label {
+    display: block;
+    font-size: 12px;
+    color: var(--gray-500);
+    margin-bottom: 6px;
+}
+
+.assign-modal-day-pills {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.assign-day-pill {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+    border: 1px solid var(--gray-300);
+    background: var(--gray-200);
+    color: var(--gray-600);
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.assign-day-pill.active {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
+
+.assign-modal-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.assign-modal-cancel {
+    flex: 1;
+    padding: 12px;
+    background: var(--gray-200);
+    border: none;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--gray-800);
+    cursor: pointer;
+}
+
+.assign-modal-confirm {
+    flex: 2;
+    padding: 12px;
+    background: var(--primary);
+    border: none;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.assign-modal-confirm:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 /* ========================================
    WORKOUT BUILDER PAGE
    ======================================== */

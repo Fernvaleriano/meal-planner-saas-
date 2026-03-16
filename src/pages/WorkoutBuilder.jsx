@@ -14,6 +14,7 @@ import AddActivityModal from '../components/workout/AddActivityModal';
 import SwapExerciseModal from '../components/workout/SwapExerciseModal';
 import SmartThumbnail from '../components/workout/SmartThumbnail';
 import PrintPlanModal from '../components/workout/PrintPlanModal';
+import AssignWorkoutModal from '../components/workout/AssignWorkoutModal';
 
 const DIFFICULTY_OPTIONS = ['Beginner', 'Novice', 'Intermediate', 'Advanced'];
 const CATEGORY_OPTIONS = ['Main Workout Programs', 'Strength Training', 'Hypertrophy', 'Fat Loss', 'HIIT', 'Cardio', 'Mobility', 'Sport Specific', 'Rehabilitation', 'Custom'];
@@ -95,6 +96,7 @@ function WorkoutBuilder() {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [showSettings, setShowSettings] = useState(!programId);
   const [showPrintModal, setShowPrintModal] = useState(false);
+  const [showAssignModal, setShowAssignModal] = useState(false);
   const [draftRecovery, setDraftRecovery] = useState(null);
 
   // Autosave hook
@@ -502,16 +504,21 @@ function WorkoutBuilder() {
           >
             <Trash2 size={20} />
           </button>
-          <button
-            className="wb-icon-btn"
-            onClick={() => {
-              showSuccess('Use the Workout Plans page to assign programs to clients');
-              navigate('/workouts');
-            }}
-            title="Assign to clients"
-          >
-            <Users size={20} />
-          </button>
+          {programId && isCoach && (
+            <button
+              className="wb-icon-btn"
+              onClick={() => {
+                if (hasUnsavedChanges) {
+                  showError('Please save your program before assigning');
+                  return;
+                }
+                setShowAssignModal(true);
+              }}
+              title="Assign to clients"
+            >
+              <Users size={20} />
+            </button>
+          )}
           <button
             className="wb-icon-btn"
             onClick={() => {
@@ -983,6 +990,20 @@ function WorkoutBuilder() {
             program_data: { days }
           }}
           onClose={() => setShowPrintModal(false)}
+        />
+      )}
+
+      {/* Assign Workout Modal */}
+      {showAssignModal && programId && (
+        <AssignWorkoutModal
+          program={{
+            id: programId,
+            name: programName || 'Workout Program',
+            program_data: { days }
+          }}
+          coachId={coachId}
+          onClose={() => setShowAssignModal(false)}
+          onAssigned={() => setShowAssignModal(false)}
         />
       )}
     </div>
