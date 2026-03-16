@@ -1482,6 +1482,13 @@
             padding: 0;
         }
 
+        .wb-panel-exercises .wb-panel-body {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            padding: 6px;
+        }
+
         /* Panel 1: Training Plan (Days) */
         .wb-panel-days {
             flex: 1;
@@ -1651,7 +1658,8 @@
             gap: 10px;
             padding: 10px 16px;
             cursor: pointer;
-            border-bottom: 1px solid var(--border-color);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
             transition: background 0.12s;
         }
 
@@ -1661,7 +1669,7 @@
 
         .wb-ex-row.selected {
             background: rgba(13, 148, 136, 0.1);
-            border-left: 3px solid var(--brand-primary);
+            border: 1px solid var(--brand-primary);
         }
 
         .wb-ex-row-thumb {
