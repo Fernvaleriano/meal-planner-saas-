@@ -4,6 +4,7 @@ import SmartThumbnail from './SmartThumbnail';
 import SwapExerciseModal from './SwapExerciseModal';
 import { apiGet, apiPost, apiPut } from '../../utils/api';
 import { onAppResume } from '../../hooks/useAppLifecycle';
+import { parseDurationToSeconds } from '../../utils/workoutDuration';
 
 // --- Resume helpers ---
 const RESUME_STORAGE_KEY = 'guided_workout_resume';
@@ -81,19 +82,7 @@ const formatTime = (seconds) => {
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 };
 
-// Parse a duration value to seconds — handles numbers, "5 min", "30s", "45s hold", etc.
-const parseDurationToSeconds = (value) => {
-  if (typeof value === 'number' && value > 0) return value;
-  if (typeof value === 'string') {
-    const minMatch = value.match(/(\d+)\s*min/i);
-    if (minMatch) return parseInt(minMatch[1], 10) * 60;
-    const secMatch = value.match(/(\d+)\s*s/i);
-    if (secMatch) return parseInt(secMatch[1], 10);
-    const num = parseInt(value, 10);
-    if (!isNaN(num) && num > 0) return num;
-  }
-  return 0;
-};
+// parseDurationToSeconds imported from ../../utils/workoutDuration
 
 // Format seconds to readable duration (for exercise info)
 const formatDuration = (seconds) => {

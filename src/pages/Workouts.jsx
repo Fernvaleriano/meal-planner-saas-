@@ -13,6 +13,7 @@ import ClubWorkoutsModal from '../components/workout/ClubWorkoutsModal';
 import GuidedWorkoutModal from '../components/workout/GuidedWorkoutModal';
 import ErrorBoundary from '../components/ErrorBoundary';
 import { useToast } from '../components/Toast';
+import { parseDurationToSeconds, estimateWorkoutMinutes, estimateWorkoutCalories } from '../utils/workoutDuration';
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
 
 const GymProofModal = React.lazy(() => import('../components/GymProofModal'));
@@ -441,45 +442,8 @@ function getWorkoutExercises(workout) {
   return [];
 }
 
-// Parse a duration value to seconds — handles numbers, "5 min", "30s", "45s hold", etc.
-const parseDurationToSeconds = (value) => {
-  if (typeof value === 'number' && value > 0) return value;
-  if (typeof value === 'string') {
-    const minMatch = value.match(/(\d+)\s*min/i);
-    if (minMatch) return parseInt(minMatch[1], 10) * 60;
-    const secMatch = value.match(/(\d+)\s*s/i);
-    if (secMatch) return parseInt(secMatch[1], 10);
-    const num = parseInt(value, 10);
-    if (!isNaN(num) && num > 0) return num;
-  }
-  return 0;
-};
-
-function estimateWorkoutMinutes(exercises) {
-  if (!exercises || exercises.length === 0) return 0;
-  let totalSeconds = 0;
-  for (const ex of exercises) {
-    const numSets = typeof ex.sets === 'number' ? ex.sets : 3;
-    const restSeconds = ex.restSeconds || ex.rest_seconds || 60;
-    const repsHasTimeUnit = typeof ex.reps === 'string' && /\d+\s*min/i.test(ex.reps);
-    if (ex.trackingType === 'time' || ex.exercise_type === 'cardio' || ex.exercise_type === 'timed' || repsHasTimeUnit || !!ex.duration) {
-      const setDuration = Array.isArray(ex.sets) && ex.sets[0]?.duration;
-      const duration = parseDurationToSeconds(ex.duration) ||
-        parseDurationToSeconds(setDuration) ||
-        parseDurationToSeconds(ex.reps) ||
-        30;
-      totalSeconds += numSets * duration + (numSets - 1) * restSeconds;
-    } else {
-      totalSeconds += numSets * 40 + (numSets - 1) * restSeconds;
-    }
-  }
-  totalSeconds += (exercises.length - 1) * 30;
-  return Math.ceil(totalSeconds / 60);
-}
-
-function estimateWorkoutCalories(exercises) {
-  return Math.round(estimateWorkoutMinutes(exercises) * 5);
-}
+// parseDurationToSeconds, estimateWorkoutMinutes, estimateWorkoutCalories
+// imported from ../utils/workoutDuration
 
 // Helper to get completed count for a workout (from workout_data flags + localStorage)
 function getWorkoutCompletedCount(workout) {
