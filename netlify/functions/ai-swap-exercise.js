@@ -563,7 +563,7 @@ exports.handler = async (event) => {
   }
 
   try {
-    const { exercise, workoutExercises = [], equipment = "", coachId = null, previousSuggestionIds = [] } = JSON.parse(event.body);
+    const { exercise, workoutExercises = [], equipment = "", coachId = null, previousSuggestionIds = [], equipmentFilter = "", muscleFilter = "" } = JSON.parse(event.body);
 
     if (!exercise) {
       return { statusCode: 400, headers, body: JSON.stringify({ error: "Exercise is required" }) };
@@ -605,14 +605,20 @@ exports.handler = async (event) => {
       .select("id, name, muscle_group, secondary_muscles, equipment, difficulty, exercise_type, description, thumbnail_url, animation_url, video_url, is_compound, is_unilateral")
       .limit(200);
 
-    // Filter by muscle group - use detected movement muscle group when available
-    // to correct misclassified exercises (e.g. deadlifts stored as "arms" due to
-    // "Biceps Femoris" in scientific muscle names)
-    if (detectedMuscleGroup && detectedMuscleGroup !== muscleGroup) {
+    // Apply muscle group filter — if user explicitly selected a muscle group, use that;
+    // otherwise fall back to the detected/stored muscle group logic
+    if (muscleFilter) {
+      query = query.ilike("muscle_group", `%${muscleFilter}%`);
+    } else if (detectedMuscleGroup && detectedMuscleGroup !== muscleGroup) {
       // Stored and detected differ — query BOTH to catch correctly and incorrectly categorized exercises
       query = query.or(`muscle_group.ilike.%${detectedMuscleGroup}%,muscle_group.ilike.%${muscleGroup}%`);
     } else if (effectiveMuscleGroup) {
       query = query.ilike("muscle_group", `%${effectiveMuscleGroup}%`);
+    }
+
+    // Apply equipment filter if user selected one
+    if (equipmentFilter) {
+      query = query.ilike("equipment", `%${equipmentFilter}%`);
     }
 
     // Scope to global exercises + this coach's custom exercises
