@@ -1484,9 +1484,8 @@
 
         /* Panel 1: Training Plan (Days) */
         .wb-panel-days {
-            width: 220px;
-            min-width: 220px;
-            flex-shrink: 0;
+            flex: 1;
+            min-width: 200px;
         }
 
         .wb-day-row {
@@ -1624,7 +1623,7 @@
         /* Panel 2: Exercises List */
         .wb-panel-exercises {
             flex: 1;
-            min-width: 280px;
+            min-width: 250px;
         }
 
         .wb-empty-panel {
@@ -1794,9 +1793,8 @@
 
         /* Panel 3: Exercise Detail */
         .wb-panel-detail {
-            width: 440px;
-            min-width: 440px;
-            flex-shrink: 0;
+            flex: 1;
+            min-width: 280px;
             background: var(--bg-primary);
             overflow-y: auto;
         }
@@ -2052,14 +2050,11 @@
 
         /* Responsive */
         @media (max-width: 1024px) {
+            .wb-panel-days,
+            .wb-panel-exercises,
             .wb-panel-detail {
-                width: 360px;
-                min-width: 360px;
-            }
-
-            .wb-panel-days {
-                width: 180px;
-                min-width: 180px;
+                flex: 1;
+                min-width: 0;
             }
         }
 
