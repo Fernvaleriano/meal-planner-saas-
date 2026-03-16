@@ -1,5 +1,41 @@
 # Project Memory
 
+## Architecture: Standalone HTML Pages (NOT React SPA)
+
+### CRITICAL — Read This First
+The live production app is built with **standalone HTML pages**, NOT the React SPA. When making changes, **always edit the `.html` files in the project root**. Do NOT edit React components in `src/pages/` or `src/components/` unless explicitly asked.
+
+### Live Coach-Facing Pages (root `.html` files)
+These are what coaches and clients actually use at `ziquefitnessnutrition.com`:
+- `coach-workouts.html` — Workout Builder (3-panel editor)
+- `coach-workout-plans.html` — Workout Plans list
+- `manage-clients.html` — Client management
+- `coach-messages.html` — Messaging
+- `coach-stats.html` — Analytics/stats
+- `coach-challenges.html` — Challenges
+- `coach-profile.html` — Coach profile
+- `coach-billing.html` — Billing
+- `branding-settings.html` — Branding
+- `dashboard.html` — Dashboard
+- `planner.html` — Meal planner
+- `manage-recipes.html` — Recipe management
+- `client-feed.html` — Client feed
+- `client-profile.html` — Client profile
+- `client-intake.html` — Client intake forms
+- `form-responses.html` — Form responses
+- `reminder-settings.html` — Reminder settings
+- `supplement-protocols.html` — Supplements
+- `billing.html` — Client billing
+- `view-plan.html` — View plan
+
+### React SPA (`src/` folder)
+A partial React rebuild exists in `src/` but is **not the primary codebase**. Some React components duplicate functionality from the HTML pages. Do not assume React components are what's live.
+
+### Rule
+- **Coach/client-facing change?** → Edit the `.html` file
+- **If unsure which file is live** → Ask the user
+- **Keep both in sync** if changes touch shared functionality
+
 ## Domain Change Plan (Decided March 2026)
 
 ### Decision
