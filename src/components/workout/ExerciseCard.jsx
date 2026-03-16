@@ -5,12 +5,15 @@ import SetEditorModal from './SetEditorModal';
 import Portal from '../Portal';
 import { onAppResume, onAppSuspend } from '../../hooks/useAppLifecycle';
 
-// Parse reps - if it's a range like "8-12", return just the first number
+// Parse reps - if it's a range like "8-12", average the range instead of truncating
 // Supports decimals like "1.5" (e.g. 1.5 miles)
 // Defined outside component so it's available during initialization
 const parseReps = (reps) => {
   if (typeof reps === 'number') return reps;
   if (typeof reps === 'string') {
+    // Handle range strings like "8-12" by averaging
+    const rangeMatch = reps.match(/^(\d+)\s*-\s*(\d+)$/);
+    if (rangeMatch) return Math.round((parseInt(rangeMatch[1], 10) + parseInt(rangeMatch[2], 10)) / 2);
     const match = reps.match(/^(\d+(?:\.\d+)?)/);
     if (match) return parseFloat(match[1]);
   }
@@ -151,8 +154,19 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
   const isWarmup = exercise.isWarmup;
   const isStretch = exercise.isStretch;
 
-  // Handle sets being a number or an array
+  // Handle sets being a number or an array, with setsData support from workout builder
   const initializeSets = () => {
+    // Check setsData first (saved by the 3-panel workout builder detail editor)
+    if (Array.isArray(exercise.setsData) && exercise.setsData.length > 0) {
+      return exercise.setsData.slice(0, 20).filter(Boolean).map(set => ({
+        reps: set?.reps ?? parseReps(exercise.reps) ?? 12,
+        weight: set?.weight || 0,
+        completed: set?.completed || false,
+        duration: set?.duration || exercise.duration || parseTimeFromReps(exercise.reps) || null,
+        distance: set?.distance || exercise.distance || null,
+        restSeconds: set?.restSeconds ?? exercise.restSeconds ?? 60
+      }));
+    }
     if (Array.isArray(exercise.sets) && exercise.sets.length > 0) {
       // Cap at 20 sets to prevent malformed data from causing excessive renders
       const filtered = exercise.sets.slice(0, 20).filter(Boolean).map(set => ({
@@ -267,13 +281,16 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
     };
   }, []);
 
-  // Sync sets when exercise.sets changes (e.g., from SetEditorModal)
+  // Sync sets when exercise.sets or exercise.setsData changes (e.g., from SetEditorModal)
   // Use a ref to track the last synced sets JSON to avoid re-render loops
   // when the parent recreates exercise objects with new array references but same data.
   const lastSyncedSetsJsonRef = useRef('');
   const syncCountRef = useRef(0);
   useEffect(() => {
-    if (!Array.isArray(exercise.sets) || exercise.sets.length === 0) return;
+    // Prefer setsData from workout builder, fall back to exercise.sets array
+    const setsSource = (Array.isArray(exercise.setsData) && exercise.setsData.length > 0) ? exercise.setsData
+      : (Array.isArray(exercise.sets) && exercise.sets.length > 0) ? exercise.sets : null;
+    if (!setsSource) return;
 
     // Safety: cap syncs to prevent infinite re-render loops from malformed data
     syncCountRef.current += 1;
@@ -287,9 +304,9 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
     // Compare by value, not reference — parent may create new arrays with same data
     let incoming;
     try {
-      incoming = JSON.stringify(exercise.sets);
+      incoming = JSON.stringify(setsSource);
     } catch (err) {
-      console.error('[ExerciseCard] Failed to serialize exercise.sets for', exercise.name, ':', err);
+      console.error('[ExerciseCard] Failed to serialize sets for', exercise.name, ':', err);
       clearTimeout(resetTimer);
       return;
     }
@@ -299,20 +316,20 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
     }
     lastSyncedSetsJsonRef.current = incoming;
 
-    const newSets = exercise.sets.slice(0, 20).filter(Boolean).map(set => ({
-      reps: set?.reps || exercise.reps || 12,
+    const newSets = setsSource.slice(0, 20).filter(Boolean).map(set => ({
+      reps: set?.reps ?? parseReps(exercise.reps) ?? 12,
       weight: set?.weight || 0,
       completed: set?.completed || false,
       duration: set?.duration || exercise.duration || parseTimeFromReps(exercise.reps) || null,
       distance: set?.distance || exercise.distance || null,
-      restSeconds: set?.restSeconds || exercise.restSeconds || 60
+      restSeconds: set?.restSeconds ?? exercise.restSeconds ?? 60
     }));
     if (newSets.length > 0) {
       setSets(newSets);
     }
 
     return () => clearTimeout(resetTimer);
-  }, [exercise.sets, exercise.reps, exercise.duration, exercise.restSeconds]);
+  }, [exercise.sets, exercise.setsData, exercise.reps, exercise.duration, exercise.restSeconds]);
 
   // Calculate completed sets
   const completedSets = sets.filter(s => s.completed).length;
