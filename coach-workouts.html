@@ -7503,8 +7503,18 @@
                 } else {
                     const isTimed = exercise.trackingType === 'time';
                     const isDistance = exercise.trackingType === 'distance';
+                    // Parse reps: handle range strings like "8-12" by averaging, plain numbers, or default to 10
+                    let parsedReps = 10;
+                    if (exercise.reps) {
+                        const rangeMatch = String(exercise.reps).match(/^(\d+)\s*-\s*(\d+)$/);
+                        if (rangeMatch) {
+                            parsedReps = Math.round((parseInt(rangeMatch[1]) + parseInt(rangeMatch[2])) / 2);
+                        } else {
+                            parsedReps = parseInt(exercise.reps) || 10;
+                        }
+                    }
                     result.push({
-                        reps: isTimed ? undefined : (parseInt(exercise.reps) || 10),
+                        reps: isTimed ? undefined : parsedReps,
                         duration: isTimed ? (parseInt(exercise.duration) || 30) : undefined,
                         distance: isDistance ? (parseFloat(exercise.distance) || 1) : undefined,
                         restSeconds: parseInt(exercise.restSeconds) || 30,
@@ -7520,6 +7530,10 @@
             const setsArr = buildSetsArray(exercise);
             setsArr[setIndex] = { ...setsArr[setIndex], [field]: value };
             exercise.setsData = setsArr;
+            // Sync exercise.reps from first set so the value stays consistent
+            if (field === 'reps' && setsArr.length > 0 && setsArr[0].reps !== undefined) {
+                exercise.reps = String(setsArr[0].reps);
+            }
             renderExerciseDetail();
         }
 
@@ -7766,8 +7780,15 @@
                 previewHtml = '<img src="' + thumbSrc + '" onerror="this.src=\'/img/exercise-placeholder.svg\'">';
             }
 
-            // Build sets
+            // Build sets and persist setsData so reps stay consistent
             const setsArr = buildSetsArray(exercise);
+            if (!exercise.setsData) {
+                exercise.setsData = setsArr;
+                // Sync exercise.reps from the resolved per-set value
+                if (setsArr.length > 0 && setsArr[0].reps !== undefined) {
+                    exercise.reps = String(setsArr[0].reps);
+                }
+            }
             let setsHeaderLabel, setsInputField;
             if (trackingType === 'time') {
                 setsHeaderLabel = 'Duration (s)';
