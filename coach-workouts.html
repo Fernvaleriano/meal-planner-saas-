@@ -5495,6 +5495,139 @@
         </div>
     </nav>
 
+    <!-- Workout Information Modal (shown when creating a new workout) -->
+    <div class="modal-overlay" id="workoutInfoModal">
+        <div class="modal" style="max-width: 900px; max-height: 90vh;">
+            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; padding: 20px 24px; border-bottom: 1px solid var(--border-color);">
+                <h2 style="margin: 0; font-size: 22px; font-weight: 700; color: var(--text-primary);">Workout Information</h2>
+                <button class="btn btn-secondary" onclick="closeWorkoutInfoModal()" style="padding: 6px; border-radius: 8px; background: transparent; border: none; cursor: pointer;">
+                    <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body" style="padding: 24px; overflow-y: auto; flex: 1;">
+                <!-- Row 1: Name + Goal/Type + Cover Image -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 20px;">
+                    <div>
+                        <div class="form-group" style="margin-bottom: 16px;">
+                            <label class="form-label">Name</label>
+                            <input type="text" class="form-input" id="modalProgramName" placeholder="e.g., 4-Week Hypertrophy Program">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 16px;">
+                            <label class="form-label">Goal</label>
+                            <select class="form-select" id="modalProgramType">
+                                <option value="strength">Strength</option>
+                                <option value="hypertrophy" selected>Hypertrophy</option>
+                                <option value="endurance">Endurance</option>
+                                <option value="weight_loss">Weight Loss</option>
+                                <option value="general">General Fitness</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 16px;">
+                            <label class="form-label">Description</label>
+                            <div style="display: flex; gap: 8px; align-items: flex-start;">
+                                <textarea class="form-textarea" id="modalProgramDescription" placeholder="Describe the program goals and structure..." rows="3" style="flex:1;"></textarea>
+                                <button type="button" class="vtt-mic-btn vtt-mic-sm" title="Voice input" onclick="VoiceToText.toggle(document.getElementById('modalProgramDescription'), this)" style="margin-top:2px;">
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="form-label">Cover Image</label>
+                        <div class="hero-image-upload" style="margin-top: 4px;">
+                            <div id="modalHeroImagePreview" class="hero-preview" style="display: none; max-height: 180px; border-radius: 10px; overflow: hidden;">
+                                <img id="modalHeroPreviewImg" src="" alt="Cover preview" style="width: 100%; height: 180px; object-fit: cover;">
+                                <button type="button" class="remove-hero-btn" onclick="removeModalHeroImage()" title="Remove image">
+                                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                    </svg>
+                                </button>
+                            </div>
+                            <div id="modalHeroUploadArea" class="hero-upload-area" style="min-height: 140px;">
+                                <svg width="28" height="28" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                </svg>
+                                <span>Upload picture</span>
+                                <input type="file" id="modalHeroFileInput" accept="image/*" onchange="previewModalHeroImage(event)" style="display: none;">
+                                <div class="hero-upload-buttons" style="margin-top: 8px;">
+                                    <button type="button" class="btn-secondary" onclick="document.getElementById('modalHeroFileInput').click()" style="font-size: 12px; padding: 6px 12px;">
+                                        Choose File
+                                    </button>
+                                    <span class="or-divider">or</span>
+                                    <button type="button" class="btn-secondary" onclick="showModalHeroUrlInput()" style="font-size: 12px; padding: 6px 12px;">
+                                        Paste URL
+                                    </button>
+                                    <span class="or-divider">or</span>
+                                    <button type="button" class="btn-ai-generate" id="modalAiCoverBtn" onclick="generateModalAICoverImage()" style="font-size: 12px; padding: 6px 12px;">
+                                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                                        </svg>
+                                        AI Generate
+                                    </button>
+                                </div>
+                                <div id="modalHeroUrlInputContainer" style="display: none; margin-top: 8px; width: 100%;">
+                                    <input type="text" id="modalHeroUrlInput" class="form-input" placeholder="https://example.com/image.jpg" style="width: 100%; font-size: 13px;">
+                                    <button type="button" class="btn-primary" onclick="applyModalHeroUrl()" style="margin-top: 6px; font-size: 12px; padding: 6px 14px;">Apply URL</button>
+                                </div>
+                            </div>
+                        </div>
+                        <input type="hidden" id="modalHeroImageUrl" value="">
+                    </div>
+                </div>
+
+                <!-- Row 2: Level + Days Per Week -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 20px;">
+                    <div class="form-group">
+                        <label class="form-label">Level</label>
+                        <select class="form-select" id="modalProgramDifficulty">
+                            <option value="beginner">Beginner</option>
+                            <option value="intermediate" selected>Intermediate</option>
+                            <option value="advanced">Advanced</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Days Per Week</label>
+                        <select class="form-select" id="modalDaysPerWeek">
+                            <option value="1">1 day/week</option>
+                            <option value="2">2 days/week</option>
+                            <option value="3">3 days/week</option>
+                            <option value="4" selected>4 days/week</option>
+                            <option value="5">5 days/week</option>
+                            <option value="6">6 days/week</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Row 3: Start Date -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 20px;">
+                    <div class="form-group">
+                        <label class="form-label">Start Date</label>
+                        <input type="date" class="form-input" id="modalProgramStartDate">
+                    </div>
+                </div>
+
+                <!-- Club Workout Toggle -->
+                <div class="form-group" style="display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: rgba(139, 92, 246, 0.08); border: 1px solid rgba(139, 92, 246, 0.2); border-radius: 10px;">
+                    <label class="toggle-switch" style="position: relative; width: 44px; height: 24px; flex-shrink: 0;">
+                        <input type="checkbox" id="modalIsClubWorkout" style="opacity: 0; width: 0; height: 0;">
+                        <span style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background: #334155; border-radius: 24px; transition: 0.3s;"></span>
+                    </label>
+                    <div>
+                        <div style="font-weight: 600; color: var(--text-primary); font-size: 14px;">Club Workout</div>
+                        <div style="font-size: 12px; color: var(--text-secondary);">Visible to all your clients — they can browse and start this workout anytime</div>
+                    </div>
+                </div>
+            </div>
+            <div style="padding: 16px 24px; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end;">
+                <button class="btn btn-primary" onclick="continueFromWorkoutInfoModal()" style="padding: 10px 32px; font-size: 15px; font-weight: 600; border-radius: 8px;">
+                    Continue
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Main Content -->
     <div class="main-content">
         <!-- Sidebar removed — program list is now on coach-workout-plans.html -->
@@ -7023,12 +7156,11 @@
                 }
             }
 
-            // Add initial day and show settings for new programs
+            // Add initial day and show workout info modal for new programs
             if (workoutDays.length === 0) {
                 addWorkoutDay();
-                // Show settings bar for new programs
-                const settingsBar = document.getElementById('programSettingsBar');
-                if (settingsBar) settingsBar.style.display = 'block';
+                // Show the Workout Information modal instead of just the settings bar
+                openWorkoutInfoModal();
             }
         }
 
@@ -7151,13 +7283,155 @@
             selectedExerciseIndex = null;
             addWorkoutDay();
             renderProgramList();
-            // Show settings bar for new programs
+            // Hide settings bar — info will be captured via modal
             const settingsBar = document.getElementById('programSettingsBar');
-            if (settingsBar) settingsBar.style.display = 'block';
+            if (settingsBar) settingsBar.style.display = 'none';
             // Disable assign button until program is saved
             const btn = document.getElementById('assignBtn');
             if (btn) btn.disabled = true;
             updateSaveButtonMode();
+
+            // Show the Workout Information modal
+            openWorkoutInfoModal();
+        }
+
+        // ── Workout Information Modal (new workout creation flow) ──
+
+        function openWorkoutInfoModal() {
+            // Reset modal fields
+            document.getElementById('modalProgramName').value = '';
+            document.getElementById('modalProgramType').value = 'hypertrophy';
+            document.getElementById('modalProgramDifficulty').value = 'intermediate';
+            document.getElementById('modalDaysPerWeek').value = '4';
+            document.getElementById('modalProgramDescription').value = '';
+            document.getElementById('modalProgramStartDate').value = '';
+            document.getElementById('modalIsClubWorkout').checked = false;
+            document.getElementById('modalHeroImageUrl').value = '';
+            document.getElementById('modalHeroImagePreview').style.display = 'none';
+            document.getElementById('modalHeroUploadArea').style.display = '';
+            document.getElementById('modalHeroUrlInputContainer').style.display = 'none';
+
+            const overlay = document.getElementById('workoutInfoModal');
+            overlay.classList.add('active');
+        }
+
+        function closeWorkoutInfoModal() {
+            document.getElementById('workoutInfoModal').classList.remove('active');
+        }
+
+        function continueFromWorkoutInfoModal() {
+            const name = document.getElementById('modalProgramName').value.trim();
+            if (!name) {
+                showToast('Please enter a program name', 'error');
+                document.getElementById('modalProgramName').focus();
+                return;
+            }
+
+            // Copy modal values into the main settings form
+            document.getElementById('programName').value = name;
+            document.getElementById('programType').value = document.getElementById('modalProgramType').value;
+            document.getElementById('programDifficulty').value = document.getElementById('modalProgramDifficulty').value;
+            document.getElementById('daysPerWeek').value = document.getElementById('modalDaysPerWeek').value;
+            document.getElementById('programDescription').value = document.getElementById('modalProgramDescription').value;
+            document.getElementById('programStartDate').value = document.getElementById('modalProgramStartDate').value;
+            document.getElementById('isClubWorkout').checked = document.getElementById('modalIsClubWorkout').checked;
+
+            // Copy hero image if set
+            const modalHeroUrl = document.getElementById('modalHeroImageUrl').value;
+            if (modalHeroUrl) {
+                document.getElementById('heroImageUrl').value = modalHeroUrl;
+                const mainPreview = document.getElementById('heroImagePreview');
+                const mainImg = document.getElementById('heroPreviewImg');
+                mainImg.src = document.getElementById('modalHeroPreviewImg').src;
+                mainPreview.style.display = 'block';
+                document.getElementById('heroUploadArea').style.display = 'none';
+
+                // Transfer pending hero image data for file uploads
+                if (modalHeroUrl === '__pending_upload__' && window._modalHeroFile) {
+                    const file = window._modalHeroFile;
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        pendingHeroImageData = {
+                            type: 'file',
+                            base64: e.target.result,
+                            name: file.name
+                        };
+                    };
+                    reader.readAsDataURL(file);
+                } else if (modalHeroUrl !== '__pending_upload__') {
+                    pendingHeroImageData = { type: 'url', url: modalHeroUrl };
+                }
+                window._modalHeroFile = null;
+            }
+
+            // Close modal and hide settings bar (info already captured)
+            closeWorkoutInfoModal();
+            const settingsBar = document.getElementById('programSettingsBar');
+            if (settingsBar) settingsBar.style.display = 'none';
+        }
+
+        // Modal hero image helpers
+        function previewModalHeroImage(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('modalHeroPreviewImg').src = e.target.result;
+                document.getElementById('modalHeroImagePreview').style.display = 'block';
+                document.getElementById('modalHeroUploadArea').style.display = 'none';
+                document.getElementById('modalHeroImageUrl').value = '__pending_upload__';
+                // Also store the file for later upload
+                window._modalHeroFile = file;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function removeModalHeroImage() {
+            document.getElementById('modalHeroPreviewImg').src = '';
+            document.getElementById('modalHeroImagePreview').style.display = 'none';
+            document.getElementById('modalHeroUploadArea').style.display = '';
+            document.getElementById('modalHeroImageUrl').value = '';
+            document.getElementById('modalHeroFileInput').value = '';
+            window._modalHeroFile = null;
+        }
+
+        function showModalHeroUrlInput() {
+            const c = document.getElementById('modalHeroUrlInputContainer');
+            c.style.display = c.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function applyModalHeroUrl() {
+            const url = document.getElementById('modalHeroUrlInput').value.trim();
+            if (!url) return;
+            document.getElementById('modalHeroPreviewImg').src = url;
+            document.getElementById('modalHeroImagePreview').style.display = 'block';
+            document.getElementById('modalHeroUploadArea').style.display = 'none';
+            document.getElementById('modalHeroImageUrl').value = url;
+        }
+
+        async function generateModalAICoverImage() {
+            const name = document.getElementById('modalProgramName').value.trim() || 'fitness workout';
+            const btn = document.getElementById('modalAiCoverBtn');
+            const origText = btn.innerHTML;
+            btn.innerHTML = '<span class="spinner" style="width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;display:inline-block;"></span> Generating...';
+            btn.disabled = true;
+            try {
+                const res = await apiCall('/.netlify/functions/workout-cover-image', {
+                    method: 'POST',
+                    body: JSON.stringify({ programName: name })
+                });
+                if (res.imageUrl) {
+                    document.getElementById('modalHeroPreviewImg').src = res.imageUrl;
+                    document.getElementById('modalHeroImagePreview').style.display = 'block';
+                    document.getElementById('modalHeroUploadArea').style.display = 'none';
+                    document.getElementById('modalHeroImageUrl').value = res.imageUrl;
+                }
+            } catch (err) {
+                showToast('Failed to generate cover image', 'error');
+            } finally {
+                btn.innerHTML = origText;
+                btn.disabled = false;
+            }
         }
 
         // Toggle program settings panel
