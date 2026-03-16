@@ -3,6 +3,7 @@ import { X, Plus, Dumbbell, Trash2, Clock, Hash, ArrowLeftRight, ChevronDown, Mo
 import AddActivityModal from './AddActivityModal';
 import SwapExerciseModal from './SwapExerciseModal';
 import SmartThumbnail from './SmartThumbnail';
+import { estimateWorkoutMinutes, estimateWorkoutCalories } from '../../utils/workoutDuration';
 
 const DIFFICULTY_OPTIONS = ['Beginner', 'Novice', 'Intermediate', 'Advanced'];
 const CATEGORY_OPTIONS = ['Main Workout Programs', 'Strength Training', 'Hypertrophy', 'Fat Loss', 'HIIT', 'Cardio', 'Mobility', 'Sport Specific', 'Rehabilitation', 'Custom'];
@@ -300,19 +301,7 @@ function CreateWorkoutModal({ onClose, onCreateWorkout, selectedDate, coachId = 
   };
 
   // Calculate workout duration
-  const calculateWorkoutTime = (exerciseList) => {
-    if (!exerciseList || exerciseList.length === 0) return 0;
-    let totalSeconds = 0;
-    for (const ex of exerciseList) {
-      const numSets = typeof ex.sets === 'number' ? ex.sets : 3;
-      const restSeconds = ex.restSeconds || 60;
-      const setTime = numSets * 40;
-      const restTime = (numSets - 1) * restSeconds;
-      totalSeconds += setTime + restTime;
-    }
-    totalSeconds += (exerciseList.length - 1) * 30;
-    return Math.ceil(totalSeconds / 60);
-  };
+  const calculateWorkoutTime = (exerciseList) => estimateWorkoutMinutes(exerciseList);
 
   // Create the workout
   const handleCreate = async () => {
@@ -326,7 +315,7 @@ function CreateWorkoutModal({ onClose, onCreateWorkout, selectedDate, coachId = 
       const isSingleDay = days.length === 1;
       const allExercises = isSingleDay ? days[0].exercises : days.flatMap(d => d.exercises);
       const estimatedMinutes = calculateWorkoutTime(allExercises);
-      const estimatedCalories = Math.round(estimatedMinutes * 5);
+      const estimatedCalories = estimateWorkoutCalories(allExercises);
 
       const workoutData = {
         name: workoutName.trim(),

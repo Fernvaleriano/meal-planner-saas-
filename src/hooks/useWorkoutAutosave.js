@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { apiPut } from '../utils/api';
+import { estimateWorkoutMinutes, estimateWorkoutCalories } from '../utils/workoutDuration';
 
 const DRAFT_PREFIX = 'zq_workout_draft_';
 const AUTOSAVE_INTERVAL_MS = 30_000; // 30 seconds
@@ -94,14 +95,7 @@ export function useWorkoutAutosave({ programId, getState, hasChanges, onDbSaved 
     setAutosaveStatus('saving');
     try {
       const allExercises = state.days.flatMap(d => d.exercises);
-      let totalSeconds = 0;
-      for (const ex of allExercises) {
-        const numSets = typeof ex.sets === 'number' ? ex.sets : 3;
-        const restSeconds = ex.restSeconds || 60;
-        totalSeconds += numSets * 40 + (numSets - 1) * restSeconds;
-      }
-      totalSeconds += (allExercises.length - 1) * 30;
-      const estimatedMinutes = Math.ceil(totalSeconds / 60);
+      const estimatedMinutes = estimateWorkoutMinutes(allExercises);
 
       const programData = {
         days: state.days.map(d => ({ name: d.name, exercises: d.exercises })),
@@ -110,7 +104,7 @@ export function useWorkoutAutosave({ programId, getState, hasChanges, onDbSaved 
         category: state.category,
         frequency: state.frequency,
         estimatedMinutes,
-        estimatedCalories: Math.round(estimatedMinutes * 5),
+        estimatedCalories: estimateWorkoutCalories(allExercises),
         image_url: state.heroImageUrl || null,
       };
 

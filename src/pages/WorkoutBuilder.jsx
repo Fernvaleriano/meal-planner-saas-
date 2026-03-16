@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, apiPut } from '../utils/api';
+import { estimateWorkoutMinutes, estimateWorkoutCalories } from '../utils/workoutDuration';
 import { useToast } from '../components/Toast';
 import { useWorkoutAutosave, loadWorkoutDraft, cleanupStaleDrafts } from '../hooks/useWorkoutAutosave';
 import AddActivityModal from '../components/workout/AddActivityModal';
@@ -405,14 +406,7 @@ function WorkoutBuilder() {
     setSaving(true);
     try {
       const allExercises = days.flatMap(d => d.exercises);
-      let totalSeconds = 0;
-      for (const ex of allExercises) {
-        const numSets = typeof ex.sets === 'number' ? ex.sets : 3;
-        const restSeconds = ex.restSeconds || 60;
-        totalSeconds += numSets * 40 + (numSets - 1) * restSeconds;
-      }
-      totalSeconds += (allExercises.length - 1) * 30;
-      const estimatedMinutes = Math.ceil(totalSeconds / 60);
+      const estimatedMinutes = estimateWorkoutMinutes(allExercises);
 
       const programData = {
         days: days.map(d => ({ name: d.name, exercises: d.exercises })),
@@ -421,7 +415,7 @@ function WorkoutBuilder() {
         category,
         frequency,
         estimatedMinutes,
-        estimatedCalories: Math.round(estimatedMinutes * 5),
+        estimatedCalories: estimateWorkoutCalories(allExercises),
         image_url: heroImageUrl || null
       };
 
