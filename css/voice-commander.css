@@ -1,0 +1,234 @@
+/* ─── Voice Commander — Siri-like floating orb ─── */
+
+/* FAB trigger button */
+.vc-fab {
+    position: fixed;
+    bottom: 90px;
+    right: 24px;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: none;
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
+    z-index: 9997;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.vc-fab:hover {
+    transform: scale(1.08);
+    box-shadow: 0 6px 20px rgba(99, 102, 241, 0.55);
+}
+.vc-fab:active { transform: scale(0.95); }
+
+/* Orb overlay — the main listening UI */
+.vc-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    animation: vc-fade-in 0.25s ease-out;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+@keyframes vc-fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+/* Close button */
+.vc-close {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.vc-close:hover { background: rgba(255, 255, 255, 0.25); }
+
+/* The orb */
+.vc-orb {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    position: relative;
+    transition: transform 0.3s;
+}
+.vc-orb:hover { transform: scale(1.05); }
+
+/* Idle pulse */
+.vc-orb.vc-idle {
+    animation: vc-idle-pulse 3s ease-in-out infinite;
+}
+@keyframes vc-idle-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.3); }
+    50%      { box-shadow: 0 0 0 20px rgba(99, 102, 241, 0); }
+}
+
+/* Listening state — animated rings */
+.vc-orb.vc-listening {
+    animation: vc-listen-pulse 1.2s ease-in-out infinite;
+}
+@keyframes vc-listen-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.4), 0 0 0 0 rgba(168, 85, 247, 0.2); }
+    50%      { box-shadow: 0 0 0 18px rgba(139, 92, 246, 0), 0 0 0 36px rgba(168, 85, 247, 0); }
+}
+
+/* Processing state — spin */
+.vc-orb.vc-processing {
+    animation: vc-spin-glow 1.5s linear infinite;
+}
+@keyframes vc-spin-glow {
+    0%   { box-shadow: 0 0 20px rgba(99, 102, 241, 0.6); }
+    50%  { box-shadow: 0 0 40px rgba(168, 85, 247, 0.8); }
+    100% { box-shadow: 0 0 20px rgba(99, 102, 241, 0.6); }
+}
+
+/* Success flash */
+.vc-orb.vc-success {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    animation: vc-success-pop 0.4s ease-out;
+}
+@keyframes vc-success-pop {
+    0%   { transform: scale(1); }
+    50%  { transform: scale(1.15); }
+    100% { transform: scale(1); }
+}
+
+/* Error flash */
+.vc-orb.vc-error {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+}
+
+/* Orb icon */
+.vc-orb svg {
+    width: 48px;
+    height: 48px;
+    color: #fff;
+    transition: opacity 0.2s;
+}
+
+/* Transcript display */
+.vc-transcript {
+    margin-top: 32px;
+    color: #fff;
+    font-size: 1.25rem;
+    font-weight: 500;
+    text-align: center;
+    max-width: 400px;
+    min-height: 2em;
+    line-height: 1.5;
+    opacity: 0.95;
+}
+.vc-transcript.vc-interim {
+    opacity: 0.6;
+    font-style: italic;
+}
+
+/* Status text below transcript */
+.vc-status {
+    margin-top: 12px;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.85rem;
+    text-align: center;
+}
+
+/* Feedback toast (shows confirmed action) */
+.vc-toast {
+    position: fixed;
+    top: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.85);
+    color: #fff;
+    padding: 12px 24px;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    z-index: 10001;
+    animation: vc-toast-in 0.3s ease-out;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    max-width: 90vw;
+}
+.vc-toast.vc-toast-success { background: rgba(16, 185, 129, 0.9); }
+.vc-toast.vc-toast-error   { background: rgba(239, 68, 68, 0.9); }
+
+@keyframes vc-toast-in {
+    from { opacity: 0; transform: translateX(-50%) translateY(-12px); }
+    to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* Suggestion chips below the orb */
+.vc-hints {
+    margin-top: 40px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    max-width: 420px;
+}
+.vc-hint {
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 0.78rem;
+    color: rgba(255, 255, 255, 0.8);
+    cursor: pointer;
+    transition: background 0.15s;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+.vc-hint:hover {
+    background: rgba(255, 255, 255, 0.22);
+}
+
+/* Mobile adjustments */
+@media (max-width: 500px) {
+    .vc-fab {
+        bottom: 82px;
+        right: 16px;
+        width: 44px;
+        height: 44px;
+    }
+    .vc-orb {
+        width: 100px;
+        height: 100px;
+    }
+    .vc-orb svg {
+        width: 40px;
+        height: 40px;
+    }
+    .vc-transcript {
+        font-size: 1.1rem;
+        max-width: 85vw;
+    }
+    .vc-hints {
+        max-width: 85vw;
+    }
+}
