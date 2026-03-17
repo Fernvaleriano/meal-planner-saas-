@@ -534,11 +534,13 @@ function Workouts() {
   const pendingSaveRef = useRef(null); // Track pending completion saves for visibilitychange flush
   const globalExerciseRefsRef = useRef({}); // Coach's global exercise references keyed by lowercase exercise name
   const refreshWorkoutDataRef = useRef(null); // Stable ref for resume handler (defined later via useCallback)
+  const showErrorRef = useRef(null); // Stable ref for showError in fire-and-forget saves
 
   // Keep refs updated for stable callbacks
   todayWorkoutRef.current = todayWorkout;
   selectedExerciseRef.current = selectedExercise;
   completedExercisesRef.current = completedExercises;
+  showErrorRef.current = showError;
 
   // Sync todayWorkouts array when active workout changes (e.g. exercise toggles)
   // Returns prev (same reference) when the workout is already the same object,
@@ -2064,29 +2066,42 @@ function Workouts() {
       };
     });
 
-    // Save to backend (fire and forget, errors logged)
-    // Use correct endpoint based on workout type
-    if (workout.is_adhoc) {
-      const isRealId = workout.id && !String(workout.id).startsWith('adhoc-') && !String(workout.id).startsWith('custom-');
-      const dateStr = workout.workout_date || new Date().toISOString().split('T')[0];
-      apiPut('/.netlify/functions/adhoc-workouts', {
-        ...(isRealId ? { workoutId: workout.id } : {}),
-        clientId: workout.client_id,
-        workoutDate: dateStr,
-        workoutData: updatedWorkoutData,
-        name: workout.name
-      }).catch(err => {
-        console.error('Error saving exercise update to adhoc:', err);
-      });
-    } else {
-      apiPut('/.netlify/functions/client-workout-log', {
-        assignmentId: workout.id,
-        dayIndex: workout.day_index,
-        workout_data: updatedWorkoutData
-      }).catch(err => {
-        console.error('Error saving exercise update:', err);
-      });
-    }
+    // Save to backend with retry logic (up to 3 attempts with exponential backoff)
+    const saveWithRetry = async (attempts = 3) => {
+      for (let i = 0; i < attempts; i++) {
+        try {
+          if (workout.is_adhoc) {
+            const isRealId = workout.id && !String(workout.id).startsWith('adhoc-') && !String(workout.id).startsWith('custom-');
+            const dateStr = workout.workout_date || new Date().toISOString().split('T')[0];
+            await apiPut('/.netlify/functions/adhoc-workouts', {
+              ...(isRealId ? { workoutId: workout.id } : {}),
+              clientId: workout.client_id,
+              workoutDate: dateStr,
+              workoutData: updatedWorkoutData,
+              name: workout.name
+            });
+          } else {
+            await apiPut('/.netlify/functions/client-workout-log', {
+              assignmentId: workout.id,
+              dayIndex: workout.day_index,
+              workout_data: updatedWorkoutData
+            });
+          }
+          return; // Success
+        } catch (err) {
+          console.error(`Error saving exercise update (attempt ${i + 1}/${attempts}):`, err);
+          if (i < attempts - 1) {
+            await new Promise(r => setTimeout(r, 1000 * (i + 1))); // 1s, 2s backoff
+          } else {
+            // All retries exhausted — notify the user
+            if (typeof showErrorRef.current === 'function') {
+              showErrorRef.current('Failed to save workout changes. Please try again.');
+            }
+          }
+        }
+      }
+    };
+    saveWithRetry();
   }, []); // Using ref instead of dependencies
 
   // Handle deleting an exercise from workout - use ref for stable callback
