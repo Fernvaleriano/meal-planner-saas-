@@ -105,20 +105,26 @@ exports.handler = async (event) => {
 
         const coachName = coachProfile?.business_name || 'Your coach';
 
-        let title, message;
+        let title, message, notifType;
         if (itemType === 'client_pr') {
           title = `${reaction} ${coachName} reacted to your PR!`;
           message = `${coachName} reacted with ${reaction} to your new personal record`;
+          notifType = 'pr_reaction';
+        } else if (itemType === 'gym_checkin') {
+          title = `${reaction} ${coachName} reacted to your gym check-in!`;
+          message = `${coachName} reacted with ${reaction} to your gym check-in`;
+          notifType = 'gym_checkin_reaction';
         } else {
           title = `${reaction} ${coachName} reacted to your workout note`;
           message = `${coachName} reacted with ${reaction} to your workout note`;
+          notifType = 'note_reaction';
         }
 
         await supabase
           .from('notifications')
           .insert({
             client_id: clientId,
-            type: itemType === 'client_pr' ? 'pr_reaction' : 'note_reaction',
+            type: notifType,
             title,
             message,
             metadata: {
@@ -139,6 +145,8 @@ exports.handler = async (event) => {
       try {
         const chatMessage = itemType === 'client_pr'
           ? `Reacted ${reaction} to your new PR!`
+          : itemType === 'gym_checkin'
+          ? `Reacted ${reaction} to your gym check-in!`
           : `Reacted ${reaction} to your workout note`;
         await supabase
           .from('chat_messages')

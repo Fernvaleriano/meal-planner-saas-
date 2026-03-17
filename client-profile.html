@@ -7458,6 +7458,49 @@
                 padding: 60px 16px 16px;
             }
         }
+        /* Gym check-in reaction styles */
+        .gym-proof-reactions {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+            padding: 4px 8px 8px;
+        }
+        .gym-reaction-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: 1px solid transparent;
+            background: transparent;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.15s, transform 0.15s, border-color 0.15s;
+            padding: 0;
+            opacity: 0.5;
+        }
+        .gym-reaction-btn:hover {
+            background: rgba(13, 148, 136, 0.1);
+            border-color: rgba(13, 148, 136, 0.2);
+            opacity: 1;
+            transform: scale(1.2);
+        }
+        .gym-reaction-btn.reacted {
+            opacity: 1;
+            background: rgba(13, 148, 136, 0.15);
+            border-color: var(--brand-primary, #0d9488);
+            transform: scale(1.1);
+        }
+        .gym-reaction-sent {
+            display: none;
+            font-size: 10px;
+            color: #059669;
+        }
+        .gym-reaction-sent.show {
+            display: inline;
+        }
     </style>
     <script src="https://unpkg.com/lucide@0.312.0/dist/umd/lucide.min.js" onload="if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',()=>lucide.createIcons())}else{lucide.createIcons()}"></script>
     <style>body{-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;overscroll-behavior:none;-webkit-overflow-scrolling:touch;}</style>
@@ -11249,13 +11292,19 @@
         // ========== GYM PROOFS FUNCTIONS ==========
 
         let gymProofs = [];
+        let gymProofReactions = {}; // { proofId: { reaction, id } }
+        const GYM_REACTIONS = ['👏', '💪', '🔥', '⭐', '❤️'];
 
-        async function loadGymProofs(clientId) {
+        async function loadGymProofs(cId) {
             try {
-                const response = await fetch(`${GYM_PROOF_ENDPOINT}?clientId=${clientId}&limit=50`);
+                const response = await fetch(`${GYM_PROOF_ENDPOINT}?clientId=${cId}&limit=50`);
                 if (!response.ok) throw new Error('Failed to load gym proofs');
                 const data = await response.json();
                 gymProofs = data.proofs || [];
+
+                // Fetch existing reactions for these gym proofs
+                await loadGymProofReactions();
+
                 displayGymProofs(data.streak || 0);
             } catch (error) {
                 console.error('Error loading gym proofs:', error);
@@ -11264,6 +11313,83 @@
                         <p>Unable to load gym check-ins</p>
                     </div>
                 `;
+            }
+        }
+
+        async function loadGymProofReactions() {
+            if (!currentUser || gymProofs.length === 0) return;
+            try {
+                const proofIds = gymProofs.map(p => p.id);
+                const { data, error } = await supabaseClient
+                    .from('activity_reactions')
+                    .select('*')
+                    .eq('coach_id', currentUser.id)
+                    .eq('item_type', 'gym_checkin')
+                    .in('item_id', proofIds.map(String));
+                if (!error && data) {
+                    gymProofReactions = {};
+                    data.forEach(r => {
+                        gymProofReactions[r.item_id] = { reaction: r.reaction, id: r.id };
+                    });
+                }
+            } catch (err) {
+                console.error('Error loading gym proof reactions:', err);
+            }
+        }
+
+        async function reactToGymCheckin(proofId, emoji, btnEl) {
+            if (!currentUser) return;
+
+            const row = btnEl.parentElement;
+            const existing = gymProofReactions[String(proofId)];
+
+            // If clicking same emoji, remove reaction
+            if (existing && existing.reaction === emoji) {
+                row.querySelectorAll('.gym-reaction-btn').forEach(b => b.classList.remove('reacted'));
+                delete gymProofReactions[String(proofId)];
+
+                try {
+                    await fetch('/.netlify/functions/react-to-activity', {
+                        method: 'DELETE',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            coachId: currentUser.id,
+                            itemType: 'gym_checkin',
+                            itemId: String(proofId)
+                        })
+                    });
+                } catch (err) {
+                    console.error('Error removing reaction:', err);
+                }
+                return;
+            }
+
+            // Optimistic UI
+            row.querySelectorAll('.gym-reaction-btn').forEach(b => b.classList.remove('reacted'));
+            btnEl.classList.add('reacted');
+            gymProofReactions[String(proofId)] = { reaction: emoji };
+
+            // Show sent indicator
+            const sent = row.querySelector('.gym-reaction-sent');
+            if (sent) {
+                sent.classList.add('show');
+                setTimeout(() => sent.classList.remove('show'), 1500);
+            }
+
+            try {
+                await fetch('/.netlify/functions/react-to-activity', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        coachId: currentUser.id,
+                        clientId: parseInt(clientId),
+                        itemType: 'gym_checkin',
+                        itemId: String(proofId),
+                        reaction: emoji
+                    })
+                });
+            } catch (err) {
+                console.error('Error saving reaction:', err);
             }
         }
 
@@ -11286,12 +11412,17 @@
                         const date = new Date(p.proof_date + 'T00:00:00');
                         const dateStr = date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
                         const timeStr = p.proof_time ? new Date(p.proof_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : '';
+                        const existingReaction = gymProofReactions[String(p.id)];
                         return `
                             <div class="gym-proof-card" style="border-radius: 10px; overflow: hidden; background: var(--card-bg, #f7fafc); box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
                                 <img src="${p.photo_url}" alt="Gym proof" style="width: 100%; aspect-ratio: 3/4; object-fit: cover; cursor: pointer;" onclick="window.open('${p.photo_url}', '_blank')" />
                                 <div style="padding: 8px; text-align: center;">
                                     <div style="font-size: 12px; font-weight: 600; color: var(--text-primary, #2d3748);">${dateStr}</div>
                                     ${timeStr ? `<div style="font-size: 11px; color: var(--text-secondary, #718096);">${timeStr}</div>` : ''}
+                                </div>
+                                <div class="gym-proof-reactions">
+                                    ${GYM_REACTIONS.map(r => `<button class="gym-reaction-btn ${existingReaction && existingReaction.reaction === r ? 'reacted' : ''}" onclick="reactToGymCheckin(${p.id}, '${r}', this)" title="${r}">${r}</button>`).join('')}
+                                    <span class="gym-reaction-sent">Sent!</span>
                                 </div>
                             </div>
                         `;
