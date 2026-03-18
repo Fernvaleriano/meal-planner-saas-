@@ -560,13 +560,20 @@ function parseStructuredDay(chunk) {
         sets = 1;
         const suffix = repsOnlyMatch[2] ? repsOnlyMatch[2].trim() : '';
         reps = `${repsOnlyMatch[1]}${suffix ? ` ${suffix}` : ''}`.trim();
-      }
-
-      const durationMatch = prescription.match(/^(\d+(?:-\d+)?)\s*(min(?:utes?)?|sec(?:onds?)?|s)\b(.*)$/i);
-      if (!sets && durationMatch) {
-        sets = 1;
-        const extra = durationMatch[3] ? durationMatch[3].trim() : '';
-        reps = `${durationMatch[1]} ${durationMatch[2].toLowerCase().startsWith('m') ? 'min' : 'sec'}${extra ? ` ${extra}` : ''}`.trim();
+      } else {
+        const durationMatch = prescription.match(/^(\d+(?:-\d+)?)\s*(min(?:utes?)?|sec(?:onds?)?|s)\b(.*)$/i);
+        if (durationMatch) {
+          sets = 1;
+          const extra = durationMatch[3] ? durationMatch[3].trim() : '';
+          reps = `${durationMatch[1]} ${durationMatch[2].toLowerCase().startsWith('m') ? 'min' : 'sec'}${extra ? ` ${extra}` : ''}`.trim();
+        } else {
+          // Handle bare numbers like "10" or ranges like "8-12" without a "reps" suffix
+          const bareNumberMatch = prescription.match(/^(\d+(?:\s*[-–]\s*\d+)?)$/);
+          if (bareNumberMatch) {
+            sets = 1;
+            reps = bareNumberMatch[1].trim();
+          }
+        }
       }
     }
 
