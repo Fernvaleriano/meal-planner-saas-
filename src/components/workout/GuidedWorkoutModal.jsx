@@ -559,11 +559,12 @@ function GuidedWorkoutModal({
     const repsStr = typeof ex.reps === 'string' ? ex.reps : '';
     const repsHasTimeUnit = /\d+\s*min/i.test(repsStr);
     const isDistance = ex.trackingType === 'distance';
-    const isTimed = !isDistance && (ex.trackingType === 'time' ||
+    // trackingType is authoritative — if explicitly 'reps', never treat as timed
+    const isTimed = !isDistance && ex.trackingType !== 'reps' && (
+      ex.trackingType === 'time' ||
       ex.exercise_type === 'timed' ||
       ex.exercise_type === 'cardio' ||
       ex.exercise_type === 'interval' ||
-      !!ex.duration ||
       repsHasTimeUnit);
     const sets = typeof ex.sets === 'number' ? ex.sets :
       (Array.isArray(ex.sets) ? ex.sets.length : 3);

@@ -46,9 +46,10 @@ function resolveSetCount(ex) {
 
 /** Detect whether an exercise should be treated as time-based. */
 function isTimeBased(ex) {
+  // trackingType is authoritative — if explicitly 'reps', never treat as timed
+  if (ex.trackingType === 'reps') return false;
   if (ex.trackingType === 'time') return true;
   if (ex.exercise_type === 'cardio' || ex.exercise_type === 'timed') return true;
-  if (ex.duration) return true;
   if (typeof ex.reps === 'string' && /\d+\s*(min|s\b|sec)/i.test(ex.reps)) return true;
   return false;
 }
