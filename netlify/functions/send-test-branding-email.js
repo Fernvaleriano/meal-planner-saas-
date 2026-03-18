@@ -251,7 +251,7 @@ exports.handler = async (event, context) => {
         }
 
         // Check subscription tier
-        const hasBrandingAccess = ['professional', 'branded'].includes(coach.subscription_tier);
+        const hasBrandingAccess = ['scale', 'pro', 'professional', 'branded'].includes(coach.subscription_tier);
         if (!hasBrandingAccess) {
             return {
                 statusCode: 403,

@@ -422,25 +422,31 @@
 
             <div class="form-group">
                 <label>Select Your Plan</label>
-                <div class="plan-cards" style="grid-template-columns: repeat(3, 1fr);">
+                <div class="plan-cards" style="grid-template-columns: repeat(2, 1fr);">
                     <label class="plan-card" id="starterCard">
                         <input type="radio" name="plan" value="starter">
                         <div class="plan-name">Starter</div>
-                        <div class="plan-price">$49<span>/mo</span></div>
-                        <div class="plan-clients">10 clients</div>
+                        <div class="plan-price">$59<span>/mo</span></div>
+                        <div class="plan-clients">15 clients</div>
                     </label>
                     <label class="plan-card selected" id="growthCard">
                         <div class="popular-tag">Popular</div>
                         <input type="radio" name="plan" value="growth" checked>
                         <div class="plan-name">Growth</div>
-                        <div class="plan-price">$99<span>/mo</span></div>
+                        <div class="plan-price">$129<span>/mo</span></div>
                         <div class="plan-clients">50 clients</div>
                     </label>
-                    <label class="plan-card" id="professionalCard">
-                        <input type="radio" name="plan" value="professional">
-                        <div class="plan-name">Professional</div>
-                        <div class="plan-price">$199<span>/mo</span></div>
-                        <div class="plan-clients">Unlimited + Branding</div>
+                    <label class="plan-card" id="scaleCard">
+                        <input type="radio" name="plan" value="scale">
+                        <div class="plan-name">Scale</div>
+                        <div class="plan-price">$249<span>/mo</span></div>
+                        <div class="plan-clients">150 clients + Branding</div>
+                    </label>
+                    <label class="plan-card" id="proCard">
+                        <input type="radio" name="plan" value="pro">
+                        <div class="plan-name">Pro</div>
+                        <div class="plan-price">$399<span>/mo</span></div>
+                        <div class="plan-clients">300 clients + Branding</div>
                     </label>
                 </div>
             </div>
@@ -486,7 +492,7 @@
         // Get plan from URL if specified
         const urlParams = new URLSearchParams(window.location.search);
         const planFromUrl = urlParams.get('plan');
-        if (planFromUrl && ['starter', 'growth', 'professional'].includes(planFromUrl)) {
+        if (planFromUrl && ['starter', 'growth', 'scale', 'pro'].includes(planFromUrl)) {
             document.querySelector(`input[value="${planFromUrl}"]`).checked = true;
             updatePlanSelection();
         }

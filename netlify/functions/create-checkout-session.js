@@ -19,10 +19,12 @@ const headers = {
 const PRICE_IDS = {
     starter: process.env.STRIPE_PRICE_STARTER || 'price_starter_monthly',
     growth: process.env.STRIPE_PRICE_GROWTH || 'price_growth_monthly',
-    professional: process.env.STRIPE_PRICE_PROFESSIONAL || 'price_professional_monthly',
+    scale: process.env.STRIPE_PRICE_SCALE || 'price_scale_monthly',
+    pro: process.env.STRIPE_PRICE_PRO || 'price_pro_monthly',
     // Legacy support for existing subscribers
+    professional: process.env.STRIPE_PRICE_PROFESSIONAL || process.env.STRIPE_PRICE_SCALE || 'price_scale_monthly',
     basic: process.env.STRIPE_PRICE_BASIC || process.env.STRIPE_PRICE_STARTER || 'price_starter_monthly',
-    branded: process.env.STRIPE_PRICE_BRANDED || process.env.STRIPE_PRICE_PROFESSIONAL || 'price_professional_monthly'
+    branded: process.env.STRIPE_PRICE_BRANDED || process.env.STRIPE_PRICE_PRO || 'price_pro_monthly'
 };
 
 exports.handler = async (event) => {

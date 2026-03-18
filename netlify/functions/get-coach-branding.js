@@ -140,7 +140,7 @@ exports.handler = async (event, context) => {
         }
 
         // Check if coach has Professional tier (branding feature access)
-        const hasBrandingAccess = ['professional', 'branded'].includes(coach.subscription_tier);
+        const hasBrandingAccess = ['scale', 'pro', 'professional', 'branded'].includes(coach.subscription_tier);
 
         // Build branding response with fallbacks to defaults
         const branding = {

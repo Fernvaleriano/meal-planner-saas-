@@ -335,7 +335,7 @@ async function sendCheckinReminder({
     const hasWhiteLabel = coach?.white_label_enabled && coach?.email_from_verified;
 
     // Check if coach has branding enabled (Professional tier)
-    const hasBranding = ['professional', 'branded'].includes(coach?.subscription_tier);
+    const hasBranding = ['scale', 'pro', 'professional', 'branded'].includes(coach?.subscription_tier);
 
     const emailContent = generateReminderEmail({
         clientName: client.client_name || 'there',
@@ -508,7 +508,7 @@ async function sendInvitationEmail({
     const hasWhiteLabel = coach?.white_label_enabled && coach?.email_from_verified;
 
     // Check if coach has branding enabled (Professional tier)
-    const hasBranding = ['professional', 'branded'].includes(coach?.subscription_tier);
+    const hasBranding = ['scale', 'pro', 'professional', 'branded'].includes(coach?.subscription_tier);
 
     const emailContent = generateInvitationEmail({
         clientName: client.client_name || 'there',
@@ -937,9 +937,11 @@ function generateReactivationEmail({ coachName, plan = 'starter' }) {
     const tierNames = {
         'starter': 'Starter',
         'growth': 'Growth',
-        'professional': 'Professional',
+        'scale': 'Scale',
+        'pro': 'Pro',
+        'professional': 'Scale',
         'basic': 'Starter',
-        'branded': 'Professional'
+        'branded': 'Pro'
     };
     const planName = tierNames[plan] || 'Starter';
 
@@ -1256,11 +1258,13 @@ async function sendNewCoachNotification({ coach, plan }) {
     const adminEmail = process.env.ADMIN_EMAIL || 'contact@ziquefitness.com';
 
     const tierNames = {
-        'starter': 'Starter ($49/mo)',
-        'growth': 'Growth ($99/mo)',
-        'professional': 'Professional ($199/mo)',
-        'basic': 'Starter ($49/mo)',
-        'branded': 'Professional ($199/mo)'
+        'starter': 'Starter ($59/mo)',
+        'growth': 'Growth ($129/mo)',
+        'scale': 'Scale ($249/mo)',
+        'pro': 'Pro ($399/mo)',
+        'professional': 'Scale ($249/mo)',
+        'basic': 'Starter ($59/mo)',
+        'branded': 'Pro ($399/mo)'
     };
     const planName = tierNames[plan] || plan;
 
@@ -1308,9 +1312,11 @@ async function sendNewPaymentNotification({ coach, plan, amount, isReactivation 
     const tierNames = {
         'starter': 'Starter',
         'growth': 'Growth',
-        'professional': 'Professional',
+        'scale': 'Scale',
+        'pro': 'Pro',
+        'professional': 'Scale',
         'basic': 'Starter',
-        'branded': 'Professional'
+        'branded': 'Pro'
     };
     const planName = tierNames[plan] || plan;
 
@@ -1395,9 +1401,11 @@ function generateWelcomeEmail({ coachName, plan = 'starter', resetLink }) {
     const tierNames = {
         'starter': 'Starter',
         'growth': 'Growth',
-        'professional': 'Professional',
+        'scale': 'Scale',
+        'pro': 'Pro',
+        'professional': 'Scale',
         'basic': 'Starter',
-        'branded': 'Professional'
+        'branded': 'Pro'
     };
     const planName = tierNames[plan] || 'Starter';
 
