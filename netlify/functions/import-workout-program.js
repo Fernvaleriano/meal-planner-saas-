@@ -555,8 +555,15 @@ function parseStructuredDay(chunk) {
       sets = parseInt(setsRepsMatch[1], 10);
       reps = setsRepsMatch[2].trim();
     } else {
+      const repsOnlyMatch = prescription.match(/^(\d+(?:\s*[-–]\s*\d+)?)\s*(?:reps?|rep)\b(.*)$/i);
+      if (repsOnlyMatch) {
+        sets = 1;
+        const suffix = repsOnlyMatch[2] ? repsOnlyMatch[2].trim() : '';
+        reps = `${repsOnlyMatch[1]}${suffix ? ` ${suffix}` : ''}`.trim();
+      }
+
       const durationMatch = prescription.match(/^(\d+(?:-\d+)?)\s*(min(?:utes?)?|sec(?:onds?)?|s)\b(.*)$/i);
-      if (durationMatch) {
+      if (!sets && durationMatch) {
         sets = 1;
         const extra = durationMatch[3] ? durationMatch[3].trim() : '';
         reps = `${durationMatch[1]} ${durationMatch[2].toLowerCase().startsWith('m') ? 'min' : 'sec'}${extra ? ` ${extra}` : ''}`.trim();
@@ -940,7 +947,7 @@ exports.handler = async (event) => {
             hasVideo: !!(match.video_url || match.animation_url)
           });
 
-          const repsVal = ex.reps || (detectedWarmup ? '10-15' : detectedStretch ? '30s hold' : '8-12');
+          const repsVal = ex.reps || (detectedWarmup ? '10-15' : detectedStretch ? '30s hold' : '10');
           const timedCheck = detectTimedReps(String(repsVal));
 
           resultExercises.push({
@@ -973,7 +980,7 @@ exports.handler = async (event) => {
             day: day.name
           });
 
-          const unmatchedRepsVal = ex.reps || (detectedWarmup ? '10-15' : detectedStretch ? '30s hold' : '8-12');
+          const unmatchedRepsVal = ex.reps || (detectedWarmup ? '10-15' : detectedStretch ? '30s hold' : '10');
           const unmatchedTimedCheck = detectTimedReps(String(unmatchedRepsVal));
 
           resultExercises.push({

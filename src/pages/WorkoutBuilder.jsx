@@ -20,6 +20,14 @@ const DIFFICULTY_OPTIONS = ['Beginner', 'Novice', 'Intermediate', 'Advanced'];
 const CATEGORY_OPTIONS = ['Main Workout Programs', 'Strength Training', 'Hypertrophy', 'Fat Loss', 'HIIT', 'Cardio', 'Mobility', 'Sport Specific', 'Rehabilitation', 'Custom'];
 const FREQUENCY_OPTIONS = [1, 2, 3, 4, 5, 6, 7];
 
+function parseRepsValue(reps) {
+  if (typeof reps === 'number' && Number.isFinite(reps)) return reps;
+  const repsStr = String(reps || '').trim();
+  const rangeMatch = repsStr.match(/^(\d+)\s*[-–]\s*(\d+)$/);
+  if (rangeMatch) return parseInt(rangeMatch[2], 10);
+  return parseInt(repsStr, 10) || 10;
+}
+
 // Helper to build per-set arrays from a flat exercise config
 function buildSetsArray(exercise) {
   const numSets = typeof exercise.sets === 'number' ? exercise.sets : 3;
@@ -32,7 +40,7 @@ function buildSetsArray(exercise) {
       const isTimed = exercise.trackingType === 'time';
       const isDistance = exercise.trackingType === 'distance';
       result.push({
-        reps: isTimed ? undefined : (parseInt(exercise.reps) || 10),
+        reps: isTimed ? undefined : parseRepsValue(exercise.reps),
         duration: isTimed ? (exercise.duration || 30) : undefined,
         distance: isDistance ? (exercise.distance || 1) : undefined,
         restSeconds: exercise.restSeconds || 30,

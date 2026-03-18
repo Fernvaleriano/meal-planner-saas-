@@ -7555,12 +7555,12 @@
                 } else {
                     const isTimed = exercise.trackingType === 'time';
                     const isDistance = exercise.trackingType === 'distance';
-                    // Parse reps: handle range strings like "8-12" by averaging, plain numbers, or default to 10
+                    // Parse reps: if range like "8-12", prefer upper bound (12)
                     let parsedReps = 10;
                     if (exercise.reps) {
-                        const rangeMatch = String(exercise.reps).match(/^(\d+)\s*-\s*(\d+)$/);
+                        const rangeMatch = String(exercise.reps).match(/^(\d+)\s*[-–]\s*(\d+)$/);
                         if (rangeMatch) {
-                            parsedReps = Math.round((parseInt(rangeMatch[1]) + parseInt(rangeMatch[2])) / 2);
+                            parsedReps = parseInt(rangeMatch[2]) || 10;
                         } else {
                             parsedReps = parseInt(exercise.reps) || 10;
                         }
@@ -12519,7 +12519,7 @@
                 workoutDays.push({
                     name: day.name,
                     exercises: exercises.map(ex => {
-                        const repsVal = ex.reps || '8-12';
+                        const repsVal = ex.reps || '10';
                         // Use trackingType from import if set, otherwise detect from reps value
                         let trackingType = ex.trackingType || 'reps';
                         let duration = ex.duration;
