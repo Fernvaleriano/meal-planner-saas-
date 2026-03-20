@@ -114,6 +114,10 @@ exports.handler = async (event) => {
           title = `${reaction} ${coachName} reacted to your gym check-in!`;
           message = `${coachName} reacted with ${reaction} to your gym check-in`;
           notifType = 'gym_checkin_reaction';
+        } else if (itemType === 'checkin') {
+          title = `${reaction} ${coachName} reacted to your check-in!`;
+          message = `${coachName} reacted with ${reaction} to your weekly check-in`;
+          notifType = 'checkin_reaction';
         } else {
           title = `${reaction} ${coachName} reacted to your workout note`;
           message = `${coachName} reacted with ${reaction} to your workout note`;
@@ -147,6 +151,8 @@ exports.handler = async (event) => {
           ? `Reacted ${reaction} to your new PR!`
           : itemType === 'gym_checkin'
           ? `Reacted ${reaction} to your gym check-in!`
+          : itemType === 'checkin'
+          ? `Reacted ${reaction} to your check-in!`
           : `Reacted ${reaction} to your workout note`;
         await supabase
           .from('chat_messages')

@@ -11106,6 +11106,86 @@
 
         // ========== CHECK-INS FUNCTIONS ==========
 
+        let checkinReactions = {}; // { checkinId: { reaction, id } }
+        const CHECKIN_REACTIONS = ['👏', '💪', '🔥', '⭐', '❤️'];
+
+        async function loadCheckinReactions() {
+            if (!currentUser || clientCheckins.length === 0) return;
+            try {
+                const checkinIds = clientCheckins.map(c => c.id);
+                const { data, error } = await supabaseClient
+                    .from('activity_reactions')
+                    .select('*')
+                    .eq('coach_id', currentUser.id)
+                    .eq('item_type', 'checkin')
+                    .in('item_id', checkinIds.map(String));
+                if (!error && data) {
+                    checkinReactions = {};
+                    data.forEach(r => {
+                        checkinReactions[r.item_id] = { reaction: r.reaction, id: r.id };
+                    });
+                }
+            } catch (err) {
+                console.error('Error loading checkin reactions:', err);
+            }
+        }
+
+        async function reactToCheckin(checkinId, emoji, btnEl) {
+            if (!currentUser) return;
+
+            const row = btnEl.parentElement;
+            const existing = checkinReactions[String(checkinId)];
+
+            // If clicking same emoji, remove reaction
+            if (existing && existing.reaction === emoji) {
+                row.querySelectorAll('.gym-reaction-btn').forEach(b => b.classList.remove('reacted'));
+                delete checkinReactions[String(checkinId)];
+
+                try {
+                    await fetch('/.netlify/functions/react-to-activity', {
+                        method: 'DELETE',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            coachId: currentUser.id,
+                            itemType: 'checkin',
+                            itemId: String(checkinId)
+                        })
+                    });
+                } catch (err) {
+                    console.error('Error removing reaction:', err);
+                }
+                return;
+            }
+
+            // Optimistic UI
+            row.querySelectorAll('.gym-reaction-btn').forEach(b => b.classList.remove('reacted'));
+            btnEl.classList.add('reacted');
+            checkinReactions[String(checkinId)] = { reaction: emoji };
+
+            // Show sent indicator
+            const sent = row.querySelector('.gym-reaction-sent');
+            if (sent) {
+                sent.classList.add('show');
+                setTimeout(() => sent.classList.remove('show'), 1500);
+            }
+
+            try {
+                await fetch('/.netlify/functions/react-to-activity', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        coachId: currentUser.id,
+                        clientId: parseInt(clientId),
+                        itemType: 'checkin',
+                        itemId: String(checkinId),
+                        reaction: emoji
+                    })
+                });
+            } catch (err) {
+                console.error('Error saving reaction:', err);
+            }
+        }
+
         async function loadCheckins(clientId) {
             try {
                 const response = await fetch(`${CHECKIN_ENDPOINT}?clientId=${clientId}&limit=10`);
@@ -11114,6 +11194,10 @@
 
                 const data = await response.json();
                 clientCheckins = data.checkins || [];
+
+                // Load existing reactions before displaying
+                await loadCheckinReactions();
+
                 displayCheckins();
 
                 // Scroll to specific check-in if URL has a hash (e.g., #checkin-123)
@@ -11247,6 +11331,14 @@
                                 </div>
                             </div>
                         `}
+
+                        <div class="gym-proof-reactions" style="justify-content: flex-start; padding: 8px 0 0;">
+                            ${CHECKIN_REACTIONS.map(r => {
+                                const existingReaction = checkinReactions[String(c.id)];
+                                return `<button class="gym-reaction-btn ${existingReaction && existingReaction.reaction === r ? 'reacted' : ''}" onclick="reactToCheckin(${c.id}, '${r}', this)" title="${r}">${r}</button>`;
+                            }).join('')}
+                            <span class="gym-reaction-sent">Sent!</span>
+                        </div>
                     </div>
                 `;
             }).join('');
