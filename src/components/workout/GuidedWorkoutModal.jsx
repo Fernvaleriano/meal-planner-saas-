@@ -571,8 +571,9 @@ function GuidedWorkoutModal({
     const reps = parseReps(ex.reps);
     const distance = ex.distance || null;
     const distanceUnit = ex.distanceUnit || 'miles';
-    // Check exercise-level duration, then set-level duration, then parse reps string for time units
-    const setDuration = Array.isArray(ex.sets) && ex.sets[0]?.duration;
+    // Check exercise-level duration, then set-level duration (from setsData or sets array), then parse reps string for time units
+    const setDuration = (Array.isArray(ex.setsData) && ex.setsData[0]?.duration) ||
+      (Array.isArray(ex.sets) && ex.sets[0]?.duration);
     const duration = parseDurationToSeconds(ex.duration) ||
       parseDurationToSeconds(setDuration) ||
       parseDurationToSeconds(ex.reps) ||

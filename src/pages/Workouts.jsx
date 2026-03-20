@@ -2869,7 +2869,10 @@ function Workouts() {
       // Ensure all exercises have the fields that ExerciseCard and ExerciseDetailModal expect.
       const normalized = filtered.map(ex => {
         if (ex.trackingType && ex.exercise_type) return ex; // Already has required fields
-        const isTimedByDefault = ex.duration || ex.exercise_type === 'cardio' ||
+        // Also check setsData for duration (workout builder stores per-set duration there)
+        const hasSetsDataDuration = Array.isArray(ex.setsData) && ex.setsData.some(s => s?.duration);
+        const isTimedByDefault = ex.trackingType === 'time' || ex.duration || hasSetsDataDuration ||
+          ex.exercise_type === 'cardio' ||
           ex.exercise_type === 'interval' || ex.exercise_type === 'flexibility' ||
           ex.phase === 'warmup' || ex.phase === 'cooldown' || ex.isWarmup || ex.isStretch;
         return {

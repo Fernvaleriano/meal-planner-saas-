@@ -7618,6 +7618,17 @@
             const exercise = workoutDays[dayIndex].exercises[exIndex];
             exercise.trackingType = type;
             exercise.repType = null;
+            // Set default duration when switching to time-based so it persists in saved data
+            if (type === 'time' && !exercise.duration) {
+                exercise.duration = 30;
+            }
+            // Set default distance when switching to distance-based
+            if (type === 'distance') {
+                if (!exercise.distance) exercise.distance = 1;
+                if (!exercise.distanceUnit) exercise.distanceUnit = 'miles';
+            }
+            // Rebuild setsData to match the new tracking type
+            exercise.setsData = buildSetsArray(exercise);
             renderExercisesList();
             renderExerciseDetail();
         }
