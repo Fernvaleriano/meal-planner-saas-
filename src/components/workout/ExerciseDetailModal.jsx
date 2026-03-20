@@ -1675,15 +1675,24 @@ function ExerciseDetailModal({
     return () => { cancelled = true; };
   }, [clientId, exercise?.id]);
 
-  // Handle accepting coaching recommendation - applies to all sets
+  // Handle accepting coaching recommendation - applies to all sets and adjusts set count
   const handleAcceptCoachingRec = useCallback(() => {
     if (!coachingRecommendation) return;
 
-    setSets(prevSets => prevSets.map(set => ({
-      ...set,
-      reps: coachingRecommendation.reps,
-      weight: coachingRecommendation.weight
-    })));
+    const recSets = coachingRecommendation.sets || 3;
+
+    setSets(prevSets => {
+      const newSets = [];
+      for (let i = 0; i < recSets; i++) {
+        newSets.push({
+          ...(prevSets[i] || prevSets[0] || {}),
+          reps: coachingRecommendation.reps,
+          weight: coachingRecommendation.weight,
+          completed: false
+        });
+      }
+      return newSets;
+    });
 
     setAcceptedCoachingRec(true);
   }, [coachingRecommendation]);
