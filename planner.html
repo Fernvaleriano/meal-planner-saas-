@@ -80,7 +80,7 @@
 
         body {
             font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
+            background: #f1f5f9;
             min-height: 100vh;
             overflow-y: auto !important;
         }
@@ -123,7 +123,7 @@
         }
 
         .btn-primary:hover:not(:disabled) {
-            background-color: #5568d3;
+            background-color: #0f766e;
         }
 
         .btn-secondary {
@@ -1682,6 +1682,147 @@
             }
         }
 
+        /* Dark mode body background */
+        [data-theme="dark"] body {
+            background: #0f172a !important;
+        }
+
+        /* Segmented toggle control */
+        .unit-toggle-pill {
+            display: inline-flex;
+            border-radius: 9999px;
+            padding: 3px;
+            background: #e2e8f0;
+            border: 1px solid #cbd5e1;
+        }
+        [data-theme="dark"] .unit-toggle-pill {
+            background: #1e293b !important;
+            border-color: #475569 !important;
+        }
+        .unit-toggle-btn {
+            padding: 6px 16px;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: transparent;
+            color: #64748b;
+        }
+        .unit-toggle-btn.active {
+            background: #0d9488;
+            color: white;
+            box-shadow: 0 1px 3px rgba(13,148,136,0.3);
+        }
+        [data-theme="dark"] .unit-toggle-btn {
+            color: #94a3b8;
+        }
+        [data-theme="dark"] .unit-toggle-btn.active {
+            background: #0d9488;
+            color: white;
+        }
+
+        /* Mode tab bar */
+        .mode-tab-bar {
+            display: flex;
+            gap: 0;
+            border-bottom: 2px solid #e2e8f0;
+            margin-bottom: 1.5rem;
+        }
+        [data-theme="dark"] .mode-tab-bar {
+            border-color: #334155;
+        }
+        .mode-tab-btn {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 14px 20px;
+            font-size: 0.9375rem;
+            font-weight: 600;
+            color: #94a3b8;
+            background: transparent;
+            border: none;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .mode-tab-btn:hover {
+            color: #64748b;
+        }
+        [data-theme="dark"] .mode-tab-btn:hover {
+            color: #cbd5e1;
+        }
+        .mode-tab-btn.active {
+            color: #0d9488;
+            border-bottom-color: #0d9488;
+        }
+        [data-theme="dark"] .mode-tab-btn.active {
+            color: #2dd4bf;
+            border-bottom-color: #2dd4bf;
+        }
+        .mode-tab-btn svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        /* Neutral form sections */
+        .form-section {
+            padding: 1.25rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.75rem;
+            background: white;
+        }
+        [data-theme="dark"] .form-section {
+            background: rgba(255, 255, 255, 0.03) !important;
+            border-color: #334155 !important;
+        }
+        .form-section-label {
+            font-weight: 600;
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 0.75rem;
+        }
+        [data-theme="dark"] .form-section-label {
+            color: #e2e8f0 !important;
+        }
+
+        /* Ghost buttons for secondary actions */
+        .btn-ghost {
+            background: transparent;
+            border: 1px solid #475569;
+            color: #94a3b8;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .btn-ghost:hover {
+            background: rgba(255,255,255,0.05);
+            border-color: #64748b;
+            color: #cbd5e1;
+        }
+        [data-theme="light"] .btn-ghost {
+            border-color: #cbd5e1;
+            color: #64748b;
+        }
+        [data-theme="light"] .btn-ghost:hover {
+            background: #f1f5f9;
+            border-color: #94a3b8;
+            color: #475569;
+        }
+
+        /* Or divider dark mode fix */
+        [data-theme="dark"] .or-divider-text {
+            background: #1e293b !important;
+        }
+        [data-theme="dark"] .or-divider-line {
+            background: #334155 !important;
+        }
+
         /* Dark mode overrides for form labels and text */
         [data-theme="dark"] .text-gray-700,
         [data-theme="dark"] .text-gray-800 {
@@ -2317,46 +2458,44 @@
             <h2 class="text-2xl font-bold text-gray-800 mb-8" style="display: flex; align-items: center; gap: 12px;"><span style="width: 40px; height: 40px; background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.2rem;">&#127869;</span> Full Diet Plan Generator</h2>
 
             <!-- Unit System Toggle -->
-            <div class="flex justify-center items-center gap-3 mb-8 p-3 bg-gray-50 rounded-lg">
-                <span class="text-sm font-semibold text-gray-700">Unit System:</span>
-                <div class="flex gap-2">
-                    <button id="unit-imperial" class="btn btn-primary text-sm py-1 px-3">Imperial (lbs/ft)</button>
-                    <button id="unit-metric" class="btn btn-secondary text-sm py-1 px-3">Metric (kg/cm)</button>
+            <div class="flex justify-center items-center gap-3 mb-6">
+                <span class="text-sm font-medium text-gray-500">Unit System:</span>
+                <div class="unit-toggle-pill">
+                    <button id="unit-imperial" class="unit-toggle-btn active" onclick="toggleUnitSystem('imperial')">Imperial (lbs/ft)</button>
+                    <button id="unit-metric" class="unit-toggle-btn" onclick="toggleUnitSystem('metric')">Metric (kg/cm)</button>
                 </div>
             </div>
 
             <!-- Planner Mode Toggle -->
-            <div class="flex justify-center items-center gap-3 mb-8 p-3 rounded-xl planner-mode-wrapper" style="background: #f1f5f9; border: 1px solid #e2e8f0;">
-                <div class="flex gap-3 w-full">
-                    <button id="mode-client" class="flex-1 py-3 px-4 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2" style="background: #0d9488; color: white; border: none; box-shadow: 0 2px 8px rgba(13,148,136,0.3);" onclick="setPlannerMode('client')">
-                        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                        Build for Client
-                    </button>
-                    <button id="mode-template" class="flex-1 py-3 px-4 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2" style="background: transparent; color: #64748b; border: none;" onclick="setPlannerMode('template')">
-                        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-                        Create Template
-                    </button>
-                </div>
+            <div class="mode-tab-bar">
+                <button id="mode-client" class="mode-tab-btn active" onclick="setPlannerMode('client')">
+                    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    Build for Client
+                </button>
+                <button id="mode-template" class="mode-tab-btn" onclick="setPlannerMode('template')">
+                    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                    Create Template
+                </button>
             </div>
 
             <div class="space-y-6">
                 <!-- Client Selector Section (hidden in template mode) -->
-                <div id="client-selector-section" class="p-5 bg-teal-50 border-2 border-teal-400 rounded-lg">
-                    <label class="font-bold text-teal-900 block mb-2"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:text-bottom;margin-right:4px;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Select Client</label>
+                <div id="client-selector-section" class="form-section">
+                    <label class="form-section-label"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:text-bottom;margin-right:4px;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Select Client</label>
                     <div class="grid grid-cols-1 gap-3">
-                        <select id="dp_client_selector" class="input-field border-2 border-teal-500" required>
+                        <select id="dp_client_selector" class="input-field" required>
                             <option value="">Loading clients...</option>
                         </select>
                         <div id="new_client_form" class="hidden">
-                            <input type="text" id="dp_new_client_name" class="input-field border-2 border-teal-500" placeholder="Enter new client name" required>
+                            <input type="text" id="dp_new_client_name" class="input-field" placeholder="Enter new client name" required>
                             <input type="hidden" id="dp_selected_client_id">
                         </div>
                     </div>
                     <!-- Client Summary (shown after client selected) -->
-                    <div id="client-summary" class="hidden mt-3 p-3 bg-white rounded-lg border border-teal-300">
+                    <div id="client-summary" class="hidden mt-3 p-3 rounded-lg border border-gray-200" style="background: rgba(13,148,136,0.05);">
                         <div class="flex justify-between items-center">
-                            <span id="client-summary-text" class="text-sm text-teal-800 font-medium"></span>
-                            <button type="button" onclick="toggleEditDetails()" id="edit-details-btn" class="text-xs text-teal-600 hover:text-teal-800 font-semibold underline cursor-pointer">Edit Details</button>
+                            <span id="client-summary-text" class="text-sm text-gray-700 font-medium"></span>
+                            <button type="button" onclick="toggleEditDetails()" id="edit-details-btn" class="text-xs font-semibold underline cursor-pointer" style="color: #0d9488;">Edit Details</button>
                         </div>
                     </div>
                 </div>
@@ -2481,8 +2620,8 @@
                 </div>
 
                 <!-- Template Mode Simple Fields (only visible in template mode) -->
-                <div id="template-simple-fields" class="p-4 bg-purple-50 border-2 border-purple-400 rounded-lg" style="display: none;">
-                    <label class="font-bold text-purple-900 block mb-3">Template Settings</label>
+                <div id="template-simple-fields" class="form-section" style="display: none;">
+                    <label class="form-section-label">Template Settings</label>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <div><label class="text-sm font-semibold text-gray-700">Calorie Target</label><input type="number" id="dp_template_calories" class="input-field" placeholder="2000" value="2000"></div>
                         <div><label class="text-sm font-semibold text-gray-700">Meals Per Day</label><select id="dp_template_meals" class="input-field"><option value="3 meals">3 Meals</option><option value="3 meals, 1 snack" selected>3 Meals + 1 Snack</option><option value="3 meals, 2 snacks">3 Meals + 2 Snacks</option><option value="3 meals, 3 snacks">3 Meals + 3 Snacks</option></select></div>
@@ -2500,44 +2639,44 @@
                 </div>
 
                 <!-- Plan Name - Right before generate -->
-                <div id="plan-name-section" class="p-5 bg-purple-50 border-2 border-purple-400 rounded-lg">
-                    <label class="font-bold text-purple-900 block mb-3">Plan Name <span class="text-red-500">*</span></label>
-                    <input type="text" id="dp_plan_name" class="input-field border-2 border-purple-500" placeholder="e.g., John's Cutting Phase, Week 1 Meal Prep..." required>
+                <div id="plan-name-section" class="form-section">
+                    <label class="form-section-label">Plan Name <span style="color: #ef4444;">*</span></label>
+                    <input type="text" id="dp_plan_name" class="input-field" placeholder="e.g., John's Cutting Phase, Week 1 Meal Prep..." required>
                 </div>
 
                 <button data-action="generate-plan" id="generate-plan-btn" class="btn btn-primary w-full text-lg py-4 mt-2">Create Diet Plan</button>
 
-                <div style="text-align: center; color: #94a3b8; font-size: 13px; margin: 16px 0; position: relative;">
+                <div style="text-align: center; color: #94a3b8; font-size: 13px; margin: 28px 0; position: relative;">
                     <span class="or-divider-text" style="background: white; padding: 0 12px; position: relative; z-index: 1;">or</span>
                     <div class="or-divider-line" style="position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: #e5e7eb;"></div>
                 </div>
 
                 <!-- Quick action buttons row: Start from Scratch, Use Template, Import -->
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <button data-action="toggle-scratch" id="scratch-toggle-btn" class="btn w-full text-sm py-3" style="background: #334155; color: white; font-weight: 600;" onclick="document.getElementById('dp_start_from_scratch').checked = !document.getElementById('dp_start_from_scratch').checked; this.style.background = document.getElementById('dp_start_from_scratch').checked ? '#0d9488' : '#334155'; this.innerHTML = document.getElementById('dp_start_from_scratch').checked ? '<svg width=\'16\' height=\'16\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' viewBox=\'0 0 24 24\' style=\'display:inline;vertical-align:middle;margin-right:6px;\'><polyline points=\'20 6 9 17 4 12\'/></svg>DIY Mode On' : '<svg width=\'16\' height=\'16\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' viewBox=\'0 0 24 24\' style=\'display:inline;vertical-align:middle;margin-right:6px;\'><line x1=\'12\' y1=\'5\' x2=\'12\' y2=\'19\'/><line x1=\'5\' y1=\'12\' x2=\'19\' y2=\'12\'/></svg>Start from Scratch';">
+                    <button data-action="toggle-scratch" id="scratch-toggle-btn" class="btn btn-ghost w-full text-sm py-3" onclick="document.getElementById('dp_start_from_scratch').checked = !document.getElementById('dp_start_from_scratch').checked; this.style.background = document.getElementById('dp_start_from_scratch').checked ? '#0d9488' : ''; this.style.color = document.getElementById('dp_start_from_scratch').checked ? 'white' : ''; this.style.borderColor = document.getElementById('dp_start_from_scratch').checked ? '#0d9488' : ''; this.innerHTML = document.getElementById('dp_start_from_scratch').checked ? '<svg width=\'16\' height=\'16\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' viewBox=\'0 0 24 24\' style=\'display:inline;vertical-align:middle;margin-right:6px;\'><polyline points=\'20 6 9 17 4 12\'/></svg>DIY Mode On' : '<svg width=\'16\' height=\'16\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' viewBox=\'0 0 24 24\' style=\'display:inline;vertical-align:middle;margin-right:6px;\'><line x1=\'12\' y1=\'5\' x2=\'12\' y2=\'19\'/><line x1=\'5\' y1=\'12\' x2=\'19\' y2=\'12\'/></svg>Start from Scratch';">
                         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:6px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Start from Scratch
                     </button>
 
-                    <button data-action="toggle-template" id="template-toggle-btn" class="btn w-full text-sm py-3" style="background: #7c3aed; color: white; font-weight: 600;" onclick="toggleUseTemplate()">
+                    <button data-action="toggle-template" id="template-toggle-btn" class="btn btn-ghost w-full text-sm py-3" onclick="toggleUseTemplate()">
                         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:6px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Use Template
                     </button>
 
-                    <button data-action="open-import-diet-plan" id="import-diet-plan-btn" class="btn w-full text-sm py-3" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; font-weight: 600;">
+                    <button data-action="open-import-diet-plan" id="import-diet-plan-btn" class="btn btn-ghost w-full text-sm py-3">
                         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:6px;"><path d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>Import Plan
                     </button>
                 </div>
 
                 <!-- Template selector (shown when Use Template is toggled on) -->
-                <div id="template-selector-fields" class="hidden p-4 bg-purple-50 border-2 border-purple-300 rounded-lg">
+                <div id="template-selector-fields" class="hidden form-section">
                     <div class="flex gap-2 items-center">
-                        <select id="dp_template_select" class="input-field border-purple-400 flex-1 text-sm">
+                        <select id="dp_template_select" class="input-field flex-1 text-sm">
                             <option value="">Select a template...</option>
                         </select>
-                        <button id="edit-template-btn" onclick="editSelectedTemplate()" class="btn" style="background: #7c3aed; color: white; padding: 6px 10px; font-size: 11px;" title="Edit template" disabled><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+                        <button id="edit-template-btn" onclick="editSelectedTemplate()" class="btn" style="background: #475569; color: white; padding: 6px 10px; font-size: 11px;" title="Edit template" disabled><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
                         <button id="delete-template-btn" onclick="deleteSelectedTemplate()" class="btn" style="background: #dc2626; color: white; padding: 6px 10px; font-size: 11px;" title="Delete template" disabled><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
-                        <button id="bulk-post-template-btn" onclick="bulkPostTemplate()" class="btn" style="background: #7c3aed; color: white; padding: 6px 10px; font-size: 11px;" title="Post template to multiple clients" disabled><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></button>
+                        <button id="bulk-post-template-btn" onclick="bulkPostTemplate()" class="btn" style="background: #475569; color: white; padding: 6px 10px; font-size: 11px;" title="Post template to multiple clients" disabled><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></button>
                     </div>
-                    <div id="template-preview" class="mt-2 text-sm text-purple-600 hidden"></div>
+                    <div id="template-preview" class="mt-2 text-sm text-gray-500 hidden"></div>
                 </div>
 
                 <!-- Hidden checkboxes for JS compatibility -->
@@ -3170,15 +3309,9 @@ function setPlannerMode(mode) {
     const targetsWrapper = document.getElementById('custom-targets-wrapper');
 
     if (mode === 'template') {
-        // Highlight template button
-        templateBtn.style.background = '#8b5cf6';
-        templateBtn.style.color = 'white';
-        templateBtn.style.border = 'none';
-        templateBtn.style.boxShadow = '0 2px 8px rgba(139,92,246,0.3)';
-        clientBtn.style.background = 'transparent';
-        clientBtn.style.color = '#64748b';
-        clientBtn.style.border = 'none';
-        clientBtn.style.boxShadow = 'none';
+        // Highlight template tab
+        templateBtn.className = 'mode-tab-btn active';
+        clientBtn.className = 'mode-tab-btn';
 
         // Hide client-mode sections
         if (clientSection) clientSection.style.display = 'none';
@@ -3196,15 +3329,9 @@ function setPlannerMode(mode) {
         // Reset edit details state
         editDetailsVisible = false;
     } else {
-        // Highlight client button
-        clientBtn.style.background = '#0d9488';
-        clientBtn.style.color = 'white';
-        clientBtn.style.border = 'none';
-        clientBtn.style.boxShadow = '0 2px 8px rgba(13,148,136,0.3)';
-        templateBtn.style.background = 'transparent';
-        templateBtn.style.color = '#64748b';
-        templateBtn.style.border = 'none';
-        templateBtn.style.boxShadow = 'none';
+        // Highlight client tab
+        clientBtn.className = 'mode-tab-btn active';
+        templateBtn.className = 'mode-tab-btn';
 
         // Show client selector and plan name
         if (clientSection) clientSection.style.display = 'block';
@@ -10643,8 +10770,8 @@ let currentUnitSystem = 'imperial';
 function toggleUnitSystem(system, skipConversion) {
     const previousSystem = currentUnitSystem;
     currentUnitSystem = system;
-    document.getElementById('unit-imperial').className = system === 'imperial' ? 'btn btn-primary text-sm py-1 px-3' : 'btn btn-secondary text-sm py-1 px-3';
-    document.getElementById('unit-metric').className = system === 'metric' ? 'btn btn-primary text-sm py-1 px-3' : 'btn btn-secondary text-sm py-1 px-3';
+    document.getElementById('unit-imperial').className = system === 'imperial' ? 'unit-toggle-btn active' : 'unit-toggle-btn';
+    document.getElementById('unit-metric').className = system === 'metric' ? 'unit-toggle-btn active' : 'unit-toggle-btn';
 
     // Convert weight and height values if switching systems (skip when loading client data)
     if (previousSystem !== system && !skipConversion) {
