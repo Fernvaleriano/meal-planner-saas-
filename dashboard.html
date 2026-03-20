@@ -4972,12 +4972,6 @@
                             <button class="feed-filter-tab" data-filter="meals" onclick="setFeedFilter('meals', this)">
                                 <span class="feed-tab-icon">🍽️</span> Meals
                             </button>
-                            <button class="feed-filter-tab" data-filter="workout" onclick="setFeedFilter('workout', this)">
-                                <span class="feed-tab-icon">💪</span> Workouts
-                            </button>
-                            <button class="feed-filter-tab" data-filter="checkin" onclick="setFeedFilter('checkin', this)">
-                                <span class="feed-tab-icon">📋</span> Check-ins
-                            </button>
                         </div>
                         <div class="priority-alerts" id="priorityAlerts">
                             <div class="priority-alert priority-alert--loading">
@@ -6095,7 +6089,7 @@
                     html += item.html.replace('__CHECKBOX__', checkboxHtml(item.id, false));
                 });
             } else {
-                const filterLabels = { meals: 'meal', workout: 'workout', checkin: 'check-in', alert: 'alert' };
+                const filterLabels = { meals: 'meal', alert: 'alert' };
                 const label = filterLabels[_activeFilter] || '';
                 html += `
                     <div class="priority-alert">
@@ -6127,8 +6121,8 @@
                 `;
             }
 
-            // Append workout summary (informational, not dismissable) — only on 'workout' tab
-            if (_activeFilter === 'workout' && alertsEl.dataset.workoutSummary) {
+            // Append workout summary (informational, not dismissable) — shown on alerts tab
+            if (_activeFilter === 'alert' && alertsEl.dataset.workoutSummary) {
                 html += alertsEl.dataset.workoutSummary;
             }
 
@@ -7620,7 +7614,7 @@
                     </div>
                 `;
 
-                const notifTypeMap = { 'checkin_submitted': 'checkin', 'chat_message': 'alert', 'progress_photo': 'alert', 'measurement_logged': 'alert', 'gym_checkin': 'workout', 'workout_assigned': 'workout' };
+                const notifTypeMap = { 'checkin_submitted': 'alert', 'chat_message': 'alert', 'progress_photo': 'alert', 'measurement_logged': 'alert', 'gym_checkin': 'alert', 'workout_assigned': 'alert' };
                 _allPriorityAlerts.push({
                     id: aid,
                     html: html,
