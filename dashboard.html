@@ -4706,10 +4706,6 @@
                         <span class="sidebar-nav-icon"><i data-lucide="users"></i></span>
                         Clients
                     </a>
-                    <a href="dashboard.html?tab=meals" class="sidebar-nav-item">
-                        <span class="sidebar-nav-icon"><i data-lucide="activity"></i></span>
-                        Client Feed
-                    </a>
                     <a href="coach-messages.html" class="sidebar-nav-item">
                         <span class="sidebar-nav-icon"><i data-lucide="message-circle"></i></span>
                         Messages
@@ -4970,7 +4966,9 @@
                     <div class="action-center" id="actionCenter">
                         <div class="action-center-heading">Activity Feed</div>
                         <div class="feed-filter-tabs" id="feedFilterTabs">
-                            <button class="feed-filter-tab active" data-filter="all" onclick="setFeedFilter('all', this)">All</button>
+                            <button class="feed-filter-tab active" data-filter="alert" onclick="setFeedFilter('alert', this)">
+                                <span class="feed-tab-icon">⚡</span> Alerts
+                            </button>
                             <button class="feed-filter-tab" data-filter="meals" onclick="setFeedFilter('meals', this)">
                                 <span class="feed-tab-icon">🍽️</span> Meals
                             </button>
@@ -4979,9 +4977,6 @@
                             </button>
                             <button class="feed-filter-tab" data-filter="checkin" onclick="setFeedFilter('checkin', this)">
                                 <span class="feed-tab-icon">📋</span> Check-ins
-                            </button>
-                            <button class="feed-filter-tab" data-filter="alert" onclick="setFeedFilter('alert', this)">
-                                <span class="feed-tab-icon">⚡</span> Alerts
                             </button>
                         </div>
                         <div class="priority-alerts" id="priorityAlerts">
@@ -5201,14 +5196,6 @@
                 </div>
                 <span class="coach-nav-label">Clients</span>
             </a>
-            <a href="dashboard.html?tab=meals" class="coach-nav-item">
-                <div class="coach-nav-icon">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="24" height="24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M22 12h-4l-3 9L9 3l-3 9H2"/>
-                    </svg>
-                </div>
-                <span class="coach-nav-label">Feed</span>
-            </a>
             <a href="planner.html" class="coach-nav-item">
                 <div class="coach-nav-icon">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="24" height="24">
@@ -5290,7 +5277,7 @@
         let isLoading = false;
 
         // Unified Feed filter state
-        let _activeFilter = 'all';
+        let _activeFilter = 'alert';
         let _mealOffset = 0;
         let _mealHasMore = false;
         let _mealClientMap = {};
@@ -6090,9 +6077,7 @@
             const handled = [];
 
             // Apply filter
-            const filtered = _activeFilter === 'all'
-                ? _allPriorityAlerts
-                : _allPriorityAlerts.filter(item => item.type === (_activeFilter === 'meals' ? 'meal' : _activeFilter));
+            const filtered = _allPriorityAlerts.filter(item => item.type === (_activeFilter === 'meals' ? 'meal' : _activeFilter));
 
             filtered.forEach(item => {
                 if (dismissed[item.id]) {
@@ -6110,7 +6095,7 @@
                     html += item.html.replace('__CHECKBOX__', checkboxHtml(item.id, false));
                 });
             } else {
-                const filterLabels = { all: '', meals: 'meal', workout: 'workout', checkin: 'check-in', alert: 'alert' };
+                const filterLabels = { meals: 'meal', workout: 'workout', checkin: 'check-in', alert: 'alert' };
                 const label = filterLabels[_activeFilter] || '';
                 html += `
                     <div class="priority-alert">
@@ -6142,15 +6127,15 @@
                 `;
             }
 
-            // Append workout summary (informational, not dismissable) — only on 'all' or 'workout' tabs
-            if ((_activeFilter === 'all' || _activeFilter === 'workout') && alertsEl.dataset.workoutSummary) {
+            // Append workout summary (informational, not dismissable) — only on 'workout' tab
+            if (_activeFilter === 'workout' && alertsEl.dataset.workoutSummary) {
                 html += alertsEl.dataset.workoutSummary;
             }
 
             // Show/hide load more button based on filter
             const loadMoreEl = document.getElementById('feedLoadMore');
             if (loadMoreEl) {
-                loadMoreEl.style.display = (_activeFilter === 'all' || _activeFilter === 'meals') && _mealHasMore ? 'block' : 'none';
+                loadMoreEl.style.display = _activeFilter === 'meals' && _mealHasMore ? 'block' : 'none';
             }
 
             alertsEl.innerHTML = html;
@@ -7379,7 +7364,7 @@
                 const tabParam = urlParams.get('tab');
                 if (tabParam) {
                     const tabBtn = document.querySelector(`.feed-filter-tab[data-filter="${tabParam}"]`);
-                    if (tabBtn) setFeedFilter(tabParam === 'meals' ? 'meals' : tabParam, tabBtn);
+                    if (tabBtn) setFeedFilter(tabParam, tabBtn);
                 }
 
                 // Load notifications
