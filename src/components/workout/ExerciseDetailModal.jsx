@@ -1729,7 +1729,7 @@ function ExerciseDetailModal({
   const isDistanceExercise = exercise?.trackingType === 'distance';
   const distanceUnit = exercise?.distanceUnit || 'miles';
   const distanceUnitLabel = distanceUnit === 'miles' ? 'mi' : distanceUnit === 'km' ? 'km' : 'm';
-  const isTimedExercise = !isDistanceExercise && exercise?.trackingType !== 'reps' && exercise?.exercise_type !== 'strength' && (exercise?.duration || exercise?.exercise_type === 'cardio' || exercise?.exercise_type === 'timed' || sets.some(s => s?.isTimeBased));
+  const isTimedExercise = !isDistanceExercise && (exercise?.trackingType === 'time' || (exercise?.trackingType !== 'reps' && exercise?.exercise_type !== 'strength' && (exercise?.duration || exercise?.exercise_type === 'cardio' || exercise?.exercise_type === 'timed' || sets.some(s => s?.isTimeBased))));
   const difficultyLevel = exercise?.difficulty || 'Novice';
 
   // Helper to check if URL is an image (not video)
