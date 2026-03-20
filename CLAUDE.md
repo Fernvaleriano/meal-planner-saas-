@@ -67,3 +67,8 @@ A partial React rebuild exists in `src/` but is **not the primary codebase**. So
 ### Key Insight
 - Code changes can be done ahead of DNS flip (fallbacks don't affect live site since Netlify URL env var controls actual routing)
 - PWA homescreen saves WILL break for clients on the old domain — native app solves this long-term
+
+## SQL Migrations
+
+### Rule
+When a new Supabase table or migration is needed, **always output the SQL directly in the chat** so the user can copy and paste it into the Supabase SQL Editor. Do NOT just reference a migration file — put the SQL inline in the response.
