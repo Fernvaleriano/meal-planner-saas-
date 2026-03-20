@@ -1708,6 +1708,38 @@
         }
 
         /* Archive Toggle Styles */
+        .active-filter-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            background: #d1fae5;
+            border: 1px solid #6ee7b7;
+            border-radius: 20px;
+            cursor: default;
+            font-size: 13px;
+            font-weight: 600;
+            color: #047857;
+            transition: all 0.2s;
+        }
+
+        .active-filter-chip .chip-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #10b981;
+        }
+
+        [data-theme="dark"] .active-filter-chip {
+            background: #064e3b;
+            border-color: #10b981;
+            color: #6ee7b7;
+        }
+
+        [data-theme="dark"] .active-filter-chip .chip-dot {
+            background: #34d399;
+        }
+
         .archive-toggle {
             display: flex;
             align-items: center;
@@ -2053,6 +2085,12 @@
                     </button>
                 </div>
 
+                <!-- Active Filter Chip -->
+                <span class="active-filter-chip" id="activeFilterChip">
+                    <span class="chip-dot"></span>
+                    Active
+                </span>
+
                 <!-- Archive Toggle -->
                 <button class="archive-toggle" id="archiveToggle" onclick="toggleArchivedView()">
                     <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2077,7 +2115,7 @@
                         <th>Contact</th>
                         <th>Goal</th>
                         <th>Plans</th>
-                        <th>Last Active</th>
+                        <th>Last Active &#9662;</th>
                         <th>Added</th>
                         <th style="text-align: right;">Actions</th>
                     </tr>
@@ -2708,6 +2746,13 @@
                     );
                 });
             }
+
+            // Sort by most recently active first (clients with no activity go to the bottom)
+            filteredClients.sort((a, b) => {
+                const aTime = a.last_activity_at ? new Date(a.last_activity_at).getTime() : 0;
+                const bTime = b.last_activity_at ? new Date(b.last_activity_at).getTime() : 0;
+                return bTime - aTime;
+            });
         }
 
         // Update client count display
@@ -2758,6 +2803,7 @@
             showingArchived = !showingArchived;
             archiveToggle.classList.toggle('active', showingArchived);
             archiveToggleText.textContent = showingArchived ? 'View Active' : 'View Archived';
+            document.getElementById('activeFilterChip').style.display = showingArchived ? 'none' : 'inline-flex';
 
             // Clear search when switching views
             clearSearch();
