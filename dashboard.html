@@ -7354,12 +7354,6 @@
                 // Subscribe to real-time meal entries
                 setupMealRealtimeSubscription(user.id);
 
-                // Check for ?tab= URL param for deep-linking
-                const tabParam = urlParams.get('tab');
-                if (tabParam) {
-                    const tabBtn = document.querySelector(`.feed-filter-tab[data-filter="${tabParam}"]`);
-                    if (tabBtn) setFeedFilter(tabParam, tabBtn);
-                }
 
                 // Load notifications
                 loadNotifications(user.id);
