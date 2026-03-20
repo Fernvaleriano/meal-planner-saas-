@@ -5059,6 +5059,79 @@
 
         const DISMISSED_STORAGE_KEY = 'dismissedPriorityAlerts';
 
+        // Direct Supabase write for dismissals — more reliable than Netlify function
+        // because there's no extra network hop and it uses the authenticated session
+        async function supabaseDismiss(coachId, clientId, reason, relatedCheckinId) {
+            const relId = relatedCheckinId != null ? String(relatedCheckinId) : null;
+
+            // Handle NULL related_checkin_id separately (PostgreSQL unique constraints treat NULLs as distinct)
+            if (relId === null) {
+                const { data: existing } = await supabaseClient
+                    .from('dismissed_activity_items')
+                    .select('id')
+                    .eq('coach_id', coachId)
+                    .eq('client_id', clientId)
+                    .eq('reason', reason)
+                    .is('related_checkin_id', null)
+                    .maybeSingle();
+
+                if (existing) {
+                    const { error } = await supabaseClient
+                        .from('dismissed_activity_items')
+                        .update({ dismissed_at: new Date().toISOString() })
+                        .eq('id', existing.id);
+                    if (error) throw error;
+                } else {
+                    const { error } = await supabaseClient
+                        .from('dismissed_activity_items')
+                        .insert({ coach_id: coachId, client_id: clientId, reason, related_checkin_id: null, dismissed_at: new Date().toISOString() });
+                    if (error) throw error;
+                }
+            } else {
+                // With related_checkin_id — use upsert on the unique constraint
+                const { data: existing } = await supabaseClient
+                    .from('dismissed_activity_items')
+                    .select('id')
+                    .eq('coach_id', coachId)
+                    .eq('client_id', clientId)
+                    .eq('reason', reason)
+                    .eq('related_checkin_id', relId)
+                    .maybeSingle();
+
+                if (existing) {
+                    const { error } = await supabaseClient
+                        .from('dismissed_activity_items')
+                        .update({ dismissed_at: new Date().toISOString() })
+                        .eq('id', existing.id);
+                    if (error) throw error;
+                } else {
+                    const { error } = await supabaseClient
+                        .from('dismissed_activity_items')
+                        .insert({ coach_id: coachId, client_id: clientId, reason, related_checkin_id: relId, dismissed_at: new Date().toISOString() });
+                    if (error) throw error;
+                }
+            }
+        }
+
+        async function supabaseUndismiss(coachId, clientId, reason, relatedCheckinId) {
+            const relId = relatedCheckinId != null ? String(relatedCheckinId) : null;
+            let query = supabaseClient
+                .from('dismissed_activity_items')
+                .delete()
+                .eq('coach_id', coachId)
+                .eq('client_id', clientId)
+                .eq('reason', reason);
+
+            if (relId !== null) {
+                query = query.eq('related_checkin_id', relId);
+            } else {
+                query = query.is('related_checkin_id', null);
+            }
+
+            const { error } = await query;
+            if (error) throw error;
+        }
+
         // localStorage helpers for fallback
         function getLocalDismissed() {
             try {
@@ -5132,6 +5205,9 @@
                 // Track what came from DB for sync purposes
                 _dbDismissedIds = new Set(dbDismissed);
 
+                console.log(`[Overview Sync] DB dismissed: ${dbDismissed.size}, localStorage dismissed: ${localDismissed.size}`);
+                if (dbDismissed.size > 0) console.log('[Overview Sync] DB IDs:', [...dbDismissed]);
+
                 // Merge DB + localStorage: keep items from both sources
                 // This ensures dismissals that failed to sync to DB (e.g., sendBeacon failures)
                 // are preserved and can be re-synced
@@ -5143,7 +5219,7 @@
                 );
 
                 if (_localOnlyDismissed.size > 0) {
-                    console.log(`Found ${_localOnlyDismissed.size} locally-dismissed items not in DB, will sync after alerts load`);
+                    console.log(`[Overview Sync] ${_localOnlyDismissed.size} local-only items need DB sync:`, [..._localOnlyDismissed]);
                 }
 
                 // Save merged set to localStorage
@@ -5244,27 +5320,14 @@
                 saveLocalDismissed(_dismissedFromDb);
                 renderPriorityAlertSections();
 
-                // Sync with backend - keep local state if sync fails
+                // Sync with database directly via Supabase client
                 try {
-                    const response = await fetch('/.netlify/functions/dismiss-activity', {
-                        method: 'DELETE',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            coachId: _currentCoachId,
-                            clientId: alert.clientId,
-                            reason: alert.reason,
-                            relatedCheckinId: alert.relatedCheckinId
-                        })
-                    });
-                    if (!response.ok) {
-                        console.warn('Could not sync restore to database, keeping local state');
-                        _dbAvailable = false;
-                    } else {
-                        _dbDismissedIds.delete(alertId);
-                        _dbAvailable = true;
-                    }
+                    await supabaseUndismiss(_currentCoachId, alert.clientId, alert.reason, alert.relatedCheckinId);
+                    _dbDismissedIds.delete(alertId);
+                    _dbAvailable = true;
+                    console.log('Dismiss restored in DB:', alertId);
                 } catch (err) {
-                    console.warn('Could not sync restore to database, keeping local state:', err);
+                    console.warn('Could not sync restore to database:', err);
                     _dbAvailable = false;
                 }
             } else {
@@ -5281,28 +5344,14 @@
                     renderPriorityAlertSections();
                 }
 
-                // Sync with backend - keep local state if sync fails
+                // Sync with database directly via Supabase client
                 try {
-                    const response = await fetch('/.netlify/functions/dismiss-activity', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            coachId: _currentCoachId,
-                            clientId: alert.clientId,
-                            reason: alert.reason,
-                            relatedCheckinId: alert.relatedCheckinId
-                        })
-                    });
-                    if (!response.ok) {
-                        console.warn('Could not sync dismissal to database, keeping local state');
-                        _localOnlyDismissed.add(alertId);
-                        _dbAvailable = false;
-                    } else {
-                        _dbDismissedIds.add(alertId);
-                        _dbAvailable = true;
-                    }
+                    await supabaseDismiss(_currentCoachId, alert.clientId, alert.reason, alert.relatedCheckinId);
+                    _dbDismissedIds.add(alertId);
+                    _dbAvailable = true;
+                    console.log('Dismiss saved to DB:', alertId);
                 } catch (err) {
-                    console.warn('Could not sync dismissal to database, keeping local state:', err);
+                    console.warn('Could not sync dismissal to database:', err);
                     _localOnlyDismissed.add(alertId);
                     _dbAvailable = false;
                 }
@@ -5350,23 +5399,10 @@
                 if (!alert) continue; // Alert no longer exists, skip
 
                 try {
-                    const response = await fetch('/.netlify/functions/dismiss-activity', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            coachId: _currentCoachId,
-                            clientId: alert.clientId,
-                            reason: alert.reason,
-                            relatedCheckinId: alert.relatedCheckinId
-                        })
-                    });
-                    if (response.ok) {
-                        _dbDismissedIds.add(alertId);
-                        synced.push(alertId);
-                        console.log('Synced local dismissal to DB:', alertId);
-                    } else {
-                        console.warn('Failed to sync dismissal to DB:', alertId);
-                    }
+                    await supabaseDismiss(_currentCoachId, alert.clientId, alert.reason, alert.relatedCheckinId);
+                    _dbDismissedIds.add(alertId);
+                    synced.push(alertId);
+                    console.log('Synced local dismissal to DB:', alertId);
                 } catch (e) {
                     console.warn('Could not sync local dismissal:', alertId, e);
                 }
@@ -5405,20 +5441,17 @@
                     reason: alert.reason,
                     relatedCheckinId: alert.relatedCheckinId
                 });
-                try {
-                    fetch('/.netlify/functions/dismiss-activity', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: payload,
-                        keepalive: true
-                    }).catch(e => console.warn('Could not auto-archive:', e));
-                } catch (e) {
-                    // If fetch with keepalive isn't supported, fall back to sendBeacon
-                    if (navigator.sendBeacon) {
-                        navigator.sendBeacon('/.netlify/functions/dismiss-activity', new Blob([payload], { type: 'application/json' }));
-                    }
-                }
-                // Item is saved in localStorage; syncLocalDismissalsToDb will retry on next load if DB sync failed
+                // Write directly to Supabase — more reliable than Netlify function
+                // especially when navigating away immediately after
+                supabaseDismiss(_currentCoachId, alert.clientId, alert.reason, alert.relatedCheckinId)
+                    .then(() => {
+                        _dbDismissedIds.add(alertId);
+                        console.log('Auto-archive saved to DB:', alertId);
+                    })
+                    .catch(e => {
+                        console.warn('Could not auto-archive to DB, will retry on next load:', e);
+                        _localOnlyDismissed.add(alertId);
+                    });
             }
             // Navigate to the target page
             window.location.href = url;
