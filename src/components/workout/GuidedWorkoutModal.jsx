@@ -1844,10 +1844,12 @@ function GuidedWorkoutModal({
     }
   }, [exercises]);
 
-  // Keep ref in sync for visibility handler
+  // Keep refs in sync for visibility handler and rep countdown
+  const doMarkSetDoneRef = useRef(doMarkSetDone);
   useEffect(() => {
     onTimerCompleteRef.current = onTimerComplete;
-  }, [onTimerComplete]);
+    doMarkSetDoneRef.current = doMarkSetDone;
+  }, [onTimerComplete, doMarkSetDone]);
 
   const doMarkSetDone = useCallback((exIdx, setIdx, exInfo) => {
     setRepCountdownActive(false);
@@ -2066,6 +2068,13 @@ function GuidedWorkoutModal({
           if (nextRep <= 0) {
             setRepCountdownActive(false);
             setTimeout(() => speak('Set complete. Rest up.', voiceEnabled), 300);
+            // Auto-advance to rest — client can log during rest
+            setTimeout(() => {
+              const exIdx = currentExIndexRef.current;
+              const setIdx = currentSetIndexRef.current;
+              const exInfo = getExerciseInfo(exIdx);
+              doMarkSetDoneRef.current(exIdx, setIdx, exInfo);
+            }, 0);
             return 0;
           }
           return nextRep;
@@ -3124,9 +3133,10 @@ function GuidedWorkoutModal({
             <button className="guided-done-btn" onClick={() => {
               if (repIntervalRef.current) clearInterval(repIntervalRef.current);
               setRepCountdownActive(false);
+              handleSetDone();
             }}>
               <Check size={22} />
-              Log Set
+              Done
             </button>
           </div>
         ) : phase === 'exercise' && !info.isTimed ? (
