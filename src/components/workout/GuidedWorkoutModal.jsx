@@ -1951,6 +1951,25 @@ function GuidedWorkoutModal({
     };
   }, [phase, isPaused]);
 
+  // --- Rest timer voice callouts ---
+  useEffect(() => {
+    if (phase !== 'rest' || isPaused) return;
+    const maxTime = phaseMaxTimeRef.current;
+
+    // Announce at 30s, 10s, and final 3-2-1
+    if (timer === 30 && maxTime > 40) {
+      speak('30 seconds left', voiceEnabled);
+    } else if (timer === 10 && maxTime > 15) {
+      speak('10 seconds', voiceEnabled);
+    } else if (timer === 3) {
+      speak('3', voiceEnabled);
+    } else if (timer === 2) {
+      speak('2', voiceEnabled);
+    } else if (timer === 1) {
+      speak('1', voiceEnabled);
+    }
+  }, [timer, phase, isPaused, voiceEnabled]);
+
   // --- Rep countdown effect (fixed-pace timer + voice callouts) ---
   const repTotalRef = useRef(0); // total reps for current countdown (for milestone calc)
 
