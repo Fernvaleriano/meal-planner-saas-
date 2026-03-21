@@ -917,7 +917,7 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
                 <>
                   {sets.map((set, idx) => (
                     <div key={idx} className={`time-box ${set?.weight > 0 ? 'with-weight' : ''}`}>
-                      <span className="reps-value">{formatDuration(set?.duration != null ? set.duration : (exercise.duration || parseTimeFromReps(exercise.reps))) || '45s'}</span>
+                      <span className="reps-value">{formatDuration(set?.duration != null ? set.duration : (exercise.duration || parseTimeFromReps(exercise.reps))) || '30s'}</span>
                       {set?.weight > 0 && <span className="weight-value">{set.weight} {weightUnit}</span>}
                     </div>
                   ))}

@@ -8335,10 +8335,18 @@
             } else {
                 exercise[field] = value;
             }
-            // Sync reps/restSeconds/sets changes to setsData so per-set data stays consistent
+            // Sync reps/restSeconds/sets/duration changes to setsData so per-set data stays consistent
             if (field === 'reps' && Array.isArray(exercise.setsData)) {
                 const numReps = parseInt(value) || 10;
                 exercise.setsData.forEach(s => { s.reps = numReps; });
+            }
+            if (field === 'duration' && Array.isArray(exercise.setsData)) {
+                const dur = parseInt(value) || 30;
+                exercise.setsData.forEach(s => { s.duration = dur; });
+            }
+            if (field === 'distance' && Array.isArray(exercise.setsData)) {
+                const dist = parseFloat(value) || 1;
+                exercise.setsData.forEach(s => { s.distance = dist; });
             }
             if (field === 'restSeconds' && Array.isArray(exercise.setsData)) {
                 const rest = parseInt(value) || 0;
