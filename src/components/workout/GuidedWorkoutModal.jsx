@@ -1844,12 +1844,10 @@ function GuidedWorkoutModal({
     }
   }, [exercises]);
 
-  // Keep refs in sync for visibility handler and rep countdown
-  const doMarkSetDoneRef = useRef(doMarkSetDone);
+  // Keep ref in sync for visibility handler
   useEffect(() => {
     onTimerCompleteRef.current = onTimerComplete;
-    doMarkSetDoneRef.current = doMarkSetDone;
-  }, [onTimerComplete, doMarkSetDone]);
+  }, [onTimerComplete]);
 
   const doMarkSetDone = useCallback((exIdx, setIdx, exInfo) => {
     setRepCountdownActive(false);
@@ -1932,6 +1930,12 @@ function GuidedWorkoutModal({
     }
     setEditingField(null);
   }, [exercises, onExerciseComplete, persistExerciseData, returnFromDeferredExercise, advanceToNextExercise]);
+
+  // Keep doMarkSetDone ref in sync for rep countdown effect
+  const doMarkSetDoneRef = useRef(doMarkSetDone);
+  useEffect(() => {
+    doMarkSetDoneRef.current = doMarkSetDone;
+  }, [doMarkSetDone]);
 
   const doAdvanceAfterRest = useCallback((exIdx, setIdx, exInfo) => {
     setRestLogTarget(null);
