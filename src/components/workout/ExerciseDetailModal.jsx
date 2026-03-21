@@ -449,11 +449,25 @@ function ExerciseDetailModal({
     try {
       if (!exercise) return [{ reps: 12, weight: 0, completed: false, restSeconds: 60 }];
 
+      // Check setsData first (saved by the 3-panel workout builder detail editor)
+      if (Array.isArray(exercise.setsData) && exercise.setsData.length > 0) {
+        return exercise.setsData.filter(Boolean).map(set => ({
+          reps: safeParseReps(set?.reps || exercise.reps),
+          weight: set?.weight || 0,
+          completed: set?.completed || false,
+          duration: set?.duration || exercise.duration || null,
+          distance: set?.distance || exercise.distance || null,
+          restSeconds: set?.restSeconds || exercise.restSeconds || 60
+        }));
+      }
+
       if (Array.isArray(exercise.sets) && exercise.sets.length > 0) {
         return exercise.sets.filter(Boolean).map(set => ({
           reps: safeParseReps(set?.reps || exercise.reps),
           weight: set?.weight || 0,
           completed: set?.completed || false,
+          duration: set?.duration || exercise.duration || null,
+          distance: set?.distance || exercise.distance || null,
           restSeconds: set?.restSeconds || exercise.restSeconds || 60
         }));
       }
@@ -463,6 +477,8 @@ function ExerciseDetailModal({
         reps: safeParseReps(exercise.reps),
         weight: 0,
         completed: false,
+        duration: exercise.duration || null,
+        distance: exercise.distance || null,
         restSeconds: exercise.restSeconds || 60
       }));
     } catch (e) {
