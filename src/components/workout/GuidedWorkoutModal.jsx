@@ -334,7 +334,6 @@ function GuidedWorkoutModal({
   const [repCountdownActive, setRepCountdownActive] = useState(false);
   const [currentRep, setCurrentRep] = useState(0);
   const repIntervalRef = useRef(null);
-  const repVideoRef = useRef(null);
 
   const intervalRef = useRef(null);
   const elapsedRef = useRef(null);
@@ -1781,6 +1780,7 @@ function GuidedWorkoutModal({
         // Activate rep countdown if exercise has integer reps and is not till-failure
         const reps = parseReps(exInfo.reps);
         if (reps > 0 && Number.isInteger(reps) && exInfo.trackingType !== 'failure') {
+          repTotalRef.current = reps;
           setRepCountdownActive(true);
           setCurrentRep(reps);
           setShowVideo(true);
@@ -1908,6 +1908,7 @@ function GuidedWorkoutModal({
         // Activate rep countdown for next set
         const reps = parseReps(nextInfo.reps);
         if (reps > 0 && Number.isInteger(reps) && nextInfo.trackingType !== 'failure') {
+          repTotalRef.current = reps;
           setRepCountdownActive(true);
           setCurrentRep(reps);
           setShowVideo(true);
@@ -1950,7 +1951,9 @@ function GuidedWorkoutModal({
     };
   }, [phase, isPaused]);
 
-  // --- Rep countdown effect (video-synced or fallback timer) ---
+  // --- Rep countdown effect (fixed-pace timer + voice callouts) ---
+  const repTotalRef = useRef(0); // total reps for current countdown (for milestone calc)
+
   useEffect(() => {
     if (repIntervalRef.current) clearInterval(repIntervalRef.current);
     if (!repCountdownActive || isPaused) return;
@@ -1959,30 +1962,6 @@ function GuidedWorkoutModal({
       return;
     }
 
-    // Try to sync with video loop — listen for the video restarting
-    const video = repVideoRef.current;
-    if (video && video.duration && video.duration > 0) {
-      // Video-synced mode: decrement rep each time video loops
-      const handleLoop = () => {
-        setCurrentRep(prev => {
-          if (prev <= 1) {
-            setRepCountdownActive(false);
-            return 0;
-          }
-          return prev - 1;
-        });
-      };
-
-      // The 'seeked' event fires when the looping video resets to beginning
-      video.addEventListener('seeked', handleLoop);
-      if (video.paused) video.play().catch(() => {});
-
-      return () => {
-        video.removeEventListener('seeked', handleLoop);
-      };
-    }
-
-    // Fallback: fixed pace timer when no video available
     const repEndTime = Date.now() + REP_PACE_SECONDS * 1000;
     repIntervalRef.current = setInterval(() => {
       const remaining = Math.ceil((repEndTime - Date.now()) / 1000);
@@ -1990,11 +1969,27 @@ function GuidedWorkoutModal({
         clearInterval(repIntervalRef.current);
         repIntervalRef.current = null;
         setCurrentRep(prev => {
-          if (prev <= 1) {
+          const nextRep = prev - 1;
+          // Voice callouts at milestones
+          const total = repTotalRef.current;
+          const halfway = Math.floor(total / 2);
+          if (nextRep === halfway && total >= 10 && halfway > 5) {
+            speak(`${nextRep} reps left`, voiceEnabled);
+          } else if (nextRep === 5 && total > 8) {
+            speak('5 reps left', voiceEnabled);
+          } else if (nextRep === 3) {
+            speak('3', voiceEnabled);
+          } else if (nextRep === 2) {
+            speak('2', voiceEnabled);
+          } else if (nextRep === 1) {
+            speak('1', voiceEnabled);
+          }
+          if (nextRep <= 0) {
             setRepCountdownActive(false);
+            setTimeout(() => speak('Set complete. Rest up.', voiceEnabled), 300);
             return 0;
           }
-          return prev - 1;
+          return nextRep;
         });
       }
     }, 250);
@@ -2002,18 +1997,7 @@ function GuidedWorkoutModal({
     return () => {
       if (repIntervalRef.current) clearInterval(repIntervalRef.current);
     };
-  }, [repCountdownActive, currentRep, isPaused]);
-
-  // Pause/resume video in sync with rep countdown
-  useEffect(() => {
-    const video = repVideoRef.current;
-    if (!video || !repCountdownActive) return;
-    if (isPaused) {
-      video.pause();
-    } else {
-      video.play().catch(() => {});
-    }
-  }, [isPaused, repCountdownActive]);
+  }, [repCountdownActive, currentRep, isPaused, voiceEnabled]);
 
   // --- Update set log values ---
   const updateSetLog = (field, value) => {
@@ -2043,6 +2027,7 @@ function GuidedWorkoutModal({
         // Activate rep countdown when skipping get-ready
         const reps = parseReps(info.reps);
         if (reps > 0 && Number.isInteger(reps) && info.trackingType !== 'failure') {
+          repTotalRef.current = reps;
           setRepCountdownActive(true);
           setCurrentRep(reps);
           setShowVideo(true);
@@ -2671,7 +2656,6 @@ function GuidedWorkoutModal({
         {showVideo && (currentExercise?.customVideoUrl || currentExercise?.video_url || currentExercise?.animation_url) ? (
           <div className="guided-video-container" style={{ position: 'relative' }}>
             <video
-              ref={repCountdownActive ? repVideoRef : undefined}
               key={guidedVideoKey}
               src={guidedVideoBlobUrl || currentExercise.customVideoUrl || currentExercise.video_url || currentExercise.animation_url}
               autoPlay
