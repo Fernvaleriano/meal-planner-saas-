@@ -7921,8 +7921,13 @@
                 </div>
 
                 <div class="wb-detail-section">
+                    <label>Tempo <span style="font-weight:400;color:var(--text-muted);font-size:11px;">(seconds per rep)</span></label>
+                    <input type="number" class="wb-detail-notes-input" value="${exercise.tempo || ''}" min="1" max="15" step="1" placeholder="Auto (based on exercise type)" onchange="updateExercise(${di},${ei},'tempo',this.value ? parseInt(this.value) : null)">
+                </div>
+
+                <div class="wb-detail-section">
                     <label>Notes</label>
-                    <input type="text" class="wb-detail-notes-input" value="${escapeHtml(exercise.notes || '')}" placeholder="Add notes (e.g., tempo, form tips...)" onchange="updateExercise(${di},${ei},'notes',this.value)">
+                    <input type="text" class="wb-detail-notes-input" value="${escapeHtml(exercise.notes || '')}" placeholder="Add notes (e.g., form tips...)" onchange="updateExercise(${di},${ei},'notes',this.value)">
                 </div>
 
                 <div class="wb-detail-section">
@@ -8330,6 +8335,8 @@
             const exercise = workoutDays[dayIndex].exercises[exIndex];
             if (field === 'sets' || field === 'restSeconds' || field === 'duration') {
                 exercise[field] = parseInt(value) || 0;
+            } else if (field === 'tempo') {
+                exercise[field] = value ? parseInt(value) : null;
             } else if (field === 'distance') {
                 exercise[field] = parseFloat(value) || 1;
             } else {
@@ -9926,6 +9933,8 @@
                 thumbnail_url: exercise.thumbnail_url || exercise.video_url,
                 muscle_group: exercise.muscle_group,
                 equipment: exercise.equipment,
+                exercise_type: exercise.exercise_type || '',
+                is_compound: exercise.is_compound || false,
                 instructions: exercise.instructions,
                 sets: isWarmup ? 1 : isStretch ? 1 : 3,
                 reps: isWarmup ? '10-15' : isStretch ? '30s hold' : '8-12',

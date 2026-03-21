@@ -65,8 +65,48 @@ const COMPOUND_PATTERNS = [
   'bulgarian split squat', 'step up', 'farmer', 'turkish get up'
 ];
 
-// Seconds per rep for the rep countdown (fallback when video duration can't be detected)
-const REP_PACE_SECONDS = 3;
+// Default seconds per rep — used when coach hasn't set a per-exercise tempo
+const REP_PACE_DEFAULT = 3;
+
+// Category-based tempo defaults (seconds per rep)
+const getRepPace = (exercise) => {
+  // 1. Coach-set per-exercise tempo takes priority
+  if (exercise?.tempo && typeof exercise.tempo === 'number') return exercise.tempo;
+
+  // 2. Category-based fallback
+  const type = (exercise?.exercise_type || '').toLowerCase();
+  const isCompound = exercise?.is_compound === true;
+  const equipment = (exercise?.equipment || '').toLowerCase();
+
+  if (type === 'cardio' || type === 'plyometric' || type === 'interval') return 2;
+  if (type === 'flexibility' || type === 'stretching') return 5;
+  if (isCompound) return 5;
+  // Heuristic: barbell exercises tend to be compound
+  if (equipment === 'barbell') return 5;
+  if (equipment === 'bodyweight') return 4;
+
+  return REP_PACE_DEFAULT; // isolation / unknown
+};
+
+// Generate a short tick/click sound via Web Audio API
+const playTickSound = (() => {
+  let audioCtx = null;
+  return () => {
+    try {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.type = 'sine';
+      osc.frequency.value = 880;
+      gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.08);
+      osc.start(audioCtx.currentTime);
+      osc.stop(audioCtx.currentTime + 0.08);
+    } catch (e) { /* ignore audio errors */ }
+  };
+})();
 
 // Parse reps helper - supports decimals like "1.5" (e.g. 1.5 miles)
 const parseReps = (reps) => {
@@ -1953,6 +1993,25 @@ function GuidedWorkoutModal({
     };
   }, [phase, isPaused]);
 
+  // --- Rest timer voice callouts ---
+  useEffect(() => {
+    if (phase !== 'rest' || isPaused) return;
+    const maxTime = phaseMaxTimeRef.current;
+
+    // Announce at 30s, 10s, and final 3-2-1
+    if (timer === 30 && maxTime > 40) {
+      speak('30 seconds left', voiceEnabled);
+    } else if (timer === 10 && maxTime > 15) {
+      speak('10 seconds', voiceEnabled);
+    } else if (timer === 3) {
+      speak('3', voiceEnabled);
+    } else if (timer === 2) {
+      speak('2', voiceEnabled);
+    } else if (timer === 1) {
+      speak('1', voiceEnabled);
+    }
+  }, [timer, phase, isPaused, voiceEnabled]);
+
   // --- Rep countdown effect (fixed-pace timer + voice callouts) ---
   const repTotalRef = useRef(0); // total reps for current countdown (for milestone calc)
 
@@ -1964,12 +2023,16 @@ function GuidedWorkoutModal({
       return;
     }
 
-    const repEndTime = Date.now() + REP_PACE_SECONDS * 1000;
+    const currentEx = exercises[currentExIndexRef.current];
+    const pace = getRepPace(currentEx);
+    const repEndTime = Date.now() + pace * 1000;
     repIntervalRef.current = setInterval(() => {
       const remaining = Math.ceil((repEndTime - Date.now()) / 1000);
       if (remaining <= 0) {
         clearInterval(repIntervalRef.current);
         repIntervalRef.current = null;
+        // Play tick sound on each rep
+        if (voiceEnabled) playTickSound();
         setCurrentRep(prev => {
           const nextRep = prev - 1;
           // Voice callouts at milestones
