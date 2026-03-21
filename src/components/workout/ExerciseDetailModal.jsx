@@ -1641,6 +1641,9 @@ function ExerciseDetailModal({
 
         const lastMaxReps = lastSets.reduce((max, s) => Math.max(max, s.reps || 0), 0);
         const lastNumSets = lastSets.length || 3;
+        // Use the prescribed set count from the exercise, not from history
+        const prescribedSets = Array.isArray(exercise.sets) ? exercise.sets.length
+          : (typeof exercise.sets === 'number' && exercise.sets > 0 ? exercise.sets : lastNumSets);
         const dateLabel = new Date(lastSession.workoutDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
         if (lastMaxWeight <= 0 && lastMaxReps <= 0) {
@@ -1651,7 +1654,7 @@ function ExerciseDetailModal({
         // Generate recommendation based on progressive overload logic
         let recommendedReps = lastMaxReps;
         let recommendedWeight = lastMaxWeight;
-        let recommendedSets = lastNumSets;
+        let recommendedSets = prescribedSets;
         let reasoning = '';
 
         const recIncrement = weightUnit === 'kg' ? 2.5 : 5;
