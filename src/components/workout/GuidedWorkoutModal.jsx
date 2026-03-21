@@ -2744,23 +2744,76 @@ function GuidedWorkoutModal({
             </div>
           </div>
         ) : (phase === 'exercise' && !info.isTimed && repCountdownActive) ? (
-          /* Rep countdown ring (Virtuagym-style) */
-          <div className="guided-timer-circle guided-rep-countdown">
-            <svg viewBox="0 0 200 200" className="guided-timer-svg">
-              <circle cx="100" cy="100" r={radius} className="guided-timer-track" />
-              <circle
-                cx="100" cy="100" r={radius}
-                className="guided-timer-ring rep-countdown"
-                strokeDasharray={circumference}
-                strokeDashoffset={circumference * (currentRep / parseReps(info.reps))}
-                style={{ transition: 'stroke-dashoffset 0.4s ease' }}
-              />
-            </svg>
-            <div className="guided-timer-text">
-              <span className="guided-timer-value" style={{ fontSize: '4rem', fontVariantNumeric: 'tabular-nums' }}>{currentRep}</span>
-              <span className="guided-timer-label">reps left</span>
+          /* Rep countdown ring (Virtuagym-style) + compact reps/weight inputs below */
+          <>
+            <div className="guided-timer-circle guided-rep-countdown">
+              <svg viewBox="0 0 200 200" className="guided-timer-svg">
+                <circle cx="100" cy="100" r={radius} className="guided-timer-track" />
+                <circle
+                  cx="100" cy="100" r={radius}
+                  className="guided-timer-ring rep-countdown"
+                  strokeDasharray={circumference}
+                  strokeDashoffset={circumference * (currentRep / parseReps(info.reps))}
+                  style={{ transition: 'stroke-dashoffset 0.4s ease' }}
+                />
+              </svg>
+              <div className="guided-timer-text">
+                <span className="guided-timer-value" style={{ fontSize: '4rem', fontVariantNumeric: 'tabular-nums' }}>{currentRep}</span>
+                <span className="guided-timer-label">reps left</span>
+              </div>
             </div>
-          </div>
+            {/* Compact reps × weight row visible during countdown */}
+            <div className="guided-input-area" style={{ marginTop: '12px' }}>
+              <div className="guided-input-row">
+                <div
+                  className={`guided-input-box ${editingField === 'reps' ? 'editing' : ''}`}
+                  onClick={() => setEditingField('reps')}
+                >
+                  {editingField === 'reps' ? (
+                    <input
+                      ref={inputRef}
+                      type="number"
+                      inputMode="numeric"
+                      enterKeyHint="done"
+                      className="guided-input-field"
+                      value={currentSetLog.reps || ''}
+                      onChange={(e) => updateSetLog('reps', parseInt(e.target.value) || 0)}
+                      onBlur={() => setEditingField(null)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') setEditingField(null); }}
+                    />
+                  ) : (
+                    <span className="guided-input-value">{currentSetLog.reps || info.reps}</span>
+                  )}
+                  <span className="guided-input-label">reps</span>
+                </div>
+
+                <div className="guided-input-divider">&times;</div>
+
+                <div
+                  className={`guided-input-box ${editingField === 'weight' ? 'editing' : ''}`}
+                  onClick={() => setEditingField('weight')}
+                >
+                  {editingField === 'weight' ? (
+                    <input
+                      ref={inputRef}
+                      type="number"
+                      inputMode="decimal"
+                      enterKeyHint="done"
+                      className="guided-input-field"
+                      value={currentSetLog.weight || ''}
+                      onChange={(e) => updateSetLog('weight', parseFloat(e.target.value) || 0)}
+                      onBlur={() => setEditingField(null)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') setEditingField(null); }}
+                    />
+                  ) : (
+                    <span className="guided-input-value">{currentSetLog.weight || 0}</span>
+                  )}
+                  <span className="guided-input-label">{weightUnit}</span>
+                </div>
+              </div>
+              <p className="guided-input-hint">Tap to edit</p>
+            </div>
+          </>
         ) : (
           /* Rep-based exercise: show editable reps and weight */
           <div className="guided-input-area">
