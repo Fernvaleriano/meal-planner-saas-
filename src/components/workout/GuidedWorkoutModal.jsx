@@ -2032,6 +2032,27 @@ function GuidedWorkoutModal({
     }
   }, [timer, phase, isPaused, voiceEnabled]);
 
+  // --- Last set announcement: tell client what's next ---
+  const lastSetAnnouncedRef = useRef(null); // track "exIndex-setIndex" to avoid repeat
+  useEffect(() => {
+    if (phase !== 'exercise' || !voiceEnabled) return;
+    const exInfo = getExerciseInfo(currentExIndex);
+    const completedCount = completedSets[currentExIndex]?.size || 0;
+    const isLastSet = completedCount === exInfo.sets - 1;
+    const key = `${currentExIndex}-${currentSetIndex}`;
+
+    if (isLastSet && lastSetAnnouncedRef.current !== key) {
+      lastSetAnnouncedRef.current = key;
+      const nextEx = currentExIndex < exercises.length - 1 ? exercises[currentExIndex + 1] : null;
+      if (nextEx) {
+        const nextName = nextEx.name || nextEx.exercise_name || 'next exercise';
+        speak(`Last set. Next up: ${nextName}`, true);
+      } else {
+        speak('Last set. Almost done!', true);
+      }
+    }
+  }, [phase, currentExIndex, currentSetIndex, completedSets, exercises, voiceEnabled]);
+
   // --- Rep countdown effect (fixed-pace timer + voice callouts) ---
   const repTotalRef = useRef(0); // total reps for current countdown (for milestone calc)
 
