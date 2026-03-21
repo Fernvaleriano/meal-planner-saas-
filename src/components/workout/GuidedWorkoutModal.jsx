@@ -348,6 +348,8 @@ function GuidedWorkoutModal({
   const isMountedRef = useRef(true);
   const exerciseIndexAtRecordStartRef = useRef(null);
 
+  const guidedActivityThumbsRef = useRef(null);
+
   // Deferred exercise refs
   const skippedQueueRef = useRef(skippedQueue);
   const pendingNextExIdxRef = useRef(pendingNextExIdx);
@@ -2075,6 +2077,47 @@ function GuidedWorkoutModal({
 
   const nextExercise = currentExIndex < exercises.length - 1 ? exercises[currentExIndex + 1] : null;
 
+  // Helper to check if URL is a video format (avoid loading .mp4 as <img>)
+  const isVideoUrl = (url) => {
+    if (!url) return false;
+    const lower = url.split('?')[0].toLowerCase();
+    return lower.endsWith('.mp4') || lower.endsWith('.webm') || lower.endsWith('.mov') ||
+           lower.endsWith('.avi') || lower.endsWith('.m4v');
+  };
+
+  const isImageUrl = (url) => {
+    if (!url) return false;
+    const lower = url.split('?')[0].toLowerCase();
+    return lower.endsWith('.gif') || lower.endsWith('.png') || lower.endsWith('.jpg') ||
+           lower.endsWith('.jpeg') || lower.endsWith('.webp') || lower.endsWith('.svg');
+  };
+
+  // Helper to check if an exercise at a given index has all sets completed
+  const isExerciseCompleted = (exIdx) => {
+    const ex = exercises[exIdx];
+    if (!ex) return false;
+    const numSets = typeof ex.sets === 'number' ? ex.sets : (Array.isArray(ex.sets) ? ex.sets.length : 3);
+    const done = completedSets[exIdx]?.size || 0;
+    return done >= numSets;
+  };
+
+  // Auto-scroll activity thumbnails to keep current exercise visible
+  useEffect(() => {
+    if (guidedActivityThumbsRef.current && currentExIndex >= 0) {
+      const container = guidedActivityThumbsRef.current;
+      const activeThumb = container.children[currentExIndex];
+      if (activeThumb) {
+        const thumbLeft = activeThumb.offsetLeft;
+        const thumbWidth = activeThumb.offsetWidth;
+        const containerWidth = container.offsetWidth;
+        container.scrollTo({
+          left: thumbLeft - containerWidth / 2 + thumbWidth / 2,
+          behavior: 'smooth',
+        });
+      }
+    }
+  }, [currentExIndex]);
+
   // Circular timer
   const radius = 90;
   const circumference = 2 * Math.PI * radius;
@@ -2827,31 +2870,48 @@ function GuidedWorkoutModal({
         ) : null}
       </div>
 
-      {/* Up next */}
-      {(() => {
-        if (phase === 'get-ready' || isPlayingDeferred) return null;
-        if (supersetState) {
-          // Show next member in superset, or "Rest" if last member in round
-          const nextMemberPos = supersetState.memberPos + 1;
-          if (nextMemberPos < supersetState.groupIndices.length) {
-            const nextMemberName = exercises[supersetState.groupIndices[nextMemberPos]]?.name;
-            return (
-              <div className="guided-up-next superset">
-                <span className="guided-up-next-label">Next in superset:</span>
-                <span className="guided-up-next-name">{nextMemberName}</span>
-              </div>
-            );
-          }
-          return null;
-        }
-        if (!nextExercise) return null;
-        return (
-          <div className="guided-up-next">
-            <span className="guided-up-next-label">Up next:</span>
-            <span className="guided-up-next-name">{nextExercise.name}</span>
+      {/* Activity progress strip */}
+      {exercises.length > 1 && phase !== 'get-ready' && !isPlayingDeferred && (
+        <div className="guided-activity-progress">
+          <div className="guided-activity-header">
+            <span>Activity {currentExIndex + 1}/{exercises.length}</span>
           </div>
-        );
-      })()}
+          <div className="guided-activity-thumbnails" ref={guidedActivityThumbsRef}>
+            {exercises.map((ex, idx) => {
+              const exThumb = (ex?.thumbnail_url && !isVideoUrl(ex?.thumbnail_url) ? ex.thumbnail_url : null) ||
+                (isImageUrl(ex?.animation_url) ? ex?.animation_url : null) ||
+                '/img/exercise-placeholder.svg';
+              const completed = isExerciseCompleted(idx);
+              return (
+                <button
+                  key={ex?.id || `ex-${idx}`}
+                  className={`guided-activity-thumb ${idx === currentExIndex ? 'active' : ''} ${completed ? 'completed' : ''}`}
+                  onClick={() => {
+                    setCurrentExIndex(idx);
+                    setCurrentSetIndex(0);
+                    setPhase('exercise');
+                    setShowVideo(false);
+                  }}
+                  type="button"
+                >
+                  <img
+                    src={exThumb}
+                    alt={ex?.name || 'Exercise'}
+                    loading="lazy"
+                    decoding="async"
+                    onError={(e) => { e.target.src = '/img/exercise-placeholder.svg'; }}
+                  />
+                  {completed && (
+                    <div className="guided-activity-thumb-check">
+                      <Check size={16} />
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
       </div>{/* End scrollable content area */}
 
       {/* Ask AI Chat Modal */}
