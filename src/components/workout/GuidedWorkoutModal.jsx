@@ -341,6 +341,10 @@ function GuidedWorkoutModal({
   const [supersetState, setSupersetState] = useState(null);
   // Shape: { groupKey: 'A', groupIndices: [idx1, idx2], memberPos: 0, round: 0, totalRounds: 3 }
 
+  // Track which set was just completed — so client can log during rest
+  // Shape: { exIndex: number, setIndex: number } | null
+  const [restLogTarget, setRestLogTarget] = useState(null);
+
   // Set logging: track actual reps/weight per exercise per set
   // Structure: { exIndex: [{ reps: number, weight: number }, ...] }
   const [setLogs, setSetLogs] = useState(() => {
@@ -795,6 +799,11 @@ function GuidedWorkoutModal({
 
   // Current set log values
   const currentSetLog = setLogs[currentExIndex]?.[currentSetIndex] || { reps: info.reps, weight: 0 };
+
+  // Log values for the just-completed set (used during rest phase)
+  const restSetLog = restLogTarget
+    ? (setLogs[restLogTarget.exIndex]?.[restLogTarget.setIndex] || { reps: info.reps, weight: 0 })
+    : null;
 
   // Get workout date string helper
   const getWorkoutDateStr = useCallback(() => {
@@ -1870,6 +1879,7 @@ function GuidedWorkoutModal({
         if (nextRound < ss.totalRounds) {
           // More rounds — rest, then back to first member
           setSupersetState(prev => prev ? { ...prev, round: nextRound, memberPos: 0 } : prev);
+          setRestLogTarget({ exIndex: exIdx, setIndex: setIdx });
           setPhase('rest');
           setTimer(exInfo.rest);
         } else {
@@ -1906,11 +1916,13 @@ function GuidedWorkoutModal({
         } else if (exIdx >= exercises.length - 1) {
           advanceToNextExercise(exIdx);
         } else {
+          setRestLogTarget({ exIndex: exIdx, setIndex: setIdx });
           setPhase('rest');
           setTimer(exInfo.rest);
           setCurrentSetIndex(0);
         }
       } else {
+        setRestLogTarget({ exIndex: exIdx, setIndex: setIdx });
         setPhase('rest');
         setTimer(exInfo.rest);
         setCurrentSetIndex(setIdx + 1);
@@ -1920,6 +1932,8 @@ function GuidedWorkoutModal({
   }, [exercises, onExerciseComplete, persistExerciseData, returnFromDeferredExercise, advanceToNextExercise]);
 
   const doAdvanceAfterRest = useCallback((exIdx, setIdx, exInfo) => {
+    setRestLogTarget(null);
+    setEditingField(null);
     const ss = supersetStateRef.current;
 
     if (ss) {
@@ -2071,6 +2085,18 @@ function GuidedWorkoutModal({
       const exLogs = [...(updated[currentExIndex] || [])];
       exLogs[currentSetIndex] = { ...exLogs[currentSetIndex], [field]: value };
       updated[currentExIndex] = exLogs;
+      return updated;
+    });
+  };
+
+  // Update log for the just-completed set during rest
+  const updateRestSetLog = (field, value) => {
+    if (!restLogTarget) return;
+    setSetLogs(prev => {
+      const updated = { ...prev };
+      const exLogs = [...(updated[restLogTarget.exIndex] || [])];
+      exLogs[restLogTarget.setIndex] = { ...exLogs[restLogTarget.setIndex], [field]: value };
+      updated[restLogTarget.exIndex] = exLogs;
       return updated;
     });
   };
@@ -2747,8 +2773,9 @@ function GuidedWorkoutModal({
 
       </div>
 
-      {/* Exercise thumbnail / video player */}
+      {/* Exercise thumbnail / video player — during rest, show timer here instead */}
       <div className="guided-exercise-visual" onClick={() => {
+        if (phase === 'rest') return; // Don't toggle video during rest
         const videoUrl = currentExercise?.customVideoUrl || currentExercise?.video_url || currentExercise?.animation_url;
         if (videoUrl) {
           if (!showVideo) {
@@ -2759,7 +2786,26 @@ function GuidedWorkoutModal({
           setShowVideo(prev => !prev);
         }
       }}>
-        {showVideo && (currentExercise?.customVideoUrl || currentExercise?.video_url || currentExercise?.animation_url) ? (
+        {phase === 'rest' ? (
+          /* Rest timer displayed in the visual area */
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)', borderRadius: '12px', minHeight: '200px' }}>
+            <div className="guided-timer-circle">
+              <svg viewBox="0 0 200 200" className="guided-timer-svg">
+                <circle cx="100" cy="100" r={radius} className="guided-timer-track" />
+                <circle
+                  cx="100" cy="100" r={radius}
+                  className="guided-timer-ring rest"
+                  strokeDasharray={circumference}
+                  strokeDashoffset={strokeDashoffset}
+                />
+              </svg>
+              <div className="guided-timer-text">
+                <span className="guided-timer-label">Rest</span>
+                <span className="guided-timer-value">{formatTime(timer)}</span>
+              </div>
+            </div>
+          </div>
+        ) : showVideo && (currentExercise?.customVideoUrl || currentExercise?.video_url || currentExercise?.animation_url) ? (
           <div className="guided-video-container" style={{ position: 'relative' }}>
             <video
               key={guidedVideoKey}
@@ -2815,20 +2861,97 @@ function GuidedWorkoutModal({
 
       {/* Timer or rep/weight input area */}
       <div className="guided-timer-area">
-        {(phase === 'get-ready' || phase === 'rest' || (phase === 'exercise' && info.isTimed)) ? (
+        {phase === 'rest' ? (
+          /* During rest: show logging UI for the just-completed set */
+          <div className="guided-input-area">
+            <p style={{ margin: '0 0 8px', fontSize: '13px', color: '#94a3b8', textAlign: 'center' }}>
+              Log your set while you rest
+            </p>
+            <div className="guided-input-row">
+              <div
+                className={`guided-input-box ${editingField === 'reps' ? 'editing' : ''}`}
+                onClick={() => setEditingField('reps')}
+              >
+                {editingField === 'reps' ? (
+                  <input
+                    ref={inputRef}
+                    type="number"
+                    inputMode="numeric"
+                    enterKeyHint="done"
+                    className="guided-input-field"
+                    value={restSetLog?.reps || ''}
+                    onChange={(e) => updateRestSetLog('reps', parseInt(e.target.value) || 0)}
+                    onBlur={() => setEditingField(null)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') setEditingField(null); }}
+                  />
+                ) : (
+                  <span className="guided-input-value">{restSetLog?.reps || '—'}</span>
+                )}
+                <span className="guided-input-label">reps</span>
+              </div>
+
+              <div className="guided-input-divider">&times;</div>
+
+              <div
+                className={`guided-input-box ${editingField === 'weight' ? 'editing' : ''}`}
+                onClick={() => setEditingField('weight')}
+              >
+                {editingField === 'weight' ? (
+                  <input
+                    ref={inputRef}
+                    type="number"
+                    inputMode="decimal"
+                    enterKeyHint="done"
+                    className="guided-input-field"
+                    value={restSetLog?.weight || ''}
+                    onChange={(e) => updateRestSetLog('weight', parseFloat(e.target.value) || 0)}
+                    onBlur={() => setEditingField(null)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') setEditingField(null); }}
+                  />
+                ) : (
+                  <span className="guided-input-value">{restSetLog?.weight || 0}</span>
+                )}
+                <span className="guided-input-label">{weightUnit}</span>
+              </div>
+            </div>
+            <p className="guided-input-hint">Tap to edit</p>
+
+            {/* Effort selector */}
+            <div className="guided-effort-section">
+              <p className="guided-effort-label">
+                <Flame size={14} />
+                How did that feel?
+              </p>
+              <div className="guided-effort-pills">
+                {EFFORT_OPTIONS.map(opt => (
+                  <button
+                    key={opt.value}
+                    className={`guided-effort-pill ${restSetLog?.effort === opt.value ? 'selected' : ''}`}
+                    style={restSetLog?.effort === opt.value ? { background: opt.color, borderColor: opt.color } : undefined}
+                    onClick={() => updateRestSetLog('effort', restSetLog?.effort === opt.value ? null : opt.value)}
+                    type="button"
+                  >
+                    <span className="guided-effort-pill-label">{opt.label}</span>
+                    <span className="guided-effort-pill-detail">{opt.detail}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : (phase === 'get-ready' || (phase === 'exercise' && info.isTimed)) ? (
           <div className="guided-timer-circle">
             <svg viewBox="0 0 200 200" className="guided-timer-svg">
               <circle cx="100" cy="100" r={radius} className="guided-timer-track" />
               <circle
                 cx="100" cy="100" r={radius}
-                className={`guided-timer-ring ${phase === 'rest' ? 'rest' : phase === 'get-ready' ? 'get-ready' : 'active'}`}
+                className={`guided-timer-ring ${phase === 'get-ready' ? 'get-ready' : 'active'}`}
                 strokeDasharray={circumference}
                 strokeDashoffset={strokeDashoffset}
               />
             </svg>
             <div className="guided-timer-text">
               <span className="guided-timer-label">
-                {phase === 'get-ready' ? 'Get Ready' : phase === 'rest' ? 'Rest' : 'Go!'}
+                {phase === 'get-ready' ? 'Get Ready' : 'Go!'}
               </span>
               <span className="guided-timer-value">{formatTime(timer)}</span>
             </div>
