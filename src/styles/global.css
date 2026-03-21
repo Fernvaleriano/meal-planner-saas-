@@ -31764,6 +31764,17 @@ textarea,
     stroke: #f59e0b;
 }
 
+.guided-timer-ring.rep-countdown {
+    stroke: #10b981;
+    transition: stroke-dashoffset 0.4s ease;
+}
+
+.guided-rep-countdown .guided-timer-value {
+    font-size: 4rem !important;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
 .guided-timer-text {
     position: absolute;
     top: 50%;

@@ -65,6 +65,9 @@ const COMPOUND_PATTERNS = [
   'bulgarian split squat', 'step up', 'farmer', 'turkish get up'
 ];
 
+// Seconds per rep for the rep countdown (fallback when video duration can't be detected)
+const REP_PACE_SECONDS = 3;
+
 // Parse reps helper - supports decimals like "1.5" (e.g. 1.5 miles)
 const parseReps = (reps) => {
   if (typeof reps === 'number') return reps;
@@ -326,6 +329,12 @@ function GuidedWorkoutModal({
   const [editingRecField, setEditingRecField] = useState(null); // 'reps' or 'weight' for recommendation card
   const inputRef = useRef(null);
   const recInputRef = useRef(null);
+
+  // Rep countdown state (Virtuagym-style rep counter during exercise phase)
+  const [repCountdownActive, setRepCountdownActive] = useState(false);
+  const [currentRep, setCurrentRep] = useState(0);
+  const repIntervalRef = useRef(null);
+  const repVideoRef = useRef(null);
 
   const intervalRef = useRef(null);
   const elapsedRef = useRef(null);
@@ -1769,6 +1778,13 @@ function GuidedWorkoutModal({
         setTimer(exInfo.duration);
       } else {
         setPhase('exercise');
+        // Activate rep countdown if exercise has integer reps and is not till-failure
+        const reps = parseReps(exInfo.reps);
+        if (reps > 0 && Number.isInteger(reps) && exInfo.trackingType !== 'failure') {
+          setRepCountdownActive(true);
+          setCurrentRep(reps);
+          setShowVideo(true);
+        }
       }
     } else if (p === 'exercise' && exInfo.isTimed) {
       doMarkSetDone(exIdx, setIdx, exInfo);
@@ -1783,6 +1799,7 @@ function GuidedWorkoutModal({
   }, [onTimerComplete]);
 
   const doMarkSetDone = useCallback((exIdx, setIdx, exInfo) => {
+    setRepCountdownActive(false);
     setCompletedSets(prev => {
       const updated = { ...prev };
       if (!updated[exIdx]) updated[exIdx] = new Set();
@@ -1888,6 +1905,13 @@ function GuidedWorkoutModal({
         setTimer(nextInfo.duration);
       } else {
         setPhase('exercise');
+        // Activate rep countdown for next set
+        const reps = parseReps(nextInfo.reps);
+        if (reps > 0 && Number.isInteger(reps) && nextInfo.trackingType !== 'failure') {
+          setRepCountdownActive(true);
+          setCurrentRep(reps);
+          setShowVideo(true);
+        }
       }
     }
   }, [exercises, returnFromDeferredExercise, advanceToNextExercise]);
@@ -1926,6 +1950,71 @@ function GuidedWorkoutModal({
     };
   }, [phase, isPaused]);
 
+  // --- Rep countdown effect (video-synced or fallback timer) ---
+  useEffect(() => {
+    if (repIntervalRef.current) clearInterval(repIntervalRef.current);
+    if (!repCountdownActive || isPaused) return;
+    if (currentRep <= 0) {
+      setRepCountdownActive(false);
+      return;
+    }
+
+    // Try to sync with video loop — listen for the video restarting
+    const video = repVideoRef.current;
+    if (video && video.duration && video.duration > 0) {
+      // Video-synced mode: decrement rep each time video loops
+      const handleLoop = () => {
+        setCurrentRep(prev => {
+          if (prev <= 1) {
+            setRepCountdownActive(false);
+            return 0;
+          }
+          return prev - 1;
+        });
+      };
+
+      // The 'seeked' event fires when the looping video resets to beginning
+      video.addEventListener('seeked', handleLoop);
+      if (video.paused) video.play().catch(() => {});
+
+      return () => {
+        video.removeEventListener('seeked', handleLoop);
+      };
+    }
+
+    // Fallback: fixed pace timer when no video available
+    const repEndTime = Date.now() + REP_PACE_SECONDS * 1000;
+    repIntervalRef.current = setInterval(() => {
+      const remaining = Math.ceil((repEndTime - Date.now()) / 1000);
+      if (remaining <= 0) {
+        clearInterval(repIntervalRef.current);
+        repIntervalRef.current = null;
+        setCurrentRep(prev => {
+          if (prev <= 1) {
+            setRepCountdownActive(false);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }
+    }, 250);
+
+    return () => {
+      if (repIntervalRef.current) clearInterval(repIntervalRef.current);
+    };
+  }, [repCountdownActive, currentRep, isPaused]);
+
+  // Pause/resume video in sync with rep countdown
+  useEffect(() => {
+    const video = repVideoRef.current;
+    if (!video || !repCountdownActive) return;
+    if (isPaused) {
+      video.pause();
+    } else {
+      video.play().catch(() => {});
+    }
+  }, [isPaused, repCountdownActive]);
+
   // --- Update set log values ---
   const updateSetLog = (field, value) => {
     setSetLogs(prev => {
@@ -1940,6 +2029,7 @@ function GuidedWorkoutModal({
   // --- Skip (permanent) ---
   const handleSkip = () => {
     if (intervalRef.current) clearInterval(intervalRef.current);
+    setRepCountdownActive(false);
     setEditingField(null);
 
     if (phase === 'rest') {
@@ -1950,6 +2040,13 @@ function GuidedWorkoutModal({
         setTimer(info.duration);
       } else {
         setPhase('exercise');
+        // Activate rep countdown when skipping get-ready
+        const reps = parseReps(info.reps);
+        if (reps > 0 && Number.isInteger(reps) && info.trackingType !== 'failure') {
+          setRepCountdownActive(true);
+          setCurrentRep(reps);
+          setShowVideo(true);
+        }
       }
     } else if (phase === 'exercise') {
       const ss = supersetStateRef.current;
@@ -2001,6 +2098,7 @@ function GuidedWorkoutModal({
   // --- Go Back to previous exercise ---
   const handleBack = () => {
     if (intervalRef.current) clearInterval(intervalRef.current);
+    setRepCountdownActive(false);
     setEditingField(null);
 
     // In superset mode — exit superset and go to exercise before the group
@@ -2573,6 +2671,7 @@ function GuidedWorkoutModal({
         {showVideo && (currentExercise?.customVideoUrl || currentExercise?.video_url || currentExercise?.animation_url) ? (
           <div className="guided-video-container" style={{ position: 'relative' }}>
             <video
+              ref={repCountdownActive ? repVideoRef : undefined}
               key={guidedVideoKey}
               src={guidedVideoBlobUrl || currentExercise.customVideoUrl || currentExercise.video_url || currentExercise.animation_url}
               autoPlay
@@ -2642,6 +2741,24 @@ function GuidedWorkoutModal({
                 {phase === 'get-ready' ? 'Get Ready' : phase === 'rest' ? 'Rest' : 'Go!'}
               </span>
               <span className="guided-timer-value">{formatTime(timer)}</span>
+            </div>
+          </div>
+        ) : (phase === 'exercise' && !info.isTimed && repCountdownActive) ? (
+          /* Rep countdown ring (Virtuagym-style) */
+          <div className="guided-timer-circle guided-rep-countdown">
+            <svg viewBox="0 0 200 200" className="guided-timer-svg">
+              <circle cx="100" cy="100" r={radius} className="guided-timer-track" />
+              <circle
+                cx="100" cy="100" r={radius}
+                className="guided-timer-ring rep-countdown"
+                strokeDasharray={circumference}
+                strokeDashoffset={circumference * (currentRep / parseReps(info.reps))}
+                style={{ transition: 'stroke-dashoffset 0.4s ease' }}
+              />
+            </svg>
+            <div className="guided-timer-text">
+              <span className="guided-timer-value" style={{ fontSize: '4rem', fontVariantNumeric: 'tabular-nums' }}>{currentRep}</span>
+              <span className="guided-timer-label">reps left</span>
             </div>
           </div>
         ) : (
@@ -2782,6 +2899,21 @@ function GuidedWorkoutModal({
             </button>
             <button className="guided-skip-btn" onClick={handleSkip}>
               Skip Rest <ChevronRight size={18} />
+            </button>
+          </div>
+        ) : phase === 'exercise' && !info.isTimed && repCountdownActive ? (
+          /* Rep countdown controls: Pause + Log Set */
+          <div className="guided-timer-controls">
+            <button className="guided-pause-btn" onClick={() => setIsPaused(!isPaused)}>
+              {isPaused ? <Play size={22} /> : <Pause size={22} />}
+              {isPaused ? 'Resume' : 'Pause'}
+            </button>
+            <button className="guided-done-btn" onClick={() => {
+              if (repIntervalRef.current) clearInterval(repIntervalRef.current);
+              setRepCountdownActive(false);
+            }}>
+              <Check size={22} />
+              Log Set
             </button>
           </div>
         ) : phase === 'exercise' && !info.isTimed ? (
