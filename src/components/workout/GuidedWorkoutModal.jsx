@@ -62,7 +62,7 @@ const getRepPace = (exercise) => {
   return REP_PACE_DEFAULT; // isolation / unknown
 };
 
-// Generate a short tick/click sound via Web Audio API
+// Web Audio tick sound — pre-warm on user gesture, resilient on mobile
 const playTickSound = (() => {
   let audioCtx = null;
 
@@ -74,31 +74,41 @@ const playTickSound = (() => {
     return audioCtx;
   };
 
-  const fn = () => {
+  const playTone = (ctx) => {
     try {
-      const ctx = ensureContext();
-      // Resume suspended AudioContext (required on mobile after lock/unlock or idle)
-      if (ctx.state === 'suspended') {
-        ctx.resume().then(() => fn._playTone(ctx)).catch(() => {});
-        return;
-      }
-      fn._playTone(ctx);
-    } catch (e) { /* ignore audio errors */ }
-  };
-
-  fn._playTone = (ctx) => {
-    try {
+      if (ctx.state !== 'running') return; // don't schedule on suspended context
+      const t = ctx.currentTime;
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.connect(gain);
       gain.connect(ctx.destination);
       osc.type = 'sine';
       osc.frequency.value = 880;
-      gain.gain.setValueAtTime(0.3, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08);
-      osc.start(ctx.currentTime);
-      osc.stop(ctx.currentTime + 0.08);
+      gain.gain.setValueAtTime(0.3, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+      osc.start(t);
+      osc.stop(t + 0.08);
     } catch (e) { /* ignore audio errors */ }
+  };
+
+  const fn = () => {
+    try {
+      const ctx = ensureContext();
+      if (ctx.state === 'suspended') {
+        ctx.resume().then(() => playTone(ctx)).catch(() => {});
+        return;
+      }
+      playTone(ctx);
+    } catch (e) { /* ignore audio errors */ }
+  };
+
+  // Call warmUp() from any tap/click handler so iOS/Android unlocks audio.
+  // Also called proactively during get-ready phase so context is ready before first tick.
+  fn.warmUp = () => {
+    try {
+      const ctx = ensureContext();
+      if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+    } catch (e) { /* ignore */ }
   };
 
   // Allow external refresh (e.g. on app resume from background)
@@ -1254,6 +1264,8 @@ function GuidedWorkoutModal({
   useEffect(() => {
     const runVoice = async () => {
       if (phase === 'get-ready' && currentExercise) {
+        // Pre-warm audio context so tick sound is ready when reps start
+        playTickSound.warmUp();
         const exInfo = getExerciseInfo(currentExIndex);
         const ss = supersetState;
         if (ss) {
@@ -1963,6 +1975,11 @@ function GuidedWorkoutModal({
       return;
     }
 
+    // Play tick on the very first rep (so rep 12 → tick immediately, not after waiting)
+    if (currentRep === repTotalRef.current) {
+      playTickSound();
+    }
+
     const currentEx = exercises[currentExIndexRef.current];
     const pace = getRepPace(currentEx);
     const repEndTime = Date.now() + pace * 1000;
@@ -2378,7 +2395,7 @@ function GuidedWorkoutModal({
   }
 
   return (
-    <div className="guided-workout-overlay">
+    <div className="guided-workout-overlay" onTouchStart={playTickSound.warmUp} onClick={playTickSound.warmUp}>
       {/* Top bar */}
       <div className="guided-top-bar">
         <button className="guided-close-btn" onClick={handleCloseWithSave}>
