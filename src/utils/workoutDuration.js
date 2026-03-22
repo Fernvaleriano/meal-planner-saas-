@@ -93,9 +93,11 @@ export function estimateWorkoutMinutes(exercises) {
 
   let totalSeconds = 0;
 
-  for (const ex of exercises) {
+  for (let i = 0; i < exercises.length; i++) {
+    const ex = exercises[i];
     const numSets = resolveSetCount(ex);
     const restSeconds = ex.restSeconds || ex.rest_seconds || 60;
+    const isLast = i === exercises.length - 1;
 
     if (isTimeBased(ex)) {
       // Use explicit duration when available
@@ -104,14 +106,18 @@ export function estimateWorkoutMinutes(exercises) {
         parseDurationToSeconds(Array.isArray(ex.sets) && ex.sets[0]?.duration) ||
         parseDurationToSeconds(ex.reps) ||
         30;
-      totalSeconds += numSets * setDuration + (numSets - 1) * restSeconds;
+      // Rest between sets + rest after final set (except last exercise)
+      const restSets = isLast ? Math.max(numSets - 1, 0) : numSets;
+      totalSeconds += numSets * setDuration + restSets * restSeconds;
     } else {
       const perSet = estimateSetSeconds(ex);
-      totalSeconds += numSets * perSet + (numSets - 1) * restSeconds;
+      // Rest between sets + rest after final set (except last exercise)
+      const restSets = isLast ? Math.max(numSets - 1, 0) : numSets;
+      totalSeconds += numSets * perSet + restSets * restSeconds;
     }
   }
 
-  // Transition time between exercises
+  // Transition time between exercises (equipment setup, moving stations)
   if (exercises.length > 1) {
     totalSeconds += (exercises.length - 1) * TRANSITION_SECONDS;
   }

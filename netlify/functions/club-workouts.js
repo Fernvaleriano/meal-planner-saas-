@@ -196,10 +196,14 @@ exports.handler = async (event) => {
 function estimateMinutes(exercises) {
   if (!exercises || exercises.length === 0) return 0;
   let totalSeconds = 0;
-  for (const ex of exercises) {
+  for (let i = 0; i < exercises.length; i++) {
+    const ex = exercises[i];
     const numSets = typeof ex.sets === 'number' ? ex.sets : 3;
     const restSeconds = ex.restSeconds || 60;
-    totalSeconds += numSets * 40 + (numSets - 1) * restSeconds;
+    const isLast = i === exercises.length - 1;
+    // Rest between sets + rest after final set (except last exercise)
+    const restSets = isLast ? Math.max(numSets - 1, 0) : numSets;
+    totalSeconds += numSets * 40 + restSets * restSeconds;
   }
   totalSeconds += (exercises.length - 1) * 30;
   return Math.ceil(totalSeconds / 60);
