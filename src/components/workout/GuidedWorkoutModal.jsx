@@ -2590,6 +2590,100 @@ function GuidedWorkoutModal({
             ))}
           </div>
         )}
+        {/* Coaching Recommendation Card - shown prominently after exercise info */}
+        {aiRecommendations[currentExIndex] && !info.isTimed && !currentExercise?.isWarmup && !currentExercise?.isStretch && currentExercise?.exercise_type !== 'stretch' && currentExercise?.phase !== 'warmup' && currentExercise?.phase !== 'cooldown' && (
+          <div className={`ai-recommendation-card ${acceptedRecommendation[currentExIndex] ? 'accepted' : ''} ${aiRecommendations[currentExIndex]?.plateau ? 'plateau' : ''}`}>
+            <div className="ai-rec-header">
+              <div className="ai-rec-badge">
+                {aiRecommendations[currentExIndex]?.plateau ? <AlertTriangle size={14} /> : <Sparkles size={14} />}
+                <span>{aiRecommendations[currentExIndex]?.plateau ? 'Plateau Detected' : 'Coaching Recommendation'}</span>
+              </div>
+              {acceptedRecommendation[currentExIndex] && (
+                <span className="ai-rec-accepted-badge">
+                  <Check size={12} />
+                  Applied
+                </span>
+              )}
+            </div>
+
+            <div className="ai-rec-values">
+              <div className="ai-rec-value-item">
+                <span className="ai-rec-value-number">{aiRecommendations[currentExIndex].sets}</span>
+                <span className="ai-rec-value-label">sets</span>
+              </div>
+              <span className="ai-rec-value-divider">x</span>
+              <div
+                className={`ai-rec-value-item ${acceptedRecommendation[currentExIndex] ? 'editable' : ''} ${editingRecField === 'reps' ? 'editing' : ''}`}
+                onClick={() => acceptedRecommendation[currentExIndex] && setEditingRecField('reps')}
+              >
+                {editingRecField === 'reps' ? (
+                  <input
+                    ref={recInputRef}
+                    type="number"
+                    inputMode="numeric"
+                    enterKeyHint="done"
+                    className="ai-rec-input"
+                    value={aiRecommendations[currentExIndex].reps || ''}
+                    onChange={(e) => updateRecommendationValue('reps', e.target.value)}
+                    onBlur={() => setEditingRecField(null)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') setEditingRecField(null); }}
+                  />
+                ) : (
+                  <span className="ai-rec-value-number">{aiRecommendations[currentExIndex].reps}</span>
+                )}
+                <span className="ai-rec-value-label">reps</span>
+              </div>
+              <span className="ai-rec-value-divider">@</span>
+              <div
+                className={`ai-rec-value-item ${acceptedRecommendation[currentExIndex] ? 'editable' : ''} ${editingRecField === 'weight' ? 'editing' : ''}`}
+                onClick={() => acceptedRecommendation[currentExIndex] && setEditingRecField('weight')}
+              >
+                {editingRecField === 'weight' ? (
+                  <input
+                    ref={recInputRef}
+                    type="number"
+                    inputMode="decimal"
+                    enterKeyHint="done"
+                    className="ai-rec-input"
+                    value={aiRecommendations[currentExIndex].weight || ''}
+                    onChange={(e) => updateRecommendationValue('weight', e.target.value)}
+                    onBlur={() => setEditingRecField(null)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') setEditingRecField(null); }}
+                  />
+                ) : (
+                  <span className="ai-rec-value-number">{aiRecommendations[currentExIndex].weight || '—'}</span>
+                )}
+                <span className="ai-rec-value-label">{weightUnit}</span>
+              </div>
+            </div>
+            {acceptedRecommendation[currentExIndex] && (
+              <p className="ai-rec-edit-hint">Tap values to edit</p>
+            )}
+
+            <p className="ai-rec-reasoning">{aiRecommendations[currentExIndex].reasoning}</p>
+
+            {progressTips[currentExIndex]?.lastSession && (
+              <div className="ai-rec-last-session">
+                <span>Last: {progressTips[currentExIndex].lastSession.reps} reps @ {progressTips[currentExIndex].lastSession.weight}{weightUnit}</span>
+                <span className="ai-rec-last-date">{progressTips[currentExIndex].lastSession.date}</span>
+              </div>
+            )}
+
+            {!acceptedRecommendation[currentExIndex] && (
+              <div className="ai-rec-actions">
+                <button className="ai-rec-btn accept" onClick={handleAcceptRecommendation}>
+                  <Check size={16} />
+                  <span>Accept</span>
+                </button>
+                <button className="ai-rec-btn ask" onClick={handleOpenAskAI}>
+                  <MessageCircle size={16} />
+                  <span>Adjust</span>
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Coach tip buttons - voice note and/or text note */}
         {(currentExercise.voiceNoteUrl || currentExercise.notes) && (
           <div className="guided-coach-tips">
@@ -2715,100 +2809,6 @@ function GuidedWorkoutModal({
                 </a>
               ))}
             </div>
-          </div>
-        )}
-
-        {/* Coaching Recommendation Card - hidden for warm-ups, stretches, and cardio equipment */}
-        {aiRecommendations[currentExIndex] && !info.isTimed && !currentExercise?.isWarmup && !currentExercise?.isStretch && currentExercise?.exercise_type !== 'stretch' && currentExercise?.phase !== 'warmup' && currentExercise?.phase !== 'cooldown' && (
-          <div className={`ai-recommendation-card ${acceptedRecommendation[currentExIndex] ? 'accepted' : ''} ${aiRecommendations[currentExIndex]?.plateau ? 'plateau' : ''}`}>
-            <div className="ai-rec-header">
-              <div className="ai-rec-badge">
-                {aiRecommendations[currentExIndex]?.plateau ? <AlertTriangle size={14} /> : <Sparkles size={14} />}
-                <span>{aiRecommendations[currentExIndex]?.plateau ? 'Plateau Detected' : 'Coaching Recommendation'}</span>
-              </div>
-              {acceptedRecommendation[currentExIndex] && (
-                <span className="ai-rec-accepted-badge">
-                  <Check size={12} />
-                  Applied
-                </span>
-              )}
-            </div>
-
-            <div className="ai-rec-values">
-              <div className="ai-rec-value-item">
-                <span className="ai-rec-value-number">{aiRecommendations[currentExIndex].sets}</span>
-                <span className="ai-rec-value-label">sets</span>
-              </div>
-              <span className="ai-rec-value-divider">x</span>
-              <div
-                className={`ai-rec-value-item ${acceptedRecommendation[currentExIndex] ? 'editable' : ''} ${editingRecField === 'reps' ? 'editing' : ''}`}
-                onClick={() => acceptedRecommendation[currentExIndex] && setEditingRecField('reps')}
-              >
-                {editingRecField === 'reps' ? (
-                  <input
-                    ref={recInputRef}
-                    type="number"
-                    inputMode="numeric"
-                    enterKeyHint="done"
-                    className="ai-rec-input"
-                    value={aiRecommendations[currentExIndex].reps || ''}
-                    onChange={(e) => updateRecommendationValue('reps', e.target.value)}
-                    onBlur={() => setEditingRecField(null)}
-                    onKeyDown={(e) => { if (e.key === 'Enter') setEditingRecField(null); }}
-                  />
-                ) : (
-                  <span className="ai-rec-value-number">{aiRecommendations[currentExIndex].reps}</span>
-                )}
-                <span className="ai-rec-value-label">reps</span>
-              </div>
-              <span className="ai-rec-value-divider">@</span>
-              <div
-                className={`ai-rec-value-item ${acceptedRecommendation[currentExIndex] ? 'editable' : ''} ${editingRecField === 'weight' ? 'editing' : ''}`}
-                onClick={() => acceptedRecommendation[currentExIndex] && setEditingRecField('weight')}
-              >
-                {editingRecField === 'weight' ? (
-                  <input
-                    ref={recInputRef}
-                    type="number"
-                    inputMode="decimal"
-                    enterKeyHint="done"
-                    className="ai-rec-input"
-                    value={aiRecommendations[currentExIndex].weight || ''}
-                    onChange={(e) => updateRecommendationValue('weight', e.target.value)}
-                    onBlur={() => setEditingRecField(null)}
-                    onKeyDown={(e) => { if (e.key === 'Enter') setEditingRecField(null); }}
-                  />
-                ) : (
-                  <span className="ai-rec-value-number">{aiRecommendations[currentExIndex].weight || '—'}</span>
-                )}
-                <span className="ai-rec-value-label">{weightUnit}</span>
-              </div>
-            </div>
-            {acceptedRecommendation[currentExIndex] && (
-              <p className="ai-rec-edit-hint">Tap values to edit</p>
-            )}
-
-            <p className="ai-rec-reasoning">{aiRecommendations[currentExIndex].reasoning}</p>
-
-            {progressTips[currentExIndex]?.lastSession && (
-              <div className="ai-rec-last-session">
-                <span>Last: {progressTips[currentExIndex].lastSession.reps} reps @ {progressTips[currentExIndex].lastSession.weight}{weightUnit}</span>
-                <span className="ai-rec-last-date">{progressTips[currentExIndex].lastSession.date}</span>
-              </div>
-            )}
-
-            {!acceptedRecommendation[currentExIndex] && (
-              <div className="ai-rec-actions">
-                <button className="ai-rec-btn accept" onClick={handleAcceptRecommendation}>
-                  <Check size={16} />
-                  <span>Accept</span>
-                </button>
-                <button className="ai-rec-btn ask" onClick={handleOpenAskAI}>
-                  <MessageCircle size={16} />
-                  <span>Adjust</span>
-                </button>
-              </div>
-            )}
           </div>
         )}
 
@@ -2959,7 +2959,17 @@ function GuidedWorkoutModal({
                 <span className="guided-input-label">{weightUnit}</span>
               </div>
             </div>
-            <p className="guided-input-hint">Tap to edit</p>
+            {aiRecommendations[currentExIndex]?.weight && !currentExercise?.isWarmup && !currentExercise?.isStretch && currentExercise?.phase !== 'warmup' && currentExercise?.phase !== 'cooldown' ? (
+              <p className="guided-suggested-weight-hint">
+                <Sparkles size={12} />
+                <span>Suggested: {aiRecommendations[currentExIndex].reps} reps @ {aiRecommendations[currentExIndex].weight}{weightUnit}</span>
+                {progressTips[currentExIndex]?.lastSession && (
+                  <span className="guided-suggested-last"> · Last: {progressTips[currentExIndex].lastSession.weight}{weightUnit}</span>
+                )}
+              </p>
+            ) : (
+              <p className="guided-input-hint">Tap to edit</p>
+            )}
 
             {/* Effort selector */}
             <div className="guided-effort-section">
@@ -3070,7 +3080,17 @@ function GuidedWorkoutModal({
                 <span className="guided-input-label">{weightUnit}</span>
               </div>
             </div>
-            <p className="guided-input-hint">Tap to edit</p>
+            {aiRecommendations[currentExIndex]?.weight && !currentExercise?.isWarmup && !currentExercise?.isStretch && currentExercise?.phase !== 'warmup' && currentExercise?.phase !== 'cooldown' ? (
+              <p className="guided-suggested-weight-hint">
+                <Sparkles size={12} />
+                <span>Suggested: {aiRecommendations[currentExIndex].reps} reps @ {aiRecommendations[currentExIndex].weight}{weightUnit}</span>
+                {progressTips[currentExIndex]?.lastSession && (
+                  <span className="guided-suggested-last"> · Last: {progressTips[currentExIndex].lastSession.weight}{weightUnit}</span>
+                )}
+              </p>
+            ) : (
+              <p className="guided-input-hint">Tap to edit</p>
+            )}
 
             {/* Effort selector */}
             <div className="guided-effort-section">
