@@ -3217,10 +3217,14 @@ function GuidedWorkoutModal({
                   key={ex?.id || `ex-${idx}`}
                   className={`guided-activity-thumb ${idx === currentExIndex ? 'active' : ''} ${completed ? 'completed' : ''}`}
                   onClick={() => {
+                    if (idx === currentExIndex) return;
+                    setRepCountdownActive(false);
+                    setCurrentRep(0);
+                    setShowVideo(false);
                     setCurrentExIndex(idx);
                     setCurrentSetIndex(0);
-                    setPhase('exercise');
-                    setShowVideo(false);
+                    setPhase('get-ready');
+                    setTimer(5);
                   }}
                   type="button"
                 >
