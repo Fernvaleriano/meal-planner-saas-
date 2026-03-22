@@ -367,7 +367,7 @@ function GuidedWorkoutModal({
           weight: existingSet?.weight || 0,
           duration: existingSet?.duration || ex.duration || null,
           distance: existingSet?.distance || ex.distance || null,
-          restSeconds: existingSet?.restSeconds || ex.restSeconds || ex.rest_seconds || 60,
+          restSeconds: existingSet?.restSeconds ?? ex.restSeconds ?? ex.rest_seconds ?? 90,
           effort: existingSet?.effort || null
         };
       });
@@ -572,7 +572,7 @@ function GuidedWorkoutModal({
         reps: defaultReps,
         weight: 0,
         duration: newExercise.duration || null,
-        restSeconds: newExercise.restSeconds || newExercise.rest_seconds || 60,
+        restSeconds: newExercise.restSeconds ?? newExercise.rest_seconds ?? 90,
         effort: null
       }))
     }));
@@ -639,7 +639,12 @@ function GuidedWorkoutModal({
       parseDurationToSeconds(setDuration) ||
       parseDurationToSeconds(ex.reps) ||
       30;
-    const rest = ex.restSeconds || ex.rest_seconds || 60;
+    // Check exercise-level restSeconds, then setsData per-set rest, then legacy rest_seconds field
+    const setsDataRest = Array.isArray(ex.setsData) && ex.setsData[0]?.restSeconds;
+    const rest = ex.restSeconds != null ? ex.restSeconds
+      : setsDataRest != null ? setsDataRest
+      : ex.rest_seconds != null ? ex.rest_seconds
+      : 90;
     const isTillFailure = ex.repType === 'failure';
     return { isTimed, isDistance, isTillFailure, sets, reps, distance, distanceUnit, duration, rest };
   };
