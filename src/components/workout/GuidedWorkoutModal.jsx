@@ -2782,10 +2782,12 @@ function GuidedWorkoutModal({
                   <div className="guided-timer-text">
                     <span className="guided-timer-label">Rest</span>
                     <span className="guided-timer-value">{formatTime(timer)}</span>
+                    {nextExercise && (
+                      <span className="guided-rest-upnext-label">
+                        Up Next: {nextExercise.name || nextExercise.exercise_name}
+                      </span>
+                    )}
                   </div>
-                </div>
-                <div className="guided-rest-upnext-label">
-                  Up Next: {nextExercise.name || nextExercise.exercise_name}
                 </div>
               </div>
             </div>
@@ -2804,6 +2806,11 @@ function GuidedWorkoutModal({
                 <div className="guided-timer-text">
                   <span className="guided-timer-label">Rest</span>
                   <span className="guided-timer-value">{formatTime(timer)}</span>
+                  {nextExercise && (
+                    <span className="guided-rest-upnext-label">
+                      Up Next: {nextExercise.name || nextExercise.exercise_name}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
