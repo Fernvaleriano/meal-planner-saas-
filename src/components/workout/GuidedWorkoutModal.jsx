@@ -826,12 +826,15 @@ function GuidedWorkoutModal({
 
     const fetchProgressTip = async () => {
       try {
-        let res = await apiGet(
-          `/.netlify/functions/exercise-history?clientId=${clientId}&exerciseId=${currentExercise.id}&limit=5`
-        );
-        if ((!res?.history || res.history.length === 0) && currentExercise.name) {
+        // Fetch by name first — captures history across all programs
+        let res = currentExercise.name
+          ? await apiGet(
+              `/.netlify/functions/exercise-history?clientId=${clientId}&exerciseName=${encodeURIComponent(currentExercise.name)}&limit=5`
+            )
+          : null;
+        if ((!res?.history || res.history.length === 0)) {
           res = await apiGet(
-            `/.netlify/functions/exercise-history?clientId=${clientId}&exerciseName=${encodeURIComponent(currentExercise.name)}&limit=5`
+            `/.netlify/functions/exercise-history?clientId=${clientId}&exerciseId=${currentExercise.id}&limit=5`
           );
         }
         if (cancelled || !res?.history || res.history.length === 0) {

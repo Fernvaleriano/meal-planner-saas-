@@ -526,12 +526,15 @@ function ExerciseDetailModal({
 
     const fetchHistory = async () => {
       try {
-        let res = await apiGet(
-          `/.netlify/functions/exercise-history?clientId=${clientId}&exerciseId=${exercise.id}&limit=5`
-        );
-        if ((!res?.history || res.history.length === 0) && exercise.name) {
+        // Fetch by name first — captures history across all programs
+        let res = exercise.name
+          ? await apiGet(
+              `/.netlify/functions/exercise-history?clientId=${clientId}&exerciseName=${encodeURIComponent(exercise.name)}&limit=5`
+            )
+          : null;
+        if ((!res?.history || res.history.length === 0)) {
           res = await apiGet(
-            `/.netlify/functions/exercise-history?clientId=${clientId}&exerciseName=${encodeURIComponent(exercise.name)}&limit=5`
+            `/.netlify/functions/exercise-history?clientId=${clientId}&exerciseId=${exercise.id}&limit=5`
           );
         }
         if (cancelled || !res?.history || res.history.length === 0) return;
@@ -1299,19 +1302,20 @@ function ExerciseDetailModal({
   // NOTE: exercise accessed via exerciseRef to prevent callback recreation
   }, []);
 
-  // Fetch exercise history
+  // Fetch exercise history — uses name for cross-program history
   const fetchExerciseHistory = useCallback(async () => {
     if (!clientId || !exercise?.id) return;
     setHistoryLoading(true);
     try {
-      const exerciseId = exercise.id;
-      let res = await apiGet(
-        `/.netlify/functions/exercise-history?clientId=${clientId}&exerciseId=${exerciseId}&limit=30`
-      );
-      // Fall back to exercise name if no history by ID (handles gender variants with different IDs)
-      if ((!res?.history || res.history.length === 0) && exercise.name) {
+      // Fetch by name first — captures history across all programs
+      let res = exercise.name
+        ? await apiGet(
+            `/.netlify/functions/exercise-history?clientId=${clientId}&exerciseName=${encodeURIComponent(exercise.name)}&limit=30`
+          )
+        : null;
+      if ((!res?.history || res.history.length === 0)) {
         res = await apiGet(
-          `/.netlify/functions/exercise-history?clientId=${clientId}&exerciseName=${encodeURIComponent(exercise.name)}&limit=30`
+          `/.netlify/functions/exercise-history?clientId=${clientId}&exerciseId=${exercise.id}&limit=30`
         );
       }
       if (res?.history) {
@@ -1382,12 +1386,17 @@ function ExerciseDetailModal({
 
     const generateRecommendation = async () => {
       try {
-        let res = await apiGet(
-          `/.netlify/functions/exercise-history?clientId=${clientId}&exerciseId=${exercise.id}&limit=10`
-        );
-        if ((!res?.history || res.history.length === 0) && exercise?.name) {
+        // Always fetch by exercise name to get full cross-program history
+        // (exerciseId differs between programs even for the same exercise)
+        let res = exercise?.name
+          ? await apiGet(
+              `/.netlify/functions/exercise-history?clientId=${clientId}&exerciseName=${encodeURIComponent(exercise.name)}&limit=10`
+            )
+          : null;
+        // Fall back to exerciseId if name query fails or no name available
+        if ((!res?.history || res.history.length === 0)) {
           res = await apiGet(
-            `/.netlify/functions/exercise-history?clientId=${clientId}&exerciseName=${encodeURIComponent(exercise.name)}&limit=10`
+            `/.netlify/functions/exercise-history?clientId=${clientId}&exerciseId=${exercise.id}&limit=10`
           );
         }
 
