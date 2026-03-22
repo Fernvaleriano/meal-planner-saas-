@@ -2500,7 +2500,7 @@ function GuidedWorkoutModal({
           </div>
         ) : (
           <div className="guided-set-indicator">
-            Set {Math.min(currentSetIndex + 1, info.sets)} of {info.sets}
+            {info.sets === 1 ? '1 Set' : `Set ${Math.min(currentSetIndex + 1, info.sets)} of ${info.sets}`}
           </div>
         )}
 
