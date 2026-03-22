@@ -5,6 +5,7 @@ import SwapExerciseModal from './SwapExerciseModal';
 import { apiGet, apiPost, apiPut } from '../../utils/api';
 import { onAppResume } from '../../hooks/useAppLifecycle';
 import { parseDurationToSeconds } from '../../utils/workoutDuration';
+import { generateProgression, EFFORT_OPTIONS, EFFORT_TO_RIR, estimate1RM, parseSetsData, getMaxWeight, parseReps, isCompoundExercise, getWeightIncrement } from '../../utils/workoutProgression';
 
 // --- Resume helpers ---
 const RESUME_STORAGE_KEY = 'guided_workout_resume';
@@ -36,34 +37,7 @@ const clearResumeState = () => {
   try { localStorage.removeItem(RESUME_STORAGE_KEY); } catch {}
 };
 
-// Effort level options (user-friendly RIR / RPE)
-const EFFORT_OPTIONS = [
-  { value: 'easy', label: 'Easy', detail: '4+ left', color: '#22c55e' },
-  { value: 'moderate', label: 'Moderate', detail: '2-3 left', color: '#eab308' },
-  { value: 'hard', label: 'Hard', detail: '1 left', color: '#f97316' },
-  { value: 'maxed', label: 'All Out', detail: '0 left', color: '#ef4444' },
-];
-
-// Map effort labels to numeric RIR values for weighted averaging
-const EFFORT_TO_RIR = { easy: 4, moderate: 2.5, hard: 1, maxed: 0 };
-
-// Estimate 1RM using Brzycki formula
-const estimate1RM = (weight, reps) => {
-  if (reps <= 0 || weight <= 0) return 0;
-  if (reps === 1) return weight;
-  return weight * (36 / (37 - Math.min(reps, 36)));
-};
-
-// Common compound exercise name patterns for fallback detection
-const COMPOUND_PATTERNS = [
-  'squat', 'deadlift', 'bench press', 'overhead press', 'military press',
-  'barbell row', 'bent over row', 'pull-up', 'pullup', 'chin-up', 'chinup',
-  'dip', 'lunge', 'leg press', 'hip thrust', 'clean', 'snatch',
-  'push press', 'thruster', 'good morning', 'rack pull', 'front squat',
-  'romanian deadlift', 'rdl', 'sumo deadlift', 'pendlay row', 't-bar row',
-  'incline press', 'decline press', 'close grip bench', 'hack squat',
-  'bulgarian split squat', 'step up', 'farmer', 'turkish get up'
-];
+// EFFORT_OPTIONS, EFFORT_TO_RIR, estimate1RM, COMPOUND_PATTERNS now imported from workoutProgression.js
 
 // Default seconds per rep — used when coach hasn't set a per-exercise tempo
 const REP_PACE_DEFAULT = 3;
@@ -111,14 +85,7 @@ const playTickSound = (() => {
 })();
 
 // Parse reps helper - supports decimals like "1.5" (e.g. 1.5 miles)
-const parseReps = (reps) => {
-  if (typeof reps === 'number') return reps;
-  if (typeof reps === 'string') {
-    const match = reps.match(/^(\d+(?:\.\d+)?)/);
-    if (match) return parseFloat(match[1]);
-  }
-  return 12;
-};
+// parseReps now imported from workoutProgression.js
 
 // Format seconds to mm:ss (for timer display)
 const formatTime = (seconds) => {
@@ -862,7 +829,6 @@ function GuidedWorkoutModal({
         let res = await apiGet(
           `/.netlify/functions/exercise-history?clientId=${clientId}&exerciseId=${currentExercise.id}&limit=5`
         );
-        // Fallback to exercise name if no history by ID
         if ((!res?.history || res.history.length === 0) && currentExercise.name) {
           res = await apiGet(
             `/.netlify/functions/exercise-history?clientId=${clientId}&exerciseName=${encodeURIComponent(currentExercise.name)}&limit=5`
@@ -870,12 +836,10 @@ function GuidedWorkoutModal({
         }
         if (cancelled || !res?.history || res.history.length === 0) {
           setProgressTips(prev => ({ ...prev, [currentExIndex]: null }));
-          // No history — don't show recommendation card
           setAiRecommendations(prev => ({ ...prev, [currentExIndex]: null }));
           return;
         }
 
-        // Exclude today's session
         const todayStr = getWorkoutDateStr();
         const sessions = res.history.filter(s => s.workoutDate !== todayStr);
         if (sessions.length === 0) {
@@ -884,200 +848,41 @@ function GuidedWorkoutModal({
           return;
         }
 
-        // Parse sets from a session
-        const parseSets = (session) => {
-          try {
-            const s = typeof session.setsData === 'string' ? JSON.parse(session.setsData) : (session.setsData || []);
-            return Array.isArray(s) ? s : [];
-          } catch { return []; }
-        };
+        // Use shared progression engine — same logic as ExerciseDetailModal
+        const result = generateProgression({
+          previousSessions: sessions,
+          exercise: currentExercise,
+          weightUnit,
+        });
 
-        const getMaxWeight = (sets) => sets.reduce((max, s) => Math.max(max, s.weight || 0), 0);
+        if (cancelled) return;
 
-        let last = sessions[0];
-        let lastSets = parseSets(last);
-        let lastMaxWeight = getMaxWeight(lastSets);
-
-        // If most recent session has 0 weight, check if older sessions have real weight
-        // (indicates warm-up sets or unrecorded weight — skip to actual working session)
-        if (lastMaxWeight <= 0 && sessions.length > 1) {
-          const sessionWithWeight = sessions.find(s => getMaxWeight(parseSets(s)) > 0);
-          if (sessionWithWeight) {
-            last = sessionWithWeight;
-            lastSets = parseSets(last);
-            lastMaxWeight = getMaxWeight(lastSets);
-          }
-        }
-
-        const lastMaxReps = lastSets.reduce((max, s) => Math.max(max, s.reps || 0), 0);
-        const lastNumSets = lastSets.length || 3;
-
-        // --- IMPROVEMENT #4: Weighted RIR average (replaces fragile "most common" effort) ---
-        const setsWithEffort = lastSets.filter(s => s.effort && EFFORT_TO_RIR[s.effort] !== undefined);
-        let avgRIR = null;
-        if (setsWithEffort.length > 0) {
-          let totalWeight = 0;
-          let weightedSum = 0;
-          setsWithEffort.forEach((s, idx) => {
-            // Last set counts 1.5x — research shows it's the most accurate effort gauge
-            const w = idx === setsWithEffort.length - 1 ? 1.5 : 1;
-            weightedSum += EFFORT_TO_RIR[s.effort] * w;
-            totalWeight += w;
-          });
-          avgRIR = weightedSum / totalWeight;
-        }
-
-        // Map weighted average RIR back to an effort bucket
-        let effectiveEffort;
-        if (avgRIR === null) {
-          effectiveEffort = null; // no effort data
-        } else if (avgRIR >= 3.5) {
-          effectiveEffort = 'easy';
-        } else if (avgRIR >= 1.75) {
-          effectiveEffort = 'moderate';
-        } else if (avgRIR >= 0.5) {
-          effectiveEffort = 'hard';
-        } else {
-          effectiveEffort = 'maxed';
-        }
-
-        // Keep a simple label for display
-        const lastEffort = effectiveEffort;
-
-        // --- IMPROVEMENT #2: Compound vs isolation detection ---
-        const isCompound = currentExercise.is_compound !== undefined
-          ? !!currentExercise.is_compound
-          : COMPOUND_PATTERNS.some(p => exerciseNameLower.includes(p));
-
-        // Weight increment: compounds get bigger jumps than isolation
-        const weightIncrement = isCompound
-          ? (weightUnit === 'kg' ? 2.5 : 5)
-          : (weightUnit === 'kg' ? 1.25 : 2.5);
-
-        // --- IMPROVEMENT #1: Double progression with rep range ---
-        const prescribedReps = parseReps(currentExercise.reps) || 10;
-        const repRangeBottom = Math.max(1, prescribedReps - 2);
-        const repRangeTop = prescribedReps + 2;
-
-        // --- IMPROVEMENT #3: Plateau detection via estimated 1RM ---
-        let plateauDetected = false;
-        if (sessions.length >= 2) {
-          const session1RMs = sessions.slice(0, 4).map(session => {
-            let sets;
-            try {
-              sets = typeof session.setsData === 'string' ? JSON.parse(session.setsData) : (session.setsData || []);
-            } catch { sets = []; }
-            if (!Array.isArray(sets)) sets = [];
-            return sets.reduce((max, s) => Math.max(max, estimate1RM(s.weight || 0, s.reps || 0)), 0);
-          }).filter(rm => rm > 0);
-
-          if (session1RMs.length >= 3) {
-            // 3+ sessions: plateau if latest 1RM hasn't improved over 2 sessions ago
-            plateauDetected = session1RMs[0] <= session1RMs[2] * 1.02;
-          } else if (session1RMs.length >= 2) {
-            // 2 sessions: plateau if latest is not better than previous
-            plateauDetected = session1RMs[0] <= session1RMs[1] * 1.01;
-          }
-        }
-
-        if (lastMaxWeight > 0 || lastMaxReps > 0) {
-          const dateLabel = new Date(last.workoutDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-
-          // === PROGRESSIVE OVERLOAD RECOMMENDATION ===
-          let recommendedReps = lastMaxReps;
-          let recommendedWeight = lastMaxWeight;
-          let recommendedSets = lastNumSets;
-          let reasoning = '';
-
-          if (plateauDetected) {
-            // --- Plateau strategy: add volume or deload ---
-            if (lastNumSets < 5) {
-              recommendedSets = lastNumSets + 1;
-              reasoning = `Your strength hasn't improved recently. Adding an extra set to break through the plateau.`;
-            } else {
-              recommendedWeight = Math.round((lastMaxWeight * 0.9) * 2) / 2; // round to nearest 0.5
-              recommendedReps = repRangeBottom;
-              reasoning = `Plateau detected — time to deload. Drop to ${recommendedWeight}${weightUnit} and rebuild from ${repRangeBottom} reps.`;
-            }
-          } else if (effectiveEffort === 'easy') {
-            // 4+ RIR — push harder
-            if (lastMaxReps >= repRangeTop) {
-              recommendedWeight = lastMaxWeight + weightIncrement;
-              recommendedReps = repRangeBottom;
-              reasoning = `Easy at ${lastMaxReps} reps — you've earned a weight increase! Drop to ${repRangeBottom} reps and build back up.`;
-            } else {
-              recommendedReps = Math.min(lastMaxReps + 2, repRangeTop);
-              reasoning = `Felt easy — push for ${recommendedReps} reps. Once you hit ${repRangeTop}, we'll increase the weight.`;
-            }
-          } else if (effectiveEffort === 'moderate') {
-            // 2-3 RIR — steady progress
-            if (lastMaxReps >= repRangeTop) {
-              recommendedWeight = lastMaxWeight + weightIncrement;
-              recommendedReps = repRangeBottom;
-              reasoning = `Hit ${lastMaxReps} reps with room to spare. Time to add +${weightIncrement}${weightUnit} and build from ${repRangeBottom} reps.`;
-            } else {
-              recommendedReps = lastMaxReps + 1;
-              reasoning = `Solid effort. Add one more rep — aiming for ${recommendedReps}. Top of range is ${repRangeTop}.`;
-            }
-          } else if (effectiveEffort === 'hard') {
-            // 1 RIR — near limit
-            if (lastMaxReps >= repRangeTop) {
-              recommendedWeight = lastMaxWeight + weightIncrement;
-              recommendedReps = repRangeBottom;
-              reasoning = `Tough but you hit ${repRangeTop}+ reps. Ready for +${weightIncrement}${weightUnit} — drop to ${repRangeBottom} reps at the new weight.`;
-            } else {
-              recommendedReps = lastMaxReps;
-              reasoning = `That was challenging. Match ${lastMaxReps} reps and focus on form before pushing further.`;
-            }
-          } else if (effectiveEffort === 'maxed') {
-            // 0 RIR — at failure
-            if (lastMaxReps <= repRangeBottom) {
-              recommendedWeight = Math.max(0, lastMaxWeight - weightIncrement);
-              recommendedReps = lastMaxReps + 2;
-              reasoning = `You went all out at low reps. Drop ${weightIncrement}${weightUnit} and aim for ${recommendedReps} reps with better control.`;
-            } else {
-              recommendedReps = lastMaxReps;
-              reasoning = `You pushed to the max. Hold at ${lastMaxReps} reps until it feels more manageable.`;
-            }
-          } else {
-            // No effort data — double progression based on rep range
-            if (lastMaxReps >= repRangeTop) {
-              recommendedWeight = lastMaxWeight + weightIncrement;
-              recommendedReps = repRangeBottom;
-              reasoning = `You hit ${lastMaxReps} reps — time to increase weight by +${weightIncrement}${weightUnit} and work from ${repRangeBottom} reps.`;
-            } else {
-              recommendedReps = lastMaxReps + 1;
-              reasoning = `Aim for ${recommendedReps} reps. Once you reach ${repRangeTop}, we'll bump the weight.`;
-            }
-          }
-
-          const effortLabel = lastEffort === 'easy' ? 'felt easy' : lastEffort === 'moderate' ? 'felt moderate' : lastEffort === 'hard' ? 'felt hard' : lastEffort === 'maxed' ? 'went all out' : null;
-          const progressMsg = `On ${dateLabel}: ${lastMaxReps} reps @ ${lastMaxWeight} ${weightUnit}${effortLabel ? ` (${effortLabel})` : ''}${plateauDetected ? ' — plateau detected' : ''}.`;
-
+        if (result) {
           setProgressTips(prev => ({
             ...prev,
             [currentExIndex]: {
-              type: plateauDetected ? 'plateau' : 'progress',
-              icon: plateauDetected ? '⚠️' : '📈',
-              title: plateauDetected ? 'Plateau detected' : 'Keep progressing',
-              message: progressMsg,
-              lastSession: { reps: lastMaxReps, weight: lastMaxWeight, sets: lastNumSets, date: dateLabel, effort: lastEffort }
+              type: result.plateau ? 'plateau' : 'progress',
+              icon: result.plateau ? '\u26A0\uFE0F' : '\uD83D\uDCC8',
+              title: result.plateau ? 'Plateau detected' : 'Keep progressing',
+              message: result.progressMessage,
+              lastSession: result.lastSession
             }
           }));
 
           setAiRecommendations(prev => ({
             ...prev,
             [currentExIndex]: {
-              sets: recommendedSets,
-              reps: recommendedReps,
-              weight: recommendedWeight,
-              reasoning,
-              plateau: plateauDetected,
-              lastSession: { reps: lastMaxReps, weight: lastMaxWeight, sets: lastNumSets, effort: lastEffort }
+              sets: result.sets,
+              reps: result.reps,
+              weight: result.weight,
+              reasoning: result.reasoning,
+              plateau: result.plateau,
+              lastSession: result.lastSession
             }
           }));
         } else {
           setProgressTips(prev => ({ ...prev, [currentExIndex]: null }));
+          setAiRecommendations(prev => ({ ...prev, [currentExIndex]: null }));
         }
       } catch (err) {
         console.error('Error fetching progress tip:', err);
