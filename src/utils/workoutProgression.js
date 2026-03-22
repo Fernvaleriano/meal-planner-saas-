@@ -190,7 +190,9 @@ export const generateProgression = ({ previousSessions, exercise, weightUnit, la
 
   // --- Exercise properties ---
   const weightIncrement = getWeightIncrement(exercise, weightUnit);
-  const prescribedReps = parseReps(exercise?.reps) || 10;
+  // Use coach-prescribed reps if available, otherwise base range on what client actually did
+  const hasPrescribedReps = exercise?.reps != null && exercise.reps !== '' && exercise.reps !== 0;
+  const prescribedReps = hasPrescribedReps ? parseReps(exercise.reps) : lastMaxReps;
   const repRangeTop = prescribedReps + 2;
 
   // --- Plateau detection ---

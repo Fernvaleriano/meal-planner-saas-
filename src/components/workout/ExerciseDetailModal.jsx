@@ -1428,19 +1428,34 @@ function ExerciseDetailModal({
     return () => { cancelled = true; };
   }, [clientId, exercise?.id]);
 
-  // Handle accepting coaching recommendation - applies to all sets
+  // Handle accepting coaching recommendation - applies to all sets, adds extra if needed
   const handleAcceptCoachingRec = useCallback(() => {
     if (!coachingRecommendation) return;
 
-    setSets(prevSets => prevSets.map(set => ({
-      ...set,
-      reps: coachingRecommendation.reps,
-      weight: coachingRecommendation.weight
-    })));
+    setSets(prevSets => {
+      // Update existing sets with recommended reps/weight
+      const updated = prevSets.map(set => ({
+        ...set,
+        reps: coachingRecommendation.reps,
+        weight: coachingRecommendation.weight
+      }));
+
+      // Add extra sets if recommendation calls for more than currently exist
+      const recSets = coachingRecommendation.sets || prevSets.length;
+      while (updated.length < recSets) {
+        updated.push({
+          reps: coachingRecommendation.reps,
+          weight: coachingRecommendation.weight,
+          weightUnit: prevSets[0]?.weightUnit || weightUnit
+        });
+      }
+
+      return updated;
+    });
 
     setsChangedRef.current = true; // Trigger auto-save
     setAcceptedCoachingRec(true);
-  }, [coachingRecommendation]);
+  }, [coachingRecommendation, weightUnit]);
 
   // Calculate estimated 1RM using Epley formula: weight * (1 + reps/30)
   const calculate1RM = (weight, reps) => {
