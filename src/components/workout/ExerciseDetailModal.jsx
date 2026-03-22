@@ -364,8 +364,7 @@ function ExerciseDetailModal({
   const [coachingRecommendation, setCoachingRecommendation] = useState(null);
   const [acceptedCoachingRec, setAcceptedCoachingRec] = useState(false);
 
-  // Effort prompt state (shown when closing modal after completing sets)
-  const [showEffortPrompt, setShowEffortPrompt] = useState(false);
+  // Effort rating state (inline pills below sets)
   const [selectedEffort, setSelectedEffort] = useState(null);
 
   // Client note for coach state
@@ -1062,8 +1061,14 @@ function ExerciseDetailModal({
 
   // Coaching tips/mistakes/cues removed - "Ask Coach" provides more accurate guidance
 
-  // Actually close the modal
-  const doClose = useCallback(() => {
+  // Stable close handler - uses requestAnimationFrame for mobile Safari
+  const handleClose = useCallback(() => {
+    // Remove the history state we pushed when opening
+    if (window.history.state?.modal === 'exercise-detail') {
+      window.history.back();
+      return; // popstate handler will call forceClose
+    }
+
     requestAnimationFrame(() => {
       try {
         callbackRefs.current.onClose?.();
@@ -1073,43 +1078,6 @@ function ExerciseDetailModal({
       }
     });
   }, [forceClose]);
-
-  // Handle effort selection from the prompt
-  const handleEffortSelect = useCallback((effortValue) => {
-    // Apply effort to all sets
-    setSets(prevSets => prevSets.map(set => ({
-      ...set,
-      effort: effortValue
-    })));
-    setsChangedRef.current = true; // Trigger auto-save
-    setSelectedEffort(effortValue);
-    setShowEffortPrompt(false);
-    // Close after a brief moment so the save triggers
-    setTimeout(() => doClose(), 300);
-  }, [doClose]);
-
-  // Stable close handler - shows effort prompt if sets were logged without effort
-  const handleClose = useCallback(() => {
-    // Remove the history state we pushed when opening
-    if (window.history.state?.modal === 'exercise-detail') {
-      window.history.back();
-      return; // popstate handler will call forceClose
-    }
-
-    // Check if user logged sets with weight/reps but no effort rating
-    const hasLoggedSets = sets.some(s => (s.reps > 0 || s.weight > 0));
-    const hasEffort = sets.some(s => s.effort);
-    const isTimed = exercise?.trackingType === 'time' ||
-      exercise?.exercise_type === 'timed' ||
-      exercise?.exercise_type === 'cardio';
-
-    if (hasLoggedSets && !hasEffort && !isTimed && setsChangedRef.current) {
-      setShowEffortPrompt(true);
-      return;
-    }
-
-    doClose();
-  }, [sets, exercise, doClose]);
 
   // Start voice recognition
   const startVoiceInput = useCallback(() => {
@@ -1400,6 +1368,7 @@ function ExerciseDetailModal({
     setShowHistory(false);
     setCoachingRecommendation(null);
     setAcceptedCoachingRec(false);
+    setSelectedEffort(null);
   }, [exercise?.id]);
 
   // Generate coaching recommendation using shared progression engine
@@ -1469,6 +1438,7 @@ function ExerciseDetailModal({
       weight: coachingRecommendation.weight
     })));
 
+    setsChangedRef.current = true; // Trigger auto-save
     setAcceptedCoachingRec(true);
   }, [coachingRecommendation]);
 
@@ -2017,6 +1987,32 @@ function ExerciseDetailModal({
           </div>
         )}
 
+        {/* Effort Rating — inline pills for rating how hard the set was */}
+        {!isTimedExercise && setsChangedRef.current && sets.some(s => s.reps > 0 || s.weight > 0) && (
+          <div className="detail-effort-section">
+            <span className="detail-effort-label">How hard was that?</span>
+            <div className="detail-effort-pills">
+              {EFFORT_OPTIONS.map(opt => (
+                <button
+                  key={opt.value}
+                  className={`detail-effort-pill ${selectedEffort === opt.value ? 'selected' : ''}`}
+                  style={selectedEffort === opt.value ? { background: opt.color, borderColor: opt.color } : undefined}
+                  onClick={() => {
+                    const newEffort = selectedEffort === opt.value ? null : opt.value;
+                    setSelectedEffort(newEffort);
+                    setSets(prev => prev.map(set => ({ ...set, effort: newEffort })));
+                    setsChangedRef.current = true;
+                  }}
+                  type="button"
+                >
+                  <span className="detail-effort-pill-label">{opt.label}</span>
+                  <span className="detail-effort-pill-detail">{opt.detail}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Coaching Recommendation Card */}
         {coachingRecommendation && !isTimedExercise && (
           <div className={`coaching-rec-card ${acceptedCoachingRec ? 'accepted' : ''}`}>
@@ -2530,35 +2526,6 @@ function ExerciseDetailModal({
         </Portal>
       )}
 
-      {/* Effort prompt — shown when closing after logging sets without effort */}
-      {showEffortPrompt && (
-        <div className="effort-prompt-overlay" onClick={() => { setShowEffortPrompt(false); doClose(); }}>
-          <div className="effort-prompt-card" onClick={e => e.stopPropagation()}>
-            <p className="effort-prompt-title">How did that feel?</p>
-            <div className="effort-prompt-pills">
-              {EFFORT_OPTIONS.map(opt => (
-                <button
-                  key={opt.value}
-                  className="effort-prompt-pill"
-                  style={{ background: opt.color }}
-                  onClick={() => handleEffortSelect(opt.value)}
-                  type="button"
-                >
-                  <span className="effort-prompt-pill-label">{opt.label}</span>
-                  <span className="effort-prompt-pill-detail">{opt.detail}</span>
-                </button>
-              ))}
-            </div>
-            <button
-              className="effort-prompt-skip"
-              onClick={() => { setShowEffortPrompt(false); doClose(); }}
-              type="button"
-            >
-              Skip
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
