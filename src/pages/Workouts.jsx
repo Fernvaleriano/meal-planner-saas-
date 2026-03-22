@@ -2497,7 +2497,7 @@ function Workouts() {
               weight: s?.weight || 0,
               weightUnit: s?.weightUnit || weightUnit,
               rpe: s?.rpe || null,
-              restSeconds: s?.restSeconds || 60,
+              restSeconds: s?.restSeconds ?? ex.restSeconds ?? 90,
               completed: s?.completed || false
             })),
             notes: ex.notes || null
