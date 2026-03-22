@@ -1469,6 +1469,7 @@ function ExerciseDetailModal({
       weight: coachingRecommendation.weight
     })));
 
+    setsChangedRef.current = true; // Trigger auto-save
     setAcceptedCoachingRec(true);
   }, [coachingRecommendation]);
 
