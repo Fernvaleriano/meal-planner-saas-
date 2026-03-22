@@ -2099,7 +2099,7 @@ function GuidedWorkoutModal({
           }
           if (nextRep <= 0) {
             setRepCountdownActive(false);
-            setTimeout(() => speak('Set complete. Rest up.', voiceEnabled), 300);
+            setTimeout(() => speak('Set complete. Log your set and rest up.', voiceEnabled), 300);
             // Auto-advance to rest — client can log during rest
             setTimeout(() => {
               const exIdx = currentExIndexRef.current;
