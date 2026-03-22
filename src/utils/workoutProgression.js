@@ -67,6 +67,13 @@ export const getWeightIncrement = (exercise, weightUnit) => {
     : (weightUnit === 'kg' ? 1.25 : 2.5);
 };
 
+// Round weight to the nearest realistic gym increment
+// Ensures we never suggest weights like 29.5kg that don't exist
+export const roundToGymWeight = (weight, increment) => {
+  if (weight <= 0) return 0;
+  return Math.round(weight / increment) * increment;
+};
+
 // --- Effort inference from actual performance vs recommendation ---
 // If no explicit effort was logged, infer it from what they actually did
 export const inferEffort = (actualReps, actualWeight, recommendedReps, recommendedWeight) => {
@@ -226,7 +233,7 @@ export const generateProgression = ({ previousSessions, exercise, weightUnit, la
       recommendedSets = lastNumSets + 1;
       reasoning = `Your strength hasn't improved recently. Adding an extra set to break through the plateau.`;
     } else {
-      recommendedWeight = Math.round((lastMaxWeight * 0.9) * 2) / 2;
+      recommendedWeight = roundToGymWeight(lastMaxWeight * 0.9, weightIncrement);
       recommendedReps = Math.max(lastMaxReps - 2, prescribedReps - 2);
       reasoning = `Plateau detected — time to deload. Drop to ${recommendedWeight}${weightUnit} and rebuild.`;
     }
@@ -287,7 +294,7 @@ export const generateProgression = ({ previousSessions, exercise, weightUnit, la
   // --- Extended context for long gaps ---
   if (daysSinceLast !== null && daysSinceLast >= 14) {
     // 2+ weeks off — suggest conservative approach
-    recommendedWeight = Math.round((lastMaxWeight * 0.9) * 2) / 2;
+    recommendedWeight = roundToGymWeight(lastMaxWeight * 0.9, weightIncrement);
     recommendedReps = lastMaxReps;
     reasoning = `It's been ${daysSinceLast} days since your last session. Ease back in at ${recommendedWeight}${weightUnit} and match your previous reps.`;
   }
@@ -296,6 +303,9 @@ export const generateProgression = ({ previousSessions, exercise, weightUnit, la
     : effectiveEffort === 'moderate' ? 'felt moderate'
     : effectiveEffort === 'hard' ? 'felt hard'
     : effectiveEffort === 'maxed' ? 'went all out' : null;
+
+  // Final safety: ensure recommended weight lands on a real gym increment
+  recommendedWeight = roundToGymWeight(recommendedWeight, weightIncrement);
 
   return {
     sets: recommendedSets,
