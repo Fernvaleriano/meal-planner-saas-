@@ -801,6 +801,7 @@ function GuidedWorkoutModal({
   const currentSetLog = setLogs[currentExIndex]?.[currentSetIndex] || { reps: info.reps, weight: 0 };
 
   // Log values for the just-completed set (used during rest phase)
+  const restExInfo = restLogTarget ? getExerciseInfo(restLogTarget.exIndex) : null;
   const restSetLog = restLogTarget
     ? (setLogs[restLogTarget.exIndex]?.[restLogTarget.setIndex] || { reps: info.reps, weight: 0 })
     : null;
@@ -2902,29 +2903,33 @@ function GuidedWorkoutModal({
               Log your set while you rest
             </p>
             <div className="guided-input-row">
-              <div
-                className={`guided-input-box ${editingField === 'reps' ? 'editing' : ''}`}
-                onClick={() => setEditingField('reps')}
-              >
-                {editingField === 'reps' ? (
-                  <input
-                    ref={inputRef}
-                    type="number"
-                    inputMode="numeric"
-                    enterKeyHint="done"
-                    className="guided-input-field"
-                    value={restSetLog?.reps || ''}
-                    onChange={(e) => updateRestSetLog('reps', parseInt(e.target.value) || 0)}
-                    onBlur={() => setEditingField(null)}
-                    onKeyDown={(e) => { if (e.key === 'Enter') setEditingField(null); }}
-                  />
-                ) : (
-                  <span className="guided-input-value">{restSetLog?.reps || '—'}</span>
-                )}
-                <span className="guided-input-label">reps</span>
-              </div>
+              {!restExInfo?.isTimed && (
+                <>
+                  <div
+                    className={`guided-input-box ${editingField === 'reps' ? 'editing' : ''}`}
+                    onClick={() => setEditingField('reps')}
+                  >
+                    {editingField === 'reps' ? (
+                      <input
+                        ref={inputRef}
+                        type="number"
+                        inputMode="numeric"
+                        enterKeyHint="done"
+                        className="guided-input-field"
+                        value={restSetLog?.reps || ''}
+                        onChange={(e) => updateRestSetLog('reps', parseInt(e.target.value) || 0)}
+                        onBlur={() => setEditingField(null)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') setEditingField(null); }}
+                      />
+                    ) : (
+                      <span className="guided-input-value">{restSetLog?.reps || '—'}</span>
+                    )}
+                    <span className="guided-input-label">reps</span>
+                  </div>
 
-              <div className="guided-input-divider">&times;</div>
+                  <div className="guided-input-divider">&times;</div>
+                </>
+              )}
 
               <div
                 className={`guided-input-box ${editingField === 'weight' ? 'editing' : ''}`}
