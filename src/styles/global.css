@@ -21120,6 +21120,80 @@ textarea,
 }
 
 /* ========================================
+   INLINE EFFORT RATING (inside exercise detail modal)
+   ======================================== */
+.detail-effort-section {
+    padding: 10px 16px 6px;
+    text-align: center;
+}
+
+.detail-effort-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: #94a3b8;
+    display: block;
+    margin-bottom: 8px;
+}
+
+[data-theme="light"] .detail-effort-label {
+    color: #64748b;
+}
+
+.detail-effort-pills {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.detail-effort-pill {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 8px 12px;
+    border-radius: 10px;
+    border: 1.5px solid rgba(148, 163, 184, 0.25);
+    background: rgba(148, 163, 184, 0.08);
+    color: #e2e8f0;
+    cursor: pointer;
+    transition: transform 0.15s, background 0.15s, border-color 0.15s;
+    min-width: 68px;
+}
+
+[data-theme="light"] .detail-effort-pill {
+    border-color: rgba(100, 116, 139, 0.2);
+    background: rgba(100, 116, 139, 0.06);
+    color: #334155;
+}
+
+.detail-effort-pill.selected {
+    color: white;
+    border-color: transparent;
+}
+
+.detail-effort-pill:active {
+    transform: scale(0.95);
+}
+
+.detail-effort-pill-label {
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+.detail-effort-pill-detail {
+    font-size: 10px;
+    font-weight: 400;
+    opacity: 0.6;
+    line-height: 1.2;
+}
+
+.detail-effort-pill.selected .detail-effort-pill-detail {
+    opacity: 0.85;
+}
+
+/* ========================================
    EXERCISE MODAL V3 / IMAGES V3 / TIME BOXES / COACHING REC - LIGHT MODE
    ======================================== */
 
