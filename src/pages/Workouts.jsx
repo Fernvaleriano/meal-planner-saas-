@@ -3377,6 +3377,9 @@ function Workouts() {
                             style={cardImage ? { backgroundImage: `url(${cardImage})` } : {}}
                             onClick={() => handleSelectWorkoutCard(workout)}
                           >
+                            {cardImage && (
+                              <img src={cardImage} alt="" className="card-bg-img" onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.style.backgroundImage = 'none'; }} />
+                            )}
                             <div className="workout-card-content">
                               <div className="workout-card-info">
                                 <h3 className="workout-card-title">{cardDayName}</h3>
@@ -3424,6 +3427,9 @@ function Workouts() {
                           className="workout-card-v3"
                           style={cardImage ? { backgroundImage: `url(${cardImage})` } : {}}
                         >
+                          {cardImage && (
+                            <img src={cardImage} alt="" className="card-bg-img" onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.style.backgroundImage = 'none'; }} />
+                          )}
                           <div className="workout-card-content workout-card-content-merged">
                             {group.map((workout, idx) => {
                               const cardExercises = getWorkoutExercises(workout);
@@ -3796,6 +3802,17 @@ function Workouts() {
             className="workout-hero-v3"
             style={workoutImage ? { backgroundImage: `url(${workoutImage})` } : {}}
           >
+            {workoutImage && (
+              <img
+                src={workoutImage}
+                alt=""
+                className="hero-bg-img"
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                  e.target.parentElement.style.backgroundImage = 'none';
+                }}
+              />
+            )}
             <div className="hero-overlay"></div>
             <div className="hero-content-v3">
               <h1 className="hero-title-v3">

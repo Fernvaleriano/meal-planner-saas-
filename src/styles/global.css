@@ -14726,6 +14726,18 @@ textarea,
     display: flex;
     align-items: flex-end;
     padding: 24px 20px;
+    overflow: hidden;
+}
+
+.workout-hero-v3 .hero-bg-img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    z-index: 0;
 }
 
 .workout-hero-v3 .hero-overlay {
@@ -14833,6 +14845,17 @@ textarea,
     transition: transform 0.2s, box-shadow 0.2s;
     -webkit-tap-highlight-color: transparent;
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.workout-card-v3 .card-bg-img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    z-index: 0;
 }
 
 .workout-card-v3::after {

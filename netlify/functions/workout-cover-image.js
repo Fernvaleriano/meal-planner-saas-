@@ -5,7 +5,7 @@ const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.s
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN;
 
-const BUCKET_NAME = 'workout-covers';
+const BUCKET_NAME = 'exercise-thumbnails';
 
 const headers = {
   'Access-Control-Allow-Origin': '*',
@@ -177,16 +177,6 @@ exports.handler = async (event) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
-    // Ensure bucket exists
-    const bucketReady = await ensureBucketExists(supabase);
-    if (!bucketReady) {
-      return {
-        statusCode: 500,
-        headers,
-        body: JSON.stringify({ error: 'Failed to initialize storage bucket' })
-      };
-    }
-
     // Generate the image
     const generatedImageUrl = await generateCoverImage(programName, programType, description);
 
@@ -194,7 +184,7 @@ exports.handler = async (event) => {
     const imageBuffer = await downloadImage(generatedImageUrl);
 
     // Upload to Supabase Storage
-    const filename = `cover_${Date.now()}_${Math.random().toString(36).substring(7)}.png`;
+    const filename = `workout-covers/cover_${Date.now()}_${Math.random().toString(36).substring(7)}.png`;
 
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from(BUCKET_NAME)
