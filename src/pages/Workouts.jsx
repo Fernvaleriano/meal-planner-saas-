@@ -507,9 +507,6 @@ function Workouts() {
   const [showGuidedWorkout, setShowGuidedWorkout] = useState(false);
   const [showGymProof, setShowGymProof] = useState(false);
   const [showFinishConfirm, setShowFinishConfirm] = useState(false);
-  const [showBetaBanner, setShowBetaBanner] = useState(() => {
-    return !localStorage.getItem('workouts_beta_banner_dismissed');
-  });
   const [showShareResults, setShowShareResults] = useState(false);
   const [shareToggles, setShareToggles] = useState({
     muscles: true,
@@ -2447,11 +2444,6 @@ function Workouts() {
     setShowGuidedWorkout(true);
   }, []);
 
-  // Dismiss beta banner and remember choice
-  const dismissBetaBanner = useCallback(() => {
-    localStorage.setItem('workouts_beta_banner_dismissed', 'true');
-    setShowBetaBanner(false);
-  }, []);
 
   // Complete workout - saves exercise_logs with all sets/reps/weight data
   // exercisesOverride: optional array of exercises with final logged data (from play mode)
@@ -3271,18 +3263,6 @@ function Workouts() {
             {!clientData?.is_coach && <div className="nav-spacer" style={{ width: 40 }}></div>}
           </div>
 
-          {/* Beta Testing Banner */}
-          {showBetaBanner && (
-            <div className="beta-banner">
-              <div className="beta-banner-content">
-                <span className="beta-badge">BETA</span>
-                <p>Workouts is still in testing. If you encounter any bugs, please report them to your coach.</p>
-              </div>
-              <button className="beta-banner-close" onClick={dismissBetaBanner} aria-label="Dismiss">
-                <X size={18} />
-              </button>
-            </div>
-          )}
 
           {/* Week Calendar Strip */}
           <div className="week-calendar-v2">
