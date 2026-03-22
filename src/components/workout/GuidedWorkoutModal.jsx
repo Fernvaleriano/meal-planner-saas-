@@ -603,7 +603,7 @@ function GuidedWorkoutModal({
     // Reset to beginning of this exercise
     setCurrentSetIndex(0);
     setPhase('get-ready');
-    setTimer(10);
+    setTimer(5);
     setShowSwapModal(false);
     setIsPaused(wasPausedBeforeSwapRef.current);
   }, [onSwapExercise, currentExercise, currentExIndex]);
@@ -738,7 +738,7 @@ function GuidedWorkoutModal({
         setCurrentExIndex(nextIdx);
         setCurrentSetIndex(0);
         setPhase('get-ready');
-        setTimer(10);
+        setTimer(5);
       }
     }
   }, [exercises]);
@@ -764,7 +764,7 @@ function GuidedWorkoutModal({
       setCurrentExIndex(pendingNextExIdxRef.current);
       setCurrentSetIndex(0);
       setPhase('get-ready');
-      setTimer(10);
+      setTimer(5);
       setPendingNextExIdx(null);
     } else {
       setPhase('complete');
@@ -814,7 +814,7 @@ function GuidedWorkoutModal({
     setCurrentSetIndex(startSet);
 
     setPhase('get-ready');
-    setTimer(10);
+    setTimer(5);
   }, [exercises, completedSets]);
 
   const info = getExerciseInfo(currentExIndex);
@@ -1329,7 +1329,7 @@ function GuidedWorkoutModal({
         setCurrentExIndex(pendingNextExIdx);
         setCurrentSetIndex(0);
         setPhase('get-ready');
-        setTimer(10);
+        setTimer(5);
         setPendingNextExIdx(null);
       } else {
         setPhase('complete');
@@ -1713,7 +1713,7 @@ function GuidedWorkoutModal({
         setCurrentExIndex(pendingNextExIdx);
         setCurrentSetIndex(0);
         setPhase('get-ready');
-        setTimer(10);
+        setTimer(5);
         setPendingNextExIdx(null);
       } else {
         setPhase('complete');
@@ -1730,7 +1730,7 @@ function GuidedWorkoutModal({
       setCurrentExIndex(pendingNextExIdx);
       setCurrentSetIndex(0);
       setPhase('get-ready');
-      setTimer(10);
+      setTimer(5);
       setPendingNextExIdx(null);
     } else {
       setPhase('complete');
@@ -2262,7 +2262,7 @@ function GuidedWorkoutModal({
   // Circular timer
   const radius = 90;
   const circumference = 2 * Math.PI * radius;
-  const maxTime = phaseMaxTimeRef.current || 10;
+  const maxTime = phaseMaxTimeRef.current || 5;
   const timerProgress = Math.min(timer / maxTime, 1);
   const strokeDashoffset = circumference * (1 - timerProgress);
 
