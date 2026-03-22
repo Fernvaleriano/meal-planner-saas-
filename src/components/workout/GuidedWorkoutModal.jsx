@@ -65,23 +65,51 @@ const getRepPace = (exercise) => {
 // Generate a short tick/click sound via Web Audio API
 const playTickSound = (() => {
   let audioCtx = null;
-  return () => {
+
+  const ensureContext = () => {
+    // Recreate if null or closed (mobile OS can close it after background/idle)
+    if (!audioCtx || audioCtx.state === 'closed') {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    return audioCtx;
+  };
+
+  const fn = () => {
     try {
-      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const ctx = ensureContext();
       // Resume suspended AudioContext (required on mobile after lock/unlock or idle)
-      if (audioCtx.state === 'suspended') audioCtx.resume();
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-      osc.type = 'sine';
-      osc.frequency.value = 880;
-      gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.08);
-      osc.start(audioCtx.currentTime);
-      osc.stop(audioCtx.currentTime + 0.08);
+      if (ctx.state === 'suspended') {
+        ctx.resume().then(() => fn._playTone(ctx)).catch(() => {});
+        return;
+      }
+      fn._playTone(ctx);
     } catch (e) { /* ignore audio errors */ }
   };
+
+  fn._playTone = (ctx) => {
+    try {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.value = 880;
+      gain.gain.setValueAtTime(0.3, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.08);
+    } catch (e) { /* ignore audio errors */ }
+  };
+
+  // Allow external refresh (e.g. on app resume from background)
+  fn.refresh = () => {
+    try {
+      if (audioCtx && audioCtx.state !== 'closed') audioCtx.close().catch(() => {});
+    } catch (e) { /* ignore */ }
+    audioCtx = null;
+  };
+
+  return fn;
 })();
 
 // Parse reps helper - supports decimals like "1.5" (e.g. 1.5 miles)
@@ -1479,6 +1507,11 @@ function GuidedWorkoutModal({
       document.body.style.position = 'fixed';
       document.body.style.top = `-${scrollLockPosRef.current}px`;
       document.body.style.width = '100%';
+
+      // Refresh AudioContext — mobile OS often kills it after background time
+      if (backgroundMs > 2000) {
+        playTickSound.refresh();
+      }
 
       // Force a lightweight repaint on iOS Safari without destroying the DOM tree.
       // Changing a React key would unmount/remount the entire child tree, which
