@@ -1345,12 +1345,14 @@ function GuidedWorkoutModal({
     }
   }, [currentExIndex]);
 
-  // Fallback: fetch video as blob when direct src fails
+  // Fallback: when video fails, re-fetch a fresh signed URL if this is a custom video
   const handleGuidedVideoError = useCallback(async (e) => {
     const guidedVideoUrl = currentExercise?.customVideoUrl || currentExercise?.video_url || currentExercise?.animation_url;
     const mediaError = e?.target?.error;
     console.error(`Guided video load failed for "${currentExercise?.name}":`, {
       url: guidedVideoUrl,
+      customVideoPath: currentExercise?.customVideoPath,
+      customVideoUrl: currentExercise?.customVideoUrl,
       errorCode: mediaError?.code,
       errorMessage: mediaError?.message
     });
@@ -1362,11 +1364,60 @@ function GuidedWorkoutModal({
       return;
     }
 
-    // Try fetching the video as a blob
+    // Determine the file path for custom videos — either from customVideoPath
+    // or by extracting it from the signed URL (legacy data may only have customVideoUrl)
+    let customPath = currentExercise?.customVideoPath;
+    if (!customPath && guidedVideoUrl) {
+      const match = guidedVideoUrl.match(/\/object\/sign\/workout-assets\/(.+?)(?:\?|$)/);
+      if (match) customPath = decodeURIComponent(match[1]);
+    }
+
+    // For custom videos, request a fresh signed URL on-demand
+    // This handles expired URLs, stale SW cache, and any other URL issues
+    if (customPath) {
+      try {
+        const resp = await fetch('/.netlify/functions/get-signed-video-url', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filePath: customPath })
+        });
+        const data = await resp.json();
+        if (data.fileExists === false) {
+          console.error('[guided-video-fix] FILE DOES NOT EXIST in storage:', customPath);
+          setGuidedVideoLoading(false);
+          setGuidedVideoError(true);
+          return;
+        }
+        if (resp.ok && data.success && data.url) {
+          const videoResp = await fetch(data.url);
+          if (videoResp.ok) {
+            const blob = await videoResp.blob();
+            const blobUrl = URL.createObjectURL(blob);
+            setGuidedVideoBlobUrl(blobUrl);
+            setGuidedVideoLoading(true);
+            setGuidedVideoError(false);
+            setGuidedVideoKey(k => k + 1);
+            return;
+          } else {
+            let errorBody = '';
+            try { errorBody = await videoResp.text(); } catch { /* ignore */ }
+            console.error('[guided-video-fix] Fresh signed URL returned HTTP', videoResp.status, errorBody);
+          }
+        }
+      } catch (err) {
+        console.error('[guided-video-fix] Fresh signed URL fallback failed:', err);
+      }
+    }
+
+    // Generic blob fallback for non-custom videos (URL encoding issues)
     if (guidedVideoUrl) {
       try {
         const resp = await fetch(guidedVideoUrl);
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        if (!resp.ok) {
+          let errorBody = '';
+          try { errorBody = await resp.text(); } catch { /* ignore */ }
+          throw new Error(`HTTP ${resp.status}: ${errorBody}`);
+        }
         const blob = await resp.blob();
         const blobUrl = URL.createObjectURL(blob);
         setGuidedVideoBlobUrl(blobUrl);
@@ -1374,7 +1425,7 @@ function GuidedWorkoutModal({
         setGuidedVideoError(false);
         setGuidedVideoKey(k => k + 1);
       } catch (fetchErr) {
-        console.error('Guided video blob fallback also failed:', fetchErr);
+        console.error('[guided-video-fix] Blob fallback also failed:', fetchErr);
         setGuidedVideoLoading(false);
         setGuidedVideoError(true);
       }
@@ -1382,7 +1433,7 @@ function GuidedWorkoutModal({
       setGuidedVideoLoading(false);
       setGuidedVideoError(true);
     }
-  }, [currentExercise?.name, currentExercise?.customVideoUrl, currentExercise?.video_url, currentExercise?.animation_url, guidedVideoBlobUrl]);
+  }, [currentExercise?.name, currentExercise?.customVideoPath, currentExercise?.customVideoUrl, currentExercise?.video_url, currentExercise?.animation_url, guidedVideoBlobUrl]);
 
   // Elapsed time tracker — uses Date.now() to resist drift when Android
   // throttles setInterval during backgrounding (1/min instead of 1/sec).
