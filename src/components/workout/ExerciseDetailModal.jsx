@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
 import { X, Check, Plus, ChevronLeft, Play, Timer, BarChart3, ArrowLeftRight, Trash2, Mic, MicOff, MessageCircle, Loader2, AlertCircle, History, TrendingUp, Award, ChevronDown, ChevronUp, Send, Square, Sparkles, ExternalLink, Camera, Bot } from 'lucide-react';
 import { apiGet, apiPost, apiPut, apiDelete } from '../../utils/api';
+import { generateProgression, EFFORT_OPTIONS, parseSetsData, getMaxWeight } from '../../utils/workoutProgression';
 import { onAppSuspend, onAppResume } from '../../hooks/useAppLifecycle';
 import Portal from '../Portal';
 import SetEditorModal from './SetEditorModal';
@@ -354,16 +355,18 @@ function ExerciseDetailModal({
   const [deletingHistoryId, setDeletingHistoryId] = useState(null); // exercise_log id being deleted
   const [confirmDeleteHistoryId, setConfirmDeleteHistoryId] = useState(null); // exercise_log id awaiting confirm
 
-  // Progressive overload tip state
+  // Progressive overload tip state (used for real-time PR detection)
   const [progressTip, setProgressTip] = useState(null);
   const allTimeMaxWeightRef = useRef(0); // Track all-time max weight for real-time PR detection
   const allTimeBestRepsRef = useRef({}); // Track best reps at each weight: { weight -> maxReps }
-  const readinessDataRef = useRef(readinessData); // Ref to avoid re-running effect when object reference changes
-  readinessDataRef.current = readinessData; // Keep ref in sync
 
   // Coaching recommendation state
   const [coachingRecommendation, setCoachingRecommendation] = useState(null);
   const [acceptedCoachingRec, setAcceptedCoachingRec] = useState(false);
+
+  // Effort prompt state (shown when closing modal after completing sets)
+  const [showEffortPrompt, setShowEffortPrompt] = useState(false);
+  const [selectedEffort, setSelectedEffort] = useState(null);
 
   // Client note for coach state
   const [clientNote, setClientNote] = useState('');
@@ -501,15 +504,14 @@ function ExerciseDetailModal({
   // NOTE: initialSets is memoized with [exercise?.id], so we only need exercise?.id here
   }, [exercise?.id]);
 
-  // Fetch last session and generate progressive overload tip
-  // Uses readiness data (energy, soreness, sleep) + performance history for smarter suggestions
+  // Fetch exercise history for real-time PR detection
   useEffect(() => {
     if (!clientId || !exercise?.id) {
       setProgressTip(null);
       return;
     }
 
-    // Skip progress tips for timed/cardio exercises - doesn't make sense to suggest "more reps"
+    // Skip for timed/cardio exercises
     const isTimed = exercise.trackingType === 'time' ||
       exercise.exercise_type === 'timed' ||
       exercise.exercise_type === 'cardio' ||
@@ -523,13 +525,11 @@ function ExerciseDetailModal({
 
     let cancelled = false;
 
-    const generateTip = async () => {
+    const fetchHistory = async () => {
       try {
-        // First try by exercise ID
         let res = await apiGet(
           `/.netlify/functions/exercise-history?clientId=${clientId}&exerciseId=${exercise.id}&limit=5`
         );
-        // If no history by ID, fall back to exercise name (handles gender variants with different IDs)
         if ((!res?.history || res.history.length === 0) && exercise.name) {
           res = await apiGet(
             `/.netlify/functions/exercise-history?clientId=${clientId}&exerciseName=${encodeURIComponent(exercise.name)}&limit=5`
@@ -537,226 +537,29 @@ function ExerciseDetailModal({
         }
         if (cancelled || !res?.history || res.history.length === 0) return;
 
-        // Store all-time bests for real-time PR detection (weight + reps)
-        // Helper to safely parse setsData (can be JSON string or array)
-        const safeSets = (sd) => {
-          if (Array.isArray(sd)) return sd;
-          if (typeof sd === 'string') { try { return JSON.parse(sd) || []; } catch { return []; } }
-          return [];
-        };
-        const allMaxWeights = res.history.map(h => safeSets(h.setsData).reduce((max, s) => Math.max(max, s.weight || 0), 0));
+        // Store all-time bests for real-time PR detection
+        const allMaxWeights = res.history.map(h => {
+          const sets = parseSetsData(h);
+          return getMaxWeight(sets);
+        });
         allTimeMaxWeightRef.current = allMaxWeights.reduce((max, w) => Math.max(max, w), 0);
 
         const bestReps = {};
         for (const session of res.history) {
-          for (const s of safeSets(session.setsData)) {
+          for (const s of parseSetsData(session)) {
             const w = s.weight || 0;
             const r = s.reps || 0;
             if (r > (bestReps[w] || 0)) bestReps[w] = r;
           }
         }
         allTimeBestRepsRef.current = bestReps;
-
-        const allSessions = res.history; // most recent first
-        // Exclude today's session so the tip is based on previous workouts
-        const todayStr = new Date().toISOString().split('T')[0];
-        const sessions = allSessions.filter(s => s.workoutDate !== todayStr);
-        if (sessions.length === 0) return;
-        const last = sessions[0];
-        const lastSets = safeSets(last.setsData);
-        if (lastSets.length === 0) return;
-
-        const lastMaxWeight = lastSets.reduce((max, s) => Math.max(max, s.weight || 0), 0);
-        const lastMaxReps = lastSets.reduce((max, s) => Math.max(max, s.reps || 0), 0);
-        const lastTotalReps = lastSets.reduce((sum, s) => sum + (s.reps || 0), 0);
-        const lastTotalSets = lastSets.length;
-        const lastDate = last.workoutDate;
-
-        // Days since last session for this exercise
-        const lastDateObj = lastDate ? new Date(lastDate + 'T12:00:00') : null;
-        const daysSinceLast = lastDateObj
-          ? Math.round((new Date() - lastDateObj) / (1000 * 60 * 60 * 24))
-          : null;
-
-        // RPE analysis — average RPE from sets that have it logged
-        const rpeValues = lastSets.map(s => s.rpe).filter(r => r != null && r >= 6);
-        const hasRpe = rpeValues.length > 0;
-        const avgRpe = hasRpe ? Math.round((rpeValues.reduce((a, b) => a + b, 0) / rpeValues.length) * 10) / 10 : null;
-
-        // Format the date for display
-        const dateLabel = lastDateObj
-          ? lastDateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-          : 'last session';
-
-        // Performance analysis
-        const allSetsHitTarget = lastSets.every(s => (s.reps || 0) >= 12);
-        const struggling = lastSets.some(s => (s.reps || 0) > 0 && (s.reps || 0) < 8);
-
-        // Plateau detection — same max weight across last 3+ sessions
-        // But skip if today's session already broke through with higher weight
-        let isPlateaued = false;
-        if (sessions.length >= 3) {
-          const recentMaxes = sessions.slice(0, 3).map(s => {
-            const sd = safeSets(s.setsData);
-            return sd.reduce((max, set) => Math.max(max, set.weight || 0), 0);
-          });
-          isPlateaued = recentMaxes.every(w => w === recentMaxes[0]) && recentMaxes[0] > 0;
-
-          // Check if today's session already broke the plateau
-          if (isPlateaued) {
-            const todaySessions = allSessions.filter(s => s.workoutDate === todayStr);
-            if (todaySessions.length > 0) {
-              const todaySets = safeSets(todaySessions[0].setsData);
-              const todayMax = todaySets.reduce((max, s) => Math.max(max, s.weight || 0), 0);
-              if (todayMax > recentMaxes[0]) {
-                isPlateaued = false; // Already broke through
-              }
-            }
-          }
-        }
-
-        // ── Readiness score (1-3 scale: 1=low, 2=normal, 3=high) ──
-        // Combines energy, soreness (inverted: 1=very sore, 3=fresh), sleep
-        // Use ref to avoid re-running effect when readinessData object reference changes
-        const currentReadiness = readinessDataRef.current;
-        const energy = currentReadiness?.energy || 2;
-        const soreness = currentReadiness?.soreness || 2; // 1=very sore, 2=a little, 3=fresh
-        const sleepQ = currentReadiness?.sleep || 2;
-        // readinessScore: 3-9 range → bucket into low(3-4), normal(5-6), high(7-9)
-        const readinessScore = energy + soreness + sleepQ;
-        const readiness = readinessScore <= 4 ? 'low' : readinessScore >= 7 ? 'high' : 'normal';
-
-        // Recovery status based on soreness + days since last session
-        const wellRecovered = soreness >= 3 || (daysSinceLast !== null && daysSinceLast >= 3);
-        const underRecovered = soreness <= 1 || (daysSinceLast !== null && daysSinceLast <= 1 && soreness < 3);
-
-        let tip = null;
-
-        // ── Decision matrix: readiness + performance ──
-
-        // 1. LOW readiness — protect the athlete
-        if (readiness === 'low' && underRecovered) {
-          tip = {
-            type: 'deload',
-            icon: '\u{1F6E1}\u{FE0F}',
-            title: 'Easy day — recover smart',
-            message: `You're tired and sore. Drop to ${Math.round(lastMaxWeight * 0.8)} ${weightUnit}, slow tempo, focus on form.`,
-          };
-        } else if (readiness === 'low') {
-          tip = {
-            type: 'deload',
-            icon: '\u{1F6E1}\u{FE0F}',
-            title: 'Listen to your body',
-            message: `Low energy today. Stay at ${lastMaxWeight} ${weightUnit}, focus on controlled reps and good form.`,
-          };
-
-        // 2. RPE was near-max last session — hold steady regardless of readiness
-        } else if (hasRpe && avgRpe >= 9.5) {
-          tip = {
-            type: 'build_reps',
-            icon: '\u{1F6E1}\u{FE0F}',
-            title: 'Near your limit',
-            message: `RPE ${avgRpe} on ${dateLabel} — you were grinding. Stay at ${lastMaxWeight} ${weightUnit}, clean reps.`,
-          };
-
-        // 3. HIGH readiness + well recovered + hit target reps → increase weight
-        } else if (readiness === 'high' && wellRecovered && allSetsHitTarget && lastMaxWeight > 0) {
-          const increment = weightUnit === 'kg' ? (lastMaxWeight >= 80 ? 5 : 2.5) : (lastMaxWeight >= 175 ? 10 : 5);
-          tip = {
-            type: 'increase_weight',
-            icon: '\u{1F525}',
-            title: 'Go heavier today',
-            message: `You're fresh and hit ${lastMaxReps} reps @ ${lastMaxWeight} ${weightUnit} on ${dateLabel}. Try ${lastMaxWeight + increment} ${weightUnit}.`,
-          };
-
-        // 4. HIGH readiness + not fully recovered → add reps or set instead of weight
-        } else if (readiness === 'high' && !wellRecovered && lastMaxWeight > 0) {
-          if (allSetsHitTarget) {
-            tip = {
-              type: 'add_set',
-              icon: '\u{1F4AA}',
-              title: 'Add volume',
-              message: `Feeling strong but still recovering. Stay at ${lastMaxWeight} ${weightUnit} and add an extra set.`,
-            };
-          } else {
-            const targetReps = Math.min(lastMaxReps + 2, 15);
-            tip = {
-              type: 'add_reps',
-              icon: '\u{1F4AA}',
-              title: 'Push the reps',
-              message: `Good energy today. Aim for ${targetReps} reps @ ${lastMaxWeight} ${weightUnit}.`,
-            };
-          }
-
-        // 5. HIGH readiness + low RPE last session → weight bump
-        } else if (readiness === 'high' && hasRpe && avgRpe <= 6.5 && lastMaxWeight > 0) {
-          const increment = weightUnit === 'kg' ? (lastMaxWeight >= 80 ? 5 : 2.5) : (lastMaxWeight >= 175 ? 10 : 5);
-          tip = {
-            type: 'increase_weight',
-            icon: '\u{1F525}',
-            title: 'You had more in the tank',
-            message: `RPE ${avgRpe} on ${dateLabel} and you're feeling great. Bump to ${lastMaxWeight + increment} ${weightUnit}.`,
-          };
-
-        // 6. Plateau detected — suggest changing stimulus
-        } else if (isPlateaued && !struggling) {
-          tip = {
-            type: 'plateau',
-            icon: '\u{26A1}',
-            title: 'Switch it up',
-            message: `Same weight for 3 sessions. Try slower tempo, shorter rest, or add an extra set at ${lastMaxWeight} ${weightUnit}.`,
-          };
-
-        // 7. NORMAL readiness + hit target reps → add a set first, then weight
-        } else if (readiness === 'normal' && allSetsHitTarget && lastMaxWeight > 0) {
-          const targetSets = lastTotalSets + 1;
-          tip = {
-            type: 'add_set',
-            icon: '\u{1F4C8}',
-            title: 'Add a set',
-            message: `You did ${lastTotalSets}×${lastMaxReps} at ${lastMaxWeight} ${weightUnit} on ${dateLabel}. Try ${targetSets}×${lastMaxReps} at ${lastMaxWeight} ${weightUnit} today before going heavier.`,
-          };
-
-        // 8. NORMAL readiness + struggling → build reps
-        } else if (struggling) {
-          tip = {
-            type: 'build_reps',
-            icon: '\u{1F4AA}',
-            title: 'Build your reps',
-            message: `On ${dateLabel}: ${lastMaxReps} reps @ ${lastMaxWeight} ${weightUnit}. Aim for ${Math.min(lastMaxReps + 2, 12)} reps at the same weight.`,
-          };
-
-        // 9. NORMAL readiness + mid-range reps → add 1 rep
-        } else if (lastMaxWeight > 0) {
-          const targetReps = Math.min(lastMaxReps + 1, 15);
-          tip = {
-            type: 'add_reps',
-            icon: '\u{1F4C8}',
-            title: 'Keep progressing',
-            message: `On ${dateLabel}: ${lastMaxReps} reps @ ${lastMaxWeight} ${weightUnit}. Aim for ${targetReps} reps this session.`,
-          };
-
-        // 10. Bodyweight exercise — no weight tracked
-        } else if (lastTotalReps > 0) {
-          tip = {
-            type: 'add_reps',
-            icon: '\u{1F4C8}',
-            title: 'Keep progressing',
-            message: `On ${dateLabel}: ${lastMaxReps} reps. Try ${lastMaxReps + 1}-${lastMaxReps + 3} reps this session.`,
-          };
-        }
-
-        if (!cancelled && tip) {
-          setProgressTip(tip);
-        }
       } catch (err) {
-        console.error('Error generating progress tip:', err);
+        console.error('Error fetching exercise history for PR tracking:', err);
       }
     };
 
-    generateTip();
+    fetchHistory();
     return () => { cancelled = true; };
-  // NOTE: readinessData accessed via ref to prevent infinite re-renders from object reference changes
   }, [clientId, exercise?.id]);
 
   // Auto-save exercise_log to database when sets change (debounced)
@@ -830,6 +633,7 @@ function ExerciseDetailModal({
           weight: s.weight || 0,
           weightUnit: s.weightUnit || weightUnit,
           rpe: s.rpe || null,
+          effort: s.effort || null,
           restSeconds: s.restSeconds || null,
           isTimeBased: s.isTimeBased || false,
           ...(s.duration != null && { duration: s.duration }),
@@ -1258,26 +1062,54 @@ function ExerciseDetailModal({
 
   // Coaching tips/mistakes/cues removed - "Ask Coach" provides more accurate guidance
 
-  // Stable close handler - uses requestAnimationFrame for mobile Safari
-  // Falls back to forceClose if the callback fails
-  const handleClose = useCallback(() => {
-    // Remove the history state we pushed when opening
-    // This prevents double back-button issues
-    if (window.history.state?.modal === 'exercise-detail') {
-      window.history.back();
-      return; // popstate handler will call forceClose
-    }
-
+  // Actually close the modal
+  const doClose = useCallback(() => {
     requestAnimationFrame(() => {
       try {
         callbackRefs.current.onClose?.();
       } catch (e) {
         console.error('Error closing modal:', e);
-        // Fallback: force close
         forceClose();
       }
     });
   }, [forceClose]);
+
+  // Handle effort selection from the prompt
+  const handleEffortSelect = useCallback((effortValue) => {
+    // Apply effort to all sets
+    setSets(prevSets => prevSets.map(set => ({
+      ...set,
+      effort: effortValue
+    })));
+    setsChangedRef.current = true; // Trigger auto-save
+    setSelectedEffort(effortValue);
+    setShowEffortPrompt(false);
+    // Close after a brief moment so the save triggers
+    setTimeout(() => doClose(), 300);
+  }, [doClose]);
+
+  // Stable close handler - shows effort prompt if sets were logged without effort
+  const handleClose = useCallback(() => {
+    // Remove the history state we pushed when opening
+    if (window.history.state?.modal === 'exercise-detail') {
+      window.history.back();
+      return; // popstate handler will call forceClose
+    }
+
+    // Check if user logged sets with weight/reps but no effort rating
+    const hasLoggedSets = sets.some(s => (s.reps > 0 || s.weight > 0));
+    const hasEffort = sets.some(s => s.effort);
+    const isTimed = exercise?.trackingType === 'time' ||
+      exercise?.exercise_type === 'timed' ||
+      exercise?.exercise_type === 'cardio';
+
+    if (hasLoggedSets && !hasEffort && !isTimed && setsChangedRef.current) {
+      setShowEffortPrompt(true);
+      return;
+    }
+
+    doClose();
+  }, [sets, exercise, doClose]);
 
   // Start voice recognition
   const startVoiceInput = useCallback(() => {
@@ -1570,7 +1402,7 @@ function ExerciseDetailModal({
     setAcceptedCoachingRec(false);
   }, [exercise?.id]);
 
-  // Generate coaching recommendation - fetches its own history data
+  // Generate coaching recommendation using shared progression engine
   useEffect(() => {
     if (!clientId || !exercise?.id) {
       setCoachingRecommendation(null);
@@ -1581,11 +1413,9 @@ function ExerciseDetailModal({
 
     const generateRecommendation = async () => {
       try {
-        // Fetch history for this exercise
         let res = await apiGet(
           `/.netlify/functions/exercise-history?clientId=${clientId}&exerciseId=${exercise.id}&limit=10`
         );
-        // Fall back to exercise name if no history by ID
         if ((!res?.history || res.history.length === 0) && exercise?.name) {
           res = await apiGet(
             `/.netlify/functions/exercise-history?clientId=${clientId}&exerciseName=${encodeURIComponent(exercise.name)}&limit=10`
@@ -1595,93 +1425,28 @@ function ExerciseDetailModal({
         if (cancelled) return;
 
         const history = res?.history || [];
-
         if (history.length === 0) {
-          // No history — don't show recommendation card
           setCoachingRecommendation(null);
           return;
         }
 
-        // Get today's date string to exclude current session
         const today = new Date();
         const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-
-        // Filter out today's session
         const previousSessions = history.filter(s => s.workoutDate !== todayStr);
         if (previousSessions.length === 0) {
           setCoachingRecommendation(null);
           return;
         }
 
-        // Get the most recent previous session, but skip 0-weight sessions
-        // when older sessions have real weight data (indicates warm-up or unrecorded weight)
-        const parseSets = (session) => {
-          try {
-            const s = typeof session.setsData === 'string'
-              ? JSON.parse(session.setsData) : (session.setsData || []);
-            return Array.isArray(s) ? s : [];
-          } catch { return []; }
-        };
-
-        const getMaxWeight = (sets) => sets.reduce((max, s) => Math.max(max, s.weight || 0), 0);
-
-        let lastSession = previousSessions[0];
-        let lastSets = parseSets(lastSession);
-        let lastMaxWeight = getMaxWeight(lastSets);
-
-        // If most recent session has 0 weight, check if older sessions have real weight
-        if (lastMaxWeight <= 0 && previousSessions.length > 1) {
-          const sessionWithWeight = previousSessions.find(s => getMaxWeight(parseSets(s)) > 0);
-          if (sessionWithWeight) {
-            lastSession = sessionWithWeight;
-            lastSets = parseSets(lastSession);
-            lastMaxWeight = getMaxWeight(lastSets);
-          }
-        }
-
-        const lastMaxReps = lastSets.reduce((max, s) => Math.max(max, s.reps || 0), 0);
-        const lastNumSets = lastSets.length || 3;
-        // Use the prescribed set count from the exercise, not from history
-        const prescribedSets = Array.isArray(exercise.sets) ? exercise.sets.length
-          : (typeof exercise.sets === 'number' && exercise.sets > 0 ? exercise.sets : lastNumSets);
-        const dateLabel = new Date(lastSession.workoutDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-
-        if (lastMaxWeight <= 0 && lastMaxReps <= 0) {
-          setCoachingRecommendation(null);
-          return;
-        }
-
-        // Generate recommendation based on progressive overload logic
-        let recommendedReps = lastMaxReps;
-        let recommendedWeight = lastMaxWeight;
-        let recommendedSets = prescribedSets;
-        let reasoning = '';
-
-        const recIncrement = weightUnit === 'kg' ? 2.5 : 5;
-        if (lastMaxReps >= 12) {
-          // Hit 12+ reps, time to increase weight
-          recommendedWeight = lastMaxWeight + recIncrement;
-          recommendedReps = 8;
-          reasoning = `You hit ${lastMaxReps} reps @ ${lastMaxWeight} ${weightUnit} on ${dateLabel}. Increase weight, drop to 8 reps.`;
-        } else if (lastMaxReps < 8) {
-          // Under 8 reps, keep same weight and aim to increase reps
-          recommendedReps = lastMaxReps + 1;
-          reasoning = `Last session: ${lastMaxReps} reps @ ${lastMaxWeight} ${weightUnit}. Aim for ${recommendedReps} reps.`;
-        } else {
-          // 8-11 reps, progressive increase
-          recommendedReps = lastMaxReps + 1;
-          reasoning = `On ${dateLabel}: ${lastMaxReps} reps @ ${lastMaxWeight} ${weightUnit}. Aim for ${recommendedReps} reps.`;
-        }
+        // Use shared progression engine — same logic as GuidedWorkoutModal
+        const result = generateProgression({
+          previousSessions,
+          exercise,
+          weightUnit,
+        });
 
         if (cancelled) return;
-
-        setCoachingRecommendation({
-          sets: recommendedSets,
-          reps: recommendedReps,
-          weight: recommendedWeight,
-          reasoning,
-          lastSession: { reps: lastMaxReps, weight: lastMaxWeight, sets: lastNumSets, date: dateLabel }
-        });
+        setCoachingRecommendation(result);
       } catch (err) {
         console.error('Error generating coaching recommendation:', err);
         if (!cancelled) {
@@ -2763,6 +2528,36 @@ function ExerciseDetailModal({
             onClose={() => setShowAskAI(false)}
           />
         </Portal>
+      )}
+
+      {/* Effort prompt — shown when closing after logging sets without effort */}
+      {showEffortPrompt && (
+        <div className="effort-prompt-overlay" onClick={() => { setShowEffortPrompt(false); doClose(); }}>
+          <div className="effort-prompt-card" onClick={e => e.stopPropagation()}>
+            <p className="effort-prompt-title">How did that feel?</p>
+            <div className="effort-prompt-pills">
+              {EFFORT_OPTIONS.map(opt => (
+                <button
+                  key={opt.value}
+                  className="effort-prompt-pill"
+                  style={{ background: opt.color }}
+                  onClick={() => handleEffortSelect(opt.value)}
+                  type="button"
+                >
+                  <span className="effort-prompt-pill-label">{opt.label}</span>
+                  <span className="effort-prompt-pill-detail">{opt.detail}</span>
+                </button>
+              ))}
+            </div>
+            <button
+              className="effort-prompt-skip"
+              onClick={() => { setShowEffortPrompt(false); doClose(); }}
+              type="button"
+            >
+              Skip
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

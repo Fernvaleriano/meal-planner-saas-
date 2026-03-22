@@ -21020,6 +21020,106 @@ textarea,
 }
 
 /* ========================================
+   EFFORT PROMPT (shown on exercise detail close)
+   ======================================== */
+.effort-prompt-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    z-index: 10001;
+    animation: fadeIn 0.15s ease;
+}
+
+.effort-prompt-card {
+    background: #1a1a2e;
+    border-radius: 20px 20px 0 0;
+    padding: 24px 20px 32px;
+    width: 100%;
+    max-width: 500px;
+    text-align: center;
+    animation: slideUp 0.2s ease;
+}
+
+[data-theme="light"] .effort-prompt-card {
+    background: #ffffff;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.effort-prompt-title {
+    font-size: 17px;
+    font-weight: 600;
+    color: #e2e8f0;
+    margin: 0 0 16px;
+}
+
+[data-theme="light"] .effort-prompt-title {
+    color: #1e293b;
+}
+
+.effort-prompt-pills {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+}
+
+.effort-prompt-pill {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 10px 14px;
+    border-radius: 12px;
+    border: none;
+    color: white;
+    cursor: pointer;
+    transition: transform 0.15s, opacity 0.15s;
+    min-width: 72px;
+}
+
+.effort-prompt-pill:active {
+    transform: scale(0.95);
+}
+
+.effort-prompt-pill-label {
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+.effort-prompt-pill-detail {
+    font-size: 10px;
+    font-weight: 400;
+    opacity: 0.85;
+    line-height: 1.2;
+}
+
+.effort-prompt-skip {
+    background: none;
+    border: none;
+    color: #94a3b8;
+    font-size: 14px;
+    cursor: pointer;
+    padding: 8px 16px;
+}
+
+[data-theme="light"] .effort-prompt-skip {
+    color: #64748b;
+}
+
+@keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+}
+
+/* ========================================
    EXERCISE MODAL V3 / IMAGES V3 / TIME BOXES / COACHING REC - LIGHT MODE
    ======================================== */
 
