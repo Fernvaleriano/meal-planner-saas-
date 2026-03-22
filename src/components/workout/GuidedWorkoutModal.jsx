@@ -2832,7 +2832,7 @@ function GuidedWorkoutModal({
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', background: 'linear-gradient(135deg, #f0fdf4 0%, #e0f2fe 100%)', borderRadius: '12px', minHeight: '200px' }}>
             <div className="guided-timer-circle">
               <svg viewBox="0 0 200 200" className="guided-timer-svg">
-                <circle cx="100" cy="100" r={radius} className="guided-timer-track" />
+                <circle cx="100" cy="100" r={radius} className="guided-timer-track" style={{ stroke: '#c7d2dd' }} />
                 <circle
                   cx="100" cy="100" r={radius}
                   className="guided-timer-ring rest"
@@ -2841,8 +2841,8 @@ function GuidedWorkoutModal({
                 />
               </svg>
               <div className="guided-timer-text">
-                <span className="guided-timer-label">Rest</span>
-                <span className="guided-timer-value">{formatTime(timer)}</span>
+                <span className="guided-timer-label" style={{ color: '#6b7280', opacity: 1 }}>Rest</span>
+                <span className="guided-timer-value" style={{ color: '#111827' }}>{formatTime(timer)}</span>
               </div>
             </div>
           </div>
