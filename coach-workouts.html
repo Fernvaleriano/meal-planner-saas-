@@ -6180,6 +6180,7 @@
                         <label style="display: block; font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; text-transform: uppercase;">Equipment</label>
                         <select id="equipmentFilter" class="form-input" onchange="applyFilters()" style="width: 100%;">
                             <option value="">All Equipment</option>
+                            <option value="no_equipment">No Equipment</option>
                             <option value="barbell">Barbell</option>
                             <option value="dumbbell">Dumbbell</option>
                             <option value="cable">Cable</option>
@@ -9414,9 +9415,15 @@
 
             // Filter by equipment
             if (currentEquipmentFilter) {
-                filtered = filtered.filter(e =>
-                    e.equipment?.toLowerCase() === currentEquipmentFilter.toLowerCase()
-                );
+                if (currentEquipmentFilter === 'no_equipment') {
+                    filtered = filtered.filter(e =>
+                        !e.equipment || e.equipment.toLowerCase() === 'bodyweight' || e.equipment.toLowerCase() === 'none' || e.equipment.trim() === ''
+                    );
+                } else {
+                    filtered = filtered.filter(e =>
+                        e.equipment?.toLowerCase() === currentEquipmentFilter.toLowerCase()
+                    );
+                }
             }
 
             // Filter by difficulty
