@@ -2829,7 +2829,7 @@ function GuidedWorkoutModal({
       }}>
         {phase === 'rest' ? (
           /* Rest timer displayed in the visual area */
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', background: 'linear-gradient(135deg, #f0fdf4 0%, #e0f2fe 100%)', borderRadius: '12px', minHeight: '200px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', background: 'linear-gradient(135deg, #0a1628 0%, #0c1a2e 100%)', borderRadius: '12px', minHeight: '200px' }}>
             <div className="guided-timer-circle">
               <svg viewBox="0 0 200 200" className="guided-timer-svg">
                 <circle cx="100" cy="100" r={radius} className="guided-timer-track" />
