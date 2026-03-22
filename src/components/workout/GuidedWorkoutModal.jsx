@@ -94,6 +94,8 @@ const playTickSound = (() => {
   return () => {
     try {
       if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      // Resume suspended AudioContext (required on mobile after lock/unlock or idle)
+      if (audioCtx.state === 'suspended') audioCtx.resume();
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
       osc.connect(gain);
@@ -2077,8 +2079,8 @@ function GuidedWorkoutModal({
       if (remaining <= 0) {
         clearInterval(repIntervalRef.current);
         repIntervalRef.current = null;
-        // Play tick sound on each rep
-        if (voiceEnabled) playTickSound();
+        // Play tick sound on each rep (always, independent of voice setting)
+        playTickSound();
         setCurrentRep(prev => {
           const nextRep = prev - 1;
           // Voice callouts at milestones
