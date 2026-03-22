@@ -2214,6 +2214,15 @@ function GuidedWorkoutModal({
 
   const nextExercise = currentExIndex < exercises.length - 1 ? exercises[currentExIndex + 1] : null;
 
+  // Helper to check if an exercise at a given index has all sets completed
+  const isExerciseCompleted = (exIdx) => {
+    const ex = exercises[exIdx];
+    if (!ex) return false;
+    const numSets = typeof ex.sets === 'number' ? ex.sets : (Array.isArray(ex.sets) ? ex.sets.length : 3);
+    const done = completedSets[exIdx]?.size || 0;
+    return done >= numSets;
+  };
+
   // Detect "transition rest" — resting after last set before moving to next exercise
   const isTransitionRest = phase === 'rest' && isExerciseCompleted(currentExIndex) && nextExercise;
   const nextExerciseVideoUrl = nextExercise?.customVideoUrl || nextExercise?.video_url || nextExercise?.animation_url;
@@ -2231,15 +2240,6 @@ function GuidedWorkoutModal({
     const lower = url.split('?')[0].toLowerCase();
     return lower.endsWith('.gif') || lower.endsWith('.png') || lower.endsWith('.jpg') ||
            lower.endsWith('.jpeg') || lower.endsWith('.webp') || lower.endsWith('.svg');
-  };
-
-  // Helper to check if an exercise at a given index has all sets completed
-  const isExerciseCompleted = (exIdx) => {
-    const ex = exercises[exIdx];
-    if (!ex) return false;
-    const numSets = typeof ex.sets === 'number' ? ex.sets : (Array.isArray(ex.sets) ? ex.sets.length : 3);
-    const done = completedSets[exIdx]?.size || 0;
-    return done >= numSets;
   };
 
   // Auto-scroll activity thumbnails to keep current exercise visible
