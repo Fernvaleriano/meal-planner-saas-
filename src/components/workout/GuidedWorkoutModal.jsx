@@ -2496,11 +2496,11 @@ function GuidedWorkoutModal({
         </div>
         {supersetState ? (
           <div className="guided-set-indicator">
-            {supersetState.totalRounds === 1 || supersetState.round + 1 >= supersetState.totalRounds ? 'Last Round' : `Round ${supersetState.round + 1} of ${supersetState.totalRounds}`}
+            Round {supersetState.round + 1} of {supersetState.totalRounds}
           </div>
         ) : (
           <div className="guided-set-indicator">
-            {info.sets === 1 || currentSetIndex + 1 >= info.sets ? 'Last Set' : `Set ${currentSetIndex + 1} of ${info.sets}`}
+            {info.sets === 1 ? '1 Set' : `Set ${Math.min(currentSetIndex + 1, info.sets)} of ${info.sets}`}
           </div>
         )}
 
