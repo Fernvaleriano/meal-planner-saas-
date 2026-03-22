@@ -1920,6 +1920,12 @@ function GuidedWorkoutModal({
           setPhase('rest');
           setTimer(exInfo.rest);
           setCurrentSetIndex(0);
+          // Announce upcoming exercise after a short delay so it follows the "Rest up" announcement
+          const nextEx = exercises[exIdx + 1];
+          if (nextEx) {
+            const nextName = nextEx.name || nextEx.exercise_name || 'next exercise';
+            setTimeout(() => speak(`Up next: ${nextName}`, voiceEnabled), 1500);
+          }
         }
       } else {
         setRestLogTarget({ exIndex: exIdx, setIndex: setIdx });
@@ -1929,7 +1935,7 @@ function GuidedWorkoutModal({
       }
     }
     setEditingField(null);
-  }, [exercises, onExerciseComplete, persistExerciseData, returnFromDeferredExercise, advanceToNextExercise]);
+  }, [exercises, onExerciseComplete, persistExerciseData, returnFromDeferredExercise, advanceToNextExercise, voiceEnabled]);
 
   // Keep doMarkSetDone ref in sync for rep countdown effect
   const doMarkSetDoneRef = useRef(doMarkSetDone);
@@ -2043,12 +2049,10 @@ function GuidedWorkoutModal({
 
     if (isLastSet && lastSetAnnouncedRef.current !== key) {
       lastSetAnnouncedRef.current = key;
-      const nextEx = currentExIndex < exercises.length - 1 ? exercises[currentExIndex + 1] : null;
-      if (nextEx) {
-        const nextName = nextEx.name || nextEx.exercise_name || 'next exercise';
-        speak(`Last set. Next up: ${nextName}`, true);
-      } else {
+      if (currentExIndex >= exercises.length - 1) {
         speak('Last set. Almost done!', true);
+      } else {
+        speak('Last set.', true);
       }
     }
   }, [phase, currentExIndex, currentSetIndex, completedSets, exercises, voiceEnabled]);
