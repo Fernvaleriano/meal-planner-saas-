@@ -639,14 +639,24 @@ function GuidedWorkoutModal({
       parseDurationToSeconds(setDuration) ||
       parseDurationToSeconds(ex.reps) ||
       30;
-    // Check exercise-level restSeconds, then setsData per-set rest, then legacy rest_seconds field
-    const setsDataRest = Array.isArray(ex.setsData) && ex.setsData[0]?.restSeconds;
-    const rest = ex.restSeconds != null ? ex.restSeconds
-      : setsDataRest != null ? setsDataRest
-      : ex.rest_seconds != null ? ex.rest_seconds
-      : 90;
     const isTillFailure = ex.repType === 'failure';
-    return { isTimed, isDistance, isTillFailure, sets, reps, distance, distanceUnit, duration, rest };
+    return { isTimed, isDistance, isTillFailure, sets, reps, distance, distanceUnit, duration };
+  };
+
+  // Get rest period for a specific set — checks per-set setsData first, then exercise-level, then default
+  const getRestForSet = (exIndex, setIndex) => {
+    const ex = exercises[exIndex];
+    if (!ex) return 90;
+    // Per-set rest from setsData (coach workout builder stores per-set rest here)
+    const perSetRest = Array.isArray(ex.setsData) && ex.setsData[setIndex]?.restSeconds;
+    if (perSetRest != null) return perSetRest;
+    // Fall back to first set's rest in setsData (if setIndex is out of range)
+    const firstSetRest = Array.isArray(ex.setsData) && ex.setsData[0]?.restSeconds;
+    if (firstSetRest != null) return firstSetRest;
+    // Exercise-level rest
+    if (ex.restSeconds != null) return ex.restSeconds;
+    if (ex.rest_seconds != null) return ex.rest_seconds;
+    return 90;
   };
 
   // Get exercise phase (warmup, main, or cooldown)
@@ -1793,7 +1803,7 @@ function GuidedWorkoutModal({
           setSupersetState(prev => prev ? { ...prev, round: nextRound, memberPos: 0 } : prev);
           setRestLogTarget({ exIndex: exIdx, setIndex: setIdx });
           setPhase('rest');
-          setTimer(exInfo.rest);
+          setTimer(getRestForSet(exIdx, setIdx));
         } else {
           // Superset COMPLETE — persist all members
           ss.groupIndices.forEach(idx => {
@@ -1830,7 +1840,7 @@ function GuidedWorkoutModal({
         } else {
           setRestLogTarget({ exIndex: exIdx, setIndex: setIdx });
           setPhase('rest');
-          setTimer(exInfo.rest);
+          setTimer(getRestForSet(exIdx, setIdx));
           setCurrentSetIndex(0);
           // Announce upcoming exercise after a short delay so it follows the "Rest up" announcement
           const nextEx = exercises[exIdx + 1];
@@ -1842,7 +1852,7 @@ function GuidedWorkoutModal({
       } else {
         setRestLogTarget({ exIndex: exIdx, setIndex: setIdx });
         setPhase('rest');
-        setTimer(exInfo.rest);
+        setTimer(getRestForSet(exIdx, setIdx));
         setCurrentSetIndex(setIdx + 1);
       }
     }
