@@ -32,6 +32,27 @@ function tryRegexParseMeals(text) {
   const meals = [];
   const mealTypes = ['Breakfast', 'Lunch', 'Dinner', 'Snack'];
 
+  // Extract intended targets from summary line (e.g. "2,000 calories | 170g protein | 180g carbs | 55g fat")
+  let intendedTargets = null;
+  for (let i = 0; i < lines.length; i++) {
+    if (summaryPattern.test(lines[i])) {
+      const sumLine = lines[i];
+      const sumCal = sumLine.match(/([\d,]+)\s*(?:cal|kcal|calories)/i);
+      const sumPro = sumLine.match(/(\d+)\s*g?\s*protein/i);
+      const sumCarb = sumLine.match(/(\d+)\s*g?\s*carb/i);
+      const sumFat = sumLine.match(/(\d+)\s*g?\s*fat/i);
+      if (sumCal) {
+        intendedTargets = {
+          calories: parseInt(sumCal[1].replace(/,/g, '')),
+          protein: sumPro ? parseInt(sumPro[1]) : 0,
+          carbs: sumCarb ? parseInt(sumCarb[1]) : 0,
+          fat: sumFat ? parseInt(sumFat[1]) : 0
+        };
+      }
+      break;
+    }
+  }
+
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
 
@@ -115,7 +136,8 @@ function tryRegexParseMeals(text) {
     });
   }
 
-  return meals.length >= 2 ? meals : null;
+  if (meals.length < 2) return null;
+  return { meals, intendedTargets };
 }
 
 exports.handler = async (event) => {
@@ -161,9 +183,12 @@ exports.handler = async (event) => {
     // --- Try regex-based direct parsing first ---
     const regexMeals = tryRegexParseMeals(trimmedContent);
 
-    if (regexMeals && regexMeals.length >= 2) {
+    const regexResult = regexMeals;
+    if (regexResult && regexResult.meals && regexResult.meals.length >= 2) {
+      const parsedMeals = regexResult.meals;
+      const intendedTargets = regexResult.intendedTargets;
       // Regex parsing succeeded — build plan directly without AI
-      console.log(`Regex parser found ${regexMeals.length} meals, skipping AI`);
+      console.log(`Regex parser found ${parsedMeals.length} meals, skipping AI`);
 
       // Extract plan metadata from text
       let planName = 'Imported Diet Plan';
@@ -177,7 +202,7 @@ exports.handler = async (event) => {
       else if (/(?:maintain|maintenance|recomp)/i.test(trimmedContent)) goal = 'maintain';
 
       let dayCalories = 0, dayProtein = 0, dayCarbs = 0, dayFat = 0;
-      const planMeals = regexMeals.map(meal => {
+      const planMeals = parsedMeals.map(meal => {
         dayCalories += meal.calories;
         dayProtein += meal.protein;
         dayCarbs += meal.carbs;
@@ -200,10 +225,17 @@ exports.handler = async (event) => {
         };
       });
 
+      // Use intended targets from summary line if available (e.g. "2,000 calories | 170g protein | ...")
+      // These represent what the plan was designed for, even if individual meal macros don't perfectly add up
+      const targetCalories = intendedTargets ? intendedTargets.calories : dayCalories;
+      const targetProtein = intendedTargets ? intendedTargets.protein : dayProtein;
+      const targetCarbs = intendedTargets ? intendedTargets.carbs : dayCarbs;
+      const targetFat = intendedTargets ? intendedTargets.fat : dayFat;
+
       const currentPlan = [{
         day: 1,
         name: 'Day 1',
-        targets: { calories: dayCalories, protein: dayProtein, carbs: dayCarbs, fat: dayFat },
+        targets: { calories: targetCalories, protein: targetProtein, carbs: targetCarbs, fat: targetFat },
         plan: planMeals
       }];
 
@@ -216,19 +248,19 @@ exports.handler = async (event) => {
             planName,
             goal,
             summary: '',
-            calories: dayCalories,
-            protein: dayProtein,
-            carbs: dayCarbs,
-            fat: dayFat,
+            calories: targetCalories,
+            protein: targetProtein,
+            carbs: targetCarbs,
+            fat: targetFat,
             currentPlan
           },
           stats: {
             totalMeals: planMeals.length,
             daysCount: 1,
-            avgCaloriesPerDay: dayCalories,
-            avgProteinPerDay: dayProtein,
-            avgCarbsPerDay: dayCarbs,
-            avgFatPerDay: dayFat
+            avgCaloriesPerDay: targetCalories,
+            avgProteinPerDay: targetProtein,
+            avgCarbsPerDay: targetCarbs,
+            avgFatPerDay: targetFat
           }
         })
       };
