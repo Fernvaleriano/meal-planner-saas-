@@ -725,14 +725,14 @@
         [data-theme="dark"] .meal-feed-items-toggle { color: #94a3b8; }
 
         .meal-feed-items-list {
-            display: none;
+            display: block;
             background: var(--gray-50);
             border-radius: 8px;
             overflow: hidden;
             margin-bottom: 8px;
         }
         [data-theme="dark"] .meal-feed-items-list { background: #0f172a; }
-        .meal-feed-items-list.show { display: block; }
+        .meal-feed-items-list.hidden { display: none; }
 
         .meal-feed-item-row {
             display: flex;
@@ -6231,9 +6231,9 @@
         function toggleMealFeedItems(btn) {
             const itemsList = btn.nextElementSibling;
             const icon = btn.querySelector('svg');
-            itemsList.classList.toggle('show');
+            itemsList.classList.toggle('hidden');
             if (icon) {
-                icon.style.transform = itemsList.classList.contains('show') ? 'rotate(0deg)' : 'rotate(-90deg)';
+                icon.style.transform = itemsList.classList.contains('hidden') ? 'rotate(-90deg)' : 'rotate(0deg)';
             }
         }
 
