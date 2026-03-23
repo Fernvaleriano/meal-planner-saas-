@@ -5625,12 +5625,12 @@ function displayDietPlan(multiDayData) {
             dayTotals.fat += meal.fat || 0;
         });
 
-        // Calculate per-day variance
+        // Calculate per-day variance (guard against division by zero)
         const dayVariance = {
-            calories: ((dayTotals.calories - targets.calories) / targets.calories * 100),
-            protein: ((dayTotals.protein - targets.protein) / targets.protein * 100),
-            carbs: ((dayTotals.carbs - targets.carbs) / targets.carbs * 100),
-            fat: ((dayTotals.fat - targets.fat) / targets.fat * 100)
+            calories: targets.calories > 0 ? ((dayTotals.calories - targets.calories) / targets.calories * 100) : 0,
+            protein: targets.protein > 0 ? ((dayTotals.protein - targets.protein) / targets.protein * 100) : 0,
+            carbs: targets.carbs > 0 ? ((dayTotals.carbs - targets.carbs) / targets.carbs * 100) : 0,
+            fat: targets.fat > 0 ? ((dayTotals.fat - targets.fat) / targets.fat * 100) : 0
         };
 
         // Calculate macro distribution percentages (% of total calories from each macro)
@@ -8341,7 +8341,7 @@ function applyPortionAdjustment() {
     closeAdjustPortionsModal();
 
     // Re-render the plan
-    renderPlan(lastPlanQuery.currentPlan);
+    displayDietPlan(lastPlanQuery.currentPlan);
 
     console.log('✅ Portion adjusted successfully');
 }
@@ -8930,10 +8930,19 @@ async function parseAndAddIngredients() {
     spinner.style.display = 'inline-block';
 
     try {
+        // Get auth token for authenticated API call
+        const token = await getAuthToken();
+        if (!token) {
+            throw new Error('Not logged in. Please refresh the page and try again.');
+        }
+
         // Use AI to analyze the food description (same as client-side voice tracking)
         const response = await fetch('/.netlify/functions/analyze-food-text', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
             body: JSON.stringify({ text: text })
         });
 
