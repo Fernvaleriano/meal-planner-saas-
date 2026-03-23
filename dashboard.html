@@ -1476,6 +1476,96 @@
             background: #334155;
         }
 
+        /* ===== ALERTS OVERVIEW SUMMARY ===== */
+        .alerts-overview {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 16px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .alerts-overview-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px 8px;
+            border-radius: 10px;
+            background: var(--gray-50);
+            cursor: pointer;
+            transition: background 0.15s, transform 0.15s;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .alerts-overview-item:hover {
+            background: var(--gray-100);
+            transform: translateY(-1px);
+        }
+
+        .alerts-overview-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--gray-900);
+            line-height: 1.2;
+        }
+
+        .alerts-overview-value--accent {
+            color: var(--brand-primary);
+        }
+
+        .alerts-overview-value--warn {
+            color: #f59e0b;
+        }
+
+        .alerts-overview-value--low {
+            color: #ef4444;
+        }
+
+        .alerts-overview-label {
+            font-size: 0.75rem;
+            color: var(--gray-500);
+            font-weight: 500;
+            margin-top: 2px;
+        }
+
+        [data-theme="dark"] .alerts-overview {
+            border-bottom-color: #334155;
+        }
+
+        [data-theme="dark"] .alerts-overview-item {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        [data-theme="dark"] .alerts-overview-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        [data-theme="dark"] .alerts-overview-value {
+            color: #f1f5f9;
+        }
+
+        [data-theme="dark"] .alerts-overview-label {
+            color: #94a3b8;
+        }
+
+        @media (max-width: 480px) {
+            .alerts-overview {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 6px;
+            }
+            .alerts-overview-item {
+                padding: 8px 4px;
+            }
+            .alerts-overview-value {
+                font-size: 1.1rem;
+            }
+            .alerts-overview-label {
+                font-size: 0.6875rem;
+            }
+        }
+
         /* ===== STORIES COMPACT ===== */
         .stories-compact {
             display: flex;
@@ -6084,6 +6174,52 @@
 
             let html = '';
 
+            // Overview summary — shown at top of alerts tab
+            if (_activeFilter === 'alert') {
+                const clients = document.getElementById('clientCount')?.textContent || '-';
+                const checkIns = document.getElementById('checkInCount')?.textContent || '-';
+                const workouts = document.getElementById('statWorkouts')?.textContent || '-';
+                const prs = document.getElementById('statPRs')?.textContent || '-';
+                const adherence = document.getElementById('statAdherence')?.textContent || '-';
+                const activeRate = document.getElementById('statActiveRate')?.textContent || '-';
+
+                const checkInVal = parseInt(checkIns) || 0;
+                const checkInClass = checkInVal > 0 ? ' alerts-overview-value--accent' : '';
+                const adherenceVal = parseInt(adherence) || 0;
+                const adherenceClass = adherenceVal > 0 && adherenceVal < 25 ? ' alerts-overview-value--low' : adherenceVal < 50 ? ' alerts-overview-value--warn' : '';
+                const activeVal = parseInt(activeRate) || 0;
+                const activeClass = activeVal > 0 && activeVal < 15 ? ' alerts-overview-value--low' : activeVal < 40 ? ' alerts-overview-value--warn' : '';
+
+                html += `
+                    <div class="alerts-overview">
+                        <a href="manage-clients.html" class="alerts-overview-item" title="View all clients">
+                            <span class="alerts-overview-value">${clients}</span>
+                            <span class="alerts-overview-label">Clients</span>
+                        </a>
+                        <div class="alerts-overview-item" onclick="document.getElementById('priorityAlerts').scrollIntoView({behavior:'smooth'})" title="Pending check-ins">
+                            <span class="alerts-overview-value${checkInClass}">${checkIns}</span>
+                            <span class="alerts-overview-label">Check-Ins</span>
+                        </div>
+                        <div class="alerts-overview-item" title="Workouts this week">
+                            <span class="alerts-overview-value">${workouts}</span>
+                            <span class="alerts-overview-label">Workouts</span>
+                        </div>
+                        <div class="alerts-overview-item" title="New PRs this week">
+                            <span class="alerts-overview-value">${prs}</span>
+                            <span class="alerts-overview-label">PRs</span>
+                        </div>
+                        <div class="alerts-overview-item" title="Workout adherence rate">
+                            <span class="alerts-overview-value${adherenceClass}">${adherence}</span>
+                            <span class="alerts-overview-label">Adherence</span>
+                        </div>
+                        <div class="alerts-overview-item" title="Active clients rate">
+                            <span class="alerts-overview-value${activeClass}">${activeRate}</span>
+                            <span class="alerts-overview-label">Active</span>
+                        </div>
+                    </div>
+                `;
+            }
+
             // Active alerts
             if (active.length > 0) {
                 active.forEach(item => {
@@ -8859,6 +8995,9 @@
                 });
                 const adherenceRate = totalScheduled > 0 ? Math.round((totalCompleted / totalScheduled) * 100) : activeRate;
                 document.getElementById('statAdherence').textContent = adherenceRate + '%';
+
+                // Re-render alerts overview with updated stats
+                renderPriorityAlertSections();
 
                 // Sort: active clients first (by workouts desc), then inactive
                 const sorted = Object.entries(clientData).sort((a, b) => {
