@@ -45,7 +45,7 @@ exports.handler = async (event, context) => {
         const validReasons = [
             'diet_request', 'high_stress', 'low_energy', 'low_adherence', 'inactive',
             'pending_checkin', 'expiring_plan', 'expiring_workout', 'client_pr', 'workout_note',
-            'ghost_client', 'plateau'
+            'ghost_client', 'plateau', 'no_active_workout'
         ];
         if (!validReasons.includes(reason)) {
             return {
