@@ -10,6 +10,111 @@ const headers = {
   'Content-Type': 'application/json'
 };
 
+// Attempt to parse meals directly from text using regex patterns
+// Returns array of meal objects or null if format isn't recognized
+function tryRegexParseMeals(text) {
+  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+
+  // Find lines that look like calorie/macro lines: "540 cal, 28g protein, 35g carbs, 32g fat"
+  // Also handles: "540cal | P:28g C:35g F:32g", "540 calories, protein 28g, carbs 35g, fat 32g"
+  const macroLinePattern = /(\d{2,4})\s*(?:cal|kcal|calories)\b/i;
+  const proteinPattern = /(?:P(?:rotein)?[:\s]*)?(\d+)\s*g?\s*(?:protein|P\b)/i;
+  const carbPattern = /(?:C(?:arbs?)?[:\s]*)?(\d+)\s*g?\s*(?:carbs?|C\b)/i;
+  const fatPattern = /(?:F(?:at)?[:\s]*)?(\d+)\s*g?\s*(?:fat|F\b)/i;
+  // Also try reversed order: "28g protein" style
+  const proteinPattern2 = /(\d+)\s*g?\s*protein/i;
+  const carbPattern2 = /(\d+)\s*g?\s*carb/i;
+  const fatPattern2 = /(\d+)\s*g?\s*fat/i;
+
+  // Summary line pattern (has pipe separators with multiple macro values) — skip these
+  const summaryPattern = /\d[\d,]+\s*(?:cal|kcal|calories)\s*\|.*\d+\s*g?\s*(?:protein|carb|fat)/i;
+
+  const meals = [];
+  const mealTypes = ['Breakfast', 'Lunch', 'Dinner', 'Snack'];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+
+    // Skip summary/header lines with pipe separators
+    if (summaryPattern.test(line)) continue;
+
+    // Check if this line has calorie info
+    const calMatch = macroLinePattern.exec(line);
+    if (!calMatch) continue;
+
+    const calories = parseInt(calMatch[1]);
+    if (calories < 50 || calories > 5000) continue; // sanity check
+
+    // Extract macros from this line
+    const protein = parseInt((proteinPattern.exec(line) || proteinPattern2.exec(line) || [])[1]) || 0;
+    const carbs = parseInt((carbPattern.exec(line) || carbPattern2.exec(line) || [])[1]) || 0;
+    const fat = parseInt((fatPattern.exec(line) || fatPattern2.exec(line) || [])[1]) || 0;
+
+    // The line before the calorie line is likely the ingredients
+    let ingredientLine = '';
+    if (i > 0) {
+      // Walk backwards to find the ingredient line (skip empty lines or lines that are also macro lines)
+      for (let j = i - 1; j >= 0; j--) {
+        if (lines[j].length > 0 && !macroLinePattern.test(lines[j]) && !summaryPattern.test(lines[j])) {
+          ingredientLine = lines[j];
+          break;
+        }
+      }
+    }
+
+    // The line(s) after the calorie line are instructions (until next ingredient/calorie line or end)
+    let instructions = '';
+    for (let j = i + 1; j < lines.length; j++) {
+      // Stop if we hit another calorie line or what looks like an ingredient list (lots of commas, food items)
+      if (macroLinePattern.test(lines[j])) break;
+      // If the NEXT line after this one is a calorie line, this line is ingredients for the next meal
+      if (j + 1 < lines.length && macroLinePattern.test(lines[j + 1]) && !summaryPattern.test(lines[j + 1])) break;
+      // Skip tips/notes that start with common prefixes
+      if (/^(?:easy tip|pro tip|note|tip):/i.test(lines[j])) continue;
+      if (instructions) instructions += ' ';
+      instructions += lines[j];
+    }
+
+    // Generate a meal name from ingredients
+    let name = 'Meal';
+    if (ingredientLine) {
+      // Take the first few key ingredients for the name
+      const parts = ingredientLine.split(',').map(p => p.trim());
+      // Try to extract main food items (skip measurements)
+      const foods = parts.slice(0, 3).map(p => {
+        // Remove leading quantities like "4 whole", "1 cup", "2 tbsp"
+        return p.replace(/^[\d\/.]+\s*(?:whole|cup|cups|tbsp|tsp|oz|ounce|slice|slices|scoop|scoops|can|cans|lb|lbs)?\s*/i, '').trim();
+      }).filter(f => f.length > 1);
+      if (foods.length > 0) {
+        name = foods.join(', ');
+        // Capitalize first letter
+        name = name.charAt(0).toUpperCase() + name.slice(1);
+      }
+    }
+
+    // Parse ingredients as array
+    const ingredients = ingredientLine
+      ? ingredientLine.split(',').map(s => s.trim()).filter(s => s.length > 1)
+      : [];
+
+    // Assign meal type based on order
+    const type = meals.length < mealTypes.length ? mealTypes[meals.length] : 'Snack';
+
+    meals.push({
+      name,
+      type,
+      calories,
+      protein,
+      carbs,
+      fat,
+      ingredients,
+      instructions: instructions.trim()
+    });
+  }
+
+  return meals.length >= 2 ? meals : null;
+}
+
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers, body: '' };
@@ -50,35 +155,83 @@ exports.handler = async (event) => {
 
     const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
 
-    // Preprocess: insert meal markers before sending to AI
-    // Detect meal boundaries by finding calorie/macro lines (e.g. "540 cal, 28g protein, 35g carbs, 32g fat")
-    function preprocessMealMarkers(text) {
-      const lines = text.split('\n');
-      // Match lines like "540 cal, 28g protein" but NOT summary lines like "2,500 calories | 200g protein | 250g carbs"
-      const calorieLine = /\d{2,4}\s*(?:cal|kcal|calories)/i;
-      const summaryLine = /\d[\d,]+\s*(?:cal|kcal|calories)\s*\|/i;
-      let mealNum = 0;
-      const markedLines = [];
+    // --- Try regex-based direct parsing first ---
+    const regexMeals = tryRegexParseMeals(trimmedContent);
 
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i].trim();
-        // If this line has calorie info, the line before it is likely the ingredients line
-        // and together they form a meal. Insert a marker before the ingredients line.
-        if (calorieLine.test(line) && !summaryLine.test(line) && i > 0) {
-          mealNum++;
-          // Find the ingredient line - it's the non-empty line just before the calorie line
-          // Look back to find where to insert the marker
-          let insertIdx = markedLines.length - 1;
-          // Skip back over empty lines
-          while (insertIdx >= 0 && markedLines[insertIdx].trim() === '') insertIdx--;
-          if (insertIdx >= 0 && !/^===\s*MEAL\s+\d+/i.test(markedLines[insertIdx])) {
-            markedLines.splice(insertIdx, 0, `\n=== MEAL ${mealNum} ===`);
-          }
-        }
-        markedLines.push(lines[i]);
+    if (regexMeals && regexMeals.length >= 2) {
+      // Regex parsing succeeded — build plan directly without AI
+      console.log(`Regex parser found ${regexMeals.length} meals, skipping AI`);
+
+      // Extract plan metadata from text
+      let planName = 'Imported Diet Plan';
+      let goal = '';
+      const firstLine = trimmedContent.split(/\r?\n/)[0].trim();
+      if (firstLine.length > 2 && firstLine.length < 100 && !/\d{2,4}\s*cal/i.test(firstLine)) {
+        planName = firstLine;
       }
-      return mealNum >= 2 ? markedLines.join('\n') : text;
+      if (/(?:cut|lean|shred|fat\s*loss|weight\s*loss|deficit)/i.test(trimmedContent)) goal = 'lose weight';
+      else if (/(?:bulk|mass|gain|surplus|muscle\s*gain)/i.test(trimmedContent)) goal = 'gain muscle';
+      else if (/(?:maintain|maintenance|recomp)/i.test(trimmedContent)) goal = 'maintain';
+
+      let dayCalories = 0, dayProtein = 0, dayCarbs = 0, dayFat = 0;
+      const planMeals = regexMeals.map(meal => {
+        dayCalories += meal.calories;
+        dayProtein += meal.protein;
+        dayCarbs += meal.carbs;
+        dayFat += meal.fat;
+        return {
+          name: meal.name,
+          type: meal.type,
+          calories: meal.calories,
+          protein: meal.protein,
+          carbs: meal.carbs,
+          fat: meal.fat,
+          ingredients: meal.ingredients,
+          instructions: meal.instructions,
+          isPlaceholder: false,
+          isCustom: false,
+          image_url: null,
+          coach_note: null,
+          voice_note_url: null,
+          voice_note_path: null
+        };
+      });
+
+      const currentPlan = [{
+        day: 1,
+        name: 'Day 1',
+        targets: { calories: dayCalories, protein: dayProtein, carbs: dayCarbs, fat: dayFat },
+        plan: planMeals
+      }];
+
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({
+          success: true,
+          plan: {
+            planName,
+            goal,
+            summary: '',
+            calories: dayCalories,
+            protein: dayProtein,
+            carbs: dayCarbs,
+            fat: dayFat,
+            currentPlan
+          },
+          stats: {
+            totalMeals: planMeals.length,
+            daysCount: 1,
+            avgCaloriesPerDay: dayCalories,
+            avgProteinPerDay: dayProtein,
+            avgCarbsPerDay: dayCarbs,
+            avgFatPerDay: dayFat
+          }
+        })
+      };
     }
+
+    // --- Fallback: AI-based parsing ---
 
     // Split text into day chunks for parallel parsing
     const dayChunks = [];
@@ -92,11 +245,10 @@ exports.handler = async (event) => {
     }
 
     if (parts.length === 0) {
-      // No day markers found - preprocess to add meal markers then treat as single day
-      dayChunks.push(preprocessMealMarkers(trimmedContent));
+      // No day markers found - treat entire text as a single day
+      dayChunks.push(trimmedContent);
     } else {
-      // Preprocess each day chunk to add meal markers
-      dayChunks.push(...parts.map(p => preprocessMealMarkers(p)));
+      dayChunks.push(...parts);
     }
 
     const daySystemPrompt = `You are a nutrition plan parser. Extract meal data from ONE day of a diet plan. Return ONLY valid JSON, no markdown.
