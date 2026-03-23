@@ -82,8 +82,10 @@ function tryRegexParseMeals(text) {
       const parts = ingredientLine.split(',').map(p => p.trim());
       // Try to extract main food items (skip measurements)
       const foods = parts.slice(0, 3).map(p => {
-        // Remove leading quantities like "4 whole", "1 cup", "2 tbsp"
-        return p.replace(/^[\d\/.]+\s*(?:whole|cup|cups|tbsp|tsp|oz|ounce|slice|slices|scoop|scoops|can|cans|lb|lbs)?\s*/i, '').trim();
+        // Remove "Meal N:" prefix if present
+        p = p.replace(/^Meal\s*\d+\s*:\s*/i, '');
+        // Remove leading quantities like "4 whole", "1 cup", "50g", "150ml"
+        return p.replace(/^[\d\/.]+\s*(?:whole|cup|cups|tbsp|tsp|oz|ounces?|slice|slices|scoop|scoops|can|cans|lbs?|g|grams?|ml|kg)?\s*/i, '').trim();
       }).filter(f => f.length > 1);
       if (foods.length > 0) {
         name = foods.join(', ');
@@ -92,9 +94,10 @@ function tryRegexParseMeals(text) {
       }
     }
 
-    // Parse ingredients as array
-    const ingredients = ingredientLine
-      ? ingredientLine.split(',').map(s => s.trim()).filter(s => s.length > 1)
+    // Parse ingredients as array (strip "Meal N:" prefix if present)
+    const cleanedIngredientLine = ingredientLine.replace(/^Meal\s*\d+\s*:\s*/i, '');
+    const ingredients = cleanedIngredientLine
+      ? cleanedIngredientLine.split(',').map(s => s.trim()).filter(s => s.length > 1)
       : [];
 
     // Assign meal type based on order
