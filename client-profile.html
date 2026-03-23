@@ -12974,30 +12974,8 @@
         // ============ ADD WORKOUT (Program Picker) ============
 
         function acOpenAddWorkout(dateStr) {
-            const modal = document.getElementById('acAddWorkoutModal');
-            modal.dataset.dateStr = dateStr;
-            document.getElementById('acAddWorkoutTitle').textContent = 'Add Workout';
-
-            document.getElementById('acAddWorkoutBody').innerHTML = `
-                <div class="ac-add-workout-options">
-                    <div class="ac-add-workout-option" onclick="acShowCustomWorkoutForm('${dateStr}')">
-                        <div class="ac-add-workout-icon">&#10010;</div>
-                        <div class="ac-add-workout-info">
-                            <h4>Custom Workout</h4>
-                            <span>Create a blank workout and add exercises</span>
-                        </div>
-                    </div>
-                    <div class="ac-add-workout-option" onclick="acShowProgramPicker('${dateStr}')">
-                        <div class="ac-add-workout-icon">&#128218;</div>
-                        <div class="ac-add-workout-info">
-                            <h4>From Program Library</h4>
-                            <span>Assign a workout from your saved programs</span>
-                        </div>
-                    </div>
-                </div>
-            `;
-
-            modal.classList.add('active');
+            // Navigate to the Workouts page so the coach can build/assign a full workout
+            window.location.href = `coach-workouts.html?clientId=${clientId}&date=${encodeURIComponent(dateStr)}`;
         }
 
         function acShowCustomWorkoutForm(dateStr) {

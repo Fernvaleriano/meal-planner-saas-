@@ -7219,6 +7219,20 @@
                 }
             }
 
+            // Check for clientId URL parameter (linked from client profile page)
+            const clientIdParam = urlParams.get('clientId');
+            if (clientIdParam) {
+                const cid = String(clientIdParam);
+                const client = clients.find(c => String(c.id) === cid);
+                if (client) {
+                    // Pre-select this client for assignment
+                    selectedClients.add(cid);
+                    window._preselectedClientId = cid;
+                    window._preselectedClientName = client.client_name || 'Client';
+                    showToast(`Adding workout for ${client.client_name || 'client'}. Build your workout, then click Assign to Client.`, 'success');
+                }
+            }
+
             // Add initial day and show workout info modal for new programs
             if (workoutDays.length === 0) {
                 addWorkoutDay();
