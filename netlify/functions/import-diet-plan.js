@@ -71,7 +71,7 @@ exports.handler = async (event) => {
     const daySystemPrompt = `You are a nutrition plan parser. Extract meal data from ONE day of a diet plan. Return ONLY valid JSON, no markdown.
 
 Rules:
-- Extract EVERY meal (breakfast, lunch, dinner, snacks, pre-workout, post-workout, etc.)
+- Extract EVERY single meal. Do NOT skip any meals. Count all meals carefully before responding.
 - Assign a meal type to each: "Breakfast", "Lunch", "Dinner", or "Snack"
 - Preserve exact meal/food names from the source
 - Extract or estimate calories, protein (g), carbs (g), and fat (g) for each meal
@@ -81,6 +81,16 @@ Rules:
 - Extract ingredients if listed (as array of strings)
 - Extract cooking instructions or prep notes if available
 - Combine items that are clearly part of the same meal into one meal entry
+
+Format detection tips:
+- Meals may NOT have explicit labels like "Breakfast:" or "Meal 1:". Look for patterns like:
+  * A line listing ingredients/foods (e.g. "4 whole eggs, 2 slices bread, 1/2 avocado")
+  * Followed by a calorie/macro line (e.g. "540 cal, 28g protein, 35g carbs, 32g fat")
+  * Optionally followed by cooking instructions
+- Each such block is a SEPARATE meal. Count how many calorie lines or macro lines exist to verify meal count.
+- If a header says "3 meals + snack" or "4 meals", ensure you return exactly that many meals.
+- Tips, notes, or advice paragraphs between meals are NOT separate meals - skip those.
+- Give each meal a descriptive name based on its main ingredients (e.g. "Eggs with Ezekiel Bread and Avocado").
 
 Return JSON:
 {"dayName":"Monday","meals":[{"name":"Grilled Chicken with Brown Rice and Broccoli","type":"Lunch","calories":450,"protein":35,"carbs":45,"fat":10,"ingredients":["6oz chicken breast","1 cup brown rice","1 cup broccoli"],"instructions":"Grill chicken, steam broccoli, serve over rice."}]}`;
@@ -94,7 +104,7 @@ Return JSON:
         system: daySystemPrompt,
         messages: [{
           role: 'user',
-          content: `Parse ALL meals from this diet plan day. Return only valid JSON.\n\n${chunk}`
+          content: `Parse ALL meals from this diet plan text. Look carefully for EVERY meal - each group of ingredients + calories/macros is a separate meal. Do NOT skip any. Return only valid JSON.\n\n${chunk}`
         }]
       }).then(msg => {
         const text = msg.content[0]?.text || '';
