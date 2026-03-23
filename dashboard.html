@@ -6216,7 +6216,7 @@
                                 ${commentsHtml}
                             </div>
                             <div class="meal-comment-input-row">
-                                <input type="text" class="meal-comment-input" placeholder="Write a comment..." maxlength="500">
+                                <input type="text" class="meal-comment-input" placeholder="Write a comment..." maxlength="500" onkeydown="if(event.key==='Enter'){event.preventDefault();this.nextElementSibling.click();}">
                                 <button class="meal-comment-submit" onclick="addMealComment(${primaryEntryId}, '${meal.clientId}', this)">
                                     <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
                                 </button>
@@ -6304,10 +6304,11 @@
 
                 if (response.ok) {
                     const list = card.querySelector('.meal-comment-list');
+                    const escaped = comment.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
                     list.innerHTML += `
                         <div class="meal-comment-item">
                             <div class="meal-comment-author">You</div>
-                            <div class="meal-comment-text">${comment}</div>
+                            <div class="meal-comment-text">${escaped}</div>
                             <div class="meal-comment-time">just now</div>
                         </div>
                     `;
@@ -6320,9 +6321,14 @@
                     } else {
                         commentBtn.insertAdjacentHTML('afterbegin', '<span class="meal-comment-count">1</span>');
                     }
+                } else {
+                    const errData = await response.json().catch(() => ({}));
+                    console.error('Comment failed:', response.status, errData);
+                    alert('Failed to post comment. Please try again.');
                 }
             } catch (err) {
                 console.error('Error adding meal comment:', err);
+                alert('Failed to post comment. Please check your connection and try again.');
             }
             btn.disabled = false;
         }
