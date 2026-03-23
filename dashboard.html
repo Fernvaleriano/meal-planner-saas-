@@ -6198,13 +6198,13 @@
                             </div>
                         </div>
                         <div class="meal-feed-actions">
-                            <button class="meal-reaction-btn ${hasReaction ? 'has-reaction' : ''}" onclick="toggleMealReactionPicker(this, ${primaryEntryId}, '${meal.clientId}')">
+                            <div class="meal-reaction-btn ${hasReaction ? 'has-reaction' : ''}" onclick="toggleMealReactionPicker(this, ${primaryEntryId}, '${meal.clientId}')">
                                 <span class="meal-reaction-emoji">${hasReaction || '+'}</span>
                                 <span>${hasReaction ? '' : 'React'}</span>
                                 <div class="meal-reaction-picker" onclick="event.stopPropagation()">
-                                    ${MEAL_REACTIONS.map(r => `<button class="meal-reaction-option" onclick="addMealReaction(${primaryEntryId}, '${meal.clientId}', '${r}', this)">${r}</button>`).join('')}
+                                    ${MEAL_REACTIONS.map(r => `<span class="meal-reaction-option" onclick="addMealReaction(${primaryEntryId}, '${meal.clientId}', '${r}', this)">${r}</span>`).join('')}
                                 </div>
-                            </button>
+                            </div>
                             <button class="meal-comment-btn ${commentCount > 0 ? 'has-comments' : ''}" onclick="toggleMealComments(this)">
                                 <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                                 ${commentCount > 0 ? `<span class="meal-comment-count">${commentCount}</span>` : ''}
