@@ -1905,6 +1905,7 @@
                     <a href="coach-messages.html" class="sidebar-nav-item">
                         <span class="sidebar-nav-icon"><i data-lucide="message-circle"></i></span>
                         Messages
+                        <span id="msgUnreadBadge" class="msg-unread-badge" style="display:none;"></span>
                     </a>
                     <a href="manage-recipes.html" class="sidebar-nav-item">
                         <span class="sidebar-nav-icon"><i data-lucide="book-open"></i></span>
@@ -2610,6 +2611,9 @@
                 currentCoachId = session.user.id;
                 userEmailSpan.textContent = session.user.email;
                 console.log('User authenticated:', currentCoachId);
+
+                // Load unread message count for sidebar badge
+                loadUnreadMessageCount(currentCoachId);
 
                 // Check subscription status
                 const { data: coachData, error: coachError } = await supabaseClient
@@ -3592,6 +3596,45 @@
                 window.location.reload();
             }
         });
+
+        // Unread message badge for sidebar
+        async function loadUnreadMessageCount(coachId) {
+            try {
+                const res = await fetch(`/.netlify/functions/chat?action=conversations&coachId=${coachId}`);
+                if (!res.ok) return;
+                const data = await res.json();
+                let total = 0;
+                (data.conversations || []).forEach(c => { total += c.unreadCount || 0; });
+                const badge = document.getElementById('msgUnreadBadge');
+                if (badge) {
+                    if (total > 0) {
+                        badge.textContent = total > 9 ? '9+' : total;
+                        badge.style.display = 'flex';
+                    } else {
+                        badge.style.display = 'none';
+                    }
+                }
+            } catch (e) {
+                console.error('Failed to load unread message count:', e);
+            }
+
+            // Real-time: listen for new messages to update badge
+            if (typeof supabaseClient !== 'undefined') {
+                supabaseClient
+                    .channel('sidebar-msg-badge')
+                    .on('postgres_changes', {
+                        event: 'INSERT',
+                        schema: 'public',
+                        table: 'chat_messages',
+                        filter: `coach_id=eq.${coachId}`
+                    }, (payload) => {
+                        if (payload.new && payload.new.sender_type === 'client') {
+                            loadUnreadMessageCount(coachId);
+                        }
+                    })
+                    .subscribe();
+            }
+        }
 
         // Initialize page on load (only if supabase loaded directly; fallback handles its own init)
         if (supabaseClient) {

@@ -866,6 +866,7 @@
                     <a href="coach-messages.html" class="sidebar-nav-item active">
                         <span class="sidebar-nav-icon"><i data-lucide="message-circle"></i></span>
                         Messages
+                        <span id="msgUnreadBadge" class="msg-unread-badge" style="display:none;"></span>
                     </a>
                     <a href="manage-recipes.html" class="sidebar-nav-item">
                         <span class="sidebar-nav-icon"><i data-lucide="book-open"></i></span>
@@ -1133,6 +1134,15 @@
                 badge.style.display = 'flex';
             } else {
                 badge.style.display = 'none';
+            }
+            const sidebarBadge = document.getElementById('msgUnreadBadge');
+            if (sidebarBadge) {
+                if (totalUnread > 0) {
+                    sidebarBadge.textContent = totalUnread;
+                    sidebarBadge.style.display = 'flex';
+                } else {
+                    sidebarBadge.style.display = 'none';
+                }
             }
 
             if (filtered.length === 0) {
