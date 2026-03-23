@@ -50,6 +50,36 @@ exports.handler = async (event) => {
 
     const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
 
+    // Preprocess: insert meal markers before sending to AI
+    // Detect meal boundaries by finding calorie/macro lines (e.g. "540 cal, 28g protein, 35g carbs, 32g fat")
+    function preprocessMealMarkers(text) {
+      const lines = text.split('\n');
+      // Match lines like "540 cal, 28g protein" but NOT summary lines like "2,500 calories | 200g protein | 250g carbs"
+      const calorieLine = /\d{2,4}\s*(?:cal|kcal|calories)/i;
+      const summaryLine = /\d[\d,]+\s*(?:cal|kcal|calories)\s*\|/i;
+      let mealNum = 0;
+      const markedLines = [];
+
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        // If this line has calorie info, the line before it is likely the ingredients line
+        // and together they form a meal. Insert a marker before the ingredients line.
+        if (calorieLine.test(line) && !summaryLine.test(line) && i > 0) {
+          mealNum++;
+          // Find the ingredient line - it's the non-empty line just before the calorie line
+          // Look back to find where to insert the marker
+          let insertIdx = markedLines.length - 1;
+          // Skip back over empty lines
+          while (insertIdx >= 0 && markedLines[insertIdx].trim() === '') insertIdx--;
+          if (insertIdx >= 0 && !/^===\s*MEAL\s+\d+/i.test(markedLines[insertIdx])) {
+            markedLines.splice(insertIdx, 0, `\n=== MEAL ${mealNum} ===`);
+          }
+        }
+        markedLines.push(lines[i]);
+      }
+      return mealNum >= 2 ? markedLines.join('\n') : text;
+    }
+
     // Split text into day chunks for parallel parsing
     const dayChunks = [];
     const dayPattern = /(?=(?:DAY\s+\d+|MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY)[:\s\-])/i;
@@ -62,10 +92,11 @@ exports.handler = async (event) => {
     }
 
     if (parts.length === 0) {
-      // No day markers found - treat entire text as a single day
-      dayChunks.push(trimmedContent);
+      // No day markers found - preprocess to add meal markers then treat as single day
+      dayChunks.push(preprocessMealMarkers(trimmedContent));
     } else {
-      dayChunks.push(...parts);
+      // Preprocess each day chunk to add meal markers
+      dayChunks.push(...parts.map(p => preprocessMealMarkers(p)));
     }
 
     const daySystemPrompt = `You are a nutrition plan parser. Extract meal data from ONE day of a diet plan. Return ONLY valid JSON, no markdown.
