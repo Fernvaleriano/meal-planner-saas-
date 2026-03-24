@@ -126,15 +126,14 @@ exports.handler = async (event, context) => {
     // Get coach info for the email
     const { data: coach } = await supabase
       .from('coaches')
-      .select('full_name, email, white_label_enabled, email_from_verified, email_from, email_from_name, subscription_tier, brand_name, brand_primary_color, brand_logo_url, brand_email_logo_url, brand_email_footer')
+      .select('*')
       .eq('id', coachId)
       .single();
 
-    const coachName = coach?.full_name || coach?.email || 'Your Coach';
-    const hasWhiteLabel = coach?.white_label_enabled && coach?.email_from_verified;
+    const coachName = coach?.full_name || coach?.name || coach?.email || 'Your Coach';
     const hasBranding = ['professional', 'branded'].includes(coach?.subscription_tier);
     const primaryColor = (hasBranding && coach?.brand_primary_color) || '#0d9488';
-    const brandName = (hasBranding && coach?.brand_name) || (hasWhiteLabel ? coachName : 'Zique Fitness Nutrition');
+    const brandName = (hasBranding && coach?.brand_name) || 'Zique Fitness Nutrition';
     const footerText = (hasBranding && coach?.brand_email_footer) || brandName;
     const logoUrl = hasBranding ? (coach?.brand_email_logo_url || coach?.brand_logo_url) : null;
     const logoHtml = logoUrl
@@ -209,8 +208,7 @@ ${footerText}`;
       subject,
       text: textBody,
       html: htmlBody,
-      fromEmail: hasWhiteLabel ? coach.email_from : undefined,
-      fromName: hasWhiteLabel ? coach.email_from_name : undefined
+      fromName: brandName
     });
 
     if (!emailResult.success) {
