@@ -252,32 +252,52 @@ export function BrandingProvider({ children }) {
     }
 
     try {
+      const COACH_BRANDING_SELECT = 'id, name, subscription_tier, brand_name, brand_logo_url, brand_favicon_url, brand_primary_color, brand_secondary_color, brand_accent_color, brand_email_logo_url, brand_email_footer, branding_updated_at, profile_photo_url, brand_bg_color, brand_bg_secondary_color, brand_card_color, brand_text_color, brand_text_secondary_color, brand_font, brand_button_style, brand_welcome_message, brand_app_name, brand_short_name, client_modules, custom_terminology';
+
       let coach = null;
 
-      // Try direct Supabase query first
-      const { data, error } = await supabase
-        .from('coaches')
-        .select('id, name, subscription_tier, brand_name, brand_logo_url, brand_favicon_url, brand_primary_color, brand_secondary_color, brand_accent_color, brand_email_logo_url, brand_email_footer, branding_updated_at, profile_photo_url, brand_bg_color, brand_bg_secondary_color, brand_card_color, brand_text_color, brand_text_secondary_color, brand_font, brand_button_style, brand_welcome_message, brand_app_name, brand_short_name, client_modules, custom_terminology')
-        .eq('id', coachId)
-        .maybeSingle();
+      if (clientData?.is_coach) {
+        // Coaches can always read their own row with authenticated_select_own.
+        const { data, error } = await supabase
+          .from('coaches')
+          .select(COACH_BRANDING_SELECT)
+          .eq('id', coachId)
+          .maybeSingle();
 
-      if (!error && data) {
-        coach = data;
+        if (!error && data) {
+          coach = data;
+        } else if (error) {
+          console.error('BrandingContext: Supabase error fetching coach branding', {
+            coachId,
+            code: error.code,
+            message: error.message,
+            details: error.details,
+          });
+        }
       } else {
-        // Direct query failed (likely RLS blocking client reads) — fall back to Netlify function
-        console.warn('BrandingContext: Direct Supabase query failed, falling back to Netlify function.', {
-          coachId,
-          code: error?.code,
-          message: error?.message,
-          details: error?.details,
-        });
-        try {
-          const fallback = await apiGet(`/.netlify/functions/get-coach-branding?coachId=${coachId}`);
-          if (fallback && fallback.coach_id) {
-            coach = fallback;
+        // Clients fetch coach branding through SECURITY DEFINER RPC to avoid
+        // hard dependency on a direct coaches SELECT RLS policy being present.
+        const result = await supabase.rpc('get_my_coach_branding');
+        const rpcData = Array.isArray(result.data) ? result.data[0] : result.data;
+
+        if (!result.error && rpcData) {
+          coach = rpcData;
+        } else {
+          // RPC failed — fall back to Netlify function
+          console.warn('BrandingContext: RPC failed, falling back to Netlify function.', {
+            coachId,
+            code: result.error?.code,
+            message: result.error?.message,
+            details: result.error?.details,
+          });
+          try {
+            const fallback = await apiGet(`/.netlify/functions/get-coach-branding?coachId=${coachId}`);
+            if (fallback && fallback.coach_id) {
+              coach = fallback;
+            }
+          } catch (fallbackErr) {
+            console.error('BrandingContext: Netlify fallback also failed:', fallbackErr);
           }
-        } catch (fallbackErr) {
-          console.error('BrandingContext: Netlify fallback also failed:', fallbackErr);
         }
       }
 
@@ -319,9 +339,22 @@ export function BrandingProvider({ children }) {
         branding_updated_at: coach.branding_updated_at,
       };
 
-      setBranding(brandingData);
-      setCachedBranding(coachId, brandingData);
-      applyBrandingCSS(brandingData);
+      // Prevent unnecessary state updates if cache matches server.
+      const hasBrandingChanged =
+        !cached ||
+        JSON.stringify({
+          ...cached,
+          branding_updated_at: cached.branding_updated_at || null,
+        }) !== JSON.stringify({
+          ...brandingData,
+          branding_updated_at: brandingData.branding_updated_at || null,
+        });
+
+      if (hasBrandingChanged || force) {
+        setBranding(brandingData);
+        setCachedBranding(coachId, brandingData);
+        applyBrandingCSS(brandingData);
+      }
     } catch (err) {
       console.error('BrandingContext: Error fetching branding:', err);
     } finally {
