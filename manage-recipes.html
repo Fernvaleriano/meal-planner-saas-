@@ -1203,7 +1203,7 @@ Ingredients: 6oz chicken breast, 2 cups mixed greens, 1/2 avocado, cherry tomato
             return `
                 <div class="recipe-card">
                     ${recipe.image_url
-                        ? `<img src="${recipe.image_url}" alt="${recipe.name}" class="recipe-card-image" loading="lazy" decoding="async">`
+                        ? `<img src="${recipe.image_url}" alt="${recipe.name}" class="recipe-card-image" loading="lazy" decoding="async" onerror="this.outerHTML='<div class=\\'recipe-card-image-placeholder\\'>🍳</div>'">`
                         : `<div class="recipe-card-image-placeholder">🍳</div>`
                     }
                     <div class="recipe-card-header">

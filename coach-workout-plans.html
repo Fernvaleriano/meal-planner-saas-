@@ -683,7 +683,7 @@
         }
 
         @media (min-width: 901px) {
-            .coach-bottom-nav { display: block; }
+            .coach-bottom-nav { display: none; }
         }
     </style>
 </head>
@@ -976,7 +976,7 @@
                                 ${exerciseCount > 0 ? `<span>· ${exerciseCount} exercises</span>` : ''}
                             </div>
                             ${desc ? `<div class="plan-card-desc">${desc}</div>` : ''}
-                            <span class="plan-card-more">More..</span>
+                            <span class="plan-card-more">More...</span>
                         </div>
                         <div class="plan-card-actions" onclick="event.preventDefault(); event.stopPropagation();">
                             <button class="plan-action-btn" onclick="downloadPlanPDF(${p.id})" title="Download PDF">
