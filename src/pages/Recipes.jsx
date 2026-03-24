@@ -439,10 +439,16 @@ function Recipes() {
           .instructions { line-height: 1.8; }
           .instructions p { margin-bottom: 12px; }
           .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #e2e8f0; color: #94a3b8; font-size: 12px; }
-          @media print { body { padding: 20px; } }
+          .back-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 20px; }
+          .back-bar a { display: inline-flex; align-items: center; gap: 6px; color: #0d9488; text-decoration: none; font-weight: 600; font-size: 15px; padding: 10px 16px; border-radius: 10px; background: #f0fdfa; border: 1px solid #ccfbf1; }
+          .back-bar a:active { background: #ccfbf1; }
+          @media print { body { padding: 20px; } .back-bar { display: none; } }
         </style>
       </head>
       <body>
+        <div class="back-bar">
+          <a href="#" onclick="window.close(); if(!window.closed) history.back(); return false;">← Back to App</a>
+        </div>
         <h1>${selectedRecipe.name}</h1>
         ${selectedRecipe.prep_time_minutes ? `<p class="subtitle">Prep time: ${selectedRecipe.prep_time_minutes} minutes</p>` : ''}
         ${selectedRecipe.cook_time_minutes ? `<p class="subtitle">Cook time: ${selectedRecipe.cook_time_minutes} minutes</p>` : ''}
