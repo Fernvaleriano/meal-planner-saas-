@@ -1107,6 +1107,16 @@
             setupSearch();
             document.getElementById('bulkInput').addEventListener('input', updateBulkPanelState);
             setupRealtimeList();
+
+            // Deep-link: auto-open conversation if ?clientId= is in URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const deepLinkClientId = urlParams.get('clientId');
+            if (deepLinkClientId) {
+                const convo = conversations.find(c => String(c.clientId) === String(deepLinkClientId));
+                if (convo) {
+                    openThread(convo.clientId, convo.clientName);
+                }
+            }
         }
 
         // Load conversations
