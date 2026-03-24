@@ -393,7 +393,11 @@ function SetEditorModal({
     } else {
       // Subsequent inputs append
       const currentValue = getCurrentValue(activeSetIndex, activeField);
-      if (activeField === 'weight') {
+      const str = String(currentValue);
+      // If value ends with a decimal point (e.g. "42."), append the digit after it
+      if (str.endsWith('.')) {
+        newValue = parseFloat(`${str}${num}`) || 0;
+      } else if (activeField === 'weight') {
         // For weight, allow decimals by treating as string manipulation
         newValue = parseFloat(`${currentValue}${num}`.slice(-5)) || 0;
       } else {
@@ -414,12 +418,17 @@ function SetEditorModal({
     updateValue(activeSetIndex, activeField, newValue);
   };
 
-  // Handle decimal for weight or reps (e.g. 1.5 miles)
+  // Handle decimal point input
   const handleDecimal = () => {
     if (activeSetIndex === null || activeField === null) return;
     const currentValue = getCurrentValue(activeSetIndex, activeField);
-    // Add .5 to the current value
-    updateValue(activeSetIndex, activeField, currentValue + 0.5);
+    const str = String(currentValue);
+    // Don't add a second decimal point
+    if (str.includes('.')) return;
+    // Mark as not first input so subsequent digits append after the decimal
+    setIsFirstInput(false);
+    // Store as string with decimal so next digit appends after it
+    updateValue(activeSetIndex, activeField, str + '.');
   };
 
   // Apply to all sets
@@ -689,7 +698,9 @@ function SetEditorModal({
                   <span className="num">{num}</span>
                 </button>
               ))}
-              <div className="numpad-spacer"></div>
+              <button className="numpad-btn decimal-btn" onClick={handleDecimal}>
+                <span className="num">.</span>
+              </button>
               <button className="numpad-btn" onClick={() => handleNumberInput(0)}>
                 <span className="num">0</span>
               </button>
