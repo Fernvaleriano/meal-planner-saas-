@@ -615,77 +615,261 @@
             font-size: 0.85rem;
         }
 
-        /* Activity Timeline */
+        /* Activity Timeline - Client Grouped */
         .activity-timeline {
             display: flex;
             flex-direction: column;
-            gap: 2px;
+            gap: 8px;
         }
-        .activity-timeline-item {
-            display: flex;
-            align-items: flex-start;
-            gap: 12px;
-            padding: 10px 12px;
-            border-radius: 10px;
-            transition: background 0.15s;
-            cursor: pointer;
-        }
-        .activity-timeline-item:hover {
+        .activity-client-card {
             background: var(--gray-50);
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--gray-100);
+            transition: box-shadow 0.15s;
         }
-        [data-theme="dark"] .activity-timeline-item:hover {
-            background: #334155;
+        .activity-client-card:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
         }
-        .activity-tl-icon {
-            width: 34px;
-            height: 34px;
+        [data-theme="dark"] .activity-client-card {
+            background: #1a2332;
+            border-color: #2d3a4a;
+        }
+        .activity-client-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .activity-client-avatar {
+            width: 36px;
+            height: 36px;
             border-radius: 50%;
+            background: var(--brand-gradient);
+            color: white;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.95rem;
+            font-size: 0.8rem;
+            font-weight: 700;
             flex-shrink: 0;
-            margin-top: 2px;
+            overflow: hidden;
         }
-        .activity-tl-icon.workout { background: #dcfce7; color: #16a34a; }
-        .activity-tl-icon.pr { background: #ede9fe; color: #7c3aed; }
-        .activity-tl-icon.checkin { background: #dbeafe; color: #2563eb; }
-        .activity-tl-icon.photo { background: #fce7f3; color: #db2777; }
-        .activity-tl-icon.measurement { background: #fef3c7; color: #d97706; }
-        .activity-tl-icon.meal { background: #ffedd5; color: #ea580c; }
-        [data-theme="dark"] .activity-tl-icon.workout { background: #052e16; color: #4ade80; }
-        [data-theme="dark"] .activity-tl-icon.pr { background: #2e1065; color: #a78bfa; }
-        [data-theme="dark"] .activity-tl-icon.checkin { background: #172554; color: #60a5fa; }
-        [data-theme="dark"] .activity-tl-icon.photo { background: #500724; color: #f472b6; }
-        [data-theme="dark"] .activity-tl-icon.measurement { background: #451a03; color: #fbbf24; }
-        [data-theme="dark"] .activity-tl-icon.meal { background: #431407; color: #fb923c; }
-        .activity-tl-content {
+        .activity-client-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .activity-client-info {
             flex: 1;
             min-width: 0;
         }
-        .activity-tl-text {
+        .activity-client-name {
             font-size: 0.875rem;
-            color: var(--gray-800);
-            line-height: 1.4;
-        }
-        [data-theme="dark"] .activity-tl-text { color: #e2e8f0; }
-        .activity-tl-text strong {
             font-weight: 600;
+            color: var(--gray-800);
         }
-        .activity-tl-detail {
+        [data-theme="dark"] .activity-client-name { color: #e2e8f0; }
+        .activity-client-summary {
             font-size: 0.75rem;
             color: var(--gray-500);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
             margin-top: 2px;
         }
-        [data-theme="dark"] .activity-tl-detail { color: #64748b; }
-        .activity-tl-time {
+        .activity-summary-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            padding: 1px 6px;
+            border-radius: 10px;
+            font-size: 0.7rem;
+            font-weight: 500;
+        }
+        .activity-summary-badge.workout { background: #dcfce7; color: #16a34a; }
+        .activity-summary-badge.pr { background: #ede9fe; color: #7c3aed; }
+        .activity-summary-badge.checkin { background: #dbeafe; color: #2563eb; }
+        .activity-summary-badge.photo { background: #fce7f3; color: #db2777; }
+        .activity-summary-badge.measurement { background: #fef3c7; color: #d97706; }
+        [data-theme="dark"] .activity-summary-badge.workout { background: #052e16; color: #4ade80; }
+        [data-theme="dark"] .activity-summary-badge.pr { background: #2e1065; color: #a78bfa; }
+        [data-theme="dark"] .activity-summary-badge.checkin { background: #172554; color: #60a5fa; }
+        [data-theme="dark"] .activity-summary-badge.photo { background: #500724; color: #f472b6; }
+        [data-theme="dark"] .activity-summary-badge.measurement { background: #451a03; color: #fbbf24; }
+        .activity-client-chevron {
+            width: 18px;
+            height: 18px;
+            color: var(--gray-400);
+            transition: transform 0.2s;
+            flex-shrink: 0;
+        }
+        .activity-client-card.expanded .activity-client-chevron {
+            transform: rotate(180deg);
+        }
+        .activity-client-time {
             font-size: 0.7rem;
             color: var(--gray-400);
             white-space: nowrap;
-            margin-top: 4px;
             flex-shrink: 0;
         }
-        [data-theme="dark"] .activity-tl-time { color: #64748b; }
+        [data-theme="dark"] .activity-client-time { color: #64748b; }
+        .activity-client-details {
+            display: none;
+            padding: 0 14px 10px;
+        }
+        .activity-client-card.expanded .activity-client-details {
+            display: block;
+        }
+        .activity-detail-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            padding: 6px 0;
+            border-top: 1px solid var(--gray-100);
+            font-size: 0.8125rem;
+            color: var(--gray-700);
+            line-height: 1.4;
+        }
+        [data-theme="dark"] .activity-detail-item {
+            border-color: #2d3a4a;
+            color: #cbd5e1;
+        }
+        .activity-detail-icon {
+            font-size: 0.85rem;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+        .activity-detail-text {
+            flex: 1;
+            min-width: 0;
+        }
+        .activity-detail-time {
+            font-size: 0.65rem;
+            color: var(--gray-400);
+            white-space: nowrap;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+        [data-theme="dark"] .activity-detail-time { color: #64748b; }
+        /* Reaction + reply row for activity cards */
+        .activity-actions {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 6px 14px 10px;
+            border-top: 1px solid var(--gray-100);
+        }
+        [data-theme="dark"] .activity-actions { border-color: #2d3a4a; }
+        .activity-react-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 30px;
+            height: 30px;
+            font-size: 15px;
+            background: transparent;
+            border: 1px solid transparent;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.15s, transform 0.15s, border-color 0.15s;
+            padding: 0;
+            opacity: 0.7;
+        }
+        .activity-react-btn:hover {
+            background: #f5f3ff;
+            border-color: #e9e5f5;
+            opacity: 1;
+            transform: scale(1.2);
+        }
+        .activity-react-btn.reacted {
+            opacity: 1;
+            background: #f5f3ff;
+            border-color: #c4b5fd;
+            transform: scale(1.15);
+        }
+        [data-theme="dark"] .activity-react-btn:hover {
+            background: #1e1033;
+            border-color: #2d2050;
+        }
+        [data-theme="dark"] .activity-react-btn.reacted {
+            background: #1e1033;
+            border-color: #5b21b6;
+        }
+        .activity-reply-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 5px 10px;
+            border-radius: 8px;
+            border: 1px solid var(--gray-200);
+            background: white;
+            color: var(--gray-500);
+            font-size: 0.75rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s;
+            margin-left: auto;
+        }
+        .activity-reply-btn:hover {
+            border-color: var(--brand-primary);
+            color: var(--brand-primary);
+        }
+        [data-theme="dark"] .activity-reply-btn {
+            background: #1e293b;
+            border-color: #334155;
+            color: #94a3b8;
+        }
+        .activity-reply-row {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            padding: 0 14px 10px;
+        }
+        .activity-reply-row input {
+            flex: 1;
+            padding: 7px 10px;
+            border-radius: 8px;
+            border: 1px solid var(--gray-200);
+            font-size: 0.8125rem;
+            font-family: inherit;
+            outline: none;
+            background: white;
+        }
+        .activity-reply-row input:focus {
+            border-color: var(--brand-primary);
+            box-shadow: 0 0 0 2px rgba(13,148,136,0.15);
+        }
+        [data-theme="dark"] .activity-reply-row input {
+            background: #0f172a;
+            border-color: #334155;
+            color: #e2e8f0;
+        }
+        .activity-reply-row button {
+            padding: 7px 14px;
+            border-radius: 8px;
+            border: none;
+            background: var(--brand-primary);
+            color: white;
+            font-size: 0.8125rem;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .activity-reply-row button:hover { background: var(--brand-primary-dark); }
+        .activity-reply-row button:disabled { opacity: 0.5; cursor: default; }
+        .activity-sent-check {
+            display: none;
+            align-items: center;
+            gap: 3px;
+            font-size: 11px;
+            font-weight: 600;
+            color: #059669;
+            animation: fadeIn 0.2s ease;
+        }
         .activity-tl-empty {
             text-align: center;
             padding: 24px 16px;
@@ -698,7 +882,7 @@
             text-transform: uppercase;
             letter-spacing: 0.05em;
             color: var(--gray-400);
-            padding: 8px 12px 4px;
+            padding: 8px 4px 4px;
         }
         [data-theme="dark"] .activity-tl-day-label { color: #64748b; }
 
@@ -6090,9 +6274,11 @@
             }
         }
 
-        // --- Activity Timeline Feed ---
-        let _activityFeedData = [];
+        // --- Activity Timeline Feed (grouped by client) ---
+        let _activityFeedData = []; // raw events
+        let _activityGrouped = {}; // grouped by client
         let _activityFeedLoaded = false;
+        let _activityClientMap = {}; // client id → client data
 
         async function loadActivityFeed(coachId) {
             _activityFeedLoaded = true;
@@ -6109,12 +6295,13 @@
 
                 if (!clients || clients.length === 0) {
                     _activityFeedData = [];
+                    _activityGrouped = {};
                     if (alertsEl && _activeFilter === 'activity') renderActivityTimeline(alertsEl);
                     return;
                 }
 
-                const clientMap = {};
-                clients.forEach(c => { clientMap[c.id] = c; });
+                _activityClientMap = {};
+                clients.forEach(c => { _activityClientMap[c.id] = c; });
                 const clientIds = clients.map(c => c.id);
 
                 const weekAgo = new Date();
@@ -6136,7 +6323,7 @@
                         .eq('type', 'client_pr')
                         .gte('created_at', isoWeekAgo)
                         .order('created_at', { ascending: false })
-                        .limit(30),
+                        .limit(50),
                     supabaseClient.from('client_checkins')
                         .select('id, client_id, created_at, weight')
                         .eq('coach_id', coachId)
@@ -6160,117 +6347,159 @@
 
                 const events = [];
 
-                // Workouts
                 (workoutsRes.data || []).forEach(w => {
-                    const c = clientMap[w.client_id];
+                    const c = _activityClientMap[w.client_id];
                     if (!c) return;
-                    const vol = w.total_volume ? ` — ${Math.round(w.total_volume).toLocaleString()} lbs volume` : '';
-                    events.push({
-                        type: 'workout',
-                        icon: '💪',
-                        clientId: w.client_id,
-                        clientName: c.client_name || 'Client',
-                        text: `<strong>${c.client_name || 'Client'}</strong> completed a workout`,
-                        detail: vol ? vol.substring(3) : '',
-                        time: w.created_at,
-                        ts: new Date(w.created_at).getTime()
-                    });
+                    const vol = w.total_volume ? `${Math.round(w.total_volume).toLocaleString()} lbs volume` : '';
+                    events.push({ type: 'workout', icon: '💪', label: 'Completed a workout', clientId: w.client_id, detail: vol, time: w.created_at, ts: new Date(w.created_at).getTime() });
                 });
 
-                // PRs
                 (prsRes.data || []).forEach(p => {
-                    const c = clientMap[p.related_client_id];
+                    const c = _activityClientMap[p.related_client_id];
                     if (!c) return;
-                    const prDetail = p.message || '';
-                    events.push({
-                        type: 'pr',
-                        icon: '🏆',
-                        clientId: p.related_client_id,
-                        clientName: c.client_name || 'Client',
-                        text: `<strong>${c.client_name || 'Client'}</strong> hit a new PR`,
-                        detail: prDetail,
-                        time: p.created_at,
-                        ts: new Date(p.created_at).getTime()
-                    });
+                    events.push({ type: 'pr', icon: '🏆', label: 'Hit a new PR', clientId: p.related_client_id, detail: p.message || '', time: p.created_at, ts: new Date(p.created_at).getTime() });
                 });
 
-                // Check-ins
                 (checkinsRes.data || []).forEach(ci => {
-                    const c = clientMap[ci.client_id];
+                    const c = _activityClientMap[ci.client_id];
                     if (!c) return;
-                    const weightInfo = ci.weight ? ` — ${ci.weight} lbs` : '';
-                    events.push({
-                        type: 'checkin',
-                        icon: '✅',
-                        clientId: ci.client_id,
-                        clientName: c.client_name || 'Client',
-                        text: `<strong>${c.client_name || 'Client'}</strong> submitted a check-in`,
-                        detail: weightInfo ? weightInfo.substring(3) : '',
-                        time: ci.created_at,
-                        ts: new Date(ci.created_at).getTime()
-                    });
+                    events.push({ type: 'checkin', icon: '✅', label: 'Submitted a check-in', clientId: ci.client_id, detail: ci.weight ? `${ci.weight} lbs` : '', time: ci.created_at, ts: new Date(ci.created_at).getTime() });
                 });
 
-                // Photos
                 (photosRes.data || []).forEach(ph => {
-                    const c = clientMap[ph.client_id];
+                    const c = _activityClientMap[ph.client_id];
                     if (!c) return;
-                    events.push({
-                        type: 'photo',
-                        icon: '📸',
-                        clientId: ph.client_id,
-                        clientName: c.client_name || 'Client',
-                        text: `<strong>${c.client_name || 'Client'}</strong> uploaded a progress photo`,
-                        detail: ph.photo_type ? ph.photo_type.replace(/_/g, ' ') : '',
-                        time: ph.created_at,
-                        ts: new Date(ph.created_at).getTime()
-                    });
+                    events.push({ type: 'photo', icon: '📸', label: 'Uploaded a progress photo', clientId: ph.client_id, detail: ph.photo_type ? ph.photo_type.replace(/_/g, ' ') : '', time: ph.created_at, ts: new Date(ph.created_at).getTime() });
                 });
 
-                // Measurements
                 (measurementsRes.data || []).forEach(m => {
-                    const c = clientMap[m.client_id];
+                    const c = _activityClientMap[m.client_id];
                     if (!c) return;
                     const wt = m.weight ? `${m.weight} ${m.weight_unit || 'lbs'}` : '';
-                    events.push({
-                        type: 'measurement',
-                        icon: '📏',
-                        clientId: m.client_id,
-                        clientName: c.client_name || 'Client',
-                        text: `<strong>${c.client_name || 'Client'}</strong> logged measurements`,
-                        detail: wt,
-                        time: m.created_at,
-                        ts: new Date(m.created_at).getTime()
-                    });
+                    events.push({ type: 'measurement', icon: '📏', label: 'Logged measurements', clientId: m.client_id, detail: wt, time: m.created_at, ts: new Date(m.created_at).getTime() });
                 });
 
-                // Sort by time descending
                 events.sort((a, b) => b.ts - a.ts);
                 _activityFeedData = events;
+
+                // Group by client
+                _activityGrouped = {};
+                events.forEach(ev => {
+                    if (!_activityGrouped[ev.clientId]) {
+                        _activityGrouped[ev.clientId] = { events: [], latestTs: ev.ts };
+                    }
+                    _activityGrouped[ev.clientId].events.push(ev);
+                });
 
             } catch (err) {
                 console.error('Error loading activity feed:', err);
                 _activityFeedData = [];
+                _activityGrouped = {};
             }
 
             if (alertsEl && _activeFilter === 'activity') renderActivityTimeline(alertsEl);
         }
 
+        function toggleActivityCard(cardEl) {
+            cardEl.classList.toggle('expanded');
+        }
+
+        function toggleActivityReply(clientId) {
+            const row = document.getElementById('activity-reply-' + clientId);
+            if (!row) return;
+            const isVisible = row.style.display !== 'none' && row.style.display !== '';
+            row.style.display = isVisible ? 'none' : 'flex';
+            if (!isVisible) {
+                const input = row.querySelector('input');
+                if (input) input.focus();
+            }
+        }
+
+        async function sendActivityReaction(clientId, emoji, btn) {
+            if (!btn) return;
+            // Optimistic UI
+            btn.classList.add('reacted');
+            const sentEl = document.getElementById('activity-sent-' + clientId);
+
+            const clientName = _activityClientMap[clientId]?.client_name || 'your client';
+            const msg = emoji + ' Great work ' + clientName + '!';
+
+            try {
+                const res = await fetch('/.netlify/functions/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'send', coachId: _currentCoachId, clientId, senderType: 'coach', message: msg })
+                });
+                if (res.ok && sentEl) {
+                    sentEl.style.display = 'inline-flex';
+                    setTimeout(() => { sentEl.style.display = 'none'; }, 4000);
+                }
+            } catch (e) {
+                console.error('Error sending activity reaction:', e);
+            }
+        }
+
+        async function sendActivityReply(clientId) {
+            const input = document.getElementById('activity-reply-input-' + clientId);
+            const row = document.getElementById('activity-reply-' + clientId);
+            const sentEl = document.getElementById('activity-sent-' + clientId);
+            if (!input || !input.value.trim()) return;
+
+            const btn = row.querySelector('button');
+            if (btn) { btn.disabled = true; btn.textContent = 'Sending...'; }
+
+            try {
+                const res = await fetch('/.netlify/functions/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'send', coachId: _currentCoachId, clientId, senderType: 'coach', message: input.value.trim() })
+                });
+                if (res.ok) {
+                    row.style.display = 'none';
+                    input.value = '';
+                    if (sentEl) {
+                        sentEl.style.display = 'inline-flex';
+                        setTimeout(() => { sentEl.style.display = 'none'; }, 4000);
+                    }
+                } else {
+                    alert('Failed to send message. Please try again.');
+                }
+            } catch (e) {
+                console.error('Error sending activity reply:', e);
+                alert('Failed to send message. Please try again.');
+            } finally {
+                if (btn) { btn.disabled = false; btn.textContent = 'Send'; }
+            }
+        }
+
         function renderActivityTimeline(container) {
-            if (_activityFeedData.length === 0) {
+            const clientIds = Object.keys(_activityGrouped);
+            if (clientIds.length === 0) {
                 container.innerHTML = '<div class="activity-tl-empty">No client activity in the last 7 days.</div>';
                 return;
             }
 
+            // Sort clients by most recent activity
+            clientIds.sort((a, b) => _activityGrouped[b].latestTs - _activityGrouped[a].latestTs);
+
             let html = '<div class="activity-timeline">';
             let lastDayLabel = '';
 
-            _activityFeedData.forEach(ev => {
-                const d = new Date(ev.time);
+            clientIds.forEach(cId => {
+                const group = _activityGrouped[cId];
+                const client = _activityClientMap[cId];
+                if (!client || group.events.length === 0) return;
+
+                const name = client.client_name || 'Client';
+                const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+                const photo = client.profile_photo_url || client.avatar_url || '';
+                const latestTime = group.events[0].time;
+
+                // Day label
+                const d = new Date(latestTime);
                 const today = new Date();
                 const yesterday = new Date();
                 yesterday.setDate(yesterday.getDate() - 1);
-
                 let dayLabel;
                 if (d.toDateString() === today.toDateString()) dayLabel = 'Today';
                 else if (d.toDateString() === yesterday.toDateString()) dayLabel = 'Yesterday';
@@ -6281,14 +6510,55 @@
                     lastDayLabel = dayLabel;
                 }
 
+                // Count by type for summary badges
+                const counts = {};
+                group.events.forEach(ev => { counts[ev.type] = (counts[ev.type] || 0) + 1; });
+
+                let badgesHtml = '';
+                if (counts.workout) badgesHtml += `<span class="activity-summary-badge workout">💪 ${counts.workout} workout${counts.workout > 1 ? 's' : ''}</span>`;
+                if (counts.pr) badgesHtml += `<span class="activity-summary-badge pr">🏆 ${counts.pr} PR${counts.pr > 1 ? 's' : ''}</span>`;
+                if (counts.checkin) badgesHtml += `<span class="activity-summary-badge checkin">✅ ${counts.checkin} check-in${counts.checkin > 1 ? 's' : ''}</span>`;
+                if (counts.photo) badgesHtml += `<span class="activity-summary-badge photo">📸 ${counts.photo} photo${counts.photo > 1 ? 's' : ''}</span>`;
+                if (counts.measurement) badgesHtml += `<span class="activity-summary-badge measurement">📏 measurements</span>`;
+
+                // Build detail items
+                let detailsHtml = group.events.map(ev => `
+                    <div class="activity-detail-item">
+                        <span class="activity-detail-icon">${ev.icon}</span>
+                        <span class="activity-detail-text">${ev.label}${ev.detail ? ' — ' + ev.detail : ''}</span>
+                        <span class="activity-detail-time">${timeAgo(ev.time)}</span>
+                    </div>`).join('');
+
+                const safeClientId = cId.replace(/[^a-zA-Z0-9_-]/g, '');
+
                 html += `
-                    <div class="activity-timeline-item" onclick="window.location.href='client-profile.html?clientId=${ev.clientId}'">
-                        <div class="activity-tl-icon ${ev.type}">${ev.icon}</div>
-                        <div class="activity-tl-content">
-                            <div class="activity-tl-text">${ev.text}</div>
-                            ${ev.detail ? `<div class="activity-tl-detail">${ev.detail}</div>` : ''}
+                    <div class="activity-client-card" id="activity-card-${safeClientId}">
+                        <div class="activity-client-header" onclick="toggleActivityCard(this.parentElement)">
+                            <div class="activity-client-avatar">${photo ? `<img src="${photo}" alt="">` : initials}</div>
+                            <div class="activity-client-info">
+                                <div class="activity-client-name">${name}</div>
+                                <div class="activity-client-summary">${badgesHtml}</div>
+                            </div>
+                            <span class="activity-client-time">${timeAgo(latestTime)}</span>
+                            <svg class="activity-client-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
                         </div>
-                        <div class="activity-tl-time">${timeAgo(ev.time)}</div>
+                        <div class="activity-client-details">
+                            ${detailsHtml}
+                        </div>
+                        <div class="activity-actions" onclick="event.stopPropagation()">
+                            <button class="activity-react-btn" onclick="sendActivityReaction('${cId}','👏',this)" title="Clap">👏</button>
+                            <button class="activity-react-btn" onclick="sendActivityReaction('${cId}','💪',this)" title="Muscle">💪</button>
+                            <button class="activity-react-btn" onclick="sendActivityReaction('${cId}','🔥',this)" title="Fire">🔥</button>
+                            <span id="activity-sent-${safeClientId}" class="activity-sent-check">Sent ✓</span>
+                            <button class="activity-reply-btn" onclick="toggleActivityReply('${safeClientId}')">
+                                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                                Reply
+                            </button>
+                        </div>
+                        <div class="activity-reply-row" id="activity-reply-${safeClientId}" onclick="event.stopPropagation()">
+                            <input type="text" id="activity-reply-input-${safeClientId}" placeholder="Message ${name}..." onkeydown="if(event.key==='Enter')sendActivityReply('${cId}')">
+                            <button onclick="sendActivityReply('${cId}')">Send</button>
+                        </div>
                     </div>`;
             });
 
