@@ -1142,8 +1142,9 @@
             }
 
             list.innerHTML = filtered.map(c => {
-                const preview = c.lastMessage
-                    ? (c.lastMessageSender === 'coach' ? 'You: ' : '') + c.lastMessage
+                const displayMessage = (c.lastMessage && c.lastMessage.startsWith('__REACTION__:')) ? 'Reacted to a message' : c.lastMessage;
+                const preview = displayMessage
+                    ? (c.lastMessageSender === 'coach' ? 'You: ' : '') + displayMessage
                     : 'No messages yet';
                 const safeName = c.clientName.replace(/'/g, "\\'");
                 const isSelected = selectedClientIds.has(c.clientId);

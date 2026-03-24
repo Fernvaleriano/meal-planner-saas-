@@ -418,24 +418,31 @@
 
         .priority-handled-clear {
             font-size: 0.75rem;
-            color: var(--gray-400);
+            color: var(--brand-primary);
             cursor: pointer;
-            border: none;
-            background: none;
-            padding: 2px 8px;
-            border-radius: 4px;
+            border: 1px solid var(--brand-primary);
+            background: transparent;
+            padding: 4px 12px;
+            border-radius: 6px;
             font-family: inherit;
-            transition: color 0.15s, background 0.15s;
+            font-weight: 600;
+            transition: color 0.15s, background 0.15s, border-color 0.15s;
         }
 
         .priority-handled-clear:hover {
-            color: var(--gray-600);
-            background: var(--gray-100);
+            color: white;
+            background: var(--brand-primary);
+            border-color: var(--brand-primary);
+        }
+
+        [data-theme="dark"] .priority-handled-clear {
+            color: var(--brand-primary);
+            border-color: var(--brand-primary);
         }
 
         [data-theme="dark"] .priority-handled-clear:hover {
-            color: var(--gray-300);
-            background: rgba(255, 255, 255, 0.06);
+            color: white;
+            background: var(--brand-primary);
         }
 
         .priority-alert-link {
@@ -2447,6 +2454,24 @@
             padding: 48px 20px;
             text-align: center;
             color: var(--gray-400);
+        }
+
+        [data-theme="dark"] .notification-dropdown {
+            background: #1e293b;
+            border-color: #334155;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+        }
+
+        [data-theme="dark"] .notification-header {
+            border-bottom-color: #334155;
+        }
+
+        [data-theme="dark"] .notification-item {
+            border-bottom-color: #334155;
+        }
+
+        [data-theme="dark"] .notification-badge {
+            border-color: #1e293b;
         }
 
         /* Footer */
@@ -7908,6 +7933,7 @@
 
                 // Update UI
                 userEmailSpan.textContent = user.email;
+                userEmailSpan.title = user.email;
 
                 // Update header profile avatar
                 const headerAvatar = document.getElementById('headerProfileAvatar');
@@ -8327,9 +8353,13 @@
                 document.getElementById('onboardingProgressFill').style.width =
                     `${(completedCount / totalItems) * 100}%`;
 
-                // Show onboarding section if not all items are complete
+                // Show onboarding section only if not all items are complete
                 if (completedCount < totalItems) {
                     document.getElementById('onboardingSection').classList.add('show');
+                } else {
+                    // All steps done — auto-dismiss so it never shows again
+                    document.getElementById('onboardingSection').classList.remove('show');
+                    localStorage.setItem('onboardingDismissed', 'true');
                 }
             } catch (error) {
                 console.error('Error checking onboarding status:', error);

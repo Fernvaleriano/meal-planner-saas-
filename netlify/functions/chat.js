@@ -56,12 +56,19 @@ exports.handler = async (event) => {
           console.error('Error fetching messages:', msgError);
         }
 
-        // Group by client_id - get latest message and unread count for each
+        // Group by client_id - get latest non-reaction message and unread count
         const messagesByClient = {};
         (latestMessages || []).forEach(msg => {
-          if (!messagesByClient[msg.client_id]) {
-            messagesByClient[msg.client_id] = { latest: msg, unreadCount: 0 };
+          const isReaction = msg.message && msg.message.startsWith('__REACTION__:');
+          const entry = messagesByClient[msg.client_id];
+
+          if (!entry) {
+            messagesByClient[msg.client_id] = { latest: isReaction ? null : msg, unreadCount: 0 };
+          } else if (!entry.latest && !isReaction) {
+            // Fill in the latest real message if we only had reactions so far
+            entry.latest = msg;
           }
+
           // Count unread messages FROM client (messages coach hasn't read)
           if (!msg.is_read && msg.sender_type === 'client') {
             messagesByClient[msg.client_id].unreadCount++;
