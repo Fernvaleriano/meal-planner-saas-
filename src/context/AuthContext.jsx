@@ -352,6 +352,15 @@ export function AuthProvider({ children }) {
     setClientData(null);
     // Clear cached client data on logout
     localStorage.removeItem('cachedClientData');
+    // Clear branding caches so next user doesn't see stale branding
+    localStorage.removeItem('login_coach_id');
+    sessionStorage.removeItem('zique_branding');
+    // Clear all coach_branding_v* localStorage entries
+    try {
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('coach_branding_v')) localStorage.removeItem(key);
+      });
+    } catch { /* ignore */ }
     // Clear API session cache
     clearSessionCache();
     // Clear persisted state snapshots (sessionStorage)
