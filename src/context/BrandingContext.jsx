@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from './AuthContext';
 import { supabase } from '../utils/supabase';
+import { apiGet } from '../utils/api';
 
 const BrandingContext = createContext({});
 
@@ -254,38 +255,54 @@ export function BrandingProvider({ children }) {
       const COACH_BRANDING_SELECT = 'id, name, subscription_tier, brand_name, brand_logo_url, brand_favicon_url, brand_primary_color, brand_secondary_color, brand_accent_color, brand_email_logo_url, brand_email_footer, branding_updated_at, profile_photo_url, brand_bg_color, brand_bg_secondary_color, brand_card_color, brand_text_color, brand_text_secondary_color, brand_font, brand_button_style, brand_welcome_message, brand_app_name, brand_short_name, client_modules, custom_terminology';
 
       let coach = null;
-      let error = null;
 
       if (clientData?.is_coach) {
         // Coaches can always read their own row with authenticated_select_own.
-        const result = await supabase
+        const { data, error } = await supabase
           .from('coaches')
           .select(COACH_BRANDING_SELECT)
           .eq('id', coachId)
           .maybeSingle();
-        coach = result.data;
-        error = result.error;
+
+        if (!error && data) {
+          coach = data;
+        } else if (error) {
+          console.error('BrandingContext: Supabase error fetching coach branding', {
+            coachId,
+            code: error.code,
+            message: error.message,
+            details: error.details,
+          });
+        }
       } else {
         // Clients fetch coach branding through SECURITY DEFINER RPC to avoid
         // hard dependency on a direct coaches SELECT RLS policy being present.
         const result = await supabase.rpc('get_my_coach_branding');
-        coach = Array.isArray(result.data) ? result.data[0] : result.data;
-        error = result.error;
-      }
+        const rpcData = Array.isArray(result.data) ? result.data[0] : result.data;
 
-      if (error) {
-        console.error('BrandingContext: Supabase error fetching branding', {
-          coachId,
-          code: error.code,
-          message: error.message,
-          details: error.details,
-        });
-        // Keep cached/default branding if request fails.
-        return;
+        if (!result.error && rpcData) {
+          coach = rpcData;
+        } else {
+          // RPC failed — fall back to Netlify function
+          console.warn('BrandingContext: RPC failed, falling back to Netlify function.', {
+            coachId,
+            code: result.error?.code,
+            message: result.error?.message,
+            details: result.error?.details,
+          });
+          try {
+            const fallback = await apiGet(`/.netlify/functions/get-coach-branding?coachId=${coachId}`);
+            if (fallback && fallback.coach_id) {
+              coach = fallback;
+            }
+          } catch (fallbackErr) {
+            console.error('BrandingContext: Netlify fallback also failed:', fallbackErr);
+          }
+        }
       }
 
       if (!coach) {
-        console.warn('BrandingContext: No coach row returned. Check coaches RLS policy for client access.', {
+        console.warn('BrandingContext: No coach data from any source.', {
           coachId,
           hasClientCoachId: !!clientData?.coach_id,
           isCoachUser: !!clientData?.is_coach,
@@ -294,9 +311,9 @@ export function BrandingProvider({ children }) {
       }
 
       const brandingData = {
-        coach_id: coach.id,
-        coach_name: coach.name,
-        has_branding_access: ['professional', 'branded'].includes(coach.subscription_tier),
+        coach_id: coach.coach_id || coach.id,
+        coach_name: coach.coach_name || coach.name,
+        has_branding_access: coach.has_branding_access ?? ['professional', 'branded'].includes(coach.subscription_tier),
         subscription_tier: coach.subscription_tier,
         brand_name: coach.brand_name || DEFAULT_BRANDING.brand_name,
         brand_logo_url: coach.brand_logo_url || DEFAULT_BRANDING.brand_logo_url,

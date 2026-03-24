@@ -248,7 +248,7 @@ textarea,
 }
 
 .nav-left {
-    max-width: 65%;
+    max-width: 75%;
 }
 
 .nav-center {
@@ -274,7 +274,7 @@ textarea,
 .nav-logo-left {
     height: 100px;
     width: auto;
-    max-width: 75%;
+    max-width: 100%;
     object-fit: contain;
 }
 
@@ -282,14 +282,14 @@ textarea,
 @media (max-width: 500px) {
     .nav-logo-left {
         height: 90px;
-        max-width: 70%;
+        max-width: 100%;
     }
 }
 
 @media (max-width: 380px) {
     .nav-logo-left {
         height: 80px;
-        max-width: 65%;
+        max-width: 100%;
     }
 }
 
