@@ -8666,12 +8666,12 @@ textarea,
 .rating-buttons {
     display: flex;
     gap: 8px;
+    width: 100%;
 }
 
 .rating-btn {
-    flex: 1;
-    min-width: 44px;
-    max-width: 56px;
+    flex: 1 1 0;
+    min-width: 0;
     height: 48px;
     border: 2px solid rgba(255, 255, 255, 0.1);
     border-radius: 14px;
@@ -8758,6 +8758,60 @@ textarea,
 .rating-btn.selected::after {
     opacity: 1;
     background: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, transparent 100%);
+}
+
+/* Responsive check-in adjustments for smaller phones */
+@media (max-width: 400px) {
+    .checkin-content {
+        padding: 12px;
+    }
+
+    .checkin-page .section-card {
+        padding: 16px;
+    }
+
+    .rating-group {
+        padding: 12px;
+        margin-bottom: 20px;
+    }
+
+    .rating-buttons {
+        gap: 6px;
+    }
+
+    .rating-btn {
+        height: 42px;
+        font-size: 15px;
+        border-radius: 10px;
+    }
+
+    .adherence-container {
+        padding: 14px;
+    }
+}
+
+@media (max-width: 340px) {
+    .checkin-content {
+        padding: 8px;
+    }
+
+    .checkin-page .section-card {
+        padding: 12px;
+    }
+
+    .rating-group {
+        padding: 10px;
+    }
+
+    .rating-buttons {
+        gap: 4px;
+    }
+
+    .rating-btn {
+        height: 38px;
+        font-size: 14px;
+        border-radius: 8px;
+    }
 }
 
 .adherence-container {
