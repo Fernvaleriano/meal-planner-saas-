@@ -615,6 +615,93 @@
             font-size: 0.85rem;
         }
 
+        /* Activity Timeline */
+        .activity-timeline {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .activity-timeline-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            transition: background 0.15s;
+            cursor: pointer;
+        }
+        .activity-timeline-item:hover {
+            background: var(--gray-50);
+        }
+        [data-theme="dark"] .activity-timeline-item:hover {
+            background: #334155;
+        }
+        .activity-tl-icon {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.95rem;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+        .activity-tl-icon.workout { background: #dcfce7; color: #16a34a; }
+        .activity-tl-icon.pr { background: #ede9fe; color: #7c3aed; }
+        .activity-tl-icon.checkin { background: #dbeafe; color: #2563eb; }
+        .activity-tl-icon.photo { background: #fce7f3; color: #db2777; }
+        .activity-tl-icon.measurement { background: #fef3c7; color: #d97706; }
+        .activity-tl-icon.meal { background: #ffedd5; color: #ea580c; }
+        [data-theme="dark"] .activity-tl-icon.workout { background: #052e16; color: #4ade80; }
+        [data-theme="dark"] .activity-tl-icon.pr { background: #2e1065; color: #a78bfa; }
+        [data-theme="dark"] .activity-tl-icon.checkin { background: #172554; color: #60a5fa; }
+        [data-theme="dark"] .activity-tl-icon.photo { background: #500724; color: #f472b6; }
+        [data-theme="dark"] .activity-tl-icon.measurement { background: #451a03; color: #fbbf24; }
+        [data-theme="dark"] .activity-tl-icon.meal { background: #431407; color: #fb923c; }
+        .activity-tl-content {
+            flex: 1;
+            min-width: 0;
+        }
+        .activity-tl-text {
+            font-size: 0.875rem;
+            color: var(--gray-800);
+            line-height: 1.4;
+        }
+        [data-theme="dark"] .activity-tl-text { color: #e2e8f0; }
+        .activity-tl-text strong {
+            font-weight: 600;
+        }
+        .activity-tl-detail {
+            font-size: 0.75rem;
+            color: var(--gray-500);
+            margin-top: 2px;
+        }
+        [data-theme="dark"] .activity-tl-detail { color: #64748b; }
+        .activity-tl-time {
+            font-size: 0.7rem;
+            color: var(--gray-400);
+            white-space: nowrap;
+            margin-top: 4px;
+            flex-shrink: 0;
+        }
+        [data-theme="dark"] .activity-tl-time { color: #64748b; }
+        .activity-tl-empty {
+            text-align: center;
+            padding: 24px 16px;
+            color: var(--gray-500);
+            font-size: 0.875rem;
+        }
+        .activity-tl-day-label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--gray-400);
+            padding: 8px 12px 4px;
+        }
+        [data-theme="dark"] .activity-tl-day-label { color: #64748b; }
+
         /* Meal Feed Cards in Dashboard */
         .meal-feed-card {
             background: white;
@@ -5056,7 +5143,10 @@
                     <div class="action-center" id="actionCenter">
                         <div class="action-center-heading">Activity Feed</div>
                         <div class="feed-filter-tabs" id="feedFilterTabs">
-                            <button class="feed-filter-tab active" data-filter="alert" onclick="setFeedFilter('alert', this)">
+                            <button class="feed-filter-tab active" data-filter="activity" onclick="setFeedFilter('activity', this)">
+                                <span class="feed-tab-icon">📋</span> Activity
+                            </button>
+                            <button class="feed-filter-tab" data-filter="alert" onclick="setFeedFilter('alert', this)">
                                 <span class="feed-tab-icon">⚡</span> Alerts
                             </button>
                             <button class="feed-filter-tab" data-filter="meals" onclick="setFeedFilter('meals', this)">
@@ -5361,7 +5451,7 @@
         let isLoading = false;
 
         // Unified Feed filter state
-        let _activeFilter = 'alert';
+        let _activeFilter = 'activity';
         let _mealOffset = 0;
         let _mealHasMore = false;
         let _mealClientMap = {};
@@ -6140,8 +6230,223 @@
             }
         }
 
+        // --- Activity Timeline Feed ---
+        let _activityFeedData = [];
+        let _activityFeedLoaded = false;
+
+        async function loadActivityFeed(coachId) {
+            _activityFeedLoaded = true;
+            const alertsEl = document.getElementById('priorityAlerts');
+            if (alertsEl && _activeFilter === 'activity') {
+                alertsEl.innerHTML = '<div class="activity-tl-empty">Loading activity...</div>';
+            }
+
+            try {
+                const { data: clients } = await supabaseClient
+                    .from('clients')
+                    .select('id, client_name, profile_photo_url, avatar_url')
+                    .eq('coach_id', coachId);
+
+                if (!clients || clients.length === 0) {
+                    _activityFeedData = [];
+                    if (alertsEl && _activeFilter === 'activity') renderActivityTimeline(alertsEl);
+                    return;
+                }
+
+                const clientMap = {};
+                clients.forEach(c => { clientMap[c.id] = c; });
+                const clientIds = clients.map(c => c.id);
+
+                const weekAgo = new Date();
+                weekAgo.setDate(weekAgo.getDate() - 7);
+                const isoWeekAgo = weekAgo.toISOString();
+
+                // Fetch all activity types in parallel
+                const [workoutsRes, prsRes, checkinsRes, photosRes, measurementsRes] = await Promise.all([
+                    supabaseClient.from('workout_logs')
+                        .select('id, client_id, total_volume, created_at, status, workout_date')
+                        .in('client_id', clientIds)
+                        .eq('status', 'completed')
+                        .gte('created_at', isoWeekAgo)
+                        .order('created_at', { ascending: false })
+                        .limit(50),
+                    supabaseClient.from('notifications')
+                        .select('id, related_client_id, message, created_at')
+                        .eq('user_id', coachId)
+                        .eq('type', 'client_pr')
+                        .gte('created_at', isoWeekAgo)
+                        .order('created_at', { ascending: false })
+                        .limit(30),
+                    supabaseClient.from('client_checkins')
+                        .select('id, client_id, created_at, weight')
+                        .eq('coach_id', coachId)
+                        .in('client_id', clientIds)
+                        .gte('created_at', isoWeekAgo)
+                        .order('created_at', { ascending: false })
+                        .limit(30),
+                    supabaseClient.from('progress_photos')
+                        .select('id, client_id, photo_type, created_at')
+                        .in('client_id', clientIds)
+                        .gte('created_at', isoWeekAgo)
+                        .order('created_at', { ascending: false })
+                        .limit(30),
+                    supabaseClient.from('client_measurements')
+                        .select('id, client_id, weight, weight_unit, created_at')
+                        .in('client_id', clientIds)
+                        .gte('created_at', isoWeekAgo)
+                        .order('created_at', { ascending: false })
+                        .limit(30)
+                ]);
+
+                const events = [];
+
+                // Workouts
+                (workoutsRes.data || []).forEach(w => {
+                    const c = clientMap[w.client_id];
+                    if (!c) return;
+                    const vol = w.total_volume ? ` — ${Math.round(w.total_volume).toLocaleString()} lbs volume` : '';
+                    events.push({
+                        type: 'workout',
+                        icon: '💪',
+                        clientId: w.client_id,
+                        clientName: c.client_name || 'Client',
+                        text: `<strong>${c.client_name || 'Client'}</strong> completed a workout`,
+                        detail: vol ? vol.substring(3) : '',
+                        time: w.created_at,
+                        ts: new Date(w.created_at).getTime()
+                    });
+                });
+
+                // PRs
+                (prsRes.data || []).forEach(p => {
+                    const c = clientMap[p.related_client_id];
+                    if (!c) return;
+                    const prDetail = p.message || '';
+                    events.push({
+                        type: 'pr',
+                        icon: '🏆',
+                        clientId: p.related_client_id,
+                        clientName: c.client_name || 'Client',
+                        text: `<strong>${c.client_name || 'Client'}</strong> hit a new PR`,
+                        detail: prDetail,
+                        time: p.created_at,
+                        ts: new Date(p.created_at).getTime()
+                    });
+                });
+
+                // Check-ins
+                (checkinsRes.data || []).forEach(ci => {
+                    const c = clientMap[ci.client_id];
+                    if (!c) return;
+                    const weightInfo = ci.weight ? ` — ${ci.weight} lbs` : '';
+                    events.push({
+                        type: 'checkin',
+                        icon: '✅',
+                        clientId: ci.client_id,
+                        clientName: c.client_name || 'Client',
+                        text: `<strong>${c.client_name || 'Client'}</strong> submitted a check-in`,
+                        detail: weightInfo ? weightInfo.substring(3) : '',
+                        time: ci.created_at,
+                        ts: new Date(ci.created_at).getTime()
+                    });
+                });
+
+                // Photos
+                (photosRes.data || []).forEach(ph => {
+                    const c = clientMap[ph.client_id];
+                    if (!c) return;
+                    events.push({
+                        type: 'photo',
+                        icon: '📸',
+                        clientId: ph.client_id,
+                        clientName: c.client_name || 'Client',
+                        text: `<strong>${c.client_name || 'Client'}</strong> uploaded a progress photo`,
+                        detail: ph.photo_type ? ph.photo_type.replace(/_/g, ' ') : '',
+                        time: ph.created_at,
+                        ts: new Date(ph.created_at).getTime()
+                    });
+                });
+
+                // Measurements
+                (measurementsRes.data || []).forEach(m => {
+                    const c = clientMap[m.client_id];
+                    if (!c) return;
+                    const wt = m.weight ? `${m.weight} ${m.weight_unit || 'lbs'}` : '';
+                    events.push({
+                        type: 'measurement',
+                        icon: '📏',
+                        clientId: m.client_id,
+                        clientName: c.client_name || 'Client',
+                        text: `<strong>${c.client_name || 'Client'}</strong> logged measurements`,
+                        detail: wt,
+                        time: m.created_at,
+                        ts: new Date(m.created_at).getTime()
+                    });
+                });
+
+                // Sort by time descending
+                events.sort((a, b) => b.ts - a.ts);
+                _activityFeedData = events;
+
+            } catch (err) {
+                console.error('Error loading activity feed:', err);
+                _activityFeedData = [];
+            }
+
+            if (alertsEl && _activeFilter === 'activity') renderActivityTimeline(alertsEl);
+        }
+
+        function renderActivityTimeline(container) {
+            if (_activityFeedData.length === 0) {
+                container.innerHTML = '<div class="activity-tl-empty">No client activity in the last 7 days.</div>';
+                return;
+            }
+
+            let html = '<div class="activity-timeline">';
+            let lastDayLabel = '';
+
+            _activityFeedData.forEach(ev => {
+                const d = new Date(ev.time);
+                const today = new Date();
+                const yesterday = new Date();
+                yesterday.setDate(yesterday.getDate() - 1);
+
+                let dayLabel;
+                if (d.toDateString() === today.toDateString()) dayLabel = 'Today';
+                else if (d.toDateString() === yesterday.toDateString()) dayLabel = 'Yesterday';
+                else dayLabel = d.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+
+                if (dayLabel !== lastDayLabel) {
+                    html += `<div class="activity-tl-day-label">${dayLabel}</div>`;
+                    lastDayLabel = dayLabel;
+                }
+
+                html += `
+                    <div class="activity-timeline-item" onclick="window.location.href='client-profile.html?clientId=${ev.clientId}'">
+                        <div class="activity-tl-icon ${ev.type}">${ev.icon}</div>
+                        <div class="activity-tl-content">
+                            <div class="activity-tl-text">${ev.text}</div>
+                            ${ev.detail ? `<div class="activity-tl-detail">${ev.detail}</div>` : ''}
+                        </div>
+                        <div class="activity-tl-time">${timeAgo(ev.time)}</div>
+                    </div>`;
+            });
+
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
         function renderPriorityAlertSections() {
             const alertsEl = document.getElementById('priorityAlerts');
+
+            // Activity tab has its own renderer
+            if (_activeFilter === 'activity') {
+                if (alertsEl) renderActivityTimeline(alertsEl);
+                const loadMoreEl = document.getElementById('feedLoadMore');
+                if (loadMoreEl) loadMoreEl.style.display = 'none';
+                return;
+            }
+
             if (!alertsEl || _allPriorityAlerts.length === 0) {
                 if (alertsEl) {
                     alertsEl.innerHTML = `
@@ -6226,7 +6531,7 @@
                     html += item.html.replace('__CHECKBOX__', checkboxHtml(item.id, false));
                 });
             } else {
-                const filterLabels = { meals: 'meal', alert: 'alert' };
+                const filterLabels = { meals: 'meal', alert: 'alert', activity: 'activity' };
                 const label = filterLabels[_activeFilter] || '';
                 html += `
                     <div class="priority-alert">
@@ -6278,6 +6583,9 @@
             // Update active tab styling
             document.querySelectorAll('.feed-filter-tab').forEach(t => t.classList.remove('active'));
             if (btn) btn.classList.add('active');
+            if (filter === 'activity' && _currentCoachId && !_activityFeedLoaded) {
+                loadActivityFeed(_currentCoachId);
+            }
             renderPriorityAlertSections();
         }
 
@@ -7541,6 +7849,9 @@
 
                 // Load client activity grid (non-blocking)
                 loadClientActivityGrid(user.id);
+
+                // Load activity timeline feed (default tab)
+                loadActivityFeed(user.id);
 
                 // Subscribe to real-time meal entries
                 setupMealRealtimeSubscription(user.id);
