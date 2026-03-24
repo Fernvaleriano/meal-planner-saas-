@@ -239,53 +239,101 @@ export function BrandingProvider({ children }) {
       return;
     }
 
+    const cached = getCachedBranding(coachId);
+
     // Use cache unless forced
-    if (!force) {
-      const cached = getCachedBranding(coachId);
-      if (cached) {
-        setBranding(cached);
-        applyBrandingCSS(cached);
-        setLoading(false);
-        return;
-      }
+    if (!force && cached) {
+      // Show cached branding immediately to avoid UI flicker,
+      // then still fetch fresh branding in the background.
+      setBranding(cached);
+      applyBrandingCSS(cached);
+      setLoading(false);
     }
 
     try {
-      const { data: coach, error } = await supabase
-        .from('coaches')
-        .select('id, name, subscription_tier, brand_name, brand_logo_url, brand_favicon_url, brand_primary_color, brand_secondary_color, brand_accent_color, brand_email_logo_url, brand_email_footer, branding_updated_at, profile_photo_url, brand_bg_color, brand_bg_secondary_color, brand_card_color, brand_text_color, brand_text_secondary_color, brand_font, brand_button_style, brand_welcome_message, brand_app_name, brand_short_name, client_modules, custom_terminology')
-        .eq('id', coachId)
-        .single();
+      const COACH_BRANDING_SELECT = 'id, name, subscription_tier, brand_name, brand_logo_url, brand_favicon_url, brand_primary_color, brand_secondary_color, brand_accent_color, brand_email_logo_url, brand_email_footer, branding_updated_at, profile_photo_url, brand_bg_color, brand_bg_secondary_color, brand_card_color, brand_text_color, brand_text_secondary_color, brand_font, brand_button_style, brand_welcome_message, brand_app_name, brand_short_name, client_modules, custom_terminology';
 
-      if (!error && coach) {
-        const brandingData = {
-          coach_id: coach.id,
-          coach_name: coach.name,
-          has_branding_access: ['professional', 'branded'].includes(coach.subscription_tier),
-          subscription_tier: coach.subscription_tier,
-          brand_name: coach.brand_name || DEFAULT_BRANDING.brand_name,
-          brand_logo_url: coach.brand_logo_url || DEFAULT_BRANDING.brand_logo_url,
-          brand_favicon_url: coach.brand_favicon_url || null,
-          brand_primary_color: coach.brand_primary_color || DEFAULT_BRANDING.brand_primary_color,
-          brand_secondary_color: coach.brand_secondary_color || DEFAULT_BRANDING.brand_secondary_color,
-          brand_accent_color: coach.brand_accent_color || DEFAULT_BRANDING.brand_accent_color,
-          brand_email_logo_url: coach.brand_email_logo_url || coach.brand_logo_url || null,
-          brand_email_footer: coach.brand_email_footer || null,
-          brand_bg_color: coach.brand_bg_color || null,
-          brand_bg_secondary_color: coach.brand_bg_secondary_color || null,
-          brand_card_color: coach.brand_card_color || null,
-          brand_text_color: coach.brand_text_color || null,
-          brand_text_secondary_color: coach.brand_text_secondary_color || null,
-          brand_font: coach.brand_font || null,
-          brand_button_style: coach.brand_button_style || null,
-          brand_welcome_message: coach.brand_welcome_message || null,
-          brand_app_name: coach.brand_app_name || null,
-          brand_short_name: coach.brand_short_name || null,
-          client_modules: coach.client_modules || DEFAULT_BRANDING.client_modules,
-          custom_terminology: coach.custom_terminology || null,
-          profile_photo_url: coach.profile_photo_url || null,
-          branding_updated_at: coach.branding_updated_at,
-        };
+      let coach = null;
+      let error = null;
+
+      if (clientData?.is_coach) {
+        // Coaches can always read their own row with authenticated_select_own.
+        const result = await supabase
+          .from('coaches')
+          .select(COACH_BRANDING_SELECT)
+          .eq('id', coachId)
+          .maybeSingle();
+        coach = result.data;
+        error = result.error;
+      } else {
+        // Clients fetch coach branding through SECURITY DEFINER RPC to avoid
+        // hard dependency on a direct coaches SELECT RLS policy being present.
+        const result = await supabase.rpc('get_my_coach_branding');
+        coach = Array.isArray(result.data) ? result.data[0] : result.data;
+        error = result.error;
+      }
+
+      if (error) {
+        console.error('BrandingContext: Supabase error fetching branding', {
+          coachId,
+          code: error.code,
+          message: error.message,
+          details: error.details,
+        });
+        // Keep cached/default branding if request fails.
+        return;
+      }
+
+      if (!coach) {
+        console.warn('BrandingContext: No coach row returned. Check coaches RLS policy for client access.', {
+          coachId,
+          hasClientCoachId: !!clientData?.coach_id,
+          isCoachUser: !!clientData?.is_coach,
+        });
+        return;
+      }
+
+      const brandingData = {
+        coach_id: coach.id,
+        coach_name: coach.name,
+        has_branding_access: ['professional', 'branded'].includes(coach.subscription_tier),
+        subscription_tier: coach.subscription_tier,
+        brand_name: coach.brand_name || DEFAULT_BRANDING.brand_name,
+        brand_logo_url: coach.brand_logo_url || DEFAULT_BRANDING.brand_logo_url,
+        brand_favicon_url: coach.brand_favicon_url || null,
+        brand_primary_color: coach.brand_primary_color || DEFAULT_BRANDING.brand_primary_color,
+        brand_secondary_color: coach.brand_secondary_color || DEFAULT_BRANDING.brand_secondary_color,
+        brand_accent_color: coach.brand_accent_color || DEFAULT_BRANDING.brand_accent_color,
+        brand_email_logo_url: coach.brand_email_logo_url || coach.brand_logo_url || null,
+        brand_email_footer: coach.brand_email_footer || null,
+        brand_bg_color: coach.brand_bg_color || null,
+        brand_bg_secondary_color: coach.brand_bg_secondary_color || null,
+        brand_card_color: coach.brand_card_color || null,
+        brand_text_color: coach.brand_text_color || null,
+        brand_text_secondary_color: coach.brand_text_secondary_color || null,
+        brand_font: coach.brand_font || null,
+        brand_button_style: coach.brand_button_style || null,
+        brand_welcome_message: coach.brand_welcome_message || null,
+        brand_app_name: coach.brand_app_name || null,
+        brand_short_name: coach.brand_short_name || null,
+        client_modules: coach.client_modules || DEFAULT_BRANDING.client_modules,
+        custom_terminology: coach.custom_terminology || null,
+        profile_photo_url: coach.profile_photo_url || null,
+        branding_updated_at: coach.branding_updated_at,
+      };
+
+      // Prevent unnecessary state updates if cache matches server.
+      const hasBrandingChanged =
+        !cached ||
+        JSON.stringify({
+          ...cached,
+          branding_updated_at: cached.branding_updated_at || null,
+        }) !== JSON.stringify({
+          ...brandingData,
+          branding_updated_at: brandingData.branding_updated_at || null,
+        });
+
+      if (hasBrandingChanged || force) {
         setBranding(brandingData);
         setCachedBranding(coachId, brandingData);
         applyBrandingCSS(brandingData);
@@ -295,7 +343,7 @@ export function BrandingProvider({ children }) {
     } finally {
       setLoading(false);
     }
-  }, [coachId]);
+  }, [coachId, clientData?.coach_id, clientData?.is_coach]);
 
   useEffect(() => {
     fetchBranding();
