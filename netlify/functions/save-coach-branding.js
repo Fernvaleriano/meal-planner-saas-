@@ -86,18 +86,10 @@ exports.handler = async (event, context) => {
             };
         }
 
-        // Check subscription tier
-        const hasBrandingAccess = ['professional', 'branded'].includes(coach.subscription_tier);
-        if (!hasBrandingAccess) {
-            return {
-                statusCode: 403,
-                headers: { 'Access-Control-Allow-Origin': '*' },
-                body: JSON.stringify({
-                    error: 'Branding features require Professional tier',
-                    upgrade_required: true
-                })
-            };
-        }
+        // All coaches can save branding settings.
+        // The subscription tier only controls advanced branding features
+        // (e.g., custom domain, white-label) in the UI — basic color/logo
+        // customization is available to everyone.
 
         // Parse request body
         const body = JSON.parse(event.body);
