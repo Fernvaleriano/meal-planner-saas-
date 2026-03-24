@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from './AuthContext';
-import { apiGet } from '../utils/api';
+import { supabase } from '../utils/supabase';
 
 const BrandingContext = createContext({});
 
@@ -251,11 +251,44 @@ export function BrandingProvider({ children }) {
     }
 
     try {
-      const data = await apiGet(`/.netlify/functions/get-coach-branding?coachId=${coachId}`);
-      if (data && !data.error) {
-        setBranding(data);
-        setCachedBranding(coachId, data);
-        applyBrandingCSS(data);
+      const { data: coach, error } = await supabase
+        .from('coaches')
+        .select('id, name, subscription_tier, brand_name, brand_logo_url, brand_favicon_url, brand_primary_color, brand_secondary_color, brand_accent_color, brand_email_logo_url, brand_email_footer, branding_updated_at, profile_photo_url, brand_bg_color, brand_bg_secondary_color, brand_card_color, brand_text_color, brand_text_secondary_color, brand_font, brand_button_style, brand_welcome_message, brand_app_name, brand_short_name, client_modules, custom_terminology')
+        .eq('id', coachId)
+        .single();
+
+      if (!error && coach) {
+        const brandingData = {
+          coach_id: coach.id,
+          coach_name: coach.name,
+          has_branding_access: ['professional', 'branded'].includes(coach.subscription_tier),
+          subscription_tier: coach.subscription_tier,
+          brand_name: coach.brand_name || DEFAULT_BRANDING.brand_name,
+          brand_logo_url: coach.brand_logo_url || DEFAULT_BRANDING.brand_logo_url,
+          brand_favicon_url: coach.brand_favicon_url || null,
+          brand_primary_color: coach.brand_primary_color || DEFAULT_BRANDING.brand_primary_color,
+          brand_secondary_color: coach.brand_secondary_color || DEFAULT_BRANDING.brand_secondary_color,
+          brand_accent_color: coach.brand_accent_color || DEFAULT_BRANDING.brand_accent_color,
+          brand_email_logo_url: coach.brand_email_logo_url || coach.brand_logo_url || null,
+          brand_email_footer: coach.brand_email_footer || null,
+          brand_bg_color: coach.brand_bg_color || null,
+          brand_bg_secondary_color: coach.brand_bg_secondary_color || null,
+          brand_card_color: coach.brand_card_color || null,
+          brand_text_color: coach.brand_text_color || null,
+          brand_text_secondary_color: coach.brand_text_secondary_color || null,
+          brand_font: coach.brand_font || null,
+          brand_button_style: coach.brand_button_style || null,
+          brand_welcome_message: coach.brand_welcome_message || null,
+          brand_app_name: coach.brand_app_name || null,
+          brand_short_name: coach.brand_short_name || null,
+          client_modules: coach.client_modules || DEFAULT_BRANDING.client_modules,
+          custom_terminology: coach.custom_terminology || null,
+          profile_photo_url: coach.profile_photo_url || null,
+          branding_updated_at: coach.branding_updated_at,
+        };
+        setBranding(brandingData);
+        setCachedBranding(coachId, brandingData);
+        applyBrandingCSS(brandingData);
       }
     } catch (err) {
       console.error('BrandingContext: Error fetching branding:', err);
