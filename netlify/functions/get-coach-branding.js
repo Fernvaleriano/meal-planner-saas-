@@ -212,20 +212,9 @@ exports.handler = async (event, context) => {
             } : null
         };
 
-        // If coach doesn't have branding access, return defaults
-        if (!hasBrandingAccess) {
-            return {
-                statusCode: 200,
-                headers: { 'Access-Control-Allow-Origin': '*' },
-                body: JSON.stringify({
-                    ...branding,
-                    ...DEFAULT_BRANDING,
-                    coach_name: coach.name,
-                    has_branding_access: false
-                })
-            };
-        }
-
+        // Always return the coach's saved branding (with per-field fallbacks).
+        // has_branding_access tells the settings UI whether editing is allowed,
+        // but clients should always see whatever the coach has set.
         return {
             statusCode: 200,
             headers: { 'Access-Control-Allow-Origin': '*' },
