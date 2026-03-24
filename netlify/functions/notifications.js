@@ -45,8 +45,7 @@ exports.handler = async (event) => {
         query = query.eq('is_read', false);
       }
 
-      // Exclude chat_message notifications — messages have their own tab/icon
-      query = query.neq('type', 'chat_message');
+      // Include chat_message notifications in the bell dropdown
 
       const { data, error } = await query;
 
@@ -79,8 +78,7 @@ exports.handler = async (event) => {
         countQuery = countQuery.eq('client_id', clientId);
       }
 
-      // Exclude chat_message from unread count — messages have their own badge
-      countQuery = countQuery.neq('type', 'chat_message');
+      // Include chat_message in unread count for the bell badge
 
       const { count, error: countError } = await countQuery;
 

@@ -2450,6 +2450,52 @@
             font-weight: 500;
         }
 
+        .notification-tabs {
+            display: flex;
+            border-bottom: 1px solid var(--gray-100);
+            padding: 0 12px;
+            gap: 0;
+        }
+
+        .notification-tab {
+            flex: 1;
+            padding: 10px 8px;
+            font-size: 0.8125rem;
+            font-weight: 600;
+            color: var(--gray-400);
+            background: none;
+            border: none;
+            border-bottom: 2px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .notification-tab:hover {
+            color: var(--gray-600);
+        }
+
+        .notification-tab.active {
+            color: var(--brand-primary);
+            border-bottom-color: var(--brand-primary);
+        }
+
+        .notification-footer {
+            display: block;
+            padding: 14px 20px;
+            text-align: center;
+            font-size: 0.8125rem;
+            font-weight: 600;
+            color: var(--brand-primary);
+            border-top: 1px solid var(--gray-100);
+            text-decoration: none;
+            transition: background 0.2s;
+        }
+
+        .notification-footer:hover {
+            background: var(--gray-50);
+        }
+
         .notification-empty {
             padding: 48px 20px;
             text-align: center;
@@ -2472,6 +2518,26 @@
 
         [data-theme="dark"] .notification-badge {
             border-color: #1e293b;
+        }
+
+        [data-theme="dark"] .notification-tabs {
+            border-bottom-color: #334155;
+        }
+
+        [data-theme="dark"] .notification-tab {
+            color: #64748b;
+        }
+
+        [data-theme="dark"] .notification-tab:hover {
+            color: #94a3b8;
+        }
+
+        [data-theme="dark"] .notification-footer {
+            border-top-color: #334155;
+        }
+
+        [data-theme="dark"] .notification-footer:hover {
+            background: #334155;
         }
 
         /* Footer */
@@ -5075,9 +5141,15 @@
                             <h3>Notifications</h3>
                             <span class="mark-all-read" id="markAllRead">Mark all read</span>
                         </div>
+                        <div class="notification-tabs">
+                            <button class="notification-tab active" data-filter="all">All</button>
+                            <button class="notification-tab" data-filter="chat_message">Messages</button>
+                            <button class="notification-tab" data-filter="activity">Activity</button>
+                        </div>
                         <div class="notification-list" id="notificationList">
                             <div class="notification-empty">No notifications</div>
                         </div>
+                        <a href="coach-messages.html" class="notification-footer" id="notificationFooterMessages" style="display:none;">View all messages →</a>
                     </div>
                 </div>
             </div>
@@ -8046,6 +8118,8 @@
         const markAllRead = document.getElementById('markAllRead');
 
         let currentUserId = null;
+        let allNotifications = []; // cached for tab filtering
+        let activeNotifFilter = 'all';
 
         function formatTimeAgo(dateString) {
             const date = new Date(dateString);
@@ -8065,7 +8139,6 @@
                 const response = await fetch(`/.netlify/functions/notifications?userId=${userId}`);
                 const data = await response.json();
 
-                // Log warning if notifications table doesn't exist
                 if (data.warning) {
                     console.warn('Notifications warning:', data.warning);
                 }
@@ -8081,99 +8154,101 @@
                     notificationBadge.style.display = 'none';
                 }
 
-                // Filter out client_pr notifications — those are already shown
-                // with richer UI (reactions, replies) in Today's Priority section
-                const filteredNotifications = (data.notifications || []).filter(n => n.type !== 'client_pr');
+                // Filter out client_pr notifications — those are already shown in Today's Priority
+                allNotifications = (data.notifications || []).filter(n => n.type !== 'client_pr');
 
-                if (filteredNotifications.length > 0) {
-                    const notifIcons = {
-                        progress_photo: '📸',
-                        measurement_logged: '📏',
-                        checkin_submitted: '📋',
-                        chat_message: '💬',
-                        diary_reaction: '❤️',
-                        diary_comment: '💬',
-                        diet_plan_published: '🍽️',
-                        workout_assigned: '💪'
-                    };
-                    notificationList.innerHTML = filteredNotifications.map(n => `
-                        <div class="notification-item ${n.is_read ? '' : 'unread'}" data-id="${n.id}" data-client-id="${n.related_client_id || ''}" data-type="${n.type || ''}" data-checkin-id="${n.related_checkin_id || ''}">
-                            <div class="notification-title">${notifIcons[n.type] || '🔔'} ${n.title}</div>
-                            <div class="notification-message">${n.message}</div>
-                            <div class="notification-time">${formatTimeAgo(n.created_at)}</div>
-                        </div>
-                    `).join('');
+                // Show/hide "View all messages" footer link
+                const msgFooter = document.getElementById('notificationFooterMessages');
+                const hasMessages = allNotifications.some(n => n.type === 'chat_message');
+                if (msgFooter) msgFooter.style.display = hasMessages ? 'block' : 'none';
 
-                    // Add click handlers to notifications
-                    document.querySelectorAll('.notification-item').forEach(item => {
-                        item.addEventListener('click', async () => {
-                            const notifId = item.dataset.id;
-                            const clientId = item.dataset.clientId;
-                            const notifType = item.dataset.type;
-                            const checkinId = item.dataset.checkinId;
+                // Render with current filter
+                renderNotificationList(allNotifications, activeNotifFilter);
 
-                            // Debug logging for notification click
-                            console.log('Notification clicked:', {
-                                notifId,
-                                clientId,
-                                notifType,
-                                checkinId,
-                                rawDataset: { ...item.dataset }
-                            });
-
-                            // Mark as read
-                            await fetch('/.netlify/functions/notifications', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ notificationIds: [parseInt(notifId)] })
-                            });
-
-                            // Validate clientId is a real value (not empty string, "null", "undefined", etc.)
-                            const isValidClientId = clientId && clientId !== '' && clientId !== 'null' && clientId !== 'undefined';
-                            const isValidCheckinId = checkinId && checkinId !== '' && checkinId !== 'null' && checkinId !== 'undefined';
-
-                            console.log('Navigation validation:', { isValidClientId, isValidCheckinId });
-
-                            // Navigate based on notification type
-                            if (notifType === 'checkin_submitted' && isValidClientId && isValidCheckinId) {
-                                // Navigate directly to the check-in on client profile
-                                console.log('Navigating to check-in:', `client-profile.html?clientId=${clientId}#checkin-${checkinId}`);
-                                window.location.href = `client-profile.html?clientId=${clientId}#checkin-${checkinId}`;
-                            } else if (isValidClientId) {
-                                console.log('Navigating to client profile:', `client-profile.html?clientId=${clientId}`);
-                                window.location.href = `client-profile.html?clientId=${clientId}`;
-                            } else {
-                                console.warn('No valid clientId for navigation, staying on page');
-                                item.classList.remove('unread');
-                                loadNotifications(currentUserId);
-                            }
-                        });
-                    });
-                } else {
-                    notificationList.innerHTML = '<div class="notification-empty">No notifications yet</div>';
-                }
-
-                // Render overview notifications section
-                renderOverviewNotifications(filteredNotifications);
+                // Render overview notifications section (exclude messages from overview cards)
+                renderOverviewNotifications(allNotifications.filter(n => n.type !== 'chat_message'));
             } catch (err) {
                 console.error('Error loading notifications:', err);
             }
         }
 
+        const notifIcons = {
+            progress_photo: '📸',
+            measurement_logged: '📏',
+            checkin_submitted: '📋',
+            chat_message: '💬',
+            diary_reaction: '❤️',
+            diary_comment: '💬',
+            diet_plan_published: '🍽️',
+            workout_assigned: '💪',
+            gym_checkin: '🏋️',
+            coach_responded: '✅'
+        };
+
+        function renderNotificationList(notifications, filter) {
+            let filtered = notifications;
+            if (filter === 'chat_message') {
+                filtered = notifications.filter(n => n.type === 'chat_message');
+            } else if (filter === 'activity') {
+                filtered = notifications.filter(n => n.type !== 'chat_message');
+            }
+
+            // Show/hide footer based on filter
+            const msgFooter = document.getElementById('notificationFooterMessages');
+            if (msgFooter) {
+                msgFooter.style.display = (filter === 'chat_message' || (filter === 'all' && notifications.some(n => n.type === 'chat_message'))) ? 'block' : 'none';
+            }
+
+            if (filtered.length > 0) {
+                notificationList.innerHTML = filtered.map(n => `
+                    <div class="notification-item ${n.is_read ? '' : 'unread'}" data-id="${n.id}" data-client-id="${n.related_client_id || ''}" data-type="${n.type || ''}" data-checkin-id="${n.related_checkin_id || ''}">
+                        <div class="notification-title">${notifIcons[n.type] || '🔔'} ${n.title}</div>
+                        <div class="notification-message">${n.message || ''}</div>
+                        <div class="notification-time">${formatTimeAgo(n.created_at)}</div>
+                    </div>
+                `).join('');
+
+                // Add click handlers
+                notificationList.querySelectorAll('.notification-item').forEach(item => {
+                    item.addEventListener('click', async () => {
+                        const notifId = item.dataset.id;
+                        const clientId = item.dataset.clientId;
+                        const notifType = item.dataset.type;
+                        const checkinId = item.dataset.checkinId;
+
+                        // Mark as read
+                        await fetch('/.netlify/functions/notifications', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ notificationIds: [parseInt(notifId)] })
+                        });
+
+                        const isValidClientId = clientId && clientId !== '' && clientId !== 'null' && clientId !== 'undefined';
+                        const isValidCheckinId = checkinId && checkinId !== '' && checkinId !== 'null' && checkinId !== 'undefined';
+
+                        // Navigate based on notification type
+                        if (notifType === 'chat_message' && isValidClientId) {
+                            window.location.href = `coach-messages.html?clientId=${clientId}`;
+                        } else if (notifType === 'chat_message') {
+                            window.location.href = 'coach-messages.html';
+                        } else if (notifType === 'checkin_submitted' && isValidClientId && isValidCheckinId) {
+                            window.location.href = `client-profile.html?clientId=${clientId}#checkin-${checkinId}`;
+                        } else if (isValidClientId) {
+                            window.location.href = `client-profile.html?clientId=${clientId}`;
+                        } else {
+                            item.classList.remove('unread');
+                            loadNotifications(currentUserId);
+                        }
+                    });
+                });
+            } else {
+                const emptyMsg = filter === 'chat_message' ? 'No messages yet' : filter === 'activity' ? 'No activity yet' : 'No notifications yet';
+                notificationList.innerHTML = `<div class="notification-empty">${emptyMsg}</div>`;
+            }
+        }
+
         function renderOverviewNotifications(notifications) {
             if (!notifications || notifications.length === 0) return;
-
-            const notifIcons = {
-                progress_photo: '📸',
-                measurement_logged: '📏',
-                checkin_submitted: '📋',
-                chat_message: '💬',
-                diary_reaction: '❤️',
-                diary_comment: '💬',
-                diet_plan_published: '🍽️',
-                workout_assigned: '💪',
-                gym_checkin: '🏋️'
-            };
 
             const notifDotColors = {
                 progress_photo: 'purple',
@@ -8258,6 +8333,16 @@
             saveLocalDismissed(_dismissedFromDb);
             loadNotifications(currentUserId);
         }
+
+        // Tab filtering
+        document.querySelectorAll('.notification-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.notification-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                activeNotifFilter = tab.dataset.filter;
+                renderNotificationList(allNotifications, activeNotifFilter);
+            });
+        });
 
         // Toggle dropdown
         notificationBell.addEventListener('click', (e) => {
