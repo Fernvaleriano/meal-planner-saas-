@@ -175,7 +175,8 @@ exports.handler = async (event) => {
         isPr: ex.is_pr || false,
         clientNotes: ex.client_notes || null,
         clientVoiceNotePath: ex.client_voice_note_path || null,
-        setsData: ex.sets_data || []
+        setsData: ex.sets_data || [],
+        swappedFromName: ex.swapped_from_name || null
       }));
 
       // Flag if any exercise in this workout has client notes

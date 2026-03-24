@@ -225,18 +225,22 @@ exports.handler = async (event) => {
 
       // If exercises provided, create exercise logs
       if (exercises && exercises.length > 0) {
-        const exerciseLogs = exercises.map((ex, index) => ({
-          workout_log_id: workout.id,
-          exercise_id: ex.exerciseId,
-          exercise_name: ex.exerciseName,
-          exercise_order: index + 1,
-          sets_data: ex.sets || [],
-          total_sets: ex.sets?.length || 0,
-          total_reps: ex.sets?.reduce((sum, s) => sum + (s.reps || 0), 0) || 0,
-          total_volume: ex.sets?.reduce((sum, s) => sum + ((s.reps || 0) * (s.weight || 0)), 0) || 0,
-          max_weight: Math.max(...(ex.sets?.map(s => s.weight || 0) || [0])),
-          notes: ex.notes
-        }));
+        const exerciseLogs = exercises.map((ex, index) => {
+          const log = {
+            workout_log_id: workout.id,
+            exercise_id: ex.exerciseId,
+            exercise_name: ex.exerciseName,
+            exercise_order: index + 1,
+            sets_data: ex.sets || [],
+            total_sets: ex.sets?.length || 0,
+            total_reps: ex.sets?.reduce((sum, s) => sum + (s.reps || 0), 0) || 0,
+            total_volume: ex.sets?.reduce((sum, s) => sum + ((s.reps || 0) * (s.weight || 0)), 0) || 0,
+            max_weight: Math.max(...(ex.sets?.map(s => s.weight || 0) || [0])),
+            notes: ex.notes
+          };
+          if (ex.swappedFromName) log.swapped_from_name = ex.swappedFromName;
+          return log;
+        });
 
         const { error: exerciseError } = await supabase
           .from('exercise_logs')
@@ -454,6 +458,7 @@ exports.handler = async (event) => {
             };
             if (ex.clientNotes !== undefined) updateObj.client_notes = ex.clientNotes;
             if (ex.clientVoiceNotePath !== undefined) updateObj.client_voice_note_path = ex.clientVoiceNotePath;
+            if (ex.swappedFromName) updateObj.swapped_from_name = ex.swappedFromName;
             await supabase
               .from('exercise_logs')
               .update(updateObj)
@@ -475,6 +480,7 @@ exports.handler = async (event) => {
             };
             if (ex.clientNotes) insertObj.client_notes = ex.clientNotes;
             if (ex.clientVoiceNotePath) insertObj.client_voice_note_path = ex.clientVoiceNotePath;
+            if (ex.swappedFromName) insertObj.swapped_from_name = ex.swappedFromName;
             await supabase
               .from('exercise_logs')
               .insert([insertObj]);

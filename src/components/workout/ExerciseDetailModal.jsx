@@ -652,6 +652,7 @@ function ExerciseDetailModal({
         // Preserve client notes and voice note path during auto-save
         if (clientNoteRef.current) exercisePayload.clientNotes = clientNoteRef.current;
         if (voiceNotePathRef.current) exercisePayload.clientVoiceNotePath = voiceNotePathRef.current;
+        if (exercise.swapped_from) exercisePayload.swappedFromName = exercise.swapped_from;
 
         await apiPut('/.netlify/functions/workout-logs', {
           workoutId: logId,
