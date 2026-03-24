@@ -742,7 +742,7 @@ function Settings() {
         {/* Water Intake Goal */}
         <div className="settings-item">
           <div className="settings-item-left">
-            <div className="settings-icon-box blue" style={{ background: 'linear-gradient(135deg, #0ea5e9, #0284c7)' }}>
+            <div className="settings-icon-box blue" style={{ background: 'linear-gradient(135deg, #0ea5e9, #0284c7)', color: '#fff' }}>
               <Droplets size={20} />
             </div>
             <div className="settings-item-text">
