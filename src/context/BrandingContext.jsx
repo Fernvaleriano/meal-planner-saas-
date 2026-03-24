@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from './AuthContext';
 import { supabase } from '../utils/supabase';
+import { apiGet } from '../utils/api';
 
 const BrandingContext = createContext({});
 
@@ -251,25 +252,37 @@ export function BrandingProvider({ children }) {
     }
 
     try {
-      const { data: coach, error } = await supabase
+      let coach = null;
+
+      // Try direct Supabase query first
+      const { data, error } = await supabase
         .from('coaches')
         .select('id, name, subscription_tier, brand_name, brand_logo_url, brand_favicon_url, brand_primary_color, brand_secondary_color, brand_accent_color, brand_email_logo_url, brand_email_footer, branding_updated_at, profile_photo_url, brand_bg_color, brand_bg_secondary_color, brand_card_color, brand_text_color, brand_text_secondary_color, brand_font, brand_button_style, brand_welcome_message, brand_app_name, brand_short_name, client_modules, custom_terminology')
         .eq('id', coachId)
         .maybeSingle();
 
-      if (error) {
-        console.error('BrandingContext: Supabase error fetching branding', {
+      if (!error && data) {
+        coach = data;
+      } else {
+        // Direct query failed (likely RLS blocking client reads) — fall back to Netlify function
+        console.warn('BrandingContext: Direct Supabase query failed, falling back to Netlify function.', {
           coachId,
-          code: error.code,
-          message: error.message,
-          details: error.details,
+          code: error?.code,
+          message: error?.message,
+          details: error?.details,
         });
-        // Keep cached/default branding if request fails.
-        return;
+        try {
+          const fallback = await apiGet(`/.netlify/functions/get-coach-branding?coachId=${coachId}`);
+          if (fallback && fallback.coach_id) {
+            coach = fallback;
+          }
+        } catch (fallbackErr) {
+          console.error('BrandingContext: Netlify fallback also failed:', fallbackErr);
+        }
       }
 
       if (!coach) {
-        console.warn('BrandingContext: No coach row returned. Check coaches RLS policy for client access.', {
+        console.warn('BrandingContext: No coach data from any source.', {
           coachId,
           hasClientCoachId: !!clientData?.coach_id,
           isCoachUser: !!clientData?.is_coach,
@@ -278,9 +291,9 @@ export function BrandingProvider({ children }) {
       }
 
       const brandingData = {
-        coach_id: coach.id,
-        coach_name: coach.name,
-        has_branding_access: ['professional', 'branded'].includes(coach.subscription_tier),
+        coach_id: coach.coach_id || coach.id,
+        coach_name: coach.coach_name || coach.name,
+        has_branding_access: coach.has_branding_access ?? ['professional', 'branded'].includes(coach.subscription_tier),
         subscription_tier: coach.subscription_tier,
         brand_name: coach.brand_name || DEFAULT_BRANDING.brand_name,
         brand_logo_url: coach.brand_logo_url || DEFAULT_BRANDING.brand_logo_url,
@@ -306,22 +319,9 @@ export function BrandingProvider({ children }) {
         branding_updated_at: coach.branding_updated_at,
       };
 
-      // Prevent unnecessary state updates if cache matches server.
-      const hasBrandingChanged =
-        !cached ||
-        JSON.stringify({
-          ...cached,
-          branding_updated_at: cached.branding_updated_at || null,
-        }) !== JSON.stringify({
-          ...brandingData,
-          branding_updated_at: brandingData.branding_updated_at || null,
-        });
-
-      if (hasBrandingChanged || force) {
-        setBranding(brandingData);
-        setCachedBranding(coachId, brandingData);
-        applyBrandingCSS(brandingData);
-      }
+      setBranding(brandingData);
+      setCachedBranding(coachId, brandingData);
+      applyBrandingCSS(brandingData);
     } catch (err) {
       console.error('BrandingContext: Error fetching branding:', err);
     } finally {
