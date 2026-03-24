@@ -22,7 +22,7 @@ function getLoginBranding(coachIdParam) {
     const cached = localStorage.getItem(`coach_branding_v2_${coachId}`);
     if (cached) {
       const { data } = JSON.parse(cached);
-      if (data?.has_branding_access) return data;
+      if (data) return data;
     }
   } catch { /* ignore */ }
 
@@ -108,7 +108,7 @@ function Login() {
   const primaryColor = brandingData?.brand_primary_color || DEFAULT_PRIMARY;
   const brandName = brandingData?.brand_name || 'Zique Fitness';
   const welcomeMessage = brandingData?.brand_welcome_message;
-  const hasCustomBranding = brandingData?.has_branding_access;
+  const hasCustomBranding = brandingData?.brand_logo_url || (brandingData?.brand_name && brandingData.brand_name !== 'Zique Fitness Nutrition');
 
   return (
     <div className="login-page">

@@ -104,7 +104,7 @@
                     }
                 }
                 // Update manifest link for branded PWA homescreen saves
-                if (b.coach_id && b.has_branding_access) {
+                if (b.coach_id) {
                     var manifestLink = document.getElementById('manifest-link');
                     if (manifestLink) {
                         manifestLink.href = '/.netlify/functions/dynamic-manifest?coachId=' + b.coach_id;

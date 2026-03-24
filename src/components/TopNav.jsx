@@ -70,7 +70,7 @@ function TopNav() {
 
   const ORIGINAL_LOGO = 'https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/Untitled%20design%20(7).svg';
   // Use coach's custom logo if they uploaded one, otherwise always show the original
-  const logoUrl = (branding?.has_branding_access && branding?.brand_logo_url) ? branding.brand_logo_url : ORIGINAL_LOGO;
+  const logoUrl = branding?.brand_logo_url || ORIGINAL_LOGO;
 
   // Fetch notifications (only for unread count badge)
   const fetchNotifications = useCallback(async (force = false) => {

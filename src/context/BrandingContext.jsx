@@ -268,12 +268,11 @@ export function BrandingProvider({ children }) {
     fetchBranding();
   }, [fetchBranding]);
 
-  // Apply CSS whenever branding changes
+  // Apply CSS whenever branding changes — always apply what the API returned.
+  // has_branding_access controls editing, not display.
   useEffect(() => {
-    if (branding?.has_branding_access) {
+    if (branding) {
       applyBrandingCSS(branding);
-    } else {
-      clearBrandingCSS();
     }
   }, [branding]);
 
