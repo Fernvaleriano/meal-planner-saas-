@@ -1834,22 +1834,13 @@
                 const initial = (coach.name || session.user.email).charAt(0).toUpperCase();
                 document.getElementById('sidebarAvatar').textContent = initial;
 
-                // Check subscription tier
-                const hasBrandingAccess = ['professional', 'branded'].includes(coach.subscription_tier);
-
                 document.getElementById('loadingState').style.display = 'none';
 
-                if (!hasBrandingAccess) {
-                    document.getElementById('upgradeCta').style.display = 'block';
-                    document.getElementById('previewPanel').style.display = 'none';
-                    return;
-                }
-
-                // Show branding settings
+                // Show branding settings (all coaches can customize branding)
                 document.getElementById('mainContent').style.display = 'block';
 
-                // Load branding data
-                await loadBranding();
+                // Load branding data from the already-fetched coach record
+                loadBrandingFromCoach(coach);
 
                 // Initialize color pickers
                 initColorPickers();
@@ -1866,30 +1857,19 @@
             }
         }
 
-        // Load branding from API
-        async function loadBranding() {
+        // Load branding from coach record (already fetched from Supabase)
+        function loadBrandingFromCoach(coach) {
             try {
-                const { data: { session } } = await supabaseClient.auth.getSession();
-                const response = await fetch('/.netlify/functions/get-coach-branding', {
-                    headers: {
-                        'Authorization': `Bearer ${session.access_token}`
-                    }
-                });
-
-                if (!response.ok) throw new Error('Failed to load branding');
-
-                const data = await response.json();
-
-                // Update state
+                // Update state from coach record directly
                 currentBranding = {
-                    brand_name: data.raw?.brand_name || '',
-                    brand_primary_color: data.raw?.brand_primary_color || '#0d9488',
-                    brand_secondary_color: data.raw?.brand_secondary_color || '#0284c7',
-                    brand_accent_color: data.raw?.brand_accent_color || '#10b981',
-                    brand_logo_url: data.raw?.brand_logo_url || null,
-                    brand_favicon_url: data.raw?.brand_favicon_url || null,
-                    brand_email_logo_url: data.raw?.brand_email_logo_url || null,
-                    brand_email_footer: data.raw?.brand_email_footer || ''
+                    brand_name: coach.brand_name || '',
+                    brand_primary_color: coach.brand_primary_color || '#0d9488',
+                    brand_secondary_color: coach.brand_secondary_color || '#0284c7',
+                    brand_accent_color: coach.brand_accent_color || '#10b981',
+                    brand_logo_url: coach.brand_logo_url || null,
+                    brand_favicon_url: coach.brand_favicon_url || null,
+                    brand_email_logo_url: coach.brand_email_logo_url || null,
+                    brand_email_footer: coach.brand_email_footer || ''
                 };
 
                 originalBranding = { ...currentBranding };
@@ -2123,39 +2103,47 @@
             showLoading(true);
 
             try {
-                // Read file as base64
-                const base64 = await readFileAsBase64(file);
-
-                // Upload via API
                 const { data: { session } } = await supabaseClient.auth.getSession();
-                const response = await fetch('/.netlify/functions/upload-brand-logo', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${session.access_token}`
-                    },
-                    body: JSON.stringify({
-                        logoType: type,
-                        imageData: base64
-                    })
-                });
+                if (!session) throw new Error('Not authenticated');
 
-                const result = await response.json();
+                const coachId = session.user.id;
+                const ext = file.name.split('.').pop().toLowerCase();
+                const filePath = `branding/${coachId}/${type}.${ext}`;
 
-                if (!response.ok) {
-                    throw new Error(result.error || 'Upload failed');
-                }
+                // Upload to Supabase Storage
+                const { error: uploadError } = await supabaseClient.storage
+                    .from('assets')
+                    .upload(filePath, file, { upsert: true, contentType: file.type });
 
-                // Update state
+                if (uploadError) throw uploadError;
+
+                // Get public URL
+                const { data: urlData } = supabaseClient.storage
+                    .from('assets')
+                    .getPublicUrl(filePath);
+
+                const logoUrl = urlData.publicUrl + '?t=' + Date.now();
+
+                // Update coach record
                 const fieldMap = {
                     'logo': 'brand_logo_url',
                     'favicon': 'brand_favicon_url',
                     'email_logo': 'brand_email_logo_url'
                 };
-                currentBranding[fieldMap[type]] = result.logoUrl;
+                const dbField = fieldMap[type];
+
+                const { error: dbError } = await supabaseClient
+                    .from('coaches')
+                    .update({ [dbField]: logoUrl, branding_updated_at: new Date().toISOString() })
+                    .eq('id', coachId);
+
+                if (dbError) throw dbError;
+
+                // Update state
+                currentBranding[dbField] = logoUrl;
 
                 // Update preview
-                updateLogoPreview(type, result.logoUrl);
+                updateLogoPreview(type, logoUrl);
                 updatePreview();
 
                 showToast(`${type.replace('_', ' ')} uploaded successfully`, 'success');
@@ -2176,27 +2164,25 @@
 
             try {
                 const { data: { session } } = await supabaseClient.auth.getSession();
-                const response = await fetch('/.netlify/functions/upload-brand-logo', {
-                    method: 'DELETE',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${session.access_token}`
-                    },
-                    body: JSON.stringify({ logoType: type })
-                });
+                if (!session) throw new Error('Not authenticated');
 
-                if (!response.ok) {
-                    const result = await response.json();
-                    throw new Error(result.error || 'Failed to remove logo');
-                }
-
-                // Update state
+                // Update coach record to remove logo URL
                 const fieldMap = {
                     'logo': 'brand_logo_url',
                     'favicon': 'brand_favicon_url',
                     'email_logo': 'brand_email_logo_url'
                 };
-                currentBranding[fieldMap[type]] = null;
+                const dbField = fieldMap[type];
+
+                const { error } = await supabaseClient
+                    .from('coaches')
+                    .update({ [dbField]: null, branding_updated_at: new Date().toISOString() })
+                    .eq('id', session.user.id);
+
+                if (error) throw error;
+
+                // Update state
+                currentBranding[dbField] = null;
 
                 // Update preview
                 updateLogoPreview(type, null);
@@ -2248,32 +2234,29 @@
             });
         }
 
-        // Save branding
+        // Save branding directly to Supabase
         async function saveBranding() {
             showLoading(true);
 
             try {
                 const { data: { session } } = await supabaseClient.auth.getSession();
-                const response = await fetch('/.netlify/functions/save-coach-branding', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${session.access_token}`
-                    },
-                    body: JSON.stringify({
-                        brand_name: currentBranding.brand_name || null,
-                        brand_primary_color: currentBranding.brand_primary_color,
-                        brand_secondary_color: currentBranding.brand_secondary_color,
-                        brand_accent_color: currentBranding.brand_accent_color,
-                        brand_email_footer: currentBranding.brand_email_footer || null
-                    })
-                });
+                if (!session) throw new Error('Not authenticated');
 
-                const result = await response.json();
+                const updateData = {
+                    brand_name: currentBranding.brand_name || null,
+                    brand_primary_color: currentBranding.brand_primary_color,
+                    brand_secondary_color: currentBranding.brand_secondary_color,
+                    brand_accent_color: currentBranding.brand_accent_color,
+                    brand_email_footer: currentBranding.brand_email_footer || null,
+                    branding_updated_at: new Date().toISOString()
+                };
 
-                if (!response.ok) {
-                    throw new Error(result.error || 'Failed to save branding');
-                }
+                const { error } = await supabaseClient
+                    .from('coaches')
+                    .update(updateData)
+                    .eq('id', session.user.id);
+
+                if (error) throw error;
 
                 originalBranding = { ...currentBranding };
                 hasChanges = false;
