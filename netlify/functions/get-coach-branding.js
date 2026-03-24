@@ -188,7 +188,7 @@ exports.handler = async (event, context) => {
             branding_updated_at: coach.branding_updated_at,
 
             // Include raw values for editing (nulls preserved)
-            raw: hasBrandingAccess ? {
+            raw: {
                 brand_name: coach.brand_name,
                 brand_logo_url: coach.brand_logo_url,
                 brand_favicon_url: coach.brand_favicon_url,
@@ -209,7 +209,7 @@ exports.handler = async (event, context) => {
                 brand_short_name: coach.brand_short_name,
                 client_modules: coach.client_modules,
                 custom_terminology: coach.custom_terminology
-            } : null
+            }
         };
 
         // Always return the coach's saved branding (with per-field fallbacks).
