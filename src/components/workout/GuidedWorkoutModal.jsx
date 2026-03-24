@@ -1093,16 +1093,19 @@ function GuidedWorkoutModal({
           effort: s.effort || null
         }));
 
-        await apiPut('/.netlify/functions/workout-logs', {
-          workoutId: logId,
-          exercises: [{
+        const exPayload = {
             exerciseId: exercise.id,
             exerciseName: exercise.name || 'Unknown',
             order: exIndex + 1,
             sets: setsData,
             clientNotes: noteText || undefined,
             clientVoiceNotePath: voiceNotePathsRef.current[exIndex] || undefined
-          }]
+        };
+        if (exercise.swapped_from) exPayload.swappedFromName = exercise.swapped_from;
+
+        await apiPut('/.netlify/functions/workout-logs', {
+          workoutId: logId,
+          exercises: [exPayload]
         });
 
         setClientNoteSaved(prev => ({ ...prev, [exIndex]: true }));

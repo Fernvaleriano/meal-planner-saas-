@@ -2479,7 +2479,7 @@ function Workouts() {
         .map((ex, index) => {
           // Get sets array - could be array of objects or a number
           const setsArray = Array.isArray(ex.sets) ? ex.sets : [];
-          return {
+          const payload = {
             exerciseId: ex.id,
             exerciseName: ex.name,
             order: index + 1,
@@ -2494,6 +2494,8 @@ function Workouts() {
             })),
             notes: ex.notes || null
           };
+          if (ex.swapped_from) payload.swappedFromName = ex.swapped_from;
+          return payload;
         });
 
       // Calculate duration — prefer actual elapsed time from play mode timer

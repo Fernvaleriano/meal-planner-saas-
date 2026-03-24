@@ -2691,6 +2691,18 @@
             font-weight: 700;
         }
 
+        .wp-swap-badge {
+            color: #6366f1;
+            font-size: 11px;
+            font-weight: 500;
+            display: block;
+            margin-top: 2px;
+        }
+
+        [data-theme="dark"] .wp-swap-badge {
+            color: #a5b4fc;
+        }
+
         .wp-sets {
             display: flex;
             flex-wrap: wrap;
@@ -12905,6 +12917,8 @@
                     newExercise.sets = old.sets || 3;
                     newExercise.reps = old.reps || '10';
                     newExercise.restSeconds = old.restSeconds || 60;
+                    // Track which exercise was replaced so coaches see the swap in the feed
+                    newExercise.swapped_from = old.name || old.exerciseName || null;
                     // Reset per-set weight to 0 — different exercises use different loads
                     if (Array.isArray(old.setsData)) {
                         newExercise.setsData = old.setsData.map(s => ({ ...s, weight: 0, completed: false }));
@@ -13990,6 +14004,7 @@
 
                 const prBadge = ex.isPr ? '<span class="wp-pr-badge">PR</span>' : '';
                 const maxW = ex.maxWeight > 0 ? `<span class="wp-max-weight">${ex.maxWeight} kg max</span>` : '';
+                const swapBadge = ex.swappedFromName ? `<span class="wp-swap-badge">&#8644; Swapped from ${escapeHtml(ex.swappedFromName)}</span>` : '';
 
                 return `
                     <div class="wp-exercise">
@@ -13997,6 +14012,7 @@
                             <span class="wp-exercise-name">${escapeHtml(ex.exerciseName || '')}</span>
                             <div class="wp-exercise-badges">${maxW}${prBadge}</div>
                         </div>
+                        ${swapBadge}
                         ${setsHtml}
                         ${comparisonHtml}
                         ${noteHtml}
