@@ -10153,7 +10153,17 @@ function downloadPlanAsPDF() {
     pdf.setTextColor(150, 150, 150);
     pdf.text(`Generated on ${new Date().toLocaleDateString()}`, margin, y);
 
-    pdf.save('meal-plan.pdf');
+    // Use blob URL + new window so mobile/PWA users don't lose the app
+    const pdfBlob = pdf.output('blob');
+    const blobUrl = URL.createObjectURL(pdfBlob);
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = 'meal-plan.pdf';
+    link.target = '_blank';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
 }
 
 // SHARE PLAN FUNCTIONALITY

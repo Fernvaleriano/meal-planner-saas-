@@ -6229,7 +6229,17 @@ Be specific, practical, and actionable. Keep it concise but comprehensive.`;
             doc.setTextColor(150, 150, 150);
             doc.text(`Generated on ${new Date().toLocaleDateString()}`, margin, y);
 
-            doc.save('meal-plan.pdf');
+            // Use blob URL + new window so mobile/PWA users don't lose the app
+            const pdfBlob = doc.output('blob');
+            const blobUrl = URL.createObjectURL(pdfBlob);
+            const link = document.createElement('a');
+            link.href = blobUrl;
+            link.download = 'meal-plan.pdf';
+            link.target = '_blank';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
         }
 
         // Helper functions for grocery list aggregation

@@ -293,9 +293,18 @@
             doc.text('Zique Fitness Nutrition', pageWidth - margin, pageHeight - 5, { align: 'right' });
         }
 
-        // Download
+        // Download - use blob URL so mobile/PWA users don't lose the app
         const safeName = (program.name || 'workout-plan').replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
-        doc.save(`${safeName}.pdf`);
+        const pdfBlob = doc.output('blob');
+        const blobUrl = URL.createObjectURL(pdfBlob);
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = `${safeName}.pdf`;
+        link.target = '_blank';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
     };
 
     /**
