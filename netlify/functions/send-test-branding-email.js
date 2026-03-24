@@ -219,30 +219,23 @@ exports.handler = async (event, context) => {
             };
         }
 
-        // Get coach data with branding
+        // Get coach data with branding (only select columns that exist in the table)
         const { data: coach, error: coachError } = await supabase
             .from('coaches')
             .select(`
                 id,
-                email,
-                name,
                 subscription_tier,
                 brand_name,
                 brand_primary_color,
-                brand_secondary_color,
-                brand_accent_color,
                 brand_logo_url,
                 brand_email_logo_url,
-                brand_email_footer,
-                white_label_enabled,
-                email_from,
-                email_from_name,
-                email_from_verified
+                brand_email_footer
             `)
             .eq('id', user.id)
             .single();
 
         if (coachError || !coach) {
+            console.error('Coach query error:', coachError?.message || 'No coach record found', { userId: user.id, code: coachError?.code });
             return {
                 statusCode: 404,
                 headers: { 'Access-Control-Allow-Origin': '*' },
@@ -264,10 +257,8 @@ exports.handler = async (event, context) => {
         const html = generateBrandedEmailHtml(coach);
         const brandName = coach.brand_name || DEFAULT_BRAND_NAME;
 
-        // Determine from address (use white-label if enabled)
-        const hasWhiteLabel = coach.white_label_enabled && coach.email_from_verified;
-        const fromEmail = hasWhiteLabel ? coach.email_from : undefined;
-        const fromName = hasWhiteLabel ? coach.email_from_name : brandName;
+        // For test emails, use default from address (white-label from address is not needed for previews)
+        const fromName = brandName;
 
         // Send email
         const result = await sendEmail({
@@ -275,7 +266,6 @@ exports.handler = async (event, context) => {
             subject: `[TEST] ${brandName} - Branding Preview`,
             text: `This is a test email showing your branding settings for ${brandName}.`,
             html,
-            fromEmail,
             fromName
         });
 

@@ -94,7 +94,7 @@ exports.handler = async (event, context) => {
         // Get coach information
         const { data: coach, error: coachError } = await supabase
             .from('coaches')
-            .select('id, full_name, email')
+            .select('*')
             .eq('id', client.coach_id)
             .single();
 
@@ -114,7 +114,7 @@ exports.handler = async (event, context) => {
                     phone: client.phone
                 },
                 coach: coach ? {
-                    full_name: coach.full_name,
+                    full_name: coach.full_name || coach.name,
                     email: coach.email
                 } : null
             })
