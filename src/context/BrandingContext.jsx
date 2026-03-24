@@ -275,28 +275,61 @@ export function BrandingProvider({ children }) {
           });
         }
       } else {
-        // Clients fetch coach branding through SECURITY DEFINER RPC to avoid
-        // hard dependency on a direct coaches SELECT RLS policy being present.
-        const result = await supabase.rpc('get_my_coach_branding');
-        const rpcData = Array.isArray(result.data) ? result.data[0] : result.data;
+        // Client branding fetch: three strategies tried in order.
+        // 1. Direct Supabase query (works if "Clients can view their coach" RLS policy is deployed)
+        // 2. SECURITY DEFINER RPC (works if get_my_coach_branding RPC is deployed)
+        // 3. Netlify function (works always — uses service key, bypasses RLS)
 
-        if (!result.error && rpcData) {
-          coach = rpcData;
+        // Strategy 1: Direct query (fastest, no extra infra needed if RLS policy is in place)
+        const { data: directData, error: directError } = await supabase
+          .from('coaches')
+          .select(COACH_BRANDING_SELECT)
+          .eq('id', coachId)
+          .maybeSingle();
+
+        if (!directError && directData) {
+          coach = directData;
         } else {
-          // RPC failed — fall back to Netlify function
-          console.warn('BrandingContext: RPC failed, falling back to Netlify function.', {
-            coachId,
-            code: result.error?.code,
-            message: result.error?.message,
-            details: result.error?.details,
-          });
+          if (directError) {
+            console.warn('BrandingContext [client]: Direct query failed (RLS policy may not be deployed).', {
+              coachId,
+              code: directError.code,
+              message: directError.message,
+            });
+          }
+
+          // Strategy 2: SECURITY DEFINER RPC
           try {
-            const fallback = await apiGet(`/.netlify/functions/get-coach-branding?coachId=${coachId}`);
-            if (fallback && fallback.coach_id) {
-              coach = fallback;
+            const result = await supabase.rpc('get_my_coach_branding');
+            const rpcData = Array.isArray(result.data) ? result.data[0] : result.data;
+
+            if (!result.error && rpcData) {
+              coach = rpcData;
+            } else if (result.error) {
+              console.warn('BrandingContext [client]: RPC failed (may not be deployed).', {
+                coachId,
+                code: result.error.code,
+                message: result.error.message,
+              });
             }
-          } catch (fallbackErr) {
-            console.error('BrandingContext: Netlify fallback also failed:', fallbackErr);
+          } catch (rpcErr) {
+            console.warn('BrandingContext [client]: RPC threw exception:', rpcErr.message);
+          }
+
+          // Strategy 3: Netlify function (uses service key, always works)
+          if (!coach) {
+            try {
+              const fallback = await apiGet(`/.netlify/functions/get-coach-branding?coachId=${coachId}`);
+              if (fallback && (fallback.coach_id || fallback.brand_primary_color)) {
+                coach = fallback;
+              }
+            } catch (fallbackErr) {
+              console.error('BrandingContext [client]: All 3 strategies failed. Coach branding will not load.', {
+                coachId,
+                directError: directError?.message,
+                netlifyError: fallbackErr.message,
+              });
+            }
           }
         }
       }
