@@ -18,6 +18,12 @@
     <link rel="dns-prefetch" href="https://qewqcjzlfqamqwbccapr.supabase.co">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
     <style>
+        :root {
+            --brand-primary: #0d9488;
+            --brand-secondary: #0284c7;
+            --brand-gradient: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -26,7 +32,7 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
+            background: var(--brand-gradient);
             min-height: 100vh;
             padding: 20px;
         }
@@ -46,13 +52,13 @@
         }
 
         .header h1 {
-            color: #0d9488;
+            color: var(--brand-primary);
             font-size: 2.5em;
             margin-bottom: 10px;
         }
 
         .back-btn:hover {
-            color: #0284c7;
+            color: var(--brand-secondary);
         }
 
         .client-info {
@@ -2087,6 +2093,71 @@
             canRequestNewPlan: true
         };
 
+        // Fetch and apply coach branding colors
+        async function applyCoachBranding(coachId) {
+            if (!coachId) return;
+            try {
+                const res = await fetch(`/.netlify/functions/get-coach-branding?coachId=${coachId}`);
+                if (!res.ok) return;
+                const b = await res.json();
+                const root = document.documentElement;
+                const primary = b.brand_primary_color;
+                const secondary = b.brand_secondary_color;
+                const accent = b.brand_accent_color;
+
+                if (primary) root.style.setProperty('--brand-primary', primary);
+                if (secondary) root.style.setProperty('--brand-secondary', secondary);
+                if (primary && secondary) {
+                    root.style.setProperty('--brand-gradient', `linear-gradient(135deg, ${primary} 0%, ${secondary} 100%)`);
+                }
+
+                // Inject a dynamic stylesheet to override all hardcoded brand colors
+                // This covers the 40+ places where #0d9488 and #0284c7 are used in the <style> block
+                const overrideCSS = document.createElement('style');
+                overrideCSS.id = 'coach-brand-override';
+                overrideCSS.textContent = `
+                    body { background: var(--brand-gradient) !important; }
+                    .header h1, .section-title, .info-label, .meal-title,
+                    .macro-label, .btn-primary, .favorite-btn.active,
+                    .day-header { color: var(--brand-primary); }
+                    .day-header {
+                        background: var(--brand-gradient) !important;
+                        color: white !important;
+                    }
+                    .btn-primary, .copy-btn, [style*="background: #0d9488"],
+                    [style*="background:#0d9488"] {
+                        background: var(--brand-primary) !important;
+                    }
+                    .btn-secondary, [style*="background: #0284c7"],
+                    [style*="background:#0284c7"] {
+                        background: var(--brand-secondary) !important;
+                    }
+                    .share-btn, .action-btn-primary {
+                        background: var(--brand-gradient) !important;
+                    }
+                    .supplement-badge {
+                        border-top-color: var(--brand-primary) !important;
+                    }
+                `;
+                document.head.appendChild(overrideCSS);
+
+                // Update logo if set
+                if (b.brand_logo_url) {
+                    const logoEl = document.getElementById('brandLogo');
+                    if (logoEl) logoEl.src = b.brand_logo_url;
+                }
+
+                // Update page title
+                if (b.brand_name) {
+                    document.title = `Your Meal Plan - ${b.brand_name}`;
+                }
+
+                console.log('✅ Coach branding applied:', { primary, secondary });
+            } catch (e) {
+                console.warn('Could not load coach branding:', e.message);
+            }
+        }
+
         // Voice note recording variables
         let mediaRecorder = null;
         let audioChunks = [];
@@ -2312,6 +2383,8 @@
                             isClientView = true;
                             // Show "Log Entire Plan" button for logged-in clients
                             document.getElementById('logEntirePlanSection').style.display = 'block';
+                            // Apply coach branding
+                            applyCoachBranding(clientData.coach_id);
                         }
                     }
                 } catch (e) {
@@ -2388,6 +2461,9 @@
                     // Store client ID and coach ID for saving modifications later
                     currentClientId = clientData.id;
                     currentCoachId = clientData.coach_id;
+
+                    // Apply coach branding
+                    applyCoachBranding(clientData.coach_id);
 
                     // Load client permissions (default to true if columns don't exist or not set)
                     clientPermissions = {
