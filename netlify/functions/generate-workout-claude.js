@@ -553,7 +553,7 @@ Every workout MUST follow this exact structure in order:
 PHASE 1 — WARM-UP (5-8 minutes):
 - 1 general cardio exercise (3-5 min on elliptical, bike, rowing machine, or jump rope) marked with "isWarmup": true and "phase": "warmup"
 - 1-2 dynamic movement prep exercises targeting ${muscleLabel} (arm circles, leg swings, hip circles, band pull-aparts, etc.) marked with "isWarmup": true and "phase": "warmup"
-- Warm-up sets: 1-2 sets, 10-15 reps, 0-30 seconds rest
+- Warm-up sets: 1-2 sets. For cardio warm-ups, use TIME format for reps: "3 min", "5 min" (NOT plain numbers). For dynamic movement prep, use rep counts: "10-15". Rest: 0-30 seconds.
 - Purpose: Raise core temperature, increase blood flow to working muscles, prep joints
 
 PHASE 2 — MAIN WORKOUT (${sessionDuration - 15} minutes):
@@ -566,7 +566,7 @@ PHASE 2 — MAIN WORKOUT (${sessionDuration - 15} minutes):
 PHASE 3 — COOL-DOWN (5-7 minutes):
 - 2-3 static stretches targeting the SAME muscles trained in this workout
 - Mark with "isStretch": true and "phase": "cooldown"
-- Hold each stretch 30 seconds, 1 set, 0 rest between stretches
+- Hold each stretch 30 seconds — use TIME format for reps: "30s hold" (NOT plain "30"). Config: 1 set, 0 rest
 - CRITICAL: Stretches MUST match the workout — e.g., leg stretches for leg day, chest/shoulder stretches for push day
 
 === EXERCISE SELECTION (CRITICAL) ===
@@ -677,7 +677,7 @@ PHASE 1 — WARM-UP (5-8 minutes):
 - 1 general cardio exercise (3-5 min on elliptical, stationary bike, rowing machine, or jump rope)
 - 1-2 dynamic movement prep exercises targeting that day's muscles (e.g., arm circles for upper body, leg swings for lower body, hip circles for leg day)
 - Mark ALL warm-up exercises with "isWarmup": true and "phase": "warmup"
-- Warm-up config: 1-2 sets, 10-15 reps, 0-30 seconds rest
+- Warm-up config: 1-2 sets. For cardio warm-ups, use TIME format for reps: "3 min", "5 min" (NOT plain numbers). For dynamic movement prep, use rep counts: "10-15". Rest: 0-30 seconds
 
 PHASE 2 — MAIN WORKOUT:
 - Start with heavy compound lifts when energy is highest
@@ -689,7 +689,7 @@ PHASE 2 — MAIN WORKOUT:
 PHASE 3 — COOL-DOWN (5-7 minutes):
 - 2-3 static stretches targeting the SAME muscles trained that day
 - Mark with "isStretch": true and "phase": "cooldown"
-- Config: 1 set, "30s hold", 0 rest
+- Config: 1 set, reps MUST be "30s hold" (TIME format, NOT plain "30"), 0 rest
 - CRITICAL: Stretches MUST match the workout — chest stretches for chest day, hamstring stretches for leg day, etc.
 
 === EXERCISE SELECTION (CRITICAL) ===
