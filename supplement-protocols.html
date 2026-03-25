@@ -2215,11 +2215,43 @@
 
                 const data = await response.json();
                 supplementLibrary = data.supplements || [];
+
+                // Auto-seed default supplements for new coaches with empty libraries
+                if (supplementLibrary.length === 0 && !categoryFilter) {
+                    const seeded = await seedDefaultSupplements();
+                    if (seeded) return; // seedDefaultSupplements reloads the library
+                }
+
                 renderLibraryGrid();
             } catch (error) {
                 // Silently handle network errors - just show empty library
                 supplementLibrary = [];
                 renderLibraryGrid();
+            }
+        }
+
+        // Seed default supplements for new coaches
+        async function seedDefaultSupplements() {
+            try {
+                const response = await authFetch('/.netlify/functions/seed-default-supplements', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ coachId: currentCoach.id })
+                });
+
+                if (!response.ok) return false;
+
+                const result = await response.json();
+                if (result.seeded) {
+                    showToast(`Library loaded with ${result.count} supplements!`, 'success');
+                    // Reload the library to show seeded supplements
+                    await loadSupplementLibrary();
+                    return true;
+                }
+                return false;
+            } catch (error) {
+                console.error('Error seeding default supplements:', error);
+                return false;
             }
         }
 
