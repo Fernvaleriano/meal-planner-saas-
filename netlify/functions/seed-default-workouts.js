@@ -27,31 +27,31 @@ const DEFAULT_PROGRAMS = [
         {
           name: 'Day 1 – Full Body A',
           exercises: [
-            { name: 'Goblet Squat', sets: 3, reps: '10-12', restSeconds: 90, muscle_group: 'Quadriceps', equipment: 'Dumbbell' },
+            { name: 'Dumbbell Goblet Squat', sets: 3, reps: '10-12', restSeconds: 90, muscle_group: 'Quadriceps', equipment: 'Dumbbell' },
             { name: 'Dumbbell Bench Press', sets: 3, reps: '10-12', restSeconds: 90, muscle_group: 'Chest', equipment: 'Dumbbell' },
-            { name: 'Dumbbell Row', sets: 3, reps: '10-12', restSeconds: 90, muscle_group: 'Back', equipment: 'Dumbbell' },
-            { name: 'Dumbbell Shoulder Press', sets: 3, reps: '10-12', restSeconds: 60, muscle_group: 'Shoulders', equipment: 'Dumbbell' },
-            { name: 'Plank', sets: 3, reps: '30s hold', restSeconds: 45, muscle_group: 'Core', equipment: 'Bodyweight' }
+            { name: 'Dumbbell Bent-Over Row', sets: 3, reps: '10-12', restSeconds: 90, muscle_group: 'Back', equipment: 'Dumbbell' },
+            { name: 'Dumbbell Seated Shoulder Press', sets: 3, reps: '10-12', restSeconds: 60, muscle_group: 'Shoulders', equipment: 'Dumbbell' },
+            { name: 'Plank on elbows', sets: 3, reps: '30s hold', restSeconds: 45, muscle_group: 'Core', equipment: 'Bodyweight' }
           ]
         },
         {
           name: 'Day 2 – Full Body B',
           exercises: [
-            { name: 'Romanian Deadlift', sets: 3, reps: '10-12', restSeconds: 90, muscle_group: 'Hamstrings', equipment: 'Dumbbell' },
-            { name: 'Incline Dumbbell Press', sets: 3, reps: '10-12', restSeconds: 90, muscle_group: 'Chest', equipment: 'Dumbbell' },
-            { name: 'Lat Pulldown', sets: 3, reps: '10-12', restSeconds: 90, muscle_group: 'Back', equipment: 'Cable' },
-            { name: 'Lateral Raise', sets: 3, reps: '12-15', restSeconds: 60, muscle_group: 'Shoulders', equipment: 'Dumbbell' },
-            { name: 'Cable Crunch', sets: 3, reps: '12-15', restSeconds: 45, muscle_group: 'Core', equipment: 'Cable' }
+            { name: 'Barbell romanian deadlift', sets: 3, reps: '10-12', restSeconds: 90, muscle_group: 'Hamstrings', equipment: 'Dumbbell' },
+            { name: 'Dumbbell Incline Bench Press', sets: 3, reps: '10-12', restSeconds: 90, muscle_group: 'Chest', equipment: 'Dumbbell' },
+            { name: 'Cable bar lateral pulldown', sets: 3, reps: '10-12', restSeconds: 90, muscle_group: 'Back', equipment: 'Cable' },
+            { name: 'Lateral raises dumbbell', sets: 3, reps: '12-15', restSeconds: 60, muscle_group: 'Shoulders', equipment: 'Dumbbell' },
+            { name: 'Cable Standing Crunch', sets: 3, reps: '12-15', restSeconds: 45, muscle_group: 'Core', equipment: 'Cable' }
           ]
         },
         {
           name: 'Day 3 – Full Body C',
           exercises: [
-            { name: 'Leg Press', sets: 3, reps: '10-12', restSeconds: 90, muscle_group: 'Quadriceps', equipment: 'Machine' },
-            { name: 'Push Up', sets: 3, reps: '8-15', restSeconds: 60, muscle_group: 'Chest', equipment: 'Bodyweight' },
-            { name: 'Seated Cable Row', sets: 3, reps: '10-12', restSeconds: 90, muscle_group: 'Back', equipment: 'Cable' },
-            { name: 'Dumbbell Curl', sets: 3, reps: '10-12', restSeconds: 60, muscle_group: 'Biceps', equipment: 'Dumbbell' },
-            { name: 'Tricep Pushdown', sets: 3, reps: '10-12', restSeconds: 60, muscle_group: 'Triceps', equipment: 'Cable' }
+            { name: 'Leg press machine normal stance', sets: 3, reps: '10-12', restSeconds: 90, muscle_group: 'Quadriceps', equipment: 'Machine' },
+            { name: 'Push ups bodyweight', sets: 3, reps: '8-15', restSeconds: 60, muscle_group: 'Chest', equipment: 'Bodyweight' },
+            { name: 'Cable seated row', sets: 3, reps: '10-12', restSeconds: 90, muscle_group: 'Back', equipment: 'Cable' },
+            { name: 'Dumbbell curls', sets: 3, reps: '10-12', restSeconds: 60, muscle_group: 'Biceps', equipment: 'Dumbbell' },
+            { name: 'Cable pushdown', sets: 3, reps: '10-12', restSeconds: 60, muscle_group: 'Triceps', equipment: 'Cable' }
           ]
         }
       ]
@@ -71,45 +71,45 @@ const DEFAULT_PROGRAMS = [
           name: 'Day 1 – Upper Strength',
           exercises: [
             { name: 'Barbell Bench Press', sets: 4, reps: '6-8', restSeconds: 120, muscle_group: 'Chest', equipment: 'Barbell' },
-            { name: 'Barbell Row', sets: 4, reps: '6-8', restSeconds: 120, muscle_group: 'Back', equipment: 'Barbell' },
-            { name: 'Overhead Press', sets: 3, reps: '8-10', restSeconds: 90, muscle_group: 'Shoulders', equipment: 'Barbell' },
-            { name: 'Pull Up', sets: 3, reps: '6-10', restSeconds: 90, muscle_group: 'Back', equipment: 'Bodyweight' },
-            { name: 'Dumbbell Curl', sets: 3, reps: '10-12', restSeconds: 60, muscle_group: 'Biceps', equipment: 'Dumbbell' },
-            { name: 'Tricep Dip', sets: 3, reps: '8-12', restSeconds: 60, muscle_group: 'Triceps', equipment: 'Bodyweight' }
+            { name: 'Barbell Bent Over Row', sets: 4, reps: '6-8', restSeconds: 120, muscle_group: 'Back', equipment: 'Barbell' },
+            { name: 'Barbell seated overhead press', sets: 3, reps: '8-10', restSeconds: 90, muscle_group: 'Shoulders', equipment: 'Barbell' },
+            { name: 'Pull up normal grip', sets: 3, reps: '6-10', restSeconds: 90, muscle_group: 'Back', equipment: 'Bodyweight' },
+            { name: 'Dumbbell curls', sets: 3, reps: '10-12', restSeconds: 60, muscle_group: 'Biceps', equipment: 'Dumbbell' },
+            { name: 'Bench triceps dip straight legs', sets: 3, reps: '8-12', restSeconds: 60, muscle_group: 'Triceps', equipment: 'Bodyweight' }
           ]
         },
         {
           name: 'Day 2 – Lower Strength',
           exercises: [
-            { name: 'Barbell Squat', sets: 4, reps: '6-8', restSeconds: 150, muscle_group: 'Quadriceps', equipment: 'Barbell' },
-            { name: 'Romanian Deadlift', sets: 4, reps: '8-10', restSeconds: 120, muscle_group: 'Hamstrings', equipment: 'Barbell' },
-            { name: 'Leg Press', sets: 3, reps: '10-12', restSeconds: 90, muscle_group: 'Quadriceps', equipment: 'Machine' },
-            { name: 'Leg Curl', sets: 3, reps: '10-12', restSeconds: 60, muscle_group: 'Hamstrings', equipment: 'Machine' },
-            { name: 'Calf Raise', sets: 4, reps: '12-15', restSeconds: 60, muscle_group: 'Calves', equipment: 'Machine' },
-            { name: 'Plank', sets: 3, reps: '45s hold', restSeconds: 45, muscle_group: 'Core', equipment: 'Bodyweight' }
+            { name: 'Barbell Full Squat', sets: 4, reps: '6-8', restSeconds: 150, muscle_group: 'Quadriceps', equipment: 'Barbell' },
+            { name: 'Barbell romanian deadlift', sets: 4, reps: '8-10', restSeconds: 120, muscle_group: 'Hamstrings', equipment: 'Barbell' },
+            { name: 'Leg press machine normal stance', sets: 3, reps: '10-12', restSeconds: 90, muscle_group: 'Quadriceps', equipment: 'Machine' },
+            { name: 'Lying leg curl machine', sets: 3, reps: '10-12', restSeconds: 60, muscle_group: 'Hamstrings', equipment: 'Machine' },
+            { name: 'Smith machine calf raise', sets: 4, reps: '12-15', restSeconds: 60, muscle_group: 'Calves', equipment: 'Machine' },
+            { name: 'Plank on elbows', sets: 3, reps: '45s hold', restSeconds: 45, muscle_group: 'Core', equipment: 'Bodyweight' }
           ]
         },
         {
           name: 'Day 3 – Upper Hypertrophy',
           exercises: [
-            { name: 'Incline Dumbbell Press', sets: 4, reps: '10-12', restSeconds: 90, muscle_group: 'Chest', equipment: 'Dumbbell' },
-            { name: 'Lat Pulldown', sets: 4, reps: '10-12', restSeconds: 90, muscle_group: 'Back', equipment: 'Cable' },
-            { name: 'Cable Fly', sets: 3, reps: '12-15', restSeconds: 60, muscle_group: 'Chest', equipment: 'Cable' },
-            { name: 'Face Pull', sets: 3, reps: '15-20', restSeconds: 60, muscle_group: 'Shoulders', equipment: 'Cable' },
-            { name: 'Lateral Raise', sets: 3, reps: '12-15', restSeconds: 60, muscle_group: 'Shoulders', equipment: 'Dumbbell' },
-            { name: 'Hammer Curl', sets: 3, reps: '10-12', restSeconds: 60, muscle_group: 'Biceps', equipment: 'Dumbbell' },
-            { name: 'Overhead Tricep Extension', sets: 3, reps: '10-12', restSeconds: 60, muscle_group: 'Triceps', equipment: 'Dumbbell' }
+            { name: 'Dumbbell Incline Bench Press', sets: 4, reps: '10-12', restSeconds: 90, muscle_group: 'Chest', equipment: 'Dumbbell' },
+            { name: 'Cable bar lateral pulldown', sets: 4, reps: '10-12', restSeconds: 90, muscle_group: 'Back', equipment: 'Cable' },
+            { name: 'Cable middle fly', sets: 3, reps: '12-15', restSeconds: 60, muscle_group: 'Chest', equipment: 'Cable' },
+            { name: 'Resistance band face pull', sets: 3, reps: '15-20', restSeconds: 60, muscle_group: 'Shoulders', equipment: 'Cable' },
+            { name: 'Lateral raises dumbbell', sets: 3, reps: '12-15', restSeconds: 60, muscle_group: 'Shoulders', equipment: 'Dumbbell' },
+            { name: 'Dumbbell Hammer Curl', sets: 3, reps: '10-12', restSeconds: 60, muscle_group: 'Biceps', equipment: 'Dumbbell' },
+            { name: 'Cable triceps overhead extension (ez bar)', sets: 3, reps: '10-12', restSeconds: 60, muscle_group: 'Triceps', equipment: 'Dumbbell' }
           ]
         },
         {
           name: 'Day 4 – Lower Hypertrophy',
           exercises: [
-            { name: 'Bulgarian Split Squat', sets: 3, reps: '10-12', restSeconds: 90, muscle_group: 'Quadriceps', equipment: 'Dumbbell' },
-            { name: 'Hip Thrust', sets: 4, reps: '10-12', restSeconds: 90, muscle_group: 'Glutes', equipment: 'Barbell' },
-            { name: 'Leg Extension', sets: 3, reps: '12-15', restSeconds: 60, muscle_group: 'Quadriceps', equipment: 'Machine' },
-            { name: 'Leg Curl', sets: 3, reps: '12-15', restSeconds: 60, muscle_group: 'Hamstrings', equipment: 'Machine' },
-            { name: 'Calf Raise', sets: 4, reps: '15-20', restSeconds: 60, muscle_group: 'Calves', equipment: 'Machine' },
-            { name: 'Hanging Leg Raise', sets: 3, reps: '10-15', restSeconds: 60, muscle_group: 'Core', equipment: 'Bodyweight' }
+            { name: 'Bulgarian split squat', sets: 3, reps: '10-12', restSeconds: 90, muscle_group: 'Quadriceps', equipment: 'Dumbbell' },
+            { name: 'Barbell hip thrust', sets: 4, reps: '10-12', restSeconds: 90, muscle_group: 'Glutes', equipment: 'Barbell' },
+            { name: 'Lever Leg Extension', sets: 3, reps: '12-15', restSeconds: 60, muscle_group: 'Quadriceps', equipment: 'Machine' },
+            { name: 'Lying leg curl machine', sets: 3, reps: '12-15', restSeconds: 60, muscle_group: 'Hamstrings', equipment: 'Machine' },
+            { name: 'Smith machine calf raise', sets: 4, reps: '15-20', restSeconds: 60, muscle_group: 'Calves', equipment: 'Machine' },
+            { name: 'Hanging Leg Raises', sets: 3, reps: '10-15', restSeconds: 60, muscle_group: 'Core', equipment: 'Bodyweight' }
           ]
         }
       ]
@@ -129,66 +129,66 @@ const DEFAULT_PROGRAMS = [
           name: 'Day 1 – Push (Strength)',
           exercises: [
             { name: 'Barbell Bench Press', sets: 4, reps: '5-6', restSeconds: 150, muscle_group: 'Chest', equipment: 'Barbell' },
-            { name: 'Overhead Press', sets: 4, reps: '6-8', restSeconds: 120, muscle_group: 'Shoulders', equipment: 'Barbell' },
-            { name: 'Incline Dumbbell Press', sets: 3, reps: '8-10', restSeconds: 90, muscle_group: 'Chest', equipment: 'Dumbbell' },
-            { name: 'Lateral Raise', sets: 4, reps: '12-15', restSeconds: 60, muscle_group: 'Shoulders', equipment: 'Dumbbell' },
-            { name: 'Tricep Pushdown', sets: 3, reps: '10-12', restSeconds: 60, muscle_group: 'Triceps', equipment: 'Cable' },
-            { name: 'Overhead Tricep Extension', sets: 3, reps: '10-12', restSeconds: 60, muscle_group: 'Triceps', equipment: 'Cable' }
+            { name: 'Barbell seated overhead press', sets: 4, reps: '6-8', restSeconds: 120, muscle_group: 'Shoulders', equipment: 'Barbell' },
+            { name: 'Dumbbell Incline Bench Press', sets: 3, reps: '8-10', restSeconds: 90, muscle_group: 'Chest', equipment: 'Dumbbell' },
+            { name: 'Lateral raises dumbbell', sets: 4, reps: '12-15', restSeconds: 60, muscle_group: 'Shoulders', equipment: 'Dumbbell' },
+            { name: 'Cable pushdown', sets: 3, reps: '10-12', restSeconds: 60, muscle_group: 'Triceps', equipment: 'Cable' },
+            { name: 'Cable triceps overhead extension (ez bar)', sets: 3, reps: '10-12', restSeconds: 60, muscle_group: 'Triceps', equipment: 'Cable' }
           ]
         },
         {
           name: 'Day 2 – Pull (Strength)',
           exercises: [
-            { name: 'Deadlift', sets: 4, reps: '5-6', restSeconds: 180, muscle_group: 'Back', equipment: 'Barbell' },
-            { name: 'Pull Up', sets: 4, reps: '6-8', restSeconds: 120, muscle_group: 'Back', equipment: 'Bodyweight' },
-            { name: 'Barbell Row', sets: 4, reps: '6-8', restSeconds: 120, muscle_group: 'Back', equipment: 'Barbell' },
-            { name: 'Face Pull', sets: 3, reps: '15-20', restSeconds: 60, muscle_group: 'Shoulders', equipment: 'Cable' },
+            { name: 'Barbell Deadlift', sets: 4, reps: '5-6', restSeconds: 180, muscle_group: 'Back', equipment: 'Barbell' },
+            { name: 'Pull up normal grip', sets: 4, reps: '6-8', restSeconds: 120, muscle_group: 'Back', equipment: 'Bodyweight' },
+            { name: 'Barbell Bent Over Row', sets: 4, reps: '6-8', restSeconds: 120, muscle_group: 'Back', equipment: 'Barbell' },
+            { name: 'Resistance band face pull', sets: 3, reps: '15-20', restSeconds: 60, muscle_group: 'Shoulders', equipment: 'Cable' },
             { name: 'Barbell Curl', sets: 3, reps: '8-10', restSeconds: 60, muscle_group: 'Biceps', equipment: 'Barbell' },
-            { name: 'Hammer Curl', sets: 3, reps: '10-12', restSeconds: 60, muscle_group: 'Biceps', equipment: 'Dumbbell' }
+            { name: 'Dumbbell Hammer Curl', sets: 3, reps: '10-12', restSeconds: 60, muscle_group: 'Biceps', equipment: 'Dumbbell' }
           ]
         },
         {
           name: 'Day 3 – Legs (Strength)',
           exercises: [
-            { name: 'Barbell Squat', sets: 4, reps: '5-6', restSeconds: 180, muscle_group: 'Quadriceps', equipment: 'Barbell' },
-            { name: 'Romanian Deadlift', sets: 4, reps: '8-10', restSeconds: 120, muscle_group: 'Hamstrings', equipment: 'Barbell' },
-            { name: 'Leg Press', sets: 3, reps: '10-12', restSeconds: 90, muscle_group: 'Quadriceps', equipment: 'Machine' },
-            { name: 'Leg Curl', sets: 3, reps: '10-12', restSeconds: 60, muscle_group: 'Hamstrings', equipment: 'Machine' },
-            { name: 'Calf Raise', sets: 4, reps: '10-12', restSeconds: 60, muscle_group: 'Calves', equipment: 'Machine' },
-            { name: 'Cable Crunch', sets: 3, reps: '12-15', restSeconds: 45, muscle_group: 'Core', equipment: 'Cable' }
+            { name: 'Barbell Full Squat', sets: 4, reps: '5-6', restSeconds: 180, muscle_group: 'Quadriceps', equipment: 'Barbell' },
+            { name: 'Barbell romanian deadlift', sets: 4, reps: '8-10', restSeconds: 120, muscle_group: 'Hamstrings', equipment: 'Barbell' },
+            { name: 'Leg press machine normal stance', sets: 3, reps: '10-12', restSeconds: 90, muscle_group: 'Quadriceps', equipment: 'Machine' },
+            { name: 'Lying leg curl machine', sets: 3, reps: '10-12', restSeconds: 60, muscle_group: 'Hamstrings', equipment: 'Machine' },
+            { name: 'Smith machine calf raise', sets: 4, reps: '10-12', restSeconds: 60, muscle_group: 'Calves', equipment: 'Machine' },
+            { name: 'Cable Standing Crunch', sets: 3, reps: '12-15', restSeconds: 45, muscle_group: 'Core', equipment: 'Cable' }
           ]
         },
         {
           name: 'Day 4 – Push (Hypertrophy)',
           exercises: [
             { name: 'Dumbbell Bench Press', sets: 4, reps: '10-12', restSeconds: 90, muscle_group: 'Chest', equipment: 'Dumbbell' },
-            { name: 'Dumbbell Shoulder Press', sets: 3, reps: '10-12', restSeconds: 90, muscle_group: 'Shoulders', equipment: 'Dumbbell' },
-            { name: 'Cable Fly', sets: 3, reps: '12-15', restSeconds: 60, muscle_group: 'Chest', equipment: 'Cable' },
-            { name: 'Lateral Raise', sets: 4, reps: '15-20', restSeconds: 45, muscle_group: 'Shoulders', equipment: 'Dumbbell' },
-            { name: 'Tricep Dip', sets: 3, reps: '10-15', restSeconds: 60, muscle_group: 'Triceps', equipment: 'Bodyweight' },
-            { name: 'Tricep Pushdown', sets: 3, reps: '12-15', restSeconds: 45, muscle_group: 'Triceps', equipment: 'Cable' }
+            { name: 'Dumbbell Seated Shoulder Press', sets: 3, reps: '10-12', restSeconds: 90, muscle_group: 'Shoulders', equipment: 'Dumbbell' },
+            { name: 'Cable middle fly', sets: 3, reps: '12-15', restSeconds: 60, muscle_group: 'Chest', equipment: 'Cable' },
+            { name: 'Lateral raises dumbbell', sets: 4, reps: '15-20', restSeconds: 45, muscle_group: 'Shoulders', equipment: 'Dumbbell' },
+            { name: 'Bench triceps dip straight legs', sets: 3, reps: '10-15', restSeconds: 60, muscle_group: 'Triceps', equipment: 'Bodyweight' },
+            { name: 'Cable pushdown', sets: 3, reps: '12-15', restSeconds: 45, muscle_group: 'Triceps', equipment: 'Cable' }
           ]
         },
         {
           name: 'Day 5 – Pull (Hypertrophy)',
           exercises: [
-            { name: 'Lat Pulldown', sets: 4, reps: '10-12', restSeconds: 90, muscle_group: 'Back', equipment: 'Cable' },
-            { name: 'Seated Cable Row', sets: 4, reps: '10-12', restSeconds: 90, muscle_group: 'Back', equipment: 'Cable' },
-            { name: 'Dumbbell Row', sets: 3, reps: '10-12', restSeconds: 60, muscle_group: 'Back', equipment: 'Dumbbell' },
-            { name: 'Rear Delt Fly', sets: 3, reps: '15-20', restSeconds: 45, muscle_group: 'Shoulders', equipment: 'Dumbbell' },
-            { name: 'Dumbbell Curl', sets: 3, reps: '10-12', restSeconds: 60, muscle_group: 'Biceps', equipment: 'Dumbbell' },
-            { name: 'Incline Curl', sets: 3, reps: '10-12', restSeconds: 60, muscle_group: 'Biceps', equipment: 'Dumbbell' }
+            { name: 'Cable bar lateral pulldown', sets: 4, reps: '10-12', restSeconds: 90, muscle_group: 'Back', equipment: 'Cable' },
+            { name: 'Cable seated row', sets: 4, reps: '10-12', restSeconds: 90, muscle_group: 'Back', equipment: 'Cable' },
+            { name: 'Dumbbell Bent-Over Row', sets: 3, reps: '10-12', restSeconds: 60, muscle_group: 'Back', equipment: 'Dumbbell' },
+            { name: 'Seated dumbbell rear delt fly', sets: 3, reps: '15-20', restSeconds: 45, muscle_group: 'Shoulders', equipment: 'Dumbbell' },
+            { name: 'Dumbbell curls', sets: 3, reps: '10-12', restSeconds: 60, muscle_group: 'Biceps', equipment: 'Dumbbell' },
+            { name: 'Dumbbell Incline Alternate Bicep Curl', sets: 3, reps: '10-12', restSeconds: 60, muscle_group: 'Biceps', equipment: 'Dumbbell' }
           ]
         },
         {
           name: 'Day 6 – Legs (Hypertrophy)',
           exercises: [
-            { name: 'Bulgarian Split Squat', sets: 4, reps: '10-12', restSeconds: 90, muscle_group: 'Quadriceps', equipment: 'Dumbbell' },
-            { name: 'Hip Thrust', sets: 4, reps: '10-12', restSeconds: 90, muscle_group: 'Glutes', equipment: 'Barbell' },
-            { name: 'Leg Extension', sets: 3, reps: '12-15', restSeconds: 60, muscle_group: 'Quadriceps', equipment: 'Machine' },
-            { name: 'Leg Curl', sets: 3, reps: '12-15', restSeconds: 60, muscle_group: 'Hamstrings', equipment: 'Machine' },
-            { name: 'Calf Raise', sets: 4, reps: '15-20', restSeconds: 45, muscle_group: 'Calves', equipment: 'Machine' },
-            { name: 'Hanging Leg Raise', sets: 3, reps: '12-15', restSeconds: 45, muscle_group: 'Core', equipment: 'Bodyweight' }
+            { name: 'Bulgarian split squat', sets: 4, reps: '10-12', restSeconds: 90, muscle_group: 'Quadriceps', equipment: 'Dumbbell' },
+            { name: 'Barbell hip thrust', sets: 4, reps: '10-12', restSeconds: 90, muscle_group: 'Glutes', equipment: 'Barbell' },
+            { name: 'Lever Leg Extension', sets: 3, reps: '12-15', restSeconds: 60, muscle_group: 'Quadriceps', equipment: 'Machine' },
+            { name: 'Lying leg curl machine', sets: 3, reps: '12-15', restSeconds: 60, muscle_group: 'Hamstrings', equipment: 'Machine' },
+            { name: 'Smith machine calf raise', sets: 4, reps: '15-20', restSeconds: 45, muscle_group: 'Calves', equipment: 'Machine' },
+            { name: 'Hanging Leg Raises', sets: 3, reps: '12-15', restSeconds: 45, muscle_group: 'Core', equipment: 'Bodyweight' }
           ]
         }
       ]
@@ -207,44 +207,44 @@ const DEFAULT_PROGRAMS = [
         {
           name: 'Day 1 – Glutes & Hamstrings',
           exercises: [
-            { name: 'Hip Thrust', sets: 4, reps: '10-12', restSeconds: 90, muscle_group: 'Glutes', equipment: 'Barbell' },
-            { name: 'Romanian Deadlift', sets: 4, reps: '10-12', restSeconds: 90, muscle_group: 'Hamstrings', equipment: 'Barbell' },
-            { name: 'Cable Pull Through', sets: 3, reps: '12-15', restSeconds: 60, muscle_group: 'Glutes', equipment: 'Cable' },
-            { name: 'Leg Curl', sets: 3, reps: '12-15', restSeconds: 60, muscle_group: 'Hamstrings', equipment: 'Machine' },
-            { name: 'Glute Kickback', sets: 3, reps: '12-15', restSeconds: 45, muscle_group: 'Glutes', equipment: 'Cable' }
+            { name: 'Barbell hip thrust', sets: 4, reps: '10-12', restSeconds: 90, muscle_group: 'Glutes', equipment: 'Barbell' },
+            { name: 'Barbell romanian deadlift', sets: 4, reps: '10-12', restSeconds: 90, muscle_group: 'Hamstrings', equipment: 'Barbell' },
+            { name: 'Cable pull through', sets: 3, reps: '12-15', restSeconds: 60, muscle_group: 'Glutes', equipment: 'Cable' },
+            { name: 'Lying leg curl machine', sets: 3, reps: '12-15', restSeconds: 60, muscle_group: 'Hamstrings', equipment: 'Machine' },
+            { name: 'Cable individual glute kickbacks', sets: 3, reps: '12-15', restSeconds: 45, muscle_group: 'Glutes', equipment: 'Cable' }
           ]
         },
         {
           name: 'Day 2 – Upper Body',
           exercises: [
             { name: 'Dumbbell Bench Press', sets: 3, reps: '10-12', restSeconds: 90, muscle_group: 'Chest', equipment: 'Dumbbell' },
-            { name: 'Lat Pulldown', sets: 3, reps: '10-12', restSeconds: 90, muscle_group: 'Back', equipment: 'Cable' },
-            { name: 'Dumbbell Shoulder Press', sets: 3, reps: '10-12', restSeconds: 60, muscle_group: 'Shoulders', equipment: 'Dumbbell' },
-            { name: 'Seated Cable Row', sets: 3, reps: '10-12', restSeconds: 60, muscle_group: 'Back', equipment: 'Cable' },
-            { name: 'Lateral Raise', sets: 3, reps: '12-15', restSeconds: 45, muscle_group: 'Shoulders', equipment: 'Dumbbell' },
-            { name: 'Tricep Pushdown', sets: 3, reps: '10-12', restSeconds: 45, muscle_group: 'Triceps', equipment: 'Cable' }
+            { name: 'Cable bar lateral pulldown', sets: 3, reps: '10-12', restSeconds: 90, muscle_group: 'Back', equipment: 'Cable' },
+            { name: 'Dumbbell Seated Shoulder Press', sets: 3, reps: '10-12', restSeconds: 60, muscle_group: 'Shoulders', equipment: 'Dumbbell' },
+            { name: 'Cable seated row', sets: 3, reps: '10-12', restSeconds: 60, muscle_group: 'Back', equipment: 'Cable' },
+            { name: 'Lateral raises dumbbell', sets: 3, reps: '12-15', restSeconds: 45, muscle_group: 'Shoulders', equipment: 'Dumbbell' },
+            { name: 'Cable pushdown', sets: 3, reps: '10-12', restSeconds: 45, muscle_group: 'Triceps', equipment: 'Cable' }
           ]
         },
         {
           name: 'Day 3 – Quads & Glutes',
           exercises: [
-            { name: 'Barbell Squat', sets: 4, reps: '8-10', restSeconds: 120, muscle_group: 'Quadriceps', equipment: 'Barbell' },
-            { name: 'Bulgarian Split Squat', sets: 3, reps: '10-12', restSeconds: 90, muscle_group: 'Quadriceps', equipment: 'Dumbbell' },
-            { name: 'Leg Press', sets: 3, reps: '12-15', restSeconds: 90, muscle_group: 'Quadriceps', equipment: 'Machine' },
-            { name: 'Hip Thrust', sets: 3, reps: '12-15', restSeconds: 60, muscle_group: 'Glutes', equipment: 'Barbell' },
-            { name: 'Leg Extension', sets: 3, reps: '12-15', restSeconds: 60, muscle_group: 'Quadriceps', equipment: 'Machine' },
-            { name: 'Calf Raise', sets: 4, reps: '15-20', restSeconds: 45, muscle_group: 'Calves', equipment: 'Machine' }
+            { name: 'Barbell Full Squat', sets: 4, reps: '8-10', restSeconds: 120, muscle_group: 'Quadriceps', equipment: 'Barbell' },
+            { name: 'Bulgarian split squat', sets: 3, reps: '10-12', restSeconds: 90, muscle_group: 'Quadriceps', equipment: 'Dumbbell' },
+            { name: 'Leg press machine normal stance', sets: 3, reps: '12-15', restSeconds: 90, muscle_group: 'Quadriceps', equipment: 'Machine' },
+            { name: 'Barbell hip thrust', sets: 3, reps: '12-15', restSeconds: 60, muscle_group: 'Glutes', equipment: 'Barbell' },
+            { name: 'Lever Leg Extension', sets: 3, reps: '12-15', restSeconds: 60, muscle_group: 'Quadriceps', equipment: 'Machine' },
+            { name: 'Smith machine calf raise', sets: 4, reps: '15-20', restSeconds: 45, muscle_group: 'Calves', equipment: 'Machine' }
           ]
         },
         {
           name: 'Day 4 – Upper Body & Core',
           exercises: [
-            { name: 'Incline Dumbbell Press', sets: 3, reps: '10-12', restSeconds: 90, muscle_group: 'Chest', equipment: 'Dumbbell' },
-            { name: 'Dumbbell Row', sets: 3, reps: '10-12', restSeconds: 60, muscle_group: 'Back', equipment: 'Dumbbell' },
-            { name: 'Face Pull', sets: 3, reps: '15-20', restSeconds: 60, muscle_group: 'Shoulders', equipment: 'Cable' },
-            { name: 'Dumbbell Curl', sets: 3, reps: '10-12', restSeconds: 60, muscle_group: 'Biceps', equipment: 'Dumbbell' },
-            { name: 'Plank', sets: 3, reps: '45s hold', restSeconds: 45, muscle_group: 'Core', equipment: 'Bodyweight' },
-            { name: 'Cable Crunch', sets: 3, reps: '12-15', restSeconds: 45, muscle_group: 'Core', equipment: 'Cable' }
+            { name: 'Dumbbell Incline Bench Press', sets: 3, reps: '10-12', restSeconds: 90, muscle_group: 'Chest', equipment: 'Dumbbell' },
+            { name: 'Dumbbell Bent-Over Row', sets: 3, reps: '10-12', restSeconds: 60, muscle_group: 'Back', equipment: 'Dumbbell' },
+            { name: 'Resistance band face pull', sets: 3, reps: '15-20', restSeconds: 60, muscle_group: 'Shoulders', equipment: 'Cable' },
+            { name: 'Dumbbell curls', sets: 3, reps: '10-12', restSeconds: 60, muscle_group: 'Biceps', equipment: 'Dumbbell' },
+            { name: 'Plank on elbows', sets: 3, reps: '45s hold', restSeconds: 45, muscle_group: 'Core', equipment: 'Bodyweight' },
+            { name: 'Cable Standing Crunch', sets: 3, reps: '12-15', restSeconds: 45, muscle_group: 'Core', equipment: 'Cable' }
           ]
         }
       ]
@@ -264,32 +264,32 @@ const DEFAULT_PROGRAMS = [
           name: 'Day 1 – Push & Core',
           exercises: [
             { name: 'Dumbbell Bench Press', sets: 4, reps: '10-12', restSeconds: 90, muscle_group: 'Chest', equipment: 'Dumbbell' },
-            { name: 'Dumbbell Shoulder Press', sets: 3, reps: '10-12', restSeconds: 90, muscle_group: 'Shoulders', equipment: 'Dumbbell' },
-            { name: 'Incline Dumbbell Press', sets: 3, reps: '10-12', restSeconds: 60, muscle_group: 'Chest', equipment: 'Dumbbell' },
-            { name: 'Lateral Raise', sets: 3, reps: '12-15', restSeconds: 45, muscle_group: 'Shoulders', equipment: 'Dumbbell' },
-            { name: 'Overhead Tricep Extension', sets: 3, reps: '10-12', restSeconds: 60, muscle_group: 'Triceps', equipment: 'Dumbbell' },
-            { name: 'Plank', sets: 3, reps: '30-45s hold', restSeconds: 45, muscle_group: 'Core', equipment: 'Bodyweight' }
+            { name: 'Dumbbell Seated Shoulder Press', sets: 3, reps: '10-12', restSeconds: 90, muscle_group: 'Shoulders', equipment: 'Dumbbell' },
+            { name: 'Dumbbell Incline Bench Press', sets: 3, reps: '10-12', restSeconds: 60, muscle_group: 'Chest', equipment: 'Dumbbell' },
+            { name: 'Lateral raises dumbbell', sets: 3, reps: '12-15', restSeconds: 45, muscle_group: 'Shoulders', equipment: 'Dumbbell' },
+            { name: 'Cable triceps overhead extension (ez bar)', sets: 3, reps: '10-12', restSeconds: 60, muscle_group: 'Triceps', equipment: 'Dumbbell' },
+            { name: 'Plank on elbows', sets: 3, reps: '30-45s hold', restSeconds: 45, muscle_group: 'Core', equipment: 'Bodyweight' }
           ]
         },
         {
           name: 'Day 2 – Pull & Arms',
           exercises: [
-            { name: 'Dumbbell Row', sets: 4, reps: '10-12', restSeconds: 90, muscle_group: 'Back', equipment: 'Dumbbell' },
+            { name: 'Dumbbell Bent-Over Row', sets: 4, reps: '10-12', restSeconds: 90, muscle_group: 'Back', equipment: 'Dumbbell' },
             { name: 'Dumbbell Pullover', sets: 3, reps: '10-12', restSeconds: 90, muscle_group: 'Back', equipment: 'Dumbbell' },
-            { name: 'Rear Delt Fly', sets: 3, reps: '12-15', restSeconds: 60, muscle_group: 'Shoulders', equipment: 'Dumbbell' },
-            { name: 'Dumbbell Curl', sets: 3, reps: '10-12', restSeconds: 60, muscle_group: 'Biceps', equipment: 'Dumbbell' },
-            { name: 'Hammer Curl', sets: 3, reps: '10-12', restSeconds: 60, muscle_group: 'Biceps', equipment: 'Dumbbell' },
-            { name: 'Dumbbell Shrug', sets: 3, reps: '12-15', restSeconds: 60, muscle_group: 'Traps', equipment: 'Dumbbell' }
+            { name: 'Seated dumbbell rear delt fly', sets: 3, reps: '12-15', restSeconds: 60, muscle_group: 'Shoulders', equipment: 'Dumbbell' },
+            { name: 'Dumbbell curls', sets: 3, reps: '10-12', restSeconds: 60, muscle_group: 'Biceps', equipment: 'Dumbbell' },
+            { name: 'Dumbbell Hammer Curl', sets: 3, reps: '10-12', restSeconds: 60, muscle_group: 'Biceps', equipment: 'Dumbbell' },
+            { name: 'Dumbbell shrugs', sets: 3, reps: '12-15', restSeconds: 60, muscle_group: 'Traps', equipment: 'Dumbbell' }
           ]
         },
         {
           name: 'Day 3 – Legs & Glutes',
           exercises: [
-            { name: 'Goblet Squat', sets: 4, reps: '10-12', restSeconds: 90, muscle_group: 'Quadriceps', equipment: 'Dumbbell' },
-            { name: 'Romanian Deadlift', sets: 4, reps: '10-12', restSeconds: 90, muscle_group: 'Hamstrings', equipment: 'Dumbbell' },
-            { name: 'Bulgarian Split Squat', sets: 3, reps: '10-12', restSeconds: 90, muscle_group: 'Quadriceps', equipment: 'Dumbbell' },
-            { name: 'Dumbbell Lunge', sets: 3, reps: '10-12', restSeconds: 60, muscle_group: 'Quadriceps', equipment: 'Dumbbell' },
-            { name: 'Dumbbell Calf Raise', sets: 4, reps: '15-20', restSeconds: 45, muscle_group: 'Calves', equipment: 'Dumbbell' },
+            { name: 'Dumbbell Goblet Squat', sets: 4, reps: '10-12', restSeconds: 90, muscle_group: 'Quadriceps', equipment: 'Dumbbell' },
+            { name: 'Barbell romanian deadlift', sets: 4, reps: '10-12', restSeconds: 90, muscle_group: 'Hamstrings', equipment: 'Dumbbell' },
+            { name: 'Bulgarian split squat', sets: 3, reps: '10-12', restSeconds: 90, muscle_group: 'Quadriceps', equipment: 'Dumbbell' },
+            { name: 'Dumbbell Goblet Forward Lunge', sets: 3, reps: '10-12', restSeconds: 60, muscle_group: 'Quadriceps', equipment: 'Dumbbell' },
+            { name: 'Dumbbell standing calf raise', sets: 4, reps: '15-20', restSeconds: 45, muscle_group: 'Calves', equipment: 'Dumbbell' },
             { name: 'Dumbbell Hip Thrust', sets: 3, reps: '12-15', restSeconds: 60, muscle_group: 'Glutes', equipment: 'Dumbbell' }
           ]
         }
@@ -309,43 +309,43 @@ const DEFAULT_PROGRAMS = [
         {
           name: 'Day 1 – Lower Power',
           exercises: [
-            { name: 'Barbell Squat', sets: 5, reps: '3-5', restSeconds: 180, muscle_group: 'Quadriceps', equipment: 'Barbell' },
-            { name: 'Box Jump', sets: 4, reps: '5', restSeconds: 120, muscle_group: 'Quadriceps', equipment: 'Bodyweight' },
-            { name: 'Romanian Deadlift', sets: 4, reps: '6-8', restSeconds: 120, muscle_group: 'Hamstrings', equipment: 'Barbell' },
-            { name: 'Bulgarian Split Squat', sets: 3, reps: '8-10', restSeconds: 90, muscle_group: 'Quadriceps', equipment: 'Dumbbell' },
-            { name: 'Plank', sets: 3, reps: '45-60s hold', restSeconds: 45, muscle_group: 'Core', equipment: 'Bodyweight' }
+            { name: 'Barbell Full Squat', sets: 5, reps: '3-5', restSeconds: 180, muscle_group: 'Quadriceps', equipment: 'Barbell' },
+            { name: 'Box jump', sets: 4, reps: '5', restSeconds: 120, muscle_group: 'Quadriceps', equipment: 'Bodyweight' },
+            { name: 'Barbell romanian deadlift', sets: 4, reps: '6-8', restSeconds: 120, muscle_group: 'Hamstrings', equipment: 'Barbell' },
+            { name: 'Bulgarian split squat', sets: 3, reps: '8-10', restSeconds: 90, muscle_group: 'Quadriceps', equipment: 'Dumbbell' },
+            { name: 'Plank on elbows', sets: 3, reps: '45-60s hold', restSeconds: 45, muscle_group: 'Core', equipment: 'Bodyweight' }
           ]
         },
         {
           name: 'Day 2 – Upper Power',
           exercises: [
             { name: 'Barbell Bench Press', sets: 5, reps: '3-5', restSeconds: 180, muscle_group: 'Chest', equipment: 'Barbell' },
-            { name: 'Pull Up', sets: 4, reps: '5-8', restSeconds: 120, muscle_group: 'Back', equipment: 'Bodyweight' },
-            { name: 'Overhead Press', sets: 4, reps: '5-6', restSeconds: 120, muscle_group: 'Shoulders', equipment: 'Barbell' },
-            { name: 'Barbell Row', sets: 4, reps: '6-8', restSeconds: 90, muscle_group: 'Back', equipment: 'Barbell' },
-            { name: 'Face Pull', sets: 3, reps: '15-20', restSeconds: 60, muscle_group: 'Shoulders', equipment: 'Cable' }
+            { name: 'Pull up normal grip', sets: 4, reps: '5-8', restSeconds: 120, muscle_group: 'Back', equipment: 'Bodyweight' },
+            { name: 'Barbell seated overhead press', sets: 4, reps: '5-6', restSeconds: 120, muscle_group: 'Shoulders', equipment: 'Barbell' },
+            { name: 'Barbell Bent Over Row', sets: 4, reps: '6-8', restSeconds: 90, muscle_group: 'Back', equipment: 'Barbell' },
+            { name: 'Resistance band face pull', sets: 3, reps: '15-20', restSeconds: 60, muscle_group: 'Shoulders', equipment: 'Cable' }
           ]
         },
         {
           name: 'Day 3 – Lower Hypertrophy',
           exercises: [
-            { name: 'Leg Press', sets: 4, reps: '10-12', restSeconds: 90, muscle_group: 'Quadriceps', equipment: 'Machine' },
-            { name: 'Hip Thrust', sets: 4, reps: '10-12', restSeconds: 90, muscle_group: 'Glutes', equipment: 'Barbell' },
-            { name: 'Leg Extension', sets: 3, reps: '12-15', restSeconds: 60, muscle_group: 'Quadriceps', equipment: 'Machine' },
-            { name: 'Leg Curl', sets: 3, reps: '12-15', restSeconds: 60, muscle_group: 'Hamstrings', equipment: 'Machine' },
-            { name: 'Calf Raise', sets: 4, reps: '12-15', restSeconds: 60, muscle_group: 'Calves', equipment: 'Machine' },
-            { name: 'Hanging Leg Raise', sets: 3, reps: '10-15', restSeconds: 45, muscle_group: 'Core', equipment: 'Bodyweight' }
+            { name: 'Leg press machine normal stance', sets: 4, reps: '10-12', restSeconds: 90, muscle_group: 'Quadriceps', equipment: 'Machine' },
+            { name: 'Barbell hip thrust', sets: 4, reps: '10-12', restSeconds: 90, muscle_group: 'Glutes', equipment: 'Barbell' },
+            { name: 'Lever Leg Extension', sets: 3, reps: '12-15', restSeconds: 60, muscle_group: 'Quadriceps', equipment: 'Machine' },
+            { name: 'Lying leg curl machine', sets: 3, reps: '12-15', restSeconds: 60, muscle_group: 'Hamstrings', equipment: 'Machine' },
+            { name: 'Smith machine calf raise', sets: 4, reps: '12-15', restSeconds: 60, muscle_group: 'Calves', equipment: 'Machine' },
+            { name: 'Hanging Leg Raises', sets: 3, reps: '10-15', restSeconds: 45, muscle_group: 'Core', equipment: 'Bodyweight' }
           ]
         },
         {
           name: 'Day 4 – Upper Hypertrophy',
           exercises: [
-            { name: 'Incline Dumbbell Press', sets: 4, reps: '10-12', restSeconds: 90, muscle_group: 'Chest', equipment: 'Dumbbell' },
-            { name: 'Lat Pulldown', sets: 4, reps: '10-12', restSeconds: 90, muscle_group: 'Back', equipment: 'Cable' },
-            { name: 'Dumbbell Shoulder Press', sets: 3, reps: '10-12', restSeconds: 60, muscle_group: 'Shoulders', equipment: 'Dumbbell' },
-            { name: 'Cable Fly', sets: 3, reps: '12-15', restSeconds: 60, muscle_group: 'Chest', equipment: 'Cable' },
-            { name: 'Dumbbell Curl', sets: 3, reps: '10-12', restSeconds: 60, muscle_group: 'Biceps', equipment: 'Dumbbell' },
-            { name: 'Tricep Pushdown', sets: 3, reps: '10-12', restSeconds: 60, muscle_group: 'Triceps', equipment: 'Cable' }
+            { name: 'Dumbbell Incline Bench Press', sets: 4, reps: '10-12', restSeconds: 90, muscle_group: 'Chest', equipment: 'Dumbbell' },
+            { name: 'Cable bar lateral pulldown', sets: 4, reps: '10-12', restSeconds: 90, muscle_group: 'Back', equipment: 'Cable' },
+            { name: 'Dumbbell Seated Shoulder Press', sets: 3, reps: '10-12', restSeconds: 60, muscle_group: 'Shoulders', equipment: 'Dumbbell' },
+            { name: 'Cable middle fly', sets: 3, reps: '12-15', restSeconds: 60, muscle_group: 'Chest', equipment: 'Cable' },
+            { name: 'Dumbbell curls', sets: 3, reps: '10-12', restSeconds: 60, muscle_group: 'Biceps', equipment: 'Dumbbell' },
+            { name: 'Cable pushdown', sets: 3, reps: '10-12', restSeconds: 60, muscle_group: 'Triceps', equipment: 'Cable' }
           ]
         }
       ]
@@ -365,55 +365,55 @@ const DEFAULT_PROGRAMS = [
           name: 'Day 1 – Chest',
           exercises: [
             { name: 'Barbell Bench Press', sets: 4, reps: '8-10', restSeconds: 120, muscle_group: 'Chest', equipment: 'Barbell' },
-            { name: 'Incline Dumbbell Press', sets: 4, reps: '10-12', restSeconds: 90, muscle_group: 'Chest', equipment: 'Dumbbell' },
-            { name: 'Cable Fly', sets: 3, reps: '12-15', restSeconds: 60, muscle_group: 'Chest', equipment: 'Cable' },
+            { name: 'Dumbbell Incline Bench Press', sets: 4, reps: '10-12', restSeconds: 90, muscle_group: 'Chest', equipment: 'Dumbbell' },
+            { name: 'Cable middle fly', sets: 3, reps: '12-15', restSeconds: 60, muscle_group: 'Chest', equipment: 'Cable' },
             { name: 'Dumbbell Bench Press', sets: 3, reps: '10-12', restSeconds: 60, muscle_group: 'Chest', equipment: 'Dumbbell' },
-            { name: 'Push Up', sets: 3, reps: '15-20', restSeconds: 45, muscle_group: 'Chest', equipment: 'Bodyweight' }
+            { name: 'Push ups bodyweight', sets: 3, reps: '15-20', restSeconds: 45, muscle_group: 'Chest', equipment: 'Bodyweight' }
           ]
         },
         {
           name: 'Day 2 – Back',
           exercises: [
-            { name: 'Deadlift', sets: 4, reps: '6-8', restSeconds: 180, muscle_group: 'Back', equipment: 'Barbell' },
-            { name: 'Pull Up', sets: 4, reps: '8-10', restSeconds: 90, muscle_group: 'Back', equipment: 'Bodyweight' },
-            { name: 'Barbell Row', sets: 4, reps: '8-10', restSeconds: 90, muscle_group: 'Back', equipment: 'Barbell' },
-            { name: 'Lat Pulldown', sets: 3, reps: '10-12', restSeconds: 60, muscle_group: 'Back', equipment: 'Cable' },
-            { name: 'Seated Cable Row', sets: 3, reps: '10-12', restSeconds: 60, muscle_group: 'Back', equipment: 'Cable' }
+            { name: 'Barbell Deadlift', sets: 4, reps: '6-8', restSeconds: 180, muscle_group: 'Back', equipment: 'Barbell' },
+            { name: 'Pull up normal grip', sets: 4, reps: '8-10', restSeconds: 90, muscle_group: 'Back', equipment: 'Bodyweight' },
+            { name: 'Barbell Bent Over Row', sets: 4, reps: '8-10', restSeconds: 90, muscle_group: 'Back', equipment: 'Barbell' },
+            { name: 'Cable bar lateral pulldown', sets: 3, reps: '10-12', restSeconds: 60, muscle_group: 'Back', equipment: 'Cable' },
+            { name: 'Cable seated row', sets: 3, reps: '10-12', restSeconds: 60, muscle_group: 'Back', equipment: 'Cable' }
           ]
         },
         {
           name: 'Day 3 – Shoulders',
           exercises: [
-            { name: 'Overhead Press', sets: 4, reps: '8-10', restSeconds: 120, muscle_group: 'Shoulders', equipment: 'Barbell' },
-            { name: 'Dumbbell Shoulder Press', sets: 3, reps: '10-12', restSeconds: 90, muscle_group: 'Shoulders', equipment: 'Dumbbell' },
-            { name: 'Lateral Raise', sets: 4, reps: '12-15', restSeconds: 60, muscle_group: 'Shoulders', equipment: 'Dumbbell' },
-            { name: 'Face Pull', sets: 3, reps: '15-20', restSeconds: 60, muscle_group: 'Shoulders', equipment: 'Cable' },
-            { name: 'Rear Delt Fly', sets: 3, reps: '15-20', restSeconds: 45, muscle_group: 'Shoulders', equipment: 'Dumbbell' },
-            { name: 'Dumbbell Shrug', sets: 4, reps: '12-15', restSeconds: 60, muscle_group: 'Traps', equipment: 'Dumbbell' }
+            { name: 'Barbell seated overhead press', sets: 4, reps: '8-10', restSeconds: 120, muscle_group: 'Shoulders', equipment: 'Barbell' },
+            { name: 'Dumbbell Seated Shoulder Press', sets: 3, reps: '10-12', restSeconds: 90, muscle_group: 'Shoulders', equipment: 'Dumbbell' },
+            { name: 'Lateral raises dumbbell', sets: 4, reps: '12-15', restSeconds: 60, muscle_group: 'Shoulders', equipment: 'Dumbbell' },
+            { name: 'Resistance band face pull', sets: 3, reps: '15-20', restSeconds: 60, muscle_group: 'Shoulders', equipment: 'Cable' },
+            { name: 'Seated dumbbell rear delt fly', sets: 3, reps: '15-20', restSeconds: 45, muscle_group: 'Shoulders', equipment: 'Dumbbell' },
+            { name: 'Dumbbell shrugs', sets: 4, reps: '12-15', restSeconds: 60, muscle_group: 'Traps', equipment: 'Dumbbell' }
           ]
         },
         {
           name: 'Day 4 – Legs',
           exercises: [
-            { name: 'Barbell Squat', sets: 4, reps: '8-10', restSeconds: 150, muscle_group: 'Quadriceps', equipment: 'Barbell' },
-            { name: 'Leg Press', sets: 4, reps: '10-12', restSeconds: 90, muscle_group: 'Quadriceps', equipment: 'Machine' },
-            { name: 'Romanian Deadlift', sets: 4, reps: '10-12', restSeconds: 90, muscle_group: 'Hamstrings', equipment: 'Barbell' },
-            { name: 'Leg Extension', sets: 3, reps: '12-15', restSeconds: 60, muscle_group: 'Quadriceps', equipment: 'Machine' },
-            { name: 'Leg Curl', sets: 3, reps: '12-15', restSeconds: 60, muscle_group: 'Hamstrings', equipment: 'Machine' },
-            { name: 'Calf Raise', sets: 4, reps: '15-20', restSeconds: 60, muscle_group: 'Calves', equipment: 'Machine' }
+            { name: 'Barbell Full Squat', sets: 4, reps: '8-10', restSeconds: 150, muscle_group: 'Quadriceps', equipment: 'Barbell' },
+            { name: 'Leg press machine normal stance', sets: 4, reps: '10-12', restSeconds: 90, muscle_group: 'Quadriceps', equipment: 'Machine' },
+            { name: 'Barbell romanian deadlift', sets: 4, reps: '10-12', restSeconds: 90, muscle_group: 'Hamstrings', equipment: 'Barbell' },
+            { name: 'Lever Leg Extension', sets: 3, reps: '12-15', restSeconds: 60, muscle_group: 'Quadriceps', equipment: 'Machine' },
+            { name: 'Lying leg curl machine', sets: 3, reps: '12-15', restSeconds: 60, muscle_group: 'Hamstrings', equipment: 'Machine' },
+            { name: 'Smith machine calf raise', sets: 4, reps: '15-20', restSeconds: 60, muscle_group: 'Calves', equipment: 'Machine' }
           ]
         },
         {
           name: 'Day 5 – Arms & Core',
           exercises: [
             { name: 'Barbell Curl', sets: 4, reps: '8-10', restSeconds: 60, muscle_group: 'Biceps', equipment: 'Barbell' },
-            { name: 'Tricep Dip', sets: 4, reps: '8-12', restSeconds: 60, muscle_group: 'Triceps', equipment: 'Bodyweight' },
-            { name: 'Hammer Curl', sets: 3, reps: '10-12', restSeconds: 60, muscle_group: 'Biceps', equipment: 'Dumbbell' },
-            { name: 'Overhead Tricep Extension', sets: 3, reps: '10-12', restSeconds: 60, muscle_group: 'Triceps', equipment: 'Dumbbell' },
-            { name: 'Dumbbell Curl', sets: 3, reps: '12-15', restSeconds: 45, muscle_group: 'Biceps', equipment: 'Dumbbell' },
-            { name: 'Tricep Pushdown', sets: 3, reps: '12-15', restSeconds: 45, muscle_group: 'Triceps', equipment: 'Cable' },
-            { name: 'Hanging Leg Raise', sets: 3, reps: '12-15', restSeconds: 45, muscle_group: 'Core', equipment: 'Bodyweight' },
-            { name: 'Cable Crunch', sets: 3, reps: '15-20', restSeconds: 45, muscle_group: 'Core', equipment: 'Cable' }
+            { name: 'Bench triceps dip straight legs', sets: 4, reps: '8-12', restSeconds: 60, muscle_group: 'Triceps', equipment: 'Bodyweight' },
+            { name: 'Dumbbell Hammer Curl', sets: 3, reps: '10-12', restSeconds: 60, muscle_group: 'Biceps', equipment: 'Dumbbell' },
+            { name: 'Cable triceps overhead extension (ez bar)', sets: 3, reps: '10-12', restSeconds: 60, muscle_group: 'Triceps', equipment: 'Dumbbell' },
+            { name: 'Dumbbell curls', sets: 3, reps: '12-15', restSeconds: 45, muscle_group: 'Biceps', equipment: 'Dumbbell' },
+            { name: 'Cable pushdown', sets: 3, reps: '12-15', restSeconds: 45, muscle_group: 'Triceps', equipment: 'Cable' },
+            { name: 'Hanging Leg Raises', sets: 3, reps: '12-15', restSeconds: 45, muscle_group: 'Core', equipment: 'Bodyweight' },
+            { name: 'Cable Standing Crunch', sets: 3, reps: '15-20', restSeconds: 45, muscle_group: 'Core', equipment: 'Cable' }
           ]
         }
       ]
@@ -433,32 +433,32 @@ const DEFAULT_PROGRAMS = [
           name: 'Day 1 – Total Body HIIT',
           exercises: [
             { name: 'Burpee', sets: 4, reps: '10', restSeconds: 30, muscle_group: 'Full Body', equipment: 'Bodyweight' },
-            { name: 'Goblet Squat', sets: 4, reps: '12', restSeconds: 30, muscle_group: 'Quadriceps', equipment: 'Dumbbell' },
-            { name: 'Push Up', sets: 4, reps: '12-15', restSeconds: 30, muscle_group: 'Chest', equipment: 'Bodyweight' },
-            { name: 'Dumbbell Row', sets: 4, reps: '12', restSeconds: 30, muscle_group: 'Back', equipment: 'Dumbbell' },
-            { name: 'Mountain Climber', sets: 4, reps: '20', restSeconds: 30, muscle_group: 'Core', equipment: 'Bodyweight' },
-            { name: 'Jump Squat', sets: 4, reps: '10', restSeconds: 30, muscle_group: 'Quadriceps', equipment: 'Bodyweight' }
+            { name: 'Dumbbell Goblet Squat', sets: 4, reps: '12', restSeconds: 30, muscle_group: 'Quadriceps', equipment: 'Dumbbell' },
+            { name: 'Push ups bodyweight', sets: 4, reps: '12-15', restSeconds: 30, muscle_group: 'Chest', equipment: 'Bodyweight' },
+            { name: 'Dumbbell Bent-Over Row', sets: 4, reps: '12', restSeconds: 30, muscle_group: 'Back', equipment: 'Dumbbell' },
+            { name: 'Mountain climbers', sets: 4, reps: '20', restSeconds: 30, muscle_group: 'Core', equipment: 'Bodyweight' },
+            { name: 'Jump squats bodyweight', sets: 4, reps: '10', restSeconds: 30, muscle_group: 'Quadriceps', equipment: 'Bodyweight' }
           ]
         },
         {
           name: 'Day 2 – Upper Body Circuit',
           exercises: [
             { name: 'Dumbbell Bench Press', sets: 4, reps: '12', restSeconds: 30, muscle_group: 'Chest', equipment: 'Dumbbell' },
-            { name: 'Dumbbell Row', sets: 4, reps: '12', restSeconds: 30, muscle_group: 'Back', equipment: 'Dumbbell' },
-            { name: 'Dumbbell Shoulder Press', sets: 4, reps: '10', restSeconds: 30, muscle_group: 'Shoulders', equipment: 'Dumbbell' },
-            { name: 'Dumbbell Curl', sets: 3, reps: '12', restSeconds: 20, muscle_group: 'Biceps', equipment: 'Dumbbell' },
-            { name: 'Overhead Tricep Extension', sets: 3, reps: '12', restSeconds: 20, muscle_group: 'Triceps', equipment: 'Dumbbell' },
-            { name: 'Plank', sets: 3, reps: '45s hold', restSeconds: 30, muscle_group: 'Core', equipment: 'Bodyweight' }
+            { name: 'Dumbbell Bent-Over Row', sets: 4, reps: '12', restSeconds: 30, muscle_group: 'Back', equipment: 'Dumbbell' },
+            { name: 'Dumbbell Seated Shoulder Press', sets: 4, reps: '10', restSeconds: 30, muscle_group: 'Shoulders', equipment: 'Dumbbell' },
+            { name: 'Dumbbell curls', sets: 3, reps: '12', restSeconds: 20, muscle_group: 'Biceps', equipment: 'Dumbbell' },
+            { name: 'Cable triceps overhead extension (ez bar)', sets: 3, reps: '12', restSeconds: 20, muscle_group: 'Triceps', equipment: 'Dumbbell' },
+            { name: 'Plank on elbows', sets: 3, reps: '45s hold', restSeconds: 30, muscle_group: 'Core', equipment: 'Bodyweight' }
           ]
         },
         {
           name: 'Day 3 – Lower Body Circuit',
           exercises: [
-            { name: 'Jump Squat', sets: 4, reps: '12', restSeconds: 30, muscle_group: 'Quadriceps', equipment: 'Bodyweight' },
-            { name: 'Dumbbell Lunge', sets: 4, reps: '10 each', restSeconds: 30, muscle_group: 'Quadriceps', equipment: 'Dumbbell' },
-            { name: 'Romanian Deadlift', sets: 4, reps: '12', restSeconds: 30, muscle_group: 'Hamstrings', equipment: 'Dumbbell' },
-            { name: 'Goblet Squat', sets: 3, reps: '15', restSeconds: 30, muscle_group: 'Quadriceps', equipment: 'Dumbbell' },
-            { name: 'Dumbbell Calf Raise', sets: 3, reps: '20', restSeconds: 20, muscle_group: 'Calves', equipment: 'Dumbbell' },
+            { name: 'Jump squats bodyweight', sets: 4, reps: '12', restSeconds: 30, muscle_group: 'Quadriceps', equipment: 'Bodyweight' },
+            { name: 'Dumbbell Goblet Forward Lunge', sets: 4, reps: '10 each', restSeconds: 30, muscle_group: 'Quadriceps', equipment: 'Dumbbell' },
+            { name: 'Barbell romanian deadlift', sets: 4, reps: '12', restSeconds: 30, muscle_group: 'Hamstrings', equipment: 'Dumbbell' },
+            { name: 'Dumbbell Goblet Squat', sets: 3, reps: '15', restSeconds: 30, muscle_group: 'Quadriceps', equipment: 'Dumbbell' },
+            { name: 'Dumbbell standing calf raise', sets: 3, reps: '20', restSeconds: 20, muscle_group: 'Calves', equipment: 'Dumbbell' },
             { name: 'Burpee', sets: 3, reps: '10', restSeconds: 30, muscle_group: 'Full Body', equipment: 'Bodyweight' }
           ]
         }
