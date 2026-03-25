@@ -272,24 +272,24 @@ textarea,
 }
 
 .nav-logo-left {
-    height: 100px;
+    height: 56px;
     width: auto;
-    max-width: 100%;
+    max-width: 200px;
     object-fit: contain;
 }
 
 /* Responsive logo sizing for different screen sizes */
 @media (max-width: 500px) {
     .nav-logo-left {
-        height: 90px;
-        max-width: 100%;
+        height: 48px;
+        max-width: 180px;
     }
 }
 
 @media (max-width: 380px) {
     .nav-logo-left {
-        height: 80px;
-        max-width: 100%;
+        height: 42px;
+        max-width: 160px;
     }
 }
 
