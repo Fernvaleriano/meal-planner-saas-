@@ -5873,12 +5873,20 @@
             <div class="wb-panel wb-panel-days">
                 <div class="wb-panel-header">
                     <span>Training Plan</span>
-                    <button class="wb-panel-add-btn" onclick="addWorkoutDay()">
-                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                        </svg>
-                        Add
-                    </button>
+                    <div style="display: flex; gap: 6px; align-items: center;">
+                        <button class="wb-panel-add-btn" onclick="openAIModal()" style="background: rgba(139, 92, 246, 0.1); border-color: rgba(139, 92, 246, 0.3); color: #a78bfa;">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                            </svg>
+                            AI Generate
+                        </button>
+                        <button class="wb-panel-add-btn" onclick="addWorkoutDay()">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                            </svg>
+                            Add
+                        </button>
+                    </div>
                 </div>
                 <div class="wb-panel-body" id="daysList">
                     <!-- Days rendered here by renderDaysList() -->
