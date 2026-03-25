@@ -274,13 +274,18 @@
     </div>
 
     <script>
-        // Optional: Verify the session with Stripe
         const urlParams = new URLSearchParams(window.location.search);
         const sessionId = urlParams.get('session_id');
+        const plan = urlParams.get('plan');
 
         if (sessionId) {
             console.log('Checkout session completed:', sessionId);
-            // Could verify session here if needed
+        }
+
+        // Update messaging for free plan signups
+        if (plan === 'free') {
+            document.querySelector('.subtitle').textContent =
+                'Your free account has been created successfully. You can manage up to 2 clients!';
         }
     </script>
 </body>

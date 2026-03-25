@@ -335,15 +335,13 @@
 
                 // Only redirect back to dashboard if we didn't just come from there
                 if (!fromDashboard) {
-                    // Check if they actually have an active subscription
+                    // Check if they actually have an active subscription (including free tier)
                     if (status === 'active') {
-                        // They have access, redirect to dashboard
                         window.location.href = 'dashboard.html';
                         return;
                     }
 
                     if (status === 'trialing' && trialEnds && trialEnds > now) {
-                        // Trial is still valid, redirect to dashboard
                         window.location.href = 'dashboard.html';
                         return;
                     }
