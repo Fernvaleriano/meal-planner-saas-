@@ -20,7 +20,10 @@ BEGIN
   END IF;
 END $$;
 
--- Update the get_my_coach_branding RPC to include the new column
+-- Drop old function first (return type is changing, so CREATE OR REPLACE alone won't work)
+DROP FUNCTION IF EXISTS public.get_my_coach_branding();
+
+-- Recreate with the new brand_client_theme column
 CREATE OR REPLACE FUNCTION public.get_my_coach_branding()
 RETURNS TABLE (
   id uuid,
