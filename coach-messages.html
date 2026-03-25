@@ -414,7 +414,7 @@
         .msg-bubble.media-bubble p { padding: 6px 10px 0; }
 
         /* Message context menu */
-        .msg-wrapper { position: relative; }
+        .msg-wrapper { position: relative; display: flex; flex-direction: column; }
         .msg-context-menu {
             position: absolute;
             background: white;
@@ -445,7 +445,7 @@
         .msg-context-menu button.delete-action:hover { background: #fef2f2; }
 
         /* Emoji reactions */
-        .msg-wrapper { position: relative; }
+        .msg-wrapper { position: relative; display: flex; flex-direction: column; }
         .msg-wrapper:hover .reaction-trigger { opacity: 1; }
 
         .reaction-trigger {
