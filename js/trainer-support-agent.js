@@ -383,6 +383,18 @@
         cursor: not-allowed;
       }
 
+      /* ─── Tablet: push above bottom nav ─── */
+      @media (max-width: 768px) {
+        .tsa-fab {
+          bottom: calc(70px + env(safe-area-inset-bottom, 0px));
+          right: 16px;
+        }
+        .tsa-minimized {
+          bottom: calc(70px + env(safe-area-inset-bottom, 0px));
+          right: 16px;
+        }
+      }
+
       /* ─── Mobile ─── */
       @media (max-width: 500px) {
         .tsa-panel {
@@ -393,13 +405,13 @@
           border-radius: 12px;
         }
         .tsa-fab {
-          bottom: 18px;
+          bottom: calc(70px + env(safe-area-inset-bottom, 0px));
           right: 16px;
           width: 48px;
           height: 48px;
         }
         .tsa-minimized {
-          bottom: 18px;
+          bottom: calc(70px + env(safe-area-inset-bottom, 0px));
           right: 16px;
         }
       }

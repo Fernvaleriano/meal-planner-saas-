@@ -8427,14 +8427,8 @@
 
         // Onboarding functions
         async function checkOnboardingStatus(coachId, coachData) {
-            // Check if user has dismissed onboarding
-            const dismissed = localStorage.getItem('onboardingDismissed');
-            if (dismissed === 'true') {
-                return;
-            }
-
             try {
-                // Check each onboarding item
+                // Always check actual data — even if previously dismissed
                 const completed = {
                     profile: coachData.name && coachData.name.trim() !== '',
                     client: false,
@@ -8464,15 +8458,23 @@
                     .not('user_id', 'is', null);
                 completed.invite = invitedCount > 0;
 
+                // Calculate progress
+                const completedCount = Object.values(completed).filter(Boolean).length;
+                const totalItems = 4;
+
+                // If all items are complete OR user manually dismissed, hide the checklist
+                const dismissed = localStorage.getItem('onboardingDismissed');
+                if (completedCount === totalItems || dismissed === 'true') {
+                    document.getElementById('onboardingSection').classList.remove('show');
+                    localStorage.setItem('onboardingDismissed', 'true');
+                    return;
+                }
+
                 // Update UI for each item
                 updateOnboardingItem('onboarding-profile', completed.profile);
                 updateOnboardingItem('onboarding-client', completed.client);
                 updateOnboardingItem('onboarding-plan', completed.plan);
                 updateOnboardingItem('onboarding-invite', completed.invite);
-
-                // Calculate progress
-                const completedCount = Object.values(completed).filter(Boolean).length;
-                const totalItems = 4;
 
                 // Update progress bar
                 document.getElementById('onboardingProgressText').textContent =
@@ -8480,14 +8482,8 @@
                 document.getElementById('onboardingProgressFill').style.width =
                     `${(completedCount / totalItems) * 100}%`;
 
-                // Show onboarding section only if not all items are complete
-                if (completedCount < totalItems) {
-                    document.getElementById('onboardingSection').classList.add('show');
-                } else {
-                    // All steps done — auto-dismiss so it never shows again
-                    document.getElementById('onboardingSection').classList.remove('show');
-                    localStorage.setItem('onboardingDismissed', 'true');
-                }
+                // Show onboarding section
+                document.getElementById('onboardingSection').classList.add('show');
             } catch (error) {
                 console.error('Error checking onboarding status:', error);
             }

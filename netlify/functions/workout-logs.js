@@ -522,6 +522,18 @@ exports.handler = async (event) => {
                 ? `${clientData.client_name} just hit a new personal record on ${pr.exerciseName}: ${pr.weight}${pr.unit} x${pr.reps} (previous best: ${pr.previousBest}${pr.unit})`
                 : `${clientData.client_name} just logged their first ${pr.exerciseName}: ${pr.weight}${pr.unit} x${pr.reps}`;
 
+              // Check for duplicate PR notification before inserting
+              const { count: existingCount } = await supabase
+                .from('notifications')
+                .select('*', { count: 'exact', head: true })
+                .eq('user_id', coachUserId)
+                .eq('type', 'client_pr')
+                .eq('related_client_id', workoutLogData.client_id)
+                .eq('title', prTitle)
+                .gte('created_at', new Date(Date.now() - 60000).toISOString()); // Within last 60 seconds
+
+              if (existingCount > 0) continue; // Skip duplicate
+
               await supabase
                 .from('notifications')
                 .insert([{
