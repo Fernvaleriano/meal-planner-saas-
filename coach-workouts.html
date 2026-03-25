@@ -11759,39 +11759,68 @@
                     program.weeks[0].workouts.forEach(workout => {
                         workoutDays.push({
                             name: workout.name,
-                            exercises: (workout.exercises || []).map(ex => ({
-                                id: ex.id,
-                                name: ex.name,
-                                video_url: ex.video_url,
-                                animation_url: ex.animation_url,
-                                thumbnail_url: ex.thumbnail_url,
-                                muscle_group: ex.muscle_group || ex.muscleGroup,
-                                equipment: ex.equipment,
-                                instructions: ex.instructions,
-                                sets: ex.isWarmup ? (ex.sets || 1) : ex.isStretch ? (ex.sets || 1) : (ex.sets || 3),
-                                reps: ex.isWarmup ? (ex.reps || '10-15') : ex.isStretch ? (ex.reps || '30s hold') : (ex.reps || '8-12'),
-                                restSeconds: ex.isWarmup ? (ex.restSeconds != null ? ex.restSeconds : 30) : ex.isStretch ? (ex.restSeconds != null ? ex.restSeconds : 0) : (ex.restSeconds || 90),
-                                notes: ex.notes || '',
-                                matched: ex.matched,
-                                isSuperset: ex.isSuperset || false,
-                                supersetGroup: ex.supersetGroup || null,
-                                isWarmup: ex.isWarmup || false,
-                                isStretch: ex.isStretch || false,
-                                reference_links: (() => {
-                                    let refLinks = ex.reference_links || [];
-                                    const globalRefs = getGlobalRefsForExercise(ex.name);
-                                    if (globalRefs.length > 0 && refLinks.length === 0) {
-                                        return globalRefs.map(ref => ({ ...ref }));
-                                    } else if (globalRefs.length > 0 && refLinks.length > 0) {
-                                        const existingUrls = new Set(refLinks.map(l => l.url));
-                                        globalRefs.forEach(ref => {
-                                            if (!existingUrls.has(ref.url)) refLinks.push({ ...ref });
-                                        });
-                                        return refLinks;
+                            exercises: (workout.exercises || []).map(ex => {
+                                const repsVal = ex.isWarmup ? (ex.reps || '10-15') : ex.isStretch ? (ex.reps || '30s hold') : (ex.reps || '8-12');
+
+                                // Detect time-based exercises (warmups like "5 min", stretches like "30s hold")
+                                let trackingType = 'reps';
+                                let duration = null;
+                                const timedCheck = detectTimedRepsValue(String(repsVal));
+                                if (timedCheck.isTime) {
+                                    trackingType = 'time';
+                                    duration = timedCheck.durationSeconds;
+                                } else if (ex.isWarmup || ex.isStretch) {
+                                    // Warmups/stretches with plain numbers should still be time-based if they look like durations
+                                    const numVal = parseInt(repsVal);
+                                    if (!isNaN(numVal) && (ex.isStretch || (ex.isWarmup && String(repsVal).match(/^\d+$/) && numVal <= 10))) {
+                                        // Stretches: treat plain numbers as seconds (e.g., "30" → 30s)
+                                        // Warmups: treat small plain numbers as minutes (e.g., "4" → 4 min = 240s)
+                                        if (ex.isStretch) {
+                                            trackingType = 'time';
+                                            duration = numVal;
+                                        } else if (ex.isWarmup && numVal <= 10) {
+                                            trackingType = 'time';
+                                            duration = numVal * 60;
+                                        }
                                     }
-                                    return refLinks;
-                                })()
-                            }))
+                                }
+
+                                return {
+                                    id: ex.id,
+                                    name: ex.name,
+                                    video_url: ex.video_url,
+                                    animation_url: ex.animation_url,
+                                    thumbnail_url: ex.thumbnail_url,
+                                    muscle_group: ex.muscle_group || ex.muscleGroup,
+                                    equipment: ex.equipment,
+                                    instructions: ex.instructions,
+                                    sets: ex.isWarmup ? (ex.sets || 1) : ex.isStretch ? (ex.sets || 1) : (ex.sets || 3),
+                                    reps: repsVal,
+                                    restSeconds: ex.isWarmup ? (ex.restSeconds != null ? ex.restSeconds : 30) : ex.isStretch ? (ex.restSeconds != null ? ex.restSeconds : 0) : (ex.restSeconds || 90),
+                                    notes: ex.notes || '',
+                                    matched: ex.matched,
+                                    isSuperset: ex.isSuperset || false,
+                                    supersetGroup: ex.supersetGroup || null,
+                                    isWarmup: ex.isWarmup || false,
+                                    isStretch: ex.isStretch || false,
+                                    trackingType: trackingType,
+                                    duration: duration,
+                                    reference_links: (() => {
+                                        let refLinks = ex.reference_links || [];
+                                        const globalRefs = getGlobalRefsForExercise(ex.name);
+                                        if (globalRefs.length > 0 && refLinks.length === 0) {
+                                            return globalRefs.map(ref => ({ ...ref }));
+                                        } else if (globalRefs.length > 0 && refLinks.length > 0) {
+                                            const existingUrls = new Set(refLinks.map(l => l.url));
+                                            globalRefs.forEach(ref => {
+                                                if (!existingUrls.has(ref.url)) refLinks.push({ ...ref });
+                                            });
+                                            return refLinks;
+                                        }
+                                        return refLinks;
+                                    })()
+                                };
+                            })
                         });
                     });
                 }
