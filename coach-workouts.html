@@ -6453,6 +6453,10 @@
                             </select>
                         </div>
                     </div>
+                    <div class="ai-form-group" id="aiSingleFocusAreas" style="display:none;">
+                        <label>Focus Areas (optional)</label>
+                        <div class="equipment-grid" id="singleFocusGrid"></div>
+                    </div>
                 </div>
 
                 <!-- Program Fields -->
@@ -6593,6 +6597,7 @@
                 </div>
             </div>
             <div class="modal-footer" id="aiModalFooter" style="display:none;">
+                <span id="aiDurationEstimate" style="display:none; font-size: 12px; font-weight: 500; margin-right: auto; padding: 4px 10px; border-radius: 6px; background: rgba(16,185,129,0.1);"></span>
                 <button class="ai-btn ai-btn-cancel" onclick="closeAIModal()">Cancel</button>
                 <button class="ai-btn ai-btn-generate" id="aiGenerateBtn" onclick="generateAIWorkout()">
                     Generate Program
@@ -11487,6 +11492,8 @@
             document.getElementById('aiModalFooter').style.display = 'none';
             document.getElementById('aiModeSelector').style.display = '';
             document.getElementById('aiModal').classList.add('active');
+            // Restore saved form state
+            _restoreAIFormState();
         }
 
         function selectAIMode(mode) {
@@ -11507,10 +11514,109 @@
             // Update button text
             const btn = document.getElementById('aiGenerateBtn');
             btn.innerHTML = mode === 'single' ? 'Generate Workout' : 'Generate Program';
+
+            // Update focus areas for single mode
+            if (mode === 'single') _updateSingleFocusAreas();
+
+            // Update duration estimate
+            _updateDurationEstimate();
         }
 
+        // Attach duration estimate listeners to relevant selects
+        ['aiSingleExerciseCount', 'aiExerciseCount', 'aiGoal', 'aiSingleSessionDuration', 'aiSessionDuration'].forEach(id => {
+            document.getElementById(id)?.addEventListener('change', _updateDurationEstimate);
+        });
+
         function closeAIModal() {
+            if (window._aiGenerating) return; // Prevent close during generation
             document.getElementById('aiModal').classList.remove('active');
+        }
+
+        // Focus area sub-muscles for single workout mode
+        const _singleFocusMap = {
+            upper_body: ['Chest', 'Back', 'Shoulders', 'Biceps', 'Triceps'],
+            lower_body: ['Quads', 'Hamstrings', 'Glutes', 'Calves'],
+            full_body: ['Chest', 'Back', 'Shoulders', 'Arms', 'Legs', 'Core', 'Glutes'],
+            legs: ['Quads', 'Hamstrings', 'Glutes', 'Calves'],
+            arms: ['Biceps', 'Triceps', 'Forearms']
+        };
+
+        function _updateSingleFocusAreas() {
+            const target = document.getElementById('aiTargetMuscle').value;
+            const container = document.getElementById('aiSingleFocusAreas');
+            const grid = document.getElementById('singleFocusGrid');
+            const areas = _singleFocusMap[target];
+            if (!areas) {
+                container.style.display = 'none';
+                return;
+            }
+            container.style.display = '';
+            grid.innerHTML = areas.map(a =>
+                `<label class="equipment-item"><input type="checkbox" name="singleFocusArea" value="${a.toLowerCase()}"> ${a}</label>`
+            ).join('');
+        }
+
+        // Attach listener
+        document.getElementById('aiTargetMuscle')?.addEventListener('change', _updateSingleFocusAreas);
+
+        // Estimated duration calculation
+        function _calcEstimatedDuration(exerciseCount, sets, restSeconds, hasWarmup, hasCooldown) {
+            const avgSetTime = 40; // seconds per set (including execution)
+            const mainTime = exerciseCount * sets * (avgSetTime + restSeconds);
+            const warmupTime = hasWarmup ? 5 * 60 : 0;
+            const cooldownTime = hasCooldown ? 5 * 60 : 0;
+            return Math.round((mainTime + warmupTime + cooldownTime) / 60);
+        }
+
+        function _updateDurationEstimate() {
+            const isSingle = aiMode === 'single';
+            const countStr = document.getElementById(isSingle ? 'aiSingleExerciseCount' : 'aiExerciseCount')?.value || '5-6';
+            const [minEx, maxEx] = countStr.split('-').map(Number);
+            const avgEx = Math.round((minEx + maxEx) / 2);
+            const goal = document.getElementById('aiGoal')?.value || 'hypertrophy';
+            const avgSets = goal === 'strength' ? 4.5 : goal === 'hypertrophy' ? 3.5 : 2.5;
+            const avgRest = goal === 'strength' ? 150 : goal === 'hypertrophy' ? 75 : 37;
+            const est = _calcEstimatedDuration(avgEx, avgSets, avgRest, true, true);
+            const target = parseInt(document.getElementById(isSingle ? 'aiSingleSessionDuration' : 'aiSessionDuration')?.value || 60);
+            const badge = document.getElementById('aiDurationEstimate');
+            if (badge) {
+                badge.textContent = `~${est} min estimated`;
+                badge.style.color = Math.abs(est - target) > 15 ? '#f59e0b' : '#10b981';
+                badge.style.display = '';
+            }
+        }
+
+        // Form state persistence
+        function _saveAIFormState() {
+            try {
+                const state = {
+                    clientName: document.getElementById('aiClientName')?.value || '',
+                    goal: document.getElementById('aiGoal')?.value || 'hypertrophy',
+                    experience: document.getElementById('aiExperience')?.value || 'intermediate',
+                    injuries: document.getElementById('aiInjuries')?.value || '',
+                    preferences: document.getElementById('aiPreferences')?.value || '',
+                    equipment: Array.from(document.querySelectorAll('input[name="equipment"]:checked')).map(cb => cb.value)
+                };
+                sessionStorage.setItem('aiWorkoutFormState', JSON.stringify(state));
+            } catch(e) { /* ignore */ }
+        }
+
+        function _restoreAIFormState() {
+            try {
+                const saved = sessionStorage.getItem('aiWorkoutFormState');
+                if (!saved) return;
+                const state = JSON.parse(saved);
+                if (state.clientName) document.getElementById('aiClientName').value = state.clientName;
+                if (state.goal) document.getElementById('aiGoal').value = state.goal;
+                if (state.experience) document.getElementById('aiExperience').value = state.experience;
+                if (state.injuries) document.getElementById('aiInjuries').value = state.injuries;
+                if (state.preferences) document.getElementById('aiPreferences').value = state.preferences;
+                if (state.equipment && state.equipment.length > 0) {
+                    document.querySelectorAll('input[name="equipment"]').forEach(cb => {
+                        cb.checked = state.equipment.includes(cb.value);
+                    });
+                }
+            } catch(e) { /* ignore */ }
         }
 
         async function generateAIWorkout() {
@@ -11553,7 +11659,10 @@
                     sessionDuration,
                     trainingStyle,
                     exerciseCount,
-                    focusAreas: [targetMuscle],
+                    focusAreas: (() => {
+                        const singleFocus = Array.from(document.querySelectorAll('input[name="singleFocusArea"]:checked')).map(cb => cb.value);
+                        return singleFocus.length > 0 ? singleFocus : [targetMuscle];
+                    })(),
                     equipment,
                     injuries,
                     preferences
@@ -11586,17 +11695,43 @@
                 };
             }
 
-            // Show loading
+            // Show loading & prevent accidental modal close
             btn.disabled = true;
-            btn.innerHTML = '<span class="generating-text"><span class="spinner"></span>Generating...</span>';
+            btn.innerHTML = '<span class="generating-text"><span class="spinner"></span>Analyzing exercises...</span>';
+            const cancelBtn = document.querySelector('#aiModalFooter .ai-btn-cancel');
+            const closeBtn = document.querySelector('#aiModal .modal-close');
+            if (cancelBtn) cancelBtn.disabled = true;
+            if (closeBtn) closeBtn.style.display = 'none';
+            window._aiGenerating = true;
+
+            // Progress text updates
+            const progressSteps = [
+                { text: 'Building your workout...', delay: 3000 },
+                { text: 'Selecting exercises from your database...', delay: 7000 },
+                { text: 'Matching exercises & adding videos...', delay: 12000 },
+                { text: 'Almost done — finalizing program...', delay: 18000 }
+            ];
+            const progressTimers = progressSteps.map(step =>
+                setTimeout(() => {
+                    if (window._aiGenerating) {
+                        btn.innerHTML = `<span class="generating-text"><span class="spinner"></span>${step.text}</span>`;
+                    }
+                }, step.delay)
+            );
+
+            // 90-second timeout
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 90000);
 
             try {
                 const response = await fetch('/.netlify/functions/generate-workout-claude', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(requestBody)
+                    body: JSON.stringify(requestBody),
+                    signal: controller.signal
                 });
 
+                clearTimeout(timeoutId);
                 const result = await response.json();
 
                 if (!response.ok || !result.success) {
@@ -11663,14 +11798,40 @@
 
                 renderWorkoutDays();
                 closeAIModal();
-                showToast(isSingle ? 'Workout generated!' : 'Workout program generated!');
+
+                // Show match quality feedback
+                const stats = result.matchStats;
+                if (stats) {
+                    const matchPct = stats.total > 0 ? Math.round((stats.matched / stats.total) * 100) : 0;
+                    let toastMsg = isSingle ? 'Workout generated!' : 'Workout program generated!';
+                    toastMsg += ` ${stats.matched}/${stats.total} exercises matched`;
+                    if (stats.unmatched > 0) {
+                        toastMsg += ` (${stats.unmatched} without videos)`;
+                    }
+                    showToast(toastMsg, matchPct >= 80 ? 'success' : 'warning');
+                } else {
+                    showToast(isSingle ? 'Workout generated!' : 'Workout program generated!');
+                }
+
+                // Save form state for convenience
+                _saveAIFormState();
 
             } catch (error) {
+                clearTimeout(timeoutId);
                 console.error('AI generation error:', error);
-                showToast(error.message || 'Failed to generate workout', 'error');
+
+                if (error.name === 'AbortError') {
+                    showToast('Generation timed out. Try fewer workout days or exercises.', 'error');
+                } else {
+                    showToast(error.message || 'Failed to generate workout', 'error');
+                }
             } finally {
+                progressTimers.forEach(t => clearTimeout(t));
+                window._aiGenerating = false;
                 btn.disabled = false;
                 btn.innerHTML = isSingle ? 'Generate Workout' : 'Generate Program';
+                if (cancelBtn) cancelBtn.disabled = false;
+                if (closeBtn) closeBtn.style.display = '';
             }
         }
 
@@ -13026,6 +13187,8 @@
         document.querySelectorAll('.modal-overlay').forEach(overlay => {
             overlay.addEventListener('click', (e) => {
                 if (e.target === overlay) {
+                    // Prevent closing AI modal during generation
+                    if (overlay.id === 'aiModal' && window._aiGenerating) return;
                     overlay.classList.remove('active');
                 }
             });
