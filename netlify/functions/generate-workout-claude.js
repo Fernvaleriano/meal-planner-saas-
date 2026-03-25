@@ -195,7 +195,7 @@ function findBestExerciseMatch(aiName, aiMuscleGroup, exercises) {
 
   let bestMatch = null;
   let bestScore = 0;
-  const threshold = 0.35; // Lower threshold for more matches
+  const threshold = 0.5;
 
   for (const exercise of exercises) {
     let score = calculateSimilarity(aiName, exercise.name);
@@ -209,14 +209,12 @@ function findBestExerciseMatch(aiName, aiMuscleGroup, exercises) {
           normalizedAiMuscle.includes(normalizedDbMuscle) ||
           normalizedDbMuscle.includes(normalizedAiMuscle)) {
         score += 0.15;
-      }
-
-      // Also check secondary muscles
-      if (exercise.secondary_muscles && Array.isArray(exercise.secondary_muscles)) {
+      } else if (exercise.secondary_muscles && Array.isArray(exercise.secondary_muscles)) {
+        // Only check secondary muscles if primary didn't match (cap bonus)
         for (const secondary of exercise.secondary_muscles) {
           if (secondary.toLowerCase().includes(normalizedAiMuscle) ||
               normalizedAiMuscle.includes(secondary.toLowerCase())) {
-            score += 0.1;
+            score += 0.05;
             break;
           }
         }
@@ -234,10 +232,29 @@ function findBestExerciseMatch(aiName, aiMuscleGroup, exercises) {
     }
   }
 
-  if (bestMatch) {
+  return bestMatch;
+}
+
+// Find best match with equipment validation
+function findBestExerciseMatchWithEquipment(aiName, aiMuscleGroup, exercises, selectedEquipment) {
+  if (!selectedEquipment || selectedEquipment.length === 0) {
+    return findBestExerciseMatch(aiName, aiMuscleGroup, exercises);
   }
 
-  return bestMatch;
+  // First try matching with equipment filter
+  const equipmentFiltered = exercises.filter(ex => {
+    const exEquip = (ex.equipment || '').toLowerCase();
+    if (!exEquip || exEquip === 'none' || exEquip === 'bodyweight' || exEquip === 'body weight') {
+      return selectedEquipment.some(eq => eq.toLowerCase() === 'bodyweight');
+    }
+    return selectedEquipment.some(eq => exEquip.includes(eq.toLowerCase()));
+  });
+
+  const match = findBestExerciseMatch(aiName, aiMuscleGroup, equipmentFiltered);
+  if (match) return match;
+
+  // Fallback: try without equipment filter but with higher threshold
+  return findBestExerciseMatch(aiName, aiMuscleGroup, exercises);
 }
 
 exports.handler = async (event) => {
@@ -259,11 +276,12 @@ exports.handler = async (event) => {
   if (!ANTHROPIC_API_KEY) {
     console.error('ANTHROPIC_API_KEY not configured');
     return {
-      statusCode: 500,
+      statusCode: 503,
       headers,
       body: JSON.stringify({
         success: false,
-        error: 'API key not configured. Please add ANTHROPIC_API_KEY to environment variables.'
+        error: 'AI service is temporarily unavailable. Please try again later or contact support.',
+        errorCode: 'API_KEY_MISSING'
       })
     };
   }
@@ -313,7 +331,7 @@ exports.handler = async (event) => {
 
         if (error) {
           console.error('Error fetching exercises:', error);
-          break;
+          throw new Error('Unable to load exercise database. Please try again.');
         }
 
         if (!exercises || exercises.length === 0) break;
@@ -363,7 +381,9 @@ exports.handler = async (event) => {
         if (!exercisesByMuscleGroup[group]) {
           exercisesByMuscleGroup[group] = [];
         }
-        exercisesByMuscleGroup[group].push(ex.name);
+        // Include equipment metadata so Claude can make better selections
+        const equipLabel = ex.equipment ? ` [${ex.equipment}]` : '';
+        exercisesByMuscleGroup[group].push(`${ex.name}${equipLabel}`);
       }
 
       // Log what muscle groups we have available
@@ -399,9 +419,9 @@ exports.handler = async (event) => {
     // Build training style instruction
     const styleMap = {
       'straight_sets': 'Use straight sets (complete all sets of one exercise before moving to the next). All exercises should have "isSuperset": false and "supersetGroup": null.',
-      'supersets': 'MANDATORY: Use supersets — pair MOST main exercises into superset pairs. Each pair must have BOTH exercises marked with "isSuperset": true and the SAME "supersetGroup" letter (e.g., both exercises in the first pair get "supersetGroup": "A", the second pair gets "B", etc.). Place paired exercises CONSECUTIVELY in the exercises array. Aim for 2-3 superset pairs per workout. Rest 60-90s between superset rounds, 0s between exercises within a superset.',
+      'supersets': 'MANDATORY: Use supersets — pair MOST main exercises into superset pairs. Each pair must have BOTH exercises marked with "isSuperset": true and the SAME "supersetGroup" letter (e.g., both exercises in the first pair get "supersetGroup": "A", the second pair gets "B", etc.). Place paired exercises CONSECUTIVELY in the exercises array. Aim for 2-3 superset pairs per workout. Rest 60-90s between superset rounds, 0s between exercises within a superset. Prefer ANTAGONISTIC pairings (chest+back, biceps+triceps, quads+hamstrings) for better recovery, or pair upper+lower for metabolic effect.',
       'circuits': 'Use circuit training (cycle through all exercises with minimal rest). Group 3-5 exercises into circuits using "isSuperset": true and the same "supersetGroup" letter for all exercises in the circuit.',
-      'mixed': 'Mix straight sets with supersets — use 1-2 superset pairs per workout (mark both exercises with "isSuperset": true and the same "supersetGroup" letter like "A" or "B"), and keep the remaining exercises as straight sets ("isSuperset": false). Place superset pairs CONSECUTIVELY.'
+      'mixed': 'Mix straight sets with supersets — use 1-2 superset pairs per workout (mark both exercises with "isSuperset": true and the same "supersetGroup" letter like "A" or "B"), and keep the remaining exercises as straight sets ("isSuperset": false). Place superset pairs CONSECUTIVELY. Prefer antagonistic pairings (chest+back, biceps+triceps, quads+hamstrings).'
     };
     const styleInstruction = styleMap[trainingStyle] || styleMap['straight_sets'];
 
@@ -479,17 +499,17 @@ exports.handler = async (event) => {
           warmupStretchInstructions += `\n\nAVAILABLE WARM-UPS (copy name EXACTLY as shown):\n${uniqueWarmups.map(n => `"${n}"`).join(', ')}`;
           warmupStretchInstructions += '\n\nInclude 2-3 warm-up exercises at the START of each workout. Mark them with "isWarmup": true. Use 1-2 sets, 10-15 reps, 0-30 seconds rest.';
         } else {
-          warmupStretchInstructions += '\n\n*** NO WARM-UP EXERCISES AVAILABLE IN DATABASE - skip warm-ups ***';
+          warmupStretchInstructions += '\n\nNo warm-up exercises with videos found. Include 1-2 generic warm-ups anyway (e.g., "General Cardio Warm-up", "Dynamic Stretching") marked with "isWarmup": true — they will be included without video demos.';
         }
 
         if (stretchExercises.length > 0) {
           warmupStretchInstructions += `\n\nAVAILABLE STRETCHES (copy name EXACTLY as shown):\n${stretchExercises.map(n => `"${n}"`).join(', ')}`;
           warmupStretchInstructions += '\n\nInclude 2-3 stretches at the END of each workout. Mark them with "isStretch": true. Use 1 set, "30s hold" for reps, 0 seconds rest. CRITICAL: Stretches MUST target the same muscle group being trained in the workout (e.g. leg stretches for leg day, chest stretches for chest day). Never include unrelated stretches.';
         } else {
-          warmupStretchInstructions += '\n\n*** NO STRETCH EXERCISES AVAILABLE IN DATABASE - skip stretches ***';
+          warmupStretchInstructions += '\n\nNo stretch exercises with videos found. Include 2-3 generic stretches anyway (e.g., "Hamstring Stretch", "Chest Stretch") marked with "isStretch": true — they will be included without video demos.';
         }
       } else {
-        warmupStretchInstructions = '\n\n*** NO WARM-UP OR STRETCH EXERCISES EXIST IN THE DATABASE - skip warm-ups and stretches ***';
+        warmupStretchInstructions = '\n\nNo warm-up or stretch exercises with videos found. Still include 1-2 generic warm-ups and 2-3 stretches with appropriate flags — they will display without video demos but maintain proper workout structure.';
       }
 
       availableExercisesPrompt = `
@@ -765,7 +785,26 @@ ${trainingStyle === 'supersets' || trainingStyle === 'mixed' ?
 
     // Validate structure
     if (!programData.weeks || !Array.isArray(programData.weeks)) {
-      throw new Error('Invalid program structure');
+      console.error('Invalid AI response structure:', JSON.stringify(programData).slice(0, 500));
+      throw new Error('AI returned an unexpected format. Please try again.');
+    }
+
+    // Validate each workout has exercises with required fields
+    for (const week of programData.weeks) {
+      for (const workout of week.workouts || []) {
+        if (!workout.exercises || !Array.isArray(workout.exercises)) {
+          workout.exercises = [];
+          continue;
+        }
+        workout.exercises = workout.exercises.filter(ex => {
+          if (!ex.name || typeof ex.name !== 'string') return false;
+          // Ensure numeric fields have valid defaults
+          if (typeof ex.sets !== 'number' || ex.sets < 1) ex.sets = 3;
+          if (!ex.reps) ex.reps = '8-12';
+          if (typeof ex.restSeconds !== 'number') ex.restSeconds = 60;
+          return true;
+        });
+      }
     }
 
     // Match AI-generated exercises to database exercises (using allExercises fetched earlier)
@@ -795,9 +834,11 @@ ${trainingStyle === 'supersets' || trainingStyle === 'mixed' ?
               }
 
               // For warmups/stretches, ONLY match against exercises with videos
-              // For main exercises, match against all exercises
+              // For main exercises, match against all exercises with equipment validation
               const exercisesToMatch = isWarmupOrStretch ? exercisesWithVideos : allExercises;
-              const match = findBestExerciseMatch(aiExercise.name, aiExercise.muscleGroup, exercisesToMatch);
+              const match = isWarmupOrStretch
+                ? findBestExerciseMatch(aiExercise.name, aiExercise.muscleGroup, exercisesToMatch)
+                : findBestExerciseMatchWithEquipment(aiExercise.name, aiExercise.muscleGroup, exercisesToMatch, equipment);
 
               if (match) {
                 matchStats.matched++;
@@ -822,15 +863,11 @@ ${trainingStyle === 'supersets' || trainingStyle === 'mixed' ?
                   matched: true
                 };
               } else {
-                // No match found
-                if (isWarmupOrStretch) {
-                  // For warmup/stretch without video match, skip (no video to show)
-                  return null;
-                }
-
-                // For main exercises, keep them even without match
+                // No match found — keep the exercise regardless (warmup/stretch or main)
                 matchStats.unmatched++;
-                matchStats.unmatchedNames.push(aiExercise.name);
+                if (!isWarmupOrStretch) {
+                  matchStats.unmatchedNames.push(aiExercise.name);
+                }
                 return {
                   name: aiExercise.name,
                   muscle_group: aiExercise.muscleGroup,
@@ -880,12 +917,36 @@ ${trainingStyle === 'supersets' || trainingStyle === 'mixed' ?
 
   } catch (error) {
     console.error('Workout generation error:', error.message);
+    console.error('Stack:', error.stack);
+
+    // Provide user-friendly error messages based on error type
+    let userMessage = 'Failed to generate workout. Please try again.';
+    let errorCode = 'GENERATION_ERROR';
+
+    if (error.message?.includes('exercise database') || error.message?.includes('Unable to load')) {
+      userMessage = error.message;
+      errorCode = 'DATABASE_ERROR';
+    } else if (error.message?.includes('Could not extract JSON') || error.message?.includes('unexpected format')) {
+      userMessage = 'AI returned an unexpected response. Please try again — this usually works on retry.';
+      errorCode = 'PARSE_ERROR';
+    } else if (error.status === 429 || error.message?.includes('rate limit')) {
+      userMessage = 'AI service is busy. Please wait a moment and try again.';
+      errorCode = 'RATE_LIMITED';
+    } else if (error.status === 529 || error.message?.includes('overloaded')) {
+      userMessage = 'AI service is temporarily overloaded. Please try again in a few minutes.';
+      errorCode = 'OVERLOADED';
+    } else if (error.message?.includes('timeout') || error.message?.includes('ETIMEDOUT')) {
+      userMessage = 'Request timed out. Try reducing the number of workout days or exercises.';
+      errorCode = 'TIMEOUT';
+    }
+
     return {
       statusCode: 500,
       headers,
       body: JSON.stringify({
         success: false,
-        error: error.message || 'Failed to generate workout'
+        error: userMessage,
+        errorCode
       })
     };
   }
