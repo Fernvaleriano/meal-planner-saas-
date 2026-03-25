@@ -99,38 +99,26 @@ exports.handler = async (event, context) => {
         }
 
         // Fetch coach branding and subscription info
-        const { data: coach, error: fetchError } = await supabase
+        // Try with brand_client_theme first, fall back without it if column doesn't exist
+        const SELECT_WITH_THEME = 'id, name, subscription_tier, brand_name, brand_logo_url, brand_favicon_url, brand_primary_color, brand_secondary_color, brand_accent_color, brand_email_logo_url, brand_email_footer, branding_updated_at, profile_photo_url, brand_bg_color, brand_bg_secondary_color, brand_card_color, brand_text_color, brand_text_secondary_color, brand_font, brand_button_style, brand_welcome_message, brand_app_name, brand_short_name, client_modules, custom_terminology, brand_client_theme';
+        const SELECT_FALLBACK = 'id, name, subscription_tier, brand_name, brand_logo_url, brand_favicon_url, brand_primary_color, brand_secondary_color, brand_accent_color, brand_email_logo_url, brand_email_footer, branding_updated_at, profile_photo_url, brand_bg_color, brand_bg_secondary_color, brand_card_color, brand_text_color, brand_text_secondary_color, brand_font, brand_button_style, brand_welcome_message, brand_app_name, brand_short_name, client_modules, custom_terminology';
+
+        let { data: coach, error: fetchError } = await supabase
             .from('coaches')
-            .select(`
-                id,
-                name,
-                subscription_tier,
-                brand_name,
-                brand_logo_url,
-                brand_favicon_url,
-                brand_primary_color,
-                brand_secondary_color,
-                brand_accent_color,
-                brand_email_logo_url,
-                brand_email_footer,
-                branding_updated_at,
-                profile_photo_url,
-                brand_bg_color,
-                brand_bg_secondary_color,
-                brand_card_color,
-                brand_text_color,
-                brand_text_secondary_color,
-                brand_font,
-                brand_button_style,
-                brand_welcome_message,
-                brand_app_name,
-                brand_short_name,
-                client_modules,
-                custom_terminology,
-                brand_client_theme
-            `)
+            .select(SELECT_WITH_THEME)
             .eq('id', coachId)
             .single();
+
+        // If brand_client_theme column doesn't exist yet, retry without it
+        if (fetchError && (fetchError.message || '').includes('brand_client_theme')) {
+            const fallback = await supabase
+                .from('coaches')
+                .select(SELECT_FALLBACK)
+                .eq('id', coachId)
+                .single();
+            coach = fallback.data;
+            fetchError = fallback.error;
+        }
 
         if (fetchError) {
             console.error('Error fetching coach branding:', fetchError);

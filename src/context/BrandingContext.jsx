@@ -290,17 +290,25 @@ export function BrandingProvider({ children }) {
     }
 
     try {
-      const COACH_BRANDING_SELECT = 'id, name, subscription_tier, brand_name, brand_logo_url, brand_favicon_url, brand_primary_color, brand_secondary_color, brand_accent_color, brand_email_logo_url, brand_email_footer, branding_updated_at, profile_photo_url, brand_bg_color, brand_bg_secondary_color, brand_card_color, brand_text_color, brand_text_secondary_color, brand_font, brand_button_style, brand_welcome_message, brand_app_name, brand_short_name, client_modules, custom_terminology, brand_client_theme';
+      const COACH_BRANDING_SELECT_WITH_THEME = 'id, name, subscription_tier, brand_name, brand_logo_url, brand_favicon_url, brand_primary_color, brand_secondary_color, brand_accent_color, brand_email_logo_url, brand_email_footer, branding_updated_at, profile_photo_url, brand_bg_color, brand_bg_secondary_color, brand_card_color, brand_text_color, brand_text_secondary_color, brand_font, brand_button_style, brand_welcome_message, brand_app_name, brand_short_name, client_modules, custom_terminology, brand_client_theme';
+      const COACH_BRANDING_SELECT_FALLBACK = 'id, name, subscription_tier, brand_name, brand_logo_url, brand_favicon_url, brand_primary_color, brand_secondary_color, brand_accent_color, brand_email_logo_url, brand_email_footer, branding_updated_at, profile_photo_url, brand_bg_color, brand_bg_secondary_color, brand_card_color, brand_text_color, brand_text_secondary_color, brand_font, brand_button_style, brand_welcome_message, brand_app_name, brand_short_name, client_modules, custom_terminology';
+
+      // Helper: try select with brand_client_theme, fall back without it if column doesn't exist
+      async function trySelect(query) {
+        let { data, error } = await query.select(COACH_BRANDING_SELECT_WITH_THEME).eq('id', coachId).maybeSingle();
+        if (error && (error.message || '').includes('brand_client_theme')) {
+          const fallback = await supabase.from('coaches').select(COACH_BRANDING_SELECT_FALLBACK).eq('id', coachId).maybeSingle();
+          data = fallback.data;
+          error = fallback.error;
+        }
+        return { data, error };
+      }
 
       let coach = null;
 
       if (clientData?.is_coach) {
         // Coaches can always read their own row with authenticated_select_own.
-        const { data, error } = await supabase
-          .from('coaches')
-          .select(COACH_BRANDING_SELECT)
-          .eq('id', coachId)
-          .maybeSingle();
+        const { data, error } = await trySelect(supabase.from('coaches'));
 
         if (!error && data) {
           coach = data;
@@ -319,11 +327,7 @@ export function BrandingProvider({ children }) {
         // 3. Netlify function (works always — uses service key, bypasses RLS)
 
         // Strategy 1: Direct query (fastest, no extra infra needed if RLS policy is in place)
-        const { data: directData, error: directError } = await supabase
-          .from('coaches')
-          .select(COACH_BRANDING_SELECT)
-          .eq('id', coachId)
-          .maybeSingle();
+        const { data: directData, error: directError } = await trySelect(supabase.from('coaches'));
 
         if (!directError && directData) {
           coach = directData;

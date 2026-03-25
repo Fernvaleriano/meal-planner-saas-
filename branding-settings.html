@@ -2308,14 +2308,25 @@
                     brand_secondary_color: currentBranding.brand_secondary_color,
                     brand_accent_color: currentBranding.brand_accent_color,
                     brand_email_footer: currentBranding.brand_email_footer || null,
-                    brand_client_theme: currentBranding.brand_client_theme || 'dark',
                     branding_updated_at: new Date().toISOString()
                 };
 
-                const { error } = await supabaseClient
+                // Try saving with brand_client_theme (column may not exist yet)
+                const dataWithTheme = { ...updateData, brand_client_theme: currentBranding.brand_client_theme || 'dark' };
+                let { error } = await supabaseClient
                     .from('coaches')
-                    .update(updateData)
+                    .update(dataWithTheme)
                     .eq('id', session.user.id);
+
+                // If that fails (column doesn't exist), fall back without it
+                if (error) {
+                    console.warn('Save with brand_client_theme failed, retrying without:', error.message);
+                    const fallback = await supabaseClient
+                        .from('coaches')
+                        .update(updateData)
+                        .eq('id', session.user.id);
+                    error = fallback.error;
+                }
 
                 if (error) throw error;
 
