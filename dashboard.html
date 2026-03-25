@@ -6022,6 +6022,13 @@
 
         // Navigate and auto-archive a notification item from the overview
         function reviewAndArchiveNotif(alertId, notifDbId, url) {
+            // Decrement badge count immediately
+            const notif = allNotifications.find(n => String(n.id) === String(notifDbId));
+            if (notif && !notif.is_read) {
+                decrementNotificationBadge();
+                notif.is_read = true;
+            }
+
             // Mark notification as read via API
             fetch('/.netlify/functions/notifications', {
                 method: 'POST',
@@ -6061,7 +6068,12 @@
                     saveLocalDismissed(_dismissedFromDb);
                     renderPriorityAlertSections();
                 } else {
-                    // Dismiss: mark as read
+                    // Dismiss: mark as read — decrement badge immediately
+                    decrementNotificationBadge();
+                    // Update local notification state
+                    const notif = allNotifications.find(n => String(n.id) === String(alert.notificationId));
+                    if (notif) notif.is_read = true;
+
                     _dismissedFromDb.add(alertId);
                     saveLocalDismissed(_dismissedFromDb);
 
@@ -8163,6 +8175,17 @@
         let allNotifications = []; // cached for tab filtering
         let activeNotifFilter = 'all';
 
+        function decrementNotificationBadge() {
+            const current = parseInt(notificationBadge.textContent) || 0;
+            if (current <= 1) {
+                notificationBadge.style.display = 'none';
+                notificationBadge.textContent = '0';
+            } else {
+                const newCount = current - 1;
+                notificationBadge.textContent = newCount > 9 ? '9+' : newCount;
+            }
+        }
+
         function formatTimeAgo(dateString) {
             const date = new Date(dateString);
             const now = new Date();
@@ -8258,12 +8281,22 @@
                         const notifType = item.dataset.type;
                         const checkinId = item.dataset.checkinId;
 
-                        // Mark as read
-                        await fetch('/.netlify/functions/notifications', {
+                        // Decrement badge count immediately if this was unread
+                        if (item.classList.contains('unread')) {
+                            item.classList.remove('unread');
+                            decrementNotificationBadge();
+                            // Update local state so tab re-renders reflect the read status
+                            const notif = allNotifications.find(n => String(n.id) === String(notifId));
+                            if (notif) notif.is_read = true;
+                        }
+
+                        // Mark as read on server
+                        fetch('/.netlify/functions/notifications', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ notificationIds: [parseInt(notifId)] })
-                        });
+                            body: JSON.stringify({ notificationIds: [parseInt(notifId)] }),
+                            keepalive: true
+                        }).catch(e => console.warn('Could not mark notification read:', e));
 
                         const isValidClientId = clientId && clientId !== '' && clientId !== 'null' && clientId !== 'undefined';
                         const isValidCheckinId = checkinId && checkinId !== '' && checkinId !== 'null' && checkinId !== 'undefined';
@@ -8277,9 +8310,6 @@
                             window.location.href = `client-profile.html?clientId=${clientId}#checkin-${checkinId}`;
                         } else if (isValidClientId) {
                             window.location.href = `client-profile.html?clientId=${clientId}`;
-                        } else {
-                            item.classList.remove('unread');
-                            loadNotifications(currentUserId);
                         }
                     });
                 });
