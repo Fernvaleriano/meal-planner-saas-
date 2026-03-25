@@ -33,6 +33,7 @@ const DEFAULT_BRANDING = {
     progress: true,
   },
   custom_terminology: null,
+  brand_client_theme: 'dark',
   has_branding_access: false,
 };
 
@@ -108,6 +109,38 @@ function darkenColor(hex, percent) {
   const G = Math.max(0, ((num >> 8) & 0x00FF) - amt);
   const B = Math.max(0, (num & 0x0000FF) - amt);
   return '#' + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
+}
+
+/**
+ * Apply the coach's chosen client theme.
+ * Only overrides if the client hasn't manually set their own preference.
+ */
+function applyCoachClientTheme(theme) {
+  const COACH_THEME_KEY = 'coach_client_theme';
+  const USER_OVERRIDE_KEY = 'zique-theme-user-override';
+
+  // Store the coach's preference so theme.js can use it
+  try {
+    localStorage.setItem(COACH_THEME_KEY, theme);
+  } catch { /* ignore */ }
+
+  // If the client has manually toggled their theme, respect their choice
+  try {
+    if (localStorage.getItem(USER_OVERRIDE_KEY) === 'true') return;
+  } catch { /* ignore */ }
+
+  // Resolve theme
+  let resolvedTheme = theme;
+  if (theme === 'system') {
+    resolvedTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+
+  // Apply via ZiqueTheme if available, otherwise set directly
+  if (window.ZiqueTheme && window.ZiqueTheme.set) {
+    window.ZiqueTheme.set(resolvedTheme, false); // false = don't save to localStorage (coach controls this)
+  } else {
+    document.documentElement.setAttribute('data-theme', resolvedTheme);
+  }
 }
 
 /**
@@ -194,6 +227,11 @@ function applyBrandingCSS(branding) {
     if (meta) meta.content = branding.brand_primary_color;
   }
 
+  // Apply coach's client theme preference (only for clients, not coaches)
+  if (branding.brand_client_theme) {
+    applyCoachClientTheme(branding.brand_client_theme);
+  }
+
   // Also update the legacy sessionStorage cache for LoadingScreen and branding.js compatibility
   try {
     sessionStorage.setItem('zique_branding', JSON.stringify({
@@ -252,7 +290,7 @@ export function BrandingProvider({ children }) {
     }
 
     try {
-      const COACH_BRANDING_SELECT = 'id, name, subscription_tier, brand_name, brand_logo_url, brand_favicon_url, brand_primary_color, brand_secondary_color, brand_accent_color, brand_email_logo_url, brand_email_footer, branding_updated_at, profile_photo_url, brand_bg_color, brand_bg_secondary_color, brand_card_color, brand_text_color, brand_text_secondary_color, brand_font, brand_button_style, brand_welcome_message, brand_app_name, brand_short_name, client_modules, custom_terminology';
+      const COACH_BRANDING_SELECT = 'id, name, subscription_tier, brand_name, brand_logo_url, brand_favicon_url, brand_primary_color, brand_secondary_color, brand_accent_color, brand_email_logo_url, brand_email_footer, branding_updated_at, profile_photo_url, brand_bg_color, brand_bg_secondary_color, brand_card_color, brand_text_color, brand_text_secondary_color, brand_font, brand_button_style, brand_welcome_message, brand_app_name, brand_short_name, client_modules, custom_terminology, brand_client_theme';
 
       let coach = null;
 
@@ -368,6 +406,7 @@ export function BrandingProvider({ children }) {
         brand_short_name: coach.brand_short_name || null,
         client_modules: coach.client_modules || DEFAULT_BRANDING.client_modules,
         custom_terminology: coach.custom_terminology || null,
+        brand_client_theme: coach.brand_client_theme || 'dark',
         profile_photo_url: coach.profile_photo_url || null,
         branding_updated_at: coach.branding_updated_at,
       };

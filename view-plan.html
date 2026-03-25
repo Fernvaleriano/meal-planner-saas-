@@ -2141,6 +2141,25 @@
                 `;
                 document.head.appendChild(overrideCSS);
 
+                // Apply coach's client theme preference
+                if (b.brand_client_theme) {
+                    try {
+                        localStorage.setItem('coach_client_theme', b.brand_client_theme);
+                        const userOverride = localStorage.getItem('zique-theme-user-override') === 'true';
+                        if (!userOverride) {
+                            let resolvedTheme = b.brand_client_theme;
+                            if (resolvedTheme === 'system') {
+                                resolvedTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                            }
+                            if (window.ZiqueTheme && window.ZiqueTheme.set) {
+                                window.ZiqueTheme.set(resolvedTheme, false);
+                            } else {
+                                document.documentElement.setAttribute('data-theme', resolvedTheme);
+                            }
+                        }
+                    } catch (e) { /* ignore */ }
+                }
+
                 // Update logo if set
                 if (b.brand_logo_url) {
                     const logoEl = document.getElementById('brandLogo');

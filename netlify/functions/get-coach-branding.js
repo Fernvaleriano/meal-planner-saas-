@@ -36,7 +36,8 @@ const DEFAULT_BRANDING = {
     brand_app_name: null,
     brand_short_name: null,
     client_modules: { diary: true, plans: true, workouts: true, messages: true, recipes: true, check_in: true, progress: true },
-    custom_terminology: null
+    custom_terminology: null,
+    brand_client_theme: 'dark'
 };
 
 exports.handler = async (event, context) => {
@@ -125,7 +126,8 @@ exports.handler = async (event, context) => {
                 brand_app_name,
                 brand_short_name,
                 client_modules,
-                custom_terminology
+                custom_terminology,
+                brand_client_theme
             `)
             .eq('id', coachId)
             .single();
@@ -181,6 +183,9 @@ exports.handler = async (event, context) => {
             client_modules: coach.client_modules || DEFAULT_BRANDING.client_modules,
             custom_terminology: coach.custom_terminology || DEFAULT_BRANDING.custom_terminology,
 
+            // V2: Client theme preference
+            brand_client_theme: coach.brand_client_theme || DEFAULT_BRANDING.brand_client_theme,
+
             // Coach profile
             profile_photo_url: coach.profile_photo_url || null,
 
@@ -208,7 +213,8 @@ exports.handler = async (event, context) => {
                 brand_app_name: coach.brand_app_name,
                 brand_short_name: coach.brand_short_name,
                 client_modules: coach.client_modules,
-                custom_terminology: coach.custom_terminology
+                custom_terminology: coach.custom_terminology,
+                brand_client_theme: coach.brand_client_theme
             }
         };
 
