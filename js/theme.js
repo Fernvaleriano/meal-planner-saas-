@@ -7,16 +7,32 @@
     'use strict';
 
     const THEME_KEY = 'zique-theme';
+    const COACH_THEME_KEY = 'coach_client_theme';
+    const USER_OVERRIDE_KEY = 'zique-theme-user-override';
     const DARK = 'dark';
     const LIGHT = 'light';
 
     // Initialize theme on page load (runs immediately)
     function initTheme() {
         const savedTheme = localStorage.getItem(THEME_KEY);
-        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const userOverride = localStorage.getItem(USER_OVERRIDE_KEY) === 'true';
+        const coachTheme = localStorage.getItem(COACH_THEME_KEY);
 
-        // Priority: saved preference > default to dark
-        const theme = savedTheme || DARK;
+        // Priority: user manual override > coach theme > saved preference > default dark
+        let theme;
+        if (userOverride && savedTheme) {
+            // Client has manually toggled — respect their choice
+            theme = savedTheme;
+        } else if (coachTheme) {
+            // Coach set a default theme for clients
+            if (coachTheme === 'system') {
+                theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? DARK : LIGHT;
+            } else {
+                theme = coachTheme;
+            }
+        } else {
+            theme = savedTheme || DARK;
+        }
 
         // Always save the theme to ensure it persists (prevents system theme override)
         setTheme(theme, true);
@@ -42,6 +58,8 @@
         const currentTheme = document.documentElement.getAttribute('data-theme') || LIGHT;
         const newTheme = currentTheme === DARK ? LIGHT : DARK;
         setTheme(newTheme);
+        // Mark that the client manually chose a theme (overrides coach default)
+        try { localStorage.setItem(USER_OVERRIDE_KEY, 'true'); } catch {}
         return newTheme;
     }
 

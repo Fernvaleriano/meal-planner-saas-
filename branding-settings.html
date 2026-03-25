@@ -1481,6 +1481,62 @@
                     </div>
                 </div>
 
+                <!-- Client Theme Section -->
+                <div class="settings-section">
+                    <div class="section-header">
+                        <h2 class="section-title">
+                            <span class="section-title-icon">🌗</span>
+                            Client Default Theme
+                        </h2>
+                    </div>
+                    <p class="section-description">Choose the default theme your clients see when they open the app.</p>
+
+                    <div class="theme-selector" style="display: flex; gap: 12px; flex-wrap: wrap;">
+                        <label class="theme-option" id="themeOptionDark" style="flex: 1; min-width: 120px; cursor: pointer;">
+                            <input type="radio" name="clientTheme" value="dark" style="display: none;" onchange="updateClientTheme('dark')">
+                            <div class="theme-option-card" style="border: 2px solid var(--gray-200); border-radius: 12px; padding: 16px; text-align: center; transition: all 0.2s;">
+                                <div style="font-size: 2rem; margin-bottom: 8px;">🌙</div>
+                                <div style="font-weight: 600; color: var(--gray-800); margin-bottom: 4px;">Dark</div>
+                                <div style="font-size: 0.75rem; color: var(--gray-500);">Dark background, light text</div>
+                                <div class="theme-preview-bar" style="margin-top: 12px; height: 40px; border-radius: 8px; background: #0f172a; border: 1px solid var(--gray-600); display: flex; align-items: center; padding: 0 10px; gap: 6px;">
+                                    <div style="width: 8px; height: 8px; border-radius: 50%; background: #0d9488;"></div>
+                                    <div style="flex: 1; height: 4px; border-radius: 2px; background: #334155;"></div>
+                                    <div style="width: 20px; height: 4px; border-radius: 2px; background: #94a3b8;"></div>
+                                </div>
+                            </div>
+                        </label>
+
+                        <label class="theme-option" id="themeOptionLight" style="flex: 1; min-width: 120px; cursor: pointer;">
+                            <input type="radio" name="clientTheme" value="light" style="display: none;" onchange="updateClientTheme('light')">
+                            <div class="theme-option-card" style="border: 2px solid var(--gray-200); border-radius: 12px; padding: 16px; text-align: center; transition: all 0.2s;">
+                                <div style="font-size: 2rem; margin-bottom: 8px;">☀️</div>
+                                <div style="font-weight: 600; color: var(--gray-800); margin-bottom: 4px;">Light</div>
+                                <div style="font-size: 0.75rem; color: var(--gray-500);">Light background, dark text</div>
+                                <div class="theme-preview-bar" style="margin-top: 12px; height: 40px; border-radius: 8px; background: #f8fafc; border: 1px solid var(--gray-200); display: flex; align-items: center; padding: 0 10px; gap: 6px;">
+                                    <div style="width: 8px; height: 8px; border-radius: 50%; background: #0d9488;"></div>
+                                    <div style="flex: 1; height: 4px; border-radius: 2px; background: #e2e8f0;"></div>
+                                    <div style="width: 20px; height: 4px; border-radius: 2px; background: #64748b;"></div>
+                                </div>
+                            </div>
+                        </label>
+
+                        <label class="theme-option" id="themeOptionSystem" style="flex: 1; min-width: 120px; cursor: pointer;">
+                            <input type="radio" name="clientTheme" value="system" style="display: none;" onchange="updateClientTheme('system')">
+                            <div class="theme-option-card" style="border: 2px solid var(--gray-200); border-radius: 12px; padding: 16px; text-align: center; transition: all 0.2s;">
+                                <div style="font-size: 2rem; margin-bottom: 8px;">💻</div>
+                                <div style="font-weight: 600; color: var(--gray-800); margin-bottom: 4px;">System</div>
+                                <div style="font-size: 0.75rem; color: var(--gray-500);">Match client's device setting</div>
+                                <div class="theme-preview-bar" style="margin-top: 12px; height: 40px; border-radius: 8px; background: linear-gradient(90deg, #0f172a 50%, #f8fafc 50%); border: 1px solid var(--gray-300); display: flex; align-items: center; padding: 0 10px; gap: 6px;">
+                                    <div style="width: 8px; height: 8px; border-radius: 50%; background: #0d9488;"></div>
+                                    <div style="flex: 1; height: 4px; border-radius: 2px; background: rgba(148,163,184,0.5);"></div>
+                                    <div style="width: 20px; height: 4px; border-radius: 2px; background: rgba(100,116,139,0.5);"></div>
+                                </div>
+                            </div>
+                        </label>
+                    </div>
+                    <p class="form-hint" style="margin-top: 12px;">Clients can still toggle their own preference. This sets what they see by default.</p>
+                </div>
+
                 <!-- Email Branding Section -->
                 <div class="settings-section">
                     <div class="section-header">
@@ -1869,7 +1925,8 @@
                     brand_logo_url: coach.brand_logo_url || null,
                     brand_favicon_url: coach.brand_favicon_url || null,
                     brand_email_logo_url: coach.brand_email_logo_url || null,
-                    brand_email_footer: coach.brand_email_footer || ''
+                    brand_email_footer: coach.brand_email_footer || '',
+                    brand_client_theme: coach.brand_client_theme || 'dark'
                 };
 
                 originalBranding = { ...currentBranding };
@@ -1898,6 +1955,9 @@
                 updateLogoPreview('logo', currentBranding.brand_logo_url);
                 updateLogoPreview('favicon', currentBranding.brand_favicon_url);
                 updateLogoPreview('email_logo', currentBranding.brand_email_logo_url);
+
+                // Update client theme selector
+                setClientThemeSelection(currentBranding.brand_client_theme);
 
                 // Update preview
                 updatePreview();
@@ -2248,6 +2308,7 @@
                     brand_secondary_color: currentBranding.brand_secondary_color,
                     brand_accent_color: currentBranding.brand_accent_color,
                     brand_email_footer: currentBranding.brand_email_footer || null,
+                    brand_client_theme: currentBranding.brand_client_theme || 'dark',
                     branding_updated_at: new Date().toISOString()
                 };
 
@@ -2283,7 +2344,8 @@
                 brand_logo_url: null,
                 brand_favicon_url: null,
                 brand_email_logo_url: null,
-                brand_email_footer: ''
+                brand_email_footer: '',
+                brand_client_theme: 'dark'
             };
 
             // Update form
@@ -2292,6 +2354,7 @@
             document.getElementById('secondaryColor').value = '#0284c7';
             document.getElementById('accentColor').value = '#10b981';
             document.getElementById('emailFooter').value = '';
+            setClientThemeSelection('dark');
 
             // Update pickers (Pickr replaces original swatch elements, so use Pickr API)
             if (colorPickers.primary) colorPickers.primary.setColor('#0d9488');
@@ -2417,6 +2480,31 @@
         // Mark as changed
         function markChanged() {
             hasChanges = true;
+        }
+
+        // Client theme selector helpers
+        function updateClientTheme(theme) {
+            currentBranding.brand_client_theme = theme;
+            setClientThemeSelection(theme);
+            markChanged();
+        }
+
+        function setClientThemeSelection(theme) {
+            const options = document.querySelectorAll('.theme-option input[name="clientTheme"]');
+            options.forEach(input => {
+                const card = input.closest('.theme-option').querySelector('.theme-option-card');
+                if (input.value === theme) {
+                    input.checked = true;
+                    card.style.borderColor = 'var(--brand-primary)';
+                    card.style.background = 'var(--brand-primary)08';
+                    card.style.boxShadow = '0 0 0 1px var(--brand-primary)';
+                } else {
+                    input.checked = false;
+                    card.style.borderColor = 'var(--gray-200)';
+                    card.style.background = 'transparent';
+                    card.style.boxShadow = 'none';
+                }
+            });
         }
 
         // Show toast
