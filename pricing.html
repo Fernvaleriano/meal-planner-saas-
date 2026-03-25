@@ -116,14 +116,14 @@
 
         /* Pricing Cards */
         .pricing-section {
-            max-width: 1000px;
+            max-width: 1200px;
             margin: -60px auto 60px;
             padding: 0 20px;
         }
 
         .pricing-cards {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(4, 1fr);
             gap: 24px;
             max-width: 1200px;
             margin: 0 auto;
@@ -456,12 +456,6 @@
                 grid-template-columns: repeat(2, 1fr);
             }
 
-            .pricing-card:last-child {
-                grid-column: span 2;
-                max-width: 400px;
-                margin: 0 auto;
-            }
-
             .features-grid {
                 grid-template-columns: repeat(2, 1fr);
             }
@@ -502,13 +496,8 @@
                 padding: 28px 24px;
             }
 
-            .pricing-card:last-child {
-                grid-column: span 1;
-                max-width: none;
-            }
-
             .pricing-card.popular {
-                /* Keep natural order: Starter, Growth, Professional */
+                /* Keep natural order */
             }
 
             .price-amount {
@@ -691,6 +680,30 @@
     <!-- Pricing Cards -->
     <section class="pricing-section">
         <div class="pricing-cards">
+            <!-- Free Plan -->
+            <div class="pricing-card">
+                <div class="plan-name">Free</div>
+                <div class="plan-description">Try it out with your first clients</div>
+                <div class="plan-price">
+                    <span class="price-currency">$</span>
+                    <span class="price-amount">0</span>
+                    <span class="price-period">/forever</span>
+                </div>
+                <div class="plan-billing">No credit card required.</div>
+                <ul class="plan-features">
+                    <li>Up to 2 active clients</li>
+                    <li>AI meal plan generator</li>
+                    <li>Client food diary tracking</li>
+                    <li>AI nutrition assistant</li>
+                    <li>Weekly check-in forms</li>
+                    <li>Recipe management</li>
+                    <li>Supplement protocols</li>
+                    <li>Email support</li>
+                    <li class="disabled">Custom branding</li>
+                </ul>
+                <a href="signup.html?plan=free" class="btn-select secondary" data-plan="free">Get Started Free</a>
+            </div>
+
             <!-- Starter Plan -->
             <div class="pricing-card">
                 <div class="plan-name">Starter</div>
@@ -933,6 +946,12 @@
             if (!isLoggedIn) {
                 // Not logged in - go to signup
                 window.location.href = `signup.html?plan=${plan}`;
+                return;
+            }
+
+            // Free plan for logged-in users - already have an account
+            if (plan === 'free') {
+                alert('You already have an account. The free plan is for new signups only.');
                 return;
             }
 

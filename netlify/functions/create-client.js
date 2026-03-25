@@ -52,6 +52,7 @@ exports.handler = async (event, context) => {
 
     // Client limits by subscription tier
     const CLIENT_LIMITS = {
+      free: 2,
       starter: 10,
       growth: 50,
       professional: 300,

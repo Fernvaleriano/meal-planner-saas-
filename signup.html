@@ -422,7 +422,13 @@
 
             <div class="form-group">
                 <label>Select Your Plan</label>
-                <div class="plan-cards" style="grid-template-columns: repeat(3, 1fr);">
+                <div class="plan-cards" style="grid-template-columns: repeat(2, 1fr);">
+                    <label class="plan-card" id="freeCard">
+                        <input type="radio" name="plan" value="free">
+                        <div class="plan-name">Free</div>
+                        <div class="plan-price">$0<span>/forever</span></div>
+                        <div class="plan-clients">2 clients</div>
+                    </label>
                     <label class="plan-card" id="starterCard">
                         <input type="radio" name="plan" value="starter">
                         <div class="plan-name">Starter</div>
@@ -486,7 +492,7 @@
         // Get plan from URL if specified
         const urlParams = new URLSearchParams(window.location.search);
         const planFromUrl = urlParams.get('plan');
-        if (planFromUrl && ['starter', 'growth', 'professional'].includes(planFromUrl)) {
+        if (planFromUrl && ['free', 'starter', 'growth', 'professional'].includes(planFromUrl)) {
             document.querySelector(`input[value="${planFromUrl}"]`).checked = true;
             updatePlanSelection();
         }
@@ -497,6 +503,16 @@
                 planCards.forEach(c => c.classList.remove('selected'));
                 card.classList.add('selected');
                 card.querySelector('input').checked = true;
+                // Update button text based on plan
+                const selectedPlan = card.querySelector('input').value;
+                const trialBadge = document.querySelector('.trial-badge');
+                if (selectedPlan === 'free') {
+                    signupBtn.textContent = 'Create Free Account →';
+                    if (trialBadge) trialBadge.style.display = 'none';
+                } else {
+                    signupBtn.textContent = 'Start Free Trial →';
+                    if (trialBadge) trialBadge.style.display = 'inline-flex';
+                }
             });
         });
 
@@ -529,40 +545,62 @@
             }
 
             signupBtn.disabled = true;
-            signupBtn.textContent = 'Redirecting to checkout...';
 
-            try {
-                // Create Stripe checkout session
-                const response = await fetch('/.netlify/functions/create-checkout-session', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        email: email,
-                        name: name,
-                        plan: plan
-                    })
-                });
+            if (plan === 'free') {
+                // Free plan - bypass Stripe, create account directly
+                signupBtn.textContent = 'Creating your account...';
 
-                const data = await response.json();
+                try {
+                    const response = await fetch('/.netlify/functions/signup-free', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email, name })
+                    });
 
-                if (!response.ok) {
-                    throw new Error(data.error || 'Failed to create checkout session');
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(data.error || 'Failed to create account');
+                    }
+
+                    // Redirect to success page
+                    window.location.href = 'signup-success.html?plan=free';
+
+                } catch (error) {
+                    console.error('Signup error:', error);
+                    showMessage(error.message || 'Something went wrong. Please try again.', 'error');
+                    signupBtn.disabled = false;
+                    signupBtn.textContent = 'Start Free Trial →';
                 }
+            } else {
+                // Paid plans - go through Stripe checkout
+                signupBtn.textContent = 'Redirecting to checkout...';
 
-                // Redirect to Stripe Checkout
-                if (data.url) {
-                    window.location.href = data.url;
-                } else {
-                    throw new Error('No checkout URL received');
+                try {
+                    const response = await fetch('/.netlify/functions/create-checkout-session', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email, name, plan })
+                    });
+
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(data.error || 'Failed to create checkout session');
+                    }
+
+                    if (data.url) {
+                        window.location.href = data.url;
+                    } else {
+                        throw new Error('No checkout URL received');
+                    }
+
+                } catch (error) {
+                    console.error('Signup error:', error);
+                    showMessage(error.message || 'Something went wrong. Please try again.', 'error');
+                    signupBtn.disabled = false;
+                    signupBtn.textContent = 'Start Free Trial →';
                 }
-
-            } catch (error) {
-                console.error('Signup error:', error);
-                showMessage(error.message || 'Something went wrong. Please try again.', 'error');
-                signupBtn.disabled = false;
-                signupBtn.textContent = 'Start Free Trial →';
             }
         });
     </script>
