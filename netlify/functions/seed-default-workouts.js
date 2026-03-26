@@ -68,10 +68,10 @@ const DEFAULT_PROGRAMS = [
         name: 'Day 1 — Full Body A',
         exercises: [
           // WARM-UP (5-8 min)
-          { name: 'Jumping jack', sets: 1, trackingType: 'duration', setsData: [{ duration: 60, restSeconds: 15 }], notes: 'WARM-UP — Get your heart rate up. Light, controlled pace.', section: 'warm-up' },
-          { name: 'Arm circle', sets: 1, trackingType: 'duration', setsData: [{ duration: 30, restSeconds: 10 }], notes: 'WARM-UP — 15 sec forward, 15 sec backward. Loosen shoulders.', section: 'warm-up' },
-          { name: 'High knees', sets: 1, trackingType: 'duration', setsData: [{ duration: 45, restSeconds: 15 }], notes: 'WARM-UP — Drive knees to hip height. Stay light on your feet.', section: 'warm-up' },
-          { name: 'Butt kicks', sets: 1, trackingType: 'duration', setsData: [{ duration: 45, restSeconds: 15 }], notes: 'WARM-UP — Kick heels to glutes. Warm up hamstrings.', section: 'warm-up' },
+          { name: 'Jumping jack', sets: 1, trackingType: 'time', duration: 60, setsData: [{ duration: 60, restSeconds: 15 }], notes: 'WARM-UP — Get your heart rate up. Light, controlled pace.', section: 'warm-up' },
+          { name: 'Arm circle', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 10 }], notes: 'WARM-UP — 15 sec forward, 15 sec backward. Loosen shoulders.', section: 'warm-up' },
+          { name: 'High knees', sets: 1, trackingType: 'time', duration: 45, setsData: [{ duration: 45, restSeconds: 15 }], notes: 'WARM-UP — Drive knees to hip height. Stay light on your feet.', section: 'warm-up' },
+          { name: 'Butt kicks', sets: 1, trackingType: 'time', duration: 45, setsData: [{ duration: 45, restSeconds: 15 }], notes: 'WARM-UP — Kick heels to glutes. Warm up hamstrings.', section: 'warm-up' },
 
           // MAIN WORKOUT — Compound lifts first, then isolation
           { name: 'Chest Press Machine', sets: 3, trackingType: 'reps', setsData: [{ reps: 12, restSeconds: 60 }, { reps: 12, restSeconds: 60 }, { reps: 12, restSeconds: 60 }], notes: 'Machine-based for safety while learning. Controlled tempo — 2 sec up, 2 sec down.' },
@@ -80,14 +80,14 @@ const DEFAULT_PROGRAMS = [
           { name: 'Dumbbell Seated Shoulder Press', sets: 3, trackingType: 'reps', setsData: [{ reps: 12, restSeconds: 60 }, { reps: 12, restSeconds: 60 }, { reps: 12, restSeconds: 60 }], notes: 'Seated for stability. Press up without fully locking elbows. Control the descent.' },
           { name: 'Cable pushdown', sets: 2, trackingType: 'reps', setsData: [{ reps: 15, restSeconds: 45 }, { reps: 15, restSeconds: 45 }], notes: 'Tricep isolation. Keep elbows pinned to your sides. Squeeze at bottom.' },
           { name: 'EZ Barbell Curl', sets: 2, trackingType: 'reps', setsData: [{ reps: 15, restSeconds: 45 }, { reps: 15, restSeconds: 45 }], notes: 'Easier on wrists than straight bar. No swinging — control the weight.' },
-          { name: 'High plank', sets: 2, trackingType: 'duration', setsData: [{ duration: 25, restSeconds: 30 }, { duration: 25, restSeconds: 30 }], notes: 'Core stability. Keep body in a straight line — squeeze glutes and brace abs.' },
+          { name: 'High plank', sets: 2, trackingType: 'time', duration: 25, setsData: [{ duration: 25, restSeconds: 30 }, { duration: 25, restSeconds: 30 }], notes: 'Core stability. Keep body in a straight line — squeeze glutes and brace abs.' },
 
           // COOL-DOWN STRETCHES (5 min — hold each 20-30 sec)
-          { name: 'Above head chest stretch', sets: 1, trackingType: 'duration', setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — Clasp hands overhead, open up chest. Deep breaths.', section: 'cool-down' },
-          { name: 'Across chest shoulder stretch', sets: 1, trackingType: 'duration', setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — Hold each arm across for 15 sec per side.', section: 'cool-down' },
-          { name: 'All fours quad stretch', sets: 1, trackingType: 'duration', setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — 15 sec per leg. Feel the stretch in the front of your thigh.', section: 'cool-down' },
-          { name: 'Calf stretch with hands against wall', sets: 1, trackingType: 'duration', setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — 15 sec per leg. Press heel into the ground.', section: 'cool-down' },
-          { name: 'Child Pose Lower back Stretch', sets: 1, trackingType: 'duration', setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — Sink hips back, arms extended. Breathe deep and relax your lower back.', section: 'cool-down' }
+          { name: 'Above head chest stretch', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — Clasp hands overhead, open up chest. Deep breaths.', section: 'cool-down' },
+          { name: 'Across chest shoulder stretch', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — Hold each arm across for 15 sec per side.', section: 'cool-down' },
+          { name: 'All fours quad stretch', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — 15 sec per leg. Feel the stretch in the front of your thigh.', section: 'cool-down' },
+          { name: 'Calf stretch with hands against wall', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — 15 sec per leg. Press heel into the ground.', section: 'cool-down' },
+          { name: 'Child Pose Lower back Stretch', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — Sink hips back, arms extended. Breathe deep and relax your lower back.', section: 'cool-down' }
         ]
       },
 
@@ -96,9 +96,9 @@ const DEFAULT_PROGRAMS = [
         name: 'Day 2 — Full Body B',
         exercises: [
           // WARM-UP
-          { name: 'Jogging', sets: 1, trackingType: 'duration', setsData: [{ duration: 120, restSeconds: 15 }], notes: 'WARM-UP — Light jog in place or on treadmill. Easy pace to elevate heart rate.', section: 'warm-up' },
-          { name: 'Arm circle', sets: 1, trackingType: 'duration', setsData: [{ duration: 30, restSeconds: 10 }], notes: 'WARM-UP — 15 sec forward, 15 sec backward.', section: 'warm-up' },
-          { name: 'Mountain climbers', sets: 1, trackingType: 'duration', setsData: [{ duration: 30, restSeconds: 15 }], notes: 'WARM-UP — Controlled pace. Drive knees to chest alternating.', section: 'warm-up' },
+          { name: 'Jogging', sets: 1, trackingType: 'time', duration: 120, setsData: [{ duration: 120, restSeconds: 15 }], notes: 'WARM-UP — Light jog in place or on treadmill. Easy pace to elevate heart rate.', section: 'warm-up' },
+          { name: 'Arm circle', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 10 }], notes: 'WARM-UP — 15 sec forward, 15 sec backward.', section: 'warm-up' },
+          { name: 'Mountain climbers', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 15 }], notes: 'WARM-UP — Controlled pace. Drive knees to chest alternating.', section: 'warm-up' },
 
           // MAIN WORKOUT
           { name: 'Cable seated row', sets: 3, trackingType: 'reps', setsData: [{ reps: 12, restSeconds: 60 }, { reps: 12, restSeconds: 60 }, { reps: 12, restSeconds: 60 }], notes: 'Squeeze shoulder blades together at the end of each rep. Don\'t round your back.' },
@@ -109,11 +109,11 @@ const DEFAULT_PROGRAMS = [
           { name: 'Dead bug', sets: 2, trackingType: 'reps', setsData: [{ reps: 10, restSeconds: 30 }, { reps: 10, restSeconds: 30 }], notes: 'Core stability. Keep lower back pressed into the floor the entire time.' },
 
           // COOL-DOWN STRETCHES
-          { name: 'Cat stretch', sets: 1, trackingType: 'duration', setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — Alternate between arching and rounding your back. Slow breaths.', section: 'cool-down' },
-          { name: 'Seated Toe Touch Hamstrings Stretch', sets: 1, trackingType: 'duration', setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — Sit with legs straight, reach for toes. Don\'t bounce.', section: 'cool-down' },
-          { name: 'Across chest shoulder stretch', sets: 1, trackingType: 'duration', setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — 15 sec per arm. Gentle pull, no pain.', section: 'cool-down' },
-          { name: 'Adductor stretch', sets: 1, trackingType: 'duration', setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — Open up inner thighs. Hold and breathe.', section: 'cool-down' },
-          { name: 'Cobra Stretch', sets: 1, trackingType: 'duration', setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — Press up gently, open your chest. Stretch your abs and hip flexors.', section: 'cool-down' }
+          { name: 'Cat stretch', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — Alternate between arching and rounding your back. Slow breaths.', section: 'cool-down' },
+          { name: 'Seated Toe Touch Hamstrings Stretch', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — Sit with legs straight, reach for toes. Don\'t bounce.', section: 'cool-down' },
+          { name: 'Across chest shoulder stretch', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — 15 sec per arm. Gentle pull, no pain.', section: 'cool-down' },
+          { name: 'Adductor stretch', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — Open up inner thighs. Hold and breathe.', section: 'cool-down' },
+          { name: 'Cobra Stretch', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — Press up gently, open your chest. Stretch your abs and hip flexors.', section: 'cool-down' }
         ]
       },
 
@@ -122,9 +122,9 @@ const DEFAULT_PROGRAMS = [
         name: 'Day 3 — Full Body C',
         exercises: [
           // WARM-UP
-          { name: 'Jumping jack', sets: 1, trackingType: 'duration', setsData: [{ duration: 60, restSeconds: 10 }], notes: 'WARM-UP — Get the blood flowing. Controlled tempo.', section: 'warm-up' },
-          { name: 'High knees', sets: 1, trackingType: 'duration', setsData: [{ duration: 45, restSeconds: 10 }], notes: 'WARM-UP — Drive knees up, pump your arms.', section: 'warm-up' },
-          { name: 'Back stretch dynamic', sets: 1, trackingType: 'duration', setsData: [{ duration: 30, restSeconds: 15 }], notes: 'WARM-UP — Loosen up your back before lifting.', section: 'warm-up' },
+          { name: 'Jumping jack', sets: 1, trackingType: 'time', duration: 60, setsData: [{ duration: 60, restSeconds: 10 }], notes: 'WARM-UP — Get the blood flowing. Controlled tempo.', section: 'warm-up' },
+          { name: 'High knees', sets: 1, trackingType: 'time', duration: 45, setsData: [{ duration: 45, restSeconds: 10 }], notes: 'WARM-UP — Drive knees up, pump your arms.', section: 'warm-up' },
+          { name: 'Back stretch dynamic', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 15 }], notes: 'WARM-UP — Loosen up your back before lifting.', section: 'warm-up' },
 
           // MAIN WORKOUT
           { name: 'Dumbbell Goblet Squat', sets: 3, trackingType: 'reps', setsData: [{ reps: 12, restSeconds: 75 }, { reps: 12, restSeconds: 75 }, { reps: 12, restSeconds: 75 }], notes: 'Hold dumbbell at chest. Sit back and down, knees tracking over toes. Great for learning squat pattern.' },
@@ -135,11 +135,11 @@ const DEFAULT_PROGRAMS = [
           { name: 'Lying leg raise', sets: 2, trackingType: 'reps', setsData: [{ reps: 12, restSeconds: 30 }, { reps: 12, restSeconds: 30 }], notes: 'Lower ab focus. Press lower back into the floor. Control the descent slowly.' },
 
           // COOL-DOWN STRETCHES
-          { name: 'Child Pose Lower back Stretch', sets: 1, trackingType: 'duration', setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — Arms extended, sink hips back. Deep diaphragmatic breaths.', section: 'cool-down' },
-          { name: 'All fours quad stretch', sets: 1, trackingType: 'duration', setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — 15 sec per leg. Feel the stretch in the front of your thigh.', section: 'cool-down' },
-          { name: 'Pigeon Glutes Stretch', sets: 1, trackingType: 'duration', setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — 15 sec per side. Great for hip and glute flexibility.', section: 'cool-down' },
-          { name: 'Calf stretch with hands against wall', sets: 1, trackingType: 'duration', setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — 15 sec per leg. Keep back heel on the ground.', section: 'cool-down' },
-          { name: 'Above head chest stretch', sets: 1, trackingType: 'duration', setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — Open up, take 3-4 slow deep breaths. Great job today!', section: 'cool-down' }
+          { name: 'Child Pose Lower back Stretch', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — Arms extended, sink hips back. Deep diaphragmatic breaths.', section: 'cool-down' },
+          { name: 'All fours quad stretch', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — 15 sec per leg. Feel the stretch in the front of your thigh.', section: 'cool-down' },
+          { name: 'Pigeon Glutes Stretch', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — 15 sec per side. Great for hip and glute flexibility.', section: 'cool-down' },
+          { name: 'Calf stretch with hands against wall', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — 15 sec per leg. Keep back heel on the ground.', section: 'cool-down' },
+          { name: 'Above head chest stretch', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — Open up, take 3-4 slow deep breaths. Great job today!', section: 'cool-down' }
         ]
       }
     ]}
