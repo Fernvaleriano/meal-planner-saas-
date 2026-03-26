@@ -76,7 +76,7 @@ A partial React rebuild exists in `src/` but is **not the primary codebase**. So
 ### How Seeding Works
 - Called on page load of `coach-workouts.html` and `coach-workout-plans.html`
 - Only inserts if the coach doesn't already have that template (checked by name + `is_template: true`)
-- Exercise names **must match the `exercises` table exactly** (case-insensitive lookup enriches with video/thumbnail/animation URLs from DB)
+- Exercise names **must match the `exercises` table exactly (case-sensitive)** — the seed function enriches with video/thumbnail/animation URLs from DB
 
 ### Program Structure
 ```javascript
@@ -139,6 +139,6 @@ A partial React rebuild exists in `src/` but is **not the primary codebase**. So
 
 ### Adding a New Template
 1. Add the program object to the `DEFAULT_PROGRAMS` array in `seed-default-workouts.js`
-2. Exercise names must exist in the `exercises` table (the seed function looks them up to attach video/thumbnail URLs)
+2. Exercise names must exist in the `exercises` table **with exact case matching** (the seed function looks them up to attach video/thumbnail URLs)
 3. The `CURRENT_DEFAULT_PROGRAM_NAMES` array auto-updates from `DEFAULT_PROGRAMS`
 4. Existing coaches who already have the template (by name) will NOT get a duplicate
