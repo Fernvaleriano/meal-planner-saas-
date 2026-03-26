@@ -344,6 +344,26 @@ const DEFAULT_PROGRAMS = [
   }
 ];
 
+const LEGACY_DEFAULT_PROGRAM_NAMES = [
+  'Full Body Strength – Beginner',
+  'Upper / Lower Split – Intermediate',
+  'Push / Pull / Legs – 6 Day',
+  'Glute & Lower Body Focus',
+  'Home Workout – Dumbbells Only',
+  'Athletic Performance – Power & Speed',
+  'Classic Body Part Split – 5 Day',
+  'HIIT & Conditioning – 3 Day'
+];
+
+const CURRENT_DEFAULT_PROGRAM_NAMES = DEFAULT_PROGRAMS.map(program => program.name);
+const ALL_DEFAULT_PROGRAM_NAMES = [...new Set([
+  ...LEGACY_DEFAULT_PROGRAM_NAMES,
+  ...CURRENT_DEFAULT_PROGRAM_NAMES
+])];
+
+module.exports.DEFAULT_PROGRAMS = DEFAULT_PROGRAMS;
+module.exports.ALL_DEFAULT_PROGRAM_NAMES = ALL_DEFAULT_PROGRAM_NAMES;
+
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers, body: '' };
@@ -374,20 +394,17 @@ exports.handler = async (event) => {
       };
     }
 
-    const { data: existing, error: checkError } = await supabase
+    // Replace prior default templates (legacy + current names) so seeding is deterministic.
+    // This removes old CloudCode defaults and prevents duplicate defaults on repeated seed calls.
+    const { error: deleteError } = await supabase
       .from('workout_programs')
-      .select('id', { count: 'exact', head: true })
-      .eq('coach_id', coachId);
+      .delete()
+      .eq('coach_id', coachId)
+      .eq('is_template', true)
+      .in('name', ALL_DEFAULT_PROGRAM_NAMES);
 
-    if (checkError) throw checkError;
+    if (deleteError) throw deleteError;
 
-    if (existing && existing.length > 0) {
-      return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify({ seeded: false, message: 'Coach already has workout programs' })
-      };
-    }
 
     const allExerciseNames = new Set();
     DEFAULT_PROGRAMS.forEach(prog => {
