@@ -1464,6 +1464,28 @@ function ExerciseDetailModal({
     });
 
     setsChangedRef.current = true; // Trigger auto-save
+
+    // Persist to workout assignment so values survive app reload
+    const currentExercise = exerciseRef.current;
+    if (callbackRefs.current.onUpdateExercise && currentExercise) {
+      // Build the updated sets to pass to parent (same logic as setSets above)
+      const currentSets = currentExercise.sets || currentExercise.setsData || [];
+      const updatedSets = (Array.isArray(currentSets) ? currentSets : []).map(set => ({
+        ...set,
+        reps: coachingRecommendation.reps,
+        weight: coachingRecommendation.weight
+      }));
+      const recSets = coachingRecommendation.sets || updatedSets.length;
+      while (updatedSets.length < recSets) {
+        updatedSets.push({
+          reps: coachingRecommendation.reps,
+          weight: coachingRecommendation.weight,
+          weightUnit: currentSets[0]?.weightUnit || weightUnit
+        });
+      }
+      callbackRefs.current.onUpdateExercise({ ...currentExercise, sets: updatedSets });
+    }
+
     setAcceptedCoachingRec(true);
   }, [coachingRecommendation, weightUnit]);
 
