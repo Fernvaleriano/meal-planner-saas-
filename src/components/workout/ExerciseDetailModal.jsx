@@ -569,6 +569,7 @@ function ExerciseDetailModal({
   const workoutLogIdRef = useRef(workoutLogId);
   const saveTimerRef = useRef(null);
   const setsChangedRef = useRef(false);
+  const saveImmediatelyRef = useRef(false); // Skip debounce for recommendation accepts
 
   // Keep ref in sync with prop (parent may load a log after modal opens)
   useEffect(() => {
@@ -595,8 +596,10 @@ function ExerciseDetailModal({
     // Don't save if we don't have the needed data
     if (!clientId || !exercise?.id) return;
 
-    // Debounce: wait 2 seconds after last change
+    // Debounce: wait 2 seconds after last change (0ms for recommendation accepts)
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    const delay = saveImmediatelyRef.current ? 0 : 2000;
+    saveImmediatelyRef.current = false;
     saveTimerRef.current = setTimeout(async () => {
       try {
         let logId = workoutLogIdRef.current;
@@ -1442,7 +1445,9 @@ function ExerciseDetailModal({
   const handleAcceptCoachingRec = useCallback(() => {
     if (!coachingRecommendation) return;
 
-    setsChangedRef.current = true; // Trigger auto-save
+    // Capture the computed sets from the state updater so we can use
+    // the exact same array for both the UI update and the backend save.
+    let acceptedSets;
 
     setSets(prevSets => {
       // Update existing sets with recommended reps/weight
@@ -1462,16 +1467,22 @@ function ExerciseDetailModal({
         });
       }
 
-      // Persist to workout assignment from inside the state updater so the
-      // exact same set array is saved to the backend (avoids the discrepancy
-      // of re-deriving sets from the exercise prop, which may be a number).
-      const currentExercise = exerciseRef.current;
-      if (callbackRefs.current.onUpdateExercise && currentExercise) {
-        callbackRefs.current.onUpdateExercise({ ...currentExercise, sets: updated });
-      }
-
+      acceptedSets = updated;
       return updated;
     });
+
+    setsChangedRef.current = true; // Trigger auto-save to workout-logs
+    saveImmediatelyRef.current = true; // Skip debounce — save immediately
+
+    // Persist to workout assignment so values survive app reload.
+    // Called OUTSIDE the state updater to avoid side-effects inside it.
+    // acceptedSets is set synchronously by the updater above.
+    if (acceptedSets) {
+      const currentExercise = exerciseRef.current;
+      if (callbackRefs.current.onUpdateExercise && currentExercise) {
+        callbackRefs.current.onUpdateExercise({ ...currentExercise, sets: acceptedSets });
+      }
+    }
 
     setAcceptedCoachingRec(true);
   }, [coachingRecommendation, weightUnit]);
