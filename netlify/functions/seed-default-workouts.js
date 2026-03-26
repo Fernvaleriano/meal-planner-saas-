@@ -226,8 +226,8 @@ exports.handler = async (event) => {
         success: true,
         seeded: true,
         programs: (inserted || []).map(p => ({ id: p.id, name: p.name })),
-        exercisesEnriched: dbExercises?.length || 0,
-        exercisesTotal: allExerciseNames.length
+        exercisesEnriched: allDbExercises?.length || 0,
+        exercisesTotal: rows.reduce((sum, r) => sum + r.program_data.days.reduce((s, d) => s + d.exercises.length, 0), 0)
       })
     };
 
