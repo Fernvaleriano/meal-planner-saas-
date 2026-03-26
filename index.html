@@ -481,16 +481,16 @@
 
         .pricing-cards {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(4, 1fr);
             gap: 24px;
-            max-width: 1000px;
+            max-width: 1200px;
             margin: 64px auto 0;
         }
 
         .pricing-card {
             background: white;
             border-radius: 24px;
-            padding: 40px;
+            padding: 32px;
             border: 2px solid var(--gray-200);
             transition: all 0.3s;
         }
@@ -822,12 +822,6 @@
             .pricing-cards {
                 grid-template-columns: repeat(2, 1fr) !important;
             }
-
-            .pricing-card:last-child {
-                grid-column: span 2;
-                max-width: 400px;
-                margin: 0 auto;
-            }
         }
 
         @media (max-width: 768px) {
@@ -874,11 +868,6 @@
 
             .pricing-cards {
                 grid-template-columns: 1fr !important;
-            }
-
-            .pricing-card:last-child {
-                grid-column: span 1;
-                max-width: none;
             }
 
             .pricing-card.featured {
@@ -1324,6 +1313,22 @@
 
             <div class="pricing-cards">
                 <div class="pricing-card">
+                    <h3>Free</h3>
+                    <div class="pricing-price">
+                        <span class="pricing-price-amount">$0</span>
+                        <span class="pricing-price-period">/forever</span>
+                    </div>
+                    <ul class="pricing-features">
+                        <li>Up to 2 active clients</li>
+                        <li>AI meal plan generator</li>
+                        <li>Client food diary</li>
+                        <li>Weekly check-in forms</li>
+                        <li>No credit card required</li>
+                    </ul>
+                    <a href="signup.html?plan=free" class="btn btn-secondary">Get Started Free</a>
+                </div>
+
+                <div class="pricing-card">
                     <h3>Starter</h3>
                     <div class="pricing-price">
                         <span class="pricing-price-amount">$49</span>
@@ -1459,7 +1464,7 @@
             </div>
 
             <div class="footer-bottom">
-                <p>&copy; 2025 Zique Fitness Nutrition. All rights reserved.</p>
+                <p>&copy; 2026 Zique Fitness Nutrition. All rights reserved.</p>
                 <p>Made with care for nutrition coaches worldwide.</p>
             </div>
         </div>
