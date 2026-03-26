@@ -10,12 +10,8 @@ const headers = {
   'Content-Type': 'application/json'
 };
 
-// All default template names to clean up (old + broken copies that need re-seeding)
+// Old/legacy template names to clean up (NOT current templates)
 const DEFAULT_TEMPLATE_NAMES = [
-  // Current templates (delete so they re-seed with fixed trackingType)
-  'Full Body Strength - Beginner (3 Day)',
-  'Seated Leg Day - Intermediate',
-  'Lower Body Machine Blast - Intermediate',
   // Old v1 names (hyphens)
   'Full Body Strength - Beginner',
   'Athletic Performance - Power & Speed',
