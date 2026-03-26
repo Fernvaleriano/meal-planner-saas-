@@ -409,7 +409,7 @@ function getSampleWorkoutProgram(coachId) {
               notes: 'Focus on controlled descent. Warm up with 2 lighter sets first.'
             },
             {
-              name: 'Incline Dumbbell Press',
+              name: 'Dumbbell Incline Bench Press',
               muscle_group: 'Chest',
               equipment: 'Dumbbell',
               sets: 3,
@@ -422,7 +422,7 @@ function getSampleWorkoutProgram(coachId) {
               notes: '30-degree incline. Squeeze at the top.'
             },
             {
-              name: 'Overhead Press (Dumbbell)',
+              name: 'Dumbbell Standing Overhead Press',
               muscle_group: 'Shoulders',
               equipment: 'Dumbbell',
               sets: 3,
@@ -435,7 +435,7 @@ function getSampleWorkoutProgram(coachId) {
               notes: 'Keep core braced. Full range of motion.'
             },
             {
-              name: 'Lateral Raises',
+              name: 'Lateral raises dumbbell',
               muscle_group: 'Shoulders',
               equipment: 'Dumbbell',
               sets: 3,
@@ -448,7 +448,7 @@ function getSampleWorkoutProgram(coachId) {
               notes: 'Light weight, controlled movement. Slight bend in elbows.'
             },
             {
-              name: 'Tricep Pushdowns (Cable)',
+              name: 'Cable pushdown',
               muscle_group: 'Triceps',
               equipment: 'Cable Machine',
               sets: 3,
@@ -466,7 +466,7 @@ function getSampleWorkoutProgram(coachId) {
           name: 'Pull Day (Back, Biceps)',
           exercises: [
             {
-              name: 'Barbell Rows',
+              name: 'Barbell Bent Over Row',
               muscle_group: 'Back',
               equipment: 'Barbell',
               sets: 4,
@@ -480,7 +480,7 @@ function getSampleWorkoutProgram(coachId) {
               notes: 'Hinge at hips, pull to lower chest. Keep back flat.'
             },
             {
-              name: 'Lat Pulldown',
+              name: 'Cable bar lateral pulldown',
               muscle_group: 'Back',
               equipment: 'Cable Machine',
               sets: 3,
@@ -493,7 +493,7 @@ function getSampleWorkoutProgram(coachId) {
               notes: 'Wide grip, pull to upper chest. Lean back slightly.'
             },
             {
-              name: 'Seated Cable Row',
+              name: 'Cable seated row',
               muscle_group: 'Back',
               equipment: 'Cable Machine',
               sets: 3,
@@ -506,7 +506,7 @@ function getSampleWorkoutProgram(coachId) {
               notes: 'Squeeze shoulder blades together at peak contraction.'
             },
             {
-              name: 'Dumbbell Bicep Curls',
+              name: 'Dumbbell curls',
               muscle_group: 'Biceps',
               equipment: 'Dumbbell',
               sets: 3,
@@ -519,7 +519,7 @@ function getSampleWorkoutProgram(coachId) {
               notes: 'Alternate arms. No swinging \u2014 control the weight.'
             },
             {
-              name: 'Hammer Curls',
+              name: 'Dumbbell Hammer Curl',
               muscle_group: 'Biceps',
               equipment: 'Dumbbell',
               sets: 3,
@@ -537,7 +537,7 @@ function getSampleWorkoutProgram(coachId) {
           name: 'Leg Day (Quads, Hamstrings, Glutes)',
           exercises: [
             {
-              name: 'Barbell Back Squat',
+              name: 'Barbell Full Squat',
               muscle_group: 'Quads',
               equipment: 'Barbell',
               sets: 4,
@@ -551,7 +551,7 @@ function getSampleWorkoutProgram(coachId) {
               notes: 'Below parallel depth. Warm up with bodyweight squats and 2 lighter sets.'
             },
             {
-              name: 'Romanian Deadlift',
+              name: 'Barbell romanian deadlift',
               muscle_group: 'Hamstrings',
               equipment: 'Barbell',
               sets: 3,
@@ -564,7 +564,7 @@ function getSampleWorkoutProgram(coachId) {
               notes: 'Hinge at hips, slight knee bend. Feel the stretch in hamstrings.'
             },
             {
-              name: 'Leg Press',
+              name: 'Leg press machine normal stance',
               muscle_group: 'Quads',
               equipment: 'Leg Press Machine',
               sets: 3,
@@ -577,7 +577,7 @@ function getSampleWorkoutProgram(coachId) {
               notes: 'Feet shoulder-width apart. Full range of motion.'
             },
             {
-              name: 'Walking Lunges',
+              name: 'Dumbbell Goblet Forward Lunge',
               muscle_group: 'Glutes',
               equipment: 'Dumbbell',
               sets: 3,
@@ -590,7 +590,7 @@ function getSampleWorkoutProgram(coachId) {
               notes: '12 reps per leg. Hold dumbbells at sides.'
             },
             {
-              name: 'Seated Calf Raises',
+              name: 'Dumbbell Seated Calf Raise',
               muscle_group: 'Calves',
               equipment: 'Machine',
               sets: 4,
