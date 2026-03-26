@@ -7238,6 +7238,17 @@
             // Initialize gym features (enabled for all coaches)
             await initGymFeatures({ email: session.user.email });
 
+            // One-time cleanup: delete all seeded default workout templates
+            try {
+                await apiCall('/.netlify/functions/cleanup-default-workouts', {
+                    method: 'POST',
+                    body: JSON.stringify({})
+                });
+                console.log('Default workout templates cleaned up successfully');
+            } catch (e) {
+                console.warn('Cleanup skipped:', e.message);
+            }
+
             // Load data
             await Promise.all([
                 loadPrograms(),

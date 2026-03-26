@@ -870,6 +870,16 @@
             }
             currentCoachId = session.user.id;
             currentAccessToken = session.access_token;
+            // One-time cleanup: delete all seeded default workout templates
+            try {
+                await apiCall('/.netlify/functions/cleanup-default-workouts', {
+                    method: 'POST',
+                    body: JSON.stringify({})
+                });
+                console.log('Default workout templates cleaned up successfully');
+            } catch (e) {
+                console.warn('Cleanup skipped:', e.message);
+            }
             await loadPrograms();
         }
 
