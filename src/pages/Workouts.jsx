@@ -2030,6 +2030,12 @@ function Workouts() {
     const updatedExercises = currentExercises.map(ex => {
       if (ex?.id === updatedExercise.id) {
         const { completed, ...rest } = updatedExercise;
+        // Keep setsData in sync with sets so client-logged values persist on reload.
+        // Both ExerciseCard and ExerciseDetailModal prefer setsData over sets when
+        // initializing, so stale setsData would silently discard the client's edits.
+        if (Array.isArray(rest.sets) && rest.sets.length > 0) {
+          rest.setsData = rest.sets;
+        }
         return rest;
       }
       return ex;
