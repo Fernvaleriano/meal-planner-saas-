@@ -405,6 +405,7 @@ exports.handler = async (event) => {
 
     if (deleteError) throw deleteError;
 
+
     const allExerciseNames = new Set();
     DEFAULT_PROGRAMS.forEach(prog => {
       prog.program_data.days.forEach(day => {
