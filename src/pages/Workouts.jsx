@@ -2882,16 +2882,25 @@ function Workouts() {
         };
       });
 
-      // Merge exercise_logs data (client notes, voice notes) from workoutLog
+      // Merge exercise_logs data (client notes, voice notes, logged sets) from workoutLog
       const loggedExercises = workoutLog?.exercises || [];
       const merged = normalized.map(ex => {
         const logged = loggedExercises.find(le => le.exercise_id === ex.id);
         if (logged) {
-          return {
+          const updates = {
             ...ex,
             clientNotes: logged.client_notes || null,
             clientVoiceNotePath: logged.client_voice_note_path || null
           };
+          // Merge logged sets data so client-entered values (including accepted
+          // coaching recommendations) persist on reload. The exercise_logs auto-save
+          // writes sets_data; applying it here means the values survive even if the
+          // workout assignment save was lost.
+          if (Array.isArray(logged.sets_data) && logged.sets_data.length > 0) {
+            updates.setsData = logged.sets_data;
+            updates.sets = logged.sets_data;
+          }
+          return updates;
         }
         return ex;
       });
