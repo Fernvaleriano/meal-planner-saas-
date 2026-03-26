@@ -706,7 +706,7 @@ function ExerciseDetailModal({
         // Reset flag so failed saves don't block future save attempts
         setsChangedRef.current = false;
       }
-    }, 2000);
+    }, delay);
 
     return () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
@@ -1445,31 +1445,25 @@ function ExerciseDetailModal({
   const handleAcceptCoachingRec = useCallback(() => {
     if (!coachingRecommendation) return;
 
-    // Capture the computed sets from the state updater so we can use
-    // the exact same array for both the UI update and the backend save.
-    let acceptedSets;
+    // Build accepted sets synchronously so we can reliably use the same
+    // payload for both local UI state and persistence callbacks.
+    const acceptedSets = sets.map(set => ({
+      ...set,
+      reps: coachingRecommendation.reps,
+      weight: coachingRecommendation.weight
+    }));
 
-    setSets(prevSets => {
-      // Update existing sets with recommended reps/weight
-      const updated = prevSets.map(set => ({
-        ...set,
+    // Add extra sets if recommendation calls for more than currently exist
+    const recSets = coachingRecommendation.sets || sets.length;
+    while (acceptedSets.length < recSets) {
+      acceptedSets.push({
         reps: coachingRecommendation.reps,
-        weight: coachingRecommendation.weight
-      }));
+        weight: coachingRecommendation.weight,
+        weightUnit: sets[0]?.weightUnit || weightUnit
+      });
+    }
 
-      // Add extra sets if recommendation calls for more than currently exist
-      const recSets = coachingRecommendation.sets || prevSets.length;
-      while (updated.length < recSets) {
-        updated.push({
-          reps: coachingRecommendation.reps,
-          weight: coachingRecommendation.weight,
-          weightUnit: prevSets[0]?.weightUnit || weightUnit
-        });
-      }
-
-      acceptedSets = updated;
-      return updated;
-    });
+    setSets(acceptedSets);
 
     setsChangedRef.current = true; // Trigger auto-save to workout-logs
     saveImmediatelyRef.current = true; // Skip debounce — save immediately
@@ -1477,15 +1471,13 @@ function ExerciseDetailModal({
     // Persist to workout assignment so values survive app reload.
     // Called OUTSIDE the state updater to avoid side-effects inside it.
     // acceptedSets is set synchronously by the updater above.
-    if (acceptedSets) {
-      const currentExercise = exerciseRef.current;
-      if (callbackRefs.current.onUpdateExercise && currentExercise) {
-        callbackRefs.current.onUpdateExercise({ ...currentExercise, sets: acceptedSets });
-      }
+    const currentExercise = exerciseRef.current;
+    if (callbackRefs.current.onUpdateExercise && currentExercise) {
+      callbackRefs.current.onUpdateExercise({ ...currentExercise, sets: acceptedSets });
     }
 
     setAcceptedCoachingRec(true);
-  }, [coachingRecommendation, weightUnit]);
+  }, [coachingRecommendation, sets, weightUnit]);
 
   // Calculate estimated 1RM using Epley formula: weight * (1 + reps/30)
   const calculate1RM = (weight, reps) => {
