@@ -193,7 +193,10 @@ function ExerciseDetailModal({
   workoutLogId = null, // Existing workout log ID for auto-saving exercise logs
   selectedDate = null, // Date the client is viewing (may be a past date)
   readinessData = null, // Pre-workout readiness: { energy: 1-3, soreness: 1-3, sleep: 1-3 }
-  weightUnit = 'lbs' // User's preferred weight unit: 'lbs' or 'kg'
+  weightUnit = 'lbs', // User's preferred weight unit: 'lbs' or 'kg'
+  assignmentId = null, // Workout assignment ID for direct save
+  dayIndex = 0, // Day index within the workout program
+  allExercisesRaw = [] // All exercises for the current day (raw from workout_data)
 }) {
   // Force close handler that always works - used for escape routes
   const forceClose = useCallback(() => {
@@ -1468,16 +1471,105 @@ function ExerciseDetailModal({
     setsChangedRef.current = true; // Trigger auto-save to workout-logs
     saveImmediatelyRef.current = true; // Skip debounce — save immediately
 
+    if (!acceptedSets) return;
+
     // Persist to workout assignment so values survive app reload.
     // Called OUTSIDE the state updater to avoid side-effects inside it.
-    // acceptedSets is set synchronously by the updater above.
     const currentExercise = exerciseRef.current;
+
+    // 1) Update parent state via callback (keeps local UI in sync)
     if (callbackRefs.current.onUpdateExercise && currentExercise) {
       callbackRefs.current.onUpdateExercise({ ...currentExercise, sets: acceptedSets });
     }
 
+    // 2) DIRECT save to workout assignment — bypasses the onUpdateExercise callback
+    // chain entirely so we're guaranteed the data hits the DB.
+    const saveToAssignment = async () => {
+      try {
+        if (!assignmentId || !currentExercise) return;
+
+        // Build updated exercises array: replace this exercise's sets/setsData
+        const updatedExercises = allExercisesRaw.map(ex => {
+          if (ex?.id === currentExercise.id) {
+            return { ...ex, sets: acceptedSets, setsData: acceptedSets };
+          }
+          return ex;
+        });
+
+        await apiPut('/.netlify/functions/client-workout-log', {
+          assignmentId,
+          dayIndex,
+          workout_data: { exercises: updatedExercises }
+        });
+        console.log('Coaching recommendation saved to assignment successfully');
+      } catch (err) {
+        console.error('Error saving coaching rec to assignment:', err);
+      }
+    };
+    saveToAssignment();
+
+    // 3) ALSO save to exercise_logs (workout log) as backup.
+    // The sets_data merge on reload ensures values persist even if the
+    // assignment save was somehow lost.
+    const saveToWorkoutLog = async () => {
+      try {
+        let logId = workoutLogIdRef.current;
+        const dateStr = getWorkoutDateStr();
+
+        if (!logId) {
+          const existing = await apiGet(
+            `/.netlify/functions/workout-logs?clientId=${clientId}&startDate=${dateStr}&endDate=${dateStr}&limit=1`
+          );
+          if (existing?.workouts && existing.workouts.length > 0) {
+            logId = existing.workouts[0].id;
+            workoutLogIdRef.current = logId;
+          }
+        }
+
+        if (!logId) {
+          const res = await apiPost('/.netlify/functions/workout-logs', {
+            clientId,
+            workoutDate: dateStr,
+            workoutName: currentExercise?.workoutName || 'Workout',
+            status: 'in_progress'
+          });
+          if (res?.workout?.id) {
+            logId = res.workout.id;
+            workoutLogIdRef.current = logId;
+          }
+        }
+
+        if (!logId) return;
+
+        const setsData = acceptedSets.map((s, i) => ({
+          setNumber: i + 1,
+          reps: s.reps || 0,
+          weight: s.weight || 0,
+          weightUnit: s.weightUnit || weightUnit,
+          restSeconds: s.restSeconds || null,
+          effort: s.effort || null,
+          ...(s.duration != null && { duration: s.duration }),
+          ...(s.distance != null && { distance: s.distance })
+        }));
+
+        await apiPut('/.netlify/functions/workout-logs', {
+          workoutId: logId,
+          exercises: [{
+            exerciseId: currentExercise.id,
+            exerciseName: currentExercise.name || 'Unknown',
+            order: 1,
+            sets: setsData
+          }]
+        });
+        console.log('Coaching recommendation saved to workout log successfully');
+      } catch (err) {
+        console.error('Error saving accepted recommendation to workout log:', err);
+      }
+    };
+    saveToWorkoutLog();
+
     setAcceptedCoachingRec(true);
-  }, [coachingRecommendation, sets, weightUnit]);
+  }, [coachingRecommendation, weightUnit, clientId, getWorkoutDateStr, assignmentId, dayIndex, allExercisesRaw]);
 
   // Calculate estimated 1RM using Epley formula: weight * (1 + reps/30)
   const calculate1RM = (weight, reps) => {
