@@ -164,6 +164,7 @@ exports.handler = async (event) => {
     const programsToSeed = DEFAULT_PROGRAMS.filter(p => !existingNames.has(p.name));
 
     // ── Enrich exercises with DB data (video, thumbnail, etc.) ──────────
+    // Use OR + ilike filters for case-insensitive matching
     const allExerciseNames = [...new Set(
       programsToSeed.flatMap(prog =>
         prog.program_data.days.flatMap(day =>
@@ -172,11 +173,12 @@ exports.handler = async (event) => {
       )
     )];
 
+    const orFilter = allExerciseNames.map(n => `name.ilike.${n}`).join(',');
     const { data: dbExercises, error: exError } = await supabase
       .from('exercises')
       .select('id, name, video_url, animation_url, thumbnail_url, muscle_group, equipment')
       .is('coach_id', null)
-      .in('name', allExerciseNames);
+      .or(orFilter);
 
     if (exError) throw exError;
 
@@ -193,6 +195,7 @@ exports.handler = async (event) => {
           if (!dbMatch) return ex;
           return {
             ...ex,
+            name: dbMatch.name,  // Use exact DB name (correct casing)
             id: dbMatch.id,
             video_url: dbMatch.video_url || null,
             animation_url: dbMatch.animation_url || null,
