@@ -363,6 +363,8 @@ const ALL_DEFAULT_PROGRAM_NAMES = [...new Set([
 
 module.exports.DEFAULT_PROGRAMS = DEFAULT_PROGRAMS;
 module.exports.ALL_DEFAULT_PROGRAM_NAMES = ALL_DEFAULT_PROGRAM_NAMES;
+module.exports.LEGACY_DEFAULT_PROGRAM_NAMES = LEGACY_DEFAULT_PROGRAM_NAMES;
+module.exports.CURRENT_DEFAULT_PROGRAM_NAMES = CURRENT_DEFAULT_PROGRAM_NAMES;
 
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') {
@@ -394,14 +396,13 @@ exports.handler = async (event) => {
       };
     }
 
-    // Replace prior default templates (legacy + current names) so seeding is deterministic.
-    // This removes old CloudCode defaults and prevents duplicate defaults on repeated seed calls.
+    // Remove only legacy-named defaults. Keep current default IDs stable.
     const { error: deleteError } = await supabase
       .from('workout_programs')
       .delete()
       .eq('coach_id', coachId)
       .eq('is_template', true)
-      .in('name', ALL_DEFAULT_PROGRAM_NAMES);
+      .in('name', LEGACY_DEFAULT_PROGRAM_NAMES);
 
     if (deleteError) throw deleteError;
 
@@ -458,20 +459,62 @@ exports.handler = async (event) => {
       };
     });
 
-    const { data: inserted, error: insertError } = await supabase
+    // Upsert by name manually (no DB unique constraint guaranteed for coach_id+name).
+    const { data: existingCurrent, error: existingError } = await supabase
       .from('workout_programs')
-      .insert(rows)
-      .select('id, name');
+      .select('id, name')
+      .eq('coach_id', coachId)
+      .eq('is_template', true)
+      .in('name', CURRENT_DEFAULT_PROGRAM_NAMES);
 
-    if (insertError) throw insertError;
+    if (existingError) throw existingError;
+
+    const existingByName = new Map((existingCurrent || []).map(p => [p.name, p.id]));
+    const created = [];
+    const updated = [];
+
+    for (const row of rows) {
+      const existingId = existingByName.get(row.name);
+      if (existingId) {
+        const { error: updateError } = await supabase
+          .from('workout_programs')
+          .update({
+            description: row.description,
+            program_type: row.program_type,
+            difficulty: row.difficulty,
+            days_per_week: row.days_per_week,
+            program_data: row.program_data,
+            is_template: true,
+            is_published: false,
+            is_club_workout: false
+          })
+          .eq('id', existingId);
+        if (updateError) throw updateError;
+        updated.push({ id: existingId, name: row.name });
+      } else {
+        created.push(row);
+      }
+    }
+
+    let inserted = [];
+    if (created.length > 0) {
+      const { data: insertedRows, error: insertError } = await supabase
+        .from('workout_programs')
+        .insert(created)
+        .select('id, name');
+      if (insertError) throw insertError;
+      inserted = insertedRows || [];
+    }
 
     return {
       statusCode: 200,
       headers,
       body: JSON.stringify({
         seeded: true,
-        count: inserted.length,
-        programs: inserted.map(p => ({ id: p.id, name: p.name }))
+        created: inserted.length,
+        updated: updated.length,
+        count: inserted.length + updated.length,
+        programs: [...updated, ...inserted].map(p => ({ id: p.id, name: p.name }))
       })
     };
 

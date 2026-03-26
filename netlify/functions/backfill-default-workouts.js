@@ -1,5 +1,9 @@
 const { createClient } = require('@supabase/supabase-js');
-const { DEFAULT_PROGRAMS, ALL_DEFAULT_PROGRAM_NAMES } = require('./seed-default-workouts');
+const {
+  DEFAULT_PROGRAMS,
+  LEGACY_DEFAULT_PROGRAM_NAMES,
+  CURRENT_DEFAULT_PROGRAM_NAMES
+} = require('./seed-default-workouts');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -130,37 +134,90 @@ exports.handler = async (event) => {
     for (const id of coachIds) {
       const coachReport = { coachId: id, deleted: 0, inserted: 0 };
 
-      const deleteQuery = supabase
+      // Delete only legacy names to avoid ID churn on current defaults.
+      const deleteLegacyQuery = supabase
         .from('workout_programs')
         .delete({ count: 'exact' })
         .eq('coach_id', id)
         .eq('is_template', true)
-        .in('name', ALL_DEFAULT_PROGRAM_NAMES);
+        .in('name', LEGACY_DEFAULT_PROGRAM_NAMES);
 
       if (dryRun) {
-        const { count, error } = await supabase
+        const { count: legacyCount, error: legacyCountError } = await supabase
           .from('workout_programs')
           .select('id', { count: 'exact', head: true })
           .eq('coach_id', id)
           .eq('is_template', true)
-          .in('name', ALL_DEFAULT_PROGRAM_NAMES);
+          .in('name', LEGACY_DEFAULT_PROGRAM_NAMES);
 
-        if (error) throw error;
-        coachReport.deleted = count || 0;
-        coachReport.inserted = DEFAULT_PROGRAMS.length;
+        if (legacyCountError) throw legacyCountError;
+
+        const { count: existingCurrentCount, error: existingCurrentError } = await supabase
+          .from('workout_programs')
+          .select('id', { count: 'exact', head: true })
+          .eq('coach_id', id)
+          .eq('is_template', true)
+          .in('name', CURRENT_DEFAULT_PROGRAM_NAMES);
+
+        if (existingCurrentError) throw existingCurrentError;
+
+        coachReport.deleted = legacyCount || 0;
+        coachReport.updated = existingCurrentCount || 0;
+        coachReport.inserted = Math.max(0, DEFAULT_PROGRAMS.length - (existingCurrentCount || 0));
       } else {
-        const { count: deletedCount, error: deleteError } = await deleteQuery;
+        const { count: deletedCount, error: deleteError } = await deleteLegacyQuery;
         if (deleteError) throw deleteError;
         coachReport.deleted = deletedCount || 0;
 
         const rows = buildRowsForCoach(id, exerciseLookup);
-        const { data: inserted, error: insertError } = await supabase
-          .from('workout_programs')
-          .insert(rows)
-          .select('id');
 
-        if (insertError) throw insertError;
-        coachReport.inserted = (inserted || []).length;
+        const { data: existingCurrent, error: existingError } = await supabase
+          .from('workout_programs')
+          .select('id, name')
+          .eq('coach_id', id)
+          .eq('is_template', true)
+          .in('name', CURRENT_DEFAULT_PROGRAM_NAMES);
+        if (existingError) throw existingError;
+
+        const existingByName = new Map((existingCurrent || []).map(p => [p.name, p.id]));
+        const toCreate = [];
+        let updatedCount = 0;
+
+        for (const row of rows) {
+          const existingId = existingByName.get(row.name);
+          if (existingId) {
+            const { error: updateError } = await supabase
+              .from('workout_programs')
+              .update({
+                description: row.description,
+                program_type: row.program_type,
+                difficulty: row.difficulty,
+                days_per_week: row.days_per_week,
+                program_data: row.program_data,
+                is_template: true,
+                is_published: false,
+                is_club_workout: false
+              })
+              .eq('id', existingId);
+            if (updateError) throw updateError;
+            updatedCount++;
+          } else {
+            toCreate.push(row);
+          }
+        }
+
+        let createdCount = 0;
+        if (toCreate.length > 0) {
+          const { data: inserted, error: insertError } = await supabase
+            .from('workout_programs')
+            .insert(toCreate)
+            .select('id');
+          if (insertError) throw insertError;
+          createdCount = (inserted || []).length;
+        }
+
+        coachReport.updated = updatedCount;
+        coachReport.inserted = createdCount;
       }
 
       report.push(coachReport);
