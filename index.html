@@ -3,207 +3,189 @@
 <head>
     <meta charset="UTF-8">
     <link rel="icon" href="/icons/logo.png" type="image/png">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-visual">
-    <title>Zique Fitness Nutrition - AI-Powered Nutrition Coaching Platform</title>
-    <meta name="description" content="The all-in-one platform for nutrition coaches. AI meal planning, client management, food diary tracking, and more. Start your 14-day free trial.">
-    <!-- Open Graph -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Zique Fitness Nutrition - Coaching Platform for Workouts, Nutrition & Accountability</title>
+    <meta name="description" content="A premium coaching platform for trainers and nutrition coaches. Deliver plans, track habits, share videos, and keep clients accountable from one app.">
     <meta property="og:type" content="website">
-    <meta property="og:title" content="Zique Fitness Nutrition - AI-Powered Nutrition Coaching Platform">
-    <meta property="og:description" content="The all-in-one platform for nutrition coaches. AI meal planning, client management, food diary tracking, and more. Start your 14-day free trial.">
+    <meta property="og:title" content="Zique Fitness Nutrition - Coaching Platform for Workouts, Nutrition & Accountability">
+    <meta property="og:description" content="Deliver premium client coaching with one branded platform: workouts, nutrition, check-ins, progress tracking, and messaging.">
     <meta property="og:image" content="/icons/logo.png">
     <meta property="og:url" content="https://ziquefitnessnutrition.com">
-    <!-- Twitter Card -->
-    <meta name="twitter:card" content="summary">
-    <meta name="twitter:title" content="Zique Fitness Nutrition - AI-Powered Nutrition Coaching Platform">
-    <meta name="twitter:description" content="The all-in-one platform for nutrition coaches. AI meal planning, client management, food diary tracking, and more.">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Zique Fitness Nutrition - Coaching Platform for Workouts, Nutrition & Accountability">
+    <meta name="twitter:description" content="The all-in-one platform for trainers who want to coach at scale without losing the personal touch.">
     <meta name="twitter:image" content="/icons/logo.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
         :root {
-            --brand-primary: #0d9488;
-            --brand-primary-dark: #0f766e;
-            --brand-secondary: #0284c7;
-            --brand-gradient: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
+            --brand-primary: #00a99d;
+            --brand-secondary: #2774ff;
+            --brand-dark: #0d1528;
+            --brand-gradient: linear-gradient(135deg, #00a99d 0%, #2774ff 100%);
+            --white: #ffffff;
+            --gray-25: #fcfdff;
             --gray-50: #f8fafc;
-            --gray-100: #f1f5f9;
-            --gray-200: #e2e8f0;
-            --gray-300: #cbd5e1;
-            --gray-400: #94a3b8;
-            --gray-500: #64748b;
-            --gray-600: #475569;
+            --gray-100: #eef2f7;
+            --gray-200: #d8e0ea;
+            --gray-400: #8fa2b7;
+            --gray-500: #6e8197;
             --gray-700: #334155;
-            --gray-800: #1e293b;
             --gray-900: #0f172a;
+            --radius-lg: 18px;
+            --radius-xl: 24px;
+            --shadow-lg: 0 20px 50px rgba(5, 29, 74, 0.12);
         }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html { scroll-behavior: smooth; }
 
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            color: var(--gray-800);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            color: var(--gray-900);
+            background: var(--gray-25);
             line-height: 1.6;
+            -webkit-tap-highlight-color: transparent;
         }
 
-        /* Navigation */
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            border-radius: 999px;
+            border: 1px solid var(--gray-200);
+            background: rgba(255,255,255,0.85);
+            padding: 8px 14px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--gray-700);
+        }
+
+        .badge-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 999px;
+            background: #14b8a6;
+            box-shadow: 0 0 0 0 rgba(20, 184, 166, 0.65);
+            animation: pulse 1.8s infinite;
+        }
+
+        @keyframes pulse {
+            70% { box-shadow: 0 0 0 8px rgba(20, 184, 166, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(20, 184, 166, 0); }
+        }
+
+        .section { padding: 88px 0; }
+        .section-title {
+            font-size: clamp(2rem, 4vw, 2.8rem);
+            line-height: 1.15;
+            letter-spacing: -0.02em;
+            margin-bottom: 14px;
+        }
+        .section-subtitle {
+            max-width: 700px;
+            color: var(--gray-500);
+            font-size: 1.05rem;
+        }
+
+        .btn {
+            border: none;
+            border-radius: 12px;
+            font-weight: 700;
+            text-decoration: none;
+            padding: 13px 22px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: all .2s ease;
+            cursor: pointer;
+            font-size: 0.95rem;
+        }
+
+        .btn-primary {
+            color: white;
+            background: var(--brand-gradient);
+            box-shadow: 0 8px 24px rgba(39, 116, 255, 0.28);
+        }
+
+        .btn-primary:hover { transform: translateY(-2px); }
+
+        .btn-secondary {
+            color: var(--gray-900);
+            background: white;
+            border: 1px solid var(--gray-200);
+        }
+
+        .btn-secondary:hover { border-color: var(--brand-secondary); color: var(--brand-secondary); }
+
         .nav {
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
             z-index: 1000;
-            border-bottom: 1px solid var(--gray-200);
+            background: rgba(255,255,255,0.88);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(15, 23, 42, 0.08);
         }
 
-        .nav-container {
+        .nav-inner {
             max-width: 1200px;
             margin: 0 auto;
-            padding: 16px 24px;
+            padding: 14px 24px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            gap: 16px;
         }
 
-        .nav-logo {
-            display: flex;
-            align-items: center;
-            text-decoration: none;
-        }
+        .nav-logo img { height: 56px; width: auto; object-fit: contain; }
+        .nav-links { display: flex; gap: 22px; align-items: center; }
 
-        .nav-logo-img {
-            height: 65px;
-            width: auto;
-            object-fit: contain;
-        }
-
-        .nav-links {
-            display: flex;
-            align-items: center;
-            gap: 32px;
-        }
-
-        .nav-link {
-            color: var(--gray-600);
-            text-decoration: none;
-            font-weight: 500;
-            font-size: 0.95rem;
-            transition: color 0.2s;
-        }
-
-        .nav-link:hover {
-            color: var(--brand-primary);
-        }
-
-        .nav-buttons {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            padding: 12px 24px;
-            border-radius: 10px;
-            font-weight: 600;
-            font-size: 0.95rem;
-            text-decoration: none;
-            transition: all 0.2s;
-            cursor: pointer;
-            border: none;
-            font-family: inherit;
-        }
-
-        .btn-ghost {
-            background: transparent;
+        .nav-links a {
             color: var(--gray-700);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.92rem;
         }
 
-        .btn-ghost:hover {
-            background: var(--gray-100);
+        .nav-actions { display: flex; align-items: center; gap: 10px; }
+
+        .menu-btn {
+            display: none;
+            background: none;
+            border: 0;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 8px;
         }
 
-        .btn-primary {
-            background: var(--brand-gradient);
-            color: white;
-            box-shadow: 0 4px 14px rgba(13, 148, 136, 0.35);
-        }
+        .menu-btn svg { width: 24px; height: 24px; color: var(--gray-700); }
 
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(13, 148, 136, 0.45);
-        }
-
-        .btn-secondary {
-            background: white;
-            color: var(--gray-800);
-            border: 2px solid var(--gray-200);
-        }
-
-        .btn-secondary:hover {
-            border-color: var(--brand-primary);
-            color: var(--brand-primary);
-        }
-
-        .btn-large {
-            padding: 16px 32px;
-            font-size: 1.1rem;
-        }
-
-        /* Hero Section */
         .hero {
-            padding: 140px 24px 80px;
-            background: linear-gradient(180deg, #f0fdfa 0%, #ffffff 100%);
-            text-align: center;
+            padding: 132px 0 70px;
+            background:
+                radial-gradient(circle at 80% 10%, rgba(39,116,255,0.14), transparent 30%),
+                radial-gradient(circle at 10% 20%, rgba(0,169,157,0.18), transparent 28%),
+                linear-gradient(180deg, #f3f9ff 0%, #ffffff 76%);
         }
 
-        .hero-container {
-            max-width: 900px;
-            margin: 0 auto;
-        }
-
-        .hero-badge {
-            display: inline-flex;
+        .hero-grid {
+            display: grid;
+            grid-template-columns: 1.05fr 0.95fr;
+            gap: 32px;
             align-items: center;
-            gap: 8px;
-            background: white;
-            border: 1px solid var(--gray-200);
-            padding: 8px 16px;
-            border-radius: 50px;
-            font-size: 0.85rem;
-            color: var(--gray-600);
-            margin-bottom: 24px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-        }
-
-        .hero-badge-dot {
-            width: 8px;
-            height: 8px;
-            background: #10b981;
-            border-radius: 50%;
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
         }
 
         .hero h1 {
-            font-size: 3.5rem;
-            font-weight: 900;
-            line-height: 1.1;
+            font-size: clamp(2.4rem, 5vw, 3.8rem);
+            line-height: 1.03;
             letter-spacing: -0.03em;
-            margin-bottom: 24px;
-            color: var(--gray-900);
+            margin: 18px 0 18px;
         }
 
         .hero h1 span {
@@ -213,1326 +195,646 @@
             background-clip: text;
         }
 
-        .hero-subtitle {
-            font-size: 1.25rem;
-            color: var(--gray-600);
-            max-width: 600px;
-            margin: 0 auto 40px;
-            line-height: 1.7;
-        }
-
-        .hero-buttons {
-            display: flex;
-            justify-content: center;
-            gap: 16px;
-            margin-bottom: 48px;
-        }
-
-        .hero-stats {
-            display: flex;
-            justify-content: center;
-            gap: 48px;
-            padding-top: 40px;
-            border-top: 1px solid var(--gray-200);
-        }
-
-        .hero-stat {
-            text-align: center;
-        }
-
-        .hero-stat-number {
-            font-size: 2rem;
-            font-weight: 800;
-            color: var(--gray-900);
-        }
-
-        .hero-stat-label {
-            font-size: 0.9rem;
+        .hero-copy {
             color: var(--gray-500);
+            max-width: 600px;
+            font-size: 1.08rem;
+            margin-bottom: 26px;
         }
 
-        /* Features Section */
-        .features {
-            padding: 100px 24px;
+        .hero-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 24px; }
+
+        .hero-trust {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0,1fr));
+            gap: 14px;
+            margin-top: 16px;
+        }
+
+        .trust-card {
             background: white;
+            border: 1px solid var(--gray-100);
+            border-radius: 14px;
+            padding: 14px;
         }
 
-        .section-container {
-            max-width: 1200px;
-            margin: 0 auto;
+        .trust-card b { display: block; font-size: 1.2rem; color: var(--gray-900); }
+        .trust-card span { font-size: 0.82rem; color: var(--gray-500); }
+
+        .hero-visual {
+            border-radius: var(--radius-xl);
+            background: #0f1b35;
+            color: white;
+            padding: 22px;
+            box-shadow: var(--shadow-lg);
+            position: relative;
+            overflow: hidden;
         }
 
-        .section-header {
-            text-align: center;
-            margin-bottom: 64px;
+        .hero-visual::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 85% 15%, rgba(39,116,255,.55), transparent 42%);
+            pointer-events: none;
         }
 
-        .section-label {
-            display: inline-block;
-            background: linear-gradient(135deg, rgba(13, 148, 136, 0.1) 0%, rgba(2, 132, 199, 0.1) 100%);
-            color: var(--brand-primary);
-            padding: 8px 16px;
-            border-radius: 50px;
-            font-size: 0.85rem;
-            font-weight: 600;
-            margin-bottom: 16px;
+        .panel { position: relative; border: 1px solid rgba(255,255,255,0.18); border-radius: 16px; padding: 16px; background: rgba(255,255,255,0.03); }
+        .panel + .panel { margin-top: 12px; }
+        .panel-label { font-size: 0.78rem; color: #b7cae6; text-transform: uppercase; letter-spacing: 0.08em; }
+        .panel-title { font-weight: 700; font-size: 1.02rem; margin: 5px 0 10px; }
+
+        .progress-bar {
+            height: 8px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.14);
+            overflow: hidden;
         }
 
-        .section-title {
-            font-size: 2.5rem;
-            font-weight: 800;
-            color: var(--gray-900);
-            margin-bottom: 16px;
-            letter-spacing: -0.02em;
+        .progress-bar > span {
+            display: block;
+            height: 100%;
+            width: 78%;
+            border-radius: inherit;
+            background: linear-gradient(90deg, #2dd4bf, #60a5fa);
         }
 
-        .section-subtitle {
-            font-size: 1.1rem;
-            color: var(--gray-500);
-            max-width: 600px;
-            margin: 0 auto;
-        }
-
-        .features-grid {
+        .highlight-strip {
+            margin-top: 14px;
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 32px;
+            gap: 10px;
         }
 
-        .feature-card {
-            background: var(--gray-50);
-            border-radius: 20px;
-            padding: 32px;
-            transition: all 0.3s;
-            border: 1px solid transparent;
+        .highlight-pill {
+            text-align: center;
+            border-radius: 12px;
+            padding: 10px;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.13);
+            font-size: 0.84rem;
+            font-weight: 600;
         }
 
-        .feature-card:hover {
+        .proof-bar {
+            border-top: 1px solid var(--gray-200);
+            border-bottom: 1px solid var(--gray-200);
             background: white;
-            border-color: var(--gray-200);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
-            transform: translateY(-4px);
+            padding: 20px 0;
         }
+
+        .proof-row {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .proof-chip {
+            padding: 8px 14px;
+            border-radius: 999px;
+            font-size: 0.82rem;
+            color: var(--gray-700);
+            border: 1px solid var(--gray-200);
+            background: var(--gray-50);
+            font-weight: 600;
+        }
+
+        .feature-grid {
+            margin-top: 36px;
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0,1fr));
+            gap: 18px;
+        }
+
+        .feature {
+            border: 1px solid var(--gray-100);
+            border-radius: var(--radius-lg);
+            background: white;
+            padding: 22px;
+        }
+
+        .feature h3 { font-size: 1.05rem; margin: 14px 0 8px; }
+        .feature p { color: var(--gray-500); font-size: 0.93rem; }
 
         .feature-icon {
-            width: 56px;
-            height: 56px;
-            background: var(--brand-gradient);
-            border-radius: 14px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-            margin-bottom: 20px;
-        }
-
-        .feature-card h3 {
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: var(--gray-900);
-            margin-bottom: 12px;
-        }
-
-        .feature-card p {
-            color: var(--gray-600);
-            font-size: 0.95rem;
-            line-height: 1.7;
-        }
-
-        /* How It Works */
-        .how-it-works {
-            padding: 100px 24px;
-            background: var(--gray-900);
-            color: white;
-        }
-
-        .how-it-works .section-label {
-            background: rgba(255, 255, 255, 0.1);
-            color: #5eead4;
-        }
-
-        .how-it-works .section-title {
-            color: white;
-        }
-
-        .how-it-works .section-subtitle {
-            color: var(--gray-400);
-        }
-
-        .steps {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 48px;
-            margin-top: 64px;
+            place-items: center;
+            background: linear-gradient(135deg, rgba(0,169,157,0.15), rgba(39,116,255,0.2));
+            font-size: 1.2rem;
+        }
+
+        .difference {
+            background: #0b1530;
+            color: white;
+        }
+
+        .difference .section-subtitle { color: #afc0dc; }
+
+        .comparison {
+            margin-top: 34px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .compare-card {
+            border: 1px solid rgba(255,255,255,0.16);
+            border-radius: 18px;
+            padding: 22px;
+            background: rgba(255,255,255,0.03);
+        }
+
+        .compare-card h3 { margin-bottom: 12px; }
+        .compare-card ul { list-style: none; display: grid; gap: 10px; }
+        .compare-card li { font-size: 0.93rem; color: #d4e1f6; padding-left: 20px; position: relative; }
+        .compare-card li::before { content: "✓"; position: absolute; left: 0; color: #2dd4bf; font-weight: 800; }
+
+        .media-section {
+            background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+        }
+
+        .media-grid {
+            margin-top: 34px;
+            display: grid;
+            grid-template-columns: 1.25fr 0.75fr;
+            gap: 20px;
+        }
+
+        .media-card {
+            border: 1px dashed var(--gray-200);
+            border-radius: 18px;
+            background: white;
+            padding: 16px;
+        }
+
+        .media-placeholder {
+            min-height: 280px;
+            border-radius: 14px;
+            display: grid;
+            place-items: center;
+            text-align: center;
+            color: var(--gray-500);
+            border: 1px dashed var(--gray-200);
+            background: repeating-linear-gradient(135deg, #f8fafc, #f8fafc 16px, #f2f6fb 16px, #f2f6fb 32px);
+            padding: 24px;
+            font-weight: 600;
+        }
+
+        .mini-placeholders {
+            display: grid;
+            grid-template-rows: repeat(2, minmax(0,1fr));
+            gap: 20px;
+        }
+
+        .workflow {
+            margin-top: 34px;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 14px;
         }
 
         .step {
-            text-align: center;
-            position: relative;
+            background: white;
+            border: 1px solid var(--gray-100);
+            border-radius: 16px;
+            padding: 20px;
         }
 
         .step-number {
-            width: 64px;
-            height: 64px;
+            width: 34px;
+            height: 34px;
+            border-radius: 999px;
+            display: grid;
+            place-items: center;
             background: var(--brand-gradient);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-            font-weight: 800;
-            margin: 0 auto 24px;
-        }
-
-        .step h3 {
-            font-size: 1.25rem;
+            color: white;
+            font-size: 0.85rem;
             font-weight: 700;
             margin-bottom: 12px;
         }
 
-        .step p {
-            color: var(--gray-400);
-            font-size: 0.95rem;
-            line-height: 1.7;
-        }
+        .step p { color: var(--gray-500); font-size: 0.9rem; }
 
-        .step-connector {
-            position: absolute;
-            top: 32px;
-            left: calc(50% + 48px);
-            width: calc(100% - 96px);
-            height: 2px;
-            background: linear-gradient(90deg, #0d9488, #0284c7);
-            opacity: 0.3;
-        }
-
-        .step:last-child .step-connector {
-            display: none;
-        }
-
-        /* Testimonials */
-        .testimonials {
-            padding: 100px 24px;
-            background: white;
-        }
-
-        .testimonials-grid {
+        .pricing-grid {
+            margin-top: 34px;
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 32px;
-            margin-top: 64px;
+            grid-template-columns: repeat(4, minmax(0,1fr));
+            gap: 16px;
         }
 
-        .testimonial-card {
-            background: var(--gray-50);
-            border-radius: 20px;
-            padding: 32px;
-            border: 1px solid var(--gray-100);
-        }
-
-        .testimonial-stars {
-            color: #fbbf24;
-            font-size: 1.25rem;
-            margin-bottom: 16px;
-        }
-
-        .testimonial-text {
-            color: var(--gray-700);
-            font-size: 1rem;
-            line-height: 1.7;
-            margin-bottom: 24px;
-            font-style: italic;
-        }
-
-        .testimonial-author {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .testimonial-avatar {
-            width: 48px;
-            height: 48px;
-            background: var(--brand-gradient);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: 700;
-            font-size: 1.1rem;
-        }
-
-        .testimonial-name {
-            font-weight: 600;
-            color: var(--gray-900);
-        }
-
-        .testimonial-role {
-            font-size: 0.85rem;
-            color: var(--gray-500);
-        }
-
-        /* Pricing Preview */
-        .pricing-preview {
-            padding: 100px 24px;
-            background: linear-gradient(180deg, #f0fdfa 0%, #ffffff 100%);
-        }
-
-        .pricing-cards {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 24px;
-            max-width: 1200px;
-            margin: 64px auto 0;
-        }
-
-        .pricing-card {
+        .price-card {
+            border: 1px solid var(--gray-200);
             background: white;
-            border-radius: 24px;
-            padding: 32px;
-            border: 2px solid var(--gray-200);
-            transition: all 0.3s;
+            border-radius: 18px;
+            padding: 20px;
         }
 
-        .pricing-card.featured {
-            border-color: var(--brand-primary);
-            box-shadow: 0 20px 40px rgba(13, 148, 136, 0.15);
-            transform: scale(1.02);
+        .price-card.featured {
+            border: 2px solid var(--brand-secondary);
+            box-shadow: 0 16px 35px rgba(39, 116, 255, 0.15);
+            transform: translateY(-6px);
         }
 
-        .pricing-card-badge {
-            display: inline-block;
-            background: var(--brand-gradient);
-            color: white;
-            padding: 6px 12px;
-            border-radius: 50px;
-            font-size: 0.75rem;
-            font-weight: 700;
-            margin-bottom: 16px;
-        }
+        .price { font-size: 2.1rem; font-weight: 800; letter-spacing: -0.02em; margin: 10px 0; }
 
-        .pricing-card h3 {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--gray-900);
-            margin-bottom: 8px;
-        }
-
-        .pricing-price {
-            display: flex;
-            align-items: baseline;
-            gap: 4px;
-            margin-bottom: 24px;
-        }
-
-        .pricing-price-amount {
-            font-size: 3rem;
-            font-weight: 800;
-            color: var(--gray-900);
-        }
-
-        .pricing-price-period {
-            font-size: 1rem;
-            color: var(--gray-500);
-        }
-
-        .pricing-features {
-            list-style: none;
-            margin-bottom: 32px;
-        }
-
-        .pricing-features li {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 10px 0;
-            color: var(--gray-700);
-            font-size: 0.95rem;
-        }
-
-        .pricing-features li::before {
-            content: "✓";
-            color: var(--brand-primary);
-            font-weight: 700;
-        }
-
-        .pricing-card .btn {
-            width: 100%;
-        }
-
-        /* FAQ Section */
-        .faq {
-            padding: 100px 24px;
-            background: white;
-        }
+        .price-card ul { list-style: none; margin: 14px 0 18px; display: grid; gap: 8px; }
+        .price-card li { font-size: 0.88rem; color: var(--gray-700); }
 
         .faq-grid {
+            margin-top: 32px;
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 32px;
-            max-width: 900px;
-            margin: 64px auto 0;
+            grid-template-columns: repeat(2, minmax(0,1fr));
+            gap: 14px;
         }
 
         .faq-item {
-            padding: 24px;
-            background: var(--gray-50);
-            border-radius: 16px;
+            border: 1px solid var(--gray-100);
+            background: white;
+            border-radius: 14px;
+            padding: 16px 18px;
         }
 
-        .faq-question {
-            font-weight: 700;
-            color: var(--gray-900);
-            margin-bottom: 12px;
-            font-size: 1.05rem;
-        }
+        .faq-item h3 { font-size: 0.98rem; margin-bottom: 8px; }
+        .faq-item p { color: var(--gray-500); font-size: 0.91rem; }
 
-        .faq-answer {
-            color: var(--gray-600);
-            font-size: 0.95rem;
-            line-height: 1.7;
-        }
-
-        /* CTA Section */
         .cta {
-            padding: 100px 24px;
+            padding: 88px 0;
             background: var(--brand-gradient);
+            color: white;
             text-align: center;
         }
 
-        .cta h2 {
-            font-size: 2.5rem;
-            font-weight: 800;
-            color: white;
-            margin-bottom: 16px;
-        }
+        .cta h2 { font-size: clamp(1.9rem, 4vw, 2.7rem); line-height: 1.15; margin-bottom: 12px; }
+        .cta p { color: rgba(255,255,255,0.88); margin-bottom: 22px; font-size: 1.05rem; }
 
-        .cta p {
-            font-size: 1.2rem;
-            color: rgba(255, 255, 255, 0.9);
-            margin-bottom: 32px;
-        }
-
-        .cta .btn-secondary {
-            background: white;
-            color: var(--gray-900);
-            border: none;
-            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
-        }
-
-        .cta .btn-secondary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
-        }
-
-        /* Footer */
         .footer {
-            padding: 64px 24px 32px;
-            background: var(--gray-900);
-            color: var(--gray-400);
-        }
-
-        .footer-container {
-            max-width: 1200px;
-            margin: 0 auto;
+            background: var(--brand-dark);
+            color: #95a6bf;
+            padding: 54px 0 24px;
         }
 
         .footer-grid {
             display: grid;
-            grid-template-columns: 2fr 1fr 1fr 1fr;
-            gap: 48px;
-            margin-bottom: 48px;
+            grid-template-columns: 1.5fr repeat(3, 1fr);
+            gap: 26px;
+            margin-bottom: 26px;
         }
 
-        .footer-brand p {
-            margin-top: 16px;
-            font-size: 0.9rem;
-            line-height: 1.7;
-        }
-
-        .footer-column h4 {
-            color: white;
-            font-weight: 600;
-            margin-bottom: 16px;
-        }
-
-        .footer-column a {
-            display: block;
-            color: var(--gray-400);
-            text-decoration: none;
-            padding: 8px 0;
-            font-size: 0.9rem;
-            transition: color 0.2s;
-        }
-
-        .footer-column a:hover {
-            color: white;
-        }
+        .footer a { color: #b2c2d8; text-decoration: none; font-size: 0.9rem; display: block; margin: 9px 0; }
+        .footer a:hover { color: white; }
+        .footer h4 { color: white; margin-bottom: 8px; }
 
         .footer-bottom {
-            padding-top: 32px;
-            border-top: 1px solid var(--gray-800);
+            border-top: 1px solid rgba(255,255,255,0.1);
+            padding-top: 16px;
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            font-size: 0.85rem;
+            font-size: 0.82rem;
         }
 
-        /* Mobile Menu */
-        .mobile-menu-btn {
-            display: none;
-            background: none;
-            border: none;
-            cursor: pointer;
-            padding: 12px;
-            margin: -12px;
-            border-radius: 8px;
-            transition: background 0.2s;
+        .mobile-drawer,
+        .drawer-backdrop { display: none; }
+
+        @media (max-width: 1080px) {
+            .hero-grid,
+            .media-grid,
+            .comparison { grid-template-columns: 1fr; }
+
+            .workflow { grid-template-columns: repeat(2, minmax(0,1fr)); }
+            .feature-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+            .pricing-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+            .footer-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
         }
 
-        .mobile-menu-btn:hover {
-            background: var(--gray-100);
-        }
+        @media (max-width: 760px) {
+            .container { padding: 0 18px; }
+            .section { padding: 66px 0; }
+            .nav-links, .nav-actions { display: none; }
+            .menu-btn { display: inline-flex; }
+            .hero { padding-top: 108px; }
+            .hero-trust { grid-template-columns: 1fr; }
+            .feature-grid,
+            .workflow,
+            .pricing-grid,
+            .faq-grid,
+            .footer-grid { grid-template-columns: 1fr; }
+            .price-card.featured { transform: none; }
+            .mini-placeholders { grid-template-rows: auto; }
 
-        .mobile-menu-btn svg {
-            width: 24px;
-            height: 24px;
-            color: var(--gray-700);
-        }
-
-        /* Mobile Menu Overlay */
-        .mobile-menu-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.5);
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.3s ease;
-            z-index: 1001;
-        }
-
-        .mobile-menu-overlay.active {
-            opacity: 1;
-            visibility: visible;
-        }
-
-        /* Mobile Menu Drawer */
-        .mobile-menu {
-            position: fixed;
-            top: 0;
-            right: 0;
-            bottom: 0;
-            width: 300px;
-            max-width: 85vw;
-            background: white;
-            transform: translateX(100%);
-            transition: transform 0.3s ease;
-            z-index: 1002;
-            display: flex;
-            flex-direction: column;
-            box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
-        }
-
-        .mobile-menu.active {
-            transform: translateX(0);
-        }
-
-        .mobile-menu-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 16px 20px;
-            border-bottom: 1px solid var(--gray-200);
-        }
-
-        .mobile-menu-close {
-            background: none;
-            border: none;
-            cursor: pointer;
-            padding: 8px;
-            margin: -8px;
-            border-radius: 8px;
-            transition: background 0.2s;
-        }
-
-        .mobile-menu-close:hover {
-            background: var(--gray-100);
-        }
-
-        .mobile-menu-close svg {
-            width: 24px;
-            height: 24px;
-            color: var(--gray-600);
-        }
-
-        .mobile-menu-nav {
-            flex: 1;
-            padding: 16px 0;
-            overflow-y: auto;
-        }
-
-        .mobile-menu-link {
-            display: block;
-            padding: 16px 24px;
-            color: var(--gray-700);
-            text-decoration: none;
-            font-weight: 500;
-            font-size: 1.1rem;
-            transition: all 0.2s;
-        }
-
-        .mobile-menu-link:hover {
-            background: var(--gray-50);
-            color: var(--brand-primary);
-        }
-
-        .mobile-menu-buttons {
-            padding: 20px;
-            border-top: 1px solid var(--gray-200);
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .mobile-menu-buttons .btn {
-            width: 100%;
-            justify-content: center;
-        }
-
-        /* Responsive */
-        @media (max-width: 1024px) {
-            .features-grid,
-            .testimonials-grid,
-            .steps {
-                grid-template-columns: repeat(2, 1fr);
-            }
-
-            .step-connector {
-                display: none;
-            }
-
-            .footer-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-
-            .pricing-cards {
-                grid-template-columns: repeat(2, 1fr) !important;
-            }
-        }
-
-        @media (max-width: 768px) {
-            .nav-links,
-            .nav-buttons {
-                display: none;
-            }
-
-            .mobile-menu-btn {
+            .drawer-backdrop {
                 display: block;
+                position: fixed;
+                inset: 0;
+                background: rgba(0,0,0,0.48);
+                opacity: 0;
+                pointer-events: none;
+                transition: .25s ease;
+                z-index: 1200;
             }
 
-            .hero {
-                padding: 110px 20px 60px;
-            }
-
-            .hero h1 {
-                font-size: 2.25rem;
-            }
-
-            .hero-subtitle {
-                font-size: 1.05rem;
-            }
-
-            .hero-buttons {
-                flex-direction: column;
-                gap: 12px;
-            }
-
-            .hero-buttons .btn {
-                width: 100%;
-            }
-
-            .hero-stats {
-                flex-direction: column;
-                gap: 20px;
-            }
-
-            .features-grid,
-            .testimonials-grid,
-            .steps {
-                grid-template-columns: 1fr;
-            }
-
-            .pricing-cards {
-                grid-template-columns: 1fr !important;
-            }
-
-            .pricing-card.featured {
-                transform: none;
-            }
-
-            .faq-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .section-title {
-                font-size: 1.875rem;
-            }
-
-            .section-subtitle {
-                font-size: 1rem;
-            }
-
-            .features,
-            .how-it-works,
-            .testimonials,
-            .pricing-preview,
-            .faq,
-            .cta {
-                padding: 60px 20px;
-            }
-
-            .section-header {
-                margin-bottom: 40px;
-            }
-
-            .feature-card,
-            .testimonial-card,
-            .faq-item {
-                padding: 24px;
-            }
-
-            .pricing-card {
-                padding: 28px;
-            }
-
-            .cta h2 {
-                font-size: 1.75rem;
-            }
-
-            .cta p {
-                font-size: 1.05rem;
-            }
-
-            .footer {
-                padding: 48px 20px 24px;
-            }
-
-            .footer-grid {
-                grid-template-columns: 1fr;
-                gap: 32px;
-            }
-
-            .footer-bottom {
-                flex-direction: column;
-                gap: 12px;
-                text-align: center;
-            }
-        }
-
-        /* Small phones */
-        @media (max-width: 480px) {
-            .nav-container {
-                padding: 12px 16px;
-            }
-
-            .nav-logo-img {
-                height: 50px;
-            }
-
-            .hero {
-                padding: 100px 16px 48px;
-            }
-
-            .hero h1 {
-                font-size: 1.875rem;
-                line-height: 1.2;
-            }
-
-            .hero-subtitle {
-                font-size: 1rem;
-            }
-
-            .hero-badge {
-                font-size: 0.8rem;
-                padding: 6px 12px;
-            }
-
-            .btn-large {
-                padding: 14px 24px;
-                font-size: 1rem;
-            }
-
-            .hero-stat-number {
-                font-size: 1.75rem;
-            }
-
-            .hero-stat-label {
-                font-size: 0.85rem;
-            }
-
-            .section-label {
-                font-size: 0.8rem;
-            }
-
-            .section-title {
-                font-size: 1.625rem;
-            }
-
-            .section-subtitle {
-                font-size: 0.95rem;
-            }
-
-            .feature-card h3,
-            .step h3,
-            .faq-question {
-                font-size: 1.1rem;
-            }
-
-            .feature-card p,
-            .step p,
-            .faq-answer,
-            .testimonial-text {
-                font-size: 0.9rem;
-            }
-
-            .pricing-price-amount {
-                font-size: 2.5rem;
-            }
-
-            .pricing-features li {
-                font-size: 0.9rem;
-                padding: 8px 0;
-            }
-
-            .cta h2 {
-                font-size: 1.5rem;
-            }
-
-            .cta p {
-                font-size: 0.95rem;
-            }
-
-            .steps {
-                gap: 32px;
-            }
-
-            .step-number {
-                width: 56px;
-                height: 56px;
-                font-size: 1.25rem;
-            }
-        }
-
-        /* Extra small phones */
-        @media (max-width: 360px) {
-            .hero h1 {
-                font-size: 1.625rem;
-            }
-
-            .section-title {
-                font-size: 1.5rem;
-            }
-
-            .btn-large {
-                padding: 12px 20px;
-                font-size: 0.95rem;
-            }
-
-            .pricing-price-amount {
-                font-size: 2.25rem;
-            }
-
-            .mobile-menu {
-                width: 100%;
-                max-width: 100%;
-            }
-        }
-
-        /* Ensure touch targets are at least 44px */
-        @media (max-width: 768px) {
-            .btn {
-                min-height: 48px;
-            }
-
-            .nav-link,
-            .footer-column a {
-                min-height: 44px;
+            .mobile-drawer {
                 display: flex;
-                align-items: center;
+                flex-direction: column;
+                position: fixed;
+                top: 0;
+                right: 0;
+                bottom: 0;
+                width: 82vw;
+                max-width: 320px;
+                background: white;
+                transform: translateX(102%);
+                transition: transform .25s ease;
+                z-index: 1201;
+                padding: 16px;
+                gap: 10px;
             }
-        }
 
-        /* Safe area padding for notched devices */
-        @supports (padding: env(safe-area-inset-bottom)) {
-            .mobile-menu-buttons {
-                padding-bottom: calc(20px + env(safe-area-inset-bottom));
+            .mobile-drawer a {
+                text-decoration: none;
+                font-weight: 600;
+                color: var(--gray-700);
+                padding: 10px 4px;
+                border-bottom: 1px solid var(--gray-100);
             }
 
-            .footer {
-                padding-bottom: calc(32px + env(safe-area-inset-bottom));
-            }
+            .drawer-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+            .drawer-head img { height: 42px; }
+            .drawer-close { border: 0; background: none; font-size: 1.4rem; cursor: pointer; color: var(--gray-500); }
+
+            .drawer-open .mobile-drawer { transform: translateX(0); }
+            .drawer-open .drawer-backdrop { opacity: 1; pointer-events: auto; }
         }
     </style>
-    <style>body{-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;overscroll-behavior:none;-webkit-overflow-scrolling:touch;}</style>
 </head>
 <body>
-    <!-- Navigation -->
     <nav class="nav">
-        <div class="nav-container">
+        <div class="nav-inner">
             <a href="/" class="nav-logo">
-                <img src="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/Untitled%20design%20(3).svg" alt="Zique Fitness" class="nav-logo-img">
+                <img src="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/Untitled%20design%20(3).svg" alt="Zique Fitness">
             </a>
-
             <div class="nav-links">
-                <a href="#features" class="nav-link">Features</a>
-                <a href="#how-it-works" class="nav-link">How It Works</a>
-                <a href="#testimonials" class="nav-link">Testimonials</a>
-                <a href="pricing.html" class="nav-link">Pricing</a>
+                <a href="#platform">Platform</a>
+                <a href="#difference">Why Zique</a>
+                <a href="#media">Showcase</a>
+                <a href="#pricing">Pricing</a>
+                <a href="#faq">FAQ</a>
             </div>
-
-            <div class="nav-buttons">
-                <a href="login-select.html" class="btn btn-ghost">Log In</a>
+            <div class="nav-actions">
+                <a href="login-select.html" class="btn btn-secondary">Log In</a>
                 <a href="signup.html" class="btn btn-primary">Start Free Trial</a>
             </div>
-
-            <button class="mobile-menu-btn" aria-label="Open menu" aria-expanded="false">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
-                </svg>
+            <button class="menu-btn" aria-label="Open menu" aria-expanded="false">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
             </button>
         </div>
     </nav>
 
-    <!-- Mobile Menu Overlay -->
-    <div class="mobile-menu-overlay" aria-hidden="true"></div>
-
-    <!-- Mobile Menu Drawer -->
-    <div class="mobile-menu" role="dialog" aria-label="Mobile navigation menu">
-        <div class="mobile-menu-header">
-            <a href="/" class="nav-logo">
-                <img src="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/Untitled%20design%20(3).svg" alt="Zique Fitness" class="nav-logo-img" style="height: 45px;">
-            </a>
-            <button class="mobile-menu-close" aria-label="Close menu">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                </svg>
-            </button>
+    <div class="drawer-backdrop"></div>
+    <aside class="mobile-drawer" aria-label="Mobile menu">
+        <div class="drawer-head">
+            <img src="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/Untitled%20design%20(3).svg" alt="Zique Fitness">
+            <button class="drawer-close" aria-label="Close menu">×</button>
         </div>
-        <nav class="mobile-menu-nav">
-            <a href="#features" class="mobile-menu-link">Features</a>
-            <a href="#how-it-works" class="mobile-menu-link">How It Works</a>
-            <a href="#testimonials" class="mobile-menu-link">Testimonials</a>
-            <a href="pricing.html" class="mobile-menu-link">Pricing</a>
-            <a href="#faq" class="mobile-menu-link">FAQ</a>
-        </nav>
-        <div class="mobile-menu-buttons">
-            <a href="login-select.html" class="btn btn-ghost">Log In</a>
-            <a href="signup.html" class="btn btn-primary">Start Free Trial</a>
-        </div>
-    </div>
+        <a href="#platform">Platform</a>
+        <a href="#difference">Why Zique</a>
+        <a href="#media">Showcase</a>
+        <a href="#pricing">Pricing</a>
+        <a href="#faq">FAQ</a>
+        <a href="login-select.html" class="btn btn-secondary" style="margin-top:8px;">Log In</a>
+        <a href="signup.html" class="btn btn-primary">Start Free Trial</a>
+    </aside>
 
-    <!-- Hero Section -->
-    <section class="hero">
-        <div class="hero-container">
-            <div class="hero-badge">
-                <span class="hero-badge-dot"></span>
-                Trusted by 500+ nutrition coaches
+    <header class="hero">
+        <div class="container hero-grid">
+            <div>
+                <span class="badge"><span class="badge-dot"></span>Built for coaches scaling past 10+ clients</span>
+                <h1>Coach with <span>clarity, speed, and proof</span> in one branded platform.</h1>
+                <p class="hero-copy">Inspired by top fitness software experiences, this revamped homepage gives you a premium starting point to show exactly what makes Zique different: real accountability workflows, faster content delivery, and a client experience that looks high-end.</p>
+                <div class="hero-actions">
+                    <a href="signup.html" class="btn btn-primary">Start 14-Day Free Trial</a>
+                    <a href="#media" class="btn btn-secondary">See Demo Sections</a>
+                </div>
+                <div class="hero-trust">
+                    <div class="trust-card"><b>10k+</b><span>Plans delivered</span></div>
+                    <div class="trust-card"><b>500+</b><span>Coaches using Zique</span></div>
+                    <div class="trust-card"><b>98%</b><span>Coach satisfaction score</span></div>
+                </div>
             </div>
 
-            <h1>The All-in-One Platform for <span>Nutrition Coaches</span></h1>
-
-            <p class="hero-subtitle">
-                Create personalized meal plans with AI, track client progress, and grow your coaching business - all in one powerful platform.
-            </p>
-
-            <div class="hero-buttons">
-                <a href="signup.html" class="btn btn-primary btn-large">Start Your 14-Day Free Trial</a>
-                <a href="#how-it-works" class="btn btn-secondary btn-large">See How It Works</a>
+            <div class="hero-visual">
+                <div class="panel">
+                    <div class="panel-label">Coach Dashboard</div>
+                    <div class="panel-title">Today: 17 clients active • 6 check-ins due</div>
+                    <div class="progress-bar"><span></span></div>
+                </div>
+                <div class="panel">
+                    <div class="panel-label">Client Experience</div>
+                    <div class="panel-title">Workout + Nutrition + Habit tracking in one flow</div>
+                    <div class="highlight-strip">
+                        <div class="highlight-pill">Meals Logged ✅</div>
+                        <div class="highlight-pill">Workout Done ✅</div>
+                        <div class="highlight-pill">Check-In Due ⏱️</div>
+                    </div>
+                </div>
+                <div class="panel">
+                    <div class="panel-label">Business Growth</div>
+                    <div class="panel-title">Plug in onboarding videos, testimonials, and sales demos right from your landing flow.</div>
+                </div>
             </div>
+        </div>
+    </header>
 
-            <div class="hero-stats">
-                <div class="hero-stat">
-                    <div class="hero-stat-number">10,000+</div>
-                    <div class="hero-stat-label">Meal Plans Created</div>
-                </div>
-                <div class="hero-stat">
-                    <div class="hero-stat-number">500+</div>
-                    <div class="hero-stat-label">Active Coaches</div>
-                </div>
-                <div class="hero-stat">
-                    <div class="hero-stat-number">98%</div>
-                    <div class="hero-stat-label">Customer Satisfaction</div>
-                </div>
+    <section class="proof-bar">
+        <div class="container proof-row">
+            <span class="proof-chip">Workout Builder + Assignments</span>
+            <span class="proof-chip">Nutrition + Food Diary</span>
+            <span class="proof-chip">Progress Photos + Metrics</span>
+            <span class="proof-chip">Messaging + Check-ins</span>
+            <span class="proof-chip">Custom Coach Branding</span>
+        </div>
+    </section>
+
+    <section class="section" id="platform">
+        <div class="container">
+            <span class="badge">Platform Experience</span>
+            <h2 class="section-title">A modern coaching stack your clients actually enjoy using.</h2>
+            <p class="section-subtitle">Modeled after the strongest ideas from leading coaching websites: clear feature framing, visual storytelling, and confidence-building proof everywhere on the page.</p>
+
+            <div class="feature-grid">
+                <article class="feature"><div class="feature-icon">🧠</div><h3>Smart Program Builder</h3><p>Create nutrition and workout plans faster with AI-assisted workflows and reusable templates.</p></article>
+                <article class="feature"><div class="feature-icon">🎥</div><h3>Video-First Delivery</h3><p>Attach form demos, onboarding walkthroughs, and Loom-style coaching clips in key spots.</p></article>
+                <article class="feature"><div class="feature-icon">📈</div><h3>Performance Analytics</h3><p>See adherence trends, habit scores, and check-in completion so every adjustment is data-backed.</p></article>
+                <article class="feature"><div class="feature-icon">💬</div><h3>High-Touch Messaging</h3><p>Keep accountability tight with in-app communication, updates, and reminders tied to plans.</p></article>
+                <article class="feature"><div class="feature-icon">🧾</div><h3>Coach SOP Templates</h3><p>Standardize onboarding, weekly reviews, and client protocols while still personalizing delivery.</p></article>
+                <article class="feature"><div class="feature-icon">🎨</div><h3>Brand-Controlled Client Portal</h3><p>Present your logo, colors, and style so the experience feels like your own premium app.</p></article>
             </div>
         </div>
     </section>
 
-    <!-- Features Section -->
-    <section class="features" id="features">
-        <div class="section-container">
-            <div class="section-header">
-                <span class="section-label">Features</span>
-                <h2 class="section-title">Everything You Need to Succeed</h2>
-                <p class="section-subtitle">Powerful tools designed specifically for nutrition coaches to save time and deliver better results.</p>
-            </div>
+    <section class="section difference" id="difference">
+        <div class="container">
+            <span class="badge">Why Zique Over Generic Tools</span>
+            <h2 class="section-title">Designed for service differentiation, not just feature checklists.</h2>
+            <p class="section-subtitle">Your website now explains outcomes clearly: better client adherence, less admin overload, and premium delivery that helps justify higher coaching rates.</p>
 
-            <div class="features-grid">
-                <div class="feature-card">
-                    <div class="feature-icon">🤖</div>
-                    <h3>AI Meal Planning</h3>
-                    <p>Generate personalized meal plans in seconds using advanced AI. Customize for any diet, allergy, or preference.</p>
-                </div>
-
-                <div class="feature-card">
-                    <div class="feature-icon">👥</div>
-                    <h3>Client Management</h3>
-                    <p>Keep all your clients organized in one place. Track their goals, progress, and meal plan history effortlessly.</p>
-                </div>
-
-                <div class="feature-card">
-                    <div class="feature-icon">📊</div>
-                    <h3>Food Diary Tracking</h3>
-                    <p>Clients can log their meals and track macros with our beautiful food diary. Get insights into their eating habits.</p>
-                </div>
-
-                <div class="feature-card">
-                    <div class="feature-icon">📝</div>
-                    <h3>Weekly Check-ins</h3>
-                    <p>Automated check-in forms help you stay connected with clients and track their progress over time.</p>
-                </div>
-
-                <div class="feature-card">
-                    <div class="feature-icon">💊</div>
-                    <h3>Supplement Protocols</h3>
-                    <p>Create and assign supplement schedules for each client. They'll get reminders at the right times.</p>
-                </div>
-
-                <div class="feature-card">
-                    <div class="feature-icon">📖</div>
-                    <h3>Recipe Management</h3>
-                    <p>Build your recipe library with nutritional info. Easily add recipes to client meal plans.</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- How It Works -->
-    <section class="how-it-works" id="how-it-works">
-        <div class="section-container">
-            <div class="section-header">
-                <span class="section-label">How It Works</span>
-                <h2 class="section-title">Get Started in 3 Simple Steps</h2>
-                <p class="section-subtitle">From signup to delivering your first AI-generated meal plan in minutes.</p>
-            </div>
-
-            <div class="steps">
-                <div class="step">
-                    <div class="step-number">1</div>
-                    <h3>Add Your Clients</h3>
-                    <p>Create client profiles with their goals, dietary preferences, allergies, and nutritional targets.</p>
-                    <div class="step-connector"></div>
-                </div>
-
-                <div class="step">
-                    <div class="step-number">2</div>
-                    <h3>Generate Meal Plans</h3>
-                    <p>Use our AI planner to create customized meal plans in seconds. Review and adjust as needed.</p>
-                    <div class="step-connector"></div>
-                </div>
-
-                <div class="step">
-                    <div class="step-number">3</div>
-                    <h3>Track & Optimize</h3>
-                    <p>Clients access their portal to view plans, log meals, and check in. You monitor progress and adjust.</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Testimonials -->
-    <section class="testimonials" id="testimonials">
-        <div class="section-container">
-            <div class="section-header">
-                <span class="section-label">Testimonials</span>
-                <h2 class="section-title">Loved by Coaches Worldwide</h2>
-                <p class="section-subtitle">See what nutrition professionals are saying about Zique Fitness Nutrition.</p>
-            </div>
-
-            <div class="testimonials-grid">
-                <div class="testimonial-card">
-                    <div class="testimonial-stars">★★★★★</div>
-                    <p class="testimonial-text">"This platform has completely transformed how I run my nutrition coaching business. The AI meal planner saves me hours every week."</p>
-                    <div class="testimonial-author">
-                        <div class="testimonial-avatar">SJ</div>
-                        <div>
-                            <div class="testimonial-name">Sarah Johnson</div>
-                            <div class="testimonial-role">Certified Nutritionist</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="testimonial-card">
-                    <div class="testimonial-stars">★★★★★</div>
-                    <p class="testimonial-text">"My clients love the food diary feature. It keeps them accountable and gives me insights I never had before. Highly recommend!"</p>
-                    <div class="testimonial-author">
-                        <div class="testimonial-avatar">MR</div>
-                        <div>
-                            <div class="testimonial-name">Mike Rodriguez</div>
-                            <div class="testimonial-role">Sports Nutritionist</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="testimonial-card">
-                    <div class="testimonial-stars">★★★★★</div>
-                    <p class="testimonial-text">"Finally, a platform built for nutrition coaches. The client portal is beautiful and professional. My clients are impressed!"</p>
-                    <div class="testimonial-author">
-                        <div class="testimonial-avatar">EW</div>
-                        <div>
-                            <div class="testimonial-name">Emily Watson</div>
-                            <div class="testimonial-role">Health Coach</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Pricing Preview -->
-    <section class="pricing-preview" id="pricing">
-        <div class="section-container">
-            <div class="section-header">
-                <span class="section-label">Pricing</span>
-                <h2 class="section-title">Simple, Transparent Pricing</h2>
-                <p class="section-subtitle">Start with a 14-day free trial. No credit card required.</p>
-            </div>
-
-            <div class="pricing-cards">
-                <div class="pricing-card">
-                    <h3>Free</h3>
-                    <div class="pricing-price">
-                        <span class="pricing-price-amount">$0</span>
-                        <span class="pricing-price-period">/forever</span>
-                    </div>
-                    <ul class="pricing-features">
-                        <li>Up to 2 active clients</li>
-                        <li>AI meal plan generator</li>
-                        <li>Client food diary</li>
-                        <li>Weekly check-in forms</li>
-                        <li>No credit card required</li>
+            <div class="comparison">
+                <div class="compare-card">
+                    <h3>What many platforms show</h3>
+                    <ul>
+                        <li>Generic feature bullets without specific client outcomes</li>
+                        <li>Minimal space for coach proof or real use-cases</li>
+                        <li>Weak narrative between onboarding and retention</li>
+                        <li>No clear area for media-rich trust building</li>
                     </ul>
-                    <a href="signup.html?plan=free" class="btn btn-secondary">Get Started Free</a>
                 </div>
-
-                <div class="pricing-card">
-                    <h3>Starter</h3>
-                    <div class="pricing-price">
-                        <span class="pricing-price-amount">$49</span>
-                        <span class="pricing-price-period">/month</span>
-                    </div>
-                    <ul class="pricing-features">
-                        <li>Up to 10 active clients</li>
-                        <li>AI meal plan generator</li>
-                        <li>Client food diary</li>
-                        <li>Weekly check-in forms</li>
-                        <li>Supplement protocols</li>
+                <div class="compare-card">
+                    <h3>What this new template shows</h3>
+                    <ul>
+                        <li>Outcome-led messaging around accountability and retention</li>
+                        <li>Dedicated media blocks for transformation stories and demos</li>
+                        <li>Section structure that mirrors your service delivery process</li>
+                        <li>Built-in placeholders you can swap with your own content quickly</li>
                     </ul>
-                    <a href="signup.html?plan=starter" class="btn btn-secondary">Start Free Trial</a>
-                </div>
-
-                <div class="pricing-card featured">
-                    <span class="pricing-card-badge">MOST POPULAR</span>
-                    <h3>Growth</h3>
-                    <div class="pricing-price">
-                        <span class="pricing-price-amount">$99</span>
-                        <span class="pricing-price-period">/month</span>
-                    </div>
-                    <ul class="pricing-features">
-                        <li>Up to 50 active clients</li>
-                        <li>Everything in Starter</li>
-                        <li>Supplement protocols</li>
-                        <li>Priority support</li>
-                    </ul>
-                    <a href="signup.html?plan=growth" class="btn btn-primary">Start Free Trial</a>
-                </div>
-
-                <div class="pricing-card">
-                    <h3>Professional</h3>
-                    <div class="pricing-price">
-                        <span class="pricing-price-amount">$199</span>
-                        <span class="pricing-price-period">/month</span>
-                    </div>
-                    <ul class="pricing-features">
-                        <li>Up to 300 active clients</li>
-                        <li>Everything in Growth</li>
-                        <li>Custom branding & logo</li>
-                        <li>Priority support</li>
-                    </ul>
-                    <a href="signup.html?plan=professional" class="btn btn-secondary">Start Free Trial</a>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- FAQ Section -->
-    <section class="faq" id="faq">
-        <div class="section-container">
-            <div class="section-header">
-                <span class="section-label">FAQ</span>
-                <h2 class="section-title">Frequently Asked Questions</h2>
-                <p class="section-subtitle">Got questions? We've got answers.</p>
+    <section class="section media-section" id="media">
+        <div class="container">
+            <span class="badge">Showcase Zone</span>
+            <h2 class="section-title">Plug in your screenshots, transformations, and demo videos here.</h2>
+            <p class="section-subtitle">These content slots are intentionally visible so your team can quickly replace placeholders with real assets for launch.</p>
+
+            <div class="media-grid">
+                <article class="media-card">
+                    <div class="media-placeholder">Main Product Demo Video Placeholder<br><small>(Embed Vimeo/YouTube or hosted product walkthrough)</small></div>
+                </article>
+                <div class="mini-placeholders">
+                    <article class="media-card"><div class="media-placeholder" style="min-height:130px;">Coach Dashboard Screenshot</div></article>
+                    <article class="media-card"><div class="media-placeholder" style="min-height:130px;">Client App Progress View</div></article>
+                </div>
             </div>
+
+            <div class="workflow">
+                <article class="step"><div class="step-number">1</div><h3>Attract</h3><p>Lead magnet + onboarding explainer video + social proof.</p></article>
+                <article class="step"><div class="step-number">2</div><h3>Onboard</h3><p>Intake + readiness scoring + personalized first-week plan.</p></article>
+                <article class="step"><div class="step-number">3</div><h3>Coach</h3><p>Daily habit tracking, asynchronous support, weekly review flow.</p></article>
+                <article class="step"><div class="step-number">4</div><h3>Retain</h3><p>Progress reports + wins feed + next-phase program upgrades.</p></article>
+            </div>
+        </div>
+    </section>
+
+    <section class="section" id="pricing">
+        <div class="container">
+            <span class="badge">Pricing</span>
+            <h2 class="section-title">Simple plans while you grow from first clients to full roster.</h2>
+            <p class="section-subtitle">All plans can use this same branded website structure—only your offer details change.</p>
+
+            <div class="pricing-grid">
+                <article class="price-card"><h3>Free</h3><div class="price">$0</div><small>/forever</small><ul><li>Up to 2 active clients</li><li>Core planner tools</li><li>Food diary + check-ins</li></ul><a href="signup.html?plan=free" class="btn btn-secondary">Get Started</a></article>
+                <article class="price-card"><h3>Starter</h3><div class="price">$49</div><small>/month</small><ul><li>Up to 10 active clients</li><li>Nutrition + workout modules</li><li>Messaging + reminders</li></ul><a href="signup.html?plan=starter" class="btn btn-secondary">Start Trial</a></article>
+                <article class="price-card featured"><h3>Growth</h3><div class="price">$99</div><small>/month</small><ul><li>Up to 50 active clients</li><li>Custom branding</li><li>Priority support</li></ul><a href="signup.html?plan=growth" class="btn btn-primary">Start Trial</a></article>
+                <article class="price-card"><h3>Professional</h3><div class="price">$199</div><small>/month</small><ul><li>Up to 300 active clients</li><li>Team workflows</li><li>Advanced delivery features</li></ul><a href="signup.html?plan=professional" class="btn btn-secondary">Start Trial</a></article>
+            </div>
+        </div>
+    </section>
+
+    <section class="section" id="faq" style="padding-top: 16px;">
+        <div class="container">
+            <span class="badge">FAQ</span>
+            <h2 class="section-title">Common questions from coaches switching platforms.</h2>
 
             <div class="faq-grid">
-                <div class="faq-item">
-                    <h3 class="faq-question">How does the free trial work?</h3>
-                    <p class="faq-answer">You get 14 days of full access to all features. No credit card required to start. At the end of your trial, you can choose a plan that works for you.</p>
-                </div>
-
-                <div class="faq-item">
-                    <h3 class="faq-question">Can I cancel anytime?</h3>
-                    <p class="faq-answer">Absolutely. There are no long-term contracts. You can cancel your subscription at any time from your account settings.</p>
-                </div>
-
-                <div class="faq-item">
-                    <h3 class="faq-question">How does the AI meal planner work?</h3>
-                    <p class="faq-answer">Our AI analyzes your client's goals, preferences, and restrictions to generate personalized meal plans. You can customize and adjust any plan before sharing.</p>
-                </div>
-
-                <div class="faq-item">
-                    <h3 class="faq-question">Do my clients need to pay anything?</h3>
-                    <p class="faq-answer">No, client access is included in your subscription. Your clients can access their portal, view meal plans, and log their food diary for free.</p>
-                </div>
-
-                <div class="faq-item">
-                    <h3 class="faq-question">Is my data secure?</h3>
-                    <p class="faq-answer">Yes, we take security seriously. All data is encrypted in transit and at rest. We use industry-standard security practices to protect your information.</p>
-                </div>
-
-                <div class="faq-item">
-                    <h3 class="faq-question">Can I import my existing clients?</h3>
-                    <p class="faq-answer">Yes! You can easily add clients manually or contact our support team for bulk import assistance if you have many clients to migrate.</p>
-                </div>
+                <article class="faq-item"><h3>Can I customize this template to match my coaching brand?</h3><p>Yes. Replace colors, logo, CTAs, media blocks, and every headline while keeping the high-converting structure.</p></article>
+                <article class="faq-item"><h3>Can I add transformation photos and case-study videos?</h3><p>Absolutely. The Showcase Zone is designed specifically for before/after stories and demo clips.</p></article>
+                <article class="faq-item"><h3>Will this work for hybrid coaching (nutrition + workouts)?</h3><p>Yes. The new messaging is intentionally built to present multi-service coaching offers clearly.</p></article>
+                <article class="faq-item"><h3>Do clients need to purchase a separate app?</h3><p>No. Client access is included in your coach subscription tiers.</p></article>
             </div>
         </div>
     </section>
 
-    <!-- CTA Section -->
     <section class="cta">
-        <div class="section-container">
-            <h2>Ready to Transform Your Coaching Business?</h2>
-            <p>Join hundreds of nutrition coaches who are saving time and delivering better results.</p>
-            <a href="signup.html" class="btn btn-secondary btn-large">Start Your Free 14-Day Trial</a>
+        <div class="container">
+            <h2>Ready to showcase what makes your coaching premium?</h2>
+            <p>Launch this template with your brand assets and start converting better-fit clients.</p>
+            <a href="signup.html" class="btn btn-secondary">Start Your Free 14-Day Trial</a>
         </div>
     </section>
 
-    <!-- Footer -->
     <footer class="footer">
-        <div class="footer-container">
+        <div class="container">
             <div class="footer-grid">
-                <div class="footer-brand">
-                    <a href="/" class="nav-logo">
-                        <img src="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/Untitled%20design%20(3).svg" alt="Zique Fitness" class="nav-logo-img">
-                    </a>
-                    <p>The all-in-one platform for nutrition coaches. AI-powered meal planning, client management, and more.</p>
+                <div>
+                    <a href="/" class="nav-logo"><img src="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/Untitled%20design%20(3).svg" alt="Zique Fitness" style="height:56px;"></a>
+                    <p style="margin-top:10px; max-width:420px;">Zique is the all-in-one coaching platform for professionals who want delivery quality and business growth in one system.</p>
                 </div>
-
-                <div class="footer-column">
+                <div>
                     <h4>Product</h4>
-                    <a href="#features">Features</a>
-                    <a href="pricing.html">Pricing</a>
-                    <a href="#testimonials">Testimonials</a>
+                    <a href="#platform">Platform</a>
+                    <a href="#difference">Why Zique</a>
+                    <a href="#pricing">Pricing</a>
+                </div>
+                <div>
+                    <h4>Resources</h4>
+                    <a href="#media">Demo Showcase</a>
                     <a href="#faq">FAQ</a>
+                    <a href="apply.html">Apply</a>
                 </div>
-
-                <div class="footer-column">
-                    <h4>Company</h4>
-                    <a href="#">About Us</a>
-                    <a href="#">Contact</a>
-                    <a href="#">Blog</a>
-                </div>
-
-                <div class="footer-column">
+                <div>
                     <h4>Legal</h4>
                     <a href="terms.html">Terms of Service</a>
                     <a href="privacy.html">Privacy Policy</a>
                 </div>
             </div>
-
             <div class="footer-bottom">
-                <p>&copy; 2026 Zique Fitness Nutrition. All rights reserved.</p>
-                <p>Made with care for nutrition coaches worldwide.</p>
+                <span>© 2026 Zique Fitness Nutrition. All rights reserved.</span>
+                <span>Built for high-touch coaching teams.</span>
             </div>
         </div>
     </footer>
 
     <script>
-        // Mobile Menu Functionality
-        const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
-        const mobileMenuClose = document.querySelector('.mobile-menu-close');
-        const mobileMenu = document.querySelector('.mobile-menu');
-        const mobileMenuOverlay = document.querySelector('.mobile-menu-overlay');
-        const mobileMenuLinks = document.querySelectorAll('.mobile-menu-link');
+        const menuBtn = document.querySelector('.menu-btn');
+        const drawerClose = document.querySelector('.drawer-close');
+        const drawerBackdrop = document.querySelector('.drawer-backdrop');
+        const drawerLinks = document.querySelectorAll('.mobile-drawer a[href^="#"]');
 
-        function openMobileMenu() {
-            mobileMenu.classList.add('active');
-            mobileMenuOverlay.classList.add('active');
-            mobileMenuBtn.setAttribute('aria-expanded', 'true');
-            document.body.style.overflow = 'hidden';
-        }
-
-        function closeMobileMenu() {
-            mobileMenu.classList.remove('active');
-            mobileMenuOverlay.classList.remove('active');
-            mobileMenuBtn.setAttribute('aria-expanded', 'false');
+        function closeDrawer() {
+            document.body.classList.remove('drawer-open');
+            menuBtn?.setAttribute('aria-expanded', 'false');
             document.body.style.overflow = '';
         }
 
-        mobileMenuBtn.addEventListener('click', openMobileMenu);
-        mobileMenuClose.addEventListener('click', closeMobileMenu);
-        mobileMenuOverlay.addEventListener('click', closeMobileMenu);
+        function openDrawer() {
+            document.body.classList.add('drawer-open');
+            menuBtn?.setAttribute('aria-expanded', 'true');
+            document.body.style.overflow = 'hidden';
+        }
 
-        // Close menu when clicking on a link
-        mobileMenuLinks.forEach(link => {
-            link.addEventListener('click', closeMobileMenu);
+        menuBtn?.addEventListener('click', openDrawer);
+        drawerClose?.addEventListener('click', closeDrawer);
+        drawerBackdrop?.addEventListener('click', closeDrawer);
+
+        drawerLinks.forEach(link => {
+            link.addEventListener('click', closeDrawer);
         });
 
-        // Close menu on escape key
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && mobileMenu.classList.contains('active')) {
-                closeMobileMenu();
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                closeDrawer();
             }
         });
 
-        // Smooth scrolling for anchor links
-        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', function(e) {
-                e.preventDefault();
-                const target = document.querySelector(this.getAttribute('href'));
-                if (target) {
-                    target.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'start'
-                    });
-                }
-            });
-        });
-
-        // Navbar background on scroll
         const nav = document.querySelector('.nav');
         window.addEventListener('scroll', () => {
-            if (window.scrollY > 50) {
-                nav.style.boxShadow = '0 2px 20px rgba(0, 0, 0, 0.1)';
-            } else {
-                nav.style.boxShadow = 'none';
-            }
+            nav.style.boxShadow = window.scrollY > 14 ? '0 8px 25px rgba(15, 23, 42, 0.08)' : 'none';
         });
     </script>
-    <!-- Cookie Consent Banner for GDPR Compliance -->
     <script src="/js/cookie-consent.js"></script>
 </body>
 </html>
