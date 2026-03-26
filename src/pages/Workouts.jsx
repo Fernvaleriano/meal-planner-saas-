@@ -3948,6 +3948,9 @@ function Workouts() {
             selectedDate={selectedDate}
             readinessData={readinessData}
             weightUnit={weightUnit}
+            assignmentId={todayWorkout?.id || null}
+            dayIndex={todayWorkout?.day_index ?? 0}
+            allExercisesRaw={todayWorkout?.workout_data?.exercises || []}
           />
         </ErrorBoundary>
       )}
