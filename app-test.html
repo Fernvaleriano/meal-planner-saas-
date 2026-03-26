@@ -15,6 +15,22 @@
     <link rel="manifest" href="/manifest.json" id="manifest-link">
     <link rel="icon" type="image/png" href="/icons/logo.png">
     <link rel="apple-touch-icon" href="/icons/logo.png">
+    <!-- Set data-theme BEFORE any CSS loads to prevent white flash.
+         global.css uses [data-theme="dark"] to swap CSS variables;
+         without this, the light defaults flash for a frame while React boots. -->
+    <script>
+      (function(){
+        try {
+          var t = localStorage.getItem('zique-theme') || localStorage.getItem('theme') || 'dark';
+          document.documentElement.setAttribute('data-theme', t);
+          document.documentElement.style.backgroundColor = t === 'dark' ? '#0f172a' : '#f8fafc';
+          document.documentElement.style.colorScheme = t === 'dark' ? 'dark' : 'light';
+        } catch(e) {
+          document.documentElement.setAttribute('data-theme', 'dark');
+          document.documentElement.style.backgroundColor = '#0f172a';
+        }
+      })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
