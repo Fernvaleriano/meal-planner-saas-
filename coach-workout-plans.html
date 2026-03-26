@@ -870,15 +870,6 @@
             }
             currentCoachId = session.user.id;
             currentAccessToken = session.access_token;
-            // Seed default workouts for new coaches (runs once, skips if they already have programs)
-            try {
-                await apiCall('/.netlify/functions/seed-default-workouts', {
-                    method: 'POST',
-                    body: JSON.stringify({ coachId: currentCoachId })
-                });
-            } catch (e) {
-                console.warn('Default workout seeding skipped:', e.message);
-            }
             await loadPrograms();
         }
 

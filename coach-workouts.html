@@ -7238,16 +7238,6 @@
             // Initialize gym features (enabled for all coaches)
             await initGymFeatures({ email: session.user.email });
 
-            // Seed default workouts for new coaches (runs once, skips if they already have programs)
-            try {
-                await apiCall('/.netlify/functions/seed-default-workouts', {
-                    method: 'POST',
-                    body: JSON.stringify({ coachId: currentCoachId })
-                });
-            } catch (e) {
-                console.warn('Default workout seeding skipped:', e.message);
-            }
-
             // Load data
             await Promise.all([
                 loadPrograms(),
