@@ -22,14 +22,14 @@ const headers = {
 
 const DEFAULT_PROGRAMS = [
   {
-    name: 'Seated Leg Day - Intermediate',
-    description: 'Intermediate | 1 day | ~55 min | All-seated leg workout — Warm-up + Strength + Stretches',
+    name: 'Lower Body Machine Blast - Intermediate',
+    description: 'Intermediate | 1 day | ~55 min | Machine-based leg workout — Warm-up + Strength + Stretches',
     program_type: 'hypertrophy',
     difficulty: 'intermediate',
     days_per_week: 1,
     program_data: { days: [
       {
-        name: 'Seated Leg Day',
+        name: 'Lower Body Machine Blast',
         exercises: [
           // ── WARM-UP ──
           { name: 'Seated leg extension_both legs', sets: 2, trackingType: 'reps', setsData: [{ reps: 15, restSeconds: 30 }, { reps: 15, restSeconds: 30 }], notes: 'WARM-UP — Very light weight (30-40% of working weight). Slow, controlled reps to get blood flowing into your quads. Focus on the squeeze at the top.', section: 'warm-up' },
@@ -45,12 +45,12 @@ const DEFAULT_PROGRAMS = [
           { name: 'Seated calf machine', sets: 4, trackingType: 'reps', setsData: [{ reps: 15, restSeconds: 45 }, { reps: 15, restSeconds: 45 }, { reps: 15, restSeconds: 45 }, { reps: 15, restSeconds: 45 }], notes: 'Seated calf raise targets the soleus. Full range of motion — drop your heels as low as possible, then press up and squeeze at the top. 2-second hold at the top.' },
           { name: 'Dumbbell Seated Calf Raise', sets: 3, trackingType: 'reps', setsData: [{ reps: 20, restSeconds: 45 }, { reps: 20, restSeconds: 45 }, { reps: 20, restSeconds: 45 }], notes: 'Calf burnout finisher. Place dumbbell on your knees. High reps, constant tension — don\'t fully rest at the bottom. Squeeze at the top.' },
           // ── COOL-DOWN STRETCHES ──
-          { name: 'Seated Toe Touch Hamstrings Stretch', sets: 1, trackingType: 'duration', setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — Sit with legs extended, reach for your toes. Hold and breathe deeply. Relax into the stretch — no bouncing.', section: 'cool-down' },
-          { name: 'Seated single leg hamstring stretch', sets: 1, trackingType: 'duration', setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — 15 seconds per leg. Extend one leg, bend the other. Reach toward the extended foot. Deeper stretch than the double-leg version.', section: 'cool-down' },
-          { name: 'Seated cross leg glute stretch', sets: 1, trackingType: 'duration', setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — Cross one ankle over the opposite knee, lean forward gently. 15 sec per side. Opens up the glutes and piriformis.', section: 'cool-down' },
-          { name: 'Seated Figure Four With Twist Glute Stretch', sets: 1, trackingType: 'duration', setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — Figure four position with a gentle twist. 15 sec per side. Hits the glutes, hip rotators, and lower back.', section: 'cool-down' },
-          { name: 'Seated straight leg calf stretch', sets: 1, trackingType: 'duration', setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — Extend legs and flex your feet toward you. Hold and breathe. Stretches the gastrocnemius and soleus.', section: 'cool-down' },
-          { name: 'Seated side stretch', sets: 1, trackingType: 'duration', setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — Reach one arm overhead and lean to the opposite side. 15 sec per side. Opens up the obliques and hip flexors. Great job — workout complete!', section: 'cool-down' }
+          { name: 'Seated Toe Touch Hamstrings Stretch', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — Sit with legs extended, reach for your toes. Hold and breathe deeply. Relax into the stretch — no bouncing.', section: 'cool-down' },
+          { name: 'Seated single leg hamstring stretch', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — 15 seconds per leg. Extend one leg, bend the other. Reach toward the extended foot. Deeper stretch than the double-leg version.', section: 'cool-down' },
+          { name: 'Seated cross leg glute stretch', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — Cross one ankle over the opposite knee, lean forward gently. 15 sec per side. Opens up the glutes and piriformis.', section: 'cool-down' },
+          { name: 'Seated Figure Four With Twist Glute Stretch', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — Figure four position with a gentle twist. 15 sec per side. Hits the glutes, hip rotators, and lower back.', section: 'cool-down' },
+          { name: 'Seated straight leg calf stretch', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — Extend legs and flex your feet toward you. Hold and breathe. Stretches the gastrocnemius and soleus.', section: 'cool-down' },
+          { name: 'Seated side stretch', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — Reach one arm overhead and lean to the opposite side. 15 sec per side. Opens up the obliques and hip flexors. Great job — workout complete!', section: 'cool-down' }
         ]
       }
     ]}
