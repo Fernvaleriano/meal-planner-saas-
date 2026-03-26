@@ -627,6 +627,207 @@
             font-size: 0.85rem;
         }
 
+        /* ===== THREE OVERVIEW CARDS ===== */
+        .overview-cards-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .overview-card {
+            background: white;
+            border-radius: 18px;
+            border: 1px solid var(--gray-100);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.03);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .overview-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--brand-gradient);
+        }
+
+        [data-theme="dark"] .overview-card {
+            background: #1e293b;
+            border-color: #334155;
+        }
+
+        .overview-card-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 16px 18px 12px;
+        }
+
+        .overview-card-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .overview-card-icon--activity {
+            background: rgba(59, 130, 246, 0.1);
+            color: #3b82f6;
+        }
+
+        .overview-card-icon--alerts {
+            background: rgba(245, 158, 11, 0.1);
+            color: #f59e0b;
+        }
+
+        .overview-card-icon--meals {
+            background: rgba(34, 197, 94, 0.1);
+            color: #22c55e;
+        }
+
+        [data-theme="dark"] .overview-card-icon--activity {
+            background: rgba(59, 130, 246, 0.15);
+        }
+
+        [data-theme="dark"] .overview-card-icon--alerts {
+            background: rgba(245, 158, 11, 0.15);
+        }
+
+        [data-theme="dark"] .overview-card-icon--meals {
+            background: rgba(34, 197, 94, 0.15);
+        }
+
+        .overview-card-title-wrap {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .overview-card-title {
+            font-size: 0.9375rem;
+            font-weight: 700;
+            color: var(--gray-800);
+            line-height: 1.2;
+        }
+
+        [data-theme="dark"] .overview-card-title {
+            color: #f1f5f9;
+        }
+
+        .overview-card-count {
+            font-size: 0.75rem;
+            color: var(--gray-400);
+            font-weight: 500;
+        }
+
+        .overview-card-expand {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            background: var(--gray-50);
+            border-radius: 8px;
+            color: var(--gray-400);
+            cursor: pointer;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+
+        .overview-card-expand:hover {
+            background: var(--gray-100);
+            color: var(--gray-600);
+        }
+
+        [data-theme="dark"] .overview-card-expand {
+            background: #0f172a;
+            color: #64748b;
+        }
+
+        [data-theme="dark"] .overview-card-expand:hover {
+            background: #334155;
+            color: #94a3b8;
+        }
+
+        .overview-card.expanded .overview-card-expand svg {
+            transform: rotate(180deg);
+        }
+
+        .overview-card-body {
+            padding: 0 18px 16px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .overview-card-scroll {
+            max-height: 280px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: thin;
+            scrollbar-color: var(--gray-300) transparent;
+        }
+
+        .overview-card-scroll::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .overview-card-scroll::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .overview-card-scroll::-webkit-scrollbar-thumb {
+            background: var(--gray-300);
+            border-radius: 4px;
+        }
+
+        [data-theme="dark"] .overview-card-scroll::-webkit-scrollbar-thumb {
+            background: #475569;
+        }
+
+        .overview-card.expanded .overview-card-scroll {
+            max-height: none;
+        }
+
+        @media (max-width: 1024px) {
+            .overview-cards-grid {
+                grid-template-columns: 1fr;
+            }
+            .overview-card-scroll {
+                max-height: 220px;
+            }
+        }
+
+        @media (min-width: 601px) and (max-width: 1024px) {
+            .overview-cards-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .overview-cards-grid .overview-card:last-child {
+                grid-column: 1 / -1;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .overview-cards-grid {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+            .overview-card {
+                border-radius: 14px;
+            }
+            .overview-card-scroll {
+                max-height: 200px;
+            }
+        }
+
         /* Activity Timeline - Client Grouped */
         .activity-timeline {
             display: flex;
@@ -5300,7 +5501,7 @@
                         <span class="stats-strip-label">Clients</span>
                     </a>
                     <div class="stats-strip-divider"></div>
-                    <div class="stats-strip-item" style="cursor:pointer" onclick="document.getElementById('priorityAlerts').scrollIntoView({behavior:'smooth'})" title="View pending check-ins">
+                    <div class="stats-strip-item" style="cursor:pointer" onclick="document.getElementById('overviewCardAlerts').scrollIntoView({behavior:'smooth'})" title="View pending check-ins">
                         <span class="stats-strip-number stats-strip-number--pending" id="checkInCount">-</span>
                         <span class="stats-strip-label">Check-Ins</span>
                     </div>
@@ -5326,36 +5527,87 @@
                     </div>
                 </div>
 
-                <!-- Today's Priority - compact -->
-                <div class="welcome-section" style="margin-bottom: 0;">
-                <div class="welcome-card" style="grid-column: 1 / -1;">
-                    <span id="tierBadge" class="tier-badge" style="margin-bottom: 8px;">LOADING</span>
-                    <div class="action-center" id="actionCenter">
-                        <div class="action-center-heading">Activity Feed</div>
-                        <div class="feed-filter-tabs" id="feedFilterTabs">
-                            <button class="feed-filter-tab active" data-filter="activity" onclick="setFeedFilter('activity', this)">
-                                <span class="feed-tab-icon">📋</span> Activity
-                            </button>
-                            <button class="feed-filter-tab" data-filter="alert" onclick="setFeedFilter('alert', this)">
-                                <span class="feed-tab-icon">⚡</span> Alerts
-                            </button>
-                            <button class="feed-filter-tab" data-filter="meals" onclick="setFeedFilter('meals', this)">
-                                <span class="feed-tab-icon">🍽️</span> Meals
+                <!-- Tier Badge -->
+                <span id="tierBadge" class="tier-badge" style="margin-bottom: 8px;">LOADING</span>
+
+                <!-- Three Overview Cards -->
+                <div class="overview-cards-grid">
+                    <!-- Activity Card -->
+                    <div class="overview-card" id="overviewCardActivity">
+                        <div class="overview-card-header">
+                            <div class="overview-card-icon overview-card-icon--activity">
+                                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                            </div>
+                            <div class="overview-card-title-wrap">
+                                <h3 class="overview-card-title">Activity</h3>
+                                <span class="overview-card-count" id="activityCardCount"></span>
+                            </div>
+                            <button class="overview-card-expand" onclick="toggleOverviewCard('overviewCardActivity')" title="Expand/Collapse">
+                                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
                             </button>
                         </div>
-                        <div class="priority-alerts" id="priorityAlerts">
-                            <div class="priority-alert priority-alert--loading">
-                                <span class="priority-dot priority-dot--muted"></span>
-                                <span>Loading alerts...</span>
+                        <div class="overview-card-body" id="activityCardBody">
+                            <div class="overview-card-scroll" id="activityCardContent">
+                                <div class="priority-alert priority-alert--loading">
+                                    <span class="priority-dot priority-dot--muted"></span>
+                                    <span>Loading activity...</span>
+                                </div>
                             </div>
                         </div>
-                        <div class="feed-load-more" id="feedLoadMore">
-                            <button class="feed-load-more-btn" onclick="loadMoreMeals()">Load More</button>
+                    </div>
+
+                    <!-- Alerts Card -->
+                    <div class="overview-card" id="overviewCardAlerts">
+                        <div class="overview-card-header">
+                            <div class="overview-card-icon overview-card-icon--alerts">
+                                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                            </div>
+                            <div class="overview-card-title-wrap">
+                                <h3 class="overview-card-title">Alerts</h3>
+                                <span class="overview-card-count" id="alertsCardCount"></span>
+                            </div>
+                            <button class="overview-card-expand" onclick="toggleOverviewCard('overviewCardAlerts')" title="Expand/Collapse">
+                                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+                            </button>
                         </div>
-                        <a href="manage-clients.html" class="action-center-link">View Clients</a>
+                        <div class="overview-card-body" id="alertsCardBody">
+                            <div class="overview-card-scroll" id="alertsCardContent">
+                                <div class="priority-alert priority-alert--loading">
+                                    <span class="priority-dot priority-dot--muted"></span>
+                                    <span>Loading alerts...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Meals Card -->
+                    <div class="overview-card" id="overviewCardMeals">
+                        <div class="overview-card-header">
+                            <div class="overview-card-icon overview-card-icon--meals">
+                                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
+                            </div>
+                            <div class="overview-card-title-wrap">
+                                <h3 class="overview-card-title">Meals</h3>
+                                <span class="overview-card-count" id="mealsCardCount"></span>
+                            </div>
+                            <button class="overview-card-expand" onclick="toggleOverviewCard('overviewCardMeals')" title="Expand/Collapse">
+                                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+                            </button>
+                        </div>
+                        <div class="overview-card-body" id="mealsCardBody">
+                            <div class="overview-card-scroll" id="mealsCardContent">
+                                <div class="priority-alert priority-alert--loading">
+                                    <span class="priority-dot priority-dot--muted"></span>
+                                    <span>Loading meals...</span>
+                                </div>
+                            </div>
+                            <div class="feed-load-more" id="feedLoadMore">
+                                <button class="feed-load-more-btn" onclick="loadMoreMeals()">Load More</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                </div>
+                <a href="manage-clients.html" class="action-center-link" style="margin-top:8px;">View Clients</a>
             </div>
 
 
@@ -5643,6 +5895,7 @@
         let _mealOffset = 0;
         let _mealHasMore = false;
         let _mealClientMap = {};
+        let _workoutSummaryHtml = '';
         const MEAL_REACTIONS = ['👏', '💪', '🔥', '⭐', '❤️'];
 
         // Show subscription modal with customized content
@@ -6202,9 +6455,11 @@
             synced.forEach(id => _localOnlyDismissed.delete(id));
         }
 
-        function toggleHandledSection() {
-            const list = document.getElementById('handledList');
-            const chevron = document.getElementById('handledChevron');
+        function toggleHandledSection(listId, chevronId) {
+            listId = listId || 'handledList';
+            chevronId = chevronId || 'handledChevron';
+            const list = document.getElementById(listId);
+            const chevron = document.getElementById(chevronId);
             if (list && chevron) {
                 list.classList.toggle('open');
                 chevron.classList.toggle('open');
@@ -6438,8 +6693,8 @@
 
         async function loadActivityFeed(coachId) {
             _activityFeedLoaded = true;
-            const alertsEl = document.getElementById('priorityAlerts');
-            if (alertsEl && _activeFilter === 'activity') {
+            const alertsEl = document.getElementById('activityCardContent');
+            if (alertsEl) {
                 alertsEl.innerHTML = '<div class="activity-tl-empty">Loading activity...</div>';
             }
 
@@ -6452,7 +6707,7 @@
                 if (!clients || clients.length === 0) {
                     _activityFeedData = [];
                     _activityGrouped = {};
-                    if (alertsEl && _activeFilter === 'activity') renderActivityTimeline(alertsEl);
+                    if (alertsEl) renderActivityTimeline(alertsEl);
                     return;
                 }
 
@@ -6553,7 +6808,14 @@
                 _activityGrouped = {};
             }
 
-            if (alertsEl && _activeFilter === 'activity') renderActivityTimeline(alertsEl);
+            if (alertsEl) renderActivityTimeline(alertsEl);
+
+            // Update activity count badge
+            const countEl = document.getElementById('activityCardCount');
+            if (countEl) {
+                const clientCount = Object.keys(_activityGrouped).length;
+                countEl.textContent = clientCount > 0 ? `${clientCount} client${clientCount !== 1 ? 's' : ''}` : '';
+            }
         }
 
         function toggleActivityCard(cardEl) {
@@ -6722,112 +6984,130 @@
             container.innerHTML = html;
         }
 
-        function renderPriorityAlertSections() {
-            const alertsEl = document.getElementById('priorityAlerts');
-
-            // Activity tab has its own renderer
-            if (_activeFilter === 'activity') {
-                if (alertsEl) renderActivityTimeline(alertsEl);
-                const loadMoreEl = document.getElementById('feedLoadMore');
-                if (loadMoreEl) loadMoreEl.style.display = 'none';
-                return;
-            }
-
-            if (!alertsEl || _allPriorityAlerts.length === 0) {
-                if (alertsEl) {
-                    alertsEl.innerHTML = `
-                        <div class="priority-alert">
-                            <span class="priority-dot priority-dot--green"></span>
-                            <span>All caught up! No activity to show.</span>
-                        </div>
-                    `;
-                }
-                // Show/hide load more based on filter
-                const loadMoreEl = document.getElementById('feedLoadMore');
-                if (loadMoreEl) loadMoreEl.style.display = 'none';
-                return;
-            }
-
-            const dismissed = getDismissedAlerts();
-            const active = [];
-            const handled = [];
-
-            // Apply filter
-            const filtered = _allPriorityAlerts.filter(item => item.type === (_activeFilter === 'meals' ? 'meal' : _activeFilter));
-
-            filtered.forEach(item => {
-                if (dismissed[item.id]) {
-                    handled.push(item);
-                } else {
-                    active.push(item);
-                }
-            });
-
-            let html = '';
-
-            // Overview summary removed — stats are already shown in the stats strip at the top of the dashboard
-
-            // Active alerts
-            if (active.length > 0) {
-                active.forEach(item => {
-                    html += item.html.replace('__CHECKBOX__', checkboxHtml(item.id, false));
-                });
-            } else {
-                const filterLabels = { meals: 'meal', alert: 'alert', activity: 'activity' };
-                const label = filterLabels[_activeFilter] || '';
-                html += `
-                    <div class="priority-alert">
-                        <span class="priority-dot priority-dot--green"></span>
-                        <span>All caught up! No ${label} items right now.</span>
-                    </div>
-                `;
-            }
-
-            // Handled section
-            if (handled.length > 0) {
-                html += `
-                    <div class="priority-handled-section">
-                        <div class="priority-handled-toggle" onclick="toggleHandledSection()">
-                            <span class="priority-handled-label">
-                                <svg class="priority-handled-chevron${document.getElementById('handledList')?.classList.contains('open') ? ' open' : ''}" id="handledChevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
-                                Archived (${handled.length})
-                            </span>
-                            <button class="priority-handled-clear" onclick="event.stopPropagation(); clearAllHandled()">Restore all</button>
-                        </div>
-                        <div class="priority-handled-list${document.getElementById('handledList')?.classList.contains('open') ? ' open' : ''}" id="handledList">
-                `;
-                handled.forEach(item => {
-                    html += `<div class="priority-alert priority-alert--dismissed priority-alert--clickable">${item.html.replace('__CHECKBOX__', checkboxHtml(item.id, true)).replace(/onclick="window\.location\.href=[^"]*"/, '')}</div>`;
-                });
-                html += `
-                        </div>
-                    </div>
-                `;
-            }
-
-            // Append workout summary (informational, not dismissable) — shown on alerts tab
-            if (_activeFilter === 'alert' && alertsEl.dataset.workoutSummary) {
-                html += alertsEl.dataset.workoutSummary;
-            }
-
-            // Show/hide load more button based on filter
-            const loadMoreEl = document.getElementById('feedLoadMore');
-            if (loadMoreEl) {
-                loadMoreEl.style.display = _activeFilter === 'meals' && _mealHasMore ? 'block' : 'none';
-            }
-
-            alertsEl.innerHTML = html;
+        // Toggle overview card expand/collapse
+        function toggleOverviewCard(cardId) {
+            const card = document.getElementById(cardId);
+            if (card) card.classList.toggle('expanded');
         }
 
-        // Feed filter tab switching
+        function renderPriorityAlertSections() {
+            // Render into three separate overview card containers
+            const activityEl = document.getElementById('activityCardContent');
+            const alertsEl = document.getElementById('alertsCardContent');
+            const mealsEl = document.getElementById('mealsCardContent');
+
+            // --- Activity card ---
+            if (activityEl) {
+                renderActivityTimeline(activityEl);
+            }
+
+            // --- Alerts card ---
+            if (alertsEl) {
+                const dismissed = getDismissedAlerts();
+                const alertItems = _allPriorityAlerts.filter(item => item.type === 'alert');
+                const activeAlerts = [];
+                const handledAlerts = [];
+
+                alertItems.forEach(item => {
+                    if (dismissed[item.id]) handledAlerts.push(item);
+                    else activeAlerts.push(item);
+                });
+
+                let alertHtml = '';
+                if (activeAlerts.length > 0) {
+                    activeAlerts.forEach(item => {
+                        alertHtml += item.html.replace('__CHECKBOX__', checkboxHtml(item.id, false));
+                    });
+                } else {
+                    alertHtml += '<div class="priority-alert"><span class="priority-dot priority-dot--green"></span><span>All caught up! No alerts right now.</span></div>';
+                }
+
+                if (handledAlerts.length > 0) {
+                    const handledListEl = document.getElementById('handledListAlerts');
+                    const isOpen = handledListEl?.classList.contains('open');
+                    alertHtml += `
+                        <div class="priority-handled-section">
+                            <div class="priority-handled-toggle" onclick="toggleHandledSection('handledListAlerts','handledChevronAlerts')">
+                                <span class="priority-handled-label">
+                                    <svg class="priority-handled-chevron${isOpen ? ' open' : ''}" id="handledChevronAlerts" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+                                    Archived (${handledAlerts.length})
+                                </span>
+                                <button class="priority-handled-clear" onclick="event.stopPropagation(); clearAllHandled()">Restore all</button>
+                            </div>
+                            <div class="priority-handled-list${isOpen ? ' open' : ''}" id="handledListAlerts">`;
+                    handledAlerts.forEach(item => {
+                        alertHtml += `<div class="priority-alert priority-alert--dismissed priority-alert--clickable">${item.html.replace('__CHECKBOX__', checkboxHtml(item.id, true)).replace(/onclick="window\.location\.href=[^"]*"/, '')}</div>`;
+                    });
+                    alertHtml += '</div></div>';
+                }
+
+                // Append workout summary if available
+                if (_workoutSummaryHtml) {
+                    alertHtml += _workoutSummaryHtml;
+                }
+
+                alertsEl.innerHTML = alertHtml;
+
+                // Update count badge
+                const alertCountEl = document.getElementById('alertsCardCount');
+                if (alertCountEl) alertCountEl.textContent = activeAlerts.length > 0 ? `${activeAlerts.length} pending` : '';
+            }
+
+            // --- Meals card ---
+            if (mealsEl) {
+                const dismissed = getDismissedAlerts();
+                const mealItems = _allPriorityAlerts.filter(item => item.type === 'meal');
+                const activeMeals = [];
+                const handledMeals = [];
+
+                mealItems.forEach(item => {
+                    if (dismissed[item.id]) handledMeals.push(item);
+                    else activeMeals.push(item);
+                });
+
+                let mealHtml = '';
+                if (activeMeals.length > 0) {
+                    activeMeals.forEach(item => {
+                        mealHtml += item.html.replace('__CHECKBOX__', checkboxHtml(item.id, false));
+                    });
+                } else {
+                    mealHtml += '<div class="priority-alert"><span class="priority-dot priority-dot--green"></span><span>No meal logs to review.</span></div>';
+                }
+
+                if (handledMeals.length > 0) {
+                    const handledListEl = document.getElementById('handledListMeals');
+                    const isOpen = handledListEl?.classList.contains('open');
+                    mealHtml += `
+                        <div class="priority-handled-section">
+                            <div class="priority-handled-toggle" onclick="toggleHandledSection('handledListMeals','handledChevronMeals')">
+                                <span class="priority-handled-label">
+                                    <svg class="priority-handled-chevron${isOpen ? ' open' : ''}" id="handledChevronMeals" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+                                    Archived (${handledMeals.length})
+                                </span>
+                                <button class="priority-handled-clear" onclick="event.stopPropagation(); clearAllHandled()">Restore all</button>
+                            </div>
+                            <div class="priority-handled-list${isOpen ? ' open' : ''}" id="handledListMeals">`;
+                    handledMeals.forEach(item => {
+                        mealHtml += `<div class="priority-alert priority-alert--dismissed priority-alert--clickable">${item.html.replace('__CHECKBOX__', checkboxHtml(item.id, true)).replace(/onclick="window\.location\.href=[^"]*"/, '')}</div>`;
+                    });
+                    mealHtml += '</div></div>';
+                }
+
+                mealsEl.innerHTML = mealHtml;
+
+                // Update count badge
+                const mealsCountEl = document.getElementById('mealsCardCount');
+                if (mealsCountEl) mealsCountEl.textContent = activeMeals.length > 0 ? `${activeMeals.length} logged` : '';
+
+                // Show/hide load more
+                const loadMoreEl = document.getElementById('feedLoadMore');
+                if (loadMoreEl) loadMoreEl.style.display = _mealHasMore ? 'block' : 'none';
+            }
+        }
+
+        // Feed filter - kept for compatibility, now all three render simultaneously
         function setFeedFilter(filter, btn) {
             _activeFilter = filter;
-            // Update active tab styling
-            document.querySelectorAll('.feed-filter-tab').forEach(t => t.classList.remove('active'));
-            if (btn) btn.classList.add('active');
-            if (filter === 'activity' && _currentCoachId && !_activityFeedLoaded) {
-                loadActivityFeed(_currentCoachId);
-            }
             renderPriorityAlertSections();
         }
 
@@ -7107,8 +7387,8 @@
             }
             _loadingAlerts = true;
 
-            const alertsEl = document.getElementById('priorityAlerts');
             _allPriorityAlerts = [];
+            _workoutSummaryHtml = '';
             _currentCoachId = coachId;
             const MAX_SHOWN = 3;
 
@@ -7753,7 +8033,7 @@
                             const names = activeClients.slice(0, 3).map(([cid]) => clientMap[cid] || 'Unknown').join(', ');
                             const extraCount = activeClients.length - 3;
                             // Workout summary is informational — not dismissable, just append directly
-                            alertsEl.dataset.workoutSummary = `
+                            _workoutSummaryHtml = `
                                 <div class="priority-alert">
                                     <span class="priority-dot priority-dot--green"></span>
                                     <span>${recentWorkouts.length} workout${recentWorkouts.length !== 1 ? 's' : ''} this week from <strong>${names}</strong>${extraCount > 0 ? ` + ${extraCount} more` : ''}</span>
