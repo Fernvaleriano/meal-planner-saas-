@@ -42,6 +42,11 @@
     function setTheme(theme, save = true) {
         document.documentElement.setAttribute('data-theme', theme);
 
+        // Set background color immediately as inline style to prevent white flash
+        // This takes effect before external CSS loads
+        document.documentElement.style.backgroundColor = theme === DARK ? '#0f172a' : '#f8fafc';
+        document.documentElement.style.colorScheme = theme === DARK ? 'dark' : 'light';
+
         if (save) {
             localStorage.setItem(THEME_KEY, theme);
         }
@@ -122,6 +127,55 @@
 
     // Initialize immediately (before DOM ready) to prevent flash
     initTheme();
+
+    // Inject a branded splash overlay to cover the white flash while CSS/JS loads
+    function showSplashScreen() {
+        var theme = document.documentElement.getAttribute('data-theme') || DARK;
+        var bg = theme === DARK ? '#0f172a' : '#f8fafc';
+        var spinnerColor = '#0d9488';
+
+        // Inject splash styles and element before body renders
+        var style = document.createElement('style');
+        style.textContent =
+            '#zique-splash{position:fixed;top:0;left:0;width:100%;height:100%;z-index:99999;display:flex;align-items:center;justify-content:center;flex-direction:column;background:' + bg + ';transition:opacity 0.3s ease;}' +
+            '#zique-splash.fade-out{opacity:0;pointer-events:none;}' +
+            '#zique-splash-spinner{width:36px;height:36px;border:3px solid rgba(13,148,136,0.2);border-top-color:' + spinnerColor + ';border-radius:50%;animation:zq-spin 0.7s linear infinite;}' +
+            '@keyframes zq-spin{to{transform:rotate(360deg)}}' +
+            '#zique-splash-logo{width:48px;height:48px;margin-bottom:16px;border-radius:12px;}';
+        document.head.appendChild(style);
+
+        // Create splash element - will be added to body as soon as it exists
+        function insertSplash() {
+            if (document.getElementById('zique-splash')) return;
+            var splash = document.createElement('div');
+            splash.id = 'zique-splash';
+            splash.innerHTML = '<img id="zique-splash-logo" src="/icons/logo.png" alt="" onerror="this.style.display=\'none\'">' +
+                '<div id="zique-splash-spinner"></div>';
+            document.body.insertBefore(splash, document.body.firstChild);
+        }
+
+        if (document.body) {
+            insertSplash();
+        } else {
+            // body doesn't exist yet - wait for it
+            document.addEventListener('DOMContentLoaded', insertSplash);
+        }
+
+        // Remove splash when page is fully loaded
+        function removeSplash() {
+            var splash = document.getElementById('zique-splash');
+            if (splash) {
+                splash.classList.add('fade-out');
+                setTimeout(function() { splash.remove(); }, 300);
+            }
+        }
+
+        // Remove on window load (all resources ready) or after 4s max
+        window.addEventListener('load', removeSplash);
+        setTimeout(removeSplash, 4000);
+    }
+
+    showSplashScreen();
 
     // Setup listeners when DOM is ready
     if (document.readyState === 'loading') {
