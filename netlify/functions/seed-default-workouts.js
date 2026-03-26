@@ -22,6 +22,40 @@ const headers = {
 
 const DEFAULT_PROGRAMS = [
   {
+    name: 'Seated Leg Day - Intermediate',
+    description: 'Intermediate | 1 day | ~55 min | All-seated leg workout — Warm-up + Strength + Stretches',
+    program_type: 'hypertrophy',
+    difficulty: 'intermediate',
+    days_per_week: 1,
+    program_data: { days: [
+      {
+        name: 'Seated Leg Day',
+        exercises: [
+          // ── WARM-UP ──
+          { name: 'Seated leg extension_both legs', sets: 2, trackingType: 'reps', setsData: [{ reps: 15, restSeconds: 30 }, { reps: 15, restSeconds: 30 }], notes: 'WARM-UP — Very light weight (30-40% of working weight). Slow, controlled reps to get blood flowing into your quads. Focus on the squeeze at the top.', section: 'warm-up' },
+          { name: 'Seated leg curl machine', sets: 2, trackingType: 'reps', setsData: [{ reps: 15, restSeconds: 30 }, { reps: 15, restSeconds: 30 }], notes: 'WARM-UP — Very light weight. Warm up the hamstrings and knees. Full range of motion, no rushing.', section: 'warm-up' },
+          { name: 'Seated Hip Abductor Machine', sets: 1, trackingType: 'reps', setsData: [{ reps: 20, restSeconds: 30 }], notes: 'WARM-UP — Light weight, open the hips. Wake up the glute medius before heavier work.', section: 'warm-up' },
+          // ── MAIN WORKOUT ──
+          { name: 'Leg press machine normal stance', sets: 4, trackingType: 'reps', setsData: [{ reps: 10, restSeconds: 90 }, { reps: 10, restSeconds: 90 }, { reps: 10, restSeconds: 90 }, { reps: 10, restSeconds: 90 }], notes: 'Heavy compound — the main lift. Feet shoulder-width, mid-platform. Lower until knees hit 90°. Drive through your heels. Increase weight each set if possible (pyramid up).' },
+          { name: 'Seated leg extension_both legs', sets: 4, trackingType: 'reps', setsData: [{ reps: 12, restSeconds: 60 }, { reps: 12, restSeconds: 60 }, { reps: 12, restSeconds: 60 }, { reps: 12, restSeconds: 60 }], notes: 'Quad isolation. Squeeze HARD at the top and hold for 1 second. Control the negative — 3 seconds on the way down. Pick a challenging weight.' },
+          { name: 'Seated leg extension single leg', sets: 3, trackingType: 'reps', setsData: [{ reps: 10, restSeconds: 45 }, { reps: 10, restSeconds: 45 }, { reps: 10, restSeconds: 45 }], notes: 'Unilateral quad work — fixes imbalances. 10 reps per leg. Same slow negative tempo. If one leg is weaker, start with that leg.' },
+          { name: 'Seated leg curl machine', sets: 4, trackingType: 'reps', setsData: [{ reps: 12, restSeconds: 60 }, { reps: 12, restSeconds: 60 }, { reps: 12, restSeconds: 60 }, { reps: 12, restSeconds: 60 }], notes: 'Hamstring isolation. Curl all the way up, squeeze at the top. Slow 3-second eccentric on the way back. Do not swing — controlled reps only.' },
+          { name: 'Seated Hip Abductor Machine', sets: 3, trackingType: 'reps', setsData: [{ reps: 15, restSeconds: 60 }, { reps: 15, restSeconds: 60 }, { reps: 15, restSeconds: 60 }], notes: 'Outer glutes and hip stability. Push knees out as far as possible. Pause for 1 second at the widest point. Moderate weight — feel the burn.' },
+          { name: 'Seated machine hip adductor', sets: 3, trackingType: 'reps', setsData: [{ reps: 15, restSeconds: 60 }, { reps: 15, restSeconds: 60 }, { reps: 15, restSeconds: 60 }], notes: 'Inner thigh (adductors). Squeeze knees together, hold 1 second at peak contraction. Control the return — don\'t let the weight slam.' },
+          { name: 'Seated calf machine', sets: 4, trackingType: 'reps', setsData: [{ reps: 15, restSeconds: 45 }, { reps: 15, restSeconds: 45 }, { reps: 15, restSeconds: 45 }, { reps: 15, restSeconds: 45 }], notes: 'Seated calf raise targets the soleus. Full range of motion — drop your heels as low as possible, then press up and squeeze at the top. 2-second hold at the top.' },
+          { name: 'Dumbbell Seated Calf Raise', sets: 3, trackingType: 'reps', setsData: [{ reps: 20, restSeconds: 45 }, { reps: 20, restSeconds: 45 }, { reps: 20, restSeconds: 45 }], notes: 'Calf burnout finisher. Place dumbbell on your knees. High reps, constant tension — don\'t fully rest at the bottom. Squeeze at the top.' },
+          // ── COOL-DOWN STRETCHES ──
+          { name: 'Seated Toe Touch Hamstrings Stretch', sets: 1, trackingType: 'duration', setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — Sit with legs extended, reach for your toes. Hold and breathe deeply. Relax into the stretch — no bouncing.', section: 'cool-down' },
+          { name: 'Seated single leg hamstring stretch', sets: 1, trackingType: 'duration', setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — 15 seconds per leg. Extend one leg, bend the other. Reach toward the extended foot. Deeper stretch than the double-leg version.', section: 'cool-down' },
+          { name: 'Seated cross leg glute stretch', sets: 1, trackingType: 'duration', setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — Cross one ankle over the opposite knee, lean forward gently. 15 sec per side. Opens up the glutes and piriformis.', section: 'cool-down' },
+          { name: 'Seated Figure Four With Twist Glute Stretch', sets: 1, trackingType: 'duration', setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — Figure four position with a gentle twist. 15 sec per side. Hits the glutes, hip rotators, and lower back.', section: 'cool-down' },
+          { name: 'Seated straight leg calf stretch', sets: 1, trackingType: 'duration', setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — Extend legs and flex your feet toward you. Hold and breathe. Stretches the gastrocnemius and soleus.', section: 'cool-down' },
+          { name: 'Seated side stretch', sets: 1, trackingType: 'duration', setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — Reach one arm overhead and lean to the opposite side. 15 sec per side. Opens up the obliques and hip flexors. Great job — workout complete!', section: 'cool-down' }
+        ]
+      }
+    ]}
+  },
+  {
     name: 'Full Body Strength - Beginner (3 Day)',
     description: 'Beginner | 3 days/week | ~50 min | Warm-up + Strength + Stretches',
     program_type: 'strength',
