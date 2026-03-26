@@ -870,16 +870,13 @@
             }
             currentCoachId = session.user.id;
             currentAccessToken = session.access_token;
-            // One-time cleanup: delete all seeded default workout templates
+            // Clean up old bad templates, then seed new ones
             try {
-                await apiCall('/.netlify/functions/cleanup-default-workouts', {
-                    method: 'POST',
-                    body: JSON.stringify({})
-                });
-                console.log('Default workout templates cleaned up successfully');
-            } catch (e) {
-                console.warn('Cleanup skipped:', e.message);
-            }
+                await apiCall('/.netlify/functions/cleanup-default-workouts', { method: 'POST', body: JSON.stringify({}) });
+            } catch (e) { console.warn('Cleanup skipped:', e.message); }
+            try {
+                await apiCall('/.netlify/functions/seed-default-workouts', { method: 'POST', body: JSON.stringify({ coachId: currentCoachId }) });
+            } catch (e) { console.warn('Default workout seeding skipped:', e.message); }
             await loadPrograms();
         }
 
