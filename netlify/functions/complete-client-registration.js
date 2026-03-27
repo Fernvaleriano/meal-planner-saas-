@@ -59,30 +59,61 @@ exports.handler = async (event, context) => {
             equipmentAccess,
             exerciseTypes,
             healthConcerns,
-            fitnessGoalDetails
+            fitnessGoalDetails,
+            customAnswers
         } = body;
 
-        // Validate required fields
+        // Base required fields (always required)
         const requiredFields = {
             token: 'Invitation token',
             name: 'Full name',
             email: 'Email',
-            phone: 'Phone number',
-            age: 'Age',
-            gender: 'Gender',
-            weight: 'Weight',
-            heightFt: 'Height (feet)',
-            heightIn: 'Height (inches)',
-            activityLevel: 'Activity level',
-            goal: 'Goal',
-            budget: 'Budget',
-            allergies: 'Allergies',
-            dislikedFoods: 'Disliked foods',
             password: 'Password'
         };
 
+        // Initialize Supabase client with service key
+        const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+
+        // Look up the client's intake_form_config to know which sections are enabled
+        const { data: configClient } = await supabase
+            .from('clients')
+            .select('intake_form_config')
+            .eq('intake_token', token)
+            .single();
+
+        const formConfig = configClient?.intake_form_config || null;
+
+        // Helper to check if a section is enabled (default true if no config)
+        const isSectionEnabled = (sectionKey) => {
+            if (!formConfig || !formConfig.sections || !formConfig.sections[sectionKey]) return true;
+            return formConfig.sections[sectionKey].enabled !== false;
+        };
+
+        // Add required fields based on which sections are enabled
+        // Basic info fields (always required — part of the non-toggleable basic section)
+        requiredFields.phone = 'Phone number';
+        requiredFields.age = 'Age';
+        requiredFields.gender = 'Gender';
+        requiredFields.goal = 'Goal';
+
+        // Physical stats section
+        if (isSectionEnabled('physical_stats')) {
+            requiredFields.weight = 'Weight';
+            requiredFields.heightFt = 'Height (feet)';
+            requiredFields.activityLevel = 'Activity level';
+            requiredFields.budget = 'Budget';
+        }
+
+        // Food preferences section
+        if (isSectionEnabled('food_preferences')) {
+            requiredFields.allergies = 'Allergies';
+            requiredFields.dislikedFoods = 'Disliked foods';
+        }
+
         for (const [field, label] of Object.entries(requiredFields)) {
             if (body[field] === undefined || body[field] === null || body[field] === '') {
+                // heightIn can be 0 which is valid
+                if (field === 'heightFt' && (body[field] === 0)) continue;
                 return {
                     statusCode: 400,
                     headers,
@@ -99,9 +130,6 @@ exports.handler = async (event, context) => {
                 body: JSON.stringify({ error: 'Password must be at least 6 characters' })
             };
         }
-
-        // Initialize Supabase client with service key
-        const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
         // Find and validate the client with this token
         const { data: client, error: clientError } = await supabase
@@ -255,7 +283,8 @@ exports.handler = async (event, context) => {
                 equipment_access: equipmentAccess || null,
                 exercise_types: exerciseTypes ? JSON.stringify(exerciseTypes) : '[]',
                 health_concerns: healthConcerns || null,
-                fitness_goal_details: fitnessGoalDetails || null
+                fitness_goal_details: fitnessGoalDetails || null,
+                custom_intake_answers: customAnswers ? JSON.stringify(customAnswers) : null
             })
             .eq('id', client.id);
 
@@ -269,7 +298,11 @@ exports.handler = async (event, context) => {
         }
 
         // Calculate personalized nutrition goals using Mifflin-St Jeor formula
+        // Only calculate if we have the required physical stats
         try {
+            if (!weight || !heightFt || !activityLevel || !age || !gender) {
+                console.log('Skipping nutrition goal calculation — missing physical stats (section may be disabled)');
+            } else {
             // Convert to metric for BMR calculation
             const weightKg = weight * 0.453592;
             const totalInches = (heightFt * 12) + (heightIn || 0);
@@ -326,6 +359,7 @@ exports.handler = async (event, context) => {
                 // Don't fail registration if goals insertion fails - coach can set manually
             } else {
             }
+            } // end of physical stats check
         } catch (calcError) {
             console.error('Error calculating nutrition goals:', calcError);
             // Don't fail registration if calculation fails

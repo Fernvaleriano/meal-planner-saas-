@@ -49,7 +49,7 @@ exports.handler = async (event, context) => {
         // Find client with this intake token
         const { data: client, error: clientError } = await supabase
             .from('clients')
-            .select('id, email, client_name, phone, coach_id, intake_token_expires_at, user_id')
+            .select('id, email, client_name, phone, coach_id, intake_token_expires_at, user_id, intake_form_config')
             .eq('intake_token', token)
             .single();
 
@@ -111,7 +111,8 @@ exports.handler = async (event, context) => {
                     id: client.id,
                     email: client.email,
                     client_name: client.client_name,
-                    phone: client.phone
+                    phone: client.phone,
+                    intake_form_config: client.intake_form_config || null
                 },
                 coach: coach ? {
                     full_name: coach.full_name || coach.name,
