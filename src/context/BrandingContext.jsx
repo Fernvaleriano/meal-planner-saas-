@@ -119,7 +119,6 @@ function darkenColor(hex, percent) {
 function applyCoachClientTheme(theme) {
   const COACH_THEME_KEY = 'coach_client_theme';
   const USER_OVERRIDE_KEY = 'zique-theme-user-override';
-  const THEME_KEY = 'zique-theme';
 
   // Store the coach's preference so theme.js can use it on next page load
   try {
@@ -129,12 +128,6 @@ function applyCoachClientTheme(theme) {
   // If the client has manually toggled their theme, respect their choice
   try {
     if (localStorage.getItem(USER_OVERRIDE_KEY) === 'true') return;
-  } catch { /* ignore */ }
-
-  // If the client already has a saved theme preference, don't override it.
-  // Coach theme is only the default for clients who haven't chosen yet.
-  try {
-    if (localStorage.getItem(THEME_KEY)) return;
   } catch { /* ignore */ }
 
   // Resolve theme
