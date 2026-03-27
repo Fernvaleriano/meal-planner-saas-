@@ -82,7 +82,7 @@ exports.handler = async (event, context) => {
     if (event.httpMethod === 'POST') {
         try {
             const body = JSON.parse(event.body);
-            const { coachId, name, category, timing, timingCustom, dose, hasSchedule, schedule, notes, privateNotes, frequencyType, frequencyInterval, frequencyDays } = body;
+            const { coachId, name, category, timing, timingCustom, dose, hasSchedule, schedule, notes, privateNotes, frequencyType, frequencyInterval, frequencyDays, imageUrl } = body;
 
             if (!coachId || !name) {
                 return {
@@ -107,6 +107,7 @@ exports.handler = async (event, context) => {
                 schedule: hasSchedule ? schedule : null,
                 notes: notes || null,
                 private_notes: privateNotes || null,
+                image_url: imageUrl || null,
                 is_active: true,
                 usage_count: 0,
                 created_at: new Date().toISOString(),
@@ -165,7 +166,7 @@ exports.handler = async (event, context) => {
     if (event.httpMethod === 'PUT') {
         try {
             const body = JSON.parse(event.body);
-            const { supplementId, coachId, name, category, timing, timingCustom, dose, hasSchedule, schedule, notes, privateNotes, isActive, frequencyType, frequencyInterval, frequencyDays } = body;
+            const { supplementId, coachId, name, category, timing, timingCustom, dose, hasSchedule, schedule, notes, privateNotes, isActive, frequencyType, frequencyInterval, frequencyDays, imageUrl } = body;
 
             if (!supplementId || !coachId) {
                 return {
@@ -189,8 +190,12 @@ exports.handler = async (event, context) => {
                 schedule: hasSchedule ? schedule : null,
                 notes: notes || null,
                 private_notes: privateNotes || null,
+                image_url: imageUrl !== undefined ? (imageUrl || null) : undefined,
                 updated_at: new Date().toISOString()
             };
+
+            // Remove undefined fields so we don't overwrite image_url when not provided
+            Object.keys(updateData).forEach(key => updateData[key] === undefined && delete updateData[key]);
 
             // Only update is_active if it's explicitly passed
             if (typeof isActive === 'boolean') {

@@ -246,6 +246,116 @@
             background: #0f766e;
         }
 
+        /* Supplement Image Preview */
+        .image-url-preview {
+            width: 100%;
+            max-height: 120px;
+            object-fit: contain;
+            border-radius: 8px;
+            margin-top: 8px;
+            border: 1px solid #e5e7eb;
+            background: #f9fafb;
+        }
+
+        .image-url-preview.hidden {
+            display: none;
+        }
+
+        .protocol-image-thumb {
+            width: 48px;
+            height: 48px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            cursor: pointer;
+            transition: transform 0.2s;
+            flex-shrink: 0;
+        }
+
+        .protocol-image-thumb:hover {
+            transform: scale(1.1);
+        }
+
+        .library-card-image {
+            width: 100%;
+            height: 80px;
+            object-fit: contain;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+        }
+
+        /* Titration Phase Status */
+        .titration-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 6px;
+            padding: 6px 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .titration-status.active-phase {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .titration-status.upcoming-change {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .titration-status.completed {
+            background: #f1f5f9;
+            color: #64748b;
+        }
+
+        .titration-timeline {
+            display: flex;
+            gap: 4px;
+            margin-top: 6px;
+        }
+
+        .titration-phase-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #e5e7eb;
+        }
+
+        .titration-phase-dot.active {
+            background: #7c3aed;
+        }
+
+        .titration-phase-dot.past {
+            background: #a78bfa;
+        }
+
+        /* Image Lightbox */
+        .image-lightbox {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            cursor: pointer;
+        }
+
+        .image-lightbox img {
+            max-width: 90%;
+            max-height: 90%;
+            object-fit: contain;
+            border-radius: 12px;
+        }
+
         .protocols-section {
             background: white;
             border-radius: 16px;
@@ -839,6 +949,35 @@
             color: #fb923c;
         }
 
+        [data-theme="dark"] .titration-status.active-phase {
+            background: rgba(22, 101, 52, 0.3);
+            color: #86efac;
+        }
+
+        [data-theme="dark"] .titration-status.upcoming-change {
+            background: rgba(146, 64, 14, 0.3);
+            color: #fcd34d;
+        }
+
+        [data-theme="dark"] .titration-status.completed {
+            background: rgba(51, 65, 85, 0.5);
+            color: #94a3b8;
+        }
+
+        [data-theme="dark"] .image-url-preview {
+            border-color: #475569;
+            background: #1e293b;
+        }
+
+        [data-theme="dark"] .protocol-image-thumb {
+            border-color: #475569;
+        }
+
+        [data-theme="dark"] .library-card-image {
+            border-color: #475569;
+            background: #1e293b;
+        }
+
         [data-theme="dark"] .btn-secondary {
             background: #334155;
             color: #e2e8f0;
@@ -1260,6 +1399,13 @@
                 </div>
 
                 <div class="form-group">
+                    <label>Supplement Image (optional)</label>
+                    <input type="url" id="protocolImageUrl" placeholder="Paste image URL here..." oninput="previewProtocolImage()">
+                    <small style="color: #6b7280; margin-top: 4px; display: block;">Add a product photo so clients know exactly what to take</small>
+                    <img id="protocolImagePreview" class="image-url-preview hidden" alt="Supplement preview">
+                </div>
+
+                <div class="form-group">
                     <label>Notes (visible to client)</label>
                     <div style="display: flex; gap: 8px; align-items: flex-start;">
                         <textarea id="protocolNotes" placeholder="Instructions, tips, brand recommendations..." style="flex:1;"></textarea>
@@ -1424,6 +1570,13 @@
                     <button type="button" class="btn btn-secondary btn-small" onclick="addLibrarySchedulePhase()" style="margin-top: 8px;">
                         + Add Phase
                     </button>
+                </div>
+
+                <div class="form-group">
+                    <label>Supplement Image (optional)</label>
+                    <input type="url" id="libraryImageUrl" placeholder="Paste image URL here..." oninput="previewLibraryImage()">
+                    <small style="color: #6b7280; margin-top: 4px; display: block;">Add a product photo so clients know exactly what to take</small>
+                    <img id="libraryImagePreview" class="image-url-preview hidden" alt="Supplement preview">
                 </div>
 
                 <div class="form-group">
@@ -1709,22 +1862,51 @@
                 const timingText = p.timing === 'custom' ? p.timing_custom : timingLabels[p.timing] || p.timing;
 
                 let scheduleHTML = '';
+                let titrationHTML = '';
                 if (p.has_schedule && p.schedule && p.schedule.length > 0) {
                     const phases = p.schedule.map(phase =>
                         `<div class="protocol-schedule-phase">• Week ${phase.weekStart}-${phase.weekEnd}: ${phase.dose}</div>`
                     ).join('');
                     scheduleHTML = `<div class="protocol-schedule">${phases}</div>`;
+
+                    // Smart titration status
+                    const titration = getTitrationStatus(p);
+                    if (titration) {
+                        if (titration.status === 'active') {
+                            const dots = p.schedule.map((_, i) => {
+                                const cls = i < titration.currentPhaseIndex ? 'past' : (i === titration.currentPhaseIndex ? 'active' : '');
+                                return `<span class="titration-phase-dot ${cls}"></span>`;
+                            }).join('');
+                            titrationHTML = `
+                                <div class="titration-status active-phase">
+                                    💉 Current: ${escapeHtml(titration.currentDose)} (${escapeHtml(titration.message)})
+                                </div>
+                                ${titration.upcomingChange ? `<div class="titration-status upcoming-change">⚡ ${escapeHtml(titration.upcomingChange)}</div>` : ''}
+                                <div class="titration-timeline">${dots}</div>
+                            `;
+                        } else if (titration.status === 'completed') {
+                            titrationHTML = `<div class="titration-status completed">✅ Schedule completed — last dose: ${escapeHtml(titration.currentDose)}</div>`;
+                        } else if (titration.status === 'not_started') {
+                            titrationHTML = `<div class="titration-status upcoming-change">⏳ ${escapeHtml(titration.message)}</div>`;
+                        }
+                    }
                 }
 
                 const doseText = p.has_schedule ? '📅 Scheduled' : (p.dose || 'No dose specified');
 
+                const imageHTML = p.image_url
+                    ? `<img src="${escapeHtml(p.image_url)}" class="protocol-image-thumb" onclick="openImageLightbox('${escapeHtml(p.image_url)}')" alt="${escapeHtml(p.name)}" onerror="this.style.display='none'">`
+                    : '';
+
                 return `
                     <div class="protocol-card">
-                        <div class="protocol-card-header">
-                            <div class="protocol-info">
+                        <div class="protocol-card-header" style="display: flex; gap: 12px;">
+                            ${imageHTML}
+                            <div class="protocol-info" style="flex: 1;">
                                 <div class="protocol-name">${escapeHtml(p.name)}</div>
                                 <div class="protocol-timing">${icon} ${escapeHtml(timingText)} • ${escapeHtml(doseText)}</div>
                                 ${scheduleHTML}
+                                ${titrationHTML}
                                 ${p.notes ? `<div class="protocol-notes">📝 ${escapeHtml(p.notes)}</div>` : ''}
                                 ${p.private_notes ? `<div class="protocol-private-notes">🔒 ${escapeHtml(p.private_notes)}</div>` : ''}
                             </div>
@@ -1744,6 +1926,102 @@
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
+        }
+
+        // Image preview helpers
+        function previewProtocolImage() {
+            const url = document.getElementById('protocolImageUrl').value.trim();
+            const preview = document.getElementById('protocolImagePreview');
+            if (url) {
+                preview.src = url;
+                preview.classList.remove('hidden');
+                preview.onerror = () => preview.classList.add('hidden');
+            } else {
+                preview.classList.add('hidden');
+                preview.src = '';
+            }
+        }
+
+        function previewLibraryImage() {
+            const url = document.getElementById('libraryImageUrl').value.trim();
+            const preview = document.getElementById('libraryImagePreview');
+            if (url) {
+                preview.src = url;
+                preview.classList.remove('hidden');
+                preview.onerror = () => preview.classList.add('hidden');
+            } else {
+                preview.classList.add('hidden');
+                preview.src = '';
+            }
+        }
+
+        function openImageLightbox(imageUrl) {
+            const lightbox = document.createElement('div');
+            lightbox.className = 'image-lightbox';
+            lightbox.innerHTML = `<img src="${escapeHtml(imageUrl)}" alt="Supplement">`;
+            lightbox.onclick = () => lightbox.remove();
+            document.body.appendChild(lightbox);
+        }
+
+        // Titration phase calculator
+        function getTitrationStatus(protocol) {
+            if (!protocol.has_schedule || !protocol.schedule || protocol.schedule.length === 0) return null;
+
+            const startDate = protocol.client_start_date || protocol.start_date;
+            if (!startDate) return { status: 'not_started', message: 'Schedule not started yet', currentPhaseIndex: -1 };
+
+            const start = new Date(startDate);
+            const today = new Date();
+            const daysDiff = Math.floor((today - start) / (1000 * 60 * 60 * 24));
+            const currentWeek = Math.floor(daysDiff / 7) + 1;
+
+            const phases = protocol.schedule;
+            let currentPhaseIndex = -1;
+            let nextPhase = null;
+
+            for (let i = 0; i < phases.length; i++) {
+                if (currentWeek >= phases[i].weekStart && currentWeek <= phases[i].weekEnd) {
+                    currentPhaseIndex = i;
+                    if (i + 1 < phases.length) nextPhase = phases[i + 1];
+                    break;
+                }
+            }
+
+            // Past all phases
+            if (currentPhaseIndex === -1 && currentWeek > phases[phases.length - 1].weekEnd) {
+                return {
+                    status: 'completed',
+                    message: 'Schedule completed',
+                    currentPhaseIndex: phases.length,
+                    currentDose: phases[phases.length - 1].dose,
+                    totalPhases: phases.length
+                };
+            }
+
+            // Before first phase
+            if (currentPhaseIndex === -1) {
+                return { status: 'not_started', message: 'Starts soon', currentPhaseIndex: -1 };
+            }
+
+            const currentPhase = phases[currentPhaseIndex];
+            const weeksLeftInPhase = currentPhase.weekEnd - currentWeek;
+            const daysUntilChange = (weeksLeftInPhase * 7) + (7 - (daysDiff % 7));
+
+            let result = {
+                status: 'active',
+                currentPhaseIndex: currentPhaseIndex,
+                totalPhases: phases.length,
+                currentDose: currentPhase.dose,
+                currentWeek: currentWeek,
+                weekRange: `Week ${currentPhase.weekStart}-${currentPhase.weekEnd}`,
+                message: `Phase ${currentPhaseIndex + 1} of ${phases.length}`
+            };
+
+            if (nextPhase && daysUntilChange <= 7) {
+                result.upcomingChange = `Dose changes to ${nextPhase.dose} in ~${daysUntilChange} days`;
+            }
+
+            return result;
         }
 
         // Protocol Modal Functions
@@ -1766,6 +2044,9 @@
             document.getElementById('protocolStartDate').value = new Date().toISOString().split('T')[0];
             document.getElementById('protocolNotes').value = '';
             document.getElementById('protocolPrivateNotes').value = '';
+            document.getElementById('protocolImageUrl').value = '';
+            document.getElementById('protocolImagePreview').classList.add('hidden');
+            document.getElementById('protocolImagePreview').src = '';
 
             // Reset schedule
             schedulePhases = [];
@@ -1918,6 +2199,8 @@
             const frequencyInterval = parseInt(document.getElementById('protocolFrequencyInterval').value) || 3;
             const frequencyDays = getSelectedDays();
 
+            const imageUrl = document.getElementById('protocolImageUrl').value.trim();
+
             const payload = {
                 coachId: currentCoach.id,
                 clientId: parseInt(selectedClientId),
@@ -1930,6 +2213,7 @@
                 startDate: hasSchedule ? startDate : null,
                 notes,
                 privateNotes,
+                imageUrl: imageUrl || null,
                 frequencyType,
                 frequencyInterval: frequencyType === 'every_x_days' ? frequencyInterval : null,
                 frequencyDays: (frequencyType === 'specific_days' || frequencyType === 'once_weekly') ? frequencyDays : null
@@ -1985,6 +2269,8 @@
             document.getElementById('protocolStartDate').value = protocol.start_date || new Date().toISOString().split('T')[0];
             document.getElementById('protocolNotes').value = protocol.notes || '';
             document.getElementById('protocolPrivateNotes').value = protocol.private_notes || '';
+            document.getElementById('protocolImageUrl').value = protocol.image_url || '';
+            previewProtocolImage();
 
             // Load schedule phases
             schedulePhases = protocol.schedule ? [...protocol.schedule] : [];
@@ -2287,6 +2573,7 @@
 
                 return `
                     <div class="library-card">
+                        ${s.image_url ? `<img src="${escapeHtml(s.image_url)}" class="library-card-image" onclick="openImageLightbox('${escapeHtml(s.image_url)}')" alt="${escapeHtml(s.name)}" onerror="this.style.display='none'" style="cursor:pointer;">` : ''}
                         <div class="library-card-header">
                             <div class="library-card-name">${escapeHtml(s.name)}</div>
                             ${s.category ? `<span class="library-card-category">${escapeHtml(s.category)}</span>` : ''}
@@ -2321,6 +2608,9 @@
             document.getElementById('libraryHasSchedule').checked = false;
             document.getElementById('libraryNotes').value = '';
             document.getElementById('libraryPrivateNotes').value = '';
+            document.getElementById('libraryImageUrl').value = '';
+            document.getElementById('libraryImagePreview').classList.add('hidden');
+            document.getElementById('libraryImagePreview').src = '';
 
             // Reset schedule
             librarySchedulePhases = [];
@@ -2473,6 +2763,8 @@
             const frequencyInterval = parseInt(document.getElementById('libraryFrequencyInterval').value) || 3;
             const frequencyDays = getLibrarySelectedDays();
 
+            const imageUrl = document.getElementById('libraryImageUrl').value.trim();
+
             const payload = {
                 coachId: currentCoach.id,
                 name,
@@ -2484,6 +2776,7 @@
                 schedule: hasSchedule ? librarySchedulePhases : null,
                 notes,
                 privateNotes,
+                imageUrl: imageUrl || null,
                 frequencyType,
                 frequencyInterval: frequencyType === 'every_x_days' ? frequencyInterval : null,
                 frequencyDays: (frequencyType === 'specific_days' || frequencyType === 'once_weekly') ? frequencyDays : null
@@ -2546,6 +2839,8 @@
             document.getElementById('libraryHasSchedule').checked = supplement.has_schedule || false;
             document.getElementById('libraryNotes').value = supplement.notes || '';
             document.getElementById('libraryPrivateNotes').value = supplement.private_notes || '';
+            document.getElementById('libraryImageUrl').value = supplement.image_url || '';
+            previewLibraryImage();
 
             // Load schedule phases
             librarySchedulePhases = supplement.schedule ? [...supplement.schedule] : [];
@@ -2684,6 +2979,7 @@
             const supplementSchedule = publishingSupplement.schedule;
             const supplementNotes = publishingSupplement.notes;
             const supplementPrivateNotes = publishingSupplement.private_notes;
+            const supplementImageUrl = publishingSupplement.image_url;
 
             // Verify we have valid supplement data
             if (!supplementId) {
@@ -2702,7 +2998,8 @@
                 schedule: supplementSchedule,
                 startDate: supplementHasSchedule ? new Date().toISOString().split('T')[0] : null,
                 notes: supplementNotes,
-                privateNotes: supplementPrivateNotes
+                privateNotes: supplementPrivateNotes,
+                imageUrl: supplementImageUrl || null
             };
 
             try {
