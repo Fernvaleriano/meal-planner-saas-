@@ -2141,13 +2141,13 @@
                 `;
                 document.head.appendChild(overrideCSS);
 
-                // Apply coach's client theme preference
+                // Apply coach's client theme preference (only if client hasn't manually toggled)
                 if (b.brand_client_theme) {
                     try {
                         localStorage.setItem('coach_client_theme', b.brand_client_theme);
-                        const userOverride = localStorage.getItem('zique-theme-user-override') === 'true';
+                        var userOverride = localStorage.getItem('zique-theme-user-override') === 'true';
                         if (!userOverride) {
-                            let resolvedTheme = b.brand_client_theme;
+                            var resolvedTheme = b.brand_client_theme;
                             if (resolvedTheme === 'system') {
                                 resolvedTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
                             }

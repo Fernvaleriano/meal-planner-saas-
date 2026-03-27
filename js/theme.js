@@ -36,7 +36,7 @@
         const coachTheme = localStorage.getItem(COACH_THEME_KEY);
 
         // Priority: user manual override > coach theme > saved preference > default dark
-        let theme;
+        var theme;
         if (userOverride && savedTheme) {
             // Client has manually toggled — respect their choice
             theme = savedTheme;
@@ -51,7 +51,7 @@
             theme = savedTheme || DARK;
         }
 
-        // Always save the theme to ensure it persists (prevents system theme override)
+        // Apply and save the resolved theme
         setTheme(theme, true);
     }
 

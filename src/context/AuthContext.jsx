@@ -335,6 +335,8 @@ export function AuthProvider({ children }) {
 
   const toggleTheme = useCallback(() => {
     setTheme(prev => prev === 'light' ? 'dark' : 'light');
+    // Mark that the user manually chose a theme (overrides coach default)
+    try { localStorage.setItem('zique-theme-user-override', 'true'); } catch {}
   }, []);
 
   const logout = useCallback(async () => {
