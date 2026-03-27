@@ -269,6 +269,93 @@ const DEFAULT_PROGRAMS = [
       }
 
     ]}
+  },
+
+  // ─── FULL BODY HOME / BODYWEIGHT — Beginner (3 Day) ──────────────────────────
+  {
+    name: 'Full Body Home - Bodyweight (3 Day)',
+    description: 'Beginner | 3 days/week | ~40 min | No equipment needed — perfect for home or travel',
+    program_type: 'weight_loss',
+    difficulty: 'beginner',
+    days_per_week: 3,
+    program_data: { days: [
+
+      // ── DAY 1: Full Body A (Push & Core Focus) ─────────────────────────
+      {
+        name: 'Day 1 — Full Body A (Push & Core)',
+        exercises: [
+          // WARM-UP
+          { name: 'Jumping jack', sets: 1, trackingType: 'time', duration: 60, setsData: [{ duration: 60, restSeconds: 15 }], notes: 'WARM-UP — Light pace to get your heart rate up.', section: 'warm-up' },
+          { name: 'Arm circle', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 10 }], notes: 'WARM-UP — 15 sec forward, 15 sec backward. Loosen shoulders.', section: 'warm-up' },
+          { name: 'High knees', sets: 1, trackingType: 'time', duration: 45, setsData: [{ duration: 45, restSeconds: 15 }], notes: 'WARM-UP — Drive knees to hip height. Stay light on your feet.', section: 'warm-up' },
+
+          // MAIN WORKOUT
+          { name: 'Normal Push-up', sets: 3, trackingType: 'reps', setsData: [{ reps: 10, restSeconds: 60 }, { reps: 10, restSeconds: 60 }, { reps: 10, restSeconds: 60 }], notes: 'Hands shoulder-width, full range of motion. Drop to knees if needed. Chest touches the floor each rep.' },
+          { name: 'Bodyweight squat', sets: 3, trackingType: 'reps', setsData: [{ reps: 15, restSeconds: 60 }, { reps: 15, restSeconds: 60 }, { reps: 15, restSeconds: 60 }], notes: 'Feet shoulder-width, sit back and down. Break parallel. Keep chest up and core braced.' },
+          { name: 'Bodyweight Hip Thrust', sets: 3, trackingType: 'reps', setsData: [{ reps: 15, restSeconds: 45 }, { reps: 15, restSeconds: 45 }, { reps: 15, restSeconds: 45 }], notes: 'Back against a couch or chair edge. Drive hips up, squeeze glutes hard at top for 1 sec.' },
+          { name: 'High plank', sets: 3, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 30 }, { duration: 30, restSeconds: 30 }, { duration: 30, restSeconds: 30 }], notes: 'Core tight, body in a straight line. Squeeze glutes, don\'t let hips sag.' },
+          { name: 'Lying leg raise', sets: 3, trackingType: 'reps', setsData: [{ reps: 12, restSeconds: 45 }, { reps: 12, restSeconds: 45 }, { reps: 12, restSeconds: 45 }], notes: 'Press lower back into the floor. Slow and controlled on the way down.' },
+          { name: 'Burpee', sets: 2, trackingType: 'reps', setsData: [{ reps: 8, restSeconds: 60 }, { reps: 8, restSeconds: 60 }], notes: 'Full body cardio finisher. Drop to chest, push up, jump up. Go at your own pace.' },
+
+          // COOL-DOWN
+          { name: 'Above head chest stretch', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — Clasp hands overhead, open chest. Deep breaths.', section: 'cool-down' },
+          { name: 'Cobra Stretch', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — Press up gently, stretch your abs and hip flexors.', section: 'cool-down' },
+          { name: 'Child Pose Lower back Stretch', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — Sink hips back, arms extended. Relax and breathe.', section: 'cool-down' },
+          { name: 'All fours quad stretch', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — 15 sec per leg.', section: 'cool-down' }
+        ]
+      },
+
+      // ── DAY 2: Full Body B (Legs & Glutes Focus) ───────────────────────
+      {
+        name: 'Day 2 — Full Body B (Legs & Glutes)',
+        exercises: [
+          // WARM-UP
+          { name: 'Jumping jack', sets: 1, trackingType: 'time', duration: 60, setsData: [{ duration: 60, restSeconds: 15 }], notes: 'WARM-UP — Get the blood flowing.', section: 'warm-up' },
+          { name: 'Butt kicks', sets: 1, trackingType: 'time', duration: 45, setsData: [{ duration: 45, restSeconds: 10 }], notes: 'WARM-UP — Warm up hamstrings and quads.', section: 'warm-up' },
+          { name: 'Mountain climbers', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 15 }], notes: 'WARM-UP — Controlled pace. Drive knees to chest.', section: 'warm-up' },
+
+          // MAIN WORKOUT
+          { name: 'Bodyweight forward lunge', sets: 3, trackingType: 'reps', setsData: [{ reps: 12, restSeconds: 60 }, { reps: 12, restSeconds: 60 }, { reps: 12, restSeconds: 60 }], notes: '12 reps per leg (alternating). Step far enough so front knee stays over ankle. Push back through the front heel.' },
+          { name: 'Bodyweight Hip Thrust', sets: 3, trackingType: 'reps', setsData: [{ reps: 15, restSeconds: 45 }, { reps: 15, restSeconds: 45 }, { reps: 15, restSeconds: 45 }], notes: 'Back against couch or sturdy chair. Squeeze glutes hard at the top. Pause 1 sec.' },
+          { name: 'Wall sit bodyweight', sets: 3, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 45 }, { duration: 30, restSeconds: 45 }, { duration: 30, restSeconds: 45 }], notes: 'Back flat against the wall, knees at 90 degrees. Breathe and hold. Quads will burn!' },
+          { name: 'Bodyweight calf raises', sets: 3, trackingType: 'reps', setsData: [{ reps: 20, restSeconds: 30 }, { reps: 20, restSeconds: 30 }, { reps: 20, restSeconds: 30 }], notes: 'Stand on edge of a step if possible. Full stretch at bottom, squeeze at top. Slow tempo.' },
+          { name: 'Dead bug', sets: 3, trackingType: 'reps', setsData: [{ reps: 10, restSeconds: 45 }, { reps: 10, restSeconds: 45 }, { reps: 10, restSeconds: 45 }], notes: 'Keep lower back glued to the floor. Slow and controlled — opposite arm and leg extend together.' },
+          { name: 'Jump squats bodyweight', sets: 2, trackingType: 'reps', setsData: [{ reps: 10, restSeconds: 60 }, { reps: 10, restSeconds: 60 }], notes: 'Squat down, explode up. Land softly on the balls of your feet. Great cardio finisher.' },
+
+          // COOL-DOWN
+          { name: 'Seated Toe Touch Hamstrings Stretch', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — Reach for toes. Hold and breathe.', section: 'cool-down' },
+          { name: 'Pigeon Glutes Stretch', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — 15 sec per side. Open up those hips.', section: 'cool-down' },
+          { name: 'Adductor stretch', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — Open up inner thighs. Hold and breathe.', section: 'cool-down' },
+          { name: 'Calf stretch with hands against wall', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — 15 sec per leg. Press heel into the ground.', section: 'cool-down' }
+        ]
+      },
+
+      // ── DAY 3: Full Body C (Pull & Cardio Focus) ───────────────────────
+      {
+        name: 'Day 3 — Full Body C (Pull & Cardio)',
+        exercises: [
+          // WARM-UP
+          { name: 'Jumping jack', sets: 1, trackingType: 'time', duration: 60, setsData: [{ duration: 60, restSeconds: 15 }], notes: 'WARM-UP — Get your heart rate up.', section: 'warm-up' },
+          { name: 'Arm circle', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 10 }], notes: 'WARM-UP — 15 sec each direction.', section: 'warm-up' },
+          { name: 'High knees', sets: 1, trackingType: 'time', duration: 45, setsData: [{ duration: 45, restSeconds: 15 }], notes: 'WARM-UP — Drive knees up, pump your arms.', section: 'warm-up' },
+
+          // MAIN WORKOUT
+          { name: 'Diamond push up', sets: 3, trackingType: 'reps', setsData: [{ reps: 8, restSeconds: 60 }, { reps: 8, restSeconds: 60 }, { reps: 8, restSeconds: 60 }], notes: 'Hands together forming a diamond. Targets triceps and inner chest. Drop to knees if needed.' },
+          { name: 'Alternate superman', sets: 3, trackingType: 'reps', setsData: [{ reps: 12, restSeconds: 45 }, { reps: 12, restSeconds: 45 }, { reps: 12, restSeconds: 45 }], notes: 'Lying face down, lift opposite arm and leg. Squeeze your back and glutes. 12 reps per side.' },
+          { name: 'Bodyweight rear lunge', sets: 3, trackingType: 'reps', setsData: [{ reps: 12, restSeconds: 60 }, { reps: 12, restSeconds: 60 }, { reps: 12, restSeconds: 60 }], notes: '12 reps per leg. Step back, lower until both knees at 90 degrees. Keep torso upright.' },
+          { name: 'Bird dog', sets: 3, trackingType: 'reps', setsData: [{ reps: 10, restSeconds: 45 }, { reps: 10, restSeconds: 45 }, { reps: 10, restSeconds: 45 }], notes: 'On all fours, extend opposite arm and leg. Hold 2 sec at top. Great for back and core stability.' },
+          { name: 'Bicycle twisting crunch', sets: 3, trackingType: 'reps', setsData: [{ reps: 15, restSeconds: 45 }, { reps: 15, restSeconds: 45 }, { reps: 15, restSeconds: 45 }], notes: 'Elbow to opposite knee. Controlled tempo — don\'t rush. Feel your obliques working.' },
+          { name: 'Burpee', sets: 3, trackingType: 'reps', setsData: [{ reps: 8, restSeconds: 60 }, { reps: 8, restSeconds: 60 }, { reps: 8, restSeconds: 60 }], notes: 'Full body cardio. Drop to chest, push up, jump. Rest as needed between reps — form over speed.' },
+
+          // COOL-DOWN
+          { name: 'Cat stretch', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — Alternate arching and rounding your back. Slow breaths.', section: 'cool-down' },
+          { name: 'Across chest shoulder stretch', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — 15 sec per arm.', section: 'cool-down' },
+          { name: 'Cobra Stretch', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — Stretch abs and hip flexors. Breathe deep.', section: 'cool-down' },
+          { name: 'Child Pose Lower back Stretch', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — Relax and breathe. Great job today!', section: 'cool-down' }
+        ]
+      }
+
+    ]}
   }
 ];
 
