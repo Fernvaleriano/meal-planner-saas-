@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Camera, Search, Heart, ScanLine, Mic, ChevronRight, BarChart3, ClipboardCheck, TrendingUp, BookOpen, Utensils, Pill, ChefHat, Check, CheckCircle, Minus, Plus, X, Sunrise, Sun, Moon, Coffee, Trophy } from 'lucide-react';
+import { Camera, Search, Heart, ScanLine, Mic, ChevronRight, ChevronDown, BarChart3, ClipboardCheck, TrendingUp, BookOpen, Utensils, Pill, ChefHat, Check, CheckCircle, Minus, Plus, X, Sunrise, Sun, Moon, Coffee, Trophy } from 'lucide-react';
 import InstallAppBanner from '../components/InstallAppBanner';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, apiDelete } from '../utils/api';
@@ -63,6 +63,7 @@ function Dashboard() {
   const [mealPlans, setMealPlans] = useState(cachedPlans || []);
   const [supplements, setSupplements] = useState(cachedSupplements?.protocols || []);
   const [supplementIntake, setSupplementIntake] = useState(cachedDashboard?.intake || {});
+  const [expandedSupplements, setExpandedSupplements] = useState({});
   const [coachData, setCoachData] = useState(cachedCoach?.coachData || null);
   const [hasStories, setHasStories] = useState(cachedCoach?.hasStories || false);
 
@@ -781,6 +782,51 @@ function Dashboard() {
     }
   };
 
+  // Get current titration phase for a scheduled supplement
+  const getSupplementTitration = (supp) => {
+    if (!supp.has_schedule || !supp.schedule || supp.schedule.length === 0) return null;
+    const startDate = supp.client_start_date || supp.start_date;
+    if (!startDate) return { status: 'not_started', message: 'Not started yet' };
+
+    const start = new Date(startDate);
+    const now = new Date();
+    const daysDiff = Math.floor((now - start) / (1000 * 60 * 60 * 24));
+    const currentWeek = Math.floor(daysDiff / 7) + 1;
+    const phases = supp.schedule;
+
+    let currentPhaseIndex = -1;
+    for (let i = 0; i < phases.length; i++) {
+      if (currentWeek >= phases[i].weekStart && currentWeek <= phases[i].weekEnd) {
+        currentPhaseIndex = i;
+        break;
+      }
+    }
+
+    if (currentPhaseIndex === -1 && currentWeek > phases[phases.length - 1].weekEnd) {
+      return { status: 'completed', currentDose: phases[phases.length - 1].dose, currentPhaseIndex: phases.length, totalPhases: phases.length };
+    }
+    if (currentPhaseIndex === -1) return { status: 'not_started', message: 'Starts soon' };
+
+    const phase = phases[currentPhaseIndex];
+    const weeksLeft = phase.weekEnd - currentWeek;
+    const daysUntilChange = (weeksLeft * 7) + (7 - (daysDiff % 7));
+    const nextPhase = currentPhaseIndex + 1 < phases.length ? phases[currentPhaseIndex + 1] : null;
+
+    return {
+      status: 'active',
+      currentDose: phase.dose,
+      currentPhaseIndex,
+      totalPhases: phases.length,
+      weekRange: `Wk ${phase.weekStart}-${phase.weekEnd}`,
+      upcomingChange: nextPhase && daysUntilChange <= 7 ? `${nextPhase.dose} in ~${daysUntilChange}d` : null
+    };
+  };
+
+  const toggleSupplementExpanded = (suppId, e) => {
+    e.stopPropagation();
+    setExpandedSupplements(prev => ({ ...prev, [suppId]: !prev[suppId] }));
+  };
+
   // Handle supplement checkbox toggle - optimistic update for instant response
   const handleSupplementToggle = async (protocolId) => {
     const isCurrentlyTaken = supplementIntake[protocolId];
@@ -1144,22 +1190,73 @@ function Dashboard() {
                     <span>{timingIcons[timing] || '⏰'}</span>
                     <span>{timingLabels[timing] || timing.toUpperCase()}</span>
                   </div>
-                  {supps.map((supp) => (
-                    <div
-                      key={supp.id}
-                      className="supplement-checkbox-item"
-                      onClick={() => handleSupplementToggle(supp.id)}
-                      style={{ cursor: 'pointer' }}
-                    >
-                      <div className={`supplement-checkbox ${supplementIntake[supp.id] ? 'checked' : ''}`}>
-                        {supplementIntake[supp.id] && <Check size={14} color="white" />}
+                  {supps.map((supp) => {
+                    const titration = getSupplementTitration(supp);
+                    const isExpanded = expandedSupplements[supp.id];
+                    const displayDose = titration?.status === 'active' ? titration.currentDose : (supp.dose || '');
+                    const hasExpandableContent = supp.image_url || supp.notes || (supp.has_schedule && supp.schedule?.length > 0);
+
+                    return (
+                      <div key={supp.id}>
+                        <div
+                          className="supplement-checkbox-item"
+                          onClick={() => handleSupplementToggle(supp.id)}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          <div className={`supplement-checkbox ${supplementIntake[supp.id] ? 'checked' : ''}`}>
+                            {supplementIntake[supp.id] && <Check size={14} color="white" />}
+                          </div>
+                          {supp.image_url && (
+                            <img src={supp.image_url} alt="" className="supplement-image-thumb" onError={(e) => e.target.style.display = 'none'} />
+                          )}
+                          <div className="supplement-item-info" style={{ flex: 1 }}>
+                            <span className="supplement-item-name" style={supplementIntake[supp.id] ? { textDecoration: 'line-through', opacity: 0.6 } : {}}>{supp.name}</span>
+                            <span className="supplement-item-dose">{displayDose}</span>
+                            {titration?.status === 'active' && titration.upcomingChange && (
+                              <span className="supplement-titration-badge upcoming">{titration.upcomingChange}</span>
+                            )}
+                            {titration?.status === 'active' && !titration.upcomingChange && (
+                              <span className="supplement-titration-badge active">Phase {titration.currentPhaseIndex + 1}/{titration.totalPhases}</span>
+                            )}
+                          </div>
+                          {hasExpandableContent && (
+                            <button
+                              className={`supplement-expand-btn ${isExpanded ? 'expanded' : ''}`}
+                              onClick={(e) => toggleSupplementExpanded(supp.id, e)}
+                              aria-label="Toggle details"
+                            >
+                              <ChevronDown size={18} />
+                            </button>
+                          )}
+                        </div>
+                        {isExpanded && hasExpandableContent && (
+                          <div className="supplement-details">
+                            {supp.image_url && (
+                              <img src={supp.image_url} alt={supp.name} className="supplement-image" onError={(e) => e.target.style.display = 'none'} />
+                            )}
+                            {supp.has_schedule && supp.schedule?.length > 0 && (
+                              <>
+                                <div className="supplement-schedule-timeline">
+                                  {supp.schedule.map((phase, i) => (
+                                    <div
+                                      key={i}
+                                      className={`supplement-phase-bar ${titration && i < titration.currentPhaseIndex ? 'past' : ''} ${titration && i === titration.currentPhaseIndex ? 'active' : ''}`}
+                                    />
+                                  ))}
+                                </div>
+                                {supp.schedule.map((phase, i) => (
+                                  <div key={i} className="supplement-schedule-detail" style={titration?.currentPhaseIndex === i ? { fontWeight: 700, color: 'var(--brand-primary)' } : {}}>
+                                    {titration?.currentPhaseIndex === i ? '> ' : ''}Wk {phase.weekStart}-{phase.weekEnd}: {phase.dose}
+                                  </div>
+                                ))}
+                              </>
+                            )}
+                            {supp.notes && <div className="supplement-notes">{supp.notes}</div>}
+                          </div>
+                        )}
                       </div>
-                      <div className="supplement-item-info">
-                        <span className="supplement-item-name" style={supplementIntake[supp.id] ? { textDecoration: 'line-through', opacity: 0.6 } : {}}>{supp.name}</span>
-                        <span className="supplement-item-dose">{supp.dose || ''}</span>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ));
             })()}
