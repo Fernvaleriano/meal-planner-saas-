@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Camera, Search, Heart, ScanLine, Mic, ChevronRight, ChevronDown, BarChart3, ClipboardCheck, TrendingUp, BookOpen, Utensils, Pill, ChefHat, Check, CheckCircle, Minus, Plus, X, Sunrise, Sun, Moon, Coffee, Trophy } from 'lucide-react';
+import { Camera, Search, Heart, ScanLine, Mic, ChevronRight, ChevronDown, BarChart3, ClipboardCheck, TrendingUp, BookOpen, Pill, ChefHat, Check, CheckCircle, Minus, Plus, X, Sunrise, Sun, Moon, Coffee, Trophy, UserCircle } from 'lucide-react';
 import InstallAppBanner from '../components/InstallAppBanner';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, apiDelete } from '../utils/api';
@@ -41,7 +41,6 @@ function Dashboard() {
   // Load all cached data for instant display
   const cachedDashboard = clientData?.id ? getCache(`dashboard_${clientData.id}_${today}`) : null;
   const cachedCoach = clientData?.id ? getCache(`coach_${clientData.id}`) : null;
-  const cachedPlans = clientData?.id ? getCache(`plans_${clientData.id}`) : null;
   const cachedSupplements = clientData?.id ? getCache(`supplements_${clientData.id}`) : null;
 
   const [todayProgress, setTodayProgress] = useState(cachedDashboard?.progress || {
@@ -60,7 +59,6 @@ function Dashboard() {
   const [foodInput, setFoodInput] = useState('');
   const [isLogging, setIsLogging] = useState(false);
   const [logSuccess, setLogSuccess] = useState(false);
-  const [mealPlans, setMealPlans] = useState(cachedPlans || []);
   const [supplements, setSupplements] = useState(cachedSupplements?.protocols || []);
   const [supplementIntake, setSupplementIntake] = useState(cachedDashboard?.intake || {});
   const [expandedSupplements, setExpandedSupplements] = useState({});
@@ -95,9 +93,8 @@ function Dashboard() {
 
     try {
       // Fetch all data in parallel
-      const [diaryData, plansData, supplementsData, intakeData] = await Promise.all([
+      const [diaryData, supplementsData, intakeData] = await Promise.all([
         apiGet(`/.netlify/functions/food-diary?clientId=${clientData.id}&date=${dateKey}`).catch(() => null),
-        apiGet(`/.netlify/functions/meal-plans?clientId=${clientData.id}`).catch(() => null),
         clientData.coach_id ? apiGet(`/.netlify/functions/client-protocols?clientId=${clientData.id}&coachId=${clientData.coach_id}`).catch(() => null) : null,
         apiGet(`/.netlify/functions/supplement-intake?clientId=${clientData.id}&date=${dateKey}`).catch(() => null)
       ]);
@@ -120,11 +117,6 @@ function Dashboard() {
             fat: diaryData.goals.fat_goal || 75
           });
         }
-      }
-
-      // Update meal plans
-      if (plansData?.plans) {
-        setMealPlans(plansData.plans.slice(0, 3));
       }
 
       // Update supplements
@@ -248,11 +240,10 @@ function Dashboard() {
     // Fetch all data in parallel for faster initial load
     Promise.all([
       apiGet(`/.netlify/functions/food-diary?clientId=${clientData.id}&date=${dateKey}`).catch(() => null),
-      apiGet(`/.netlify/functions/meal-plans?clientId=${clientData.id}`).catch(() => null),
       clientData.coach_id ? apiGet(`/.netlify/functions/client-protocols?clientId=${clientData.id}&coachId=${clientData.coach_id}`).catch(() => null) : Promise.resolve(null),
       apiGet(`/.netlify/functions/supplement-intake?clientId=${clientData.id}&date=${dateKey}`).catch(() => null),
       clientData.coach_id ? apiGet(`/.netlify/functions/get-coach-stories?clientId=${clientData.id}&coachId=${clientData.coach_id}`).catch(() => null) : Promise.resolve(null)
-    ]).then(([diaryData, plansData, supplementsData, intakeData, storiesData]) => {
+    ]).then(([diaryData, supplementsData, intakeData, storiesData]) => {
       // Process diary data
       if (diaryData?.entries) {
         const totals = diaryData.entries.reduce((acc, entry) => ({
@@ -276,13 +267,6 @@ function Dashboard() {
 
         const currentCache = getCache(`dashboard_${clientData.id}_${dateKey}`) || {};
         setCache(`dashboard_${clientData.id}_${dateKey}`, { ...currentCache, progress: totals, targets: newTargets });
-      }
-
-      // Process meal plans
-      if (plansData?.plans) {
-        const plans = plansData.plans.slice(0, 3);
-        setMealPlans(plans);
-        setCache(`plans_${clientData.id}`, plans);
       }
 
       // Process supplements
@@ -1297,83 +1281,12 @@ function Dashboard() {
           </div>
           <span>Challenges</span>
         </Link>
-      </div>
-
-      {/* Latest Meal Plan Section - only show most recent */}
-      <div className="meal-plans-section">
-        <h2 className="section-heading-icon">
-          <Utensils size={22} className="section-icon-svg" />
-          Latest Meal Plan
-        </h2>
-        <div className="meal-plans-container">
-          {mealPlans.length > 0 ? (
-            (() => {
-              const plan = mealPlans[0]; // Only show most recent plan
-              const planData = plan.plan_data || {};
-              const days = planData.currentPlan || planData.days || [];
-              const numDays = days.length || 1;
-              const createdDate = new Date(plan.created_at);
-              const formattedDate = createdDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-              const formattedTime = createdDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-              const summary = planData.summary || planData.description || '';
-
-              // Calculate actual calories from meals (not target calories)
-              let calories = '-';
-              if (days.length > 0) {
-                let totalCalories = 0;
-                days.forEach(day => {
-                  if (day.plan && Array.isArray(day.plan)) {
-                    day.plan.forEach(meal => {
-                      totalCalories += meal.calories || 0;
-                    });
-                  }
-                });
-                const avgCalories = Math.round(totalCalories / days.length);
-                if (avgCalories > 0) {
-                  calories = avgCalories;
-                }
-              }
-
-              // Extract goal
-              const goalLabels = { 'lose weight': 'Lose Weight', 'maintain': 'Maintain', 'gain muscle': 'Gain Muscle' };
-              const goal = planData.goal ? (goalLabels[planData.goal.toLowerCase()] || planData.goal) : '-';
-
-              // Get custom plan name if available
-              const planName = plan.plan_name || planData.planName || `${numDays}-Day Meal Plan`;
-
-              return (
-                <Link to={`/plans/${plan.id}`} key={plan.id} className="meal-plan-card">
-                  <div className="plan-header">
-                    <div className="plan-title">{planName}</div>
-                    <div className="plan-date">{formattedDate} at {formattedTime}</div>
-                  </div>
-                  {summary && <div className="plan-summary">{summary}</div>}
-                  <div className="plan-details">
-                    <div className="plan-detail-item">
-                      <span className="plan-detail-label">Duration</span>
-                      <span className="plan-detail-value">{numDays} {numDays === 1 ? 'Day' : 'Days'}</span>
-                    </div>
-                    <div className="plan-detail-item">
-                      <span className="plan-detail-label">Calories</span>
-                      <span className="plan-detail-value">{calories} cal</span>
-                    </div>
-                    <div className="plan-detail-item">
-                      <span className="plan-detail-label">Goal</span>
-                      <span className="plan-detail-value">{goal}</span>
-                    </div>
-                  </div>
-                  <button className="view-plan-btn">View Plan</button>
-                </Link>
-              );
-            })()
-          ) : (
-            <div className="empty-state">
-              <div className="empty-state-icon">🍽️</div>
-              <h3 className="empty-state-title">No Meal Plans Yet</h3>
-              <p className="empty-state-text">Your coach hasn't created any meal plans for you yet.</p>
-            </div>
-          )}
-        </div>
+        <Link to="/settings" className="quick-action-card">
+          <div className="quick-action-card-icon" style={{ background: 'rgba(99, 102, 241, 0.15)', color: '#6366f1' }}>
+            <UserCircle size={24} />
+          </div>
+          <span>Profile</span>
+        </Link>
       </div>
 
       {/* Food Logging Modals */}
