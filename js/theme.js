@@ -35,23 +35,27 @@
         const userOverride = localStorage.getItem(USER_OVERRIDE_KEY) === 'true';
         const coachTheme = localStorage.getItem(COACH_THEME_KEY);
 
-        // Priority: user manual override > coach theme > saved preference > default dark
-        let theme;
+        // Priority: user manual override > saved preference > coach theme > default dark
+        var theme;
         if (userOverride && savedTheme) {
             // Client has manually toggled — respect their choice
             theme = savedTheme;
+        } else if (savedTheme) {
+            // User has a saved theme preference — use it even without override flag.
+            // This prevents coach theme from overwriting a previously chosen preference.
+            theme = savedTheme;
         } else if (coachTheme) {
-            // Coach set a default theme for clients
+            // No saved preference — use coach's default theme for clients
             if (coachTheme === 'system') {
                 theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? DARK : LIGHT;
             } else {
                 theme = coachTheme;
             }
         } else {
-            theme = savedTheme || DARK;
+            theme = DARK;
         }
 
-        // Always save the theme to ensure it persists (prevents system theme override)
+        // Apply and save the resolved theme
         setTheme(theme, true);
     }
 

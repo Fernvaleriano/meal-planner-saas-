@@ -113,13 +113,15 @@ function darkenColor(hex, percent) {
 
 /**
  * Apply the coach's chosen client theme.
- * Only overrides if the client hasn't manually set their own preference.
+ * Only overrides if the client hasn't manually set their own preference
+ * and doesn't already have a saved theme.
  */
 function applyCoachClientTheme(theme) {
   const COACH_THEME_KEY = 'coach_client_theme';
   const USER_OVERRIDE_KEY = 'zique-theme-user-override';
+  const THEME_KEY = 'zique-theme';
 
-  // Store the coach's preference so theme.js can use it
+  // Store the coach's preference so theme.js can use it on next page load
   try {
     localStorage.setItem(COACH_THEME_KEY, theme);
   } catch { /* ignore */ }
@@ -127,6 +129,12 @@ function applyCoachClientTheme(theme) {
   // If the client has manually toggled their theme, respect their choice
   try {
     if (localStorage.getItem(USER_OVERRIDE_KEY) === 'true') return;
+  } catch { /* ignore */ }
+
+  // If the client already has a saved theme preference, don't override it.
+  // Coach theme is only the default for clients who haven't chosen yet.
+  try {
+    if (localStorage.getItem(THEME_KEY)) return;
   } catch { /* ignore */ }
 
   // Resolve theme
@@ -227,10 +235,9 @@ function applyBrandingCSS(branding) {
     if (meta) meta.content = branding.brand_primary_color;
   }
 
-  // Apply coach's client theme preference (only for clients, not coaches)
-  if (branding.brand_client_theme) {
-    applyCoachClientTheme(branding.brand_client_theme);
-  }
+  // Coach's client theme is applied separately (not from here) —
+  // applyBrandingCSS handles only visual CSS variables.
+  // Theme is applied once during fetchBranding for clients only.
 
   // Also update the legacy sessionStorage cache for LoadingScreen and branding.js compatibility
   try {
@@ -430,6 +437,12 @@ export function BrandingProvider({ children }) {
         setBranding(brandingData);
         setCachedBranding(coachId, brandingData);
         applyBrandingCSS(brandingData);
+
+        // Apply coach's client theme ONLY for clients, not coaches.
+        // Coaches set this for their clients — it shouldn't override the coach's own theme.
+        if (!clientData?.is_coach && brandingData.brand_client_theme) {
+          applyCoachClientTheme(brandingData.brand_client_theme);
+        }
       }
     } catch (err) {
       console.error('BrandingContext: Error fetching branding:', err);
