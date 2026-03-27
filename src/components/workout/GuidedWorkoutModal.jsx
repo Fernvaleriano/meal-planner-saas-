@@ -360,14 +360,15 @@ function GuidedWorkoutModal({
       const numSets = typeof ex.sets === 'number' ? ex.sets : (Array.isArray(ex.sets) ? ex.sets.length : 3);
       const defaultReps = parseReps(ex.reps);
       initial[i] = Array.from({ length: numSets }, (_, si) => {
-        // If sets is an array with existing data, use it
+        // If sets is an array with existing data, use it; also check setsData (coach workout builder source of truth)
         const existingSet = Array.isArray(ex.sets) ? ex.sets[si] : null;
+        const setsDataSet = Array.isArray(ex.setsData) ? ex.setsData[si] : null;
         return {
           reps: existingSet?.reps || defaultReps,
           weight: existingSet?.weight || 0,
-          duration: existingSet?.duration || ex.duration || null,
-          distance: existingSet?.distance || ex.distance || null,
-          restSeconds: existingSet?.restSeconds ?? ex.restSeconds ?? ex.rest_seconds ?? 90,
+          duration: existingSet?.duration || setsDataSet?.duration || ex.duration || null,
+          distance: existingSet?.distance || setsDataSet?.distance || ex.distance || null,
+          restSeconds: existingSet?.restSeconds ?? setsDataSet?.restSeconds ?? ex.restSeconds ?? ex.rest_seconds ?? 90,
           effort: existingSet?.effort || null
         };
       });
@@ -571,8 +572,8 @@ function GuidedWorkoutModal({
       [currentExIndex]: Array.from({ length: numSets }, () => ({
         reps: defaultReps,
         weight: 0,
-        duration: newExercise.duration || null,
-        restSeconds: newExercise.restSeconds ?? newExercise.rest_seconds ?? 90,
+        duration: (Array.isArray(newExercise.setsData) && newExercise.setsData[0]?.duration) || newExercise.duration || null,
+        restSeconds: (Array.isArray(newExercise.setsData) && newExercise.setsData[0]?.restSeconds) ?? newExercise.restSeconds ?? newExercise.rest_seconds ?? 90,
         effort: null
       }))
     }));
@@ -632,11 +633,11 @@ function GuidedWorkoutModal({
     const reps = parseReps(ex.reps);
     const distance = ex.distance || null;
     const distanceUnit = ex.distanceUnit || 'miles';
-    // Check exercise-level duration, then set-level duration (from setsData or sets array), then parse reps string for time units
+    // Check per-set duration (setsData) first — coach workout builder stores the authoritative value there
     const setDuration = (Array.isArray(ex.setsData) && ex.setsData[0]?.duration) ||
       (Array.isArray(ex.sets) && ex.sets[0]?.duration);
-    const duration = parseDurationToSeconds(ex.duration) ||
-      parseDurationToSeconds(setDuration) ||
+    const duration = parseDurationToSeconds(setDuration) ||
+      parseDurationToSeconds(ex.duration) ||
       parseDurationToSeconds(ex.reps) ||
       30;
     const isTillFailure = ex.repType === 'failure';

@@ -100,8 +100,9 @@ export function estimateWorkoutMinutes(exercises) {
     const isLast = i === exercises.length - 1;
 
     if (isTimeBased(ex)) {
-      // Use explicit duration when available
+      // Use per-set setsData duration first (coach workout builder source of truth), then exercise-level
       const setDuration =
+        parseDurationToSeconds(Array.isArray(ex.setsData) && ex.setsData[0]?.duration) ||
         parseDurationToSeconds(ex.duration) ||
         parseDurationToSeconds(Array.isArray(ex.sets) && ex.sets[0]?.duration) ||
         parseDurationToSeconds(ex.reps) ||
