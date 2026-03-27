@@ -1979,6 +1979,13 @@
 
     <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
+    <!-- Floating button to reopen sidebar -->
+    <button class="sidebar-open-toggle" onclick="toggleSidebarMinimize()" title="Show sidebar">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 12h18M3 6h18M3 18h18"/>
+        </svg>
+    </button>
+
     <main class="main-content">
         <header class="main-header">
             <button class="mobile-menu-btn" id="mobileMenuBtn">
@@ -2501,8 +2508,8 @@
         // Sidebar section collapse functionality
         function toggleSidebarMinimize() {
             const sidebar = document.querySelector('.sidebar');
-            sidebar.classList.toggle('sidebar-minimized');
-            localStorage.setItem('sidebarMinimized', sidebar.classList.contains('sidebar-minimized'));
+            sidebar.classList.toggle('sidebar-hidden');
+            localStorage.setItem('sidebarHidden', sidebar.classList.contains('sidebar-hidden'));
         }
 
         function toggleSidebarSection(label) {
@@ -2526,8 +2533,8 @@
             });
         }
         restoreSidebarState();
-        if (localStorage.getItem('sidebarMinimized') === 'true') {
-            document.querySelector('.sidebar').classList.add('sidebar-minimized');
+        if (localStorage.getItem('sidebarHidden') === 'true') {
+            document.querySelector('.sidebar').classList.add('sidebar-hidden');
         }
 
         // UI Elements
