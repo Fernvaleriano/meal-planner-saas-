@@ -462,7 +462,7 @@ function ExerciseDetailModal({
           completed: set?.completed || false,
           duration: set?.duration || exercise.duration || null,
           distance: set?.distance || exercise.distance || null,
-          restSeconds: set?.restSeconds || exercise.restSeconds || 60
+          restSeconds: set?.restSeconds ?? exercise.restSeconds ?? 60
         }));
       }
 
@@ -473,7 +473,7 @@ function ExerciseDetailModal({
           completed: set?.completed || false,
           duration: set?.duration || exercise.duration || null,
           distance: set?.distance || exercise.distance || null,
-          restSeconds: set?.restSeconds || exercise.restSeconds || 60
+          restSeconds: set?.restSeconds ?? exercise.restSeconds ?? 60
         }));
       }
 
@@ -484,7 +484,7 @@ function ExerciseDetailModal({
         completed: false,
         duration: exercise.duration || null,
         distance: exercise.distance || null,
-        restSeconds: exercise.restSeconds || 60
+        restSeconds: exercise.restSeconds ?? 60
       }));
     } catch (e) {
       console.error('Error initializing sets:', e);
@@ -642,7 +642,7 @@ function ExerciseDetailModal({
           weightUnit: s.weightUnit || weightUnit,
           rpe: s.rpe || null,
           effort: s.effort || null,
-          restSeconds: s.restSeconds || null,
+          restSeconds: s.restSeconds ?? null,
           isTimeBased: s.isTimeBased || false,
           ...(s.duration != null && { duration: s.duration }),
           ...(s.distance != null && { distance: s.distance }),
@@ -801,7 +801,7 @@ function ExerciseDetailModal({
         weight: s.weight || 0,
         weightUnit: s.weightUnit || 'kg',
         rpe: s.rpe || null,
-        restSeconds: s.restSeconds || null,
+        restSeconds: s.restSeconds ?? null,
         isTimeBased: s.isTimeBased || false,
         ...(s.duration != null && { duration: s.duration }),
         ...(s.distance != null && { distance: s.distance }),
@@ -1005,7 +1005,7 @@ function ExerciseDetailModal({
                 weight: s.weight || 0,
                 weightUnit: s.weightUnit || weightUnit,
                 rpe: s.rpe || null,
-                restSeconds: s.restSeconds || null,
+                restSeconds: s.restSeconds ?? null,
                 isTimeBased: s.isTimeBased || false,
                 ...(s.duration != null && { duration: s.duration }),
                 ...(s.distance != null && { distance: s.distance }),
