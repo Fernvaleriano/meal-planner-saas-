@@ -7705,7 +7705,7 @@
                             <div class="wb-day-row-menu" id="dayRowMenu-${dayIndex}" style="display:none;" onclick="event.stopPropagation()">
                                 <button onclick="startInlineDayRename(${dayIndex})">Rename</button>
                                 <button onclick="duplicateDay(${dayIndex})">Duplicate</button>
-                                ${workoutDays.length > 1 ? `<button class="danger" onclick="removeWorkoutDay(${dayIndex})">Delete</button>` : ''}
+                                <button class="danger" onclick="removeWorkoutDay(${dayIndex})">Delete</button>
                             </div>
                         </div>
                     ` : ''}
@@ -8134,7 +8134,9 @@
 
         function renderWorkoutDays() {
             // Ensure activeDayIndex is valid
-            if (activeDayIndex >= workoutDays.length) {
+            if (workoutDays.length === 0) {
+                activeDayIndex = -1;
+            } else if (activeDayIndex < 0 || activeDayIndex >= workoutDays.length) {
                 activeDayIndex = Math.max(0, workoutDays.length - 1);
             }
             if (selectedExerciseIndex !== null) {
@@ -8711,8 +8713,10 @@
         function removeWorkoutDay(dayIndex) {
             if (confirm('Remove this workout day?')) {
                 workoutDays.splice(dayIndex, 1);
-                if (activeDayIndex >= workoutDays.length) {
-                    activeDayIndex = Math.max(0, workoutDays.length - 1);
+                if (workoutDays.length === 0) {
+                    activeDayIndex = -1;
+                } else if (activeDayIndex >= workoutDays.length) {
+                    activeDayIndex = workoutDays.length - 1;
                 }
                 selectedExerciseIndex = null;
                 renderWorkoutDays();
