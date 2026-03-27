@@ -72,7 +72,9 @@ exports.handler = withTimeout(async (event, context) => {
                 coachId, clientId, name, timing, timingCustom, dose,
                 hasSchedule, schedule, startDate, notes, privateNotes,
                 // New frequency fields
-                frequencyType, frequencyInterval, frequencyDays
+                frequencyType, frequencyInterval, frequencyDays,
+                // Image field
+                imageUrl
             } = body;
 
             if (!coachId || !clientId || !name) {
@@ -95,6 +97,7 @@ exports.handler = withTimeout(async (event, context) => {
                 start_date: startDate || null,
                 notes: notes || null,
                 private_notes: privateNotes || null,
+                image_url: imageUrl || null,
                 // New frequency fields
                 frequency_type: frequencyType || 'daily',
                 frequency_interval: frequencyInterval || 1,
@@ -136,7 +139,9 @@ exports.handler = withTimeout(async (event, context) => {
                 // New frequency fields
                 frequencyType, frequencyInterval, frequencyDays,
                 // Client-specific fields
-                clientStartDate, lastTakenDate
+                clientStartDate, lastTakenDate,
+                // Image field
+                imageUrl
             } = body;
 
             if (!protocolId || !coachId) {
@@ -168,6 +173,8 @@ exports.handler = withTimeout(async (event, context) => {
             // Client-specific fields
             if (clientStartDate !== undefined) updateData.client_start_date = clientStartDate || null;
             if (lastTakenDate !== undefined) updateData.last_taken_date = lastTakenDate || null;
+            // Image field
+            if (imageUrl !== undefined) updateData.image_url = imageUrl || null;
 
             const { data: protocol, error } = await supabase
                 .from('client_protocols')
