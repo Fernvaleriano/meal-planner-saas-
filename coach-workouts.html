@@ -7753,7 +7753,10 @@
         function formatSetsSummary(exercise) {
             const numSets = parseInt(exercise.sets) || 3;
             if (exercise.trackingType === 'time') {
-                const dur = parseInt(exercise.duration) || 30;
+                // Prefer setsData duration (source of truth from detail panel), fall back to exercise.duration
+                const dur = (Array.isArray(exercise.setsData) && exercise.setsData[0] && exercise.setsData[0].duration)
+                    ? parseInt(exercise.setsData[0].duration)
+                    : (parseInt(exercise.duration) || 30);
                 if (dur >= 60) return `${Math.floor(dur / 60)} minute${Math.floor(dur / 60) !== 1 ? 's' : ''}`;
                 return `${dur} seconds`;
             }
@@ -7805,10 +7808,20 @@
             const setsArr = buildSetsArray(exercise);
             setsArr[setIndex] = { ...setsArr[setIndex], [field]: value };
             exercise.setsData = setsArr;
-            // Sync exercise.reps from first set so the value stays consistent
+            // Sync exercise-level fields from setsData so summaries stay consistent
             if (field === 'reps' && setsArr.length > 0 && setsArr[0].reps !== undefined) {
                 exercise.reps = String(setsArr[0].reps);
             }
+            if (field === 'duration' && setsArr.length > 0 && setsArr[0].duration !== undefined) {
+                exercise.duration = setsArr[0].duration;
+            }
+            if (field === 'distance' && setsArr.length > 0 && setsArr[0].distance !== undefined) {
+                exercise.distance = setsArr[0].distance;
+            }
+            if (field === 'restSeconds' && setsArr.length > 0 && setsArr[0].restSeconds !== undefined) {
+                exercise.restSeconds = setsArr[0].restSeconds;
+            }
+            renderExercisesList();
             renderExerciseDetail();
         }
 
