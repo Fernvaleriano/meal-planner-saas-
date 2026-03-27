@@ -364,7 +364,7 @@ function GuidedWorkoutModal({
         const existingSet = Array.isArray(ex.sets) ? ex.sets[si] : null;
         const setsDataSet = Array.isArray(ex.setsData) ? ex.setsData[si] : null;
         return {
-          reps: existingSet?.reps || defaultReps,
+          reps: existingSet?.reps || setsDataSet?.reps || defaultReps,
           weight: existingSet?.weight || 0,
           duration: existingSet?.duration || setsDataSet?.duration || ex.duration || null,
           distance: existingSet?.distance || setsDataSet?.distance || ex.distance || null,
@@ -1749,13 +1749,15 @@ function GuidedWorkoutModal({
     const exInfo = getExerciseInfo(exIdx);
 
     if (p === 'get-ready') {
+      // Read per-set values from setLogs (populated from setsData)
+      const setLog = setLogsRef.current[exIdx]?.[setIdx];
       if (exInfo.isTimed) {
         setPhase('exercise');
-        setTimer(exInfo.duration);
+        setTimer(setLog?.duration || exInfo.duration);
       } else {
         setPhase('exercise');
         // Activate rep countdown if exercise has integer reps and is not till-failure
-        const reps = parseReps(exInfo.reps);
+        const reps = setLog?.reps || parseReps(exInfo.reps);
         if (reps > 0 && Number.isInteger(reps) && exInfo.trackingType !== 'failure') {
           repTotalRef.current = reps;
           setRepCountdownActive(true);
@@ -1894,13 +1896,15 @@ function GuidedWorkoutModal({
       }
     } else {
       const nextInfo = getExerciseInfo(exIdx);
+      const nextSetIdx = currentSetIndexRef.current;
+      const nextSetLog = setLogsRef.current[exIdx]?.[nextSetIdx];
       if (nextInfo.isTimed) {
         setPhase('exercise');
-        setTimer(nextInfo.duration);
+        setTimer(nextSetLog?.duration || nextInfo.duration);
       } else {
         setPhase('exercise');
-        // Activate rep countdown for next set
-        const reps = parseReps(nextInfo.reps);
+        // Activate rep countdown for next set — use per-set reps from setLogs
+        const reps = nextSetLog?.reps || parseReps(nextInfo.reps);
         if (reps > 0 && Number.isInteger(reps) && nextInfo.trackingType !== 'failure') {
           repTotalRef.current = reps;
           setRepCountdownActive(true);
@@ -2079,13 +2083,15 @@ function GuidedWorkoutModal({
     if (phase === 'rest') {
       doAdvanceAfterRest(currentExIndex, currentSetIndex, info);
     } else if (phase === 'get-ready') {
+      // Read per-set values from setLogs
+      const skipSetLog = setLogs[currentExIndex]?.[currentSetIndex];
       if (info.isTimed) {
         setPhase('exercise');
-        setTimer(info.duration);
+        setTimer(skipSetLog?.duration || info.duration);
       } else {
         setPhase('exercise');
-        // Activate rep countdown when skipping get-ready
-        const reps = parseReps(info.reps);
+        // Activate rep countdown when skipping get-ready — use per-set reps
+        const reps = skipSetLog?.reps || parseReps(info.reps);
         if (reps > 0 && Number.isInteger(reps) && info.trackingType !== 'failure') {
           repTotalRef.current = reps;
           setRepCountdownActive(true);

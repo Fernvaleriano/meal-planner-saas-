@@ -175,7 +175,7 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
         completed: set?.completed || false,
         duration: set?.duration || exercise.duration || parseTimeFromReps(exercise.reps) || null,
         distance: set?.distance || exercise.distance || null,
-        restSeconds: set?.restSeconds || exercise.restSeconds || 60
+        restSeconds: set?.restSeconds ?? exercise.restSeconds ?? 60
       }));
       if (filtered.length > 0) return filtered;
     }
@@ -186,7 +186,7 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
       completed: false,
       duration: exercise.duration || null,
       distance: exercise.distance || null,
-      restSeconds: exercise.restSeconds || 60
+      restSeconds: exercise.restSeconds ?? 60
     }));
   };
 
@@ -362,7 +362,7 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
 
     // Start rest timer when completing a set (not when uncompleting)
     if (!wasCompleted && setIndex < sets.length - 1) {
-      startRestTimer(setIndex, newSets[setIndex].restSeconds || 60);
+      startRestTimer(setIndex, newSets[setIndex].restSeconds ?? 60);
     }
 
     // Check if all sets complete
@@ -949,7 +949,7 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
                 <div key={idx} className={`rest-box ${restTimerActive === idx ? 'timer-active' : ''}`}>
                   <Timer size={12} />
                   <span>
-                    {restTimerActive === idx ? formatRestTime(restTimeLeft) : `${set.restSeconds || 60}s`}
+                    {restTimerActive === idx ? formatRestTime(restTimeLeft) : `${set.restSeconds ?? 60}s`}
                   </span>
                 </div>
               ))}
