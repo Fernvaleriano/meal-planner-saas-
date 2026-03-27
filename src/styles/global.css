@@ -18860,6 +18860,63 @@ textarea,
     max-width: 200px;
 }
 
+/* Coach-prescribed metrics row (RPE, %1RM, HR Zone, Pace, Incline) */
+.exercise-card-v2 .coach-metrics-row {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    margin-top: 6px;
+}
+
+.exercise-card-v2 .coach-metrics-row::-webkit-scrollbar {
+    display: none;
+}
+
+.exercise-card-v2 .coach-metric-box {
+    min-width: 60px;
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+}
+
+.exercise-card-v2 .coach-metric {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 4px;
+    white-space: nowrap;
+}
+
+.exercise-card-v2 .coach-metric.rpe {
+    color: #a78bfa;
+    background: rgba(167, 139, 250, 0.15);
+}
+
+.exercise-card-v2 .coach-metric.percent1rm {
+    color: #fbbf24;
+    background: rgba(251, 191, 36, 0.15);
+}
+
+.exercise-card-v2 .coach-metric.hrzone {
+    color: #f87171;
+    background: rgba(248, 113, 113, 0.15);
+}
+
+.exercise-card-v2 .coach-metric.pace {
+    color: #22d3ee;
+    background: rgba(34, 211, 238, 0.15);
+}
+
+.exercise-card-v2 .coach-metric.incline {
+    color: #34d399;
+    background: rgba(52, 211, 153, 0.15);
+}
+
 /* Thumbnail on the right - positioned at top */
 .exercise-card-v2 .exercise-thumb {
     width: 72px;
@@ -31829,6 +31886,99 @@ textarea,
     font-weight: 600;
     color: rgba(255,255,255,0.4);
 }
+
+/* Coach-prescribed metrics in guided mode */
+.guided-coach-metrics {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 8px;
+}
+
+.guided-coach-metric {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 12px;
+    white-space: nowrap;
+}
+
+.guided-coach-metric.rpe {
+    color: #a78bfa;
+    background: rgba(167, 139, 250, 0.2);
+}
+
+.guided-coach-metric.percent1rm {
+    color: #fbbf24;
+    background: rgba(251, 191, 36, 0.2);
+}
+
+.guided-coach-metric.hrzone {
+    color: #f87171;
+    background: rgba(248, 113, 113, 0.2);
+}
+
+.guided-coach-metric.pace {
+    color: #22d3ee;
+    background: rgba(34, 211, 238, 0.2);
+}
+
+.guided-coach-metric.incline {
+    color: #34d399;
+    background: rgba(52, 211, 153, 0.2);
+}
+
+/* Coach targets row in exercise detail modal */
+.coach-targets-row {
+    margin-top: 10px;
+    padding: 8px 12px;
+    background: rgba(30, 30, 40, 0.6);
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.coach-targets-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.5);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: block;
+    margin-bottom: 6px;
+}
+
+.coach-targets-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.coach-metric-set {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.coach-metric-set-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.coach-metric {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 4px;
+    white-space: nowrap;
+}
+
+.coach-metric.rpe { color: #a78bfa; background: rgba(167, 139, 250, 0.15); }
+.coach-metric.percent1rm { color: #fbbf24; background: rgba(251, 191, 36, 0.15); }
+.coach-metric.hrzone { color: #f87171; background: rgba(248, 113, 113, 0.15); }
+.coach-metric.pace { color: #22d3ee; background: rgba(34, 211, 238, 0.15); }
+.coach-metric.incline { color: #34d399; background: rgba(52, 211, 153, 0.15); }
 
 /* Exercise thumbnail */
 .guided-exercise-visual {

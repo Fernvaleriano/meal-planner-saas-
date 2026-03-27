@@ -2514,6 +2514,20 @@ function GuidedWorkoutModal({
           </div>
         )}
 
+        {/* Coach-prescribed metrics for current set (only if coach toggled on) */}
+        {(() => {
+          const setData = Array.isArray(currentExercise?.setsData) ? currentExercise.setsData[currentSetIndex] : null;
+          if (!setData) return null;
+          const tags = [];
+          if (currentExercise.showRPE && setData.rpe) tags.push(<span key="rpe" className="guided-coach-metric rpe">RPE {setData.rpe}</span>);
+          if (currentExercise.showPercent1RM && setData.percent1RM) tags.push(<span key="1rm" className="guided-coach-metric percent1rm">{setData.percent1RM}% 1RM</span>);
+          if (currentExercise.showHRZone && setData.hrZone) tags.push(<span key="hr" className="guided-coach-metric hrzone">Zone {setData.hrZone}</span>);
+          if (currentExercise.showPace && setData.pace) tags.push(<span key="pace" className="guided-coach-metric pace">{setData.pace} pace</span>);
+          if (currentExercise.showIncline && setData.incline) tags.push(<span key="inc" className="guided-coach-metric incline">{setData.incline}% incline</span>);
+          if (tags.length === 0) return null;
+          return <div className="guided-coach-metrics">{tags}</div>;
+        })()}
+
         {/* Superset member progress */}
         {supersetState && (
           <div className="guided-superset-members">

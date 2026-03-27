@@ -1507,6 +1507,18 @@
             color: #166534;
         }
 
+        .ac-set-metric {
+            font-size: 10px;
+            font-weight: 600;
+            margin-left: 2px;
+        }
+
+        .ac-set-metric.percent1rm { color: #d97706; }
+        .ac-set-metric.hrzone { color: #dc2626; }
+        .ac-set-metric.pace { color: #0891b2; }
+        .ac-set-metric.incline { color: #059669; }
+        .ac-set-metric.rpe { color: #6366f1; }
+
         /* Set editor inline */
         .ac-set-editor {
             margin-top: 10px;
@@ -2729,6 +2741,27 @@
             font-weight: 600;
         }
 
+        .wp-metric {
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .wp-metric.percent1rm {
+            color: #d97706;
+        }
+
+        .wp-metric.hrzone {
+            color: #dc2626;
+        }
+
+        .wp-metric.pace {
+            color: #0891b2;
+        }
+
+        .wp-metric.incline {
+            color: #059669;
+        }
+
         .wp-client-note {
             background: #f5f3ff;
             border-left: 3px solid #7c3aed;
@@ -2848,6 +2881,16 @@
             border-color: #3b82f6;
             color: #93c5fd;
         }
+
+        [data-theme="dark"] .wp-metric.percent1rm { color: #fbbf24; }
+        [data-theme="dark"] .wp-metric.hrzone { color: #f87171; }
+        [data-theme="dark"] .wp-metric.pace { color: #22d3ee; }
+        [data-theme="dark"] .wp-metric.incline { color: #34d399; }
+        [data-theme="dark"] .ac-set-metric.percent1rm { color: #fbbf24; }
+        [data-theme="dark"] .ac-set-metric.hrzone { color: #f87171; }
+        [data-theme="dark"] .ac-set-metric.pace { color: #22d3ee; }
+        [data-theme="dark"] .ac-set-metric.incline { color: #34d399; }
+        [data-theme="dark"] .ac-set-metric.rpe { color: #a5b4fc; }
 
         [data-theme="dark"] .wp-client-note {
             background: #2e1065;
@@ -12277,9 +12320,16 @@
 
                         let setsHtml = '';
                         if (ex.setsData && Array.isArray(ex.setsData)) {
-                            setsHtml = ex.setsData.map(s =>
-                                `<span class="ac-set-pill${s._completed ? ' completed' : ''}">${s.reps || 0}${s.weight ? 'x' + s.weight + (s.weightUnit || 'lbs') : ''}</span>`
-                            ).join('');
+                            setsHtml = ex.setsData.map(s => {
+                                let label = `${s.reps || 0}${s.weight ? 'x' + s.weight + (s.weightUnit || 'lbs') : ''}`;
+                                let extras = '';
+                                if (ex.showRPE && s.rpe) extras += `<span class="ac-set-metric rpe">RPE ${s.rpe}</span>`;
+                                if (ex.showPercent1RM && s.percent1RM) extras += `<span class="ac-set-metric percent1rm">${s.percent1RM}%</span>`;
+                                if (ex.showHRZone && s.hrZone) extras += `<span class="ac-set-metric hrzone">Z${s.hrZone}</span>`;
+                                if (ex.showPace && s.pace) extras += `<span class="ac-set-metric pace">${s.pace}</span>`;
+                                if (ex.showIncline && s.incline) extras += `<span class="ac-set-metric incline">${s.incline}%incl</span>`;
+                                return `<span class="ac-set-pill${s._completed ? ' completed' : ''}">${label}${extras}</span>`;
+                            }).join('');
                         } else if (sets > 0) {
                             setsHtml = `<span class="ac-set-pill">${sets} sets x ${reps} ${trackingType === 'time' ? 'sec' : 'reps'}</span>`;
                         }
@@ -13248,6 +13298,26 @@
 
             html += '</div>';
 
+            // Show coach-prescribed metrics (RPE, %1RM, HR Zone, Pace, Incline) only if coach toggled them on
+            const hasMetrics = setsData.some(s => (ex.showRPE && s.rpe) || (ex.showPercent1RM && s.percent1RM) || (ex.showHRZone && s.hrZone) || (ex.showPace && s.pace) || (ex.showIncline && s.incline));
+            if (hasMetrics) {
+                html += `<div style="margin-bottom:10px; padding:10px 12px; background:#f8fafc; border-radius:10px; border:1px solid #e2e8f0;">
+                    <div style="font-size:12px; font-weight:600; color:#64748b; margin-bottom:6px;">Coach Targets</div>
+                    <div style="display:flex; gap:6px; flex-wrap:wrap;">`;
+                setsData.forEach((s, i) => {
+                    let tags = [];
+                    if (ex.showRPE && s.rpe) tags.push(`<span class="ac-set-metric rpe" style="font-size:12px;">RPE ${s.rpe}</span>`);
+                    if (ex.showPercent1RM && s.percent1RM) tags.push(`<span class="ac-set-metric percent1rm" style="font-size:12px;">${s.percent1RM}%1RM</span>`);
+                    if (ex.showHRZone && s.hrZone) tags.push(`<span class="ac-set-metric hrzone" style="font-size:12px;">Z${s.hrZone}</span>`);
+                    if (ex.showPace && s.pace) tags.push(`<span class="ac-set-metric pace" style="font-size:12px;">${s.pace}</span>`);
+                    if (ex.showIncline && s.incline) tags.push(`<span class="ac-set-metric incline" style="font-size:12px;">${s.incline}%incl</span>`);
+                    if (tags.length > 0) {
+                        html += `<span class="ac-set-pill" style="gap:6px;">S${i + 1}: ${tags.join(' ')}</span>`;
+                    }
+                });
+                html += `</div></div>`;
+            }
+
             html += `<div class="ac-exd-calories">
                 <label>Calories (Kcal)</label>
                 <input class="ac-exd-set-input" type="number" id="acExdCalories" value="${ex.calories || ''}" style="width:80px;" min="0">
@@ -13970,8 +14040,13 @@
                         const label = s.isTimeBased
                             ? `${s.reps || 0}s`
                             : `${s.reps || 0}×${s.weight || 0}${s.weightUnit || 'kg'}`;
-                        const rpe = s.rpe ? `<span class="wp-rpe">RPE ${s.rpe}</span>` : '';
-                        return `<span class="wp-set-pill">${label}${rpe}</span>`;
+                        let extras = '';
+                        if (s.rpe) extras += `<span class="wp-rpe">RPE ${s.rpe}</span>`;
+                        if (s.percent1RM) extras += `<span class="wp-metric percent1rm">${s.percent1RM}%1RM</span>`;
+                        if (s.hrZone) extras += `<span class="wp-metric hrzone">Z${s.hrZone}</span>`;
+                        if (s.pace) extras += `<span class="wp-metric pace">${s.pace}</span>`;
+                        if (s.incline) extras += `<span class="wp-metric incline">${s.incline}%incl</span>`;
+                        return `<span class="wp-set-pill">${label}${extras}</span>`;
                     }).join('') + '</div>';
                 }
 
@@ -14279,7 +14354,19 @@
                     const setCount = setsData.length || ex.totalSets || ex.total_sets || 0;
                     const maxW = ex.maxWeight || ex.max_weight || 0;
                     const info = maxW > 0 ? `${setCount} sets - ${maxW} kg max` : `${setCount} sets`;
-                    return `<div class="wc-detail-exercise"><span class="wc-detail-ex-name">${escapeHtml(name)}</span><span class="wc-detail-ex-info">${info}</span></div>`;
+                    let metricsHtml = '';
+                    const hasMetrics = setsData.some(s => s.rpe || s.percent1RM || s.hrZone || s.pace || s.incline);
+                    if (hasMetrics) {
+                        const tags = [];
+                        const firstSet = setsData[0] || {};
+                        if (firstSet.rpe) tags.push(`<span class="ac-set-metric rpe">RPE ${firstSet.rpe}</span>`);
+                        if (firstSet.percent1RM) tags.push(`<span class="ac-set-metric percent1rm">${firstSet.percent1RM}%</span>`);
+                        if (firstSet.hrZone) tags.push(`<span class="ac-set-metric hrzone">Z${firstSet.hrZone}</span>`);
+                        if (firstSet.pace) tags.push(`<span class="ac-set-metric pace">${firstSet.pace}</span>`);
+                        if (firstSet.incline) tags.push(`<span class="ac-set-metric incline">${firstSet.incline}%incl</span>`);
+                        if (tags.length > 0) metricsHtml = `<div style="margin-top:2px;display:flex;gap:6px;flex-wrap:wrap;">${tags.join('')}</div>`;
+                    }
+                    return `<div class="wc-detail-exercise"><span class="wc-detail-ex-name">${escapeHtml(name)}</span><span class="wc-detail-ex-info">${info}</span>${metricsHtml}</div>`;
                 }).join('') + '</div>';
             } else if (data.status === 'scheduled') {
                 // Try to show planned exercises from the assignment
@@ -14294,7 +14381,18 @@
                             if (ex.setsData && Array.isArray(ex.setsData) && ex.setsData.length > 0) {
                                 reps = ex.setsData[0].reps || reps;
                             }
-                            return `<div class="wc-detail-exercise"><span class="wc-detail-ex-name">${escapeHtml(ex.name || 'Exercise')}</span><span class="wc-detail-ex-info">${sets} x ${reps}</span></div>`;
+                            let metricsHtml = '';
+                            if (ex.setsData && Array.isArray(ex.setsData) && ex.setsData.length > 0) {
+                                const s = ex.setsData[0];
+                                const tags = [];
+                                if (ex.showRPE && s.rpe) tags.push(`<span class="ac-set-metric rpe">RPE ${s.rpe}</span>`);
+                                if (ex.showPercent1RM && s.percent1RM) tags.push(`<span class="ac-set-metric percent1rm">${s.percent1RM}%</span>`);
+                                if (ex.showHRZone && s.hrZone) tags.push(`<span class="ac-set-metric hrzone">Z${s.hrZone}</span>`);
+                                if (ex.showPace && s.pace) tags.push(`<span class="ac-set-metric pace">${s.pace}</span>`);
+                                if (ex.showIncline && s.incline) tags.push(`<span class="ac-set-metric incline">${s.incline}%incl</span>`);
+                                if (tags.length > 0) metricsHtml = `<div style="margin-top:2px;display:flex;gap:6px;flex-wrap:wrap;">${tags.join('')}</div>`;
+                            }
+                            return `<div class="wc-detail-exercise"><span class="wc-detail-ex-name">${escapeHtml(ex.name || 'Exercise')}</span><span class="wc-detail-ex-info">${sets} x ${reps}</span>${metricsHtml}</div>`;
                         }).join('') + '</div>';
                     }
                 }
@@ -14719,9 +14817,20 @@
                         reps = ex.setsData[0].reps || reps;
                     }
                     const weight = ex.weight ? `${ex.weight} kg` : '';
+                    let metricsHtml = '';
+                    if (ex.setsData && Array.isArray(ex.setsData) && ex.setsData.length > 0) {
+                        const s = ex.setsData[0];
+                        const tags = [];
+                        if (ex.showRPE && s.rpe) tags.push(`<span class="ac-set-metric rpe">RPE ${s.rpe}</span>`);
+                        if (ex.showPercent1RM && s.percent1RM) tags.push(`<span class="ac-set-metric percent1rm">${s.percent1RM}%</span>`);
+                        if (ex.showHRZone && s.hrZone) tags.push(`<span class="ac-set-metric hrzone">Z${s.hrZone}</span>`);
+                        if (ex.showPace && s.pace) tags.push(`<span class="ac-set-metric pace">${s.pace}</span>`);
+                        if (ex.showIncline && s.incline) tags.push(`<span class="ac-set-metric incline">${s.incline}%incl</span>`);
+                        if (tags.length > 0) metricsHtml = `<span style="display:inline-flex;gap:4px;margin-left:6px;">${tags.join('')}</span>`;
+                    }
                     return `<div class="wpr-exercise-row">
                         <span class="wpr-ex-name">${escapeHtml(ex.name || 'Exercise')}</span>
-                        <span class="wpr-ex-detail">${sets} x ${reps}${weight ? ' @ ' + weight : ''}</span>
+                        <span class="wpr-ex-detail">${sets} x ${reps}${weight ? ' @ ' + weight : ''}${metricsHtml}</span>
                         <div class="wpr-ex-actions">
                             <button class="wpr-ex-btn" onclick="event.stopPropagation(); editExerciseInProgram(${i}, ${ei})" title="Edit">✏️</button>
                             <button class="wpr-ex-btn delete" onclick="event.stopPropagation(); removeExerciseFromProgram(${i}, ${ei})" title="Remove">🗑️</button>

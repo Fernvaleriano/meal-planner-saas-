@@ -462,7 +462,12 @@ function ExerciseDetailModal({
           completed: set?.completed || false,
           duration: set?.duration || exercise.duration || null,
           distance: set?.distance || exercise.distance || null,
-          restSeconds: set?.restSeconds ?? exercise.restSeconds ?? 60
+          restSeconds: set?.restSeconds ?? exercise.restSeconds ?? 60,
+          rpe: set?.rpe || null,
+          percent1RM: set?.percent1RM || null,
+          hrZone: set?.hrZone || null,
+          pace: set?.pace || null,
+          incline: set?.incline || null,
         }));
       }
 
@@ -2082,6 +2087,23 @@ function ExerciseDetailModal({
                 <span>{exercise.restSeconds || 60}s</span>
               </div>
             </div>
+            {/* Coach-prescribed metrics (only if coach toggled them on) */}
+            {sets.some(s => (exercise.showRPE && s.rpe) || (exercise.showPercent1RM && s.percent1RM) || (exercise.showHRZone && s.hrZone) || (exercise.showPace && s.pace) || (exercise.showIncline && s.incline)) && (
+              <div className="coach-targets-row">
+                <span className="coach-targets-label">Coach Targets</span>
+                <div className="coach-targets-pills">
+                  {sets.map((set, idx) => {
+                    const tags = [];
+                    if (exercise.showRPE && set.rpe) tags.push(<span key="rpe" className="coach-metric rpe">RPE {set.rpe}</span>);
+                    if (exercise.showPercent1RM && set.percent1RM) tags.push(<span key="1rm" className="coach-metric percent1rm">{set.percent1RM}%1RM</span>);
+                    if (exercise.showHRZone && set.hrZone) tags.push(<span key="hr" className="coach-metric hrzone">Z{set.hrZone}</span>);
+                    if (exercise.showPace && set.pace) tags.push(<span key="pace" className="coach-metric pace">{set.pace}</span>);
+                    if (exercise.showIncline && set.incline) tags.push(<span key="inc" className="coach-metric incline">{set.incline}% incl</span>);
+                    return tags.length > 0 ? <div key={idx} className="coach-metric-set"><span className="coach-metric-set-label">S{idx + 1}</span>{tags}</div> : null;
+                  }).filter(Boolean)}
+                </div>
+              </div>
+            )}
           </div>
           {/* Voice Input Button */}
           {voiceSupported && (
