@@ -118,7 +118,7 @@ const DEFAULT_PROGRAMS = [
     program_type: 'hypertrophy',
     difficulty: 'intermediate',
     days_per_week: 6,
-    program_data: { days: [
+    program_data: { image_url: 'https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/sign/Default%20Workout%20Pictures/Untitled%20design%20-%202026-03-27T113852.190.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV84NjE4ZWRhYy0yY2NmLTQ4MzMtODNiZi01MWVhNzZkMmY2ZDUiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJEZWZhdWx0IFdvcmtvdXQgUGljdHVyZXMvVW50aXRsZWQgZGVzaWduIC0gMjAyNi0wMy0yN1QxMTM4NTIuMTkwLnBuZyIsImlhdCI6MTc3NDU4NjQxMywiZXhwIjoxODA2MTIyNDEzfQ.msKU-3fxDRoCpT9_13XFssGF1LIJuvbwa2K6r4VLx0U', days: [
 
       // ── DAY 1: PUSH A (Chest focus) ────────────────────────────────────
       {
@@ -365,7 +365,7 @@ exports.handler = async (event) => {
         program_type: prog.program_type,
         difficulty: prog.difficulty,
         days_per_week: prog.days_per_week,
-        program_data: { days: enrichedDays },
+        program_data: { ...prog.program_data, days: enrichedDays },
         is_template: true,
         is_published: false,
         is_club_workout: false
