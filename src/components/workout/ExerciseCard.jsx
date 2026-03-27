@@ -164,7 +164,12 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
         completed: set?.completed || false,
         duration: set?.duration || exercise.duration || parseTimeFromReps(exercise.reps) || null,
         distance: set?.distance || exercise.distance || null,
-        restSeconds: set?.restSeconds ?? exercise.restSeconds ?? 60
+        restSeconds: set?.restSeconds ?? exercise.restSeconds ?? 60,
+        rpe: set?.rpe || null,
+        percent1RM: set?.percent1RM || null,
+        hrZone: set?.hrZone || null,
+        pace: set?.pace || null,
+        incline: set?.incline || null,
       }));
     }
     if (Array.isArray(exercise.sets) && exercise.sets.length > 0) {
@@ -954,6 +959,21 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
                 </div>
               ))}
             </div>
+
+            {/* Coach Metrics Row - only shown if coach toggled these on */}
+            {sets.some(s => (exercise.showRPE && s.rpe) || (exercise.showPercent1RM && s.percent1RM) || (exercise.showHRZone && s.hrZone) || (exercise.showPace && s.pace) || (exercise.showIncline && s.incline)) && (
+              <div className="coach-metrics-row">
+                {sets.map((set, idx) => {
+                  const tags = [];
+                  if (exercise.showRPE && set.rpe) tags.push(<span key="rpe" className="coach-metric rpe">RPE {set.rpe}</span>);
+                  if (exercise.showPercent1RM && set.percent1RM) tags.push(<span key="1rm" className="coach-metric percent1rm">{set.percent1RM}%</span>);
+                  if (exercise.showHRZone && set.hrZone) tags.push(<span key="hr" className="coach-metric hrzone">Z{set.hrZone}</span>);
+                  if (exercise.showPace && set.pace) tags.push(<span key="pace" className="coach-metric pace">{set.pace}</span>);
+                  if (exercise.showIncline && set.incline) tags.push(<span key="inc" className="coach-metric incline">{set.incline}%</span>);
+                  return tags.length > 0 ? <div key={idx} className="coach-metric-box">{tags}</div> : <div key={idx} className="coach-metric-box" />;
+                })}
+              </div>
+            )}
           </div>
         </div>
 
