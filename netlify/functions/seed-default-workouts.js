@@ -278,7 +278,7 @@ const DEFAULT_PROGRAMS = [
     program_type: 'weight_loss',
     difficulty: 'beginner',
     days_per_week: 3,
-    program_data: { days: [
+    program_data: { image_url: 'https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/Default%20Workout%20Pictures/Untitled%20design%20-%202026-03-27T121704.249.png', days: [
 
       // ── DAY 1: Full Body A (Push & Core Focus) ─────────────────────────
       {
