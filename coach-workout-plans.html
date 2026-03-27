@@ -696,9 +696,6 @@
                 margin-left: var(--sidebar-width, 260px);
                 transition: margin-left 0.3s ease;
             }
-            .sidebar.sidebar-minimized ~ .page-content {
-                margin-left: 72px;
-            }
         }
         @media (max-width: 1024px) {
             .sidebar { transform: translateX(-100%); transition: transform 0.3s ease; }
@@ -716,13 +713,6 @@
             <a href="dashboard.html" class="sidebar-logo">
                 <img src="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/Untitled%20design%20(3).svg" alt="Zique Fitness" class="sidebar-logo-img">
             </a>
-            <button class="sidebar-collapse-toggle" onclick="toggleSidebarMinimize()" title="Toggle sidebar">
-                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="3" y="3" width="18" height="18" rx="2"/>
-                    <path d="M9 3v18"/>
-                    <path d="M16 15l-3-3 3-3"/>
-                </svg>
-            </button>
         </div>
         <nav class="sidebar-nav">
             <div class="sidebar-nav-section" data-section="menu">
@@ -1238,17 +1228,9 @@
                 }
             });
             // Restore minimized state
-            if (localStorage.getItem('sidebarMinimized') === 'true') {
-                document.querySelector('.sidebar').classList.add('sidebar-minimized');
-            }
         })();
 
         // Sidebar minimize/expand toggle
-        function toggleSidebarMinimize() {
-            const sidebar = document.querySelector('.sidebar');
-            sidebar.classList.toggle('sidebar-minimized');
-            localStorage.setItem('sidebarMinimized', sidebar.classList.contains('sidebar-minimized'));
-        }
 
         // Mobile sidebar toggle
         (function() {
