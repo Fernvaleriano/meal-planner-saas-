@@ -5251,8 +5251,9 @@
                 <img src="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/Untitled%20design%20(3).svg" alt="Zique Fitness" class="sidebar-logo-img">
             </a>
             <button class="sidebar-collapse-toggle" onclick="toggleSidebarMinimize()" title="Toggle sidebar">
-                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M11 17l-5-5 5-5"/>
+                    <path d="M18 17l-5-5 5-5"/>
                 </svg>
             </button>
         </div>
@@ -5871,6 +5872,9 @@
                     section.classList.add('collapsed');
                 }
             });
+            if (localStorage.getItem('sidebarMinimized') === 'true') {
+                document.querySelector('.sidebar').classList.add('sidebar-minimized');
+            }
         })();
 
         // Initialize Supabase client

@@ -755,6 +755,10 @@ body {
     transition: transform 0.3s ease;
 }
 
+.sidebar.sidebar-minimized .sidebar-collapse-toggle svg {
+    transform: rotate(180deg);
+}
+
 /* Collapsed sidebar state - icon only (72px) */
 .sidebar.sidebar-minimized {
     width: 72px;
@@ -818,7 +822,9 @@ body {
 
 /* Adjust main content margin when sidebar is minimized */
 .sidebar.sidebar-minimized + .sidebar-overlay + .main-content,
-.sidebar.sidebar-minimized ~ .main-content {
+.sidebar.sidebar-minimized ~ .main-content,
+.sidebar.sidebar-minimized ~ .page-content,
+.sidebar.sidebar-minimized ~ .chat-container {
     margin-left: 72px;
 }
 
@@ -851,7 +857,9 @@ body {
     transition: width 0.3s ease;
 }
 
-.main-content {
+.main-content,
+.page-content,
+.chat-container {
     transition: margin-left 0.3s ease;
 }
 
