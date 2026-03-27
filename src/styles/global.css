@@ -272,7 +272,7 @@ textarea,
 }
 
 .nav-logo-left {
-    height: 56px;
+    height: 80px;
     width: auto;
     max-width: 200px;
     object-fit: contain;
@@ -281,14 +281,14 @@ textarea,
 /* Responsive logo sizing for different screen sizes */
 @media (max-width: 500px) {
     .nav-logo-left {
-        height: 48px;
+        height: 70px;
         max-width: 180px;
     }
 }
 
 @media (max-width: 380px) {
     .nav-logo-left {
-        height: 42px;
+        height: 60px;
         max-width: 160px;
     }
 }
