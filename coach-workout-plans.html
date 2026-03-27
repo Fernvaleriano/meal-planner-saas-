@@ -712,15 +712,15 @@
 
     <!-- Sidebar -->
     <aside class="sidebar">
-        <button class="sidebar-collapse-btn" onclick="toggleSidebarMinimize()" title="Collapse sidebar">
-            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-            </svg>
-        </button>
         <div class="sidebar-header">
             <a href="dashboard.html" class="sidebar-logo">
                 <img src="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/Untitled%20design%20(3).svg" alt="Zique Fitness" class="sidebar-logo-img">
             </a>
+            <button class="sidebar-collapse-toggle" onclick="toggleSidebarMinimize()" title="Collapse sidebar">
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/>
+                </svg>
+            </button>
         </div>
         <nav class="sidebar-nav">
             <div class="sidebar-nav-section" data-section="menu">
