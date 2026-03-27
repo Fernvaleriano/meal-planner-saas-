@@ -1731,11 +1731,99 @@
         }
 
         .wb-ex-row-check {
-            width: 18px;
-            height: 18px;
-            accent-color: var(--brand-primary);
+            width: 22px;
+            height: 22px;
+            border: 2px solid var(--border-color);
+            border-radius: 6px;
             cursor: pointer;
             flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+            transition: all 0.15s ease;
+        }
+        .wb-ex-row-check:hover {
+            border-color: var(--brand-primary);
+        }
+        .wb-ex-row-check.checked {
+            background: var(--brand-primary);
+            border-color: var(--brand-primary);
+        }
+        .wb-ex-row-check.checked svg {
+            display: block;
+        }
+        .wb-ex-row-check svg {
+            display: none;
+            width: 14px;
+            height: 14px;
+            stroke: #fff;
+            stroke-width: 3;
+            fill: none;
+        }
+
+        /* Bulk action bar for exercises panel */
+        .wb-ex-bulk-bar {
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 16px;
+            background: var(--brand-primary, #0d9488);
+            color: #fff;
+            border-radius: 10px;
+            margin: 8px 12px;
+            box-shadow: 0 4px 16px rgba(13, 148, 136, 0.3);
+            gap: 10px;
+            animation: slideUp 0.2s ease;
+        }
+        .wb-ex-bulk-bar.visible {
+            display: flex;
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .wb-ex-bulk-bar-count {
+            font-size: 13px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .wb-ex-bulk-bar-actions {
+            display: flex;
+            gap: 8px;
+        }
+        .wb-ex-bulk-btn {
+            padding: 6px 14px;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.15s ease;
+        }
+        .wb-ex-bulk-btn--duplicate {
+            background: rgba(255,255,255,0.2);
+            color: #fff;
+        }
+        .wb-ex-bulk-btn--duplicate:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        .wb-ex-bulk-btn--delete {
+            background: rgba(239,68,68,0.9);
+            color: #fff;
+        }
+        .wb-ex-bulk-btn--delete:hover {
+            background: rgba(239,68,68,1);
+        }
+        .wb-ex-bulk-btn--clear {
+            background: rgba(255,255,255,0.15);
+            color: #fff;
+        }
+        .wb-ex-bulk-btn--clear:hover {
+            background: rgba(255,255,255,0.25);
         }
 
         .wb-ex-row-badge {
@@ -5904,6 +5992,22 @@
                         Add
                     </button>
                 </div>
+                <div class="wb-ex-bulk-bar" id="exerciseBulkBar">
+                    <span class="wb-ex-bulk-bar-count" id="exerciseBulkCount">0 selected</span>
+                    <div class="wb-ex-bulk-bar-actions">
+                        <button class="wb-ex-bulk-btn wb-ex-bulk-btn--duplicate" onclick="duplicateCheckedExercises()" title="Duplicate selected exercises">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" stroke-width="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" stroke-width="2"/></svg>
+                            Duplicate
+                        </button>
+                        <button class="wb-ex-bulk-btn wb-ex-bulk-btn--delete" onclick="deleteCheckedExercises()" title="Delete selected exercises">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                            Delete
+                        </button>
+                        <button class="wb-ex-bulk-btn wb-ex-bulk-btn--clear" onclick="clearCheckedExercises()" title="Clear selection">
+                            ✕
+                        </button>
+                    </div>
+                </div>
                 <div class="wb-panel-body" id="exercisesList">
                     <!-- Exercises rendered here by renderExercisesList() -->
                 </div>
@@ -7559,9 +7663,11 @@
         function selectDay(dayIndex) {
             activeDayIndex = dayIndex;
             selectedExerciseIndex = null;
+            checkedExerciseIndices.clear();
             renderDaysList();
             renderExercisesList();
             renderExerciseDetail();
+            updateExerciseBulkBar();
         }
 
         // Select an exercise in the middle panel
@@ -7569,6 +7675,78 @@
             selectedExerciseIndex = exIndex;
             renderExercisesList();
             renderExerciseDetail();
+        }
+
+        // ============ EXERCISE CHECKMARKS (MULTI-SELECT) ============
+        let checkedExerciseIndices = new Set();
+
+        function toggleExerciseCheck(exIndex, event) {
+            event.stopPropagation();
+            if (checkedExerciseIndices.has(exIndex)) {
+                checkedExerciseIndices.delete(exIndex);
+            } else {
+                checkedExerciseIndices.add(exIndex);
+            }
+            renderExercisesList();
+            updateExerciseBulkBar();
+        }
+
+        function updateExerciseBulkBar() {
+            const bar = document.getElementById('exerciseBulkBar');
+            const countEl = document.getElementById('exerciseBulkCount');
+            if (!bar) return;
+            const count = checkedExerciseIndices.size;
+            if (count > 0) {
+                bar.classList.add('visible');
+                countEl.textContent = count + ' selected';
+            } else {
+                bar.classList.remove('visible');
+            }
+        }
+
+        function clearCheckedExercises() {
+            checkedExerciseIndices.clear();
+            renderExercisesList();
+            updateExerciseBulkBar();
+        }
+
+        function duplicateCheckedExercises() {
+            const day = workoutDays[activeDayIndex];
+            if (!day) return;
+            const indices = Array.from(checkedExerciseIndices).sort((a, b) => a - b);
+            if (indices.length === 0) return;
+            // Insert duplicates right after the last checked exercise
+            let insertAt = Math.max(...indices) + 1;
+            indices.forEach((idx) => {
+                const copy = JSON.parse(JSON.stringify(day.exercises[idx]));
+                day.exercises.splice(insertAt, 0, copy);
+                insertAt++;
+            });
+            checkedExerciseIndices.clear();
+            selectedExerciseIndex = null;
+            renderExercisesList();
+            renderExerciseDetail();
+            updateExerciseBulkBar();
+            renderDaysList();
+            showToast(indices.length + ' exercise' + (indices.length > 1 ? 's' : '') + ' duplicated', 'success');
+        }
+
+        function deleteCheckedExercises() {
+            const day = workoutDays[activeDayIndex];
+            if (!day) return;
+            const indices = Array.from(checkedExerciseIndices).sort((a, b) => b - a);
+            if (indices.length === 0) return;
+            const count = indices.length;
+            indices.forEach((idx) => {
+                day.exercises.splice(idx, 1);
+            });
+            checkedExerciseIndices.clear();
+            selectedExerciseIndex = null;
+            renderExercisesList();
+            renderExerciseDetail();
+            updateExerciseBulkBar();
+            renderDaysList();
+            showToast(count + ' exercise' + (count > 1 ? 's' : '') + ' deleted', 'success');
         }
 
         // Format set summary for exercise list (e.g. "10x 10x 10x")
@@ -7832,6 +8010,7 @@
                 if (exercise.isStretch) badges += '<span class="wb-ex-row-badge" style="background:rgba(16,185,129,0.2);color:#10b981;">Stretch</span>';
                 if (exercise.isSuperset) badges += '<span class="wb-ex-row-badge" style="background:rgba(99,102,241,0.2);color:#6366f1;">SS ' + (exercise.supersetGroup || '') + '</span>';
                 const insertBtn = '<div class="wb-insert-divider"><button class="wb-insert-btn" onclick="event.stopPropagation(); openExerciseModal(' + activeDayIndex + ', ' + (exIndex + 1) + ')" title="Insert exercise here"><svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg></button></div>';
+                const isChecked = checkedExerciseIndices.has(exIndex);
                 return '<div class="wb-ex-row exercise-item ' + (selectedExerciseIndex === exIndex ? 'selected' : '') + '" draggable="true" data-day="' + activeDayIndex + '" data-index="' + exIndex + '" ondragstart="onExDragStart(event)" ondragover="onExDragOver(event)" ondrop="onExDrop(event)" ondragend="onExDragEnd(event)" ondragleave="onExDragLeave(event)" onclick="selectExercise(' + exIndex + ')">' +
                     '<div class="wb-ex-row-drag" onclick="event.stopPropagation()">' +
                         '<button class="wb-ex-move-btn" onclick="event.stopPropagation(); moveExerciseInPanel(' + activeDayIndex + ',' + exIndex + ',-1)" title="Move up"' + (exIndex === 0 ? ' disabled' : '') + '>&#9650;</button>' +
@@ -7842,6 +8021,9 @@
                     '<div class="wb-ex-row-info">' +
                         '<span class="wb-ex-row-name">' + escapeHtml(exercise.name) + badges + '</span>' +
                         '<span class="wb-ex-row-summary">' + summary + '</span>' +
+                    '</div>' +
+                    '<div class="wb-ex-row-check' + (isChecked ? ' checked' : '') + '" onclick="toggleExerciseCheck(' + exIndex + ', event)" title="Select exercise">' +
+                        '<svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>' +
                     '</div>' +
                 '</div>' + (exIndex < totalEx - 1 ? insertBtn : '');
             }).join('');
