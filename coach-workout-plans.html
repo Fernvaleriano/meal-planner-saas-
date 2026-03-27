@@ -696,8 +696,8 @@
                 margin-left: var(--sidebar-width, 260px);
                 transition: margin-left 0.3s ease;
             }
-            .sidebar.sidebar-hidden ~ .page-content {
-                margin-left: 0;
+            .sidebar.sidebar-minimized ~ .page-content {
+                margin-left: 72px;
             }
         }
         @media (max-width: 1024px) {
@@ -717,9 +717,10 @@
                 <img src="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/Untitled%20design%20(3).svg" alt="Zique Fitness" class="sidebar-logo-img">
             </a>
             <button class="sidebar-collapse-toggle" onclick="toggleSidebarMinimize()" title="Toggle sidebar">
-                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M11 17l-5-5 5-5"/>
-                    <path d="M18 17l-5-5 5-5"/>
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2"/>
+                    <path d="M9 3v18"/>
+                    <path d="M16 15l-3-3 3-3"/>
                 </svg>
             </button>
         </div>
@@ -811,13 +812,6 @@
 
     <!-- Mobile overlay -->
     <div class="sidebar-overlay" id="sidebarOverlay"></div>
-
-    <!-- Floating button to reopen sidebar -->
-    <button class="sidebar-open-toggle" onclick="toggleSidebarMinimize()" title="Show sidebar">
-        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 12h18M3 6h18M3 18h18"/>
-        </svg>
-    </button>
 
     <!-- Top Navigation (mobile only) -->
     <nav class="top-nav">
@@ -1244,16 +1238,16 @@
                 }
             });
             // Restore minimized state
-            if (localStorage.getItem('sidebarHidden') === 'true') {
-                document.querySelector('.sidebar').classList.add('sidebar-hidden');
+            if (localStorage.getItem('sidebarMinimized') === 'true') {
+                document.querySelector('.sidebar').classList.add('sidebar-minimized');
             }
         })();
 
         // Sidebar minimize/expand toggle
         function toggleSidebarMinimize() {
             const sidebar = document.querySelector('.sidebar');
-            sidebar.classList.toggle('sidebar-hidden');
-            localStorage.setItem('sidebarHidden', sidebar.classList.contains('sidebar-hidden'));
+            sidebar.classList.toggle('sidebar-minimized');
+            localStorage.setItem('sidebarMinimized', sidebar.classList.contains('sidebar-minimized'));
         }
 
         // Mobile sidebar toggle

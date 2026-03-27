@@ -11,6 +11,8 @@
         }
     </script>
     <script src="/js/theme.js"></script>
+    <link rel="stylesheet" href="/css/coach-layout.css">
+    <script src="https://unpkg.com/lucide@0.312.0/dist/umd/lucide.min.js" onload="if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',()=>lucide.createIcons())}else{lucide.createIcons()}"></script>
     <link rel="stylesheet" href="/css/voice-commander.css">
     <script src="/js/gym-features.js"></script>
     <link rel="stylesheet" href="/css/voice-to-text.css">
@@ -82,6 +84,29 @@
         }
 
         /* Navigation */
+        /* Offset for sidebar */
+        .top-nav,
+        .main-content {
+            margin-left: var(--sidebar-width, 260px);
+            transition: margin-left 0.3s ease;
+        }
+        .sidebar.sidebar-minimized ~ .top-nav,
+        .sidebar.sidebar-minimized ~ .main-content,
+        .sidebar.sidebar-minimized ~ .sidebar-overlay ~ .top-nav,
+        .sidebar.sidebar-minimized ~ .sidebar-overlay ~ .main-content {
+            margin-left: 72px;
+        }
+        @media (max-width: 1024px) {
+            .top-nav,
+            .main-content {
+                margin-left: 0;
+            }
+            .sidebar.sidebar-minimized ~ .top-nav,
+            .sidebar.sidebar-minimized ~ .main-content {
+                margin-left: 0;
+            }
+        }
+
         .top-nav {
             background: linear-gradient(135deg, rgba(13, 148, 136, 0.95) 0%, rgba(2, 132, 199, 0.95) 100%);
             backdrop-filter: blur(20px);
@@ -5654,6 +5679,109 @@
     </style>
 </head>
 <body>
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <a href="dashboard.html" class="sidebar-logo">
+                <img src="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/Untitled%20design%20(3).svg" alt="Zique Fitness" class="sidebar-logo-img">
+            </a>
+            <button class="sidebar-collapse-toggle" onclick="toggleSidebarMinimize()" title="Toggle sidebar">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2"/>
+                    <path d="M9 3v18"/>
+                    <path d="M16 15l-3-3 3-3"/>
+                </svg>
+            </button>
+        </div>
+        <nav class="sidebar-nav">
+            <div class="sidebar-nav-section" data-section="menu">
+                <div class="sidebar-nav-label" onclick="toggleSidebarSection(this)">
+                    Menu
+                    <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </div>
+                <div class="sidebar-nav-items">
+                    <a href="dashboard.html" class="sidebar-nav-item" data-tooltip="Dashboard">
+                        <span class="sidebar-nav-icon"><i data-lucide="layout-dashboard"></i></span>
+                        Dashboard
+                    </a>
+                    <a href="manage-clients.html" class="sidebar-nav-item" data-tooltip="Clients">
+                        <span class="sidebar-nav-icon"><i data-lucide="users"></i></span>
+                        Clients
+                    </a>
+                    <a href="coach-messages.html" class="sidebar-nav-item" data-tooltip="Messages">
+                        <span class="sidebar-nav-icon"><i data-lucide="message-circle"></i></span>
+                        Messages
+                    </a>
+                    <a href="manage-recipes.html" class="sidebar-nav-item" data-tooltip="Recipes">
+                        <span class="sidebar-nav-icon"><i data-lucide="book-open"></i></span>
+                        Recipes
+                    </a>
+                    <a href="planner.html" class="sidebar-nav-item" data-tooltip="Nutrition Planner">
+                        <span class="sidebar-nav-icon"><i data-lucide="sparkles"></i></span>
+                        Nutrition Planner
+                    </a>
+                    <a href="coach-workout-plans.html" class="sidebar-nav-item active" data-tooltip="Workouts">
+                        <span class="sidebar-nav-icon"><i data-lucide="dumbbell"></i></span>
+                        Workouts
+                    </a>
+                    <a href="coach-challenges.html" class="sidebar-nav-item" data-tooltip="Challenges">
+                        <span class="sidebar-nav-icon"><i data-lucide="trophy"></i></span>
+                        Challenges
+                    </a>
+                </div>
+            </div>
+            <div class="sidebar-nav-section" data-section="settings">
+                <div class="sidebar-nav-label" onclick="toggleSidebarSection(this)">
+                    Settings
+                    <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </div>
+                <div class="sidebar-nav-items">
+                    <a href="coach-profile.html" class="sidebar-nav-item" data-tooltip="My Profile">
+                        <span class="sidebar-nav-icon"><i data-lucide="user"></i></span>
+                        My Profile
+                    </a>
+                    <a href="supplement-protocols.html" class="sidebar-nav-item" data-tooltip="Supplements">
+                        <span class="sidebar-nav-icon"><i data-lucide="pill"></i></span>
+                        Supplements
+                    </a>
+                    <a href="reminder-settings.html" class="sidebar-nav-item" data-tooltip="Reminders">
+                        <span class="sidebar-nav-icon"><i data-lucide="bell"></i></span>
+                        Reminders
+                    </a>
+                    <a href="coach-billing.html" class="sidebar-nav-item" data-tooltip="Billing">
+                        <span class="sidebar-nav-icon"><i data-lucide="credit-card"></i></span>
+                        Billing
+                    </a>
+                    <a href="#" class="sidebar-nav-item sidebar-nav-logout" id="logoutLink" data-tooltip="Log Out">
+                        <span class="sidebar-nav-icon"><i data-lucide="log-out"></i></span>
+                        Log Out
+                    </a>
+                </div>
+            </div>
+        </nav>
+        <div class="sidebar-footer">
+            <div class="sidebar-user">
+                <div class="sidebar-user-avatar" id="userAvatar">C</div>
+                <div class="sidebar-user-info">
+                    <div class="sidebar-user-name" id="userEmail">Loading...</div>
+                    <div class="sidebar-user-role">Coach</div>
+                </div>
+                <button class="sidebar-logout" id="logoutBtn" title="Logout">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Mobile overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
     <div class="bg-pattern"></div>
 
     <!-- Top Navigation -->
@@ -7420,6 +7548,13 @@
             }
             currentCoachId = session.user.id;
             currentAccessToken = session.access_token;
+
+            // Populate sidebar user info
+            const email = session.user.email || '';
+            const userEmailEl = document.getElementById('userEmail');
+            const userAvatarEl = document.getElementById('userAvatar');
+            if (userEmailEl) userEmailEl.textContent = email;
+            if (userAvatarEl) userAvatarEl.textContent = email.charAt(0).toUpperCase();
 
             // Initialize gym features (enabled for all coaches)
             await initGymFeatures({ email: session.user.email });
@@ -13563,6 +13698,37 @@
                 }
             });
         });
+    </script>
+    <script>
+        // Sidebar toggle and section collapse
+        function toggleSidebarMinimize() {
+            const sidebar = document.querySelector('.sidebar');
+            sidebar.classList.toggle('sidebar-minimized');
+            localStorage.setItem('sidebarMinimized', sidebar.classList.contains('sidebar-minimized'));
+        }
+
+        function toggleSidebarSection(label) {
+            const section = label.parentElement;
+            section.classList.toggle('collapsed');
+            const sectionName = section.dataset.section;
+            const collapsedSections = JSON.parse(localStorage.getItem('sidebarCollapsed') || '{}');
+            collapsedSections[sectionName] = section.classList.contains('collapsed');
+            localStorage.setItem('sidebarCollapsed', JSON.stringify(collapsedSections));
+        }
+
+        // Restore sidebar state on load
+        (function restoreSidebarState() {
+            const collapsedSections = JSON.parse(localStorage.getItem('sidebarCollapsed') || '{}');
+            document.querySelectorAll('.sidebar-nav-section').forEach(section => {
+                const sectionName = section.dataset.section;
+                if (collapsedSections[sectionName]) {
+                    section.classList.add('collapsed');
+                }
+            });
+            if (localStorage.getItem('sidebarMinimized') === 'true') {
+                document.querySelector('.sidebar').classList.add('sidebar-minimized');
+            }
+        })();
     </script>
     <script src="/js/voice-to-text.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
