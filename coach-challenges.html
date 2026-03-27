@@ -232,8 +232,8 @@
             padding: 32px;
             transition: margin-left 0.3s ease;
         }
-        .sidebar.sidebar-hidden ~ .main-content {
-            margin-left: 0;
+        .sidebar.sidebar-minimized ~ .main-content {
+            margin-left: 72px;
         }
         [data-theme="dark"] .main-content {
             background: #1e293b;
@@ -811,13 +811,6 @@
 
     <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
-    <!-- Floating button to reopen sidebar -->
-    <button class="sidebar-open-toggle" onclick="toggleSidebarMinimize()" title="Show sidebar">
-        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 12h18M3 6h18M3 18h18"/>
-        </svg>
-    </button>
-
     <!-- Main Content -->
     <main class="main-content">
         <!-- List View -->
@@ -948,8 +941,8 @@
         // Sidebar
         function toggleSidebarMinimize() {
             const sidebar = document.querySelector('.sidebar');
-            sidebar.classList.toggle('sidebar-hidden');
-            localStorage.setItem('sidebarHidden', sidebar.classList.contains('sidebar-hidden'));
+            sidebar.classList.toggle('sidebar-minimized');
+            localStorage.setItem('sidebarMinimized', sidebar.classList.contains('sidebar-minimized'));
         }
 
         function toggleSidebarSection(label) {
@@ -969,8 +962,8 @@
                     section.classList.add('collapsed');
                 }
             });
-            if (localStorage.getItem('sidebarHidden') === 'true') {
-                document.querySelector('.sidebar').classList.add('sidebar-hidden');
+            if (localStorage.getItem('sidebarMinimized') === 'true') {
+                document.querySelector('.sidebar').classList.add('sidebar-minimized');
             }
         })();
 
