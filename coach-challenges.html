@@ -689,6 +689,91 @@
         }
         @keyframes spin { to { transform: rotate(360deg); } }
 
+        /* Template Picker */
+        .template-picker { margin-bottom: 0; }
+        .template-picker-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: var(--gray-900);
+        }
+        .template-picker-subtitle {
+            font-size: 0.85rem;
+            color: var(--gray-500);
+            margin-bottom: 20px;
+        }
+        .template-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .template-card {
+            background: var(--gray-50);
+            border: 2px solid var(--gray-200);
+            border-radius: 12px;
+            padding: 16px;
+            cursor: pointer;
+            transition: all 0.15s;
+            text-align: left;
+        }
+        .template-card:hover {
+            border-color: var(--brand-primary);
+            background: rgba(13, 148, 136, 0.04);
+        }
+        .template-card-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+        }
+        .template-card-name {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--gray-800);
+            margin-bottom: 4px;
+        }
+        .template-card-desc {
+            font-size: 0.75rem;
+            color: var(--gray-500);
+            line-height: 1.4;
+        }
+        .template-card-meta {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+            flex-wrap: wrap;
+        }
+        .template-meta-tag {
+            font-size: 0.65rem;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 6px;
+            background: var(--gray-100);
+            color: var(--gray-500);
+        }
+        .template-scratch-btn {
+            width: 100%;
+            padding: 12px;
+            background: none;
+            border: 2px dashed var(--gray-200);
+            border-radius: 12px;
+            color: var(--gray-500);
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+            font-family: inherit;
+        }
+        .template-scratch-btn:hover {
+            border-color: var(--gray-400);
+            color: var(--gray-700);
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
             .sidebar { transform: translateX(-100%); }
@@ -699,6 +784,7 @@
             .challenges-grid { grid-template-columns: 1fr; }
             .page-header { flex-direction: column; align-items: flex-start; }
             .form-row { grid-template-columns: 1fr; }
+            .template-grid { grid-template-columns: 1fr; }
             .modal { padding: 24px 20px; margin: 10px; }
             .detail-header { flex-direction: column; }
         }
@@ -839,6 +925,20 @@
     <!-- Create Challenge Modal -->
     <div class="modal-overlay" id="createModal">
         <div class="modal">
+            <!-- Step 1: Template Picker -->
+            <div id="templatePickerStep">
+                <h2 class="template-picker-title">Create Challenge</h2>
+                <p class="template-picker-subtitle">Start from a template or build your own</p>
+                <div class="template-grid" id="templateGrid"></div>
+                <button type="button" class="template-scratch-btn" onclick="selectTemplate(null)">
+                    + Start from Scratch
+                </button>
+                <div class="modal-actions" style="margin-top:16px;">
+                    <button type="button" class="btn-secondary" onclick="closeCreateModal()">Cancel</button>
+                </div>
+            </div>
+            <!-- Step 2: Create Form -->
+            <div id="createFormStep" style="display:none;">
             <h2 class="modal-title">Create Challenge</h2>
             <form id="createForm" onsubmit="event.preventDefault(); createChallenge();">
                 <div class="form-group">
@@ -894,10 +994,11 @@
                     </div>
                 </div>
                 <div class="modal-actions">
-                    <button type="button" class="btn-secondary" onclick="closeCreateModal()">Cancel</button>
+                    <button type="button" class="btn-secondary" onclick="showTemplatePicker()">Back</button>
                     <button type="submit" class="btn-primary" id="createBtn">Create Challenge</button>
                 </div>
             </form>
+            </div>
         </div>
     </div>
 
@@ -928,6 +1029,146 @@
             steps: 'footprints',
             custom: 'star'
         };
+
+        // ─── Challenge Templates ─────────────────────────────────────────
+        // Practical templates coaches can launch with one click.
+        // Each pre-fills the create form — coach still picks dates & clients.
+        const CHALLENGE_TEMPLATES = [
+            {
+                name: '30-Day Gym Accountability',
+                description: 'Check in every time you hit the gym. Aim for at least 20 check-ins this month. The leaderboard tracks who shows up the most — consistency wins.',
+                challengeType: 'gym_checkin',
+                targetValue: null,
+                targetUnit: null,
+                frequency: 'daily',
+                durationDays: 30,
+                icon: '🏋️',
+                color: '#0d9488',
+                shortDesc: 'Daily gym check-ins for 30 days. Leaderboard tracks who shows up most.'
+            },
+            {
+                name: '2-Week Hydration Blitz',
+                description: 'Drink at least 80oz of water every day for 14 days. Log your intake daily. Staying hydrated improves energy, recovery, and performance.',
+                challengeType: 'water_intake',
+                targetValue: 80,
+                targetUnit: 'oz',
+                frequency: 'daily',
+                durationDays: 14,
+                icon: '💧',
+                color: '#0284c7',
+                shortDesc: '80oz of water daily for 14 days. Build the hydration habit.'
+            },
+            {
+                name: '10K Steps Challenge',
+                description: 'Hit 10,000 steps every day for 30 days. Walk, run, hike — however you get there. Steps add up on the leaderboard so every day counts.',
+                challengeType: 'steps',
+                targetValue: 10000,
+                targetUnit: 'steps',
+                frequency: 'daily',
+                durationDays: 30,
+                icon: '👟',
+                color: '#7c3aed',
+                shortDesc: '10K steps daily for 30 days. Total steps on the leaderboard.'
+            },
+            {
+                name: '21-Day Consistency Streak',
+                description: 'Log a workout or meal every single day for 21 days straight. It takes 21 days to build a habit — this challenge proves you can do it. Longest streak wins.',
+                challengeType: 'consistency',
+                targetValue: 21,
+                targetUnit: 'days',
+                frequency: 'daily',
+                durationDays: 21,
+                icon: '🔥',
+                color: '#ea580c',
+                shortDesc: 'Log a workout or meal daily for 21 days. Build the habit.'
+            },
+            {
+                name: '8-Week Body Transformation',
+                description: 'Weekly weigh-ins for 8 weeks. Log your weight each week and track your progress. The leaderboard ranks by total weight lost — stay consistent and trust the process.',
+                challengeType: 'weight_loss',
+                targetValue: null,
+                targetUnit: 'lbs',
+                frequency: 'weekly',
+                durationDays: 56,
+                icon: '⚖️',
+                color: '#dc2626',
+                shortDesc: 'Weekly weigh-ins for 8 weeks. Leaderboard ranks by lbs lost.'
+            },
+            {
+                name: '30-Day No Junk Food',
+                description: 'Cut out junk food and fast food for 30 days. Check in daily to confirm you stayed on track. Simple yes/no — did you stick to whole foods today?',
+                challengeType: 'custom',
+                targetValue: null,
+                targetUnit: null,
+                frequency: 'daily',
+                durationDays: 30,
+                icon: '🥗',
+                color: '#16a34a',
+                shortDesc: 'Daily check-in: did you eat clean today? 30 days straight.'
+            }
+        ];
+
+        // Render template picker grid
+        function renderTemplateGrid() {
+            const grid = document.getElementById('templateGrid');
+            grid.innerHTML = CHALLENGE_TEMPLATES.map((t, i) => `
+                <div class="template-card" onclick="selectTemplate(${i})">
+                    <div class="template-card-icon" style="background:${t.color}15;color:${t.color};">${t.icon}</div>
+                    <div class="template-card-name">${t.name}</div>
+                    <div class="template-card-desc">${t.shortDesc}</div>
+                    <div class="template-card-meta">
+                        <span class="template-meta-tag">${TYPE_LABELS[t.challengeType] || 'Custom'}</span>
+                        <span class="template-meta-tag">${t.durationDays} days</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function selectTemplate(index) {
+            document.getElementById('templatePickerStep').style.display = 'none';
+            document.getElementById('createFormStep').style.display = 'block';
+
+            const today = new Date();
+            document.getElementById('startDate').value = today.toISOString().split('T')[0];
+
+            if (index !== null && index !== undefined) {
+                const t = CHALLENGE_TEMPLATES[index];
+                document.getElementById('challengeTitle').value = t.name;
+                document.getElementById('challengeDesc').value = t.description;
+                document.getElementById('challengeType').value = t.challengeType;
+
+                const endDate = new Date(today);
+                endDate.setDate(endDate.getDate() + t.durationDays);
+                document.getElementById('endDate').value = endDate.toISOString().split('T')[0];
+
+                // Show/hide target fields for this type first
+                updateTypeFields();
+
+                // Then override with template values
+                if (t.targetValue) {
+                    document.getElementById('targetValue').value = t.targetValue;
+                }
+                if (t.targetUnit) {
+                    document.getElementById('targetUnit').value = t.targetUnit;
+                }
+            } else {
+                // Start from scratch — reset to defaults
+                document.getElementById('challengeTitle').value = '';
+                document.getElementById('challengeDesc').value = '';
+                document.getElementById('challengeType').value = 'gym_checkin';
+                const endDefault = new Date(today);
+                endDefault.setDate(endDefault.getDate() + 30);
+                document.getElementById('endDate').value = endDefault.toISOString().split('T')[0];
+                updateTypeFields();
+            }
+
+            renderClientSelect();
+        }
+
+        function showTemplatePicker() {
+            document.getElementById('createFormStep').style.display = 'none';
+            document.getElementById('templatePickerStep').style.display = 'block';
+        }
 
         // Sidebar
 
@@ -1245,13 +1486,18 @@
         // Create challenge
         function openCreateModal() {
             document.getElementById('createModal').classList.add('active');
-            updateTypeFields();
-            renderClientSelect();
+            // Show template picker step first
+            document.getElementById('templatePickerStep').style.display = 'block';
+            document.getElementById('createFormStep').style.display = 'none';
+            renderTemplateGrid();
         }
 
         function closeCreateModal() {
             document.getElementById('createModal').classList.remove('active');
             document.getElementById('createForm').reset();
+            // Reset to template picker for next open
+            document.getElementById('templatePickerStep').style.display = 'block';
+            document.getElementById('createFormStep').style.display = 'none';
             // Reset defaults
             const today = new Date();
             document.getElementById('startDate').value = today.toISOString().split('T')[0];
