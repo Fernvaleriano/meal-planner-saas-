@@ -2950,7 +2950,8 @@ function GuidedWorkoutModal({
               <p className="guided-input-hint">Tap to edit</p>
             )}
 
-            {/* Effort selector */}
+            {/* Effort selector — hidden for warm-up and cool-down/stretch exercises */}
+            {!currentExercise?.isWarmup && !currentExercise?.isStretch && currentExercise?.phase !== 'warmup' && currentExercise?.phase !== 'cooldown' && (
             <div className="guided-effort-section">
               <p className="guided-effort-label">
                 <Flame size={14} />
@@ -2971,6 +2972,7 @@ function GuidedWorkoutModal({
                 ))}
               </div>
             </div>
+            )}
           </div>
         ) : (phase === 'get-ready' || (phase === 'exercise' && info.isTimed)) ? (
           <div className="guided-timer-circle">
@@ -3071,7 +3073,8 @@ function GuidedWorkoutModal({
               <p className="guided-input-hint">Tap to edit</p>
             )}
 
-            {/* Effort selector */}
+            {/* Effort selector — hidden for warm-up and cool-down/stretch exercises */}
+            {!currentExercise?.isWarmup && !currentExercise?.isStretch && currentExercise?.phase !== 'warmup' && currentExercise?.phase !== 'cooldown' && (
             <div className="guided-effort-section">
               <p className="guided-effort-label">
                 <Flame size={14} />
@@ -3092,6 +3095,7 @@ function GuidedWorkoutModal({
                 ))}
               </div>
             </div>
+            )}
           </div>
         )}
       </div>
