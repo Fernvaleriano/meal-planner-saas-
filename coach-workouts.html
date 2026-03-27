@@ -649,6 +649,7 @@
         .custom-video-container {
             display: flex;
             align-items: center;
+            flex-wrap: wrap;
             gap: 8px;
             margin-top: 8px;
             padding-top: 8px;
@@ -1998,7 +1999,8 @@
         /* Tracking Type Toggle */
         .wb-detail-type-toggle {
             display: flex;
-            gap: 16px;
+            flex-wrap: wrap;
+            gap: 12px;
             padding: 14px 16px;
             border-bottom: 1px solid var(--border-color);
         }
@@ -2081,6 +2083,101 @@
         .wb-set-input:focus {
             border-color: var(--brand-primary);
             background: var(--bg-secondary);
+        }
+
+        .wb-set-input-sm {
+            min-width: 0;
+            padding: 8px 4px;
+            font-size: 13px;
+        }
+
+        .wb-set-input-group {
+            flex: 1;
+            display: flex;
+            gap: 2px;
+            align-items: center;
+        }
+
+        .wb-set-input-group .wb-set-input-sm {
+            flex: 1;
+            border-radius: 6px 0 0 6px;
+            min-width: 0;
+        }
+
+        .wb-set-unit-select {
+            padding: 8px 4px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-left: none;
+            border-radius: 0 6px 6px 0;
+            font-size: 11px;
+            color: var(--text-muted);
+            outline: none;
+            cursor: pointer;
+        }
+
+        .wb-set-select {
+            padding: 8px 4px;
+            cursor: pointer;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        /* Per-set extras toggle chips */
+        .wb-set-extras-toggle {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 8px;
+        }
+
+        .wb-extras-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .wb-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-tertiary);
+            color: var(--text-muted);
+            font-size: 11px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            font-family: inherit;
+        }
+
+        .wb-chip:hover {
+            border-color: var(--brand-primary);
+            color: var(--text-primary);
+        }
+
+        .wb-chip.active {
+            background: var(--brand-primary);
+            border-color: var(--brand-primary);
+            color: white;
+        }
+
+        /* Video URL paste row */
+        .video-url-paste-row {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            margin-top: 8px;
+            width: 100%;
+        }
+
+        .video-url-paste-row input {
+            flex: 1;
+            min-width: 0;
         }
 
         /* Add/Delete Set Actions */
@@ -7849,6 +7946,14 @@
             renderExerciseDetail();
         }
 
+        // Toggle extra per-set columns (weight, RPE, %1RM, pace, incline, HR zone)
+        function toggleExerciseExtra(dayIndex, exIndex, field) {
+            const exercise = workoutDays[dayIndex].exercises[exIndex];
+            exercise[field] = !exercise[field];
+            renderExercisesList();
+            renderExerciseDetail();
+        }
+
         // Change tracking type from detail panel
         function changeTrackingType(dayIndex, exIndex, type) {
             const exercise = workoutDays[dayIndex].exercises[exIndex];
@@ -8132,18 +8237,74 @@
                         <input type="radio" name="trackingType-${ei}" ${trackingType === 'time' ? 'checked' : ''} onchange="changeTrackingType(${di},${ei},'time')">
                         <span>Time-based</span>
                     </label>
+                    <label class="wb-type-radio ${trackingType === 'distance' ? 'active' : ''}">
+                        <input type="radio" name="trackingType-${ei}" ${trackingType === 'distance' ? 'checked' : ''} onchange="changeTrackingType(${di},${ei},'distance')">
+                        <span>Distance-based</span>
+                    </label>
+                </div>
+
+                ${trackingType === 'distance' ? `
+                <div class="wb-detail-section" style="padding: 8px 16px;">
+                    <div style="display:flex;gap:8px;align-items:center;">
+                        <label style="font-size:12px;color:var(--text-muted);margin:0;">Unit:</label>
+                        <select class="form-select" style="padding:6px 10px;font-size:13px;flex:1;" onchange="updateExercise(${di},${ei},'distanceUnit',this.value); workoutDays[${di}].exercises[${ei}].setsData = buildSetsArray(workoutDays[${di}].exercises[${ei}]); renderExerciseDetail();">
+                            <option value="miles" ${(exercise.distanceUnit || 'miles') === 'miles' ? 'selected' : ''}>Miles</option>
+                            <option value="km" ${exercise.distanceUnit === 'km' ? 'selected' : ''}>Kilometers</option>
+                            <option value="meters" ${exercise.distanceUnit === 'meters' ? 'selected' : ''}>Meters</option>
+                        </select>
+                    </div>
+                </div>
+                ` : ''}
+
+                <div class="wb-set-extras-toggle" style="padding: 4px 16px 0;">
+                    <span style="font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.3px;">Per-set columns:</span>
+                    <div class="wb-extras-chips">
+                        <button class="wb-chip ${exercise.showWeight ? 'active' : ''}" onclick="toggleExerciseExtra(${di},${ei},'showWeight')">
+                            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 8M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z"/></svg>
+                            Weight
+                        </button>
+                        <button class="wb-chip ${exercise.showRPE ? 'active' : ''}" onclick="toggleExerciseExtra(${di},${ei},'showRPE')">
+                            RPE
+                        </button>
+                        <button class="wb-chip ${exercise.showPercent1RM ? 'active' : ''}" onclick="toggleExerciseExtra(${di},${ei},'showPercent1RM')">
+                            % 1RM
+                        </button>
+                        ${trackingType === 'distance' ? `
+                        <button class="wb-chip ${exercise.showPace ? 'active' : ''}" onclick="toggleExerciseExtra(${di},${ei},'showPace')">
+                            Pace
+                        </button>
+                        <button class="wb-chip ${exercise.showIncline ? 'active' : ''}" onclick="toggleExerciseExtra(${di},${ei},'showIncline')">
+                            Incline
+                        </button>
+                        ` : ''}
+                        <button class="wb-chip ${exercise.showHRZone ? 'active' : ''}" onclick="toggleExerciseExtra(${di},${ei},'showHRZone')">
+                            HR Zone
+                        </button>
+                    </div>
                 </div>
 
                 <div class="wb-detail-sets">
                     <div class="wb-sets-header-row">
                         <span class="wb-sets-col-num"></span>
                         <span class="wb-sets-col-label">${setsHeaderLabel}</span>
+                        ${exercise.showWeight ? '<span class="wb-sets-col-label">Weight</span>' : ''}
+                        ${exercise.showRPE ? '<span class="wb-sets-col-label">RPE</span>' : ''}
+                        ${exercise.showPercent1RM ? '<span class="wb-sets-col-label">% 1RM</span>' : ''}
+                        ${exercise.showPace && trackingType === 'distance' ? '<span class="wb-sets-col-label">Pace</span>' : ''}
+                        ${exercise.showIncline && trackingType === 'distance' ? '<span class="wb-sets-col-label">Incline %</span>' : ''}
+                        ${exercise.showHRZone ? '<span class="wb-sets-col-label">HR Zone</span>' : ''}
                         <span class="wb-sets-col-label">Rest (s)</span>
                     </div>
                     ${setsArr.map((set, si) => `
                         <div class="wb-set-row">
                             <span class="wb-set-num">${si + 1}</span>
                             ${setsInputField(set, si)}
+                            ${exercise.showWeight ? `<div class="wb-set-input-group"><input type="number" class="wb-set-input wb-set-input-sm" value="${set.weight || ''}" min="0" step="any" placeholder="—" onchange="updateExerciseSet(${di},${ei},${si},'weight',parseFloat(this.value)||0)"><select class="wb-set-unit-select" onchange="updateExerciseSet(${di},${ei},${si},'weightUnit',this.value)"><option value="lb" ${(set.weightUnit || 'lb') === 'lb' ? 'selected' : ''}>lb</option><option value="kg" ${set.weightUnit === 'kg' ? 'selected' : ''}>kg</option></select></div>` : ''}
+                            ${exercise.showRPE ? `<input type="number" class="wb-set-input wb-set-input-sm" value="${set.rpe || ''}" min="1" max="10" step="0.5" placeholder="—" onchange="updateExerciseSet(${di},${ei},${si},'rpe',parseFloat(this.value)||0)">` : ''}
+                            ${exercise.showPercent1RM ? `<input type="number" class="wb-set-input wb-set-input-sm" value="${set.percent1RM || ''}" min="0" max="100" step="1" placeholder="%" onchange="updateExerciseSet(${di},${ei},${si},'percent1RM',parseInt(this.value)||0)">` : ''}
+                            ${exercise.showPace && trackingType === 'distance' ? `<input type="text" class="wb-set-input wb-set-input-sm" value="${set.pace || ''}" placeholder="0:00" onchange="updateExerciseSet(${di},${ei},${si},'pace',this.value)">` : ''}
+                            ${exercise.showIncline && trackingType === 'distance' ? `<input type="number" class="wb-set-input wb-set-input-sm" value="${set.incline || ''}" min="0" max="40" step="0.5" placeholder="%" onchange="updateExerciseSet(${di},${ei},${si},'incline',parseFloat(this.value)||0)">` : ''}
+                            ${exercise.showHRZone ? `<select class="wb-set-input wb-set-input-sm wb-set-select" onchange="updateExerciseSet(${di},${ei},${si},'hrZone',parseInt(this.value)||0)"><option value="" ${!set.hrZone ? 'selected' : ''}>—</option><option value="1" ${set.hrZone == 1 ? 'selected' : ''}>Z1</option><option value="2" ${set.hrZone == 2 ? 'selected' : ''}>Z2</option><option value="3" ${set.hrZone == 3 ? 'selected' : ''}>Z3</option><option value="4" ${set.hrZone == 4 ? 'selected' : ''}>Z4</option><option value="5" ${set.hrZone == 5 ? 'selected' : ''}>Z5</option></select>` : ''}
                             <input type="number" class="wb-set-input" value="${set.restSeconds ?? 30}" min="0" onchange="updateExerciseSet(${di},${ei},${si},'restSeconds',parseInt(this.value)||0)">
                         </div>
                     `).join('')}
@@ -8219,7 +8380,7 @@
                                 <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
                                 </svg>
-                                Record Demo
+                                Record
                             </button>
                             <span style="font-size: 11px; color: var(--text-muted);">or</span>
                             <label class="custom-video-btn" style="margin: 0;">
@@ -8229,6 +8390,17 @@
                                 Upload
                                 <input type="file" class="video-upload-input" accept="video/*" onchange="handleVideoUpload(event, ${di}, ${ei})">
                             </label>
+                            <span style="font-size: 11px; color: var(--text-muted);">or</span>
+                            <button class="custom-video-btn" onclick="toggleVideoUrlInput(${di}, ${ei})" title="Paste a video URL">
+                                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+                                </svg>
+                                Paste URL
+                            </button>
+                            <div class="video-url-paste-row" id="videoUrlRow-${di}-${ei}" style="display:none;">
+                                <input type="text" class="wb-detail-notes-input" id="videoUrlInput-${di}-${ei}" placeholder="Paste YouTube, Vimeo, or direct video URL..." style="flex:1;" onkeydown="if(event.key==='Enter'){saveVideoUrl(${di},${ei})}">
+                                <button class="add-link-btn" onclick="saveVideoUrl(${di}, ${ei})" style="white-space:nowrap;">Save</button>
+                            </div>
                         `}
                     </div>
                 </div>
@@ -11409,6 +11581,38 @@
                 renderWorkoutDays();
                 showToast('Custom video deleted', 'success');
             }
+        }
+
+        // Toggle the paste-URL input row visibility
+        function toggleVideoUrlInput(dayIndex, exIndex) {
+            const row = document.getElementById(`videoUrlRow-${dayIndex}-${exIndex}`);
+            if (row) {
+                const isHidden = row.style.display === 'none';
+                row.style.display = isHidden ? 'flex' : 'none';
+                if (isHidden) {
+                    const input = document.getElementById(`videoUrlInput-${dayIndex}-${exIndex}`);
+                    if (input) input.focus();
+                }
+            }
+        }
+
+        // Save a pasted video URL as the custom video
+        function saveVideoUrl(dayIndex, exIndex) {
+            const input = document.getElementById(`videoUrlInput-${dayIndex}-${exIndex}`);
+            if (!input) return;
+            let url = input.value.trim();
+            if (!url) {
+                showToast('Please paste a video URL', 'error');
+                return;
+            }
+            // Basic URL validation
+            if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                url = 'https://' + url;
+            }
+            workoutDays[dayIndex].exercises[exIndex].customVideoUrl = url;
+            renderExercisesList();
+            renderExerciseDetail();
+            showToast('Custom video URL saved', 'success');
         }
 
         // ============ RECOMMENDED SWAPS FUNCTIONS ============
