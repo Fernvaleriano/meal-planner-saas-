@@ -649,7 +649,6 @@
         .custom-video-container {
             display: flex;
             align-items: center;
-            flex-wrap: wrap;
             gap: 8px;
             margin-top: 8px;
             padding-top: 8px;
@@ -2164,20 +2163,6 @@
             background: var(--brand-primary);
             border-color: var(--brand-primary);
             color: white;
-        }
-
-        /* Video URL paste row */
-        .video-url-paste-row {
-            display: flex;
-            gap: 6px;
-            align-items: center;
-            margin-top: 8px;
-            width: 100%;
-        }
-
-        .video-url-paste-row input {
-            flex: 1;
-            min-width: 0;
         }
 
         /* Add/Delete Set Actions */
@@ -8380,7 +8365,7 @@
                                 <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
                                 </svg>
-                                Record
+                                Record Demo
                             </button>
                             <span style="font-size: 11px; color: var(--text-muted);">or</span>
                             <label class="custom-video-btn" style="margin: 0;">
@@ -8390,17 +8375,6 @@
                                 Upload
                                 <input type="file" class="video-upload-input" accept="video/*" onchange="handleVideoUpload(event, ${di}, ${ei})">
                             </label>
-                            <span style="font-size: 11px; color: var(--text-muted);">or</span>
-                            <button class="custom-video-btn" onclick="toggleVideoUrlInput(${di}, ${ei})" title="Paste a video URL">
-                                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
-                                </svg>
-                                Paste URL
-                            </button>
-                            <div class="video-url-paste-row" id="videoUrlRow-${di}-${ei}" style="display:none;">
-                                <input type="text" class="wb-detail-notes-input" id="videoUrlInput-${di}-${ei}" placeholder="Paste YouTube, Vimeo, or direct video URL..." style="flex:1;" onkeydown="if(event.key==='Enter'){saveVideoUrl(${di},${ei})}">
-                                <button class="add-link-btn" onclick="saveVideoUrl(${di}, ${ei})" style="white-space:nowrap;">Save</button>
-                            </div>
                         `}
                     </div>
                 </div>
@@ -11583,37 +11557,6 @@
             }
         }
 
-        // Toggle the paste-URL input row visibility
-        function toggleVideoUrlInput(dayIndex, exIndex) {
-            const row = document.getElementById(`videoUrlRow-${dayIndex}-${exIndex}`);
-            if (row) {
-                const isHidden = row.style.display === 'none';
-                row.style.display = isHidden ? 'flex' : 'none';
-                if (isHidden) {
-                    const input = document.getElementById(`videoUrlInput-${dayIndex}-${exIndex}`);
-                    if (input) input.focus();
-                }
-            }
-        }
-
-        // Save a pasted video URL as the custom video
-        function saveVideoUrl(dayIndex, exIndex) {
-            const input = document.getElementById(`videoUrlInput-${dayIndex}-${exIndex}`);
-            if (!input) return;
-            let url = input.value.trim();
-            if (!url) {
-                showToast('Please paste a video URL', 'error');
-                return;
-            }
-            // Basic URL validation
-            if (!url.startsWith('http://') && !url.startsWith('https://')) {
-                url = 'https://' + url;
-            }
-            workoutDays[dayIndex].exercises[exIndex].customVideoUrl = url;
-            renderExercisesList();
-            renderExerciseDetail();
-            showToast('Custom video URL saved', 'success');
-        }
 
         // ============ RECOMMENDED SWAPS FUNCTIONS ============
         let recommendedSwapsDayIndex = null;
