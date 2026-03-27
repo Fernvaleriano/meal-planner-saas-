@@ -4479,18 +4479,21 @@ textarea,
 .water-intake-compact {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
     background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
     border-radius: 14px;
-    padding: 14px 18px;
+    padding: 12px 12px;
     margin-bottom: 16px;
     color: white;
+    overflow: hidden;
+    box-sizing: border-box;
+    max-width: 100%;
 }
 
 .water-intake-left {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     white-space: nowrap;
     flex-shrink: 0;
 }
@@ -4509,19 +4512,21 @@ textarea,
 .water-intake-controls {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 6px;
     flex: 1;
     min-width: 0;
+    overflow: hidden;
 }
 
 .water-btn-compact {
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
     border-radius: 8px;
     background: rgba(255, 255, 255, 0.2);
     border: 1px solid rgba(255, 255, 255, 0.3);
     color: white;
-    font-size: 1.1rem;
+    font-size: 1rem;
     font-weight: 600;
     cursor: pointer;
     display: flex;
@@ -4545,6 +4550,7 @@ textarea,
     -webkit-appearance: none;
     appearance: none;
     flex: 1;
+    min-width: 0;
     height: 8px;
     background: rgba(255, 255, 255, 0.2);
     border-radius: 4px;
@@ -4584,6 +4590,26 @@ textarea,
     background: rgba(255, 255, 255, 0.2);
     border-radius: 4px;
     border: none;
+}
+
+/* Water tracker responsive - small screens */
+@media (max-width: 374px) {
+    .water-intake-compact {
+        gap: 6px;
+        padding: 10px 8px;
+    }
+    .water-intake-left {
+        gap: 4px;
+    }
+    .water-intake-compact .water-progress {
+        font-size: 0.85rem;
+    }
+    .water-btn-compact {
+        width: 26px;
+        height: 26px;
+        min-width: 26px;
+        font-size: 0.9rem;
+    }
 }
 
 /* AI Nutrition Assistant */
