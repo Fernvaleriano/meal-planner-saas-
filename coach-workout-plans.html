@@ -696,8 +696,9 @@
                 margin-left: var(--sidebar-width, 260px);
                 transition: margin-left 0.3s ease;
             }
+            .sidebar.sidebar-minimized ~ .sidebar-expand-btn ~ .page-content,
             .sidebar.sidebar-minimized ~ .page-content {
-                margin-left: 72px;
+                margin-left: 0;
             }
         }
         @media (max-width: 1024px) {
@@ -807,6 +808,13 @@
             </div>
         </div>
     </aside>
+
+    <!-- Expand button (visible when sidebar is hidden) -->
+    <button class="sidebar-expand-btn" onclick="toggleSidebarMinimize()" title="Show sidebar">
+        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+        </svg>
+    </button>
 
     <!-- Mobile overlay -->
     <div class="sidebar-overlay" id="sidebarOverlay"></div>
