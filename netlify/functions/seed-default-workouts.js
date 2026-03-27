@@ -27,7 +27,7 @@ const DEFAULT_PROGRAMS = [
     program_type: 'strength',
     difficulty: 'beginner',
     days_per_week: 3,
-    program_data: { days: [
+    program_data: { image_url: 'https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/sign/Default%20Workout%20Pictures/Untitled%20design%20-%202026-03-27T114808.782.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV84NjE4ZWRhYy0yY2NmLTQ4MzMtODNiZi01MWVhNzZkMmY2ZDUiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJEZWZhdWx0IFdvcmtvdXQgUGljdHVyZXMvVW50aXRsZWQgZGVzaWduIC0gMjAyNi0wMy0yN1QxMTQ4MDguNzgyLnBuZyIsImlhdCI6MTc3NDU4NjkwOCwiZXhwIjoxODA2MTIyOTA4fQ.n9XSPOcn_3pAoJMdPtbmjwP1JRqNEgDgsKvETb9bE6k', days: [
 
       // ── DAY 1: Full Body A ──────────────────────────────────────────────
       {
