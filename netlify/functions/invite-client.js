@@ -40,7 +40,7 @@ exports.handler = async (event, context) => {
   }
 
   try {
-    const { clientId, coachId } = JSON.parse(event.body);
+    const { clientId, coachId, intakeFormConfig } = JSON.parse(event.body);
 
     if (!clientId || !coachId) {
       return {
@@ -112,14 +112,21 @@ exports.handler = async (event, context) => {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + TOKEN_EXPIRY_DAYS);
 
-    // Update client record with intake token
+    // Update client record with intake token and optional form config
+    const updateData = {
+      intake_token: intakeToken,
+      intake_token_expires_at: expiresAt.toISOString(),
+      invited_at: new Date().toISOString()
+    };
+
+    // Store questionnaire customization if provided
+    if (intakeFormConfig) {
+      updateData.intake_form_config = intakeFormConfig;
+    }
+
     const { error: updateError } = await supabase
       .from('clients')
-      .update({
-        intake_token: intakeToken,
-        intake_token_expires_at: expiresAt.toISOString(),
-        invited_at: new Date().toISOString()
-      })
+      .update(updateData)
       .eq('id', clientId)
       .eq('coach_id', coachId);
 

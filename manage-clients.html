@@ -1870,6 +1870,151 @@
             background: #059669;
             transform: translateY(-2px);
         }
+
+        /* Questionnaire Editor Toggle Switches */
+        .qe-switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+            flex-shrink: 0;
+        }
+        .qe-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .qe-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #cbd5e1;
+            transition: 0.2s;
+            border-radius: 24px;
+        }
+        .qe-slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: 0.2s;
+            border-radius: 50%;
+        }
+        .qe-switch input:checked + .qe-slider {
+            background-color: #0d9488;
+        }
+        .qe-switch input:checked + .qe-slider:before {
+            transform: translateX(20px);
+        }
+        .qe-section-toggle.disabled > div {
+            opacity: 0.5;
+        }
+
+        /* Custom question card */
+        .qe-custom-question {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 16px;
+        }
+        .qe-custom-question .qe-cq-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+        .qe-custom-question .qe-cq-header input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+        .qe-custom-question .qe-cq-header select {
+            padding: 8px 10px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 13px;
+            font-family: inherit;
+            background: white;
+        }
+        .qe-cq-remove {
+            background: none;
+            border: none;
+            color: #ef4444;
+            cursor: pointer;
+            font-size: 18px;
+            padding: 4px 8px;
+            border-radius: 6px;
+        }
+        .qe-cq-remove:hover {
+            background: #fef2f2;
+        }
+        .qe-cq-options {
+            margin-top: 8px;
+        }
+        .qe-cq-options input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 13px;
+            font-family: inherit;
+        }
+        .qe-cq-required {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            color: #64748b;
+            margin-top: 8px;
+        }
+        .qe-cq-required input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            accent-color: #0d9488;
+        }
+
+        /* Dark mode for questionnaire editor */
+        [data-theme="dark"] #questionnaireEditorModal .modal-content {
+            background: #1e293b;
+        }
+        [data-theme="dark"] #questionnaireEditorModal .modal-header {
+            border-color: #334155;
+        }
+        [data-theme="dark"] #questionnaireEditorModal h2,
+        [data-theme="dark"] #questionnaireEditorModal h3 {
+            color: #f1f5f9 !important;
+        }
+        [data-theme="dark"] #questionnaireEditorModal p,
+        [data-theme="dark"] #questionnaireEditorModal div {
+            color: #cbd5e1;
+        }
+        [data-theme="dark"] .qe-section-toggle > div,
+        [data-theme="dark"] .qe-custom-question {
+            background: #334155 !important;
+            border-color: #475569 !important;
+        }
+        [data-theme="dark"] .qe-section-toggle > div > div > div:first-child {
+            color: #f1f5f9 !important;
+        }
+        [data-theme="dark"] .qe-custom-question input,
+        [data-theme="dark"] .qe-custom-question select {
+            background: #1e293b;
+            border-color: #475569;
+            color: #f1f5f9;
+        }
+        [data-theme="dark"] #questionnaireEditorModal [style*="background: #f0fdf4"] {
+            background: #1e3a3a !important;
+            border-color: #2dd4bf !important;
+        }
+        [data-theme="dark"] #questionnaireEditorModal [style*="background: #f8fafc"] {
+            background: #0f172a !important;
+        }
     </style>
     <link rel="stylesheet" href="/css/coach-layout.css">
     <!-- API Helper for authenticated requests -->
@@ -2401,6 +2546,127 @@
                     <button type="submit" class="btn btn-primary" id="saveClientBtn">Save Client</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Questionnaire Editor Modal (shown before sending invite) -->
+    <div id="questionnaireEditorModal" class="modal">
+        <div class="modal-content" style="max-width: 720px; max-height: 90vh; display: flex; flex-direction: column; padding: 0;">
+            <div class="modal-header" style="padding: 24px 32px; border-bottom: 1px solid #e2e8f0; flex-shrink: 0;">
+                <h2 style="font-size: 20px;">Customize Intake Questionnaire</h2>
+                <button class="close-btn" onclick="closeQuestionnaireEditor()">&times;</button>
+            </div>
+
+            <div style="padding: 24px 32px; overflow-y: auto; flex: 1;">
+                <div style="background: #f0fdf4; border: 1px solid #bbf7d0; padding: 14px 16px; border-radius: 8px; margin-bottom: 20px; font-size: 14px; color: #166534;">
+                    <strong>Sending to:</strong> <span id="qeClientName" style="font-weight: 600;"></span> (<span id="qeClientEmail" style="font-family: monospace;"></span>)
+                </div>
+
+                <p style="color: #64748b; font-size: 14px; margin-bottom: 20px;">
+                    Toggle sections on or off, and add your own custom questions. Basic Information and Password are always included.
+                </p>
+
+                <!-- Section Toggles -->
+                <div id="qeSections" style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 28px;">
+                    <!-- Physical Stats -->
+                    <div class="qe-section-toggle" data-section="physical_stats">
+                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; cursor: pointer;" onclick="toggleQeSection(this)">
+                            <div>
+                                <div style="font-weight: 600; color: #1e293b; font-size: 15px;">Physical Stats</div>
+                                <div style="color: #64748b; font-size: 13px; margin-top: 2px;">Weight, height, activity level, budget</div>
+                            </div>
+                            <label class="qe-switch" onclick="event.stopPropagation()">
+                                <input type="checkbox" checked data-section="physical_stats" onchange="this.closest('.qe-section-toggle').classList.toggle('disabled', !this.checked)">
+                                <span class="qe-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Fitness & Workout -->
+                    <div class="qe-section-toggle" data-section="fitness">
+                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; cursor: pointer;" onclick="toggleQeSection(this)">
+                            <div>
+                                <div style="font-weight: 600; color: #1e293b; font-size: 15px;">Fitness & Workout Preferences</div>
+                                <div style="color: #64748b; font-size: 13px; margin-top: 2px;">Fitness level, frequency, duration, equipment, exercise types, health concerns</div>
+                            </div>
+                            <label class="qe-switch" onclick="event.stopPropagation()">
+                                <input type="checkbox" checked data-section="fitness" onchange="this.closest('.qe-section-toggle').classList.toggle('disabled', !this.checked)">
+                                <span class="qe-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Diet Preferences -->
+                    <div class="qe-section-toggle" data-section="diet">
+                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; cursor: pointer;" onclick="toggleQeSection(this)">
+                            <div>
+                                <div style="font-weight: 600; color: #1e293b; font-size: 15px;">Diet Preferences</div>
+                                <div style="color: #64748b; font-size: 13px; margin-top: 2px;">Diet type, macro preference</div>
+                            </div>
+                            <label class="qe-switch" onclick="event.stopPropagation()">
+                                <input type="checkbox" checked data-section="diet" onchange="this.closest('.qe-section-toggle').classList.toggle('disabled', !this.checked)">
+                                <span class="qe-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Food Preferences -->
+                    <div class="qe-section-toggle" data-section="food_preferences">
+                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; cursor: pointer;" onclick="toggleQeSection(this)">
+                            <div>
+                                <div style="font-weight: 600; color: #1e293b; font-size: 15px;">Food Preferences</div>
+                                <div style="color: #64748b; font-size: 13px; margin-top: 2px;">Allergies, disliked foods, preferred foods</div>
+                            </div>
+                            <label class="qe-switch" onclick="event.stopPropagation()">
+                                <input type="checkbox" checked data-section="food_preferences" onchange="this.closest('.qe-section-toggle').classList.toggle('disabled', !this.checked)">
+                                <span class="qe-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Cooking Equipment -->
+                    <div class="qe-section-toggle" data-section="cooking_equipment">
+                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; cursor: pointer;" onclick="toggleQeSection(this)">
+                            <div>
+                                <div style="font-weight: 600; color: #1e293b; font-size: 15px;">Cooking Equipment</div>
+                                <div style="color: #64748b; font-size: 13px; margin-top: 2px;">Stovetop, oven, air fryer, etc.</div>
+                            </div>
+                            <label class="qe-switch" onclick="event.stopPropagation()">
+                                <input type="checkbox" checked data-section="cooking_equipment" onchange="this.closest('.qe-section-toggle').classList.toggle('disabled', !this.checked)">
+                                <span class="qe-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Custom Questions -->
+                <div style="border-top: 2px solid #e2e8f0; padding-top: 24px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+                        <div>
+                            <h3 style="font-size: 16px; font-weight: 700; color: #1e293b; margin: 0;">Custom Questions</h3>
+                            <p style="color: #64748b; font-size: 13px; margin-top: 4px;">Add your own questions to the intake form</p>
+                        </div>
+                        <button type="button" class="btn btn-secondary" onclick="addCustomQuestion()" style="font-size: 13px; padding: 8px 14px;">
+                            + Add Question
+                        </button>
+                    </div>
+
+                    <div id="qeCustomQuestions" style="display: flex; flex-direction: column; gap: 12px;">
+                        <!-- Custom questions are added here dynamically -->
+                    </div>
+
+                    <div id="qeNoCustomQuestions" style="text-align: center; padding: 20px; color: #94a3b8; font-size: 14px;">
+                        No custom questions added yet.
+                    </div>
+                </div>
+            </div>
+
+            <div style="padding: 20px 32px; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; background: #f8fafc; border-radius: 0 0 12px 12px;">
+                <button class="btn btn-secondary" onclick="closeQuestionnaireEditor()">Cancel</button>
+                <button class="btn btn-primary" id="qeSendInviteBtn" onclick="sendInviteFromEditor()" style="padding: 10px 24px;">
+                    Send Invitation
+                </button>
+            </div>
         </div>
     </div>
 
@@ -3452,9 +3718,13 @@
             }
         }
 
-        // Invite client to portal
+        // ---- Questionnaire Editor State ----
+        let qeClientId = null;
+        let qeClientName = '';
+        let qeCustomQuestionCounter = 0;
+
+        // Invite client to portal — now opens the questionnaire editor first
         async function inviteClient(clientId, clientName) {
-            // Find the client to check if they have an email
             const client = clients.find(c => c.id === clientId) || archivedClients.find(c => c.id === clientId);
             if (!client) {
                 alert('Client not found');
@@ -3471,28 +3741,151 @@
                 return;
             }
 
-            if (!confirm(`Invite ${clientName} to the client portal?\n\nAn account will be created with their email: ${client.email}`)) {
-                return;
+            // Store for later use when sending
+            qeClientId = clientId;
+            qeClientName = clientName;
+
+            // Populate editor header
+            document.getElementById('qeClientName').textContent = clientName;
+            document.getElementById('qeClientEmail').textContent = client.email;
+
+            // Reset toggles to all enabled
+            document.querySelectorAll('#qeSections input[type="checkbox"]').forEach(cb => {
+                cb.checked = true;
+                cb.closest('.qe-section-toggle').classList.remove('disabled');
+            });
+
+            // Clear custom questions
+            document.getElementById('qeCustomQuestions').innerHTML = '';
+            document.getElementById('qeNoCustomQuestions').style.display = 'block';
+            qeCustomQuestionCounter = 0;
+
+            // Reset send button
+            const sendBtn = document.getElementById('qeSendInviteBtn');
+            sendBtn.disabled = false;
+            sendBtn.textContent = 'Send Invitation';
+
+            // Show editor
+            document.getElementById('questionnaireEditorModal').style.display = 'block';
+        }
+
+        function toggleQeSection(el) {
+            const cb = el.querySelector('.qe-switch input');
+            cb.checked = !cb.checked;
+            cb.dispatchEvent(new Event('change'));
+        }
+
+        function addCustomQuestion() {
+            qeCustomQuestionCounter++;
+            const id = qeCustomQuestionCounter;
+            const container = document.getElementById('qeCustomQuestions');
+
+            const card = document.createElement('div');
+            card.className = 'qe-custom-question';
+            card.id = `qe-cq-${id}`;
+            card.innerHTML = `
+                <div class="qe-cq-header">
+                    <input type="text" placeholder="Enter your question..." class="qe-cq-label" data-id="${id}">
+                    <select class="qe-cq-type" data-id="${id}" onchange="onCqTypeChange(${id})">
+                        <option value="text">Short Text</option>
+                        <option value="textarea">Long Text</option>
+                        <option value="select">Dropdown</option>
+                    </select>
+                    <button class="qe-cq-remove" onclick="removeCustomQuestion(${id})" title="Remove question">&times;</button>
+                </div>
+                <div class="qe-cq-options" id="qe-cq-options-${id}" style="display: none;">
+                    <input type="text" placeholder="Comma-separated options (e.g. Option A, Option B, Option C)" class="qe-cq-options-input" data-id="${id}">
+                </div>
+                <label class="qe-cq-required">
+                    <input type="checkbox" class="qe-cq-required-cb" data-id="${id}">
+                    Required
+                </label>
+            `;
+            container.appendChild(card);
+            document.getElementById('qeNoCustomQuestions').style.display = 'none';
+
+            // Focus the question label input
+            card.querySelector('.qe-cq-label').focus();
+        }
+
+        function removeCustomQuestion(id) {
+            const card = document.getElementById(`qe-cq-${id}`);
+            if (card) card.remove();
+
+            const container = document.getElementById('qeCustomQuestions');
+            if (container.children.length === 0) {
+                document.getElementById('qeNoCustomQuestions').style.display = 'block';
             }
+        }
+
+        function onCqTypeChange(id) {
+            const typeSelect = document.querySelector(`.qe-cq-type[data-id="${id}"]`);
+            const optionsDiv = document.getElementById(`qe-cq-options-${id}`);
+            optionsDiv.style.display = typeSelect.value === 'select' ? 'block' : 'none';
+        }
+
+        function closeQuestionnaireEditor() {
+            document.getElementById('questionnaireEditorModal').style.display = 'none';
+            qeClientId = null;
+            qeClientName = '';
+        }
+
+        // Build the config and actually send the invitation
+        async function sendInviteFromEditor() {
+            const sendBtn = document.getElementById('qeSendInviteBtn');
+            sendBtn.disabled = true;
+            sendBtn.textContent = 'Sending...';
+
+            // Build sections config
+            const sections = {};
+            document.querySelectorAll('#qeSections input[type="checkbox"]').forEach(cb => {
+                sections[cb.dataset.section] = { enabled: cb.checked };
+            });
+
+            // Build custom questions
+            const customQuestions = [];
+            document.querySelectorAll('.qe-custom-question').forEach(card => {
+                const id = card.querySelector('.qe-cq-label').dataset.id;
+                const label = card.querySelector('.qe-cq-label').value.trim();
+                if (!label) return; // skip empty questions
+
+                const type = card.querySelector('.qe-cq-type').value;
+                const required = card.querySelector('.qe-cq-required-cb').checked;
+                const q = { id: `custom_${id}`, label, type, required };
+
+                if (type === 'select') {
+                    const optionsStr = card.querySelector('.qe-cq-options-input').value.trim();
+                    q.options = optionsStr ? optionsStr.split(',').map(o => o.trim()).filter(Boolean) : [];
+                }
+                customQuestions.push(q);
+            });
+
+            const intakeFormConfig = { sections, customQuestions };
 
             try {
-                // Use authenticated POST request
                 const data = await apiPost('/.netlify/functions/invite-client', {
-                    clientId,
-                    coachId: currentCoachId
+                    clientId: qeClientId,
+                    coachId: currentCoachId,
+                    intakeFormConfig
                 });
 
-                // Show invitation modal
-                document.getElementById('inviteClientName').textContent = data.clientName || clientName;
+                // Close editor, show success modal
+                document.getElementById('questionnaireEditorModal').style.display = 'none';
+
+                document.getElementById('inviteClientName').textContent = data.clientName || qeClientName;
                 document.getElementById('inviteEmail').textContent = data.email;
                 document.getElementById('invitationModal').style.display = 'block';
 
-                // Reload clients to update the UI (remove invite button)
+                qeClientId = null;
+                qeClientName = '';
+
                 await loadClients();
 
             } catch (error) {
                 console.error('Error inviting client:', error);
                 alert('Error inviting client: ' + error.message);
+                sendBtn.disabled = false;
+                sendBtn.textContent = 'Send Invitation';
             }
         }
 
@@ -3596,6 +3989,9 @@
             }
             if (event.target === document.getElementById('invitationModal')) {
                 closeInvitationModal();
+            }
+            if (event.target === document.getElementById('questionnaireEditorModal')) {
+                closeQuestionnaireEditor();
             }
         };
 
