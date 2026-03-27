@@ -118,7 +118,7 @@ const DEFAULT_PROGRAMS = [
     program_type: 'hypertrophy',
     difficulty: 'intermediate',
     days_per_week: 6,
-    program_data: { days: [
+    program_data: { image_url: 'https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/sign/Default%20Workout%20Pictures/Untitled%20design%20-%202026-03-27T113852.190.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV84NjE4ZWRhYy0yY2NmLTQ4MzMtODNiZi01MWVhNzZkMmY2ZDUiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJEZWZhdWx0IFdvcmtvdXQgUGljdHVyZXMvVW50aXRsZWQgZGVzaWduIC0gMjAyNi0wMy0yN1QxMTM4NTIuMTkwLnBuZyIsImlhdCI6MTc3NDU4NjQxMywiZXhwIjoxODA2MTIyNDEzfQ.msKU-3fxDRoCpT9_13XFssGF1LIJuvbwa2K6r4VLx0U', days: [
 
       // ── DAY 1: PUSH A (Chest focus) ────────────────────────────────────
       {
@@ -157,7 +157,7 @@ const DEFAULT_PROGRAMS = [
           { name: 'Barbell bent over row pronated grip', sets: 4, trackingType: 'reps', setsData: [{ reps: 10, restSeconds: 90 }, { reps: 8, restSeconds: 90 }, { reps: 8, restSeconds: 90 }, { reps: 6, restSeconds: 90 }], notes: 'Primary back compound. Hinge at hips ~45 degrees. Pull to lower chest, squeeze shoulder blades. Increase weight each set.' },
           { name: 'Cable bar lateral pulldown', sets: 3, trackingType: 'reps', setsData: [{ reps: 10, restSeconds: 75 }, { reps: 10, restSeconds: 75 }, { reps: 10, restSeconds: 75 }], notes: 'Full stretch at top, pull to upper chest. Drive elbows down and back. Squeeze lats.' },
           { name: 'Cable seated row', sets: 3, trackingType: 'reps', setsData: [{ reps: 12, restSeconds: 60 }, { reps: 12, restSeconds: 60 }, { reps: 12, restSeconds: 60 }], notes: 'Squeeze shoulder blades together at the peak. Don\'t round your back.' },
-          { name: 'Dumbbell single arm row', sets: 3, trackingType: 'reps', setsData: [{ reps: 10, restSeconds: 60 }, { reps: 10, restSeconds: 60 }, { reps: 10, restSeconds: 60 }], notes: 'One arm at a time. Pull to your hip, squeeze your lat. 10 reps per side.' },
+          { name: 'Dumbbell One Arm Row (rack support)', sets: 3, trackingType: 'reps', setsData: [{ reps: 10, restSeconds: 60 }, { reps: 10, restSeconds: 60 }, { reps: 10, restSeconds: 60 }], notes: 'One arm at a time. Brace on rack, pull to your hip, squeeze your lat. 10 reps per side.' },
           { name: 'Cable rear delt fly', sets: 3, trackingType: 'reps', setsData: [{ reps: 15, restSeconds: 45 }, { reps: 15, restSeconds: 45 }, { reps: 15, restSeconds: 45 }], notes: 'Light weight. Fly arms out, squeeze rear delts. Don\'t use momentum.' },
           { name: 'EZ Barbell Curl', sets: 3, trackingType: 'reps', setsData: [{ reps: 12, restSeconds: 45 }, { reps: 12, restSeconds: 45 }, { reps: 12, restSeconds: 45 }], notes: 'Easier on wrists. No swinging — strict form. Squeeze at the top.' },
           { name: 'Dumbbell Hammer Curl', sets: 2, trackingType: 'reps', setsData: [{ reps: 12, restSeconds: 45 }, { reps: 12, restSeconds: 45 }], notes: 'Neutral grip hits brachialis and forearms. Controlled reps.' },
@@ -230,7 +230,7 @@ const DEFAULT_PROGRAMS = [
           // MAIN WORKOUT
           { name: 'Cable bar lateral pulldown', sets: 4, trackingType: 'reps', setsData: [{ reps: 10, restSeconds: 90 }, { reps: 8, restSeconds: 90 }, { reps: 8, restSeconds: 90 }, { reps: 8, restSeconds: 90 }], notes: 'Primary pull. Full stretch at top, squeeze lats at bottom. Increase weight each set.' },
           { name: 'Cable seated row', sets: 3, trackingType: 'reps', setsData: [{ reps: 10, restSeconds: 75 }, { reps: 10, restSeconds: 75 }, { reps: 10, restSeconds: 75 }], notes: 'Squeeze shoulder blades hard at the back. Don\'t lean too far forward or back.' },
-          { name: 'Dumbbell single arm row', sets: 3, trackingType: 'reps', setsData: [{ reps: 12, restSeconds: 60 }, { reps: 12, restSeconds: 60 }, { reps: 12, restSeconds: 60 }], notes: '12 reps per arm. Drive your elbow past your torso. Squeeze at top.' },
+          { name: 'Dumbbell One Arm Row (rack support)', sets: 3, trackingType: 'reps', setsData: [{ reps: 12, restSeconds: 60 }, { reps: 12, restSeconds: 60 }, { reps: 12, restSeconds: 60 }], notes: '12 reps per arm. Brace on rack, drive your elbow past your torso. Squeeze at top.' },
           { name: 'Cable rear delt fly', sets: 3, trackingType: 'reps', setsData: [{ reps: 15, restSeconds: 45 }, { reps: 15, restSeconds: 45 }, { reps: 15, restSeconds: 45 }], notes: 'Light weight, feel the rear delts working. No momentum.' },
           { name: 'Barbell biceps curl', sets: 3, trackingType: 'reps', setsData: [{ reps: 10, restSeconds: 60 }, { reps: 10, restSeconds: 60 }, { reps: 10, restSeconds: 60 }], notes: 'Strict curls — no swinging. Squeeze at the top, slow negative.' },
           { name: 'Concentration curls dumbbell', sets: 2, trackingType: 'reps', setsData: [{ reps: 12, restSeconds: 45 }, { reps: 12, restSeconds: 45 }], notes: 'Seated, elbow braced on inner thigh. Peak contraction — squeeze hard. 12 reps per arm.' },
@@ -365,7 +365,7 @@ exports.handler = async (event) => {
         program_type: prog.program_type,
         difficulty: prog.difficulty,
         days_per_week: prog.days_per_week,
-        program_data: { days: enrichedDays },
+        program_data: { ...prog.program_data, days: enrichedDays },
         is_template: true,
         is_published: false,
         is_club_workout: false
