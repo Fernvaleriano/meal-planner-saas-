@@ -1230,12 +1230,12 @@
         <div id="mainContent" style="display: none;">
             <!-- Tab Navigation -->
             <div class="tab-navigation">
-                <button class="tab-btn active" onclick="switchTab('clients')">Client Protocols</button>
-                <button class="tab-btn" onclick="switchTab('library')">Supplement Library</button>
+                <button class="tab-btn active" onclick="switchTab('library')">Supplement Library</button>
+                <button class="tab-btn" onclick="switchTab('clients')">Client Protocols</button>
             </div>
 
             <!-- Client Protocols Tab -->
-            <div id="clientsTab" class="tab-content active">
+            <div id="clientsTab" class="tab-content">
                 <!-- Client Selector -->
                 <div class="client-selector-section">
                     <label for="clientSelector">Select a Client</label>
@@ -1274,7 +1274,7 @@
             </div> <!-- End clientsTab -->
 
             <!-- Supplement Library Tab -->
-            <div id="libraryTab" class="tab-content">
+            <div id="libraryTab" class="tab-content active">
                 <div class="library-section">
                     <div class="library-header">
                         <h2>My Supplement Library</h2>
@@ -2468,7 +2468,7 @@
         function switchTab(tab) {
             // Update tab buttons
             document.querySelectorAll('.tab-btn').forEach((btn, idx) => {
-                if ((tab === 'clients' && idx === 0) || (tab === 'library' && idx === 1)) {
+                if ((tab === 'library' && idx === 0) || (tab === 'clients' && idx === 1)) {
                     btn.classList.add('active');
                 } else {
                     btn.classList.remove('active');
