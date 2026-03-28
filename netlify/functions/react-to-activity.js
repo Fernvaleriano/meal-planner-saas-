@@ -110,6 +110,10 @@ exports.handler = async (event) => {
           title = `${reaction} ${coachName} reacted to your PR!`;
           message = `${coachName} reacted with ${reaction} to your new personal record`;
           notifType = 'pr_reaction';
+        } else if (itemType === 'workout') {
+          title = `${reaction} ${coachName} reacted to your workout!`;
+          message = `${coachName} reacted with ${reaction} to your completed workout`;
+          notifType = 'workout_reaction';
         } else if (itemType === 'gym_checkin') {
           title = `${reaction} ${coachName} reacted to your gym check-in!`;
           message = `${coachName} reacted with ${reaction} to your gym check-in`;
@@ -118,6 +122,14 @@ exports.handler = async (event) => {
           title = `${reaction} ${coachName} reacted to your check-in!`;
           message = `${coachName} reacted with ${reaction} to your weekly check-in`;
           notifType = 'checkin_reaction';
+        } else if (itemType === 'photo') {
+          title = `${reaction} ${coachName} reacted to your progress photo!`;
+          message = `${coachName} reacted with ${reaction} to your progress photo`;
+          notifType = 'photo_reaction';
+        } else if (itemType === 'measurement') {
+          title = `${reaction} ${coachName} reacted to your measurements!`;
+          message = `${coachName} reacted with ${reaction} to your logged measurements`;
+          notifType = 'measurement_reaction';
         } else {
           title = `${reaction} ${coachName} reacted to your workout note`;
           message = `${coachName} reacted with ${reaction} to your workout note`;
@@ -149,10 +161,16 @@ exports.handler = async (event) => {
       try {
         const chatMessage = itemType === 'client_pr'
           ? `Reacted ${reaction} to your new PR!`
+          : itemType === 'workout'
+          ? `Reacted ${reaction} to your workout!`
           : itemType === 'gym_checkin'
           ? `Reacted ${reaction} to your gym check-in!`
           : itemType === 'checkin'
           ? `Reacted ${reaction} to your check-in!`
+          : itemType === 'photo'
+          ? `Reacted ${reaction} to your progress photo!`
+          : itemType === 'measurement'
+          ? `Reacted ${reaction} to your measurements!`
           : `Reacted ${reaction} to your workout note`;
         await supabase
           .from('chat_messages')

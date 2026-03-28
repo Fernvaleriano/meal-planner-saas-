@@ -940,7 +940,7 @@
             display: flex;
             align-items: flex-start;
             gap: 8px;
-            padding: 6px 0;
+            padding: 8px 0;
             border-top: 1px solid var(--gray-100);
             font-size: 0.8125rem;
             color: var(--gray-700);
@@ -955,6 +955,15 @@
             flex-shrink: 0;
             margin-top: 1px;
         }
+        .activity-detail-content {
+            flex: 1;
+            min-width: 0;
+        }
+        .activity-detail-top {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+        }
         .activity-detail-text {
             flex: 1;
             min-width: 0;
@@ -967,25 +976,77 @@
             margin-top: 2px;
         }
         [data-theme="dark"] .activity-detail-time { color: #64748b; }
-        /* Reaction + reply row for activity cards */
-        .activity-actions {
+        /* Per-item reaction + comment row */
+        .activity-item-actions {
             display: flex;
             align-items: center;
             gap: 4px;
-            padding: 6px 14px 10px;
-            border-top: 1px solid var(--gray-100);
+            margin-top: 6px;
+            opacity: 0.6;
+            transition: opacity 0.15s;
         }
-        [data-theme="dark"] .activity-actions { border-color: #2d3a4a; }
+        .activity-detail-item:hover .activity-item-actions,
+        .activity-item-actions:focus-within {
+            opacity: 1;
+        }
+        .activity-item-sent {
+            display: none;
+            align-items: center;
+            gap: 3px;
+            font-size: 11px;
+            font-weight: 600;
+            color: #059669;
+            animation: fadeIn 0.2s ease;
+        }
+        .activity-item-reply-row {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            margin-top: 6px;
+        }
+        .activity-item-reply-row input {
+            flex: 1;
+            padding: 6px 10px;
+            border-radius: 8px;
+            border: 1px solid var(--gray-200);
+            font-size: 0.8125rem;
+            font-family: inherit;
+            outline: none;
+            background: white;
+        }
+        .activity-item-reply-row input:focus {
+            border-color: var(--brand-primary);
+            box-shadow: 0 0 0 2px rgba(13,148,136,0.15);
+        }
+        [data-theme="dark"] .activity-item-reply-row input {
+            background: #0f172a;
+            border-color: #334155;
+            color: #e2e8f0;
+        }
+        .activity-item-reply-row button {
+            padding: 6px 12px;
+            border-radius: 8px;
+            border: none;
+            background: var(--brand-primary);
+            color: white;
+            font-size: 0.8125rem;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .activity-item-reply-row button:hover { background: var(--brand-primary-dark); }
+        .activity-item-reply-row button:disabled { opacity: 0.5; cursor: default; }
         .activity-react-btn {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            width: 30px;
-            height: 30px;
-            font-size: 15px;
+            width: 26px;
+            height: 26px;
+            font-size: 13px;
             background: transparent;
             border: 1px solid transparent;
-            border-radius: 8px;
+            border-radius: 6px;
             cursor: pointer;
             transition: background 0.15s, transform 0.15s, border-color 0.15s;
             padding: 0;
@@ -1034,54 +1095,6 @@
             background: #1e293b;
             border-color: #334155;
             color: #94a3b8;
-        }
-        .activity-reply-row {
-            display: none;
-            align-items: center;
-            gap: 8px;
-            padding: 0 14px 10px;
-        }
-        .activity-reply-row input {
-            flex: 1;
-            padding: 7px 10px;
-            border-radius: 8px;
-            border: 1px solid var(--gray-200);
-            font-size: 0.8125rem;
-            font-family: inherit;
-            outline: none;
-            background: white;
-        }
-        .activity-reply-row input:focus {
-            border-color: var(--brand-primary);
-            box-shadow: 0 0 0 2px rgba(13,148,136,0.15);
-        }
-        [data-theme="dark"] .activity-reply-row input {
-            background: #0f172a;
-            border-color: #334155;
-            color: #e2e8f0;
-        }
-        .activity-reply-row button {
-            padding: 7px 14px;
-            border-radius: 8px;
-            border: none;
-            background: var(--brand-primary);
-            color: white;
-            font-size: 0.8125rem;
-            font-weight: 600;
-            font-family: inherit;
-            cursor: pointer;
-            transition: background 0.15s;
-        }
-        .activity-reply-row button:hover { background: var(--brand-primary-dark); }
-        .activity-reply-row button:disabled { opacity: 0.5; cursor: default; }
-        .activity-sent-check {
-            display: none;
-            align-items: center;
-            gap: 3px;
-            font-size: 11px;
-            font-weight: 600;
-            color: #059669;
-            animation: fadeIn 0.2s ease;
         }
         .activity-tl-empty {
             text-align: center;
@@ -6691,6 +6704,7 @@
         let _activityGrouped = {}; // grouped by client
         let _activityFeedLoaded = false;
         let _activityClientMap = {}; // client id → client data
+        let _activityReactionsMap = {}; // 'itemType:itemId' → emoji
 
         async function loadActivityFeed(coachId) {
             _activityFeedLoaded = true;
@@ -6763,36 +6777,50 @@
                     const c = _activityClientMap[w.client_id];
                     if (!c) return;
                     const vol = w.total_volume ? `${Math.round(w.total_volume).toLocaleString()} lbs volume` : '';
-                    events.push({ type: 'workout', icon: '💪', label: 'Completed a workout', clientId: w.client_id, detail: vol, time: w.created_at, ts: new Date(w.created_at).getTime() });
+                    events.push({ type: 'workout', icon: '💪', label: 'Completed a workout', clientId: w.client_id, detail: vol, time: w.created_at, ts: new Date(w.created_at).getTime(), itemId: String(w.id), itemType: 'workout' });
                 });
 
                 (prsRes.data || []).forEach(p => {
                     const c = _activityClientMap[p.related_client_id];
                     if (!c) return;
-                    events.push({ type: 'pr', icon: '🏆', label: 'Hit a new PR', clientId: p.related_client_id, detail: p.message || '', time: p.created_at, ts: new Date(p.created_at).getTime() });
+                    events.push({ type: 'pr', icon: '🏆', label: 'Hit a new PR', clientId: p.related_client_id, detail: p.message || '', time: p.created_at, ts: new Date(p.created_at).getTime(), itemId: String(p.id), itemType: 'client_pr' });
                 });
 
                 (checkinsRes.data || []).forEach(ci => {
                     const c = _activityClientMap[ci.client_id];
                     if (!c) return;
-                    events.push({ type: 'checkin', icon: '✅', label: 'Submitted a check-in', clientId: ci.client_id, detail: ci.weight ? `${ci.weight} lbs` : '', time: ci.created_at, ts: new Date(ci.created_at).getTime() });
+                    events.push({ type: 'checkin', icon: '✅', label: 'Submitted a check-in', clientId: ci.client_id, detail: ci.weight ? `${ci.weight} lbs` : '', time: ci.created_at, ts: new Date(ci.created_at).getTime(), itemId: String(ci.id), itemType: 'checkin' });
                 });
 
                 (photosRes.data || []).forEach(ph => {
                     const c = _activityClientMap[ph.client_id];
                     if (!c) return;
-                    events.push({ type: 'photo', icon: '📸', label: 'Uploaded a progress photo', clientId: ph.client_id, detail: ph.photo_type ? ph.photo_type.replace(/_/g, ' ') : '', time: ph.created_at, ts: new Date(ph.created_at).getTime() });
+                    events.push({ type: 'photo', icon: '📸', label: 'Uploaded a progress photo', clientId: ph.client_id, detail: ph.photo_type ? ph.photo_type.replace(/_/g, ' ') : '', time: ph.created_at, ts: new Date(ph.created_at).getTime(), itemId: String(ph.id), itemType: 'photo' });
                 });
 
                 (measurementsRes.data || []).forEach(m => {
                     const c = _activityClientMap[m.client_id];
                     if (!c) return;
                     const wt = m.weight ? `${m.weight} ${m.weight_unit || 'lbs'}` : '';
-                    events.push({ type: 'measurement', icon: '📏', label: 'Logged measurements', clientId: m.client_id, detail: wt, time: m.created_at, ts: new Date(m.created_at).getTime() });
+                    events.push({ type: 'measurement', icon: '📏', label: 'Logged measurements', clientId: m.client_id, detail: wt, time: m.created_at, ts: new Date(m.created_at).getTime(), itemId: String(m.id), itemType: 'measurement' });
                 });
 
                 events.sort((a, b) => b.ts - a.ts);
                 _activityFeedData = events;
+
+                // Fetch existing reactions for these activity items
+                _activityReactionsMap = {};
+                try {
+                    const { data: existingReactions } = await supabaseClient
+                        .from('activity_reactions')
+                        .select('item_type, item_id, reaction')
+                        .eq('coach_id', coachId);
+                    if (existingReactions) {
+                        existingReactions.forEach(r => {
+                            _activityReactionsMap[r.item_type + ':' + r.item_id] = r.reaction;
+                        });
+                    }
+                } catch (e) { console.error('Error fetching activity reactions:', e); }
 
                 // Group by client
                 _activityGrouped = {};
@@ -6823,10 +6851,12 @@
             cardEl.classList.toggle('expanded');
         }
 
-        function toggleActivityReply(clientId) {
-            const row = document.getElementById('activity-reply-' + clientId);
+        function toggleItemReply(itemUid) {
+            const row = document.getElementById('activity-item-reply-' + itemUid);
             if (!row) return;
-            const isVisible = row.style.display !== 'none' && row.style.display !== '';
+            const isVisible = row.style.display === 'flex';
+            // Close any other open reply rows
+            document.querySelectorAll('.activity-item-reply-row').forEach(r => r.style.display = 'none');
             row.style.display = isVisible ? 'none' : 'flex';
             if (!isVisible) {
                 const input = row.querySelector('input');
@@ -6834,60 +6864,78 @@
             }
         }
 
-        async function sendActivityReaction(clientId, emoji, btn) {
+        async function sendItemReaction(clientId, itemType, itemId, emoji, btn) {
             if (!btn) return;
-            // Optimistic UI
-            btn.classList.add('reacted');
-            const sentEl = document.getElementById('activity-sent-' + clientId);
+            const itemEl = btn.closest('.activity-detail-item');
+            const sentEl = itemEl?.querySelector('.activity-item-sent');
+            const reactionKey = itemType + ':' + itemId;
+            const wasReacted = btn.classList.contains('reacted');
 
-            const clientName = _activityClientMap[clientId]?.client_name || 'your client';
-            const msg = emoji + ' Great work ' + clientName + '!';
+            // Toggle off if same reaction
+            if (wasReacted) {
+                btn.classList.remove('reacted');
+                delete _activityReactionsMap[reactionKey];
+                try {
+                    await fetch('/.netlify/functions/react-to-activity', {
+                        method: 'DELETE',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ coachId: _currentCoachId, itemType, itemId })
+                    });
+                } catch (e) { console.error('Error removing reaction:', e); }
+                return;
+            }
+
+            // Clear other reaction buttons in this item
+            itemEl.querySelectorAll('.activity-react-btn').forEach(b => b.classList.remove('reacted'));
+            btn.classList.add('reacted');
+            _activityReactionsMap[reactionKey] = emoji;
 
             try {
-                const res = await fetch('/.netlify/functions/chat', {
+                const res = await fetch('/.netlify/functions/react-to-activity', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'send', coachId: _currentCoachId, clientId, senderType: 'coach', message: msg })
+                    body: JSON.stringify({ coachId: _currentCoachId, clientId, itemType, itemId, reaction: emoji })
                 });
                 if (res.ok && sentEl) {
                     sentEl.style.display = 'inline-flex';
-                    setTimeout(() => { sentEl.style.display = 'none'; }, 4000);
+                    setTimeout(() => { sentEl.style.display = 'none'; }, 3000);
                 }
             } catch (e) {
-                console.error('Error sending activity reaction:', e);
+                console.error('Error sending item reaction:', e);
             }
         }
 
-        async function sendActivityReply(clientId) {
-            const input = document.getElementById('activity-reply-input-' + clientId);
-            const row = document.getElementById('activity-reply-' + clientId);
-            const sentEl = document.getElementById('activity-sent-' + clientId);
-            if (!input || !input.value.trim()) return;
+        async function sendItemReply(clientId, context, inputEl) {
+            if (!inputEl || !inputEl.value.trim()) return;
+            const row = inputEl.closest('.activity-item-reply-row');
+            const itemEl = inputEl.closest('.activity-detail-item');
+            const sentEl = itemEl?.querySelector('.activity-item-sent');
+            const sendBtn = row.querySelector('button');
+            if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = 'Sending...'; }
 
-            const btn = row.querySelector('button');
-            if (btn) { btn.disabled = true; btn.textContent = 'Sending...'; }
+            const message = inputEl.value.trim();
 
             try {
                 const res = await fetch('/.netlify/functions/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'send', coachId: _currentCoachId, clientId, senderType: 'coach', message: input.value.trim() })
+                    body: JSON.stringify({ action: 'send', coachId: _currentCoachId, clientId, senderType: 'coach', message })
                 });
                 if (res.ok) {
                     row.style.display = 'none';
-                    input.value = '';
+                    inputEl.value = '';
                     if (sentEl) {
                         sentEl.style.display = 'inline-flex';
-                        setTimeout(() => { sentEl.style.display = 'none'; }, 4000);
+                        setTimeout(() => { sentEl.style.display = 'none'; }, 3000);
                     }
                 } else {
-                    alert('Failed to send message. Please try again.');
+                    alert('Failed to send comment. Please try again.');
                 }
             } catch (e) {
-                console.error('Error sending activity reply:', e);
-                alert('Failed to send message. Please try again.');
+                console.error('Error sending activity comment:', e);
+                alert('Failed to send comment. Please try again.');
             } finally {
-                if (btn) { btn.disabled = false; btn.textContent = 'Send'; }
+                if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = 'Send'; }
             }
         }
 
@@ -6933,6 +6981,8 @@
                 const counts = {};
                 group.events.forEach(ev => { counts[ev.type] = (counts[ev.type] || 0) + 1; });
 
+                const safeClientId = cId.replace(/[^a-zA-Z0-9_-]/g, '');
+
                 let badgesHtml = '';
                 if (counts.workout) badgesHtml += `<span class="activity-summary-badge workout">💪 ${counts.workout} workout${counts.workout > 1 ? 's' : ''}</span>`;
                 if (counts.pr) badgesHtml += `<span class="activity-summary-badge pr">🏆 ${counts.pr} PR${counts.pr > 1 ? 's' : ''}</span>`;
@@ -6940,15 +6990,37 @@
                 if (counts.photo) badgesHtml += `<span class="activity-summary-badge photo">📸 ${counts.photo} photo${counts.photo > 1 ? 's' : ''}</span>`;
                 if (counts.measurement) badgesHtml += `<span class="activity-summary-badge measurement">📏 measurements</span>`;
 
-                // Build detail items
-                let detailsHtml = group.events.map(ev => `
-                    <div class="activity-detail-item">
+                // Build detail items with per-item reaction/comment buttons
+                let detailsHtml = group.events.map((ev, idx) => {
+                    const evKey = ev.itemType + ':' + ev.itemId;
+                    const existingReaction = _activityReactionsMap[evKey] || '';
+                    const itemUid = safeClientId + '-' + ev.itemType + '-' + ev.itemId;
+                    const escapedDetail = (ev.label + (ev.detail ? ' — ' + ev.detail : '')).replace(/'/g, "\\'");
+                    return `
+                    <div class="activity-detail-item" data-item-uid="${itemUid}">
                         <span class="activity-detail-icon">${ev.icon}</span>
-                        <span class="activity-detail-text">${ev.label}${ev.detail ? ' — ' + ev.detail : ''}</span>
-                        <span class="activity-detail-time">${timeAgo(ev.time)}</span>
-                    </div>`).join('');
-
-                const safeClientId = cId.replace(/[^a-zA-Z0-9_-]/g, '');
+                        <div class="activity-detail-content">
+                            <div class="activity-detail-top">
+                                <span class="activity-detail-text">${ev.label}${ev.detail ? ' — ' + ev.detail : ''}</span>
+                                <span class="activity-detail-time">${timeAgo(ev.time)}</span>
+                            </div>
+                            <div class="activity-item-actions" onclick="event.stopPropagation()">
+                                <button class="activity-react-btn ${existingReaction === '👏' ? 'reacted' : ''}" onclick="sendItemReaction('${ev.clientId}','${ev.itemType}','${ev.itemId}','👏',this)" title="Clap">👏</button>
+                                <button class="activity-react-btn ${existingReaction === '💪' ? 'reacted' : ''}" onclick="sendItemReaction('${ev.clientId}','${ev.itemType}','${ev.itemId}','💪',this)" title="Muscle">💪</button>
+                                <button class="activity-react-btn ${existingReaction === '🔥' ? 'reacted' : ''}" onclick="sendItemReaction('${ev.clientId}','${ev.itemType}','${ev.itemId}','🔥',this)" title="Fire">🔥</button>
+                                <span class="activity-item-sent" id="activity-item-sent-${itemUid}">Sent ✓</span>
+                                <button class="activity-reply-btn" onclick="toggleItemReply('${itemUid}','${ev.clientId}')">
+                                    <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                                    Comment
+                                </button>
+                            </div>
+                            <div class="activity-item-reply-row" id="activity-item-reply-${itemUid}" onclick="event.stopPropagation()">
+                                <input type="text" placeholder="Comment on this..." maxlength="500" onkeydown="if(event.key==='Enter'){event.preventDefault();sendItemReply('${ev.clientId}','${escapedDetail}',this)}">
+                                <button onclick="sendItemReply('${ev.clientId}','${escapedDetail}',this.previousElementSibling)">Send</button>
+                            </div>
+                        </div>
+                    </div>`;
+                }).join('');
 
                 html += `
                     <div class="activity-client-card" id="activity-card-${safeClientId}">
@@ -6963,20 +7035,6 @@
                         </div>
                         <div class="activity-client-details">
                             ${detailsHtml}
-                        </div>
-                        <div class="activity-actions" onclick="event.stopPropagation()">
-                            <button class="activity-react-btn" onclick="sendActivityReaction('${cId}','👏',this)" title="Clap">👏</button>
-                            <button class="activity-react-btn" onclick="sendActivityReaction('${cId}','💪',this)" title="Muscle">💪</button>
-                            <button class="activity-react-btn" onclick="sendActivityReaction('${cId}','🔥',this)" title="Fire">🔥</button>
-                            <span id="activity-sent-${safeClientId}" class="activity-sent-check">Sent ✓</span>
-                            <button class="activity-reply-btn" onclick="toggleActivityReply('${safeClientId}')">
-                                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                                Reply
-                            </button>
-                        </div>
-                        <div class="activity-reply-row" id="activity-reply-${safeClientId}" onclick="event.stopPropagation()">
-                            <input type="text" id="activity-reply-input-${safeClientId}" placeholder="Message ${name}..." onkeydown="if(event.key==='Enter')sendActivityReply('${cId}')">
-                            <button onclick="sendActivityReply('${cId}')">Send</button>
                         </div>
                     </div>`;
             });
