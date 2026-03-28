@@ -734,6 +734,7 @@
                     <a href="coach-messages.html" class="sidebar-nav-item" data-tooltip="Messages">
                         <span class="sidebar-nav-icon"><i data-lucide="message-circle"></i></span>
                         Messages
+                        <span class="sidebar-msg-badge" id="sidebarMsgBadge"></span>
                     </a>
                     <a href="manage-recipes.html" class="sidebar-nav-item" data-tooltip="Recipes">
                         <span class="sidebar-nav-icon"><i data-lucide="book-open"></i></span>
@@ -954,6 +955,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
                     </svg>
                 </div>
+                <span class="mobile-msg-badge" id="mobileMsgBadge"></span>
                 <span class="coach-nav-label">Messages</span>
             </a>
         </div>
@@ -974,6 +976,26 @@
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFld3Fjanpsb' +
             'nFhbXF3YmNjYXByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzM1MTUzNzksImV4cCI6MjA0OTA5MTM3OX0.lFz2WzsMsKFi7MsA_Bsz4a3slE6E24fFgmYfp_yREew';
 
+        async function loadUnreadMessageCount(coachId) {
+            try {
+                const res = await fetch(`/.netlify/functions/chat?action=conversations&coachId=${coachId}`);
+                const data = await res.json();
+                const totalUnread = (data.conversations || []).reduce((sum, c) => sum + (c.unreadCount || 0), 0);
+                const sidebarBadge = document.getElementById('sidebarMsgBadge');
+                const mobileBadge = document.getElementById('mobileMsgBadge');
+                if (totalUnread > 0) {
+                    const label = totalUnread > 99 ? '99+' : totalUnread;
+                    if (sidebarBadge) { sidebarBadge.textContent = label; sidebarBadge.style.display = 'flex'; }
+                    if (mobileBadge) { mobileBadge.textContent = label; mobileBadge.style.display = 'flex'; }
+                } else {
+                    if (sidebarBadge) sidebarBadge.style.display = 'none';
+                    if (mobileBadge) mobileBadge.style.display = 'none';
+                }
+            } catch (err) {
+                console.error('Error loading unread message count:', err);
+            }
+        }
+
         async function initAuth() {
             const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
             const { data: { session } } = await supabase.auth.getSession();
@@ -988,6 +1010,9 @@
                 await apiCall('/.netlify/functions/seed-default-workouts', { method: 'POST', body: JSON.stringify({ coachId: currentCoachId }) });
             } catch (e) { console.warn('Default workout seeding skipped:', e.message); }
             await loadPrograms();
+
+            // Load unread message count for sidebar badge
+            loadUnreadMessageCount(currentCoachId);
         }
 
         async function apiCall(url, options = {}) {

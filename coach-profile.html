@@ -934,6 +934,7 @@
                     <a href="coach-messages.html" class="sidebar-nav-item" data-tooltip="Messages">
                         <span class="sidebar-nav-icon"><i data-lucide="message-circle"></i></span>
                         Messages
+                        <span class="sidebar-msg-badge" id="sidebarMsgBadge"></span>
                     </a>
                     <a href="manage-recipes.html" class="sidebar-nav-item" data-tooltip="Recipes">
                         <span class="sidebar-nav-icon"><i data-lucide="book-open"></i></span>
@@ -1204,6 +1205,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
                     </svg>
                 </div>
+                <span class="mobile-msg-badge" id="mobileMsgBadge"></span>
                 <span class="coach-nav-label">Messages</span>
             </a>
         </div>
@@ -1372,6 +1374,7 @@
 
                 // Store coach ID for photo upload
                 window.currentCoachId = user.id;
+                loadUnreadMessageCount(user.id);
 
                 // Set tier badge
                 const tierBadge = document.getElementById('tierBadge');
@@ -1992,6 +1995,28 @@
     </script>
     <script src="/js/api-helper.js"></script>
     <script src="/js/trainer-support-agent.js"></script>
-    <script src="/js/voice-commander.js"></script>
+    <script src="/js/voice-commander.js">
+        // Load unread message count for sidebar badge
+        async function loadUnreadMessageCount(coachId) {
+            try {
+                const res = await fetch(`/.netlify/functions/chat?action=conversations&coachId=${coachId}`);
+                const data = await res.json();
+                const totalUnread = (data.conversations || []).reduce((sum, c) => sum + (c.unreadCount || 0), 0);
+                const sidebarBadge = document.getElementById('sidebarMsgBadge');
+                const mobileBadge = document.getElementById('mobileMsgBadge');
+                if (totalUnread > 0) {
+                    const label = totalUnread > 99 ? '99+' : totalUnread;
+                    if (sidebarBadge) { sidebarBadge.textContent = label; sidebarBadge.style.display = 'flex'; }
+                    if (mobileBadge) { mobileBadge.textContent = label; mobileBadge.style.display = 'flex'; }
+                } else {
+                    if (sidebarBadge) sidebarBadge.style.display = 'none';
+                    if (mobileBadge) mobileBadge.style.display = 'none';
+                }
+            } catch (err) {
+                console.error('Error loading unread message count:', err);
+            }
+        }
+
+    </script>
 </body>
 </html>
