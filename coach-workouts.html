@@ -7567,6 +7567,12 @@
                 }
             }
 
+            // Pre-select client when coming from client profile
+            const clientIdParam = urlParams.get('clientId');
+            if (clientIdParam) {
+                // Store the client ID so it's pre-selected when the assign modal opens
+                window._preselectedClientId = clientIdParam;
+            }
 
             // Add initial day and show workout info modal for new programs
             if (workoutDays.length === 0) {
@@ -10510,9 +10516,16 @@
                 return;
             }
             selectedClients.clear();
+
+            // Pre-select client if coming from client profile
+            if (window._preselectedClientId) {
+                selectedClients.add(String(window._preselectedClientId));
+            }
+
             renderClientSelectList();
             document.getElementById('clientSelectModal').style.display = 'flex';
             setupClientSelectListener();
+            updateContinueButton();
         }
 
         function closeClientSelectModal() {
@@ -10921,6 +10934,16 @@
                 closeScheduleModal();
                 showToast(`Workout assigned to ${selectedClients.size} client(s)!`, 'success');
                 selectedClients.clear();
+
+                // Redirect back to client profile if we came from there
+                const urlParams = new URLSearchParams(window.location.search);
+                const returnTo = urlParams.get('returnTo');
+                const returnClientId = urlParams.get('clientId');
+                if (returnTo === 'client-profile' && returnClientId) {
+                    setTimeout(() => {
+                        window.location.href = `client-profile.html?clientId=${returnClientId}`;
+                    }, 1000);
+                }
 
             } catch (err) {
                 console.error('Assignment error:', err);

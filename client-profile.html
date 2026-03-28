@@ -5447,6 +5447,140 @@
             color: #cbd5e1;
         }
 
+        /* Plan Type Selection Modal */
+        .plan-type-modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 9999;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .plan-type-modal-overlay.active {
+            display: flex;
+        }
+        .plan-type-modal {
+            background: #fff;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 440px;
+            padding: 28px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            animation: planModalSlideIn 0.25s ease-out;
+        }
+        @keyframes planModalSlideIn {
+            from { opacity: 0; transform: translateY(20px) scale(0.97); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .plan-type-modal h3 {
+            margin: 0 0 6px 0;
+            font-size: 20px;
+            font-weight: 700;
+            color: #1e293b;
+        }
+        .plan-type-modal .modal-subtitle {
+            color: #64748b;
+            font-size: 14px;
+            margin: 0 0 20px 0;
+        }
+        .plan-type-options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .plan-type-option {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            background: #f8fafc;
+        }
+        .plan-type-option:hover {
+            border-color: #3b82f6;
+            background: #eff6ff;
+            transform: translateY(-1px);
+        }
+        .plan-type-option:active {
+            transform: translateY(0);
+        }
+        .plan-type-icon {
+            font-size: 28px;
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            flex-shrink: 0;
+        }
+        .plan-type-icon.nutrition { background: #dcfce7; }
+        .plan-type-icon.workout { background: #dbeafe; }
+        .plan-type-icon.supplement { background: #fef3c7; }
+        .plan-type-info h4 {
+            margin: 0 0 2px 0;
+            font-size: 15px;
+            font-weight: 600;
+            color: #1e293b;
+        }
+        .plan-type-info p {
+            margin: 0;
+            font-size: 13px;
+            color: #64748b;
+        }
+        .plan-type-cancel {
+            margin-top: 14px;
+            text-align: center;
+        }
+        .plan-type-cancel button {
+            background: none;
+            border: none;
+            color: #64748b;
+            font-size: 14px;
+            cursor: pointer;
+            padding: 8px 16px;
+        }
+        .plan-type-cancel button:hover {
+            color: #1e293b;
+        }
+        [data-theme="dark"] .plan-type-modal {
+            background: #1e293b;
+        }
+        [data-theme="dark"] .plan-type-modal h3 {
+            color: #f1f5f9;
+        }
+        [data-theme="dark"] .plan-type-modal .modal-subtitle {
+            color: #94a3b8;
+        }
+        [data-theme="dark"] .plan-type-option {
+            border-color: #334155;
+            background: #0f172a;
+        }
+        [data-theme="dark"] .plan-type-option:hover {
+            border-color: #3b82f6;
+            background: #1e3a5f;
+        }
+        [data-theme="dark"] .plan-type-icon.nutrition { background: #064e3b; }
+        [data-theme="dark"] .plan-type-icon.workout { background: #1e3a5f; }
+        [data-theme="dark"] .plan-type-icon.supplement { background: #78350f; }
+        [data-theme="dark"] .plan-type-info h4 {
+            color: #f1f5f9;
+        }
+        [data-theme="dark"] .plan-type-info p {
+            color: #94a3b8;
+        }
+        [data-theme="dark"] .plan-type-cancel button {
+            color: #94a3b8;
+        }
+        [data-theme="dark"] .plan-type-cancel button:hover {
+            color: #f1f5f9;
+        }
+
         [data-theme="dark"] input,
         [data-theme="dark"] textarea,
         [data-theme="dark"] select {
@@ -10086,8 +10220,24 @@
         }
 
         function generateNewPlan() {
-            // Redirect to planner with client pre-selected
-            window.location.href = `planner.html?clientId=${currentClient.id}`;
+            document.getElementById('planTypeModal').classList.add('active');
+        }
+
+        function closePlanTypeModal() {
+            document.getElementById('planTypeModal').classList.remove('active');
+        }
+
+        function selectPlanType(type) {
+            closePlanTypeModal();
+            const clientId = currentClient.id;
+            const returnParam = '&returnTo=client-profile';
+            if (type === 'nutrition') {
+                window.location.href = `planner.html?clientId=${clientId}${returnParam}`;
+            } else if (type === 'workout') {
+                window.location.href = `coach-workouts.html?clientId=${clientId}${returnParam}`;
+            } else if (type === 'supplement') {
+                window.location.href = `supplement-protocols.html?clientId=${clientId}${returnParam}`;
+            }
         }
 
         function editClient() {
@@ -16318,6 +16468,40 @@
             <div style="display:flex; gap:8px; padding: 12px 20px; border-top: 1px solid var(--border-color, #e5e7eb); justify-content: flex-end;">
                 <button onclick="closeCpSwapModal()" style="padding: 8px 16px; border-radius: 8px; border: 1px solid var(--border-color, #e5e7eb); background: transparent; cursor: pointer; color: var(--text-primary, #111);">Cancel</button>
                 <button id="cpConfirmSwapBtn" onclick="confirmCpSwap()" disabled style="padding: 8px 16px; border-radius: 8px; border: none; background: var(--brand-primary, #6366f1); color: #fff; cursor: pointer; font-weight: 600;">Confirm Swap</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Plan Type Selection Modal -->
+    <div class="plan-type-modal-overlay" id="planTypeModal" onclick="if(event.target===this)closePlanTypeModal()">
+        <div class="plan-type-modal">
+            <h3>Generate New Plan</h3>
+            <p class="modal-subtitle">What type of plan would you like to create?</p>
+            <div class="plan-type-options">
+                <div class="plan-type-option" onclick="selectPlanType('nutrition')">
+                    <div class="plan-type-icon nutrition">🍎</div>
+                    <div class="plan-type-info">
+                        <h4>Nutrition Plan</h4>
+                        <p>Create a meal plan with macros and recipes</p>
+                    </div>
+                </div>
+                <div class="plan-type-option" onclick="selectPlanType('workout')">
+                    <div class="plan-type-icon workout">💪</div>
+                    <div class="plan-type-info">
+                        <h4>Workout Plan</h4>
+                        <p>Build and assign a workout program</p>
+                    </div>
+                </div>
+                <div class="plan-type-option" onclick="selectPlanType('supplement')">
+                    <div class="plan-type-icon supplement">💊</div>
+                    <div class="plan-type-info">
+                        <h4>Supplement Protocol</h4>
+                        <p>Set up a supplement schedule</p>
+                    </div>
+                </div>
+            </div>
+            <div class="plan-type-cancel">
+                <button onclick="closePlanTypeModal()">Cancel</button>
             </div>
         </div>
     </div>

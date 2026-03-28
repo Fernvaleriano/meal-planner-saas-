@@ -6141,8 +6141,16 @@ async function publishPlanToClient() {
         // Update UI
         updatePlanStatusUI();
 
-        // Show success message
-        alert('Plan submitted to client successfully! They can now see this plan.');
+        // Show success message and redirect back to client profile if applicable
+        const urlParams = new URLSearchParams(window.location.search);
+        const returnTo = urlParams.get('returnTo');
+        const returnClientId = urlParams.get('clientId');
+        if (returnTo === 'client-profile' && returnClientId) {
+            alert('Plan submitted to client successfully!');
+            window.location.href = `client-profile.html?clientId=${returnClientId}`;
+        } else {
+            alert('Plan submitted to client successfully! They can now see this plan.');
+        }
 
     } catch (error) {
         console.error('Error submitting plan:', error);
