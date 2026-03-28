@@ -2243,7 +2243,16 @@
                 closeProtocolModal();
                 await loadClientProtocols();
 
-                alert(editingProtocolId ? 'Protocol updated!' : 'Protocol added!');
+                // Redirect back to client profile if we came from there
+                const urlParams = new URLSearchParams(window.location.search);
+                const returnTo = urlParams.get('returnTo');
+                const returnClientId = urlParams.get('clientId');
+                if (returnTo === 'client-profile' && returnClientId) {
+                    alert(editingProtocolId ? 'Protocol updated!' : 'Protocol added!');
+                    window.location.href = `client-profile.html?clientId=${returnClientId}`;
+                } else {
+                    alert(editingProtocolId ? 'Protocol updated!' : 'Protocol added!');
+                }
 
             } catch (error) {
                 console.error('Error saving protocol:', error);
