@@ -1877,6 +1877,31 @@
             color: #f1f5f9;
         }
 
+        /* Template preview card dark mode */
+        [data-theme="dark"] #template-preview {
+            background: rgba(13, 148, 136, 0.12) !important;
+            border-color: rgba(13, 148, 136, 0.3) !important;
+        }
+        [data-theme="dark"] #template-preview-name {
+            color: #2dd4bf !important;
+        }
+        [data-theme="dark"] #template-preview-meta,
+        [data-theme="dark"] #template-preview-desc {
+            color: #94a3b8 !important;
+        }
+
+        /* Delete button hover */
+        #delete-template-btn:not(:disabled):hover {
+            background: #dc2626 !important;
+            color: white !important;
+        }
+
+        /* Template action buttons enabled state */
+        #edit-template-btn:not(:disabled):hover,
+        #bulk-post-template-btn:not(:disabled):hover {
+            background: rgba(255,255,255,0.08) !important;
+        }
+
         [data-theme="dark"] .border-teal-500,
         [data-theme="dark"] .border-blue-500 {
             border-color: #0d9488 !important;
@@ -2668,15 +2693,29 @@
 
                 <!-- Template selector (shown when Use Template is toggled on) -->
                 <div id="template-selector-fields" class="hidden form-section">
-                    <div class="flex gap-2 items-center">
-                        <select id="dp_template_select" class="input-field flex-1 text-sm">
-                            <option value="">Select a template...</option>
-                        </select>
-                        <button id="edit-template-btn" onclick="editSelectedTemplate()" class="btn" style="background: #475569; color: white; padding: 6px 10px; font-size: 11px;" title="Edit template" disabled><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
-                        <button id="delete-template-btn" onclick="deleteSelectedTemplate()" class="btn" style="background: #dc2626; color: white; padding: 6px 10px; font-size: 11px;" title="Delete template" disabled><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
-                        <button id="bulk-post-template-btn" onclick="bulkPostTemplate()" class="btn" style="background: #475569; color: white; padding: 6px 10px; font-size: 11px;" title="Post template to multiple clients" disabled><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></button>
+                    <label class="form-section-label" style="margin-bottom: 0.5rem;">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                        Choose Template
+                    </label>
+                    <select id="dp_template_select" class="input-field w-full text-sm" style="margin-bottom: 0.75rem;">
+                        <option value="">Select a template...</option>
+                    </select>
+                    <div id="template-preview" class="hidden" style="padding: 0.75rem 1rem; border-radius: 0.5rem; background: rgba(13, 148, 136, 0.08); border: 1px solid rgba(13, 148, 136, 0.25); margin-bottom: 0.75rem;">
+                        <div id="template-preview-name" style="font-weight: 600; font-size: 0.9rem; color: #0d9488; margin-bottom: 0.25rem;"></div>
+                        <div id="template-preview-meta" style="font-size: 0.8rem; color: #94a3b8;"></div>
+                        <div id="template-preview-desc" style="font-size: 0.8rem; color: #94a3b8; font-style: italic; margin-top: 0.25rem;"></div>
                     </div>
-                    <div id="template-preview" class="mt-2 text-sm text-gray-500 hidden"></div>
+                    <div class="flex gap-2">
+                        <button id="edit-template-btn" onclick="editSelectedTemplate()" class="btn btn-ghost flex-1 text-xs py-2" title="Edit template" disabled style="opacity: 0.5;">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Edit
+                        </button>
+                        <button id="delete-template-btn" onclick="deleteSelectedTemplate()" class="btn flex-1 text-xs py-2" style="background: transparent; border: 1px solid #dc2626; color: #f87171; opacity: 0.5;" title="Delete template" disabled>
+                            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>Delete
+                        </button>
+                        <button id="bulk-post-template-btn" onclick="bulkPostTemplate()" class="btn btn-ghost flex-1 text-xs py-2" title="Post to multiple clients" disabled style="opacity: 0.5;">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Bulk Post
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Hidden checkboxes for JS compatibility -->
@@ -11240,14 +11279,18 @@ document.getElementById('dp_template_select').addEventListener('change', functio
         previewDiv.classList.add('hidden');
         editBtn.disabled = true;
         deleteBtn.disabled = true;
-        if (bulkPostTemplateBtn) bulkPostTemplateBtn.disabled = true;
+        editBtn.style.opacity = '0.5';
+        deleteBtn.style.opacity = '0.5';
+        if (bulkPostTemplateBtn) { bulkPostTemplateBtn.disabled = true; bulkPostTemplateBtn.style.opacity = '0.5'; }
         return;
     }
 
     // Enable buttons when a template is selected
     editBtn.disabled = false;
     deleteBtn.disabled = false;
-    if (bulkPostTemplateBtn) bulkPostTemplateBtn.disabled = false;
+    editBtn.style.opacity = '1';
+    deleteBtn.style.opacity = '1';
+    if (bulkPostTemplateBtn) { bulkPostTemplateBtn.disabled = false; bulkPostTemplateBtn.style.opacity = '1'; }
 
     // Use cached templates from API
     const template = cachedTemplates.find(t => t.id == templateId);
@@ -11255,7 +11298,9 @@ document.getElementById('dp_template_select').addEventListener('change', functio
     if (template) {
         const mealCount = template.plan_data?.[0]?.plan?.length || 0;
         const dayCount = template.plan_data?.length || 0;
-        previewDiv.innerHTML = `<strong>${template.name}</strong>: ${dayCount} day(s), ${mealCount} meals/day<br><em>${template.description || 'No description'}</em>`;
+        document.getElementById('template-preview-name').textContent = template.name;
+        document.getElementById('template-preview-meta').textContent = `${dayCount} day(s) \u00b7 ${mealCount} meals/day`;
+        document.getElementById('template-preview-desc').textContent = template.description || 'No description';
         previewDiv.classList.remove('hidden');
     }
 });
