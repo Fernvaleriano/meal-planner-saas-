@@ -534,17 +534,12 @@ function ExerciseDetailModal({
 
     const fetchHistory = async () => {
       try {
-        // Fetch by name first — captures history across all programs
-        let res = exercise.name
-          ? await apiGet(
-              `/.netlify/functions/exercise-history?clientId=${clientId}&exerciseName=${encodeURIComponent(exercise.name)}&limit=5`
-            )
-          : null;
-        if ((!res?.history || res.history.length === 0)) {
-          res = await apiGet(
-            `/.netlify/functions/exercise-history?clientId=${clientId}&exerciseId=${exercise.id}&limit=5`
-          );
-        }
+        // Fetch by both name AND ID to capture history across all programs
+        // (same exercise may have different names or IDs in different programs)
+        const params = new URLSearchParams({ clientId, limit: '5' });
+        if (exercise.name) params.set('exerciseName', exercise.name);
+        if (exercise.id) params.set('exerciseId', exercise.id);
+        const res = await apiGet(`/.netlify/functions/exercise-history?${params.toString()}`);
         if (cancelled || !res?.history || res.history.length === 0) return;
 
         // Store all-time bests for real-time PR detection
@@ -1442,19 +1437,12 @@ function ExerciseDetailModal({
 
     const generateRecommendation = async () => {
       try {
-        // Always fetch by exercise name to get full cross-program history
-        // (exerciseId differs between programs even for the same exercise)
-        let res = exercise?.name
-          ? await apiGet(
-              `/.netlify/functions/exercise-history?clientId=${clientId}&exerciseName=${encodeURIComponent(exercise.name)}&limit=10`
-            )
-          : null;
-        // Fall back to exerciseId if name query fails or no name available
-        if ((!res?.history || res.history.length === 0)) {
-          res = await apiGet(
-            `/.netlify/functions/exercise-history?clientId=${clientId}&exerciseId=${exercise.id}&limit=10`
-          );
-        }
+        // Fetch by both name AND ID to capture history across all programs
+        // (same exercise may have different names or IDs in different programs)
+        const params = new URLSearchParams({ clientId, limit: '10' });
+        if (exercise?.name) params.set('exerciseName', exercise.name);
+        if (exercise?.id) params.set('exerciseId', exercise.id);
+        const res = await apiGet(`/.netlify/functions/exercise-history?${params.toString()}`);
 
         if (cancelled) return;
 

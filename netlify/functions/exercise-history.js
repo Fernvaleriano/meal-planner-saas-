@@ -167,10 +167,7 @@ exports.handler = async (event) => {
       };
     }
 
-    // Build query for exercise history
-    let query = supabase
-      .from('exercise_logs')
-      .select(`
+    const selectFields = `
         id,
         exercise_id,
         exercise_name,
@@ -187,29 +184,67 @@ exports.handler = async (event) => {
           workout_date,
           client_id
         )
-      `)
-      .eq('workout_logs.client_id', clientId)
-      .order('created_at', { ascending: false })
-      .limit(parseInt(limit));
+      `;
 
-    // Filter by exercise
-    if (exerciseId) {
-      query = query.eq('exercise_id', exerciseId);
-    } else if (exerciseName) {
-      // Use exact match by default to avoid cross-exercise confusion
-      // (e.g. "Hack Squat" matching "Hack Squat Single Leg" could suggest unsafe weights)
-      query = query.ilike('exercise_name', exerciseName);
-    }
+    let history;
 
-    // Date range filters
-    if (startDate) {
-      query = query.gte('workout_logs.workout_date', startDate);
-    }
-    if (endDate) {
-      query = query.lte('workout_logs.workout_date', endDate);
-    }
+    // When both exerciseName AND exerciseId are provided, query by BOTH
+    // and merge results. This captures history across programs where the
+    // same exercise may be stored under a different name or different ID.
+    if (exerciseName && exerciseId) {
+      const buildQuery = (filterFn) => {
+        let q = supabase
+          .from('exercise_logs')
+          .select(selectFields)
+          .eq('workout_logs.client_id', clientId)
+          .order('created_at', { ascending: false })
+          .limit(parseInt(limit));
+        q = filterFn(q);
+        if (startDate) q = q.gte('workout_logs.workout_date', startDate);
+        if (endDate) q = q.lte('workout_logs.workout_date', endDate);
+        return q;
+      };
 
-    const { data: history, error } = await query;
+      const [nameResult, idResult] = await Promise.all([
+        buildQuery(q => q.ilike('exercise_name', exerciseName)),
+        buildQuery(q => q.eq('exercise_id', exerciseId))
+      ]);
+
+      if (nameResult.error) throw nameResult.error;
+      if (idResult.error) throw idResult.error;
+
+      // Merge and deduplicate by id
+      const seen = new Set();
+      const merged = [];
+      for (const item of [...(nameResult.data || []), ...(idResult.data || [])]) {
+        if (!seen.has(item.id)) {
+          seen.add(item.id);
+          merged.push(item);
+        }
+      }
+      history = merged;
+    } else {
+      // Single filter: name OR id
+      let query = supabase
+        .from('exercise_logs')
+        .select(selectFields)
+        .eq('workout_logs.client_id', clientId)
+        .order('created_at', { ascending: false })
+        .limit(parseInt(limit));
+
+      if (exerciseId) {
+        query = query.eq('exercise_id', exerciseId);
+      } else if (exerciseName) {
+        query = query.ilike('exercise_name', exerciseName);
+      }
+
+      if (startDate) query = query.gte('workout_logs.workout_date', startDate);
+      if (endDate) query = query.lte('workout_logs.workout_date', endDate);
+
+      const result = await query;
+      if (result.error) throw result.error;
+      history = result.data;
+    }
 
     if (error) throw error;
 
