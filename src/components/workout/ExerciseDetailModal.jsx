@@ -597,6 +597,138 @@ function ExerciseDetailModal({
     return new Date().toISOString().split('T')[0];
   }, [selectedDate]);
 
+  // Keep refs in sync for the flush-on-unmount save function
+  const setsRef = useRef(sets);
+  const clientIdRef = useRef(clientId);
+  const exerciseRef2 = useRef(exercise);
+  const weightUnitRef = useRef(weightUnit);
+  const getWorkoutDateStrRef = useRef(getWorkoutDateStr);
+  useEffect(() => { setsRef.current = sets; }, [sets]);
+  useEffect(() => { clientIdRef.current = clientId; }, [clientId]);
+  useEffect(() => { exerciseRef2.current = exercise; }, [exercise]);
+  useEffect(() => { weightUnitRef.current = weightUnit; }, [weightUnit]);
+  useEffect(() => { getWorkoutDateStrRef.current = getWorkoutDateStr; }, [getWorkoutDateStr]);
+
+  // Extracted save function so it can be called from debounce AND flush-on-unmount
+  const performSave = useCallback(async () => {
+    const currentSets = setsRef.current;
+    const currentClientId = clientIdRef.current;
+    const currentExercise = exerciseRef2.current;
+    const currentWeightUnit = weightUnitRef.current;
+    const currentGetWorkoutDateStr = getWorkoutDateStrRef.current;
+
+    if (!currentClientId || !currentExercise?.id) return;
+
+    try {
+      let logId = workoutLogIdRef.current;
+      const dateStr = currentGetWorkoutDateStr();
+
+      // If no log ID yet, check if one already exists for this date
+      if (!logId) {
+        const existing = await apiGet(
+          `/.netlify/functions/workout-logs?clientId=${currentClientId}&startDate=${dateStr}&endDate=${dateStr}&limit=1`
+        );
+        if (existing?.workouts && existing.workouts.length > 0) {
+          logId = existing.workouts[0].id;
+          workoutLogIdRef.current = logId;
+        }
+      }
+
+      // Still no log — create one for the selected date
+      if (!logId) {
+        const res = await apiPost('/.netlify/functions/workout-logs', {
+          clientId: currentClientId,
+          workoutDate: dateStr,
+          workoutName: currentExercise?.workoutName || 'Workout',
+          status: 'in_progress'
+        });
+        if (res?.workout?.id) {
+          logId = res.workout.id;
+          workoutLogIdRef.current = logId;
+        }
+      }
+
+      if (!logId) return;
+
+      const setsData = currentSets.map((s, i) => ({
+        setNumber: i + 1,
+        reps: s.reps || 0,
+        weight: s.weight || 0,
+        weightUnit: s.weightUnit || currentWeightUnit,
+        rpe: s.rpe || null,
+        effort: s.effort || null,
+        restSeconds: s.restSeconds ?? null,
+        isTimeBased: s.isTimeBased || false,
+        ...(s.duration != null && { duration: s.duration }),
+        ...(s.distance != null && { distance: s.distance }),
+        ...(s.isDistanceBased && { isDistanceBased: true })
+      }));
+
+      const exercisePayload = {
+        exerciseId: currentExercise.id,
+        exerciseName: currentExercise.name || 'Unknown',
+        order: 1,
+        sets: setsData
+      };
+      // Preserve client notes and voice note path during auto-save
+      if (clientNoteRef.current) exercisePayload.clientNotes = clientNoteRef.current;
+      if (voiceNotePathRef.current) exercisePayload.clientVoiceNotePath = voiceNotePathRef.current;
+      if (currentExercise.swapped_from) exercisePayload.swappedFromName = currentExercise.swapped_from;
+
+      await apiPut('/.netlify/functions/workout-logs', {
+        workoutId: logId,
+        exercises: [exercisePayload]
+      });
+
+      // Real-time PR detection: weight PR + rep PR
+      const currentMaxWeight = setsData.reduce((max, s) => Math.max(max, s.weight || 0), 0);
+      const previousMax = allTimeMaxWeightRef.current;
+      let prDetected = false;
+
+      // Weight PR
+      if (currentMaxWeight > 0 && previousMax > 0 && currentMaxWeight > previousMax) {
+        if (isMountedRef.current) {
+          setProgressTip({
+            type: 'new_pr',
+            icon: '\u{1F3C6}',
+            title: 'New Personal Record!',
+            message: `You just hit ${currentMaxWeight} ${currentWeightUnit} — up from ${previousMax} ${currentWeightUnit}. Keep pushing!`,
+          });
+        }
+        allTimeMaxWeightRef.current = currentMaxWeight;
+        prDetected = true;
+      }
+
+      // Rep PR: more reps at the same weight than ever before
+      if (!prDetected) {
+        const bestReps = allTimeBestRepsRef.current;
+        for (const s of setsData) {
+          const w = s.weight || 0;
+          const r = s.reps || 0;
+          if (w <= 0) continue; // Skip invalid/zero-weight sets
+          const prevBest = bestReps[w] || 0;
+          if (r > 0 && prevBest > 0 && r > prevBest) {
+            if (isMountedRef.current) {
+              setProgressTip({
+                type: 'new_pr',
+                icon: '\u{1F3C6}',
+                title: 'New Rep Record!',
+                message: w > 0
+                  ? `${r} reps at ${w} ${currentWeightUnit} — beat your previous best of ${prevBest} reps!`
+                  : `${r} reps — beat your previous best of ${prevBest} reps!`,
+              });
+            }
+            bestReps[w] = r; // Update so it doesn't re-trigger
+            break;
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Error auto-saving exercise log:', err);
+      setsChangedRef.current = false;
+    }
+  }, []);
+
   useEffect(() => {
     // Skip the initial render (sets haven't been edited by user yet)
     if (!setsChangedRef.current) return;
@@ -608,118 +740,30 @@ function ExerciseDetailModal({
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     const delay = saveImmediatelyRef.current ? 0 : 2000;
     saveImmediatelyRef.current = false;
-    saveTimerRef.current = setTimeout(async () => {
-      try {
-        let logId = workoutLogIdRef.current;
-        const dateStr = getWorkoutDateStr();
-
-        // If no log ID yet, check if one already exists for this date
-        if (!logId) {
-          const existing = await apiGet(
-            `/.netlify/functions/workout-logs?clientId=${clientId}&startDate=${dateStr}&endDate=${dateStr}&limit=1`
-          );
-          if (existing?.workouts && existing.workouts.length > 0) {
-            logId = existing.workouts[0].id;
-            workoutLogIdRef.current = logId;
-          }
-        }
-
-        // Still no log — create one for the selected date
-        if (!logId) {
-          const res = await apiPost('/.netlify/functions/workout-logs', {
-            clientId,
-            workoutDate: dateStr,
-            workoutName: exercise?.workoutName || 'Workout',
-            status: 'in_progress'
-          });
-          if (res?.workout?.id) {
-            logId = res.workout.id;
-            workoutLogIdRef.current = logId;
-          }
-        }
-
-        if (!logId) return;
-
-        const setsData = sets.map((s, i) => ({
-          setNumber: i + 1,
-          reps: s.reps || 0,
-          weight: s.weight || 0,
-          weightUnit: s.weightUnit || weightUnit,
-          rpe: s.rpe || null,
-          effort: s.effort || null,
-          restSeconds: s.restSeconds ?? null,
-          isTimeBased: s.isTimeBased || false,
-          ...(s.duration != null && { duration: s.duration }),
-          ...(s.distance != null && { distance: s.distance }),
-          ...(s.isDistanceBased && { isDistanceBased: true })
-        }));
-
-        const exercisePayload = {
-          exerciseId: exercise.id,
-          exerciseName: exercise.name || 'Unknown',
-          order: 1,
-          sets: setsData
-        };
-        // Preserve client notes and voice note path during auto-save
-        if (clientNoteRef.current) exercisePayload.clientNotes = clientNoteRef.current;
-        if (voiceNotePathRef.current) exercisePayload.clientVoiceNotePath = voiceNotePathRef.current;
-        if (exercise.swapped_from) exercisePayload.swappedFromName = exercise.swapped_from;
-
-        await apiPut('/.netlify/functions/workout-logs', {
-          workoutId: logId,
-          exercises: [exercisePayload]
-        });
-
-        // Real-time PR detection: weight PR + rep PR
-        const currentMaxWeight = setsData.reduce((max, s) => Math.max(max, s.weight || 0), 0);
-        const previousMax = allTimeMaxWeightRef.current;
-        let prDetected = false;
-
-        // Weight PR
-        if (currentMaxWeight > 0 && previousMax > 0 && currentMaxWeight > previousMax) {
-          setProgressTip({
-            type: 'new_pr',
-            icon: '\u{1F3C6}',
-            title: 'New Personal Record!',
-            message: `You just hit ${currentMaxWeight} ${weightUnit} — up from ${previousMax} ${weightUnit}. Keep pushing!`,
-          });
-          allTimeMaxWeightRef.current = currentMaxWeight;
-          prDetected = true;
-        }
-
-        // Rep PR: more reps at the same weight than ever before
-        if (!prDetected) {
-          const bestReps = allTimeBestRepsRef.current;
-          for (const s of setsData) {
-            const w = s.weight || 0;
-            const r = s.reps || 0;
-            if (w <= 0) continue; // Skip invalid/zero-weight sets
-            const prevBest = bestReps[w] || 0;
-            if (r > 0 && prevBest > 0 && r > prevBest) {
-              setProgressTip({
-                type: 'new_pr',
-                icon: '\u{1F3C6}',
-                title: 'New Rep Record!',
-                message: w > 0
-                  ? `${r} reps at ${w} ${weightUnit} — beat your previous best of ${prevBest} reps!`
-                  : `${r} reps — beat your previous best of ${prevBest} reps!`,
-              });
-              bestReps[w] = r; // Update so it doesn't re-trigger
-              break;
-            }
-          }
-        }
-      } catch (err) {
-        console.error('Error auto-saving exercise log:', err);
-        // Reset flag so failed saves don't block future save attempts
-        setsChangedRef.current = false;
-      }
+    saveTimerRef.current = setTimeout(() => {
+      saveTimerRef.current = null;
+      performSave();
     }, delay);
 
     return () => {
-      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      // Don't cancel — let the cleanup effect handle flush-on-unmount
     };
-  }, [sets, clientId, exercise?.id, exercise?.name, getWorkoutDateStr]);
+  }, [sets, clientId, exercise?.id, exercise?.name, getWorkoutDateStr, performSave]);
+
+  // Flush any pending save when component unmounts (modal closes)
+  // This ensures data is NEVER lost when the user closes the modal quickly
+  useEffect(() => {
+    return () => {
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = null;
+        // Fire the save immediately — don't let data get lost
+        if (setsChangedRef.current) {
+          performSave();
+        }
+      }
+    };
+  }, [performSave]);
 
   // Mark sets as user-changed when handleSaveSets fires (not initial load)
   const markSetsChanged = useCallback(() => {
@@ -1422,7 +1466,12 @@ function ExerciseDetailModal({
 
         const today = new Date();
         const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-        const previousSessions = history.filter(s => s.workoutDate !== todayStr);
+        // Exclude both today AND the date being viewed (selectedDate) so the
+        // recommendation isn't based on the workout the user is currently editing
+        const viewingDateStr = getWorkoutDateStr();
+        const previousSessions = history.filter(s =>
+          s.workoutDate !== todayStr && s.workoutDate !== viewingDateStr
+        );
         if (previousSessions.length === 0) {
           setCoachingRecommendation(null);
           return;

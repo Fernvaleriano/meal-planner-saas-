@@ -229,6 +229,17 @@ exports.handler = async (event) => {
       workoutId: item.workout_logs?.id
     }));
 
+    // Sort by workout_date descending (most recent workout first)
+    // The DB query orders by created_at which may differ from actual workout date
+    // (e.g. backfilled workouts, or logs created out of chronological order)
+    transformedHistory.sort((a, b) => {
+      const dateA = a.workoutDate || '';
+      const dateB = b.workoutDate || '';
+      if (dateB !== dateA) return dateB.localeCompare(dateA);
+      // Tie-break by id for same-date entries
+      return (b.id || '').localeCompare(a.id || '');
+    });
+
     // Calculate stats if filtering by specific exercise
     let stats = null;
     if (exerciseId || exerciseName) {
