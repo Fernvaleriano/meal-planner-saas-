@@ -7571,7 +7571,9 @@
             if (userAvatarEl) userAvatarEl.textContent = email.charAt(0).toUpperCase();
 
             // Initialize gym features (enabled for all coaches)
-            await initGymFeatures({ email: session.user.email });
+            if (typeof initGymFeatures === 'function') {
+                await initGymFeatures({ email: session.user.email });
+            }
 
             // Seed default workout templates (only inserts if coach has none yet)
             try {
