@@ -2706,14 +2706,17 @@
                         <div id="template-preview-meta" style="font-size: 0.8rem; color: #94a3b8;"></div>
                         <div id="template-preview-desc" style="font-size: 0.8rem; color: #94a3b8; font-style: italic; margin-top: 0.25rem;"></div>
                     </div>
-                    <div class="flex gap-2">
-                        <button id="edit-template-btn" onclick="editSelectedTemplate()" class="btn btn-ghost flex-1 text-xs py-2" title="Edit template" disabled style="opacity: 0.5;">
+                    <div class="flex gap-2" style="flex-wrap: wrap;">
+                        <button id="edit-template-btn" onclick="editSelectedTemplate()" class="btn btn-ghost flex-1 text-xs py-2" title="Edit template meals & macros" disabled style="opacity: 0.5; min-width: 70px;">
                             <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Edit
                         </button>
-                        <button id="delete-template-btn" onclick="deleteSelectedTemplate()" class="btn flex-1 text-xs py-2" style="background: transparent; border: 1px solid #dc2626; color: #f87171; opacity: 0.5;" title="Delete template" disabled>
+                        <button id="assign-template-btn" onclick="assignTemplateToClient()" class="btn flex-1 text-xs py-2" style="background: #0d9488; color: white; border: none; opacity: 0.5; min-width: 70px;" title="Assign template to a client" disabled>
+                            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>Assign
+                        </button>
+                        <button id="delete-template-btn" onclick="deleteSelectedTemplate()" class="btn flex-1 text-xs py-2" style="background: transparent; border: 1px solid #dc2626; color: #f87171; opacity: 0.5; min-width: 70px;" title="Delete template" disabled>
                             <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>Delete
                         </button>
-                        <button id="bulk-post-template-btn" onclick="bulkPostTemplate()" class="btn btn-ghost flex-1 text-xs py-2" title="Post to multiple clients" disabled style="opacity: 0.5;">
+                        <button id="bulk-post-template-btn" onclick="bulkPostTemplate()" class="btn btn-ghost flex-1 text-xs py-2" title="Post to multiple clients" disabled style="opacity: 0.5; min-width: 70px;">
                             <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Bulk Post
                         </button>
                     </div>
@@ -11307,6 +11310,8 @@ document.getElementById('dp_template_select').addEventListener('change', functio
     const deleteBtn = document.getElementById('delete-template-btn');
     const bulkPostTemplateBtn = document.getElementById('bulk-post-template-btn');
 
+    const assignBtn = document.getElementById('assign-template-btn');
+
     if (!templateId) {
         previewDiv.classList.add('hidden');
         editBtn.disabled = true;
@@ -11314,6 +11319,7 @@ document.getElementById('dp_template_select').addEventListener('change', functio
         editBtn.style.opacity = '0.5';
         deleteBtn.style.opacity = '0.5';
         if (bulkPostTemplateBtn) { bulkPostTemplateBtn.disabled = true; bulkPostTemplateBtn.style.opacity = '0.5'; }
+        if (assignBtn) { assignBtn.disabled = true; assignBtn.style.opacity = '0.5'; }
         return;
     }
 
@@ -11323,6 +11329,7 @@ document.getElementById('dp_template_select').addEventListener('change', functio
     editBtn.style.opacity = '1';
     deleteBtn.style.opacity = '1';
     if (bulkPostTemplateBtn) { bulkPostTemplateBtn.disabled = false; bulkPostTemplateBtn.style.opacity = '1'; }
+    if (assignBtn) { assignBtn.disabled = false; assignBtn.style.opacity = '1'; }
 
     // Use cached templates from API
     const template = cachedTemplates.find(t => t.id == templateId);
@@ -11563,53 +11570,408 @@ function deleteSelectedTemplate() {
     deleteTemplate(templateId);
 }
 
-// Edit selected template
+// Edit selected template — full meal editor modal
 async function editSelectedTemplate() {
     const templateId = document.getElementById('dp_template_select').value;
-    if (!templateId) {
-        alert('Please select a template first.');
-        return;
-    }
+    if (!templateId) { alert('Please select a template first.'); return; }
 
     const template = cachedTemplates.find(t => t.id == templateId);
-    if (!template) {
-        alert('Template not found. Please refresh the list.');
-        return;
-    }
+    if (!template) { alert('Template not found. Please refresh the list.'); return; }
 
-    // Prompt for new name
-    const newName = prompt('Edit template name:', template.name);
-    if (newName === null) return; // User cancelled
+    // Deep clone plan data for editing
+    const editData = JSON.parse(JSON.stringify(template.plan_data || []));
+    const editName = template.name || '';
+    const editDesc = template.description || '';
 
-    // Prompt for new description
-    const newDescription = prompt('Edit template description:', template.description || '');
-    if (newDescription === null) return; // User cancelled
+    // Remove existing modal
+    const existing = document.getElementById('template-editor-modal');
+    if (existing) existing.remove();
 
-    if (!newName.trim()) {
-        alert('Template name cannot be empty.');
-        return;
-    }
+    const modal = document.createElement('div');
+    modal.id = 'template-editor-modal';
+    modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
 
-    try {
-        // Use authenticated API call
-        const data = await apiPut(TEMPLATES_ENDPOINT, {
-            templateId: templateId,
-            coachId: currentCoach.id,
-            name: newName.trim(),
-            description: newDescription.trim()
+    function renderEditorHTML(planData, tplName, tplDesc) {
+        let daysHTML = '';
+        (planData || []).forEach((day, dayIdx) => {
+            let mealsHTML = '';
+            (day.plan || []).forEach((meal, mealIdx) => {
+                const ingredientsList = (meal.ingredients || []).join('\n');
+                mealsHTML += `
+                <div class="tpl-meal-card" data-day="${dayIdx}" data-meal="${mealIdx}" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px;margin-bottom:10px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                        <span style="font-size:11px;font-weight:600;text-transform:uppercase;color:#64748b;letter-spacing:0.5px;">${meal.type || 'Meal'}</span>
+                        <button onclick="templateEditorRemoveMeal(${dayIdx},${mealIdx})" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:18px;line-height:1;" title="Remove meal">&times;</button>
+                    </div>
+                    <input type="text" value="${(meal.name || '').replace(/"/g, '&quot;')}" data-field="name" placeholder="Meal name"
+                           style="width:100%;padding:6px 8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-bottom:6px;background:#fff;">
+                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:6px;">
+                        <div><label style="font-size:10px;color:#64748b;">Calories</label><input type="number" value="${meal.calories || 0}" data-field="calories" style="width:100%;padding:4px 6px;border:1px solid #cbd5e1;border-radius:4px;font-size:12px;background:#fff;"></div>
+                        <div><label style="font-size:10px;color:#64748b;">Protein</label><input type="number" value="${meal.protein || 0}" data-field="protein" style="width:100%;padding:4px 6px;border:1px solid #cbd5e1;border-radius:4px;font-size:12px;background:#fff;"></div>
+                        <div><label style="font-size:10px;color:#64748b;">Carbs</label><input type="number" value="${meal.carbs || 0}" data-field="carbs" style="width:100%;padding:4px 6px;border:1px solid #cbd5e1;border-radius:4px;font-size:12px;background:#fff;"></div>
+                        <div><label style="font-size:10px;color:#64748b;">Fat</label><input type="number" value="${meal.fat || 0}" data-field="fat" style="width:100%;padding:4px 6px;border:1px solid #cbd5e1;border-radius:4px;font-size:12px;background:#fff;"></div>
+                    </div>
+                    <div><label style="font-size:10px;color:#64748b;">Ingredients (one per line)</label>
+                        <textarea data-field="ingredients" rows="3" placeholder="e.g. 200g chicken breast&#10;1 cup rice"
+                                  style="width:100%;padding:6px 8px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;resize:vertical;background:#fff;">${ingredientsList}</textarea>
+                    </div>
+                    <div style="margin-top:6px;"><label style="font-size:10px;color:#64748b;">Instructions</label>
+                        <textarea data-field="instructions" rows="2" placeholder="Cooking instructions..."
+                                  style="width:100%;padding:6px 8px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;resize:vertical;background:#fff;">${(meal.instructions || '').replace(/</g, '&lt;')}</textarea>
+                    </div>
+                </div>`;
+            });
+
+            daysHTML += `
+            <div class="tpl-day-section" data-day-idx="${dayIdx}" style="margin-bottom:16px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                    <h4 style="margin:0;font-size:14px;color:#1e293b;font-weight:700;">Day ${dayIdx + 1}</h4>
+                    <button onclick="templateEditorAddMeal(${dayIdx})" style="background:#0d9488;color:white;border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;font-weight:600;">+ Add Meal</button>
+                </div>
+                <div id="tpl-day-${dayIdx}-meals">${mealsHTML}</div>
+            </div>`;
         });
 
-        alert('Template updated successfully!');
+        if (!planData || planData.length === 0) {
+            daysHTML = '<p style="color:#94a3b8;text-align:center;padding:20px;">No meal data in this template.</p>';
+        }
+
+        return `
+        <div style="background:#fff;border-radius:12px;max-width:640px;width:100%;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 25px 60px rgba(0,0,0,0.3);">
+            <div style="padding:20px 24px 12px;border-bottom:1px solid #e2e8f0;flex-shrink:0;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                    <h3 style="margin:0;font-size:18px;color:#1e293b;">
+                        <svg width="18" height="18" fill="none" stroke="#0d9488" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:6px;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                        Edit Template
+                    </h3>
+                    <button onclick="closeTemplateEditor()" style="background:none;border:none;font-size:24px;cursor:pointer;color:#6b7280;padding:4px;">&times;</button>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                    <div><label style="font-size:11px;font-weight:600;color:#64748b;">Template Name</label>
+                        <input type="text" id="tpl-edit-name" value="${tplName.replace(/"/g, '&quot;')}" style="width:100%;padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;background:#fff;"></div>
+                    <div><label style="font-size:11px;font-weight:600;color:#64748b;">Description</label>
+                        <input type="text" id="tpl-edit-desc" value="${tplDesc.replace(/"/g, '&quot;')}" style="width:100%;padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;background:#fff;"></div>
+                </div>
+            </div>
+            <div id="tpl-editor-days" style="padding:16px 24px;overflow-y:auto;flex:1;">
+                ${daysHTML}
+                <button onclick="templateEditorAddDay()" style="width:100%;padding:10px;background:#f1f5f9;border:2px dashed #cbd5e1;border-radius:8px;color:#64748b;font-size:13px;font-weight:600;cursor:pointer;margin-top:4px;">+ Add Day</button>
+            </div>
+            <div style="padding:12px 24px 20px;border-top:1px solid #e2e8f0;display:flex;gap:10px;flex-shrink:0;">
+                <button onclick="closeTemplateEditor()" style="flex:1;padding:10px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:8px;font-size:14px;cursor:pointer;color:#64748b;font-weight:600;">Cancel</button>
+                <button onclick="saveTemplateEdits()" style="flex:1;padding:10px;background:#0d9488;color:white;border:none;border-radius:8px;font-size:14px;cursor:pointer;font-weight:700;">Save Changes</button>
+            </div>
+        </div>`;
+    }
+
+    modal.innerHTML = renderEditorHTML(editData, editName, editDesc);
+    document.body.appendChild(modal);
+
+    // Close on backdrop click
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeTemplateEditor();
+    });
+
+    // Store editable data on modal for access by helper functions
+    modal._editData = editData;
+    modal._templateId = templateId;
+}
+
+function closeTemplateEditor() {
+    const modal = document.getElementById('template-editor-modal');
+    if (modal) modal.remove();
+}
+
+function templateEditorAddMeal(dayIdx) {
+    const modal = document.getElementById('template-editor-modal');
+    if (!modal || !modal._editData[dayIdx]) return;
+
+    // Collect current edits before re-render
+    _collectTemplateEdits(modal);
+
+    modal._editData[dayIdx].plan.push({
+        type: 'meal', name: '', calories: 0, protein: 0, carbs: 0, fat: 0,
+        ingredients: [], instructions: '', isCustom: true
+    });
+
+    // Re-render days area
+    _rerenderTemplateEditor(modal);
+}
+
+function templateEditorRemoveMeal(dayIdx, mealIdx) {
+    const modal = document.getElementById('template-editor-modal');
+    if (!modal || !modal._editData[dayIdx]) return;
+
+    _collectTemplateEdits(modal);
+
+    modal._editData[dayIdx].plan.splice(mealIdx, 1);
+    _rerenderTemplateEditor(modal);
+}
+
+function templateEditorAddDay() {
+    const modal = document.getElementById('template-editor-modal');
+    if (!modal) return;
+
+    _collectTemplateEdits(modal);
+
+    const newDayNum = modal._editData.length + 1;
+    modal._editData.push({
+        day: newDayNum,
+        plan: [{ type: 'breakfast', name: '', calories: 0, protein: 0, carbs: 0, fat: 0, ingredients: [], instructions: '', isCustom: true }]
+    });
+    _rerenderTemplateEditor(modal);
+}
+
+// Collect all current input values back into editData
+function _collectTemplateEdits(modal) {
+    const cards = modal.querySelectorAll('.tpl-meal-card');
+    cards.forEach(card => {
+        const dayIdx = parseInt(card.dataset.day);
+        const mealIdx = parseInt(card.dataset.meal);
+        if (!modal._editData[dayIdx] || !modal._editData[dayIdx].plan[mealIdx]) return;
+
+        const meal = modal._editData[dayIdx].plan[mealIdx];
+        const nameInput = card.querySelector('[data-field="name"]');
+        const calInput = card.querySelector('[data-field="calories"]');
+        const proInput = card.querySelector('[data-field="protein"]');
+        const carbInput = card.querySelector('[data-field="carbs"]');
+        const fatInput = card.querySelector('[data-field="fat"]');
+        const ingInput = card.querySelector('[data-field="ingredients"]');
+        const insInput = card.querySelector('[data-field="instructions"]');
+
+        if (nameInput) meal.name = nameInput.value;
+        if (calInput) meal.calories = parseFloat(calInput.value) || 0;
+        if (proInput) meal.protein = parseFloat(proInput.value) || 0;
+        if (carbInput) meal.carbs = parseFloat(carbInput.value) || 0;
+        if (fatInput) meal.fat = parseFloat(fatInput.value) || 0;
+        if (ingInput) meal.ingredients = ingInput.value.split('\n').map(s => s.trim()).filter(Boolean);
+        if (insInput) meal.instructions = insInput.value;
+    });
+}
+
+function _rerenderTemplateEditor(modal) {
+    const nameVal = document.getElementById('tpl-edit-name')?.value || '';
+    const descVal = document.getElementById('tpl-edit-desc')?.value || '';
+
+    // Re-render just the days section
+    let daysHTML = '';
+    (modal._editData || []).forEach((day, dayIdx) => {
+        let mealsHTML = '';
+        (day.plan || []).forEach((meal, mealIdx) => {
+            const ingredientsList = (meal.ingredients || []).join('\n');
+            mealsHTML += `
+            <div class="tpl-meal-card" data-day="${dayIdx}" data-meal="${mealIdx}" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px;margin-bottom:10px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                    <span style="font-size:11px;font-weight:600;text-transform:uppercase;color:#64748b;letter-spacing:0.5px;">${meal.type || 'Meal'}</span>
+                    <button onclick="templateEditorRemoveMeal(${dayIdx},${mealIdx})" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:18px;line-height:1;" title="Remove meal">&times;</button>
+                </div>
+                <input type="text" value="${(meal.name || '').replace(/"/g, '&quot;')}" data-field="name" placeholder="Meal name"
+                       style="width:100%;padding:6px 8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-bottom:6px;background:#fff;">
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:6px;">
+                    <div><label style="font-size:10px;color:#64748b;">Calories</label><input type="number" value="${meal.calories || 0}" data-field="calories" style="width:100%;padding:4px 6px;border:1px solid #cbd5e1;border-radius:4px;font-size:12px;background:#fff;"></div>
+                    <div><label style="font-size:10px;color:#64748b;">Protein</label><input type="number" value="${meal.protein || 0}" data-field="protein" style="width:100%;padding:4px 6px;border:1px solid #cbd5e1;border-radius:4px;font-size:12px;background:#fff;"></div>
+                    <div><label style="font-size:10px;color:#64748b;">Carbs</label><input type="number" value="${meal.carbs || 0}" data-field="carbs" style="width:100%;padding:4px 6px;border:1px solid #cbd5e1;border-radius:4px;font-size:12px;background:#fff;"></div>
+                    <div><label style="font-size:10px;color:#64748b;">Fat</label><input type="number" value="${meal.fat || 0}" data-field="fat" style="width:100%;padding:4px 6px;border:1px solid #cbd5e1;border-radius:4px;font-size:12px;background:#fff;"></div>
+                </div>
+                <div><label style="font-size:10px;color:#64748b;">Ingredients (one per line)</label>
+                    <textarea data-field="ingredients" rows="3" placeholder="e.g. 200g chicken breast&#10;1 cup rice"
+                              style="width:100%;padding:6px 8px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;resize:vertical;background:#fff;">${ingredientsList}</textarea>
+                </div>
+                <div style="margin-top:6px;"><label style="font-size:10px;color:#64748b;">Instructions</label>
+                    <textarea data-field="instructions" rows="2" placeholder="Cooking instructions..."
+                              style="width:100%;padding:6px 8px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;resize:vertical;background:#fff;">${(meal.instructions || '').replace(/</g, '&lt;')}</textarea>
+                </div>
+            </div>`;
+        });
+
+        daysHTML += `
+        <div class="tpl-day-section" data-day-idx="${dayIdx}" style="margin-bottom:16px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                <h4 style="margin:0;font-size:14px;color:#1e293b;font-weight:700;">Day ${dayIdx + 1}</h4>
+                <button onclick="templateEditorAddMeal(${dayIdx})" style="background:#0d9488;color:white;border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;font-weight:600;">+ Add Meal</button>
+            </div>
+            <div id="tpl-day-${dayIdx}-meals">${mealsHTML}</div>
+        </div>`;
+    });
+    daysHTML += '<button onclick="templateEditorAddDay()" style="width:100%;padding:10px;background:#f1f5f9;border:2px dashed #cbd5e1;border-radius:8px;color:#64748b;font-size:13px;font-weight:600;cursor:pointer;margin-top:4px;">+ Add Day</button>';
+
+    document.getElementById('tpl-editor-days').innerHTML = daysHTML;
+    // Restore name/desc values
+    const nameEl = document.getElementById('tpl-edit-name');
+    const descEl = document.getElementById('tpl-edit-desc');
+    if (nameEl) nameEl.value = nameVal;
+    if (descEl) descEl.value = descVal;
+}
+
+async function saveTemplateEdits() {
+    const modal = document.getElementById('template-editor-modal');
+    if (!modal) return;
+
+    // Collect final edits
+    _collectTemplateEdits(modal);
+
+    const newName = document.getElementById('tpl-edit-name')?.value?.trim();
+    const newDesc = document.getElementById('tpl-edit-desc')?.value?.trim();
+
+    if (!newName) { alert('Template name cannot be empty.'); return; }
+
+    try {
+        const data = await apiPut(TEMPLATES_ENDPOINT, {
+            templateId: modal._templateId,
+            coachId: currentCoach.id,
+            name: newName,
+            description: newDesc || '',
+            planData: modal._editData
+        });
+
+        closeTemplateEditor();
+        showToast('Template updated successfully!', 'success');
         await loadTemplatesList();
 
         // Re-select the template
-        document.getElementById('dp_template_select').value = templateId;
-        // Trigger change event to update preview
+        document.getElementById('dp_template_select').value = modal._templateId;
         document.getElementById('dp_template_select').dispatchEvent(new Event('change'));
 
     } catch (error) {
         console.error('Error updating template:', error);
         alert('Failed to update template. Please try again.');
+    }
+}
+
+// ========================
+// ASSIGN TEMPLATE TO CLIENT
+// ========================
+function assignTemplateToClient() {
+    const templateSelect = document.getElementById('dp_template_select');
+    const templateId = templateSelect ? templateSelect.value : '';
+
+    if (!templateId) { alert('Please select a template first.'); return; }
+
+    const template = cachedTemplates.find(t => t.id == templateId);
+    if (!template || !template.plan_data) { alert('Template data not found.'); return; }
+
+    if (!clientsList || clientsList.length === 0) { alert('No clients found. Add clients first.'); return; }
+
+    // Remove existing modal
+    const existing = document.getElementById('assign-template-modal');
+    if (existing) existing.remove();
+
+    const clientOptions = clientsList.map(c =>
+        `<option value="${c.id}">${c.client_name}</option>`
+    ).join('');
+
+    const modal = document.createElement('div');
+    modal.id = 'assign-template-modal';
+    modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
+    modal.innerHTML = `
+        <div style="background:white;border-radius:12px;padding:24px;max-width:440px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                <h3 style="margin:0;font-size:18px;color:#1e293b;">
+                    <svg width="18" height="18" fill="none" stroke="#0d9488" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:6px;"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>
+                    Assign Template
+                </h3>
+                <button onclick="closeAssignTemplateModal()" style="background:none;border:none;font-size:24px;cursor:pointer;color:#6b7280;">&times;</button>
+            </div>
+            <div style="background:rgba(13,148,136,0.08);border:1px solid rgba(13,148,136,0.25);border-radius:8px;padding:10px 14px;margin-bottom:16px;">
+                <div style="font-weight:600;font-size:14px;color:#0d9488;">${template.name}</div>
+                <div style="font-size:12px;color:#94a3b8;margin-top:2px;">${template.plan_data?.length || 0} day(s) &middot; ${template.plan_data?.[0]?.plan?.length || 0} meals/day</div>
+            </div>
+            <div style="margin-bottom:16px;">
+                <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:6px;">Select Client</label>
+                <select id="assign-template-client" style="width:100%;padding:10px 12px;border:1px solid #cbd5e1;border-radius:8px;font-size:14px;background:white;">
+                    ${clientOptions}
+                </select>
+            </div>
+            <div style="margin-bottom:16px;">
+                <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:6px;">Plan Name (optional)</label>
+                <input type="text" id="assign-template-plan-name" value="${template.name}" placeholder="e.g. Week 1 Cutting Plan"
+                       style="width:100%;padding:10px 12px;border:1px solid #cbd5e1;border-radius:8px;font-size:14px;">
+            </div>
+            <div id="assign-template-progress" style="display:none;margin-bottom:12px;">
+                <div style="background:#e5e7eb;border-radius:6px;height:8px;overflow:hidden;">
+                    <div id="assign-template-progress-bar" style="background:#0d9488;height:100%;width:0%;transition:width 0.3s;border-radius:6px;"></div>
+                </div>
+                <p id="assign-template-progress-text" style="font-size:12px;color:#6b7280;margin:6px 0 0 0;">Assigning...</p>
+            </div>
+            <button id="assign-template-confirm-btn" onclick="confirmAssignTemplate('${templateId}')"
+                    style="width:100%;padding:12px;background:#0d9488;color:white;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;transition:background 0.15s;"
+                    onmouseover="this.style.background='#0f766e'" onmouseout="this.style.background='#0d9488'">
+                Assign to Client
+            </button>
+        </div>
+    `;
+    document.body.appendChild(modal);
+
+    // Close on backdrop click
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeAssignTemplateModal();
+    });
+}
+
+function closeAssignTemplateModal() {
+    const modal = document.getElementById('assign-template-modal');
+    if (modal) modal.remove();
+}
+
+async function confirmAssignTemplate(templateId) {
+    const template = cachedTemplates.find(t => t.id == templateId);
+    if (!template) { alert('Template not found.'); return; }
+
+    const clientSelect = document.getElementById('assign-template-client');
+    const clientId = clientSelect ? parseInt(clientSelect.value) : null;
+    const clientName = clientSelect ? clientSelect.options[clientSelect.selectedIndex].text : '';
+    const planName = document.getElementById('assign-template-plan-name')?.value?.trim() || template.name;
+
+    if (!clientId) { alert('Please select a client.'); return; }
+
+    if (!confirm(`Assign "${planName}" to ${clientName}?\n\nThis will publish the plan to the client immediately.`)) return;
+
+    const confirmBtn = document.getElementById('assign-template-confirm-btn');
+    const progressDiv = document.getElementById('assign-template-progress');
+    const progressBar = document.getElementById('assign-template-progress-bar');
+    const progressText = document.getElementById('assign-template-progress-text');
+
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = 'Assigning...';
+    progressDiv.style.display = 'block';
+    progressBar.style.width = '40%';
+
+    try {
+        const cleanPlanData = {
+            clientName: clientName,
+            currentPlan: template.plan_data,
+            fromTemplate: true
+        };
+
+        progressBar.style.width = '60%';
+
+        const data = await apiPost(BULK_POST_PLAN_ENDPOINT, {
+            coachId: currentCoach.id,
+            clientIds: [clientId],
+            planData: cleanPlanData,
+            planName: planName
+        });
+
+        progressBar.style.width = '100%';
+        progressText.textContent = `Successfully assigned to ${clientName}!`;
+        progressText.style.color = '#059669';
+        confirmBtn.textContent = 'Done!';
+        confirmBtn.style.background = '#10b981';
+
+        setTimeout(() => {
+            closeAssignTemplateModal();
+            showToast(`Template assigned to ${clientName} successfully!`, 'success');
+        }, 1200);
+
+    } catch (error) {
+        console.error('Assign template error:', error);
+        progressBar.style.width = '100%';
+        progressBar.style.background = '#ef4444';
+        progressText.textContent = 'Failed: ' + error.message;
+        progressText.style.color = '#ef4444';
+        confirmBtn.textContent = 'Retry';
+        confirmBtn.disabled = false;
+        confirmBtn.style.background = '#0d9488';
     }
 }
 
