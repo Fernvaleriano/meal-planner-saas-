@@ -526,6 +526,169 @@
             text-align: center;
         }
 
+        /* ===== MACRO DISPLAY CARDS ===== */
+        .macro-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+        }
+
+        .macro-card {
+            border-radius: 10px;
+            padding: 12px 14px;
+            text-align: center;
+            border-left: 4px solid;
+        }
+
+        .macro-card-label {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .macro-card-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+
+        .macro-card-sub {
+            font-size: 11px;
+            font-weight: 600;
+            margin-top: 2px;
+        }
+
+        /* Macro color variants */
+        .macro-calories { background: #fef3c7; border-left-color: #f59e0b; }
+        .macro-calories .macro-card-value { color: #b45309; }
+        .macro-calories .macro-card-label { color: #92400e; }
+
+        .macro-protein { background: #d1fae5; border-left-color: #10b981; }
+        .macro-protein .macro-card-value { color: #047857; }
+        .macro-protein .macro-card-label { color: #065f46; }
+
+        .macro-carbs { background: #dbeafe; border-left-color: #3b82f6; }
+        .macro-carbs .macro-card-value { color: #1d4ed8; }
+        .macro-carbs .macro-card-label { color: #1e3a5f; }
+
+        .macro-fat { background: #ede9fe; border-left-color: #8b5cf6; }
+        .macro-fat .macro-card-value { color: #6d28d9; }
+        .macro-fat .macro-card-label { color: #4c1d95; }
+
+        /* Dark mode macro cards */
+        [data-theme="dark"] .macro-calories { background: rgba(245, 158, 11, 0.12); }
+        [data-theme="dark"] .macro-calories .macro-card-value { color: #fbbf24; }
+        [data-theme="dark"] .macro-calories .macro-card-label { color: #fcd34d; }
+
+        [data-theme="dark"] .macro-protein { background: rgba(16, 185, 129, 0.12); }
+        [data-theme="dark"] .macro-protein .macro-card-value { color: #34d399; }
+        [data-theme="dark"] .macro-protein .macro-card-label { color: #6ee7b7; }
+
+        [data-theme="dark"] .macro-carbs { background: rgba(59, 130, 246, 0.12); }
+        [data-theme="dark"] .macro-carbs .macro-card-value { color: #60a5fa; }
+        [data-theme="dark"] .macro-carbs .macro-card-label { color: #93c5fd; }
+
+        [data-theme="dark"] .macro-fat { background: rgba(139, 92, 246, 0.12); }
+        [data-theme="dark"] .macro-fat .macro-card-value { color: #a78bfa; }
+        [data-theme="dark"] .macro-fat .macro-card-label { color: #c4b5fd; }
+
+        /* Day totals wrapper */
+        .day-totals-wrapper {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .day-totals-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: #475569;
+            margin-bottom: 10px;
+        }
+
+        [data-theme="dark"] .day-totals-wrapper {
+            background: rgba(255, 255, 255, 0.04);
+            border-color: #334155;
+        }
+
+        [data-theme="dark"] .day-totals-title {
+            color: #94a3b8;
+        }
+
+        /* Plan summary header */
+        .plan-summary-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .plan-summary-header h3 {
+            font-size: 1.35rem;
+            font-weight: 800;
+            color: #0f172a;
+        }
+
+        [data-theme="dark"] .plan-summary-header {
+            border-bottom-color: #334155;
+        }
+
+        [data-theme="dark"] .plan-summary-header h3 {
+            color: #f1f5f9;
+        }
+
+        .targets-section-label {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #64748b;
+            margin-bottom: 10px;
+        }
+
+        [data-theme="dark"] .targets-section-label {
+            color: #94a3b8;
+        }
+
+        /* Inline macro pills for meal cards */
+        .meal-macro-pills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin: 6px 0;
+        }
+
+        .meal-macro-pill {
+            display: inline-flex;
+            align-items: center;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .meal-macro-pill.cal { background: #fef3c7; color: #92400e; }
+        .meal-macro-pill.pro { background: #d1fae5; color: #065f46; }
+        .meal-macro-pill.carb { background: #dbeafe; color: #1e40af; }
+        .meal-macro-pill.fat { background: #ede9fe; color: #5b21b6; }
+
+        [data-theme="dark"] .meal-macro-pill.cal { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+        [data-theme="dark"] .meal-macro-pill.pro { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+        [data-theme="dark"] .meal-macro-pill.carb { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+        [data-theme="dark"] .meal-macro-pill.fat { background: rgba(139, 92, 246, 0.15); color: #a78bfa; }
+
+        @media (max-width: 480px) {
+            .macro-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -2040,6 +2203,12 @@
 
         [data-theme="dark"] .bg-white {
             background: rgba(255, 255, 255, 0.05) !important;
+        }
+
+        /* Dark mode meal card */
+        [data-theme="dark"] .meal-card {
+            background: rgba(255, 255, 255, 0.03);
+            border-color: #334155;
         }
 
         /* Teal text and border additions */
@@ -5668,15 +5837,29 @@ function displayDietPlan(multiDayData) {
 
     let planHTML = `
         <div class="card">
-            <h3 class="text-xl font-bold mb-4">Your ${multiDayData.length}-Day Plan</h3>
+            <div class="plan-summary-header">
+                <h3>Your ${multiDayData.length}-Day Plan</h3>
+            </div>
 
-            <div class="mb-4">
-                <p class="text-sm font-semibold text-gray-700 mb-2">Daily Nutrition Targets:</p>
-                <div class="grid grid-cols-4 gap-2 p-4 bg-blue-50 rounded-lg">
-                    <div class="text-center"><p class="text-sm text-gray-600">Calories</p><span class="font-bold text-blue-600">${targets.calories}</span></div>
-                    <div class="text-center"><p class="text-sm text-gray-600">Protein</p><span class="font-bold text-blue-600">${targets.protein}g</span></div>
-                    <div class="text-center"><p class="text-sm text-gray-600">Carbs</p><span class="font-bold text-blue-600">${targets.carbs}g</span></div>
-                    <div class="text-center"><p class="text-sm text-gray-600">Fat</p><span class="font-bold text-blue-600">${targets.fat}g</span></div>
+            <div style="margin-bottom: 20px;">
+                <p class="targets-section-label">Daily Nutrition Targets</p>
+                <div class="macro-grid">
+                    <div class="macro-card macro-calories">
+                        <div class="macro-card-label">Calories</div>
+                        <div class="macro-card-value">${targets.calories}</div>
+                    </div>
+                    <div class="macro-card macro-protein">
+                        <div class="macro-card-label">Protein</div>
+                        <div class="macro-card-value">${targets.protein}g</div>
+                    </div>
+                    <div class="macro-card macro-carbs">
+                        <div class="macro-card-label">Carbs</div>
+                        <div class="macro-card-value">${targets.carbs}g</div>
+                    </div>
+                    <div class="macro-card macro-fat">
+                        <div class="macro-card-label">Fat</div>
+                        <div class="macro-card-value">${targets.fat}g</div>
+                    </div>
                 </div>
             </div>
 
@@ -5733,31 +5916,31 @@ function displayDietPlan(multiDayData) {
                     '<span style="font-size:11px;color:#94a3b8;font-weight:700;margin-right:4px;">Dietary Reminders</span>' +
                     reminders.join('') + '</div>';
             })()}
-            <div class="mb-3 p-3 bg-gray-50 rounded-lg">
-                <p class="text-xs font-semibold text-gray-600 mb-2">Day ${dayData.day} Totals:</p>
-                <div class="grid grid-cols-4 gap-2 text-center">
-                    <div>
-                        <p class="text-xs text-gray-500">Calories</p>
-                        <span class="text-sm font-bold ${getVarianceColor(dayVariance.calories)}">${dayTotals.calories}</span>
-                        <p class="text-xs ${getVarianceColor(dayVariance.calories)}">${formatVariance(dayTotals.calories, targets.calories, dayVariance.calories)}</p>
+            <div class="day-totals-wrapper">
+                <p class="day-totals-title">Day ${dayData.day} Totals</p>
+                <div class="macro-grid">
+                    <div class="macro-card macro-calories">
+                        <div class="macro-card-label">Calories</div>
+                        <div class="macro-card-value">${dayTotals.calories}</div>
+                        <div class="macro-card-sub ${getVarianceColor(dayVariance.calories)}">${formatVariance(dayTotals.calories, targets.calories, dayVariance.calories)}</div>
                     </div>
-                    <div>
-                        <p class="text-xs text-gray-500">Protein</p>
-                        <span class="text-sm font-bold ${getVarianceColor(dayVariance.protein)}">${dayTotals.protein}g</span>
-                        <span class="text-xs font-medium" style="color: #10b981; display: block;">${macroPercent.protein}%</span>
-                        <p class="text-xs ${getVarianceColor(dayVariance.protein)}">${formatVariance(dayTotals.protein, targets.protein, dayVariance.protein)}</p>
+                    <div class="macro-card macro-protein">
+                        <div class="macro-card-label">Protein</div>
+                        <div class="macro-card-value">${dayTotals.protein}g</div>
+                        <div class="macro-card-sub" style="color: #10b981;">${macroPercent.protein}%</div>
+                        <div class="macro-card-sub ${getVarianceColor(dayVariance.protein)}">${formatVariance(dayTotals.protein, targets.protein, dayVariance.protein)}</div>
                     </div>
-                    <div>
-                        <p class="text-xs text-gray-500">Carbs</p>
-                        <span class="text-sm font-bold ${getVarianceColor(dayVariance.carbs)}">${dayTotals.carbs}g</span>
-                        <span class="text-xs font-medium" style="color: #f59e0b; display: block;">${macroPercent.carbs}%</span>
-                        <p class="text-xs ${getVarianceColor(dayVariance.carbs)}">${formatVariance(dayTotals.carbs, targets.carbs, dayVariance.carbs)}</p>
+                    <div class="macro-card macro-carbs">
+                        <div class="macro-card-label">Carbs</div>
+                        <div class="macro-card-value">${dayTotals.carbs}g</div>
+                        <div class="macro-card-sub" style="color: #3b82f6;">${macroPercent.carbs}%</div>
+                        <div class="macro-card-sub ${getVarianceColor(dayVariance.carbs)}">${formatVariance(dayTotals.carbs, targets.carbs, dayVariance.carbs)}</div>
                     </div>
-                    <div>
-                        <p class="text-xs text-gray-500">Fat</p>
-                        <span class="text-sm font-bold ${getVarianceColor(dayVariance.fat)}">${dayTotals.fat}g</span>
-                        <span class="text-xs font-medium" style="color: #3b82f6; display: block;">${macroPercent.fat}%</span>
-                        <p class="text-xs ${getVarianceColor(dayVariance.fat)}">${formatVariance(dayTotals.fat, targets.fat, dayVariance.fat)}</p>
+                    <div class="macro-card macro-fat">
+                        <div class="macro-card-label">Fat</div>
+                        <div class="macro-card-value">${dayTotals.fat}g</div>
+                        <div class="macro-card-sub" style="color: #8b5cf6;">${macroPercent.fat}%</div>
+                        <div class="macro-card-sub ${getVarianceColor(dayVariance.fat)}">${formatVariance(dayTotals.fat, targets.fat, dayVariance.fat)}</div>
                     </div>
                 </div>
             </div>`;
@@ -5783,11 +5966,11 @@ function displayDietPlan(multiDayData) {
                         </div>
                         <button data-action="delete-meal" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn" style="background: #fee2e2; color: #dc2626; padding: 4px 8px; font-size: 11px; border-radius: 4px; flex-shrink: 0;" title="Delete this meal"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
                     </div>
-                    <div class="grid grid-cols-4 gap-1 text-xs text-gray-600 my-2">
-                        <span>${meal.calories} cal</span>
-                        <span>${meal.protein}g P</span>
-                        <span>${meal.carbs}g C</span>
-                        <span>${meal.fat}g F</span>
+                    <div class="meal-macro-pills">
+                        <span class="meal-macro-pill cal">${meal.calories} cal</span>
+                        <span class="meal-macro-pill pro">${meal.protein}g P</span>
+                        <span class="meal-macro-pill carb">${meal.carbs}g C</span>
+                        <span class="meal-macro-pill fat">${meal.fat}g F</span>
                     </div>
                     <p class="text-xs text-gray-500 italic">${meal.instructions || 'Mix with water or milk as directed.'}</p>
                 </div>`;
@@ -5829,11 +6012,11 @@ function displayDietPlan(multiDayData) {
                                 <button data-action="delete-meal" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn" style="background: #fee2e2; color: #dc2626; padding: 4px 8px; font-size: 11px; border-radius: 4px;" title="Delete this meal"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
                             </div>
                         </div>
-                        <div class="grid grid-cols-4 gap-1 text-xs text-gray-600 mb-2">
-                            <span>${meal.calories} cal</span>
-                            <span>${meal.protein}g P</span>
-                            <span>${meal.carbs}g C</span>
-                            <span>${meal.fat}g F</span>
+                        <div class="meal-macro-pills">
+                            <span class="meal-macro-pill cal">${meal.calories} cal</span>
+                            <span class="meal-macro-pill pro">${meal.protein}g P</span>
+                            <span class="meal-macro-pill carb">${meal.carbs}g C</span>
+                            <span class="meal-macro-pill fat">${meal.fat}g F</span>
                         </div>
 
                         <!-- Recipe button -->
