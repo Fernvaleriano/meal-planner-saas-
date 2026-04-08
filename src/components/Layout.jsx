@@ -88,14 +88,17 @@ function Layout() {
     }
   }, [activeTab]);
 
-  // Scroll to top when switching between tabs (e.g. Messages → Home)
+  // Scroll to top when navigating between pages or switching tabs.
   // Without this, the persistent display:none/block toggling preserves
   // the previous scroll position, landing users mid-page or at the bottom.
+  // Uses requestAnimationFrame to fire after the browser paints the new layout.
   useEffect(() => {
-    if (activeTab) {
+    window.scrollTo(0, 0);
+    // Also fire after paint to beat any late browser scroll restoration
+    requestAnimationFrame(() => {
       window.scrollTo(0, 0);
-    }
-  }, [activeTab]);
+    });
+  }, [path]);
 
   // Hide top nav on pages that have their own navigation
   const hideTopNav = path === '/workouts' || path.startsWith('/workouts/builder') || path === '/workout-plans';
