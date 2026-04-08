@@ -122,11 +122,11 @@ exports.handler = async (event, context) => {
         }
     }
 
-    // PUT - Update a template
+    // PUT - Update a template (name, description, and optionally plan_data)
     if (event.httpMethod === 'PUT') {
         try {
             const body = JSON.parse(event.body);
-            const { templateId, coachId, name, description } = body;
+            const { templateId, coachId, name, description, planData } = body;
 
             if (!templateId || !coachId) {
                 return {
@@ -144,14 +144,21 @@ exports.handler = async (event, context) => {
                 };
             }
 
+            // Build update payload — include plan_data if provided
+            const updatePayload = {
+                name: name.trim(),
+                description: description || null,
+                updated_at: new Date().toISOString()
+            };
+
+            if (planData !== undefined) {
+                updatePayload.plan_data = planData;
+            }
+
             // Update template (ensure coach owns it)
             const { data: updatedTemplate, error } = await supabase
                 .from('meal_plan_templates')
-                .update({
-                    name: name.trim(),
-                    description: description || null,
-                    updated_at: new Date().toISOString()
-                })
+                .update(updatePayload)
                 .eq('id', templateId)
                 .eq('coach_id', coachId)
                 .select()
