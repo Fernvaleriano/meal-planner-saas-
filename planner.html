@@ -683,6 +683,90 @@
         [data-theme="dark"] .meal-macro-pill.carb { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
         [data-theme="dark"] .meal-macro-pill.fat { background: rgba(139, 92, 246, 0.15); color: #a78bfa; }
 
+        /* ===== MEAL IMAGE ACTION BUTTONS ===== */
+        .meal-image-actions {
+            display: flex;
+            gap: 4px;
+            width: 100%;
+        }
+
+        .meal-image-actions .img-action-btn {
+            flex: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            padding: 5px 4px;
+            font-size: 10px;
+            font-weight: 600;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .img-action-btn.ai-gen {
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+            color: white;
+        }
+
+        .img-action-btn.ai-gen:hover:not(:disabled) {
+            background: linear-gradient(135deg, #7c3aed, #6d28d9);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(124, 58, 237, 0.3);
+        }
+
+        .img-action-btn.upload {
+            background: linear-gradient(135deg, #0d9488, #0f766e);
+            color: white;
+        }
+
+        .img-action-btn.upload:hover:not(:disabled) {
+            background: linear-gradient(135deg, #0f766e, #115e59);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(13, 148, 136, 0.3);
+        }
+
+        .img-action-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        .img-action-btn svg {
+            flex-shrink: 0;
+        }
+
+        /* Upload overlay button on existing images */
+        .meal-image-container .upload-overlay-btn {
+            position: absolute;
+            bottom: 4px;
+            left: 4px;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: rgba(13, 148, 136, 0.85);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .meal-image-container:hover .upload-overlay-btn {
+            opacity: 1;
+        }
+
+        .meal-image-container .upload-overlay-btn:hover {
+            background: rgba(13, 148, 136, 1);
+        }
+
         @media (max-width: 480px) {
             .macro-grid {
                 grid-template-columns: repeat(2, 1fr);
@@ -5995,11 +6079,10 @@ function displayDietPlan(multiDayData) {
                         <div class="meal-card-image-placeholder" id="${mealImageId}" data-meal-name="${htmlAttrMealName}" onclick="showMealImageLarge(this)">
                             <svg width="24" height="24" fill="none" stroke="#94a3b8" stroke-width="1.5" viewBox="0 0 24 24"><path d="M3 2l1.578 17.824A2 2 0 0 0 6.556 21.5h10.888a2 2 0 0 0 1.978-1.676L21 2"/><path d="M8 2v3a4 4 0 0 0 8 0V2"/><path d="M12 14v4"/><path d="M9 18h6"/></svg>
                         </div>
-                        <!-- Generate Image button under image -->
-                        ${isCustomMeal
-                            ? `<button data-action="custom-image-modal" data-image-id="${mealImageId}" data-meal-name="${htmlAttrMealName}" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn" style="background: #8b5cf6; color: white; padding: 4px 8px; font-size: 10px; border-radius: 4px; width: 100%;"><svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:2px;"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Image</button>`
-                            : `<button data-action="generate-meal-image" data-image-id="${mealImageId}" data-meal-name="${htmlAttrMealName}" class="btn" style="background: #8b5cf6; color: white; padding: 4px 8px; font-size: 10px; border-radius: 4px; width: 100%;"><svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:2px;"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Image</button>`
-                        }
+                        <div class="meal-image-actions">
+                            <button data-action="generate-meal-image" data-image-id="${mealImageId}" data-meal-name="${htmlAttrMealName}" class="img-action-btn ai-gen" title="Generate image with AI"><svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2L9.5 8.5 3 10l5 4-1.5 7L12 17.5 17.5 21 16 14l5-4-6.5-1.5z"/></svg>AI</button>
+                            <button data-action="upload-meal-image" data-image-id="${mealImageId}" data-meal-name="${htmlAttrMealName}" class="img-action-btn upload" title="Upload your own photo"><svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>Upload</button>
+                        </div>
                     </div>
                     <div class="meal-card-content">
                         <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px;">
@@ -12328,14 +12411,55 @@ function updateImageElement(container, imageUrl, mealName) {
     const regenBtn = document.createElement('button');
     regenBtn.className = 'regenerate-btn';
     regenBtn.innerHTML = '🔄';
-    regenBtn.title = 'Regenerate image with custom prompt';
+    regenBtn.title = 'Regenerate image with AI';
     regenBtn.onclick = (e) => {
         e.stopPropagation();
         openImagePromptModal(wrapper, mealName);
     };
 
+    // Create upload overlay button (shows on hover, bottom-left)
+    const uploadBtn = document.createElement('button');
+    uploadBtn.className = 'upload-overlay-btn';
+    uploadBtn.innerHTML = '<svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>';
+    uploadBtn.title = 'Upload your own photo';
+    uploadBtn.onclick = (e) => {
+        e.stopPropagation();
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.onchange = async (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+            if (!file.type.startsWith('image/')) { alert('Please select an image file'); return; }
+            if (file.size > 5 * 1024 * 1024) { alert('Image must be less than 5MB'); return; }
+            uploadBtn.style.opacity = '1';
+            uploadBtn.innerHTML = '⏳';
+            const reader = new FileReader();
+            reader.onload = async (re) => {
+                try {
+                    const data = await apiPost('/.netlify/functions/upload-meal-photo', {
+                        mealName: mealName,
+                        imageData: re.target.result,
+                        fileName: file.name
+                    });
+                    if (data.success && data.imageUrl) {
+                        updateImageElement(wrapper, data.imageUrl, mealName);
+                        mealImageCache[mealName] = data.imageUrl;
+                    } else { throw new Error(data.error || 'Upload failed'); }
+                } catch (err) {
+                    console.error('Upload error:', err);
+                    alert('Failed to upload image');
+                    uploadBtn.innerHTML = '<svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>';
+                }
+            };
+            reader.readAsDataURL(file);
+        };
+        input.click();
+    };
+
     wrapper.appendChild(img);
     wrapper.appendChild(regenBtn);
+    wrapper.appendChild(uploadBtn);
     container.replaceWith(wrapper);
 }
 
