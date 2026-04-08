@@ -95,12 +95,10 @@ function MealCard({ meal, coachId, onUpdate }) {
               message: `Reacted ${reaction} to your ${meal.mealType || 'meal'}`
             });
           } catch (chatErr) {
-            console.error('Error sending reaction to chat:', chatErr);
           }
         }
       }
     } catch (err) {
-      console.error('Error saving reaction:', err);
     } finally {
       setLoading(false);
       setShowReactions(false);
@@ -130,7 +128,6 @@ function MealCard({ meal, coachId, onUpdate }) {
         setComment('');
       }
     } catch (err) {
-      console.error('Error adding comment:', err);
     } finally {
       setLoading(false);
     }
@@ -339,12 +336,10 @@ function WorkoutFeedCard({ workout, coachId, onUpdate, weightUnit = 'lbs' }) {
               message: `Reacted ${reaction} to your workout`
             });
           } catch (chatErr) {
-            console.error('Error sending reaction to chat:', chatErr);
           }
         }
       }
     } catch (err) {
-      console.error('Error saving reaction:', err);
     } finally {
       setLoading(false);
       setShowReactions(false);
@@ -375,7 +370,6 @@ function WorkoutFeedCard({ workout, coachId, onUpdate, weightUnit = 'lbs' }) {
         setComment('');
       }
     } catch (err) {
-      console.error('Error adding comment:', err);
     } finally {
       setLoading(false);
     }
@@ -409,7 +403,6 @@ function WorkoutFeedCard({ workout, coachId, onUpdate, weightUnit = 'lbs' }) {
         });
       }, 3000);
     } catch (err) {
-      console.error('Error sending note reply:', err);
     } finally {
       setReplySending(false);
     }
@@ -796,7 +789,6 @@ function Feed() {
       }
 
     } catch (err) {
-      console.error('Feed: Error fetching feed:', err);
       setError(err.message || 'Failed to load feed');
     } finally {
       setLoading(false);
@@ -826,7 +818,6 @@ function Feed() {
 
       setWorkoutFeed(result.feed || []);
     } catch (err) {
-      console.error('Feed: Error fetching workout feed:', err);
       setError(err.message || 'Failed to load workout feed');
     } finally {
       setLoading(false);
@@ -898,7 +889,6 @@ function Feed() {
         setAiResponse('Unable to generate insights. Please try again.');
       }
     } catch (err) {
-      console.error('AI workout insights error:', err);
       setAiResponse('Error fetching insights. Please try again.');
     } finally {
       setAiLoading(false);

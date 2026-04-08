@@ -7,6 +7,7 @@ import { FavoritesModal, SnapPhotoModal, ScanLabelModal, SearchFoodsModal } from
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
 import { onAppResume } from '../hooks/useAppLifecycle';
 import { useToast } from '../components/Toast';
+import { useConfirm } from '../components/ConfirmDialog';
 
 // localStorage cache helpers
 const getCache = (key) => {
@@ -52,6 +53,7 @@ const getGenderBasedDefaults = (gender) => {
 
 function Diary() {
   const { showError, showSuccess } = useToast();
+  const confirm = useConfirm();
   const { clientData, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -134,7 +136,6 @@ function Diary() {
         }
       }
     } catch (e) {
-      console.warn('Failed to load AI chat history:', e);
     }
     return [];
   });
@@ -210,7 +211,6 @@ function Diary() {
           sessionStorage.removeItem('pendingFoodLog');
         }
       } catch (e) {
-        console.error('Failed to read pendingFoodLog from sessionStorage:', e);
       }
     }
   }, [searchParams]);
@@ -306,7 +306,6 @@ function Diary() {
         setCache(cacheKey, { ...existing, water: newWater });
       })
       .catch(err => {
-        console.error('Water refresh failed (keeping current value):', err);
       });
 
     try {
@@ -358,7 +357,6 @@ function Diary() {
         goals: newGoals
       });
     } catch (err) {
-      console.error('Error refreshing diary:', err);
     }
   }, [clientData?.id, currentDate]);
 
@@ -501,7 +499,7 @@ function Diary() {
     if (selectedEntries.size === 0) return;
 
     const count = selectedEntries.size;
-    if (!window.confirm(`Delete ${count} selected item${count > 1 ? 's' : ''}?`)) return;
+    if (!await confirm(`Delete ${count} selected item${count > 1 ? 's' : ''}?`, { title: 'Delete Items', confirmText: 'Delete', destructive: true })) return;
 
     // Delete all selected entries in parallel
     const entriesToDelete = Array.from(selectedEntries);
@@ -510,7 +508,6 @@ function Diary() {
       apiDelete(`/.netlify/functions/food-diary?entryId=${entryId}`)
         .then(() => ({ entryId, success: true }))
         .catch(err => {
-          console.error(`Failed to delete entry ${entryId}:`, err);
           return { entryId, success: false, error: err };
         })
     );
@@ -635,7 +632,6 @@ function Diary() {
         daysLogged
       });
     } catch (err) {
-      console.error('Error fetching weekly data:', err);
     } finally {
       setWeeklyLoading(false);
     }
@@ -715,7 +711,6 @@ function Diary() {
         const c = getCache(cacheKey) || {};
         setCache(cacheKey, { ...c, water: w });
       })
-      .catch(err => console.error(err));
 
     // Load diary + interactions via auth wrapper (these need auth)
     Promise.all([
@@ -765,7 +760,6 @@ function Diary() {
         goals: newGoals
       });
     }).catch(err => {
-      console.error('Error loading diary:', err);
     });
 
   }, [clientData?.id, currentDate]);
@@ -778,7 +772,7 @@ function Diary() {
       headers: { 'Content-Type': 'application/json' },
       keepalive: true,
       body: JSON.stringify({ clientId, date: dateStr, glasses: value, timezone: tz })
-    }).catch(err => console.error('Water save error:', err));
+    })
   };
 
   // Handle water intake change (from slider, buttons, etc.)
@@ -824,7 +818,6 @@ function Diary() {
 
     // Check if there was an error fetching client data
     if (!clientData.id) {
-      console.error('AI Log: clientData.id is null (fetch may have failed)', { clientData });
       showError('Your profile is still loading. Please wait a moment and try again.');
       return;
     }
@@ -838,7 +831,6 @@ function Diary() {
       });
 
       if (!aiData?.foods || aiData.foods.length === 0) {
-        console.error('No foods recognized');
         return;
       }
 
@@ -918,7 +910,6 @@ function Diary() {
       const cached = getCache(cacheKey) || {};
       setCache(cacheKey, { ...cached, entries: updatedEntries, totals: updatedTotals });
     } catch (err) {
-      console.error('Error logging food:', err);
     } finally {
       setAiLogging(false);
     }
@@ -961,7 +952,6 @@ function Diary() {
       const cached = getCache(cacheKey) || {};
       setCache(cacheKey, { ...cached, entries: updatedEntries, totals: updatedTotals });
     } catch (err) {
-      console.error('Error deleting entry:', err);
     }
   };
 
@@ -1033,7 +1023,6 @@ function Diary() {
       setShowEditEntryModal(false);
       setEditingEntry(null);
     } catch (err) {
-      console.error('Error updating entry:', err);
       showError('Failed to update entry');
     }
   };
@@ -1091,7 +1080,6 @@ function Diary() {
         setCurrentDate(new Date(currentDate));
       }
     } catch (err) {
-      console.error('Error copying entries:', err);
       showError('Failed to copy entries');
     }
   };
@@ -1129,7 +1117,6 @@ function Diary() {
       const data = await apiGet(`/.netlify/functions/food-search?query=${encodeURIComponent(query)}&clientId=${clientData?.id}`);
       setSearchResults(data.results || []);
     } catch (err) {
-      console.error('Error searching foods:', err);
     } finally {
       setSearchLoading(false);
     }
@@ -1193,7 +1180,6 @@ function Diary() {
       setSearchQuery('');
       setSearchResults([]);
     } catch (err) {
-      console.error('Error adding food:', err);
     }
   };
 
@@ -1322,7 +1308,6 @@ function Diary() {
             showError('No speech detected. Please try again and speak clearly.');
           }
         } catch (err) {
-          console.error('Transcription failed:', err);
           showError('Could not transcribe audio. Please check your internet connection and try again.');
         } finally {
           setIsTranscribing(false);
@@ -1333,7 +1318,6 @@ function Diary() {
       mediaRecorderRef.current = recorder;
       setIsRecording(true);
     } catch (err) {
-      console.error('MediaRecorder start failed:', err);
       if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
         showError('Microphone access denied. Please allow microphone access in your device settings.');
       } else {
@@ -1373,7 +1357,6 @@ function Diary() {
         // Stop the stream immediately - we just needed to activate the mic permission
         stream.getTracks().forEach(track => track.stop());
       } catch (err) {
-        console.error('iOS microphone warmup failed:', err);
         if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
           showError('Microphone access denied. Please allow microphone access in your iPhone Settings > Safari > Microphone.');
         } else {
@@ -1425,7 +1408,6 @@ function Diary() {
     };
 
     recognition.onerror = (event) => {
-      console.error('Voice recognition error:', event.error);
 
       // User-friendly error messages for each error type
       const errorMessages = {
@@ -1455,7 +1437,6 @@ function Diary() {
       recognition.start();
       recognitionRef.current = recognition;
     } catch (err) {
-      console.error('Failed to start speech recognition:', err);
       showError('Could not start microphone. Please try again.');
       resetVoiceUI();
     }
@@ -1552,7 +1533,6 @@ function Diary() {
 
     // Check if there was an error fetching client data
     if (!clientData.id) {
-      console.error('AI Chat: clientData.id is null (fetch may have failed)', { clientData });
       // Don't show error - just let it fail gracefully or retry
       // This can happen on slow connections
       showError('Your profile is still loading. Please wait a moment and try again.');
@@ -1616,7 +1596,6 @@ function Diary() {
         setAiMessages(prev => [...prev, { role: 'assistant', content: data.response }]);
       }
     } catch (err) {
-      console.error('AI error:', err);
       setAiMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, I couldn\'t connect. Please try again.' }]);
     } finally {
       setAiLogging(false);
@@ -1753,7 +1732,6 @@ function Diary() {
         undoEntryId: result.entry?.id
       }]);
     } catch (err) {
-      console.error('Error adding food:', err);
       setAiMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, I couldn\'t add that food. Please try manually.' }]);
     }
   };
@@ -1799,7 +1777,6 @@ function Diary() {
           : msg
       ));
     } catch (err) {
-      console.error('Error undoing food log:', err);
       setAiMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, couldn\'t undo that. Try deleting it manually from your diary.' }]);
     }
   };
@@ -1840,7 +1817,6 @@ function Diary() {
       showSuccess('Meal saved to favorites!');
       setShowSaveMealModal(false);
     } catch (err) {
-      console.error('Error saving meal:', err);
       showError('Failed to save meal');
     }
   };
@@ -1898,7 +1874,6 @@ function Diary() {
 
       setShowFavoritesModal(false);
     } catch (err) {
-      console.error('Error adding from favorite:', err);
     }
   };
 
@@ -1958,7 +1933,6 @@ function Diary() {
       }
       setShowEditGoalsModal(false);
     } catch (err) {
-      console.error('Error saving goals:', err);
       showError(err.message || 'Failed to save goals. Please try again.');
     } finally {
       setSavingGoals(false);
@@ -2094,7 +2068,7 @@ function Diary() {
         ctx.fillStyle = '#9ca3af';
         ctx.font = '18px -apple-system, BlinkMacSystemFont, sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText('Powered by Zique Fitness', width / 2, height - 30);
+        ctx.fillText('Powered by Ziquecoach', width / 2, height - 30);
 
         // Convert and share
         canvas.toBlob(async (blob) => {
@@ -2151,7 +2125,6 @@ function Diary() {
       logo.onerror = () => renderCard(null);
       logo.src = logoUrl;
     } catch (err) {
-      console.error('Error sharing diary:', err);
     }
   };
 
@@ -2272,8 +2245,8 @@ function Diary() {
       }
     };
 
-    const handleDelete = () => {
-      if (window.confirm(`Delete "${entry.food_name}"?`)) {
+    const handleDelete = async () => {
+      if (await confirm(`Delete "${entry.food_name}"?`, { title: 'Delete Food', confirmText: 'Delete', destructive: true })) {
         onDelete();
       }
     };
@@ -3133,7 +3106,7 @@ function Diary() {
                 <div className="share-card-overlay" />
                 <div className="share-card-content diary-share-content">
                   <div className="share-card-brand">
-                    <img src="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/Untitled%20design%20-%202026-02-10T171903.769.png" alt="Zique Fitness" className="share-card-logo" />
+                    <img src="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/Untitled%20design%20-%202026-02-10T171903.769.png" alt="Ziquecoach" className="share-card-logo" />
                   </div>
                   <div className="diary-share-date">{formatFullDate()}</div>
                   <div className="share-card-stats">
@@ -3206,7 +3179,7 @@ function Diary() {
                   {shareDiaryToggles.meals && entries.length > 0 && (
                     <div className="diary-share-meals">{entries.length} food{entries.length !== 1 ? 's' : ''} logged today</div>
                   )}
-                  <div className="share-card-footer">Powered by Zique Fitness</div>
+                  <div className="share-card-footer">Powered by Ziquecoach</div>
                 </div>
               </div>
             </div>
@@ -3838,7 +3811,6 @@ function Diary() {
 
                     showSuccess(`Added ${aiData.foods.length} food(s) to ${selectedMealType}!`);
                   } catch (err) {
-                    console.error('Error logging food:', err);
                     showError('Failed to log food. Please try again.');
                   } finally {
                     setAiLogging(false);

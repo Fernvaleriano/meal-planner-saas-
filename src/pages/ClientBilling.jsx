@@ -7,6 +7,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost } from '../utils/api';
 import { useToast } from '../components/Toast';
+import { useConfirm } from '../components/ConfirmDialog';
 
 // ─── Pricing Card ───
 function PricingCard({ plan, currentPlanId, onSubscribe, onChangePlan, loading }) {
@@ -180,6 +181,7 @@ export default function ClientBilling() {
   const navigate = useNavigate();
   const { clientData } = useAuth();
   const { showError, showSuccess } = useToast();
+  const confirm = useConfirm();
 
   const [subscription, setSubscription] = useState(null);
   const [payments, setPayments] = useState([]);
@@ -197,7 +199,6 @@ export default function ClientBilling() {
       setPayments(res.payments || []);
       setPlans(res.plans || []);
     } catch (err) {
-      console.error('Error loading billing:', err);
     } finally {
       setLoading(false);
     }
@@ -241,7 +242,7 @@ export default function ClientBilling() {
   };
 
   const handleCancel = async () => {
-    if (!window.confirm('Are you sure you want to cancel? You\'ll keep access until the end of your billing period.')) return;
+    if (!await confirm('You\'ll keep access until the end of your billing period.', { title: 'Cancel Subscription?', confirmText: 'Cancel Subscription', destructive: true })) return;
 
     setActionLoading(true);
     try {

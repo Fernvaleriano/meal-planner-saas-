@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-        <string>Zique Fitness</string>
+        <string>Ziquecoach</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -49,16 +49,16 @@
 	<array>
 		<dict>
 			<key>CFBundleURLName</key>
-			<string>com.ziquefitness.mealplanner</string>
+			<string>com.ziquecoach.app</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>ziquefitness</string>
+				<string>ziquecoach</string>
 			</array>
 		</dict>
 	</array>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Zique Fitness needs microphone access for voice food logging and voice notes.</string>
+	<string>Ziquecoach needs microphone access for voice food logging and voice notes.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>Zique Fitness uses speech recognition to convert your voice into text for logging food and workouts.</string>
+	<string>Ziquecoach uses speech recognition to convert your voice into text for logging food and workouts.</string>
 </dict>
 </plist>

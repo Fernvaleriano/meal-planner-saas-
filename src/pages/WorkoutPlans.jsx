@@ -63,7 +63,6 @@ function WorkoutPlans() {
       const data = await apiGet(`/.netlify/functions/workout-programs?coachId=${coachId}`);
       setPrograms(data?.programs || []);
     } catch (err) {
-      console.error('Error fetching programs:', err);
       showError('Failed to load workout plans');
     } finally {
       setLoading(false);

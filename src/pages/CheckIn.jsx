@@ -42,7 +42,6 @@ function CheckIn() {
         setStreak(data.checkins.length);
       }
     } catch (err) {
-      console.error('Error loading check-in history:', err);
     } finally {
       setLoadingHistory(false);
     }
@@ -96,7 +95,6 @@ function CheckIn() {
       // Reload history
       loadHistory();
     } catch (err) {
-      console.error('Error submitting check-in:', err);
       showError('Error submitting check-in. Please try again.');
     } finally {
       setSubmitting(false);

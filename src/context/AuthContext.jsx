@@ -20,7 +20,6 @@ const trackClientActivity = async (userId) => {
     }
   } catch (err) {
     // Silent fail - don't disrupt user experience for tracking
-    console.error('SPA: Failed to track activity:', err.message);
   }
 };
 
@@ -41,7 +40,6 @@ export function AuthProvider({ children }) {
         }
       }
     } catch (e) {
-      console.error('SPA: Error reading cached client data:', e);
     }
     return null;
   });
@@ -77,13 +75,11 @@ export function AuthProvider({ children }) {
       // PGRST116 = no rows found, which is expected for non-coaches
       if (error && error.code !== 'PGRST116') {
         // Log non-expected errors but don't break the flow
-        console.warn('SPA: Coach check returned error:', error.code, error.message);
         return false;
       }
       return !!data;
     } catch (err) {
       // Silent fail - if we can't check coach status, assume they're not a coach
-      console.warn('SPA: Error checking coach status:', err.message);
       return false;
     }
   }, []);
@@ -116,12 +112,10 @@ export function AuthProvider({ children }) {
       const { data, error } = clientResult;
 
       if (error) {
-        console.error('SPA: Error fetching client data:', error.message, error.code);
         throw new Error(error.message);
       }
 
       if (!data) {
-        console.warn('SPA: No client record found for user:', userId);
         return { id: null, client_name: 'User', error: true, errorMessage: 'No client record found' };
       }
 
@@ -132,12 +126,10 @@ export function AuthProvider({ children }) {
       try {
         localStorage.setItem('cachedClientData', JSON.stringify(enrichedData));
       } catch (e) {
-        console.error('SPA: Failed to cache client data:', e);
       }
 
       return enrichedData;
     } catch (err) {
-      console.error('SPA: Error in fetchClientData:', err.message);
 
       // Retry with exponential backoff
       if (retryCount < maxRetries) {
@@ -156,7 +148,6 @@ export function AuthProvider({ children }) {
           }
         }
       } catch (e) {
-        console.error('SPA: Error reading cache after fetch failure:', e);
       }
 
       // No cache available, return fallback
@@ -224,7 +215,6 @@ export function AuthProvider({ children }) {
               setUser(null);
             }
           } catch (err) {
-            console.error('SPA: Background auth error:', err);
             // Keep using cached data on background auth failure
           }
         })();
@@ -263,7 +253,6 @@ export function AuthProvider({ children }) {
           setLoading(false);
         }
       } catch (err) {
-        console.error('SPA: Auth initialization error:', err);
         if (mounted) {
           setLoading(false);
         }
@@ -345,7 +334,6 @@ export function AuthProvider({ children }) {
       // This only clears the local session without making a server request
       await supabase.auth.signOut({ scope: 'local' });
     } catch (err) {
-      console.error('Logout error:', err);
       // Continue to clear local state even if signOut fails
     }
 

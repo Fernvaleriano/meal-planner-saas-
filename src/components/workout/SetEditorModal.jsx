@@ -296,7 +296,6 @@ function SetEditorModal({
     };
 
     recognition.onerror = (event) => {
-      console.error('Speech recognition error:', event.error);
       if (event.error === 'not-allowed') {
         setVoiceError('Microphone access denied. Please allow microphone access.');
       } else if (event.error === 'no-speech') {

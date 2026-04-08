@@ -180,7 +180,6 @@ function WorkoutBuilder() {
         }
       })
       .catch(err => {
-        console.error('Error loading program:', err);
         showError('Failed to load program');
       })
       .finally(() => setLoading(false));
@@ -465,7 +464,6 @@ function WorkoutBuilder() {
       setHasUnsavedChanges(false);
       onManualSave();
     } catch (err) {
-      console.error('Error saving program:', err);
       showError('Failed to save program');
     } finally {
       setSaving(false);

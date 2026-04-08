@@ -127,7 +127,6 @@ function StoryViewer({ stories, coachName, coachAvatar, clientId, onClose }) {
         reaction: emoji
       });
     } catch (err) {
-      console.error('Error reacting:', err);
     }
   };
 
@@ -145,7 +144,6 @@ function StoryViewer({ stories, coachName, coachAvatar, clientId, onClose }) {
       setReplyText('');
       setShowReplyInput(false);
     } catch (err) {
-      console.error('Error replying:', err);
     } finally {
       setSending(false);
     }

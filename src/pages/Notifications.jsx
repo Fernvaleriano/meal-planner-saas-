@@ -22,7 +22,6 @@ function Notifications() {
       setNotifications(data.notifications || []);
       setUnreadCount(data.unreadCount || 0);
     } catch (err) {
-      console.error('Error fetching notifications:', err);
     } finally {
       setLoading(false);
     }
@@ -49,7 +48,6 @@ function Notifications() {
       setUnreadCount(0);
       window.dispatchEvent(new CustomEvent('notifications-read', { detail: { unreadCount: 0 } }));
     } catch (err) {
-      console.error('Error marking notifications read:', err);
     }
   };
 
@@ -109,7 +107,6 @@ function Notifications() {
           return newCount;
         });
       } catch (err) {
-        console.error('Error marking notification read:', err);
       }
     }
 

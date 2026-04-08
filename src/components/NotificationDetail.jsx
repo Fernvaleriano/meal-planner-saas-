@@ -55,7 +55,6 @@ function NotificationDetail({ notification, clientId, onClose, onReplySuccess })
         onReplySuccess();
       }
     } catch (err) {
-      console.error('Error submitting reply:', err);
     } finally {
       setIsSubmitting(false);
     }

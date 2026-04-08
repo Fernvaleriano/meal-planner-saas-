@@ -1,6 +1,6 @@
 {
-  "name": "Zique Fitness Meal Planner",
-  "short_name": "Zique Fitness",
+  "name": "Ziquecoach",
+  "short_name": "Ziquecoach",
   "description": "AI-powered meal planning for fitness coaches and their clients",
   "start_url": "/app",
   "display": "standalone",

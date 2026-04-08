@@ -101,7 +101,6 @@ function Messages() {
         setMsgCache(`messages_${clientId}`, convos);
       }
     } catch (err) {
-      console.error('Error fetching conversations:', err);
     } finally {
       setLoading(false);
     }
@@ -170,7 +169,6 @@ function Messages() {
         }));
       }
     } catch (err) {
-      console.error('Error fetching messages:', err);
     } finally {
       setLoadingMessages(false);
     }
@@ -330,7 +328,6 @@ function Messages() {
         return c;
       }));
     } catch (err) {
-      console.error('Error sending message:', err);
       showError(err.message?.includes('upload') || err.message?.includes('storage')
         ? 'Failed to upload media. Please try again or use a smaller file.'
         : 'Failed to send message. Please try again.');
@@ -360,7 +357,6 @@ function Messages() {
       setMessages(prev => prev.filter(m => m.id !== msgId));
       setSelectedMsgId(null);
     } catch (err) {
-      console.error('Error unsending message:', err);
     }
   };
 
@@ -405,7 +401,6 @@ function Messages() {
         clientId: clId
       });
     } catch (err) {
-      console.error('Error toggling reaction:', err);
       // Revert the optimistic update instead of doing a full refetch
       // which would replace the entire message array and cause disappearances.
       if (existingReaction) {
@@ -676,7 +671,6 @@ function Messages() {
           // Successfully connected — reset the retry counter
           resubscribeAttemptsRef.current = 0;
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-          console.warn('[Messages] Chat channel died:', status, err);
           const now = Date.now();
           // Reset counter if last attempt was more than 2 minutes ago (not a rapid loop)
           if (now - lastResubscribeTimeRef.current > 120000) {
@@ -694,7 +688,6 @@ function Messages() {
             // Gave up — just log it. Don't dispatch a global stuck banner
             // because the rest of the app still works fine. The user can
             // navigate away and back to Messages to retry.
-            console.warn('[Messages] Channel keeps dying after', resubscribeAttemptsRef.current, 'attempts');
           }
         }
       });
@@ -760,7 +753,6 @@ function Messages() {
         if (status === 'SUBSCRIBED') {
           resubscribeAttemptsRef.current = 0;
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-          console.warn('[Messages] List channel died:', status, err);
           const now = Date.now();
           if (now - lastResubscribeTimeRef.current > 120000) {
             resubscribeAttemptsRef.current = 0;
@@ -772,7 +764,6 @@ function Messages() {
             const delay = resubscribeAttemptsRef.current * 3000;
             setTimeout(() => setResubscribeKey(k => k + 1), delay);
           } else {
-            console.warn('[Messages] List channel keeps dying');
           }
         }
       });
@@ -876,7 +867,6 @@ function Messages() {
       setBulkMode(false);
       showSuccess('Message sent to selected clients.');
     } catch (err) {
-      console.error('Error sending bulk message:', err);
       showError('Failed to send bulk message. Please try again.');
     } finally {
       setBulkSending(false);

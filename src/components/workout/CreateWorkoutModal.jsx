@@ -42,7 +42,6 @@ function CreateWorkoutModal({ onClose, onCreateWorkout, selectedDate, coachId = 
     try {
       onClose?.();
     } catch (e) {
-      console.error('Error in forceClose:', e);
       window.history.back();
     }
   }, [onClose]);
@@ -342,7 +341,6 @@ function CreateWorkoutModal({ onClose, onCreateWorkout, selectedDate, coachId = 
       }
       onClose();
     } catch (err) {
-      console.error('Error creating workout:', err);
       setSaving(false);
     }
   };

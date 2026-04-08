@@ -5,9 +5,9 @@ import { apiGet } from '../utils/api';
 
 const BrandingContext = createContext({});
 
-// Default branding — matches Zique Fitness defaults
+// Default branding — matches Ziquecoach defaults
 const DEFAULT_BRANDING = {
-  brand_name: 'Zique Fitness Nutrition',
+  brand_name: 'Ziquecoach',
   brand_primary_color: '#0d9488',
   brand_secondary_color: '#0284c7',
   brand_accent_color: '#10b981',
@@ -313,12 +313,6 @@ export function BrandingProvider({ children }) {
         if (!error && data) {
           coach = data;
         } else if (error) {
-          console.error('BrandingContext: Supabase error fetching coach branding', {
-            coachId,
-            code: error.code,
-            message: error.message,
-            details: error.details,
-          });
         }
       } else {
         // Client branding fetch: three strategies tried in order.
@@ -333,11 +327,6 @@ export function BrandingProvider({ children }) {
           coach = directData;
         } else {
           if (directError) {
-            console.warn('BrandingContext [client]: Direct query failed (RLS policy may not be deployed).', {
-              coachId,
-              code: directError.code,
-              message: directError.message,
-            });
           }
 
           // Strategy 2: SECURITY DEFINER RPC
@@ -348,14 +337,8 @@ export function BrandingProvider({ children }) {
             if (!result.error && rpcData) {
               coach = rpcData;
             } else if (result.error) {
-              console.warn('BrandingContext [client]: RPC failed (may not be deployed).', {
-                coachId,
-                code: result.error.code,
-                message: result.error.message,
-              });
             }
           } catch (rpcErr) {
-            console.warn('BrandingContext [client]: RPC threw exception:', rpcErr.message);
           }
 
           // Strategy 3: Netlify function (uses service key, always works)
@@ -366,22 +349,12 @@ export function BrandingProvider({ children }) {
                 coach = fallback;
               }
             } catch (fallbackErr) {
-              console.error('BrandingContext [client]: All 3 strategies failed. Coach branding will not load.', {
-                coachId,
-                directError: directError?.message,
-                netlifyError: fallbackErr.message,
-              });
             }
           }
         }
       }
 
       if (!coach) {
-        console.warn('BrandingContext: No coach data from any source.', {
-          coachId,
-          hasClientCoachId: !!clientData?.coach_id,
-          isCoachUser: !!clientData?.is_coach,
-        });
         return;
       }
 
@@ -438,7 +411,6 @@ export function BrandingProvider({ children }) {
         }
       }
     } catch (err) {
-      console.error('BrandingContext: Error fetching branding:', err);
     } finally {
       setLoading(false);
     }

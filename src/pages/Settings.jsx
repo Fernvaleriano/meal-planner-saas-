@@ -8,6 +8,7 @@ import { supabase } from '../utils/supabase';
 import { usePullToRefreshEvent } from '../hooks/usePullToRefreshEvent';
 
 import { useToast } from '../components/Toast';
+import { useConfirm } from '../components/ConfirmDialog';
 // localStorage cache helpers
 const getCache = (key) => {
   try {
@@ -27,6 +28,7 @@ function Settings() {
   const { clientData, theme, toggleTheme, logout, refreshClientData } = useAuth();
   const { branding } = useBranding();
   const { showError, showSuccess } = useToast();
+  const confirm = useConfirm();
   const isCoach = clientData?.is_coach === true;
 
   // Load from cache for instant display
@@ -129,7 +131,6 @@ function Settings() {
         throw new Error(response.error || 'Failed to save');
       }
     } catch (err) {
-      console.error('Error saving profile:', err);
       showError('Failed to save profile. Please try again.');
     } finally {
       setProfileSaving(false);
@@ -190,7 +191,6 @@ function Settings() {
         setCoachData(data);
         setCache(`coach_branding_${clientData.coach_id}`, data);
       })
-      .catch(err => console.error('Error loading coach data:', err));
   }, [clientData?.coach_id]);
 
   const getInitials = (name) => {
@@ -269,7 +269,6 @@ function Settings() {
         throw new Error(response.error || 'Upload failed');
       }
     } catch (err) {
-      console.error('Error uploading photo:', err);
       showError(err.message || 'Failed to upload photo. Please try again.');
     } finally {
       setUploadingPhoto(false);
@@ -311,7 +310,6 @@ function Settings() {
         text: `Password reset email sent to ${clientData.email}. Check your inbox!`
       });
     } catch (err) {
-      console.error('Password reset error:', err);
       setPasswordMessage({
         type: 'error',
         text: err.message || 'Failed to send reset email. Please try again.'
@@ -323,7 +321,7 @@ function Settings() {
 
   // Handle logout with confirmation
   const handleLogout = async () => {
-    if (window.confirm('Are you sure you want to log out?')) {
+    if (await confirm('Are you sure you want to log out?', { title: 'Log Out', confirmText: 'Log Out' })) {
       await logout();
     }
   };
@@ -349,7 +347,6 @@ function Settings() {
         throw new Error(response.error || 'Failed to update preference');
       }
     } catch (err) {
-      console.error('Error updating exercise gender preference:', err);
       setExerciseGenderPref(previousValue); // Revert on error
       showError('Failed to update preference. Please try again.');
     } finally {
@@ -378,7 +375,6 @@ function Settings() {
         throw new Error(response.error || 'Failed to update preference');
       }
     } catch (err) {
-      console.error('Error updating weight unit preference:', err);
       setUnitPref(previousValue); // Revert on error
       showError('Failed to update preference. Please try again.');
     } finally {
@@ -407,7 +403,6 @@ function Settings() {
         throw new Error(response.error || 'Failed to update water goal');
       }
     } catch (err) {
-      console.error('Error updating water goal:', err);
       setWaterGoal(previousGoal);
       setWaterGoalInput(String(previousGoal));
       showError('Failed to update water goal. Please try again.');
@@ -435,7 +430,6 @@ function Settings() {
         throw new Error(response.error || 'Failed to update water unit');
       }
     } catch (err) {
-      console.error('Error updating water unit:', err);
       setWaterUnit(previousUnit);
       showError('Failed to update water unit. Please try again.');
     } finally {
@@ -870,9 +864,8 @@ function Settings() {
 
       {/* Version Footer */}
       <div className="settings-version">
-        {branding?.brand_name || 'Zique Fitness Nutrition'} v1.0
+        {branding?.brand_name || 'Ziquecoach'} v1.0
       </div>
-
 
       {/* Password Reset Modal */}
       {showPasswordModal && (

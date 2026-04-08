@@ -6,6 +6,7 @@ import { apiGet, apiPost, apiPut, apiDelete } from '../utils/api';
 import { usePullToRefreshEvent } from '../hooks/usePullToRefreshEvent';
 
 import { useToast } from '../components/Toast';
+import { useConfirm } from '../components/ConfirmDialog';
 const CATEGORIES = [
   { id: 'all', icon: '📖', label: 'All' },
   { id: 'grab_go', icon: '⚡', label: 'Grab & Go' },
@@ -53,6 +54,7 @@ function Recipes() {
   const navigate = useNavigate();
   const { user, clientData } = useAuth();
   const { showError, showSuccess } = useToast();
+  const confirm = useConfirm();
   const isCoach = clientData?.is_coach === true;
   const coachId = isCoach ? user?.id : clientData?.coach_id;
 
@@ -118,7 +120,6 @@ function Recipes() {
           setImagePreview(null);
         }
       } catch (err) {
-        console.error('Error uploading image:', err);
         showError('Failed to upload image. Please try again.');
         setImagePreview(null);
       } finally {
@@ -140,7 +141,6 @@ function Recipes() {
       const data = await apiGet(`/.netlify/functions/get-recipes?clientId=${clientData?.id}&coachId=${coachId}`);
       setRecipes(data?.recipes || []);
     } catch (err) {
-      console.error('Error loading recipes:', err);
       setRecipes([]);
     } finally {
       setLoading(false);
@@ -153,7 +153,6 @@ function Recipes() {
       const data = await apiGet('/.netlify/functions/spoonacular-recipes?action=random&number=12');
       setDiscoverRecipes(data.recipes || []);
     } catch (err) {
-      console.error('Error loading discover recipes:', err);
     } finally {
       setDiscoverLoading(false);
     }
@@ -190,7 +189,6 @@ function Recipes() {
       const data = await apiGet(url);
       setDiscoverRecipes(data.recipes || []);
     } catch (err) {
-      console.error('Error searching recipes:', err);
     } finally {
       setDiscoverLoading(false);
     }
@@ -206,7 +204,6 @@ function Recipes() {
       const data = await apiGet(`/.netlify/functions/spoonacular-recipes?action=details&id=${recipe.spoonacular_id}`);
       setSelectedRecipe(data);
     } catch (err) {
-      console.error('Error loading recipe details:', err);
       setSelectedRecipe(recipe);
     }
   };
@@ -260,7 +257,6 @@ function Recipes() {
       setEditingRecipe(null);
       setShowRecipeForm(true);
     } catch (err) {
-      console.error('YouTube import error:', err);
       const errorMsg = err?.message || err?.error || '';
       if (errorMsg.includes('NO_CAPTIONS') || errorMsg.includes('captions')) {
         setYoutubeError('This video doesn\'t have captions available. Try a different video or enter the recipe manually.');
@@ -349,7 +345,6 @@ function Recipes() {
       setImagePreview(null);
       await loadRecipes();
     } catch (err) {
-      console.error('Error saving recipe:', err);
       showError('Failed to save recipe. Please try again.');
     } finally {
       setSaving(false);
@@ -357,14 +352,13 @@ function Recipes() {
   };
 
   const handleDeleteRecipe = async (recipe) => {
-    if (!confirm(`Delete "${recipe.name}"? This cannot be undone.`)) return;
+    if (!await confirm(`Delete "${recipe.name}"? This cannot be undone.`, { title: 'Delete Recipe', confirmText: 'Delete', destructive: true })) return;
 
     try {
       await apiDelete(`/.netlify/functions/manage-recipes?coachId=${coachId}&recipeId=${recipe.id}`);
       setSelectedRecipe(null);
       await loadRecipes();
     } catch (err) {
-      console.error('Error deleting recipe:', err);
       showError('Failed to delete recipe. Please try again.');
     }
   };
@@ -395,7 +389,6 @@ function Recipes() {
       }
       showSuccess('Recipe saved to favorites!');
     } catch (err) {
-      console.error('Error saving favorite:', err);
       showError('Could not save to favorites. Please try again.');
     }
   };
@@ -494,7 +487,7 @@ function Recipes() {
 
         <div class="footer">
           ${selectedRecipe.source_url ? `Source: ${selectedRecipe.source_url}<br>` : ''}
-          Downloaded from Zique Fitness
+          Downloaded from Ziquecoach
         </div>
       </body>
       </html>

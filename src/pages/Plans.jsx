@@ -7,6 +7,7 @@ import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefr
 import { onAppResume } from '../hooks/useAppLifecycle';
 
 import { useToast } from '../components/Toast';
+import { useConfirm } from '../components/ConfirmDialog';
 // Build a proxy URL for voice notes that never expires
 // Falls back to extracting the storage path from old signed URLs
 const getVoiceNoteProxyUrl = (meal) => {
@@ -70,6 +71,7 @@ function Plans() {
   const location = useLocation();
   const navigate = useNavigate();
   const { showError, showSuccess } = useToast();
+  const confirm = useConfirm();
   // Read planId from URL path instead of useParams (component is mounted
   // persistently outside the Router, so useParams wouldn't work)
   const planId = location.pathname.match(/^\/plans\/(.+)/)?.[1];
@@ -223,7 +225,6 @@ function Plans() {
         }
       }
     } catch (err) {
-      console.error('Error refreshing plans:', err);
     }
   }, [clientData?.id, selectedPlan?.id]);
 
@@ -300,7 +301,6 @@ function Plans() {
           }
         }
       })
-      .catch(err => console.error('Error loading plans:', err))
       .finally(() => setLoading(false));
   }, [clientData?.id, planId]);
 
@@ -397,7 +397,6 @@ function Plans() {
         });
       }
     } catch (err) {
-      console.error('Error loading meal images:', err);
     }
   };
 
@@ -541,7 +540,6 @@ function Plans() {
           meal.image_url = response.imageUrl;
         }
       } catch (err) {
-        console.error('Error fetching meal image:', err);
         // Fail silently - image is optional
       } finally {
         setMealImageLoading(false);
@@ -599,7 +597,6 @@ function Plans() {
         });
       }
     } catch (err) {
-      console.error('Error toggling favorite:', err);
       // Revert optimistic update on error
       if (isFavorited) {
         setFavorites(prev => new Set([...prev, mealKey]));
@@ -657,7 +654,6 @@ function Plans() {
       closeMealModal();
       showSuccess('✅ Meal logged to diary!');
     } catch (err) {
-      console.error('Error logging meal:', err);
       showError('Failed to log meal');
     } finally {
       setActionLoading(null);
@@ -682,7 +678,6 @@ function Plans() {
         p.id === updatedPlan.id ? updatedPlan : p
       ));
     } catch (err) {
-      console.error('Failed to save plan:', err);
     }
   };
 
@@ -795,7 +790,6 @@ Return ONLY valid JSON:
       });
 
     } catch (err) {
-      console.error('Change meal error:', err);
       showError('Failed to change meal. Please try again.');
     } finally {
       setProcessingMeal(null);
@@ -874,7 +868,6 @@ Return ONLY valid JSON:
       let revisedMeal = data.success && data.data ? data.data : null;
 
       if (!revisedMeal) {
-        console.error('No meal data in response:', data);
         throw new Error('Invalid response from API');
       }
 
@@ -933,7 +926,6 @@ Return ONLY valid JSON:
       });
 
     } catch (err) {
-      console.error('Revise meal error:', err);
       showError('Failed to revise meal. Please try again.');
     } finally {
       setProcessingMeal(null);
@@ -999,7 +991,6 @@ Return ONLY valid JSON:
           setFoodSearchResults([]);
         }
       } catch (err) {
-        console.error('Food search error:', err);
         setFoodSearchResults([]);
       } finally {
         setFoodSearchLoading(false);
@@ -1141,7 +1132,6 @@ Return ONLY valid JSON:
         })));
       }
     } catch (err) {
-      console.error('Error loading saved meals:', err);
     } finally {
       setSavedMealsLoading(false);
     }
@@ -1157,7 +1147,6 @@ Return ONLY valid JSON:
       });
       loadSavedMeals(); // Refresh list
     } catch (err) {
-      console.error('Error saving meal to library:', err);
     }
   };
 
@@ -1168,7 +1157,6 @@ Return ONLY valid JSON:
       await apiGet(`/.netlify/functions/saved-meals?mealId=${mealId}&coachId=${clientData.coach_id}&_method=DELETE`);
       setSavedMeals(prev => prev.filter(m => m.id !== mealId));
     } catch (err) {
-      console.error('Error deleting saved meal:', err);
     }
   };
 
@@ -1333,7 +1321,7 @@ Return ONLY valid JSON:
     const cleanedInstructions = rawInstructions.replace(/^Instructions:\s*/i, '');
     const instructions = cleanedInstructions ? `Instructions:\n${cleanedInstructions}` : 'No recipe available for this meal.';
 
-    alert(header + ingredients + instructions);
+    await confirm(header + ingredients + instructions, { title: 'Recipe Details', confirmText: 'Close', cancelText: '' });
   };
 
   // Undo last meal change
@@ -1373,7 +1361,6 @@ Return ONLY valid JSON:
       await savePlanToDatabase(updatedPlan);
       setUndoData(null);
     } catch (err) {
-      console.error('Undo error:', err);
       showError('Failed to undo. Please try again.');
     }
   };
@@ -1382,10 +1369,9 @@ Return ONLY valid JSON:
   const handleRevertToOriginal = async () => {
     if (!originalPlanData || !selectedPlan) return;
 
-    const confirmed = window.confirm(
-      '⚠️ Revert to Original Plan?\n\n' +
-      'This will undo ALL changes you\'ve made to this meal plan and restore it to its original state.\n\n' +
-      'This action cannot be undone.'
+    const confirmed = await confirm(
+      'This will undo ALL changes you\'ve made to this meal plan and restore it to its original state.\n\nThis action cannot be undone.',
+      { title: 'Revert to Original Plan?', confirmText: 'Revert', destructive: true }
     );
 
     if (!confirmed) return;
@@ -1404,7 +1390,6 @@ Return ONLY valid JSON:
 
       showSuccess('✅ Plan reverted to original!');
     } catch (err) {
-      console.error('Revert error:', err);
       showError('Failed to revert. Please try again.');
     }
   };
@@ -1528,7 +1513,6 @@ Keep it practical and brief. Format with clear sections.`;
         setMealPrepGuide('Unable to generate meal prep guide. Please try again.');
       }
     } catch (err) {
-      console.error('Meal prep error:', err);
       setMealPrepGuide('Failed to generate meal prep guide. Please try again.');
     } finally {
       setMealPrepLoading(false);

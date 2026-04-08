@@ -2,6 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { X, Camera, RotateCcw, Send, Flame, ChevronDown, Clock } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiPost, apiGet } from '../utils/api';
+import { useToast } from './Toast';
 
 const STEPS = {
   INSTRUCTIONS: 'instructions',
@@ -12,6 +13,7 @@ const STEPS = {
 
 function GymProofModal({ isOpen, onClose }) {
   const { clientData } = useAuth();
+  const { showError } = useToast();
   const [step, setStep] = useState(STEPS.INSTRUCTIONS);
   const [photoData, setPhotoData] = useState(null);
   const [stampedPhoto, setStampedPhoto] = useState(null);
@@ -50,7 +52,6 @@ function GymProofModal({ isOpen, onClose }) {
       }
       if (data?.streak) setStreak(data.streak);
     } catch (err) {
-      console.error('Error checking gym proof:', err);
     }
   };
 
@@ -156,8 +157,7 @@ function GymProofModal({ isOpen, onClose }) {
       setStampedPhoto(stamped);
       setStep(STEPS.PREVIEW);
     } catch (err) {
-      console.error('Error processing photo:', err);
-      alert('Failed to process photo. Please try again.');
+      showError('Failed to process photo. Please try again.');
     }
 
     // Reset file input
@@ -185,8 +185,7 @@ function GymProofModal({ isOpen, onClose }) {
       // Refresh data
       checkTodayProof();
     } catch (err) {
-      console.error('Error submitting gym proof:', err);
-      alert('Failed to submit. Please try again.');
+      showError('Failed to submit. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -200,7 +199,6 @@ function GymProofModal({ isOpen, onClose }) {
       if (data?.proofs) setRecentProofs(data.proofs);
       if (data?.streak) setStreak(data.streak);
     } catch (err) {
-      console.error('Error loading history:', err);
     } finally {
       setLoadingHistory(false);
     }

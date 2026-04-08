@@ -300,7 +300,6 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
     // Safety: cap syncs to prevent infinite re-render loops from malformed data
     syncCountRef.current += 1;
     if (syncCountRef.current > 10) {
-      console.warn('[ExerciseCard] Sync loop detected for exercise:', exercise.name, exercise.id, '— skipping');
       return;
     }
     // Reset sync counter after a tick (only counts rapid consecutive syncs)
@@ -311,7 +310,6 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
     try {
       incoming = JSON.stringify(setsSource);
     } catch (err) {
-      console.error('[ExerciseCard] Failed to serialize sets for', exercise.name, ':', err);
       clearTimeout(resetTimer);
       return;
     }
@@ -699,7 +697,6 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
     };
 
     recognition.onerror = (event) => {
-      console.error('Speech recognition error:', event.error);
       if (event.error === 'not-allowed') {
         setVoiceError('Mic denied');
       } else if (event.error === 'no-speech') {

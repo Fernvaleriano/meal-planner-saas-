@@ -31,7 +31,6 @@ export default function ProgramsEndingSoon({ coachId }) {
         setClientsWithoutPrograms(result.clientsWithoutPrograms || []);
         setClientsWithExpiredOnly(result.clientsWithExpiredOnly || []);
       } catch (err) {
-        console.error('Failed to fetch ending programs:', err);
       } finally {
         setLoading(false);
       }

@@ -295,7 +295,6 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelec
     try {
       onClose?.();
     } catch (e) {
-      console.error('Error in forceClose:', e);
       window.history.back();
     }
   }, [onClose]);
@@ -403,7 +402,6 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelec
         }
       } catch (error) {
         if (!isMountedRef.current) return;
-        console.error('Error fetching exercises:', error);
         setExercises([]);
       }
 
@@ -542,7 +540,6 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelec
 
       return results;
     } catch (err) {
-      console.error('Error filtering exercises:', err);
       return [];
     }
   }, [exercises, selectedMuscle, selectedEquipment, selectedDifficulty, selectedCategory, showCustomOnly, searchQuery, existingExerciseIds]);
@@ -663,7 +660,6 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelec
         }, 200);
       }
     } catch (err) {
-      console.error('Error in search change:', err);
     }
   }, []);
 

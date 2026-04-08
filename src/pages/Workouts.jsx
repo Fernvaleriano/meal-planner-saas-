@@ -13,6 +13,7 @@ import ClubWorkoutsModal from '../components/workout/ClubWorkoutsModal';
 import GuidedWorkoutModal from '../components/workout/GuidedWorkoutModal';
 import ErrorBoundary from '../components/ErrorBoundary';
 import { useToast } from '../components/Toast';
+import { useConfirm } from '../components/ConfirmDialog';
 import { parseDurationToSeconds, estimateWorkoutMinutes, estimateWorkoutCalories } from '../utils/workoutDuration';
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
 
@@ -165,7 +166,6 @@ const refreshSignedUrls = async (workoutData, coachId) => {
 
     return result;
   } catch (err) {
-    console.error('Error refreshing signed URLs:', err);
     return workoutData;
   }
 };
@@ -455,6 +455,7 @@ function Workouts() {
   const { clientData, user } = useAuth();
   const navigate = useNavigate();
   const { showError, showSuccess } = useToast();
+  const confirm = useConfirm();
 
   // User's preferred weight unit (default to lbs for imperial)
   const weightUnit = clientData?.unit_preference === 'metric' ? 'kg' : 'lbs';
@@ -856,7 +857,6 @@ function Workouts() {
       // Also refresh week schedule so This Week / Coming Up stay in sync
       refreshWeekSchedule();
     } catch (err) {
-      console.error('Error refreshing workout:', err);
       setError('Failed to load workout');
     } finally {
       isRefreshingRef.current = false;
@@ -915,15 +915,12 @@ function Workouts() {
         // doesn't block everything (this was the main cause of infinite loading)
         const [assignmentRes, adhocRes, logRes] = await Promise.all([
           apiGet(`/.netlify/functions/workout-assignments?clientId=${clientData.id}&date=${dateStr}`).catch(err => {
-            console.error('Error fetching workout assignments:', err);
             return null;
           }),
           apiGet(`/.netlify/functions/adhoc-workouts?clientId=${clientData.id}&date=${dateStr}`).catch(err => {
-            console.error('Error fetching adhoc workouts:', err);
             return null;
           }),
           apiGet(`/.netlify/functions/workout-logs?clientId=${clientData.id}&date=${dateStr}`).catch(err => {
-            console.error('Error fetching workout log:', err);
             return null;
           })
         ]);
@@ -1030,7 +1027,6 @@ function Workouts() {
           }).catch(() => { /* signed URL refresh is best-effort */ });
         }
       } catch (err) {
-        console.error('Error fetching workout:', err);
         if (mounted) {
           setError('Failed to load workout');
         }
@@ -1296,7 +1292,6 @@ function Workouts() {
       newDate.setDate(newDate.getDate() - 7);
       setWeekDates(getWeekDates(newDate));
     } catch (e) {
-      console.error('Error navigating to previous week:', e);
     }
   }, [weekDates]);
 
@@ -1307,7 +1302,6 @@ function Workouts() {
       newDate.setDate(newDate.getDate() + 7);
       setWeekDates(getWeekDates(newDate));
     } catch (e) {
-      console.error('Error navigating to next week:', e);
     }
   }, [weekDates]);
 
@@ -1326,7 +1320,6 @@ function Workouts() {
       // Scroll to top so the user sees the loaded workout
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (e) {
-      console.error('Error navigating to date:', e);
     }
   }, [weekDates]);
 
@@ -1439,7 +1432,6 @@ function Workouts() {
         });
       }
     } catch (err) {
-      console.error('Error persisting uncheck all:', err);
     }
   }, [completedExercises.size]);
 
@@ -1580,7 +1572,6 @@ function Workouts() {
           },
           name: workout.name
         }).catch(err => {
-          console.error('Error saving swapped exercise to adhoc:', err);
         });
       } else {
         // For regular workouts, use client-workout-log endpoint
@@ -1592,11 +1583,9 @@ function Workouts() {
             exercises: updatedExercises
           }
         }).catch(err => {
-          console.error('Error saving swapped exercise:', err);
         });
       }
     } catch (err) {
-      console.error('Error in handleSwapExercise:', err);
     }
   }, []); // Removed todayWorkout and selectedDate - using ref instead
 
@@ -1709,11 +1698,9 @@ function Workouts() {
             w.id === adHocWorkout.id ? { ...w, id: realId } : w
           ));
         } else {
-          console.error('No workout returned from POST:', res);
           showError('Failed to save workout');
         }
       } catch (err) {
-        console.error('Error creating ad-hoc workout:', err);
         showError('Failed to save workout: ' + (err.message || 'Unknown error'));
       }
       return;
@@ -1747,7 +1734,6 @@ function Workouts() {
         workoutData: updatedWorkoutData,
         name: workout.name
       }).catch(err => {
-        console.error('Error updating ad-hoc workout:', err);
         showError('Failed to save changes: ' + (err.message || 'Unknown error'));
       });
       return;
@@ -1780,7 +1766,6 @@ function Workouts() {
         exercises: updatedExercises
       }
     }).catch(err => {
-      console.error('Error adding exercise:', err);
     });
   }, [clientData?.id, selectedDate, showError]); // Added dependencies for ad-hoc workout creation
 
@@ -1830,11 +1815,9 @@ function Workouts() {
         }
         refreshWeekSchedule();
       } else {
-        console.error('No workout returned from POST:', res);
         showError('Failed to save workout');
       }
     } catch (err) {
-      console.error('Error saving workout:', err);
       showError('Failed to save workout: ' + (err.message || 'Unknown error'));
     }
   }, [clientData?.id, selectedDate, showError, refreshWeekSchedule]);
@@ -1923,7 +1906,6 @@ function Workouts() {
       }
       refreshWeekSchedule();
     } catch (err) {
-      console.error('Error saving club workout:', err);
       showError('Failed to save workout: ' + (err.message || 'Unknown error'));
     }
   }, [clientData?.id, selectedDate, showError, showSuccess, refreshWeekSchedule]);
@@ -1975,7 +1957,6 @@ function Workouts() {
         refreshWeekSchedule();
       }
     } catch (err) {
-      console.error('Error scheduling program:', err);
       showError('Failed to schedule program: ' + (err.message || 'Unknown error'));
     }
   }, [clientData?.id, clientData?.coach_id, selectedDate, showError, showSuccess, refreshWorkoutData, refreshWeekSchedule]);
@@ -2092,7 +2073,6 @@ function Workouts() {
           }
           return; // Success
         } catch (err) {
-          console.error(`Error saving exercise update (attempt ${i + 1}/${attempts}):`, err);
           if (i < attempts - 1) {
             await new Promise(r => setTimeout(r, 1000 * (i + 1))); // 1s, 2s backoff
           } else {
@@ -2198,7 +2178,6 @@ function Workouts() {
           workoutData: workoutDataToSave,
           name: workout.name
         }).catch(err => {
-          console.error('Error deleting exercise from adhoc:', err);
         });
       } else {
         apiPut('/.netlify/functions/client-workout-log', {
@@ -2206,11 +2185,9 @@ function Workouts() {
           dayIndex: workout.day_index,
           workout_data: workoutDataToSave
         }).catch(err => {
-          console.error('Error deleting exercise:', err);
         });
       }
     } catch (err) {
-      console.error('Error in handleDeleteExercise:', err);
     }
   }, []);
 
@@ -2300,13 +2277,13 @@ function Workouts() {
         workoutDate: dateStr,
         workoutData: workoutDataToSave,
         name: workout.name
-      }).catch(err => console.error('Error moving exercise in adhoc:', err));
+      })
     } else {
       apiPut('/.netlify/functions/client-workout-log', {
         assignmentId: workout.id,
         dayIndex: workout.day_index,
         workout_data: workoutDataToSave
-      }).catch(err => console.error('Error moving exercise:', err));
+      })
     }
   }, []);
 
@@ -2368,13 +2345,13 @@ function Workouts() {
         workoutDate: dateStr,
         workoutData: workoutDataToSave,
         name: workout.name
-      }).catch(err => console.error('Error moving exercise in adhoc:', err));
+      })
     } else {
       apiPut('/.netlify/functions/client-workout-log', {
         assignmentId: workout.id,
         dayIndex: workout.day_index,
         workout_data: workoutDataToSave
-      }).catch(err => console.error('Error moving exercise:', err));
+      })
     }
   }, []);
 
@@ -2427,7 +2404,6 @@ function Workouts() {
           setWorkoutLog(res.log);
         }
       } catch (err) {
-        console.error('Error creating workout log:', err);
       }
     } else if (workoutLog?.id && readiness) {
       // Existing log (auto-resumed) — update it with readiness data
@@ -2439,7 +2415,6 @@ function Workouts() {
           sleepQuality: readiness.sleep
         });
       } catch (err) {
-        console.error('Error updating readiness data:', err);
       }
     }
   }, [workoutLog, clientData?.id, todayWorkout, selectedDate, pendingExerciseOpen]);
@@ -2449,7 +2424,6 @@ function Workouts() {
     setShowWorkoutReadyConfirm(false);
     setShowGuidedWorkout(true);
   }, []);
-
 
   // Complete workout - saves exercise_logs with all sets/reps/weight data
   // exercisesOverride: optional array of exercises with final logged data (from play mode)
@@ -2530,7 +2504,6 @@ function Workouts() {
         ]);
       } catch (raceErr) {
         // If timed out, still show the summary (workout may have saved server-side)
-        console.warn('Workout save timed out or failed, showing summary anyway:', raceErr.message);
         result = {};
       }
 
@@ -2552,7 +2525,6 @@ function Workouts() {
       setCompletingWorkout(false);
       setShowSummary(true);
     } catch (err) {
-      console.error('Error completing workout:', err);
       setCompletingWorkout(false);
       // Still show summary even on error so user isn't stuck
       setShowSummary(true);
@@ -2570,7 +2542,6 @@ function Workouts() {
         setWorkoutHistory(res.logs);
       }
     } catch (err) {
-      console.error('Error fetching workout history:', err);
     }
   }, [clientData?.id]);
 
@@ -2631,7 +2602,6 @@ function Workouts() {
         }
       }
     } catch (err) {
-      console.error('Error rescheduling workout:', err);
       // If assignment not found (404), show specific error
       if (err.status === 404 || err.message?.includes('not found')) {
         showError('Could not find this workout. It may have been removed or updated. Please refresh and try again.');
@@ -2687,7 +2657,7 @@ function Workouts() {
   const handleDeleteWorkout = useCallback(async () => {
     if (!todayWorkout?.id) return;
 
-    const confirmed = window.confirm('Are you sure you want to delete this workout? This will make today a rest day.');
+    const confirmed = await confirm('This will make today a rest day.', { title: 'Delete Workout?', confirmText: 'Delete', destructive: true });
     if (!confirmed) return;
 
     let deleteSucceeded = false;
@@ -2713,7 +2683,6 @@ function Workouts() {
         deleteSucceeded = true;
       }
     } catch (err) {
-      console.error('Error deleting workout:', err);
       if (err.status === 404 || err.message?.includes('not found')) {
         deleteSucceeded = true;
       } else {
@@ -2764,7 +2733,6 @@ function Workouts() {
         deleteSucceeded = true;
       }
     } catch (err) {
-      console.error('Error deleting workout:', err);
       // If assignment not found (404), treat as already deleted - still update local state
       if (err.status === 404 || err.message?.includes('not found')) {
         deleteSucceeded = true;
@@ -2824,7 +2792,6 @@ function Workouts() {
       }
       refreshWeekSchedule();
     } catch (err) {
-      console.error('Error deleting program:', err);
       if (err.status === 404 || err.message?.includes('not found')) {
         // Already deleted - clean up local state
         setTodayWorkouts([]);
@@ -2907,7 +2874,6 @@ function Workouts() {
 
       return merged;
     } catch (e) {
-      console.error('Error getting exercises:', e);
       return [];
     }
   }, [todayWorkout, workoutLog]);
@@ -3090,7 +3056,7 @@ function Workouts() {
         ctx.fillStyle = '#9ca3af';
         ctx.font = '18px -apple-system, BlinkMacSystemFont, sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText('Powered by Zique Fitness', width / 2, height - 30);
+        ctx.fillText('Powered by Ziquecoach', width / 2, height - 30);
 
         // Convert and share
         canvas.toBlob(async (blob) => {
@@ -3147,7 +3113,6 @@ function Workouts() {
       logo.onerror = () => renderCard(null);
       logo.src = logoUrl;
     } catch (err) {
-      console.error('Error sharing results:', err);
     }
   };
 
@@ -3172,7 +3137,6 @@ function Workouts() {
             if (res?.workout) setWorkoutLog(res.workout);
             else if (res?.log) setWorkoutLog(res.log);
           })
-          .catch(err => console.error('Error creating workout log on auto-start:', err));
       }
     }
   }, [expandedWorkout, todayWorkout, workoutStarted, workoutLog, clientData?.id, selectedDate]);
@@ -3279,7 +3243,6 @@ function Workouts() {
             )}
             {!clientData?.is_coach && <div className="nav-spacer" style={{ width: 40 }}></div>}
           </div>
-
 
           {/* Week Calendar Strip */}
           <div className="week-calendar-v2">
@@ -4114,7 +4077,7 @@ function Workouts() {
                 <div className="share-card-overlay" />
                 <div className="share-card-content">
                   <div className="share-card-brand">
-                    <img src="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/Untitled%20design%20-%202026-02-10T171903.769.png" alt="Zique Fitness" className="share-card-logo" />
+                    <img src="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/Untitled%20design%20-%202026-02-10T171903.769.png" alt="Ziquecoach" className="share-card-logo" />
                   </div>
                   <div className="share-card-stats">
                     {shareToggles.calories && (
@@ -4161,7 +4124,7 @@ function Workouts() {
                       ))}
                     </div>
                   )}
-                  <div className="share-card-footer">Powered by Zique Fitness</div>
+                  <div className="share-card-footer">Powered by Ziquecoach</div>
                 </div>
               </div>
             </div>

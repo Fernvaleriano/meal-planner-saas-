@@ -373,7 +373,6 @@ export default function WorkoutHistory() {
       );
       setWorkouts(res.workouts || []);
     } catch (err) {
-      console.error('Failed to fetch workouts:', err);
       setError('Failed to load workout history. Please try again.');
     } finally {
       setLoading(false);
@@ -413,7 +412,6 @@ export default function WorkoutHistory() {
         );
         setWorkoutDetail(res.workout || null);
       } catch (err) {
-        console.error('Failed to fetch workout detail:', err);
         setWorkoutDetail(null);
       } finally {
         setLoadingDetail(false);
@@ -445,7 +443,6 @@ export default function WorkoutHistory() {
         setExerciseHistory(res.history || []);
         setExerciseStats(res.stats || null);
       } catch (err) {
-        console.error('Failed to fetch exercise history:', err);
       } finally {
         setLoadingExerciseHistory(false);
       }

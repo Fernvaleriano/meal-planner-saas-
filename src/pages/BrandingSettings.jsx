@@ -4,6 +4,7 @@ import { ArrowLeft, Palette, Type, ToggleLeft, MessageSquare, Smartphone, Tag, S
 import { useAuth } from '../context/AuthContext';
 import { useBranding, AVAILABLE_FONTS, BUTTON_STYLES, DEFAULT_TERMINOLOGY } from '../context/BrandingContext';
 import { apiGet, apiPost, apiDelete } from '../utils/api';
+import { useConfirm } from '../components/ConfirmDialog';
 
 const MODULE_OPTIONS = [
   { key: 'diary', label: 'Food Diary', description: 'Daily food logging and macro tracking' },
@@ -86,6 +87,7 @@ function BrandingSettings() {
   const navigate = useNavigate();
   const { clientData } = useAuth();
   const { refreshBranding } = useBranding();
+  const confirm = useConfirm();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -207,7 +209,7 @@ function BrandingSettings() {
   }, [refreshBranding]);
 
   const handleLogoDelete = useCallback(async (logoType) => {
-    if (!window.confirm('Remove this logo?')) return;
+    if (!await confirm('Remove this logo?', { title: 'Remove Logo', confirmText: 'Remove', destructive: true })) return;
     setUploadingLogo(logoType);
     setError('');
     try {
@@ -288,8 +290,8 @@ function BrandingSettings() {
     }
   };
 
-  const handleReset = () => {
-    if (!window.confirm('Reset all branding to defaults? This will save immediately.')) return;
+  const handleReset = async () => {
+    if (!await confirm('This will save immediately.', { title: 'Reset Branding to Defaults?', confirmText: 'Reset', destructive: true })) return;
     setForm({
       brand_name: '',
       brand_primary_color: '',
@@ -375,7 +377,7 @@ function BrandingSettings() {
                 type="text"
                 value={form.brand_name}
                 onChange={(e) => updateForm('brand_name', e.target.value)}
-                placeholder="Zique Fitness Nutrition"
+                placeholder="Ziquecoach"
                 className="bs-text-input"
                 maxLength={100}
               />
@@ -388,7 +390,7 @@ function BrandingSettings() {
             <div className="bs-field">
               <label className="bs-label">Logo</label>
               <span className="bs-hint" style={{ display: 'block', marginBottom: '10px' }}>
-                Replaces the default Zique Fitness logo in the header. PNG, JPG, or SVG (max 1MB).
+                Replaces the default Ziquecoach logo in the header. PNG, JPG, or SVG (max 1MB).
               </span>
               <input
                 ref={logoInputRef}
@@ -585,7 +587,7 @@ function BrandingSettings() {
                 type="text"
                 value={form.brand_app_name}
                 onChange={(e) => updateForm('brand_app_name', e.target.value)}
-                placeholder="Zique Fitness Meal Planner"
+                placeholder="Ziquecoach Meal Planner"
                 className="bs-text-input"
                 maxLength={100}
               />
@@ -651,7 +653,7 @@ function BrandingSettings() {
                   {form.brand_name ? form.brand_name.charAt(0) : 'Z'}
                 </div>
                 <span style={{ color: previewText, fontWeight: 600, fontSize: '0.8rem' }}>
-                  {form.brand_name || 'Zique Fitness'}
+                  {form.brand_name || 'Ziquecoach'}
                 </span>
               </div>
 

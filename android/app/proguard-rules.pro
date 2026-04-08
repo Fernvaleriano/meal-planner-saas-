@@ -12,7 +12,7 @@
 
 # Keep Capacitor classes
 -keep class com.getcapacitor.** { *; }
--keep class com.ziquefitness.mealplanner.** { *; }
+-keep class com.ziquecoach.app.** { *; }
 
 # Keep WebView client
 -keepclassmembers class * extends android.webkit.WebViewClient {

@@ -92,7 +92,6 @@ function TopNav() {
 
       setUnreadCount(data.unreadCount || 0);
     } catch (err) {
-      console.error('Error fetching notifications:', err);
     }
   }, [clientData?.id]);
 
@@ -156,7 +155,6 @@ function TopNav() {
       });
       setHasUnseenStories(data.hasUnseenStories || false);
     } catch (err) {
-      console.error('Error fetching stories:', err);
     }
   }, [clientData?.id, clientData?.coach_id]);
 
@@ -204,7 +202,7 @@ function TopNav() {
       <Link to="/" className="nav-left" aria-label="Go to home">
         <img
           src={logoUrl}
-          alt={branding?.brand_name || 'Zique Fitness'}
+          alt={branding?.brand_name || 'Ziquecoach'}
           className="nav-logo-left"
           onError={(e) => { e.target.src = ORIGINAL_LOGO; }}
         />

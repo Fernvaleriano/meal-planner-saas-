@@ -38,7 +38,6 @@ function AskCoachChat({ exercise, onClose }) {
     try {
       onClose?.();
     } catch (e) {
-      console.error('Error in forceClose:', e);
       window.history.back();
     }
   }, [onClose]);
@@ -165,7 +164,6 @@ function AskCoachChat({ exercise, onClose }) {
     };
 
     recognition.onerror = (event) => {
-      console.warn('Speech recognition error:', event.error);
       if (event.error === 'not-allowed') {
         showError('Microphone access denied. Please allow microphone access.');
       }
@@ -182,7 +180,6 @@ function AskCoachChat({ exercise, onClose }) {
     try {
       recognition.start();
     } catch (err) {
-      console.error('Failed to start speech recognition:', err);
       setIsRecording(false);
       recognitionRef.current = null;
     }
@@ -715,7 +712,6 @@ function AskCoachChat({ exercise, onClose }) {
       } else {
         // Log any error info for debugging
         if (response?.error) {
-          console.error('Coach API error:', response.error, response.debugInfo);
         }
         // Use fallback response if API didn't return valid answer
         const muscleGroup = exercise?.muscle_group || exercise?.muscleGroup;
@@ -725,7 +721,6 @@ function AskCoachChat({ exercise, onClose }) {
         }]);
       }
     } catch (error) {
-      console.error('Ask coach error:', error);
       // Use fallback response on error
       const muscleGroup = exercise?.muscle_group || exercise?.muscleGroup;
       setMessages(prev => [...prev, {

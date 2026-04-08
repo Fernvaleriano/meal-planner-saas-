@@ -82,7 +82,6 @@ export default function AskAIChatModal({
           }
         }
       } catch (err) {
-        console.error('Failed to fetch exercise history for AI chat:', err);
       } finally {
         if (!cancelled) setFetchingHistory(false);
       }
@@ -142,7 +141,6 @@ export default function AskAIChatModal({
         }
       }
     } catch (err) {
-      console.error('AI chat error:', err);
       setMessages(prev => [...prev, {
         role: 'assistant',
         content: "I'm having trouble connecting. Let me give you a quick tip: if you're feeling good, try adding 1 rep. If you're tired, it's okay to match your last session."

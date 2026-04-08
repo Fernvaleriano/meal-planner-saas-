@@ -292,7 +292,7 @@ export async function generateWorkoutPDF(program, options = {}) {
     doc.setFontSize(7);
     doc.setTextColor(...MEDIUM_GRAY);
     doc.text(`Page ${i} of ${totalPages}`, pageWidth / 2, pageHeight - 5, { align: 'center' });
-    doc.text('Zique Fitness', pageWidth - margin, pageHeight - 5, { align: 'right' });
+    doc.text('Ziquecoach', pageWidth - margin, pageHeight - 5, { align: 'right' });
   }
 
   const safeName = (program.name || 'workout-plan').replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();

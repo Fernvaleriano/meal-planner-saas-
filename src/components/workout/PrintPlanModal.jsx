@@ -18,7 +18,6 @@ export default function PrintPlanModal({ program, onClose }) {
       });
       onClose();
     } catch (err) {
-      console.error('PDF generation error:', err);
     } finally {
       setGenerating(false);
     }

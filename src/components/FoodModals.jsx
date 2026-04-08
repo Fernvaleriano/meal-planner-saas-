@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { X, Camera, Upload, Search, Heart, Loader, Plus, Minus, Check, Trash2 } from 'lucide-react';
 import { apiGet, apiPost, apiDelete, ensureFreshSession } from '../utils/api';
 import { useToast } from './Toast';
+import { useConfirm } from './ConfirmDialog';
 
 // Get today's date in local timezone (NOT UTC)
 // Using toISOString().split('T')[0] would give UTC date which is wrong for users in different timezones
@@ -125,7 +126,6 @@ export function SnapPhotoModal({ isOpen, onClose, mealType, clientData, onFoodLo
         setError('No food detected in the image. Try adding details or take a clearer photo.');
       }
     } catch (err) {
-      console.error('Photo analysis error:', err);
       if (err.isTimeout) {
         setError('Photo analysis timed out. Please check your connection and try again.');
       } else if (err.isAuthError) {
@@ -229,7 +229,6 @@ export function SnapPhotoModal({ isOpen, onClose, mealType, clientData, onFoodLo
       showSuccess('Food added to diary!');
       handleClose();
     } catch (err) {
-      console.error('Failed to add foods:', err);
       setError('Failed to add foods. Please try again.');
       isAddingRef.current = false; // Reset ref on error to allow retry
       showError('Failed to add food to diary');
@@ -444,7 +443,6 @@ export function SearchFoodsModal({ isOpen, onClose, mealType, clientData, onFood
       // API returns { results: [...], query: "..." }
       setResults(Array.isArray(data?.results) ? data.results : []);
     } catch (err) {
-      console.error('Search error:', err);
       setResults([]);
     } finally {
       setSearching(false);
@@ -527,7 +525,6 @@ export function SearchFoodsModal({ isOpen, onClose, mealType, clientData, onFood
       showSuccess('Food added to diary!');
       handleClose();
     } catch (err) {
-      console.error('Failed to add food:', err);
       isAddingRef.current = false; // Reset ref on error to allow retry
       showError('Failed to add food to diary');
     } finally {
@@ -682,6 +679,7 @@ export function FavoritesModal({ isOpen, onClose, mealType, clientData, onFoodLo
   const [confirmFavorite, setConfirmFavorite] = useState(null);
   const addingRef = useRef(false); // Ref to prevent duplicate submissions
   const { showError, showSuccess } = useToast();
+  const confirm = useConfirm();
 
   useEffect(() => {
     setSelectedMealType(mealType);
@@ -709,7 +707,6 @@ export function FavoritesModal({ isOpen, onClose, mealType, clientData, onFoodLo
       // Cache the results
       sessionStorage.setItem(`favorites_${clientData.id}`, JSON.stringify(newFavorites));
     } catch (err) {
-      console.error('Failed to load favorites:', err);
     } finally {
       setLoading(false);
     }
@@ -760,7 +757,6 @@ export function FavoritesModal({ isOpen, onClose, mealType, clientData, onFoodLo
       addingRef.current = false;
       onClose();
     } catch (err) {
-      console.error('Failed to add favorite:', err);
       addingRef.current = false; // Reset ref on error to allow retry
       showError('Failed to add food to diary');
     } finally {
@@ -770,7 +766,7 @@ export function FavoritesModal({ isOpen, onClose, mealType, clientData, onFoodLo
 
   const deleteFavorite = async (favoriteId, e) => {
     e.stopPropagation();
-    if (!confirm('Delete this favorite?')) return;
+    if (!await confirm('Delete this favorite?', { title: 'Delete Favorite', confirmText: 'Delete', destructive: true })) return;
 
     // Optimistic update
     const previousFavorites = favorites;
@@ -785,7 +781,6 @@ export function FavoritesModal({ isOpen, onClose, mealType, clientData, onFoodLo
     try {
       await apiDelete(`/.netlify/functions/toggle-favorite?favoriteId=${favoriteId}`);
     } catch (err) {
-      console.error('Failed to delete favorite:', err);
       // Revert on error
       setFavorites(previousFavorites);
       if (clientData?.id) {
@@ -928,7 +923,6 @@ export function ScanLabelModal({ isOpen, onClose, mealType, clientData, onFoodLo
         setError('Could not read nutrition label. Please try a clearer photo.');
       }
     } catch (err) {
-      console.error('Label analysis error:', err);
       if (err.isTimeout) {
         setError('Label analysis timed out. Please check your connection and try again.');
       } else if (err.isAuthError) {
@@ -994,7 +988,6 @@ export function ScanLabelModal({ isOpen, onClose, mealType, clientData, onFoodLo
       showSuccess('Food added to diary!');
       handleClose();
     } catch (err) {
-      console.error('Food diary error:', err);
       const errorMessage = err?.response?.data?.error || err?.message || 'Failed to add food. Please try again.';
       setError(errorMessage);
       isAddingRef.current = false; // Reset ref on error to allow retry

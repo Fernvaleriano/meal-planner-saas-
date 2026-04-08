@@ -51,7 +51,6 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
     try {
       onCloseRef.current?.();
     } catch (e) {
-      console.error('Error in forceClose:', e);
       window.history.back();
     }
   }, []);
@@ -161,7 +160,6 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
       if (err.name === 'AbortError') return; // Request was cancelled — ignore
       if (!isMountedRef.current || fetchIdRef.current !== myFetchId) return;
 
-      console.error('Error fetching AI suggestions:', err);
       setError('Failed to get suggestions. Please try again.');
       setSuggestions([]);
     }
@@ -219,7 +217,6 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
     } catch (err) {
       if (err.name === 'AbortError') return; // Request was cancelled — ignore
       if (!isMountedRef.current) return;
-      console.error('Error fetching browse exercises:', err);
       setBrowseExercises([]);
     }
 

@@ -88,7 +88,6 @@ function Toast({ toast, onDismiss }) {
         await toast.onRetry();
         onDismiss();
       } catch (error) {
-        console.error('Retry failed:', error);
         setIsRetrying(false);
       }
     }

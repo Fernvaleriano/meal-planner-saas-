@@ -136,7 +136,6 @@ export function usePullToRefresh(onRefresh, options = {}) {
         try {
           await onRefresh();
         } catch (error) {
-          console.error('Pull-to-refresh error:', error);
         } finally {
           clearTimeout(refreshTimeoutRef.current);
           refreshTimeoutRef.current = null;

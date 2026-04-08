@@ -203,7 +203,6 @@ function ExerciseDetailModal({
     try {
       onClose?.();
     } catch (e) {
-      console.error('Error in forceClose:', e);
       // Last resort: navigate back
       window.history.back();
     }
@@ -492,7 +491,6 @@ function ExerciseDetailModal({
         restSeconds: exercise.restSeconds ?? 60
       }));
     } catch (e) {
-      console.error('Error initializing sets:', e);
       return [{ reps: 12, weight: 0, completed: false, restSeconds: 60 }];
     }
   }, [exercise?.id]); // Only recompute when exercise ID changes
@@ -559,7 +557,6 @@ function ExerciseDetailModal({
         }
         allTimeBestRepsRef.current = bestReps;
       } catch (err) {
-        console.error('Error fetching exercise history for PR tracking:', err);
       }
     };
 
@@ -719,7 +716,6 @@ function ExerciseDetailModal({
         }
       }
     } catch (err) {
-      console.error('Error auto-saving exercise log:', err);
       setsChangedRef.current = false;
     }
   }, []);
@@ -882,11 +878,9 @@ function ExerciseDetailModal({
             }
           });
         } catch (notifErr) {
-          console.error('Error creating note notification:', notifErr);
         }
       }
     } catch (err) {
-      console.error('Error saving client note:', err);
     }
   }, [clientId, exercise?.id, exercise?.name, coachId, sets, getWorkoutDateStr]);
 
@@ -967,11 +961,9 @@ function ExerciseDetailModal({
                 });
                 signedDownloadUrl = confirmRes?.url || null;
               } else {
-                console.warn('Direct upload failed, trying base64 fallback');
               }
             }
           } catch (directErr) {
-            console.warn('Signed upload method failed, trying base64 fallback:', directErr.message);
           }
 
           // Fallback Method 2: Base64 through Netlify function (works for smaller files)
@@ -993,7 +985,6 @@ function ExerciseDetailModal({
                 signedDownloadUrl = res.url || null;
               }
             } catch (base64Err) {
-              console.error('Base64 upload also failed:', base64Err.message);
             }
           }
 
@@ -1085,12 +1076,10 @@ function ExerciseDetailModal({
                   }
                 });
               } catch (notifErr) {
-                console.error('Error creating voice note notification:', notifErr);
               }
             }
           }
         } catch (err) {
-          console.error('Error uploading voice note:', err);
         } finally {
           // Guard: Only update state if still mounted
           if (isMountedRef.current) {
@@ -1102,7 +1091,6 @@ function ExerciseDetailModal({
       mediaRecorder.start();
       setIsRecordingVoiceNote(true);
     } catch (err) {
-      console.error('Error starting voice recording:', err);
     }
   }, [clientId, exercise?.id, exercise?.name, coachId, sets, clientNote, getWorkoutDateStr]);
 
@@ -1127,7 +1115,6 @@ function ExerciseDetailModal({
       try {
         callbackRefs.current.onClose?.();
       } catch (e) {
-        console.error('Error closing modal:', e);
         forceClose();
       }
     });
@@ -1217,7 +1204,6 @@ function ExerciseDetailModal({
     };
 
     recognition.onerror = (event) => {
-      console.error('Speech recognition error:', event.error);
       if (event.error === 'not-allowed') {
         setVoiceError('Microphone access denied');
       } else if (event.error === 'no-speech') {
@@ -1267,7 +1253,6 @@ function ExerciseDetailModal({
           callbackRefs.current.onSwapExercise?.(currentExercise, newExercise);
         }
       } catch (e) {
-        console.error('Error swapping exercise:', e);
       }
     });
   // NOTE: exercise accessed via exerciseRef to prevent callback recreation
@@ -1280,7 +1265,6 @@ function ExerciseDetailModal({
         callbackRefs.current.onSelectExercise?.(ex);
       }
     } catch (e) {
-      console.error('Error selecting exercise:', e);
     }
   }, []);
 
@@ -1347,7 +1331,6 @@ function ExerciseDetailModal({
           callbackRefs.current.onDeleteExercise?.(currentExercise);
         }
       } catch (e) {
-        console.error('Error deleting exercise:', e);
       }
     });
   // NOTE: exercise accessed via exerciseRef to prevent callback recreation
@@ -1374,7 +1357,6 @@ function ExerciseDetailModal({
         setHistoryStats(res.stats || null);
       }
     } catch (err) {
-      console.error('Error fetching exercise history:', err);
     } finally {
       setHistoryLoading(false);
     }
@@ -1410,7 +1392,6 @@ function ExerciseDetailModal({
       setHistoryStats(null);
       await fetchExerciseHistory();
     } catch (err) {
-      console.error('Error deleting history entry:', err);
     } finally {
       setDeletingHistoryId(null);
     }
@@ -1475,7 +1456,6 @@ function ExerciseDetailModal({
         if (cancelled) return;
         setCoachingRecommendation(result);
       } catch (err) {
-        console.error('Error generating coaching recommendation:', err);
         if (!cancelled) {
           setCoachingRecommendation(null);
         }
@@ -1543,9 +1523,7 @@ function ExerciseDetailModal({
           dayIndex,
           workout_data: { exercises: updatedExercises }
         });
-        console.log('Coaching recommendation saved to assignment successfully');
       } catch (err) {
-        console.error('Error saving coaching rec to assignment:', err);
       }
     };
     saveToAssignment();
@@ -1603,9 +1581,7 @@ function ExerciseDetailModal({
             sets: setsData
           }]
         });
-        console.log('Coaching recommendation saved to workout log successfully');
       } catch (err) {
-        console.error('Error saving accepted recommendation to workout log:', err);
       }
     };
     saveToWorkoutLog();
@@ -1736,7 +1712,6 @@ function ExerciseDetailModal({
         }
       }
     } catch (err) {
-      console.error('Thumbnail upload failed:', err);
     } finally {
       setThumbnailUploading(false);
       // Reset file input
@@ -1778,13 +1753,6 @@ function ExerciseDetailModal({
   // Fallback: when video fails, re-fetch a fresh signed URL if this is a custom video
   const handleVideoError = useCallback(async (e) => {
     const mediaError = e?.target?.error;
-    console.error(`Video load failed for "${exercise?.name}":`, {
-      url: videoUrl,
-      customVideoPath: exercise?.customVideoPath,
-      customVideoUrl: exercise?.customVideoUrl,
-      errorCode: mediaError?.code,
-      errorMessage: mediaError?.message
-    });
 
     // If we already tried the blob fallback, give up
     if (videoBlobUrl) {
@@ -1812,7 +1780,6 @@ function ExerciseDetailModal({
         });
         const data = await resp.json();
         if (data.fileExists === false) {
-          console.error('[video-fix] FILE DOES NOT EXIST in storage:', customPath);
           // File is gone — skip all retries, show error
           setVideoLoading(false);
           setVideoError(true);
@@ -1832,11 +1799,9 @@ function ExerciseDetailModal({
             // Read error body from Supabase to understand why it returned 400
             let errorBody = '';
             try { errorBody = await videoResp.text(); } catch { /* ignore */ }
-            console.error('[video-fix] Fresh signed URL returned HTTP', videoResp.status, errorBody);
           }
         }
       } catch (err) {
-        console.error('[video-fix] Fresh signed URL fallback failed:', err);
       }
     } else {
     }
@@ -1857,7 +1822,6 @@ function ExerciseDetailModal({
         setVideoError(false);
         setVideoKey(k => k + 1);
       } catch (fetchErr) {
-        console.error('[video-fix] Blob fallback also failed:', fetchErr);
         setVideoLoading(false);
         setVideoError(true);
       }

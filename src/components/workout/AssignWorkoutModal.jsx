@@ -88,7 +88,6 @@ function AssignWorkoutModal({ program, coachId, onClose, onAssigned }) {
           });
           successCount++;
         } catch (err) {
-          console.error(`Failed to assign to client ${clientId}:`, err);
         }
       }
 

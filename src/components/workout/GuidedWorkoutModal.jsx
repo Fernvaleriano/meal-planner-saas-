@@ -942,7 +942,6 @@ function GuidedWorkoutModal({
           setAiRecommendations(prev => ({ ...prev, [currentExIndex]: null }));
         }
       } catch (err) {
-        console.error('Error fetching progress tip:', err);
         setProgressTips(prev => ({ ...prev, [currentExIndex]: null }));
       }
     };
@@ -1039,7 +1038,6 @@ function GuidedWorkoutModal({
         }
       }
     } catch (err) {
-      console.error('AI chat error:', err);
       setAiChatMessages(prev => [...prev, {
         role: 'assistant',
         content: "I'm having trouble connecting. Let me give you a quick tip: if you're feeling good, try adding 1 rep. If you're tired, it's okay to match your last session."
@@ -1113,7 +1111,6 @@ function GuidedWorkoutModal({
         setTimeout(() => setClientNoteSaved(prev => ({ ...prev, [exIndex]: false })), 2000);
       }
     } catch (err) {
-      console.error('Error saving client note:', err);
     }
   }, [clientId, coachId, exercises, currentExIndex, getWorkoutDateStr, workoutName, setLogs]);
 
@@ -1193,7 +1190,6 @@ function GuidedWorkoutModal({
               }
             }
           } catch (directErr) {
-            console.warn('Signed upload failed, trying base64 fallback');
           }
 
           // Fallback: base64 upload
@@ -1215,7 +1211,6 @@ function GuidedWorkoutModal({
                 signedDownloadUrl = res.url || null;
               }
             } catch (base64Err) {
-              console.error('Base64 upload failed:', base64Err);
             }
           }
 
@@ -1237,7 +1232,6 @@ function GuidedWorkoutModal({
             saveClientNote(clientNotes[recordingExIndex] || '', recordingExIndex);
           }
         } catch (uploadErr) {
-          console.error('Voice note upload error:', uploadErr);
         } finally {
           // Guard: Only update state if still mounted
           if (isMountedRef.current) {
@@ -1249,7 +1243,6 @@ function GuidedWorkoutModal({
       mediaRecorder.start();
       setIsRecordingVoiceNote(true);
     } catch (err) {
-      console.error('Error starting voice recording:', err);
     }
   }, [clientId, exercises, currentExIndex, clientNotes, saveClientNote]);
 
@@ -1408,13 +1401,6 @@ function GuidedWorkoutModal({
   const handleGuidedVideoError = useCallback(async (e) => {
     const guidedVideoUrl = currentExercise?.customVideoUrl || currentExercise?.video_url || currentExercise?.animation_url;
     const mediaError = e?.target?.error;
-    console.error(`Guided video load failed for "${currentExercise?.name}":`, {
-      url: guidedVideoUrl,
-      customVideoPath: currentExercise?.customVideoPath,
-      customVideoUrl: currentExercise?.customVideoUrl,
-      errorCode: mediaError?.code,
-      errorMessage: mediaError?.message
-    });
 
     // If we already tried the blob fallback, give up
     if (guidedVideoBlobUrl) {
@@ -1442,7 +1428,6 @@ function GuidedWorkoutModal({
         });
         const data = await resp.json();
         if (data.fileExists === false) {
-          console.error('[guided-video-fix] FILE DOES NOT EXIST in storage:', customPath);
           setGuidedVideoLoading(false);
           setGuidedVideoError(true);
           return;
@@ -1460,11 +1445,9 @@ function GuidedWorkoutModal({
           } else {
             let errorBody = '';
             try { errorBody = await videoResp.text(); } catch { /* ignore */ }
-            console.error('[guided-video-fix] Fresh signed URL returned HTTP', videoResp.status, errorBody);
           }
         }
       } catch (err) {
-        console.error('[guided-video-fix] Fresh signed URL fallback failed:', err);
       }
     }
 
@@ -1484,7 +1467,6 @@ function GuidedWorkoutModal({
         setGuidedVideoError(false);
         setGuidedVideoKey(k => k + 1);
       } catch (fetchErr) {
-        console.error('[guided-video-fix] Blob fallback also failed:', fetchErr);
         setGuidedVideoLoading(false);
         setGuidedVideoError(true);
       }

@@ -387,7 +387,6 @@ export default function CoachBilling() {
       setPromoCodes(promoRes.promo_codes || []);
       setRevenue(revenueRes);
     } catch (err) {
-      console.error('Error loading billing data:', err);
     } finally {
       setLoading(false);
     }

@@ -133,7 +133,6 @@ function Dashboard() {
         setSupplementIntake(intakeMap);
       }
     } catch (err) {
-      console.error('Error refreshing data:', err);
     }
   }, [clientData?.id, clientData?.coach_id]);
 
@@ -299,7 +298,7 @@ function Dashboard() {
         setHasStories(newHasStories);
         setCache(`coach_${clientData.id}`, { coachData: newCoachData, hasStories: newHasStories });
       }
-    }).catch(err => console.error('Error loading dashboard data:', err));
+    })
 
   }, [clientData?.id, clientData?.coach_id]);
 
@@ -383,7 +382,6 @@ function Dashboard() {
       setServings(1);
       setShowConfirmation(true);
     } catch (err) {
-      console.error('Error analyzing food:', err);
       if (err.isTimeout) {
         showError('Food analysis timed out. Please check your connection and try again.');
       } else if (err.isAuthError) {
@@ -467,7 +465,6 @@ function Dashboard() {
       if (logSuccessTimerRef.current) clearTimeout(logSuccessTimerRef.current);
       logSuccessTimerRef.current = setTimeout(() => setLogSuccess(false), 3000);
     } catch (err) {
-      console.error('Error logging food:', err);
       showError('Error logging food. Please try again.');
     } finally {
       setIsLogging(false);
@@ -547,7 +544,6 @@ function Dashboard() {
             showError('No speech detected. Please try again and speak clearly.');
           }
         } catch (err) {
-          console.error('Transcription failed:', err);
           showError('Could not transcribe audio. Please check your internet connection and try again.');
         } finally {
           setIsTranscribing(false);
@@ -558,7 +554,6 @@ function Dashboard() {
       mediaRecorderRef.current = recorder;
       setIsRecording(true);
     } catch (err) {
-      console.error('MediaRecorder start failed:', err);
       if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
         showError('Microphone access denied. Please allow microphone access in your device settings.');
       } else {
@@ -598,7 +593,6 @@ function Dashboard() {
         // Stop the stream immediately - we just needed to activate the mic permission
         stream.getTracks().forEach(track => track.stop());
       } catch (err) {
-        console.error('iOS microphone warmup failed:', err);
         if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
           showError('Microphone access denied. Please allow microphone access in your iPhone Settings > Safari > Microphone.');
         } else {
@@ -651,7 +645,6 @@ function Dashboard() {
     };
 
     recognition.onerror = (event) => {
-      console.error('Voice recognition error:', event.error);
 
       // User-friendly error messages for each error type
       const errorMessages = {
@@ -681,7 +674,6 @@ function Dashboard() {
       recognition.start();
       recognitionRef.current = recognition;
     } catch (err) {
-      console.error('Failed to start speech recognition:', err);
       showError('Could not start microphone. Please try again.');
       resetVoiceUI();
     }
@@ -842,7 +834,6 @@ function Dashboard() {
         });
       }
     } catch (err) {
-      console.error('Error toggling supplement:', err);
       // Revert on error
       if (isCurrentlyTaken) {
         setSupplementIntake(prev => ({ ...prev, [protocolId]: true }));

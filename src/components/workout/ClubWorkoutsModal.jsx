@@ -191,7 +191,6 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
         const res = await apiGet(url);
         setWorkouts(res?.workouts || []);
       } catch (err) {
-        console.error('Error fetching club workouts:', err);
         setWorkouts([]);
       } finally {
         setLoading(false);

@@ -22,12 +22,30 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- Deep link: ziquefitness://app/* -->
+            <!-- Deep link: ziquecoach://app/* -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="ziquefitness" android:host="app" />
+                <data android:scheme="ziquecoach" android:host="app" />
+            </intent-filter>
+
+            <!-- HTTPS App Links for ziquecoach.com -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="ziquecoach.com" />
+                <data android:scheme="https" android:host="www.ziquecoach.com" />
+            </intent-filter>
+
+            <!-- HTTPS App Links for existing domain -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="ziquefitnessnutrition.com" />
+                <data android:scheme="https" android:host="www.ziquefitnessnutrition.com" />
             </intent-filter>
 
         </activity>
@@ -46,6 +64,7 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
 </manifest>

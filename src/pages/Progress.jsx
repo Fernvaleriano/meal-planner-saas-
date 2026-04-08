@@ -7,6 +7,7 @@ import { apiGet, apiPost, apiDelete } from '../utils/api';
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
 
 import { useToast } from '../components/Toast';
+import { useConfirm } from '../components/ConfirmDialog';
 // Get today's date in local timezone (NOT UTC)
 const getLocalDateString = () => {
   const now = new Date();
@@ -162,6 +163,7 @@ function Progress() {
   const navigate = useNavigate();
   const { clientData } = useAuth();
   const { showError, showSuccess } = useToast();
+  const confirm = useConfirm();
 
   // Get user's preferred units
   const isMetric = clientData?.unit_preference === 'metric';
@@ -235,7 +237,6 @@ function Progress() {
       if (measurementsData?.measurements) setMeasurements(measurementsData.measurements);
       if (photosData?.photos) setPhotos(photosData.photos);
     } catch (err) {
-      console.error('Error refreshing progress data:', err);
     }
   }, [clientData?.id]);
 
@@ -254,7 +255,6 @@ function Progress() {
       const data = await apiGet(`/.netlify/functions/get-measurements?clientId=${clientData.id}&limit=200`);
       setMeasurements(data?.measurements || []);
     } catch (err) {
-      console.error('Error loading measurements:', err);
     } finally {
       setLoadingMeasurements(false);
     }
@@ -266,7 +266,6 @@ function Progress() {
       const data = await apiGet(`/.netlify/functions/get-progress-photos?clientId=${clientData.id}`);
       setPhotos(data?.photos || []);
     } catch (err) {
-      console.error('Error loading photos:', err);
     } finally {
       setLoadingPhotos(false);
     }
@@ -348,8 +347,7 @@ function Progress() {
       setQuickLogValue('');
       loadMeasurements();
     } catch (err) {
-      console.error('Error saving measurement:', err);
-      alert(err.message || 'Error saving. Please try again.');
+      showError(err.message || 'Error saving. Please try again.');
     } finally {
       setSavingQuickLog(false);
     }
@@ -397,7 +395,6 @@ function Progress() {
       });
       loadMeasurements();
     } catch (err) {
-      console.error('Error saving measurement:', err);
       showError(err.message || 'Error saving measurement. Please try again.');
     } finally {
       setSavingMeasurement(false);
@@ -411,7 +408,6 @@ function Progress() {
       await apiDelete(`/.netlify/functions/delete-measurement?measurementId=${measurementId}&clientId=${clientData.id}`);
       setMeasurements(prev => prev.filter(m => m.id !== measurementId));
     } catch (err) {
-      console.error('Error deleting measurement:', err);
       showError('Failed to delete measurement. Please try again.');
     }
   };
@@ -423,7 +419,6 @@ function Progress() {
       await apiDelete(`/.netlify/functions/delete-progress-photo?photoId=${photoId}&coachId=${clientData.coach_id}`);
       setPhotos(prev => prev.filter(p => p.id !== photoId));
     } catch (err) {
-      console.error('Error deleting photo:', err);
       showError('Failed to delete photo. Please try again.');
     }
   };
@@ -437,7 +432,6 @@ function Progress() {
       const compressed = await compressImage(file);
       setPhotoPreview(compressed);
     } catch (err) {
-      console.error('Error processing photo:', err);
       showError('Error processing photo. Please try a different image.');
     }
   };
@@ -472,7 +466,6 @@ function Progress() {
       setPhotoDate(getLocalDateString());
       loadPhotos();
     } catch (err) {
-      console.error('Error uploading photo:', err);
       showError(err.message || 'Error uploading photo. Please try again.');
     } finally {
       setUploadingPhoto(false);
@@ -536,7 +529,6 @@ function Progress() {
       });
       setAiAnalysis(data.analysis || 'Unable to generate analysis.');
     } catch (err) {
-      console.error('Error analyzing photos:', err);
       setAiAnalysis('Unable to analyze photos right now. Please try again later.');
     } finally {
       setAnalyzingPhotos(false);
@@ -717,10 +709,10 @@ function Progress() {
                         {!compareMode && (
                           <button
                             className="photo-delete-btn"
-                            onClick={(e) => {
+                            onClick={async (e) => {
                               e.stopPropagation();
                               const dateStr = new Date(photo.taken_date || photo.date_taken).toLocaleDateString();
-                              if (window.confirm(`Delete photo from ${dateStr}?`)) {
+                              if (await confirm(`Delete photo from ${dateStr}?`, { title: 'Delete Photo', confirmText: 'Delete', destructive: true })) {
                                 handleDeletePhoto(photo.id);
                               }
                             }}
