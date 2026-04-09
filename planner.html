@@ -11871,14 +11871,17 @@ async function editSelectedTemplate() {
                     </div>
                     <input type="text" value="${(meal.name || '').replace(/"/g, '&quot;')}" data-field="name" placeholder="Meal name"
                            style="width:100%;padding:6px 8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-bottom:6px;background:#fff;">
-                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:6px;">
-                        <div><label style="font-size:10px;color:#64748b;">Calories</label><input type="number" value="${meal.calories || 0}" data-field="calories" style="width:100%;padding:4px 6px;border:1px solid #cbd5e1;border-radius:4px;font-size:12px;background:#fff;"></div>
-                        <div><label style="font-size:10px;color:#64748b;">Protein</label><input type="number" value="${meal.protein || 0}" data-field="protein" style="width:100%;padding:4px 6px;border:1px solid #cbd5e1;border-radius:4px;font-size:12px;background:#fff;"></div>
-                        <div><label style="font-size:10px;color:#64748b;">Carbs</label><input type="number" value="${meal.carbs || 0}" data-field="carbs" style="width:100%;padding:4px 6px;border:1px solid #cbd5e1;border-radius:4px;font-size:12px;background:#fff;"></div>
-                        <div><label style="font-size:10px;color:#64748b;">Fat</label><input type="number" value="${meal.fat || 0}" data-field="fat" style="width:100%;padding:4px 6px;border:1px solid #cbd5e1;border-radius:4px;font-size:12px;background:#fff;"></div>
+                    <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+                        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;flex:1;">
+                            <div><label style="font-size:10px;color:#64748b;">Calories</label><input type="number" value="${meal.calories || 0}" data-field="calories" style="width:100%;padding:4px 6px;border:1px solid #cbd5e1;border-radius:4px;font-size:12px;background:#fff;"></div>
+                            <div><label style="font-size:10px;color:#64748b;">Protein</label><input type="number" value="${meal.protein || 0}" data-field="protein" style="width:100%;padding:4px 6px;border:1px solid #cbd5e1;border-radius:4px;font-size:12px;background:#fff;"></div>
+                            <div><label style="font-size:10px;color:#64748b;">Carbs</label><input type="number" value="${meal.carbs || 0}" data-field="carbs" style="width:100%;padding:4px 6px;border:1px solid #cbd5e1;border-radius:4px;font-size:12px;background:#fff;"></div>
+                            <div><label style="font-size:10px;color:#64748b;">Fat</label><input type="number" value="${meal.fat || 0}" data-field="fat" style="width:100%;padding:4px 6px;border:1px solid #cbd5e1;border-radius:4px;font-size:12px;background:#fff;"></div>
+                        </div>
+                        <button onclick="templateEditorRecalcNutrition(${dayIdx},${mealIdx})" title="Recalculate nutrition from ingredients" style="background:#0d9488;color:white;border:none;border-radius:6px;padding:6px 8px;font-size:10px;cursor:pointer;font-weight:600;white-space:nowrap;margin-top:12px;">&#x21bb; Calc</button>
                     </div>
-                    <div><label style="font-size:10px;color:#64748b;">Ingredients (one per line)</label>
-                        <textarea data-field="ingredients" rows="3" placeholder="e.g. 200g chicken breast&#10;1 cup rice"
+                    <div><label style="font-size:10px;color:#64748b;">Ingredients (one per line, include amounts e.g. "200g chicken breast")</label>
+                        <textarea data-field="ingredients" rows="3" placeholder="e.g. 200g chicken breast&#10;1 cup rice&#10;Egg white (100g)"
                                   style="width:100%;padding:6px 8px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;resize:vertical;background:#fff;">${ingredientsList}</textarea>
                     </div>
                     <div style="margin-top:6px;"><label style="font-size:10px;color:#64748b;">Instructions</label>
@@ -12033,14 +12036,17 @@ function _rerenderTemplateEditor(modal) {
                 </div>
                 <input type="text" value="${(meal.name || '').replace(/"/g, '&quot;')}" data-field="name" placeholder="Meal name"
                        style="width:100%;padding:6px 8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-bottom:6px;background:#fff;">
-                <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:6px;">
-                    <div><label style="font-size:10px;color:#64748b;">Calories</label><input type="number" value="${meal.calories || 0}" data-field="calories" style="width:100%;padding:4px 6px;border:1px solid #cbd5e1;border-radius:4px;font-size:12px;background:#fff;"></div>
-                    <div><label style="font-size:10px;color:#64748b;">Protein</label><input type="number" value="${meal.protein || 0}" data-field="protein" style="width:100%;padding:4px 6px;border:1px solid #cbd5e1;border-radius:4px;font-size:12px;background:#fff;"></div>
-                    <div><label style="font-size:10px;color:#64748b;">Carbs</label><input type="number" value="${meal.carbs || 0}" data-field="carbs" style="width:100%;padding:4px 6px;border:1px solid #cbd5e1;border-radius:4px;font-size:12px;background:#fff;"></div>
-                    <div><label style="font-size:10px;color:#64748b;">Fat</label><input type="number" value="${meal.fat || 0}" data-field="fat" style="width:100%;padding:4px 6px;border:1px solid #cbd5e1;border-radius:4px;font-size:12px;background:#fff;"></div>
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;flex:1;">
+                        <div><label style="font-size:10px;color:#64748b;">Calories</label><input type="number" value="${meal.calories || 0}" data-field="calories" style="width:100%;padding:4px 6px;border:1px solid #cbd5e1;border-radius:4px;font-size:12px;background:#fff;"></div>
+                        <div><label style="font-size:10px;color:#64748b;">Protein</label><input type="number" value="${meal.protein || 0}" data-field="protein" style="width:100%;padding:4px 6px;border:1px solid #cbd5e1;border-radius:4px;font-size:12px;background:#fff;"></div>
+                        <div><label style="font-size:10px;color:#64748b;">Carbs</label><input type="number" value="${meal.carbs || 0}" data-field="carbs" style="width:100%;padding:4px 6px;border:1px solid #cbd5e1;border-radius:4px;font-size:12px;background:#fff;"></div>
+                        <div><label style="font-size:10px;color:#64748b;">Fat</label><input type="number" value="${meal.fat || 0}" data-field="fat" style="width:100%;padding:4px 6px;border:1px solid #cbd5e1;border-radius:4px;font-size:12px;background:#fff;"></div>
+                    </div>
+                    <button onclick="templateEditorRecalcNutrition(${dayIdx},${mealIdx})" title="Recalculate nutrition from ingredients" style="background:#0d9488;color:white;border:none;border-radius:6px;padding:6px 8px;font-size:10px;cursor:pointer;font-weight:600;white-space:nowrap;margin-top:12px;">&#x21bb; Calc</button>
                 </div>
-                <div><label style="font-size:10px;color:#64748b;">Ingredients (one per line)</label>
-                    <textarea data-field="ingredients" rows="3" placeholder="e.g. 200g chicken breast&#10;1 cup rice"
+                <div><label style="font-size:10px;color:#64748b;">Ingredients (one per line, include amounts e.g. "200g chicken breast")</label>
+                    <textarea data-field="ingredients" rows="3" placeholder="e.g. 200g chicken breast&#10;1 cup rice&#10;Egg white (100g)"
                               style="width:100%;padding:6px 8px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;resize:vertical;background:#fff;">${ingredientsList}</textarea>
                 </div>
                 <div style="margin-top:6px;"><label style="font-size:10px;color:#64748b;">Instructions</label>
@@ -12067,6 +12073,82 @@ function _rerenderTemplateEditor(modal) {
     const descEl = document.getElementById('tpl-edit-desc');
     if (nameEl) nameEl.value = nameVal;
     if (descEl) descEl.value = descVal;
+}
+
+// Recalculate nutrition for a meal card in the template editor by parsing ingredients
+async function templateEditorRecalcNutrition(dayIdx, mealIdx) {
+    const card = document.querySelector(`.tpl-meal-card[data-day="${dayIdx}"][data-meal="${mealIdx}"]`);
+    if (!card) return;
+
+    const ingTextarea = card.querySelector('[data-field="ingredients"]');
+    if (!ingTextarea) return;
+
+    const lines = ingTextarea.value.split('\n').map(s => s.trim()).filter(Boolean);
+    if (lines.length === 0) {
+        alert('Please add ingredients with amounts first (e.g. "200g chicken breast" or "Egg white (100g)").');
+        return;
+    }
+
+    // Show loading state on the button
+    const btn = card.querySelector('button[onclick*="templateEditorRecalcNutrition"]');
+    const originalText = btn ? btn.innerHTML : '';
+    if (btn) { btn.innerHTML = '...'; btn.disabled = true; }
+
+    try {
+        const ingredientData = await parseAndLookupIngredients(lines);
+
+        if (!ingredientData || ingredientData.length === 0) {
+            alert('Could not parse ingredients. Make sure they include amounts, e.g.:\n• 200g chicken breast\n• Egg white (100g)\n• 1 cup rice');
+            return;
+        }
+
+        // Sum up nutrition from all parsed ingredients
+        let totalCal = 0, totalProtein = 0, totalCarbs = 0, totalFat = 0;
+        ingredientData.forEach(ing => {
+            const grams = ing.quantityGrams || ing.quantity;
+            const factor = grams / 100;
+            totalCal += ing.caloriesPer100g * factor;
+            totalProtein += ing.proteinPer100g * factor;
+            totalCarbs += ing.carbsPer100g * factor;
+            totalFat += ing.fatPer100g * factor;
+        });
+
+        // Update the input fields
+        const calInput = card.querySelector('[data-field="calories"]');
+        const proInput = card.querySelector('[data-field="protein"]');
+        const carbInput = card.querySelector('[data-field="carbs"]');
+        const fatInput = card.querySelector('[data-field="fat"]');
+
+        if (calInput) calInput.value = Math.round(totalCal);
+        if (proInput) proInput.value = Math.round(totalProtein);
+        if (carbInput) carbInput.value = Math.round(totalCarbs);
+        if (fatInput) fatInput.value = Math.round(totalFat);
+
+        // Brief flash to confirm update
+        [calInput, proInput, carbInput, fatInput].forEach(input => {
+            if (input) {
+                input.style.background = '#d1fae5';
+                setTimeout(() => { input.style.background = '#fff'; }, 1200);
+            }
+        });
+
+        console.log(`✅ Template meal [Day ${dayIdx+1}, Meal ${mealIdx+1}] nutrition recalculated:`, {
+            calories: Math.round(totalCal), protein: Math.round(totalProtein),
+            carbs: Math.round(totalCarbs), fat: Math.round(totalFat),
+            parsedIngredients: ingredientData.length, totalLines: lines.length
+        });
+
+        if (ingredientData.length < lines.length) {
+            showToast(`Updated nutrition (${ingredientData.length}/${lines.length} ingredients matched)`, 'info');
+        } else {
+            showToast('Nutrition updated!', 'success');
+        }
+    } catch (error) {
+        console.error('Error recalculating nutrition:', error);
+        alert('Failed to look up ingredients. Please try again.');
+    } finally {
+        if (btn) { btn.innerHTML = originalText; btn.disabled = false; }
+    }
 }
 
 async function saveTemplateEdits() {
