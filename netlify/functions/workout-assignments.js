@@ -612,6 +612,18 @@ exports.handler = withTimeout(async (event) => {
         schedule: schedule || { selectedDays: ['mon', 'tue', 'wed', 'thu', 'fri'] }
       };
 
+      // Calculate end_date if not provided but we have start + weeks
+      let finalEndDate = endDate;
+      if (!finalEndDate) {
+        const effectiveStart = startDate || schedule?.startDate;
+        const weeks = schedule?.weeksAmount;
+        if (effectiveStart && weeks) {
+          const end = new Date(effectiveStart);
+          end.setDate(end.getDate() + (weeks * 7));
+          finalEndDate = end.toISOString().split('T')[0];
+        }
+      }
+
       // Create new assignment
       const { data: assignment, error } = await supabase
         .from('client_workout_assignments')
@@ -621,7 +633,7 @@ exports.handler = withTimeout(async (event) => {
           program_id: programId,
           name: finalName || 'Custom Workout Plan',
           start_date: startDate || schedule?.startDate,
-          end_date: endDate,
+          end_date: finalEndDate,
           workout_data: workoutDataWithSchedule,
           is_active: true
         }])

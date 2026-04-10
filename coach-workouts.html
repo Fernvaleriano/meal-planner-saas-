@@ -10946,6 +10946,11 @@
                         original.video_url = replacement.video_url || '';
                     }
 
+                    // Calculate end date from start + weeks
+                    const endDateObj = new Date(startDate);
+                    endDateObj.setDate(endDateObj.getDate() + (weeksAmount * 7));
+                    const endDate = endDateObj.toISOString().split('T')[0];
+
                     await apiCall('/.netlify/functions/workout-assignments', {
                         method: 'POST',
                         body: JSON.stringify({
@@ -10961,7 +10966,8 @@
                                 startDate,
                                 weeksAmount,
                                 selectedDays
-                            }
+                            },
+                            endDate
                         })
                     });
                 }
