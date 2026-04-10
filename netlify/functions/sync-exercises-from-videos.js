@@ -37,6 +37,7 @@ const FOLDER_TO_MUSCLE = {
   'general': 'general',
   'cardio': 'cardio',
   'stretching': 'flexibility',
+  'yoga': 'flexibility',
   'warmup': 'warmup',
   'cooldown': 'cooldown'
 };
