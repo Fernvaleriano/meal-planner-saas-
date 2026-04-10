@@ -200,19 +200,43 @@ exports.handler = async (event) => {
       return true;
     });
 
-    // Batch upsert (insert or update by name)
+    // Fetch existing exercise names so we only insert new ones.
+    // The exercises table has no UNIQUE(name) constraint (there are ~54
+    // duplicate names), so .upsert(onConflict:'name') errors out.
+    // Manual insert-only keeps things safe and won't clobber existing video_urls.
+    let existingNames = new Set();
+    if (exercises.length > 0) {
+      const names = exercises.map(e => e.name);
+      const { data: existing, error: existingErr } = await supabase
+        .from('exercises')
+        .select('name')
+        .in('name', names);
+
+      if (existingErr) {
+        return {
+          statusCode: 500,
+          headers,
+          body: JSON.stringify({ error: 'Failed to check existing exercises: ' + existingErr.message })
+        };
+      }
+      existingNames = new Set((existing || []).map(r => r.name));
+    }
+
+    const newExercises = exercises.filter(e => !existingNames.has(e.name));
+    const skipped = exercises.filter(e => existingNames.has(e.name)).map(e => e.name);
+
     let created = 0, errors = [];
 
-    if (!dryRun && exercises.length > 0) {
+    if (!dryRun && newExercises.length > 0) {
       const { data, error } = await supabase
         .from('exercises')
-        .upsert(exercises, { onConflict: 'name', ignoreDuplicates: false })
+        .insert(newExercises)
         .select('id');
 
       if (error) {
         errors.push(error.message);
       } else {
-        created = data?.length || exercises.length;
+        created = data?.length || newExercises.length;
       }
     }
 
@@ -223,9 +247,11 @@ exports.handler = async (event) => {
       folder: folderParam,
       muscleGroup,
       batch: { start: batchStart, processed: exercises.length, hasMore },
-      created: dryRun ? exercises.length : created,
+      created: dryRun ? newExercises.length : created,
+      skippedExisting: skipped.length,
       errors,
-      exercises: exercises.map(e => e.name)
+      exercises: newExercises.map(e => e.name),
+      skipped
     };
 
     if (hasMore) {
