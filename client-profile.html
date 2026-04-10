@@ -15204,6 +15204,12 @@
                     original.video_url = replacement.video_url || '';
                 }
 
+                // Calculate end date from start + weeks
+                const weeksAmount = program.program_data?.schedule?.weeksAmount || 4;
+                const endDateObj = new Date(startDate);
+                endDateObj.setDate(endDateObj.getDate() + (weeksAmount * 7));
+                const endDate = endDateObj.toISOString().split('T')[0];
+
                 const res = await fetch('/.netlify/functions/workout-assignments', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -15213,8 +15219,9 @@
                         programId: program.id,
                         name: program.name,
                         workoutData: workoutData,
-                        schedule: { days: selectedDays },
-                        startDate: startDate
+                        schedule: { days: selectedDays, weeksAmount },
+                        startDate: startDate,
+                        endDate: endDate
                     })
                 });
 
