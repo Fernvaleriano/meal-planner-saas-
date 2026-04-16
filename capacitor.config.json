@@ -1,6 +1,6 @@
 {
-  "appId": "com.ziquefitness.mealplanner",
-  "appName": "Zique Fitness Nutrition",
+  "appId": "com.ziquecoach.app",
+  "appName": "Ziquecoach",
   "webDir": "www",
   "bundledWebRuntime": false,
   "server": {

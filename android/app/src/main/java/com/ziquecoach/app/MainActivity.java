@@ -1,4 +1,4 @@
-package com.ziquefitness.mealplanner;
+package com.ziquecoach.app;
 
 import com.getcapacitor.BridgeActivity;
 
