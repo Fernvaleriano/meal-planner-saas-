@@ -22,12 +22,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- Deep link: ziquefitness://app/* -->
+            <!-- Deep link: ziquecoach://app/* -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="ziquefitness" android:host="app" />
+                <data android:scheme="ziquecoach" android:host="app" />
             </intent-filter>
 
         </activity>
