@@ -16,7 +16,7 @@
     <link rel="preload" href="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" as="script">
     <link rel="preconnect" href="https://qewqcjzlfqamqwbccapr.supabase.co" crossorigin>
     <link rel="dns-prefetch" href="https://qewqcjzlfqamqwbccapr.supabase.co">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+    <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
     <style>
         :root {
             --brand-primary: #0d9488;
@@ -5759,7 +5759,27 @@ Keep it concise but complete.`;
             throw new Error('Invalid response from AI service');
         }
 
+        let _jspdfLoader = null;
+        function loadJsPDF() {
+            if (window.jspdf) return Promise.resolve();
+            if (_jspdfLoader) return _jspdfLoader;
+            _jspdfLoader = new Promise((resolve, reject) => {
+                const s = document.createElement('script');
+                s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+                s.onload = () => resolve();
+                s.onerror = () => { _jspdfLoader = null; reject(new Error('Failed to load PDF library')); };
+                document.head.appendChild(s);
+            });
+            return _jspdfLoader;
+        }
+
         async function downloadPDF() {
+            try {
+                await loadJsPDF();
+            } catch (e) {
+                alert('Could not load PDF library. Please check your connection and try again.');
+                return;
+            }
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
 
