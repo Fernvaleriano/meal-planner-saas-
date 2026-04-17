@@ -193,7 +193,52 @@ exports.handler = async (event) => {
             .eq('id', existingLogs[0].id);
           existingLogs[0].coach_id = resolvedCoachId;
         }
-        // Return existing log instead of creating a duplicate
+
+        // If exercises were provided on the POST, upsert them against the
+        // existing log — makes POST a true one-shot "create-or-update" so
+        // clients can fire a single keepalive request (no GET/POST/PUT chain
+        // to hit mid-app-kill). Matches the upsert logic in PUT below.
+        if (exercises && exercises.length > 0) {
+          try {
+            const { data: existingExerciseLogs } = await supabase
+              .from('exercise_logs')
+              .select('id, exercise_id')
+              .eq('workout_log_id', existingLogs[0].id);
+            const existingExMap = {};
+            for (const log of (existingExerciseLogs || [])) {
+              if (log.exercise_id) existingExMap[log.exercise_id] = log.id;
+            }
+            for (const ex of exercises) {
+              const setsData = ex.sets || [];
+              const fields = {
+                workout_log_id: existingLogs[0].id,
+                exercise_id: ex.exerciseId,
+                exercise_name: ex.exerciseName,
+                exercise_order: ex.order || 1,
+                sets_data: setsData,
+                total_sets: setsData.length,
+                total_reps: setsData.reduce((sum, s) => sum + (Number(s.reps) || 0), 0),
+                total_volume: setsData.reduce((sum, s) => sum + ((Number(s.reps) || 0) * (Number(s.weight) || 0)), 0),
+                max_weight: setsData.length > 0 ? Math.max(...setsData.map(s => Number(s.weight) || 0)) : 0
+              };
+              if (ex.notes !== undefined) fields.notes = ex.notes;
+              if (ex.clientNotes !== undefined) fields.client_notes = ex.clientNotes;
+              if (ex.clientVoiceNotePath !== undefined) fields.client_voice_note_path = ex.clientVoiceNotePath;
+              if (ex.swappedFromName) fields.swapped_from_name = ex.swappedFromName;
+
+              const existingId = existingExMap[ex.exerciseId];
+              if (existingId) {
+                await supabase.from('exercise_logs').update(fields).eq('id', existingId);
+              } else {
+                await supabase.from('exercise_logs').insert([fields]);
+              }
+            }
+          } catch (upsertErr) {
+            console.error('POST upsert exercises error (non-fatal):', upsertErr);
+          }
+        }
+
+        // Return existing log (now with any upserted exercises persisted)
         return {
           statusCode: 200,
           headers,
