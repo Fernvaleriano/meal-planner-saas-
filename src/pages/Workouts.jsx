@@ -2190,6 +2190,59 @@ function Workouts() {
       }));
     } catch { /* quota / private mode — fall through to network path */ }
 
+    // Fire an immediate keepalive copy of the save. apiPut (below) uses an
+    // AbortController that cancels mid-flight when the app is killed — and
+    // iOS WebView buffers localStorage writes to disk asynchronously, so
+    // killing the app within ~1s of a tap can lose BOTH paths. Keepalive
+    // fetch is contractually allowed to outlive the page/app, which closes
+    // that race. Safe to run alongside apiPut — the endpoint is idempotent
+    // (PUT overwrites the same workout_data), so a second identical write
+    // is a no-op on the server side.
+    try {
+      let authToken = null;
+      try {
+        const keys = Object.keys(localStorage);
+        const sbKey = keys.find(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+        if (sbKey) {
+          const session = JSON.parse(localStorage.getItem(sbKey));
+          authToken = session?.access_token || session?.currentSession?.access_token;
+        }
+      } catch { /* ignore */ }
+      if (authToken) {
+        const headers = {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
+        };
+        if (workout.is_adhoc) {
+          const isRealId = workout.id && !String(workout.id).startsWith('adhoc-') && !String(workout.id).startsWith('custom-');
+          const dateStr = workout.workout_date || new Date().toISOString().split('T')[0];
+          fetch('/.netlify/functions/adhoc-workouts', {
+            method: 'PUT',
+            headers,
+            body: JSON.stringify({
+              ...(isRealId ? { workoutId: workout.id } : {}),
+              clientId: workout.client_id,
+              workoutDate: dateStr,
+              workoutData: updatedWorkoutData,
+              name: workout.name
+            }),
+            keepalive: true
+          }).catch(() => {});
+        } else {
+          fetch('/.netlify/functions/client-workout-log', {
+            method: 'PUT',
+            headers,
+            body: JSON.stringify({
+              assignmentId: workout.id,
+              dayIndex: workout.day_index,
+              workout_data: updatedWorkoutData
+            }),
+            keepalive: true
+          }).catch(() => {});
+        }
+      }
+    } catch { /* best-effort — apiPut below is the durable fallback */ }
+
     // Save to backend with retry logic (up to 3 attempts with exponential backoff)
     // Stash the in-flight save so the visibilitychange/pagehide handler can flush
     // it via fetch keepalive if the user kills the app before the API request lands.
