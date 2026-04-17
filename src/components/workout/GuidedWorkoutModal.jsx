@@ -518,7 +518,7 @@ function GuidedWorkoutModal({
 
   // Save progress when closing mid-workout (not when completing)
   const handleCloseWithSave = useCallback(() => {
-    if (phase !== 'complete' && currentExIndex > 0) {
+    if (phase !== 'complete') {
       // Persist all exercise data so reps are visible in regular mode immediately
       // Use ref to avoid temporal dead zone (persistExerciseData is declared later in the file)
       const persist = persistExerciseDataRef.current;

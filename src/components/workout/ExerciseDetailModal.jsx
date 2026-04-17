@@ -675,6 +675,17 @@ function ExerciseDetailModal({
         exercises: [exercisePayload]
       });
 
+      // Sync parent state so ExerciseCard and GuidedWorkoutModal see the
+      // same values this auto-save just persisted. Without this, other views
+      // read stale exercise.setsData until a full page reload.
+      if (callbackRefs.current.onUpdateExercise && currentExercise) {
+        callbackRefs.current.onUpdateExercise({
+          ...currentExercise,
+          sets: currentSets,
+          setsData: currentSets
+        });
+      }
+
       // Real-time PR detection: weight PR + rep PR
       const currentMaxWeight = setsData.reduce((max, s) => Math.max(max, s.weight || 0), 0);
       const previousMax = allTimeMaxWeightRef.current;
