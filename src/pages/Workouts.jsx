@@ -639,15 +639,26 @@ function Workouts() {
   // Persist + restore scroll position. The app keeps pages mounted and uses
   // display:none/block, AND Layout.jsx forces scrollTo(0, 0) on every route
   // change. So we:
-  //   1) Continuously save scrollY while on /workouts.
+  //   1) Only save scrollY while actually on /workouts (otherwise we'd clobber
+  //      the saved value with 0 from Layout's scroll-to-top on other routes).
   //   2) On each re-entry to /workouts (location.pathname change), restore —
   //      using a setTimeout to run AFTER Layout's rAF scroll-to-top fires.
   const location = useLocation();
+  const isOnWorkoutsRef = useRef(location.pathname === '/workouts');
+  useEffect(() => {
+    isOnWorkoutsRef.current = location.pathname === '/workouts';
+  }, [location.pathname]);
+
   useEffect(() => {
     const SCROLL_KEY = 'workouts-scroll-y';
 
     let scrollTimer = null;
     const handleScroll = () => {
+      // Only record scroll position while we're the active route. Without this
+      // guard, Layout.jsx's scrollTo(0,0) on route change fires our listener
+      // (which is still attached because we're mounted, just hidden) and
+      // writes 0 over the real saved position.
+      if (!isOnWorkoutsRef.current) return;
       if (scrollTimer) clearTimeout(scrollTimer);
       scrollTimer = setTimeout(() => {
         try { sessionStorage.setItem(SCROLL_KEY, String(window.scrollY || 0)); } catch { /* ignore */ }
@@ -657,7 +668,9 @@ function Workouts() {
     return () => {
       window.removeEventListener('scroll', handleScroll);
       if (scrollTimer) clearTimeout(scrollTimer);
-      try { sessionStorage.setItem(SCROLL_KEY, String(window.scrollY || 0)); } catch { /* ignore */ }
+      if (isOnWorkoutsRef.current) {
+        try { sessionStorage.setItem(SCROLL_KEY, String(window.scrollY || 0)); } catch { /* ignore */ }
+      }
     };
   }, []);
 
@@ -694,15 +707,15 @@ function Workouts() {
   // to have tapped anything else first, the tick context is already primed.
   useEffect(() => installGlobalAudioUnlock(), []);
 
-  // Hydrate any pending localStorage draft after the server fetch lands.
-  // Covers the "user edited a set, then force-killed the app before the save
-  // completed" case — server has stale data, but the draft has the real edits.
-  // Runs whenever todayWorkout.id changes (i.e. a fresh workout loads) and
-  // merges the draft on top of state. Drops drafts older than 7 days to
-  // avoid resurrecting ancient data.
+  // Hydrate any pending localStorage draft whenever workout_data changes.
+  // Covers "user edited a set, then force-killed the app" AND subsequent
+  // refetches (onAppResume, pull-to-refresh) that would otherwise silently
+  // replace the merged state with stale server data. A ref tracks the last
+  // applied draft timestamp so we don't loop forever on our own setState.
+  const lastAppliedDraftRef = useRef({ key: null, savedAt: 0 });
   useEffect(() => {
     const workout = todayWorkout;
-    if (!workout?.id) return;
+    if (!workout?.id || !workout?.workout_data) return;
     const DRAFT_KEY = `workouts-draft-${workout.id}-${workout.day_index || 0}`;
     let draft = null;
     try {
@@ -710,17 +723,23 @@ function Workouts() {
       if (raw) draft = JSON.parse(raw);
     } catch { return; }
     if (!draft?.workoutData) return;
+    // Expire drafts older than 7 days to avoid resurrecting ancient data.
     if (Date.now() - (draft.savedAt || 0) > 7 * 24 * 60 * 60 * 1000) {
       try { localStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
       return;
     }
-    // Merge draft on top of whatever the server returned. The draft is the
-    // more recent user-visible state, so it wins.
+    // Don't re-apply a draft we've already applied for this key+timestamp —
+    // prevents a re-render loop from our own setTodayWorkout below.
+    const alreadyApplied =
+      lastAppliedDraftRef.current.key === DRAFT_KEY &&
+      lastAppliedDraftRef.current.savedAt === (draft.savedAt || 0);
+    if (alreadyApplied) return;
+    lastAppliedDraftRef.current = { key: DRAFT_KEY, savedAt: draft.savedAt || 0 };
     setTodayWorkout(prev => {
       if (!prev || prev.id !== workout.id) return prev;
       return { ...prev, workout_data: draft.workoutData };
     });
-  }, [todayWorkout?.id, todayWorkout?.day_index]);
+  }, [todayWorkout?.id, todayWorkout?.day_index, todayWorkout?.workout_data]);
 
   // Flush pending completion saves when page visibility changes (app close/switch)
   // Uses fetch with keepalive flag which survives page unload
