@@ -166,14 +166,14 @@ exports.handler = async (event) => {
         if (proteinGoal !== undefined) updateFields.protein_goal = proteinGoal;
         if (carbsGoal !== undefined) updateFields.carbs_goal = carbsGoal;
         if (fatGoal !== undefined) updateFields.fat_goal = fatGoal;
-        if (fiberGoal !== undefined) updateFields.fiber_goal = fiberGoal || null;
-        if (sugarGoal !== undefined) updateFields.sugar_goal = sugarGoal || null;
-        if (sodiumGoal !== undefined) updateFields.sodium_goal = sodiumGoal || null;
-        if (potassiumGoal !== undefined) updateFields.potassium_goal = potassiumGoal || null;
-        if (calciumGoal !== undefined) updateFields.calcium_goal = calciumGoal || null;
-        if (ironGoal !== undefined) updateFields.iron_goal = ironGoal || null;
-        if (vitaminCGoal !== undefined) updateFields.vitamin_c_goal = vitaminCGoal || null;
-        if (cholesterolGoal !== undefined) updateFields.cholesterol_goal = cholesterolGoal || null;
+        if (fiberGoal !== undefined) updateFields.fiber_goal = fiberGoal ?? null;
+        if (sugarGoal !== undefined) updateFields.sugar_goal = sugarGoal ?? null;
+        if (sodiumGoal !== undefined) updateFields.sodium_goal = sodiumGoal ?? null;
+        if (potassiumGoal !== undefined) updateFields.potassium_goal = potassiumGoal ?? null;
+        if (calciumGoal !== undefined) updateFields.calcium_goal = calciumGoal ?? null;
+        if (ironGoal !== undefined) updateFields.iron_goal = ironGoal ?? null;
+        if (vitaminCGoal !== undefined) updateFields.vitamin_c_goal = vitaminCGoal ?? null;
+        if (cholesterolGoal !== undefined) updateFields.cholesterol_goal = cholesterolGoal ?? null;
 
         const { data, error } = await supabase
           .from('calorie_goals')
@@ -185,9 +185,11 @@ exports.handler = async (event) => {
         if (error) throw error;
         result = data;
       } else {
-        // Insert new - use gender-based defaults if no values provided
+        // Insert new - use gender-based defaults if no values provided.
+        // Use ?? so a deliberate 0 (e.g. fiber goal intentionally off) is
+        // preserved instead of being silently replaced with a default.
         let defaults = { calorie: 2000, protein: 150, carbs: 200, fat: 67 };
-        if (!calorieGoal || !proteinGoal || !carbsGoal || !fatGoal) {
+        if (calorieGoal == null || proteinGoal == null || carbsGoal == null || fatGoal == null) {
           const { data: client } = await supabase
             .from('clients')
             .select('gender')
@@ -204,18 +206,18 @@ exports.handler = async (event) => {
           .insert([{
             client_id: clientId,
             coach_id: coachId,
-            calorie_goal: calorieGoal || defaults.calorie,
-            protein_goal: proteinGoal || defaults.protein,
-            carbs_goal: carbsGoal || defaults.carbs,
-            fat_goal: fatGoal || defaults.fat,
-            fiber_goal: fiberGoal || null,
-            sugar_goal: sugarGoal || null,
-            sodium_goal: sodiumGoal || null,
-            potassium_goal: potassiumGoal || null,
-            calcium_goal: calciumGoal || null,
-            iron_goal: ironGoal || null,
-            vitamin_c_goal: vitaminCGoal || null,
-            cholesterol_goal: cholesterolGoal || null
+            calorie_goal: calorieGoal ?? defaults.calorie,
+            protein_goal: proteinGoal ?? defaults.protein,
+            carbs_goal: carbsGoal ?? defaults.carbs,
+            fat_goal: fatGoal ?? defaults.fat,
+            fiber_goal: fiberGoal ?? null,
+            sugar_goal: sugarGoal ?? null,
+            sodium_goal: sodiumGoal ?? null,
+            potassium_goal: potassiumGoal ?? null,
+            calcium_goal: calciumGoal ?? null,
+            iron_goal: ironGoal ?? null,
+            vitamin_c_goal: vitaminCGoal ?? null,
+            cholesterol_goal: cholesterolGoal ?? null
           }])
           .select()
           .single();

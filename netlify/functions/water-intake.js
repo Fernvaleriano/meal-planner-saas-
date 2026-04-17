@@ -107,19 +107,30 @@ exports.handler = async (event) => {
 
       const existing = existingRows && existingRows.length > 0 ? existingRows[0] : null;
 
-      // Calculate the new value
+      // Calculate the new value. We also track what the raw (uncapped) intent
+      // was so we can report back to the client if their input got clamped
+      // at the goal (previously this was silent, so users who over-drank
+      // never saw their extra glasses reflected or got any feedback).
+      let requestedGlasses = null;
       if (action === 'add') {
-        newGlasses = Math.min(goal, (existing?.glasses || 0) + (glasses || 1));
+        requestedGlasses = (existing?.glasses || 0) + (glasses || 1);
+        newGlasses = Math.min(goal, requestedGlasses);
       } else if (action === 'remove') {
-        newGlasses = Math.max(0, (existing?.glasses || 0) - (glasses || 1));
+        requestedGlasses = (existing?.glasses || 0) - (glasses || 1);
+        newGlasses = Math.max(0, requestedGlasses);
       } else if (action === 'complete') {
+        requestedGlasses = goal;
         newGlasses = goal;
       } else if (glasses !== null && glasses !== undefined) {
         const parsed = typeof glasses === 'string' ? parseInt(glasses, 10) : glasses;
         if (!isNaN(parsed)) {
+          requestedGlasses = parsed;
           newGlasses = Math.max(0, Math.min(goal, parsed));
         }
       }
+
+      const capped = requestedGlasses !== null && requestedGlasses > newGlasses;
+      const droppedAtGoal = capped ? requestedGlasses - newGlasses : 0;
 
       if (existing) {
         // UPDATE by primary key
@@ -152,7 +163,7 @@ exports.handler = async (event) => {
       return {
         statusCode: 200,
         headers,
-        body: JSON.stringify({ success: true, glasses: newGlasses, goal })
+        body: JSON.stringify({ success: true, glasses: newGlasses, goal, capped, droppedAtGoal })
       };
     }
 

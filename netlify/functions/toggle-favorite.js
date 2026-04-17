@@ -63,7 +63,7 @@ exports.handler = async (event, context) => {
     if (event.httpMethod === 'POST') {
         try {
             const body = JSON.parse(event.body);
-            const { clientId, coachId, mealName, mealType, calories, protein, carbs, fat, notes, forceAdd } = body;
+            const { clientId, coachId, mealName, mealType, calories, protein, carbs, fat, notes, forceAdd, servingSize, servingUnit, numberOfServings } = body;
 
             if (!clientId || !mealName) {
                 return {
@@ -103,22 +103,41 @@ exports.handler = async (event, context) => {
                 }
             }
 
-            // Add new favorite
-            const { data: favorite, error } = await supabase
+            // Add new favorite. Serving columns may not exist in older deployments,
+            // so retry without them if the insert fails due to missing columns.
+            const baseRow = {
+                client_id: clientId,
+                coach_id: coachId,
+                meal_name: mealName,
+                meal_type: mealType || null,
+                calories: calories ?? null,
+                protein: protein ?? null,
+                carbs: carbs ?? null,
+                fat: fat ?? null,
+                notes: notes || null
+            };
+            const fullRow = {
+                ...baseRow,
+                serving_size: servingSize ?? null,
+                serving_unit: servingUnit || null,
+                number_of_servings: numberOfServings ?? null
+            };
+
+            let { data: favorite, error } = await supabase
                 .from('meal_favorites')
-                .insert({
-                    client_id: clientId,
-                    coach_id: coachId,
-                    meal_name: mealName,
-                    meal_type: mealType || null,
-                    calories: calories || null,
-                    protein: protein || null,
-                    carbs: carbs || null,
-                    fat: fat || null,
-                    notes: notes || null
-                })
+                .insert(fullRow)
                 .select()
                 .single();
+
+            if (error && /column .* (does not exist|could not be found)/i.test(error.message || '')) {
+                const retry = await supabase
+                    .from('meal_favorites')
+                    .insert(baseRow)
+                    .select()
+                    .single();
+                favorite = retry.data;
+                error = retry.error;
+            }
 
             if (error) throw error;
 

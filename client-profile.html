@@ -11857,7 +11857,13 @@
         }
 
         // ============ FOOD DIARY FUNCTIONS ============
-        let currentDiaryDate = new Date().toISOString().split('T')[0];
+        // Local-time today (YYYY-MM-DD) — avoids the UTC-rollover bug where
+        // evening Pacific-time users would see "tomorrow" as the default date.
+        let currentDiaryDate = (() => {
+            const now = new Date();
+            const pad = n => String(n).padStart(2, '0');
+            return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+        })();
 
         async function loadFoodDiary(clientId) {
             const container = document.getElementById('diaryContainer');
@@ -11870,7 +11876,8 @@
             try {
                 container.innerHTML = '<div class="loading">Loading food diary...</div>';
 
-                const response = await fetch(`/.netlify/functions/food-diary?clientId=${clientId}&date=${currentDiaryDate}`);
+                const tz = encodeURIComponent(Intl.DateTimeFormat().resolvedOptions().timeZone);
+                const response = await fetch(`/.netlify/functions/food-diary?clientId=${clientId}&date=${currentDiaryDate}&timezone=${tz}`);
 
                 if (!response.ok) throw new Error('Failed to load diary');
 
@@ -11949,9 +11956,12 @@
         }
 
         function changeDiaryDate(delta) {
-            const date = new Date(currentDiaryDate);
+            // Parse/format in local time so UTC-positive zones don't roll back a day.
+            const [y, m, d] = currentDiaryDate.split('-').map(Number);
+            const date = new Date(y, m - 1, d);
             date.setDate(date.getDate() + delta);
-            currentDiaryDate = date.toISOString().split('T')[0];
+            const pad = n => String(n).padStart(2, '0');
+            currentDiaryDate = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
             document.getElementById('diaryDatePicker').value = currentDiaryDate;
             loadFoodDiary(clientId);
         }

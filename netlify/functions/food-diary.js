@@ -263,6 +263,14 @@ exports.handler = withTimeout(async (event) => {
         return Math.round(num * factor) / factor;
       };
 
+      // Like safeNum, but rejects zero/negative — used for divisors like
+      // serving_size and number_of_servings so we never store 0 (which would
+      // cause divide-by-zero and NaN in downstream per-100g calculations).
+      const safePositive = (val, defaultVal, decimals = 0) => {
+        const n = safeNum(val, defaultVal, decimals);
+        return n > 0 ? n : defaultVal;
+      };
+
       // Build insert data - only include coach_id if it's a valid value
       // Note: Only include columns that exist in the database schema
       const insertData = {
@@ -271,9 +279,9 @@ exports.handler = withTimeout(async (event) => {
         meal_type: mealType,
         food_name: foodName,
         brand: brand || null,
-        serving_size: safeNum(servingSize, 1, 2),
+        serving_size: safePositive(servingSize, 1, 2),
         serving_unit: servingUnit || 'serving',
-        number_of_servings: safeNum(numberOfServings, 1, 2),
+        number_of_servings: safePositive(numberOfServings, 1, 2),
         calories: safeNum(calories, 0),
         protein: safeNum(protein, 0, 1),
         carbs: safeNum(carbs, 0, 1),
@@ -373,9 +381,15 @@ exports.handler = withTimeout(async (event) => {
       const updateFields = {};
       if (updateData.foodName !== undefined) updateFields.food_name = updateData.foodName;
       if (updateData.brand !== undefined) updateFields.brand = updateData.brand;
-      if (updateData.servingSize !== undefined) updateFields.serving_size = updateData.servingSize;
+      if (updateData.servingSize !== undefined) {
+        const n = parseFloat(updateData.servingSize);
+        updateFields.serving_size = (!isNaN(n) && n > 0) ? n : 1;
+      }
       if (updateData.servingUnit !== undefined) updateFields.serving_unit = updateData.servingUnit;
-      if (updateData.numberOfServings !== undefined) updateFields.number_of_servings = updateData.numberOfServings;
+      if (updateData.numberOfServings !== undefined) {
+        const n = parseFloat(updateData.numberOfServings);
+        updateFields.number_of_servings = (!isNaN(n) && n > 0) ? n : 1;
+      }
       if (updateData.calories !== undefined) updateFields.calories = updateData.calories;
       if (updateData.protein !== undefined) updateFields.protein = updateData.protein;
       if (updateData.carbs !== undefined) updateFields.carbs = updateData.carbs;
