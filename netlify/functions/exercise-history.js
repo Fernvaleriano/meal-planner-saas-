@@ -246,8 +246,6 @@ exports.handler = async (event) => {
       history = result.data;
     }
 
-    if (error) throw error;
-
     // Transform data for easier consumption
     const transformedHistory = (history || []).map(item => ({
       id: item.id,
