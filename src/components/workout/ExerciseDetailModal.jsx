@@ -187,6 +187,7 @@ function ExerciseDetailModal({
   onSwapExercise,
   onUpdateExercise, // New callback for saving set/rep changes
   onDeleteExercise, // Callback for deleting exercise from workout
+  onOpenSetEditor, // Open the shared set editor at the page level (single instance)
   genderPreference = 'all', // Preferred gender for exercise demonstrations
   coachId = null, // Coach ID for loading custom exercises
   clientId = null, // Client ID for fetching exercise history
@@ -2102,7 +2103,22 @@ function ExerciseDetailModal({
 
         {/* Sets/Reps */}
         <div className="modal-time-boxes-wrapper">
-          <div className="modal-time-boxes" onClick={() => setShowSetEditor(true)}>
+          <div className="modal-time-boxes" onClick={() => {
+            // Prefer the shared editor instance at the page level so the card
+            // and this modal open the same SetEditorModal — single source of
+            // truth. Fall back to the local one if the parent hasn't wired it.
+            if (onOpenSetEditor) {
+              onOpenSetEditor({
+                exercise,
+                sets,
+                isTimedExercise,
+                weightUnit,
+                onSave: handleSaveSets
+              });
+            } else {
+              setShowSetEditor(true);
+            }
+          }}>
             <div className="time-boxes-row">
               {sets.map((set, idx) => (
                 <div key={idx} className={`time-box ${!isTimedExercise && !isDistanceExercise || set?.weight ? 'with-weight' : ''} clickable`}>
@@ -2644,8 +2660,9 @@ function ExerciseDetailModal({
         </div>
       </div>
 
-      {/* Set Editor Modal - Portaled to body for mobile Safari stability */}
-      {showSetEditor && (
+      {/* Set Editor Modal — fallback only; the shared instance in Workouts.jsx
+          is used when onOpenSetEditor is wired (the normal path). */}
+      {showSetEditor && !onOpenSetEditor && (
         <Portal>
           <SetEditorModal
             exercise={exercise}
