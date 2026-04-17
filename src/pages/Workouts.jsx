@@ -637,16 +637,26 @@ function Workouts() {
 
   // Restore scroll position on mount; save on scroll + on unload.
   // Uses sessionStorage so the position is remembered within the tab/app
-  // session but cleared when the user fully closes the browser/app.
+  // session. Content loads asynchronously, so naive scrollTo on mount fires
+  // before the page is tall enough — we retry until the page can actually
+  // reach the saved offset (or give up after ~3s).
   useEffect(() => {
     const SCROLL_KEY = 'workouts-scroll-y';
-    try {
-      const saved = parseInt(sessionStorage.getItem(SCROLL_KEY) || '0', 10);
-      // Defer to let the page render its content first
-      requestAnimationFrame(() => {
-        try { window.scrollTo(0, saved > 0 ? saved : 0); } catch { /* ignore */ }
-      });
-    } catch { /* sessionStorage unavailable */ }
+    let savedY = 0;
+    try { savedY = parseInt(sessionStorage.getItem(SCROLL_KEY) || '0', 10); } catch { /* */ }
+
+    let restoreTimer = null;
+    const tryRestore = (attempt = 0) => {
+      if (savedY <= 0 || attempt > 30) return; // ~3s max (30 * 100ms)
+      const maxScroll = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+      if (maxScroll >= savedY - 5) {
+        window.scrollTo(0, savedY);
+      } else {
+        restoreTimer = setTimeout(() => tryRestore(attempt + 1), 100);
+      }
+    };
+    // First attempt next frame; subsequent attempts wait for content to grow
+    requestAnimationFrame(() => tryRestore());
 
     let scrollTimer = null;
     const handleScroll = () => {
@@ -660,7 +670,7 @@ function Workouts() {
     return () => {
       window.removeEventListener('scroll', handleScroll);
       if (scrollTimer) clearTimeout(scrollTimer);
-      // Flush on unmount so navigation captures the latest position
+      if (restoreTimer) clearTimeout(restoreTimer);
       try { sessionStorage.setItem(SCROLL_KEY, String(window.scrollY || 0)); } catch { /* ignore */ }
     };
   }, []);
@@ -2091,6 +2101,9 @@ function Workouts() {
     });
 
     // Save to backend with retry logic (up to 3 attempts with exponential backoff)
+    // Stash the in-flight save so the visibilitychange/pagehide handler can flush
+    // it via fetch keepalive if the user kills the app before the API request lands.
+    pendingSaveRef.current = { workout, updatedWorkoutData };
     const saveWithRetry = async (attempts = 3) => {
       for (let i = 0; i < attempts; i++) {
         try {
@@ -2110,6 +2123,12 @@ function Workouts() {
               dayIndex: workout.day_index,
               workout_data: updatedWorkoutData
             });
+          }
+          // Clear pending — only the latest in-flight save needs the keepalive backup.
+          // Note: a newer call to handleUpdateExercise will overwrite pendingSaveRef
+          // before clearing, so we don't drop a more recent pending save.
+          if (pendingSaveRef.current?.updatedWorkoutData === updatedWorkoutData) {
+            pendingSaveRef.current = null;
           }
           return; // Success
         } catch (err) {

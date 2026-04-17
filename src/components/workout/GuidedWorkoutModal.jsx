@@ -112,10 +112,22 @@ const playTickSound = (() => {
 
   // Call warmUp() from any tap/click handler so iOS/Android unlocks audio.
   // Also called proactively during get-ready phase so context is ready before first tick.
+  // iOS unlock pattern: just calling resume() isn't always enough — we also play
+  // a single-sample silent buffer, which is the canonical "unlock WebAudio" trick.
+  // Without this, the first playTickSound() fired from setInterval (no user
+  // gesture in stack) silently fails on iOS even though resume() resolved.
   fn.warmUp = () => {
     try {
       const ctx = ensureContext();
       if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+      // Silent unlock buffer — cheap, idempotent, safe to fire on every call.
+      try {
+        const buffer = ctx.createBuffer(1, 1, 22050);
+        const source = ctx.createBufferSource();
+        source.buffer = buffer;
+        source.connect(ctx.destination);
+        source.start(0);
+      } catch (e) { /* ignore */ }
     } catch (e) { /* ignore */ }
   };
 
@@ -1311,6 +1323,14 @@ function GuidedWorkoutModal({
     setVoiceNoteUrl(null);
     setShowClientNoteInput(false);
   }, [currentExIndex]);
+
+  // Unlock the AudioContext immediately on mount. The component mounts in
+  // response to the user tapping "Start Workout", so this runs inside the
+  // iOS user-activation window. If we wait for the get-ready phase the
+  // window may have closed and the silent unlock buffer would be ignored.
+  useEffect(() => {
+    playTickSound.warmUp();
+  }, []);
 
   // --- Voice announcements (TTS only, no auto-play of coach voice notes) ---
   useEffect(() => {
