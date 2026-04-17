@@ -710,9 +710,14 @@ function Workouts() {
   // Hydrate any pending localStorage draft whenever workout_data changes.
   // Covers "user edited a set, then force-killed the app" AND subsequent
   // refetches (onAppResume, pull-to-refresh) that would otherwise silently
-  // replace the merged state with stale server data. A ref tracks the last
-  // applied draft timestamp so we don't loop forever on our own setState.
-  const lastAppliedDraftRef = useRef({ key: null, savedAt: 0 });
+  // replace the merged state with stale server data.
+  //
+  // We re-apply whenever the current workout_data doesn't already match the
+  // draft content — because refetches come in at arbitrary times and each one
+  // needs the draft re-applied until the server-side save finally lands and
+  // the draft is cleared. A content comparison (instead of a "already applied"
+  // flag) ensures we both (a) don't loop when state already matches, and (b)
+  // always catch stale data coming back from a new fetch.
   useEffect(() => {
     const workout = todayWorkout;
     if (!workout?.id || !workout?.workout_data) return;
@@ -728,13 +733,17 @@ function Workouts() {
       try { localStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
       return;
     }
-    // Don't re-apply a draft we've already applied for this key+timestamp —
-    // prevents a re-render loop from our own setTodayWorkout below.
-    const alreadyApplied =
-      lastAppliedDraftRef.current.key === DRAFT_KEY &&
-      lastAppliedDraftRef.current.savedAt === (draft.savedAt || 0);
-    if (alreadyApplied) return;
-    lastAppliedDraftRef.current = { key: DRAFT_KEY, savedAt: draft.savedAt || 0 };
+    // Skip if state already matches the draft. Reference check is cheap and
+    // usually succeeds when handleUpdateExercise just wrote the draft from
+    // the same updatedWorkoutData object. Otherwise fall back to content
+    // comparison to catch the refetch-with-stale-data case.
+    if (workout.workout_data === draft.workoutData) return;
+    let sameContent = false;
+    try {
+      sameContent = JSON.stringify(workout.workout_data) === JSON.stringify(draft.workoutData);
+    } catch { sameContent = false; }
+    if (sameContent) return;
+
     setTodayWorkout(prev => {
       if (!prev || prev.id !== workout.id) return prev;
       return { ...prev, workout_data: draft.workoutData };
