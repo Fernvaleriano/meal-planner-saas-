@@ -463,6 +463,22 @@ function SetEditorModal({
     onClose();
   };
 
+  // Called when the user closes via the X button or by tapping the backdrop.
+  // Auto-saves the current values so clients who don't tap Save (or don't
+  // mark sets complete) still persist their edits. Server PUTs are idempotent
+  // so saving on close is safe even when nothing changed.
+  const handleCloseWithAutoSave = () => {
+    try {
+      const setsToSave = localSets.map(s => ({
+        ...s,
+        isTimeBased: editMode === 'time',
+        isDistanceBased: editMode === 'distance'
+      }));
+      onSave(setsToSave, editMode);
+    } catch { /* ignore — still close */ }
+    onClose();
+  };
+
   // Delete a set
   const deleteSet = (index) => {
     if (localSets.length > 1) {
@@ -501,11 +517,11 @@ function SetEditorModal({
   };
 
   return (
-    <div className="set-editor-overlay" onClick={onClose}>
+    <div className="set-editor-overlay" onClick={handleCloseWithAutoSave}>
       <div className="set-editor-modal" onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div className="editor-header">
-          <button className="editor-close-btn" onClick={onClose}>
+          <button className="editor-close-btn" onClick={handleCloseWithAutoSave}>
             <X size={24} />
           </button>
           <span className="editor-title">Editor</span>
