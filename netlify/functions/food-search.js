@@ -139,42 +139,79 @@ exports.handler = async (event) => {
     if (clientId) {
       const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
-      // Search favorites
-      const { data: favorites } = await supabase
-        .from('meal_favorites')
-        .select('meal_name, calories, protein, carbs, fat')
-        .eq('client_id', clientId)
-        .ilike('meal_name', `%${query}%`)
-        .limit(5);
+      // Search favorites. Try to include the serving columns; fall back to the
+      // older schema if they aren't present yet.
+      let favorites = null;
+      {
+        const favFull = await supabase
+          .from('meal_favorites')
+          .select('meal_name, calories, protein, carbs, fat, serving_size, serving_unit, number_of_servings')
+          .eq('client_id', clientId)
+          .ilike('meal_name', `%${query}%`)
+          .limit(5);
+        if (favFull.error && /column .* (does not exist|could not be found)/i.test(favFull.error.message || '')) {
+          const favBasic = await supabase
+            .from('meal_favorites')
+            .select('meal_name, calories, protein, carbs, fat')
+            .eq('client_id', clientId)
+            .ilike('meal_name', `%${query}%`)
+            .limit(5);
+          favorites = favBasic.data;
+        } else {
+          favorites = favFull.data;
+        }
+      }
 
       if (favorites && favorites.length > 0) {
         favorites.forEach(fav => {
-          // For favorites, assume the stored values are per serving
-          // Create default measures - put serving and 100g first as sensible defaults
-          const measures = [
-            { label: 'serving', weight: 100 }, // Assume 100g per serving as default
-            { label: '100g', weight: 100 },
-            { label: 'Gram', weight: 1 },
-            { label: 'Ounce', weight: 28 }
-          ];
+          // Stored totals reflect whatever portion the client favorited.
+          // If we know the serving size, scale per-100g honestly; otherwise
+          // only expose the as-favorited serving (no misleading 100g guess).
+          const numServings = fav.number_of_servings && fav.number_of_servings > 0 ? fav.number_of_servings : 1;
+          const calsPerServing = Math.round((fav.calories || 0) / numServings);
+          const proteinPerServing = Math.round((fav.protein || 0) / numServings * 10) / 10;
+          const carbsPerServing = Math.round((fav.carbs || 0) / numServings * 10) / 10;
+          const fatPerServing = Math.round((fav.fat || 0) / numServings * 10) / 10;
 
-          results.push({
+          const hasServingWeight = fav.serving_size && fav.serving_size > 0;
+          const servingWeight = hasServingWeight ? fav.serving_size : null;
+          const servingLabel = fav.serving_unit || 'serving';
+
+          const measures = hasServingWeight
+            ? [
+                { label: servingLabel, weight: servingWeight },
+                { label: '100g', weight: 100 },
+                { label: 'Gram', weight: 1 },
+                { label: 'Ounce', weight: 28 }
+              ]
+            : [
+                // Unknown portion size — only let the user log the favorited amount.
+                { label: servingLabel, weight: null }
+              ];
+
+          const result = {
             name: fav.meal_name,
-            calories: fav.calories || 0,
-            protein: fav.protein || 0,
-            carbs: fav.carbs || 0,
-            fat: fav.fat || 0,
-            // Per 100g values (assuming stored values are per ~100g serving)
-            caloriesPer100g: fav.calories || 0,
-            proteinPer100g: fav.protein || 0,
-            carbsPer100g: fav.carbs || 0,
-            fatPer100g: fav.fat || 0,
-            servingSize: 100,
-            servingUnit: 'serving',
+            calories: calsPerServing,
+            protein: proteinPerServing,
+            carbs: carbsPerServing,
+            fat: fatPerServing,
+            servingSize: servingWeight,
+            servingUnit: servingLabel,
             measures,
             source: 'favorite',
-            brand: null
-          });
+            brand: null,
+            servingWeightKnown: hasServingWeight
+          };
+
+          if (hasServingWeight) {
+            const multiplier = 100 / servingWeight;
+            result.caloriesPer100g = Math.round(calsPerServing * multiplier);
+            result.proteinPer100g = Math.round(proteinPerServing * multiplier * 10) / 10;
+            result.carbsPer100g = Math.round(carbsPerServing * multiplier * 10) / 10;
+            result.fatPer100g = Math.round(fatPerServing * multiplier * 10) / 10;
+          }
+
+          results.push(result);
         });
       }
 

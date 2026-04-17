@@ -6782,13 +6782,14 @@ Be specific, practical, and actionable. Keep it concise but comprehensive.`;
             btn.disabled = true;
 
             try {
+                const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
                 const response = await fetch('/.netlify/functions/food-diary', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         clientId: currentClientId,
                         coachId: currentCoachId,
-                        entryDate: new Date().toISOString().split('T')[0], // Today's date
+                        timezone: userTimezone,
                         mealType: diaryMealType,
                         foodName: mealName,
                         servingSize: 1,
@@ -6884,7 +6885,7 @@ Be specific, practical, and actionable. Keep it concise but comprehensive.`;
             btn.innerHTML = `<span class="btn-icon">⏳</span><span class="btn-text">Logging 0/${allMeals.length}...</span>`;
             hint.innerHTML = '<span class="log-progress-text">Please wait while we log your meals...</span>';
 
-            const today = new Date().toISOString().split('T')[0];
+            const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
             let successCount = 0;
             let failCount = 0;
 
@@ -6919,7 +6920,7 @@ Be specific, practical, and actionable. Keep it concise but comprehensive.`;
                         body: JSON.stringify({
                             clientId: currentClientId,
                             coachId: currentCoachId,
-                            entryDate: today,
+                            timezone: userTimezone,
                             mealType: diaryMealType,
                             foodName: meal.name,
                             servingSize: 1,

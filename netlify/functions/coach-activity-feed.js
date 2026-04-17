@@ -245,12 +245,14 @@ exports.handler = async (event) => {
     // We fetch extra entries, so if we have more than the limit, there's likely more
     const hasMore = meals.length >= parsedLimit;
 
-    // Round the totals
+    // Round the totals. Macros use 1 decimal place to match the client's
+    // diary view (food-diary.js) so coach and client never disagree on totals.
+    const round1 = v => Math.round(v * 10) / 10;
     paginatedMeals.forEach(meal => {
       meal.totalCalories = Math.round(meal.totalCalories);
-      meal.totalProtein = Math.round(meal.totalProtein);
-      meal.totalCarbs = Math.round(meal.totalCarbs);
-      meal.totalFat = Math.round(meal.totalFat);
+      meal.totalProtein = round1(meal.totalProtein);
+      meal.totalCarbs = round1(meal.totalCarbs);
+      meal.totalFat = round1(meal.totalFat);
       // Sort comments by date
       meal.comments.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
     });
