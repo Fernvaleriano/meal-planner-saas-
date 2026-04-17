@@ -662,6 +662,19 @@ function Workouts() {
   }, [location.pathname]);
 
   useEffect(() => {
+    if (location.pathname !== '/workouts' || !location.search) return;
+    const dateParam = new URLSearchParams(location.search).get('date');
+    if (dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam)) {
+      const [y, m, d] = dateParam.split('-').map(Number);
+      const target = new Date(y, m - 1, d);
+      if (!isNaN(target.getTime())) {
+        setSelectedDate(target);
+        setWeekDates(getWeekDates(target));
+      }
+    }
+  }, [location.pathname, location.search]);
+
+  useEffect(() => {
     const SCROLL_KEY = 'workouts-scroll-y';
 
     let scrollTimer = null;

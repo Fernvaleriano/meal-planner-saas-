@@ -113,14 +113,23 @@ function Notifications() {
       }
     }
 
-    if (notif.type === 'diary_reaction' || notif.type === 'diary_comment' || notif.type === 'coach_responded') {
+    const meta = notif.metadata || {};
+
+    if (notif.type === 'diary_reaction') {
+      const params = new URLSearchParams();
+      if (meta.entry_date) params.set('date', meta.entry_date);
+      if (notif.related_entry_id) params.set('highlight', String(notif.related_entry_id));
+      const qs = params.toString();
+      navigate(qs ? `/diary?${qs}` : '/diary');
+    } else if (notif.type === 'diary_comment' || notif.type === 'coach_responded') {
+      // Modal shows full comment/feedback and (for diary_comment) a reply box.
       setSelectedNotification(notif);
     } else if (notif.type === 'diet_plan_published') {
-      navigate('/plans');
+      navigate(meta.plan_id ? `/plans/${meta.plan_id}` : '/plans');
     } else if (notif.type === 'workout_assigned') {
-      navigate('/workouts');
+      navigate(meta.start_date ? `/workouts?date=${encodeURIComponent(meta.start_date)}` : '/workouts');
     } else if (notif.type === 'pr_reaction' || notif.type === 'note_reaction') {
-      navigate('/workouts');
+      navigate('/workout-history');
     }
   };
 

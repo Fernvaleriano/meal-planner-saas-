@@ -655,7 +655,8 @@ exports.handler = withTimeout(async (event) => {
             metadata: {
               assignment_id: assignment.id,
               program_id: programId || null,
-              program_name: programName
+              program_name: programName,
+              start_date: assignment.start_date || null
             }
           }]);
       } catch (notifError) {
