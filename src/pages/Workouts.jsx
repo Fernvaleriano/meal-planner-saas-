@@ -635,13 +635,34 @@ function Workouts() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [cardMenuWorkoutId]);
 
-  // Scroll to top on mount
+  // Restore scroll position on mount; save on scroll + on unload.
+  // Uses sessionStorage so the position is remembered within the tab/app
+  // session but cleared when the user fully closes the browser/app.
   useEffect(() => {
+    const SCROLL_KEY = 'workouts-scroll-y';
     try {
-      window.scrollTo(0, 0);
-    } catch (e) {
-      // Ignore scroll errors
-    }
+      const saved = parseInt(sessionStorage.getItem(SCROLL_KEY) || '0', 10);
+      // Defer to let the page render its content first
+      requestAnimationFrame(() => {
+        try { window.scrollTo(0, saved > 0 ? saved : 0); } catch { /* ignore */ }
+      });
+    } catch { /* sessionStorage unavailable */ }
+
+    let scrollTimer = null;
+    const handleScroll = () => {
+      if (scrollTimer) clearTimeout(scrollTimer);
+      scrollTimer = setTimeout(() => {
+        try { sessionStorage.setItem(SCROLL_KEY, String(window.scrollY || 0)); } catch { /* ignore */ }
+      }, 150);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      if (scrollTimer) clearTimeout(scrollTimer);
+      // Flush on unmount so navigation captures the latest position
+      try { sessionStorage.setItem(SCROLL_KEY, String(window.scrollY || 0)); } catch { /* ignore */ }
+    };
   }, []);
 
   // Flush pending completion saves when page visibility changes (app close/switch)
