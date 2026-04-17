@@ -12,6 +12,8 @@ import SwapExerciseModal from '../components/workout/SwapExerciseModal';
 import CreateWorkoutModal from '../components/workout/CreateWorkoutModal';
 import ClubWorkoutsModal from '../components/workout/ClubWorkoutsModal';
 import GuidedWorkoutModal from '../components/workout/GuidedWorkoutModal';
+import SetEditorModal from '../components/workout/SetEditorModal';
+import Portal from '../components/Portal';
 import ErrorBoundary from '../components/ErrorBoundary';
 import { useToast } from '../components/Toast';
 import { parseDurationToSeconds, estimateWorkoutMinutes, estimateWorkoutCalories } from '../utils/workoutDuration';
@@ -472,6 +474,13 @@ function Workouts() {
   const [loading, setLoading] = useState(!cachedWorkouts);
   const [error, setError] = useState(null);
   const [selectedExercise, setSelectedExercise] = useState(null);
+  // Single shared SetEditorModal state — opened from either the outer
+  // ExerciseCard or the inner ExerciseDetailModal so both entry points
+  // use exactly one editor instance. Avoids the two-instances / two-save-
+  // paths divergence that caused card edits to not persist reliably.
+  const [setEditorConfig, setSetEditorConfig] = useState(null);
+  const openSetEditor = useCallback((config) => setSetEditorConfig(config), []);
+  const closeSetEditor = useCallback(() => setSetEditorConfig(null), []);
   const [workoutStarted, setWorkoutStarted] = useState(false);
   const [completedExercises, setCompletedExercises] = useState(new Set());
   const [showReadinessCheck, setShowReadinessCheck] = useState(false);
@@ -4085,6 +4094,7 @@ function Workouts() {
                       isFirst={index === 0}
                       isLast={index === exercises.length - 1}
                       onUpdateExercise={handleUpdateExercise}
+                      onOpenSetEditor={openSetEditor}
                       weightUnit={weightUnit}
                       clientId={clientData?.id}
                     />
@@ -4131,6 +4141,7 @@ function Workouts() {
             onSwapExercise={handleSwapExercise}
             onUpdateExercise={handleUpdateExercise}
             onDeleteExercise={handleDeleteExercise}
+            onOpenSetEditor={openSetEditor}
             genderPreference={clientData?.preferred_exercise_gender || 'all'}
             coachId={clientData?.coach_id}
             clientId={clientData?.id}
@@ -4143,6 +4154,25 @@ function Workouts() {
             allExercisesRaw={todayWorkout?.workout_data?.exercises || []}
           />
         </ErrorBoundary>
+      )}
+
+      {/* Shared SetEditorModal — single instance opened from either the
+          ExerciseCard or the ExerciseDetailModal via openSetEditor(). One
+          editor, one save path, no more two-instance divergence. */}
+      {setEditorConfig && (
+        <Portal>
+          <SetEditorModal
+            exercise={setEditorConfig.exercise}
+            sets={setEditorConfig.sets}
+            isTimedExercise={setEditorConfig.isTimedExercise}
+            weightUnit={setEditorConfig.weightUnit || weightUnit}
+            onSave={(newSets, editMode) => {
+              try { setEditorConfig.onSave?.(newSets, editMode); } catch (e) { console.error('SetEditor onSave error:', e); }
+              closeSetEditor();
+            }}
+            onClose={closeSetEditor}
+          />
+        </Portal>
       )}
 
       {/* Readiness Check Modal */}

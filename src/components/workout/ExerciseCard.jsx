@@ -143,7 +143,7 @@ const parseVoiceInputForSets = (transcript) => {
   }
 };
 
-function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick, workoutStarted, onSwapExercise, onDeleteExercise, onMoveUp, onMoveDown, isFirst, isLast, onUpdateExercise, weightUnit = 'lbs', clientId }) {
+function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick, workoutStarted, onSwapExercise, onDeleteExercise, onMoveUp, onMoveDown, isFirst, isLast, onUpdateExercise, onOpenSetEditor, weightUnit = 'lbs', clientId }) {
   // Early return if exercise is invalid
   if (!exercise || typeof exercise !== 'object') {
     return null;
@@ -904,7 +904,23 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
               transform: `translateX(-${setsSwipeOffset}px)`,
               transition: isSetsSwiping ? 'none' : 'transform 0.2s ease-out'
             }}
-            onClick={(e) => { e.stopPropagation(); if (setsSwipeOffset > 0) closeSetsSwipe(); else setShowSetEditor(true); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (setsSwipeOffset > 0) { closeSetsSwipe(); return; }
+              // Open the shared SetEditorModal at the page level so the outer
+              // card and the inner detail modal use one editor instance.
+              if (onOpenSetEditor) {
+                onOpenSetEditor({
+                  exercise,
+                  sets,
+                  isTimedExercise,
+                  weightUnit,
+                  onSave: handleSaveSets
+                });
+              } else {
+                setShowSetEditor(true); // fallback if parent didn't wire the prop
+              }
+            }}
             onTouchStart={handleSetsTouchStart}
             onTouchMove={handleSetsTouchMove}
             onTouchEnd={handleSetsTouchEnd}
@@ -1058,8 +1074,10 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
 
       </div>
 
-      {/* Set Editor Modal */}
-      {showSetEditor && (
+      {/* Set Editor Modal — fallback render for the rare case where this
+          component is used without the onOpenSetEditor prop wired up.
+          The shared instance at the Workouts page level is preferred. */}
+      {showSetEditor && !onOpenSetEditor && (
         <Portal>
           <SetEditorModal
             exercise={exercise}
