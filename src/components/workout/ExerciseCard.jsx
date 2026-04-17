@@ -407,7 +407,9 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
     e?.stopPropagation();
     const newSets = [...sets];
     const numValue = parseFloat(value);
-    newSets[setIndex] = { ...newSets[setIndex], reps: isNaN(numValue) ? 0 : numValue };
+    // Clamp to non-negative: negative reps would corrupt PR history and analytics.
+    const safeReps = isNaN(numValue) || numValue < 0 ? 0 : numValue;
+    newSets[setIndex] = { ...newSets[setIndex], reps: safeReps };
     setSets(newSets);
   };
 
