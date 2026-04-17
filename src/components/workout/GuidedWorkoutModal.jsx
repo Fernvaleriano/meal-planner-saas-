@@ -1794,13 +1794,16 @@ function GuidedWorkoutModal({
       const nextMemberPos = ss.memberPos + 1;
 
       if (nextMemberPos < ss.groupIndices.length) {
-        // More members in this round — advance to next member (no rest between members)
-        const nextMemberIdx = ss.groupIndices[nextMemberPos];
-        setSupersetState(prev => prev ? { ...prev, memberPos: nextMemberPos } : prev);
-        setCurrentExIndex(nextMemberIdx);
-        setCurrentSetIndex(ss.round);
-        setPhase('get-ready');
-        setTimer(3); // Brief transition between superset members
+        // More members in this round — enter a short rest so the user can log
+        // reps/weight for the just-completed member. memberPos advance is
+        // deferred via pendingMemberPos so the UI keeps showing the finished
+        // exercise (and its log inputs) during the rest.
+        const scheduledRest = getRestForSet(exIdx, setIdx);
+        const interMemberRest = Math.min(scheduledRest || 15, 20);
+        setSupersetState(prev => prev ? { ...prev, pendingMemberPos: nextMemberPos } : prev);
+        setRestLogTarget({ exIndex: exIdx, setIndex: setIdx });
+        setPhase('rest');
+        setTimer(interMemberRest);
       } else {
         // Last member in round
         const nextRound = ss.round + 1;
@@ -1877,9 +1880,18 @@ function GuidedWorkoutModal({
     const ss = supersetStateRef.current;
 
     if (ss) {
-      // --- SUPERSET MODE --- after rest, go to first member of the new round
-      const firstMemberIdx = ss.groupIndices[0];
-      setCurrentExIndex(firstMemberIdx);
+      // --- SUPERSET MODE --- after rest:
+      //   - Inter-member rest: pendingMemberPos was set, advance to that member.
+      //   - Inter-round rest: round was already incremented and memberPos reset
+      //     to 0, so groupIndices[ss.memberPos] is the first member.
+      const targetMemberPos = ss.pendingMemberPos != null ? ss.pendingMemberPos : ss.memberPos;
+      const targetMemberIdx = ss.groupIndices[targetMemberPos];
+      if (ss.pendingMemberPos != null) {
+        setSupersetState(prev => prev
+          ? { ...prev, memberPos: targetMemberPos, pendingMemberPos: null }
+          : prev);
+      }
+      setCurrentExIndex(targetMemberIdx);
       setCurrentSetIndex(ss.round);
       setPhase('get-ready');
       setTimer(3);
