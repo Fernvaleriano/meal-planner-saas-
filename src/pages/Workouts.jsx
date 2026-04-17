@@ -950,8 +950,14 @@ function Workouts() {
           if (fromData.size > 0) {
             setCompletedExercises(fromData);
           } else {
+            // Scope the log-based fallback to this workout's exercises — otherwise
+            // the shared per-day log aggregates exercise_ids from every workout
+            // assigned today and "X/3 activities done" shows wildly wrong numbers.
+            const activeIds = new Set(getWorkoutExercises(active).map(e => e.id));
             const completed = new Set(
-              (log?.exercises || []).map(e => e?.exercise_id).filter(Boolean)
+              (log?.exercises || [])
+                .map(e => e?.exercise_id)
+                .filter(id => id && activeIds.has(id))
             );
             setCompletedExercises(completed);
           }
@@ -1098,8 +1104,13 @@ function Workouts() {
             if (fromData.size > 0) {
               setCompletedExercises(fromData);
             } else {
+              // Scope the log-based fallback to this workout's exercises — see
+              // matching comment in refreshWorkoutData above.
+              const activeIds = new Set(getWorkoutExercises(first).map(e => e.id));
               const completed = new Set(
-                (log?.exercises || []).map(e => e?.exercise_id).filter(Boolean)
+                (log?.exercises || [])
+                  .map(e => e?.exercise_id)
+                  .filter(id => id && activeIds.has(id))
               );
               setCompletedExercises(completed);
             }
@@ -3567,9 +3578,14 @@ function Workouts() {
     }
   }, [expandedWorkout, todayWorkout, workoutStarted, workoutLog, clientData?.id, selectedDate]);
 
-  // Calculate progress
-  const completedCount = completedExercises.size;
+  // Calculate progress — scope to the currently-visible workout's exercises so
+  // completedExercises entries from other workouts assigned to the same day
+  // can't inflate the count (e.g. "39/3 activities done").
   const totalExercises = exercises.length;
+  const completedCount = exercises.reduce(
+    (n, ex) => (ex?.id && completedExercises.has(ex.id) ? n + 1 : n),
+    0
+  );
   const progressPercent = totalExercises > 0 ? (completedCount / totalExercises) * 100 : 0;
 
   // Check if selected date is today
