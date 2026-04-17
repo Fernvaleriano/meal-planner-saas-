@@ -542,12 +542,18 @@ function Workouts() {
   const globalExerciseRefsRef = useRef({}); // Coach's global exercise references keyed by lowercase exercise name
   const refreshWorkoutDataRef = useRef(null); // Stable ref for resume handler (defined later via useCallback)
   const showErrorRef = useRef(null); // Stable ref for showError in fire-and-forget saves
+  const workoutLogRef = useRef(null); // Stable ref for workoutLog in fire-and-forget saves
+  const clientDataRef = useRef(null); // Stable ref for clientData in fire-and-forget saves
+  const selectedDateRef = useRef(new Date()); // Stable ref for selectedDate in fire-and-forget saves
 
   // Keep refs updated for stable callbacks
   todayWorkoutRef.current = todayWorkout;
   selectedExerciseRef.current = selectedExercise;
   completedExercisesRef.current = completedExercises;
   showErrorRef.current = showError;
+  workoutLogRef.current = workoutLog;
+  clientDataRef.current = clientData;
+  selectedDateRef.current = selectedDate;
 
   // Sync todayWorkouts array when active workout changes (e.g. exercise toggles)
   // Returns prev (same reference) when the workout is already the same object,
@@ -2252,6 +2258,65 @@ function Workouts() {
       }
     } catch { /* best-effort — apiPut below is the durable fallback */ }
 
+    // Best-effort backup write to workout_logs/exercise_logs.
+    // Why this exists: ExerciseDetailModal auto-saves into exercise_logs, which
+    // makes its edits survive app-kill/restart even when assignment PUT is
+    // interrupted. ExerciseCard edits only hit assignment PUT. Writing a backup
+    // exercise_log here unifies persistence for both entry points.
+    (async () => {
+      try {
+        const currentClientId = clientDataRef.current?.id || workout.client_id;
+        if (!currentClientId || !updatedExercise?.id || !Array.isArray(updatedExercise.sets)) return;
+
+        const dateStr = formatDate(selectedDateRef.current || new Date());
+        let logId = workoutLogRef.current?.id || null;
+
+        if (!logId) {
+          const existing = await apiGet(`/.netlify/functions/workout-logs?clientId=${currentClientId}&startDate=${dateStr}&endDate=${dateStr}&limit=1`);
+          const logs = existing?.workouts || existing?.logs || [];
+          if (logs.length > 0) {
+            logId = logs[0].id;
+          }
+        }
+
+        if (!logId) {
+          const created = await apiPost('/.netlify/functions/workout-logs', {
+            clientId: currentClientId,
+            assignmentId: workout.is_adhoc ? undefined : workout.id,
+            workoutDate: dateStr,
+            workoutName: workout.name || 'Workout',
+            status: 'in_progress'
+          });
+          if (created?.workout?.id) {
+            logId = created.workout.id;
+          }
+        }
+
+        if (!logId) return;
+
+        await apiPut('/.netlify/functions/workout-logs', {
+          workoutId: logId,
+          exercises: [{
+            exerciseId: updatedExercise.id,
+            exerciseName: updatedExercise.name || 'Unknown',
+            order: 1,
+            sets: updatedExercise.sets.map((s, idx) => ({
+              setNumber: idx + 1,
+              reps: s?.reps || 0,
+              weight: s?.weight || 0,
+              weightUnit: s?.weightUnit || weightUnit,
+              restSeconds: s?.restSeconds || null,
+              effort: s?.effort || null,
+              ...(s?.duration != null && { duration: s.duration }),
+              ...(s?.distance != null && { distance: s.distance })
+            }))
+          }]
+        });
+      } catch (e) {
+        // Best-effort fallback only; assignment save path above remains primary.
+      }
+    })();
+
     // Save to backend with retry logic (up to 3 attempts with exponential backoff)
     // Stash the in-flight save so the visibilitychange/pagehide handler can flush
     // it via fetch keepalive if the user kills the app before the API request lands.
@@ -3436,6 +3501,17 @@ function Workouts() {
       setSelectedExercise(null);
     });
   }, []);
+
+  // Keep the open ExerciseDetailModal bound to the latest exercise object from
+  // parent state so card edits and modal edits always reflect each other.
+  useEffect(() => {
+    if (!selectedExercise?.id || exercises.length === 0) return;
+    const latest = exercises.find(ex => ex?.id === selectedExercise.id);
+    if (!latest) return;
+    if (latest !== selectedExercise) {
+      setSelectedExercise(latest);
+    }
+  }, [exercises, selectedExercise]);
 
   // Stable callback for toggling selected exercise - uses ref to avoid recreating on every render
   const handleToggleSelectedExercise = useCallback(() => {
