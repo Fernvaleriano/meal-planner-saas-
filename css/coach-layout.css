@@ -774,30 +774,30 @@ body.sidebar-is-collapsed .main-content {
     gap: 8px;
 }
 
+/* Toggle button lives in the page header (main-header), left side */
 .sidebar-collapse-btn {
     display: none;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-    border: 1px solid var(--gray-200);
-    background: white;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    border: none;
+    background: transparent;
     color: var(--gray-500);
     cursor: pointer;
     flex-shrink: 0;
-    transition: background 0.15s, color 0.15s, transform 0.25s ease;
+    margin-right: 12px;
     padding: 0;
+    transition: background 0.15s, color 0.15s;
 }
 
 .sidebar-collapse-btn:hover {
     background: var(--gray-100);
-    color: var(--gray-700);
+    color: var(--gray-800);
 }
 
 [data-theme="dark"] .sidebar-collapse-btn {
-    background: var(--gray-800);
-    border-color: var(--gray-700);
     color: var(--gray-400);
 }
 
@@ -806,15 +806,11 @@ body.sidebar-is-collapsed .main-content {
     color: var(--gray-100);
 }
 
-/* Show desktop-only collapse button */
+/* Show only on desktop — mobile already has .mobile-menu-btn */
 @media (min-width: 1025px) {
     .sidebar-collapse-btn {
         display: inline-flex;
     }
-}
-
-body.sidebar-is-collapsed .sidebar-collapse-btn {
-    transform: rotate(180deg);
 }
 
 /* Collapsed state — desktop only (mobile uses slide-out behavior) */
