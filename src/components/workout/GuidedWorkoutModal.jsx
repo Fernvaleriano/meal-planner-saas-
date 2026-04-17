@@ -11,12 +11,19 @@ import { generateProgression, EFFORT_OPTIONS, EFFORT_TO_RIR, estimate1RM, parseS
 const RESUME_STORAGE_KEY = 'guided_workout_resume';
 
 const saveResumeState = (state) => {
+  const payload = JSON.stringify({ ...state, savedAt: Date.now() });
   try {
-    localStorage.setItem(RESUME_STORAGE_KEY, JSON.stringify({
-      ...state,
-      savedAt: Date.now()
-    }));
-  } catch (e) { /* quota exceeded or private mode */ }
+    localStorage.setItem(RESUME_STORAGE_KEY, payload);
+  } catch (e) {
+    // On quota errors, drop any stale resume key and retry once — better to
+    // keep the CURRENT workout resumable than leave an old one blocking us.
+    if (e?.name === 'QuotaExceededError' || e?.code === 22) {
+      try {
+        localStorage.removeItem(RESUME_STORAGE_KEY);
+        localStorage.setItem(RESUME_STORAGE_KEY, payload);
+      } catch { /* private mode / still no room — give up silently */ }
+    }
+  }
 };
 
 const loadResumeState = () => {
@@ -1124,6 +1131,10 @@ function GuidedWorkoutModal({
 
     if (clientNoteTimerRef.current) clearTimeout(clientNoteTimerRef.current);
     clientNoteTimerRef.current = setTimeout(() => {
+      // If the modal was unmounted between keystroke and debounce fire,
+      // skip the save. Prevents setState-on-unmounted warnings and stray
+      // writes that arrive after the user has already navigated away.
+      if (!isMountedRef.current) return;
       if (text.trim()) saveClientNote(text);
     }, 2000);
   }, [currentExIndex, saveClientNote]);
