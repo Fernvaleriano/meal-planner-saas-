@@ -197,6 +197,17 @@ function Diary() {
     }
   }, [searchParams]);
 
+  useEffect(() => {
+    const dateParam = searchParams.get('date');
+    if (dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam)) {
+      const [y, m, d] = dateParam.split('-').map(Number);
+      const target = new Date(y, m - 1, d);
+      if (!isNaN(target.getTime())) {
+        setCurrentDate(target);
+      }
+    }
+  }, [searchParams]);
+
   // Pick up pendingFoodLog from sessionStorage (set by Recipes "Log to Diary")
   useEffect(() => {
     const action = searchParams.get('action');
