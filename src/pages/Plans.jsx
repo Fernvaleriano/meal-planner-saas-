@@ -232,8 +232,7 @@ function Plans() {
 
   // Re-fetch plans when app resumes from background
   useEffect(() => {
-    const unsub = onAppResume((backgroundMs) => {
-      if (backgroundMs < 3000) return;
+    const unsub = onAppResume(() => {
       refreshPlansData();
     });
     return () => unsub();
