@@ -545,6 +545,7 @@ function Workouts() {
   const workoutLogRef = useRef(null); // Stable ref for workoutLog in fire-and-forget saves
   const clientDataRef = useRef(null); // Stable ref for clientData in fire-and-forget saves
   const selectedDateRef = useRef(new Date()); // Stable ref for selectedDate in fire-and-forget saves
+  const weightUnitRef = useRef('lbs'); // Stable ref for weightUnit in fire-and-forget saves
 
   // Keep refs updated for stable callbacks
   todayWorkoutRef.current = todayWorkout;
@@ -554,6 +555,7 @@ function Workouts() {
   workoutLogRef.current = workoutLog;
   clientDataRef.current = clientData;
   selectedDateRef.current = selectedDate;
+  weightUnitRef.current = weightUnit;
 
   // Sync todayWorkouts array when active workout changes (e.g. exercise toggles)
   // Returns prev (same reference) when the workout is already the same object,
@@ -2263,23 +2265,118 @@ function Workouts() {
     // makes its edits survive app-kill/restart even when assignment PUT is
     // interrupted. ExerciseCard edits only hit assignment PUT. Writing a backup
     // exercise_log here unifies persistence for both entry points.
+    //
+    // Two reliability wins on top of the previous version:
+    //   1. Cache the workout_log_id in localStorage keyed by (clientId, date).
+    //      Subsequent same-day saves skip the GET/POST lookup entirely and go
+    //      straight to PUT.
+    //   2. Fire the PUT as a fetch(..., { keepalive: true }) so the request
+    //      survives full app-kill. apiPut uses AbortController which gets
+    //      cancelled when the OS terminates the WebView — keepalive doesn't.
+    // Also patches workoutLog state optimistically so the exercises useMemo
+    // merge reflects the edit without waiting for a round-trip.
     (async () => {
       try {
         const currentClientId = clientDataRef.current?.id || workout.client_id;
         if (!currentClientId || !updatedExercise?.id || !Array.isArray(updatedExercise.sets)) return;
 
         const dateStr = formatDate(selectedDateRef.current || new Date());
-        let logId = workoutLogRef.current?.id || null;
+        const LOG_ID_KEY = `workout-log-id-${currentClientId}-${dateStr}`;
 
+        // Prefer in-memory state; fall back to localStorage cache from a
+        // prior session (survives app-kill before workoutLog state hydrated).
+        let logId = workoutLogRef.current?.id || null;
         if (!logId) {
-          const existing = await apiGet(`/.netlify/functions/workout-logs?clientId=${currentClientId}&startDate=${dateStr}&endDate=${dateStr}&limit=1`);
-          const logs = existing?.workouts || existing?.logs || [];
-          if (logs.length > 0) {
-            logId = logs[0].id;
-            setWorkoutLog(logs[0]);
-          }
+          try { logId = localStorage.getItem(LOG_ID_KEY) || null; } catch { /* ignore */ }
         }
 
+        const setsPayload = updatedExercise.sets.map((s, idx) => ({
+          setNumber: idx + 1,
+          reps: s?.reps || 0,
+          weight: s?.weight || 0,
+          weightUnit: s?.weightUnit || weightUnitRef.current || 'lbs',
+          restSeconds: s?.restSeconds || null,
+          effort: s?.effort || null,
+          ...(s?.duration != null && { duration: s.duration }),
+          ...(s?.distance != null && { distance: s.distance })
+        }));
+        const exercisePayload = {
+          exerciseId: updatedExercise.id,
+          exerciseName: updatedExercise.name || 'Unknown',
+          order: 1,
+          sets: setsPayload
+        };
+
+        // Keepalive PUT — survives full app-kill. The OS lets this request
+        // finish in the background even after the WebView is torn down.
+        const fireKeepalivePut = (id) => {
+          try {
+            let authToken = null;
+            try {
+              const keys = Object.keys(localStorage);
+              const sbKey = keys.find(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+              if (sbKey) {
+                const session = JSON.parse(localStorage.getItem(sbKey));
+                authToken = session?.access_token || session?.currentSession?.access_token;
+              }
+            } catch { /* ignore */ }
+            if (!authToken) return;
+            fetch('/.netlify/functions/workout-logs', {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+              },
+              body: JSON.stringify({ workoutId: id, exercises: [exercisePayload] }),
+              keepalive: true
+            }).catch(() => {});
+          } catch { /* ignore */ }
+        };
+
+        // Patch workoutLog state so the exercises useMemo merge reflects the
+        // new sets_data immediately, without waiting for a refetch.
+        const patchWorkoutLogState = (id) => {
+          setWorkoutLog(prev => {
+            const base = prev && prev.id === id ? prev : { id, ...(prev || {}) };
+            const prevExercises = Array.isArray(base.exercises) ? base.exercises : [];
+            const idx = prevExercises.findIndex(e => e?.exercise_id === updatedExercise.id);
+            const entry = {
+              exercise_id: updatedExercise.id,
+              exercise_name: updatedExercise.name || 'Unknown',
+              sets_data: setsPayload
+            };
+            const nextExercises = idx >= 0
+              ? prevExercises.map((e, i) => i === idx ? { ...e, ...entry } : e)
+              : [...prevExercises, entry];
+            return { ...base, id, exercises: nextExercises };
+          });
+        };
+
+        if (logId) {
+          // Fast path — we know the log id. Fire the keepalive PUT immediately
+          // (bulletproof) and also the normal durable apiPut (for error surfacing).
+          try { localStorage.setItem(LOG_ID_KEY, logId); } catch { /* ignore */ }
+          patchWorkoutLogState(logId);
+          fireKeepalivePut(logId);
+          try {
+            await apiPut('/.netlify/functions/workout-logs', {
+              workoutId: logId,
+              exercises: [exercisePayload]
+            });
+          } catch { /* keepalive above is the safety net */ }
+          return;
+        }
+
+        // Slow path — first save of the day, no cached log. Discover or create
+        // one. Once we have a logId, fire the keepalive PUT.
+        const existing = await apiGet(
+          `/.netlify/functions/workout-logs?clientId=${currentClientId}&startDate=${dateStr}&endDate=${dateStr}&limit=1`
+        ).catch(() => null);
+        const logs = existing?.workouts || existing?.logs || [];
+        if (logs.length > 0) {
+          logId = logs[0].id;
+          setWorkoutLog(logs[0]);
+        }
         if (!logId) {
           const created = await apiPost('/.netlify/functions/workout-logs', {
             clientId: currentClientId,
@@ -2287,33 +2384,22 @@ function Workouts() {
             workoutDate: dateStr,
             workoutName: workout.name || 'Workout',
             status: 'in_progress'
-          });
+          }).catch(() => null);
           if (created?.workout?.id) {
             logId = created.workout.id;
             setWorkoutLog(created.workout);
           }
         }
-
         if (!logId) return;
-
-        await apiPut('/.netlify/functions/workout-logs', {
-          workoutId: logId,
-          exercises: [{
-            exerciseId: updatedExercise.id,
-            exerciseName: updatedExercise.name || 'Unknown',
-            order: 1,
-            sets: updatedExercise.sets.map((s, idx) => ({
-              setNumber: idx + 1,
-              reps: s?.reps || 0,
-              weight: s?.weight || 0,
-              weightUnit: s?.weightUnit || weightUnit,
-              restSeconds: s?.restSeconds || null,
-              effort: s?.effort || null,
-              ...(s?.duration != null && { duration: s.duration }),
-              ...(s?.distance != null && { distance: s.distance })
-            }))
-          }]
-        });
+        try { localStorage.setItem(LOG_ID_KEY, logId); } catch { /* ignore */ }
+        patchWorkoutLogState(logId);
+        fireKeepalivePut(logId);
+        try {
+          await apiPut('/.netlify/functions/workout-logs', {
+            workoutId: logId,
+            exercises: [exercisePayload]
+          });
+        } catch { /* keepalive above is the safety net */ }
       } catch (e) {
         // Best-effort fallback only; assignment save path above remains primary.
       }
