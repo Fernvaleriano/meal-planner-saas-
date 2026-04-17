@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { ChevronLeft, ChevronRight, Play, Clock, Flame, CheckCircle, Dumbbell, Target, Calendar, TrendingUp, Award, Heart, MoreVertical, X, History, Settings, LogOut, Plus, Copy, ArrowRightLeft, SkipForward, PenSquare, Trash2, MoveRight, Share2, Star, Weight, Users, RotateCcw, Zap } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { warmUpTickSound, installGlobalAudioUnlock } from '../utils/audioTick';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, apiPut, apiDelete } from '../utils/api';
 import { onAppResume } from '../hooks/useAppLifecycle';
@@ -635,28 +636,15 @@ function Workouts() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [cardMenuWorkoutId]);
 
-  // Restore scroll position on mount; save on scroll + on unload.
-  // Uses sessionStorage so the position is remembered within the tab/app
-  // session. Content loads asynchronously, so naive scrollTo on mount fires
-  // before the page is tall enough — we retry until the page can actually
-  // reach the saved offset (or give up after ~3s).
+  // Persist + restore scroll position. The app keeps pages mounted and uses
+  // display:none/block, AND Layout.jsx forces scrollTo(0, 0) on every route
+  // change. So we:
+  //   1) Continuously save scrollY while on /workouts.
+  //   2) On each re-entry to /workouts (location.pathname change), restore —
+  //      using a setTimeout to run AFTER Layout's rAF scroll-to-top fires.
+  const location = useLocation();
   useEffect(() => {
     const SCROLL_KEY = 'workouts-scroll-y';
-    let savedY = 0;
-    try { savedY = parseInt(sessionStorage.getItem(SCROLL_KEY) || '0', 10); } catch { /* */ }
-
-    let restoreTimer = null;
-    const tryRestore = (attempt = 0) => {
-      if (savedY <= 0 || attempt > 30) return; // ~3s max (30 * 100ms)
-      const maxScroll = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
-      if (maxScroll >= savedY - 5) {
-        window.scrollTo(0, savedY);
-      } else {
-        restoreTimer = setTimeout(() => tryRestore(attempt + 1), 100);
-      }
-    };
-    // First attempt next frame; subsequent attempts wait for content to grow
-    requestAnimationFrame(() => tryRestore());
 
     let scrollTimer = null;
     const handleScroll = () => {
@@ -665,15 +653,74 @@ function Workouts() {
         try { sessionStorage.setItem(SCROLL_KEY, String(window.scrollY || 0)); } catch { /* ignore */ }
       }, 150);
     };
-
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => {
       window.removeEventListener('scroll', handleScroll);
       if (scrollTimer) clearTimeout(scrollTimer);
-      if (restoreTimer) clearTimeout(restoreTimer);
       try { sessionStorage.setItem(SCROLL_KEY, String(window.scrollY || 0)); } catch { /* ignore */ }
     };
   }, []);
+
+  // Restore whenever we (re-)land on /workouts. Runs after Layout's scrollTo(0,0)
+  // and retries until the page is tall enough to actually reach the saved Y.
+  useEffect(() => {
+    if (location.pathname !== '/workouts') return;
+    const SCROLL_KEY = 'workouts-scroll-y';
+    let savedY = 0;
+    try { savedY = parseInt(sessionStorage.getItem(SCROLL_KEY) || '0', 10); } catch { /* */ }
+    if (savedY <= 0) return;
+
+    let restoreTimer = null;
+    const tryRestore = (attempt = 0) => {
+      if (attempt > 30) return; // ~3s cap
+      const maxScroll = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+      if (maxScroll >= savedY - 5) {
+        window.scrollTo(0, savedY);
+      } else {
+        restoreTimer = setTimeout(() => tryRestore(attempt + 1), 100);
+      }
+    };
+    // Layout's scrollTo(0,0) fires in a useEffect on path change AND again in
+    // an rAF. Queue behind both with a short setTimeout.
+    const kickoff = setTimeout(() => tryRestore(), 80);
+    return () => {
+      clearTimeout(kickoff);
+      if (restoreTimer) clearTimeout(restoreTimer);
+    };
+  }, [location.pathname]);
+
+  // Install a one-shot global audio unlock on first tap anywhere in the app.
+  // Belt-and-suspenders for the "Start Workout" unlock — if the user happens
+  // to have tapped anything else first, the tick context is already primed.
+  useEffect(() => installGlobalAudioUnlock(), []);
+
+  // Hydrate any pending localStorage draft after the server fetch lands.
+  // Covers the "user edited a set, then force-killed the app before the save
+  // completed" case — server has stale data, but the draft has the real edits.
+  // Runs whenever todayWorkout.id changes (i.e. a fresh workout loads) and
+  // merges the draft on top of state. Drops drafts older than 7 days to
+  // avoid resurrecting ancient data.
+  useEffect(() => {
+    const workout = todayWorkout;
+    if (!workout?.id) return;
+    const DRAFT_KEY = `workouts-draft-${workout.id}-${workout.day_index || 0}`;
+    let draft = null;
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (raw) draft = JSON.parse(raw);
+    } catch { return; }
+    if (!draft?.workoutData) return;
+    if (Date.now() - (draft.savedAt || 0) > 7 * 24 * 60 * 60 * 1000) {
+      try { localStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
+      return;
+    }
+    // Merge draft on top of whatever the server returned. The draft is the
+    // more recent user-visible state, so it wins.
+    setTodayWorkout(prev => {
+      if (!prev || prev.id !== workout.id) return prev;
+      return { ...prev, workout_data: draft.workoutData };
+    });
+  }, [todayWorkout?.id, todayWorkout?.day_index]);
 
   // Flush pending completion saves when page visibility changes (app close/switch)
   // Uses fetch with keepalive flag which survives page unload
@@ -2100,6 +2147,21 @@ function Workouts() {
       };
     });
 
+    // Write an optimistic draft to localStorage FIRST, synchronously. This is
+    // the bulletproof layer against full app-kill: if the OS terminates the
+    // process before visibilitychange fires (which Capacitor doesn't always
+    // dispatch on swipe-away), the draft is still on disk and gets merged
+    // back into state on next mount. Cleared on successful server save.
+    const DRAFT_KEY = `workouts-draft-${workout.id}-${workout.day_index || 0}`;
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({
+        workoutId: workout.id,
+        dayIndex: workout.day_index || 0,
+        workoutData: updatedWorkoutData,
+        savedAt: Date.now()
+      }));
+    } catch { /* quota / private mode — fall through to network path */ }
+
     // Save to backend with retry logic (up to 3 attempts with exponential backoff)
     // Stash the in-flight save so the visibilitychange/pagehide handler can flush
     // it via fetch keepalive if the user kills the app before the API request lands.
@@ -2130,6 +2192,8 @@ function Workouts() {
           if (pendingSaveRef.current?.updatedWorkoutData === updatedWorkoutData) {
             pendingSaveRef.current = null;
           }
+          // Drop the draft once the server has persisted it.
+          try { localStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
           return; // Success
         } catch (err) {
           console.error(`Error saving exercise update (attempt ${i + 1}/${attempts}):`, err);
@@ -2486,6 +2550,11 @@ function Workouts() {
 
   // Called when user clicks "Begin Workout" on the confirmation screen
   const handleStartGuidedWorkout = useCallback(() => {
+    // Unlock WebAudio synchronously inside this click handler so the rep-tick
+    // sound can play later from setInterval on iOS. useEffect-based unlocks
+    // don't work here — iOS closes the user-activation window before the
+    // effect runs.
+    warmUpTickSound();
     setShowWorkoutReadyConfirm(false);
     setShowGuidedWorkout(true);
   }, []);

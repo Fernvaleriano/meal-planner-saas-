@@ -6,6 +6,7 @@ import { apiGet, apiPost, apiPut } from '../../utils/api';
 import { onAppResume } from '../../hooks/useAppLifecycle';
 import { parseDurationToSeconds } from '../../utils/workoutDuration';
 import { generateProgression, EFFORT_OPTIONS, EFFORT_TO_RIR, estimate1RM, parseSetsData, getMaxWeight, parseReps, isCompoundExercise, getWeightIncrement } from '../../utils/workoutProgression';
+import { playTickSound, warmUpTickSound } from '../../utils/audioTick';
 
 // --- Resume helpers ---
 const RESUME_STORAGE_KEY = 'guided_workout_resume';
@@ -70,77 +71,11 @@ const getRepPace = (exercise) => {
   return REP_PACE_DEFAULT; // isolation / unknown
 };
 
-// Web Audio tick sound — pre-warm on user gesture, resilient on mobile
-const playTickSound = (() => {
-  let audioCtx = null;
-
-  const ensureContext = () => {
-    // Recreate if null or closed (mobile OS can close it after background/idle)
-    if (!audioCtx || audioCtx.state === 'closed') {
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    }
-    return audioCtx;
-  };
-
-  const playTone = (ctx) => {
-    try {
-      if (ctx.state !== 'running') return; // don't schedule on suspended context
-      const t = ctx.currentTime;
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.type = 'sine';
-      osc.frequency.value = 880;
-      gain.gain.setValueAtTime(0.3, t);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
-      osc.start(t);
-      osc.stop(t + 0.08);
-    } catch (e) { /* ignore audio errors */ }
-  };
-
-  const fn = () => {
-    try {
-      const ctx = ensureContext();
-      if (ctx.state === 'suspended') {
-        ctx.resume().then(() => playTone(ctx)).catch(() => {});
-        return;
-      }
-      playTone(ctx);
-    } catch (e) { /* ignore audio errors */ }
-  };
-
-  // Call warmUp() from any tap/click handler so iOS/Android unlocks audio.
-  // Also called proactively during get-ready phase so context is ready before first tick.
-  // iOS unlock pattern: just calling resume() isn't always enough — we also play
-  // a single-sample silent buffer, which is the canonical "unlock WebAudio" trick.
-  // Without this, the first playTickSound() fired from setInterval (no user
-  // gesture in stack) silently fails on iOS even though resume() resolved.
-  fn.warmUp = () => {
-    try {
-      const ctx = ensureContext();
-      if (ctx.state === 'suspended') ctx.resume().catch(() => {});
-      // Silent unlock buffer — cheap, idempotent, safe to fire on every call.
-      try {
-        const buffer = ctx.createBuffer(1, 1, 22050);
-        const source = ctx.createBufferSource();
-        source.buffer = buffer;
-        source.connect(ctx.destination);
-        source.start(0);
-      } catch (e) { /* ignore */ }
-    } catch (e) { /* ignore */ }
-  };
-
-  // Allow external refresh (e.g. on app resume from background)
-  fn.refresh = () => {
-    try {
-      if (audioCtx && audioCtx.state !== 'closed') audioCtx.close().catch(() => {});
-    } catch (e) { /* ignore */ }
-    audioCtx = null;
-  };
-
-  return fn;
-})();
+// playTickSound and warmUpTickSound now live in src/utils/audioTick.js so the
+// "Start Workout" click handler (Workouts.jsx) can unlock the same AudioContext
+// that this modal will later play from. iOS unlocks per-context, so sharing is
+// required for the first user tap on the button to enable ticks that fire from
+// setInterval here.
 
 // Parse reps helper - supports decimals like "1.5" (e.g. 1.5 miles)
 // parseReps now imported from workoutProgression.js
@@ -1329,7 +1264,7 @@ function GuidedWorkoutModal({
   // iOS user-activation window. If we wait for the get-ready phase the
   // window may have closed and the silent unlock buffer would be ignored.
   useEffect(() => {
-    playTickSound.warmUp();
+    warmUpTickSound();
   }, []);
 
   // --- Voice announcements (TTS only, no auto-play of coach voice notes) ---
@@ -1337,7 +1272,7 @@ function GuidedWorkoutModal({
     const runVoice = async () => {
       if (phase === 'get-ready' && currentExercise) {
         // Pre-warm audio context so tick sound is ready when reps start
-        playTickSound.warmUp();
+        warmUpTickSound();
         const exInfo = getExerciseInfo(currentExIndex);
         const ss = supersetState;
         if (ss) {
@@ -1597,7 +1532,7 @@ function GuidedWorkoutModal({
       // unlock on iOS — which means the next rep tick (fired from setInterval,
       // not from a tap) plays nothing. warmUp keeps the same context alive.
       if (backgroundMs > 2000) {
-        playTickSound.warmUp();
+        warmUpTickSound();
       }
 
       // Force a lightweight repaint on iOS Safari without destroying the DOM tree.
@@ -2607,7 +2542,7 @@ function GuidedWorkoutModal({
   }
 
   return (
-    <div className="guided-workout-overlay" onTouchStart={playTickSound.warmUp} onClick={playTickSound.warmUp}>
+    <div className="guided-workout-overlay" onTouchStart={warmUpTickSound} onClick={warmUpTickSound}>
       {/* Top bar */}
       <div className="guided-top-bar">
         <button className="guided-close-btn" onClick={handleCloseWithSave}>
