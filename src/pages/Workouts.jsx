@@ -580,7 +580,14 @@ function Workouts() {
   // workout view to freeze because the scroll lock gets removed out from under it.
   useEffect(() => {
     const unsubResume = onAppResume((backgroundMs) => {
-      // Only do full cleanup if backgrounded for more than 3 seconds
+      // Always refetch workout data on resume so users don't see the pre-suspend
+      // snapshot when they return. Pull-to-refresh is a fallback, not the norm.
+      if (refreshWorkoutDataRef.current) {
+        refreshWorkoutDataRef.current();
+      }
+
+      // Only do the expensive modal/scroll-lock cleanup if backgrounded >3s —
+      // short visibility blips don't need the full reset.
       if (backgroundMs < 3000) return;
 
       // If the guided workout modal is open, let it handle its own resume logic.
@@ -591,10 +598,6 @@ function Workouts() {
       // ExerciseDetailModal re-locks scroll and forces a re-render on resume,
       // so closing it here would kick the user out of the exercise they were viewing.
       if (selectedExerciseRef.current) {
-        // Still refetch workout data in the background so it stays fresh
-        if (refreshWorkoutDataRef.current) {
-          refreshWorkoutDataRef.current();
-        }
         return;
       }
 
@@ -622,14 +625,6 @@ function Workouts() {
       // Force-clean scroll lock in case modal cleanup didn't run
       document.body.style.overflow = '';
       document.documentElement.style.overflow = '';
-
-      // RE-FETCH workout data — the original useEffect won't re-fire because
-      // its deps (clientData.id, selectedDate) haven't changed. Without this,
-      // any API calls that were in-flight when the app was suspended are dead,
-      // and the page stays stuck on "Loading..." forever.
-      if (refreshWorkoutDataRef.current) {
-        refreshWorkoutDataRef.current();
-      }
     });
 
     return () => unsubResume();

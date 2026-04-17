@@ -462,11 +462,9 @@ function Messages() {
   }, []);
 
   // Re-fetch data when app resumes from background.
-  // Without this, if the user is on the Messages page and backgrounds the app,
-  // any in-flight fetches die and the page stays stuck on loading forever.
+  // Without this, users see stale conversation data on re-entry and have to pull-to-refresh.
   useEffect(() => {
-    const unsub = onAppResume((backgroundMs) => {
-      if (backgroundMs < 3000) return;
+    const unsub = onAppResume(() => {
       fetchConversations();
       // Force Supabase Realtime channels to tear down and reconnect.
       // The WebSocket connection dies during background and channels

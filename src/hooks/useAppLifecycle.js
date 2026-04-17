@@ -110,9 +110,9 @@ async function triggerResume(backgroundMs) {
   // For 10 seconds after resume, all GET requests include X-Cache-Bypass header
   // which tells the service worker to go network-first instead of returning
   // stale cached data from before the app was backgrounded.
-  if (backgroundMs > 5000) {
-    enableSwCacheBypass(10000);
-  }
+  // Fire on every resume (not just >5s) so even brief app-switches get fresh
+  // data — otherwise users see whatever was saved last and have to pull-to-refresh.
+  enableSwCacheBypass(10000);
 
   // STEP 2: Kick off session refresh in the background (non-blocking).
   // This refreshes the JWT token while pages are already refetching data.
@@ -246,17 +246,18 @@ export function useAppLifecycle() {
 
     // ── HEARTBEAT: Detect app resume when visibilitychange doesn't fire ──
     // On iOS PWAs, visibilitychange is unreliable. setInterval callbacks are
-    // paused during suspend and fire on resume. If the gap is >5s, we resumed.
+    // paused during suspend and fire on resume. If the expected-vs-actual gap
+    // is >2.5s (interval fires every 1s), we resumed.
     let lastHeartbeat = Date.now();
     const heartbeatInterval = setInterval(() => {
       const now = Date.now();
       const gap = now - lastHeartbeat;
       lastHeartbeat = now;
 
-      if (gap > 5000) {
+      if (gap > 2500) {
         handleResume(gap);
       }
-    }, 2000);
+    }, 1000);
 
     // ── WATCHDOG: Detect stuck scroll locks on first touch ──
     let lastWatchdogRun = 0;

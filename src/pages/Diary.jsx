@@ -366,10 +366,9 @@ function Diary() {
   const { isRefreshing, indicatorRef, bindToContainer, threshold } = usePullToRefresh(refreshDiaryData);
 
   // Re-fetch data when app resumes from background.
-  // Without this, backgrounding for >5s leaves stale diary data on screen.
+  // Without this, users see stale diary data on re-entry and have to pull-to-refresh.
   useEffect(() => {
-    const unsub = onAppResume((backgroundMs) => {
-      if (backgroundMs < 3000) return;
+    const unsub = onAppResume(() => {
       refreshDiaryData();
     });
     return () => unsub();

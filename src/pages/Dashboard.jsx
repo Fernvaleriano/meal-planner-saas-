@@ -154,10 +154,9 @@ function Dashboard() {
   const { isRefreshing, indicatorRef, bindToContainer, threshold } = usePullToRefresh(refreshData);
 
   // Re-fetch data when app resumes from background.
-  // Without this, backgrounding for >5s leaves stale data on screen.
+  // Without this, users see stale data on re-entry and have to pull-to-refresh.
   useEffect(() => {
-    const unsub = onAppResume((backgroundMs) => {
-      if (backgroundMs < 3000) return;
+    const unsub = onAppResume(() => {
       refreshData();
     });
     return () => unsub();
