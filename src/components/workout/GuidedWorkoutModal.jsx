@@ -24,8 +24,9 @@ const loadResumeState = () => {
     const raw = localStorage.getItem(RESUME_STORAGE_KEY);
     if (!raw) return null;
     const data = JSON.parse(raw);
-    // Expire after 12 hours
-    if (Date.now() - data.savedAt > 12 * 60 * 60 * 1000) {
+    // Expire after 48 hours — covers the common "pause tonight, resume tomorrow
+    // evening" case that 12h silently dropped.
+    if (Date.now() - data.savedAt > 48 * 60 * 60 * 1000) {
       localStorage.removeItem(RESUME_STORAGE_KEY);
       return null;
     }
@@ -1557,6 +1558,35 @@ function GuidedWorkoutModal({
           });
         }
       }
+
+      // Belt-and-suspenders for Capacitor: `visibilitychange` isn't always
+      // reliable on native wrappers. If we have an active timer deadline and
+      // the interval was killed during suspend, resync and restart it here.
+      if (endTimeRef.current) {
+        const remaining = Math.ceil((endTimeRef.current - Date.now()) / 1000);
+        if (remaining <= 0) {
+          if (intervalRef.current) {
+            clearInterval(intervalRef.current);
+            intervalRef.current = null;
+          }
+          endTimeRef.current = null;
+          setTimer(0);
+          if (onTimerCompleteRef.current) onTimerCompleteRef.current();
+        } else if (intervalRef.current === null) {
+          setTimer(remaining);
+          intervalRef.current = setInterval(() => {
+            const r = Math.ceil((endTimeRef.current - Date.now()) / 1000);
+            if (r <= 0) {
+              clearInterval(intervalRef.current);
+              intervalRef.current = null;
+              setTimer(0);
+              if (onTimerCompleteRef.current) onTimerCompleteRef.current();
+            } else {
+              setTimer(r);
+            }
+          }, 1000);
+        }
+      }
     });
 
     return unsubscribe;
@@ -1592,6 +1622,22 @@ function GuidedWorkoutModal({
           }
         } else {
           setTimer(remaining);
+          // iOS/Android may kill setInterval during background. If the interval
+          // was dropped but the deadline is still in the future, restart it so
+          // the rest timer keeps ticking instead of freezing at `remaining`.
+          if (intervalRef.current === null) {
+            intervalRef.current = setInterval(() => {
+              const r = Math.ceil((endTimeRef.current - Date.now()) / 1000);
+              if (r <= 0) {
+                clearInterval(intervalRef.current);
+                intervalRef.current = null;
+                setTimer(0);
+                if (onTimerCompleteRef.current) onTimerCompleteRef.current();
+              } else {
+                setTimer(r);
+              }
+            }, 1000);
+          }
         }
       }
     };
@@ -2203,6 +2249,19 @@ function GuidedWorkoutModal({
   };
 
   const handleFinishWorkout = () => {
+    // Guard against finishing with zero logged data. Without this, a client who
+    // skips through every exercise sends zero-rep/zero-weight "completed" sets
+    // to the coach and pollutes PR history.
+    const hasLoggedSet = Object.values(setLogsRef.current || {}).some(logs =>
+      Array.isArray(logs) && logs.some(s =>
+        (s?.reps > 0) || (s?.weight > 0) || (s?.duration > 0)
+      )
+    );
+    if (!hasLoggedSet) {
+      const ok = window.confirm("You haven't logged any sets yet. Finish workout anyway?");
+      if (!ok) return;
+    }
+
     // Build final exercises with actual logged data so the parent has accurate values
     // for PR detection (avoids race condition with React state updates)
     const finalExercises = exercises.map((ex, i) => {

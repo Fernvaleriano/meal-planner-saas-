@@ -367,15 +367,19 @@ function SetEditorModal({
 
   // Update value for a specific set
   const updateValue = (setIndex, field, value) => {
+    // Clamp numeric values to non-negative so typos / voice input can't write
+    // negative weight or reps — they'd corrupt PR detection (Math.max on history).
+    // Strings (e.g. "42." while decimal is being entered) pass through untouched.
+    const safeValue = typeof value === 'number' && value < 0 ? 0 : value;
     const newSets = [...localSets];
     if (field === 'weight') {
-      newSets[setIndex] = { ...newSets[setIndex], weight: value };
+      newSets[setIndex] = { ...newSets[setIndex], weight: safeValue };
     } else if (editMode === 'distance') {
-      newSets[setIndex] = { ...newSets[setIndex], distance: value };
+      newSets[setIndex] = { ...newSets[setIndex], distance: safeValue };
     } else if (editMode === 'time') {
-      newSets[setIndex] = { ...newSets[setIndex], duration: value };
+      newSets[setIndex] = { ...newSets[setIndex], duration: safeValue };
     } else {
-      newSets[setIndex] = { ...newSets[setIndex], reps: value };
+      newSets[setIndex] = { ...newSets[setIndex], reps: safeValue };
     }
     setLocalSets(newSets);
   };
