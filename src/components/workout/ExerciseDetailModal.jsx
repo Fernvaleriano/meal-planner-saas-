@@ -742,9 +742,13 @@ function ExerciseDetailModal({
     // Don't save if we don't have the needed data
     if (!clientId || !exercise?.id) return;
 
-    // Debounce: wait 2 seconds after last change (0ms for recommendation accepts)
+    // Debounce: wait 300ms after last change (0ms for recommendation accepts).
+    // Shorter than the 2s we used to use — if the user closes or navigates
+    // away quickly they would lose their edits. 300ms is long enough to batch
+    // rapid keystrokes but short enough that real-world navigation captures
+    // the save before the component unmounts.
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    const delay = saveImmediatelyRef.current ? 0 : 2000;
+    const delay = saveImmediatelyRef.current ? 0 : 300;
     saveImmediatelyRef.current = false;
     saveTimerRef.current = setTimeout(() => {
       saveTimerRef.current = null;

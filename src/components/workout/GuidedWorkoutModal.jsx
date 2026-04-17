@@ -425,6 +425,12 @@ function GuidedWorkoutModal({
   const persistExerciseDataRef = useRef(null); // Ref for persistExerciseData (declared later) to avoid TDZ in handleCloseWithSave
   const supersetStateRef = useRef(supersetState);
 
+  // Auto-save debounce timers — keep a typed value safe even if user force-closes
+  // the app or navigates away before marking the set done.
+  const resumeSaveTimerRef = useRef(null);
+  const persistSaveTimerRef = useRef(null);
+  const totalElapsedRef = useRef(0);
+
   // Keep refs in sync (single effect to avoid re-render cascade)
   phaseRef.current = phase;
   currentExIndexRef.current = currentExIndex;
@@ -435,6 +441,7 @@ function GuidedWorkoutModal({
   pendingNextExIdxRef.current = pendingNextExIdx;
   isPlayingDeferredRef.current = isPlayingDeferred;
   supersetStateRef.current = supersetState;
+  totalElapsedRef.current = totalElapsed;
 
   // Clamp currentExIndex to valid range to prevent out-of-bounds access after swaps
   const safeExIndex = exercises.length > 0 ? Math.min(currentExIndex, exercises.length - 1) : 0;
@@ -1282,6 +1289,20 @@ function GuidedWorkoutModal({
       if (clientNoteTimerRef.current) {
         clearTimeout(clientNoteTimerRef.current);
       }
+      // Flush pending auto-saves so a just-typed value isn't lost at unmount.
+      // Skip the resume flush when the workout finished cleanly — handleFinishWorkout
+      // already called clearResumeState and we don't want to resurrect it.
+      if (resumeSaveTimerRef.current) {
+        clearTimeout(resumeSaveTimerRef.current);
+        if (phaseRef.current !== 'complete') {
+          try { saveResumeState(buildResumeSnapshot()); } catch { /* ignore */ }
+        }
+      }
+      if (persistSaveTimerRef.current) {
+        clearTimeout(persistSaveTimerRef.current);
+        const persist = persistExerciseDataRef.current;
+        if (persist) persist(currentExIndexRef.current);
+      }
     };
   }, []);
 
@@ -1551,9 +1572,12 @@ function GuidedWorkoutModal({
       document.body.style.top = `-${scrollLockPosRef.current}px`;
       document.body.style.width = '100%';
 
-      // Refresh AudioContext — mobile OS often kills it after background time
+      // On resume, try to resume the existing AudioContext instead of closing
+      // it. Closing forces a new context that needs a fresh user-gesture to
+      // unlock on iOS — which means the next rep tick (fired from setInterval,
+      // not from a tap) plays nothing. warmUp keeps the same context alive.
       if (backgroundMs > 2000) {
-        playTickSound.refresh();
+        playTickSound.warmUp();
       }
 
       // Force a lightweight repaint on iOS Safari without destroying the DOM tree.
@@ -2120,6 +2144,53 @@ function GuidedWorkoutModal({
     };
   }, [repCountdownActive, currentRep, isPaused, voiceEnabled]);
 
+  // Build a resume snapshot from the latest refs. Used by auto-save so
+  // force-closing the app mid-workout (or killing the process) still lets
+  // the user resume exactly where they left off.
+  const buildResumeSnapshot = () => {
+    const serializedCompleted = {};
+    Object.entries(completedSetsRef.current || {}).forEach(([key, setObj]) => {
+      serializedCompleted[key] = Array.from(setObj);
+    });
+    return {
+      workoutName,
+      exerciseCount: exercises.length,
+      currentExIndex: currentExIndexRef.current,
+      currentSetIndex: currentSetIndexRef.current,
+      totalElapsed: totalElapsedRef.current,
+      completedSets: serializedCompleted,
+      setLogs: setLogsRef.current,
+      exerciseName: exercises[currentExIndexRef.current]?.name,
+      skippedQueue: skippedQueueRef.current,
+      pendingNextExIdx: pendingNextExIdxRef.current,
+      supersetState: supersetStateRef.current
+    };
+  };
+
+  // Fast localStorage backup — fires on every typed value with a short
+  // debounce. Cheap (sync write) and protects against app kill / crash.
+  const scheduleResumeSave = () => {
+    if (resumeSaveTimerRef.current) clearTimeout(resumeSaveTimerRef.current);
+    resumeSaveTimerRef.current = setTimeout(() => {
+      if (!isMountedRef.current) return;
+      // Avoid resurrecting resume state for a workout that just finished.
+      if (phaseRef.current === 'complete') return;
+      try { saveResumeState(buildResumeSnapshot()); } catch { /* ignore */ }
+    }, 200);
+  };
+
+  // Parent-state + DB persist — slightly longer debounce since it hits an
+  // API. 500ms keeps the card / detail modal / history in sync without
+  // spamming requests while the user is still typing.
+  const schedulePersistToParent = (exIdx) => {
+    if (persistSaveTimerRef.current) clearTimeout(persistSaveTimerRef.current);
+    persistSaveTimerRef.current = setTimeout(() => {
+      if (!isMountedRef.current) return;
+      const persist = persistExerciseDataRef.current;
+      if (persist) persist(exIdx);
+    }, 500);
+  };
+
   // --- Update set log values ---
   const updateSetLog = (field, value) => {
     setSetLogs(prev => {
@@ -2127,20 +2198,30 @@ function GuidedWorkoutModal({
       const exLogs = [...(updated[currentExIndex] || [])];
       exLogs[currentSetIndex] = { ...exLogs[currentSetIndex], [field]: value };
       updated[currentExIndex] = exLogs;
+      // Sync ref immediately so the debounced persist reads fresh data
+      setLogsRef.current = updated;
       return updated;
     });
+    // Save on every keystroke — don't require the user to mark the set done
+    // or exit cleanly for their logged reps/weight to survive.
+    scheduleResumeSave();
+    schedulePersistToParent(currentExIndex);
   };
 
   // Update log for the just-completed set during rest
   const updateRestSetLog = (field, value) => {
     if (!restLogTarget) return;
+    const targetIdx = restLogTarget.exIndex;
     setSetLogs(prev => {
       const updated = { ...prev };
-      const exLogs = [...(updated[restLogTarget.exIndex] || [])];
+      const exLogs = [...(updated[targetIdx] || [])];
       exLogs[restLogTarget.setIndex] = { ...exLogs[restLogTarget.setIndex], [field]: value };
-      updated[restLogTarget.exIndex] = exLogs;
+      updated[targetIdx] = exLogs;
+      setLogsRef.current = updated;
       return updated;
     });
+    scheduleResumeSave();
+    schedulePersistToParent(targetIdx);
   };
 
   // --- Skip (permanent) ---
