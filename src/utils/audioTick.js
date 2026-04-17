@@ -80,17 +80,21 @@ export const playTickSound = () => {
 // Plays and immediately pauses the element — iOS/Capacitor treat that as
 // "this audio element was activated by the user", which unlocks later
 // programmatic .play() calls even from setInterval.
+// Muted during unlock so the user doesn't hear a stray tick when tapping
+// the workout tab, the Start button, etc.
 export const warmUpTickSound = () => {
   const el = ensureAudioEl();
   if (!el) return;
   try {
+    el.muted = true;
+    const restore = () => {
+      try { el.pause(); el.currentTime = 0; el.muted = false; } catch { /* ignore */ }
+    };
     const p = el.play();
     if (p && typeof p.then === 'function') {
-      p.then(() => {
-        try { el.pause(); el.currentTime = 0; } catch { /* ignore */ }
-      }).catch(() => {});
+      p.then(restore).catch(() => { try { el.muted = false; } catch { /* ignore */ } });
     } else {
-      try { el.pause(); el.currentTime = 0; } catch { /* ignore */ }
+      restore();
     }
   } catch { /* ignore */ }
 };
