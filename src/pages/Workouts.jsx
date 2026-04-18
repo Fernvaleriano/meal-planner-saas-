@@ -3,7 +3,7 @@ import { ChevronLeft, ChevronRight, Play, Clock, Flame, CheckCircle, Dumbbell, T
 import { useNavigate, useLocation } from 'react-router-dom';
 import { warmUpTickSound, installGlobalAudioUnlock } from '../utils/audioTick';
 import { useAuth } from '../context/AuthContext';
-import { apiGet, apiPost, apiPut, apiDelete } from '../utils/api';
+import { apiGet, apiPost, apiPut, apiDelete, enableSwCacheBypass } from '../utils/api';
 import { onAppResume } from '../hooks/useAppLifecycle';
 import ExerciseCard from '../components/workout/ExerciseCard';
 import ExerciseDetailModal from '../components/workout/ExerciseDetailModal';
@@ -1003,6 +1003,20 @@ function Workouts() {
   // Keep ref in sync so the resume handler (defined earlier) can call it
   refreshWorkoutDataRef.current = refreshWorkoutData;
 
+  // Keep the localStorage cache's workoutLog in sync with in-memory state so
+  // reopening the app shows the latest logged sets/effort instantly, before
+  // the network fetch completes. Without this the cache only ever reflects
+  // the log as of the initial fetch.
+  useEffect(() => {
+    if (!clientData?.id || !todayWorkout || !workoutLog) return;
+    try {
+      const dateStr = todayWorkout.workout_date || formatDate(selectedDate);
+      const cacheKey = `workouts_${clientData.id}_${dateStr}`;
+      const existingCache = getCache(cacheKey) || {};
+      setCache(cacheKey, { ...existingCache, workoutLog });
+    } catch { /* ignore */ }
+  }, [workoutLog, clientData?.id, todayWorkout, selectedDate]);
+
   // Setup pull-to-refresh (DOM-driven — no React re-renders during drag)
   const { isRefreshing, indicatorRef, bindToContainer, threshold } = usePullToRefresh(refreshWorkoutData);
 
@@ -1020,6 +1034,12 @@ function Workouts() {
       if (isRefreshingRef.current) {
         return;
       }
+
+      // Bypass service-worker cache for this fetch window so cold-start after
+      // a save actually pulls fresh exercise_logs (including effort) from the
+      // network. Without this the SW's stale-while-revalidate returns the
+      // pre-save snapshot and users had to pull-to-refresh to see their logs.
+      enableSwCacheBypass(10000);
 
       // Check per-date cache for the selected date (not always today).
       // If we have cached data for this specific date, show it instantly
