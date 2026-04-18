@@ -465,6 +465,7 @@ function ExerciseDetailModal({
           distance: set?.distance || exercise.distance || null,
           restSeconds: set?.restSeconds ?? exercise.restSeconds ?? 60,
           rpe: set?.rpe || null,
+          effort: set?.effort || null,
           percent1RM: set?.percent1RM || null,
           hrZone: set?.hrZone || null,
           pace: set?.pace || null,
@@ -479,7 +480,8 @@ function ExerciseDetailModal({
           completed: set?.completed || false,
           duration: set?.duration || exercise.duration || null,
           distance: set?.distance || exercise.distance || null,
-          restSeconds: set?.restSeconds ?? exercise.restSeconds ?? 60
+          restSeconds: set?.restSeconds ?? exercise.restSeconds ?? 60,
+          effort: set?.effort || null
         }));
       }
 
@@ -1439,8 +1441,11 @@ function ExerciseDetailModal({
     setShowHistory(false);
     setCoachingRecommendation(null);
     setAcceptedCoachingRec(false);
-    setSelectedEffort(null);
-  }, [exercise?.id]);
+    // Hydrate effort from saved sets_data so a previously rated exercise
+    // shows its pill as selected on reopen.
+    const savedEffort = initialSets.find(s => s?.effort)?.effort || null;
+    setSelectedEffort(savedEffort);
+  }, [exercise?.id, initialSets]);
 
   // Generate coaching recommendation using shared progression engine
   useEffect(() => {
@@ -2207,7 +2212,7 @@ function ExerciseDetailModal({
         )}
 
         {/* Effort Rating — inline pills for rating how hard the set was */}
-        {!isTimedExercise && setsChangedRef.current && sets.some(s => s.reps > 0 || s.weight > 0) && (
+        {!isTimedExercise && (setsChangedRef.current || selectedEffort) && sets.some(s => s.reps > 0 || s.weight > 0 || s.effort) && (
           <div className="detail-effort-section">
             <span className="detail-effort-label">How hard was that?</span>
             <div className="detail-effort-pills">
