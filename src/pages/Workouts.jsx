@@ -2909,6 +2909,7 @@ function Workouts() {
               weight: s?.weight || 0,
               weightUnit: s?.weightUnit || weightUnit,
               rpe: s?.rpe || null,
+              effort: s?.effort || null,
               restSeconds: s?.restSeconds ?? ex.restSeconds ?? 90,
               completed: s?.completed || false
             })),

@@ -324,7 +324,7 @@ function GuidedWorkoutModal({
           duration: existingSet?.duration || setsDataSet?.duration || ex.duration || null,
           distance: existingSet?.distance || setsDataSet?.distance || ex.distance || null,
           restSeconds: existingSet?.restSeconds ?? setsDataSet?.restSeconds ?? ex.restSeconds ?? ex.rest_seconds ?? 90,
-          effort: existingSet?.effort || null
+          effort: existingSet?.effort || setsDataSet?.effort || null
         };
       });
     });
