@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
-import { X, Check, Plus, ChevronLeft, Play, Timer, BarChart3, ArrowLeftRight, Trash2, Mic, MicOff, MessageCircle, Loader2, AlertCircle, History, TrendingUp, Award, ChevronDown, ChevronUp, Send, Square, Sparkles, ExternalLink, Camera, Bot } from 'lucide-react';
+import { X, Check, Plus, ChevronLeft, Play, Timer, BarChart3, ArrowLeftRight, Trash2, Mic, MicOff, MessageCircle, Loader2, AlertCircle, History, TrendingUp, Award, ChevronDown, ChevronUp, Send, Square, Sparkles, ExternalLink, Camera, Bot, Flame, Leaf } from 'lucide-react';
 import { apiGet, apiPost, apiPut, apiDelete } from '../../utils/api';
 import { generateProgression, EFFORT_OPTIONS, parseSetsData, getMaxWeight } from '../../utils/workoutProgression';
 import { onAppSuspend, onAppResume } from '../../hooks/useAppLifecycle';
@@ -1677,6 +1677,8 @@ function ExerciseDetailModal({
   const distanceUnitLabel = distanceUnit === 'miles' ? 'mi' : distanceUnit === 'km' ? 'km' : 'm';
   const isTimedExercise = !isDistanceExercise && (exercise?.trackingType === 'time' || (exercise?.trackingType !== 'reps' && exercise?.exercise_type !== 'strength' && (exercise?.duration || exercise?.exercise_type === 'cardio' || exercise?.exercise_type === 'timed' || sets.some(s => s?.isTimeBased))));
   const difficultyLevel = exercise?.difficulty || 'Novice';
+  const isWarmupExercise = !!(exercise?.isWarmup || exercise?.phase === 'warmup' || exercise?.section === 'warm-up');
+  const isStretchExercise = !!(exercise?.isStretch || exercise?.phase === 'cooldown' || exercise?.section === 'cool-down' || exercise?.exercise_type === 'stretch');
 
   // Helper to check if URL is an image (not video)
   const isImageUrl = (url) => {
@@ -2097,6 +2099,24 @@ function ExerciseDetailModal({
                 </a>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* Exercise Type Badges — Warm-Up / Stretch */}
+        {(isWarmupExercise || isStretchExercise) && (
+          <div className="detail-exercise-badges">
+            {isWarmupExercise && (
+              <span className="detail-exercise-badge warmup-badge">
+                <Flame size={12} />
+                Warm-up
+              </span>
+            )}
+            {isStretchExercise && (
+              <span className="detail-exercise-badge stretch-badge">
+                <Leaf size={12} />
+                Stretch
+              </span>
+            )}
           </div>
         )}
 
