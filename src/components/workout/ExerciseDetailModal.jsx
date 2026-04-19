@@ -2581,7 +2581,9 @@ function ExerciseDetailModal({
           </div>
         </div>
 
-        {/* Coach Voice Note — uses proxy URL that never expires */}
+        {/* Coach Voice Note — uses proxy URL that never expires.
+            preload="metadata" loads the duration header so length displays
+            before playback. */}
         {(exercise.voiceNoteUrl || exercise.voiceNotePath) && (
           <div className="coach-voice-note-section">
             <div className="voice-note-header">
@@ -2594,7 +2596,7 @@ function ExerciseDetailModal({
                 ? `/.netlify/functions/serve-voice-note?path=${encodeURIComponent(exercise.voiceNotePath)}`
                 : exercise.voiceNoteUrl}
               className="voice-note-audio-player"
-              preload="none"
+              preload="metadata"
               onError={(e) => {
                 // Hide voice note if file is missing/deleted
                 const container = e.target.closest('.coach-voice-note-section');

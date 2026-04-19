@@ -1024,7 +1024,9 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
         )}
 
         {/* Coach's Voice Note — uses proxy URL that never expires.
-            preload="none" prevents concurrent audio metadata loads on iOS */}
+            preload="metadata" fetches only the duration header so the length
+            displays before the user presses play, without downloading the
+            full audio. */}
         {(exercise.voiceNoteUrl || exercise.voiceNotePath) && (
           <div className="coach-voice-note">
             <span className="note-label">
@@ -1037,7 +1039,7 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
                 ? `/.netlify/functions/serve-voice-note?path=${encodeURIComponent(exercise.voiceNotePath)}`
                 : exercise.voiceNoteUrl}
               className="voice-note-audio"
-              preload="none"
+              preload="metadata"
               onError={(e) => {
                 // Hide voice note if file is missing/deleted
                 const container = e.target.closest('.coach-voice-note');
