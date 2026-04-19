@@ -3361,7 +3361,8 @@ function GuidedWorkoutModal({
           </div>
           <div className="guided-activity-thumbnails" ref={guidedActivityThumbsRef}>
             {exercises.map((ex, idx) => {
-              const exThumb = (ex?.thumbnail_url && !isVideoUrl(ex?.thumbnail_url) ? ex.thumbnail_url : null) ||
+              const hasRealThumb = ex?.thumbnail_url && !isVideoUrl(ex.thumbnail_url);
+              const exThumb = (hasRealThumb ? ex.thumbnail_url : null) ||
                 (isImageUrl(ex?.animation_url) ? ex?.animation_url : null) ||
                 '/img/exercise-placeholder.svg';
               const completed = isExerciseCompleted(idx);
@@ -3384,7 +3385,9 @@ function GuidedWorkoutModal({
                   <img
                     src={exThumb}
                     alt={ex?.name || 'Exercise'}
-                    loading="lazy"
+                    width={44}
+                    height={44}
+                    loading={hasRealThumb ? 'eager' : 'lazy'}
                     decoding="async"
                     onError={(e) => { e.target.src = '/img/exercise-placeholder.svg'; }}
                   />
