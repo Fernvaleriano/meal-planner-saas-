@@ -2155,10 +2155,12 @@ function ExerciseDetailModal({
               </div>
             </div>
             <div className="rest-boxes-row">
-              <div className="rest-box">
-                <Timer size={14} />
-                <span>{exercise.restSeconds || 60}s</span>
-              </div>
+              {sets.map((set, idx) => (
+                <div key={idx} className="rest-box">
+                  <Timer size={14} />
+                  <span>{set?.restSeconds ?? exercise.restSeconds ?? 60}s</span>
+                </div>
+              ))}
             </div>
             {/* Coach-prescribed metrics (only if coach toggled them on) */}
             {sets.some(s => (exercise.showRPE && s.rpe) || (exercise.showPercent1RM && s.percent1RM) || (exercise.showHRZone && s.hrZone) || (exercise.showPace && s.pace) || (exercise.showIncline && s.incline)) && (

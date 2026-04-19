@@ -353,6 +353,10 @@ function SetEditorModal({
       const w = localSets[setIndex]?.weight;
       return w != null ? w : 0;
     }
+    if (field === 'rest') {
+      const r = localSets[setIndex]?.restSeconds;
+      return r != null ? r : (exercise.restSeconds ?? 60);
+    }
     if (editMode === 'distance') {
       const d = localSets[setIndex]?.distance;
       return d != null ? d : (exercise.distance || 1);
@@ -377,6 +381,9 @@ function SetEditorModal({
     const newSets = [...localSets];
     if (field === 'weight') {
       newSets[setIndex] = { ...newSets[setIndex], weight: safeValue };
+    } else if (field === 'rest') {
+      const intVal = typeof safeValue === 'number' ? Math.round(safeValue) : parseInt(safeValue, 10) || 0;
+      newSets[setIndex] = { ...newSets[setIndex], restSeconds: intVal };
     } else if (editMode === 'distance') {
       newSets[setIndex] = { ...newSets[setIndex], distance: safeValue };
     } else if (editMode === 'time') {
@@ -646,10 +653,14 @@ function SetEditorModal({
               </div>
               {/* Rest time and RPE row */}
               <div className="set-rest-row">
-                <div className="rest-pill">
+                <button
+                  type="button"
+                  className={`rest-pill ${activeSetIndex === index && activeField === 'rest' ? 'active' : ''}`}
+                  onClick={() => selectField(index, 'rest')}
+                >
                   <Clock size={12} />
-                  <span>{set.restSeconds || exercise.restSeconds || 60}s rest</span>
-                </div>
+                  <span>{(set.restSeconds ?? exercise.restSeconds ?? 60)}s rest</span>
+                </button>
                 {/* RPE Selector */}
                 <div className="rpe-selector-wrapper">
                   <button
@@ -709,7 +720,7 @@ function SetEditorModal({
           <div className="editor-numpad">
             <div className="numpad-header">
               <span className="numpad-label">
-                {activeField === 'weight' ? 'Enter weight' : (editMode === 'distance' ? `Enter ${distanceUnit}` : (editMode === 'time' ? 'Enter time (seconds)' : (isTillFailure ? 'Reps completed' : 'Enter reps')))}
+                {activeField === 'rest' ? 'Enter rest (seconds)' : (activeField === 'weight' ? 'Enter weight' : (editMode === 'distance' ? `Enter ${distanceUnit}` : (editMode === 'time' ? 'Enter time (seconds)' : (isTillFailure ? 'Reps completed' : 'Enter reps'))))}
               </span>
               <button className="numpad-done-btn" onClick={hideKeyboard}>
                 Done
