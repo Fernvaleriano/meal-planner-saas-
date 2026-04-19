@@ -18866,6 +18866,36 @@ textarea,
     color: white;
 }
 
+/* Exercise Detail Modal Badges - Warm-Up / Stretch */
+.detail-exercise-badges {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin: 8px 16px 0;
+}
+
+.detail-exercise-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.detail-exercise-badge.warmup-badge {
+    background: linear-gradient(135deg, #F59E0B, #EF4444);
+    color: white;
+}
+
+.detail-exercise-badge.stretch-badge {
+    background: linear-gradient(135deg, #10B981, #14B8A6);
+    color: white;
+}
+
 /* Special exercise type indicators on the card */
 .exercise-card-v2.superset-exercise {
     border-left: 3px solid #8B5CF6;
