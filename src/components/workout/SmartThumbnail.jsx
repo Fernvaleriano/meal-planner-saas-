@@ -101,6 +101,10 @@ function SmartThumbnail({
   }, []);
 
   // --- Resolve the thumbnail URL (but don't mount <img> until near viewport) ---
+  // Priorities 0-2 (URL-based) resolve immediately so the URL is ready the
+  // moment the IntersectionObserver fires. Priority 3 (video frame capture) is
+  // gated on isNearViewport — running it eagerly for every exercise on mount
+  // saturates the 3-slot throttle queue and starves the visible items.
   useEffect(() => {
     let cancelled = false;
 
@@ -109,7 +113,6 @@ function SmartThumbnail({
     }
 
     async function resolveThumbnail() {
-      setLoading(true);
       setError(false);
 
       // Priority 0: Use custom video thumbnail uploaded by coach
@@ -142,8 +145,17 @@ function SmartThumbnail({
         return;
       }
 
-      // Priority 3: Generate from video (throttled + timeout)
+      // Priority 3: Generate from video — only when the card is near the
+      // viewport. Generating eagerly for every exercise blocks the throttle
+      // queue and delays the thumbnails the user actually sees.
       if (videoUrl && !isVideoUrl(videoUrl) && !isImageUrl(videoUrl)) {
+        if (!isNearViewport) {
+          // Stay in loading state until we scroll close enough to bother.
+          if (!cancelled) setLoading(true);
+          return;
+        }
+
+        if (!cancelled) setLoading(true);
         timeoutRef.current = setTimeout(() => {
           if (!cancelled) setLoading(false);
         }, 3000);
@@ -183,7 +195,7 @@ function SmartThumbnail({
         clearTimeout(timeoutRef.current);
       }
     };
-  }, [exercise?.id, exercise?.thumbnail_url, exercise?.video_url, exercise?.animation_url, exercise?.customVideoUrl, exercise?.customVideoThumbnail, videoUrl]);
+  }, [exercise?.id, exercise?.thumbnail_url, exercise?.video_url, exercise?.animation_url, exercise?.customVideoUrl, exercise?.customVideoThumbnail, videoUrl, isNearViewport]);
 
   const handleImageError = useCallback(() => {
     setError(true);
@@ -215,7 +227,7 @@ function SmartThumbnail({
           width={px}
           height={px}
           decoding="async"
-          loading="lazy"
+          fetchpriority="high"
           onError={handleImageError}
         />
       ) : (
