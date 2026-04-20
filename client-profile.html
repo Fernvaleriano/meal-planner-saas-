@@ -4430,6 +4430,261 @@
             margin-bottom: 4px;
         }
 
+        /* Achievements / Badges Section */
+        .achievements-section {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            margin-top: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        [data-theme="dark"] .achievements-section {
+            background: #1e293b;
+        }
+
+        .achievements-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 8px;
+            border-radius: 8px;
+            transition: background 0.2s;
+        }
+
+        .achievements-header:hover {
+            background: rgba(0,0,0,0.03);
+        }
+
+        [data-theme="dark"] .achievements-header:hover {
+            background: rgba(255,255,255,0.05);
+        }
+
+        .achievements-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #2d3748;
+        }
+
+        [data-theme="dark"] .achievements-title {
+            color: #f1f5f9;
+        }
+
+        .achievements-summary {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+            padding: 16px;
+            background: linear-gradient(135deg, #f0fdfa 0%, #ecfeff 100%);
+            border-radius: 10px;
+            border: 1px solid #a7f3d0;
+        }
+
+        [data-theme="dark"] .achievements-summary {
+            background: linear-gradient(135deg, #0f3d3a 0%, #0f3a4a 100%);
+            border-color: #0d9488;
+        }
+
+        .achievements-stat {
+            flex: 1;
+            min-width: 120px;
+            text-align: center;
+        }
+
+        .achievements-stat-value {
+            font-size: 22px;
+            font-weight: 800;
+            color: #0d9488;
+            line-height: 1.2;
+        }
+
+        [data-theme="dark"] .achievements-stat-value {
+            color: #14b8a6;
+        }
+
+        .achievements-stat-label {
+            font-size: 11px;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 4px;
+        }
+
+        [data-theme="dark"] .achievements-stat-label {
+            color: #94a3b8;
+        }
+
+        .next-badge-progress {
+            margin-top: 14px;
+        }
+
+        .next-badge-progress-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: #475569;
+            margin-bottom: 6px;
+        }
+
+        [data-theme="dark"] .next-badge-progress-label {
+            color: #cbd5e1;
+        }
+
+        .next-badge-progress-bar {
+            height: 8px;
+            background: rgba(13, 148, 136, 0.15);
+            border-radius: 999px;
+            overflow: hidden;
+        }
+
+        .next-badge-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #0d9488 0%, #0284c7 100%);
+            border-radius: 999px;
+            transition: width 0.6s ease;
+        }
+
+        .badges-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 14px;
+        }
+
+        .badge-card {
+            position: relative;
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 16px 12px;
+            text-align: center;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            overflow: hidden;
+        }
+
+        [data-theme="dark"] .badge-card {
+            background: #0f172a;
+            border-color: #334155;
+        }
+
+        .badge-card.earned {
+            background: linear-gradient(135deg, #fefce8 0%, #fef3c7 100%);
+            border-color: #fbbf24;
+            box-shadow: 0 4px 12px rgba(251, 191, 36, 0.25);
+        }
+
+        [data-theme="dark"] .badge-card.earned {
+            background: linear-gradient(135deg, #422006 0%, #78350f 100%);
+            border-color: #f59e0b;
+            box-shadow: 0 4px 12px rgba(251, 191, 36, 0.15);
+        }
+
+        .badge-card.earned:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 16px rgba(251, 191, 36, 0.35);
+        }
+
+        .badge-card.locked {
+            opacity: 0.55;
+            filter: grayscale(0.6);
+        }
+
+        .badge-icon {
+            font-size: 42px;
+            line-height: 1;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .badge-card.locked .badge-icon {
+            filter: grayscale(1);
+        }
+
+        .badge-name {
+            font-size: 13px;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 4px;
+            line-height: 1.2;
+        }
+
+        [data-theme="dark"] .badge-name {
+            color: #f1f5f9;
+        }
+
+        .badge-threshold {
+            font-size: 11px;
+            color: #64748b;
+            font-weight: 500;
+        }
+
+        [data-theme="dark"] .badge-threshold {
+            color: #94a3b8;
+        }
+
+        .badge-card.earned .badge-threshold {
+            color: #b45309;
+            font-weight: 600;
+        }
+
+        [data-theme="dark"] .badge-card.earned .badge-threshold {
+            color: #fbbf24;
+        }
+
+        .badge-earned-date {
+            font-size: 10px;
+            color: #78716c;
+            margin-top: 6px;
+            font-style: italic;
+        }
+
+        [data-theme="dark"] .badge-earned-date {
+            color: #a8a29e;
+        }
+
+        .badge-lock-icon {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            font-size: 14px;
+            opacity: 0.5;
+        }
+
+        .badge-ribbon {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: #f59e0b;
+            color: white;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .achievements-empty {
+            text-align: center;
+            padding: 24px 16px;
+            color: #64748b;
+        }
+
+        [data-theme="dark"] .achievements-empty {
+            color: #94a3b8;
+        }
+
+        @media (max-width: 480px) {
+            .badges-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+            }
+            .badge-icon { font-size: 36px; }
+            .achievements-stat-value { font-size: 18px; }
+        }
+
         .coach-existing-response-text {
             font-size: 14px;
             color: #334155;
@@ -8737,6 +8992,21 @@
             </div>
         </div>
 
+        <!-- Achievements / Check-in Badges Section -->
+        <div class="achievements-section">
+            <div class="achievements-header collapsible-header" onclick="toggleSection('achievements')" style="cursor: pointer;">
+                <h2 class="achievements-title">🏅 Achievements</h2>
+                <button class="section-toggle-btn" type="button">
+                    <span class="toggle-icon" id="achievementsToggleIcon">▼</span>
+                </button>
+            </div>
+            <div id="achievementsContent" class="collapsible-content">
+                <div id="achievementsContainer">
+                    <div class="achievements-empty">Loading achievements…</div>
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <!-- Measurement Modal -->
@@ -11316,6 +11586,81 @@
         let checkinReactions = {}; // { checkinId: { reaction, id } }
         const CHECKIN_REACTIONS = ['👏', '💪', '🔥', '⭐', '❤️'];
 
+        // Total check-in count (from server pagination.total — all-time, not just the 10 loaded)
+        let totalCheckinCount = 0;
+
+        // Badge tiers earned by number of check-ins submitted
+        const BADGE_TIERS = [
+            { threshold: 1,   icon: '🌱', name: 'First Step',       desc: 'First check-in' },
+            { threshold: 7,   icon: '🔥', name: 'Week Warrior',     desc: '7 check-ins' },
+            { threshold: 14,  icon: '⚡', name: 'Two Weeks Strong', desc: '14 check-ins' },
+            { threshold: 30,  icon: '💪', name: 'Monthly Champion', desc: '30 check-ins' },
+            { threshold: 60,  icon: '🏅', name: 'Consistency Hero', desc: '60 check-ins' },
+            { threshold: 100, icon: '🏆', name: 'Century Club',     desc: '100 check-ins' },
+            { threshold: 200, icon: '👑', name: 'Dedication Master',desc: '200 check-ins' },
+            { threshold: 365, icon: '💎', name: 'Legend',           desc: '365 check-ins' }
+        ];
+
+        function displayBadges() {
+            const container = document.getElementById('achievementsContainer');
+            if (!container) return;
+
+            const count = totalCheckinCount || 0;
+            const earnedTiers = BADGE_TIERS.filter(t => count >= t.threshold);
+            const nextTier = BADGE_TIERS.find(t => count < t.threshold);
+
+            // Summary block
+            let summaryHtml = `
+                <div class="achievements-summary">
+                    <div class="achievements-stat">
+                        <div class="achievements-stat-value">${count}</div>
+                        <div class="achievements-stat-label">Check-ins</div>
+                    </div>
+                    <div class="achievements-stat">
+                        <div class="achievements-stat-value">${earnedTiers.length} / ${BADGE_TIERS.length}</div>
+                        <div class="achievements-stat-label">Badges Earned</div>
+                    </div>
+                    <div class="achievements-stat">
+                        <div class="achievements-stat-value">${nextTier ? nextTier.icon : '💎'}</div>
+                        <div class="achievements-stat-label">${nextTier ? 'Next Badge' : 'All Unlocked!'}</div>
+                    </div>
+                </div>
+            `;
+
+            if (nextTier) {
+                const prevThreshold = earnedTiers.length > 0 ? earnedTiers[earnedTiers.length - 1].threshold : 0;
+                const span = nextTier.threshold - prevThreshold;
+                const progress = Math.max(0, Math.min(100, ((count - prevThreshold) / span) * 100));
+                const remaining = nextTier.threshold - count;
+                summaryHtml += `
+                    <div class="next-badge-progress">
+                        <div class="next-badge-progress-label">
+                            <span>${remaining} more to unlock <strong>${nextTier.name}</strong> ${nextTier.icon}</span>
+                            <span>${count} / ${nextTier.threshold}</span>
+                        </div>
+                        <div class="next-badge-progress-bar">
+                            <div class="next-badge-progress-fill" style="width: ${progress}%"></div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Badge grid
+            const gridHtml = BADGE_TIERS.map(tier => {
+                const earned = count >= tier.threshold;
+                return `
+                    <div class="badge-card ${earned ? 'earned' : 'locked'}" title="${tier.name} — ${tier.desc}">
+                        ${earned ? '<span class="badge-ribbon">Earned</span>' : '<span class="badge-lock-icon">🔒</span>'}
+                        <span class="badge-icon">${tier.icon}</span>
+                        <div class="badge-name">${tier.name}</div>
+                        <div class="badge-threshold">${tier.desc}</div>
+                    </div>
+                `;
+            }).join('');
+
+            container.innerHTML = summaryHtml + `<div class="badges-grid">${gridHtml}</div>`;
+        }
+
         async function loadCheckinReactions() {
             if (!currentUser || clientCheckins.length === 0) return;
             try {
@@ -11401,11 +11746,15 @@
 
                 const data = await response.json();
                 clientCheckins = data.checkins || [];
+                totalCheckinCount = (data.pagination && typeof data.pagination.total === 'number')
+                    ? data.pagination.total
+                    : clientCheckins.length;
 
                 // Load existing reactions before displaying
                 await loadCheckinReactions();
 
                 displayCheckins();
+                displayBadges();
 
                 // Scroll to specific check-in if URL has a hash (e.g., #checkin-123)
                 if (window.location.hash && window.location.hash.startsWith('#checkin-')) {
@@ -11430,6 +11779,7 @@
                         <p>Unable to load check-ins</p>
                     </div>
                 `;
+                displayBadges();
             }
         }
 
