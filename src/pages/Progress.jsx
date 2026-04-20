@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, apiDelete } from '../utils/api';
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
+import { BADGE_TIERS, getEarnedTiers, getNextTier, generateBadgeShareCard, shareOrDownloadBadge } from '../utils/badges';
 
 import { useToast } from '../components/Toast';
 // Get today's date in local timezone (NOT UTC)
@@ -52,18 +53,6 @@ const TIME_FRAMES = [
   { label: '6 Months', value: '6m', days: 180 },
   { label: '1 Year', value: '1y', days: 365 },
   { label: 'All Time', value: 'all', days: null },
-];
-
-// Badge tiers earned by total lifetime check-in count
-const BADGE_TIERS = [
-  { threshold: 1,   icon: '🌱', name: 'First Step',        desc: 'First check-in' },
-  { threshold: 7,   icon: '🔥', name: 'Week Warrior',      desc: '7 check-ins' },
-  { threshold: 14,  icon: '⚡', name: 'Two Weeks Strong',  desc: '14 check-ins' },
-  { threshold: 30,  icon: '💪', name: 'Monthly Champion',  desc: '30 check-ins' },
-  { threshold: 60,  icon: '🏅', name: 'Consistency Hero',  desc: '60 check-ins' },
-  { threshold: 100, icon: '🏆', name: 'Century Club',      desc: '100 check-ins' },
-  { threshold: 200, icon: '👑', name: 'Dedication Master', desc: '200 check-ins' },
-  { threshold: 365, icon: '💎', name: 'Legend',            desc: '365 check-ins' },
 ];
 
 // Metric definitions
@@ -620,8 +609,8 @@ function Progress() {
   };
 
   // Achievement computations
-  const earnedTiers = BADGE_TIERS.filter(t => totalCheckinCount >= t.threshold);
-  const nextTier = BADGE_TIERS.find(t => totalCheckinCount < t.threshold);
+  const earnedTiers = getEarnedTiers(totalCheckinCount);
+  const nextTier = getNextTier(totalCheckinCount);
   const highestEarned = earnedTiers[earnedTiers.length - 1] || null;
 
   // Share badge card as image to social media (Web Share API + download fallback)
@@ -629,148 +618,23 @@ function Progress() {
     if (sharingBadge) return;
     setSharingBadge(true);
     try {
-      const width = 1080;
-      const height = 1080;
-      const canvas = document.createElement('canvas');
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-
-      // Gradient background (teal → blue, matching brand)
-      const grad = ctx.createLinearGradient(0, 0, width, height);
-      grad.addColorStop(0, '#0d9488');
-      grad.addColorStop(0.5, '#0284c7');
-      grad.addColorStop(1, '#1e293b');
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, width, height);
-
-      // Subtle radial highlight
-      const radial = ctx.createRadialGradient(width / 2, height * 0.3, 0, width / 2, height * 0.3, width * 0.6);
-      radial.addColorStop(0, 'rgba(255,255,255,0.18)');
-      radial.addColorStop(1, 'rgba(255,255,255,0)');
-      ctx.fillStyle = radial;
-      ctx.fillRect(0, 0, width, height);
-
-      // Header text
-      ctx.fillStyle = 'rgba(255,255,255,0.85)';
-      ctx.font = '600 36px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('MY ACHIEVEMENT', width / 2, 120);
-
-      // Featured badge icon (huge emoji)
       const featured = highestEarned || BADGE_TIERS[0];
-      ctx.font = '320px -apple-system, "Apple Color Emoji", "Segoe UI Emoji", sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(featured.icon, width / 2, height * 0.38);
-      ctx.textBaseline = 'alphabetic';
-
-      // Badge name
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 84px -apple-system, BlinkMacSystemFont, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText(highestEarned ? featured.name : 'Just Getting Started', width / 2, height * 0.62);
-
-      // Badge description
-      ctx.fillStyle = '#fde68a';
-      ctx.font = '600 38px -apple-system, BlinkMacSystemFont, sans-serif';
-      ctx.fillText(
-        highestEarned ? `${totalCheckinCount} check-ins completed` : `${totalCheckinCount} check-ins so far`,
-        width / 2,
-        height * 0.62 + 60
-      );
-
-      // Mini row of recently-earned badge icons
-      const miniIcons = earnedTiers.slice(-5);
-      if (miniIcons.length > 1) {
-        const rowY = height * 0.78;
-        const iconSize = 90;
-        const totalWidth = miniIcons.length * iconSize + (miniIcons.length - 1) * 22;
-        let x = (width - totalWidth) / 2 + iconSize / 2;
-        ctx.font = `${iconSize}px -apple-system, "Apple Color Emoji", "Segoe UI Emoji", sans-serif`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        miniIcons.forEach(t => {
-          ctx.fillText(t.icon, x, rowY);
-          x += iconSize + 22;
-        });
-        ctx.textBaseline = 'alphabetic';
-      }
-
-      // Stats pill
-      ctx.fillStyle = 'rgba(255,255,255,0.12)';
-      const pillW = 620;
-      const pillH = 90;
-      const pillX = (width - pillW) / 2;
-      const pillY = height * 0.86;
-      const r = 45;
-      ctx.beginPath();
-      ctx.moveTo(pillX + r, pillY);
-      ctx.arcTo(pillX + pillW, pillY, pillX + pillW, pillY + pillH, r);
-      ctx.arcTo(pillX + pillW, pillY + pillH, pillX, pillY + pillH, r);
-      ctx.arcTo(pillX, pillY + pillH, pillX, pillY, r);
-      ctx.arcTo(pillX, pillY, pillX + pillW, pillY, r);
-      ctx.closePath();
-      ctx.fill();
-
-      ctx.fillStyle = '#ffffff';
-      ctx.font = '600 34px -apple-system, BlinkMacSystemFont, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(
-        `🏅 ${earnedTiers.length} / ${BADGE_TIERS.length} badges earned`,
-        width / 2,
-        pillY + pillH / 2
-      );
-      ctx.textBaseline = 'alphabetic';
-
-      // Footer
-      ctx.fillStyle = 'rgba(255,255,255,0.7)';
-      ctx.font = '500 28px -apple-system, BlinkMacSystemFont, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('Powered by Zique Fitness', width / 2, height - 40);
-
-      // Convert & share
-      canvas.toBlob(async (blob) => {
-        if (!blob) { setSharingBadge(false); return; }
-
-        const filename = `${(featured.name || 'achievement').toLowerCase().replace(/\s+/g, '-')}.png`;
-
-        if (navigator.share && navigator.canShare) {
-          const file = new File([blob], filename, { type: 'image/png' });
-          const shareData = {
-            files: [file],
-            title: 'My Achievement',
-            text: highestEarned
-              ? `Just unlocked ${featured.name} ${featured.icon} — ${totalCheckinCount} check-ins strong!`
-              : `${totalCheckinCount} check-ins and counting 💪`
-          };
-          if (navigator.canShare(shareData)) {
-            try {
-              await navigator.share(shareData);
-              setSharingBadge(false);
-              return;
-            } catch (e) {
-              if (e.name === 'AbortError') { setSharingBadge(false); return; }
-            }
-          }
-        }
-
-        // Fallback: download
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+      const blob = await generateBadgeShareCard({
+        tier: featured,
+        totalCount: totalCheckinCount,
+        earnedTiers
+      });
+      const captionText = highestEarned
+        ? `Just unlocked ${featured.name} ${featured.icon} — ${totalCheckinCount} check-ins strong!`
+        : `${totalCheckinCount} check-ins and counting 💪`;
+      const result = await shareOrDownloadBadge(blob, featured, captionText);
+      if (result.downloaded) {
         showSuccess?.('Image saved — ready to share!');
-        setSharingBadge(false);
-      }, 'image/png');
+      }
     } catch (err) {
       console.error('Error sharing badges:', err);
       showError?.('Could not generate share image');
+    } finally {
       setSharingBadge(false);
     }
   };
