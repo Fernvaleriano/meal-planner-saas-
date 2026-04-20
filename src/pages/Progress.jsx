@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { ChevronLeft, Ruler, Camera, X, Plus, Minus, ChevronDown, Trash2, Columns2, Sparkles, TrendingDown, TrendingUp, ChevronRight, Calendar } from 'lucide-react';
+import { ChevronLeft, Ruler, Camera, X, Plus, Minus, ChevronDown, Trash2, Columns2, Sparkles, TrendingDown, TrendingUp, ChevronRight, Calendar, Award, Share2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, apiDelete } from '../utils/api';
@@ -52,6 +52,18 @@ const TIME_FRAMES = [
   { label: '6 Months', value: '6m', days: 180 },
   { label: '1 Year', value: '1y', days: 365 },
   { label: 'All Time', value: 'all', days: null },
+];
+
+// Badge tiers earned by total lifetime check-in count
+const BADGE_TIERS = [
+  { threshold: 1,   icon: '🌱', name: 'First Step',        desc: 'First check-in' },
+  { threshold: 7,   icon: '🔥', name: 'Week Warrior',      desc: '7 check-ins' },
+  { threshold: 14,  icon: '⚡', name: 'Two Weeks Strong',  desc: '14 check-ins' },
+  { threshold: 30,  icon: '💪', name: 'Monthly Champion',  desc: '30 check-ins' },
+  { threshold: 60,  icon: '🏅', name: 'Consistency Hero',  desc: '60 check-ins' },
+  { threshold: 100, icon: '🏆', name: 'Century Club',      desc: '100 check-ins' },
+  { threshold: 200, icon: '👑', name: 'Dedication Master', desc: '200 check-ins' },
+  { threshold: 365, icon: '💎', name: 'Legend',            desc: '365 check-ins' },
 ];
 
 // Metric definitions
@@ -211,6 +223,11 @@ function Progress() {
   const [analyzingPhotos, setAnalyzingPhotos] = useState(false);
   const [pendingPhoto, setPendingPhoto] = useState(null);
 
+  // Achievements / badges
+  const [totalCheckinCount, setTotalCheckinCount] = useState(0);
+  const [loadingCheckinCount, setLoadingCheckinCount] = useState(true);
+  const [sharingBadge, setSharingBadge] = useState(false);
+
   // Scroll to top on mount
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -228,12 +245,14 @@ function Progress() {
   const refreshProgressData = useCallback(async () => {
     if (!clientData?.id) return;
     try {
-      const [measurementsData, photosData] = await Promise.all([
+      const [measurementsData, photosData, checkinsData] = await Promise.all([
         apiGet(`/.netlify/functions/get-measurements?clientId=${clientData.id}&limit=200`).catch(() => null),
-        apiGet(`/.netlify/functions/get-progress-photos?clientId=${clientData.id}`).catch(() => null)
+        apiGet(`/.netlify/functions/get-progress-photos?clientId=${clientData.id}`).catch(() => null),
+        apiGet(`/.netlify/functions/save-checkin?clientId=${clientData.id}&limit=1`).catch(() => null)
       ]);
       if (measurementsData?.measurements) setMeasurements(measurementsData.measurements);
       if (photosData?.photos) setPhotos(photosData.photos);
+      if (typeof checkinsData?.pagination?.total === 'number') setTotalCheckinCount(checkinsData.pagination.total);
     } catch (err) {
       console.error('Error refreshing progress data:', err);
     }
@@ -245,8 +264,22 @@ function Progress() {
     if (clientData?.id) {
       loadMeasurements();
       loadPhotos();
+      loadCheckinCount();
     }
   }, [clientData?.id]);
+
+  const loadCheckinCount = async () => {
+    setLoadingCheckinCount(true);
+    try {
+      const data = await apiGet(`/.netlify/functions/save-checkin?clientId=${clientData.id}&limit=1`);
+      const total = data?.pagination?.total;
+      setTotalCheckinCount(typeof total === 'number' ? total : (data?.checkins?.length || 0));
+    } catch (err) {
+      console.error('Error loading check-in count:', err);
+    } finally {
+      setLoadingCheckinCount(false);
+    }
+  };
 
   const loadMeasurements = async () => {
     setLoadingMeasurements(true);
@@ -586,6 +619,162 @@ function Progress() {
     );
   };
 
+  // Achievement computations
+  const earnedTiers = BADGE_TIERS.filter(t => totalCheckinCount >= t.threshold);
+  const nextTier = BADGE_TIERS.find(t => totalCheckinCount < t.threshold);
+  const highestEarned = earnedTiers[earnedTiers.length - 1] || null;
+
+  // Share badge card as image to social media (Web Share API + download fallback)
+  const handleShareBadges = async () => {
+    if (sharingBadge) return;
+    setSharingBadge(true);
+    try {
+      const width = 1080;
+      const height = 1080;
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+
+      // Gradient background (teal → blue, matching brand)
+      const grad = ctx.createLinearGradient(0, 0, width, height);
+      grad.addColorStop(0, '#0d9488');
+      grad.addColorStop(0.5, '#0284c7');
+      grad.addColorStop(1, '#1e293b');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, width, height);
+
+      // Subtle radial highlight
+      const radial = ctx.createRadialGradient(width / 2, height * 0.3, 0, width / 2, height * 0.3, width * 0.6);
+      radial.addColorStop(0, 'rgba(255,255,255,0.18)');
+      radial.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = radial;
+      ctx.fillRect(0, 0, width, height);
+
+      // Header text
+      ctx.fillStyle = 'rgba(255,255,255,0.85)';
+      ctx.font = '600 36px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('MY ACHIEVEMENT', width / 2, 120);
+
+      // Featured badge icon (huge emoji)
+      const featured = highestEarned || BADGE_TIERS[0];
+      ctx.font = '320px -apple-system, "Apple Color Emoji", "Segoe UI Emoji", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(featured.icon, width / 2, height * 0.38);
+      ctx.textBaseline = 'alphabetic';
+
+      // Badge name
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 84px -apple-system, BlinkMacSystemFont, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(highestEarned ? featured.name : 'Just Getting Started', width / 2, height * 0.62);
+
+      // Badge description
+      ctx.fillStyle = '#fde68a';
+      ctx.font = '600 38px -apple-system, BlinkMacSystemFont, sans-serif';
+      ctx.fillText(
+        highestEarned ? `${totalCheckinCount} check-ins completed` : `${totalCheckinCount} check-ins so far`,
+        width / 2,
+        height * 0.62 + 60
+      );
+
+      // Mini row of recently-earned badge icons
+      const miniIcons = earnedTiers.slice(-5);
+      if (miniIcons.length > 1) {
+        const rowY = height * 0.78;
+        const iconSize = 90;
+        const totalWidth = miniIcons.length * iconSize + (miniIcons.length - 1) * 22;
+        let x = (width - totalWidth) / 2 + iconSize / 2;
+        ctx.font = `${iconSize}px -apple-system, "Apple Color Emoji", "Segoe UI Emoji", sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        miniIcons.forEach(t => {
+          ctx.fillText(t.icon, x, rowY);
+          x += iconSize + 22;
+        });
+        ctx.textBaseline = 'alphabetic';
+      }
+
+      // Stats pill
+      ctx.fillStyle = 'rgba(255,255,255,0.12)';
+      const pillW = 620;
+      const pillH = 90;
+      const pillX = (width - pillW) / 2;
+      const pillY = height * 0.86;
+      const r = 45;
+      ctx.beginPath();
+      ctx.moveTo(pillX + r, pillY);
+      ctx.arcTo(pillX + pillW, pillY, pillX + pillW, pillY + pillH, r);
+      ctx.arcTo(pillX + pillW, pillY + pillH, pillX, pillY + pillH, r);
+      ctx.arcTo(pillX, pillY + pillH, pillX, pillY, r);
+      ctx.arcTo(pillX, pillY, pillX + pillW, pillY, r);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '600 34px -apple-system, BlinkMacSystemFont, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(
+        `🏅 ${earnedTiers.length} / ${BADGE_TIERS.length} badges earned`,
+        width / 2,
+        pillY + pillH / 2
+      );
+      ctx.textBaseline = 'alphabetic';
+
+      // Footer
+      ctx.fillStyle = 'rgba(255,255,255,0.7)';
+      ctx.font = '500 28px -apple-system, BlinkMacSystemFont, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Powered by Zique Fitness', width / 2, height - 40);
+
+      // Convert & share
+      canvas.toBlob(async (blob) => {
+        if (!blob) { setSharingBadge(false); return; }
+
+        const filename = `${(featured.name || 'achievement').toLowerCase().replace(/\s+/g, '-')}.png`;
+
+        if (navigator.share && navigator.canShare) {
+          const file = new File([blob], filename, { type: 'image/png' });
+          const shareData = {
+            files: [file],
+            title: 'My Achievement',
+            text: highestEarned
+              ? `Just unlocked ${featured.name} ${featured.icon} — ${totalCheckinCount} check-ins strong!`
+              : `${totalCheckinCount} check-ins and counting 💪`
+          };
+          if (navigator.canShare(shareData)) {
+            try {
+              await navigator.share(shareData);
+              setSharingBadge(false);
+              return;
+            } catch (e) {
+              if (e.name === 'AbortError') { setSharingBadge(false); return; }
+            }
+          }
+        }
+
+        // Fallback: download
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showSuccess?.('Image saved — ready to share!');
+        setSharingBadge(false);
+      }, 'image/png');
+    } catch (err) {
+      console.error('Error sharing badges:', err);
+      showError?.('Could not generate share image');
+      setSharingBadge(false);
+    }
+  };
+
   return (
     <div className="progress-page" ref={bindToContainer}>
       <PullToRefreshIndicator indicatorRef={indicatorRef} threshold={threshold} />
@@ -611,6 +800,12 @@ function Progress() {
           onClick={() => setActiveTab('photos')}
         >
           <Camera size={18} /> Photos
+        </button>
+        <button
+          className={`progress-tab ${activeTab === 'achievements' ? 'active' : ''}`}
+          onClick={() => setActiveTab('achievements')}
+        >
+          <Award size={18} /> Badges
         </button>
       </div>
 
@@ -659,7 +854,7 @@ function Progress() {
               </div>
             )}
           </>
-        ) : (
+        ) : activeTab === 'photos' ? (
           <>
             <div className="photos-action-bar">
               <button className="btn-primary full-width add-btn" onClick={() => setShowPhotoModal(true)}>
@@ -737,6 +932,82 @@ function Progress() {
                 </div>
               )}
             </div>
+          </>
+        ) : (
+          /* Achievements / Badges tab */
+          <>
+            {loadingCheckinCount ? (
+              <div className="loading-state">
+                <div className="spinner"></div>
+                <p>Loading achievements...</p>
+              </div>
+            ) : (
+              <>
+                <div className="achievements-summary-card">
+                  <div className="achievements-stat">
+                    <div className="achievements-stat-value">{totalCheckinCount}</div>
+                    <div className="achievements-stat-label">Check-ins</div>
+                  </div>
+                  <div className="achievements-stat">
+                    <div className="achievements-stat-value">{earnedTiers.length} / {BADGE_TIERS.length}</div>
+                    <div className="achievements-stat-label">Badges</div>
+                  </div>
+                  <div className="achievements-stat">
+                    <div className="achievements-stat-value">{nextTier ? nextTier.icon : '💎'}</div>
+                    <div className="achievements-stat-label">{nextTier ? 'Next' : 'All Done!'}</div>
+                  </div>
+                </div>
+
+                {nextTier && (() => {
+                  const prev = earnedTiers.length > 0 ? earnedTiers[earnedTiers.length - 1].threshold : 0;
+                  const span = nextTier.threshold - prev;
+                  const pct = Math.max(0, Math.min(100, ((totalCheckinCount - prev) / span) * 100));
+                  const remaining = nextTier.threshold - totalCheckinCount;
+                  return (
+                    <div className="next-badge-progress-card">
+                      <div className="next-badge-progress-label">
+                        <span>
+                          {remaining} more to unlock <strong>{nextTier.name}</strong> {nextTier.icon}
+                        </span>
+                        <span>{totalCheckinCount} / {nextTier.threshold}</span>
+                      </div>
+                      <div className="next-badge-progress-bar">
+                        <div className="next-badge-progress-fill" style={{ width: `${pct}%` }} />
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                <button
+                  className="btn-share-badges"
+                  onClick={handleShareBadges}
+                  disabled={sharingBadge}
+                >
+                  <Share2 size={18} />
+                  <span>{sharingBadge ? 'Generating…' : 'Share to social media'}</span>
+                </button>
+
+                <div className="badges-grid">
+                  {BADGE_TIERS.map(tier => {
+                    const earned = totalCheckinCount >= tier.threshold;
+                    return (
+                      <div
+                        key={tier.threshold}
+                        className={`badge-card ${earned ? 'earned' : 'locked'}`}
+                        title={`${tier.name} — ${tier.desc}`}
+                      >
+                        {earned
+                          ? <span className="badge-ribbon">Earned</span>
+                          : <span className="badge-lock-icon">🔒</span>}
+                        <span className="badge-icon">{tier.icon}</span>
+                        <div className="badge-name">{tier.name}</div>
+                        <div className="badge-threshold">{tier.desc}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
           </>
         )}
       </div>
