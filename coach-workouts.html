@@ -8065,7 +8065,6 @@
                 exercise.restSeconds = setsArr[0].restSeconds;
             }
             renderExercisesList();
-            renderExerciseDetail();
         }
 
         // Add a set to an exercise
@@ -9806,10 +9805,14 @@
             renderExerciseGrid();
         }
 
+        let searchExercisesTimer = null;
         function searchExercises(term) {
             currentSearchTerm = term.toLowerCase();
-            displayedExerciseCount = 0;
-            renderExerciseGrid();
+            clearTimeout(searchExercisesTimer);
+            searchExercisesTimer = setTimeout(() => {
+                displayedExerciseCount = 0;
+                renderExerciseGrid();
+            }, 180);
         }
 
         function applyFilters() {
@@ -11423,7 +11426,7 @@
                     // Store both URL and file path (path used to refresh signed URLs)
                     workoutDays[dayIndex].exercises[exIndex].voiceNoteUrl = signedUrlResult.url;
                     workoutDays[dayIndex].exercises[exIndex].voiceNotePath = uploadUrlResult.filePath;
-                    renderWorkoutDays();
+                    renderExerciseDetail();
                     showToast('Voice note saved!', 'success');
                 } else {
                     throw new Error('Failed to get voice note URL');
@@ -11437,7 +11440,7 @@
         function deleteVoiceNote(dayIndex, exIndex) {
             if (confirm('Delete this voice note?')) {
                 workoutDays[dayIndex].exercises[exIndex].voiceNoteUrl = null;
-                renderWorkoutDays();
+                renderExerciseDetail();
                 showToast('Voice note deleted', 'success');
             }
         }
