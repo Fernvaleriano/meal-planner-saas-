@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { ChevronLeft, Ruler, Camera, X, Plus, Minus, ChevronDown, Trash2, Columns2, Sparkles, TrendingDown, TrendingUp, ChevronRight, Calendar } from 'lucide-react';
+import { ChevronLeft, Ruler, Camera, X, Plus, Minus, ChevronDown, Trash2, Columns2, Sparkles, TrendingDown, TrendingUp, ChevronRight, Calendar, Award, Share2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, apiDelete } from '../utils/api';
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
+import { BADGE_TIERS, getEarnedTiers, getNextTier, generateBadgeShareCard, shareOrDownloadBadge } from '../utils/badges';
 
 import { useToast } from '../components/Toast';
 // Get today's date in local timezone (NOT UTC)
@@ -211,6 +212,11 @@ function Progress() {
   const [analyzingPhotos, setAnalyzingPhotos] = useState(false);
   const [pendingPhoto, setPendingPhoto] = useState(null);
 
+  // Achievements / badges
+  const [totalCheckinCount, setTotalCheckinCount] = useState(0);
+  const [loadingCheckinCount, setLoadingCheckinCount] = useState(true);
+  const [sharingBadge, setSharingBadge] = useState(false);
+
   // Scroll to top on mount
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -228,12 +234,14 @@ function Progress() {
   const refreshProgressData = useCallback(async () => {
     if (!clientData?.id) return;
     try {
-      const [measurementsData, photosData] = await Promise.all([
+      const [measurementsData, photosData, checkinsData] = await Promise.all([
         apiGet(`/.netlify/functions/get-measurements?clientId=${clientData.id}&limit=200`).catch(() => null),
-        apiGet(`/.netlify/functions/get-progress-photos?clientId=${clientData.id}`).catch(() => null)
+        apiGet(`/.netlify/functions/get-progress-photos?clientId=${clientData.id}`).catch(() => null),
+        apiGet(`/.netlify/functions/save-checkin?clientId=${clientData.id}&limit=1`).catch(() => null)
       ]);
       if (measurementsData?.measurements) setMeasurements(measurementsData.measurements);
       if (photosData?.photos) setPhotos(photosData.photos);
+      if (typeof checkinsData?.pagination?.total === 'number') setTotalCheckinCount(checkinsData.pagination.total);
     } catch (err) {
       console.error('Error refreshing progress data:', err);
     }
@@ -245,8 +253,22 @@ function Progress() {
     if (clientData?.id) {
       loadMeasurements();
       loadPhotos();
+      loadCheckinCount();
     }
   }, [clientData?.id]);
+
+  const loadCheckinCount = async () => {
+    setLoadingCheckinCount(true);
+    try {
+      const data = await apiGet(`/.netlify/functions/save-checkin?clientId=${clientData.id}&limit=1`);
+      const total = data?.pagination?.total;
+      setTotalCheckinCount(typeof total === 'number' ? total : (data?.checkins?.length || 0));
+    } catch (err) {
+      console.error('Error loading check-in count:', err);
+    } finally {
+      setLoadingCheckinCount(false);
+    }
+  };
 
   const loadMeasurements = async () => {
     setLoadingMeasurements(true);
@@ -586,6 +608,37 @@ function Progress() {
     );
   };
 
+  // Achievement computations
+  const earnedTiers = getEarnedTiers(totalCheckinCount);
+  const nextTier = getNextTier(totalCheckinCount);
+  const highestEarned = earnedTiers[earnedTiers.length - 1] || null;
+
+  // Share badge card as image to social media (Web Share API + download fallback)
+  const handleShareBadges = async () => {
+    if (sharingBadge) return;
+    setSharingBadge(true);
+    try {
+      const featured = highestEarned || BADGE_TIERS[0];
+      const blob = await generateBadgeShareCard({
+        tier: featured,
+        totalCount: totalCheckinCount,
+        earnedTiers
+      });
+      const captionText = highestEarned
+        ? `Just unlocked ${featured.name} ${featured.icon} — ${totalCheckinCount} check-ins strong!`
+        : `${totalCheckinCount} check-ins and counting 💪`;
+      const result = await shareOrDownloadBadge(blob, featured, captionText);
+      if (result.downloaded) {
+        showSuccess?.('Image saved — ready to share!');
+      }
+    } catch (err) {
+      console.error('Error sharing badges:', err);
+      showError?.('Could not generate share image');
+    } finally {
+      setSharingBadge(false);
+    }
+  };
+
   return (
     <div className="progress-page" ref={bindToContainer}>
       <PullToRefreshIndicator indicatorRef={indicatorRef} threshold={threshold} />
@@ -611,6 +664,12 @@ function Progress() {
           onClick={() => setActiveTab('photos')}
         >
           <Camera size={18} /> Photos
+        </button>
+        <button
+          className={`progress-tab ${activeTab === 'achievements' ? 'active' : ''}`}
+          onClick={() => setActiveTab('achievements')}
+        >
+          <Award size={18} /> Badges
         </button>
       </div>
 
@@ -659,7 +718,7 @@ function Progress() {
               </div>
             )}
           </>
-        ) : (
+        ) : activeTab === 'photos' ? (
           <>
             <div className="photos-action-bar">
               <button className="btn-primary full-width add-btn" onClick={() => setShowPhotoModal(true)}>
@@ -737,6 +796,82 @@ function Progress() {
                 </div>
               )}
             </div>
+          </>
+        ) : (
+          /* Achievements / Badges tab */
+          <>
+            {loadingCheckinCount ? (
+              <div className="loading-state">
+                <div className="spinner"></div>
+                <p>Loading achievements...</p>
+              </div>
+            ) : (
+              <>
+                <div className="achievements-summary-card">
+                  <div className="achievements-stat">
+                    <div className="achievements-stat-value">{totalCheckinCount}</div>
+                    <div className="achievements-stat-label">Check-ins</div>
+                  </div>
+                  <div className="achievements-stat">
+                    <div className="achievements-stat-value">{earnedTiers.length} / {BADGE_TIERS.length}</div>
+                    <div className="achievements-stat-label">Badges</div>
+                  </div>
+                  <div className="achievements-stat">
+                    <div className="achievements-stat-value">{nextTier ? nextTier.icon : '💎'}</div>
+                    <div className="achievements-stat-label">{nextTier ? 'Next' : 'All Done!'}</div>
+                  </div>
+                </div>
+
+                {nextTier && (() => {
+                  const prev = earnedTiers.length > 0 ? earnedTiers[earnedTiers.length - 1].threshold : 0;
+                  const span = nextTier.threshold - prev;
+                  const pct = Math.max(0, Math.min(100, ((totalCheckinCount - prev) / span) * 100));
+                  const remaining = nextTier.threshold - totalCheckinCount;
+                  return (
+                    <div className="next-badge-progress-card">
+                      <div className="next-badge-progress-label">
+                        <span>
+                          {remaining} more to unlock <strong>{nextTier.name}</strong> {nextTier.icon}
+                        </span>
+                        <span>{totalCheckinCount} / {nextTier.threshold}</span>
+                      </div>
+                      <div className="next-badge-progress-bar">
+                        <div className="next-badge-progress-fill" style={{ width: `${pct}%` }} />
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                <button
+                  className="btn-share-badges"
+                  onClick={handleShareBadges}
+                  disabled={sharingBadge}
+                >
+                  <Share2 size={18} />
+                  <span>{sharingBadge ? 'Generating…' : 'Share to social media'}</span>
+                </button>
+
+                <div className="badges-grid">
+                  {BADGE_TIERS.map(tier => {
+                    const earned = totalCheckinCount >= tier.threshold;
+                    return (
+                      <div
+                        key={tier.threshold}
+                        className={`badge-card ${earned ? 'earned' : 'locked'}`}
+                        title={`${tier.name} — ${tier.desc}`}
+                      >
+                        {earned
+                          ? <span className="badge-ribbon">Earned</span>
+                          : <span className="badge-lock-icon">🔒</span>}
+                        <span className="badge-icon">{tier.icon}</span>
+                        <div className="badge-name">{tier.name}</div>
+                        <div className="badge-threshold">{tier.desc}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
           </>
         )}
       </div>

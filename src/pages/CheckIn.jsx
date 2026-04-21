@@ -1,10 +1,17 @@
 import { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronDown, Flame } from 'lucide-react';
+import { ChevronLeft, ChevronDown, Flame, Share2, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost } from '../utils/api';
 import { usePullToRefreshEvent } from '../hooks/usePullToRefreshEvent';
 import { useToast } from '../components/Toast';
+import {
+  BADGE_TIERS,
+  getEarnedTiers,
+  getTierCrossed,
+  generateBadgeShareCard,
+  shareOrDownloadBadge
+} from '../utils/badges';
 
 function CheckIn() {
   const navigate = useNavigate();
@@ -27,6 +34,13 @@ function CheckIn() {
   const [loadingHistory, setLoadingHistory] = useState(true);
   const [historyExpanded, setHistoryExpanded] = useState(false);
 
+  // Total check-in count (all-time) — used to detect badge unlocks on submit
+  const [totalCheckinCount, setTotalCheckinCount] = useState(0);
+
+  // Badge unlock modal
+  const [unlockedBadge, setUnlockedBadge] = useState(null); // { tier, newCount, earnedTiers }
+  const [sharingBadge, setSharingBadge] = useState(false);
+
   // Scroll to top on mount
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -40,6 +54,9 @@ function CheckIn() {
       if (data?.checkins) {
         setHistory(data.checkins);
         setStreak(data.checkins.length);
+      }
+      if (typeof data?.pagination?.total === 'number') {
+        setTotalCheckinCount(data.pagination.total);
       }
     } catch (err) {
       console.error('Error loading check-in history:', err);
@@ -70,6 +87,7 @@ function CheckIn() {
     }
 
     setSubmitting(true);
+    const countBeforeSubmit = totalCheckinCount;
     try {
       await apiPost('/.netlify/functions/save-checkin', {
         clientId: clientData.id,
@@ -84,7 +102,9 @@ function CheckIn() {
         questions: questions || null
       });
 
-      showSuccess('Check-in submitted successfully!');
+      // Detect if this submission crossed a badge threshold
+      const newCount = countBeforeSubmit + 1;
+      const crossedTier = getTierCrossed(newCount);
 
       // Reset form
       setRatings({ energy: null, sleep: null, hunger: null, stress: null });
@@ -93,13 +113,49 @@ function CheckIn() {
       setChallenges('');
       setQuestions('');
 
-      // Reload history
+      // Reload history (will update totalCheckinCount)
       loadHistory();
+
+      if (crossedTier) {
+        // Delay modal slightly so it feels like a reward, not a form response
+        setTimeout(() => {
+          setUnlockedBadge({
+            tier: crossedTier,
+            newCount,
+            earnedTiers: getEarnedTiers(newCount)
+          });
+        }, 400);
+      } else {
+        showSuccess('Check-in submitted successfully!');
+      }
     } catch (err) {
       console.error('Error submitting check-in:', err);
       showError('Error submitting check-in. Please try again.');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleShareUnlockedBadge = async () => {
+    if (!unlockedBadge || sharingBadge) return;
+    setSharingBadge(true);
+    try {
+      const { tier, newCount, earnedTiers } = unlockedBadge;
+      const blob = await generateBadgeShareCard({
+        tier,
+        totalCount: newCount,
+        earnedTiers
+      });
+      const caption = `Just unlocked ${tier.name} ${tier.icon} — ${newCount} check-ins strong!`;
+      const result = await shareOrDownloadBadge(blob, tier, caption);
+      if (result.downloaded) {
+        showSuccess('Image saved — ready to share!');
+      }
+    } catch (err) {
+      console.error('Error sharing unlocked badge:', err);
+      showError('Could not generate share image');
+    } finally {
+      setSharingBadge(false);
     }
   };
 
@@ -272,6 +328,60 @@ function CheckIn() {
           )}
         </div>
       </div>
+
+      {/* Badge unlock celebration modal */}
+      {unlockedBadge && (
+        <div
+          className="badge-unlock-overlay"
+          onClick={() => setUnlockedBadge(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Badge unlocked"
+        >
+          <div className="badge-unlock-modal" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              className="badge-unlock-close"
+              onClick={() => setUnlockedBadge(null)}
+              aria-label="Close"
+            >
+              <X size={20} />
+            </button>
+
+            <div className="badge-unlock-confetti" aria-hidden="true">
+              <span>✨</span><span>🎉</span><span>⭐</span><span>🎊</span>
+              <span>✨</span><span>🎉</span><span>⭐</span><span>🎊</span>
+            </div>
+
+            <div className="badge-unlock-header">BADGE UNLOCKED</div>
+            <div className="badge-unlock-icon">{unlockedBadge.tier.icon}</div>
+            <div className="badge-unlock-name">{unlockedBadge.tier.name}</div>
+            <div className="badge-unlock-desc">{unlockedBadge.tier.desc}</div>
+
+            <div className="badge-unlock-stats">
+              🏅 {unlockedBadge.earnedTiers.length} / {BADGE_TIERS.length} badges earned
+            </div>
+
+            <button
+              type="button"
+              className="badge-unlock-share-btn"
+              onClick={handleShareUnlockedBadge}
+              disabled={sharingBadge}
+            >
+              <Share2 size={18} />
+              <span>{sharingBadge ? 'Generating…' : 'Save / Share image'}</span>
+            </button>
+
+            <button
+              type="button"
+              className="badge-unlock-done-btn"
+              onClick={() => setUnlockedBadge(null)}
+            >
+              Awesome!
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
