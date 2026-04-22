@@ -1,7 +1,14 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { X, Camera, RotateCcw, Send, Flame, ChevronDown, Clock } from 'lucide-react';
+import { X, Camera, RotateCcw, Send, Flame, ChevronDown, Clock, Share2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiPost, apiGet } from '../utils/api';
+import {
+  BADGE_TIERS,
+  getEarnedTiers,
+  getTierCrossed,
+  generateBadgeShareCard,
+  shareOrDownloadBadge
+} from '../utils/badges';
 
 const STEPS = {
   INSTRUCTIONS: 'instructions',
@@ -21,6 +28,9 @@ function GymProofModal({ isOpen, onClose }) {
   const [recentProofs, setRecentProofs] = useState([]);
   const [historyExpanded, setHistoryExpanded] = useState(false);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [totalCount, setTotalCount] = useState(0);
+  const [unlockedBadge, setUnlockedBadge] = useState(null);
+  const [sharingBadge, setSharingBadge] = useState(false);
   const fileInputRef = useRef(null);
   const canvasRef = useRef(null);
 
@@ -36,6 +46,7 @@ function GymProofModal({ isOpen, onClose }) {
       setStep(STEPS.INSTRUCTIONS);
       setPhotoData(null);
       setStampedPhoto(null);
+      setUnlockedBadge(null);
     }
   }, [isOpen]);
 
@@ -49,6 +60,9 @@ function GymProofModal({ isOpen, onClose }) {
         setRecentProofs(data.proofs);
       }
       if (data?.streak) setStreak(data.streak);
+      if (typeof data?.pagination?.total === 'number') {
+        setTotalCount(data.pagination.total);
+      }
     } catch (err) {
       console.error('Error checking gym proof:', err);
     }
@@ -174,6 +188,7 @@ function GymProofModal({ isOpen, onClose }) {
     if (!stampedPhoto || submitting) return;
 
     setSubmitting(true);
+    const countBeforeSubmit = totalCount;
     try {
       await apiPost('/.netlify/functions/save-gym-proof', {
         clientId: clientData.id,
@@ -182,13 +197,46 @@ function GymProofModal({ isOpen, onClose }) {
       });
 
       setStep(STEPS.SUCCESS);
-      // Refresh data
+      // Refresh data (updates streak, recentProofs, totalCount)
       checkTodayProof();
+
+      // Detect if this submission crossed a badge threshold
+      const newCount = countBeforeSubmit + 1;
+      const crossedTier = getTierCrossed(newCount);
+      if (crossedTier) {
+        // Delay slightly so the badge unlock feels like a reward on top of success
+        setTimeout(() => {
+          setUnlockedBadge({
+            tier: crossedTier,
+            newCount,
+            earnedTiers: getEarnedTiers(newCount)
+          });
+        }, 500);
+      }
     } catch (err) {
       console.error('Error submitting gym proof:', err);
       alert('Failed to submit. Please try again.');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleShareUnlockedBadge = async () => {
+    if (!unlockedBadge || sharingBadge) return;
+    setSharingBadge(true);
+    try {
+      const { tier, newCount, earnedTiers } = unlockedBadge;
+      const blob = await generateBadgeShareCard({
+        tier,
+        totalCount: newCount,
+        earnedTiers
+      });
+      const caption = `Just unlocked ${tier.name} ${tier.icon} — ${newCount} gym check-ins strong!`;
+      await shareOrDownloadBadge(blob, tier, caption);
+    } catch (err) {
+      console.error('Error sharing unlocked badge:', err);
+    } finally {
+      setSharingBadge(false);
     }
   };
 
@@ -209,6 +257,7 @@ function GymProofModal({ isOpen, onClose }) {
   if (!isOpen) return null;
 
   return (
+    <>
     <div className="gym-proof-overlay" onClick={onClose}>
       <div className="gym-proof-modal" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
@@ -381,6 +430,61 @@ function GymProofModal({ isOpen, onClose }) {
         </div>
       </div>
     </div>
+
+    {/* Badge unlock celebration modal */}
+    {unlockedBadge && (
+      <div
+        className="badge-unlock-overlay"
+        onClick={() => setUnlockedBadge(null)}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Badge unlocked"
+      >
+        <div className="badge-unlock-modal" onClick={(e) => e.stopPropagation()}>
+          <button
+            type="button"
+            className="badge-unlock-close"
+            onClick={() => setUnlockedBadge(null)}
+            aria-label="Close"
+          >
+            <X size={20} />
+          </button>
+
+          <div className="badge-unlock-confetti" aria-hidden="true">
+            <span>✨</span><span>🎉</span><span>⭐</span><span>🎊</span>
+            <span>✨</span><span>🎉</span><span>⭐</span><span>🎊</span>
+          </div>
+
+          <div className="badge-unlock-header">BADGE UNLOCKED</div>
+          <div className="badge-unlock-icon">{unlockedBadge.tier.icon}</div>
+          <div className="badge-unlock-name">{unlockedBadge.tier.name}</div>
+          <div className="badge-unlock-desc">{unlockedBadge.tier.desc}</div>
+
+          <div className="badge-unlock-stats">
+            🏅 {unlockedBadge.earnedTiers.length} / {BADGE_TIERS.length} badges earned
+          </div>
+
+          <button
+            type="button"
+            className="badge-unlock-share-btn"
+            onClick={handleShareUnlockedBadge}
+            disabled={sharingBadge}
+          >
+            <Share2 size={18} />
+            <span>{sharingBadge ? 'Generating…' : 'Save / Share image'}</span>
+          </button>
+
+          <button
+            type="button"
+            className="badge-unlock-done-btn"
+            onClick={() => setUnlockedBadge(null)}
+          >
+            Awesome!
+          </button>
+        </div>
+      </div>
+    )}
+    </>
   );
 }
 
