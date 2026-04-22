@@ -11183,11 +11183,11 @@
                 simpleBtn.style.display = 'none';
                 dropdown.style.display = 'inline-flex';
 
-                // Fetch active client count for this program
+                // Fetch active client count for this program (server-side filter keeps payload tiny)
                 try {
-                    const result = await apiCall(`/.netlify/functions/workout-assignments?coachId=${currentCoachId}`);
+                    const result = await apiCall(`/.netlify/functions/workout-assignments?coachId=${currentCoachId}&programId=${currentProgramId}&activeOnly=true`);
                     const activeForProgram = (result.assignments || []).filter(
-                        a => a.program_id === currentProgramId && a.is_active
+                        a => Number(a.program_id) === Number(currentProgramId) && a.is_active
                     );
                     if (activeForProgram.length > 0) {
                         badge.textContent = activeForProgram.length;
@@ -11232,11 +11232,11 @@
                 return;
             }
 
-            // Fetch affected clients to show in confirmation
+            // Fetch affected clients to show in confirmation (server-side filter keeps payload tiny)
             try {
-                const result = await apiCall(`/.netlify/functions/workout-assignments?coachId=${currentCoachId}`);
+                const result = await apiCall(`/.netlify/functions/workout-assignments?coachId=${currentCoachId}&programId=${currentProgramId}&activeOnly=true`);
                 const activeForProgram = (result.assignments || []).filter(
-                    a => a.program_id === currentProgramId && a.is_active
+                    a => Number(a.program_id) === Number(currentProgramId) && a.is_active
                 );
 
                 if (activeForProgram.length === 0) {
