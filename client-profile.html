@@ -11586,9 +11586,7 @@
         let checkinReactions = {}; // { checkinId: { reaction, id } }
         const CHECKIN_REACTIONS = ['👏', '💪', '🔥', '⭐', '❤️'];
 
-        // Total check-in count (from server pagination.total — all-time, not just the 10 loaded)
-        let totalCheckinCount = 0;
-        // Total gym proof count (all-time, from pagination.total). Counted toward badges alongside written check-ins.
+        // Total gym proof count (all-time, from pagination.total). Drives achievement badges.
         let totalGymProofCount = 0;
 
         // Badge tiers earned by number of check-ins submitted
@@ -11607,7 +11605,7 @@
             const container = document.getElementById('achievementsContainer');
             if (!container) return;
 
-            const count = (totalCheckinCount || 0) + (totalGymProofCount || 0);
+            const count = totalGymProofCount || 0;
             const earnedTiers = BADGE_TIERS.filter(t => count >= t.threshold);
             const nextTier = BADGE_TIERS.find(t => count < t.threshold);
 
@@ -11748,15 +11746,11 @@
 
                 const data = await response.json();
                 clientCheckins = data.checkins || [];
-                totalCheckinCount = (data.pagination && typeof data.pagination.total === 'number')
-                    ? data.pagination.total
-                    : clientCheckins.length;
 
                 // Load existing reactions before displaying
                 await loadCheckinReactions();
 
                 displayCheckins();
-                displayBadges();
 
                 // Scroll to specific check-in if URL has a hash (e.g., #checkin-123)
                 if (window.location.hash && window.location.hash.startsWith('#checkin-')) {
@@ -11781,7 +11775,6 @@
                         <p>Unable to load check-ins</p>
                     </div>
                 `;
-                displayBadges();
             }
         }
 
@@ -11968,6 +11961,7 @@
                         <p>Unable to load gym check-ins</p>
                     </div>
                 `;
+                displayBadges();
             }
         }
 
