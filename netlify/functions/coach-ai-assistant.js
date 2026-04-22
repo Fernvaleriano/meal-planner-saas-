@@ -203,7 +203,10 @@ IMPORTANT RULES:
                 }],
                 generationConfig: {
                     temperature: 0.7,
-                    maxOutputTokens: 2048
+                    maxOutputTokens: 16384,
+                    thinkingConfig: {
+                        thinkingBudget: 0
+                    }
                 }
             })
         });
