@@ -102,7 +102,7 @@ exports.handler = withTimeout(async (event) => {
   try {
     // GET - Fetch workout assignments
     if (event.httpMethod === 'GET') {
-      const { clientId, coachId, assignmentId, activeOnly, date } = event.queryStringParameters || {};
+      const { clientId, coachId, assignmentId, activeOnly, date, programId } = event.queryStringParameters || {};
 
       // Get single assignment by ID
       if (assignmentId) {
@@ -542,14 +542,27 @@ exports.handler = withTimeout(async (event) => {
 
       // Get all assignments for a coach
       if (coachId) {
-        const { data: assignments, error } = await supabase
+        // When filtering by programId, return only minimal fields to keep the
+        // response small (full workout_data per row can blow past Netlify's
+        // 6MB response limit for coaches with many assignments).
+        const selectColumns = programId
+          ? 'id, client_id, coach_id, program_id, name, is_active, start_date, end_date, created_at, clients!inner(id, client_name, email)'
+          : '*, clients!inner(id, client_name, email)';
+
+        let query = supabase
           .from('client_workout_assignments')
-          .select(`
-            *,
-            clients!inner(id, client_name, email)
-          `)
+          .select(selectColumns)
           .eq('coach_id', coachId)
           .order('created_at', { ascending: false });
+
+        if (programId) {
+          query = query.eq('program_id', programId);
+        }
+        if (activeOnly === 'true') {
+          query = query.eq('is_active', true);
+        }
+
+        const { data: assignments, error } = await query;
 
         if (error) throw error;
 
