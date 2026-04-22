@@ -454,6 +454,47 @@ function getWorkoutCompletedCount(workout) {
   return completed.size;
 }
 
+// Reconstruct a workout card from a workout_log so past workouts stay visible
+// even when the originating assignment has been deactivated or the ad-hoc row
+// removed. The log + exercise_logs contain everything the card/detail view
+// needs (name, sets, reps, weights, completion).
+function buildWorkoutFromLog(log) {
+  if (!log) return null;
+  const logExercises = Array.isArray(log.exercises) ? log.exercises : [];
+  const exercises = logExercises
+    .slice()
+    .sort((a, b) => (a?.exercise_order || 0) - (b?.exercise_order || 0))
+    .map((ex, i) => {
+      const sets = Array.isArray(ex?.sets_data) ? ex.sets_data : [];
+      return {
+        id: ex?.exercise_id || `log-${log.id}-ex-${i}`,
+        name: ex?.exercise_name || 'Exercise',
+        sets: sets.length || 1,
+        setsData: sets,
+        notes: ex?.notes || '',
+        completed: true,
+        ...(ex?.swapped_from_name ? { swappedFromName: ex.swapped_from_name } : {}),
+        ...(ex?.client_notes ? { clientNotes: ex.client_notes } : {}),
+        ...(ex?.client_voice_note_path ? { clientVoiceNotePath: ex.client_voice_note_path } : {})
+      };
+    });
+  return {
+    id: log.assignment_id || `log-${log.id}`,
+    instance_id: `log-${log.id}`,
+    client_id: log.client_id,
+    coach_id: log.coach_id,
+    workout_date: log.workout_date,
+    name: log.workout_name || 'Completed Workout',
+    day_index: 0,
+    workout_data: {
+      name: log.workout_name || 'Completed Workout',
+      exercises,
+      estimatedMinutes: log.duration_minutes || null
+    },
+    is_historical: true
+  };
+}
+
 function Workouts() {
   const { clientData, user } = useAuth();
   const navigate = useNavigate();
@@ -939,6 +980,13 @@ function Workouts() {
         });
       }
 
+      // Past workouts must persist even when their assignment is deactivated
+      // or the ad-hoc row is removed — reconstruct the card from the log.
+      if (allWorkouts.length === 0 && logRes?.logs?.length > 0) {
+        const historical = buildWorkoutFromLog(logRes.logs[0]);
+        if (historical) allWorkouts.push(historical);
+      }
+
       setTodayWorkouts(allWorkouts);
 
       if (allWorkouts.length > 0) {
@@ -1107,6 +1155,13 @@ function Workouts() {
               is_adhoc: true
             });
           });
+        }
+
+        // Past workouts must persist even when their assignment is deactivated
+        // or the ad-hoc row is removed — reconstruct the card from the log.
+        if (allWorkouts.length === 0 && logRes?.logs?.length > 0) {
+          const historical = buildWorkoutFromLog(logRes.logs[0]);
+          if (historical) allWorkouts.push(historical);
         }
 
         if (!mounted) return;
