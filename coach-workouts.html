@@ -9551,22 +9551,25 @@
                 renderSwapExerciseList(swapExerciseCache);
                 return;
             }
-            // When user types a search query, search exercises respecting active filters
-            const lowerQuery = query.toLowerCase();
+            // Fuzzy search respecting active filters
             const currentExercise = workoutDays[swapDayIndex]?.exercises[swapExIndex];
             const filters = getSwapFilters();
-            const filtered = exercises.filter(ex => {
-                if (currentExercise && ex.id === currentExercise.id) return false;
-                if (!ex.name.toLowerCase().includes(lowerQuery)) return false;
-                if (filters.equipment && (ex.equipment || '').toLowerCase() !== filters.equipment) return false;
-                if (filters.muscle) {
-                    const exMuscle = (ex.muscle_group || '').toLowerCase();
-                    const secondaryMatch = ex.secondary_muscles && ex.secondary_muscles.some(m =>
-                        m.toLowerCase() === filters.muscle);
-                    if (exMuscle !== filters.muscle && !secondaryMatch) return false;
-                }
-                return true;
-            });
+            const filtered = exercises
+                .filter(ex => {
+                    if (currentExercise && ex.id === currentExercise.id) return false;
+                    if (!fuzzyMatchExercise(ex, query)) return false;
+                    if (filters.equipment && (ex.equipment || '').toLowerCase() !== filters.equipment) return false;
+                    if (filters.muscle) {
+                        const exMuscle = (ex.muscle_group || '').toLowerCase();
+                        const secondaryMatch = ex.secondary_muscles && ex.secondary_muscles.some(m =>
+                            m.toLowerCase() === filters.muscle);
+                        if (exMuscle !== filters.muscle && !secondaryMatch) return false;
+                    }
+                    return true;
+                })
+                .map(ex => ({ ex, score: scoreExerciseMatch(ex, query) }))
+                .sort((a, b) => b.score - a.score)
+                .map(entry => entry.ex);
             renderSwapExerciseList(filtered);
         }
 
@@ -9823,6 +9826,107 @@
             renderExerciseGrid();
         }
 
+        // ===== Fuzzy exercise search helpers =====
+        // Handles: punctuation ("push up (on knees)" matches "push up on knees"),
+        // plurals (curl ↔ curls), and common fitness synonyms (db ↔ dumbbell, pushup ↔ push up).
+        const FUZZY_SYNONYMS = {
+            'pushup': ['push up'], 'pushups': ['push up'], 'pushp': ['push up'],
+            'pullup': ['pull up'], 'pullups': ['pull up'],
+            'chinup': ['chin up'], 'chinups': ['chin up'],
+            'situp': ['sit up'], 'situps': ['sit up'],
+            'stepup': ['step up'], 'stepups': ['step up'],
+            'stepdown': ['step down'], 'signup': ['sit up'],
+            'deadlift': ['dead lift'], 'deadlifts': ['dead lift'],
+            'tricep': ['triceps'], 'triceps': ['tricep'],
+            'bicep': ['biceps'], 'biceps': ['bicep'],
+            'ab': ['abs', 'abdominal'], 'abs': ['abdominal', 'abdominals'],
+            'db': ['dumbbell'], 'dumbell': ['dumbbell'], 'dumbells': ['dumbbell'],
+            'bb': ['barbell'], 'barbel': ['barbell'], 'barbells': ['barbell'],
+            'kb': ['kettlebell'], 'kettle': ['kettlebell'], 'kettlebells': ['kettlebell'],
+            'bw': ['bodyweight'], 'bodyweigh': ['bodyweight'],
+            'lat': ['lats', 'latissimus'], 'lats': ['lat', 'latissimus'],
+            'glute': ['glutes'], 'glutes': ['glute'],
+            'delt': ['delts', 'deltoid'], 'delts': ['delt', 'deltoid'], 'deltoid': ['delt'], 'deltoids': ['delt'],
+            'quad': ['quads', 'quadriceps'], 'quads': ['quad', 'quadriceps'], 'quadricep': ['quad'], 'quadriceps': ['quad'],
+            'ham': ['hamstring'], 'hams': ['hamstring'], 'hamstrings': ['hamstring'],
+            'pec': ['pecs', 'pectoral'], 'pecs': ['pec', 'pectoral'], 'pectoral': ['pec'], 'pectorals': ['pec'],
+            'calves': ['calf'], 'calf': ['calves'],
+            'knees': ['knee'], 'knee': ['knees'],
+            'rdl': ['romanian dead lift', 'romanian deadlift'],
+            'ohp': ['overhead press'], 'bp': ['bench press']
+        };
+
+        function normalizeForSearch(str) {
+            return (str || '')
+                .toLowerCase()
+                .replace(/[^\w\s]+/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim();
+        }
+
+        function expandSearchToken(token) {
+            const variants = new Set([token]);
+            if (FUZZY_SYNONYMS[token]) {
+                FUZZY_SYNONYMS[token].forEach(v => variants.add(v));
+            }
+            // Basic plural handling
+            if (token.length > 3 && token.endsWith('s')) {
+                variants.add(token.slice(0, -1));
+            } else if (token.length > 2) {
+                variants.add(token + 's');
+            }
+            // -ing / -ed stemming for words like "rowing"/"row", "curled"/"curl"
+            if (token.length > 4 && token.endsWith('ing')) {
+                variants.add(token.slice(0, -3));
+            }
+            if (token.length > 3 && token.endsWith('ed')) {
+                variants.add(token.slice(0, -2));
+            }
+            return Array.from(variants);
+        }
+
+        function getExerciseSearchText(ex) {
+            if (ex._searchText) return ex._searchText;
+            const secondary = Array.isArray(ex.secondary_muscles)
+                ? ex.secondary_muscles.join(' ')
+                : (ex.secondary_muscles || '');
+            const parts = [
+                ex.name, ex.muscle_group, ex.primary_muscles,
+                secondary, ex.equipment, ex.exercise_type, ex.category
+            ].filter(Boolean).join(' ');
+            ex._searchText = normalizeForSearch(parts);
+            return ex._searchText;
+        }
+
+        function fuzzyMatchExercise(ex, queryRaw) {
+            const query = normalizeForSearch(queryRaw);
+            if (!query) return true;
+            const haystack = getExerciseSearchText(ex);
+            if (haystack.includes(query)) return true;
+            const tokens = query.split(' ').filter(Boolean);
+            return tokens.every(token => {
+                if (haystack.includes(token)) return true;
+                return expandSearchToken(token).some(v => haystack.includes(v));
+            });
+        }
+
+        function scoreExerciseMatch(ex, queryRaw) {
+            const query = normalizeForSearch(queryRaw);
+            if (!query) return 0;
+            const nameNorm = normalizeForSearch(ex.name);
+            if (nameNorm === query) return 1000;
+            if (nameNorm.startsWith(query)) return 800;
+            if (nameNorm.includes(query)) return 600;
+            const tokens = query.split(' ').filter(Boolean);
+            const allInName = tokens.every(t => {
+                if (nameNorm.includes(t)) return true;
+                return expandSearchToken(t).some(v => nameNorm.includes(v));
+            });
+            if (allInName) return 400;
+            return 100;
+        }
+        // ===== End fuzzy search helpers =====
+
         // Keywords for category-based filtering
         // NOTE: Many exercises have "stretch" in their name and match automatically.
         // Only add keywords here for stretch exercises that do NOT contain "stretch" in their name.
@@ -9997,27 +10101,13 @@
                 }
             }
 
-            // Search filter (includes name, muscle_group, and secondary_muscles)
+            // Fuzzy search across name, muscle_group, primary/secondary muscles, and equipment
             if (currentSearchTerm) {
-                filtered = filtered.filter(e => {
-                    const nameMatch = e.name.toLowerCase().includes(currentSearchTerm);
-                    const muscleMatch = e.muscle_group?.toLowerCase().includes(currentSearchTerm);
-                    const primaryMatch = e.primary_muscles?.toLowerCase().includes(currentSearchTerm);
-
-                    // Check secondary muscles for search
-                    let secondaryMatch = false;
-                    if (e.secondary_muscles) {
-                        if (Array.isArray(e.secondary_muscles)) {
-                            secondaryMatch = e.secondary_muscles.some(m =>
-                                m.toLowerCase().includes(currentSearchTerm)
-                            );
-                        } else if (typeof e.secondary_muscles === 'string') {
-                            secondaryMatch = e.secondary_muscles.toLowerCase().includes(currentSearchTerm);
-                        }
-                    }
-
-                    return nameMatch || muscleMatch || primaryMatch || secondaryMatch;
-                });
+                filtered = filtered
+                    .filter(e => fuzzyMatchExercise(e, currentSearchTerm))
+                    .map(e => ({ e, score: scoreExerciseMatch(e, currentSearchTerm) }))
+                    .sort((a, b) => b.score - a.score)
+                    .map(entry => entry.e);
             }
 
             return filtered;
@@ -11852,12 +11942,12 @@
                 return;
             }
 
-            // Search through ALL exercises by name, equipment, or muscle group
-            const filtered = recommendedSwapsCache.filter(ex =>
-                ex.name.toLowerCase().includes(query.toLowerCase()) ||
-                (ex.equipment && ex.equipment.toLowerCase().includes(query.toLowerCase())) ||
-                (ex.muscle_group && ex.muscle_group.toLowerCase().includes(query.toLowerCase()))
-            );
+            // Fuzzy search across name, equipment, muscle group, and secondary muscles
+            const filtered = recommendedSwapsCache
+                .filter(ex => fuzzyMatchExercise(ex, query))
+                .map(ex => ({ ex, score: scoreExerciseMatch(ex, query) }))
+                .sort((a, b) => b.score - a.score)
+                .map(entry => entry.ex);
             renderRecommendedExerciseOptions(filtered);
         }
 
