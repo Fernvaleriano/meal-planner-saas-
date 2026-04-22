@@ -234,14 +234,14 @@ function Progress() {
   const refreshProgressData = useCallback(async () => {
     if (!clientData?.id) return;
     try {
-      const [measurementsData, photosData, checkinsData] = await Promise.all([
+      const [measurementsData, photosData, gymProofsData] = await Promise.all([
         apiGet(`/.netlify/functions/get-measurements?clientId=${clientData.id}&limit=200`).catch(() => null),
         apiGet(`/.netlify/functions/get-progress-photos?clientId=${clientData.id}`).catch(() => null),
-        apiGet(`/.netlify/functions/save-checkin?clientId=${clientData.id}&limit=1`).catch(() => null)
+        apiGet(`/.netlify/functions/save-gym-proof?clientId=${clientData.id}&limit=1`).catch(() => null)
       ]);
       if (measurementsData?.measurements) setMeasurements(measurementsData.measurements);
       if (photosData?.photos) setPhotos(photosData.photos);
-      if (typeof checkinsData?.pagination?.total === 'number') setTotalCheckinCount(checkinsData.pagination.total);
+      if (typeof gymProofsData?.pagination?.total === 'number') setTotalCheckinCount(gymProofsData.pagination.total);
     } catch (err) {
       console.error('Error refreshing progress data:', err);
     }
@@ -260,11 +260,11 @@ function Progress() {
   const loadCheckinCount = async () => {
     setLoadingCheckinCount(true);
     try {
-      const data = await apiGet(`/.netlify/functions/save-checkin?clientId=${clientData.id}&limit=1`);
+      const data = await apiGet(`/.netlify/functions/save-gym-proof?clientId=${clientData.id}&limit=1`);
       const total = data?.pagination?.total;
-      setTotalCheckinCount(typeof total === 'number' ? total : (data?.checkins?.length || 0));
+      setTotalCheckinCount(typeof total === 'number' ? total : (data?.proofs?.length || 0));
     } catch (err) {
-      console.error('Error loading check-in count:', err);
+      console.error('Error loading gym check-in count:', err);
     } finally {
       setLoadingCheckinCount(false);
     }
