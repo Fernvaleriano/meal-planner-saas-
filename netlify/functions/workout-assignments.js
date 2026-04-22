@@ -123,18 +123,20 @@ exports.handler = withTimeout(async (event) => {
 
       // Get assignments for a client
       if (clientId) {
-        // If date is provided, get workouts for that date from all active assignments
+        // If date is provided, get workouts for that date from all assignments
+        // whose date range covers it (active OR deactivated). We need inactive
+        // assignments too so past workouts stay visible after a program ends
+        // or is replaced — deactivation just caps the effective window, it
+        // doesn't erase history.
         if (date) {
-          // Get all active assignments for this client
           const { data: activeAssignments, error: assignmentError } = await supabase
             .from('client_workout_assignments')
             .select('*')
             .eq('client_id', clientId)
-            .eq('is_active', true)
             .order('created_at', { ascending: false });
 
           if (assignmentError) {
-            console.error('Error fetching active assignments:', assignmentError);
+            console.error('Error fetching assignments:', assignmentError);
             throw assignmentError;
           }
 
@@ -264,6 +266,16 @@ exports.handler = withTimeout(async (event) => {
             } else {
               endBoundary = new Date(startDate);
               endBoundary.setDate(endBoundary.getDate() + (weeksToUse * 7));
+            }
+
+            // For deactivated assignments, cap the end at the deactivation time
+            // (approximated by updated_at) so a replacement program doesn't
+            // duplicate workouts with the old one on overlapping dates.
+            if (activeAssignment.is_active === false && activeAssignment.updated_at) {
+              const deactivatedAt = new Date(activeAssignment.updated_at);
+              if (!isNaN(deactivatedAt.getTime()) && deactivatedAt < endBoundary) {
+                endBoundary = deactivatedAt;
+              }
             }
 
             // Check if target date is within the assignment's active date range
@@ -704,6 +716,21 @@ exports.handler = withTimeout(async (event) => {
       if (updateData.endDate !== undefined) updateFields.end_date = updateData.endDate;
       if (updateData.workoutData !== undefined) updateFields.workout_data = updateData.workoutData;
       if (updateData.isActive !== undefined) updateFields.is_active = updateData.isActive;
+
+      // When deactivating, clamp end_date to today if it's null or in the
+      // future so the historical GET-by-date query has a persistent upper
+      // bound (updated_at can get bumped later by unrelated updates).
+      if (updateData.isActive === false && updateData.endDate === undefined) {
+        const today = new Date().toISOString().split('T')[0];
+        const { data: current } = await supabase
+          .from('client_workout_assignments')
+          .select('end_date')
+          .eq('id', assignmentId)
+          .maybeSingle();
+        if (!current?.end_date || current.end_date > today) {
+          updateFields.end_date = today;
+        }
+      }
 
       const { data: assignment, error } = await supabase
         .from('client_workout_assignments')
