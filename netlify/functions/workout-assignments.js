@@ -310,10 +310,16 @@ exports.handler = withTimeout(async (event) => {
 
               // Collect all added workout instances from ALL formats (backwards compat + new)
               const addedInstances = [];
+              // Dedupe by instance_id so any historical duplicate (e.g. from a
+              // pre-fix concurrent write that double-pushed the same instance)
+              // can't render as two identical cards.
+              const seenInstanceIds = new Set();
 
               // New format: addedWorkouts — each instance is independent (supports duplicates)
               if (Array.isArray(override.addedWorkouts)) {
                 for (const aw of override.addedWorkouts) {
+                  if (aw.instance_id && seenInstanceIds.has(aw.instance_id)) continue;
+                  if (aw.instance_id) seenInstanceIds.add(aw.instance_id);
                   addedInstances.push({ instance_id: aw.instance_id, day_index: aw.day_index });
                 }
               }
