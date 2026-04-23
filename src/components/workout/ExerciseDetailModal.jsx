@@ -617,6 +617,24 @@ function ExerciseDetailModal({
 
     if (!currentClientId || !currentExercise?.id) return;
 
+    // Call onUpdateExercise FIRST — before any awaits — so Workouts.jsx's
+    // handleUpdateExercise fires its app-kill-resistant keepalive POST/PUT
+    // to /workout-logs immediately. If the user closes the app mid-save,
+    // the awaits below get cancelled but the keepalive already went out,
+    // so the server still gets the exercise_log row. Without this, the
+    // edit reverts to the template default on reopen because the log was
+    // never persisted. Also updates in-memory workoutLog so the UI doesn't
+    // flash stale values on the next render.
+    if (callbackRefs.current.onUpdateExercise && currentExercise) {
+      try {
+        callbackRefs.current.onUpdateExercise({
+          ...currentExercise,
+          sets: currentSets,
+          setsData: currentSets
+        });
+      } catch { /* handleUpdateExercise should never throw, but don't let it block PR detection */ }
+    }
+
     try {
       let logId = workoutLogIdRef.current;
       const dateStr = currentGetWorkoutDateStr();
@@ -677,17 +695,6 @@ function ExerciseDetailModal({
         workoutId: logId,
         exercises: [exercisePayload]
       });
-
-      // Sync parent state so ExerciseCard and GuidedWorkoutModal see the
-      // same values this auto-save just persisted. Without this, other views
-      // read stale exercise.setsData until a full page reload.
-      if (callbackRefs.current.onUpdateExercise && currentExercise) {
-        callbackRefs.current.onUpdateExercise({
-          ...currentExercise,
-          sets: currentSets,
-          setsData: currentSets
-        });
-      }
 
       // Real-time PR detection: weight PR + rep PR
       const currentMaxWeight = setsData.reduce((max, s) => Math.max(max, s.weight || 0), 0);
