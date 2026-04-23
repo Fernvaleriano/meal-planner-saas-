@@ -101,7 +101,12 @@ exports.handler = async (event) => {
 
       if (error) throw error;
 
-      // Batch-fetch all exercise_logs in a single query instead of one per workout
+      // Batch-fetch all exercise_logs in a single query instead of one per workout.
+      // Order by updated_at DESC FIRST so that if the table has duplicate rows
+      // for the same (workout_log_id, exercise_id) — a legacy artefact of
+      // concurrent writes racing before the unique-constraint upsert lands —
+      // the latest write comes first. We then dedupe in memory below so the
+      // client only ever sees one row per exercise.
       const workoutIds = (workouts || []).map(w => w.id);
       let allExerciseLogs = [];
       if (workoutIds.length > 0) {
@@ -109,8 +114,24 @@ exports.handler = async (event) => {
           .from('exercise_logs')
           .select('*')
           .in('workout_log_id', workoutIds)
+          .order('updated_at', { ascending: false, nullsFirst: false })
           .order('exercise_order', { ascending: true });
-        allExerciseLogs = exerciseLogs || [];
+        const seen = new Set();
+        allExerciseLogs = [];
+        for (const log of (exerciseLogs || [])) {
+          if (log.exercise_id == null) {
+            allExerciseLogs.push(log);
+            continue;
+          }
+          const key = `${log.workout_log_id}:${log.exercise_id}`;
+          if (seen.has(key)) continue;
+          seen.add(key);
+          allExerciseLogs.push(log);
+        }
+        // Restore exercise_order-based ordering for downstream UI code that
+        // relies on it (it just needs stable ordering within a workout, not
+        // the updated_at tiebreaker we used for the dedupe).
+        allExerciseLogs.sort((a, b) => (a.exercise_order ?? 0) - (b.exercise_order ?? 0));
       }
 
       // Group exercise logs by workout_log_id
@@ -200,13 +221,35 @@ exports.handler = async (event) => {
         // to hit mid-app-kill). Matches the upsert logic in PUT below.
         if (exercises && exercises.length > 0) {
           try {
+            // Build (keepId, duplicateIds) map and delete duplicates — see the
+            // long comment in the PUT handler for the full explanation. Short
+            // version: concurrent writes create duplicate rows for the same
+            // (workout_log_id, exercise_id), and the merge on read picks the
+            // first match, which is often the stale one.
             const { data: existingExerciseLogs } = await supabase
               .from('exercise_logs')
-              .select('id, exercise_id')
-              .eq('workout_log_id', existingLogs[0].id);
+              .select('id, exercise_id, updated_at')
+              .eq('workout_log_id', existingLogs[0].id)
+              .order('updated_at', { ascending: false, nullsFirst: false });
             const existingExMap = {};
+            const duplicateIdsToDelete = [];
             for (const log of (existingExerciseLogs || [])) {
-              if (log.exercise_id) existingExMap[log.exercise_id] = log.id;
+              if (log.exercise_id == null) continue;
+              if (existingExMap[log.exercise_id] == null) {
+                existingExMap[log.exercise_id] = log.id;
+              } else {
+                duplicateIdsToDelete.push(log.id);
+              }
+            }
+            if (duplicateIdsToDelete.length > 0) {
+              try {
+                await supabase
+                  .from('exercise_logs')
+                  .delete()
+                  .in('id', duplicateIdsToDelete);
+              } catch (e) {
+                console.warn('POST duplicate cleanup failed:', e?.message);
+              }
             }
             for (const ex of exercises) {
               const setsData = ex.sets || [];
@@ -399,19 +442,50 @@ exports.handler = async (event) => {
           }
         }
 
-        // Pre-fetch existing exercise logs for this workout in batch
-        let existingLogMap = {}; // exerciseId -> log id
+        // Pre-fetch existing exercise logs for this workout in batch.
+        // We build a map of exercise_id -> { keepId, duplicateIds } so we can
+        // (a) update the canonical row and (b) delete any duplicate rows that
+        // prior concurrent writes created for the same (workout_log_id,
+        // exercise_id) pair. Duplicates are the root cause of the "saved value
+        // reverts to an older value" bug: without a unique constraint, three
+        // concurrent PUTs (keepalive + durable + modal auto-save) can each
+        // SELECT "no existing row" and then each INSERT a new one. After that
+        // the merge on read picks the FIRST matching row by exercise_id, which
+        // is whichever duplicate ORDER BY exercise_order returned first — not
+        // necessarily the latest one the client updated.
+        let existingLogMap = {}; // exerciseId -> keep row id
+        const duplicateIdsToDelete = [];
         try {
           const { data: existingLogs } = await supabase
             .from('exercise_logs')
-            .select('id, exercise_id')
-            .eq('workout_log_id', workoutId);
+            .select('id, exercise_id, updated_at')
+            .eq('workout_log_id', workoutId)
+            .order('updated_at', { ascending: false, nullsFirst: false });
 
+          // First row per exercise_id wins (most recently updated). Everything
+          // else for that exercise_id is a duplicate and gets deleted before
+          // we upsert.
           for (const log of (existingLogs || [])) {
-            if (log.exercise_id) existingLogMap[log.exercise_id] = log.id;
+            if (log.exercise_id == null) continue;
+            if (existingLogMap[log.exercise_id] == null) {
+              existingLogMap[log.exercise_id] = log.id;
+            } else {
+              duplicateIdsToDelete.push(log.id);
+            }
           }
         } catch (e) {
           // Continue - will insert new logs
+        }
+
+        if (duplicateIdsToDelete.length > 0) {
+          try {
+            await supabase
+              .from('exercise_logs')
+              .delete()
+              .in('id', duplicateIdsToDelete);
+          } catch (e) {
+            console.warn('Failed to clean up duplicate exercise_logs:', e?.message);
+          }
         }
 
         // Process exercises (now with minimal DB calls)
