@@ -947,11 +947,16 @@ function Workouts() {
       // it was adding 2-5s of delay on every pull-to-refresh by forcing a
       // full Supabase auth roundtrip before data fetching could start.
 
+      // Track which fetches errored vs returned empty — on error we preserve
+      // the previous in-memory state rather than clobbering the user's just-
+      // saved sets with "no data". Only a successful empty response should
+      // clear workoutLog.
       const [assignmentRes, adhocRes, logRes] = await Promise.all([
         apiGet(`/.netlify/functions/workout-assignments?clientId=${clientData.id}&date=${dateStr}`).catch(() => null),
         apiGet(`/.netlify/functions/adhoc-workouts?clientId=${clientData.id}&date=${dateStr}`).catch(() => null),
         apiGet(`/.netlify/functions/workout-logs?clientId=${clientData.id}&date=${dateStr}`).catch(() => null)
       ]);
+      const logFetchFailed = logRes === null;
 
       // Another refresh/fetch raced ahead of us (e.g. user changed date
       // mid-flight). Drop this stale response instead of overwriting state.
@@ -1033,7 +1038,12 @@ function Workouts() {
             setCompletedExercises(completed);
           }
         } else if (!active.is_adhoc) {
-          setWorkoutLog(null);
+          // Guard against a failed log fetch wiping the just-saved log from
+          // memory. If the request errored (logFetchFailed), keep whatever
+          // workoutLog we already have so the merged sets stay on screen.
+          if (!logFetchFailed) {
+            setWorkoutLog(null);
+          }
           const fromData = getCompletedFromWorkoutData(active.workout_data, active.day_index, active.id);
           setCompletedExercises(fromData);
         } else {
