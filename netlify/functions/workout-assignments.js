@@ -368,6 +368,10 @@ exports.handler = withTimeout(async (event) => {
                 }
               }
 
+              // Per-date completion state — keyed by instance_id, keeps each
+              // date's "done" checkboxes independent from the shared template.
+              const perDateCompletions = (override && override.completions) || {};
+
               // Create a card for each added instance
               for (const inst of addedInstances) {
                 const di = inst.day_index % days.length;
@@ -376,6 +380,7 @@ exports.handler = withTimeout(async (event) => {
                 if (inst._legacy && !skipNatural && naturalDayIndex !== undefined && di === naturalDayIndex) continue;
                 const day = days[di];
                 if (day) {
+                  const instCompletions = perDateCompletions[inst.instance_id] || {};
                   todayWorkouts.push({
                     id: activeAssignment.id,
                     instance_id: inst.instance_id,
@@ -383,7 +388,10 @@ exports.handler = withTimeout(async (event) => {
                     day_index: di,
                     workout_data: {
                       ...day,
-                      exercises: (day.exercises || []).map(ex => { const { completed, ...rest } = ex; return rest; }),
+                      exercises: (day.exercises || []).map((ex, i) => {
+                        const { completed, _done, ...rest } = ex;
+                        return instCompletions[i] ? { ...rest, _done: true } : rest;
+                      }),
                       estimatedMinutes: day.estimatedMinutes || 45,
                       estimatedCalories: day.estimatedCalories || 300,
                       image_url: resolvedImageUrl
@@ -404,14 +412,19 @@ exports.handler = withTimeout(async (event) => {
 
               if (isWorkoutDay && naturalDayIndex !== undefined) {
                 const natDay = days[naturalDayIndex];
+                const naturalInstanceId = `${activeAssignment.id}-natural`;
+                const naturalCompletions = ((override && override.completions) || {})[naturalInstanceId] || {};
                 todayWorkout = {
                   id: activeAssignment.id,
-                  instance_id: `${activeAssignment.id}-natural`,
+                  instance_id: naturalInstanceId,
                   name: activeAssignment.name || natDay.name || `Day ${naturalDayIndex + 1}`,
                   day_index: naturalDayIndex,
                   workout_data: {
                     ...natDay,
-                    exercises: (natDay.exercises || []).map(ex => { const { completed, ...rest } = ex; return rest; }),
+                    exercises: (natDay.exercises || []).map((ex, i) => {
+                      const { completed, _done, ...rest } = ex;
+                      return naturalCompletions[i] ? { ...rest, _done: true } : rest;
+                    }),
                     estimatedMinutes: natDay.estimatedMinutes || 45,
                     estimatedCalories: natDay.estimatedCalories || 300,
                     image_url: resolvedImageUrl
