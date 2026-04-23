@@ -1168,6 +1168,11 @@ function Workouts() {
             return null;
           })
         ]);
+        // Same defensive treatment as refreshWorkoutData: a catch-returned
+        // null means the fetch errored, not that there are no logs. We must
+        // NOT overwrite a cached workoutLog in that case, or a transient
+        // network blip on mount wipes the user's just-saved sets from screen.
+        const logFetchFailedMount = logRes === null;
         if (!mounted) return;
         // If another fetch/refresh started after us, drop this response to
         // avoid flipping the UI back to old data after the user moved on.
@@ -1246,8 +1251,15 @@ function Workouts() {
               setCompletedExercises(completed);
             }
           } else if (!first.is_adhoc) {
-            setWorkoutLog(null);
-            setCache(cacheKey, { todayWorkout: first, todayWorkouts: allWorkouts, workoutLog: null });
+            // If the log fetch errored, preserve whatever cached workoutLog we
+            // already have rather than clobbering it to null (otherwise a flaky
+            // mount-time fetch silently erases the just-saved sets).
+            if (!logFetchFailedMount) {
+              setWorkoutLog(null);
+              setCache(cacheKey, { todayWorkout: first, todayWorkouts: allWorkouts, workoutLog: null });
+            } else {
+              setCache(cacheKey, { todayWorkout: first, todayWorkouts: allWorkouts });
+            }
             const fromData = getCompletedFromWorkoutData(first.workout_data, first.day_index, first.id, first.workout_date);
             setCompletedExercises(fromData);
           } else {
