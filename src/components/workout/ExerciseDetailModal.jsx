@@ -1334,6 +1334,9 @@ function ExerciseDetailModal({
     markSetsChanged();
     // Update local state
     setSets(newSets);
+    // Keep the ref in sync synchronously so the direct performSave() below
+    // reads the just-saved sets instead of the previous render's snapshot.
+    setsRef.current = newSets;
 
     // Invalidate history cache so next view shows fresh data (including updated weights/PRs)
     setHistoryData(null);
@@ -1352,8 +1355,20 @@ function ExerciseDetailModal({
       };
       callbackRefs.current.onUpdateExercise(updatedExercise, { skipLogSync: true });
     }
+
+    // Fire the save immediately instead of waiting for the debounced useEffect.
+    // The effort/intensity pill is optional — saves must not depend on it. The
+    // debounced path occasionally missed writes when clients tapped Save in the
+    // SetEditorModal without also tapping an effort pill, because setsChangedRef
+    // had been reset by a mount-time initialSets effect. A direct synchronous
+    // call guarantees every explicit save reaches the server.
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
+    }
+    performSave();
   // NOTE: exercise accessed via exerciseRef to prevent callback recreation
-  }, []);
+  }, [performSave]);
 
   // Delete exercise handler - uses requestAnimationFrame for mobile Safari
   const handleDeleteExercise = useCallback(() => {
