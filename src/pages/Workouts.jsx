@@ -844,12 +844,16 @@ function Workouts() {
       const { workout, updatedWorkoutData } = pending;
       if (!workout?.id) return;
 
-      try {
-        // Use fetch with keepalive to ensure request completes even if page is unloading
-        const token = document.cookie.match(/sb-.*-auth-token=([^;]+)/)?.[1];
-        const headers = { 'Content-Type': 'application/json' };
+      // Only adhoc workouts use this flush path. Assigned-program set data goes
+      // through workout_logs / exercise_logs (fired as a keepalive request on
+      // every edit in handleUpdateExercise), which already survives app-kill —
+      // so there's no separate "pending save" to flush for them.
+      if (!workout.is_adhoc) {
+        pendingSaveRef.current = null;
+        return;
+      }
 
-        // Try to get auth token from supabase session in localStorage
+      try {
         let authToken = null;
         try {
           const keys = Object.keys(localStorage);
@@ -860,37 +864,25 @@ function Workouts() {
           }
         } catch (e) { /* ignore */ }
 
+        const headers = { 'Content-Type': 'application/json' };
         if (authToken) {
           headers['Authorization'] = `Bearer ${authToken}`;
         }
 
-        if (workout.is_adhoc) {
-          const isRealId = workout.id && !String(workout.id).startsWith('adhoc-') && !String(workout.id).startsWith('custom-');
-          const dateStr = workout.workout_date || new Date().toISOString().split('T')[0];
-          fetch('/.netlify/functions/adhoc-workouts', {
-            method: 'PUT',
-            headers,
-            body: JSON.stringify({
-              ...(isRealId ? { workoutId: workout.id } : {}),
-              clientId: workout.client_id,
-              workoutDate: dateStr,
-              workoutData: updatedWorkoutData,
-              name: workout.name
-            }),
-            keepalive: true
-          }).catch(() => {});
-        } else {
-          fetch('/.netlify/functions/client-workout-log', {
-            method: 'PUT',
-            headers,
-            body: JSON.stringify({
-              assignmentId: workout.id,
-              dayIndex: workout.day_index,
-              workout_data: updatedWorkoutData
-            }),
-            keepalive: true
-          }).catch(() => {});
-        }
+        const isRealId = workout.id && !String(workout.id).startsWith('adhoc-') && !String(workout.id).startsWith('custom-');
+        const dateStr = workout.workout_date || new Date().toISOString().split('T')[0];
+        fetch('/.netlify/functions/adhoc-workouts', {
+          method: 'PUT',
+          headers,
+          body: JSON.stringify({
+            ...(isRealId ? { workoutId: workout.id } : {}),
+            clientId: workout.client_id,
+            workoutDate: dateStr,
+            workoutData: updatedWorkoutData,
+            name: workout.name
+          }),
+          keepalive: true
+        }).catch(() => {});
         pendingSaveRef.current = null;
       } catch (e) {
         // Last resort: localStorage already has the data from toggleExerciseComplete
@@ -2349,35 +2341,31 @@ function Workouts() {
       }));
     } catch { /* quota / private mode — fall through to network path */ }
 
-    // Fire an immediate keepalive copy of the save. apiPut (below) uses an
-    // AbortController that cancels mid-flight when the app is killed — and
-    // iOS WebView buffers localStorage writes to disk asynchronously, so
-    // killing the app within ~1s of a tap can lose BOTH paths. Keepalive
-    // fetch is contractually allowed to outlive the page/app, which closes
-    // that race. Safe to run alongside apiPut — the endpoint is idempotent
-    // (PUT overwrites the same workout_data), so a second identical write
-    // is a no-op on the server side.
-    try {
-      let authToken = null;
+    // Adhoc workouts are one-off sessions stored in their own row, so writing
+    // set data back to workout_data is safe (no week-over-week overwrite).
+    // For assigned programs, set data goes exclusively through workout_logs /
+    // exercise_logs below — writing to the plan's workout_data would make
+    // every week overwrite the previous week's sets in the same template slot.
+    if (workout.is_adhoc) {
       try {
-        const keys = Object.keys(localStorage);
-        const sbKey = keys.find(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
-        if (sbKey) {
-          const session = JSON.parse(localStorage.getItem(sbKey));
-          authToken = session?.access_token || session?.currentSession?.access_token;
-        }
-      } catch { /* ignore */ }
-      if (authToken) {
-        const headers = {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authToken}`
-        };
-        if (workout.is_adhoc) {
+        let authToken = null;
+        try {
+          const keys = Object.keys(localStorage);
+          const sbKey = keys.find(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+          if (sbKey) {
+            const session = JSON.parse(localStorage.getItem(sbKey));
+            authToken = session?.access_token || session?.currentSession?.access_token;
+          }
+        } catch { /* ignore */ }
+        if (authToken) {
           const isRealId = workout.id && !String(workout.id).startsWith('adhoc-') && !String(workout.id).startsWith('custom-');
           const dateStr = workout.workout_date || new Date().toISOString().split('T')[0];
           fetch('/.netlify/functions/adhoc-workouts', {
             method: 'PUT',
-            headers,
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${authToken}`
+            },
             body: JSON.stringify({
               ...(isRealId ? { workoutId: workout.id } : {}),
               clientId: workout.client_id,
@@ -2387,20 +2375,9 @@ function Workouts() {
             }),
             keepalive: true
           }).catch(() => {});
-        } else {
-          fetch('/.netlify/functions/client-workout-log', {
-            method: 'PUT',
-            headers,
-            body: JSON.stringify({
-              assignmentId: workout.id,
-              dayIndex: workout.day_index,
-              workout_data: updatedWorkoutData
-            }),
-            keepalive: true
-          }).catch(() => {});
         }
-      }
-    } catch { /* best-effort — apiPut below is the durable fallback */ }
+      } catch { /* best-effort — apiPut below is the durable fallback */ }
+    }
 
     // Also update the localStorage workouts cache synchronously so the next
     // mount shows the user's edit instantly (before any fetch completes).
@@ -2555,6 +2532,10 @@ function Workouts() {
               workoutId: logId,
               exercises: [exercisePayload]
             });
+            // Server confirmed — drop the draft. The keepalive fired above is
+            // the safety net; if apiPut fails we leave the draft in place so a
+            // reload can restore the user's edit.
+            try { localStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
           } catch { /* keepalive above is the safety net */ }
           return;
         }
@@ -2583,6 +2564,7 @@ function Workouts() {
             try { localStorage.setItem(LOG_ID_KEY, logId); } catch { /* ignore */ }
             setWorkoutLog(created.workout);
             patchWorkoutLogState(logId);
+            try { localStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
           }
         } catch { /* keepalive POST above is the safety net */ }
       } catch (e) {
@@ -2590,14 +2572,15 @@ function Workouts() {
       }
     })();
 
-    // Save to backend with retry logic (up to 3 attempts with exponential backoff)
-    // Stash the in-flight save so the visibilitychange/pagehide handler can flush
-    // it via fetch keepalive if the user kills the app before the API request lands.
-    pendingSaveRef.current = { workout, updatedWorkoutData };
-    const saveWithRetry = async (attempts = 3) => {
-      for (let i = 0; i < attempts; i++) {
-        try {
-          if (workout.is_adhoc) {
+    // For adhoc workouts, persist set changes back to the adhoc row (adhoc is a
+    // one-off session so this is not a template). For assigned programs, the
+    // workout_logs / exercise_logs save above is the source of truth — we never
+    // write set data back to the plan's workout_data.
+    if (workout.is_adhoc) {
+      pendingSaveRef.current = { workout, updatedWorkoutData };
+      const saveWithRetry = async (attempts = 3) => {
+        for (let i = 0; i < attempts; i++) {
+          try {
             const isRealId = workout.id && !String(workout.id).startsWith('adhoc-') && !String(workout.id).startsWith('custom-');
             const dateStr = workout.workout_date || new Date().toISOString().split('T')[0];
             await apiPut('/.netlify/functions/adhoc-workouts', {
@@ -2607,36 +2590,27 @@ function Workouts() {
               workoutData: updatedWorkoutData,
               name: workout.name
             });
-          } else {
-            await apiPut('/.netlify/functions/client-workout-log', {
-              assignmentId: workout.id,
-              dayIndex: workout.day_index,
-              workout_data: updatedWorkoutData
-            });
-          }
-          // Clear pending — only the latest in-flight save needs the keepalive backup.
-          // Note: a newer call to handleUpdateExercise will overwrite pendingSaveRef
-          // before clearing, so we don't drop a more recent pending save.
-          if (pendingSaveRef.current?.updatedWorkoutData === updatedWorkoutData) {
-            pendingSaveRef.current = null;
-          }
-          // Drop the draft once the server has persisted it.
-          try { localStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
-          return; // Success
-        } catch (err) {
-          console.error(`Error saving exercise update (attempt ${i + 1}/${attempts}):`, err);
-          if (i < attempts - 1) {
-            await new Promise(r => setTimeout(r, 1000 * (i + 1))); // 1s, 2s backoff
-          } else {
-            // All retries exhausted — notify the user
-            if (typeof showErrorRef.current === 'function') {
+            if (pendingSaveRef.current?.updatedWorkoutData === updatedWorkoutData) {
+              pendingSaveRef.current = null;
+            }
+            try { localStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
+            return;
+          } catch (err) {
+            console.error(`Error saving exercise update (attempt ${i + 1}/${attempts}):`, err);
+            if (i < attempts - 1) {
+              await new Promise(r => setTimeout(r, 1000 * (i + 1)));
+            } else if (typeof showErrorRef.current === 'function') {
               showErrorRef.current('Failed to save workout changes. Please try again.');
             }
           }
         }
-      }
-    };
-    saveWithRetry();
+      };
+      saveWithRetry();
+    }
+    // For non-adhoc, the draft is cleared inside the workout-logs save above
+    // (on successful apiPost/apiPut). Until that lands the draft is the only
+    // on-disk record of the user's edit, so we must keep it around to survive
+    // app-kill or an interrupted save.
   }, []); // Using ref instead of dependencies
 
   // Handle deleting an exercise from workout - use ref for stable callback
@@ -3428,20 +3402,30 @@ function Workouts() {
         };
       });
 
-      // Merge exercise_logs data (client notes, voice notes, logged sets) from workoutLog
+      // Merge exercise_logs data (client notes, voice notes, logged sets) from workoutLog.
+      // Match by exercise_id first; if that fails, fall back to name match so legacy
+      // logs without exercise_id (or logs with a mismatched id — e.g., after an
+      // exercise swap or a seed-data fix) still hydrate the user's saved sets
+      // instead of silently reverting to the coach's template defaults.
       const loggedExercises = workoutLog?.exercises || [];
+      const normalizeName = (s) => (typeof s === 'string' ? s.trim().toLowerCase() : '');
       const merged = normalized.map(ex => {
-        const logged = loggedExercises.find(le => le.exercise_id === ex.id);
+        let logged = null;
+        if (ex.id != null) {
+          logged = loggedExercises.find(le => le.exercise_id != null && le.exercise_id === ex.id) || null;
+        }
+        if (!logged && ex.name) {
+          const target = normalizeName(ex.name);
+          if (target) {
+            logged = loggedExercises.find(le => normalizeName(le.exercise_name) === target) || null;
+          }
+        }
         if (logged) {
           const updates = {
             ...ex,
             clientNotes: logged.client_notes || null,
             clientVoiceNotePath: logged.client_voice_note_path || null
           };
-          // Merge logged sets data so client-entered values (including accepted
-          // coaching recommendations) persist on reload. The exercise_logs auto-save
-          // writes sets_data; applying it here means the values survive even if the
-          // workout assignment save was lost.
           if (Array.isArray(logged.sets_data) && logged.sets_data.length > 0) {
             updates.setsData = logged.sets_data;
             updates.sets = logged.sets_data;
