@@ -686,7 +686,7 @@ function ExerciseDetailModal({
           ...currentExercise,
           sets: currentSets,
           setsData: currentSets
-        });
+        }, { skipLogSync: true });
       }
 
       // Real-time PR detection: weight PR + rep PR
