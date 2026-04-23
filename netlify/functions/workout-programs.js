@@ -258,14 +258,6 @@ exports.handler = async (event) => {
         };
       }
 
-      const { error: assignmentsError } = await supabase
-        .from('client_workout_assignments')
-        .update({ is_active: false })
-        .eq('program_id', programId)
-        .eq('is_active', true);
-
-      if (assignmentsError) throw assignmentsError;
-
       const { error } = await supabase
         .from('workout_programs')
         .delete()

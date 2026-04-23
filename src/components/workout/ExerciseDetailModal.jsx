@@ -509,9 +509,8 @@ function ExerciseDetailModal({
     setShowSetEditor(false);
     setShowSwapModal(false);
     setProgressTip(null);
-    // Reset the interacted flag so the effort-pill render gate hides until
-    // the client logs something on the new exercise.
-    setsInteractedRef.current = false;
+    // Reset auto-save flag so switching exercises doesn't trigger a stale save
+    setsChangedRef.current = false;
   // NOTE: initialSets is memoized with [exercise?.id], so we only need exercise?.id here
   }, [exercise?.id]);
 
@@ -571,28 +570,21 @@ function ExerciseDetailModal({
     return () => { cancelled = true; };
   }, [clientId, exercise?.id]);
 
-  // All set/weight/effort saves flow through the parent's onUpdateExercise —
-  // single write path used by ExerciseCard, ExerciseDetailModal, and
-  // GuidedWorkoutModal alike. This modal no longer owns its own apiPut logic
-  // for sets; every set edit calls callbackRefs.current.onUpdateExercise and
-  // the parent's handleUpdateExercise persists to exercise_logs. No
-  // effort/intensity or completion gating on saves.
-  const setsRef = useRef(sets);
-  useEffect(() => { setsRef.current = sets; }, [sets]);
-
-  // UI-only flag: whether the user has interacted with sets in this session.
-  // Used by the effort-pill render gate so the "How hard was that?" row
-  // only appears after the client has logged something. No save behavior.
-  const setsInteractedRef = useRef(false);
-
-  // Helpers still used by ancillary features (client-note save, coaching
-  // recommendation fetch, exercise-history fetch). These do NOT participate
-  // in the set save path.
+  // Auto-save exercise_log to database when sets change (debounced)
+  // Uses workoutLogId prop if available, otherwise checks for existing log for selectedDate, then creates one
   const workoutLogIdRef = useRef(workoutLogId);
+  const saveTimerRef = useRef(null);
+  const setsChangedRef = useRef(false);
+  const saveImmediatelyRef = useRef(false); // Skip debounce for recommendation accepts
+
+  // Keep ref in sync with prop (parent may load a log after modal opens)
   useEffect(() => {
-    if (workoutLogId) workoutLogIdRef.current = workoutLogId;
+    if (workoutLogId) {
+      workoutLogIdRef.current = workoutLogId;
+    }
   }, [workoutLogId]);
 
+  // Helper to get the date string for the date the client is viewing
   const getWorkoutDateStr = useCallback(() => {
     if (selectedDate && selectedDate instanceof Date && !isNaN(selectedDate.getTime())) {
       const y = selectedDate.getFullYear();
@@ -602,6 +594,194 @@ function ExerciseDetailModal({
     }
     return new Date().toISOString().split('T')[0];
   }, [selectedDate]);
+
+  // Keep refs in sync for the flush-on-unmount save function
+  const setsRef = useRef(sets);
+  const clientIdRef = useRef(clientId);
+  const exerciseRef2 = useRef(exercise);
+  const weightUnitRef = useRef(weightUnit);
+  const getWorkoutDateStrRef = useRef(getWorkoutDateStr);
+  useEffect(() => { setsRef.current = sets; }, [sets]);
+  useEffect(() => { clientIdRef.current = clientId; }, [clientId]);
+  useEffect(() => { exerciseRef2.current = exercise; }, [exercise]);
+  useEffect(() => { weightUnitRef.current = weightUnit; }, [weightUnit]);
+  useEffect(() => { getWorkoutDateStrRef.current = getWorkoutDateStr; }, [getWorkoutDateStr]);
+
+  // Extracted save function so it can be called from debounce AND flush-on-unmount
+  const performSave = useCallback(async () => {
+    const currentSets = setsRef.current;
+    const currentClientId = clientIdRef.current;
+    const currentExercise = exerciseRef2.current;
+    const currentWeightUnit = weightUnitRef.current;
+    const currentGetWorkoutDateStr = getWorkoutDateStrRef.current;
+
+    if (!currentClientId || !currentExercise?.id) return;
+
+    try {
+      let logId = workoutLogIdRef.current;
+      const dateStr = currentGetWorkoutDateStr();
+
+      // If no log ID yet, check if one already exists for this date
+      if (!logId) {
+        const existing = await apiGet(
+          `/.netlify/functions/workout-logs?clientId=${currentClientId}&startDate=${dateStr}&endDate=${dateStr}&limit=1`
+        );
+        if (existing?.workouts && existing.workouts.length > 0) {
+          logId = existing.workouts[0].id;
+          workoutLogIdRef.current = logId;
+        }
+      }
+
+      // Still no log — create one for the selected date
+      if (!logId) {
+        const res = await apiPost('/.netlify/functions/workout-logs', {
+          clientId: currentClientId,
+          workoutDate: dateStr,
+          workoutName: currentExercise?.workoutName || 'Workout',
+          status: 'in_progress'
+        });
+        if (res?.workout?.id) {
+          logId = res.workout.id;
+          workoutLogIdRef.current = logId;
+        }
+      }
+
+      if (!logId) return;
+
+      const setsData = currentSets.map((s, i) => ({
+        setNumber: i + 1,
+        reps: s.reps || 0,
+        weight: s.weight || 0,
+        weightUnit: s.weightUnit || currentWeightUnit,
+        rpe: s.rpe || null,
+        effort: s.effort || null,
+        restSeconds: s.restSeconds ?? null,
+        isTimeBased: s.isTimeBased || false,
+        ...(s.duration != null && { duration: s.duration }),
+        ...(s.distance != null && { distance: s.distance }),
+        ...(s.isDistanceBased && { isDistanceBased: true })
+      }));
+
+      const exercisePayload = {
+        exerciseId: currentExercise.id,
+        exerciseName: currentExercise.name || 'Unknown',
+        order: 1,
+        sets: setsData
+      };
+      // Preserve client notes and voice note path during auto-save
+      if (clientNoteRef.current) exercisePayload.clientNotes = clientNoteRef.current;
+      if (voiceNotePathRef.current) exercisePayload.clientVoiceNotePath = voiceNotePathRef.current;
+      if (currentExercise.swapped_from) exercisePayload.swappedFromName = currentExercise.swapped_from;
+
+      await apiPut('/.netlify/functions/workout-logs', {
+        workoutId: logId,
+        exercises: [exercisePayload]
+      });
+
+      // Sync parent state so ExerciseCard and GuidedWorkoutModal see the
+      // same values this auto-save just persisted. Without this, other views
+      // read stale exercise.setsData until a full page reload.
+      if (callbackRefs.current.onUpdateExercise && currentExercise) {
+        callbackRefs.current.onUpdateExercise({
+          ...currentExercise,
+          sets: currentSets,
+          setsData: currentSets
+        });
+      }
+
+      // Real-time PR detection: weight PR + rep PR
+      const currentMaxWeight = setsData.reduce((max, s) => Math.max(max, s.weight || 0), 0);
+      const previousMax = allTimeMaxWeightRef.current;
+      let prDetected = false;
+
+      // Weight PR
+      if (currentMaxWeight > 0 && previousMax > 0 && currentMaxWeight > previousMax) {
+        if (isMountedRef.current) {
+          setProgressTip({
+            type: 'new_pr',
+            icon: '\u{1F3C6}',
+            title: 'New Personal Record!',
+            message: `You just hit ${currentMaxWeight} ${currentWeightUnit} — up from ${previousMax} ${currentWeightUnit}. Keep pushing!`,
+          });
+        }
+        allTimeMaxWeightRef.current = currentMaxWeight;
+        prDetected = true;
+      }
+
+      // Rep PR: more reps at the same weight than ever before
+      if (!prDetected) {
+        const bestReps = allTimeBestRepsRef.current;
+        for (const s of setsData) {
+          const w = s.weight || 0;
+          const r = s.reps || 0;
+          if (w <= 0) continue; // Skip invalid/zero-weight sets
+          const prevBest = bestReps[w] || 0;
+          if (r > 0 && prevBest > 0 && r > prevBest) {
+            if (isMountedRef.current) {
+              setProgressTip({
+                type: 'new_pr',
+                icon: '\u{1F3C6}',
+                title: 'New Rep Record!',
+                message: w > 0
+                  ? `${r} reps at ${w} ${currentWeightUnit} — beat your previous best of ${prevBest} reps!`
+                  : `${r} reps — beat your previous best of ${prevBest} reps!`,
+              });
+            }
+            bestReps[w] = r; // Update so it doesn't re-trigger
+            break;
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Error auto-saving exercise log:', err);
+      setsChangedRef.current = false;
+    }
+  }, []);
+
+  useEffect(() => {
+    // Skip the initial render (sets haven't been edited by user yet)
+    if (!setsChangedRef.current) return;
+
+    // Don't save if we don't have the needed data
+    if (!clientId || !exercise?.id) return;
+
+    // Debounce: wait 300ms after last change (0ms for recommendation accepts).
+    // Shorter than the 2s we used to use — if the user closes or navigates
+    // away quickly they would lose their edits. 300ms is long enough to batch
+    // rapid keystrokes but short enough that real-world navigation captures
+    // the save before the component unmounts.
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    const delay = saveImmediatelyRef.current ? 0 : 300;
+    saveImmediatelyRef.current = false;
+    saveTimerRef.current = setTimeout(() => {
+      saveTimerRef.current = null;
+      performSave();
+    }, delay);
+
+    return () => {
+      // Don't cancel — let the cleanup effect handle flush-on-unmount
+    };
+  }, [sets, clientId, exercise?.id, exercise?.name, getWorkoutDateStr, performSave]);
+
+  // Flush any pending save when component unmounts (modal closes)
+  // This ensures data is NEVER lost when the user closes the modal quickly
+  useEffect(() => {
+    return () => {
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = null;
+        // Fire the save immediately — don't let data get lost
+        if (setsChangedRef.current) {
+          performSave();
+        }
+      }
+    };
+  }, [performSave]);
+
+  // Mark sets as user-changed when handleSaveSets fires (not initial load)
+  const markSetsChanged = useCallback(() => {
+    setsChangedRef.current = true;
+  }, []);
 
   // Load client note/voice note state from exercise data when exercise changes
   useEffect(() => {
@@ -1000,7 +1180,7 @@ function ExerciseDetailModal({
       const transcript = event.results[0][0].transcript;
       setLastTranscript(transcript);
 
-      setsInteractedRef.current = true;
+      markSetsChanged();
 
       // Parse voice input OUTSIDE of setState to avoid side effects in updater
       setSets(prevSets => {
@@ -1128,7 +1308,7 @@ function ExerciseDetailModal({
       e.stopPropagation();
       e.preventDefault();
     }
-    setsInteractedRef.current = true;
+    markSetsChanged();
     setSets(prev => {
       const lastSet = prev[prev.length - 1] || { reps: 12, weight: 0, restSeconds: 60 };
       const newSets = [...prev, { ...lastSet, completed: false }];
@@ -1150,26 +1330,29 @@ function ExerciseDetailModal({
 
   // Save sets handler - updates local state AND persists to backend
   const handleSaveSets = useCallback((newSets, editMode) => {
-    setsInteractedRef.current = true;
+    // Flag that user has edited sets, so auto-save useEffect will fire
+    markSetsChanged();
+    // Update local state
     setSets(newSets);
-    setsRef.current = newSets;
 
+    // Invalidate history cache so next view shows fresh data (including updated weights/PRs)
     setHistoryData(null);
     setHistoryStats(null);
 
-    // Persist through the parent's single write path. No skipLogSync — the
-    // parent's handleUpdateExercise owns the server write so the save never
-    // depends on an effort/intensity pill being tapped.
+    // Persist to backend via parent callback - use ref to avoid stale closure
     const currentExercise = exerciseRef.current;
     if (callbackRefs.current.onUpdateExercise && currentExercise) {
       const updatedExercise = {
         ...currentExercise,
         sets: newSets,
+        // Persist the exercise type so time-based mode is remembered
         exercise_type: editMode === 'time' ? 'timed' : (editMode === 'reps' ? 'strength' : (currentExercise.exercise_type || 'strength')),
+        // Also update trackingType so ExerciseCard renders the correct unit
         trackingType: editMode === 'time' ? 'time' : (editMode === 'distance' ? 'distance' : 'reps')
       };
       callbackRefs.current.onUpdateExercise(updatedExercise);
     }
+  // NOTE: exercise accessed via exerciseRef to prevent callback recreation
   }, []);
 
   // Delete exercise handler - uses requestAnimationFrame for mobile Safari
@@ -1347,22 +1530,109 @@ function ExerciseDetailModal({
     }
 
     setSets(acceptedSets);
-    setsRef.current = acceptedSets;
-    setsInteractedRef.current = true;
+
+    setsChangedRef.current = true; // Trigger auto-save to workout-logs
+    saveImmediatelyRef.current = true; // Skip debounce — save immediately
 
     if (!acceptedSets) return;
 
+    // Persist to workout assignment so values survive app reload.
+    // Called OUTSIDE the state updater to avoid side-effects inside it.
     const currentExercise = exerciseRef.current;
 
-    // Single write path: route through the parent's onUpdateExercise so the
-    // coaching recommendation is persisted the exact same way a manual set
-    // edit is. No skipLogSync, no separate apiPut.
+    // 1) Update parent state via callback (keeps local UI in sync)
     if (callbackRefs.current.onUpdateExercise && currentExercise) {
       callbackRefs.current.onUpdateExercise({ ...currentExercise, sets: acceptedSets });
     }
 
+    // 2) DIRECT save to workout assignment — bypasses the onUpdateExercise callback
+    // chain entirely so we're guaranteed the data hits the DB.
+    const saveToAssignment = async () => {
+      try {
+        if (!assignmentId || !currentExercise) return;
+
+        // Build updated exercises array: replace this exercise's sets/setsData
+        const updatedExercises = allExercisesRaw.map(ex => {
+          if (ex?.id === currentExercise.id) {
+            return { ...ex, sets: acceptedSets, setsData: acceptedSets };
+          }
+          return ex;
+        });
+
+        await apiPut('/.netlify/functions/client-workout-log', {
+          assignmentId,
+          dayIndex,
+          workout_data: { exercises: updatedExercises }
+        });
+        console.log('Coaching recommendation saved to assignment successfully');
+      } catch (err) {
+        console.error('Error saving coaching rec to assignment:', err);
+      }
+    };
+    saveToAssignment();
+
+    // 3) ALSO save to exercise_logs (workout log) as backup.
+    // The sets_data merge on reload ensures values persist even if the
+    // assignment save was somehow lost.
+    const saveToWorkoutLog = async () => {
+      try {
+        let logId = workoutLogIdRef.current;
+        const dateStr = getWorkoutDateStr();
+
+        if (!logId) {
+          const existing = await apiGet(
+            `/.netlify/functions/workout-logs?clientId=${clientId}&startDate=${dateStr}&endDate=${dateStr}&limit=1`
+          );
+          if (existing?.workouts && existing.workouts.length > 0) {
+            logId = existing.workouts[0].id;
+            workoutLogIdRef.current = logId;
+          }
+        }
+
+        if (!logId) {
+          const res = await apiPost('/.netlify/functions/workout-logs', {
+            clientId,
+            workoutDate: dateStr,
+            workoutName: currentExercise?.workoutName || 'Workout',
+            status: 'in_progress'
+          });
+          if (res?.workout?.id) {
+            logId = res.workout.id;
+            workoutLogIdRef.current = logId;
+          }
+        }
+
+        if (!logId) return;
+
+        const setsData = acceptedSets.map((s, i) => ({
+          setNumber: i + 1,
+          reps: s.reps || 0,
+          weight: s.weight || 0,
+          weightUnit: s.weightUnit || weightUnit,
+          restSeconds: s.restSeconds || null,
+          effort: s.effort || null,
+          ...(s.duration != null && { duration: s.duration }),
+          ...(s.distance != null && { distance: s.distance })
+        }));
+
+        await apiPut('/.netlify/functions/workout-logs', {
+          workoutId: logId,
+          exercises: [{
+            exerciseId: currentExercise.id,
+            exerciseName: currentExercise.name || 'Unknown',
+            order: 1,
+            sets: setsData
+          }]
+        });
+        console.log('Coaching recommendation saved to workout log successfully');
+      } catch (err) {
+        console.error('Error saving accepted recommendation to workout log:', err);
+      }
+    };
+    saveToWorkoutLog();
+
     setAcceptedCoachingRec(true);
-  }, [coachingRecommendation, weightUnit]);
+  }, [coachingRecommendation, weightUnit, clientId, getWorkoutDateStr, assignmentId, dayIndex, allExercisesRaw]);
 
   // Calculate estimated 1RM using Epley formula: weight * (1 + reps/30)
   const calculate1RM = (weight, reps) => {
@@ -1964,7 +2234,7 @@ function ExerciseDetailModal({
         )}
 
         {/* Effort Rating — inline pills for rating how hard the set was */}
-        {!isTimedExercise && (setsInteractedRef.current || selectedEffort) && sets.some(s => s.reps > 0 || s.weight > 0 || s.effort) && (
+        {!isTimedExercise && (setsChangedRef.current || selectedEffort) && sets.some(s => s.reps > 0 || s.weight > 0 || s.effort) && (
           <div className="detail-effort-section">
             <span className="detail-effort-label">How hard was that?</span>
             <div className="detail-effort-pills">
@@ -1976,14 +2246,8 @@ function ExerciseDetailModal({
                   onClick={() => {
                     const newEffort = selectedEffort === opt.value ? null : opt.value;
                     setSelectedEffort(newEffort);
-                    const updatedSets = sets.map(set => ({ ...set, effort: newEffort }));
-                    setSets(updatedSets);
-                    setsRef.current = updatedSets;
-                    setsInteractedRef.current = true;
-                    const currentExercise = exerciseRef.current;
-                    if (callbackRefs.current.onUpdateExercise && currentExercise) {
-                      callbackRefs.current.onUpdateExercise({ ...currentExercise, sets: updatedSets });
-                    }
+                    setSets(prev => prev.map(set => ({ ...set, effort: newEffort })));
+                    setsChangedRef.current = true;
                   }}
                   type="button"
                 >

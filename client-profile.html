@@ -13002,35 +13002,19 @@
         async function acBulkCheckDone() {
             const { workout, dateStr, assignmentId, dayIndex, isAdhoc } = acGetBulkContext();
             const exercises = workout.workout_data?.exercises || [];
-            const completions = {};
             acSelectedExercises.forEach(idx => {
-                if (exercises[idx]) {
-                    exercises[idx]._done = true;
-                    completions[idx] = true;
-                }
+                if (exercises[idx]) exercises[idx]._done = true;
             });
-            if (isAdhoc) {
-                await acSaveExercises(exercises, assignmentId, dayIndex, isAdhoc, dateStr);
-            } else {
-                await acSaveCompletions(assignmentId, workout.instance_id, dateStr, completions);
-            }
+            await acSaveExercises(exercises, assignmentId, dayIndex, isAdhoc, dateStr);
         }
 
         async function acBulkUncheckDone() {
             const { workout, dateStr, assignmentId, dayIndex, isAdhoc } = acGetBulkContext();
             const exercises = workout.workout_data?.exercises || [];
-            const completions = {};
             acSelectedExercises.forEach(idx => {
-                if (exercises[idx]) {
-                    exercises[idx]._done = false;
-                    completions[idx] = false;
-                }
+                if (exercises[idx]) exercises[idx]._done = false;
             });
-            if (isAdhoc) {
-                await acSaveExercises(exercises, assignmentId, dayIndex, isAdhoc, dateStr);
-            } else {
-                await acSaveCompletions(assignmentId, workout.instance_id, dateStr, completions);
-            }
+            await acSaveExercises(exercises, assignmentId, dayIndex, isAdhoc, dateStr);
         }
 
         async function acBulkDelete() {
@@ -13056,15 +13040,10 @@
             const bodyEl = document.getElementById('acDetailBody');
             const workout = JSON.parse(bodyEl.dataset.workout || '{}');
             const exercises = workout.workout_data?.exercises || [];
-            const ex = exercises[idx];
-            if (!ex) return;
-            const newDone = !ex._done;
-            ex._done = newDone;
-            if (isAdhoc) {
-                await acSaveExercises(exercises, assignmentId, dayIndex, isAdhoc, dateStr);
-            } else {
-                await acSaveCompletions(assignmentId, workout.instance_id, dateStr, { [idx]: newDone });
+            if (exercises[idx]) {
+                exercises[idx]._done = !exercises[idx]._done;
             }
+            await acSaveExercises(exercises, assignmentId, dayIndex, isAdhoc, dateStr);
         }
 
         // ---- Move Exercise(s) to another date ----
@@ -13247,26 +13226,6 @@
                 acSelectDay(dateStr);
             } catch (err) {
                 console.error('Error saving exercises:', err);
-                alert('Failed to save changes');
-            }
-        }
-
-        // ---- Save Per-Date Completion Helper ----
-        // Stores "exercise done" toggles in workout_data.date_overrides[dateStr].completions
-        // so they don't leak to other dates that share the same program day.
-        async function acSaveCompletions(assignmentId, instanceId, dateStr, completions) {
-            try {
-                await fetch('/.netlify/functions/client-workout-log', {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        assignmentId,
-                        completion: { dateStr, instanceId, completions }
-                    })
-                });
-                acSelectDay(dateStr);
-            } catch (err) {
-                console.error('Error saving completion state:', err);
                 alert('Failed to save changes');
             }
         }

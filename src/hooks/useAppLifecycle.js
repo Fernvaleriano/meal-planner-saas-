@@ -246,18 +246,15 @@ export function useAppLifecycle() {
 
     // ── HEARTBEAT: Detect app resume when visibilitychange doesn't fire ──
     // On iOS PWAs, visibilitychange is unreliable. setInterval callbacks are
-    // paused during suspend and fire on resume. A real suspend/resume gap is
-    // seconds-to-minutes; a desktop main-thread stall (heavy render, SW boot,
-    // devtools) is 3-6 seconds. 10s is the floor for "actually backgrounded,
-    // not just busy", which stops spurious resume refetches from wiping local
-    // state a few seconds after page load.
+    // paused during suspend and fire on resume. If the expected-vs-actual gap
+    // is >2.5s (interval fires every 1s), we resumed.
     let lastHeartbeat = Date.now();
     const heartbeatInterval = setInterval(() => {
       const now = Date.now();
       const gap = now - lastHeartbeat;
       lastHeartbeat = now;
 
-      if (gap > 10000) {
+      if (gap > 2500) {
         handleResume(gap);
       }
     }, 1000);

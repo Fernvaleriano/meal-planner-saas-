@@ -189,22 +189,6 @@ exports.handler = withTimeout(async (event) => {
           const targetDayOfWeek = targetDate.getDay();
           const targetDayName = dayNames[targetDayOfWeek];
 
-          // Drop assignments whose source program has been deleted — otherwise
-          // the client keeps seeing scheduled workouts from a removed program.
-          const allProgramIds = [...new Set(activeAssignments.map(a => a.program_id).filter(Boolean))];
-          if (allProgramIds.length > 0) {
-            const { data: existingPrograms } = await supabase
-              .from('workout_programs')
-              .select('id')
-              .in('id', allProgramIds);
-            const existingIds = new Set((existingPrograms || []).map(p => p.id));
-            for (let i = activeAssignments.length - 1; i >= 0; i--) {
-              if (activeAssignments[i].program_id && !existingIds.has(activeAssignments[i].program_id)) {
-                activeAssignments.splice(i, 1);
-              }
-            }
-          }
-
           // Batch-fetch program images for assignments that need them (single query instead of N)
           const programIdsNeeded = activeAssignments
             .filter(a => !(a.workout_data?.image_url) && a.program_id)
@@ -326,16 +310,10 @@ exports.handler = withTimeout(async (event) => {
 
               // Collect all added workout instances from ALL formats (backwards compat + new)
               const addedInstances = [];
-              // Dedupe by instance_id so any historical duplicate (e.g. from a
-              // pre-fix concurrent write that double-pushed the same instance)
-              // can't render as two identical cards.
-              const seenInstanceIds = new Set();
 
               // New format: addedWorkouts — each instance is independent (supports duplicates)
               if (Array.isArray(override.addedWorkouts)) {
                 for (const aw of override.addedWorkouts) {
-                  if (aw.instance_id && seenInstanceIds.has(aw.instance_id)) continue;
-                  if (aw.instance_id) seenInstanceIds.add(aw.instance_id);
                   addedInstances.push({ instance_id: aw.instance_id, day_index: aw.day_index });
                 }
               }
@@ -374,10 +352,6 @@ exports.handler = withTimeout(async (event) => {
                 }
               }
 
-              // Per-date completion state — keyed by instance_id, keeps each
-              // date's "done" checkboxes independent from the shared template.
-              const perDateCompletions = (override && override.completions) || {};
-
               // Create a card for each added instance
               for (const inst of addedInstances) {
                 const di = inst.day_index % days.length;
@@ -386,7 +360,6 @@ exports.handler = withTimeout(async (event) => {
                 if (inst._legacy && !skipNatural && naturalDayIndex !== undefined && di === naturalDayIndex) continue;
                 const day = days[di];
                 if (day) {
-                  const instCompletions = perDateCompletions[inst.instance_id] || {};
                   todayWorkouts.push({
                     id: activeAssignment.id,
                     instance_id: inst.instance_id,
@@ -394,10 +367,7 @@ exports.handler = withTimeout(async (event) => {
                     day_index: di,
                     workout_data: {
                       ...day,
-                      exercises: (day.exercises || []).map((ex, i) => {
-                        const { completed, _done, ...rest } = ex;
-                        return instCompletions[i] ? { ...rest, _done: true } : rest;
-                      }),
+                      exercises: (day.exercises || []).map(ex => { const { completed, ...rest } = ex; return rest; }),
                       estimatedMinutes: day.estimatedMinutes || 45,
                       estimatedCalories: day.estimatedCalories || 300,
                       image_url: resolvedImageUrl
@@ -418,19 +388,14 @@ exports.handler = withTimeout(async (event) => {
 
               if (isWorkoutDay && naturalDayIndex !== undefined) {
                 const natDay = days[naturalDayIndex];
-                const naturalInstanceId = `${activeAssignment.id}-natural`;
-                const naturalCompletions = ((override && override.completions) || {})[naturalInstanceId] || {};
                 todayWorkout = {
                   id: activeAssignment.id,
-                  instance_id: naturalInstanceId,
+                  instance_id: `${activeAssignment.id}-natural`,
                   name: activeAssignment.name || natDay.name || `Day ${naturalDayIndex + 1}`,
                   day_index: naturalDayIndex,
                   workout_data: {
                     ...natDay,
-                    exercises: (natDay.exercises || []).map((ex, i) => {
-                      const { completed, _done, ...rest } = ex;
-                      return naturalCompletions[i] ? { ...rest, _done: true } : rest;
-                    }),
+                    exercises: (natDay.exercises || []).map(ex => { const { completed, ...rest } = ex; return rest; }),
                     estimatedMinutes: natDay.estimatedMinutes || 45,
                     estimatedCalories: natDay.estimatedCalories || 300,
                     image_url: resolvedImageUrl
@@ -580,25 +545,10 @@ exports.handler = withTimeout(async (event) => {
 
         if (error) throw error;
 
-        // Filter out assignments whose source program has been deleted —
-        // otherwise the client keeps seeing orphaned program cards.
-        let filteredAssignments = assignments || [];
-        const programIds = [...new Set(filteredAssignments.map(a => a.program_id).filter(Boolean))];
-        if (programIds.length > 0) {
-          const { data: existingPrograms } = await supabase
-            .from('workout_programs')
-            .select('id')
-            .in('id', programIds);
-          const existingIds = new Set((existingPrograms || []).map(p => p.id));
-          filteredAssignments = filteredAssignments.filter(
-            a => !a.program_id || existingIds.has(a.program_id)
-          );
-        }
-
         return {
           statusCode: 200,
           headers,
-          body: JSON.stringify({ assignments: filteredAssignments })
+          body: JSON.stringify({ assignments: assignments || [] })
         };
       }
 

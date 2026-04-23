@@ -12,16 +12,11 @@ function getUserTimezone() {
   }
 }
 
-// Session cache to avoid repeated getSession calls within short timeframes.
-// getSessionPromise coalesces concurrent getSession() calls so many parallel
-// apiGet/apiPut callers share ONE Supabase auth lock acquisition instead of
-// each racing for the lock (which surfaces as "Lock was released because
-// another request stole it" errors in the console and makes requests fail).
+// Session cache to avoid repeated getSession calls within short timeframes
 let sessionCache = {
   session: null,
   timestamp: 0,
-  refreshPromise: null,
-  getSessionPromise: null
+  refreshPromise: null
 };
 
 // Session is considered fresh if retrieved within the last 2 minutes
@@ -107,47 +102,24 @@ async function getAuthToken() {
   }
 
   // No cached session (cleared on resume, or first call).
-  // If another caller is already fetching the session, piggyback on its promise
-  // instead of making a second concurrent supabase.auth.getSession() call — that
-  // would trigger the Web Lock contention that shows up as "Lock was released
-  // because another request stole it". Store the promise SYNCHRONOUSLY before
-  // any await so racing callers see it immediately.
-  if (sessionCache.getSessionPromise) {
-    try {
-      const session = await sessionCache.getSessionPromise;
-      return session?.access_token || null;
-    } catch {
-      return null;
-    }
-  }
-
-  const getSessionPromise = (async () => {
-    try {
-      const { data: { session }, error } = await supabase.auth.getSession();
-      if (error) {
-        console.error('Error getting session:', error);
-        return null;
-      }
-      return session || null;
-    } catch (error) {
-      console.error('Failed to get session:', error);
-      return null;
-    }
-  })();
-
-  sessionCache.getSessionPromise = getSessionPromise;
-
+  // supabase.auth.getSession() reads from local storage first — fast even offline.
   try {
-    const session = await getSessionPromise;
+    const { data: { session }, error } = await supabase.auth.getSession();
+
+    if (error) {
+      console.error('Error getting session:', error);
+      return null;
+    }
 
     if (session) {
+      // Cache it
       sessionCache = {
         ...sessionCache,
         session,
-        timestamp: now,
-        getSessionPromise: null
+        timestamp: now
       };
 
+      // If expiring soon, kick off background refresh (non-blocking)
       const expiresAt = session.expires_at;
       if (expiresAt) {
         const expiryTime = expiresAt * 1000;
@@ -159,10 +131,8 @@ async function getAuthToken() {
       return session.access_token;
     }
 
-    sessionCache = { ...sessionCache, getSessionPromise: null };
     return null;
   } catch (error) {
-    sessionCache = { ...sessionCache, getSessionPromise: null };
     console.error('Failed to get session:', error);
     return null;
   }
@@ -230,7 +200,7 @@ async function refreshSession() {
  * from Supabase instead of using a potentially stale cached token.
  */
 export function clearSessionCache() {
-  sessionCache = { session: null, timestamp: 0, refreshPromise: null, getSessionPromise: null };
+  sessionCache = { session: null, timestamp: 0, refreshPromise: null };
   lastEnsureFreshTimestamp = 0;
 }
 

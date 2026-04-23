@@ -391,15 +391,14 @@ function WorkoutReadyConfirmation({ readinessData, workoutName, exerciseCount, o
 }
 
 // Extract completed exercise IDs from workout_data's exercise objects + localStorage fallback
-// Build a localStorage key that is unique per workout + day + date so completion
-// state from one date doesn't bleed into other dates that map to the same
-// program day (e.g. back-day scheduled every Thursday for 4 weeks).
-function completionStorageKey(workoutId, dayIndex, dateStr) {
-  if (!workoutId || !dateStr) return null;
-  return `completedExercises_${workoutId}_day${dayIndex ?? 0}_${dateStr}`;
+// Build a localStorage key that is unique per workout + day so completion
+// state from one day doesn't bleed into another day of the same program.
+function completionStorageKey(workoutId, dayIndex) {
+  if (!workoutId) return null;
+  return `completedExercises_${workoutId}_day${dayIndex ?? 0}`;
 }
 
-function getCompletedFromWorkoutData(workoutData, dayIndex = 0, workoutId = null, dateStr = null) {
+function getCompletedFromWorkoutData(workoutData, dayIndex = 0, workoutId = null) {
   let exercises = [];
   if (Array.isArray(workoutData?.exercises) && workoutData.exercises.length > 0) {
     exercises = workoutData.exercises;
@@ -411,7 +410,7 @@ function getCompletedFromWorkoutData(workoutData, dayIndex = 0, workoutId = null
     exercises.filter(ex => ex?.id && ex.completed).map(ex => ex.id)
   );
   // Merge with localStorage fallback (covers cases where API save was in-flight during app close)
-  const key = completionStorageKey(workoutId, dayIndex, dateStr);
+  const key = completionStorageKey(workoutId, dayIndex);
   if (key) {
     try {
       const stored = localStorage.getItem(key);
@@ -421,14 +420,11 @@ function getCompletedFromWorkoutData(workoutData, dayIndex = 0, workoutId = null
           ids.forEach(id => fromData.add(id));
         }
       }
-      // Clean up legacy keys (pre-date-fix) so stale entries can't bleed in
-      // if old code is ever used. Both the very old per-workout key and the
-      // per-workout+day key are now date-unaware and must be discarded.
+      // Clean up legacy key (without day index) to prevent stale data from being
+      // picked up if old code is ever used or if we fall back
       const legacyKey = `completedExercises_${workoutId}`;
-      const legacyDayKey = `completedExercises_${workoutId}_day${dayIndex ?? 0}`;
-      if (localStorage.getItem(legacyKey)) localStorage.removeItem(legacyKey);
-      if (legacyDayKey !== key && localStorage.getItem(legacyDayKey)) {
-        localStorage.removeItem(legacyDayKey);
+      if (localStorage.getItem(legacyKey)) {
+        localStorage.removeItem(legacyKey);
       }
     } catch (e) { /* ignore */ }
   }
@@ -454,12 +450,7 @@ function getWorkoutExercises(workout) {
 
 // Helper to get completed count for a workout (from workout_data flags + localStorage)
 function getWorkoutCompletedCount(workout) {
-  const completed = getCompletedFromWorkoutData(
-    workout?.workout_data,
-    workout?.day_index || 0,
-    workout?.id,
-    workout?.workout_date
-  );
+  const completed = getCompletedFromWorkoutData(workout?.workout_data, workout?.day_index || 0, workout?.id);
   return completed.size;
 }
 
@@ -520,7 +511,6 @@ function Workouts() {
   const [todayWorkouts, setTodayWorkouts] = useState(cachedWorkouts?.todayWorkouts || []); // All workouts for selected day
   const [expandedWorkout, setExpandedWorkout] = useState(false); // true = detail view, false = cards view
   const [workoutLog, setWorkoutLog] = useState(cachedWorkouts?.workoutLog || null);
-
   // If we have cached data, skip the loading spinner — show cached data instantly
   const [loading, setLoading] = useState(!cachedWorkouts);
   const [error, setError] = useState(null);
@@ -592,13 +582,6 @@ function Workouts() {
   const pendingSaveRef = useRef(null); // Track pending completion saves for visibilitychange flush
   const globalExerciseRefsRef = useRef({}); // Coach's global exercise references keyed by lowercase exercise name
   const refreshWorkoutDataRef = useRef(null); // Stable ref for resume handler (defined later via useCallback)
-  // Monotonic token shared by the main fetch effect and refreshWorkoutData.
-  // Every fetch captures its token on entry and checks it before committing
-  // state. A stale response (slow network + user changed dates, or an
-  // overlapping pull-to-refresh / resume trigger) is silently dropped
-  // instead of overwriting the current view — this was the "sometimes shows
-  // 1, sometimes 4" symptom.
-  const fetchTokenRef = useRef(0);
   const showErrorRef = useRef(null); // Stable ref for showError in fire-and-forget saves
   const workoutLogRef = useRef(null); // Stable ref for workoutLog in fire-and-forget saves
   const clientDataRef = useRef(null); // Stable ref for clientData in fire-and-forget saves
@@ -845,16 +828,12 @@ function Workouts() {
       const { workout, updatedWorkoutData } = pending;
       if (!workout?.id) return;
 
-      // Only adhoc workouts use this flush path. Assigned-program set data goes
-      // through workout_logs / exercise_logs (fired as a keepalive request on
-      // every edit in handleUpdateExercise), which already survives app-kill —
-      // so there's no separate "pending save" to flush for them.
-      if (!workout.is_adhoc) {
-        pendingSaveRef.current = null;
-        return;
-      }
-
       try {
+        // Use fetch with keepalive to ensure request completes even if page is unloading
+        const token = document.cookie.match(/sb-.*-auth-token=([^;]+)/)?.[1];
+        const headers = { 'Content-Type': 'application/json' };
+
+        // Try to get auth token from supabase session in localStorage
         let authToken = null;
         try {
           const keys = Object.keys(localStorage);
@@ -865,25 +844,37 @@ function Workouts() {
           }
         } catch (e) { /* ignore */ }
 
-        const headers = { 'Content-Type': 'application/json' };
         if (authToken) {
           headers['Authorization'] = `Bearer ${authToken}`;
         }
 
-        const isRealId = workout.id && !String(workout.id).startsWith('adhoc-') && !String(workout.id).startsWith('custom-');
-        const dateStr = workout.workout_date || new Date().toISOString().split('T')[0];
-        fetch('/.netlify/functions/adhoc-workouts', {
-          method: 'PUT',
-          headers,
-          body: JSON.stringify({
-            ...(isRealId ? { workoutId: workout.id } : {}),
-            clientId: workout.client_id,
-            workoutDate: dateStr,
-            workoutData: updatedWorkoutData,
-            name: workout.name
-          }),
-          keepalive: true
-        }).catch(() => {});
+        if (workout.is_adhoc) {
+          const isRealId = workout.id && !String(workout.id).startsWith('adhoc-') && !String(workout.id).startsWith('custom-');
+          const dateStr = workout.workout_date || new Date().toISOString().split('T')[0];
+          fetch('/.netlify/functions/adhoc-workouts', {
+            method: 'PUT',
+            headers,
+            body: JSON.stringify({
+              ...(isRealId ? { workoutId: workout.id } : {}),
+              clientId: workout.client_id,
+              workoutDate: dateStr,
+              workoutData: updatedWorkoutData,
+              name: workout.name
+            }),
+            keepalive: true
+          }).catch(() => {});
+        } else {
+          fetch('/.netlify/functions/client-workout-log', {
+            method: 'PUT',
+            headers,
+            body: JSON.stringify({
+              assignmentId: workout.id,
+              dayIndex: workout.day_index,
+              workout_data: updatedWorkoutData
+            }),
+            keepalive: true
+          }).catch(() => {});
+        }
         pendingSaveRef.current = null;
       } catch (e) {
         // Last resort: localStorage already has the data from toggleExerciseComplete
@@ -945,10 +936,6 @@ function Workouts() {
     // Mark refresh as in progress to prevent useEffect from setting loading = true
     isRefreshingRef.current = true;
 
-    // Claim the latest fetch token. Any older fetch/refresh still running
-    // will see its token is no longer current and abort before mutating state.
-    const myToken = ++fetchTokenRef.current;
-
     try {
       const dateStr = formatDate(selectedDate);
 
@@ -957,20 +944,11 @@ function Workouts() {
       // it was adding 2-5s of delay on every pull-to-refresh by forcing a
       // full Supabase auth roundtrip before data fetching could start.
 
-      // Track which fetches errored vs returned empty — on error we preserve
-      // the previous in-memory state rather than clobbering the user's just-
-      // saved sets with "no data". Only a successful empty response should
-      // clear workoutLog.
       const [assignmentRes, adhocRes, logRes] = await Promise.all([
         apiGet(`/.netlify/functions/workout-assignments?clientId=${clientData.id}&date=${dateStr}`).catch(() => null),
         apiGet(`/.netlify/functions/adhoc-workouts?clientId=${clientData.id}&date=${dateStr}`).catch(() => null),
         apiGet(`/.netlify/functions/workout-logs?clientId=${clientData.id}&date=${dateStr}`).catch(() => null)
       ]);
-      const logFetchFailed = logRes === null;
-
-      // Another refresh/fetch raced ahead of us (e.g. user changed date
-      // mid-flight). Drop this stale response instead of overwriting state.
-      if (fetchTokenRef.current !== myToken) return;
 
       const allWorkouts = [];
 
@@ -981,9 +959,6 @@ function Workouts() {
             if (assignment.workout_data) {
               assignment.workout_data = await refreshSignedUrls(assignment.workout_data, assignment.coach_id);
             }
-            // Stamp the viewed date onto the workout so completion-storage
-            // keys are scoped per-date, not per-shared-template-day.
-            assignment.workout_date = assignment.workout_date || dateStr;
             return assignment;
           })
         );
@@ -1012,9 +987,6 @@ function Workouts() {
         if (historical) allWorkouts.push(historical);
       }
 
-      // Signed URL refresh above awaits; re-check token before committing.
-      if (fetchTokenRef.current !== myToken) return;
-
       setTodayWorkouts(allWorkouts);
 
       if (allWorkouts.length > 0) {
@@ -1035,7 +1007,7 @@ function Workouts() {
               sleep: log.sleep_quality || 2
             });
           }
-          const fromData = getCompletedFromWorkoutData(active.workout_data, active.day_index, active.id, active.workout_date);
+          const fromData = getCompletedFromWorkoutData(active.workout_data, active.day_index, active.id);
           if (fromData.size > 0) {
             setCompletedExercises(fromData);
           } else {
@@ -1051,17 +1023,12 @@ function Workouts() {
             setCompletedExercises(completed);
           }
         } else if (!active.is_adhoc) {
-          // Guard against a failed log fetch wiping the just-saved log from
-          // memory. If the request errored (logFetchFailed), keep whatever
-          // workoutLog we already have so the merged sets stay on screen.
-          if (!logFetchFailed) {
-            setWorkoutLog(null);
-          }
-          const fromData = getCompletedFromWorkoutData(active.workout_data, active.day_index, active.id, active.workout_date);
+          setWorkoutLog(null);
+          const fromData = getCompletedFromWorkoutData(active.workout_data, active.day_index, active.id);
           setCompletedExercises(fromData);
         } else {
           setWorkoutLog(null);
-          const fromData = getCompletedFromWorkoutData(active.workout_data, 0, active.id, active.workout_date);
+          const fromData = getCompletedFromWorkoutData(active.workout_data, 0, active.id);
           setCompletedExercises(fromData);
         }
       } else {
@@ -1116,10 +1083,6 @@ function Workouts() {
         return;
       }
 
-      // Claim the shared fetch token so any in-flight refreshWorkoutData
-      // (pull-to-refresh, app resume) knows its response is now stale.
-      const myToken = ++fetchTokenRef.current;
-
       // Bypass service-worker cache for this fetch window so cold-start after
       // a save actually pulls fresh exercise_logs (including effort) from the
       // network. Without this the SW's stale-while-revalidate returns the
@@ -1169,15 +1132,7 @@ function Workouts() {
             return null;
           })
         ]);
-        // Same defensive treatment as refreshWorkoutData: a catch-returned
-        // null means the fetch errored, not that there are no logs. We must
-        // NOT overwrite a cached workoutLog in that case, or a transient
-        // network blip on mount wipes the user's just-saved sets from screen.
-        const logFetchFailedMount = logRes === null;
         if (!mounted) return;
-        // If another fetch/refresh started after us, drop this response to
-        // avoid flipping the UI back to old data after the user moved on.
-        if (fetchTokenRef.current !== myToken) return;
 
         const allWorkouts = [];
 
@@ -1185,11 +1140,7 @@ function Workouts() {
         // This eliminates the 3-10s delay where the UI showed nothing while
         // signed URLs were being fetched for custom exercise videos.
         if (assignmentRes?.assignments?.length > 0) {
-          assignmentRes.assignments.forEach(a => {
-            // Stamp the viewed date so completion-storage keys are scoped per-date.
-            a.workout_date = a.workout_date || dateStr;
-            allWorkouts.push(a);
-          });
+          assignmentRes.assignments.forEach(a => allWorkouts.push(a));
         }
 
         if (adhocRes?.workouts?.length > 0) {
@@ -1237,7 +1188,7 @@ function Workouts() {
                 sleep: log.sleep_quality || 2
               });
             }
-            const fromData = getCompletedFromWorkoutData(first.workout_data, first.day_index, first.id, first.workout_date);
+            const fromData = getCompletedFromWorkoutData(first.workout_data, first.day_index, first.id);
             if (fromData.size > 0) {
               setCompletedExercises(fromData);
             } else {
@@ -1252,21 +1203,14 @@ function Workouts() {
               setCompletedExercises(completed);
             }
           } else if (!first.is_adhoc) {
-            // If the log fetch errored, preserve whatever cached workoutLog we
-            // already have rather than clobbering it to null (otherwise a flaky
-            // mount-time fetch silently erases the just-saved sets).
-            if (!logFetchFailedMount) {
-              setWorkoutLog(null);
-              setCache(cacheKey, { todayWorkout: first, todayWorkouts: allWorkouts, workoutLog: null });
-            } else {
-              setCache(cacheKey, { todayWorkout: first, todayWorkouts: allWorkouts });
-            }
-            const fromData = getCompletedFromWorkoutData(first.workout_data, first.day_index, first.id, first.workout_date);
+            setWorkoutLog(null);
+            setCache(cacheKey, { todayWorkout: first, todayWorkouts: allWorkouts, workoutLog: null });
+            const fromData = getCompletedFromWorkoutData(first.workout_data, first.day_index, first.id);
             setCompletedExercises(fromData);
           } else {
             setWorkoutLog(null);
             setCache(cacheKey, { todayWorkout: first, todayWorkouts: allWorkouts, workoutLog: null });
-            const fromData = getCompletedFromWorkoutData(first.workout_data, 0, first.id, first.workout_date);
+            const fromData = getCompletedFromWorkoutData(first.workout_data, 0, first.id);
             setCompletedExercises(fromData);
           }
         } else {
@@ -1290,10 +1234,6 @@ function Workouts() {
             })
           ).then((refreshedAssignments) => {
             if (!mounted) return;
-            // A newer fetch (date switch, resume, pull-to-refresh) may have
-            // already replaced state with a different set of workouts;
-            // skip the signed-URL merge in that case.
-            if (fetchTokenRef.current !== myToken) return;
             setTodayWorkouts(prev => prev.map(w => {
               const refreshed = refreshedAssignments.find(r => r.id === w.id);
               return refreshed || w;
@@ -1624,8 +1564,7 @@ function Workouts() {
       // Save to localStorage immediately so it survives app close
       try {
         const workout = todayWorkoutRef.current;
-        const dateStr = workout?.workout_date || formatDate(selectedDateRef.current);
-        const key = completionStorageKey(workout?.id, workout?.day_index, dateStr);
+        const key = completionStorageKey(workout?.id, workout?.day_index);
         if (key) {
           localStorage.setItem(key, JSON.stringify([...newCompleted]));
         }
@@ -1649,8 +1588,7 @@ function Workouts() {
     // Clear localStorage cache
     try {
       const workout = todayWorkoutRef.current;
-      const dateStr = workout?.workout_date || formatDate(selectedDateRef.current);
-      const key = completionStorageKey(workout?.id, workout?.day_index, dateStr);
+      const key = completionStorageKey(workout?.id, workout?.day_index);
       if (key) localStorage.removeItem(key);
     } catch (e) { /* ignore */ }
 
@@ -2130,7 +2068,7 @@ function Workouts() {
       setWorkoutLog(null);
       setReadinessData(null);
       setShowHeroMenu(false);
-      const fromData = getCompletedFromWorkoutData(workout.workout_data, workout.day_index || 0, workout.id, workout.workout_date);
+      const fromData = getCompletedFromWorkoutData(workout.workout_data, workout.day_index || 0, workout.id);
       setCompletedExercises(fromData);
     }
     setExpandedWorkout(true);
@@ -2277,8 +2215,7 @@ function Workouts() {
           next.add(updatedExercise.id);
           // Persist to localStorage
           try {
-            const dateStr = workout?.workout_date || formatDate(selectedDateRef.current);
-            const key = completionStorageKey(workout?.id, workout?.day_index, dateStr);
+            const key = completionStorageKey(workout?.id, workout?.day_index);
             if (key) localStorage.setItem(key, JSON.stringify([...next]));
           } catch (e) { /* ignore */ }
           return next;
@@ -2364,31 +2301,35 @@ function Workouts() {
       }));
     } catch { /* quota / private mode — fall through to network path */ }
 
-    // Adhoc workouts are one-off sessions stored in their own row, so writing
-    // set data back to workout_data is safe (no week-over-week overwrite).
-    // For assigned programs, set data goes exclusively through workout_logs /
-    // exercise_logs below — writing to the plan's workout_data would make
-    // every week overwrite the previous week's sets in the same template slot.
-    if (workout.is_adhoc) {
+    // Fire an immediate keepalive copy of the save. apiPut (below) uses an
+    // AbortController that cancels mid-flight when the app is killed — and
+    // iOS WebView buffers localStorage writes to disk asynchronously, so
+    // killing the app within ~1s of a tap can lose BOTH paths. Keepalive
+    // fetch is contractually allowed to outlive the page/app, which closes
+    // that race. Safe to run alongside apiPut — the endpoint is idempotent
+    // (PUT overwrites the same workout_data), so a second identical write
+    // is a no-op on the server side.
+    try {
+      let authToken = null;
       try {
-        let authToken = null;
-        try {
-          const keys = Object.keys(localStorage);
-          const sbKey = keys.find(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
-          if (sbKey) {
-            const session = JSON.parse(localStorage.getItem(sbKey));
-            authToken = session?.access_token || session?.currentSession?.access_token;
-          }
-        } catch { /* ignore */ }
-        if (authToken) {
+        const keys = Object.keys(localStorage);
+        const sbKey = keys.find(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+        if (sbKey) {
+          const session = JSON.parse(localStorage.getItem(sbKey));
+          authToken = session?.access_token || session?.currentSession?.access_token;
+        }
+      } catch { /* ignore */ }
+      if (authToken) {
+        const headers = {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
+        };
+        if (workout.is_adhoc) {
           const isRealId = workout.id && !String(workout.id).startsWith('adhoc-') && !String(workout.id).startsWith('custom-');
           const dateStr = workout.workout_date || new Date().toISOString().split('T')[0];
           fetch('/.netlify/functions/adhoc-workouts', {
             method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${authToken}`
-            },
+            headers,
             body: JSON.stringify({
               ...(isRealId ? { workoutId: workout.id } : {}),
               clientId: workout.client_id,
@@ -2398,9 +2339,20 @@ function Workouts() {
             }),
             keepalive: true
           }).catch(() => {});
+        } else {
+          fetch('/.netlify/functions/client-workout-log', {
+            method: 'PUT',
+            headers,
+            body: JSON.stringify({
+              assignmentId: workout.id,
+              dayIndex: workout.day_index,
+              workout_data: updatedWorkoutData
+            }),
+            keepalive: true
+          }).catch(() => {});
         }
-      } catch { /* best-effort — apiPut below is the durable fallback */ }
-    }
+      }
+    } catch { /* best-effort — apiPut below is the durable fallback */ }
 
     // Also update the localStorage workouts cache synchronously so the next
     // mount shows the user's edit instantly (before any fetch completes).
@@ -2418,13 +2370,21 @@ function Workouts() {
       });
     } catch { /* ignore */ }
 
-    // Single write path: every edit — regardless of source (ExerciseCard,
-    // ExerciseDetailModal, GuidedWorkoutModal) — flows through here and
-    // persists to exercise_logs via the workout-logs endpoint. Saves never
-    // depend on effort/intensity or completion state. The optimistic
-    // workoutLog patch (patchWorkoutLogState below) keeps the exercises
-    // useMemo merge from reverting to coach-prescribed values between save
-    // and server confirmation.
+    // Best-effort backup write to workout_logs/exercise_logs.
+    // Why this exists: ExerciseDetailModal auto-saves into exercise_logs, which
+    // makes its edits survive app-kill/restart even when assignment PUT is
+    // interrupted. ExerciseCard edits only hit assignment PUT. Writing a backup
+    // exercise_log here unifies persistence for both entry points.
+    //
+    // Reliability wins on top of the previous version:
+    //   1. Cache the workout_log_id in localStorage keyed by (clientId, date).
+    //      Subsequent same-day saves skip the lookup entirely and go straight to PUT.
+    //   2. Fire a single keepalive POST with exercises when we don't know
+    //      the log id yet — server upserts in one shot, so there's no more
+    //      GET/POST/PUT chain that could get cancelled mid-app-kill.
+    //   3. Fire a keepalive PUT when we DO know the log id — fastest path.
+    // Also patches workoutLog state optimistically so the exercises useMemo
+    // merge reflects the edit without waiting for a round-trip.
     (async () => {
       try {
         const currentClientId = clientDataRef.current?.id || workout.client_id;
@@ -2456,6 +2416,33 @@ function Workouts() {
           order: 1,
           sets: setsPayload
         };
+
+        // Keepalive PUT — survives full app-kill. The OS lets this request
+        // finish in the background even after the WebView is torn down.
+        const fireKeepalivePut = (id) => {
+          try {
+            let authToken = null;
+            try {
+              const keys = Object.keys(localStorage);
+              const sbKey = keys.find(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+              if (sbKey) {
+                const session = JSON.parse(localStorage.getItem(sbKey));
+                authToken = session?.access_token || session?.currentSession?.access_token;
+              }
+            } catch { /* ignore */ }
+            if (!authToken) return;
+            fetch('/.netlify/functions/workout-logs', {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+              },
+              body: JSON.stringify({ workoutId: id, exercises: [exercisePayload] }),
+              keepalive: true
+            }).catch(() => {});
+          } catch { /* ignore */ }
+        };
+
         // Patch workoutLog state so the exercises useMemo merge reflects the
         // new sets_data immediately, without waiting for a refetch.
         const patchWorkoutLogState = (id) => {
@@ -2475,24 +2462,65 @@ function Workouts() {
           });
         };
 
+        // Keepalive POST fallback for when we don't have a logId yet —
+        // server upserts log + exercises in a single shot (see workout-logs.js).
+        // Bulletproof against app-kill even on first-of-day saves.
+        const fireKeepalivePost = () => {
+          try {
+            let authToken = null;
+            try {
+              const keys = Object.keys(localStorage);
+              const sbKey = keys.find(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+              if (sbKey) {
+                const session = JSON.parse(localStorage.getItem(sbKey));
+                authToken = session?.access_token || session?.currentSession?.access_token;
+              }
+            } catch { /* ignore */ }
+            if (!authToken) return;
+            fetch('/.netlify/functions/workout-logs', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+              },
+              body: JSON.stringify({
+                clientId: currentClientId,
+                assignmentId: workout.is_adhoc ? undefined : workout.id,
+                workoutDate: dateStr,
+                workoutName: workout.name || 'Workout',
+                status: 'in_progress',
+                exercises: [exercisePayload]
+              }),
+              keepalive: true
+            }).catch(() => {});
+          } catch { /* ignore */ }
+        };
+
         if (logId) {
-          // Fast path — we know the log id.
+          // Fast path — we know the log id. Fire the keepalive PUT immediately
+          // (bulletproof) and also the normal durable apiPut (for error surfacing).
           try { localStorage.setItem(LOG_ID_KEY, logId); } catch { /* ignore */ }
           patchWorkoutLogState(logId);
+          fireKeepalivePut(logId);
           try {
             await apiPut('/.netlify/functions/workout-logs', {
               workoutId: logId,
               exercises: [exercisePayload]
             });
-            // Server confirmed — drop the draft.
-            try { localStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
-          } catch (err) {
-            console.error('PUT /workout-logs failed', { logId, error: err?.message, status: err?.status });
-          }
+          } catch { /* keepalive above is the safety net */ }
           return;
         }
 
-        // First save for the day: create-or-find log and upsert exercise data.
+        // Fast path for first-of-day: one keepalive POST with exercises.
+        // Server creates-or-finds the log AND upserts exercise_logs in the
+        // same request. Fires BEFORE we await anything so app-kill can't
+        // cancel the whole chain mid-flight.
+        patchWorkoutLogState('pending');
+        fireKeepalivePost();
+
+        // Now also do the durable/awaited path so we can cache the logId
+        // for next save. Errors here don't matter — the keepalive POST
+        // above is the safety net.
         try {
           const created = await apiPost('/.netlify/functions/workout-logs', {
             clientId: currentClientId,
@@ -2507,25 +2535,21 @@ function Workouts() {
             try { localStorage.setItem(LOG_ID_KEY, logId); } catch { /* ignore */ }
             setWorkoutLog(created.workout);
             patchWorkoutLogState(logId);
-            try { localStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
           }
-        } catch (err) {
-          console.error('POST /workout-logs failed', { error: err?.message, status: err?.status });
-        }
+        } catch { /* keepalive POST above is the safety net */ }
       } catch (e) {
         // Best-effort fallback only; assignment save path above remains primary.
       }
     })();
 
-    // For adhoc workouts, persist set changes back to the adhoc row (adhoc is a
-    // one-off session so this is not a template). For assigned programs, the
-    // workout_logs / exercise_logs save above is the source of truth — we never
-    // write set data back to the plan's workout_data.
-    if (workout.is_adhoc) {
-      pendingSaveRef.current = { workout, updatedWorkoutData };
-      const saveWithRetry = async (attempts = 3) => {
-        for (let i = 0; i < attempts; i++) {
-          try {
+    // Save to backend with retry logic (up to 3 attempts with exponential backoff)
+    // Stash the in-flight save so the visibilitychange/pagehide handler can flush
+    // it via fetch keepalive if the user kills the app before the API request lands.
+    pendingSaveRef.current = { workout, updatedWorkoutData };
+    const saveWithRetry = async (attempts = 3) => {
+      for (let i = 0; i < attempts; i++) {
+        try {
+          if (workout.is_adhoc) {
             const isRealId = workout.id && !String(workout.id).startsWith('adhoc-') && !String(workout.id).startsWith('custom-');
             const dateStr = workout.workout_date || new Date().toISOString().split('T')[0];
             await apiPut('/.netlify/functions/adhoc-workouts', {
@@ -2535,27 +2559,36 @@ function Workouts() {
               workoutData: updatedWorkoutData,
               name: workout.name
             });
-            if (pendingSaveRef.current?.updatedWorkoutData === updatedWorkoutData) {
-              pendingSaveRef.current = null;
-            }
-            try { localStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
-            return;
-          } catch (err) {
-            console.error(`Error saving exercise update (attempt ${i + 1}/${attempts}):`, err);
-            if (i < attempts - 1) {
-              await new Promise(r => setTimeout(r, 1000 * (i + 1)));
-            } else if (typeof showErrorRef.current === 'function') {
+          } else {
+            await apiPut('/.netlify/functions/client-workout-log', {
+              assignmentId: workout.id,
+              dayIndex: workout.day_index,
+              workout_data: updatedWorkoutData
+            });
+          }
+          // Clear pending — only the latest in-flight save needs the keepalive backup.
+          // Note: a newer call to handleUpdateExercise will overwrite pendingSaveRef
+          // before clearing, so we don't drop a more recent pending save.
+          if (pendingSaveRef.current?.updatedWorkoutData === updatedWorkoutData) {
+            pendingSaveRef.current = null;
+          }
+          // Drop the draft once the server has persisted it.
+          try { localStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
+          return; // Success
+        } catch (err) {
+          console.error(`Error saving exercise update (attempt ${i + 1}/${attempts}):`, err);
+          if (i < attempts - 1) {
+            await new Promise(r => setTimeout(r, 1000 * (i + 1))); // 1s, 2s backoff
+          } else {
+            // All retries exhausted — notify the user
+            if (typeof showErrorRef.current === 'function') {
               showErrorRef.current('Failed to save workout changes. Please try again.');
             }
           }
         }
-      };
-      saveWithRetry();
-    }
-    // For non-adhoc, the draft is cleared inside the workout-logs save above
-    // (on successful apiPost/apiPut). Until that lands the draft is the only
-    // on-disk record of the user's edit, so we must keep it around to survive
-    // app-kill or an interrupted save.
+      }
+    };
+    saveWithRetry();
   }, []); // Using ref instead of dependencies
 
   // Handle deleting an exercise from workout - use ref for stable callback
@@ -3002,8 +3035,7 @@ function Workouts() {
       // Clear localStorage completion cache since workout is done
       try {
         const workout = todayWorkoutRef.current;
-        const dateStr = workout?.workout_date || formatDate(selectedDateRef.current);
-        const key = completionStorageKey(workout?.id, workout?.day_index, dateStr);
+        const key = completionStorageKey(workout?.id, workout?.day_index);
         if (key) localStorage.removeItem(key);
       } catch (e) { /* ignore */ }
       // Show summary modal
@@ -3181,7 +3213,7 @@ function Workouts() {
     }
 
     if (deleteSucceeded) {
-      // Optimistic removal for instant feedback
+      // Remove only this specific card by unique instance_id
       const remaining = todayWorkouts.filter(w =>
         w.instance_id !== todayWorkout.instance_id
       );
@@ -3189,18 +3221,13 @@ function Workouts() {
       setTodayWorkout(remaining.length > 0 ? remaining[0] : null);
       setWorkoutLog(null);
       setCompletedExercises(remaining.length > 0
-        ? getCompletedFromWorkoutData(remaining[0].workout_data, remaining[0].day_index || 0, remaining[0].id, remaining[0].workout_date)
+        ? getCompletedFromWorkoutData(remaining[0].workout_data, remaining[0].day_index || 0, remaining[0].id)
         : new Set()
       );
       setShowHeroMenu(false);
       refreshWeekSchedule();
-      // Reconcile with server: if concurrent edits caused a retry/conflict
-      // on the backend, the authoritative state may differ from our
-      // optimistic guess. Refetch so deleted items can't silently reappear
-      // after a date switch.
-      refreshWorkoutData();
     }
-  }, [todayWorkout, todayWorkouts, clientData?.id, selectedDate, showError, refreshWeekSchedule, refreshWorkoutData]);
+  }, [todayWorkout, todayWorkouts, clientData?.id, selectedDate, showError, refreshWeekSchedule]);
 
   // Handle deleting a specific workout from card menu
   const handleDeleteCardWorkout = useCallback(async (workout) => {
@@ -3246,16 +3273,14 @@ function Workouts() {
         setTodayWorkout(remaining.length > 0 ? remaining[0] : null);
         setWorkoutLog(null);
         setCompletedExercises(remaining.length > 0
-          ? getCompletedFromWorkoutData(remaining[0].workout_data, remaining[0].day_index || 0, remaining[0].id, remaining[0].workout_date)
+          ? getCompletedFromWorkoutData(remaining[0].workout_data, remaining[0].day_index || 0, remaining[0].id)
           : new Set()
         );
       }
       setCardMenuWorkoutId(null);
       refreshWeekSchedule();
-      // Reconcile with server state (see handleDeleteWorkout for rationale).
-      refreshWorkoutData();
     }
-  }, [todayWorkout, todayWorkouts, selectedDate, showError, refreshWeekSchedule, refreshWorkoutData]);
+  }, [todayWorkout, todayWorkouts, selectedDate, showError, refreshWeekSchedule]);
 
   // Handle deleting the entire workout program/assignment (all days)
   const handleDeleteEntireProgram = useCallback(async (workout) => {
@@ -3347,30 +3372,20 @@ function Workouts() {
         };
       });
 
-      // Merge exercise_logs data (client notes, voice notes, logged sets) from workoutLog.
-      // Match by exercise_id first; if that fails, fall back to name match so legacy
-      // logs without exercise_id (or logs with a mismatched id — e.g., after an
-      // exercise swap or a seed-data fix) still hydrate the user's saved sets
-      // instead of silently reverting to the coach's template defaults.
+      // Merge exercise_logs data (client notes, voice notes, logged sets) from workoutLog
       const loggedExercises = workoutLog?.exercises || [];
-      const normalizeName = (s) => (typeof s === 'string' ? s.trim().toLowerCase() : '');
       const merged = normalized.map(ex => {
-        let logged = null;
-        if (ex.id != null) {
-          logged = loggedExercises.find(le => le.exercise_id != null && le.exercise_id === ex.id) || null;
-        }
-        if (!logged && ex.name) {
-          const target = normalizeName(ex.name);
-          if (target) {
-            logged = loggedExercises.find(le => normalizeName(le.exercise_name) === target) || null;
-          }
-        }
+        const logged = loggedExercises.find(le => le.exercise_id === ex.id);
         if (logged) {
           const updates = {
             ...ex,
             clientNotes: logged.client_notes || null,
             clientVoiceNotePath: logged.client_voice_note_path || null
           };
+          // Merge logged sets data so client-entered values (including accepted
+          // coaching recommendations) persist on reload. The exercise_logs auto-save
+          // writes sets_data; applying it here means the values survive even if the
+          // workout assignment save was lost.
           if (Array.isArray(logged.sets_data) && logged.sets_data.length > 0) {
             updates.setsData = logged.sets_data;
             updates.sets = logged.sets_data;
@@ -4260,8 +4275,7 @@ function Workouts() {
                         setWorkoutStartTime(null);
                         try {
                           const w = todayWorkoutRef.current;
-                          const dateStr = w?.workout_date || formatDate(selectedDateRef.current);
-                          const k = completionStorageKey(w?.id, w?.day_index, dateStr);
+                          const k = completionStorageKey(w?.id, w?.day_index);
                           if (k) localStorage.removeItem(k);
                         } catch (ex) { /* ignore */ }
                       }}
