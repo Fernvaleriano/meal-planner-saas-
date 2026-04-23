@@ -2286,6 +2286,45 @@ function Workouts() {
       };
     });
 
+    // Keep workoutLog.exercises in sync with the user's just-entered values.
+    // Without this, the `exercises` useMemo merge (which prefers
+    // workoutLog.exercises[].sets_data over the assignment's setsData) would
+    // re-render with the STALE logged sets_data and visually revert the user's
+    // edit to the previously-saved values. The async backup save below also
+    // patches workoutLog, but it runs after awaits — the synchronous update
+    // here closes the race so the UI never flashes old values.
+    if (Array.isArray(updatedExercise.sets) && updatedExercise.sets.length > 0) {
+      const syncSetsPayload = updatedExercise.sets.map((s, idx) => ({
+        setNumber: idx + 1,
+        reps: s?.reps || 0,
+        weight: s?.weight || 0,
+        weightUnit: s?.weightUnit || weightUnitRef.current || 'lbs',
+        restSeconds: s?.restSeconds || null,
+        effort: s?.effort || null,
+        rpe: s?.rpe || null,
+        ...(s?.duration != null && { duration: s.duration }),
+        ...(s?.distance != null && { distance: s.distance })
+      }));
+      setWorkoutLog(prev => {
+        // Only patch if a log already exists (prev has an id or a known shape).
+        // If prev is null there's no log yet — let the async backup save create
+        // one. Returning a bare { exercises: [...] } here would strip fields
+        // like id/status that later completion code reads.
+        if (!prev) return prev;
+        const prevExercises = Array.isArray(prev.exercises) ? prev.exercises : [];
+        const idx = prevExercises.findIndex(e => e?.exercise_id === updatedExercise.id);
+        const entry = {
+          exercise_id: updatedExercise.id,
+          exercise_name: updatedExercise.name || 'Unknown',
+          sets_data: syncSetsPayload
+        };
+        const nextExercises = idx >= 0
+          ? prevExercises.map((e, i) => i === idx ? { ...e, ...entry } : e)
+          : [...prevExercises, entry];
+        return { ...prev, exercises: nextExercises };
+      });
+    }
+
     // Write an optimistic draft to localStorage FIRST, synchronously. This is
     // the bulletproof layer against full app-kill: if the OS terminates the
     // process before visibilitychange fires (which Capacitor doesn't always
