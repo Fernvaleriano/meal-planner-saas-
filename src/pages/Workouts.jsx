@@ -521,19 +521,6 @@ function Workouts() {
   const [expandedWorkout, setExpandedWorkout] = useState(false); // true = detail view, false = cards view
   const [workoutLog, setWorkoutLog] = useState(cachedWorkouts?.workoutLog || null);
 
-  // DEBUG: trace every transition of workoutLog so we can see exactly when /
-  // why the just-saved sets get wiped by a re-render.
-  useEffect(() => {
-    console.log('[STATE-DEBUG] workoutLog changed', {
-      id: workoutLog?.id,
-      exerciseCount: workoutLog?.exercises?.length,
-      exercises: workoutLog?.exercises?.map(e => ({
-        id: e.exercise_id,
-        name: e.exercise_name,
-        firstSet: e.sets_data?.[0]
-      }))
-    });
-  }, [workoutLog]);
   // If we have cached data, skip the loading spinner — show cached data instantly
   const [loading, setLoading] = useState(!cachedWorkouts);
   const [error, setError] = useState(null);
@@ -1182,15 +1169,6 @@ function Workouts() {
             return null;
           })
         ]);
-        console.log('[FETCH-DEBUG] mount fetchWorkout returned', {
-          dateStr,
-          logsArray: logRes?.logs,
-          firstLogExercises: logRes?.logs?.[0]?.exercises?.map(e => ({
-            exercise_id: e.exercise_id,
-            exercise_name: e.exercise_name,
-            sets_data: e.sets_data
-          }))
-        });
         // Same defensive treatment as refreshWorkoutData: a catch-returned
         // null means the fetch errored, not that there are no logs. We must
         // NOT overwrite a cached workoutLog in that case, or a transient
@@ -2282,7 +2260,7 @@ function Workouts() {
   }, [clientData?.id, clientData?.coach_id, selectedDate, showError, showSuccess, refreshWorkoutData, refreshWeekSchedule]);
 
   // Handle updating an exercise (sets, reps, weight changes) - use ref for stable callback
-  const handleUpdateExercise = useCallback((updatedExercise) => {
+  const handleUpdateExercise = useCallback((updatedExercise, options = {}) => {
     const workout = todayWorkoutRef.current;
     if (!workout?.workout_data || !updatedExercise) return;
 
@@ -2440,6 +2418,14 @@ function Workouts() {
       });
     } catch { /* ignore */ }
 
+    // Modal auto-save already persists exercise_logs directly via apiPut.
+    // When it calls back into this handler with skipLogSync=true, only apply
+    // local state/cache updates and avoid a second server write that can race
+    // the modal write and create duplicate exercise_log rows.
+    if (options?.skipLogSync) {
+      return;
+    }
+
     // Best-effort backup write to workout_logs/exercise_logs.
     // Why this exists: ExerciseDetailModal auto-saves into exercise_logs, which
     // makes its edits survive app-kill/restart even when assignment PUT is
@@ -2486,15 +2472,6 @@ function Workouts() {
           order: 1,
           sets: setsPayload
         };
-        console.log('[SAVE-DEBUG] handleUpdateExercise → payload', {
-          exerciseId: updatedExercise.id,
-          exerciseName: updatedExercise.name,
-          setsBeingSaved: setsPayload,
-          dateStr,
-          existingLogId: logId,
-          assignmentId: workout.id
-        });
-
         // Keepalive PUT — survives full app-kill. The OS lets this request
         // finish in the background even after the WebView is torn down.
         const fireKeepalivePut = (id) => {
@@ -2581,17 +2558,16 @@ function Workouts() {
           patchWorkoutLogState(logId);
           fireKeepalivePut(logId);
           try {
-            const putResp = await apiPut('/.netlify/functions/workout-logs', {
+            await apiPut('/.netlify/functions/workout-logs', {
               workoutId: logId,
               exercises: [exercisePayload]
             });
-            console.log('[SAVE-DEBUG] PUT /workout-logs success', { logId, response: putResp });
             // Server confirmed — drop the draft. The keepalive fired above is
             // the safety net; if apiPut fails we leave the draft in place so a
             // reload can restore the user's edit.
             try { localStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
           } catch (err) {
-            console.error('[SAVE-DEBUG] PUT /workout-logs FAILED', { logId, error: err?.message, status: err?.status });
+            console.error('PUT /workout-logs failed', { logId, error: err?.message, status: err?.status });
           }
           return;
         }
@@ -2615,7 +2591,6 @@ function Workouts() {
             status: 'in_progress',
             exercises: [exercisePayload]
           });
-          console.log('[SAVE-DEBUG] POST /workout-logs (first-of-day) success', { created });
           if (created?.workout?.id) {
             logId = created.workout.id;
             try { localStorage.setItem(LOG_ID_KEY, logId); } catch { /* ignore */ }
@@ -2624,7 +2599,7 @@ function Workouts() {
             try { localStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
           }
         } catch (err) {
-          console.error('[SAVE-DEBUG] POST /workout-logs FAILED', { error: err?.message, status: err?.status });
+          console.error('POST /workout-logs failed', { error: err?.message, status: err?.status });
         }
       } catch (e) {
         // Best-effort fallback only; assignment save path above remains primary.
@@ -3468,30 +3443,17 @@ function Workouts() {
       // instead of silently reverting to the coach's template defaults.
       const loggedExercises = workoutLog?.exercises || [];
       const normalizeName = (s) => (typeof s === 'string' ? s.trim().toLowerCase() : '');
-      const mergeReport = [];
       const merged = normalized.map(ex => {
         let logged = null;
-        let matchedBy = 'none';
         if (ex.id != null) {
           logged = loggedExercises.find(le => le.exercise_id != null && le.exercise_id === ex.id) || null;
-          if (logged) matchedBy = 'id';
         }
         if (!logged && ex.name) {
           const target = normalizeName(ex.name);
           if (target) {
             logged = loggedExercises.find(le => normalizeName(le.exercise_name) === target) || null;
-            if (logged) matchedBy = 'name';
           }
         }
-        mergeReport.push({
-          name: ex.name,
-          planId: ex.id,
-          matchedBy,
-          loggedSetsData: logged?.sets_data,
-          finalSets: (logged && Array.isArray(logged.sets_data) && logged.sets_data.length > 0)
-            ? logged.sets_data
-            : (ex.setsData || ex.sets)
-        });
         if (logged) {
           const updates = {
             ...ex,
@@ -3505,11 +3467,6 @@ function Workouts() {
           return updates;
         }
         return ex;
-      });
-      console.log('[MERGE-DEBUG] exercises useMemo recomputed', {
-        workoutLogId: workoutLog?.id,
-        loggedExerciseIds: loggedExercises.map(e => ({ id: e.exercise_id, name: e.exercise_name })),
-        mergeReport
       });
 
       return merged;
