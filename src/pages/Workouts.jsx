@@ -582,6 +582,13 @@ function Workouts() {
   const pendingSaveRef = useRef(null); // Track pending completion saves for visibilitychange flush
   const globalExerciseRefsRef = useRef({}); // Coach's global exercise references keyed by lowercase exercise name
   const refreshWorkoutDataRef = useRef(null); // Stable ref for resume handler (defined later via useCallback)
+  // Monotonic token shared by the main fetch effect and refreshWorkoutData.
+  // Every fetch captures its token on entry and checks it before committing
+  // state. A stale response (slow network + user changed dates, or an
+  // overlapping pull-to-refresh / resume trigger) is silently dropped
+  // instead of overwriting the current view — this was the "sometimes shows
+  // 1, sometimes 4" symptom.
+  const fetchTokenRef = useRef(0);
   const showErrorRef = useRef(null); // Stable ref for showError in fire-and-forget saves
   const workoutLogRef = useRef(null); // Stable ref for workoutLog in fire-and-forget saves
   const clientDataRef = useRef(null); // Stable ref for clientData in fire-and-forget saves
@@ -936,6 +943,10 @@ function Workouts() {
     // Mark refresh as in progress to prevent useEffect from setting loading = true
     isRefreshingRef.current = true;
 
+    // Claim the latest fetch token. Any older fetch/refresh still running
+    // will see its token is no longer current and abort before mutating state.
+    const myToken = ++fetchTokenRef.current;
+
     try {
       const dateStr = formatDate(selectedDate);
 
@@ -949,6 +960,10 @@ function Workouts() {
         apiGet(`/.netlify/functions/adhoc-workouts?clientId=${clientData.id}&date=${dateStr}`).catch(() => null),
         apiGet(`/.netlify/functions/workout-logs?clientId=${clientData.id}&date=${dateStr}`).catch(() => null)
       ]);
+
+      // Another refresh/fetch raced ahead of us (e.g. user changed date
+      // mid-flight). Drop this stale response instead of overwriting state.
+      if (fetchTokenRef.current !== myToken) return;
 
       const allWorkouts = [];
 
@@ -986,6 +1001,9 @@ function Workouts() {
         const historical = buildWorkoutFromLog(logRes.logs[0]);
         if (historical) allWorkouts.push(historical);
       }
+
+      // Signed URL refresh above awaits; re-check token before committing.
+      if (fetchTokenRef.current !== myToken) return;
 
       setTodayWorkouts(allWorkouts);
 
@@ -1083,6 +1101,10 @@ function Workouts() {
         return;
       }
 
+      // Claim the shared fetch token so any in-flight refreshWorkoutData
+      // (pull-to-refresh, app resume) knows its response is now stale.
+      const myToken = ++fetchTokenRef.current;
+
       // Bypass service-worker cache for this fetch window so cold-start after
       // a save actually pulls fresh exercise_logs (including effort) from the
       // network. Without this the SW's stale-while-revalidate returns the
@@ -1133,6 +1155,9 @@ function Workouts() {
           })
         ]);
         if (!mounted) return;
+        // If another fetch/refresh started after us, drop this response to
+        // avoid flipping the UI back to old data after the user moved on.
+        if (fetchTokenRef.current !== myToken) return;
 
         const allWorkouts = [];
 
@@ -1234,6 +1259,10 @@ function Workouts() {
             })
           ).then((refreshedAssignments) => {
             if (!mounted) return;
+            // A newer fetch (date switch, resume, pull-to-refresh) may have
+            // already replaced state with a different set of workouts;
+            // skip the signed-URL merge in that case.
+            if (fetchTokenRef.current !== myToken) return;
             setTodayWorkouts(prev => prev.map(w => {
               const refreshed = refreshedAssignments.find(r => r.id === w.id);
               return refreshed || w;
@@ -3213,7 +3242,7 @@ function Workouts() {
     }
 
     if (deleteSucceeded) {
-      // Remove only this specific card by unique instance_id
+      // Optimistic removal for instant feedback
       const remaining = todayWorkouts.filter(w =>
         w.instance_id !== todayWorkout.instance_id
       );
@@ -3226,8 +3255,13 @@ function Workouts() {
       );
       setShowHeroMenu(false);
       refreshWeekSchedule();
+      // Reconcile with server: if concurrent edits caused a retry/conflict
+      // on the backend, the authoritative state may differ from our
+      // optimistic guess. Refetch so deleted items can't silently reappear
+      // after a date switch.
+      refreshWorkoutData();
     }
-  }, [todayWorkout, todayWorkouts, clientData?.id, selectedDate, showError, refreshWeekSchedule]);
+  }, [todayWorkout, todayWorkouts, clientData?.id, selectedDate, showError, refreshWeekSchedule, refreshWorkoutData]);
 
   // Handle deleting a specific workout from card menu
   const handleDeleteCardWorkout = useCallback(async (workout) => {
@@ -3279,8 +3313,10 @@ function Workouts() {
       }
       setCardMenuWorkoutId(null);
       refreshWeekSchedule();
+      // Reconcile with server state (see handleDeleteWorkout for rationale).
+      refreshWorkoutData();
     }
-  }, [todayWorkout, todayWorkouts, selectedDate, showError, refreshWeekSchedule]);
+  }, [todayWorkout, todayWorkouts, selectedDate, showError, refreshWeekSchedule, refreshWorkoutData]);
 
   // Handle deleting the entire workout program/assignment (all days)
   const handleDeleteEntireProgram = useCallback(async (workout) => {
