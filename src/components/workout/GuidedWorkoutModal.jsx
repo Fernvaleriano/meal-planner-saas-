@@ -2134,16 +2134,16 @@ function GuidedWorkoutModal({
     }, 200);
   };
 
-  // Parent-state + DB persist — short debounce so a tap on an effort pill or
-  // a single keystroke isn't lost if the user advances quickly. 150ms batches
-  // rapid keystrokes without starving saves on brief interactions.
+  // Parent-state + DB persist — 1s debounce. Every keystroke schedules a
+  // save; the flush-on-unmount effect catches any pending save if the user
+  // advances the workout quickly, so nothing is lost.
   const schedulePersistToParent = (exIdx) => {
     if (persistSaveTimerRef.current) clearTimeout(persistSaveTimerRef.current);
     persistSaveTimerRef.current = setTimeout(() => {
       if (!isMountedRef.current) return;
       const persist = persistExerciseDataRef.current;
       if (persist) persist(exIdx);
-    }, 150);
+    }, 1000);
   };
 
   // Flush any pending persist synchronously. Used by effort pill taps and
