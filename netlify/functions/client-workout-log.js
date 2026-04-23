@@ -274,7 +274,7 @@ exports.handler = async (event) => {
     // PUT - Update workout data for a specific assignment/day
     if (event.httpMethod === 'PUT') {
       const body = JSON.parse(event.body || '{}');
-      const { assignmentId, dayIndex, workout_data } = body;
+      const { assignmentId, dayIndex, workout_data, completion } = body;
 
       if (!assignmentId) {
         return {
@@ -282,6 +282,19 @@ exports.handler = async (event) => {
           headers,
           body: JSON.stringify({ error: 'assignmentId is required' })
         };
+      }
+
+      // Validate completion-only update shape up front so we don't retry
+      // a malformed request through the optimistic-concurrency loop below.
+      if (completion) {
+        const { dateStr, instanceId, completions } = completion;
+        if (!dateStr || !instanceId || !completions || typeof completions !== 'object') {
+          return {
+            statusCode: 400,
+            headers,
+            body: JSON.stringify({ error: 'completion requires dateStr, instanceId, and completions' })
+          };
+        }
       }
 
       // Read-modify-write under optimistic concurrency (same pattern as POST).
@@ -314,8 +327,49 @@ exports.handler = async (event) => {
         const originalUpdatedAt = assignment.updated_at;
         let updatedWorkoutData;
 
-        // Handle days array structure
-        if (currentWorkoutData.days && Array.isArray(currentWorkoutData.days) && dayIndex !== undefined) {
+        if (completion) {
+          // Per-date exercise completion update. Writes into
+          // workout_data.date_overrides[dateStr].completions[instanceId] without
+          // touching the shared program template, so toggling "done" on one
+          // date does not leak to other dates that resolve to the same day_index.
+          const { dateStr, instanceId, completions } = completion;
+          const dateOverrides = { ...(currentWorkoutData.date_overrides || {}) };
+          const existingOverride = dateOverrides[dateStr] || {};
+          const existingCompletions = existingOverride.completions || {};
+          const existingForInstance = existingCompletions[instanceId] || {};
+
+          const mergedForInstance = { ...existingForInstance };
+          for (const [k, v] of Object.entries(completions)) {
+            if (v) {
+              mergedForInstance[k] = true;
+            } else {
+              delete mergedForInstance[k];
+            }
+          }
+
+          const updatedCompletions = { ...existingCompletions };
+          if (Object.keys(mergedForInstance).length === 0) {
+            delete updatedCompletions[instanceId];
+          } else {
+            updatedCompletions[instanceId] = mergedForInstance;
+          }
+
+          const updatedOverride = { ...existingOverride };
+          if (Object.keys(updatedCompletions).length === 0) {
+            delete updatedOverride.completions;
+          } else {
+            updatedOverride.completions = updatedCompletions;
+          }
+
+          if (Object.keys(updatedOverride).length === 0) {
+            delete dateOverrides[dateStr];
+          } else {
+            dateOverrides[dateStr] = updatedOverride;
+          }
+
+          updatedWorkoutData = { ...currentWorkoutData, date_overrides: dateOverrides };
+        } else if (currentWorkoutData.days && Array.isArray(currentWorkoutData.days) && dayIndex !== undefined) {
+          // Handle days array structure
           const updatedDays = [...currentWorkoutData.days];
           const safeDayIndex = Math.abs(dayIndex) % updatedDays.length;
           const incomingExercises = workout_data?.exercises || workout_data?.days?.[safeDayIndex]?.exercises;
