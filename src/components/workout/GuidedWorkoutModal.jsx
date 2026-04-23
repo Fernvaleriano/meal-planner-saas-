@@ -2134,16 +2134,27 @@ function GuidedWorkoutModal({
     }, 200);
   };
 
-  // Parent-state + DB persist — slightly longer debounce since it hits an
-  // API. 500ms keeps the card / detail modal / history in sync without
-  // spamming requests while the user is still typing.
+  // Parent-state + DB persist — short debounce so a tap on an effort pill or
+  // a single keystroke isn't lost if the user advances quickly. 150ms batches
+  // rapid keystrokes without starving saves on brief interactions.
   const schedulePersistToParent = (exIdx) => {
     if (persistSaveTimerRef.current) clearTimeout(persistSaveTimerRef.current);
     persistSaveTimerRef.current = setTimeout(() => {
       if (!isMountedRef.current) return;
       const persist = persistExerciseDataRef.current;
       if (persist) persist(exIdx);
-    }, 500);
+    }, 150);
+  };
+
+  // Flush any pending persist synchronously. Used by effort pill taps and
+  // other one-shot actions that should never get dropped by a later unmount.
+  const flushPersistToParent = (exIdx) => {
+    if (persistSaveTimerRef.current) {
+      clearTimeout(persistSaveTimerRef.current);
+      persistSaveTimerRef.current = null;
+    }
+    const persist = persistExerciseDataRef.current;
+    if (persist) persist(exIdx);
   };
 
   // --- Update set log values ---
@@ -3095,7 +3106,10 @@ function GuidedWorkoutModal({
                     key={opt.value}
                     className={`guided-effort-pill ${restSetLog?.effort === opt.value ? 'selected' : ''}`}
                     style={restSetLog?.effort === opt.value ? { background: opt.color, borderColor: opt.color } : undefined}
-                    onClick={() => updateRestSetLog('effort', restSetLog?.effort === opt.value ? null : opt.value)}
+                    onClick={() => {
+                      updateRestSetLog('effort', restSetLog?.effort === opt.value ? null : opt.value);
+                      if (restLogTarget) flushPersistToParent(restLogTarget.exIndex);
+                    }}
                     type="button"
                   >
                     <span className="guided-effort-pill-label">{opt.label}</span>
@@ -3218,7 +3232,10 @@ function GuidedWorkoutModal({
                     key={opt.value}
                     className={`guided-effort-pill ${currentSetLog.effort === opt.value ? 'selected' : ''}`}
                     style={currentSetLog.effort === opt.value ? { background: opt.color, borderColor: opt.color } : undefined}
-                    onClick={() => updateSetLog('effort', currentSetLog.effort === opt.value ? null : opt.value)}
+                    onClick={() => {
+                      updateSetLog('effort', currentSetLog.effort === opt.value ? null : opt.value);
+                      flushPersistToParent(currentExIndex);
+                    }}
                     type="button"
                   >
                     <span className="guided-effort-pill-label">{opt.label}</span>

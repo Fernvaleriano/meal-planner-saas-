@@ -1330,45 +1330,27 @@ function ExerciseDetailModal({
 
   // Save sets handler - updates local state AND persists to backend
   const handleSaveSets = useCallback((newSets, editMode) => {
-    // Flag that user has edited sets, so auto-save useEffect will fire
     markSetsChanged();
-    // Update local state
     setSets(newSets);
-    // Keep the ref in sync synchronously so the direct performSave() below
-    // reads the just-saved sets instead of the previous render's snapshot.
     setsRef.current = newSets;
 
-    // Invalidate history cache so next view shows fresh data (including updated weights/PRs)
     setHistoryData(null);
     setHistoryStats(null);
 
-    // Persist to backend via parent callback - use ref to avoid stale closure
+    // Persist through the parent's single write path. No skipLogSync — the
+    // parent's handleUpdateExercise owns the server write so the save never
+    // depends on an effort/intensity pill being tapped.
     const currentExercise = exerciseRef.current;
     if (callbackRefs.current.onUpdateExercise && currentExercise) {
       const updatedExercise = {
         ...currentExercise,
         sets: newSets,
-        // Persist the exercise type so time-based mode is remembered
         exercise_type: editMode === 'time' ? 'timed' : (editMode === 'reps' ? 'strength' : (currentExercise.exercise_type || 'strength')),
-        // Also update trackingType so ExerciseCard renders the correct unit
         trackingType: editMode === 'time' ? 'time' : (editMode === 'distance' ? 'distance' : 'reps')
       };
-      callbackRefs.current.onUpdateExercise(updatedExercise, { skipLogSync: true });
+      callbackRefs.current.onUpdateExercise(updatedExercise);
     }
-
-    // Fire the save immediately instead of waiting for the debounced useEffect.
-    // The effort/intensity pill is optional — saves must not depend on it. The
-    // debounced path occasionally missed writes when clients tapped Save in the
-    // SetEditorModal without also tapping an effort pill, because setsChangedRef
-    // had been reset by a mount-time initialSets effect. A direct synchronous
-    // call guarantees every explicit save reaches the server.
-    if (saveTimerRef.current) {
-      clearTimeout(saveTimerRef.current);
-      saveTimerRef.current = null;
-    }
-    performSave();
-  // NOTE: exercise accessed via exerciseRef to prevent callback recreation
-  }, [performSave]);
+  }, []);
 
   // Delete exercise handler - uses requestAnimationFrame for mobile Safari
   const handleDeleteExercise = useCallback(() => {
@@ -2234,8 +2216,14 @@ function ExerciseDetailModal({
                   onClick={() => {
                     const newEffort = selectedEffort === opt.value ? null : opt.value;
                     setSelectedEffort(newEffort);
-                    setSets(prev => prev.map(set => ({ ...set, effort: newEffort })));
+                    const updatedSets = sets.map(set => ({ ...set, effort: newEffort }));
+                    setSets(updatedSets);
+                    setsRef.current = updatedSets;
                     setsChangedRef.current = true;
+                    const currentExercise = exerciseRef.current;
+                    if (callbackRefs.current.onUpdateExercise && currentExercise) {
+                      callbackRefs.current.onUpdateExercise({ ...currentExercise, sets: updatedSets });
+                    }
                   }}
                   type="button"
                 >
