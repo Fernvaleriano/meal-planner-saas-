@@ -10,6 +10,47 @@ const headers = {
   'Content-Type': 'application/json'
 };
 
+// Per-set session fields that must NEVER be stored in the program template
+// (client_workout_assignments.workout_data). The template is shared by every
+// date that hits the same day_index — writing these here leaks last session's
+// state (e.g. completed checkmarks, logged weights) onto the next date in the
+// cycle. Per-date values belong in workout_logs/exercise_logs instead.
+const SESSION_ONLY_SET_FIELDS = ['completed', 'weight', 'rpe', 'effort', 'isPr'];
+
+function scrubSet(set) {
+  if (!set || typeof set !== 'object') return set;
+  const clean = { ...set };
+  for (const f of SESSION_ONLY_SET_FIELDS) delete clean[f];
+  return clean;
+}
+
+function scrubExercises(exercises) {
+  if (!Array.isArray(exercises)) return exercises;
+  return exercises.map(ex => {
+    if (!ex || typeof ex !== 'object') return ex;
+    const { completed, ...clean } = ex;
+    if (Array.isArray(clean.sets)) clean.sets = clean.sets.map(scrubSet);
+    if (Array.isArray(clean.setsData)) clean.setsData = clean.setsData.map(scrubSet);
+    return clean;
+  });
+}
+
+function scrubWorkoutDataForTemplate(workoutData) {
+  if (!workoutData || typeof workoutData !== 'object') return workoutData;
+  const copy = { ...workoutData };
+  if (Array.isArray(copy.exercises)) {
+    copy.exercises = scrubExercises(copy.exercises);
+  }
+  if (Array.isArray(copy.days)) {
+    copy.days = copy.days.map(day => (
+      day && Array.isArray(day.exercises)
+        ? { ...day, exercises: scrubExercises(day.exercises) }
+        : day
+    ));
+  }
+  return copy;
+}
+
 // Generate a unique instance ID for each workout card
 function generateInstanceId() {
   return 'inst_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 9);
@@ -295,6 +336,12 @@ exports.handler = async (event) => {
         };
       }
 
+      // Last-line-of-defense: scrub session-only fields (completed / weight /
+      // rpe / effort) before persisting. The template is shared across every
+      // date that maps to this day_index, so any session data written here
+      // would leak onto future cycles.
+      updatedWorkoutData = scrubWorkoutDataForTemplate(updatedWorkoutData);
+
       // Save the updated workout_data
       const { data: updatedAssignment, error: updateError } = await supabase
         .from('client_workout_assignments')
@@ -402,6 +449,15 @@ exports.handler = async (event) => {
           dayIndex = workoutDayCount % days.length;
         }
 
+        // Scrub session fields from the template on read so legacy
+        // contaminated assignments (stale completed flags, old weights)
+        // never surface to the client. Real per-date values are merged back
+        // in client-side from workout_logs/exercise_logs.
+        const responseWorkoutData = days.length > 0 ? days[dayIndex] : workoutData;
+        const cleanWorkoutData = responseWorkoutData && Array.isArray(responseWorkoutData.exercises)
+          ? { ...responseWorkoutData, exercises: scrubExercises(responseWorkoutData.exercises) }
+          : scrubWorkoutDataForTemplate(responseWorkoutData);
+
         return {
           statusCode: 200,
           headers,
@@ -410,7 +466,7 @@ exports.handler = async (event) => {
               assignmentId: assignment.id,
               dayIndex,
               isWorkoutDay,
-              workout_data: days.length > 0 ? days[dayIndex] : workoutData
+              workout_data: cleanWorkoutData
             }
           })
         };
@@ -422,7 +478,7 @@ exports.handler = async (event) => {
         body: JSON.stringify({
           log: {
             assignmentId: assignment.id,
-            workout_data: assignment.workout_data
+            workout_data: scrubWorkoutDataForTemplate(assignment.workout_data)
           }
         })
       };
