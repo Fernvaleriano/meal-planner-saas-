@@ -12731,10 +12731,45 @@
             bodyEl.innerHTML = '<div class="ac-loading"><div class="ac-spinner"></div></div>';
 
             try {
-                // Fetch assigned workout for this date
+                // First, check if there's a workout log for this date
+                let workoutLogData = null;
+                try {
+                    const logRes = await fetch(`/.netlify/functions/workout-logs?clientId=${clientId}&date=${dateStr}`);
+                    const logData = await logRes.json();
+                    if (logData.workouts && logData.workouts.length > 0) {
+                        const log = logData.workouts[0];
+                        // Convert workout_log to assignment format with logged exercise data
+                        workoutLogData = {
+                            id: log.assignment_id,
+                            name: log.workout_name || 'Logged Workout',
+                            workout_data: {
+                                exercises: (log.exercises || []).map(ex => ({
+                                    id: ex.id,
+                                    name: ex.exercise_name,
+                                    setsData: ex.sets_data || [],
+                                    sets: ex.total_sets,
+                                    reps: ex.total_reps,
+                                    notes: ex.notes,
+                                    _loggedData: true
+                                }))
+                            },
+                            is_logged: true,
+                            day_index: 0
+                        };
+                    }
+                } catch (e) {
+                    // No workout log yet, will use template below
+                }
+
+                // Fetch assigned workout for this date (template)
                 const res = await fetch(`/.netlify/functions/workout-assignments?clientId=${clientId}&date=${dateStr}`);
                 const data = await res.json();
-                const allWorkouts = data.assignments || [];
+                let allWorkouts = data.assignments || [];
+
+                // If we have a logged workout, use that instead of the template
+                if (workoutLogData) {
+                    allWorkouts = [workoutLogData];
+                }
 
                 // Also check for adhoc workouts
                 try {
@@ -13216,11 +13251,48 @@
                         body: JSON.stringify({ workoutId: assignmentId, workoutData: { exercises } })
                     });
                 } else {
-                    await fetch('/.netlify/functions/client-workout-log', {
-                        method: 'PUT',
+                    // First, create or get the workout log for this date
+                    const workoutLogRes = await fetch('/.netlify/functions/workout-logs', {
+                        method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ assignmentId, dayIndex, workout_data: { exercises } })
+                        body: JSON.stringify({
+                            clientId,
+                            assignmentId,
+                            workoutDate: dateStr,
+                            workoutName: 'Logged Workout',
+                            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                            exercises: []
+                        })
                     });
+
+                    if (!workoutLogRes.ok) throw new Error('Failed to create workout log');
+                    const workoutLogData = await workoutLogRes.json();
+                    const workoutId = workoutLogData.workout?.id;
+
+                    if (workoutId) {
+                        // Now save the exercises to the workout log
+                        const mappedExercises = exercises.map((ex, idx) => ({
+                            id: ex.id,
+                            exerciseId: ex.id,
+                            exerciseName: ex.name,
+                            order: idx + 1,
+                            sets: (ex.setsData || []).map(s => ({
+                                reps: s.reps || 0,
+                                weight: s.weight || 0,
+                                weightUnit: s.weightUnit || 'lbs'
+                            })),
+                            notes: ex.notes
+                        }));
+
+                        await fetch('/.netlify/functions/workout-logs', {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                workoutId,
+                                exercises: mappedExercises
+                            })
+                        });
+                    }
                 }
                 // Cache is refreshed via acSelectDay below
                 acSelectDay(dateStr);
