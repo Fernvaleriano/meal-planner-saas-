@@ -391,14 +391,15 @@ function WorkoutReadyConfirmation({ readinessData, workoutName, exerciseCount, o
 }
 
 // Extract completed exercise IDs from workout_data's exercise objects + localStorage fallback
-// Build a localStorage key that is unique per workout + day so completion
-// state from one day doesn't bleed into another day of the same program.
-function completionStorageKey(workoutId, dayIndex) {
-  if (!workoutId) return null;
-  return `completedExercises_${workoutId}_day${dayIndex ?? 0}`;
+// Build a localStorage key that is unique per workout + day + date so completion
+// state from one date doesn't bleed into other dates that map to the same
+// program day (e.g. back-day scheduled every Thursday for 4 weeks).
+function completionStorageKey(workoutId, dayIndex, dateStr) {
+  if (!workoutId || !dateStr) return null;
+  return `completedExercises_${workoutId}_day${dayIndex ?? 0}_${dateStr}`;
 }
 
-function getCompletedFromWorkoutData(workoutData, dayIndex = 0, workoutId = null) {
+function getCompletedFromWorkoutData(workoutData, dayIndex = 0, workoutId = null, dateStr = null) {
   let exercises = [];
   if (Array.isArray(workoutData?.exercises) && workoutData.exercises.length > 0) {
     exercises = workoutData.exercises;
@@ -410,7 +411,7 @@ function getCompletedFromWorkoutData(workoutData, dayIndex = 0, workoutId = null
     exercises.filter(ex => ex?.id && ex.completed).map(ex => ex.id)
   );
   // Merge with localStorage fallback (covers cases where API save was in-flight during app close)
-  const key = completionStorageKey(workoutId, dayIndex);
+  const key = completionStorageKey(workoutId, dayIndex, dateStr);
   if (key) {
     try {
       const stored = localStorage.getItem(key);
@@ -420,11 +421,14 @@ function getCompletedFromWorkoutData(workoutData, dayIndex = 0, workoutId = null
           ids.forEach(id => fromData.add(id));
         }
       }
-      // Clean up legacy key (without day index) to prevent stale data from being
-      // picked up if old code is ever used or if we fall back
+      // Clean up legacy keys (pre-date-fix) so stale entries can't bleed in
+      // if old code is ever used. Both the very old per-workout key and the
+      // per-workout+day key are now date-unaware and must be discarded.
       const legacyKey = `completedExercises_${workoutId}`;
-      if (localStorage.getItem(legacyKey)) {
-        localStorage.removeItem(legacyKey);
+      const legacyDayKey = `completedExercises_${workoutId}_day${dayIndex ?? 0}`;
+      if (localStorage.getItem(legacyKey)) localStorage.removeItem(legacyKey);
+      if (legacyDayKey !== key && localStorage.getItem(legacyDayKey)) {
+        localStorage.removeItem(legacyDayKey);
       }
     } catch (e) { /* ignore */ }
   }
@@ -450,7 +454,12 @@ function getWorkoutExercises(workout) {
 
 // Helper to get completed count for a workout (from workout_data flags + localStorage)
 function getWorkoutCompletedCount(workout) {
-  const completed = getCompletedFromWorkoutData(workout?.workout_data, workout?.day_index || 0, workout?.id);
+  const completed = getCompletedFromWorkoutData(
+    workout?.workout_data,
+    workout?.day_index || 0,
+    workout?.id,
+    workout?.workout_date
+  );
   return completed.size;
 }
 
@@ -971,6 +980,9 @@ function Workouts() {
             if (assignment.workout_data) {
               assignment.workout_data = await refreshSignedUrls(assignment.workout_data, assignment.coach_id);
             }
+            // Stamp the viewed date onto the workout so completion-storage
+            // keys are scoped per-date, not per-shared-template-day.
+            assignment.workout_date = assignment.workout_date || dateStr;
             return assignment;
           })
         );
@@ -1022,7 +1034,7 @@ function Workouts() {
               sleep: log.sleep_quality || 2
             });
           }
-          const fromData = getCompletedFromWorkoutData(active.workout_data, active.day_index, active.id);
+          const fromData = getCompletedFromWorkoutData(active.workout_data, active.day_index, active.id, active.workout_date);
           if (fromData.size > 0) {
             setCompletedExercises(fromData);
           } else {
@@ -1044,11 +1056,11 @@ function Workouts() {
           if (!logFetchFailed) {
             setWorkoutLog(null);
           }
-          const fromData = getCompletedFromWorkoutData(active.workout_data, active.day_index, active.id);
+          const fromData = getCompletedFromWorkoutData(active.workout_data, active.day_index, active.id, active.workout_date);
           setCompletedExercises(fromData);
         } else {
           setWorkoutLog(null);
-          const fromData = getCompletedFromWorkoutData(active.workout_data, 0, active.id);
+          const fromData = getCompletedFromWorkoutData(active.workout_data, 0, active.id, active.workout_date);
           setCompletedExercises(fromData);
         }
       } else {
@@ -1167,7 +1179,11 @@ function Workouts() {
         // This eliminates the 3-10s delay where the UI showed nothing while
         // signed URLs were being fetched for custom exercise videos.
         if (assignmentRes?.assignments?.length > 0) {
-          assignmentRes.assignments.forEach(a => allWorkouts.push(a));
+          assignmentRes.assignments.forEach(a => {
+            // Stamp the viewed date so completion-storage keys are scoped per-date.
+            a.workout_date = a.workout_date || dateStr;
+            allWorkouts.push(a);
+          });
         }
 
         if (adhocRes?.workouts?.length > 0) {
@@ -1215,7 +1231,7 @@ function Workouts() {
                 sleep: log.sleep_quality || 2
               });
             }
-            const fromData = getCompletedFromWorkoutData(first.workout_data, first.day_index, first.id);
+            const fromData = getCompletedFromWorkoutData(first.workout_data, first.day_index, first.id, first.workout_date);
             if (fromData.size > 0) {
               setCompletedExercises(fromData);
             } else {
@@ -1232,12 +1248,12 @@ function Workouts() {
           } else if (!first.is_adhoc) {
             setWorkoutLog(null);
             setCache(cacheKey, { todayWorkout: first, todayWorkouts: allWorkouts, workoutLog: null });
-            const fromData = getCompletedFromWorkoutData(first.workout_data, first.day_index, first.id);
+            const fromData = getCompletedFromWorkoutData(first.workout_data, first.day_index, first.id, first.workout_date);
             setCompletedExercises(fromData);
           } else {
             setWorkoutLog(null);
             setCache(cacheKey, { todayWorkout: first, todayWorkouts: allWorkouts, workoutLog: null });
-            const fromData = getCompletedFromWorkoutData(first.workout_data, 0, first.id);
+            const fromData = getCompletedFromWorkoutData(first.workout_data, 0, first.id, first.workout_date);
             setCompletedExercises(fromData);
           }
         } else {
@@ -1595,7 +1611,8 @@ function Workouts() {
       // Save to localStorage immediately so it survives app close
       try {
         const workout = todayWorkoutRef.current;
-        const key = completionStorageKey(workout?.id, workout?.day_index);
+        const dateStr = workout?.workout_date || formatDate(selectedDateRef.current);
+        const key = completionStorageKey(workout?.id, workout?.day_index, dateStr);
         if (key) {
           localStorage.setItem(key, JSON.stringify([...newCompleted]));
         }
@@ -1619,7 +1636,8 @@ function Workouts() {
     // Clear localStorage cache
     try {
       const workout = todayWorkoutRef.current;
-      const key = completionStorageKey(workout?.id, workout?.day_index);
+      const dateStr = workout?.workout_date || formatDate(selectedDateRef.current);
+      const key = completionStorageKey(workout?.id, workout?.day_index, dateStr);
       if (key) localStorage.removeItem(key);
     } catch (e) { /* ignore */ }
 
@@ -2099,7 +2117,7 @@ function Workouts() {
       setWorkoutLog(null);
       setReadinessData(null);
       setShowHeroMenu(false);
-      const fromData = getCompletedFromWorkoutData(workout.workout_data, workout.day_index || 0, workout.id);
+      const fromData = getCompletedFromWorkoutData(workout.workout_data, workout.day_index || 0, workout.id, workout.workout_date);
       setCompletedExercises(fromData);
     }
     setExpandedWorkout(true);
@@ -2246,7 +2264,8 @@ function Workouts() {
           next.add(updatedExercise.id);
           // Persist to localStorage
           try {
-            const key = completionStorageKey(workout?.id, workout?.day_index);
+            const dateStr = workout?.workout_date || formatDate(selectedDateRef.current);
+            const key = completionStorageKey(workout?.id, workout?.day_index, dateStr);
             if (key) localStorage.setItem(key, JSON.stringify([...next]));
           } catch (e) { /* ignore */ }
           return next;
@@ -3048,7 +3067,8 @@ function Workouts() {
       // Clear localStorage completion cache since workout is done
       try {
         const workout = todayWorkoutRef.current;
-        const key = completionStorageKey(workout?.id, workout?.day_index);
+        const dateStr = workout?.workout_date || formatDate(selectedDateRef.current);
+        const key = completionStorageKey(workout?.id, workout?.day_index, dateStr);
         if (key) localStorage.removeItem(key);
       } catch (e) { /* ignore */ }
       // Show summary modal
@@ -3234,7 +3254,7 @@ function Workouts() {
       setTodayWorkout(remaining.length > 0 ? remaining[0] : null);
       setWorkoutLog(null);
       setCompletedExercises(remaining.length > 0
-        ? getCompletedFromWorkoutData(remaining[0].workout_data, remaining[0].day_index || 0, remaining[0].id)
+        ? getCompletedFromWorkoutData(remaining[0].workout_data, remaining[0].day_index || 0, remaining[0].id, remaining[0].workout_date)
         : new Set()
       );
       setShowHeroMenu(false);
@@ -3291,7 +3311,7 @@ function Workouts() {
         setTodayWorkout(remaining.length > 0 ? remaining[0] : null);
         setWorkoutLog(null);
         setCompletedExercises(remaining.length > 0
-          ? getCompletedFromWorkoutData(remaining[0].workout_data, remaining[0].day_index || 0, remaining[0].id)
+          ? getCompletedFromWorkoutData(remaining[0].workout_data, remaining[0].day_index || 0, remaining[0].id, remaining[0].workout_date)
           : new Set()
         );
       }
@@ -4305,7 +4325,8 @@ function Workouts() {
                         setWorkoutStartTime(null);
                         try {
                           const w = todayWorkoutRef.current;
-                          const k = completionStorageKey(w?.id, w?.day_index);
+                          const dateStr = w?.workout_date || formatDate(selectedDateRef.current);
+                          const k = completionStorageKey(w?.id, w?.day_index, dateStr);
                           if (k) localStorage.removeItem(k);
                         } catch (ex) { /* ignore */ }
                       }}
