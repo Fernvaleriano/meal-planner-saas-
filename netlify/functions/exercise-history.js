@@ -266,11 +266,14 @@ exports.handler = async (event) => {
     // The DB query orders by created_at which may differ from actual workout date
     // (e.g. backfilled workouts, or logs created out of chronological order)
     transformedHistory.sort((a, b) => {
-      const dateA = a.workoutDate || '';
-      const dateB = b.workoutDate || '';
+      const dateA = String(a.workoutDate || '');
+      const dateB = String(b.workoutDate || '');
       if (dateB !== dateA) return dateB.localeCompare(dateA);
-      // Tie-break by id for same-date entries
-      return (b.id || '').localeCompare(a.id || '');
+      // Tie-break by id for same-date entries. Coerce to string — ids may be
+      // numeric (no .localeCompare method on numbers), which was causing the
+      // 500 that surfaced as "Error generating coaching recommendation" on the
+      // client and blocking the workout detail modal.
+      return String(b.id || '').localeCompare(String(a.id || ''));
     });
 
     // Calculate stats if filtering by specific exercise
