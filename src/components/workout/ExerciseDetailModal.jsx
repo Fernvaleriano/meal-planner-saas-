@@ -1551,15 +1551,15 @@ function ExerciseDetailModal({
       try {
         if (!assignmentId || !currentExercise) return;
 
-        // Scrub per-session fields (completed / weight / rpe / effort) from the
-        // sets we write to the shared program template. Those values are
-        // legitimately saved to exercise_logs (per-date) — keeping them here
-        // would leak last session's weights & checkmarks onto the next date
-        // that hits this day_index. Keep reps + prescription fields only.
+        // Strip only true session-only flags (completed, rpe, effort, isPr)
+        // from sets before they land in the shared program template. Weight
+        // is kept intentionally — the server scrubs session flags as a
+        // backstop, and keeping weight preserves the "last session default"
+        // UX without resurfacing stale completion checkmarks.
         const templateSets = acceptedSets.map(s => {
           if (!s || typeof s !== 'object') return s;
-          const { completed, weight, rpe, effort, isPr, ...prescription } = s;
-          return prescription;
+          const { completed, rpe, effort, isPr, ...keep } = s;
+          return keep;
         });
 
         // Build updated exercises array: replace this exercise's sets/setsData

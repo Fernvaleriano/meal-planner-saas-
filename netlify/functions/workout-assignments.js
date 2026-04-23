@@ -15,7 +15,9 @@ const headers = {
 // The template is shared across every date that maps to the same day_index;
 // legacy assignments still hold stale completed/weight/rpe/effort from earlier
 // buggy writes, so scrub on every read to keep those values out of new cards.
-const SESSION_ONLY_SET_FIELDS = ['completed', 'weight', 'rpe', 'effort', 'isPr'];
+// Narrow on purpose — stripping `weight` broke clients with program history
+// by overwriting their session weights with zeroes on every refresh.
+const SESSION_ONLY_SET_FIELDS = ['completed', 'rpe', 'effort', 'isPr'];
 
 function scrubSessionSet(set) {
   if (!set || typeof set !== 'object') return set;
