@@ -11,27 +11,6 @@ const headers = {
   'Content-Type': 'application/json'
 };
 
-// Per-set session fields that should never leak out of the program template.
-// The template is shared across every date that maps to the same day_index;
-// legacy assignments still hold stale completed/weight/rpe/effort from earlier
-// buggy writes, so scrub on every read to keep those values out of new cards.
-const SESSION_ONLY_SET_FIELDS = ['completed', 'weight', 'rpe', 'effort', 'isPr'];
-
-function scrubSessionSet(set) {
-  if (!set || typeof set !== 'object') return set;
-  const clean = { ...set };
-  for (const f of SESSION_ONLY_SET_FIELDS) delete clean[f];
-  return clean;
-}
-
-function scrubExerciseForTemplate(ex) {
-  if (!ex || typeof ex !== 'object') return ex;
-  const { completed, ...clean } = ex;
-  if (Array.isArray(clean.sets)) clean.sets = clean.sets.map(scrubSessionSet);
-  if (Array.isArray(clean.setsData)) clean.setsData = clean.setsData.map(scrubSessionSet);
-  return clean;
-}
-
 // Helper function to enrich exercises with fresh video URLs from the database
 // Workout snapshots may have been created before video_url was set on the exercise
 async function enrichExercisesWithVideos(exercises, supabase) {
@@ -388,7 +367,7 @@ exports.handler = withTimeout(async (event) => {
                     day_index: di,
                     workout_data: {
                       ...day,
-                      exercises: (day.exercises || []).map(scrubExerciseForTemplate),
+                      exercises: (day.exercises || []).map(ex => { const { completed, ...rest } = ex; return rest; }),
                       estimatedMinutes: day.estimatedMinutes || 45,
                       estimatedCalories: day.estimatedCalories || 300,
                       image_url: resolvedImageUrl
@@ -416,7 +395,7 @@ exports.handler = withTimeout(async (event) => {
                   day_index: naturalDayIndex,
                   workout_data: {
                     ...natDay,
-                    exercises: (natDay.exercises || []).map(scrubExerciseForTemplate),
+                    exercises: (natDay.exercises || []).map(ex => { const { completed, ...rest } = ex; return rest; }),
                     estimatedMinutes: natDay.estimatedMinutes || 45,
                     estimatedCalories: natDay.estimatedCalories || 300,
                     image_url: resolvedImageUrl
@@ -735,25 +714,7 @@ exports.handler = withTimeout(async (event) => {
       if (updateData.name !== undefined) updateFields.name = updateData.name;
       if (updateData.startDate !== undefined) updateFields.start_date = updateData.startDate;
       if (updateData.endDate !== undefined) updateFields.end_date = updateData.endDate;
-      if (updateData.workoutData !== undefined) {
-        // Scrub session-only set fields before persisting to the shared
-        // program template — see comment on scrubExerciseForTemplate.
-        const wd = updateData.workoutData;
-        if (wd && typeof wd === 'object') {
-          const copy = { ...wd };
-          if (Array.isArray(copy.exercises)) copy.exercises = copy.exercises.map(scrubExerciseForTemplate);
-          if (Array.isArray(copy.days)) {
-            copy.days = copy.days.map(day => (
-              day && Array.isArray(day.exercises)
-                ? { ...day, exercises: day.exercises.map(scrubExerciseForTemplate) }
-                : day
-            ));
-          }
-          updateFields.workout_data = copy;
-        } else {
-          updateFields.workout_data = wd;
-        }
-      }
+      if (updateData.workoutData !== undefined) updateFields.workout_data = updateData.workoutData;
       if (updateData.isActive !== undefined) updateFields.is_active = updateData.isActive;
 
       // When deactivating, clamp end_date to today if it's null or in the

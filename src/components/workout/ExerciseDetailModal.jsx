@@ -1551,21 +1551,10 @@ function ExerciseDetailModal({
       try {
         if (!assignmentId || !currentExercise) return;
 
-        // Scrub per-session fields (completed / weight / rpe / effort) from the
-        // sets we write to the shared program template. Those values are
-        // legitimately saved to exercise_logs (per-date) — keeping them here
-        // would leak last session's weights & checkmarks onto the next date
-        // that hits this day_index. Keep reps + prescription fields only.
-        const templateSets = acceptedSets.map(s => {
-          if (!s || typeof s !== 'object') return s;
-          const { completed, weight, rpe, effort, isPr, ...prescription } = s;
-          return prescription;
-        });
-
         // Build updated exercises array: replace this exercise's sets/setsData
         const updatedExercises = allExercisesRaw.map(ex => {
           if (ex?.id === currentExercise.id) {
-            return { ...ex, sets: templateSets, setsData: templateSets };
+            return { ...ex, sets: acceptedSets, setsData: acceptedSets };
           }
           return ex;
         });
