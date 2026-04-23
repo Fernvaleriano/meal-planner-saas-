@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { X, Play, Pause, SkipForward, SkipBack, ChevronRight, ChevronLeft, Check, Volume2, VolumeX, Mic, MessageSquare, Square, Send, ChevronUp, ChevronDown, MessageCircle, Bot, Loader2, Sparkles, Flame, Repeat, Clock, Zap, AlertTriangle, TrendingUp, ExternalLink } from 'lucide-react';
 import SmartThumbnail from './SmartThumbnail';
 import SwapExerciseModal from './SwapExerciseModal';
-import { apiGet, apiPost, apiPut } from '../../utils/api';
+import { apiGet, apiPost, apiPut, getOrCreateWorkoutLogId } from '../../utils/api';
 import { onAppResume } from '../../hooks/useAppLifecycle';
 import { parseDurationToSeconds } from '../../utils/workoutDuration';
 import { generateProgression, EFFORT_OPTIONS, EFFORT_TO_RIR, estimate1RM, parseSetsData, getMaxWeight, parseReps, isCompoundExercise, getWeightIncrement } from '../../utils/workoutProgression';
@@ -1021,30 +1021,12 @@ function GuidedWorkoutModal({
     try {
       let logId = workoutLogIdRef.current;
 
-      // Get or create workout log
+      // Serialize log lookup/creation across concurrent callers via the
+      // shared helper — prevents dupe workout_log rows when multiple
+      // exercise saves race on the first save of the day.
       if (!logId) {
-        const existing = await apiGet(
-          `/.netlify/functions/workout-logs?clientId=${clientId}&startDate=${dateStr}&endDate=${dateStr}&limit=1`
-        );
-        const logs = existing?.workouts || existing?.logs || [];
-        if (logs.length > 0) {
-          logId = logs[0].id;
-          workoutLogIdRef.current = logId;
-        }
-      }
-
-      if (!logId) {
-        const logRes = await apiPost('/.netlify/functions/workout-logs', {
-          clientId,
-          coachId,
-          workoutDate: dateStr,
-          workoutName: workoutName || 'Workout',
-          status: 'in_progress'
-        });
-        if (logRes?.workout?.id) {
-          logId = logRes.workout.id;
-          workoutLogIdRef.current = logId;
-        }
+        logId = await getOrCreateWorkoutLogId(clientId, dateStr, workoutName);
+        if (logId) workoutLogIdRef.current = logId;
       }
 
       if (logId) {

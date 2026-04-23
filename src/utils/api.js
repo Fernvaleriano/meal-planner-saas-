@@ -383,3 +383,67 @@ export async function apiDelete(url, data) {
   }
   return authenticatedFetch(urlWithTimezone, options);
 }
+
+// ── Workout log creation lock ──
+// Without this, concurrent saves from different exercise modals on the same
+// date each run their own GET→POST chain, both see "no log exists yet," and
+// both INSERT a new workout_log row. There's no DB-level unique constraint
+// on (client_id, workout_date), so the dupes stick. Later GETs return only
+// one row (`workouts[0]`), so exercise_logs attached to the "other" row
+// disappear from the UI — the symptom clients see as "my middle exercise
+// reverted to the template default." Serialize here so only one lookup or
+// creation request is in flight per (client, date); all concurrent callers
+// share the same promise and end up with the same logId.
+const inflightLogLookup = new Map();
+const LOG_ID_CACHE_KEY_PREFIX = 'workout-log-id-';
+
+export async function getOrCreateWorkoutLogId(clientId, dateStr, workoutName) {
+  if (!clientId || !dateStr) return null;
+
+  const storageKey = `${LOG_ID_CACHE_KEY_PREFIX}${clientId}-${dateStr}`;
+  try {
+    const cached = localStorage.getItem(storageKey);
+    if (cached) return cached;
+  } catch { /* ignore quota / private mode */ }
+
+  const lockKey = `${clientId}|${dateStr}`;
+  const existing = inflightLogLookup.get(lockKey);
+  if (existing) return existing;
+
+  const promise = (async () => {
+    try {
+      const existingRes = await apiGet(
+        `/.netlify/functions/workout-logs?clientId=${clientId}&startDate=${dateStr}&endDate=${dateStr}&limit=1`
+      );
+      const logs = existingRes?.workouts || existingRes?.logs || [];
+      if (logs.length > 0 && logs[0]?.id) {
+        try { localStorage.setItem(storageKey, logs[0].id); } catch { /* ignore */ }
+        return logs[0].id;
+      }
+
+      const created = await apiPost('/.netlify/functions/workout-logs', {
+        clientId,
+        workoutDate: dateStr,
+        workoutName: workoutName || 'Workout',
+        status: 'in_progress'
+      });
+      const id = created?.workout?.id || null;
+      if (id) {
+        try { localStorage.setItem(storageKey, id); } catch { /* ignore */ }
+      }
+      return id;
+    } catch (err) {
+      console.error('getOrCreateWorkoutLogId failed:', err);
+      return null;
+    }
+  })();
+
+  inflightLogLookup.set(lockKey, promise);
+  // Keep the entry until the promise settles; release after a short grace
+  // window so immediately-subsequent callers still share the result without
+  // re-hitting the network.
+  promise.finally(() => {
+    setTimeout(() => inflightLogLookup.delete(lockKey), 2000);
+  });
+  return promise;
+}

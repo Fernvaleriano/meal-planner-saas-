@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
 import { X, Check, Plus, ChevronLeft, Play, Timer, BarChart3, ArrowLeftRight, Trash2, Mic, MicOff, MessageCircle, Loader2, AlertCircle, History, TrendingUp, Award, ChevronDown, ChevronUp, Send, Square, Sparkles, ExternalLink, Camera, Bot, Flame, Leaf } from 'lucide-react';
-import { apiGet, apiPost, apiPut, apiDelete } from '../../utils/api';
+import { apiGet, apiPost, apiPut, apiDelete, getOrCreateWorkoutLogId } from '../../utils/api';
 import { generateProgression, EFFORT_OPTIONS, parseSetsData, getMaxWeight } from '../../utils/workoutProgression';
 import { onAppSuspend, onAppResume } from '../../hooks/useAppLifecycle';
 import Portal from '../Portal';
@@ -639,29 +639,17 @@ function ExerciseDetailModal({
       let logId = workoutLogIdRef.current;
       const dateStr = currentGetWorkoutDateStr();
 
-      // If no log ID yet, check if one already exists for this date
+      // Serialize log lookup/creation across all concurrent modals via the
+      // shared helper — without this, two exercise modals editing on the
+      // same day can each create a separate workout_log row, and only one
+      // is visible to later GETs (the other's exercise_logs look "lost").
       if (!logId) {
-        const existing = await apiGet(
-          `/.netlify/functions/workout-logs?clientId=${currentClientId}&startDate=${dateStr}&endDate=${dateStr}&limit=1`
+        logId = await getOrCreateWorkoutLogId(
+          currentClientId,
+          dateStr,
+          currentExercise?.workoutName
         );
-        if (existing?.workouts && existing.workouts.length > 0) {
-          logId = existing.workouts[0].id;
-          workoutLogIdRef.current = logId;
-        }
-      }
-
-      // Still no log — create one for the selected date
-      if (!logId) {
-        const res = await apiPost('/.netlify/functions/workout-logs', {
-          clientId: currentClientId,
-          workoutDate: dateStr,
-          workoutName: currentExercise?.workoutName || 'Workout',
-          status: 'in_progress'
-        });
-        if (res?.workout?.id) {
-          logId = res.workout.id;
-          workoutLogIdRef.current = logId;
-        }
+        if (logId) workoutLogIdRef.current = logId;
       }
 
       if (!logId) return;
