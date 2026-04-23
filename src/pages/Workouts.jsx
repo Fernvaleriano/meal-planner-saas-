@@ -3219,6 +3219,7 @@ function Workouts() {
     const confirmed = window.confirm('Are you sure you want to delete this workout? This will make today a rest day.');
     if (!confirmed) return;
 
+    const dateStr = formatDate(selectedDate);
     let deleteSucceeded = false;
     try {
       if (todayWorkout.is_adhoc) {
@@ -3234,12 +3235,24 @@ function Workouts() {
           assignmentId: todayWorkout.id,
           action: 'skip',
           sourceDayIndex: todayWorkout.day_index,
-          sourceDate: formatDate(selectedDate),
-          targetDate: formatDate(selectedDate),
+          sourceDate: dateStr,
+          targetDate: dateStr,
           isAdded: todayWorkout.is_added || false,
           instanceId: todayWorkout.instance_id || null
         });
         deleteSucceeded = true;
+      }
+
+      // Also delete any workout_log row for this date so the deleted card
+      // isn't resurrected by buildWorkoutFromLog on the next fetch.
+      if (workoutLog?.id) {
+        try {
+          await apiDelete(`/.netlify/functions/workout-logs?workoutId=${workoutLog.id}`);
+        } catch (logErr) {
+          if (logErr.status !== 404 && !logErr.message?.includes('not found')) {
+            console.error('Error deleting workout log:', logErr);
+          }
+        }
       }
     } catch (err) {
       console.error('Error deleting workout:', err);
@@ -3264,14 +3277,24 @@ function Workouts() {
         : new Set()
       );
       setShowHeroMenu(false);
+
+      // Invalidate per-date localStorage cache so the deleted workout doesn't
+      // flash back from cache when the user revisits this date.
+      if (clientData?.id) {
+        try {
+          localStorage.removeItem(`workouts_${clientData.id}_${dateStr}`);
+        } catch { /* ignore */ }
+      }
+
       refreshWeekSchedule();
     }
-  }, [todayWorkout, todayWorkouts, clientData?.id, selectedDate, showError, refreshWeekSchedule]);
+  }, [todayWorkout, todayWorkouts, workoutLog, clientData?.id, selectedDate, showError, refreshWeekSchedule]);
 
   // Handle deleting a specific workout from card menu
   const handleDeleteCardWorkout = useCallback(async (workout) => {
     if (!workout?.id) return;
 
+    const dateStr = formatDate(selectedDate);
     let deleteSucceeded = false;
     try {
       if (workout.is_adhoc) {
@@ -3285,12 +3308,36 @@ function Workouts() {
           assignmentId: workout.id,
           action: 'skip',
           sourceDayIndex: workout.day_index,
-          sourceDate: formatDate(selectedDate),
-          targetDate: formatDate(selectedDate),
+          sourceDate: dateStr,
+          targetDate: dateStr,
           isAdded: workout.is_added || false,
           instanceId: workout.instance_id || null
         });
         deleteSucceeded = true;
+      }
+
+      // Also delete any workout_log row for this workout on this date so the
+      // deleted card isn't resurrected by buildWorkoutFromLog on the next fetch.
+      // Look up logs for this date and match by assignment_id (logs are keyed
+      // by client + date + assignment_id).
+      try {
+        const logRes = await apiGet(
+          `/.netlify/functions/workout-logs?clientId=${clientData?.id}&date=${dateStr}`
+        );
+        const matchingLogs = (logRes?.logs || []).filter(l =>
+          l.assignment_id === workout.id || l.id === workout.id
+        );
+        for (const log of matchingLogs) {
+          try {
+            await apiDelete(`/.netlify/functions/workout-logs?workoutId=${log.id}`);
+          } catch (logErr) {
+            if (logErr.status !== 404 && !logErr.message?.includes('not found')) {
+              console.error('Error deleting workout log:', logErr);
+            }
+          }
+        }
+      } catch (lookupErr) {
+        console.error('Error looking up workout logs to delete:', lookupErr);
       }
     } catch (err) {
       console.error('Error deleting workout:', err);
@@ -3317,9 +3364,18 @@ function Workouts() {
         );
       }
       setCardMenuWorkoutId(null);
+
+      // Invalidate per-date localStorage cache so the deleted workout doesn't
+      // flash back from cache when the user revisits this date.
+      if (clientData?.id) {
+        try {
+          localStorage.removeItem(`workouts_${clientData.id}_${dateStr}`);
+        } catch { /* ignore */ }
+      }
+
       refreshWeekSchedule();
     }
-  }, [todayWorkout, todayWorkouts, selectedDate, showError, refreshWeekSchedule]);
+  }, [todayWorkout, todayWorkouts, clientData?.id, selectedDate, showError, refreshWeekSchedule]);
 
   // Handle deleting the entire workout program/assignment (all days)
   const handleDeleteEntireProgram = useCallback(async (workout) => {
@@ -3348,6 +3404,20 @@ function Workouts() {
       setExpandedWorkout(false);
       setCardMenuWorkoutId(null);
 
+      // Invalidate ALL per-date workout caches for this client — the program
+      // spans many dates and any of them may have cached the deleted workout.
+      if (clientData?.id) {
+        try {
+          const prefix = `workouts_${clientData.id}_`;
+          const toRemove = [];
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith(prefix)) toRemove.push(key);
+          }
+          toRemove.forEach(k => localStorage.removeItem(k));
+        } catch { /* ignore */ }
+      }
+
       if (typeof showSuccess === 'function') {
         showSuccess(`"${programName}" has been deleted`);
       }
@@ -3364,7 +3434,7 @@ function Workouts() {
         showError('Failed to delete program: ' + (err.message || 'Unknown error'));
       }
     }
-  }, [showError, showSuccess, refreshWeekSchedule]);
+  }, [clientData?.id, showError, showSuccess, refreshWeekSchedule]);
 
   // Get exercises from workout with safety checks
   const exercises = useMemo(() => {
