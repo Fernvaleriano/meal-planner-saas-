@@ -2260,7 +2260,7 @@ function Workouts() {
   }, [clientData?.id, clientData?.coach_id, selectedDate, showError, showSuccess, refreshWorkoutData, refreshWeekSchedule]);
 
   // Handle updating an exercise (sets, reps, weight changes) - use ref for stable callback
-  const handleUpdateExercise = useCallback((updatedExercise, options = {}) => {
+  const handleUpdateExercise = useCallback((updatedExercise) => {
     const workout = todayWorkoutRef.current;
     if (!workout?.workout_data || !updatedExercise) return;
 
@@ -2418,48 +2418,13 @@ function Workouts() {
       });
     } catch { /* ignore */ }
 
-    // Modal auto-save already persists exercise_logs directly via apiPut.
-    // When it calls back into this handler with skipLogSync=true, only apply
-    // local state/cache updates and avoid a second server write that can race
-    // the modal write and create duplicate exercise_log rows.
-    //
-    // But we MUST still reflect the modal's save in our in-memory workoutLog
-    // so the exercises useMemo merge doesn't overwrite the just-updated
-    // workout_data setsData with the stale sets_data from workoutLog. Without
-    // this, the ExerciseCard re-renders with pre-save values the moment the
-    // modal closes — the classic "I saved 7kg and it reverted to 3kg" bug.
-    if (options?.skipLogSync) {
-      if (updatedExercise?.id && Array.isArray(updatedExercise.sets)) {
-        const optimisticSetsData = updatedExercise.sets.map((s, idx) => ({
-          setNumber: idx + 1,
-          reps: s?.reps || 0,
-          weight: s?.weight || 0,
-          weightUnit: s?.weightUnit || weightUnitRef.current || 'lbs',
-          restSeconds: s?.restSeconds ?? null,
-          effort: s?.effort || null,
-          ...(s?.duration != null && { duration: s.duration }),
-          ...(s?.distance != null && { distance: s.distance })
-        }));
-        setWorkoutLog(prev => {
-          const base = prev || {};
-          const prevExercises = Array.isArray(base.exercises) ? base.exercises : [];
-          const idx = prevExercises.findIndex(e => e?.exercise_id === updatedExercise.id);
-          const entry = {
-            exercise_id: updatedExercise.id,
-            exercise_name: updatedExercise.name || 'Unknown',
-            sets_data: optimisticSetsData
-          };
-          const nextExercises = idx >= 0
-            ? prevExercises.map((e, i) => i === idx ? { ...e, ...entry } : e)
-            : [...prevExercises, entry];
-          return { ...base, exercises: nextExercises };
-        });
-      }
-      return;
-    }
-
-    // Persist set data to workout_logs / exercise_logs and patch in-memory log
-    // optimistically so the exercises merge reflects edits immediately.
+    // Single write path: every edit — regardless of source (ExerciseCard,
+    // ExerciseDetailModal, GuidedWorkoutModal) — flows through here and
+    // persists to exercise_logs via the workout-logs endpoint. Saves never
+    // depend on effort/intensity or completion state. The optimistic
+    // workoutLog patch (patchWorkoutLogState below) keeps the exercises
+    // useMemo merge from reverting to coach-prescribed values between save
+    // and server confirmation.
     (async () => {
       try {
         const currentClientId = clientDataRef.current?.id || workout.client_id;
