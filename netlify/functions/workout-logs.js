@@ -52,6 +52,8 @@ exports.handler = async (event) => {
           .from('exercise_logs')
           .select('*')
           .eq('workout_log_id', workoutId)
+          .order('updated_at', { ascending: false, nullsFirst: false })
+          .order('id', { ascending: false })
           .order('exercise_order', { ascending: true });
 
         if (exerciseError) throw exerciseError;
@@ -62,7 +64,21 @@ exports.handler = async (event) => {
           body: JSON.stringify({
             workout: {
               ...workout,
-              exercises: exercises || []
+              exercises: (() => {
+                const seen = new Set();
+                const deduped = [];
+                for (const ex of (exercises || [])) {
+                  if (ex.exercise_id == null) {
+                    deduped.push(ex);
+                    continue;
+                  }
+                  const key = `${ex.workout_log_id}:${ex.exercise_id}`;
+                  if (seen.has(key)) continue;
+                  seen.add(key);
+                  deduped.push(ex);
+                }
+                return deduped.sort((a, b) => (a.exercise_order ?? 0) - (b.exercise_order ?? 0));
+              })()
             }
           })
         };
@@ -115,6 +131,7 @@ exports.handler = async (event) => {
           .select('*')
           .in('workout_log_id', workoutIds)
           .order('updated_at', { ascending: false, nullsFirst: false })
+          .order('id', { ascending: false })
           .order('exercise_order', { ascending: true });
         const seen = new Set();
         allExerciseLogs = [];
@@ -230,7 +247,8 @@ exports.handler = async (event) => {
               .from('exercise_logs')
               .select('id, exercise_id, updated_at')
               .eq('workout_log_id', existingLogs[0].id)
-              .order('updated_at', { ascending: false, nullsFirst: false });
+              .order('updated_at', { ascending: false, nullsFirst: false })
+              .order('id', { ascending: false });
             const existingExMap = {};
             const duplicateIdsToDelete = [];
             for (const log of (existingExerciseLogs || [])) {
@@ -460,7 +478,8 @@ exports.handler = async (event) => {
             .from('exercise_logs')
             .select('id, exercise_id, updated_at')
             .eq('workout_log_id', workoutId)
-            .order('updated_at', { ascending: false, nullsFirst: false });
+            .order('updated_at', { ascending: false, nullsFirst: false })
+            .order('id', { ascending: false });
 
           // First row per exercise_id wins (most recently updated). Everything
           // else for that exercise_id is a duplicate and gets deleted before
