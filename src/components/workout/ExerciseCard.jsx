@@ -411,6 +411,12 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
     const safeReps = isNaN(numValue) || numValue < 0 ? 0 : numValue;
     newSets[setIndex] = { ...newSets[setIndex], reps: safeReps };
     setSets(newSets);
+
+    // Persist immediately so reps/weight edits save even if the client never
+    // taps an effort/intensity pill.
+    if (onUpdateExercise) {
+      onUpdateExercise({ ...exercise, sets: newSets });
+    }
   };
 
   // Add a set - with persistence
