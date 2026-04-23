@@ -189,6 +189,22 @@ exports.handler = withTimeout(async (event) => {
           const targetDayOfWeek = targetDate.getDay();
           const targetDayName = dayNames[targetDayOfWeek];
 
+          // Drop assignments whose source program has been deleted — otherwise
+          // the client keeps seeing scheduled workouts from a removed program.
+          const allProgramIds = [...new Set(activeAssignments.map(a => a.program_id).filter(Boolean))];
+          if (allProgramIds.length > 0) {
+            const { data: existingPrograms } = await supabase
+              .from('workout_programs')
+              .select('id')
+              .in('id', allProgramIds);
+            const existingIds = new Set((existingPrograms || []).map(p => p.id));
+            for (let i = activeAssignments.length - 1; i >= 0; i--) {
+              if (activeAssignments[i].program_id && !existingIds.has(activeAssignments[i].program_id)) {
+                activeAssignments.splice(i, 1);
+              }
+            }
+          }
+
           // Batch-fetch program images for assignments that need them (single query instead of N)
           const programIdsNeeded = activeAssignments
             .filter(a => !(a.workout_data?.image_url) && a.program_id)
@@ -545,10 +561,25 @@ exports.handler = withTimeout(async (event) => {
 
         if (error) throw error;
 
+        // Filter out assignments whose source program has been deleted —
+        // otherwise the client keeps seeing orphaned program cards.
+        let filteredAssignments = assignments || [];
+        const programIds = [...new Set(filteredAssignments.map(a => a.program_id).filter(Boolean))];
+        if (programIds.length > 0) {
+          const { data: existingPrograms } = await supabase
+            .from('workout_programs')
+            .select('id')
+            .in('id', programIds);
+          const existingIds = new Set((existingPrograms || []).map(p => p.id));
+          filteredAssignments = filteredAssignments.filter(
+            a => !a.program_id || existingIds.has(a.program_id)
+          );
+        }
+
         return {
           statusCode: 200,
           headers,
-          body: JSON.stringify({ assignments: assignments || [] })
+          body: JSON.stringify({ assignments: filteredAssignments })
         };
       }
 
