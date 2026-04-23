@@ -23,7 +23,10 @@ const headers = {
   'Content-Type': 'application/json'
 };
 
-const SESSION_ONLY_SET_FIELDS = ['completed', 'weight', 'rpe', 'effort', 'isPr'];
+// Narrow on purpose — stripping `weight` breaks clients with program
+// history by overwriting their session weights on every refresh. Only
+// true session-only flags are scrubbed here.
+const SESSION_ONLY_SET_FIELDS = ['completed', 'rpe', 'effort', 'isPr'];
 
 function scrubSet(set) {
   if (!set || typeof set !== 'object') return { set, changed: false };

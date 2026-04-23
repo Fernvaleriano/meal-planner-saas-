@@ -390,13 +390,18 @@ function WorkoutReadyConfirmation({ readinessData, workoutName, exerciseCount, o
   );
 }
 
-// Per-set session fields that MUST NOT be persisted into the program template
-// (client_workout_assignments.workout_data). The template is shared across every
-// date that maps to the same day_index — e.g. in a 3-day split, Day 0 repeats on
-// Mon/Thu/Sun — so per-session data written here leaks onto future dates and
-// makes a fresh workout look "already done" with last session's weights/checkmarks.
-// These values belong in workout_logs/exercise_logs (per-date) instead.
-const SESSION_ONLY_SET_FIELDS = ['completed', 'weight', 'rpe', 'effort', 'isPr'];
+// Per-set session-only fields that MUST NOT be persisted into the program
+// template (client_workout_assignments.workout_data). The template is shared
+// across every date that maps to the same day_index — persisting `completed`
+// here would make a future date in the cycle look "already done" because it
+// resurfaces last session's checkmarks.
+//
+// IMPORTANT: `weight` is NOT on this list on purpose. Coaches can prescribe
+// weight, and even when it's client-logged the template carrying it forward
+// is a useful "last session default" for the next time this day repeats —
+// the per-date exercise_logs merge in the `exercises` useMemo still wins
+// for dates that have actual logged values.
+const SESSION_ONLY_SET_FIELDS = ['completed', 'rpe', 'effort', 'isPr'];
 
 function stripSessionFieldsFromSet(set) {
   if (!set || typeof set !== 'object') return set;

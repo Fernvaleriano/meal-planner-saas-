@@ -10,12 +10,14 @@ const headers = {
   'Content-Type': 'application/json'
 };
 
-// Per-set session fields that must NEVER be stored in the program template
-// (client_workout_assignments.workout_data). The template is shared by every
-// date that hits the same day_index — writing these here leaks last session's
-// state (e.g. completed checkmarks, logged weights) onto the next date in the
-// cycle. Per-date values belong in workout_logs/exercise_logs instead.
-const SESSION_ONLY_SET_FIELDS = ['completed', 'weight', 'rpe', 'effort', 'isPr'];
+// Per-set session-only fields that must NEVER be stored in the program
+// template. Keep this list narrow — stripping `weight` looked safe but
+// caused a severe regression: the template carries weight forward as a
+// useful "last session default," and background refreshes were overwriting
+// correctly-logged session weights with zeroed template weights for
+// clients who already had program history. Per-date exercise_logs still
+// win when they exist.
+const SESSION_ONLY_SET_FIELDS = ['completed', 'rpe', 'effort', 'isPr'];
 
 function scrubSet(set) {
   if (!set || typeof set !== 'object') return set;
