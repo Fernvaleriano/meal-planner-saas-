@@ -390,15 +390,64 @@ function WorkoutReadyConfirmation({ readinessData, workoutName, exerciseCount, o
   );
 }
 
-// Extract completed exercise IDs from workout_data's exercise objects + localStorage fallback
-// Build a localStorage key that is unique per workout + day so completion
-// state from one day doesn't bleed into another day of the same program.
-function completionStorageKey(workoutId, dayIndex) {
-  if (!workoutId) return null;
-  return `completedExercises_${workoutId}_day${dayIndex ?? 0}`;
+// Per-set session fields that MUST NOT be persisted into the program template
+// (client_workout_assignments.workout_data). The template is shared across every
+// date that maps to the same day_index — e.g. in a 3-day split, Day 0 repeats on
+// Mon/Thu/Sun — so per-session data written here leaks onto future dates and
+// makes a fresh workout look "already done" with last session's weights/checkmarks.
+// These values belong in workout_logs/exercise_logs (per-date) instead.
+const SESSION_ONLY_SET_FIELDS = ['completed', 'weight', 'rpe', 'effort', 'isPr'];
+
+function stripSessionFieldsFromSet(set) {
+  if (!set || typeof set !== 'object') return set;
+  const clean = { ...set };
+  for (const f of SESSION_ONLY_SET_FIELDS) delete clean[f];
+  return clean;
 }
 
-function getCompletedFromWorkoutData(workoutData, dayIndex = 0, workoutId = null) {
+function stripSessionFieldsFromExercises(exercises) {
+  if (!Array.isArray(exercises)) return exercises;
+  return exercises.map(ex => {
+    if (!ex || typeof ex !== 'object') return ex;
+    const { completed, ...clean } = ex;
+    if (Array.isArray(clean.sets)) clean.sets = clean.sets.map(stripSessionFieldsFromSet);
+    if (Array.isArray(clean.setsData)) clean.setsData = clean.setsData.map(stripSessionFieldsFromSet);
+    return clean;
+  });
+}
+
+// Sanitize workout_data before persisting to the shared program template so
+// session state (logged weights, completed flags) can't contaminate future
+// dates that map to the same day_index.
+function sanitizeWorkoutDataForTemplate(workoutData) {
+  if (!workoutData || typeof workoutData !== 'object') return workoutData;
+  const copy = { ...workoutData };
+  if (Array.isArray(copy.exercises)) {
+    copy.exercises = stripSessionFieldsFromExercises(copy.exercises);
+  }
+  if (Array.isArray(copy.days)) {
+    copy.days = copy.days.map(day => (
+      day && Array.isArray(day.exercises)
+        ? { ...day, exercises: stripSessionFieldsFromExercises(day.exercises) }
+        : day
+    ));
+  }
+  return copy;
+}
+
+// Extract completed exercise IDs from workout_data's exercise objects + localStorage fallback
+// Build a localStorage key that is unique per workout + day + date. Without
+// the date segment, completions logged on one date (e.g. Mon=Day0) would
+// resurface as "already done" on the next date that maps to the same
+// day_index (e.g. Thu=Day0) — that was the bug users hit when starting a
+// new day's workout and finding every set pre-checked.
+function completionStorageKey(workoutId, dayIndex, dateStr) {
+  if (!workoutId) return null;
+  if (!dateStr) return null;
+  return `completedExercises_${workoutId}_day${dayIndex ?? 0}_${dateStr}`;
+}
+
+function getCompletedFromWorkoutData(workoutData, dayIndex = 0, workoutId = null, dateStr = null) {
   let exercises = [];
   if (Array.isArray(workoutData?.exercises) && workoutData.exercises.length > 0) {
     exercises = workoutData.exercises;
@@ -406,11 +455,12 @@ function getCompletedFromWorkoutData(workoutData, dayIndex = 0, workoutId = null
     const safeIndex = Math.abs(dayIndex) % workoutData.days.length;
     exercises = workoutData.days[safeIndex]?.exercises || [];
   }
-  const fromData = new Set(
-    exercises.filter(ex => ex?.id && ex.completed).map(ex => ex.id)
-  );
+  // Do NOT trust `ex.completed` from the template. It's shared across all
+  // dates that hit this day_index, so a flag left behind from a prior date
+  // would incorrectly mark this date's workout as completed.
+  const fromData = new Set();
   // Merge with localStorage fallback (covers cases where API save was in-flight during app close)
-  const key = completionStorageKey(workoutId, dayIndex);
+  const key = completionStorageKey(workoutId, dayIndex, dateStr);
   if (key) {
     try {
       const stored = localStorage.getItem(key);
@@ -420,15 +470,23 @@ function getCompletedFromWorkoutData(workoutData, dayIndex = 0, workoutId = null
           ids.forEach(id => fromData.add(id));
         }
       }
-      // Clean up legacy key (without day index) to prevent stale data from being
-      // picked up if old code is ever used or if we fall back
-      const legacyKey = `completedExercises_${workoutId}`;
-      if (localStorage.getItem(legacyKey)) {
-        localStorage.removeItem(legacyKey);
-      }
+      // Clean up legacy keys (without day index / without date) so older bug
+      // versions can't repopulate stale completion state.
+      const legacyKey1 = `completedExercises_${workoutId}`;
+      const legacyKey2 = `completedExercises_${workoutId}_day${dayIndex ?? 0}`;
+      if (localStorage.getItem(legacyKey1)) localStorage.removeItem(legacyKey1);
+      if (localStorage.getItem(legacyKey2)) localStorage.removeItem(legacyKey2);
     } catch (e) { /* ignore */ }
   }
   return fromData;
+}
+
+// Build the per-date draft localStorage key. MUST include the workout date
+// so drafts from one date don't resurface on a different date that shares
+// the same day_index (same leak that hit completion state).
+function draftStorageKey(workoutId, dayIndex, dateStr) {
+  if (!workoutId || !dateStr) return null;
+  return `workouts-draft-${workoutId}-${dayIndex ?? 0}-${dateStr}`;
 }
 
 // Helper to get exercises array from a workout object
@@ -449,8 +507,8 @@ function getWorkoutExercises(workout) {
 // imported from ../utils/workoutDuration
 
 // Helper to get completed count for a workout (from workout_data flags + localStorage)
-function getWorkoutCompletedCount(workout) {
-  const completed = getCompletedFromWorkoutData(workout?.workout_data, workout?.day_index || 0, workout?.id);
+function getWorkoutCompletedCount(workout, dateStr) {
+  const completed = getCompletedFromWorkoutData(workout?.workout_data, workout?.day_index || 0, workout?.id, dateStr);
   return completed.size;
 }
 
@@ -787,11 +845,18 @@ function Workouts() {
   useEffect(() => {
     const workout = todayWorkout;
     if (!workout?.id || !workout?.workout_data) return;
-    const DRAFT_KEY = `workouts-draft-${workout.id}-${workout.day_index || 0}`;
+    const dateStr = workout.workout_date || formatDate(selectedDateRef.current || new Date());
+    const DRAFT_KEY = draftStorageKey(workout.id, workout.day_index || 0, dateStr);
+    if (!DRAFT_KEY) return;
     let draft = null;
     try {
       const raw = localStorage.getItem(DRAFT_KEY);
       if (raw) draft = JSON.parse(raw);
+      // Clean up legacy drafts keyed without a date — they could leak across
+      // dates that share the same day_index (same root cause as the
+      // completion-state leak).
+      const legacyKey = `workouts-draft-${workout.id}-${workout.day_index || 0}`;
+      if (localStorage.getItem(legacyKey)) localStorage.removeItem(legacyKey);
     } catch { return; }
     if (!draft?.workoutData) return;
     // Expire drafts older than 7 days to avoid resurrecting ancient data.
@@ -1007,7 +1072,7 @@ function Workouts() {
               sleep: log.sleep_quality || 2
             });
           }
-          const fromData = getCompletedFromWorkoutData(active.workout_data, active.day_index, active.id);
+          const fromData = getCompletedFromWorkoutData(active.workout_data, active.day_index, active.id, dateStr);
           if (fromData.size > 0) {
             setCompletedExercises(fromData);
           } else {
@@ -1024,11 +1089,11 @@ function Workouts() {
           }
         } else if (!active.is_adhoc) {
           setWorkoutLog(null);
-          const fromData = getCompletedFromWorkoutData(active.workout_data, active.day_index, active.id);
+          const fromData = getCompletedFromWorkoutData(active.workout_data, active.day_index, active.id, dateStr);
           setCompletedExercises(fromData);
         } else {
           setWorkoutLog(null);
-          const fromData = getCompletedFromWorkoutData(active.workout_data, 0, active.id);
+          const fromData = getCompletedFromWorkoutData(active.workout_data, 0, active.id, dateStr);
           setCompletedExercises(fromData);
         }
       } else {
@@ -1188,7 +1253,7 @@ function Workouts() {
                 sleep: log.sleep_quality || 2
               });
             }
-            const fromData = getCompletedFromWorkoutData(first.workout_data, first.day_index, first.id);
+            const fromData = getCompletedFromWorkoutData(first.workout_data, first.day_index, first.id, dateStr);
             if (fromData.size > 0) {
               setCompletedExercises(fromData);
             } else {
@@ -1205,12 +1270,12 @@ function Workouts() {
           } else if (!first.is_adhoc) {
             setWorkoutLog(null);
             setCache(cacheKey, { todayWorkout: first, todayWorkouts: allWorkouts, workoutLog: null });
-            const fromData = getCompletedFromWorkoutData(first.workout_data, first.day_index, first.id);
+            const fromData = getCompletedFromWorkoutData(first.workout_data, first.day_index, first.id, dateStr);
             setCompletedExercises(fromData);
           } else {
             setWorkoutLog(null);
             setCache(cacheKey, { todayWorkout: first, todayWorkouts: allWorkouts, workoutLog: null });
-            const fromData = getCompletedFromWorkoutData(first.workout_data, 0, first.id);
+            const fromData = getCompletedFromWorkoutData(first.workout_data, 0, first.id, dateStr);
             setCompletedExercises(fromData);
           }
         } else {
@@ -1564,7 +1629,8 @@ function Workouts() {
       // Save to localStorage immediately so it survives app close
       try {
         const workout = todayWorkoutRef.current;
-        const key = completionStorageKey(workout?.id, workout?.day_index);
+        const dateStr = workout?.workout_date || formatDate(selectedDateRef.current || new Date());
+        const key = completionStorageKey(workout?.id, workout?.day_index, dateStr);
         if (key) {
           localStorage.setItem(key, JSON.stringify([...newCompleted]));
         }
@@ -1588,7 +1654,8 @@ function Workouts() {
     // Clear localStorage cache
     try {
       const workout = todayWorkoutRef.current;
-      const key = completionStorageKey(workout?.id, workout?.day_index);
+      const dateStr = workout?.workout_date || formatDate(selectedDateRef.current || new Date());
+      const key = completionStorageKey(workout?.id, workout?.day_index, dateStr);
       if (key) localStorage.removeItem(key);
     } catch (e) { /* ignore */ }
 
@@ -1637,6 +1704,8 @@ function Workouts() {
     const updatedWorkoutData = capturedWorkoutData;
     if (!workout || !updatedWorkoutData) return;
 
+    const templateWorkoutData = sanitizeWorkoutDataForTemplate(updatedWorkoutData);
+
     try {
       if (workout.is_adhoc) {
         const isRealId = workout.id && !String(workout.id).startsWith('adhoc-') && !String(workout.id).startsWith('custom-');
@@ -1645,14 +1714,14 @@ function Workouts() {
           ...(isRealId ? { workoutId: workout.id } : {}),
           clientId: workout.client_id,
           workoutDate: dateStr,
-          workoutData: updatedWorkoutData,
+          workoutData: templateWorkoutData,
           name: workout.name
         });
       } else {
         await apiPut('/.netlify/functions/client-workout-log', {
           assignmentId: workout.id,
           dayIndex: workout.day_index,
-          workout_data: updatedWorkoutData
+          workout_data: templateWorkoutData
         });
       }
     } catch (err) {
@@ -1774,6 +1843,20 @@ function Workouts() {
 
       // Save to backend (fire and forget, errors logged)
       // Use correct endpoint based on workout type
+      const swapTemplateWorkoutData = sanitizeWorkoutDataForTemplate(
+        isUsingDays ? {
+          ...workout.workout_data,
+          days: (() => {
+            const updatedDays = [...(workout.workout_data.days || [])];
+            const safeIndex = Math.abs(dayIndex) % updatedDays.length;
+            updatedDays[safeIndex] = { ...updatedDays[safeIndex], exercises: updatedExercises };
+            return updatedDays;
+          })()
+        } : {
+          ...workout.workout_data,
+          exercises: updatedExercises
+        }
+      );
       if (workout.is_adhoc) {
         // For adhoc workouts, use the adhoc-workouts endpoint
         // Use clientId + workoutDate for reliability (temporary IDs won't work)
@@ -1783,18 +1866,7 @@ function Workouts() {
           ...(isRealId ? { workoutId: workout.id } : {}),
           clientId: workout.client_id,
           workoutDate: dateStr,
-          workoutData: isUsingDays ? {
-            ...workout.workout_data,
-            days: (() => {
-              const updatedDays = [...(workout.workout_data.days || [])];
-              const safeIndex = Math.abs(dayIndex) % updatedDays.length;
-              updatedDays[safeIndex] = { ...updatedDays[safeIndex], exercises: updatedExercises };
-              return updatedDays;
-            })()
-          } : {
-            ...workout.workout_data,
-            exercises: updatedExercises
-          },
+          workoutData: swapTemplateWorkoutData,
           name: workout.name
         }).catch(err => {
           console.error('Error saving swapped exercise to adhoc:', err);
@@ -1804,10 +1876,7 @@ function Workouts() {
         apiPut('/.netlify/functions/client-workout-log', {
           assignmentId: workout.id,
           dayIndex: workout.day_index,
-          workout_data: {
-            ...workout.workout_data,
-            exercises: updatedExercises
-          }
+          workout_data: swapTemplateWorkoutData
         }).catch(err => {
           console.error('Error saving swapped exercise:', err);
         });
@@ -1961,7 +2030,7 @@ function Workouts() {
         ...(isRealId ? { workoutId: workout.id } : {}),
         clientId: workout.client_id || clientData?.id,
         workoutDate: formatDate(selectedDate),
-        workoutData: updatedWorkoutData,
+        workoutData: sanitizeWorkoutDataForTemplate(updatedWorkoutData),
         name: workout.name
       }).catch(err => {
         console.error('Error updating ad-hoc workout:', err);
@@ -1992,10 +2061,10 @@ function Workouts() {
     apiPut('/.netlify/functions/client-workout-log', {
       assignmentId: workout.id,
       dayIndex: workout.day_index,
-      workout_data: {
+      workout_data: sanitizeWorkoutDataForTemplate({
         ...workout.workout_data,
         exercises: updatedExercises
-      }
+      })
     }).catch(err => {
       console.error('Error adding exercise:', err);
     });
@@ -2068,7 +2137,8 @@ function Workouts() {
       setWorkoutLog(null);
       setReadinessData(null);
       setShowHeroMenu(false);
-      const fromData = getCompletedFromWorkoutData(workout.workout_data, workout.day_index || 0, workout.id);
+      const dateStr = workout.workout_date || formatDate(selectedDateRef.current || new Date());
+      const fromData = getCompletedFromWorkoutData(workout.workout_data, workout.day_index || 0, workout.id, dateStr);
       setCompletedExercises(fromData);
     }
     setExpandedWorkout(true);
@@ -2215,7 +2285,8 @@ function Workouts() {
           next.add(updatedExercise.id);
           // Persist to localStorage
           try {
-            const key = completionStorageKey(workout?.id, workout?.day_index);
+            const dateStr = workout?.workout_date || formatDate(selectedDateRef.current || new Date());
+            const key = completionStorageKey(workout?.id, workout?.day_index, dateStr);
             if (key) localStorage.setItem(key, JSON.stringify([...next]));
           } catch (e) { /* ignore */ }
           return next;
@@ -2291,15 +2362,28 @@ function Workouts() {
     // process before visibilitychange fires (which Capacitor doesn't always
     // dispatch on swipe-away), the draft is still on disk and gets merged
     // back into state on next mount. Cleared on successful server save.
-    const DRAFT_KEY = `workouts-draft-${workout.id}-${workout.day_index || 0}`;
+    const draftDateStr = workout.workout_date || formatDate(selectedDateRef.current || new Date());
+    const DRAFT_KEY = draftStorageKey(workout.id, workout.day_index || 0, draftDateStr);
     try {
-      localStorage.setItem(DRAFT_KEY, JSON.stringify({
-        workoutId: workout.id,
-        dayIndex: workout.day_index || 0,
-        workoutData: updatedWorkoutData,
-        savedAt: Date.now()
-      }));
+      if (DRAFT_KEY) {
+        localStorage.setItem(DRAFT_KEY, JSON.stringify({
+          workoutId: workout.id,
+          dayIndex: workout.day_index || 0,
+          workoutDate: draftDateStr,
+          workoutData: updatedWorkoutData,
+          savedAt: Date.now()
+        }));
+      }
     } catch { /* quota / private mode — fall through to network path */ }
+
+    // The in-memory updatedWorkoutData may contain per-session fields
+    // (completed/weight/rpe/effort on each set) pulled from the user's
+    // current session. That data belongs in exercise_logs (per-date), NOT
+    // in the shared program template, which is reused every time the same
+    // day_index rolls around. Scrub before any write to client-workout-log
+    // so next week's same-day-index workout doesn't show up pre-checked
+    // with last session's weights.
+    const templateWorkoutData = sanitizeWorkoutDataForTemplate(updatedWorkoutData);
 
     // Fire an immediate keepalive copy of the save. apiPut (below) uses an
     // AbortController that cancels mid-flight when the app is killed — and
@@ -2334,7 +2418,7 @@ function Workouts() {
               ...(isRealId ? { workoutId: workout.id } : {}),
               clientId: workout.client_id,
               workoutDate: dateStr,
-              workoutData: updatedWorkoutData,
+              workoutData: templateWorkoutData,
               name: workout.name
             }),
             keepalive: true
@@ -2346,7 +2430,7 @@ function Workouts() {
             body: JSON.stringify({
               assignmentId: workout.id,
               dayIndex: workout.day_index,
-              workout_data: updatedWorkoutData
+              workout_data: templateWorkoutData
             }),
             keepalive: true
           }).catch(() => {});
@@ -2545,7 +2629,9 @@ function Workouts() {
     // Save to backend with retry logic (up to 3 attempts with exponential backoff)
     // Stash the in-flight save so the visibilitychange/pagehide handler can flush
     // it via fetch keepalive if the user kills the app before the API request lands.
-    pendingSaveRef.current = { workout, updatedWorkoutData };
+    // Stash the SANITIZED payload so the visibility flush also avoids template
+    // contamination.
+    pendingSaveRef.current = { workout, updatedWorkoutData: templateWorkoutData };
     const saveWithRetry = async (attempts = 3) => {
       for (let i = 0; i < attempts; i++) {
         try {
@@ -2556,24 +2642,26 @@ function Workouts() {
               ...(isRealId ? { workoutId: workout.id } : {}),
               clientId: workout.client_id,
               workoutDate: dateStr,
-              workoutData: updatedWorkoutData,
+              workoutData: templateWorkoutData,
               name: workout.name
             });
           } else {
             await apiPut('/.netlify/functions/client-workout-log', {
               assignmentId: workout.id,
               dayIndex: workout.day_index,
-              workout_data: updatedWorkoutData
+              workout_data: templateWorkoutData
             });
           }
           // Clear pending — only the latest in-flight save needs the keepalive backup.
           // Note: a newer call to handleUpdateExercise will overwrite pendingSaveRef
           // before clearing, so we don't drop a more recent pending save.
-          if (pendingSaveRef.current?.updatedWorkoutData === updatedWorkoutData) {
+          if (pendingSaveRef.current?.updatedWorkoutData === templateWorkoutData) {
             pendingSaveRef.current = null;
           }
           // Drop the draft once the server has persisted it.
-          try { localStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
+          if (DRAFT_KEY) {
+            try { localStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
+          }
           return; // Success
         } catch (err) {
           console.error(`Error saving exercise update (attempt ${i + 1}/${attempts}):`, err);
@@ -2657,7 +2745,7 @@ function Workouts() {
       });
 
       // Save to backend
-      const workoutDataToSave = isUsingDays ? {
+      const workoutDataToSave = sanitizeWorkoutDataForTemplate(isUsingDays ? {
         ...workout.workout_data,
         days: workout.workout_data.days.map((day, idx) => {
           if (idx === (Math.abs(dayIndex) % workout.workout_data.days.length)) {
@@ -2668,7 +2756,7 @@ function Workouts() {
       } : {
         ...workout.workout_data,
         exercises: updatedExercises
-      };
+      });
 
       // Use correct endpoint based on workout type
       if (workout.is_adhoc) {
@@ -2764,7 +2852,7 @@ function Workouts() {
     });
 
     // Save to backend
-    const workoutDataToSave = isUsingDays ? {
+    const workoutDataToSave = sanitizeWorkoutDataForTemplate(isUsingDays ? {
       ...workout.workout_data,
       days: workout.workout_data.days.map((day, idx) => {
         if (idx === (Math.abs(dayIndex) % workout.workout_data.days.length)) {
@@ -2772,7 +2860,7 @@ function Workouts() {
         }
         return day;
       })
-    } : { ...workout.workout_data, exercises: currentExercises };
+    } : { ...workout.workout_data, exercises: currentExercises });
 
     // Use correct endpoint based on workout type
     if (workout.is_adhoc) {
@@ -2832,7 +2920,7 @@ function Workouts() {
     });
 
     // Save to backend
-    const workoutDataToSave = isUsingDays ? {
+    const workoutDataToSave = sanitizeWorkoutDataForTemplate(isUsingDays ? {
       ...workout.workout_data,
       days: workout.workout_data.days.map((day, idx) => {
         if (idx === (Math.abs(dayIndex) % workout.workout_data.days.length)) {
@@ -2840,7 +2928,7 @@ function Workouts() {
         }
         return day;
       })
-    } : { ...workout.workout_data, exercises: currentExercises };
+    } : { ...workout.workout_data, exercises: currentExercises });
 
     // Use correct endpoint based on workout type
     if (workout.is_adhoc) {
@@ -3035,7 +3123,8 @@ function Workouts() {
       // Clear localStorage completion cache since workout is done
       try {
         const workout = todayWorkoutRef.current;
-        const key = completionStorageKey(workout?.id, workout?.day_index);
+        const dateStr = workout?.workout_date || formatDate(selectedDateRef.current || new Date());
+        const key = completionStorageKey(workout?.id, workout?.day_index, dateStr);
         if (key) localStorage.removeItem(key);
       } catch (e) { /* ignore */ }
       // Show summary modal
@@ -3221,7 +3310,7 @@ function Workouts() {
       setTodayWorkout(remaining.length > 0 ? remaining[0] : null);
       setWorkoutLog(null);
       setCompletedExercises(remaining.length > 0
-        ? getCompletedFromWorkoutData(remaining[0].workout_data, remaining[0].day_index || 0, remaining[0].id)
+        ? getCompletedFromWorkoutData(remaining[0].workout_data, remaining[0].day_index || 0, remaining[0].id, remaining[0].workout_date || formatDate(selectedDate))
         : new Set()
       );
       setShowHeroMenu(false);
@@ -3273,7 +3362,7 @@ function Workouts() {
         setTodayWorkout(remaining.length > 0 ? remaining[0] : null);
         setWorkoutLog(null);
         setCompletedExercises(remaining.length > 0
-          ? getCompletedFromWorkoutData(remaining[0].workout_data, remaining[0].day_index || 0, remaining[0].id)
+          ? getCompletedFromWorkoutData(remaining[0].workout_data, remaining[0].day_index || 0, remaining[0].id, remaining[0].workout_date || formatDate(selectedDate))
           : new Set()
         );
       }
@@ -3347,12 +3436,25 @@ function Workouts() {
       }
 
       // Filter to only valid exercises with required fields
-      const filtered = rawExercises.filter(ex =>
-        ex &&
-        typeof ex === 'object' &&
-        ex.id &&
-        (ex.name || ex.id)
-      );
+      const filtered = rawExercises
+        .filter(ex =>
+          ex &&
+          typeof ex === 'object' &&
+          ex.id &&
+          (ex.name || ex.id)
+        )
+        // Scrub session-only set fields (completed / weight / rpe / effort)
+        // from the template before they reach the UI. This hides stale state
+        // on legacy assignments that were contaminated by earlier buggy writes
+        // — otherwise old checkmarks and weights resurface on a fresh day's
+        // workout. Per-date values are re-applied from workoutLog in the
+        // merge step below.
+        .map(ex => {
+          const { completed, ...restEx } = ex;
+          if (Array.isArray(restEx.sets)) restEx.sets = restEx.sets.map(stripSessionFieldsFromSet);
+          if (Array.isArray(restEx.setsData)) restEx.setsData = restEx.setsData.map(stripSessionFieldsFromSet);
+          return restEx;
+        });
 
       // Normalize AI exercise data — AI workouts from generate-workout-claude.js
       // are missing trackingType/exercise_type and have reps as strings like "8-10".
@@ -3853,7 +3955,7 @@ function Workouts() {
                       if (group.length === 1) {
                         const workout = first;
                         const cardExercises = getWorkoutExercises(workout);
-                        const cardCompletedCount = getWorkoutCompletedCount(workout);
+                        const cardCompletedCount = getWorkoutCompletedCount(workout, workout.workout_date || formatDate(selectedDate));
                         const cardDayName = workout.name || workout.workout_data?.name || 'Workout';
                         const totalDays = workout.workout_data?.days?.length || 0;
                         const currentDay = totalDays > 0 ? (workout.day_index || 0) + 1 : 0;
@@ -3925,7 +4027,7 @@ function Workouts() {
                           <div className="workout-card-content workout-card-content-merged">
                             {group.map((workout, idx) => {
                               const cardExercises = getWorkoutExercises(workout);
-                              const cardCompletedCount = getWorkoutCompletedCount(workout);
+                              const cardCompletedCount = getWorkoutCompletedCount(workout, workout.workout_date || formatDate(selectedDate));
                               const totalDays = workout.workout_data?.days?.length || 0;
                               const currentDay = totalDays > 0 ? (workout.day_index || 0) + 1 : 0;
                               const daySpecificName = workout.workout_data?.name && workout.workout_data.name !== workout.name
@@ -4275,7 +4377,8 @@ function Workouts() {
                         setWorkoutStartTime(null);
                         try {
                           const w = todayWorkoutRef.current;
-                          const k = completionStorageKey(w?.id, w?.day_index);
+                          const dStr = w?.workout_date || formatDate(selectedDateRef.current || new Date());
+                          const k = completionStorageKey(w?.id, w?.day_index, dStr);
                           if (k) localStorage.removeItem(k);
                         } catch (ex) { /* ignore */ }
                       }}
