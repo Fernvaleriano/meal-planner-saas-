@@ -52,6 +52,8 @@ exports.handler = async (event) => {
           .from('exercise_logs')
           .select('*')
           .eq('workout_log_id', workoutId)
+          .order('updated_at', { ascending: false, nullsFirst: false })
+          .order('id', { ascending: false })
           .order('exercise_order', { ascending: true });
 
         if (exerciseError) throw exerciseError;
@@ -62,7 +64,21 @@ exports.handler = async (event) => {
           body: JSON.stringify({
             workout: {
               ...workout,
-              exercises: exercises || []
+              exercises: (() => {
+                const seen = new Set();
+                const deduped = [];
+                for (const ex of (exercises || [])) {
+                  if (ex.exercise_id == null) {
+                    deduped.push(ex);
+                    continue;
+                  }
+                  const key = `${ex.workout_log_id}:${ex.exercise_id}`;
+                  if (seen.has(key)) continue;
+                  seen.add(key);
+                  deduped.push(ex);
+                }
+                return deduped.sort((a, b) => (a.exercise_order ?? 0) - (b.exercise_order ?? 0));
+              })()
             }
           })
         };
@@ -115,6 +131,7 @@ exports.handler = async (event) => {
           .select('*')
           .in('workout_log_id', workoutIds)
           .order('updated_at', { ascending: false, nullsFirst: false })
+          .order('id', { ascending: false })
           .order('exercise_order', { ascending: true });
         const seen = new Set();
         allExerciseLogs = [];
@@ -230,7 +247,8 @@ exports.handler = async (event) => {
               .from('exercise_logs')
               .select('id, exercise_id, updated_at')
               .eq('workout_log_id', existingLogs[0].id)
-              .order('updated_at', { ascending: false, nullsFirst: false });
+              .order('updated_at', { ascending: false, nullsFirst: false })
+              .order('id', { ascending: false });
             const existingExMap = {};
             const duplicateIdsToDelete = [];
             for (const log of (existingExerciseLogs || [])) {
@@ -269,11 +287,17 @@ exports.handler = async (event) => {
               if (ex.clientVoiceNotePath !== undefined) fields.client_voice_note_path = ex.clientVoiceNotePath;
               if (ex.swappedFromName) fields.swapped_from_name = ex.swappedFromName;
 
-              const existingId = existingExMap[ex.exerciseId];
-              if (existingId) {
-                await supabase.from('exercise_logs').update(fields).eq('id', existingId);
+              if (ex.exerciseId != null) {
+                await supabase
+                  .from('exercise_logs')
+                  .upsert([fields], { onConflict: 'workout_log_id,exercise_id' });
               } else {
-                await supabase.from('exercise_logs').insert([fields]);
+                const existingId = existingExMap[ex.exerciseId];
+                if (existingId) {
+                  await supabase.from('exercise_logs').update(fields).eq('id', existingId);
+                } else {
+                  await supabase.from('exercise_logs').insert([fields]);
+                }
               }
             }
           } catch (upsertErr) {
@@ -460,7 +484,8 @@ exports.handler = async (event) => {
             .from('exercise_logs')
             .select('id, exercise_id, updated_at')
             .eq('workout_log_id', workoutId)
-            .order('updated_at', { ascending: false, nullsFirst: false });
+            .order('updated_at', { ascending: false, nullsFirst: false })
+            .order('id', { ascending: false });
 
           // First row per exercise_id wins (most recently updated). Everything
           // else for that exercise_id is a duplicate and gets deleted before
@@ -559,50 +584,42 @@ exports.handler = async (event) => {
             }
           }
 
-          // Check if exercise_log already exists using pre-fetched map
-          const existingId = ex.id || (ex.exerciseId ? existingLogMap[ex.exerciseId] : null);
+          const upsertObj = {
+            workout_log_id: workoutId,
+            exercise_id: ex.exerciseId,
+            exercise_name: ex.exerciseName,
+            exercise_order: ex.order || 0,
+            sets_data: setsData,
+            total_sets: exTotalSets,
+            total_reps: exTotalReps,
+            total_volume: exTotalVolume,
+            max_weight: exMaxWeight,
+            notes: ex.notes,
+            is_pr: isPr
+          };
+          if (ex.clientNotes !== undefined) upsertObj.client_notes = ex.clientNotes;
+          if (ex.clientVoiceNotePath !== undefined) upsertObj.client_voice_note_path = ex.clientVoiceNotePath;
+          if (ex.swappedFromName) upsertObj.swapped_from_name = ex.swappedFromName;
 
-          if (existingId) {
-            // Update existing exercise log
-            const updateObj = {
-              sets_data: setsData,
-              total_sets: exTotalSets,
-              total_reps: exTotalReps,
-              total_volume: exTotalVolume,
-              max_weight: exMaxWeight,
-              exercise_name: ex.exerciseName || undefined,
-              exercise_order: ex.order || undefined,
-              notes: ex.notes,
-              is_pr: isPr
-            };
-            if (ex.clientNotes !== undefined) updateObj.client_notes = ex.clientNotes;
-            if (ex.clientVoiceNotePath !== undefined) updateObj.client_voice_note_path = ex.clientVoiceNotePath;
-            if (ex.swappedFromName) updateObj.swapped_from_name = ex.swappedFromName;
+          if (ex.exerciseId != null) {
             await supabase
               .from('exercise_logs')
-              .update(updateObj)
-              .eq('id', existingId);
+              .upsert([upsertObj], { onConflict: 'workout_log_id,exercise_id' });
           } else {
-            // Insert new exercise log
-            const insertObj = {
-              workout_log_id: workoutId,
-              exercise_id: ex.exerciseId,
-              exercise_name: ex.exerciseName,
-              exercise_order: ex.order || 0,
-              sets_data: setsData,
-              total_sets: exTotalSets,
-              total_reps: exTotalReps,
-              total_volume: exTotalVolume,
-              max_weight: exMaxWeight,
-              notes: ex.notes,
-              is_pr: isPr
-            };
-            if (ex.clientNotes) insertObj.client_notes = ex.clientNotes;
-            if (ex.clientVoiceNotePath) insertObj.client_voice_note_path = ex.clientVoiceNotePath;
-            if (ex.swappedFromName) insertObj.swapped_from_name = ex.swappedFromName;
-            await supabase
-              .from('exercise_logs')
-              .insert([insertObj]);
+            // Fallback for legacy rows without exercise_id: keep the old
+            // update-by-id / insert behavior because unique upsert cannot
+            // target NULL exercise_id rows.
+            const existingId = ex.id || null;
+            if (existingId) {
+              await supabase
+                .from('exercise_logs')
+                .update(upsertObj)
+                .eq('id', existingId);
+            } else {
+              await supabase
+                .from('exercise_logs')
+                .insert([upsertObj]);
+            }
           }
         }
 

@@ -2422,25 +2422,44 @@ function Workouts() {
     // When it calls back into this handler with skipLogSync=true, only apply
     // local state/cache updates and avoid a second server write that can race
     // the modal write and create duplicate exercise_log rows.
+    //
+    // But we MUST still reflect the modal's save in our in-memory workoutLog
+    // so the exercises useMemo merge doesn't overwrite the just-updated
+    // workout_data setsData with the stale sets_data from workoutLog. Without
+    // this, the ExerciseCard re-renders with pre-save values the moment the
+    // modal closes — the classic "I saved 7kg and it reverted to 3kg" bug.
     if (options?.skipLogSync) {
+      if (updatedExercise?.id && Array.isArray(updatedExercise.sets)) {
+        const optimisticSetsData = updatedExercise.sets.map((s, idx) => ({
+          setNumber: idx + 1,
+          reps: s?.reps || 0,
+          weight: s?.weight || 0,
+          weightUnit: s?.weightUnit || weightUnitRef.current || 'lbs',
+          restSeconds: s?.restSeconds ?? null,
+          effort: s?.effort || null,
+          ...(s?.duration != null && { duration: s.duration }),
+          ...(s?.distance != null && { distance: s.distance })
+        }));
+        setWorkoutLog(prev => {
+          const base = prev || {};
+          const prevExercises = Array.isArray(base.exercises) ? base.exercises : [];
+          const idx = prevExercises.findIndex(e => e?.exercise_id === updatedExercise.id);
+          const entry = {
+            exercise_id: updatedExercise.id,
+            exercise_name: updatedExercise.name || 'Unknown',
+            sets_data: optimisticSetsData
+          };
+          const nextExercises = idx >= 0
+            ? prevExercises.map((e, i) => i === idx ? { ...e, ...entry } : e)
+            : [...prevExercises, entry];
+          return { ...base, exercises: nextExercises };
+        });
+      }
       return;
     }
 
-    // Best-effort backup write to workout_logs/exercise_logs.
-    // Why this exists: ExerciseDetailModal auto-saves into exercise_logs, which
-    // makes its edits survive app-kill/restart even when assignment PUT is
-    // interrupted. ExerciseCard edits only hit assignment PUT. Writing a backup
-    // exercise_log here unifies persistence for both entry points.
-    //
-    // Reliability wins on top of the previous version:
-    //   1. Cache the workout_log_id in localStorage keyed by (clientId, date).
-    //      Subsequent same-day saves skip the lookup entirely and go straight to PUT.
-    //   2. Fire a single keepalive POST with exercises when we don't know
-    //      the log id yet — server upserts in one shot, so there's no more
-    //      GET/POST/PUT chain that could get cancelled mid-app-kill.
-    //   3. Fire a keepalive PUT when we DO know the log id — fastest path.
-    // Also patches workoutLog state optimistically so the exercises useMemo
-    // merge reflects the edit without waiting for a round-trip.
+    // Persist set data to workout_logs / exercise_logs and patch in-memory log
+    // optimistically so the exercises merge reflects edits immediately.
     (async () => {
       try {
         const currentClientId = clientDataRef.current?.id || workout.client_id;
@@ -2472,32 +2491,6 @@ function Workouts() {
           order: 1,
           sets: setsPayload
         };
-        // Keepalive PUT — survives full app-kill. The OS lets this request
-        // finish in the background even after the WebView is torn down.
-        const fireKeepalivePut = (id) => {
-          try {
-            let authToken = null;
-            try {
-              const keys = Object.keys(localStorage);
-              const sbKey = keys.find(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
-              if (sbKey) {
-                const session = JSON.parse(localStorage.getItem(sbKey));
-                authToken = session?.access_token || session?.currentSession?.access_token;
-              }
-            } catch { /* ignore */ }
-            if (!authToken) return;
-            fetch('/.netlify/functions/workout-logs', {
-              method: 'PUT',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${authToken}`
-              },
-              body: JSON.stringify({ workoutId: id, exercises: [exercisePayload] }),
-              keepalive: true
-            }).catch(() => {});
-          } catch { /* ignore */ }
-        };
-
         // Patch workoutLog state so the exercises useMemo merge reflects the
         // new sets_data immediately, without waiting for a refetch.
         const patchWorkoutLogState = (id) => {
@@ -2517,54 +2510,16 @@ function Workouts() {
           });
         };
 
-        // Keepalive POST fallback for when we don't have a logId yet —
-        // server upserts log + exercises in a single shot (see workout-logs.js).
-        // Bulletproof against app-kill even on first-of-day saves.
-        const fireKeepalivePost = () => {
-          try {
-            let authToken = null;
-            try {
-              const keys = Object.keys(localStorage);
-              const sbKey = keys.find(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
-              if (sbKey) {
-                const session = JSON.parse(localStorage.getItem(sbKey));
-                authToken = session?.access_token || session?.currentSession?.access_token;
-              }
-            } catch { /* ignore */ }
-            if (!authToken) return;
-            fetch('/.netlify/functions/workout-logs', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${authToken}`
-              },
-              body: JSON.stringify({
-                clientId: currentClientId,
-                assignmentId: workout.is_adhoc ? undefined : workout.id,
-                workoutDate: dateStr,
-                workoutName: workout.name || 'Workout',
-                status: 'in_progress',
-                exercises: [exercisePayload]
-              }),
-              keepalive: true
-            }).catch(() => {});
-          } catch { /* ignore */ }
-        };
-
         if (logId) {
-          // Fast path — we know the log id. Fire the keepalive PUT immediately
-          // (bulletproof) and also the normal durable apiPut (for error surfacing).
+          // Fast path — we know the log id.
           try { localStorage.setItem(LOG_ID_KEY, logId); } catch { /* ignore */ }
           patchWorkoutLogState(logId);
-          fireKeepalivePut(logId);
           try {
             await apiPut('/.netlify/functions/workout-logs', {
               workoutId: logId,
               exercises: [exercisePayload]
             });
-            // Server confirmed — drop the draft. The keepalive fired above is
-            // the safety net; if apiPut fails we leave the draft in place so a
-            // reload can restore the user's edit.
+            // Server confirmed — drop the draft.
             try { localStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
           } catch (err) {
             console.error('PUT /workout-logs failed', { logId, error: err?.message, status: err?.status });
@@ -2572,16 +2527,7 @@ function Workouts() {
           return;
         }
 
-        // Fast path for first-of-day: one keepalive POST with exercises.
-        // Server creates-or-finds the log AND upserts exercise_logs in the
-        // same request. Fires BEFORE we await anything so app-kill can't
-        // cancel the whole chain mid-flight.
-        patchWorkoutLogState('pending');
-        fireKeepalivePost();
-
-        // Now also do the durable/awaited path so we can cache the logId
-        // for next save. Errors here don't matter — the keepalive POST
-        // above is the safety net.
+        // First save for the day: create-or-find log and upsert exercise data.
         try {
           const created = await apiPost('/.netlify/functions/workout-logs', {
             clientId: currentClientId,

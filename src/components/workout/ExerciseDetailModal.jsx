@@ -1226,7 +1226,7 @@ function ExerciseDetailModal({
         if (callbackRefs.current.onUpdateExercise && exerciseRef.current) {
           const currentExercise = exerciseRef.current;
           setTimeout(() => {
-            callbackRefs.current.onUpdateExercise({ ...currentExercise, sets: newSets });
+            callbackRefs.current.onUpdateExercise({ ...currentExercise, sets: newSets }, { skipLogSync: true });
           }, 0);
         }
 
@@ -1320,7 +1320,7 @@ function ExerciseDetailModal({
           ...currentExercise,
           sets: newSets
         };
-        callbackRefs.current.onUpdateExercise(updatedExercise);
+        callbackRefs.current.onUpdateExercise(updatedExercise, { skipLogSync: true });
       }
 
       return newSets;
@@ -1350,7 +1350,7 @@ function ExerciseDetailModal({
         // Also update trackingType so ExerciseCard renders the correct unit
         trackingType: editMode === 'time' ? 'time' : (editMode === 'distance' ? 'distance' : 'reps')
       };
-      callbackRefs.current.onUpdateExercise(updatedExercise);
+      callbackRefs.current.onUpdateExercise(updatedExercise, { skipLogSync: true });
     }
   // NOTE: exercise accessed via exerciseRef to prevent callback recreation
   }, []);
@@ -1536,44 +1536,17 @@ function ExerciseDetailModal({
 
     if (!acceptedSets) return;
 
-    // Persist to workout assignment so values survive app reload.
-    // Called OUTSIDE the state updater to avoid side-effects inside it.
     const currentExercise = exerciseRef.current;
 
-    // 1) Update parent state via callback (keeps local UI in sync)
+    // Update parent state via callback (keeps local UI in sync) without
+    // triggering parent-side workout-log persistence (this modal handles its
+    // own save path below).
     if (callbackRefs.current.onUpdateExercise && currentExercise) {
-      callbackRefs.current.onUpdateExercise({ ...currentExercise, sets: acceptedSets });
+      callbackRefs.current.onUpdateExercise({ ...currentExercise, sets: acceptedSets }, { skipLogSync: true });
     }
 
-    // 2) DIRECT save to workout assignment — bypasses the onUpdateExercise callback
-    // chain entirely so we're guaranteed the data hits the DB.
-    const saveToAssignment = async () => {
-      try {
-        if (!assignmentId || !currentExercise) return;
-
-        // Build updated exercises array: replace this exercise's sets/setsData
-        const updatedExercises = allExercisesRaw.map(ex => {
-          if (ex?.id === currentExercise.id) {
-            return { ...ex, sets: acceptedSets, setsData: acceptedSets };
-          }
-          return ex;
-        });
-
-        await apiPut('/.netlify/functions/client-workout-log', {
-          assignmentId,
-          dayIndex,
-          workout_data: { exercises: updatedExercises }
-        });
-        console.log('Coaching recommendation saved to assignment successfully');
-      } catch (err) {
-        console.error('Error saving coaching rec to assignment:', err);
-      }
-    };
-    saveToAssignment();
-
-    // 3) ALSO save to exercise_logs (workout log) as backup.
-    // The sets_data merge on reload ensures values persist even if the
-    // assignment save was somehow lost.
+    // Persist accepted recommendation to exercise_logs (the per-session source
+    // of truth used by the workouts page on reload).
     const saveToWorkoutLog = async () => {
       try {
         let logId = workoutLogIdRef.current;
@@ -1632,7 +1605,7 @@ function ExerciseDetailModal({
     saveToWorkoutLog();
 
     setAcceptedCoachingRec(true);
-  }, [coachingRecommendation, weightUnit, clientId, getWorkoutDateStr, assignmentId, dayIndex, allExercisesRaw]);
+  }, [coachingRecommendation, weightUnit, clientId, getWorkoutDateStr]);
 
   // Calculate estimated 1RM using Epley formula: weight * (1 + reps/30)
   const calculate1RM = (weight, reps) => {
