@@ -143,7 +143,7 @@ const parseVoiceInputForSets = (transcript) => {
   }
 };
 
-function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick, workoutStarted, onSwapExercise, onDeleteExercise, onMoveUp, onMoveDown, isFirst, isLast, onUpdateExercise, onOpenSetEditor, weightUnit = 'lbs', clientId }) {
+function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick, workoutStarted, onSwapExercise, onDeleteExercise, onMoveUp, onMoveDown, isFirst, isLast, onUpdateExercise, onOpenSetEditor, weightUnit = 'lbs', clientId, hideSupersetBadge = false }) {
   // Early return if exercise is invalid
   if (!exercise || typeof exercise !== 'object') {
     return null;
@@ -747,7 +747,7 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
     >
       {/* Main Card Content */}
       <div
-        className={`exercise-card-v2 ${isCompleted ? 'completed' : ''} ${workoutStarted ? 'active' : ''} ${isSuperset ? 'superset-exercise' : ''} ${isWarmup ? 'warmup-exercise' : ''} ${isStretch ? 'stretch-exercise' : ''}`}
+        className={`exercise-card-v2 ${isCompleted ? 'completed' : ''} ${workoutStarted ? 'active' : ''} ${isSuperset && !hideSupersetBadge ? 'superset-exercise' : ''} ${isSuperset && hideSupersetBadge ? 'in-superset-group' : ''} ${isWarmup ? 'warmup-exercise' : ''} ${isStretch ? 'stretch-exercise' : ''}`}
       >
         {/* HEADER ZONE - Swipe for swap/delete/move + swipe-right to complete */}
         <div className="header-swipe-zone">
@@ -848,9 +848,9 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
               )}
 
               {/* Exercise Type Badges */}
-              {(isSuperset || isWarmup || isStretch) && (
+              {((isSuperset && !hideSupersetBadge) || isWarmup || isStretch) && (
                 <div className="exercise-badges">
-                  {isSuperset && (
+                  {isSuperset && !hideSupersetBadge && (
                     <span className="exercise-badge superset-badge">
                       <Zap size={10} />
                       Superset {exercise.supersetGroup}

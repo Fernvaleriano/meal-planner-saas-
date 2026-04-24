@@ -4456,56 +4456,131 @@ function Workouts() {
               </div>
             )}
             <div className="exercises-list-v2">
-              {exercises.map((exercise, index) => {
-                if (!exercise || !exercise.id) return null;
+              {(() => {
+                // Pre-group consecutive exercises that share a supersetGroup so
+                // they render inside one wrapper with a single Superset header.
+                const items = [];
+                let i = 0;
+                while (i < exercises.length) {
+                  const ex = exercises[i];
+                  if (!ex || !ex.id) { i++; continue; }
+                  if (ex.isSuperset && ex.supersetGroup) {
+                    const groupKey = ex.supersetGroup;
+                    const startIndex = i;
+                    const members = [];
+                    while (
+                      i < exercises.length &&
+                      exercises[i]?.isSuperset &&
+                      exercises[i]?.supersetGroup === groupKey &&
+                      exercises[i]?.id
+                    ) {
+                      members.push({ exercise: exercises[i], originalIndex: i });
+                      i++;
+                    }
+                    items.push({ type: 'superset', groupKey, startIndex, members });
+                  } else {
+                    items.push({ type: 'exercise', exercise: ex, originalIndex: i });
+                    i++;
+                  }
+                }
 
-                // Determine phase for section headers
-                const phase = exercise.phase || (exercise.isWarmup ? 'warmup' : exercise.isStretch ? 'cooldown' : 'main');
-                const prevExercise = index > 0 ? exercises[index - 1] : null;
-                const prevPhase = prevExercise ? (prevExercise.phase || (prevExercise.isWarmup ? 'warmup' : prevExercise.isStretch ? 'cooldown' : 'main')) : null;
-                const showPhaseHeader = phase !== prevPhase;
-
-                return (
-                  <ErrorBoundary key={exercise.id || `exercise-${index}`} compact>
-                    {showPhaseHeader && phase === 'warmup' && (
+                const renderPhaseHeader = (firstIndex, firstExercise) => {
+                  const phase = firstExercise.phase || (firstExercise.isWarmup ? 'warmup' : firstExercise.isStretch ? 'cooldown' : 'main');
+                  const prevExercise = firstIndex > 0 ? exercises[firstIndex - 1] : null;
+                  const prevPhase = prevExercise ? (prevExercise.phase || (prevExercise.isWarmup ? 'warmup' : prevExercise.isStretch ? 'cooldown' : 'main')) : null;
+                  if (phase === prevPhase) return null;
+                  if (phase === 'warmup') {
+                    return (
                       <div className="workout-phase-divider warmup">
                         <span className="phase-divider-icon">&#x1F525;</span>
                         <span className="phase-divider-label">Warm-Up</span>
                       </div>
-                    )}
-                    {showPhaseHeader && phase === 'main' && index > 0 && (
+                    );
+                  }
+                  if (phase === 'main' && firstIndex > 0) {
+                    return (
                       <div className="workout-phase-divider main">
                         <span className="phase-divider-icon">&#x1F4AA;</span>
                         <span className="phase-divider-label">Main Workout</span>
                       </div>
-                    )}
-                    {showPhaseHeader && phase === 'cooldown' && (
+                    );
+                  }
+                  if (phase === 'cooldown') {
+                    return (
                       <div className="workout-phase-divider cooldown">
                         <span className="phase-divider-icon">&#x1F9CA;</span>
                         <span className="phase-divider-label">Cool-Down</span>
                       </div>
-                    )}
-                    <ExerciseCard
-                      exercise={exercise}
-                      index={index}
-                      isCompleted={completedExercises.has(exercise.id)}
-                      onToggleComplete={() => toggleExerciseComplete(exercise.id)}
-                      onClick={() => handleExerciseClick(exercise)}
-                      workoutStarted={workoutStarted}
-                      onSwapExercise={handleSwipeSwap}
-                      onDeleteExercise={handleSwipeDelete}
-                      onMoveUp={handleMoveExerciseUp}
-                      onMoveDown={handleMoveExerciseDown}
-                      isFirst={index === 0}
-                      isLast={index === exercises.length - 1}
-                      onUpdateExercise={handleUpdateExercise}
-                      onOpenSetEditor={openSetEditor}
-                      weightUnit={weightUnit}
-                      clientId={clientData?.id}
-                    />
-                  </ErrorBoundary>
-                );
-              })}
+                    );
+                  }
+                  return null;
+                };
+
+                return items.map((item) => {
+                  if (item.type === 'superset') {
+                    const firstExercise = item.members[0].exercise;
+                    return (
+                      <React.Fragment key={`ss-${item.groupKey}-${item.startIndex}`}>
+                        {renderPhaseHeader(item.startIndex, firstExercise)}
+                        <div className="superset-group">
+                          <div className="superset-group-header">
+                            <Zap size={12} />
+                            <span>Superset {item.groupKey}</span>
+                          </div>
+                          {item.members.map(({ exercise, originalIndex }) => (
+                            <ErrorBoundary key={exercise.id || `exercise-${originalIndex}`} compact>
+                              <ExerciseCard
+                                exercise={exercise}
+                                index={originalIndex}
+                                isCompleted={completedExercises.has(exercise.id)}
+                                onToggleComplete={() => toggleExerciseComplete(exercise.id)}
+                                onClick={() => handleExerciseClick(exercise)}
+                                workoutStarted={workoutStarted}
+                                onSwapExercise={handleSwipeSwap}
+                                onDeleteExercise={handleSwipeDelete}
+                                onMoveUp={handleMoveExerciseUp}
+                                onMoveDown={handleMoveExerciseDown}
+                                isFirst={originalIndex === 0}
+                                isLast={originalIndex === exercises.length - 1}
+                                onUpdateExercise={handleUpdateExercise}
+                                onOpenSetEditor={openSetEditor}
+                                weightUnit={weightUnit}
+                                clientId={clientData?.id}
+                                hideSupersetBadge
+                              />
+                            </ErrorBoundary>
+                          ))}
+                        </div>
+                      </React.Fragment>
+                    );
+                  }
+
+                  const { exercise, originalIndex } = item;
+                  return (
+                    <ErrorBoundary key={exercise.id || `exercise-${originalIndex}`} compact>
+                      {renderPhaseHeader(originalIndex, exercise)}
+                      <ExerciseCard
+                        exercise={exercise}
+                        index={originalIndex}
+                        isCompleted={completedExercises.has(exercise.id)}
+                        onToggleComplete={() => toggleExerciseComplete(exercise.id)}
+                        onClick={() => handleExerciseClick(exercise)}
+                        workoutStarted={workoutStarted}
+                        onSwapExercise={handleSwipeSwap}
+                        onDeleteExercise={handleSwipeDelete}
+                        onMoveUp={handleMoveExerciseUp}
+                        onMoveDown={handleMoveExerciseDown}
+                        isFirst={originalIndex === 0}
+                        isLast={originalIndex === exercises.length - 1}
+                        onUpdateExercise={handleUpdateExercise}
+                        onOpenSetEditor={openSetEditor}
+                        weightUnit={weightUnit}
+                        clientId={clientData?.id}
+                      />
+                    </ErrorBoundary>
+                  );
+                });
+              })()}
 
               {/* Add Activity Button */}
               <div className="add-activity-section">
