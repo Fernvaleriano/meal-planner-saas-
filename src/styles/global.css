@@ -19338,42 +19338,6 @@ textarea,
     border-left: 3px solid #10B981;
 }
 
-/* Superset group — wraps consecutive exercises sharing a supersetGroup under
-   one labeled header instead of each card showing its own SUPERSET badge. */
-.superset-group {
-    position: relative;
-    border: 1px solid rgba(139, 92, 246, 0.35);
-    border-left: 3px solid #8B5CF6;
-    border-radius: 12px;
-    background: rgba(139, 92, 246, 0.06);
-    padding: 10px;
-    margin: 8px 0;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.superset-group-header {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    align-self: flex-start;
-    font-size: 11px;
-    font-weight: 700;
-    color: white;
-    background: linear-gradient(135deg, #8B5CF6, #6366F1);
-    padding: 4px 10px;
-    border-radius: 6px;
-    text-transform: uppercase;
-    letter-spacing: 0.4px;
-}
-
-/* Inside a superset group, remove the individual purple border since the
-   wrapper already communicates membership. */
-.superset-group .exercise-card-v2.in-superset-group {
-    border-left: none;
-}
-
 /* Equipment subtitle - like "No equipment" */
 .exercise-card-v2 .equipment-subtitle {
     font-size: 13px;
