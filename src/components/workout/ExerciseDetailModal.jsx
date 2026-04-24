@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
-import { X, Check, Plus, ChevronLeft, Play, Timer, BarChart3, ArrowLeftRight, Trash2, Mic, MicOff, MessageCircle, Loader2, AlertCircle, History, TrendingUp, Award, ChevronDown, ChevronUp, Send, Square, Sparkles, ExternalLink, Camera, Bot, Flame, Leaf, Zap } from 'lucide-react';
+import { X, Check, Plus, ChevronLeft, Play, Timer, BarChart3, ArrowLeftRight, Trash2, Mic, MicOff, MessageCircle, Loader2, AlertCircle, History, TrendingUp, Award, ChevronDown, ChevronUp, Send, Square, Sparkles, ExternalLink, Camera, Bot, Flame, Leaf } from 'lucide-react';
 import { apiGet, apiPost, apiPut, apiDelete, getOrCreateWorkoutLogId } from '../../utils/api';
 import { generateProgression, EFFORT_OPTIONS, parseSetsData, getMaxWeight } from '../../utils/workoutProgression';
 import { onAppSuspend, onAppResume } from '../../hooks/useAppLifecycle';
@@ -470,8 +470,6 @@ function ExerciseDetailModal({
           hrZone: set?.hrZone || null,
           pace: set?.pace || null,
           incline: set?.incline || null,
-          ...(set?.isTimeBased ? { isTimeBased: true } : {}),
-          ...(set?.isDistanceBased ? { isDistanceBased: true } : {}),
         }));
       }
 
@@ -483,9 +481,7 @@ function ExerciseDetailModal({
           duration: set?.duration || exercise.duration || null,
           distance: set?.distance || exercise.distance || null,
           restSeconds: set?.restSeconds ?? exercise.restSeconds ?? 60,
-          effort: set?.effort || null,
-          ...(set?.isTimeBased ? { isTimeBased: true } : {}),
-          ...(set?.isDistanceBased ? { isDistanceBased: true } : {}),
+          effort: set?.effort || null
         }));
       }
 
@@ -1674,17 +1670,10 @@ function ExerciseDetailModal({
   const isDistanceExercise = exercise?.trackingType === 'distance';
   const distanceUnit = exercise?.distanceUnit || 'miles';
   const distanceUnitLabel = distanceUnit === 'miles' ? 'mi' : distanceUnit === 'km' ? 'km' : 'm';
-  const isTimedExercise = !isDistanceExercise && (
-    exercise?.trackingType === 'time'
-    || sets.some(s => s?.isTimeBased)
-    || (exercise?.trackingType !== 'reps' && exercise?.exercise_type !== 'strength' && (
-        exercise?.duration || exercise?.exercise_type === 'cardio' || exercise?.exercise_type === 'timed'
-      ))
-  );
+  const isTimedExercise = !isDistanceExercise && (exercise?.trackingType === 'time' || (exercise?.trackingType !== 'reps' && exercise?.exercise_type !== 'strength' && (exercise?.duration || exercise?.exercise_type === 'cardio' || exercise?.exercise_type === 'timed' || sets.some(s => s?.isTimeBased))));
   const difficultyLevel = exercise?.difficulty || 'Novice';
   const isWarmupExercise = !!(exercise?.isWarmup || exercise?.phase === 'warmup' || exercise?.section === 'warm-up');
   const isStretchExercise = !!(exercise?.isStretch || exercise?.phase === 'cooldown' || exercise?.section === 'cool-down' || exercise?.exercise_type === 'stretch');
-  const isSupersetExercise = !!(exercise?.isSuperset && exercise?.supersetGroup);
 
   // Helper to check if URL is an image (not video)
   const isImageUrl = (url) => {
@@ -1965,7 +1954,7 @@ function ExerciseDetailModal({
 
   return (
     <div className="exercise-modal-overlay-v2" key={`modal-${resumeKey}`} ref={modalOverlayRef} onClick={handleClose}>
-      <div className={`exercise-modal-v2 modal-v3 ${isSupersetExercise ? 'superset-modal' : ''} ${isWarmupExercise ? 'warmup-modal' : ''} ${isStretchExercise ? 'stretch-modal' : ''}`} onClick={stopPropagation}>
+      <div className="exercise-modal-v2 modal-v3" onClick={stopPropagation}>
         {/* Header */}
         <div className="modal-header-v3">
           <button className="close-btn" onClick={handleClose} type="button">
@@ -2108,15 +2097,9 @@ function ExerciseDetailModal({
           </div>
         )}
 
-        {/* Exercise Type Badges — Superset / Warm-Up / Stretch */}
-        {(isSupersetExercise || isWarmupExercise || isStretchExercise) && (
+        {/* Exercise Type Badges — Warm-Up / Stretch */}
+        {(isWarmupExercise || isStretchExercise) && (
           <div className="detail-exercise-badges">
-            {isSupersetExercise && (
-              <span className="detail-exercise-badge superset-badge">
-                <Zap size={12} />
-                Superset {exercise.supersetGroup}
-              </span>
-            )}
             {isWarmupExercise && (
               <span className="detail-exercise-badge warmup-badge">
                 <Flame size={12} />
