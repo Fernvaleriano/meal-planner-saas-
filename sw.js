@@ -1,7 +1,11 @@
 // Zique Fitness PWA Service Worker
 const CACHE_NAME = 'zique-fitness-v14';
 const STATIC_CACHE = 'zique-static-v14';
-const DATA_CACHE = 'zique-data-v11';
+// DATA_CACHE bumped v11 -> v13 so existing clients wipe stale cached
+// workout-logs / workout-assignments / adhoc-workouts responses on next
+// load — those endpoints are no longer SW-cached and leftover cache
+// entries would keep serving stale pre-save snapshots for up to 30s.
+const DATA_CACHE = 'zique-data-v13';
 const CDN_CACHE = 'zique-cdn-v7';
 
 // Files to cache for offline use
@@ -44,13 +48,17 @@ const CACHEABLE_API_PATTERNS = [
   // Critical resume-time endpoints — added to eliminate the "partial content" problem
   // on iPhone where users saw empty pages for 10-25s after returning from background
   /\/\.netlify\/functions\/food-diary/,
-  /\/\.netlify\/functions\/workout-assignments/,
   /\/\.netlify\/functions\/meal-plans/,
   /\/\.netlify\/functions\/get-diary-interactions/,
   /\/\.netlify\/functions\/supplement-intake/,
   /\/\.netlify\/functions\/water-intake/,
-  /\/\.netlify\/functions\/workout-logs/,
-  /\/\.netlify\/functions\/adhoc-workouts/,
+  // NOTE: workout-assignments, workout-logs, and adhoc-workouts are
+  // intentionally excluded from SW caching. Stale-while-revalidate served
+  // pre-save snapshots on subsequent fetches and wiped just-saved set data
+  // out of the UI seconds after a page load — the "save, appears, then
+  // reverts" bug. React's in-memory per-date cache in Workouts.jsx already
+  // handles instant display on revisit; SW caching on top created a race
+  // where the stale SW copy overwrote fresh server state.
   // Navigation-time endpoints — cached so switching between pages in the
   // bottom nav doesn't trigger a full reload
   // NOTE: chat is intentionally excluded — real-time messaging must never
