@@ -58,9 +58,10 @@ function detectEquipment(name) {
 function parseExerciseFilename(filename) {
   const withoutExt = filename.replace(/\.(mp4|mov|avi|webm|gif|jpe?g|png|webp)$/i, '');
 
-  // Strip trailing digit(s) used for paired frame thumbnails
-  // Covers: press.jpg + press1.jpg, press 2.jpg, press_3.jpg, _female1.jpg
-  const withoutFrameSuffix = withoutExt.replace(/[\s_]?\d+$/, '');
+  // Strip trailing " (N)" OS-copy suffix (e.g. "press (1).jpeg"), then trailing
+  // frame digit (e.g. "press1.jpg"). Order matters so "press1 (1).jpeg" works.
+  const withoutParenSuffix = withoutExt.replace(/\s*\(\d+\)$/, '');
+  const withoutFrameSuffix = withoutParenSuffix.replace(/[\s_]?\d+$/, '');
 
   // Detect gender variant from _Female, _Male, _female, _male suffix
   let genderVariant = null;
