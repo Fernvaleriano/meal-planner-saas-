@@ -225,30 +225,7 @@ export function AuthProvider({ children }) {
             }
           } catch (err) {
             console.error('SPA: Background auth error:', err);
-            // Unrecoverable session states (refresh token invalidated by another
-            // device's sign-in, or never persisted). If we keep using cached
-            // client data here, the UI stays "signed in" but every API call
-            // goes out with no valid token → server rejects → saves silently
-            // fail → user sees edits revert on refresh. Surface it instead:
-            // clear everything and boot the user to sign in fresh.
-            const msg = String(err?.message || err || '');
-            const isUnrecoverable =
-              msg.includes('Invalid Refresh Token') ||
-              msg.includes('Refresh Token Not Found') ||
-              msg.includes('refresh_token_not_found') ||
-              err?.code === 'refresh_token_not_found';
-            if (isUnrecoverable && mounted) {
-              try {
-                localStorage.removeItem('cachedClientData');
-                // Best-effort: also ask Supabase to scrub its own session keys
-                // so the next load doesn't replay the same broken refresh token.
-                supabase.auth.signOut({ scope: 'local' }).catch(() => {});
-              } catch { /* ignore */ }
-              setClientData(null);
-              setUser(null);
-            }
-            // Other transient errors (network blip, timeout): keep the cached
-            // UI up and let the next auth tick retry.
+            // Keep using cached data on background auth failure
           }
         })();
         return;
