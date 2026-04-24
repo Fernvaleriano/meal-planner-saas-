@@ -62,13 +62,14 @@ WITH ranked AS (
 DELETE FROM workout_logs WHERE id IN (SELECT id FROM ranked WHERE rn > 1);
 
 -- 2. Dedupe exercise_logs per (workout_log_id, exercise_id).
---    Keep the row with the most recent updated_at. This is the gap flagged
---    by the post-mortem — races here produce stale reads that look like reverts.
+--    Keep the most recently created row. exercise_logs has no updated_at
+--    column, so created_at is the best available recency signal (id desc
+--    as tiebreaker on identical timestamps).
 WITH ranked AS (
   SELECT id,
     ROW_NUMBER() OVER (
       PARTITION BY workout_log_id, exercise_id
-      ORDER BY updated_at DESC NULLS LAST, id DESC
+      ORDER BY created_at DESC NULLS LAST, id DESC
     ) AS rn
   FROM exercise_logs
   WHERE exercise_id IS NOT NULL
