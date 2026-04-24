@@ -12,7 +12,6 @@ const headers = {
   'Content-Type': 'application/json'
 };
 
-// Muscle group detection
 function guessMuscleGroup(folderPath, exerciseName) {
   const folderMap = {
     'chest': 'chest', 'back': 'back', 'shoulders': 'shoulders', 'shoulder': 'shoulders',
@@ -80,6 +79,222 @@ function parseExerciseFilename(filename) {
   return { name, genderVariant };
 }
 
+const normalizeForMatch = (s) => (s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+
+async function listVideosRecursive(supabase, prefix, out) {
+  let offset = 0;
+  let hasMore = true;
+  while (hasMore) {
+    const { data, error } = await supabase.storage
+      .from(BUCKET_NAME)
+      .list(prefix, { limit: 1000, offset });
+    if (error || !data || data.length === 0) break;
+    for (const item of data) {
+      const itemPath = prefix ? `${prefix}/${item.name}` : item.name;
+      if (item.id === null) {
+        await listVideosRecursive(supabase, itemPath, out);
+      } else if (/\.(mp4|mov|avi|webm|gif)$/i.test(item.name)) {
+        const { data: urlData } = supabase.storage.from(BUCKET_NAME).getPublicUrl(itemPath);
+        out.push({ filename: item.name, path: itemPath, folder: prefix, url: urlData.publicUrl });
+      }
+    }
+    offset += data.length;
+    hasMore = data.length === 1000;
+  }
+}
+
+async function listThumbsRecursive(supabase, prefix, out) {
+  let offset = 0;
+  let hasMore = true;
+  while (hasMore) {
+    const { data, error } = await supabase.storage
+      .from(THUMBNAIL_BUCKET)
+      .list(prefix, { limit: 1000, offset });
+    if (error || !data || data.length === 0) break;
+    for (const item of data) {
+      const itemPath = prefix ? `${prefix}/${item.name}` : item.name;
+      if (item.id === null) {
+        await listThumbsRecursive(supabase, itemPath, out);
+      } else if (/\.(jpe?g|png|webp)$/i.test(item.name)) {
+        const { data: urlData } = supabase.storage.from(THUMBNAIL_BUCKET).getPublicUrl(itemPath);
+        out.push({ filename: item.name, path: itemPath, folder: prefix, url: urlData.publicUrl });
+      }
+    }
+    offset += data.length;
+    hasMore = data.length === 1000;
+  }
+}
+
+async function syncVideos(supabase, videos, dryRun, exercisesByName, exercisesByVideo) {
+  const toCreate = [];
+  const toUpdate = [];
+  let skipped = 0;
+
+  for (const video of videos) {
+    const { name: exerciseName, genderVariant } = parseExerciseFilename(video.filename);
+    const nameLower = exerciseName.toLowerCase().trim();
+
+    if (exercisesByVideo.has(video.url)) {
+      skipped++;
+      continue;
+    }
+
+    const variantKey = genderVariant ? `${nameLower}__${genderVariant}` : nameLower;
+    const existing = exercisesByName.get(variantKey) || exercisesByName.get(nameLower);
+
+    if (existing && exercisesByVideo.has(existing.video_url)) {
+      skipped++;
+      continue;
+    }
+
+    if (existing && !genderVariant) {
+      toUpdate.push({ id: existing.id, video_url: video.url, animation_url: video.url });
+    } else {
+      toCreate.push({
+        name: exerciseName,
+        muscle_group: guessMuscleGroup(video.folder, exerciseName),
+        equipment: detectEquipment(exerciseName),
+        exercise_type: 'strength',
+        difficulty: 'intermediate',
+        video_url: video.url,
+        animation_url: video.url,
+        gender_variant: genderVariant,
+        source: 'storage-sync',
+        description: `${exerciseName} exercise`,
+        instructions: `Perform the ${exerciseName} with proper form.`,
+        is_custom: false
+      });
+      exercisesByName.set(variantKey, { name: exerciseName });
+    }
+  }
+
+  let created = 0, updated = 0;
+  const errors = [];
+
+  if (!dryRun) {
+    for (const exercise of toCreate) {
+      const { error } = await supabase.from('exercises').insert(exercise);
+      if (error) {
+        errors.push(`${exercise.name} (${exercise.gender_variant || 'unisex'}): ${error.message}`);
+      } else {
+        created++;
+      }
+    }
+    for (const item of toUpdate) {
+      const { error } = await supabase
+        .from('exercises')
+        .update({ video_url: item.video_url, animation_url: item.animation_url })
+        .eq('id', item.id);
+      if (error) errors.push(error.message);
+      else updated++;
+    }
+  }
+
+  return {
+    inFolder: videos.length,
+    created: dryRun ? toCreate.length : created,
+    updated: dryRun ? toUpdate.length : updated,
+    skipped,
+    errors: errors.length,
+    errorMessages: errors.slice(0, 10),
+    sample: toCreate.slice(0, 10).map(e => ({
+      name: e.name,
+      gender: e.gender_variant || 'unisex',
+      muscle_group: e.muscle_group
+    }))
+  };
+}
+
+async function syncThumbs(supabase, thumbs, dryRun) {
+  const { data: exercisesWithThumbs } = await supabase
+    .from('exercises')
+    .select('id, name, thumbnail_url, gender_variant');
+
+  const thumbLookup = new Map();
+  const thumbLookupNormalized = new Map();
+  for (const ex of exercisesWithThumbs || []) {
+    const nameLower = ex.name.toLowerCase().trim();
+    const nameNorm = normalizeForMatch(ex.name);
+    const key = ex.gender_variant ? `${nameLower}__${ex.gender_variant}` : nameLower;
+    const normKey = ex.gender_variant ? `${nameNorm}__${ex.gender_variant}` : nameNorm;
+    thumbLookup.set(key, ex);
+    thumbLookupNormalized.set(normKey, ex);
+  }
+
+  const thumbToUpdate = [];
+  let thumbsSkipped = 0;
+  let thumbsUnmatched = 0;
+  const unmatchedThumbs = [];
+
+  for (const thumb of thumbs) {
+    const { name: exerciseName, genderVariant } = parseExerciseFilename(thumb.filename);
+    const nameLower = exerciseName.toLowerCase().trim();
+    const nameNorm = normalizeForMatch(exerciseName);
+    const variantKey = genderVariant ? `${nameLower}__${genderVariant}` : nameLower;
+    const variantNormKey = genderVariant ? `${nameNorm}__${genderVariant}` : nameNorm;
+
+    const existing =
+      thumbLookup.get(variantKey) ||
+      thumbLookup.get(nameLower) ||
+      thumbLookupNormalized.get(variantNormKey) ||
+      thumbLookupNormalized.get(nameNorm);
+
+    if (!existing) {
+      thumbsUnmatched++;
+      if (unmatchedThumbs.length < 10) unmatchedThumbs.push(thumb.filename);
+      continue;
+    }
+
+    if (existing.thumbnail_url === thumb.url) {
+      thumbsSkipped++;
+      continue;
+    }
+
+    thumbToUpdate.push({ id: existing.id, thumbnail_url: thumb.url, name: existing.name });
+  }
+
+  let thumbsUpdated = 0;
+  const thumbErrors = [];
+
+  if (!dryRun) {
+    for (const item of thumbToUpdate) {
+      const { error } = await supabase
+        .from('exercises')
+        .update({ thumbnail_url: item.thumbnail_url })
+        .eq('id', item.id);
+      if (error) thumbErrors.push(`${item.name}: ${error.message}`);
+      else thumbsUpdated++;
+    }
+  }
+
+  return {
+    inFolder: thumbs.length,
+    updated: dryRun ? thumbToUpdate.length : thumbsUpdated,
+    skipped: thumbsSkipped,
+    unmatched: thumbsUnmatched,
+    unmatchedSamples: unmatchedThumbs,
+    errors: thumbErrors.length,
+    errorMessages: thumbErrors.slice(0, 10)
+  };
+}
+
+async function loadExerciseMaps(supabase) {
+  const { data: existingExercises } = await supabase
+    .from('exercises')
+    .select('id, name, video_url, gender_variant');
+
+  const exercisesByName = new Map();
+  const exercisesByVideo = new Map();
+  for (const ex of existingExercises || []) {
+    const key = ex.gender_variant
+      ? `${ex.name.toLowerCase().trim()}__${ex.gender_variant}`
+      : ex.name.toLowerCase().trim();
+    exercisesByName.set(key, ex);
+    if (ex.video_url) exercisesByVideo.set(ex.video_url, ex);
+  }
+  return { exercisesByName, exercisesByVideo };
+}
+
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers, body: '' };
@@ -93,9 +308,50 @@ exports.handler = async (event) => {
   const params = event.queryStringParameters || {};
   const folder = params.folder || null;
   const dryRun = params.dryRun === 'true';
+  const all = params.all === 'true';
 
   try {
-    // If no folder specified, list all folders
+    if (all) {
+      const { data: topLevel } = await supabase.storage.from(BUCKET_NAME).list('', { limit: 1000 });
+      const folders = (topLevel || []).filter(item => item.id === null).map(item => item.name);
+
+      const { exercisesByName, exercisesByVideo } = await loadExerciseMaps(supabase);
+
+      const perFolder = [];
+      const agg = { inFolder: 0, created: 0, updated: 0, skipped: 0, errors: 0, errorMessages: [] };
+
+      for (const f of folders) {
+        const videos = [];
+        await listVideosRecursive(supabase, f, videos);
+        const stats = await syncVideos(supabase, videos, dryRun, exercisesByName, exercisesByVideo);
+        perFolder.push({ folder: f, ...stats });
+        agg.inFolder += stats.inFolder;
+        agg.created += stats.created;
+        agg.updated += stats.updated;
+        agg.skipped += stats.skipped;
+        agg.errors += stats.errors;
+        agg.errorMessages.push(...stats.errorMessages);
+      }
+
+      const allThumbs = [];
+      await listThumbsRecursive(supabase, '', allThumbs);
+      const thumbStats = await syncThumbs(supabase, allThumbs, dryRun);
+
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({
+          success: true,
+          mode: dryRun ? 'DRY RUN' : 'LIVE',
+          scope: 'ALL',
+          folders,
+          videos: { ...agg, errorMessages: agg.errorMessages.slice(0, 10) },
+          thumbnails: thumbStats,
+          perFolder
+        }, null, 2)
+      };
+    }
+
     if (!folder) {
       const { data: topLevel } = await supabase.storage.from(BUCKET_NAME).list('', { limit: 1000 });
       const folders = (topLevel || []).filter(item => item.id === null).map(item => item.name);
@@ -104,266 +360,34 @@ exports.handler = async (event) => {
         statusCode: 200,
         headers,
         body: JSON.stringify({
-          message: 'Specify a folder to sync. Run each folder one at a time.',
+          message: 'Specify a folder to sync, or pass ?all=true to sync every folder in one call.',
           folders: folders,
           example: `?folder=${encodeURIComponent(folders[0] || 'Legs')}`,
-          hint: 'Call this endpoint for each folder to sync all exercises'
+          backfillAll: '?all=true',
+          hint: 'Call this endpoint for each folder to sync all exercises, or use all=true for a full backfill'
         }, null, 2)
       };
     }
 
-    // List ALL files in the specified folder (with pagination)
     const allVideos = [];
+    await listVideosRecursive(supabase, folder, allVideos);
 
-    async function listFilesRecursive(prefix) {
-      let offset = 0;
-      let hasMore = true;
+    const { exercisesByName, exercisesByVideo } = await loadExerciseMaps(supabase);
+    const videoStats = await syncVideos(supabase, allVideos, dryRun, exercisesByName, exercisesByVideo);
 
-      while (hasMore) {
-        const { data, error } = await supabase.storage
-          .from(BUCKET_NAME)
-          .list(prefix, { limit: 1000, offset });
-
-        if (error || !data || data.length === 0) break;
-
-        for (const item of data) {
-          const itemPath = prefix ? `${prefix}/${item.name}` : item.name;
-
-          if (item.id === null) {
-            await listFilesRecursive(itemPath);
-          } else if (/\.(mp4|mov|avi|webm|gif)$/i.test(item.name)) {
-            const { data: urlData } = supabase.storage.from(BUCKET_NAME).getPublicUrl(itemPath);
-            allVideos.push({
-              filename: item.name,
-              path: itemPath,
-              folder: prefix,
-              url: urlData.publicUrl
-            });
-          }
-        }
-
-        offset += data.length;
-        hasMore = data.length === 1000;
-      }
-    }
-
-    await listFilesRecursive(folder);
-
-    // Get existing exercises
-    const { data: existingExercises } = await supabase
-      .from('exercises')
-      .select('id, name, video_url, gender_variant');
-
-    const exercisesByName = new Map();
-    const exercisesByVideo = new Map();
-    for (const ex of existingExercises || []) {
-      const key = ex.gender_variant
-        ? `${ex.name.toLowerCase().trim()}__${ex.gender_variant}`
-        : ex.name.toLowerCase().trim();
-      exercisesByName.set(key, ex);
-      if (ex.video_url) exercisesByVideo.set(ex.video_url, ex);
-    }
-
-    // Process videos
-    const toCreate = [];
-    const toUpdate = [];
-    let skipped = 0;
-
-    for (const video of allVideos) {
-      const { name: exerciseName, genderVariant } = parseExerciseFilename(video.filename);
-      const nameLower = exerciseName.toLowerCase().trim();
-
-      if (exercisesByVideo.has(video.url)) {
-        skipped++;
-        continue;
-      }
-
-      // For gender variants, look up by name + gender combo
-      const variantKey = genderVariant ? `${nameLower}__${genderVariant}` : nameLower;
-      const existing = exercisesByName.get(variantKey) || exercisesByName.get(nameLower);
-
-      if (existing && exercisesByVideo.has(existing.video_url)) {
-        // Already has a video linked, skip
-        skipped++;
-        continue;
-      }
-
-      if (existing && !genderVariant) {
-        // Update existing exercise with no gender variant
-        toUpdate.push({ id: existing.id, video_url: video.url, animation_url: video.url });
-      } else {
-        // Create new exercise (or new gender variant)
-        toCreate.push({
-          name: exerciseName,
-          muscle_group: guessMuscleGroup(video.folder, exerciseName),
-          equipment: detectEquipment(exerciseName),
-          exercise_type: 'strength',
-          difficulty: 'intermediate',
-          video_url: video.url,
-          animation_url: video.url,
-          gender_variant: genderVariant,
-          source: 'storage-sync',
-          description: `${exerciseName} exercise`,
-          instructions: `Perform the ${exerciseName} with proper form.`,
-          is_custom: false
-        });
-        exercisesByName.set(variantKey, { name: exerciseName });
-      }
-    }
-
-    let created = 0, updated = 0, errors = [];
-
-    if (!dryRun) {
-      // Insert exercises one at a time so one bad record doesn't kill the whole batch
-      for (const exercise of toCreate) {
-        const { error } = await supabase.from('exercises').insert(exercise);
-        if (error) {
-          errors.push(`${exercise.name} (${exercise.gender_variant || 'unisex'}): ${error.message}`);
-        } else {
-          created++;
-        }
-      }
-
-      // Update existing
-      for (const item of toUpdate) {
-        const { error } = await supabase
-          .from('exercises')
-          .update({ video_url: item.video_url, animation_url: item.animation_url })
-          .eq('id', item.id);
-        if (error) errors.push(error.message);
-        else updated++;
-      }
-    }
-
-    // Thumbnail sync pass — list files from THUMBNAIL_BUCKET and match to exercises by name + gender
     const allThumbs = [];
-    async function listThumbsRecursive(prefix) {
-      let offset = 0;
-      let hasMore = true;
-
-      while (hasMore) {
-        const { data, error } = await supabase.storage
-          .from(THUMBNAIL_BUCKET)
-          .list(prefix, { limit: 1000, offset });
-
-        if (error || !data || data.length === 0) break;
-
-        for (const item of data) {
-          const itemPath = prefix ? `${prefix}/${item.name}` : item.name;
-
-          if (item.id === null) {
-            await listThumbsRecursive(itemPath);
-          } else if (/\.(jpe?g|png|webp)$/i.test(item.name)) {
-            const { data: urlData } = supabase.storage.from(THUMBNAIL_BUCKET).getPublicUrl(itemPath);
-            allThumbs.push({
-              filename: item.name,
-              path: itemPath,
-              folder: prefix,
-              url: urlData.publicUrl
-            });
-          }
-        }
-
-        offset += data.length;
-        hasMore = data.length === 1000;
-      }
-    }
-
-    await listThumbsRecursive(folder);
-
-    // Refresh exercise map to include freshly created rows + current thumbnail_url
-    const { data: exercisesWithThumbs } = await supabase
-      .from('exercises')
-      .select('id, name, thumbnail_url, gender_variant');
-
-    const normalizeForMatch = (s) => (s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-
-    const thumbLookup = new Map();
-    const thumbLookupNormalized = new Map();
-    for (const ex of exercisesWithThumbs || []) {
-      const nameLower = ex.name.toLowerCase().trim();
-      const nameNorm = normalizeForMatch(ex.name);
-      const key = ex.gender_variant ? `${nameLower}__${ex.gender_variant}` : nameLower;
-      const normKey = ex.gender_variant ? `${nameNorm}__${ex.gender_variant}` : nameNorm;
-      thumbLookup.set(key, ex);
-      thumbLookupNormalized.set(normKey, ex);
-    }
-
-    const thumbToUpdate = [];
-    let thumbsSkipped = 0;
-    let thumbsUnmatched = 0;
-    const unmatchedThumbs = [];
-
-    for (const thumb of allThumbs) {
-      const { name: exerciseName, genderVariant } = parseExerciseFilename(thumb.filename);
-      const nameLower = exerciseName.toLowerCase().trim();
-      const nameNorm = normalizeForMatch(exerciseName);
-      const variantKey = genderVariant ? `${nameLower}__${genderVariant}` : nameLower;
-      const variantNormKey = genderVariant ? `${nameNorm}__${genderVariant}` : nameNorm;
-
-      const existing =
-        thumbLookup.get(variantKey) ||
-        thumbLookup.get(nameLower) ||
-        thumbLookupNormalized.get(variantNormKey) ||
-        thumbLookupNormalized.get(nameNorm);
-
-      if (!existing) {
-        thumbsUnmatched++;
-        if (unmatchedThumbs.length < 10) unmatchedThumbs.push(thumb.filename);
-        continue;
-      }
-
-      if (existing.thumbnail_url === thumb.url) {
-        thumbsSkipped++;
-        continue;
-      }
-
-      thumbToUpdate.push({ id: existing.id, thumbnail_url: thumb.url, name: existing.name });
-    }
-
-    let thumbsUpdated = 0;
-    const thumbErrors = [];
-
-    if (!dryRun) {
-      for (const item of thumbToUpdate) {
-        const { error } = await supabase
-          .from('exercises')
-          .update({ thumbnail_url: item.thumbnail_url })
-          .eq('id', item.id);
-        if (error) thumbErrors.push(`${item.name}: ${error.message}`);
-        else thumbsUpdated++;
-      }
-    }
+    await listThumbsRecursive(supabase, folder, allThumbs);
+    const thumbStats = await syncThumbs(supabase, allThumbs, dryRun);
 
     return {
       statusCode: 200,
       headers,
       body: JSON.stringify({
         success: true,
-        folder: folder,
+        folder,
         mode: dryRun ? 'DRY RUN' : 'LIVE',
-        videos: {
-          inFolder: allVideos.length,
-          created: dryRun ? toCreate.length : created,
-          updated: dryRun ? toUpdate.length : updated,
-          skipped: skipped,
-          errors: errors.length,
-          errorMessages: errors.slice(0, 10)
-        },
-        thumbnails: {
-          inFolder: allThumbs.length,
-          updated: dryRun ? thumbToUpdate.length : thumbsUpdated,
-          skipped: thumbsSkipped,
-          unmatched: thumbsUnmatched,
-          unmatchedSamples: unmatchedThumbs,
-          errors: thumbErrors.length,
-          errorMessages: thumbErrors.slice(0, 10)
-        },
-        sample: toCreate.slice(0, 10).map(e => ({
-          name: e.name,
-          gender: e.gender_variant || 'unisex',
-          muscle_group: e.muscle_group
-        }))
+        videos: videoStats,
+        thumbnails: thumbStats
       }, null, 2)
     };
 
