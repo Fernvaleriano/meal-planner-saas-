@@ -82,6 +82,13 @@ function parseExerciseFilename(filename) {
 
 const normalizeForMatch = (s) => (s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 
+async function runInBatches(items, concurrency, fn) {
+  for (let i = 0; i < items.length; i += concurrency) {
+    const batch = items.slice(i, i + concurrency);
+    await Promise.all(batch.map(fn));
+  }
+}
+
 async function listVideosRecursive(supabase, prefix, out) {
   let offset = 0;
   let hasMore = true;
@@ -173,22 +180,22 @@ async function syncVideos(supabase, videos, dryRun, exercisesByName, exercisesBy
   const errors = [];
 
   if (!dryRun) {
-    for (const exercise of toCreate) {
+    await runInBatches(toCreate, 20, async (exercise) => {
       const { error } = await supabase.from('exercises').insert(exercise);
       if (error) {
         errors.push(`${exercise.name} (${exercise.gender_variant || 'unisex'}): ${error.message}`);
       } else {
         created++;
       }
-    }
-    for (const item of toUpdate) {
+    });
+    await runInBatches(toUpdate, 20, async (item) => {
       const { error } = await supabase
         .from('exercises')
         .update({ video_url: item.video_url, animation_url: item.animation_url })
         .eq('id', item.id);
       if (error) errors.push(error.message);
       else updated++;
-    }
+    });
   }
 
   return {
@@ -258,14 +265,14 @@ async function syncThumbs(supabase, thumbs, dryRun) {
   const thumbErrors = [];
 
   if (!dryRun) {
-    for (const item of thumbToUpdate) {
+    await runInBatches(thumbToUpdate, 20, async (item) => {
       const { error } = await supabase
         .from('exercises')
         .update({ thumbnail_url: item.thumbnail_url })
         .eq('id', item.id);
       if (error) thumbErrors.push(`${item.name}: ${error.message}`);
       else thumbsUpdated++;
-    }
+    });
   }
 
   return {
