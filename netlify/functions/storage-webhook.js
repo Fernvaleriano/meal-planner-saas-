@@ -59,8 +59,7 @@ function detectEquipment(name) {
 
 function parseExerciseFilename(filename) {
   const withoutExt = filename.replace(VIDEO_EXT, '').replace(IMAGE_EXT, '');
-  const withoutParenSuffix = withoutExt.replace(/\s*\(\d+\)$/, '');
-  const withoutFrameSuffix = withoutParenSuffix.replace(/[\s_]?\d+$/, '');
+  const withoutFrameSuffix = withoutExt.replace(/[\s_]?\d+$/, '');
 
   let genderVariant = null;
   const genderMatch = withoutFrameSuffix.match(/[_\s](female|male)$/i);
