@@ -3,7 +3,6 @@ const { createClient } = require('@supabase/supabase-js');
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 const BUCKET_NAME = 'exercise-videos';
-const THUMBNAIL_BUCKET = 'exercise-thumbnails';
 
 const headers = {
   'Access-Control-Allow-Origin': '*',
@@ -231,94 +230,6 @@ exports.handler = async (event) => {
       }
     }
 
-    // Thumbnail sync pass — list files from THUMBNAIL_BUCKET and match to exercises by name + gender
-    const allThumbs = [];
-    async function listThumbsRecursive(prefix) {
-      let offset = 0;
-      let hasMore = true;
-
-      while (hasMore) {
-        const { data, error } = await supabase.storage
-          .from(THUMBNAIL_BUCKET)
-          .list(prefix, { limit: 1000, offset });
-
-        if (error || !data || data.length === 0) break;
-
-        for (const item of data) {
-          const itemPath = prefix ? `${prefix}/${item.name}` : item.name;
-
-          if (item.id === null) {
-            await listThumbsRecursive(itemPath);
-          } else if (/\.(jpe?g|png|webp)$/i.test(item.name)) {
-            const { data: urlData } = supabase.storage.from(THUMBNAIL_BUCKET).getPublicUrl(itemPath);
-            allThumbs.push({
-              filename: item.name,
-              path: itemPath,
-              folder: prefix,
-              url: urlData.publicUrl
-            });
-          }
-        }
-
-        offset += data.length;
-        hasMore = data.length === 1000;
-      }
-    }
-
-    await listThumbsRecursive(folder);
-
-    // Refresh exercise map to include freshly created rows + current thumbnail_url
-    const { data: exercisesWithThumbs } = await supabase
-      .from('exercises')
-      .select('id, name, thumbnail_url, gender_variant');
-
-    const thumbLookup = new Map();
-    for (const ex of exercisesWithThumbs || []) {
-      const key = ex.gender_variant
-        ? `${ex.name.toLowerCase().trim()}__${ex.gender_variant}`
-        : ex.name.toLowerCase().trim();
-      thumbLookup.set(key, ex);
-    }
-
-    const thumbToUpdate = [];
-    let thumbsSkipped = 0;
-    let thumbsUnmatched = 0;
-    const unmatchedThumbs = [];
-
-    for (const thumb of allThumbs) {
-      const { name: exerciseName, genderVariant } = parseExerciseFilename(thumb.filename);
-      const nameLower = exerciseName.toLowerCase().trim();
-      const variantKey = genderVariant ? `${nameLower}__${genderVariant}` : nameLower;
-      const existing = thumbLookup.get(variantKey) || thumbLookup.get(nameLower);
-
-      if (!existing) {
-        thumbsUnmatched++;
-        if (unmatchedThumbs.length < 10) unmatchedThumbs.push(thumb.filename);
-        continue;
-      }
-
-      if (existing.thumbnail_url === thumb.url) {
-        thumbsSkipped++;
-        continue;
-      }
-
-      thumbToUpdate.push({ id: existing.id, thumbnail_url: thumb.url, name: existing.name });
-    }
-
-    let thumbsUpdated = 0;
-    const thumbErrors = [];
-
-    if (!dryRun) {
-      for (const item of thumbToUpdate) {
-        const { error } = await supabase
-          .from('exercises')
-          .update({ thumbnail_url: item.thumbnail_url })
-          .eq('id', item.id);
-        if (error) thumbErrors.push(`${item.name}: ${error.message}`);
-        else thumbsUpdated++;
-      }
-    }
-
     return {
       statusCode: 200,
       headers,
@@ -326,23 +237,12 @@ exports.handler = async (event) => {
         success: true,
         folder: folder,
         mode: dryRun ? 'DRY RUN' : 'LIVE',
-        videos: {
-          inFolder: allVideos.length,
-          created: dryRun ? toCreate.length : created,
-          updated: dryRun ? toUpdate.length : updated,
-          skipped: skipped,
-          errors: errors.length,
-          errorMessages: errors.slice(0, 10)
-        },
-        thumbnails: {
-          inFolder: allThumbs.length,
-          updated: dryRun ? thumbToUpdate.length : thumbsUpdated,
-          skipped: thumbsSkipped,
-          unmatched: thumbsUnmatched,
-          unmatchedSamples: unmatchedThumbs,
-          errors: thumbErrors.length,
-          errorMessages: thumbErrors.slice(0, 10)
-        },
+        videosInFolder: allVideos.length,
+        created: dryRun ? toCreate.length : created,
+        updated: dryRun ? toUpdate.length : updated,
+        skipped: skipped,
+        errors: errors.length,
+        errorMessages: errors.slice(0, 10),
         sample: toCreate.slice(0, 10).map(e => ({
           name: e.name,
           gender: e.gender_variant || 'unisex',
