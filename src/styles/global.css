@@ -19325,24 +19325,6 @@ textarea,
     color: white;
 }
 
-.detail-exercise-badge.superset-badge {
-    background: linear-gradient(135deg, #8B5CF6, #6366F1);
-    color: white;
-}
-
-/* Accent borders on the exercise detail modal, matching the card styles. */
-.exercise-modal-v2.superset-modal {
-    border-left: 3px solid #8B5CF6;
-}
-
-.exercise-modal-v2.warmup-modal {
-    border-left: 3px solid #F59E0B;
-}
-
-.exercise-modal-v2.stretch-modal {
-    border-left: 3px solid #10B981;
-}
-
 /* Special exercise type indicators on the card */
 .exercise-card-v2.superset-exercise {
     border-left: 3px solid #8B5CF6;
