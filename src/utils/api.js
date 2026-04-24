@@ -103,55 +103,12 @@ async function getAuthToken() {
 
   // No cached session (cleared on resume, or first call).
   // supabase.auth.getSession() reads from local storage first — fast even offline.
-  //
-  // BUT: when Supabase's internal _recoverAndRefresh is mid-flight (e.g. on tab
-  // visibility change) it holds the auth lock, and getSession() waits on that
-  // lock. If the refresh hangs for any reason (network flake, server slowness)
-  // every save request blocks behind it for tens of seconds and then the save
-  // keepalive gets cancelled on page nav, so the write never lands. Race the
-  // getSession() call against a short 1s timeout — whichever finishes first
-  // wins. If it times out, fall back to reading the token directly from
-  // localStorage (which is where Supabase persists it anyway). The server will
-  // still reject a genuinely expired token with 401 and the fetch wrapper's
-  // retry-on-401 path handles that case.
-  const readTokenFromStorage = () => {
-    try {
-      const keys = Object.keys(localStorage);
-      const sbKey = keys.find(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
-      if (!sbKey) return null;
-      const raw = localStorage.getItem(sbKey);
-      if (!raw) return null;
-      const parsed = JSON.parse(raw);
-      const session = parsed?.currentSession || parsed;
-      return session?.access_token || null;
-    } catch {
-      return null;
-    }
-  };
-
   try {
-    const sessionPromise = supabase.auth.getSession();
-    const timeoutPromise = new Promise((resolve) =>
-      setTimeout(() => resolve({ __timedOut: true }), 1000)
-    );
-    const result = await Promise.race([sessionPromise, timeoutPromise]);
-
-    // getSession hung — fall back to reading the token directly from storage
-    // so saves don't block behind a stuck auth lock.
-    if (result && result.__timedOut) {
-      const storedToken = readTokenFromStorage();
-      if (storedToken) return storedToken;
-      return null;
-    }
-
-    const { data: { session }, error } = result;
+    const { data: { session }, error } = await supabase.auth.getSession();
 
     if (error) {
       console.error('Error getting session:', error);
-      // Still try the storage fallback — the session may be perfectly fine in
-      // localStorage even when getSession() reports an error from the refresh
-      // path (processLock deadlock, etc.).
-      return readTokenFromStorage();
+      return null;
     }
 
     if (session) {
@@ -174,12 +131,10 @@ async function getAuthToken() {
       return session.access_token;
     }
 
-    // No session via getSession — try storage as last resort.
-    return readTokenFromStorage();
+    return null;
   } catch (error) {
     console.error('Failed to get session:', error);
-    // Fall back to storage token so at least saves can attempt to go through.
-    return readTokenFromStorage();
+    return null;
   }
 }
 
