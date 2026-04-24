@@ -327,13 +327,7 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
       completed: set?.completed || false,
       duration: set?.duration || exercise.duration || parseTimeFromReps(exercise.reps) || null,
       distance: set?.distance || exercise.distance || null,
-      restSeconds: set?.restSeconds ?? exercise.restSeconds ?? 60,
-      // Preserve the edit-mode flags so the pill view keeps rendering time/distance
-      // after a SetEditorModal save round-trip (exercise.trackingType may not
-      // propagate back from the server on every path — these flags are the
-      // secondary signal isTimedExercise falls back to).
-      ...(set?.isTimeBased ? { isTimeBased: true } : {}),
-      ...(set?.isDistanceBased ? { isDistanceBased: true } : {})
+      restSeconds: set?.restSeconds ?? exercise.restSeconds ?? 60
     }));
     if (newSets.length > 0) {
       setSets(newSets);
@@ -352,18 +346,9 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
 
   // Check if this is a timed/interval exercise - respect explicit trackingType from workout builder
   // If trackingType is explicitly 'time' (set by coach in workout builder), ALWAYS treat as timed
-  // If any set carries isTimeBased (tagged by SetEditorModal on save), ALWAYS treat as timed —
-  //   this wins over a stale trackingType='reps' so the pill view flips immediately after save.
-  // If trackingType is explicitly 'reps' and no set is time-based, never treat as timed
+  // If trackingType is explicitly 'reps' (set by SetEditorModal), never treat as timed
   // Also detect time-based reps values (e.g. "3 min", "30s") when trackingType is not set
-  const isTimedExercise = !isDistanceExercise && (
-    exercise.trackingType === 'time'
-    || sets.some(s => s?.isTimeBased)
-    || (exercise.trackingType !== 'reps' && exercise.exercise_type !== 'strength' && (
-        exercise.exercise_type === 'timed'
-        || (!exercise.trackingType && (exercise.duration || exercise.exercise_type === 'cardio' || exercise.exercise_type === 'interval' || parseTimeFromReps(exercise.reps)))
-      ))
-  );
+  const isTimedExercise = !isDistanceExercise && (exercise.trackingType === 'time' || (exercise.trackingType !== 'reps' && exercise.exercise_type !== 'strength' && (exercise.exercise_type === 'timed' || (!exercise.trackingType && (exercise.duration || exercise.exercise_type === 'cardio' || exercise.exercise_type === 'interval' || parseTimeFromReps(exercise.reps))) || sets.some(s => s?.isTimeBased))));
 
   // Toggle individual set completion
   const toggleSet = (setIndex, e) => {
