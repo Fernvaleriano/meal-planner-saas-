@@ -2546,7 +2546,19 @@ function Workouts() {
               workoutId: logId,
               exercises: [exercisePayload]
             });
-          } catch { /* keepalive above is the safety net */ }
+          } catch (err) {
+            // Log with enough context to diagnose when debugging with
+            // console.log-intercept. Don't silently swallow — the keepalive
+            // fires before this but if BOTH fail the user needs to know.
+            console.error('[workout-logs PUT failed]', {
+              status: err?.status,
+              isAuthError: err?.isAuthError,
+              isTimeout: err?.isTimeout,
+              message: err?.message,
+              logId,
+              exerciseId: updatedExercise?.id
+            });
+          }
           return;
         }
 
@@ -2575,9 +2587,19 @@ function Workouts() {
             setWorkoutLog(created.workout);
             patchWorkoutLogState(logId);
           }
-        } catch { /* keepalive POST above is the safety net */ }
+        } catch (err) {
+          console.error('[workout-logs POST failed]', {
+            status: err?.status,
+            isAuthError: err?.isAuthError,
+            isTimeout: err?.isTimeout,
+            message: err?.message,
+            clientId: currentClientId,
+            dateStr,
+            exerciseId: updatedExercise?.id
+          });
+        }
       } catch (e) {
-        // Best-effort fallback only; assignment save path above remains primary.
+        console.error('[workout-logs outer IIFE failed]', e);
       }
     })();
 

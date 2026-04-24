@@ -729,7 +729,32 @@ function ExerciseDetailModal({
       }
     } catch (err) {
       console.error('Error auto-saving exercise log:', err);
-      setsChangedRef.current = false;
+      // Do NOT clear setsChangedRef on error — keeping it true lets the
+      // debounced useEffect fire another attempt on the next edit or on
+      // unmount flush, instead of silently giving up. The previous code
+      // set it to false here, which meant a single transient failure
+      // (auth hiccup, network blip, 500) permanently abandoned the save
+      // and the user would see their reps/weight "revert" on refresh
+      // with zero indication anything went wrong.
+      //
+      // Also surface the failure visibly so the user knows to retry
+      // instead of assuming it saved.
+      if (isMountedRef.current) {
+        const status = err?.status;
+        const isAuthErr = err?.isAuthError || status === 401 || status === 403;
+        const isTimeoutErr = err?.isTimeout || /timed out|timeout/i.test(err?.message || '');
+        const message = isAuthErr
+          ? 'Session expired — sign out and back in, then retry.'
+          : isTimeoutErr
+          ? 'Save timed out — check connection and tap the set to save again.'
+          : 'Could not save — tap the set to try again.';
+        setProgressTip({
+          type: 'save_error',
+          icon: '⚠️',
+          title: 'Save failed',
+          message
+        });
+      }
     }
   }, []);
 
