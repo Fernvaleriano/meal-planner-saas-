@@ -305,7 +305,7 @@
             <div class="pwa-ios-steps">
                 <div class="pwa-ios-step">
                     <span class="pwa-ios-step-num">1</span>
-                    <span><strong>Long-press</strong> the URL bar at the bottom</span>
+                    <span><strong>Long-press</strong> the URL bar</span>
                 </div>
                 <div class="pwa-ios-step">
                     <span class="pwa-ios-step-num">2</span>
@@ -317,7 +317,7 @@
                 </div>
                 <div class="pwa-ios-step">
                     <span class="pwa-ios-step-num">4</span>
-                    <span>Tap <strong>"Add"</strong></span>
+                    <span>Tap <strong>"Add"</strong> in the top-right corner</span>
                 </div>
             </div>
             <div class="pwa-install-actions">
