@@ -6092,6 +6092,22 @@
             return `${diffDays}d ago`;
         }
 
+        // --- Weight unit conversion ---
+        // Coach's preferred display unit lives in localStorage under 'coachDisplayUnit'
+        // (same key client-profile.html uses, so the toggle there persists here).
+        function getCoachDisplayUnit() {
+            return localStorage.getItem('coachDisplayUnit') === 'metric' ? 'kg' : 'lbs';
+        }
+        function convertWeight(value, sourceUnit) {
+            if (value == null) return value;
+            const src = sourceUnit === 'kg' || sourceUnit === 'metric' ? 'kg' : 'lbs';
+            const target = getCoachDisplayUnit();
+            if (src === target) return value;
+            return src === 'lbs'
+                ? Math.round(value * 0.453592 * 10) / 10
+                : Math.round(value * 2.20462 * 10) / 10;
+        }
+
         // --- Priority Alert Checkbox/Dismiss Logic ---
         // All generated alert HTML gets stored here so we can re-render active vs handled
         // Now includes metadata for database persistence: {id, html, clientId, reason, relatedCheckinId}
@@ -6719,7 +6735,7 @@
             try {
                 const { data: clients } = await supabaseClient
                     .from('clients')
-                    .select('id, client_name, profile_photo_url, avatar_url')
+                    .select('id, client_name, profile_photo_url, avatar_url, unit_preference')
                     .eq('coach_id', coachId);
 
                 if (!clients || clients.length === 0) {
@@ -6754,7 +6770,7 @@
                         .order('created_at', { ascending: false })
                         .limit(50),
                     supabaseClient.from('client_checkins')
-                        .select('id, client_id, created_at, weight')
+                        .select('id, client_id, created_at, weight, weight_unit')
                         .eq('coach_id', coachId)
                         .in('client_id', clientIds)
                         .gte('created_at', isoWeekAgo)
@@ -6779,7 +6795,10 @@
                 (workoutsRes.data || []).forEach(w => {
                     const c = _activityClientMap[w.client_id];
                     if (!c) return;
-                    const vol = w.total_volume ? `${Math.round(w.total_volume).toLocaleString()} lbs volume` : '';
+                    const srcUnit = c.unit_preference === 'metric' ? 'kg' : 'lbs';
+                    const vol = w.total_volume
+                        ? `${Math.round(convertWeight(w.total_volume, srcUnit)).toLocaleString()} ${getCoachDisplayUnit()} volume`
+                        : '';
                     events.push({ type: 'workout', icon: '💪', label: 'Completed a workout', clientId: w.client_id, detail: vol, time: w.created_at, ts: new Date(w.created_at).getTime(), itemId: String(w.id), itemType: 'workout' });
                 });
 
@@ -6792,7 +6811,10 @@
                 (checkinsRes.data || []).forEach(ci => {
                     const c = _activityClientMap[ci.client_id];
                     if (!c) return;
-                    events.push({ type: 'checkin', icon: '✅', label: 'Submitted a check-in', clientId: ci.client_id, detail: ci.weight ? `${ci.weight} lbs` : '', time: ci.created_at, ts: new Date(ci.created_at).getTime(), itemId: String(ci.id), itemType: 'checkin' });
+                    const detail = ci.weight
+                        ? `${convertWeight(ci.weight, ci.weight_unit || 'lbs')} ${getCoachDisplayUnit()}`
+                        : '';
+                    events.push({ type: 'checkin', icon: '✅', label: 'Submitted a check-in', clientId: ci.client_id, detail, time: ci.created_at, ts: new Date(ci.created_at).getTime(), itemId: String(ci.id), itemType: 'checkin' });
                 });
 
                 (photosRes.data || []).forEach(ph => {
@@ -6804,7 +6826,9 @@
                 (measurementsRes.data || []).forEach(m => {
                     const c = _activityClientMap[m.client_id];
                     if (!c) return;
-                    const wt = m.weight ? `${m.weight} ${m.weight_unit || 'lbs'}` : '';
+                    const wt = m.weight
+                        ? `${convertWeight(m.weight, m.weight_unit || 'lbs')} ${getCoachDisplayUnit()}`
+                        : '';
                     events.push({ type: 'measurement', icon: '📏', label: 'Logged measurements', clientId: m.client_id, detail: wt, time: m.created_at, ts: new Date(m.created_at).getTime(), itemId: String(m.id), itemType: 'measurement' });
                 });
 
@@ -7957,17 +7981,19 @@
                                     if (last3.every(w => w === last3[0])) {
                                         if (plateauCount < MAX_SHOWN) {
                                             const name = clientMap[g.clientId] || 'Unknown Client';
-                                            const unit = clientUnitMap[g.clientId] || 'lbs';
+                                            const srcUnit = clientUnitMap[g.clientId] || 'lbs';
+                                            const displayWeight = convertWeight(last3[0], srcUnit);
+                                            const displayUnit = getCoachDisplayUnit();
                                             const aid = `plateau-${g.clientId}-${g.exercise.replace(/\s/g,'-')}`;
                                             const url = `client-profile.html?clientId=${g.clientId}&tab=workouts`;
-                                            const safePlateauMsg = (`${name} stuck at ${last3[0]} ${unit} on ${g.exercise}`).replace(/'/g, "\\'").replace(/"/g, '&quot;').replace(/\n/g, ' ');
+                                            const safePlateauMsg = (`${name} stuck at ${displayWeight} ${displayUnit} on ${g.exercise}`).replace(/'/g, "\\'").replace(/"/g, '&quot;').replace(/\n/g, ' ');
                                             addAlert(aid, `
                                                 <div class="priority-alert priority-alert--clickable" onclick="reviewAndArchive('${aid}', '${url}')">
                                                     __CHECKBOX__
                                                     <span class="priority-dot priority-dot--amber"></span>
                                                     <span>
                                                         <span class="priority-label priority-label--pending"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:3px;"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>Plateau:</span>
-                                                        <strong>${name}</strong> stuck at ${last3[0]} ${unit} on ${g.exercise} (3+ sessions)
+                                                        <strong>${name}</strong> stuck at ${displayWeight} ${displayUnit} on ${g.exercise} (3+ sessions)
                                                         <span class="priority-alert-link">Review →</span>
                                                         <button class="priority-note-reply-btn" onclick="event.stopPropagation(); toggleNoteReply('${aid}')" title="Reply about this plateau">
                                                             <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>

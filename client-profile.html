@@ -9334,6 +9334,23 @@
             return Math.round(kg * 2.20462 * 10) / 10;
         }
 
+        // Convert a weight to the coach's currently selected display unit.
+        // sourceUnit: 'kg' / 'metric' or anything else (treated as lbs).
+        // Falls back to the client's unit_preference if sourceUnit isn't known.
+        function weightForCoach(value, sourceUnit) {
+            if (value == null || value === '') return value;
+            const src = (sourceUnit === 'kg' || sourceUnit === 'metric')
+                ? 'kg'
+                : (sourceUnit ? 'lbs'
+                    : (currentClient && currentClient.unit_preference === 'metric' ? 'kg' : 'lbs'));
+            const target = coachDisplayUnit === 'metric' ? 'kg' : 'lbs';
+            if (src === target) return value;
+            return src === 'lbs' ? lbsToKg(value) : kgToLbs(value);
+        }
+        function coachUnitLabel() {
+            return coachDisplayUnit === 'metric' ? 'kg' : 'lbs';
+        }
+
         function ftInToCm(ft, inches) {
             const totalInches = (ft * 12) + (inches || 0);
             return Math.round(totalInches * 2.54 * 10) / 10;
@@ -14023,7 +14040,7 @@
                     html += `<div class="ac-exd-history-item">
                         <span style="font-weight:600; color:#334155;">${dateStr}</span>
                         <span style="color:#64748b;">${setsStr || 'No data'}</span>
-                        <span style="color:#0369a1; font-weight:600;">${h.maxWeight ? h.maxWeight + ' lbs max' : ''}</span>
+                        <span style="color:#0369a1; font-weight:600;">${h.maxWeight ? weightForCoach(h.maxWeight) + ' ' + coachUnitLabel() + ' max' : ''}</span>
                     </div>`;
                 });
 
@@ -14662,7 +14679,7 @@
                 }
 
                 const prBadge = ex.isPr ? '<span class="wp-pr-badge">PR</span>' : '';
-                const maxW = ex.maxWeight > 0 ? `<span class="wp-max-weight">${ex.maxWeight} kg max</span>` : '';
+                const maxW = ex.maxWeight > 0 ? `<span class="wp-max-weight">${weightForCoach(ex.maxWeight)} ${coachUnitLabel()} max</span>` : '';
                 const swapBadge = ex.swappedFromName ? `<span class="wp-swap-badge">&#8644; Swapped from ${escapeHtml(ex.swappedFromName)}</span>` : '';
 
                 return `
