@@ -305,7 +305,7 @@
             <div class="pwa-ios-steps">
                 <div class="pwa-ios-step">
                     <span class="pwa-ios-step-num">1</span>
-                    <span>Tap the <strong>Share</strong> button in Safari's toolbar (tap the address bar first if you don't see it)</span>
+                    <span>Tap the <strong>Share</strong> button — it looks like a square with an arrow pointing up. Tap the address bar first if you don't see it.</span>
                 </div>
                 <div class="pwa-ios-step">
                     <span class="pwa-ios-step-num">2</span>
