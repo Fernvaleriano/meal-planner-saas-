@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
-import { X, Check, Plus, ChevronLeft, Play, Timer, BarChart3, ArrowLeftRight, Trash2, Mic, MicOff, MessageCircle, Loader2, AlertCircle, History, TrendingUp, Award, ChevronDown, ChevronUp, Send, Square, Sparkles, ExternalLink, Camera, Bot, Flame, Leaf } from 'lucide-react';
+import { X, Check, Plus, ChevronLeft, Play, Timer, BarChart3, ArrowLeftRight, Trash2, Mic, MicOff, MessageCircle, Loader2, AlertCircle, History, TrendingUp, Award, ChevronDown, ChevronUp, Send, Square, Sparkles, ExternalLink, Camera, Bot, Flame, Leaf, Zap } from 'lucide-react';
 import { apiGet, apiPost, apiPut, apiDelete, getOrCreateWorkoutLogId } from '../../utils/api';
 import { generateProgression, EFFORT_OPTIONS, parseSetsData, getMaxWeight } from '../../utils/workoutProgression';
 import { onAppSuspend, onAppResume } from '../../hooks/useAppLifecycle';
@@ -1699,6 +1699,7 @@ function ExerciseDetailModal({
   const difficultyLevel = exercise?.difficulty || 'Novice';
   const isWarmupExercise = !!(exercise?.isWarmup || exercise?.phase === 'warmup' || exercise?.section === 'warm-up');
   const isStretchExercise = !!(exercise?.isStretch || exercise?.phase === 'cooldown' || exercise?.section === 'cool-down' || exercise?.exercise_type === 'stretch');
+  const isSupersetExercise = !!(exercise?.isSuperset && exercise?.supersetGroup);
 
   // Helper to check if URL is an image (not video)
   const isImageUrl = (url) => {
@@ -1979,7 +1980,7 @@ function ExerciseDetailModal({
 
   return (
     <div className="exercise-modal-overlay-v2" key={`modal-${resumeKey}`} ref={modalOverlayRef} onClick={handleClose}>
-      <div className="exercise-modal-v2 modal-v3" onClick={stopPropagation}>
+      <div className={`exercise-modal-v2 modal-v3 ${isSupersetExercise ? 'superset-modal' : ''} ${isWarmupExercise ? 'warmup-modal' : ''} ${isStretchExercise ? 'stretch-modal' : ''}`} onClick={stopPropagation}>
         {/* Header */}
         <div className="modal-header-v3">
           <button className="close-btn" onClick={handleClose} type="button">
@@ -2122,9 +2123,15 @@ function ExerciseDetailModal({
           </div>
         )}
 
-        {/* Exercise Type Badges — Warm-Up / Stretch */}
-        {(isWarmupExercise || isStretchExercise) && (
+        {/* Exercise Type Badges — Superset / Warm-Up / Stretch */}
+        {(isSupersetExercise || isWarmupExercise || isStretchExercise) && (
           <div className="detail-exercise-badges">
+            {isSupersetExercise && (
+              <span className="detail-exercise-badge superset-badge">
+                <Zap size={12} />
+                Superset {exercise.supersetGroup}
+              </span>
+            )}
             {isWarmupExercise && (
               <span className="detail-exercise-badge warmup-badge">
                 <Flame size={12} />
