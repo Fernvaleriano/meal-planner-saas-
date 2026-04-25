@@ -8666,17 +8666,16 @@
 
         // Render single exercise item
         function renderExerciseItem(exercise, dayIndex, exIndex) {
-            const videoSrc = exercise.customVideoUrl || exercise.video_url || exercise.animation_url;
-            const hasVideo = !!videoSrc;
-            // Use <video> with poster for hover-to-play preview; fall back to <img> if no video
+            // PERFORMANCE: render <img> only — never <video> — for the in-workout exercise list.
+            // The previous code rendered <video preload="metadata"> with hover-to-play, which
+            // forced the browser to fetch metadata from each 4K-resolution source video and
+            // tanked render time with 10+ exercises. Click into the exercise to see the video
+            // play in the preview pane.
             let thumbHtml;
-            if (hasVideo) {
-                const posterAttr = exercise.thumbnail_url ? ` poster="${exercise.thumbnail_url}"` : '';
-                thumbHtml = `<video class="exercise-thumb-video" src="${videoSrc}" muted loop playsinline preload="metadata"${posterAttr} onmouseenter="this.play().catch(()=>{})" onmouseleave="this.pause();this.currentTime=0" onerror="console.warn('[VideoDebug] List thumb failed:', this.src); this.outerHTML='<img class=\\'exercise-thumb\\' src=\\'${exercise.thumbnail_url || '/img/exercise-placeholder.svg'}\\' alt=\\'exercise\\'>'"></video>`;
-            } else if (exercise.thumbnail_url) {
-                thumbHtml = `<img class="exercise-thumb" src="${exercise.thumbnail_url}" alt="${exercise.name}" onerror="this.src='/img/exercise-placeholder.svg'">`;
+            if (exercise.thumbnail_url) {
+                thumbHtml = `<img class="exercise-thumb" src="${exercise.thumbnail_url}" alt="${exercise.name}" loading="lazy" decoding="async" onerror="this.onerror=null; this.src='/img/exercise-placeholder.svg';">`;
             } else {
-                thumbHtml = `<img class="exercise-thumb" src="/img/exercise-placeholder.svg" alt="${exercise.name}">`;
+                thumbHtml = `<img class="exercise-thumb" src="/img/exercise-placeholder.svg" alt="${exercise.name}" loading="lazy" decoding="async">`;
             }
 
             // Build badges for superset, warmup, stretch
@@ -9491,11 +9490,8 @@
 
                 if (data.suggestions && data.suggestions.length > 0) {
                     aiContainer.innerHTML = data.suggestions.map(ex => {
-                        const hasVideo = ex.video_url || ex.animation_url;
-                        const videoSrc = ex.video_url || ex.animation_url;
-                        const thumbHtml = hasVideo
-                            ? `<video class="swap-exercise-thumb" src="${videoSrc}" muted loop playsinline preload="metadata" onmouseenter="this.play().catch(()=>{})" onmouseleave="this.pause()"></video>`
-                            : `<img class="swap-exercise-thumb" src="${ex.thumbnail_url || '/img/exercise-placeholder.svg'}" alt="${ex.name}" onerror="this.src='/img/exercise-placeholder.svg'">`;
+                        // PERFORMANCE: img only, no <video preload="metadata"> in swap list.
+                        const thumbHtml = `<img class="swap-exercise-thumb" src="${ex.thumbnail_url || '/img/exercise-placeholder.svg'}" alt="${ex.name}" loading="lazy" decoding="async" onerror="this.onerror=null; this.src='/img/exercise-placeholder.svg';">`;
                         return `
                             <div class="swap-exercise-item" onclick="selectSwapExercise('${ex.id}')" style="border-left: 3px solid #10b981;">
                                 ${thumbHtml}
@@ -9582,11 +9578,8 @@
             }
 
             container.innerHTML = exerciseList.slice(0, 50).map(ex => {
-                const hasVideo = ex.video_url || ex.animation_url;
-                const videoSrc = ex.video_url || ex.animation_url;
-                const thumbHtml = hasVideo
-                    ? `<video class="swap-exercise-thumb" src="${videoSrc}" muted loop playsinline preload="metadata" onmouseenter="this.play().catch(()=>{})" onmouseleave="this.pause()"></video>`
-                    : `<img class="swap-exercise-thumb" src="${ex.thumbnail_url || '/img/exercise-placeholder.svg'}" alt="${ex.name}" onerror="this.src='/img/exercise-placeholder.svg'">`;
+                // PERFORMANCE: img only, no <video preload="metadata"> in swap list.
+                const thumbHtml = `<img class="swap-exercise-thumb" src="${ex.thumbnail_url || '/img/exercise-placeholder.svg'}" alt="${ex.name}" loading="lazy" decoding="async" onerror="this.onerror=null; this.src='/img/exercise-placeholder.svg';">`;
                 return `
                     <div class="swap-exercise-item" onclick="selectSwapExercise('${ex.id}')">
                         ${thumbHtml}
@@ -10153,17 +10146,20 @@
                     ? (Array.isArray(ex.secondary_muscles) ? ex.secondary_muscles.slice(0, 2).join(', ') : ex.secondary_muscles)
                     : '';
 
-                // Determine media element - use img for images, video for mp4s
+                // PERFORMANCE: only render <img> in the search grid — never <video>.
+                // Loading 20+ <video preload="metadata"> elements (even with display:none)
+                // triggers metadata fetches on multi-MB 4K source files, taking 5-15s for
+                // a search to render. Click on the card opens the preview pane where the
+                // full video plays. The img falls back to a placeholder if the thumbnail
+                // url is missing or fails to load.
                 let mediaElement;
                 if (thumbnailImg) {
-                    // Has a proper thumbnail image
-                    mediaElement = `<img class="exercise-card-thumb" src="${thumbnailImg}" alt="${ex.name}" onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='block';" loading="lazy"><video class="exercise-card-thumb" src="${videoSrc || ''}" muted playsinline preload="metadata" style="display:none;"></video>`;
-                } else if (videoSrc) {
-                    // No thumbnail, but has video - show video first frame
-                    mediaElement = `<video class="exercise-card-thumb" src="${videoSrc}" muted playsinline preload="metadata"></video>`;
+                    mediaElement = `<img class="exercise-card-thumb" src="${thumbnailImg}" alt="${ex.name}" loading="lazy" decoding="async" onerror="this.onerror=null; this.src='/img/exercise-placeholder.svg';">`;
                 } else {
-                    // No media at all
-                    mediaElement = `<img class="exercise-card-thumb" src="/img/exercise-placeholder.svg" alt="${ex.name}">`;
+                    // No thumbnail in DB — webhook backfill should have linked most, but if
+                    // a brand-new or non-matched exercise slips through, show placeholder
+                    // (NOT the video — would tank the search list with metadata fetches).
+                    mediaElement = `<img class="exercise-card-thumb" src="/img/exercise-placeholder.svg" alt="${ex.name}" loading="lazy" decoding="async">`;
                 }
 
                 const isSelected = selectedExercises.has(ex.id || ex.name);
