@@ -57,17 +57,20 @@ function detectEquipment(name) {
 }
 
 function parseExerciseFilename(filename) {
-  const withoutExt = filename.replace(/\.(mp4|mov|avi|webm|gif)$/i, '');
+  const withoutExt = filename.replace(/\.(mp4|mov|avi|webm|gif|jpe?g|png|webp)$/i, '');
+
+  // Strip trailing "1" used for paired second-frame thumbnails (e.g. Bench Press1.jpg pairs with Bench Press.jpg)
+  const withoutFrameSuffix = withoutExt.replace(/1$/, '');
 
   // Detect gender variant from _Female, _Male, _female, _male suffix
   let genderVariant = null;
-  const genderMatch = withoutExt.match(/[_\s](female|male)$/i);
+  const genderMatch = withoutFrameSuffix.match(/[_\s](female|male)$/i);
   if (genderMatch) {
     genderVariant = genderMatch[1].toLowerCase();
   }
 
   // Strip gender suffix, then clean up
-  const name = withoutExt
+  const name = withoutFrameSuffix
     .replace(/[_\s](female|male)$/i, '')
     .replace(/[_-]/g, ' ')
     .replace(/\s+/g, ' ')
@@ -272,12 +275,17 @@ exports.handler = async (event) => {
       .from('exercises')
       .select('id, name, thumbnail_url, gender_variant');
 
+    const normalizeForMatch = (s) => (s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+
     const thumbLookup = new Map();
+    const thumbLookupNormalized = new Map();
     for (const ex of exercisesWithThumbs || []) {
-      const key = ex.gender_variant
-        ? `${ex.name.toLowerCase().trim()}__${ex.gender_variant}`
-        : ex.name.toLowerCase().trim();
+      const nameLower = ex.name.toLowerCase().trim();
+      const nameNorm = normalizeForMatch(ex.name);
+      const key = ex.gender_variant ? `${nameLower}__${ex.gender_variant}` : nameLower;
+      const normKey = ex.gender_variant ? `${nameNorm}__${ex.gender_variant}` : nameNorm;
       thumbLookup.set(key, ex);
+      thumbLookupNormalized.set(normKey, ex);
     }
 
     const thumbToUpdate = [];
@@ -288,8 +296,15 @@ exports.handler = async (event) => {
     for (const thumb of allThumbs) {
       const { name: exerciseName, genderVariant } = parseExerciseFilename(thumb.filename);
       const nameLower = exerciseName.toLowerCase().trim();
+      const nameNorm = normalizeForMatch(exerciseName);
       const variantKey = genderVariant ? `${nameLower}__${genderVariant}` : nameLower;
-      const existing = thumbLookup.get(variantKey) || thumbLookup.get(nameLower);
+      const variantNormKey = genderVariant ? `${nameNorm}__${genderVariant}` : nameNorm;
+
+      const existing =
+        thumbLookup.get(variantKey) ||
+        thumbLookup.get(nameLower) ||
+        thumbLookupNormalized.get(variantNormKey) ||
+        thumbLookupNormalized.get(nameNorm);
 
       if (!existing) {
         thumbsUnmatched++;
