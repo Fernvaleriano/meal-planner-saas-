@@ -62,18 +62,21 @@ function InstallAppBanner() {
           <div className="ios-install-steps">
             <div className="ios-step">
               <span className="ios-step-num">1</span>
-              <span>
-                Tap the <strong>Share</strong> button
-                <span className="ios-step-icon"><Share size={14} /></span>
-                — it looks like a square with an arrow pointing up. Tap the address bar first if you don't see it.
-              </span>
+              <span><strong>Long-press</strong> the URL bar</span>
             </div>
             <div className="ios-step">
               <span className="ios-step-num">2</span>
-              <span>Scroll down and tap <strong>"Add to Home Screen"</strong> <span className="ios-step-icon"><Plus size={14} /></span></span>
+              <span>
+                Tap <strong>Share</strong>
+                <span className="ios-step-icon"><Share size={14} /></span>
+              </span>
             </div>
             <div className="ios-step">
               <span className="ios-step-num">3</span>
+              <span>Tap <strong>"Add to Home Screen"</strong> <span className="ios-step-icon"><Plus size={14} /></span></span>
+            </div>
+            <div className="ios-step">
+              <span className="ios-step-num">4</span>
               <span>Tap <strong>"Add"</strong> in the top-right corner</span>
             </div>
             <button className="ios-got-it-btn" onClick={dismiss}>

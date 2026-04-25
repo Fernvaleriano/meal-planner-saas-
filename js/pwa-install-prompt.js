@@ -305,14 +305,18 @@
             <div class="pwa-ios-steps">
                 <div class="pwa-ios-step">
                     <span class="pwa-ios-step-num">1</span>
-                    <span>Tap the <strong>Share</strong> button — it looks like a square with an arrow pointing up. Tap the address bar first if you don't see it.</span>
+                    <span><strong>Long-press</strong> the URL bar</span>
                 </div>
                 <div class="pwa-ios-step">
                     <span class="pwa-ios-step-num">2</span>
-                    <span>Tap <strong>"Add to Home Screen"</strong></span>
+                    <span>Tap <strong>"Share"</strong></span>
                 </div>
                 <div class="pwa-ios-step">
                     <span class="pwa-ios-step-num">3</span>
+                    <span>Tap <strong>"Add to Home Screen"</strong></span>
+                </div>
+                <div class="pwa-ios-step">
+                    <span class="pwa-ios-step-num">4</span>
                     <span>Tap <strong>"Add"</strong> in the top-right corner</span>
                 </div>
             </div>
