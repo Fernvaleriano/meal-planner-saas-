@@ -7470,10 +7470,14 @@
                 // Fetch client name lookup
                 const { data: allClients } = await supabaseClient
                     .from('clients')
-                    .select('id, client_name')
+                    .select('id, client_name, unit_preference')
                     .eq('coach_id', coachId);
                 const clientMap = {};
-                (allClients || []).forEach(c => { clientMap[c.id] = c.client_name || 'Unknown Client'; });
+                const clientUnitMap = {};
+                (allClients || []).forEach(c => {
+                    clientMap[c.id] = c.client_name || 'Unknown Client';
+                    clientUnitMap[c.id] = c.unit_preference === 'metric' ? 'kg' : 'lbs';
+                });
 
                 const weekAgo = new Date();
                 weekAgo.setDate(weekAgo.getDate() - 7);
@@ -7953,16 +7957,17 @@
                                     if (last3.every(w => w === last3[0])) {
                                         if (plateauCount < MAX_SHOWN) {
                                             const name = clientMap[g.clientId] || 'Unknown Client';
+                                            const unit = clientUnitMap[g.clientId] || 'lbs';
                                             const aid = `plateau-${g.clientId}-${g.exercise.replace(/\s/g,'-')}`;
                                             const url = `client-profile.html?clientId=${g.clientId}&tab=workouts`;
-                                            const safePlateauMsg = (`${name} stuck at ${last3[0]} kg on ${g.exercise}`).replace(/'/g, "\\'").replace(/"/g, '&quot;').replace(/\n/g, ' ');
+                                            const safePlateauMsg = (`${name} stuck at ${last3[0]} ${unit} on ${g.exercise}`).replace(/'/g, "\\'").replace(/"/g, '&quot;').replace(/\n/g, ' ');
                                             addAlert(aid, `
                                                 <div class="priority-alert priority-alert--clickable" onclick="reviewAndArchive('${aid}', '${url}')">
                                                     __CHECKBOX__
                                                     <span class="priority-dot priority-dot--amber"></span>
                                                     <span>
                                                         <span class="priority-label priority-label--pending"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:3px;"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>Plateau:</span>
-                                                        <strong>${name}</strong> stuck at ${last3[0]} kg on ${g.exercise} (3+ sessions)
+                                                        <strong>${name}</strong> stuck at ${last3[0]} ${unit} on ${g.exercise} (3+ sessions)
                                                         <span class="priority-alert-link">Review →</span>
                                                         <button class="priority-note-reply-btn" onclick="event.stopPropagation(); toggleNoteReply('${aid}')" title="Reply about this plateau">
                                                             <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
