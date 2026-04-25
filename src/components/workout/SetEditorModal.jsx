@@ -172,6 +172,28 @@ const formatDurationDisplay = (seconds) => {
   return `${seconds}s`;
 };
 
+// Break total seconds into HRS/MIN/SEC components for the time picker
+const parseDuration = (totalSeconds) => {
+  const secs = Math.max(0, Math.floor(Number(totalSeconds) || 0));
+  return {
+    hours: Math.floor(secs / 3600),
+    minutes: Math.floor((secs % 3600) / 60),
+    seconds: secs % 60,
+  };
+};
+
+// Rebuild total seconds from HRS/MIN/SEC, clamping overflow so 75 min collapses into hours
+const combineDuration = ({ hours = 0, minutes = 0, seconds = 0 }) => {
+  const h = Math.max(0, Math.min(99, Math.floor(Number(hours) || 0)));
+  const m = Math.max(0, Math.floor(Number(minutes) || 0));
+  const s = Math.max(0, Math.floor(Number(seconds) || 0));
+  return h * 3600 + m * 60 + s;
+};
+
+const formatTwoDigits = (n) => String(Math.max(0, Math.floor(Number(n) || 0))).padStart(2, '0');
+
+const TIME_SEGMENT_FIELDS = new Set(['time-hours', 'time-minutes', 'time-seconds']);
+
 function SetEditorModal({
   exercise,
   sets,
@@ -347,6 +369,12 @@ function SetEditorModal({
     setActiveField(null);
   };
 
+  // Resolve the duration (total seconds) for a set, falling back to exercise defaults
+  const getSetDuration = (setIndex) => {
+    const t = localSets[setIndex]?.duration;
+    return t != null ? t : (exercise.duration || parseTimeFromReps(exercise.reps) || 45);
+  };
+
   // Get the current value being edited
   const getCurrentValue = (setIndex, field) => {
     if (field === 'weight') {
@@ -357,13 +385,18 @@ function SetEditorModal({
       const r = localSets[setIndex]?.restSeconds;
       return r != null ? r : (exercise.restSeconds ?? 60);
     }
+    if (TIME_SEGMENT_FIELDS.has(field)) {
+      const parts = parseDuration(getSetDuration(setIndex));
+      if (field === 'time-hours') return parts.hours;
+      if (field === 'time-minutes') return parts.minutes;
+      return parts.seconds;
+    }
     if (editMode === 'distance') {
       const d = localSets[setIndex]?.distance;
       return d != null ? d : (exercise.distance || 1);
     }
     if (editMode === 'time') {
-      const t = localSets[setIndex]?.duration;
-      return t != null ? t : (exercise.duration || parseTimeFromReps(exercise.reps) || 45);
+      return getSetDuration(setIndex);
     }
     const r = localSets[setIndex]?.reps;
     return r != null ? parseReps(r) : parseReps(exercise.reps);
@@ -384,6 +417,13 @@ function SetEditorModal({
     } else if (field === 'rest') {
       const intVal = typeof safeValue === 'number' ? Math.round(safeValue) : parseInt(safeValue, 10) || 0;
       newSets[setIndex] = { ...newSets[setIndex], restSeconds: intVal };
+    } else if (TIME_SEGMENT_FIELDS.has(field)) {
+      const parts = parseDuration(newSets[setIndex]?.duration ?? getSetDuration(setIndex));
+      const intVal = typeof safeValue === 'number' ? Math.floor(safeValue) : parseInt(safeValue, 10) || 0;
+      if (field === 'time-hours') parts.hours = Math.min(99, Math.max(0, intVal));
+      else if (field === 'time-minutes') parts.minutes = Math.min(59, Math.max(0, intVal));
+      else parts.seconds = Math.min(59, Math.max(0, intVal));
+      newSets[setIndex] = { ...newSets[setIndex], duration: combineDuration(parts) };
     } else if (editMode === 'distance') {
       newSets[setIndex] = { ...newSets[setIndex], distance: safeValue };
     } else if (editMode === 'time') {
@@ -411,6 +451,9 @@ function SetEditorModal({
       // If value ends with a decimal point (e.g. "42."), append the digit after it
       if (str.endsWith('.')) {
         newValue = parseFloat(`${str}${num}`) || 0;
+      } else if (TIME_SEGMENT_FIELDS.has(activeField)) {
+        // HRS/MIN/SEC are 2-digit fields — keep only the last 2 digits typed
+        newValue = parseInt(`${currentValue}${num}`.slice(-2), 10) || 0;
       } else if (activeField === 'weight') {
         // For weight, allow decimals by treating as string manipulation
         newValue = parseFloat(`${currentValue}${num}`.slice(-5)) || 0;
@@ -447,13 +490,20 @@ function SetEditorModal({
 
   // Apply to all sets
   const applyToAllSets = () => {
-    const currentReps = getCurrentValue(activeSetIndex, 'reps');
-    const currentWeight = getCurrentValue(activeSetIndex, 'weight');
-    const newSets = localSets.map(s => ({
-      ...s,
-      reps: currentReps,
-      weight: currentWeight
-    }));
+    if (activeSetIndex === null) return;
+    let newSets;
+    if (editMode === 'time') {
+      const currentDuration = localSets[activeSetIndex]?.duration ?? getSetDuration(activeSetIndex);
+      newSets = localSets.map(s => ({ ...s, duration: currentDuration }));
+    } else if (editMode === 'distance') {
+      const currentDistance = localSets[activeSetIndex]?.distance ?? (exercise.distance || 1);
+      const currentWeight = getCurrentValue(activeSetIndex, 'weight');
+      newSets = localSets.map(s => ({ ...s, distance: currentDistance, weight: currentWeight }));
+    } else {
+      const currentReps = getCurrentValue(activeSetIndex, 'reps');
+      const currentWeight = getCurrentValue(activeSetIndex, 'weight');
+      newSets = localSets.map(s => ({ ...s, reps: currentReps, weight: currentWeight }));
+    }
     setLocalSets(newSets);
     hideKeyboard();
   };
@@ -615,38 +665,82 @@ function SetEditorModal({
 
         {/* Column Headers */}
         <div className="editor-column-headers">
-          <span className="header-spacer"></span>
-          <span className="header-label">{editMode === 'distance' ? distanceUnitLabel.toUpperCase() : (editMode === 'time' ? 'TIME' : (isTillFailure ? 'REPS DONE' : 'REPS'))}</span>
-          <span className="header-spacer-x"></span>
-          <span className="header-label">WEIGHT</span>
-          <span className="header-spacer"></span>
+          {editMode === 'time' ? (
+            <>
+              <span className="header-spacer"></span>
+              <span className="header-label time-header-label">HRS</span>
+              <span className="time-header-gap" />
+              <span className="header-label time-header-label">MIN</span>
+              <span className="time-header-gap" />
+              <span className="header-label time-header-label">SEC</span>
+              <span className="header-spacer"></span>
+            </>
+          ) : (
+            <>
+              <span className="header-spacer"></span>
+              <span className="header-label">{editMode === 'distance' ? distanceUnitLabel.toUpperCase() : (isTillFailure ? 'REPS DONE' : 'REPS')}</span>
+              <span className="header-spacer-x"></span>
+              <span className="header-label">WEIGHT</span>
+              <span className="header-spacer"></span>
+            </>
+          )}
         </div>
 
         {/* Sets List */}
         <div className="editor-sets-list">
-          {localSets.map((set, index) => (
+          {localSets.map((set, index) => {
+            const durationParts = parseDuration(set.duration != null ? set.duration : (exercise.duration || parseTimeFromReps(exercise.reps) || 45));
+            return (
             <div key={index} className="editor-set-item">
               <div className="editor-set-row">
                 <span className="set-number">{index + 1}</span>
-                <button
-                  className={`set-value-input ${activeSetIndex === index && activeField === 'reps' ? 'active' : ''}`}
-                  onClick={() => selectField(index, 'reps')}
-                >
-                  {editMode === 'distance'
-                    ? (set.distance != null ? set.distance : (exercise.distance || 1))
-                    : editMode === 'time'
-                      ? formatDurationDisplay(set.duration != null ? set.duration : (exercise.duration || parseTimeFromReps(exercise.reps) || 45))
-                      : parseReps(set.reps != null ? set.reps : exercise.reps)
-                  }
-                </button>
-                <span className="set-multiplier">{editMode === 'distance' ? distanceUnitLabel : 'x'}</span>
-                <button
-                  className={`set-value-input weight-input ${activeSetIndex === index && activeField === 'weight' ? 'active' : ''}`}
-                  onClick={() => selectField(index, 'weight')}
-                >
-                  {set.weight != null ? set.weight : 0}
-                </button>
-                <span className="set-unit">{weightUnit}</span>
+                {editMode === 'time' ? (
+                  <div className="time-picker-group">
+                    <button
+                      type="button"
+                      className={`set-value-input time-segment ${activeSetIndex === index && activeField === 'time-hours' ? 'active' : ''}`}
+                      onClick={() => selectField(index, 'time-hours')}
+                    >
+                      {formatTwoDigits(durationParts.hours)}
+                    </button>
+                    <span className="time-colon">:</span>
+                    <button
+                      type="button"
+                      className={`set-value-input time-segment ${activeSetIndex === index && activeField === 'time-minutes' ? 'active' : ''}`}
+                      onClick={() => selectField(index, 'time-minutes')}
+                    >
+                      {formatTwoDigits(durationParts.minutes)}
+                    </button>
+                    <span className="time-colon">:</span>
+                    <button
+                      type="button"
+                      className={`set-value-input time-segment ${activeSetIndex === index && activeField === 'time-seconds' ? 'active' : ''}`}
+                      onClick={() => selectField(index, 'time-seconds')}
+                    >
+                      {formatTwoDigits(durationParts.seconds)}
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <button
+                      className={`set-value-input ${activeSetIndex === index && activeField === 'reps' ? 'active' : ''}`}
+                      onClick={() => selectField(index, 'reps')}
+                    >
+                      {editMode === 'distance'
+                        ? (set.distance != null ? set.distance : (exercise.distance || 1))
+                        : parseReps(set.reps != null ? set.reps : exercise.reps)
+                      }
+                    </button>
+                    <span className="set-multiplier">{editMode === 'distance' ? distanceUnitLabel : 'x'}</span>
+                    <button
+                      className={`set-value-input weight-input ${activeSetIndex === index && activeField === 'weight' ? 'active' : ''}`}
+                      onClick={() => selectField(index, 'weight')}
+                    >
+                      {set.weight != null ? set.weight : 0}
+                    </button>
+                    <span className="set-unit">{weightUnit}</span>
+                  </>
+                )}
                 <button className="set-delete-btn" onClick={() => deleteSet(index)}>
                   <X size={14} />
                 </button>
@@ -702,7 +796,8 @@ function SetEditorModal({
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Actions */}
@@ -720,7 +815,14 @@ function SetEditorModal({
           <div className="editor-numpad">
             <div className="numpad-header">
               <span className="numpad-label">
-                {activeField === 'rest' ? 'Enter rest (seconds)' : (activeField === 'weight' ? 'Enter weight' : (editMode === 'distance' ? `Enter ${distanceUnit}` : (editMode === 'time' ? 'Enter time (seconds)' : (isTillFailure ? 'Reps completed' : 'Enter reps'))))}
+                {activeField === 'rest' ? 'Enter rest (seconds)'
+                  : activeField === 'weight' ? 'Enter weight'
+                  : activeField === 'time-hours' ? 'Enter hours'
+                  : activeField === 'time-minutes' ? 'Enter minutes'
+                  : activeField === 'time-seconds' ? 'Enter seconds'
+                  : editMode === 'distance' ? `Enter ${distanceUnit}`
+                  : isTillFailure ? 'Reps completed'
+                  : 'Enter reps'}
               </span>
               <button className="numpad-done-btn" onClick={hideKeyboard}>
                 Done
