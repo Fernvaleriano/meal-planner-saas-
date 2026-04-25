@@ -470,6 +470,8 @@ function ExerciseDetailModal({
           hrZone: set?.hrZone || null,
           pace: set?.pace || null,
           incline: set?.incline || null,
+          ...(set?.isTimeBased ? { isTimeBased: true } : {}),
+          ...(set?.isDistanceBased ? { isDistanceBased: true } : {}),
         }));
       }
 
@@ -481,7 +483,9 @@ function ExerciseDetailModal({
           duration: set?.duration || exercise.duration || null,
           distance: set?.distance || exercise.distance || null,
           restSeconds: set?.restSeconds ?? exercise.restSeconds ?? 60,
-          effort: set?.effort || null
+          effort: set?.effort || null,
+          ...(set?.isTimeBased ? { isTimeBased: true } : {}),
+          ...(set?.isDistanceBased ? { isDistanceBased: true } : {}),
         }));
       }
 
@@ -1695,7 +1699,13 @@ function ExerciseDetailModal({
   const isDistanceExercise = exercise?.trackingType === 'distance';
   const distanceUnit = exercise?.distanceUnit || 'miles';
   const distanceUnitLabel = distanceUnit === 'miles' ? 'mi' : distanceUnit === 'km' ? 'km' : 'm';
-  const isTimedExercise = !isDistanceExercise && (exercise?.trackingType === 'time' || (exercise?.trackingType !== 'reps' && exercise?.exercise_type !== 'strength' && (exercise?.duration || exercise?.exercise_type === 'cardio' || exercise?.exercise_type === 'timed' || sets.some(s => s?.isTimeBased))));
+  const isTimedExercise = !isDistanceExercise && (
+    exercise?.trackingType === 'time'
+    || sets.some(s => s?.isTimeBased)
+    || (exercise?.trackingType !== 'reps' && exercise?.exercise_type !== 'strength' && (
+        exercise?.duration || exercise?.exercise_type === 'cardio' || exercise?.exercise_type === 'timed'
+      ))
+  );
   const difficultyLevel = exercise?.difficulty || 'Novice';
   const isWarmupExercise = !!(exercise?.isWarmup || exercise?.phase === 'warmup' || exercise?.section === 'warm-up');
   const isStretchExercise = !!(exercise?.isStretch || exercise?.phase === 'cooldown' || exercise?.section === 'cool-down' || exercise?.exercise_type === 'stretch');
