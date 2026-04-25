@@ -65,7 +65,7 @@ function InstallAppBanner() {
               <span>
                 Tap the <strong>Share</strong> button
                 <span className="ios-step-icon"><Share size={14} /></span>
-                at the bottom of Safari
+                in Safari's toolbar (tap the address bar first if you don't see it)
               </span>
             </div>
             <div className="ios-step">
