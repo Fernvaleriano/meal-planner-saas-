@@ -398,6 +398,40 @@ function completionStorageKey(workoutId, dayIndex) {
   return `completedExercises_${workoutId}_day${dayIndex ?? 0}`;
 }
 
+// Explicit "user unchecked these" overrides. Logged sets normally auto-check an
+// exercise; without overrides, an uncheck/Reset-all would silently revert on
+// the next load because the log entries still exist. Overrides win over the
+// log so the user's intent persists.
+function uncheckedOverridesKey(workoutId, dayIndex) {
+  if (!workoutId) return null;
+  return `uncheckedOverrides_${workoutId}_day${dayIndex ?? 0}`;
+}
+
+function getUncheckedOverrides(workoutId, dayIndex) {
+  const key = uncheckedOverridesKey(workoutId, dayIndex);
+  if (!key) return new Set();
+  try {
+    const stored = localStorage.getItem(key);
+    if (stored) {
+      const ids = JSON.parse(stored);
+      if (Array.isArray(ids)) return new Set(ids);
+    }
+  } catch (e) { /* ignore */ }
+  return new Set();
+}
+
+function writeUncheckedOverrides(workoutId, dayIndex, ids) {
+  const key = uncheckedOverridesKey(workoutId, dayIndex);
+  if (!key) return;
+  try {
+    if (!ids || ids.size === 0) {
+      localStorage.removeItem(key);
+    } else {
+      localStorage.setItem(key, JSON.stringify([...ids]));
+    }
+  } catch (e) { /* ignore */ }
+}
+
 function getCompletedFromWorkoutData(workoutData, dayIndex = 0, workoutId = null) {
   let exercises = [];
   if (Array.isArray(workoutData?.exercises) && workoutData.exercises.length > 0) {
@@ -428,6 +462,9 @@ function getCompletedFromWorkoutData(workoutData, dayIndex = 0, workoutId = null
       }
     } catch (e) { /* ignore */ }
   }
+  // Explicit unchecks beat auto-completion sources.
+  const overrides = getUncheckedOverrides(workoutId, dayIndex);
+  overrides.forEach(id => fromData.delete(id));
   return fromData;
 }
 
@@ -452,6 +489,30 @@ function getWorkoutExercises(workout) {
 function getWorkoutCompletedCount(workout) {
   const completed = getCompletedFromWorkoutData(workout?.workout_data, workout?.day_index || 0, workout?.id);
   return completed.size;
+}
+
+// Source of truth for what the UI shows as checked: union of
+// (workout_data.completed flags) ∪ (localStorage taps) ∪ (logged exercises),
+// minus the user's explicit unchecked-overrides. The override subtraction is
+// what makes Reset all / individual uncheck survive an app close — without it,
+// the log entries auto-re-check anything the user had logged sets for.
+function getEffectiveCompletedExercises(workout, log) {
+  if (!workout) return new Set();
+  const dayIndex = workout.day_index ?? 0;
+  // getCompletedFromWorkoutData already subtracts overrides.
+  const combined = getCompletedFromWorkoutData(workout.workout_data, dayIndex, workout.id);
+  const logExercises = log?.exercises;
+  if (Array.isArray(logExercises) && logExercises.length > 0) {
+    const overrides = getUncheckedOverrides(workout.id, dayIndex);
+    const activeIds = new Set(getWorkoutExercises(workout).map(e => e.id));
+    logExercises.forEach(e => {
+      const id = e?.exercise_id;
+      if (id && activeIds.has(id) && !overrides.has(id)) {
+        combined.add(id);
+      }
+    });
+  }
+  return combined;
 }
 
 // Reconstruct a workout card from a workout_log so past workouts stay visible
@@ -1007,29 +1068,13 @@ function Workouts() {
               sleep: log.sleep_quality || 2
             });
           }
-          const fromData = getCompletedFromWorkoutData(active.workout_data, active.day_index, active.id);
-          if (fromData.size > 0) {
-            setCompletedExercises(fromData);
-          } else {
-            // Scope the log-based fallback to this workout's exercises — otherwise
-            // the shared per-day log aggregates exercise_ids from every workout
-            // assigned today and "X/3 activities done" shows wildly wrong numbers.
-            const activeIds = new Set(getWorkoutExercises(active).map(e => e.id));
-            const completed = new Set(
-              (log?.exercises || [])
-                .map(e => e?.exercise_id)
-                .filter(id => id && activeIds.has(id))
-            );
-            setCompletedExercises(completed);
-          }
+          setCompletedExercises(getEffectiveCompletedExercises(active, log));
         } else if (!active.is_adhoc) {
           setWorkoutLog(null);
-          const fromData = getCompletedFromWorkoutData(active.workout_data, active.day_index, active.id);
-          setCompletedExercises(fromData);
+          setCompletedExercises(getEffectiveCompletedExercises(active, null));
         } else {
           setWorkoutLog(null);
-          const fromData = getCompletedFromWorkoutData(active.workout_data, 0, active.id);
-          setCompletedExercises(fromData);
+          setCompletedExercises(getEffectiveCompletedExercises(active, null));
         }
       } else {
         setTodayWorkout(null);
@@ -1188,30 +1233,15 @@ function Workouts() {
                 sleep: log.sleep_quality || 2
               });
             }
-            const fromData = getCompletedFromWorkoutData(first.workout_data, first.day_index, first.id);
-            if (fromData.size > 0) {
-              setCompletedExercises(fromData);
-            } else {
-              // Scope the log-based fallback to this workout's exercises — see
-              // matching comment in refreshWorkoutData above.
-              const activeIds = new Set(getWorkoutExercises(first).map(e => e.id));
-              const completed = new Set(
-                (log?.exercises || [])
-                  .map(e => e?.exercise_id)
-                  .filter(id => id && activeIds.has(id))
-              );
-              setCompletedExercises(completed);
-            }
+            setCompletedExercises(getEffectiveCompletedExercises(first, log));
           } else if (!first.is_adhoc) {
             setWorkoutLog(null);
             setCache(cacheKey, { todayWorkout: first, todayWorkouts: allWorkouts, workoutLog: null });
-            const fromData = getCompletedFromWorkoutData(first.workout_data, first.day_index, first.id);
-            setCompletedExercises(fromData);
+            setCompletedExercises(getEffectiveCompletedExercises(first, null));
           } else {
             setWorkoutLog(null);
             setCache(cacheKey, { todayWorkout: first, todayWorkouts: allWorkouts, workoutLog: null });
-            const fromData = getCompletedFromWorkoutData(first.workout_data, 0, first.id);
-            setCompletedExercises(fromData);
+            setCompletedExercises(getEffectiveCompletedExercises(first, null));
           }
         } else {
           setTodayWorkout(null);
@@ -1551,24 +1581,39 @@ function Workouts() {
   const toggleExerciseComplete = useCallback(async (exerciseId) => {
     if (!exerciseId) return;
 
-    let isNowCompleted = false;
     setCompletedExercises(prev => {
       const newCompleted = new Set(prev);
-      if (newCompleted.has(exerciseId)) {
+      const wasCompleted = newCompleted.has(exerciseId);
+      if (wasCompleted) {
         newCompleted.delete(exerciseId);
-        isNowCompleted = false;
       } else {
         newCompleted.add(exerciseId);
-        isNowCompleted = true;
       }
+      const workout = todayWorkoutRef.current;
+      const dayIdx = workout?.day_index;
       // Save to localStorage immediately so it survives app close
       try {
-        const workout = todayWorkoutRef.current;
-        const key = completionStorageKey(workout?.id, workout?.day_index);
+        const key = completionStorageKey(workout?.id, dayIdx);
         if (key) {
-          localStorage.setItem(key, JSON.stringify([...newCompleted]));
+          if (newCompleted.size > 0) {
+            localStorage.setItem(key, JSON.stringify([...newCompleted]));
+          } else {
+            localStorage.removeItem(key);
+          }
         }
       } catch (e) { /* ignore localStorage errors */ }
+      // Maintain the unchecked-overrides set so log-based auto-completion
+      // doesn't silently re-check what the user just unchecked. Re-checking
+      // an exercise clears it from the override list.
+      try {
+        const overrides = getUncheckedOverrides(workout?.id, dayIdx);
+        if (wasCompleted) {
+          overrides.add(exerciseId);
+        } else {
+          overrides.delete(exerciseId);
+        }
+        writeUncheckedOverrides(workout?.id, dayIdx, overrides);
+      } catch (e) { /* ignore */ }
       return newCompleted;
     });
 
@@ -1585,11 +1630,21 @@ function Workouts() {
 
     setCompletedExercises(new Set());
 
+    const workoutForOverride = todayWorkoutRef.current;
+    const dayIdxForOverride = workoutForOverride?.day_index;
+
     // Clear localStorage cache
     try {
-      const workout = todayWorkoutRef.current;
-      const key = completionStorageKey(workout?.id, workout?.day_index);
+      const key = completionStorageKey(workoutForOverride?.id, dayIdxForOverride);
       if (key) localStorage.removeItem(key);
+    } catch (e) { /* ignore */ }
+
+    // Mark every currently-active exercise as user-unchecked. Without this,
+    // the log-based auto-check on next load would re-check everything that
+    // had logged sets, defeating Reset all.
+    try {
+      const activeIds = new Set(getWorkoutExercises(workoutForOverride).map(e => e.id));
+      writeUncheckedOverrides(workoutForOverride?.id, dayIdxForOverride, activeIds);
     } catch (e) { /* ignore */ }
 
     // Update workout_data to clear completed flags on all exercises
