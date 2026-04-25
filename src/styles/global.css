@@ -19325,6 +19325,11 @@ textarea,
     color: white;
 }
 
+.detail-exercise-badge.superset-badge {
+    background: linear-gradient(135deg, #8B5CF6, #6366F1);
+    color: white;
+}
+
 /* Special exercise type indicators on the card */
 .exercise-card-v2.superset-exercise {
     border-left: 3px solid #8B5CF6;
