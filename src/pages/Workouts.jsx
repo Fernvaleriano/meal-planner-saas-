@@ -2546,7 +2546,20 @@ function Workouts() {
               workoutId: logId,
               exercises: [exercisePayload]
             });
-          } catch { /* keepalive above is the safety net */ }
+          } catch (err) {
+            // Keepalive above is the safety net for app-kill, but log here
+            // so console.log-intercept diagnostics can see WHICH save path
+            // failed and why. The previous `catch { /* ignore */ }` made
+            // diagnosing future regressions impossible.
+            console.error('[workout-logs PUT failed]', {
+              status: err?.status,
+              isAuthError: err?.isAuthError,
+              isTimeout: err?.isTimeout,
+              message: err?.message,
+              logId,
+              exerciseId: updatedExercise?.id
+            });
+          }
           return;
         }
 
@@ -2575,7 +2588,19 @@ function Workouts() {
             setWorkoutLog(created.workout);
             patchWorkoutLogState(logId);
           }
-        } catch { /* keepalive POST above is the safety net */ }
+        } catch (err) {
+          // Keepalive POST above is the safety net for app-kill, but log
+          // here so future debugging can see WHICH save path failed.
+          console.error('[workout-logs POST failed]', {
+            status: err?.status,
+            isAuthError: err?.isAuthError,
+            isTimeout: err?.isTimeout,
+            message: err?.message,
+            clientId: currentClientId,
+            dateStr,
+            exerciseId: updatedExercise?.id
+          });
+        }
       } catch (e) {
         // Best-effort fallback only; assignment save path above remains primary.
       }
