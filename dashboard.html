@@ -5554,7 +5554,7 @@
                                 <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
                             </div>
                             <div class="overview-card-title-wrap">
-                                <h3 class="overview-card-title">Activity</h3>
+                                <h3 class="overview-card-title">Wins</h3>
                                 <span class="overview-card-count" id="activityCardCount"></span>
                             </div>
                             <button class="overview-card-expand" onclick="toggleOverviewCard('overviewCardActivity')" title="Expand/Collapse">
@@ -5565,7 +5565,7 @@
                             <div class="overview-card-scroll" id="activityCardContent">
                                 <div class="priority-alert priority-alert--loading">
                                     <span class="priority-dot priority-dot--muted"></span>
-                                    <span>Loading activity...</span>
+                                    <span>Loading wins...</span>
                                 </div>
                             </div>
                         </div>
@@ -5578,7 +5578,7 @@
                                 <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                             </div>
                             <div class="overview-card-title-wrap">
-                                <h3 class="overview-card-title">Alerts</h3>
+                                <h3 class="overview-card-title">Needs You</h3>
                                 <span class="overview-card-count" id="alertsCardCount"></span>
                             </div>
                             <button class="overview-card-expand" onclick="toggleOverviewCard('overviewCardAlerts')" title="Expand/Collapse">
@@ -5589,7 +5589,7 @@
                             <div class="overview-card-scroll" id="alertsCardContent">
                                 <div class="priority-alert priority-alert--loading">
                                     <span class="priority-dot priority-dot--muted"></span>
-                                    <span>Loading alerts...</span>
+                                    <span>Loading action items...</span>
                                 </div>
                             </div>
                         </div>
@@ -5602,7 +5602,7 @@
                                 <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
                             </div>
                             <div class="overview-card-title-wrap">
-                                <h3 class="overview-card-title">Meals</h3>
+                                <h3 class="overview-card-title">Logs</h3>
                                 <span class="overview-card-count" id="mealsCardCount"></span>
                             </div>
                             <button class="overview-card-expand" onclick="toggleOverviewCard('overviewCardMeals')" title="Expand/Collapse">
@@ -5613,7 +5613,7 @@
                             <div class="overview-card-scroll" id="mealsCardContent">
                                 <div class="priority-alert priority-alert--loading">
                                     <span class="priority-dot priority-dot--muted"></span>
-                                    <span>Loading meals...</span>
+                                    <span>Loading logs...</span>
                                 </div>
                             </div>
                             <div class="feed-load-more" id="feedLoadMore">
@@ -6713,7 +6713,7 @@
             _activityFeedLoaded = true;
             const alertsEl = document.getElementById('activityCardContent');
             if (alertsEl) {
-                alertsEl.innerHTML = '<div class="activity-tl-empty">Loading activity...</div>';
+                alertsEl.innerHTML = '<div class="activity-tl-empty">Loading wins...</div>';
             }
 
             try {
@@ -6945,7 +6945,7 @@
         function renderActivityTimeline(container) {
             const clientIds = Object.keys(_activityGrouped);
             if (clientIds.length === 0) {
-                container.innerHTML = '<div class="activity-tl-empty">No client activity in the last 7 days.</div>';
+                container.innerHTML = '<div class="activity-tl-empty">No client wins to celebrate this week yet.</div>';
                 return;
             }
 
@@ -7084,7 +7084,7 @@
                         alertHtml += item.html.replace('__CHECKBOX__', checkboxHtml(item.id, false));
                     });
                 } else {
-                    alertHtml += '<div class="priority-alert"><span class="priority-dot priority-dot--green"></span><span>All caught up! No alerts right now.</span></div>';
+                    alertHtml += '<div class="priority-alert"><span class="priority-dot priority-dot--green"></span><span>All caught up! Nothing needs your attention right now.</span></div>';
                 }
 
                 if (handledAlerts.length > 0) {
@@ -7136,7 +7136,7 @@
                         mealHtml += item.html.replace('__CHECKBOX__', checkboxHtml(item.id, false));
                     });
                 } else {
-                    mealHtml += '<div class="priority-alert"><span class="priority-dot priority-dot--green"></span><span>No meal logs to review.</span></div>';
+                    mealHtml += '<div class="priority-alert"><span class="priority-dot priority-dot--green"></span><span>No meals logged yet.</span></div>';
                 }
 
                 if (handledMeals.length > 0) {
@@ -7739,60 +7739,8 @@
                     console.warn('Could not check clients without active workouts:', e);
                 }
 
-                // --- PR ALERTS ---
-                try {
-                    const { data: prNotifications } = await supabaseClient
-                        .from('notifications')
-                        .select('id, title, message, created_at, related_client_id')
-                        .eq('user_id', coachId)
-                        .eq('type', 'client_pr')
-                        .gte('created_at', weekAgo.toISOString())
-                        .order('created_at', { ascending: false })
-                        .limit(5);
-
-                    if (prNotifications && prNotifications.length > 0) {
-                        prNotifications.slice(0, MAX_SHOWN).forEach(pr => {
-                            const name = clientMap[pr.related_client_id] || '';
-                            const clientId = pr.related_client_id;
-                            const url = clientId ? `client-profile.html?clientId=${clientId}` : '#';
-                            const aid = 'pr-' + pr.id;
-                            const safePrMessage = (pr.message || '').replace(/'/g, "\\'").replace(/"/g, '&quot;').replace(/\n/g, ' ');
-                            addAlert(aid, `
-                                <div class="priority-alert priority-alert--clickable" onclick="reviewAndArchive('${aid}', '${url}')">
-                                    __CHECKBOX__
-                                    <span class="priority-dot priority-dot--green"></span>
-                                    <span>
-                                        <span class="priority-label priority-label--positive">New PR!</span>
-                                        ${name ? `<strong>${name}</strong> — ` : ''}${pr.message}
-                                        <span class="priority-alert-detail">· ${timeAgo(pr.created_at)}</span>
-                                        <span class="priority-alert-link">View →</span>
-                                        <button class="priority-note-reply-btn" onclick="event.stopPropagation(); toggleNoteReply('${aid}')" title="Reply to this PR">
-                                            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                                            Reply
-                                        </button>
-                                        <span class="priority-reaction-row" onclick="event.stopPropagation()">
-                                            <button id="react-${aid}-clap" class="priority-reaction-btn" onclick="toggleReaction('${aid}','${clientId}','👏','client_pr','${pr.id}')" title="Clap">👏</button>
-                                            <button id="react-${aid}-fist" class="priority-reaction-btn" onclick="toggleReaction('${aid}','${clientId}','👊','client_pr','${pr.id}')" title="Fist bump">👊</button>
-                                            <button id="react-${aid}-muscle" class="priority-reaction-btn" onclick="toggleReaction('${aid}','${clientId}','💪','client_pr','${pr.id}')" title="Muscle">💪</button>
-                                            <button id="react-${aid}-fire" class="priority-reaction-btn" onclick="toggleReaction('${aid}','${clientId}','🔥','client_pr','${pr.id}')" title="Fire">🔥</button>
-                                            <span id="reaction-sent-${aid}" class="priority-reaction-sent">✓</span>
-                                        </span>
-                                        <div id="reply-row-${aid}" class="priority-note-reply-row" style="display:none;" onclick="event.stopPropagation()">
-                                            <input type="text" id="reply-input-${aid}" placeholder="Type your reply..." onkeydown="if(event.key==='Enter'){sendPrReply('${aid}','${clientId}','${safePrMessage}')}" />
-                                            <button onclick="sendPrReply('${aid}','${clientId}','${safePrMessage}')">Send</button>
-                                        </div>
-                                        <div id="reply-sent-${aid}" class="priority-note-reply-sent" style="display:none;">
-                                            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
-                                            Sent to messages
-                                        </div>
-                                    </span>
-                                </div>
-                            `, clientId, 'client_pr', pr.id, 'workout');
-                        });
-                    }
-                } catch (e) {
-                    console.warn('Could not check PRs:', e);
-                }
+                // PRs render in the Wins card via the activity timeline (loadActivityFeed),
+                // so we don't add them to the Needs You alerts here — that would duplicate them.
 
                 // --- CLIENT WORKOUT NOTES (Voice & Text) ---
                 try {
@@ -8708,6 +8656,8 @@
 
             // Add each notification as a priority alert item
             notifications.forEach(n => {
+                // Skip workout_assigned — that's a confirmation of a coach action, already in the bell.
+                if (n.type === 'workout_assigned') return;
                 const aid = 'notif-' + n.id;
                 const icon = notifIcons[n.type] || '🔔';
                 const dotColor = notifDotColors[n.type] || 'blue';
