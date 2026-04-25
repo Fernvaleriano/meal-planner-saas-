@@ -11,6 +11,43 @@ const headers = {
   'Content-Type': 'application/json'
 };
 
+// Constraint drift detector — runs once per cold start. The 2026-04-23
+// "save shows up then reverts" bug was caused by missing UNIQUE constraints
+// on workout_logs(client_id, workout_date) and exercise_logs(workout_log_id,
+// exercise_id). They're added by migration 003. If anything ever drops them
+// (manual DDL, restore from old backup, project import) the bug silently
+// resurfaces. This logs CRITICAL to function logs the moment we detect drift,
+// so it's caught BEFORE clients start reporting reverts again.
+//
+// Calls the check_workout_log_constraints() RPC added in migration 004.
+// If the RPC isn't deployed yet, the call fails silently (logged once) and
+// the function continues normally. Module-level flag throttles to once per
+// cold start so it's near-zero overhead per request.
+let constraintCheckDone = false;
+async function checkConstraintsOnce(supabase) {
+  if (constraintCheckDone) return;
+  constraintCheckDone = true;
+  try {
+    const { data, error } = await supabase.rpc('check_workout_log_constraints');
+    if (error) {
+      // RPC may not be deployed yet (migration 004 not run). Don't spam logs.
+      console.log('[constraint-check] RPC unavailable (run migration 004 to enable):', error.message);
+      return;
+    }
+    const has1 = data?.workout_logs_client_date_unique;
+    const has2 = data?.exercise_logs_workout_exercise_unique;
+    if (!has1 || !has2) {
+      console.error('[CRITICAL] Workout log constraints missing — bug WILL resurface!', {
+        workout_logs_client_date_unique: !!has1,
+        exercise_logs_workout_exercise_unique: !!has2,
+        action: 'Re-run supabase/migrations/003_workout_logs_dedup.sql IMMEDIATELY'
+      });
+    }
+  } catch (e) {
+    console.log('[constraint-check] check failed (non-fatal):', e?.message);
+  }
+}
+
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers, body: '' };
@@ -25,6 +62,9 @@ exports.handler = async (event) => {
   }
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+
+  // Fire-and-forget: don't await, don't block requests on the check.
+  checkConstraintsOnce(supabase);
 
   try {
     // GET - Fetch workout logs
