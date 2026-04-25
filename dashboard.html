@@ -7066,7 +7066,10 @@
             // --- Alerts card ---
             if (alertsEl) {
                 const dismissed = getDismissedAlerts();
-                const alertItems = _allPriorityAlerts.filter(item => item.type === 'alert');
+                // Everything that isn't a meal belongs in the Alerts card.
+                // Items are tagged 'alert' | 'workout' | 'checkin' at addAlert time;
+                // all three render here with their own dot color and label.
+                const alertItems = _allPriorityAlerts.filter(item => item.type !== 'meal');
                 const activeAlerts = [];
                 const handledAlerts = [];
 
