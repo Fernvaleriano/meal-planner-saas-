@@ -464,14 +464,17 @@ function ExerciseDetailModal({
           // client's unit makes the conversion a no-op and renders the raw number with
           // the wrong label.
           const rawWeight = set?.weight || 0;
-          const rawPrescribed = set?.prescribedWeight ?? rawWeight;
+          // Only treat the coach's prescription as set when the field is explicitly
+          // present on the saved data. Falling back to rawWeight here surfaces any
+          // logged weight as a "Coach Prescribed" target on the next reload — and the
+          // save path then persists that bogus value, baking it in.
+          const rawPrescribed = set?.prescribedWeight ?? 0;
           const fromUnit = set?.weightUnit || (rawPrescribed > 0 || rawWeight > 0 ? 'lbs' : weightUnit);
           return {
           reps: safeParseReps(set?.reps || exercise.reps),
           weight: convertWeight(rawWeight, fromUnit, weightUnit),
-          // Snapshot the coach's prescription so it survives client edits to weight/reps
           prescribedWeight: convertWeight(rawPrescribed, fromUnit, weightUnit),
-          prescribedReps: set?.prescribedReps ?? safeParseReps(set?.reps || exercise.reps),
+          prescribedReps: set?.prescribedReps != null ? safeParseReps(set.prescribedReps) : 0,
           completed: set?.completed || false,
           duration: set?.duration || exercise.duration || null,
           distance: set?.distance || exercise.distance || null,
