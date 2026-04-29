@@ -11583,17 +11583,21 @@
 
             return new Promise((resolve) => {
                 const video = document.createElement('video');
-                video.muted = true;
+                // Audio is routed through Web Audio (see below) so nothing plays to speakers
                 video.playsInline = true;
                 video.preload = 'auto';
                 const objectUrl = URL.createObjectURL(file);
                 let resolved = false;
+                let audioCtx = null;
 
                 function finish(result) {
                     if (resolved) return;
                     resolved = true;
                     clearTimeout(safetyTimeout);
                     URL.revokeObjectURL(objectUrl);
+                    if (audioCtx && typeof audioCtx.close === 'function') {
+                        try { audioCtx.close(); } catch (_) {}
+                    }
                     resolve(result);
                 }
 
@@ -11623,11 +11627,36 @@
                     canvas.width = width;
                     canvas.height = height;
                     const ctx = canvas.getContext('2d');
-                    const stream = canvas.captureStream(24);
+                    const canvasStream = canvas.captureStream(24);
 
-                    // Pick best available codec
+                    // Combine canvas video with the source video's audio track so
+                    // compressed videos retain their sound.
+                    const stream = new MediaStream();
+                    canvasStream.getVideoTracks().forEach(t => stream.addTrack(t));
+                    try {
+                        const Ctx = window.AudioContext || window.webkitAudioContext;
+                        if (Ctx) {
+                            audioCtx = new Ctx();
+                            if (audioCtx.state === 'suspended' && typeof audioCtx.resume === 'function') {
+                                audioCtx.resume().catch(() => {});
+                            }
+                            const sourceNode = audioCtx.createMediaElementSource(video);
+                            const destNode = audioCtx.createMediaStreamDestination();
+                            sourceNode.connect(destNode);
+                            // Intentionally NOT connected to audioCtx.destination so the
+                            // source video stays silent during compression.
+                            destNode.stream.getAudioTracks().forEach(t => stream.addTrack(t));
+                        }
+                    } catch (audioErr) {
+                        console.warn('Could not capture audio for compression:', audioErr);
+                    }
+
+                    // Pick best available codec — include opus so audio is encoded
                     let mimeType = 'video/webm';
-                    for (const candidate of ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm']) {
+                    const codecCandidates = stream.getAudioTracks().length
+                        ? ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm;codecs=opus', 'video/webm']
+                        : ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'];
+                    for (const candidate of codecCandidates) {
                         if (MediaRecorder.isTypeSupported(candidate)) {
                             mimeType = candidate;
                             break;
@@ -11686,13 +11715,30 @@
             }
 
             try {
-                // Request camera access
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: 'environment', width: { ideal: 720 }, height: { ideal: 480 } },
-                    audio: false
-                });
+                // Request camera + mic access (audio so coach demos include voice cues)
+                let stream;
+                try {
+                    stream = await navigator.mediaDevices.getUserMedia({
+                        video: { facingMode: 'environment', width: { ideal: 720 }, height: { ideal: 480 } },
+                        audio: true
+                    });
+                } catch (audioErr) {
+                    console.warn('Mic unavailable, recording without audio:', audioErr);
+                    stream = await navigator.mediaDevices.getUserMedia({
+                        video: { facingMode: 'environment', width: { ideal: 720 }, height: { ideal: 480 } },
+                        audio: false
+                    });
+                }
 
-                videoMediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+                // Pick a mimeType the browser can record with audio + video
+                let recordMimeType = 'video/webm';
+                for (const candidate of ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm;codecs=opus', 'video/webm']) {
+                    if (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(candidate)) {
+                        recordMimeType = candidate;
+                        break;
+                    }
+                }
+                videoMediaRecorder = new MediaRecorder(stream, { mimeType: recordMimeType });
                 videoChunks = [];
                 videoRecordingExercise = { dayIndex, exIndex };
                 videoRecordingSeconds = 0;
@@ -12731,13 +12777,29 @@
 
         async function startCEVideoRecording() {
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: 'environment' },
-                    audio: false
-                });
+                let stream;
+                try {
+                    stream = await navigator.mediaDevices.getUserMedia({
+                        video: { facingMode: 'environment' },
+                        audio: true
+                    });
+                } catch (audioErr) {
+                    console.warn('Mic unavailable, recording without audio:', audioErr);
+                    stream = await navigator.mediaDevices.getUserMedia({
+                        video: { facingMode: 'environment' },
+                        audio: false
+                    });
+                }
 
+                let ceMimeType = 'video/webm';
+                for (const candidate of ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm;codecs=opus', 'video/webm']) {
+                    if (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(candidate)) {
+                        ceMimeType = candidate;
+                        break;
+                    }
+                }
                 ceVideoChunks = [];
-                ceVideoRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+                ceVideoRecorder = new MediaRecorder(stream, { mimeType: ceMimeType });
 
                 ceVideoRecorder.ondataavailable = (e) => {
                     if (e.data.size > 0) {
