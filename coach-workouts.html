@@ -7206,7 +7206,7 @@
 
                     <!-- Video Preview -->
                     <div class="custom-video-preview-container" id="ceVideoPreview">
-                        <video id="cePreviewVideo" controls muted playsinline></video>
+                        <video id="cePreviewVideo" controls playsinline></video>
                         <div class="custom-video-preview-info">
                             <span id="ceVideoSize">Video ready</span>
                             <button class="btn btn-secondary" onclick="removeCEVideo()" style="padding: 6px 12px; font-size: 12px; background: rgba(239, 68, 68, 0.1); color: var(--danger);">
@@ -8519,13 +8519,13 @@
                     <label>Custom Video</label>
                     <div class="custom-video-container" id="customVideo-${di}-${ei}">
                         ${exercise.customVideoUrl ? `
-                            <div class="custom-video-preview">
-                                <video src="${exercise.customVideoUrl}" muted></video>
+                            <div class="custom-video-preview" onclick="previewCustomDemo(${di}, ${ei})" style="cursor:pointer;" title="Click to play with sound">
+                                <video src="${exercise.customVideoUrl}" muted preload="metadata"></video>
                                 <div class="video-info">
                                     <span class="video-label">Custom Demo</span><br>
-                                    Your video will show to client
+                                    Click to play with sound
                                 </div>
-                                <button class="custom-video-delete" onclick="deleteCustomVideo(${di}, ${ei})" title="Delete video">×</button>
+                                <button class="custom-video-delete" onclick="event.stopPropagation(); deleteCustomVideo(${di}, ${ei})" title="Delete video">×</button>
                             </div>
                         ` : `
                             <button class="custom-video-btn" id="videoRecordBtn-${di}-${ei}" onclick="startVideoRecording(${di}, ${ei})" title="Record custom demo">
@@ -8783,13 +8783,13 @@
                         </div>
                         <div class="custom-video-container" id="customVideo-${dayIndex}-${exIndex}">
                             ${exercise.customVideoUrl ? `
-                                <div class="custom-video-preview">
-                                    <video src="${exercise.customVideoUrl}" muted></video>
+                                <div class="custom-video-preview" onclick="previewCustomDemo(${dayIndex}, ${exIndex})" style="cursor:pointer;" title="Click to play with sound">
+                                    <video src="${exercise.customVideoUrl}" muted preload="metadata"></video>
                                     <div class="video-info">
                                         <span class="video-label">Custom Demo</span><br>
-                                        Your video will show to client
+                                        Click to play with sound
                                     </div>
-                                    <button class="custom-video-delete" onclick="deleteCustomVideo(${dayIndex}, ${exIndex})" title="Delete video">×</button>
+                                    <button class="custom-video-delete" onclick="event.stopPropagation(); deleteCustomVideo(${dayIndex}, ${exIndex})" title="Delete video">×</button>
                                 </div>
                             ` : `
                                 <button class="custom-video-btn" id="videoRecordBtn-${dayIndex}-${exIndex}" onclick="startVideoRecording(${dayIndex}, ${exIndex})" title="Record custom demo">
@@ -11563,6 +11563,206 @@
             }
         }
 
+        // ============ WEBM DURATION FIX ============
+        // MediaRecorder produces WebM files that omit the Duration element in the
+        // EBML Info segment, which makes <video> elements stop playback early
+        // (often within 5 seconds of seek/buffer). This patcher inserts a proper
+        // Duration so the recorded file plays end-to-end.
+        // Adapted from the public-domain logic in https://github.com/yusitnikov/fix-webm-duration (MIT).
+        async function fixWebmDuration(blob, durationMs) {
+            try {
+                if (!durationMs || durationMs <= 0) return blob;
+                const buf = new Uint8Array(await blob.arrayBuffer());
+                const patched = patchWebmDuration(buf, durationMs);
+                if (!patched) return blob;
+                return new Blob([patched], { type: blob.type || 'video/webm' });
+            } catch (e) {
+                console.warn('[WebmFix] Could not patch duration:', e);
+                return blob;
+            }
+        }
+
+        function patchWebmDuration(bytes, durationMs) {
+            // EBML id constants (big-endian byte sequences)
+            const ID_SEGMENT = [0x18, 0x53, 0x80, 0x67];
+            const ID_INFO = [0x15, 0x49, 0xA9, 0x66];
+            const ID_DURATION = [0x44, 0x89];
+            const ID_TIMECODE_SCALE = [0x2A, 0xD7, 0xB1];
+
+            function bytesEq(off, ids) {
+                for (let i = 0; i < ids.length; i++) if (bytes[off + i] !== ids[i]) return false;
+                return true;
+            }
+
+            // Read variable-length integer (EBML VINT). Returns { value, length, isUnknown }.
+            function readVint(off) {
+                const first = bytes[off];
+                if (first === 0) throw new Error('Bad VINT at ' + off);
+                let mask = 0x80, len = 1;
+                while (!(first & mask)) { mask >>= 1; len++; if (len > 8) throw new Error('Bad VINT len'); }
+                let value = first & (mask - 1);
+                let allOnes = (first === ((mask << 1) - 1)); // unknown-size marker is all 1s after the length prefix
+                for (let i = 1; i < len; i++) {
+                    const b = bytes[off + i];
+                    if (b !== 0xFF) allOnes = false;
+                    value = value * 256 + b;
+                }
+                return { value, length: len, isUnknown: allOnes };
+            }
+
+            // Find Segment
+            let off = 0;
+            // Skip EBML header
+            if (!(bytes[0] === 0x1A && bytes[1] === 0x45 && bytes[2] === 0xDF && bytes[3] === 0xA3)) {
+                console.warn('[WebmFix] Not a WebM file (missing EBML header)');
+                return null;
+            }
+            off += 4;
+            const ebmlSize = readVint(off);
+            off += ebmlSize.length + ebmlSize.value;
+
+            // Segment
+            if (!bytesEq(off, ID_SEGMENT)) {
+                console.warn('[WebmFix] No Segment element after EBML header');
+                return null;
+            }
+            const segIdEnd = off + ID_SEGMENT.length;
+            const segSize = readVint(segIdEnd);
+            const segDataStart = segIdEnd + segSize.length;
+            const segEnd = segSize.isUnknown ? bytes.length : Math.min(segDataStart + segSize.value, bytes.length);
+
+            // Walk children looking for Info
+            let cursor = segDataStart;
+            while (cursor < segEnd) {
+                if (cursor + 2 > bytes.length) break;
+                // Element id is 1-4 bytes; detect length from leading 1-bit
+                const idFirst = bytes[cursor];
+                let idLen = 1, m = 0x80;
+                while (!(idFirst & m) && idLen < 4) { m >>= 1; idLen++; }
+                const idStart = cursor;
+                cursor += idLen;
+                const sz = readVint(cursor);
+                const dataStart = cursor + sz.length;
+                const dataEnd = sz.isUnknown ? segEnd : dataStart + sz.value;
+                cursor = dataEnd;
+
+                if (idLen === ID_INFO.length && bytesEq(idStart, ID_INFO)) {
+                    return patchInfo(bytes, idStart, sz, dataStart, dataEnd, durationMs, segSize.isUnknown);
+                }
+            }
+            console.warn('[WebmFix] No Info element found in Segment');
+            return null;
+        }
+
+        function patchInfo(bytes, idStart, infoSize, dataStart, dataEnd, durationMs, segmentUnknownSize) {
+            // Look for Duration and TimecodeScale within Info
+            let timecodeScale = 1000000; // default 1ms in nanoseconds
+            let durationDataStart = -1, durationDataLen = 0;
+
+            let cursor = dataStart;
+            while (cursor < dataEnd) {
+                const idFirst = bytes[cursor];
+                if (!idFirst) break;
+                let idLen = 1, m = 0x80;
+                while (!(idFirst & m) && idLen < 4) { m >>= 1; idLen++; }
+                const subIdStart = cursor;
+                cursor += idLen;
+                const subSizeFirst = bytes[cursor];
+                let szLen = 1, sm = 0x80;
+                while (!(subSizeFirst & sm) && szLen < 8) { sm >>= 1; szLen++; }
+                let subSize = subSizeFirst & (sm - 1);
+                for (let i = 1; i < szLen; i++) subSize = subSize * 256 + bytes[cursor + i];
+                cursor += szLen;
+                const subDataStart = cursor;
+                cursor += subSize;
+
+                if (idLen === 2 && bytes[subIdStart] === 0x44 && bytes[subIdStart + 1] === 0x89) {
+                    durationDataStart = subDataStart;
+                    durationDataLen = subSize;
+                } else if (idLen === 3 && bytes[subIdStart] === 0x2A && bytes[subIdStart + 1] === 0xD7 && bytes[subIdStart + 2] === 0xB1) {
+                    let v = 0;
+                    for (let i = 0; i < subSize; i++) v = v * 256 + bytes[subDataStart + i];
+                    if (v > 0) timecodeScale = v;
+                }
+            }
+
+            const durationInScale = (durationMs * 1e6) / timecodeScale;
+
+            if (durationDataStart >= 0 && (durationDataLen === 4 || durationDataLen === 8)) {
+                // Patch in place
+                writeFloatBE(bytes, durationDataStart, durationDataLen, durationInScale);
+                return bytes;
+            }
+
+            // Insertion grows the file by 11 bytes. If the Segment had a known size,
+            // we'd also need to update it — bail in that rare case (MediaRecorder
+            // writes Segment with unknown-size in practice).
+            if (!segmentUnknownSize) {
+                console.warn('[WebmFix] Cannot insert Duration — Segment has known size');
+                return null;
+            }
+            // Need to insert a new Duration element [44 89][88][8 bytes float64]
+            const newDur = new Uint8Array(11);
+            newDur[0] = 0x44; newDur[1] = 0x89;
+            newDur[2] = 0x88; // size = 8 with VINT marker
+            writeFloatBE(newDur, 3, 8, durationInScale);
+
+            const infoIdEnd = idStart + 4; // Info id is 4 bytes
+            let newSizeBytes;
+            if (infoSize.isUnknown) {
+                // Keep the unknown-size marker as-is; readers scan to next top-level element.
+                newSizeBytes = bytes.subarray(infoIdEnd, infoIdEnd + infoSize.length);
+            } else {
+                const newInfoDataLen = (dataEnd - dataStart) + newDur.length;
+                newSizeBytes = encodeVintSize(newInfoDataLen, infoSize.length);
+                if (!newSizeBytes) {
+                    console.warn('[WebmFix] New Info size does not fit in original encoding');
+                    return null;
+                }
+            }
+
+            // Build output: [...up to Info id end][size bytes][new duration][original info data][...rest]
+            const out = new Uint8Array(bytes.length + newDur.length);
+            let p = 0;
+            out.set(bytes.subarray(0, infoIdEnd), p); p += infoIdEnd;
+            out.set(newSizeBytes, p); p += newSizeBytes.length;
+            out.set(newDur, p); p += newDur.length;
+            out.set(bytes.subarray(dataStart), p);
+            return out;
+        }
+
+        function writeFloatBE(buf, offset, len, value) {
+            const ab = new ArrayBuffer(8);
+            const dv = new DataView(ab);
+            if (len === 4) {
+                dv.setFloat32(0, value, false);
+                for (let i = 0; i < 4; i++) buf[offset + i] = dv.getUint8(i);
+            } else {
+                dv.setFloat64(0, value, false);
+                for (let i = 0; i < 8; i++) buf[offset + i] = dv.getUint8(i);
+            }
+        }
+
+        function encodeVintSize(value, fixedLength) {
+            // Re-encode size to the same byte length as the original to avoid having
+            // to shift the rest of the file.
+            const len = fixedLength;
+            if (len < 1 || len > 8) return null;
+            const max = Math.pow(2, len * 7) - 2; // (2^(7L)) - 2 because all-1 means unknown
+            if (value > max) return null;
+            const out = new Uint8Array(len);
+            // Set length marker: bit (8 - len) of first byte
+            const marker = 1 << (8 - len);
+            // Encode value into len bytes big-endian
+            let v = value;
+            for (let i = len - 1; i >= 0; i--) {
+                out[i] = v & 0xFF;
+                v = Math.floor(v / 256);
+            }
+            out[0] |= marker;
+            return out;
+        }
+
         // ============ VIDEO COMPRESSION ============
         // Compresses video to 720p before upload to prevent large file playback issues
         async function compressVideo(file) {
@@ -11672,8 +11872,13 @@
 
                     const chunks = [];
                     recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
-                    recorder.onstop = () => {
-                        const blob = new Blob(chunks, { type: 'video/webm' });
+                    recorder.onstop = async () => {
+                        let blob = new Blob(chunks, { type: 'video/webm' });
+                        // Patch the WebM Duration metadata so playback doesn't stop early.
+                        const durMs = Math.max(1000, Math.round((video.duration || 0) * 1000));
+                        if (durMs > 1000) {
+                            blob = await fixWebmDuration(blob, durMs);
+                        }
                         console.log(`Video compressed: ${(file.size/1024/1024).toFixed(1)}MB → ${(blob.size/1024/1024).toFixed(1)}MB (${width}x${height})`);
                         finish(blob);
                     };
@@ -11753,7 +11958,11 @@
                     clearInterval(videoRecordingTimer);
                     stream.getTracks().forEach(track => track.stop());
 
-                    const videoBlob = new Blob(videoChunks, { type: 'video/webm' });
+                    let videoBlob = new Blob(videoChunks, { type: 'video/webm' });
+                    // MediaRecorder omits the WebM Duration metadata, which makes
+                    // browsers stop playback early. Patch it using the elapsed time.
+                    const recordedMs = Math.max(1000, videoRecordingSeconds * 1000);
+                    videoBlob = await fixWebmDuration(videoBlob, recordedMs);
                     await uploadCustomVideo(dayIndex, exIndex, videoBlob);
 
                     videoMediaRecorder = null;
@@ -11906,6 +12115,23 @@
                 renderWorkoutDays();
                 showToast('Custom video deleted', 'success');
             }
+        }
+
+        // Open the custom demo video in a fullscreen overlay so the coach can hear it.
+        function previewCustomDemo(dayIndex, exIndex) {
+            const ex = workoutDays?.[dayIndex]?.exercises?.[exIndex];
+            const url = ex?.customVideoUrl;
+            if (!url) return;
+            const overlay = document.createElement('div');
+            overlay.className = 'video-preview-overlay';
+            overlay.innerHTML = `
+                <video src="${url}" controls autoplay playsinline style="max-width:100%;max-height:80vh;border-radius:8px"></video>
+                <button class="video-preview-close" onclick="this.parentElement.remove()">&times;</button>
+            `;
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) overlay.remove();
+            });
+            document.body.appendChild(overlay);
         }
 
 
@@ -12810,11 +13036,14 @@
                 ceVideoRecorder.onstop = async () => {
                     stream.getTracks().forEach(track => track.stop());
 
-                    const blob = new Blob(ceVideoChunks, { type: 'video/webm' });
+                    let blob = new Blob(ceVideoChunks, { type: 'video/webm' });
+                    // Patch missing WebM Duration so playback doesn't stop early.
+                    const recordedMs = Math.max(1000, (typeof seconds === 'number' ? seconds : 0) * 1000);
+                    blob = await fixWebmDuration(blob, recordedMs);
 
                     // Store blob directly (avoids memory-intensive base64 conversion)
                     ceVideoBlob = blob;
-                    ceVideoData = 'video/webm';
+                    ceVideoData = blob.type || 'video/webm';
 
                     // Revoke previous object URL if any
                     const previewEl = document.getElementById('cePreviewVideo');
