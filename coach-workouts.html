@@ -8050,6 +8050,13 @@
             const exercise = workoutDays[dayIndex].exercises[exIndex];
             const setsArr = buildSetsArray(exercise);
             setsArr[setIndex] = { ...setsArr[setIndex], [field]: value };
+            // When the coach types a weight, also stamp the unit (default 'lb' to match the
+            // dropdown's default) so the client side knows how to convert. Without this,
+            // weightUnit stays undefined and the client renders the raw number with their
+            // own unit label — producing wrong values across unit-mismatched accounts.
+            if (field === 'weight' && !setsArr[setIndex].weightUnit) {
+                setsArr[setIndex].weightUnit = 'lb';
+            }
             exercise.setsData = setsArr;
             // Sync exercise-level fields from setsData so summaries stay consistent
             if (field === 'reps' && setsArr.length > 0 && setsArr[0].reps !== undefined) {

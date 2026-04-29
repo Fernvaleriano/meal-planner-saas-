@@ -318,9 +318,11 @@ function GuidedWorkoutModal({
         // If sets is an array with existing data, use it; also check setsData (coach workout builder source of truth)
         const existingSet = Array.isArray(ex.sets) ? ex.sets[si] : null;
         const setsDataSet = Array.isArray(ex.setsData) ? ex.setsData[si] : null;
-        // Coach builder stores per-set weightUnit (default 'lb'); convert to client's profile unit
-        const fromUnit = setsDataSet?.weightUnit || weightUnit;
+        // Coach builder defaults to 'lb' in its unit dropdown. When per-set weightUnit
+        // is missing (older prescriptions), assume 'lbs' rather than the client's
+        // profile unit so conversion still kicks in.
         const rawPrescribed = setsDataSet?.prescribedWeight ?? setsDataSet?.weight ?? 0;
+        const fromUnit = setsDataSet?.weightUnit || (rawPrescribed > 0 ? 'lbs' : weightUnit);
         const prescribedW = convertWeight(rawPrescribed, fromUnit, weightUnit);
         const prescribedR = setsDataSet?.prescribedReps ?? parseReps(setsDataSet?.reps || ex.reps);
         return {
