@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
 import { X, Check, Plus, ChevronLeft, Play, Timer, BarChart3, ArrowLeftRight, Trash2, Mic, MicOff, MessageCircle, Loader2, AlertCircle, History, TrendingUp, Award, ChevronDown, ChevronUp, Send, Square, Sparkles, ExternalLink, Camera, Bot, Flame, Leaf, Zap, User } from 'lucide-react';
 import { apiGet, apiPost, apiPut, apiDelete, getOrCreateWorkoutLogId } from '../../utils/api';
-import { generateProgression, EFFORT_OPTIONS, parseSetsData, getMaxWeight, convertWeight } from '../../utils/workoutProgression';
+import { generateProgression, generateSetNudge, EFFORT_OPTIONS, parseSetsData, getMaxWeight, convertWeight } from '../../utils/workoutProgression';
 import { onAppSuspend, onAppResume } from '../../hooks/useAppLifecycle';
 import Portal from '../Portal';
 import SetEditorModal from './SetEditorModal';
@@ -368,6 +368,10 @@ function ExerciseDetailModal({
   const [coachingRecommendation, setCoachingRecommendation] = useState(null);
   const [acceptedCoachingRec, setAcceptedCoachingRec] = useState(false);
 
+  // Post-first-set coaching nudge — fires once per exercise after set 1 lands
+  const [setNudge, setSetNudge] = useState(null);
+  const nudgeFiredRef = useRef(false);
+
   // Effort rating state (inline pills below sets)
   const [selectedEffort, setSelectedEffort] = useState(null);
 
@@ -529,6 +533,8 @@ function ExerciseDetailModal({
     setShowSetEditor(false);
     setShowSwapModal(false);
     setProgressTip(null);
+    setSetNudge(null);
+    nudgeFiredRef.current = false;
     // Reset auto-save flag so switching exercises doesn't trigger a stale save
     setsChangedRef.current = false;
   // NOTE: initialSets is memoized with [exercise?.id], so we only need exercise?.id here
@@ -747,6 +753,26 @@ function ExerciseDetailModal({
             bestReps[w] = r; // Update so it doesn't re-trigger
             break;
           }
+        }
+      }
+
+      // Post-first-set coaching nudge — fires once per exercise. Triggers when
+      // the first set is marked completed and at least one targeting signal
+      // exists (prescription or effort rating).
+      if (!nudgeFiredRef.current && currentSets[0]?.completed) {
+        const firstSet = currentSets[0];
+        const nudge = generateSetNudge({
+          actualReps: Number(firstSet.reps) || 0,
+          actualWeight: Number(firstSet.weight) || 0,
+          prescribedReps: Number(firstSet.prescribedReps) || 0,
+          prescribedWeight: Number(firstSet.prescribedWeight) || 0,
+          effort: firstSet.effort || null,
+          weightUnit: currentWeightUnit,
+          exercise: currentExercise,
+        });
+        if (nudge && isMountedRef.current) {
+          setSetNudge(nudge);
+          nudgeFiredRef.current = true;
         }
       }
     } catch (err) {
@@ -2432,6 +2458,25 @@ function ExerciseDetailModal({
             </div>
           );
         })()}
+
+        {/* Post-first-set coaching nudge */}
+        {setNudge && (
+          <div className="set-nudge-card">
+            <button
+              type="button"
+              className="set-nudge-dismiss"
+              onClick={() => setSetNudge(null)}
+              aria-label="Dismiss"
+            >
+              <X size={14} />
+            </button>
+            <div className="set-nudge-icon" aria-hidden="true">{setNudge.icon}</div>
+            <div className="set-nudge-body">
+              <div className="set-nudge-title">{setNudge.title}</div>
+              <div className="set-nudge-message">{setNudge.message}</div>
+            </div>
+          </div>
+        )}
 
         {/* Leave a Note to Coach */}
         <div className="client-note-for-coach-section">

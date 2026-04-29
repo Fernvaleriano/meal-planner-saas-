@@ -344,3 +344,111 @@ export const generateProgression = ({ previousSessions, exercise, weightUnit, la
     progressMessage: `On ${dateLabel}: ${lastMaxReps} reps @ ${lastMaxWeight} ${weightUnit}${effortLabel ? ` (${effortLabel})` : ''}${plateauDetected ? ' — plateau detected' : ''}.`,
   };
 };
+
+/**
+ * Generate a one-shot coaching nudge after the client logs their first set
+ * of an exercise. Compares actual performance against the prescribed targets
+ * (and effort, if logged) and returns a short push message guiding intensity
+ * for the remaining sets.
+ *
+ * @param {Object} params
+ * @param {number} params.actualReps - Reps the client just logged
+ * @param {number} params.actualWeight - Weight the client just logged (in their unit)
+ * @param {number} params.prescribedReps - Coach's prescribed reps (or 0 if none)
+ * @param {number} params.prescribedWeight - Coach's prescribed weight (or 0 if none)
+ * @param {string|null} params.effort - 'easy' | 'moderate' | 'hard' | 'maxed' | null
+ * @param {string} params.weightUnit - 'lbs' or 'kg'
+ * @param {Object} params.exercise - Exercise object (used for compound detection / increment)
+ * @returns {{ icon: string, title: string, message: string } | null}
+ */
+export const generateSetNudge = ({
+  actualReps,
+  actualWeight,
+  prescribedReps,
+  prescribedWeight,
+  effort,
+  weightUnit,
+  exercise,
+}) => {
+  if (!actualReps && !actualWeight) return null;
+
+  const hasPrescribedReps = prescribedReps > 0;
+  const hasPrescribedWeight = prescribedWeight > 0;
+  const hasEffort = effort && EFFORT_TO_RIR[effort] !== undefined;
+
+  if (!hasPrescribedReps && !hasPrescribedWeight && !hasEffort) return null;
+
+  const increment = getWeightIncrement(exercise, weightUnit);
+  const repsDiff = hasPrescribedReps ? actualReps - prescribedReps : 0;
+
+  if (hasEffort) {
+    if (effort === 'easy') {
+      if (hasPrescribedWeight && actualWeight > 0) {
+        const next = roundToGymWeight(actualWeight + increment, increment);
+        return {
+          icon: '\u{1F4AA}',
+          title: 'Crushed it — push harder',
+          message: `Felt easy at ${actualWeight}${weightUnit}. Try ${next}${weightUnit} on the next set if it stays clean.`,
+        };
+      }
+      return {
+        icon: '\u{1F4AA}',
+        title: 'Crushed it — push harder',
+        message: 'Felt easy. Aim for more reps on the next set.',
+      };
+    }
+    if (effort === 'moderate') {
+      return {
+        icon: '\u{1F44D}',
+        title: 'Solid start',
+        message: 'Match this on the next sets — push for one more rep if it stays under control.',
+      };
+    }
+    if (effort === 'hard') {
+      return {
+        icon: '\u{1F525}',
+        title: 'Strong work',
+        message: 'Tough but in control. Hold this weight and aim to match the reps.',
+      };
+    }
+    if (effort === 'maxed') {
+      return {
+        icon: '\u{1F975}',
+        title: 'You went all out',
+        message: 'Drop a couple reps on the next set so you finish strong with good form.',
+      };
+    }
+  }
+
+  if (hasPrescribedReps) {
+    if (repsDiff >= 2) {
+      if (hasPrescribedWeight && actualWeight > 0) {
+        const next = roundToGymWeight(actualWeight + increment, increment);
+        return {
+          icon: '\u{1F4AA}',
+          title: 'Reps to spare',
+          message: `Hit ${actualReps} (target ${prescribedReps}). Try ${next}${weightUnit} on the next set.`,
+        };
+      }
+      return {
+        icon: '\u{1F4AA}',
+        title: 'Reps to spare',
+        message: `Hit ${actualReps} cleanly (target ${prescribedReps}). Push for more on the next set.`,
+      };
+    }
+    if (repsDiff <= -2) {
+      return {
+        icon: '\u{1F3AF}',
+        title: 'Stay sharp',
+        message: 'Came up short on reps. Hold the weight and focus on form — you’ll get there.',
+      };
+    }
+    return {
+      icon: '✅',
+      title: 'On target',
+      message: 'Hit your reps. Match this on the next sets.',
+    };
+  }
+
+  return null;
+};
