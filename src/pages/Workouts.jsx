@@ -3575,9 +3575,31 @@ function Workouts() {
           // coaching recommendations) persist on reload. The exercise_logs auto-save
           // writes sets_data; applying it here means the values survive even if the
           // workout assignment save was lost.
+          //
+          // BUT: preserve the assignment's prescribed values + weightUnit. Older logs
+          // may have auto-saved before per-set weightUnit stamping landed, which would
+          // overwrite the coach's prescription with un-converted numbers. The
+          // assignment's setsData is the source of truth for prescriptions.
           if (Array.isArray(logged.sets_data) && logged.sets_data.length > 0) {
-            updates.setsData = logged.sets_data;
-            updates.sets = logged.sets_data;
+            const assignmentSets = Array.isArray(ex.setsData) ? ex.setsData : [];
+            const mergedSets = logged.sets_data.map((loggedSet, i) => {
+              const assignmentSet = assignmentSets[i] || {};
+              const assignmentWeight = Number(assignmentSet.weight) || 0;
+              return {
+                ...loggedSet,
+                prescribedWeight: assignmentSet.prescribedWeight ?? assignmentWeight ?? loggedSet.prescribedWeight ?? 0,
+                prescribedReps: assignmentSet.prescribedReps ?? assignmentSet.reps ?? loggedSet.prescribedReps ?? 0,
+                // Trust the assignment's per-set weightUnit when present — it's the
+                // coach's source of truth. If the assignment had a prescribed weight
+                // but no unit stamped, leave weightUnit undefined so the modal's
+                // 'lbs' fallback kicks in (rather than inheriting a corrupted unit
+                // from a log that auto-saved before stamping landed).
+                weightUnit: assignmentSet.weightUnit
+                  || (assignmentWeight > 0 ? undefined : loggedSet.weightUnit)
+              };
+            });
+            updates.setsData = mergedSets;
+            updates.sets = mergedSets;
           }
           return updates;
         }
