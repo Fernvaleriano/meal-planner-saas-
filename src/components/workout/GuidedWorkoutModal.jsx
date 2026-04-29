@@ -5,7 +5,7 @@ import SwapExerciseModal from './SwapExerciseModal';
 import { apiGet, apiPost, apiPut, getOrCreateWorkoutLogId } from '../../utils/api';
 import { onAppResume } from '../../hooks/useAppLifecycle';
 import { parseDurationToSeconds } from '../../utils/workoutDuration';
-import { generateProgression, EFFORT_OPTIONS, EFFORT_TO_RIR, estimate1RM, parseSetsData, getMaxWeight, parseReps, isCompoundExercise, getWeightIncrement } from '../../utils/workoutProgression';
+import { generateProgression, EFFORT_OPTIONS, EFFORT_TO_RIR, estimate1RM, parseSetsData, getMaxWeight, parseReps, isCompoundExercise, getWeightIncrement, convertWeight } from '../../utils/workoutProgression';
 import { playTickSound, warmUpTickSound } from '../../utils/audioTick';
 
 // --- Resume helpers ---
@@ -318,7 +318,10 @@ function GuidedWorkoutModal({
         // If sets is an array with existing data, use it; also check setsData (coach workout builder source of truth)
         const existingSet = Array.isArray(ex.sets) ? ex.sets[si] : null;
         const setsDataSet = Array.isArray(ex.setsData) ? ex.setsData[si] : null;
-        const prescribedW = setsDataSet?.prescribedWeight ?? setsDataSet?.weight ?? 0;
+        // Coach builder stores per-set weightUnit (default 'lb'); convert to client's profile unit
+        const fromUnit = setsDataSet?.weightUnit || weightUnit;
+        const rawPrescribed = setsDataSet?.prescribedWeight ?? setsDataSet?.weight ?? 0;
+        const prescribedW = convertWeight(rawPrescribed, fromUnit, weightUnit);
         const prescribedR = setsDataSet?.prescribedReps ?? parseReps(setsDataSet?.reps || ex.reps);
         return {
           reps: existingSet?.reps || setsDataSet?.reps || defaultReps,

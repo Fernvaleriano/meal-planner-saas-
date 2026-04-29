@@ -52,6 +52,25 @@ export const parseSetsData = (session) => {
 // Get max weight from a set array
 export const getMaxWeight = (sets) => sets.reduce((max, s) => Math.max(max, s.weight || 0), 0);
 
+// Normalize free-form weight unit strings (e.g. 'lb', 'lbs', 'LB', 'kg') to canonical 'lbs' | 'kg'
+export const normalizeWeightUnit = (u) => {
+  const s = (u || '').toString().toLowerCase();
+  if (s === 'kg' || s === 'kgs' || s === 'kilogram' || s === 'kilograms') return 'kg';
+  return 'lbs';
+};
+
+// Convert a numeric weight between lbs and kg, rounded to 1 decimal place
+export const convertWeight = (value, fromUnit, toUnit) => {
+  const v = Number(value) || 0;
+  if (v === 0) return 0;
+  const from = normalizeWeightUnit(fromUnit);
+  const to = normalizeWeightUnit(toUnit);
+  if (from === to) return v;
+  if (from === 'lbs' && to === 'kg') return Math.round(v * 0.45359237 * 10) / 10;
+  if (from === 'kg' && to === 'lbs') return Math.round(v * 2.20462262 * 10) / 10;
+  return v;
+};
+
 // Detect if exercise is compound based on name or explicit flag
 export const isCompoundExercise = (exercise) => {
   if (exercise?.is_compound !== undefined) return !!exercise.is_compound;
