@@ -4,6 +4,7 @@ import SmartThumbnail from './SmartThumbnail';
 import SetEditorModal from './SetEditorModal';
 import Portal from '../Portal';
 import { onAppResume, onAppSuspend } from '../../hooks/useAppLifecycle';
+import { convertWeight } from '../../utils/workoutProgression';
 
 // Parse reps - if it's a range like "8-12", average the range instead of truncating
 // Supports decimals like "1.5" (e.g. 1.5 miles)
@@ -158,9 +159,14 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
   const initializeSets = () => {
     // Check setsData first (saved by the 3-panel workout builder detail editor)
     if (Array.isArray(exercise.setsData) && exercise.setsData.length > 0) {
-      return exercise.setsData.slice(0, 20).filter(Boolean).map(set => ({
+      return exercise.setsData.slice(0, 20).filter(Boolean).map(set => {
+        // Convert coach's per-set unit to the client's profile unit. Builder defaults to
+        // 'lb'; if weightUnit was never stamped (older prescriptions), assume 'lbs' too.
+        const rawWeight = set?.weight || 0;
+        const fromUnit = set?.weightUnit || (rawWeight > 0 ? 'lbs' : weightUnit);
+        return {
         reps: set?.reps ?? parseReps(exercise.reps) ?? 12,
-        weight: set?.weight || 0,
+        weight: convertWeight(rawWeight, fromUnit, weightUnit),
         completed: set?.completed || false,
         duration: set?.duration || exercise.duration || parseTimeFromReps(exercise.reps) || null,
         distance: set?.distance || exercise.distance || null,
@@ -170,7 +176,8 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
         hrZone: set?.hrZone || null,
         pace: set?.pace || null,
         incline: set?.incline || null,
-      }));
+        };
+      });
     }
     if (Array.isArray(exercise.sets) && exercise.sets.length > 0) {
       // Cap at 20 sets to prevent malformed data from causing excessive renders
@@ -321,9 +328,12 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
     }
     lastSyncedSetsJsonRef.current = incoming;
 
-    const newSets = setsSource.slice(0, 20).filter(Boolean).map(set => ({
+    const newSets = setsSource.slice(0, 20).filter(Boolean).map(set => {
+      const rawWeight = set?.weight || 0;
+      const fromUnit = set?.weightUnit || (rawWeight > 0 ? 'lbs' : weightUnit);
+      return {
       reps: set?.reps ?? parseReps(exercise.reps) ?? 12,
-      weight: set?.weight || 0,
+      weight: convertWeight(rawWeight, fromUnit, weightUnit),
       completed: set?.completed || false,
       duration: set?.duration || exercise.duration || parseTimeFromReps(exercise.reps) || null,
       distance: set?.distance || exercise.distance || null,
@@ -334,7 +344,8 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
       // secondary signal isTimedExercise falls back to).
       ...(set?.isTimeBased ? { isTimeBased: true } : {}),
       ...(set?.isDistanceBased ? { isDistanceBased: true } : {})
-    }));
+      };
+    });
     if (newSets.length > 0) {
       setSets(newSets);
     }
