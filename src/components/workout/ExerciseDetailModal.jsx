@@ -464,14 +464,17 @@ function ExerciseDetailModal({
           // client's unit makes the conversion a no-op and renders the raw number with
           // the wrong label.
           const rawWeight = set?.weight || 0;
-          const rawPrescribed = set?.prescribedWeight ?? rawWeight;
+          // Only treat the coach's prescription as set when the field is explicitly
+          // present on the saved data. Falling back to rawWeight here surfaces any
+          // logged weight as a "Coach Prescribed" target on the next reload — and the
+          // save path then persists that bogus value, baking it in.
+          const rawPrescribed = set?.prescribedWeight ?? 0;
           const fromUnit = set?.weightUnit || (rawPrescribed > 0 || rawWeight > 0 ? 'lbs' : weightUnit);
           return {
           reps: safeParseReps(set?.reps || exercise.reps),
           weight: convertWeight(rawWeight, fromUnit, weightUnit),
-          // Snapshot the coach's prescription so it survives client edits to weight/reps
           prescribedWeight: convertWeight(rawPrescribed, fromUnit, weightUnit),
-          prescribedReps: set?.prescribedReps ?? safeParseReps(set?.reps || exercise.reps),
+          prescribedReps: set?.prescribedReps != null ? safeParseReps(set.prescribedReps) : 0,
           completed: set?.completed || false,
           duration: set?.duration || exercise.duration || null,
           distance: set?.distance || exercise.distance || null,
@@ -2319,7 +2322,7 @@ function ExerciseDetailModal({
           </div>
         )}
 
-        {/* Coach Prescribed (precedence) OR Coaching Recommendation Card */}
+        {/* Coaching Recommendation Card — coach prescription takes precedence; otherwise progression engine */}
         {(() => {
           const hasCoachPrescription = sets.some(s => s.prescribedWeight > 0);
           if (hasCoachPrescription && !isTimedExercise) {
@@ -2329,11 +2332,11 @@ function ExerciseDetailModal({
             const prescribedSets = sets.length;
             const lastSession = coachingRecommendation?.lastSession;
             return (
-              <div className="coaching-rec-card coach-prescribed">
+              <div className="coaching-rec-card">
                 <div className="coaching-rec-header">
                   <div className="coaching-rec-badge">
-                    <User size={14} />
-                    <span>Coach Prescribed</span>
+                    <Sparkles size={14} />
+                    <span>Coaching Recommendation</span>
                   </div>
                 </div>
 
@@ -2354,7 +2357,7 @@ function ExerciseDetailModal({
                   </div>
                 </div>
 
-                <p className="coaching-rec-reasoning">Your coach set these targets. Hit them if you can.</p>
+                <p className="coaching-rec-reasoning">Recommended targets for this exercise. Push to hit them.</p>
 
                 {lastSession && (
                   <div className="coaching-rec-last-session">

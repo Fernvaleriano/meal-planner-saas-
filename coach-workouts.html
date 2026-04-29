@@ -8036,6 +8036,9 @@
                     }
                     result.push({
                         reps: isTimed ? undefined : parsedReps,
+                        // Adding the exercise IS the prescription — stamp prescribedReps
+                        // so the client's "Coach Prescribed" card knows this is intentional.
+                        prescribedReps: isTimed ? undefined : parsedReps,
                         duration: isTimed ? (parseInt(exercise.duration) || 30) : undefined,
                         distance: isDistance ? (parseFloat(exercise.distance) || 1) : undefined,
                         restSeconds: parseInt(exercise.restSeconds) || 30,
@@ -8050,6 +8053,16 @@
             const exercise = workoutDays[dayIndex].exercises[exIndex];
             const setsArr = buildSetsArray(exercise);
             setsArr[setIndex] = { ...setsArr[setIndex], [field]: value };
+            // Mirror the coach's explicit edit into the prescription snapshot. The client
+            // modal only treats prescribedWeight/Reps as the coach's targets when these
+            // fields are explicitly present — without this stamp the client never sees
+            // "Coach Prescribed" for legitimate prescriptions.
+            if (field === 'weight') {
+                setsArr[setIndex].prescribedWeight = value;
+            }
+            if (field === 'reps') {
+                setsArr[setIndex].prescribedReps = value;
+            }
             // When the coach types a weight, also stamp the unit (default 'lb' to match the
             // dropdown's default) so the client side knows how to convert. Without this,
             // weightUnit stays undefined and the client renders the raw number with their
