@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
 import { X, Check, Plus, ChevronLeft, Play, Timer, BarChart3, ArrowLeftRight, Trash2, Mic, MicOff, MessageCircle, Loader2, AlertCircle, History, TrendingUp, Award, ChevronDown, ChevronUp, Send, Square, Sparkles, ExternalLink, Camera, Bot, Flame, Leaf, Zap, User } from 'lucide-react';
 import { apiGet, apiPost, apiPut, apiDelete, getOrCreateWorkoutLogId } from '../../utils/api';
-import { generateProgression, EFFORT_OPTIONS, parseSetsData, getMaxWeight } from '../../utils/workoutProgression';
+import { generateProgression, EFFORT_OPTIONS, parseSetsData, getMaxWeight, convertWeight } from '../../utils/workoutProgression';
 import { onAppSuspend, onAppResume } from '../../hooks/useAppLifecycle';
 import Portal from '../Portal';
 import SetEditorModal from './SetEditorModal';
@@ -457,11 +457,16 @@ function ExerciseDetailModal({
 
       // Check setsData first (saved by the 3-panel workout builder detail editor)
       if (Array.isArray(exercise.setsData) && exercise.setsData.length > 0) {
-        return exercise.setsData.filter(Boolean).map(set => ({
+        return exercise.setsData.filter(Boolean).map(set => {
+          // Coach's per-set unit (defaults to lb in the builder); convert to the client's profile unit
+          const fromUnit = set?.weightUnit || weightUnit;
+          const rawWeight = set?.weight || 0;
+          const rawPrescribed = set?.prescribedWeight ?? rawWeight;
+          return {
           reps: safeParseReps(set?.reps || exercise.reps),
-          weight: set?.weight || 0,
+          weight: convertWeight(rawWeight, fromUnit, weightUnit),
           // Snapshot the coach's prescription so it survives client edits to weight/reps
-          prescribedWeight: set?.prescribedWeight ?? (set?.weight || 0),
+          prescribedWeight: convertWeight(rawPrescribed, fromUnit, weightUnit),
           prescribedReps: set?.prescribedReps ?? safeParseReps(set?.reps || exercise.reps),
           completed: set?.completed || false,
           duration: set?.duration || exercise.duration || null,
@@ -475,7 +480,8 @@ function ExerciseDetailModal({
           incline: set?.incline || null,
           ...(set?.isTimeBased ? { isTimeBased: true } : {}),
           ...(set?.isDistanceBased ? { isDistanceBased: true } : {}),
-        }));
+          };
+        });
       }
 
       if (Array.isArray(exercise.sets) && exercise.sets.length > 0) {
