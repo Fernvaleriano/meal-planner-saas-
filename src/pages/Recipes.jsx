@@ -771,6 +771,26 @@ function Recipes() {
                 <img src={selectedRecipe.image_url} alt={selectedRecipe.name} className="recipe-modal-image" />
               )}
 
+              {/* Source link */}
+              {selectedRecipe.source_url && (
+                <a
+                  href={selectedRecipe.source_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="recipe-source-link"
+                >
+                  <Link size={16} /> {
+                    selectedRecipe.source_url.includes('youtube.com') || selectedRecipe.source_url.includes('youtu.be')
+                      ? 'Watch on YouTube'
+                      : selectedRecipe.source_url.includes('instagram.com')
+                      ? 'View on Instagram'
+                      : selectedRecipe.source_url.includes('tiktok.com')
+                      ? 'View on TikTok'
+                      : 'View Recipe Link'
+                  }
+                </a>
+              )}
+
               {/* Nutrition */}
               <div className="recipe-section">
                 <h4 className="recipe-section-title">Nutrition Per Serving</h4>
@@ -831,26 +851,6 @@ function Recipes() {
                     }
                   </div>
                 </div>
-              )}
-
-              {/* Source link */}
-              {selectedRecipe.source_url && (
-                <a
-                  href={selectedRecipe.source_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="recipe-source-link"
-                >
-                  <Link size={14} /> {
-                    selectedRecipe.source_url.includes('youtube.com') || selectedRecipe.source_url.includes('youtu.be')
-                      ? 'Watch on YouTube'
-                      : selectedRecipe.source_url.includes('instagram.com')
-                      ? 'View on Instagram'
-                      : selectedRecipe.source_url.includes('tiktok.com')
-                      ? 'View on TikTok'
-                      : 'View Recipe Link'
-                  }
-                </a>
               )}
 
               {/* Action buttons */}
