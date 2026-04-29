@@ -760,19 +760,26 @@ function ExerciseDetailModal({
       // the first set is marked completed and at least one targeting signal
       // exists (prescription or effort rating).
       if (!nudgeFiredRef.current && currentSets[0]?.completed) {
-        const firstSet = currentSets[0];
-        const nudge = generateSetNudge({
-          actualReps: Number(firstSet.reps) || 0,
-          actualWeight: Number(firstSet.weight) || 0,
-          prescribedReps: Number(firstSet.prescribedReps) || 0,
-          prescribedWeight: Number(firstSet.prescribedWeight) || 0,
-          effort: firstSet.effort || null,
-          weightUnit: currentWeightUnit,
-          exercise: currentExercise,
-        });
-        if (nudge && isMountedRef.current) {
-          setSetNudge(nudge);
-          nudgeFiredRef.current = true;
+        // Wrap separately so any future bug here can't bubble into the save's
+        // catch block and show a false "Save failed" toast — the save itself
+        // already succeeded above.
+        try {
+          const firstSet = currentSets[0];
+          const nudge = generateSetNudge({
+            actualReps: Number(firstSet.reps) || 0,
+            actualWeight: Number(firstSet.weight) || 0,
+            prescribedReps: Number(firstSet.prescribedReps) || 0,
+            prescribedWeight: Number(firstSet.prescribedWeight) || 0,
+            effort: firstSet.effort || null,
+            weightUnit: currentWeightUnit,
+            exercise: currentExercise,
+          });
+          if (nudge && isMountedRef.current) {
+            setSetNudge(nudge);
+            nudgeFiredRef.current = true;
+          }
+        } catch (nudgeErr) {
+          console.error('Error generating set nudge (save still succeeded):', nudgeErr);
         }
       }
     } catch (err) {
