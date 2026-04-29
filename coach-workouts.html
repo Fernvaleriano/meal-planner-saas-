@@ -12014,9 +12014,9 @@
             const file = event.target.files[0];
             if (!file) return;
 
-            // Check file size (max 500MB)
-            if (file.size > 500 * 1024 * 1024) {
-                showToast('Video too large. Max 500MB.', 'error');
+            // Check file size (max 1GB — fits a 2-min 4K iPhone clip with headroom).
+            if (file.size > 1024 * 1024 * 1024) {
+                showToast('Video too large. Max 1GB.', 'error');
                 return;
             }
 
@@ -12032,17 +12032,12 @@
                     return;
                 }
 
-                // Compress video before uploading (reduces 4K/large files to 720p)
-                let videoToUpload = file;
-                if (file.size > 2 * 1024 * 1024) {
-                    showToast('Compressing video for optimal playback...', 'success');
-                    videoToUpload = await compressVideo(file);
-                    if (videoToUpload !== file) {
-                        showToast(`Compressed: ${(file.size/1024/1024).toFixed(1)}MB → ${(videoToUpload.size/1024/1024).toFixed(1)}MB`, 'success');
-                    }
+                // Upload the original file. Browser-side re-encoding drops frames and
+                // breaks audio on iOS, so we let the original quality pass through.
+                if (file.size > 100 * 1024 * 1024) {
+                    showToast(`Uploading large video (${(file.size/1024/1024).toFixed(0)}MB)…`, 'success');
                 }
-
-                await uploadCustomVideo(dayIndex, exIndex, videoToUpload);
+                await uploadCustomVideo(dayIndex, exIndex, file);
             };
 
             video.src = URL.createObjectURL(file);
@@ -12052,10 +12047,13 @@
             try {
                 showToast('Uploading video...', 'success');
 
-                // Determine content type
-                const isWebm = videoBlob.type.includes('webm');
-                const contentType = isWebm ? 'video/webm' : 'video/mp4';
-                const extension = isWebm ? 'webm' : 'mp4';
+                // Preserve the source's actual mime type so iOS plays it back correctly.
+                // mov/quicktime is normalized to mp4 (iOS plays both, mp4 has wider support).
+                const sourceType = (videoBlob.type || '').toLowerCase();
+                let contentType, extension;
+                if (sourceType.includes('webm')) { contentType = 'video/webm'; extension = 'webm'; }
+                else if (sourceType.includes('quicktime') || sourceType.includes('mov')) { contentType = 'video/quicktime'; extension = 'mov'; }
+                else { contentType = 'video/mp4'; extension = 'mp4'; }
                 const fileName = `custom-video-${Date.now()}.${extension}`;
 
                 // Step 1: Get a signed upload URL
@@ -12972,15 +12970,12 @@
                 return;
             }
 
-            // Compress video before storing (reduces 4K/large files to 1080p)
-            let videoFile = file;
-            if (file.size > 50 * 1024 * 1024) {
-                showToast('Compressing video for optimal playback...', 'success');
-                videoFile = await compressVideo(file);
-                if (videoFile !== file) {
-                    showToast(`Compressed: ${(file.size/1024/1024).toFixed(1)}MB → ${(videoFile.size/1024/1024).toFixed(1)}MB`, 'success');
-                }
+            // Upload the original file (no in-browser re-encode). The previous canvas
+            // compression dropped frames and broke audio on iOS Safari.
+            if (file.size > 100 * 1024 * 1024) {
+                showToast(`Loading large video (${(file.size/1024/1024).toFixed(0)}MB)…`, 'success');
             }
+            const videoFile = file;
 
             // Store blob directly (avoids memory-intensive base64 conversion)
             ceVideoBlob = videoFile;
@@ -14093,19 +14088,16 @@
             const video = myVideosCache[replaceVideoIndex];
             if (!video) return;
 
-            if (file.size > 500 * 1024 * 1024) {
-                showToast('Video must be under 500MB', 'error');
+            if (file.size > 1024 * 1024 * 1024) {
+                showToast('Video must be under 1GB', 'error');
                 return;
             }
 
             try {
-                showToast('Compressing & uploading...', 'success');
+                showToast('Uploading…', 'success');
 
-                // Compress if needed
-                let videoToUpload = file;
-                if (file.size > 2 * 1024 * 1024) {
-                    videoToUpload = await compressVideo(file);
-                }
+                // Upload original (browser re-encoding broke audio/quality).
+                const videoToUpload = file;
 
                 // Delete old file
                 await apiCall('/.netlify/functions/delete-coach-video', {
@@ -14113,8 +14105,12 @@
                     body: JSON.stringify({ coachId: currentCoachId, filePath: video.filePath })
                 });
 
-                // Upload new file with same naming convention
-                const ext = videoToUpload.type?.includes('webm') ? 'webm' : 'mp4';
+                // Preserve the source's actual mime type so iOS plays it back correctly.
+                const srcType = (videoToUpload.type || '').toLowerCase();
+                let ct, ext;
+                if (srcType.includes('webm')) { ct = 'video/webm'; ext = 'webm'; }
+                else if (srcType.includes('quicktime') || srcType.includes('mov')) { ct = 'video/quicktime'; ext = 'mov'; }
+                else { ct = 'video/mp4'; ext = 'mp4'; }
                 const newFileName = `custom-video-${Date.now()}.${ext}`;
 
                 const uploadUrlResult = await apiCall('/.netlify/functions/get-video-upload-url', {
@@ -14122,7 +14118,7 @@
                     body: JSON.stringify({
                         coachId: currentCoachId,
                         fileName: newFileName,
-                        contentType: videoToUpload.type || 'video/webm',
+                        contentType: ct,
                         folder: 'exercise-videos'
                     })
                 });
@@ -14133,7 +14129,7 @@
 
                 const replaceResponse = await fetch(uploadUrlResult.uploadUrl, {
                     method: 'PUT',
-                    headers: { 'Content-Type': videoToUpload.type || 'video/webm' },
+                    headers: { 'Content-Type': ct },
                     body: videoToUpload
                 });
 
