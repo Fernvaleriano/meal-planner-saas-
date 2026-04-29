@@ -13196,11 +13196,14 @@
                 if (ceVideoBlob) {
                     saveBtn.innerHTML = '<span class="spinner"></span> Uploading video...';
 
-                    // Determine file extension and content type from the blob
-                    const blobType = ceVideoBlob.type || ceVideoData || 'video/webm';
-                    const isWebm = blobType.includes('webm');
-                    const contentType = isWebm ? 'video/webm' : 'video/mp4';
-                    const extension = isWebm ? 'webm' : 'mp4';
+                    // Preserve the source's actual mime type so iOS plays the audio track.
+                    // mp4/mov screen recordings tagged video/mp4 sometimes lose the AAC
+                    // track on playback; Supabase needs the right Content-Type.
+                    const blobType = (ceVideoBlob.type || ceVideoData || '').toLowerCase();
+                    let contentType, extension;
+                    if (blobType.includes('webm')) { contentType = 'video/webm'; extension = 'webm'; }
+                    else if (blobType.includes('quicktime') || blobType.includes('mov')) { contentType = 'video/quicktime'; extension = 'mov'; }
+                    else { contentType = 'video/mp4'; extension = 'mp4'; }
                     const fileName = `custom-${Date.now()}.${extension}`;
 
                     // Step 1: Get a signed upload URL
