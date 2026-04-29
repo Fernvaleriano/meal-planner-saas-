@@ -3019,13 +3019,18 @@ function GuidedWorkoutModal({
             </div>
           )
         ) : showVideo && (currentExercise?.customVideoUrl || currentExercise?.video_url || currentExercise?.animation_url) ? (
-          <div className="guided-video-container" style={{ position: 'relative' }}>
+          <div
+            className="guided-video-container"
+            style={{ position: 'relative' }}
+            onClick={currentExercise?.customVideoUrl ? (e) => e.stopPropagation() : undefined}
+          >
             <video
               key={guidedVideoKey}
               src={guidedVideoBlobUrl || currentExercise.customVideoUrl || currentExercise.video_url || currentExercise.animation_url}
-              autoPlay
-              loop
-              muted
+              autoPlay={!currentExercise?.customVideoUrl}
+              loop={!currentExercise?.customVideoUrl}
+              muted={!currentExercise?.customVideoUrl}
+              controls={!!currentExercise?.customVideoUrl}
               playsInline
               preload="metadata"
               onCanPlay={() => { setGuidedVideoLoading(false); setGuidedVideoError(false); }}
