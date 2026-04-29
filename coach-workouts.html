@@ -8744,6 +8744,12 @@
                                 <input type="number" class="config-input" value="${exercise.restSeconds != null ? exercise.restSeconds : 90}" onchange="updateExercise(${dayIndex}, ${exIndex}, 'restSeconds', this.value)">
                                 <span class="config-label">Rest</span>
                             </div>
+                            ${exercise.isSuperset ? `
+                            <div class="config-group" title="Rest between exercises inside the superset (between members of the group). Leave blank to use the default short rest.">
+                                <input type="number" class="config-input" min="0" value="${exercise.supersetRestSeconds != null ? exercise.supersetRestSeconds : ''}" placeholder="auto" onchange="updateSupersetRest(${dayIndex}, ${exIndex}, this.value)">
+                                <span class="config-label">SS Rest</span>
+                            </div>
+                            ` : ''}
                         </div>
                         <div class="exercise-notes">
                             <input type="text" class="notes-input" value="${exercise.notes || ''}" placeholder="Add notes (e.g., tempo, form tips...)" onchange="updateExercise(${dayIndex}, ${exIndex}, 'notes', this.value)">
@@ -9109,6 +9115,25 @@
                 console.error('Backfill error:', err);
                 showToast('Backfill failed: ' + err.message, 'error');
             }
+        }
+
+        // Set supersetRestSeconds on the exercise and sync it to all other members
+        // of the same superset group on the same day, so the group shares one value.
+        // Empty string clears the override (play mode falls back to the default short rest).
+        function updateSupersetRest(dayIndex, exIndex, value) {
+            const exercise = workoutDays[dayIndex].exercises[exIndex];
+            if (!exercise) return;
+            const trimmed = (value ?? '').toString().trim();
+            const newVal = trimmed === '' ? null : Math.max(0, parseInt(trimmed) || 0);
+            exercise.supersetRestSeconds = newVal;
+            if (exercise.isSuperset && exercise.supersetGroup) {
+                workoutDays[dayIndex].exercises.forEach(ex => {
+                    if (ex !== exercise && ex.isSuperset && ex.supersetGroup === exercise.supersetGroup) {
+                        ex.supersetRestSeconds = newVal;
+                    }
+                });
+            }
+            renderWorkoutDays();
         }
 
         function updateExerciseLabel(dayIndex, exIndex, labelValue) {

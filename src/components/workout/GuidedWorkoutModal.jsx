@@ -1827,8 +1827,16 @@ function GuidedWorkoutModal({
         // reps/weight for the just-completed member. memberPos advance is
         // deferred via pendingMemberPos so the UI keeps showing the finished
         // exercise (and its log inputs) during the rest.
+        // If the coach configured supersetRestSeconds on any member of this
+        // group, honor it exactly (no cap). Otherwise default to a short rest
+        // capped at 20s so the user can quickly log and move on.
+        const groupOverride = ss.groupIndices
+          .map(i => exercises[i]?.supersetRestSeconds)
+          .find(v => v != null);
         const scheduledRest = getRestForSet(exIdx, setIdx);
-        const interMemberRest = Math.min(scheduledRest || 15, 20);
+        const interMemberRest = groupOverride != null
+          ? Math.max(0, parseInt(groupOverride, 10) || 0)
+          : Math.min(scheduledRest || 15, 20);
         setSupersetState(prev => prev ? { ...prev, pendingMemberPos: nextMemberPos } : prev);
         setRestLogTarget({ exIndex: exIdx, setIndex: setIdx });
         setPhase('rest');
