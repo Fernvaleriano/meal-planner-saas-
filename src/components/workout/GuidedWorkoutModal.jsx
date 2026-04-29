@@ -3032,14 +3032,14 @@ function GuidedWorkoutModal({
               muted={!currentExercise?.customVideoUrl}
               controls={!!currentExercise?.customVideoUrl}
               playsInline
-              preload="metadata"
+              preload={currentExercise?.customVideoUrl ? 'auto' : 'metadata'}
               onCanPlay={() => { setGuidedVideoLoading(false); setGuidedVideoError(false); }}
               onPlaying={() => setGuidedVideoLoading(false)}
-              onWaiting={() => setGuidedVideoLoading(true)}
+              onWaiting={() => { if (!currentExercise?.customVideoUrl) setGuidedVideoLoading(true); }}
               onError={handleGuidedVideoError}
             />
-            {guidedVideoLoading && !guidedVideoError && (
-              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)', zIndex: 2 }}>
+            {guidedVideoLoading && !guidedVideoError && !currentExercise?.customVideoUrl && (
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)', zIndex: 2, pointerEvents: 'none' }}>
                 <Loader2 size={28} style={{ color: 'white', animation: 'spin 1s linear infinite' }} />
               </div>
             )}
