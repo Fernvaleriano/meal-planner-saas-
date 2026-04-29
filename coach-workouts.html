@@ -10534,11 +10534,23 @@
                 const newVideo = video.cloneNode(true);
                 video.parentNode.replaceChild(newVideo, video);
 
+                // Custom exercises are coach recordings with audio; stock library
+                // entries are silent demo loops.
+                const isCustomExerciseVideo = !!exercise.is_custom;
+                newVideo.muted = !isCustomExerciseVideo;
+                newVideo.loop = !isCustomExerciseVideo;
+                if (isCustomExerciseVideo) newVideo.volume = 1.0;
+
                 // Set up event handlers for loading states
                 newVideo.oncanplay = () => {
                     loader.style.display = 'none';
                     newVideo.style.opacity = '1';
-                    newVideo.play().catch(() => {});
+                    // Only auto-resume here for muted demo loops. Custom videos
+                    // were already started below inside the user gesture so the
+                    // browser allows unmuted playback.
+                    if (!isCustomExerciseVideo) {
+                        newVideo.play().catch(() => {});
+                    }
                 };
                 newVideo.onwaiting = () => {
                     loader.style.display = 'flex';
@@ -10554,6 +10566,14 @@
                 console.log('[VideoDebug] Loading preview video:', videoUrl);
                 newVideo.src = videoUrl;
                 newVideo.load();
+
+                // Kick off unmuted playback for custom exercise videos while the
+                // click gesture is still active. Browsers allow unmuted play()
+                // here but would block the same call from oncanplay (async).
+                if (isCustomExerciseVideo) {
+                    const p = newVideo.play();
+                    if (p && typeof p.catch === 'function') p.catch(() => {});
+                }
             } else {
                 loader.innerHTML = '<span style="color: #888;">No video available</span>';
             }
