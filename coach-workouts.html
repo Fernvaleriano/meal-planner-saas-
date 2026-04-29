@@ -12098,13 +12098,21 @@
             const overlay = document.createElement('div');
             overlay.className = 'video-preview-overlay';
             overlay.innerHTML = `
-                <video src="${url}" controls autoplay playsinline style="max-width:100%;max-height:80vh;border-radius:8px"></video>
+                <video src="${url}" controls playsinline preload="auto" style="max-width:100%;max-height:80vh;border-radius:8px"></video>
                 <button class="video-preview-close" onclick="this.parentElement.remove()">&times;</button>
             `;
             overlay.addEventListener('click', (e) => {
                 if (e.target === overlay) overlay.remove();
             });
             document.body.appendChild(overlay);
+            // Start playback with sound while the click gesture is still active.
+            const videoEl = overlay.querySelector('video');
+            if (videoEl) {
+                videoEl.muted = false;
+                videoEl.volume = 1.0;
+                const p = videoEl.play();
+                if (p && typeof p.catch === 'function') p.catch(() => {});
+            }
         }
 
 
@@ -13917,13 +13925,24 @@
             const overlay = document.createElement('div');
             overlay.className = 'video-preview-overlay';
             overlay.innerHTML = `
-                <video src="${v.signedUrl}" controls autoplay playsinline style="max-width:100%;max-height:80vh;border-radius:8px"></video>
+                <video src="${v.signedUrl}" controls playsinline preload="auto" style="max-width:100%;max-height:80vh;border-radius:8px"></video>
                 <button class="video-preview-close" onclick="this.parentElement.remove()">&times;</button>
             `;
             overlay.addEventListener('click', (e) => {
                 if (e.target === overlay) overlay.remove();
             });
             document.body.appendChild(overlay);
+            // Try to start playback with sound. play() is invoked synchronously inside
+            // the user's click on the thumbnail, so the user gesture is still active —
+            // browsers allow unmuted playback. If it gets blocked anyway, the user can
+            // tap the native play button.
+            const videoEl = overlay.querySelector('video');
+            if (videoEl) {
+                videoEl.muted = false;
+                videoEl.volume = 1.0;
+                const p = videoEl.play();
+                if (p && typeof p.catch === 'function') p.catch(() => {});
+            }
         }
 
         // Rename video (display name stored in metadata)
