@@ -2322,7 +2322,7 @@ function ExerciseDetailModal({
           </div>
         )}
 
-        {/* Coach Prescribed (precedence) OR Coaching Recommendation Card */}
+        {/* Coaching Recommendation Card — coach prescription takes precedence; otherwise progression engine */}
         {(() => {
           const hasCoachPrescription = sets.some(s => s.prescribedWeight > 0);
           if (hasCoachPrescription && !isTimedExercise) {
@@ -2332,11 +2332,11 @@ function ExerciseDetailModal({
             const prescribedSets = sets.length;
             const lastSession = coachingRecommendation?.lastSession;
             return (
-              <div className="coaching-rec-card coach-prescribed">
+              <div className="coaching-rec-card">
                 <div className="coaching-rec-header">
                   <div className="coaching-rec-badge">
-                    <User size={14} />
-                    <span>Coach Prescribed</span>
+                    <Sparkles size={14} />
+                    <span>Coaching Recommendation</span>
                   </div>
                 </div>
 
@@ -2357,7 +2357,7 @@ function ExerciseDetailModal({
                   </div>
                 </div>
 
-                <p className="coaching-rec-reasoning">Your coach set these targets. Hit them if you can.</p>
+                <p className="coaching-rec-reasoning">Recommended targets for this exercise. Push to hit them.</p>
 
                 {lastSession && (
                   <div className="coaching-rec-last-session">
