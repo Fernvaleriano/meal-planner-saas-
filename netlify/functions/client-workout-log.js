@@ -18,24 +18,28 @@ function generateInstanceId() {
 // Migrate old override formats to the new addedWorkouts format.
 // Old formats (dayIndex, dayIndices, addedDayIndices) are converted to
 // addedWorkouts entries with unique instance IDs, then removed.
+//
+// We deliberately do NOT carry the legacy "replace the natural workout"
+// side-effect into the new format (i.e. we do not set isRest=true here).
+// The old fields conflated "add a workout" with "suppress the natural
+// schedule", which caused the natural workout to silently disappear after
+// migration — and stacked a duplicate when a user then rescheduled another
+// workout onto the same date. Suppression is now an explicit user action
+// (the "skip" flow) and is the only thing that sets isRest.
 function migrateOverride(override) {
   if (!override) return {};
   const migrated = { ...override };
   let workouts = Array.isArray(migrated.addedWorkouts) ? [...migrated.addedWorkouts] : [];
-  // Track day_indices already present to avoid duplicates during conversion
   const existingDayIndices = new Set(workouts.map(w => w.day_index));
 
-  // Convert old dayIndex (singular) → single addedWorkouts entry
   if (migrated.dayIndex !== undefined) {
     if (!existingDayIndices.has(migrated.dayIndex)) {
       workouts.push({ instance_id: generateInstanceId(), day_index: migrated.dayIndex });
       existingDayIndices.add(migrated.dayIndex);
     }
     delete migrated.dayIndex;
-    migrated.isRest = true; // old dayIndex replaced the natural schedule
   }
 
-  // Convert old dayIndices (array) → multiple addedWorkouts entries (dedup)
   if (Array.isArray(migrated.dayIndices)) {
     for (const idx of migrated.dayIndices) {
       if (!existingDayIndices.has(idx)) {
@@ -44,10 +48,8 @@ function migrateOverride(override) {
       }
     }
     delete migrated.dayIndices;
-    migrated.isRest = true; // old dayIndices replaced the natural schedule
   }
 
-  // Convert addedDayIndices → addedWorkouts entries (dedup)
   if (Array.isArray(migrated.addedDayIndices)) {
     for (const idx of migrated.addedDayIndices) {
       if (!existingDayIndices.has(idx)) {
@@ -191,12 +193,21 @@ exports.handler = async (event) => {
         let targetOverride = migrateOverride(dateOverrides[targetDate]);
         if (!targetOverride.addedWorkouts) targetOverride.addedWorkouts = [];
 
-        // Always create a NEW instance — never deduplicate by day_index.
-        // Each move/duplicate produces its own independent workout card.
-        targetOverride.addedWorkouts.push({
-          instance_id: generateInstanceId(),
-          day_index: resolvedDayIndex
-        });
+        // Reschedule = "this workout should live on this day, not where it was."
+        // If the target already has a card for the same day_index (e.g. left over
+        // from a previous move or migrated from the legacy format), don't stack
+        // a second copy on top — the existing card already represents this
+        // workout on this date. Duplicate, by contrast, is an explicit ask for
+        // a second instance, so it always pushes.
+        const alreadyOnTarget = action === 'reschedule'
+          && targetOverride.addedWorkouts.some(w => w.day_index === resolvedDayIndex);
+
+        if (!alreadyOnTarget) {
+          targetOverride.addedWorkouts.push({
+            instance_id: generateInstanceId(),
+            day_index: resolvedDayIndex
+          });
+        }
 
         dateOverrides[targetDate] = targetOverride;
       }
