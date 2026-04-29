@@ -9364,7 +9364,7 @@
         }
 
         // Set coach's display unit preference
-        function setCoachDisplayUnit(unit) {
+        async function setCoachDisplayUnit(unit) {
             coachDisplayUnit = unit;
             // Update button states
             document.querySelectorAll('.coach-unit-toggle .unit-btn').forEach(btn => {
@@ -9372,8 +9372,16 @@
             });
             // Re-render stats with new unit
             displayStats();
-            // Save preference to localStorage
+            // Save preference to localStorage (mirror) and persist to coaches.unit_preference
+            // so the choice follows the coach across devices.
             localStorage.setItem('coachDisplayUnit', unit);
+            if (currentUser && currentUser.id) {
+                const { error } = await supabaseClient
+                    .from('coaches')
+                    .update({ unit_preference: unit })
+                    .eq('id', currentUser.id);
+                if (error) console.error('Failed to persist unit preference:', error);
+            }
         }
 
         // Logout function
@@ -9432,8 +9440,25 @@
                 return;
             }
 
-            // Load coach's saved unit preference
-            const savedUnit = localStorage.getItem('coachDisplayUnit');
+            // Load coach's saved unit preference. Prefer the DB value (follows them across
+            // devices); fall back to localStorage if the DB lookup fails or hasn't run yet.
+            let savedUnit = localStorage.getItem('coachDisplayUnit');
+            try {
+                const { data: { session: unitSession } } = await supabaseClient.auth.getSession();
+                if (unitSession && unitSession.user) {
+                    const { data: coachRow, error: coachUnitErr } = await supabaseClient
+                        .from('coaches')
+                        .select('unit_preference')
+                        .eq('id', unitSession.user.id)
+                        .maybeSingle();
+                    if (!coachUnitErr && coachRow && (coachRow.unit_preference === 'imperial' || coachRow.unit_preference === 'metric')) {
+                        savedUnit = coachRow.unit_preference;
+                        localStorage.setItem('coachDisplayUnit', savedUnit);
+                    }
+                }
+            } catch (err) {
+                console.warn('Could not load coach unit preference from DB; using localStorage fallback', err);
+            }
             if (savedUnit && (savedUnit === 'imperial' || savedUnit === 'metric')) {
                 coachDisplayUnit = savedUnit;
                 // Update button states
