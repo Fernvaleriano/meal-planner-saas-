@@ -8338,6 +8338,12 @@
 
                 console.log('Coach data loaded successfully');
 
+                // Mirror coach's unit preference into localStorage so getCoachDisplayUnit()
+                // and other read-sites stay in sync across devices.
+                if (coachData.unit_preference === 'metric' || coachData.unit_preference === 'imperial') {
+                    localStorage.setItem('coachDisplayUnit', coachData.unit_preference);
+                }
+
                 // Check for URL parameters (reactivation/subscription success)
                 const urlParams = new URLSearchParams(window.location.search);
                 const justReactivated = urlParams.get('reactivated') === 'true';

@@ -520,6 +520,40 @@
             transform: translateX(20px);
         }
 
+        /* Segmented unit-system toggle */
+        .unit-segmented {
+            display: inline-flex;
+            background: var(--gray-100);
+            border-radius: 8px;
+            padding: 2px;
+        }
+        [data-theme="dark"] .unit-segmented {
+            background: var(--gray-700);
+        }
+        .unit-segmented .seg-btn {
+            border: none;
+            background: transparent;
+            padding: 6px 14px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--gray-600);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        [data-theme="dark"] .unit-segmented .seg-btn {
+            color: var(--gray-300);
+        }
+        .unit-segmented .seg-btn.active {
+            background: white;
+            color: var(--gray-900);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+        }
+        [data-theme="dark"] .unit-segmented .seg-btn.active {
+            background: var(--gray-900);
+            color: white;
+        }
+
         /* Modal Styles */
         .modal-overlay {
             position: fixed;
@@ -1149,6 +1183,19 @@
                             <span class="toggle-slider"></span>
                         </label>
                     </div>
+                    <div class="settings-item" style="cursor: default;">
+                        <div class="settings-item-left">
+                            <div class="settings-icon"><i data-lucide="ruler"></i></div>
+                            <div>
+                                <div class="settings-label">Unit System</div>
+                                <div class="settings-sublabel">How weights and measurements display</div>
+                            </div>
+                        </div>
+                        <div class="unit-segmented" id="unitSegmented">
+                            <button type="button" class="seg-btn active" data-unit="imperial" onclick="setUnitPreference('imperial')">lbs</button>
+                            <button type="button" class="seg-btn" data-unit="metric" onclick="setUnitPreference('metric')">kg</button>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Log Out -->
@@ -1392,6 +1439,14 @@
                 const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
                 document.getElementById('darkModeToggle').checked = isDark;
 
+                // Hydrate unit-system preference (DB is source of truth, localStorage mirrors it
+                // so existing read-sites like dashboard.html / client-profile.html stay in sync).
+                const savedUnit = (coachData.unit_preference === 'metric') ? 'metric' : 'imperial';
+                localStorage.setItem('coachDisplayUnit', savedUnit);
+                document.querySelectorAll('#unitSegmented .seg-btn').forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.unit === savedUnit);
+                });
+
                 // Update subscription display
                 updateSubscriptionDisplay(coachData);
 
@@ -1422,6 +1477,27 @@
 
             // Update checkbox to match new theme
             toggle.checked = (newTheme === 'dark');
+        }
+
+        // Unit-system preference (persists to coaches.unit_preference + localStorage mirror)
+        async function setUnitPreference(unit) {
+            if (unit !== 'imperial' && unit !== 'metric') return;
+
+            // Optimistic UI
+            document.querySelectorAll('#unitSegmented .seg-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.unit === unit);
+            });
+            localStorage.setItem('coachDisplayUnit', unit);
+
+            if (!window.currentCoachId) return;
+            const { error } = await supabaseClient
+                .from('coaches')
+                .update({ unit_preference: unit })
+                .eq('id', window.currentCoachId);
+            if (error) {
+                console.error('Failed to save unit preference:', error);
+                alert('Could not save unit preference. Please try again.');
+            }
         }
 
         // Logout handler
