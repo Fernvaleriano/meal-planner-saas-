@@ -1264,14 +1264,19 @@ function Workouts() {
             })
           ).then((refreshedAssignments) => {
             if (!mounted) return;
+            // Match by instance_id, not id: when one assignment renders multiple
+            // cards on the same date (e.g. Day 1 added + Day 2 natural after a
+            // reschedule), every card shares the assignment id, so an id-only
+            // find() returns the first card for ALL of them and collapses the
+            // list into duplicates.
+            const matchKey = (w) => w.instance_id || w.id;
             setTodayWorkouts(prev => prev.map(w => {
-              const refreshed = refreshedAssignments.find(r => r.id === w.id);
+              const refreshed = refreshedAssignments.find(r => matchKey(r) === matchKey(w));
               return refreshed || w;
             }));
-            // Also update the selected workout if it was refreshed
             setTodayWorkout(prev => {
               if (!prev) return prev;
-              const refreshed = refreshedAssignments.find(r => r.id === prev.id);
+              const refreshed = refreshedAssignments.find(r => matchKey(r) === matchKey(prev));
               return refreshed || prev;
             });
           }).catch(() => { /* signed URL refresh is best-effort */ });
@@ -2465,7 +2470,14 @@ function Workouts() {
         ...existingCache,
         todayWorkout: { ...(existingCache.todayWorkout || workout), workout_data: updatedWorkoutData },
         todayWorkouts: Array.isArray(existingCache.todayWorkouts)
-          ? existingCache.todayWorkouts.map(w => w?.id === workout.id ? { ...w, workout_data: updatedWorkoutData } : w)
+          ? existingCache.todayWorkouts.map(w => {
+              // Match by instance_id when both sides have one — multiple cards
+              // from the same assignment share `id` but have unique instance_ids.
+              const sameInstance = w?.instance_id && workout.instance_id
+                ? w.instance_id === workout.instance_id
+                : w?.id === workout.id;
+              return sameInstance ? { ...w, workout_data: updatedWorkoutData } : w;
+            })
           : [{ ...(existingCache.todayWorkout || workout), workout_data: updatedWorkoutData }]
       });
     } catch { /* ignore */ }
