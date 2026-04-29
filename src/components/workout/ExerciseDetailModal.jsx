@@ -458,10 +458,14 @@ function ExerciseDetailModal({
       // Check setsData first (saved by the 3-panel workout builder detail editor)
       if (Array.isArray(exercise.setsData) && exercise.setsData.length > 0) {
         return exercise.setsData.filter(Boolean).map(set => {
-          // Coach's per-set unit (defaults to lb in the builder); convert to the client's profile unit
-          const fromUnit = set?.weightUnit || weightUnit;
+          // Coach builder defaults to 'lb' in its unit dropdown. If the per-set weightUnit
+          // wasn't stamped (older prescriptions, or coach never touched the dropdown),
+          // assume 'lbs' rather than the client's profile unit — falling back to the
+          // client's unit makes the conversion a no-op and renders the raw number with
+          // the wrong label.
           const rawWeight = set?.weight || 0;
           const rawPrescribed = set?.prescribedWeight ?? rawWeight;
+          const fromUnit = set?.weightUnit || (rawPrescribed > 0 || rawWeight > 0 ? 'lbs' : weightUnit);
           return {
           reps: safeParseReps(set?.reps || exercise.reps),
           weight: convertWeight(rawWeight, fromUnit, weightUnit),
