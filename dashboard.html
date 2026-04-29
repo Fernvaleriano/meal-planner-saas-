@@ -7770,6 +7770,75 @@
                 // PRs render in the Wins card via the activity timeline (loadActivityFeed),
                 // so we don't add them to the Needs You alerts here — that would duplicate them.
 
+                // --- MISSED COACH-PRESCRIBED TARGETS ---
+                // Surfaces sets where the client logged less weight or fewer reps than the
+                // coach prescribed. This is the signal a strength coach needs to decide
+                // whether to deload, hold, or push the next session.
+                try {
+                    const clientIds = (allClients || []).map(c => c.id);
+                    if (clientIds.length > 0) {
+                        const { data: recentLogs } = await supabaseClient
+                            .from('exercise_logs')
+                            .select('id, exercise_name, sets_data, created_at, workout_logs!inner(id, client_id, workout_name)')
+                            .in('workout_logs.client_id', clientIds)
+                            .gte('created_at', weekAgo.toISOString())
+                            .order('created_at', { ascending: false })
+                            .limit(60);
+                        const misses = [];
+                        (recentLogs || []).forEach(log => {
+                            const sets = Array.isArray(log.sets_data) ? log.sets_data : [];
+                            const missedSets = sets.filter(s => {
+                                const pw = Number(s?.prescribedWeight) || 0;
+                                const pr = Number(s?.prescribedReps) || 0;
+                                if (pw <= 0 && pr <= 0) return false;
+                                const w = Number(s?.weight) || 0;
+                                const r = Number(s?.reps) || 0;
+                                return (pw > 0 && w > 0 && w < pw) || (pr > 0 && r > 0 && r < pr);
+                            });
+                            if (missedSets.length === 0) return;
+                            const worst = missedSets.reduce((acc, s) => {
+                                const pw = Number(s.prescribedWeight) || 0;
+                                const pr = Number(s.prescribedReps) || 0;
+                                const wDelta = pw > 0 ? pw - (Number(s.weight) || 0) : 0;
+                                const rDelta = pr > 0 ? pr - (Number(s.reps) || 0) : 0;
+                                const score = wDelta + rDelta * 2;
+                                return score > acc.score ? { set: s, score } : acc;
+                            }, { set: null, score: -1 }).set;
+                            misses.push({ log, worst, count: missedSets.length });
+                        });
+                        misses.slice(0, MAX_SHOWN).forEach(m => {
+                            const cId = m.log.workout_logs?.client_id;
+                            const name = clientMap[cId] || 'Unknown Client';
+                            const unit = clientUnitMap[cId] || 'lbs';
+                            const aid = 'missed-target-' + m.log.id;
+                            const workoutId = m.log.workout_logs?.id;
+                            const url = `client-profile.html?clientId=${cId}&tab=workouts&workoutId=${workoutId}`;
+                            const w = Number(m.worst.weight) || 0;
+                            const pw = Number(m.worst.prescribedWeight) || 0;
+                            const r = Number(m.worst.reps) || 0;
+                            const pr = Number(m.worst.prescribedReps) || 0;
+                            const detail = pw > 0 && w < pw
+                                ? `${w}${unit} vs target ${pw}${unit}`
+                                : `${r} reps vs target ${pr}`;
+                            const setsCopy = m.count > 1 ? `${m.count} sets` : '1 set';
+                            addAlert(aid, `
+                                <div class="priority-alert priority-alert--clickable" onclick="reviewAndArchive('${aid}', '${url}')">
+                                    __CHECKBOX__
+                                    <span class="priority-dot priority-dot--amber"></span>
+                                    <span>
+                                        <span class="priority-label priority-label--action">Missed target:</span>
+                                        <strong>${name}</strong> on ${m.log.exercise_name} — ${detail}
+                                        <span class="priority-alert-detail">· ${setsCopy} below prescription · ${timeAgo(m.log.created_at)}</span>
+                                        <span class="priority-alert-link">Review →</span>
+                                    </span>
+                                </div>
+                            `, cId, 'missed_target', m.log.id, 'workout');
+                        });
+                    }
+                } catch (e) {
+                    console.warn('Could not check missed prescribed targets:', e);
+                }
+
                 // --- CLIENT WORKOUT NOTES (Voice & Text) ---
                 try {
                     const clientIds = (allClients || []).map(c => c.id);

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { X, Play, Pause, SkipForward, SkipBack, ChevronRight, ChevronLeft, Check, Volume2, VolumeX, Mic, MessageSquare, Square, Send, ChevronUp, ChevronDown, MessageCircle, Bot, Loader2, Sparkles, Flame, Repeat, Clock, Zap, AlertTriangle, TrendingUp, ExternalLink } from 'lucide-react';
+import { X, Play, Pause, SkipForward, SkipBack, ChevronRight, ChevronLeft, Check, Volume2, VolumeX, Mic, MessageSquare, Square, Send, ChevronUp, ChevronDown, MessageCircle, Bot, Loader2, Sparkles, Flame, Repeat, Clock, Zap, AlertTriangle, TrendingUp, ExternalLink, User } from 'lucide-react';
 import SmartThumbnail from './SmartThumbnail';
 import SwapExerciseModal from './SwapExerciseModal';
 import { apiGet, apiPost, apiPut, getOrCreateWorkoutLogId } from '../../utils/api';
@@ -318,9 +318,13 @@ function GuidedWorkoutModal({
         // If sets is an array with existing data, use it; also check setsData (coach workout builder source of truth)
         const existingSet = Array.isArray(ex.sets) ? ex.sets[si] : null;
         const setsDataSet = Array.isArray(ex.setsData) ? ex.setsData[si] : null;
+        const prescribedW = setsDataSet?.prescribedWeight ?? setsDataSet?.weight ?? 0;
+        const prescribedR = setsDataSet?.prescribedReps ?? parseReps(setsDataSet?.reps || ex.reps);
         return {
           reps: existingSet?.reps || setsDataSet?.reps || defaultReps,
           weight: existingSet?.weight || 0,
+          prescribedWeight: prescribedW,
+          prescribedReps: prescribedR,
           duration: existingSet?.duration || setsDataSet?.duration || ex.duration || null,
           distance: existingSet?.distance || setsDataSet?.distance || ex.distance || null,
           restSeconds: existingSet?.restSeconds ?? setsDataSet?.restSeconds ?? ex.restSeconds ?? ex.rest_seconds ?? 90,
@@ -1035,6 +1039,8 @@ function GuidedWorkoutModal({
           reps: s.reps || 0,
           weight: s.weight || 0,
           weightUnit: weightUnit,
+          ...(s.prescribedWeight > 0 && { prescribedWeight: s.prescribedWeight }),
+          ...(s.prescribedReps > 0 && { prescribedReps: s.prescribedReps }),
           effort: s.effort || null
         }));
 
@@ -2642,8 +2648,68 @@ function GuidedWorkoutModal({
             ))}
           </div>
         )}
+        {/* Coach Prescribed (precedence) - replaces the algorithm card when coach set weights */}
+        {(() => {
+          const currentSetLogs = setLogs[currentExIndex] || [];
+          const hasCoachPrescription = !info.isTimed
+            && !currentExercise?.isWarmup
+            && !currentExercise?.isStretch
+            && currentExercise?.exercise_type !== 'stretch'
+            && currentExercise?.phase !== 'warmup'
+            && currentExercise?.phase !== 'cooldown'
+            && currentSetLogs.some(s => s.prescribedWeight > 0);
+          if (!hasCoachPrescription) return null;
+          const prescribedReps = currentSetLogs.find(s => s.prescribedReps > 0)?.prescribedReps
+            || currentSetLogs[0]?.prescribedReps || 0;
+          const prescribedWeight = Math.max(...currentSetLogs.map(s => s.prescribedWeight || 0));
+          const prescribedSets = currentSetLogs.length;
+          const lastSession = progressTips[currentExIndex]?.lastSession;
+          return (
+            <div className="ai-recommendation-card coach-prescribed">
+              <div className="ai-rec-header">
+                <div className="ai-rec-badge">
+                  <User size={14} />
+                  <span>Coach Prescribed</span>
+                </div>
+              </div>
+
+              <div className="ai-rec-values">
+                <div className="ai-rec-value-item">
+                  <span className="ai-rec-value-number">{prescribedSets}</span>
+                  <span className="ai-rec-value-label">sets</span>
+                </div>
+                <span className="ai-rec-value-divider">x</span>
+                <div className="ai-rec-value-item">
+                  <span className="ai-rec-value-number">{prescribedReps || '—'}</span>
+                  <span className="ai-rec-value-label">reps</span>
+                </div>
+                <span className="ai-rec-value-divider">@</span>
+                <div className="ai-rec-value-item">
+                  <span className="ai-rec-value-number">{prescribedWeight || '—'}</span>
+                  <span className="ai-rec-value-label">{weightUnit}</span>
+                </div>
+              </div>
+
+              <p className="ai-rec-reasoning">Your coach set these targets. Hit them if you can.</p>
+
+              {lastSession && (
+                <div className="ai-rec-last-session">
+                  <span>Last: {lastSession.reps} reps @ {lastSession.weight}{weightUnit}</span>
+                  <span className="ai-rec-last-date">{lastSession.date}</span>
+                </div>
+              )}
+
+              <div className="ai-rec-actions">
+                <button className="ai-rec-btn ask" onClick={handleOpenAskAI}>
+                  <MessageCircle size={16} />
+                  <span>Adjust</span>
+                </button>
+              </div>
+            </div>
+          );
+        })()}
         {/* Coaching Recommendation Card - shown prominently after exercise info */}
-        {aiRecommendations[currentExIndex] && !info.isTimed && !currentExercise?.isWarmup && !currentExercise?.isStretch && currentExercise?.exercise_type !== 'stretch' && currentExercise?.phase !== 'warmup' && currentExercise?.phase !== 'cooldown' && (
+        {aiRecommendations[currentExIndex] && !info.isTimed && !currentExercise?.isWarmup && !currentExercise?.isStretch && currentExercise?.exercise_type !== 'stretch' && currentExercise?.phase !== 'warmup' && currentExercise?.phase !== 'cooldown' && !(setLogs[currentExIndex] || []).some(s => s.prescribedWeight > 0) && (
           <div className={`ai-recommendation-card ${acceptedRecommendation[currentExIndex] ? 'accepted' : ''} ${aiRecommendations[currentExIndex]?.plateau ? 'plateau' : ''}`}>
             <div className="ai-rec-header">
               <div className="ai-rec-badge">

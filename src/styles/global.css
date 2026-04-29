@@ -21579,6 +21579,18 @@ textarea,
     border-color: rgba(34, 197, 94, 0.25);
 }
 
+.coaching-rec-card.coach-prescribed,
+.ai-recommendation-card.coach-prescribed {
+    background: linear-gradient(135deg, rgba(168, 85, 247, 0.12) 0%, rgba(236, 72, 153, 0.06) 100%);
+    border-color: rgba(168, 85, 247, 0.3);
+}
+
+.coaching-rec-card.coach-prescribed .coaching-rec-badge,
+.ai-recommendation-card.coach-prescribed .ai-rec-badge {
+    background: rgba(168, 85, 247, 0.18);
+    color: #c084fc;
+}
+
 .coaching-rec-header {
     display: flex;
     align-items: center;

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
-import { X, Check, Plus, ChevronLeft, Play, Timer, BarChart3, ArrowLeftRight, Trash2, Mic, MicOff, MessageCircle, Loader2, AlertCircle, History, TrendingUp, Award, ChevronDown, ChevronUp, Send, Square, Sparkles, ExternalLink, Camera, Bot, Flame, Leaf, Zap } from 'lucide-react';
+import { X, Check, Plus, ChevronLeft, Play, Timer, BarChart3, ArrowLeftRight, Trash2, Mic, MicOff, MessageCircle, Loader2, AlertCircle, History, TrendingUp, Award, ChevronDown, ChevronUp, Send, Square, Sparkles, ExternalLink, Camera, Bot, Flame, Leaf, Zap, User } from 'lucide-react';
 import { apiGet, apiPost, apiPut, apiDelete, getOrCreateWorkoutLogId } from '../../utils/api';
 import { generateProgression, EFFORT_OPTIONS, parseSetsData, getMaxWeight } from '../../utils/workoutProgression';
 import { onAppSuspend, onAppResume } from '../../hooks/useAppLifecycle';
@@ -460,6 +460,9 @@ function ExerciseDetailModal({
         return exercise.setsData.filter(Boolean).map(set => ({
           reps: safeParseReps(set?.reps || exercise.reps),
           weight: set?.weight || 0,
+          // Snapshot the coach's prescription so it survives client edits to weight/reps
+          prescribedWeight: set?.prescribedWeight ?? (set?.weight || 0),
+          prescribedReps: set?.prescribedReps ?? safeParseReps(set?.reps || exercise.reps),
           completed: set?.completed || false,
           duration: set?.duration || exercise.duration || null,
           distance: set?.distance || exercise.distance || null,
@@ -663,6 +666,8 @@ function ExerciseDetailModal({
         reps: s.reps || 0,
         weight: s.weight || 0,
         weightUnit: s.weightUnit || currentWeightUnit,
+        ...(s.prescribedWeight > 0 && { prescribedWeight: s.prescribedWeight }),
+        ...(s.prescribedReps > 0 && { prescribedReps: s.prescribedReps }),
         rpe: s.rpe || null,
         effort: s.effort || null,
         restSeconds: s.restSeconds ?? null,
@@ -886,6 +891,8 @@ function ExerciseDetailModal({
         reps: s.reps || 0,
         weight: s.weight || 0,
         weightUnit: s.weightUnit || 'kg',
+        ...(s.prescribedWeight > 0 && { prescribedWeight: s.prescribedWeight }),
+        ...(s.prescribedReps > 0 && { prescribedReps: s.prescribedReps }),
         rpe: s.rpe || null,
         restSeconds: s.restSeconds ?? null,
         isTimeBased: s.isTimeBased || false,
@@ -1090,6 +1097,8 @@ function ExerciseDetailModal({
                 reps: s.reps || 0,
                 weight: s.weight || 0,
                 weightUnit: s.weightUnit || weightUnit,
+                ...(s.prescribedWeight > 0 && { prescribedWeight: s.prescribedWeight }),
+                ...(s.prescribedReps > 0 && { prescribedReps: s.prescribedReps }),
                 rpe: s.rpe || null,
                 restSeconds: s.restSeconds ?? null,
                 isTimeBased: s.isTimeBased || false,
@@ -2296,62 +2305,116 @@ function ExerciseDetailModal({
           </div>
         )}
 
-        {/* Coaching Recommendation Card */}
-        {coachingRecommendation && !isTimedExercise && (
-          <div className={`coaching-rec-card ${acceptedCoachingRec ? 'accepted' : ''}`}>
-            <div className="coaching-rec-header">
-              <div className="coaching-rec-badge">
-                <Sparkles size={14} />
-                <span>Coaching Recommendation</span>
+        {/* Coach Prescribed (precedence) OR Coaching Recommendation Card */}
+        {(() => {
+          const hasCoachPrescription = sets.some(s => s.prescribedWeight > 0);
+          if (hasCoachPrescription && !isTimedExercise) {
+            const prescribedReps = sets.find(s => s.prescribedReps > 0)?.prescribedReps
+              || sets[0]?.prescribedReps || 0;
+            const prescribedWeight = Math.max(...sets.map(s => s.prescribedWeight || 0));
+            const prescribedSets = sets.length;
+            const lastSession = coachingRecommendation?.lastSession;
+            return (
+              <div className="coaching-rec-card coach-prescribed">
+                <div className="coaching-rec-header">
+                  <div className="coaching-rec-badge">
+                    <User size={14} />
+                    <span>Coach Prescribed</span>
+                  </div>
+                </div>
+
+                <div className="coaching-rec-values">
+                  <div className="coaching-rec-value-item">
+                    <span className="coaching-rec-value-number">{prescribedSets}</span>
+                    <span className="coaching-rec-value-label">sets</span>
+                  </div>
+                  <span className="coaching-rec-value-divider">x</span>
+                  <div className="coaching-rec-value-item">
+                    <span className="coaching-rec-value-number">{prescribedReps || '—'}</span>
+                    <span className="coaching-rec-value-label">reps</span>
+                  </div>
+                  <span className="coaching-rec-value-divider">@</span>
+                  <div className="coaching-rec-value-item">
+                    <span className="coaching-rec-value-number">{prescribedWeight || '—'}</span>
+                    <span className="coaching-rec-value-label">{weightUnit}</span>
+                  </div>
+                </div>
+
+                <p className="coaching-rec-reasoning">Your coach set these targets. Hit them if you can.</p>
+
+                {lastSession && (
+                  <div className="coaching-rec-last-session">
+                    <span>Last: {lastSession.reps} reps @ {lastSession.weight} {weightUnit}</span>
+                    <span className="coaching-rec-last-date">{lastSession.date}</span>
+                  </div>
+                )}
+
+                <div className="coaching-rec-actions">
+                  <button className="coaching-rec-btn adjust" onClick={() => setShowAskAI(true)}>
+                    <MessageCircle size={16} />
+                    <span>Adjust</span>
+                  </button>
+                </div>
               </div>
-              {acceptedCoachingRec && (
-                <span className="coaching-rec-accepted-badge">
-                  <Check size={12} />
-                  Applied
-                </span>
+            );
+          }
+          if (!coachingRecommendation || isTimedExercise) return null;
+          return (
+            <div className={`coaching-rec-card ${acceptedCoachingRec ? 'accepted' : ''}`}>
+              <div className="coaching-rec-header">
+                <div className="coaching-rec-badge">
+                  <Sparkles size={14} />
+                  <span>Coaching Recommendation</span>
+                </div>
+                {acceptedCoachingRec && (
+                  <span className="coaching-rec-accepted-badge">
+                    <Check size={12} />
+                    Applied
+                  </span>
+                )}
+              </div>
+
+              <div className="coaching-rec-values">
+                <div className="coaching-rec-value-item">
+                  <span className="coaching-rec-value-number">{coachingRecommendation.sets}</span>
+                  <span className="coaching-rec-value-label">sets</span>
+                </div>
+                <span className="coaching-rec-value-divider">x</span>
+                <div className="coaching-rec-value-item">
+                  <span className="coaching-rec-value-number">{coachingRecommendation.reps}</span>
+                  <span className="coaching-rec-value-label">reps</span>
+                </div>
+                <span className="coaching-rec-value-divider">@</span>
+                <div className="coaching-rec-value-item">
+                  <span className="coaching-rec-value-number">{coachingRecommendation.weight || '—'}</span>
+                  <span className="coaching-rec-value-label">{weightUnit}</span>
+                </div>
+              </div>
+
+              <p className="coaching-rec-reasoning">{coachingRecommendation.reasoning}</p>
+
+              {coachingRecommendation.lastSession && (
+                <div className="coaching-rec-last-session">
+                  <span>Last: {coachingRecommendation.lastSession.reps} reps @ {coachingRecommendation.lastSession.weight} {weightUnit}</span>
+                  <span className="coaching-rec-last-date">{coachingRecommendation.lastSession.date}</span>
+                </div>
+              )}
+
+              {!acceptedCoachingRec && (
+                <div className="coaching-rec-actions">
+                  <button className="coaching-rec-btn accept" onClick={handleAcceptCoachingRec}>
+                    <Check size={16} />
+                    <span>Accept</span>
+                  </button>
+                  <button className="coaching-rec-btn adjust" onClick={() => setShowAskAI(true)}>
+                    <MessageCircle size={16} />
+                    <span>Adjust</span>
+                  </button>
+                </div>
               )}
             </div>
-
-            <div className="coaching-rec-values">
-              <div className="coaching-rec-value-item">
-                <span className="coaching-rec-value-number">{coachingRecommendation.sets}</span>
-                <span className="coaching-rec-value-label">sets</span>
-              </div>
-              <span className="coaching-rec-value-divider">x</span>
-              <div className="coaching-rec-value-item">
-                <span className="coaching-rec-value-number">{coachingRecommendation.reps}</span>
-                <span className="coaching-rec-value-label">reps</span>
-              </div>
-              <span className="coaching-rec-value-divider">@</span>
-              <div className="coaching-rec-value-item">
-                <span className="coaching-rec-value-number">{coachingRecommendation.weight || '—'}</span>
-                <span className="coaching-rec-value-label">{weightUnit}</span>
-              </div>
-            </div>
-
-            <p className="coaching-rec-reasoning">{coachingRecommendation.reasoning}</p>
-
-            {coachingRecommendation.lastSession && (
-              <div className="coaching-rec-last-session">
-                <span>Last: {coachingRecommendation.lastSession.reps} reps @ {coachingRecommendation.lastSession.weight} {weightUnit}</span>
-                <span className="coaching-rec-last-date">{coachingRecommendation.lastSession.date}</span>
-              </div>
-            )}
-
-            {!acceptedCoachingRec && (
-              <div className="coaching-rec-actions">
-                <button className="coaching-rec-btn accept" onClick={handleAcceptCoachingRec}>
-                  <Check size={16} />
-                  <span>Accept</span>
-                </button>
-                <button className="coaching-rec-btn adjust" onClick={() => setShowAskAI(true)}>
-                  <MessageCircle size={16} />
-                  <span>Adjust</span>
-                </button>
-              </div>
-            )}
-          </div>
-        )}
+          );
+        })()}
 
         {/* Leave a Note to Coach */}
         <div className="client-note-for-coach-section">
