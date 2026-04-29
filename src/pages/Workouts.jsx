@@ -1498,16 +1498,22 @@ function Workouts() {
           }
 
           if (selectedDays.includes(dayName) && days.length > 0) {
-            const totalDaysDiff = Math.floor((date - startDate) / (24 * 60 * 60 * 1000));
+            // Normalize to UTC midnight so the day-count matches the server
+            // calc in workout-assignments.js. The raw `date - startDate` diff
+            // mixed local time-of-day from weekDates with a UTC-midnight
+            // startDate, so Math.floor could drift ±1 day by timezone/clock.
+            const startUTC = Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth(), startDate.getUTCDate());
+            const targetUTC = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
+            const totalDaysDiff = Math.floor((targetUTC - startUTC) / (24 * 60 * 60 * 1000));
             const daySet = new Set(selectedDays);
             const fullWeeks = Math.floor(totalDaysDiff / 7);
             const daysPerWeek = dayNamesList.filter(d => daySet.has(d)).length;
             let count = fullWeeks * daysPerWeek;
             const remainderDays = totalDaysDiff % 7;
             for (let i = 0; i < remainderDays; i++) {
-              const d = new Date(startDate);
-              d.setDate(d.getDate() + (fullWeeks * 7) + i);
-              if (daySet.has(dayNamesList[d.getDay()])) count++;
+              const d = new Date(startUTC);
+              d.setUTCDate(d.getUTCDate() + (fullWeeks * 7) + i);
+              if (daySet.has(dayNamesList[d.getUTCDay()])) count++;
             }
             const dayIndex = count % days.length;
 
