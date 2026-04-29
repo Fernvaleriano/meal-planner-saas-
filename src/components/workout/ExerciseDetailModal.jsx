@@ -2045,14 +2045,14 @@ function ExerciseDetailModal({
                 controls={hasCustomVideo}
                 playsInline
                 autoPlay={!hasCustomVideo}
-                preload="metadata"
+                preload={hasCustomVideo ? 'auto' : 'metadata'}
                 onCanPlay={() => { setVideoLoading(false); setVideoError(false); }}
                 onPlaying={() => setVideoLoading(false)}
-                onWaiting={() => setVideoLoading(true)}
+                onWaiting={() => { if (!hasCustomVideo) setVideoLoading(true); }}
                 onError={handleVideoError}
               />
-              {videoLoading && !videoError && (
-                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.6)', zIndex: 2 }}>
+              {videoLoading && !videoError && !hasCustomVideo && (
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.6)', zIndex: 2, pointerEvents: 'none' }}>
                   <Loader2 size={36} style={{ color: 'white', animation: 'spin 1s linear infinite' }} />
                 </div>
               )}
