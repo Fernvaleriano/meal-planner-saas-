@@ -2033,14 +2033,18 @@ function ExerciseDetailModal({
         {/* Images Section - Single image */}
         <div className="exercise-images-v3 single-image">
           {showVideo && videoUrl ? (
-            <div className="video-container-full">
+            <div
+              className="video-container-full"
+              onClick={hasCustomVideo ? (e) => e.stopPropagation() : undefined}
+            >
               <video
                 key={videoKey}
                 src={videoBlobUrl || videoUrl}
-                loop
-                muted
+                loop={!hasCustomVideo}
+                muted={!hasCustomVideo}
+                controls={hasCustomVideo}
                 playsInline
-                autoPlay
+                autoPlay={!hasCustomVideo}
                 preload="metadata"
                 onCanPlay={() => { setVideoLoading(false); setVideoError(false); }}
                 onPlaying={() => setVideoLoading(false)}
