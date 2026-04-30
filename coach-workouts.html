@@ -2141,51 +2141,74 @@
         .wb-hms-input {
             flex: 1;
             display: flex;
-            gap: 1px;
+            gap: 4px;
             align-items: center;
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            padding: 2px 4px;
             min-width: 0;
         }
-        .wb-hms-input:focus-within {
-            border-color: var(--brand-primary);
-            background: var(--bg-secondary);
-        }
-        .wb-hms-field {
+        .wb-hms-input .wb-hms-field {
             flex: 1;
             min-width: 0;
             width: 100%;
-            padding: 6px 0;
-            background: transparent;
-            border: none;
-            font-size: 14px;
+            padding: 10px 4px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 700;
             color: var(--text-primary);
             text-align: center;
             outline: none;
             font-family: inherit;
             -moz-appearance: textfield;
+            letter-spacing: 0.5px;
         }
-        .wb-hms-field::-webkit-outer-spin-button,
-        .wb-hms-field::-webkit-inner-spin-button {
+        .wb-hms-input .wb-hms-field:focus {
+            border-color: var(--brand-primary);
+            background: var(--bg-secondary);
+        }
+        .wb-hms-input .wb-hms-field::-webkit-outer-spin-button,
+        .wb-hms-input .wb-hms-field::-webkit-inner-spin-button {
             -webkit-appearance: none;
             margin: 0;
         }
         .wb-hms-sep {
-            font-size: 10px;
+            font-size: 14px;
             color: var(--text-muted);
             flex-shrink: 0;
-            font-weight: 600;
-            text-transform: uppercase;
+            font-weight: 700;
         }
         .wb-hms-input.config-hms {
-            padding: 1px 2px;
-            min-width: 110px;
+            min-width: 130px;
+            gap: 2px;
         }
         .wb-hms-input.config-hms .wb-hms-field {
-            font-size: 0.875rem;
-            padding: 5px 0;
+            font-size: 14px;
+            padding: 6px 2px;
+            border-radius: 6px;
+        }
+        .wb-hms-input.config-hms .wb-hms-sep {
+            font-size: 11px;
+        }
+        .wb-sets-col-label-hms {
+            flex: 1;
+            min-width: 52px;
+            display: flex;
+            gap: 4px;
+            align-items: center;
+        }
+        .wb-sets-col-label-hms > span {
+            flex: 1;
+            min-width: 0;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            text-align: center;
+        }
+        .wb-sets-col-label-hms .wb-hms-sep-spacer {
+            width: 6px;
+            flex-shrink: 0;
         }
 
         .wb-set-unit-select {
@@ -8117,20 +8140,20 @@
             const h = Math.floor(t / 3600);
             const m = Math.floor((t % 3600) / 60);
             const s = t % 60;
-            const hVal = h ? h : '';
-            const mVal = m || h ? m : '';
-            const sVal = s || m || h ? s : '';
-            return '<div class="wb-hms-input ' + (extraClass || '') + '" data-di="' + di + '" data-ei="' + ei + '" data-si="' + si + '" data-field="' + field + '" title="Hours / Minutes / Seconds">' +
-                '<input type="number" class="wb-hms-field" min="0" max="99" value="' + hVal + '" data-unit="h" oninput="onHMSSetChange(this)" placeholder="0">' +
-                '<span class="wb-hms-sep">h</span>' +
-                '<input type="number" class="wb-hms-field" min="0" max="59" value="' + mVal + '" data-unit="m" oninput="onHMSSetChange(this)" placeholder="0">' +
-                '<span class="wb-hms-sep">m</span>' +
-                '<input type="number" class="wb-hms-field" min="0" max="59" value="' + sVal + '" data-unit="s" oninput="onHMSSetChange(this)" placeholder="0">' +
-                '<span class="wb-hms-sep">s</span>' +
+            const pad = n => String(n).padStart(2, '0');
+            return '<div class="wb-hms-input ' + (extraClass || '') + '" data-di="' + di + '" data-ei="' + ei + '" data-si="' + si + '" data-field="' + field + '" title="Hours : Minutes : Seconds">' +
+                '<input type="text" inputmode="numeric" maxlength="2" class="wb-hms-field" value="' + pad(h) + '" data-unit="h" oninput="onHMSSetChange(this)" onfocus="this.select()" onblur="onHMSBlur(this)" placeholder="00">' +
+                '<span class="wb-hms-sep">:</span>' +
+                '<input type="text" inputmode="numeric" maxlength="2" class="wb-hms-field" value="' + pad(m) + '" data-unit="m" oninput="onHMSSetChange(this)" onfocus="this.select()" onblur="onHMSBlur(this)" placeholder="00">' +
+                '<span class="wb-hms-sep">:</span>' +
+                '<input type="text" inputmode="numeric" maxlength="2" class="wb-hms-field" value="' + pad(s) + '" data-unit="s" oninput="onHMSSetChange(this)" onfocus="this.select()" onblur="onHMSBlur(this)" placeholder="00">' +
                 '</div>';
         }
 
         function onHMSSetChange(input) {
+            // Strip non-digits as the user types
+            const cleaned = (input.value || '').replace(/\D/g, '').slice(0, 2);
+            if (cleaned !== input.value) input.value = cleaned;
             const wrap = input.closest('.wb-hms-input');
             if (!wrap) return;
             const fields = wrap.querySelectorAll('.wb-hms-field');
@@ -8138,8 +8161,8 @@
             fields.forEach(f => {
                 const v = parseInt(f.value) || 0;
                 if (f.dataset.unit === 'h') h = v;
-                else if (f.dataset.unit === 'm') m = v;
-                else if (f.dataset.unit === 's') s = v;
+                else if (f.dataset.unit === 'm') m = Math.min(v, 59);
+                else if (f.dataset.unit === 's') s = Math.min(v, 59);
             });
             const total = h * 3600 + m * 60 + s;
             const di = parseInt(wrap.dataset.di);
@@ -8152,6 +8175,11 @@
             } else {
                 updateExerciseSet(di, ei, parseInt(siRaw), field, total);
             }
+        }
+
+        function onHMSBlur(input) {
+            const v = parseInt(input.value) || 0;
+            input.value = String(v).padStart(2, '0');
         }
 
         // Format set summary for exercise list (e.g. "10x 10x 10x")
@@ -8535,15 +8563,15 @@
                     exercise.reps = String(setsArr[0].reps);
                 }
             }
-            let setsHeaderLabel, setsInputField;
+            let setsHeaderLabelHtml, setsInputField;
             if (trackingType === 'time') {
-                setsHeaderLabel = 'Duration';
+                setsHeaderLabelHtml = '<div class="wb-sets-col-label-hms"><span>Hrs</span><span>Min</span><span>Sec</span></div>';
                 setsInputField = (set, si) => renderHMSSetInput(set.duration || 30, di, ei, si, 'duration');
             } else if (trackingType === 'distance') {
-                setsHeaderLabel = `Distance (${exercise.distanceUnit || 'miles'})`;
+                setsHeaderLabelHtml = `<span class="wb-sets-col-label">Distance (${exercise.distanceUnit || 'miles'})</span>`;
                 setsInputField = (set, si) => `<input type="number" class="wb-set-input" value="${set.distance || 1}" step="any" min="0.1" onchange="updateExerciseSet(${di},${ei},${si},'distance',parseFloat(this.value)||1)">`;
             } else {
-                setsHeaderLabel = 'Reps (x)';
+                setsHeaderLabelHtml = '<span class="wb-sets-col-label">Reps (x)</span>';
                 setsInputField = (set, si) => `<input type="number" class="wb-set-input" value="${set.reps || 10}" min="1" onchange="updateExerciseSet(${di},${ei},${si},'reps',parseInt(this.value)||1)">`;
             }
 
@@ -8623,14 +8651,14 @@
                 <div class="wb-detail-sets">
                     <div class="wb-sets-header-row">
                         <span class="wb-sets-col-num"></span>
-                        <span class="wb-sets-col-label">${setsHeaderLabel}</span>
+                        ${setsHeaderLabelHtml}
                         ${exercise.showWeight ? '<span class="wb-sets-col-label">Weight</span>' : ''}
                         ${exercise.showRPE ? '<span class="wb-sets-col-label">RPE</span>' : ''}
                         ${exercise.showPercent1RM ? '<span class="wb-sets-col-label">% 1RM</span>' : ''}
                         ${exercise.showPace && trackingType === 'distance' ? '<span class="wb-sets-col-label">Pace</span>' : ''}
                         ${exercise.showIncline && trackingType === 'distance' ? '<span class="wb-sets-col-label">Incline %</span>' : ''}
                         ${exercise.showHRZone ? '<span class="wb-sets-col-label">HR Zone</span>' : ''}
-                        <span class="wb-sets-col-label">Rest</span>
+                        <span class="wb-sets-col-label">Rest (s)</span>
                     </div>
                     ${setsArr.map((set, si) => `
                         <div class="wb-set-row">
@@ -8642,7 +8670,7 @@
                             ${exercise.showPace && trackingType === 'distance' ? `<input type="text" class="wb-set-input wb-set-input-sm" value="${set.pace || ''}" placeholder="0:00" onchange="updateExerciseSet(${di},${ei},${si},'pace',this.value)">` : ''}
                             ${exercise.showIncline && trackingType === 'distance' ? `<input type="number" class="wb-set-input wb-set-input-sm" value="${set.incline || ''}" min="0" max="40" step="0.5" placeholder="%" onchange="updateExerciseSet(${di},${ei},${si},'incline',parseFloat(this.value)||0)">` : ''}
                             ${exercise.showHRZone ? `<select class="wb-set-input wb-set-input-sm wb-set-select" onchange="updateExerciseSet(${di},${ei},${si},'hrZone',parseInt(this.value)||0)"><option value="" ${!set.hrZone ? 'selected' : ''}>—</option><option value="1" ${set.hrZone == 1 ? 'selected' : ''}>Z1</option><option value="2" ${set.hrZone == 2 ? 'selected' : ''}>Z2</option><option value="3" ${set.hrZone == 3 ? 'selected' : ''}>Z3</option><option value="4" ${set.hrZone == 4 ? 'selected' : ''}>Z4</option><option value="5" ${set.hrZone == 5 ? 'selected' : ''}>Z5</option></select>` : ''}
-                            ${renderHMSSetInput(set.restSeconds ?? 30, di, ei, si, 'restSeconds')}
+                            <input type="number" class="wb-set-input" value="${set.restSeconds ?? 30}" min="0" onchange="updateExerciseSet(${di},${ei},${si},'restSeconds',parseInt(this.value)||0)">
                         </div>
                     `).join('')}
                 </div>
@@ -8926,7 +8954,7 @@
                                 </button>
                             </div>
                             <div class="config-group">
-                                ${renderHMSSetInput(exercise.restSeconds != null ? exercise.restSeconds : 90, dayIndex, exIndex, '', 'restSeconds', 'config-hms')}
+                                <input type="number" class="config-input" value="${exercise.restSeconds != null ? exercise.restSeconds : 90}" onchange="updateExercise(${dayIndex}, ${exIndex}, 'restSeconds', this.value)">
                                 <span class="config-label">Rest</span>
                             </div>
                             ${exercise.isSuperset ? `
