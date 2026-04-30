@@ -2008,9 +2008,12 @@
 
         .wb-detail-play-btn {
             position: absolute;
-            width: 48px;
-            height: 48px;
-            background: rgba(0,0,0,0.5);
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 56px;
+            height: 56px;
+            background: rgba(0,0,0,0.6);
             border-radius: 50%;
             border: none;
             display: flex;
@@ -2018,6 +2021,12 @@
             justify-content: center;
             cursor: pointer;
             color: white;
+            transition: background 0.15s ease, transform 0.15s ease;
+        }
+
+        .wb-detail-play-btn:hover {
+            background: rgba(0,0,0,0.8);
+            transform: translate(-50%, -50%) scale(1.05);
         }
 
         /* Tracking Type Toggle */
@@ -8345,10 +8354,21 @@
             const thumbSrc = exercise.thumbnail_url || '/img/exercise-placeholder.svg';
             const trackingType = exercise.trackingType || 'reps';
 
-            // Preview - always show the exercise animation/thumbnail
+            // Preview - always show the exercise animation/thumbnail.
+            // Stock library videos are silent demo loops → autoplay muted.
+            // Custom exercise videos are coach recordings with voice instructions →
+            // show poster + play button so click-to-play opens with sound.
             let previewHtml;
             if (hasVideo) {
-                previewHtml = '<video src="' + videoSrc + '" muted loop playsinline autoplay poster="' + thumbSrc + '" onerror="console.warn(\'[VideoDebug] Failed to load video:\', this.src); this.outerHTML=\'<img src=&quot;' + thumbSrc + '&quot; onerror=&quot;this.src=\\\'/img/exercise-placeholder.svg\\\'&quot;>\'"></video>';
+                if (exercise.is_custom) {
+                    const safeUrl = escapeHtml(videoSrc);
+                    previewHtml = '<img src="' + thumbSrc + '" onerror="this.src=\'/img/exercise-placeholder.svg\'">' +
+                        '<button class="wb-detail-play-btn" data-video-url="' + safeUrl + '" onclick="previewCustomExerciseVideo(this.dataset.videoUrl)" title="Play with sound">' +
+                        '<svg width="20" height="20" fill="white" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>' +
+                        '</button>';
+                } else {
+                    previewHtml = '<video src="' + videoSrc + '" muted loop playsinline autoplay poster="' + thumbSrc + '" onerror="console.warn(\'[VideoDebug] Failed to load video:\', this.src); this.outerHTML=\'<img src=&quot;' + thumbSrc + '&quot; onerror=&quot;this.src=\\\'/img/exercise-placeholder.svg\\\'&quot;>\'"></video>';
+                }
             } else {
                 console.warn('[VideoDebug] No video URL for exercise:', exercise.name, { video_url: exercise.video_url, animation_url: exercise.animation_url, customVideoUrl: exercise.customVideoUrl });
                 previewHtml = '<img src="' + thumbSrc + '" onerror="this.src=\'/img/exercise-placeholder.svg\'">';
@@ -12148,10 +12168,9 @@
             }
         }
 
-        // Open the custom demo video in a fullscreen overlay so the coach can hear it.
-        function previewCustomDemo(dayIndex, exIndex) {
-            const ex = workoutDays?.[dayIndex]?.exercises?.[exIndex];
-            const url = ex?.customVideoUrl;
+        // Open a video URL in a fullscreen overlay with sound. Browsers only allow
+        // unmuted play() inside the click gesture, so kick playback off here.
+        function openVideoWithSoundOverlay(url) {
             if (!url) return;
             const overlay = document.createElement('div');
             overlay.className = 'video-preview-overlay';
@@ -12163,7 +12182,6 @@
                 if (e.target === overlay) overlay.remove();
             });
             document.body.appendChild(overlay);
-            // Start playback with sound while the click gesture is still active.
             const videoEl = overlay.querySelector('video');
             if (videoEl) {
                 videoEl.muted = false;
@@ -12171,6 +12189,17 @@
                 const p = videoEl.play();
                 if (p && typeof p.catch === 'function') p.catch(() => {});
             }
+        }
+
+        // Open the per-exercise Custom Demo (coach upload on a workout day).
+        function previewCustomDemo(dayIndex, exIndex) {
+            const ex = workoutDays?.[dayIndex]?.exercises?.[exIndex];
+            openVideoWithSoundOverlay(ex?.customVideoUrl);
+        }
+
+        // Open a custom exercise's library video (coach recording with voice cues).
+        function previewCustomExerciseVideo(url) {
+            openVideoWithSoundOverlay(url);
         }
 
 
