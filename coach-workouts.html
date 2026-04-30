@@ -5929,7 +5929,7 @@
                                         Paste URL
                                     </button>
                                     <span class="or-divider">or</span>
-                                    <button type="button" class="btn-ai-generate" id="modalAiCoverBtn" onclick="generateModalAICoverImage()" style="font-size: 12px; padding: 6px 12px;">
+                                    <button type="button" class="btn-ai-generate" id="modalAiCoverBtn" onclick="showModalHeroAiPromptInput()" style="font-size: 12px; padding: 6px 12px;">
                                         <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
                                         </svg>
@@ -5939,6 +5939,20 @@
                                 <div id="modalHeroUrlInputContainer" style="display: none; margin-top: 8px; width: 100%;">
                                     <input type="text" id="modalHeroUrlInput" class="form-input" placeholder="https://example.com/image.jpg" style="width: 100%; font-size: 13px;">
                                     <button type="button" class="btn-primary" onclick="applyModalHeroUrl()" style="margin-top: 6px; font-size: 12px; padding: 6px 14px;">Apply URL</button>
+                                </div>
+                                <div id="modalHeroAiPromptContainer" style="display: none; margin-top: 8px; width: 100%; text-align: left;">
+                                    <label class="form-label" style="font-size: 12px; margin-bottom: 6px; display: block;">Describe the image you want</label>
+                                    <textarea id="modalHeroAiPromptInput" class="form-input" rows="3" placeholder="e.g. Male athlete doing barbell deadlifts in a moody gym, side view, dramatic light" style="width: 100%; font-size: 13px; resize: vertical;"></textarea>
+                                    <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px;">
+                                        <button type="button" class="btn-secondary" onclick="setModalHeroAiPromptStyle('Gym action shot, athlete mid-rep, dramatic lighting')" style="font-size: 11px; padding: 4px 10px;">Gym action</button>
+                                        <button type="button" class="btn-secondary" onclick="setModalHeroAiPromptStyle('Outdoor functional training at sunrise, natural light')" style="font-size: 11px; padding: 4px 10px;">Outdoor</button>
+                                        <button type="button" class="btn-secondary" onclick="setModalHeroAiPromptStyle('Equipment flat-lay on dark gym floor, top-down composition')" style="font-size: 11px; padding: 4px 10px;">Equipment</button>
+                                        <button type="button" class="btn-secondary" onclick="setModalHeroAiPromptStyle('Yoga studio, calm minimal aesthetic, soft natural light')" style="font-size: 11px; padding: 4px 10px;">Studio / yoga</button>
+                                    </div>
+                                    <div style="display: flex; gap: 8px; margin-top: 10px;">
+                                        <button type="button" class="btn-primary" id="modalAiCoverGenerateBtn" onclick="generateModalAICoverImage()" style="font-size: 12px; padding: 6px 14px;">Generate</button>
+                                        <button type="button" class="btn-secondary" onclick="hideModalHeroAiPromptInput()" style="font-size: 12px; padding: 6px 14px;">Cancel</button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -6151,7 +6165,7 @@
                                     Paste URL
                                 </button>
                                 <span class="or-divider">or</span>
-                                <button type="button" class="btn-ai-generate" id="aiCoverBtn" onclick="generateAICoverImage()">
+                                <button type="button" class="btn-ai-generate" id="aiCoverBtn" onclick="showHeroAiPromptInput()">
                                     <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
                                     </svg>
@@ -6161,6 +6175,20 @@
                             <div id="heroUrlInputContainer" style="display: none; margin-top: 12px; width: 100%;">
                                 <input type="text" id="heroUrlInput" class="form-input" placeholder="https://example.com/image.jpg" style="width: 100%;">
                                 <button type="button" class="btn-primary" onclick="applyHeroUrl()" style="margin-top: 8px;">Apply URL</button>
+                            </div>
+                            <div id="heroAiPromptContainer" style="display: none; margin-top: 12px; width: 100%; text-align: left;">
+                                <label class="form-label" style="font-size: 12px; margin-bottom: 6px; display: block;">Describe the image you want</label>
+                                <textarea id="heroAiPromptInput" class="form-input" rows="3" placeholder="e.g. A female athlete doing kettlebell swings in a sunlit gym, moody lighting, focus on grit and power" style="width: 100%; resize: vertical;"></textarea>
+                                <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;">
+                                    <button type="button" class="btn-secondary" onclick="setHeroAiPromptStyle('Gym action shot, athlete mid-rep, dramatic lighting')" style="font-size: 11px; padding: 4px 10px;">Gym action</button>
+                                    <button type="button" class="btn-secondary" onclick="setHeroAiPromptStyle('Outdoor functional training at sunrise, natural light')" style="font-size: 11px; padding: 4px 10px;">Outdoor</button>
+                                    <button type="button" class="btn-secondary" onclick="setHeroAiPromptStyle('Equipment flat-lay on dark gym floor, top-down composition')" style="font-size: 11px; padding: 4px 10px;">Equipment</button>
+                                    <button type="button" class="btn-secondary" onclick="setHeroAiPromptStyle('Yoga studio, calm minimal aesthetic, soft natural light')" style="font-size: 11px; padding: 4px 10px;">Studio / yoga</button>
+                                </div>
+                                <div style="display: flex; gap: 8px; margin-top: 10px;">
+                                    <button type="button" class="btn-primary" id="aiCoverGenerateBtn" onclick="generateAICoverImage()">Generate</button>
+                                    <button type="button" class="btn-secondary" onclick="hideHeroAiPromptInput()">Cancel</button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -7873,22 +7901,40 @@
             document.getElementById('modalHeroImageUrl').value = url;
         }
 
+        function showModalHeroAiPromptInput() {
+            document.getElementById('modalHeroAiPromptContainer').style.display = 'block';
+            document.getElementById('modalHeroUrlInputContainer').style.display = 'none';
+            document.getElementById('modalHeroAiPromptInput').focus();
+        }
+
+        function hideModalHeroAiPromptInput() {
+            document.getElementById('modalHeroAiPromptContainer').style.display = 'none';
+        }
+
+        function setModalHeroAiPromptStyle(text) {
+            const ta = document.getElementById('modalHeroAiPromptInput');
+            ta.value = ta.value ? ta.value.trim() + ', ' + text : text;
+            ta.focus();
+        }
+
         async function generateModalAICoverImage() {
             const name = document.getElementById('modalProgramName').value.trim() || 'fitness workout';
-            const btn = document.getElementById('modalAiCoverBtn');
+            const customPrompt = (document.getElementById('modalHeroAiPromptInput').value || '').trim();
+            const btn = document.getElementById('modalAiCoverGenerateBtn');
             const origText = btn.innerHTML;
             btn.innerHTML = '<span class="spinner" style="width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;display:inline-block;"></span> Generating...';
             btn.disabled = true;
             try {
                 const res = await apiCall('/.netlify/functions/workout-cover-image', {
                     method: 'POST',
-                    body: JSON.stringify({ programName: name })
+                    body: JSON.stringify({ programName: name, customPrompt })
                 });
                 if (res.imageUrl) {
                     document.getElementById('modalHeroPreviewImg').src = res.imageUrl;
                     document.getElementById('modalHeroImagePreview').style.display = 'block';
                     document.getElementById('modalHeroUploadArea').style.display = 'none';
                     document.getElementById('modalHeroImageUrl').value = res.imageUrl;
+                    hideModalHeroAiPromptInput();
                 }
             } catch (err) {
                 showToast('Failed to generate cover image', 'error');
@@ -10482,16 +10528,34 @@
         }
 
         // AI Cover Image Generation
+        function showHeroAiPromptInput() {
+            document.getElementById('heroAiPromptContainer').style.display = 'block';
+            document.getElementById('heroUrlInputContainer').style.display = 'none';
+            const ta = document.getElementById('heroAiPromptInput');
+            ta.focus();
+        }
+
+        function hideHeroAiPromptInput() {
+            document.getElementById('heroAiPromptContainer').style.display = 'none';
+        }
+
+        function setHeroAiPromptStyle(text) {
+            const ta = document.getElementById('heroAiPromptInput');
+            ta.value = ta.value ? ta.value.trim() + ', ' + text : text;
+            ta.focus();
+        }
+
         async function generateAICoverImage() {
-            const btn = document.getElementById('aiCoverBtn');
-            const originalHtml = btn.innerHTML;
+            const genBtn = document.getElementById('aiCoverGenerateBtn');
+            const originalHtml = genBtn.innerHTML;
 
             // Get program info for context
             const programName = document.getElementById('programName').value || 'Workout Program';
             const programType = document.getElementById('programType').value || 'general_fitness';
             const daysPerWeek = document.getElementById('daysPerWeek').value || '4';
+            const customPrompt = (document.getElementById('heroAiPromptInput').value || '').trim();
 
-            // Build a descriptive prompt based on program type
+            // Build a descriptive prompt based on program type (fallback when no custom prompt)
             const typeDescriptions = {
                 'strength': 'strength training with heavy weights, power, determination',
                 'hypertrophy': 'muscle building, bodybuilding, fitness model physique',
@@ -10500,8 +10564,8 @@
             };
             const typeDesc = typeDescriptions[programType] || typeDescriptions['general_fitness'];
 
-            btn.disabled = true;
-            btn.innerHTML = '<span class="spinner"></span> Generating...';
+            genBtn.disabled = true;
+            genBtn.innerHTML = '<span class="spinner"></span> Generating...';
 
             try {
                 const response = await fetch('/.netlify/functions/workout-cover-image', {
@@ -10511,7 +10575,8 @@
                         programName,
                         programType,
                         daysPerWeek,
-                        description: typeDesc
+                        description: typeDesc,
+                        customPrompt
                     })
                 });
 
@@ -10523,14 +10588,15 @@
 
                 // Apply the generated image
                 setHeroImage(result.imageUrl);
+                hideHeroAiPromptInput();
                 showToast('Cover image generated!', 'success');
 
             } catch (error) {
                 console.error('AI cover generation error:', error);
                 showToast(error.message || 'Failed to generate cover image', 'error');
             } finally {
-                btn.disabled = false;
-                btn.innerHTML = originalHtml;
+                genBtn.disabled = false;
+                genBtn.innerHTML = originalHtml;
             }
         }
 
