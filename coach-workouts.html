@@ -2139,28 +2139,27 @@
         }
 
         .wb-hms-input {
-            flex: 1;
-            display: flex;
-            gap: 4px;
+            flex: 0 0 170px;
+            display: grid;
+            grid-template-columns: 1fr 10px 1fr 10px 1fr;
             align-items: center;
             min-width: 0;
         }
         .wb-hms-input .wb-hms-field {
-            flex: 1;
-            min-width: 0;
             width: 100%;
-            padding: 10px 4px;
+            min-width: 0;
+            padding: 10px 2px;
             background: var(--bg-tertiary);
             border: 1px solid var(--border-color);
             border-radius: 8px;
-            font-size: 18px;
+            font-size: 16px;
             font-weight: 700;
             color: var(--text-primary);
             text-align: center;
             outline: none;
             font-family: inherit;
             -moz-appearance: textfield;
-            letter-spacing: 0.5px;
+            box-sizing: border-box;
         }
         .wb-hms-input .wb-hms-field:focus {
             border-color: var(--brand-primary);
@@ -2174,15 +2173,15 @@
         .wb-hms-sep {
             font-size: 14px;
             color: var(--text-muted);
-            flex-shrink: 0;
             font-weight: 700;
+            text-align: center;
         }
         .wb-hms-input.config-hms {
-            min-width: 130px;
-            gap: 2px;
+            flex: 0 0 130px;
+            grid-template-columns: 1fr 8px 1fr 8px 1fr;
         }
         .wb-hms-input.config-hms .wb-hms-field {
-            font-size: 14px;
+            font-size: 13px;
             padding: 6px 2px;
             border-radius: 6px;
         }
@@ -2190,25 +2189,18 @@
             font-size: 11px;
         }
         .wb-sets-col-label-hms {
-            flex: 1;
-            min-width: 52px;
-            display: flex;
-            gap: 4px;
+            flex: 0 0 170px;
+            display: grid;
+            grid-template-columns: 1fr 10px 1fr 10px 1fr;
             align-items: center;
         }
         .wb-sets-col-label-hms > span {
-            flex: 1;
-            min-width: 0;
             font-size: 11px;
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.5px;
             color: var(--text-muted);
             text-align: center;
-        }
-        .wb-sets-col-label-hms .wb-hms-sep-spacer {
-            width: 6px;
-            flex-shrink: 0;
         }
 
         .wb-set-unit-select {
@@ -8565,7 +8557,7 @@
             }
             let setsHeaderLabelHtml, setsInputField;
             if (trackingType === 'time') {
-                setsHeaderLabelHtml = '<div class="wb-sets-col-label-hms"><span>Hrs</span><span>Min</span><span>Sec</span></div>';
+                setsHeaderLabelHtml = '<div class="wb-sets-col-label-hms"><span>Hrs</span><span></span><span>Min</span><span></span><span>Sec</span></div>';
                 setsInputField = (set, si) => renderHMSSetInput(set.duration || 30, di, ei, si, 'duration');
             } else if (trackingType === 'distance') {
                 setsHeaderLabelHtml = `<span class="wb-sets-col-label">Distance (${exercise.distanceUnit || 'miles'})</span>`;
