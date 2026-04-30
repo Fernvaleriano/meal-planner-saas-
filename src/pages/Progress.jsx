@@ -217,6 +217,10 @@ function Progress() {
   const [loadingCheckinCount, setLoadingCheckinCount] = useState(true);
   const [sharingBadge, setSharingBadge] = useState(false);
 
+  // Per-metric expanded-history state (keyed by metric config key)
+  const [expandedHistory, setExpandedHistory] = useState({});
+  const [confirmDelete, setConfirmDelete] = useState(null);
+
   // Scroll to top on mount
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -572,6 +576,17 @@ function Progress() {
   const MetricCard = ({ config }) => {
     const data = getMetricData(config.dbField);
     const unit = getUnit(config.unitKey);
+    const expanded = !!expandedHistory[config.key];
+    const entries = useMemo(
+      () => filteredMeasurements.filter(m => m[config.dbField] != null),
+      [config.dbField]
+    );
+    const visibleEntries = entries.slice(0, 30);
+
+    const formatDate = (iso) =>
+      new Date(iso + 'T00:00:00').toLocaleDateString('en-US', {
+        month: 'short', day: 'numeric', year: 'numeric'
+      });
 
     return (
       <div className="metric-card">
@@ -604,6 +619,48 @@ function Progress() {
           <span>Log Value</span>
           <ChevronRight size={18} />
         </button>
+
+        {entries.length > 0 && (
+          <div className="metric-history">
+            <button
+              className="metric-history-toggle"
+              onClick={() => setExpandedHistory(prev => ({ ...prev, [config.key]: !expanded }))}
+            >
+              <span>{expanded ? 'Hide' : 'View'} entries ({entries.length})</span>
+              <ChevronDown
+                size={16}
+                style={{ transition: 'transform 0.2s', transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)' }}
+              />
+            </button>
+
+            {expanded && (
+              <ul className="metric-history-list">
+                {visibleEntries.map(m => (
+                  <li key={m.id} className="metric-history-item">
+                    <div className="metric-history-meta">
+                      <span className="metric-history-date">{formatDate(m.measured_date)}</span>
+                      <span className="metric-history-value">
+                        {m[config.dbField]} {unit}
+                      </span>
+                    </div>
+                    <button
+                      className="metric-history-delete"
+                      aria-label="Delete entry"
+                      onClick={() => setConfirmDelete({ id: m.id, label: config.label, value: m[config.dbField], unit, date: formatDate(m.measured_date) })}
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </li>
+                ))}
+                {entries.length > visibleEntries.length && (
+                  <li className="metric-history-more">
+                    Showing the most recent {visibleEntries.length} of {entries.length}
+                  </li>
+                )}
+              </ul>
+            )}
+          </div>
+        )}
       </div>
     );
   };
@@ -916,6 +973,46 @@ function Progress() {
               >
                 {savingQuickLog ? 'Saving...' : 'Save'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Entry Confirmation */}
+      {confirmDelete && (
+        <div className="modal-overlay" onClick={() => setConfirmDelete(null)}>
+          <div className="quick-log-modal" onClick={e => e.stopPropagation()}>
+            <div className="quick-log-header">
+              <h2>Delete entry?</h2>
+              <button className="modal-close" onClick={() => setConfirmDelete(null)}>
+                <X size={24} />
+              </button>
+            </div>
+            <div className="quick-log-body">
+              <p style={{ margin: '0 0 16px', color: 'var(--text-secondary, #94a3b8)' }}>
+                Remove the {confirmDelete.label.toLowerCase()} entry of {confirmDelete.value} {confirmDelete.unit} from {confirmDelete.date}? If this came from a Weigh-In photo, the photo will be removed too.
+              </p>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button
+                  className="btn-secondary"
+                  style={{ flex: 1 }}
+                  onClick={() => setConfirmDelete(null)}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="btn-primary"
+                  style={{ flex: 1, background: '#dc2626', borderColor: '#dc2626' }}
+                  onClick={async () => {
+                    const id = confirmDelete.id;
+                    setConfirmDelete(null);
+                    await handleDeleteMeasurement(id);
+                    showSuccess?.('Entry deleted');
+                  }}
+                >
+                  Delete
+                </button>
+              </div>
             </div>
           </div>
         </div>
