@@ -2739,8 +2739,8 @@ textarea,
     box-shadow: 0 8px 24px -8px rgba(234, 179, 8, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.15);
 }
 .meal-type-btn.active:nth-child(3) {
-    background: linear-gradient(135deg, rgba(167, 139, 250, 0.2) 0%, rgba(139, 92, 246, 0.35) 100%);
-    box-shadow: 0 8px 24px -8px rgba(139, 92, 246, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    background: linear-gradient(135deg, rgba(20, 184, 166, 0.2) 0%, rgba(13, 148, 136, 0.35) 100%);
+    box-shadow: 0 8px 24px -8px rgba(13, 148, 136, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.15);
 }
 .meal-type-btn.active:nth-child(4) {
     background: linear-gradient(135deg, rgba(248, 113, 113, 0.2) 0%, rgba(239, 68, 68, 0.35) 100%);
@@ -16648,32 +16648,32 @@ textarea,
 
 /* ===== Weight Proof (Weigh-In) overrides ===== */
 .weight-proof-banner {
-    background: linear-gradient(135deg, rgba(168, 85, 247, 0.1) 0%, rgba(236, 72, 153, 0.08) 50%, rgba(245, 158, 11, 0.06) 100%);
-    border: 1.5px solid rgba(168, 85, 247, 0.25);
-    box-shadow: 0 2px 8px rgba(168, 85, 247, 0.08);
+    background: linear-gradient(135deg, rgba(20, 184, 166, 0.1) 0%, rgba(13, 148, 136, 0.08) 50%, rgba(2, 132, 199, 0.06) 100%);
+    border: 1.5px solid rgba(20, 184, 166, 0.25);
+    box-shadow: 0 2px 8px rgba(20, 184, 166, 0.08);
 }
 
 [data-theme="dark"] .weight-proof-banner {
-    background: linear-gradient(135deg, rgba(168, 85, 247, 0.2) 0%, rgba(236, 72, 153, 0.18) 50%, rgba(245, 158, 11, 0.14) 100%);
-    border: 1.5px solid rgba(168, 85, 247, 0.35);
-    box-shadow: 0 0 20px rgba(168, 85, 247, 0.15), 0 0 40px rgba(236, 72, 153, 0.08);
+    background: linear-gradient(135deg, rgba(20, 184, 166, 0.2) 0%, rgba(13, 148, 136, 0.18) 50%, rgba(2, 132, 199, 0.14) 100%);
+    border: 1.5px solid rgba(20, 184, 166, 0.35);
+    box-shadow: 0 0 20px rgba(20, 184, 166, 0.15), 0 0 40px rgba(2, 132, 199, 0.08);
 }
 
 .weight-proof-banner::before {
-    background: radial-gradient(circle, rgba(168, 85, 247, 0.3), transparent 70%);
+    background: radial-gradient(circle, rgba(20, 184, 166, 0.3), transparent 70%);
 }
 
 .weight-proof-banner-icon {
-    background: linear-gradient(135deg, #a855f7, #ec4899);
-    box-shadow: 0 4px 12px rgba(168, 85, 247, 0.4);
+    background: linear-gradient(135deg, #14b8a6, #0284c7);
+    box-shadow: 0 4px 12px rgba(20, 184, 166, 0.4);
 }
 
 .weight-proof-banner .gym-proof-banner-title {
-    color: #7c3aed;
+    color: #0f766e;
 }
 
 .weight-proof-banner .gym-proof-banner-sub {
-    color: #8b5cf6;
+    color: #0d9488;
 }
 
 [data-theme="dark"] .weight-proof-banner .gym-proof-banner-title {
@@ -16684,15 +16684,15 @@ textarea,
     color: rgba(255, 255, 255, 0.55);
 }
 
-/* Weigh-In modal overrides — purple/pink to differentiate from gym (teal/blue) */
+/* Weigh-In modal — brand teal/blue */
 .weight-proof-icon-wrap {
-    background: linear-gradient(135deg, rgba(168, 85, 247, 0.2), rgba(236, 72, 153, 0.15)) !important;
-    color: #a855f7 !important;
+    background: linear-gradient(135deg, rgba(20, 184, 166, 0.2), rgba(2, 132, 199, 0.15)) !important;
+    color: #14b8a6 !important;
 }
 
 .weight-proof-capture-btn,
 .weight-proof-send-btn {
-    background: linear-gradient(135deg, #a855f7, #ec4899) !important;
+    background: linear-gradient(135deg, #14b8a6, #0284c7) !important;
 }
 
 .weight-proof-today-value {
