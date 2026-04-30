@@ -1792,6 +1792,11 @@ function ExerciseDetailModal({
     (isImageUrl(exercise?.animation_url) ? exercise?.animation_url : null) ||
     '/img/exercise-placeholder.svg';
   const isCustomExercise = exercise?.is_custom === true;
+  // Both per-day Custom Demos and custom-exercise library videos are coach
+  // recordings with voice cues — play them unmuted with controls instead of as
+  // silent autoplaying demo loops (which is correct only for stock library
+  // animations).
+  const videoHasAudio = hasCustomVideo || isCustomExercise;
 
   // Reset local thumbnail when exercise changes
   useEffect(() => {
@@ -2071,23 +2076,23 @@ function ExerciseDetailModal({
           {showVideo && videoUrl ? (
             <div
               className="video-container-full"
-              onClick={hasCustomVideo ? (e) => e.stopPropagation() : undefined}
+              onClick={videoHasAudio ? (e) => e.stopPropagation() : undefined}
             >
               <video
                 key={videoKey}
                 src={videoBlobUrl || videoUrl}
-                loop={!hasCustomVideo}
-                muted={!hasCustomVideo}
-                controls={hasCustomVideo}
+                loop={!videoHasAudio}
+                muted={!videoHasAudio}
+                controls={videoHasAudio}
                 playsInline
-                autoPlay={!hasCustomVideo}
-                preload={hasCustomVideo ? 'auto' : 'metadata'}
+                autoPlay={!videoHasAudio}
+                preload={videoHasAudio ? 'auto' : 'metadata'}
                 onCanPlay={() => { setVideoLoading(false); setVideoError(false); }}
                 onPlaying={() => setVideoLoading(false)}
-                onWaiting={() => { if (!hasCustomVideo) setVideoLoading(true); }}
+                onWaiting={() => { if (!videoHasAudio) setVideoLoading(true); }}
                 onError={handleVideoError}
               />
-              {videoLoading && !videoError && !hasCustomVideo && (
+              {videoLoading && !videoError && !videoHasAudio && (
                 <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.6)', zIndex: 2, pointerEvents: 'none' }}>
                   <Loader2 size={36} style={{ color: 'white', animation: 'spin 1s linear infinite' }} />
                 </div>
