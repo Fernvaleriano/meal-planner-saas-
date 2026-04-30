@@ -212,16 +212,47 @@ exports.handler = async (event) => {
         };
       }
 
-      // Notify coach
+      // Notify coach — gym check-in + any newly-earned badge
       try {
-        await supabase.from('notifications').insert([{
+        const notifications = [{
           user_id: coachId,
           type: 'gym_proof',
           title: 'Gym Check-In',
           message: `${clientName} just checked in at the gym`,
           related_client_id: clientId,
           is_read: false
-        }]);
+        }];
+
+        // Check if this check-in crossed a badge threshold (mirrors BADGE_TIERS in client-profile.html)
+        const { count: totalCount } = await supabase
+          .from('gym_proofs')
+          .select('*', { count: 'exact', head: true })
+          .eq('client_id', clientId);
+
+        const BADGE_TIERS = [
+          { threshold: 1,   icon: '🌱', name: 'First Step' },
+          { threshold: 7,   icon: '🔥', name: 'Week Warrior' },
+          { threshold: 14,  icon: '⚡', name: 'Two Weeks Strong' },
+          { threshold: 30,  icon: '💪', name: 'Monthly Champion' },
+          { threshold: 60,  icon: '🏅', name: 'Consistency Hero' },
+          { threshold: 100, icon: '🏆', name: 'Century Club' },
+          { threshold: 200, icon: '👑', name: 'Dedication Master' },
+          { threshold: 365, icon: '💎', name: 'Legend' }
+        ];
+        const earnedBadge = BADGE_TIERS.find(t => t.threshold === totalCount);
+
+        if (earnedBadge) {
+          notifications.push({
+            user_id: coachId,
+            type: 'badge_earned',
+            title: `${earnedBadge.icon} ${clientName} earned a new badge!`,
+            message: `${clientName} unlocked the "${earnedBadge.name}" badge — ${totalCount} gym check-in${totalCount === 1 ? '' : 's'}. Send them some encouragement!`,
+            related_client_id: clientId,
+            is_read: false
+          });
+        }
+
+        await supabase.from('notifications').insert(notifications);
       } catch (notifErr) {
         console.error('Non-critical: Failed to create notification:', notifErr);
       }
