@@ -3019,26 +3019,33 @@ function GuidedWorkoutModal({
             </div>
           )
         ) : showVideo && (currentExercise?.customVideoUrl || currentExercise?.video_url || currentExercise?.animation_url) ? (
+          (() => {
+            // Per-day Custom Demos AND custom-exercise library videos are coach
+            // recordings with voice cues — play them unmuted with controls
+            // instead of as silent autoplaying demo loops (correct only for
+            // stock library animations).
+            const videoHasAudio = !!currentExercise?.customVideoUrl || currentExercise?.is_custom === true;
+            return (
           <div
             className="guided-video-container"
             style={{ position: 'relative' }}
-            onClick={currentExercise?.customVideoUrl ? (e) => e.stopPropagation() : undefined}
+            onClick={videoHasAudio ? (e) => e.stopPropagation() : undefined}
           >
             <video
               key={guidedVideoKey}
               src={guidedVideoBlobUrl || currentExercise.customVideoUrl || currentExercise.video_url || currentExercise.animation_url}
-              autoPlay={!currentExercise?.customVideoUrl}
-              loop={!currentExercise?.customVideoUrl}
-              muted={!currentExercise?.customVideoUrl}
-              controls={!!currentExercise?.customVideoUrl}
+              autoPlay={!videoHasAudio}
+              loop={!videoHasAudio}
+              muted={!videoHasAudio}
+              controls={videoHasAudio}
               playsInline
-              preload={currentExercise?.customVideoUrl ? 'auto' : 'metadata'}
+              preload={videoHasAudio ? 'auto' : 'metadata'}
               onCanPlay={() => { setGuidedVideoLoading(false); setGuidedVideoError(false); }}
               onPlaying={() => setGuidedVideoLoading(false)}
-              onWaiting={() => { if (!currentExercise?.customVideoUrl) setGuidedVideoLoading(true); }}
+              onWaiting={() => { if (!videoHasAudio) setGuidedVideoLoading(true); }}
               onError={handleGuidedVideoError}
             />
-            {guidedVideoLoading && !guidedVideoError && !currentExercise?.customVideoUrl && (
+            {guidedVideoLoading && !guidedVideoError && !videoHasAudio && (
               <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)', zIndex: 2, pointerEvents: 'none' }}>
                 <Loader2 size={28} style={{ color: 'white', animation: 'spin 1s linear infinite' }} />
               </div>
@@ -3060,6 +3067,8 @@ function GuidedWorkoutModal({
               <X size={18} />
             </button>
           </div>
+            );
+          })()
         ) : (
           <div className="guided-thumbnail-wrapper">
             <SmartThumbnail
