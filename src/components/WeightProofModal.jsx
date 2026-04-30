@@ -12,19 +12,19 @@ const STEPS = {
 
 function WeightProofModal({ isOpen, onClose }) {
   const { clientData } = useAuth();
+  const preferredUnit = clientData?.unit_preference === 'metric' ? 'kg' : 'lbs';
   const [step, setStep] = useState(STEPS.INSTRUCTIONS);
   const [photoData, setPhotoData] = useState(null);
   const [stampedPhoto, setStampedPhoto] = useState(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [todayProof, setTodayProof] = useState(null);
   const [recentProofs, setRecentProofs] = useState([]);
   const [historyExpanded, setHistoryExpanded] = useState(false);
   const [loadingHistory, setLoadingHistory] = useState(false);
 
   // AI-parsed weight + user-editable values
   const [parsedWeight, setParsedWeight] = useState('');
-  const [parsedUnit, setParsedUnit] = useState('lbs');
+  const [parsedUnit, setParsedUnit] = useState(preferredUnit);
   const [confidence, setConfidence] = useState('medium');
   const [analysisError, setAnalysisError] = useState(null);
 
@@ -32,7 +32,7 @@ function WeightProofModal({ isOpen, onClose }) {
 
   useEffect(() => {
     if (isOpen && clientData?.id) {
-      checkTodayProof();
+      loadRecentProofs();
     }
   }, [isOpen, clientData?.id]);
 
@@ -42,23 +42,18 @@ function WeightProofModal({ isOpen, onClose }) {
       setPhotoData(null);
       setStampedPhoto(null);
       setParsedWeight('');
-      setParsedUnit('lbs');
+      setParsedUnit(preferredUnit);
       setConfidence('medium');
       setAnalysisError(null);
     }
-  }, [isOpen]);
+  }, [isOpen, preferredUnit]);
 
-  const checkTodayProof = async () => {
+  const loadRecentProofs = async () => {
     try {
       const data = await apiGet(`/.netlify/functions/save-weight-proof?clientId=${clientData.id}&limit=7`);
-      if (data?.proofs?.length) {
-        const today = new Date().toISOString().split('T')[0];
-        const todayEntry = data.proofs.find(p => p.proof_date === today);
-        if (todayEntry) setTodayProof(todayEntry);
-        setRecentProofs(data.proofs);
-      }
+      if (data?.proofs?.length) setRecentProofs(data.proofs);
     } catch (err) {
-      console.error('Error checking weight proof:', err);
+      console.error('Error loading weight proofs:', err);
     }
   };
 
@@ -166,13 +161,13 @@ function WeightProofModal({ isOpen, onClose }) {
 
       if (data?.weight) {
         setParsedWeight(String(data.weight));
-        setParsedUnit(data.unit || 'lbs');
+        setParsedUnit(data.unit || preferredUnit);
         setConfidence(data.confidence || 'medium');
         setStep(STEPS.CONFIRM);
       } else {
         setAnalysisError('Could not read the scale. You can still enter the weight manually.');
         setParsedWeight('');
-        setParsedUnit('lbs');
+        setParsedUnit(preferredUnit);
         setConfidence('low');
         setStep(STEPS.CONFIRM);
       }
@@ -180,7 +175,7 @@ function WeightProofModal({ isOpen, onClose }) {
       console.error('Error analyzing scale:', err);
       setAnalysisError('Could not read the scale automatically. Please enter your weight manually.');
       setParsedWeight('');
-      setParsedUnit('lbs');
+      setParsedUnit(preferredUnit);
       setConfidence('low');
       setStep(STEPS.CONFIRM);
     } finally {
@@ -212,11 +207,12 @@ function WeightProofModal({ isOpen, onClose }) {
         coachId: clientData.coach_id,
         photoData: stampedPhoto,
         weight: weightNum,
-        weightUnit: parsedUnit
+        weightUnit: parsedUnit,
+        preferredUnit: clientData?.unit_preference || 'imperial'
       });
 
       setStep(STEPS.SUCCESS);
-      checkTodayProof();
+      loadRecentProofs();
 
       // Notify other screens (e.g. Progress) to refresh measurements.
       window.dispatchEvent(new CustomEvent('app:data-changed', {
@@ -262,25 +258,8 @@ function WeightProofModal({ isOpen, onClose }) {
         </div>
 
         <div className="gym-proof-body">
-          {/* Already weighed in today */}
-          {todayProof && step === STEPS.INSTRUCTIONS && (
-            <div className="gym-proof-already-done">
-              <div className="gym-proof-done-badge">
-                <span className="done-check">&#10003;</span>
-                Weighed in today!
-              </div>
-              <img src={todayProof.photo_url} alt="Today's weigh-in" className="gym-proof-today-img" />
-              <p className="weight-proof-today-value">
-                {todayProof.weight} {todayProof.weight_unit}
-              </p>
-              <p className="gym-proof-done-text">
-                You already logged your weight today. Come back tomorrow!
-              </p>
-            </div>
-          )}
-
           {/* Step 1: Instructions */}
-          {!todayProof && step === STEPS.INSTRUCTIONS && (
+          {step === STEPS.INSTRUCTIONS && (
             <div className="gym-proof-instructions">
               <div className="gym-proof-icon-wrap weight-proof-icon-wrap">
                 <Scale size={40} />

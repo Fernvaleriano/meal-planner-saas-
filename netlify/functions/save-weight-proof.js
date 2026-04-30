@@ -8,6 +8,18 @@ const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
 const BUCKET_NAME = 'weight-proofs';
 
+// Convert a weight value between supported units (lbs, kg, stone).
+function convertWeight(value, fromUnit, toUnit) {
+  if (fromUnit === toUnit) return value;
+  const toKg = { lbs: value * 0.45359237, kg: value, stone: value * 6.35029318 };
+  const kg = toKg[fromUnit];
+  if (kg === undefined) return value;
+  if (toUnit === 'kg') return kg;
+  if (toUnit === 'lbs') return kg / 0.45359237;
+  if (toUnit === 'stone') return kg / 6.35029318;
+  return value;
+}
+
 async function ensureBucketExists(supabase) {
   try {
     const { data: buckets, error: listError } = await supabase.storage.listBuckets();
@@ -93,7 +105,7 @@ exports.handler = async (event) => {
 
     if (event.httpMethod === 'POST') {
       const body = JSON.parse(event.body);
-      const { clientId, coachId, photoData, weight, weightUnit, timezone } = body;
+      const { clientId, coachId, photoData, weight, weightUnit, preferredUnit, timezone } = body;
 
       if (!clientId || !coachId || !photoData) {
         return {
@@ -112,7 +124,14 @@ exports.handler = async (event) => {
         };
       }
 
-      const unit = ['lbs', 'kg', 'stone'].includes(weightUnit) ? weightUnit : 'lbs';
+      const sourceUnit = ['lbs', 'kg', 'stone'].includes(weightUnit) ? weightUnit : 'lbs';
+      // Normalize to the client's preferred display unit so charts read consistently.
+      // 'metric' → kg, 'imperial' → lbs. Anything else falls back to whatever was sent.
+      const targetUnit = preferredUnit === 'metric' ? 'kg'
+        : preferredUnit === 'imperial' ? 'lbs'
+        : sourceUnit;
+      const convertedWeight = Math.round(convertWeight(parsedWeight, sourceUnit, targetUnit) * 10) / 10;
+      const unit = targetUnit;
 
       const bucketResult = await ensureBucketExists(supabase);
       if (!bucketResult.success) {
@@ -166,7 +185,7 @@ exports.handler = async (event) => {
           client_id: clientId,
           coach_id: coachId,
           measured_date: proofDate,
-          weight: parsedWeight,
+          weight: convertedWeight,
           weight_unit: unit,
           notes: 'Logged via Weigh-In photo proof'
         }])
@@ -190,7 +209,7 @@ exports.handler = async (event) => {
           photo_url: urlData.publicUrl,
           storage_path: filename,
           client_name: clientName,
-          weight: parsedWeight,
+          weight: convertedWeight,
           weight_unit: unit,
           measurement_id: measurementData?.id || null,
           proof_date: proofDate,
@@ -216,7 +235,7 @@ exports.handler = async (event) => {
           user_id: coachId,
           type: 'weight_proof',
           title: 'Weigh-In',
-          message: `${clientName} weighed in at ${parsedWeight} ${unit}`,
+          message: `${clientName} weighed in at ${convertedWeight} ${unit}`,
           related_client_id: clientId,
           is_read: false
         }]);
