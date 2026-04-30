@@ -2138,6 +2138,56 @@
             min-width: 0;
         }
 
+        .wb-hms-input {
+            flex: 1;
+            display: flex;
+            gap: 1px;
+            align-items: center;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 2px 4px;
+            min-width: 0;
+        }
+        .wb-hms-input:focus-within {
+            border-color: var(--brand-primary);
+            background: var(--bg-secondary);
+        }
+        .wb-hms-field {
+            flex: 1;
+            min-width: 0;
+            width: 100%;
+            padding: 6px 0;
+            background: transparent;
+            border: none;
+            font-size: 14px;
+            color: var(--text-primary);
+            text-align: center;
+            outline: none;
+            font-family: inherit;
+            -moz-appearance: textfield;
+        }
+        .wb-hms-field::-webkit-outer-spin-button,
+        .wb-hms-field::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        .wb-hms-sep {
+            font-size: 10px;
+            color: var(--text-muted);
+            flex-shrink: 0;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .wb-hms-input.config-hms {
+            padding: 1px 2px;
+            min-width: 110px;
+        }
+        .wb-hms-input.config-hms .wb-hms-field {
+            font-size: 0.875rem;
+            padding: 5px 0;
+        }
+
         .wb-set-unit-select {
             padding: 8px 4px;
             background: var(--bg-tertiary);
@@ -8047,6 +8097,63 @@
             showToast(count + ' exercise' + (count > 1 ? 's' : '') + ' deleted', 'success');
         }
 
+        // Format a duration in seconds as "1h 5m 10s" (omits zero leading parts)
+        function formatDurationHMS(totalSeconds) {
+            const t = Math.max(0, parseInt(totalSeconds) || 0);
+            const h = Math.floor(t / 3600);
+            const m = Math.floor((t % 3600) / 60);
+            const s = t % 60;
+            const parts = [];
+            if (h) parts.push(h + 'h');
+            if (m) parts.push(m + 'm');
+            if (s || parts.length === 0) parts.push(s + 's');
+            return parts.join(' ');
+        }
+
+        // Render a 3-field hours/minutes/seconds input. The wrapper carries the data
+        // needed to dispatch the change back to updateExerciseSet via onHMSSetChange.
+        function renderHMSSetInput(totalSeconds, di, ei, si, field, extraClass) {
+            const t = Math.max(0, parseInt(totalSeconds) || 0);
+            const h = Math.floor(t / 3600);
+            const m = Math.floor((t % 3600) / 60);
+            const s = t % 60;
+            const hVal = h ? h : '';
+            const mVal = m || h ? m : '';
+            const sVal = s || m || h ? s : '';
+            return '<div class="wb-hms-input ' + (extraClass || '') + '" data-di="' + di + '" data-ei="' + ei + '" data-si="' + si + '" data-field="' + field + '" title="Hours / Minutes / Seconds">' +
+                '<input type="number" class="wb-hms-field" min="0" max="99" value="' + hVal + '" data-unit="h" oninput="onHMSSetChange(this)" placeholder="0">' +
+                '<span class="wb-hms-sep">h</span>' +
+                '<input type="number" class="wb-hms-field" min="0" max="59" value="' + mVal + '" data-unit="m" oninput="onHMSSetChange(this)" placeholder="0">' +
+                '<span class="wb-hms-sep">m</span>' +
+                '<input type="number" class="wb-hms-field" min="0" max="59" value="' + sVal + '" data-unit="s" oninput="onHMSSetChange(this)" placeholder="0">' +
+                '<span class="wb-hms-sep">s</span>' +
+                '</div>';
+        }
+
+        function onHMSSetChange(input) {
+            const wrap = input.closest('.wb-hms-input');
+            if (!wrap) return;
+            const fields = wrap.querySelectorAll('.wb-hms-field');
+            let h = 0, m = 0, s = 0;
+            fields.forEach(f => {
+                const v = parseInt(f.value) || 0;
+                if (f.dataset.unit === 'h') h = v;
+                else if (f.dataset.unit === 'm') m = v;
+                else if (f.dataset.unit === 's') s = v;
+            });
+            const total = h * 3600 + m * 60 + s;
+            const di = parseInt(wrap.dataset.di);
+            const ei = parseInt(wrap.dataset.ei);
+            const field = wrap.dataset.field;
+            const siRaw = wrap.dataset.si;
+            if (siRaw === '' || siRaw === undefined) {
+                // Exercise-level field (middle panel)
+                updateExercise(di, ei, field, total);
+            } else {
+                updateExerciseSet(di, ei, parseInt(siRaw), field, total);
+            }
+        }
+
         // Format set summary for exercise list (e.g. "10x 10x 10x")
         function formatSetsSummary(exercise) {
             const numSets = parseInt(exercise.sets) || 3;
@@ -8055,8 +8162,7 @@
                 const dur = (Array.isArray(exercise.setsData) && exercise.setsData[0] && exercise.setsData[0].duration)
                     ? parseInt(exercise.setsData[0].duration)
                     : (parseInt(exercise.duration) || 30);
-                if (dur >= 60) return `${Math.floor(dur / 60)} minute${Math.floor(dur / 60) !== 1 ? 's' : ''}`;
-                return `${dur} seconds`;
+                return formatDurationHMS(dur);
             }
             if (exercise.trackingType === 'distance') {
                 return `${exercise.distance || 1} ${exercise.distanceUnit || 'miles'}`;
@@ -8431,8 +8537,8 @@
             }
             let setsHeaderLabel, setsInputField;
             if (trackingType === 'time') {
-                setsHeaderLabel = 'Duration (s)';
-                setsInputField = (set, si) => `<input type="number" class="wb-set-input" value="${set.duration || 30}" min="1" onchange="updateExerciseSet(${di},${ei},${si},'duration',parseInt(this.value)||1)">`;
+                setsHeaderLabel = 'Duration';
+                setsInputField = (set, si) => renderHMSSetInput(set.duration || 30, di, ei, si, 'duration');
             } else if (trackingType === 'distance') {
                 setsHeaderLabel = `Distance (${exercise.distanceUnit || 'miles'})`;
                 setsInputField = (set, si) => `<input type="number" class="wb-set-input" value="${set.distance || 1}" step="any" min="0.1" onchange="updateExerciseSet(${di},${ei},${si},'distance',parseFloat(this.value)||1)">`;
@@ -8524,7 +8630,7 @@
                         ${exercise.showPace && trackingType === 'distance' ? '<span class="wb-sets-col-label">Pace</span>' : ''}
                         ${exercise.showIncline && trackingType === 'distance' ? '<span class="wb-sets-col-label">Incline %</span>' : ''}
                         ${exercise.showHRZone ? '<span class="wb-sets-col-label">HR Zone</span>' : ''}
-                        <span class="wb-sets-col-label">Rest (s)</span>
+                        <span class="wb-sets-col-label">Rest</span>
                     </div>
                     ${setsArr.map((set, si) => `
                         <div class="wb-set-row">
@@ -8536,7 +8642,7 @@
                             ${exercise.showPace && trackingType === 'distance' ? `<input type="text" class="wb-set-input wb-set-input-sm" value="${set.pace || ''}" placeholder="0:00" onchange="updateExerciseSet(${di},${ei},${si},'pace',this.value)">` : ''}
                             ${exercise.showIncline && trackingType === 'distance' ? `<input type="number" class="wb-set-input wb-set-input-sm" value="${set.incline || ''}" min="0" max="40" step="0.5" placeholder="%" onchange="updateExerciseSet(${di},${ei},${si},'incline',parseFloat(this.value)||0)">` : ''}
                             ${exercise.showHRZone ? `<select class="wb-set-input wb-set-input-sm wb-set-select" onchange="updateExerciseSet(${di},${ei},${si},'hrZone',parseInt(this.value)||0)"><option value="" ${!set.hrZone ? 'selected' : ''}>—</option><option value="1" ${set.hrZone == 1 ? 'selected' : ''}>Z1</option><option value="2" ${set.hrZone == 2 ? 'selected' : ''}>Z2</option><option value="3" ${set.hrZone == 3 ? 'selected' : ''}>Z3</option><option value="4" ${set.hrZone == 4 ? 'selected' : ''}>Z4</option><option value="5" ${set.hrZone == 5 ? 'selected' : ''}>Z5</option></select>` : ''}
-                            <input type="number" class="wb-set-input" value="${set.restSeconds ?? 30}" min="0" onchange="updateExerciseSet(${di},${ei},${si},'restSeconds',parseInt(this.value)||0)">
+                            ${renderHMSSetInput(set.restSeconds ?? 30, di, ei, si, 'restSeconds')}
                         </div>
                     `).join('')}
                 </div>
@@ -8804,7 +8910,7 @@
                             </div>
                             <div class="config-group">
                                 ${exercise.trackingType === 'time'
-                                    ? `<input type="number" class="config-input" value="${exercise.duration || 30}" onchange="updateExercise(${dayIndex}, ${exIndex}, 'duration', this.value)" style="width:70px">`
+                                    ? renderHMSSetInput(exercise.duration || 30, dayIndex, exIndex, '', 'duration', 'config-hms')
                                     : exercise.trackingType === 'distance'
                                     ? `<input type="number" step="any" class="config-input" value="${exercise.distance || 1}" onchange="updateExercise(${dayIndex}, ${exIndex}, 'distance', this.value)" style="width:50px">
                                        <select class="config-input distance-unit-select" style="width:45px;padding:2px" onchange="updateExercise(${dayIndex}, ${exIndex}, 'distanceUnit', this.value)">
@@ -8820,7 +8926,7 @@
                                 </button>
                             </div>
                             <div class="config-group">
-                                <input type="number" class="config-input" value="${exercise.restSeconds != null ? exercise.restSeconds : 90}" onchange="updateExercise(${dayIndex}, ${exIndex}, 'restSeconds', this.value)">
+                                ${renderHMSSetInput(exercise.restSeconds != null ? exercise.restSeconds : 90, dayIndex, exIndex, '', 'restSeconds', 'config-hms')}
                                 <span class="config-label">Rest</span>
                             </div>
                             ${exercise.isSuperset ? `
