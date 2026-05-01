@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { X, Play, Pause, SkipForward, SkipBack, ChevronRight, ChevronLeft, Check, Volume2, VolumeX, Mic, MessageSquare, Square, Send, ChevronUp, ChevronDown, MessageCircle, Bot, Loader2, Sparkles, Flame, Repeat, Clock, Zap, AlertTriangle, TrendingUp, ExternalLink, User } from 'lucide-react';
+import { X, Play, Pause, SkipForward, SkipBack, ChevronRight, ChevronLeft, Check, Volume2, VolumeX, Mic, MessageSquare, Square, Send, MessageCircle, Bot, Loader2, Sparkles, Flame, Repeat, Clock, Zap, AlertTriangle, TrendingUp, ExternalLink, User } from 'lucide-react';
 import SmartThumbnail from './SmartThumbnail';
 import SwapExerciseModal from './SwapExerciseModal';
 import { apiGet, apiPost, apiPut, getOrCreateWorkoutLogId } from '../../utils/api';
@@ -267,6 +267,7 @@ function GuidedWorkoutModal({
   const [guidedVideoBlobUrl, setGuidedVideoBlobUrl] = useState(null);
   const [playingVoiceNote, setPlayingVoiceNote] = useState(false);
   const [showCoachNote, setShowCoachNote] = useState(false); // For text notes popup
+  const [showReferenceLinks, setShowReferenceLinks] = useState(false);
 
   // Client note for coach state
   const [showClientNoteInput, setShowClientNoteInput] = useState(false);
@@ -2815,29 +2816,73 @@ function GuidedWorkoutModal({
           </div>
         )}
 
-        {/* Coach tip buttons - voice note and/or text note */}
-        {(currentExercise.voiceNoteUrl || currentExercise.notes) && (
-          <div className="guided-coach-tips">
-            {currentExercise.voiceNoteUrl && (
+        {/* Consolidated action icon row — Coach Note, Client Note, Reference Links, YouTube */}
+        {(() => {
+          const refLinks = currentExercise.reference_links || [];
+          const youtubeLink = refLinks.find(l => l.type === 'youtube');
+          const otherLinks = refLinks.filter(l => l.type !== 'youtube');
+          return (
+            <div className="guided-action-row">
+              {currentExercise.voiceNoteUrl && (
+                <button
+                  className={`guided-action-icon voice ${playingVoiceNote ? 'playing' : ''}`}
+                  onClick={handlePlayVoiceNote}
+                  aria-label={playingVoiceNote ? 'Stop voice note' : "Coach's voice note"}
+                  title={playingVoiceNote ? 'Tap to stop' : "Coach's Voice Note"}
+                  type="button"
+                >
+                  <Mic size={18} />
+                </button>
+              )}
+              {currentExercise.notes && (
+                <button
+                  className={`guided-action-icon note ${showCoachNote ? 'active' : ''}`}
+                  onClick={() => setShowCoachNote(prev => !prev)}
+                  aria-label="Coach note"
+                  title="Coach Note"
+                  type="button"
+                >
+                  <MessageSquare size={18} />
+                </button>
+              )}
               <button
-                className={`guided-coach-tip-btn ${playingVoiceNote ? 'playing' : ''}`}
-                onClick={handlePlayVoiceNote}
+                className={`guided-action-icon client-note ${showClientNoteInput ? 'active' : ''}`}
+                onClick={() => setShowClientNoteInput(!showClientNoteInput)}
+                aria-label="Leave a note to coach"
+                title="Leave a Note to Coach"
+                type="button"
               >
-                <Mic size={16} />
-                <span>{playingVoiceNote ? 'Tap to stop' : "Coach's Voice Note"}</span>
+                <MessageCircle size={18} />
+                {clientNoteSaved[currentExIndex] && <span className="guided-action-saved-dot" />}
               </button>
-            )}
-            {currentExercise.notes && (
-              <button
-                className={`guided-coach-tip-btn text ${showCoachNote ? 'active' : ''}`}
-                onClick={() => setShowCoachNote(prev => !prev)}
-              >
-                <MessageSquare size={16} />
-                <span>Note</span>
-              </button>
-            )}
-          </div>
-        )}
+              {otherLinks.length > 0 && (
+                <button
+                  className={`guided-action-icon refs ${showReferenceLinks ? 'active' : ''}`}
+                  onClick={() => setShowReferenceLinks(prev => !prev)}
+                  aria-label="Reference links"
+                  title="Reference Links"
+                  type="button"
+                >
+                  <ExternalLink size={18} />
+                </button>
+              )}
+              {youtubeLink && (
+                <a
+                  href={youtubeLink.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="guided-action-icon youtube"
+                  aria-label="YouTube video"
+                  title="YouTube Video"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <Play size={18} />
+                </a>
+              )}
+            </div>
+          );
+        })()}
+
         {/* Text note display */}
         {showCoachNote && currentExercise.notes && (
           <div className="guided-text-note">
@@ -2845,22 +2890,9 @@ function GuidedWorkoutModal({
           </div>
         )}
 
-        {/* Leave a Note to Coach */}
-        <div className="guided-client-note-section">
-          <button
-            className="guided-client-note-toggle"
-            onClick={() => setShowClientNoteInput(!showClientNoteInput)}
-            type="button"
-          >
-            <div className="guided-client-note-toggle-left">
-              <MessageCircle size={18} />
-              <span>Leave a Note to Coach</span>
-            </div>
-            {clientNoteSaved[currentExIndex] && <span className="note-saved-badge">Saved</span>}
-            {showClientNoteInput ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-          </button>
-
-          {showClientNoteInput && (
+        {/* Leave a Note to Coach — input area shown when toggled from action row */}
+        {showClientNoteInput && (
+          <div className="guided-client-note-section">
             <div className="guided-client-note-input-area">
               <textarea
                 className="guided-client-note-textarea"
@@ -2915,18 +2947,14 @@ function GuidedWorkoutModal({
                 </button>
               )}
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
-        {/* Reference Links */}
-        {currentExercise.reference_links && currentExercise.reference_links.length > 0 && (
+        {/* Reference Links — list shown when toggled from action row (excludes YouTube, which has its own icon) */}
+        {showReferenceLinks && currentExercise.reference_links && currentExercise.reference_links.filter(l => l.type !== 'youtube').length > 0 && (
           <div className="guided-reference-links">
-            <div className="guided-reference-links-label">
-              <ExternalLink size={14} />
-              <span>Reference Links</span>
-            </div>
             <div className="guided-reference-links-list">
-              {currentExercise.reference_links.map((link, idx) => (
+              {currentExercise.reference_links.filter(l => l.type !== 'youtube').map((link, idx) => (
                 <a
                   key={idx}
                   href={link.url}
@@ -2935,7 +2963,7 @@ function GuidedWorkoutModal({
                   className={`guided-reference-link-chip ${link.type || 'generic'}`}
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <span className="guided-ref-link-icon">{link.type === 'youtube' ? '▶' : link.type === 'instagram' ? '📷' : '🔗'}</span>
+                  <span className="guided-ref-link-icon">{link.type === 'instagram' ? '📷' : '🔗'}</span>
                   <span className="guided-ref-link-title">{link.title || 'Link'}</span>
                 </a>
               ))}
