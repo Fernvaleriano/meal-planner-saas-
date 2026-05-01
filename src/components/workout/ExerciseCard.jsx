@@ -144,7 +144,7 @@ const parseVoiceInputForSets = (transcript) => {
   }
 };
 
-function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick, workoutStarted, onSwapExercise, onDeleteExercise, onMoveUp, onMoveDown, isFirst, isLast, onUpdateExercise, onOpenSetEditor, weightUnit = 'lbs', clientId }) {
+function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick, workoutStarted, onSwapExercise, onDeleteExercise, onMoveUp, onMoveDown, isFirst, isLast, isSectionEnd, onUpdateExercise, onOpenSetEditor, weightUnit = 'lbs', clientId }) {
   // Early return if exercise is invalid
   if (!exercise || typeof exercise !== 'object') {
     return null;
@@ -773,7 +773,7 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
     >
       {/* Main Card Content */}
       <div
-        className={`exercise-card-v2 ${isCompleted ? 'completed' : ''} ${workoutStarted ? 'active' : ''} ${isSuperset ? 'superset-exercise' : ''} ${isWarmup ? 'warmup-exercise' : ''} ${isStretch ? 'stretch-exercise' : ''}`}
+        className={`exercise-card-v2 ${isCompleted ? 'completed' : ''} ${workoutStarted ? 'active' : ''} ${isSuperset ? 'superset-exercise' : ''} ${isWarmup ? 'warmup-exercise' : ''} ${isStretch ? 'stretch-exercise' : ''} ${isSectionEnd ? 'section-end' : ''}`}
       >
         {/* HEADER ZONE - Swipe for swap/delete/move + swipe-right to complete */}
         <div className="header-swipe-zone">
@@ -1166,6 +1166,7 @@ const arePropsEqual = (prev, next) => {
   if (prev.workoutStarted !== next.workoutStarted) return false;
   if (prev.isFirst !== next.isFirst) return false;
   if (prev.isLast !== next.isLast) return false;
+  if (prev.isSectionEnd !== next.isSectionEnd) return false;
   if (prev.weightUnit !== next.weightUnit) return false;
   if (prev.clientId !== next.clientId) return false;
 
