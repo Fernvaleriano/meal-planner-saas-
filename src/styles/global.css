@@ -19626,10 +19626,12 @@ textarea,
 
 .exercise-card-v2.warmup-exercise {
     border-left: 3px solid #F59E0B;
+    border-bottom: 1px solid rgba(245, 158, 11, 0.45);
 }
 
 .exercise-card-v2.stretch-exercise {
     border-left: 3px solid #10B981;
+    border-bottom: 1px solid rgba(16, 185, 129, 0.45);
 }
 
 /* Equipment subtitle - like "No equipment" */
