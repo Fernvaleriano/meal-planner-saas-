@@ -4697,6 +4697,9 @@ function Workouts() {
                 const prevExercise = index > 0 ? exercises[index - 1] : null;
                 const prevPhase = prevExercise ? (prevExercise.phase || (prevExercise.isWarmup ? 'warmup' : prevExercise.isStretch ? 'cooldown' : 'main')) : null;
                 const showPhaseHeader = phase !== prevPhase;
+                const nextExercise = index < exercises.length - 1 ? exercises[index + 1] : null;
+                const nextPhase = nextExercise ? (nextExercise.phase || (nextExercise.isWarmup ? 'warmup' : nextExercise.isStretch ? 'cooldown' : 'main')) : null;
+                const isSectionEnd = nextPhase === null || nextPhase !== phase;
 
                 return (
                   <ErrorBoundary key={exercise.id || `exercise-${index}`} compact>
@@ -4731,6 +4734,7 @@ function Workouts() {
                       onMoveDown={handleMoveExerciseDown}
                       isFirst={index === 0}
                       isLast={index === exercises.length - 1}
+                      isSectionEnd={isSectionEnd}
                       onUpdateExercise={handleUpdateExercise}
                       onOpenSetEditor={openSetEditor}
                       weightUnit={weightUnit}

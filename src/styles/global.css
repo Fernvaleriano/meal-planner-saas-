@@ -19456,12 +19456,22 @@ textarea,
     overflow: hidden;
     transition: all 0.2s;
     position: relative;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.14);
     /* Allow vertical scroll but let JS handle horizontal swipe gestures.
        React synthetic onTouchMove is passive by default, so preventDefault()
        is silently ignored on Android Chrome — touch-action does the blocking
        at the compositor level instead. */
     touch-action: pan-y;
+}
+
+/* Drop the within-section hairline at section boundaries — the next phase
+   header (or the end of the list) is the strong visual break. */
+.exercise-card-v2.section-end {
+    border-bottom: none;
+}
+
+[data-theme="light"] .exercise-card-v2 {
+    border-bottom-color: rgba(15, 23, 42, 0.10);
 }
 
 /* Skip rendering for off-screen cards — frees GPU memory on iOS WebKit and
