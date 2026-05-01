@@ -3573,7 +3573,9 @@ function Workouts() {
     }
   }, [todayWorkout, todayWorkouts, clientData?.id, selectedDate, showError, refreshWeekSchedule]);
 
-  // Handle deleting the entire workout program/assignment (all days)
+  // Handle ending the workout program from the selected date forward.
+  // Past days keep their history; the selected day and all future occurrences
+  // are removed by setting end_date to the day before selectedDate.
   const handleDeleteEntireProgram = useCallback(async (workout) => {
     if (!workout?.id) return;
 
@@ -3581,27 +3583,40 @@ function Workouts() {
 
     try {
       if (workout.is_adhoc) {
-        // Ad-hoc workouts don't have a program - just delete this one
+        // Ad-hoc workouts are single-day — just delete this one
         const isRealId = workout.id && !String(workout.id).startsWith('adhoc-') && !String(workout.id).startsWith('custom-') && !String(workout.id).startsWith('club-');
         if (isRealId) {
           await apiDelete(`/.netlify/functions/adhoc-workouts?workoutId=${workout.id}`);
         }
       } else {
-        // Delete the entire assignment
-        await apiDelete(`/.netlify/functions/workout-assignments?assignmentId=${workout.id}`);
+        // End the assignment one day before selectedDate so today's card
+        // and all future occurrences disappear, but past days are preserved.
+        const endBoundary = new Date(selectedDate);
+        endBoundary.setDate(endBoundary.getDate() - 1);
+        await apiPut('/.netlify/functions/workout-assignments', {
+          assignmentId: workout.id,
+          endDate: formatDate(endBoundary)
+        });
       }
 
-      // Clear all local workout state
-      setTodayWorkouts([]);
-      setTodayWorkout(null);
-      setWorkoutLog(null);
-      setCompletedExercises(new Set());
-      setWorkoutStarted(false);
-      setExpandedWorkout(false);
+      // Remove only this program's cards from local state — leave any other
+      // workouts on this day intact.
+      const remaining = todayWorkouts.filter(w => w.id !== workout.id);
+      setTodayWorkouts(remaining);
+      if (todayWorkout?.id === workout.id) {
+        setTodayWorkout(remaining.length > 0 ? remaining[0] : null);
+        setWorkoutLog(null);
+        setCompletedExercises(remaining.length > 0
+          ? getCompletedFromWorkoutData(remaining[0].workout_data, remaining[0].day_index || 0, remaining[0].id)
+          : new Set()
+        );
+        setWorkoutStarted(false);
+        setExpandedWorkout(false);
+      }
       setCardMenuWorkoutId(null);
 
       // Invalidate ALL per-date workout caches for this client — the program
-      // spans many dates and any of them may have cached the deleted workout.
+      // spans many dates and any of them may have cached the workout.
       if (clientData?.id) {
         try {
           const prefix = `workouts_${clientData.id}_`;
@@ -3615,22 +3630,27 @@ function Workouts() {
       }
 
       if (typeof showSuccess === 'function') {
-        showSuccess(`"${programName}" has been deleted`);
+        showSuccess(workout.is_adhoc
+          ? `"${programName}" has been deleted`
+          : `"${programName}" removed from this day forward`);
       }
       refreshWeekSchedule();
     } catch (err) {
-      console.error('Error deleting program:', err);
+      console.error('Error ending program:', err);
       if (err.status === 404 || err.message?.includes('not found')) {
-        // Already deleted - clean up local state
-        setTodayWorkouts([]);
-        setTodayWorkout(null);
+        // Already gone - clean up local state for this program only
+        const remaining = todayWorkouts.filter(w => w.id !== workout.id);
+        setTodayWorkouts(remaining);
+        if (todayWorkout?.id === workout.id) {
+          setTodayWorkout(remaining.length > 0 ? remaining[0] : null);
+        }
         setCardMenuWorkoutId(null);
         refreshWeekSchedule();
       } else {
-        showError('Failed to delete program: ' + (err.message || 'Unknown error'));
+        showError('Failed to end program: ' + (err.message || 'Unknown error'));
       }
     }
-  }, [clientData?.id, showError, showSuccess, refreshWeekSchedule]);
+  }, [clientData?.id, selectedDate, todayWorkout, todayWorkouts, showError, showSuccess, refreshWeekSchedule]);
 
   // Get exercises from workout with safety checks
   const exercises = useMemo(() => {
@@ -5187,7 +5207,7 @@ function Workouts() {
         <div className="card-sheet-overlay" onClick={() => { setShowDeleteConfirm(false); setCardMenuWorkout(null); setCardMenuWorkoutId(null); }}>
           <div className="delete-confirm-modal" onClick={e => e.stopPropagation()}>
             <h3>Delete workout plan</h3>
-            <p>Do you want to delete this workout plan? This will remove activities from your calendar associated with this plan.</p>
+            <p>Do you want to delete this workout plan? Past days stay in your history — only this day and future days will be removed.</p>
             <div className="delete-confirm-options">
               <button
                 className="delete-confirm-btn"
@@ -5199,7 +5219,7 @@ function Workouts() {
                   handleDeleteCardWorkout(w);
                 }}
               >
-                Delete this day
+                Delete this day only
               </button>
               <button
                 className="delete-confirm-btn danger"
@@ -5211,7 +5231,7 @@ function Workouts() {
                   handleDeleteEntireProgram(w);
                 }}
               >
-                Delete all days
+                Delete this & all future days
               </button>
             </div>
             <button
