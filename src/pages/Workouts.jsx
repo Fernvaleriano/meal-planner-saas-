@@ -3573,9 +3573,8 @@ function Workouts() {
     }
   }, [todayWorkout, todayWorkouts, clientData?.id, selectedDate, showError, refreshWeekSchedule]);
 
-  // Handle ending the workout program from the selected date forward.
-  // Past days keep their history; the selected day and all future occurrences
-  // are removed by setting end_date to the day before selectedDate.
+  // Handle deleting the entire workout program/assignment (every day it covers).
+  // Removes only the chosen program — other workouts on the same day stay put.
   const handleDeleteEntireProgram = useCallback(async (workout) => {
     if (!workout?.id) return;
 
@@ -3589,14 +3588,9 @@ function Workouts() {
           await apiDelete(`/.netlify/functions/adhoc-workouts?workoutId=${workout.id}`);
         }
       } else {
-        // End the assignment one day before selectedDate so today's card
-        // and all future occurrences disappear, but past days are preserved.
-        const endBoundary = new Date(selectedDate);
-        endBoundary.setDate(endBoundary.getDate() - 1);
-        await apiPut('/.netlify/functions/workout-assignments', {
-          assignmentId: workout.id,
-          endDate: formatDate(endBoundary)
-        });
+        // Delete the entire assignment row — wipes this program from every
+        // past and future date it covered.
+        await apiDelete(`/.netlify/functions/workout-assignments?assignmentId=${workout.id}`);
       }
 
       // Remove only this program's cards from local state — leave any other
@@ -3616,7 +3610,7 @@ function Workouts() {
       setCardMenuWorkoutId(null);
 
       // Invalidate ALL per-date workout caches for this client — the program
-      // spans many dates and any of them may have cached the workout.
+      // spans many dates and any of them may have cached the deleted workout.
       if (clientData?.id) {
         try {
           const prefix = `workouts_${clientData.id}_`;
@@ -3630,13 +3624,11 @@ function Workouts() {
       }
 
       if (typeof showSuccess === 'function') {
-        showSuccess(workout.is_adhoc
-          ? `"${programName}" has been deleted`
-          : `"${programName}" removed from this day forward`);
+        showSuccess(`"${programName}" has been deleted`);
       }
       refreshWeekSchedule();
     } catch (err) {
-      console.error('Error ending program:', err);
+      console.error('Error deleting program:', err);
       if (err.status === 404 || err.message?.includes('not found')) {
         // Already gone - clean up local state for this program only
         const remaining = todayWorkouts.filter(w => w.id !== workout.id);
@@ -3647,10 +3639,10 @@ function Workouts() {
         setCardMenuWorkoutId(null);
         refreshWeekSchedule();
       } else {
-        showError('Failed to end program: ' + (err.message || 'Unknown error'));
+        showError('Failed to delete program: ' + (err.message || 'Unknown error'));
       }
     }
-  }, [clientData?.id, selectedDate, todayWorkout, todayWorkouts, showError, showSuccess, refreshWeekSchedule]);
+  }, [clientData?.id, todayWorkout, todayWorkouts, showError, showSuccess, refreshWeekSchedule]);
 
   // Get exercises from workout with safety checks
   const exercises = useMemo(() => {
@@ -5207,7 +5199,7 @@ function Workouts() {
         <div className="card-sheet-overlay" onClick={() => { setShowDeleteConfirm(false); setCardMenuWorkout(null); setCardMenuWorkoutId(null); }}>
           <div className="delete-confirm-modal" onClick={e => e.stopPropagation()}>
             <h3>Delete workout plan</h3>
-            <p>Do you want to delete this workout plan? Past days stay in your history — only this day and future days will be removed.</p>
+            <p>Delete just this day, or remove every occurrence of this workout plan from your calendar?</p>
             <div className="delete-confirm-options">
               <button
                 className="delete-confirm-btn"
@@ -5219,7 +5211,7 @@ function Workouts() {
                   handleDeleteCardWorkout(w);
                 }}
               >
-                Delete this day only
+                Delete this day
               </button>
               <button
                 className="delete-confirm-btn danger"
@@ -5231,7 +5223,7 @@ function Workouts() {
                   handleDeleteEntireProgram(w);
                 }}
               >
-                Delete this & all future days
+                Delete all days
               </button>
             </div>
             <button
