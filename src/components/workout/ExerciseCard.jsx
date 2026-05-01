@@ -773,7 +773,7 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
     >
       {/* Main Card Content */}
       <div
-        className={`exercise-card-v2 ${isCompleted ? 'completed' : ''} ${workoutStarted ? 'active' : ''} ${isSuperset ? 'superset-exercise' : ''} ${isWarmup ? 'warmup-exercise' : ''} ${isStretch ? 'stretch-exercise' : ''} ${isSectionEnd ? 'section-end' : ''}`}
+        className={`exercise-card-v2 ${isCompleted ? 'completed' : ''} ${workoutStarted ? 'active' : ''} ${isSuperset ? 'superset-exercise' : ''} ${isWarmup ? 'warmup-exercise' : ''} ${isStretch ? 'stretch-exercise' : ''} ${isSectionEnd ? 'section-end' : ''} ${isLast ? 'is-last' : ''}`}
       >
         {/* HEADER ZONE - Swipe for swap/delete/move + swipe-right to complete */}
         <div className="header-swipe-zone">
