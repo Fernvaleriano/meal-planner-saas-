@@ -19470,6 +19470,16 @@ textarea,
     border-bottom: none;
 }
 
+/* Restore the hairline on the very last exercise so the list has a clear
+   bottom edge before the Add Activity button. */
+.exercise-card-v2.is-last {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+[data-theme="light"] .exercise-card-v2.is-last {
+    border-bottom-color: rgba(15, 23, 42, 0.10);
+}
+
 [data-theme="light"] .exercise-card-v2 {
     border-bottom-color: rgba(15, 23, 42, 0.10);
 }
