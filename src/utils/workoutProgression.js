@@ -311,11 +311,39 @@ export const generateProgression = ({ previousSessions, exercise, weightUnit, la
   }
 
   // --- Extended context for long gaps ---
-  if (daysSinceLast !== null && daysSinceLast >= 14) {
-    // 2+ weeks off — suggest conservative approach
-    recommendedWeight = roundToGymWeight(lastMaxWeight * 0.9, weightIncrement);
-    recommendedReps = lastMaxReps;
-    reasoning = `It's been ${daysSinceLast} days since your last session. Ease back in at ${recommendedWeight}${weightUnit} and match your previous reps.`;
+  // Graded deload by layoff length. 0–13 days: no reduction (short breaks and
+  // planned deloads often produce a bounce). 60+ days: restart from a starting
+  // weight rather than anchoring on numbers that no longer apply.
+  if (daysSinceLast !== null && daysSinceLast >= 60) {
+    const oldestSession = previousSessions[previousSessions.length - 1];
+    const oldestWeight = oldestSession ? getMaxWeight(parseSetsData(oldestSession)) : 0;
+    const prescribedSetWeight = Array.isArray(exercise?.setsData) && Number(exercise.setsData[0]?.weight) > 0
+      ? Number(exercise.setsData[0].weight) : 0;
+    const startingWeight =
+      prescribedSetWeight > 0 ? prescribedSetWeight :
+      (oldestWeight > 0 && oldestWeight < lastMaxWeight) ? oldestWeight :
+      lastMaxWeight * 0.5;
+    recommendedWeight = roundToGymWeight(startingWeight, weightIncrement);
+    recommendedReps = isCompoundExercise(exercise) ? Math.max(lastMaxReps - 1, 1) : lastMaxReps;
+    reasoning = `It's been ${daysSinceLast} days — that's a long layoff. Restart at ${recommendedWeight}${weightUnit} (your starting weight) and rebuild from there.`;
+  } else if (daysSinceLast !== null && daysSinceLast >= 14) {
+    let pct;
+    let repAdjust = 0;
+    if (daysSinceLast >= 45) {
+      pct = 0.55;
+      if (isCompoundExercise(exercise)) repAdjust = -1;
+    } else if (daysSinceLast >= 30) {
+      pct = 0.65;
+      if (isCompoundExercise(exercise)) repAdjust = -1;
+    } else if (daysSinceLast >= 21) {
+      pct = 0.70;
+    } else {
+      pct = 0.80;
+    }
+    recommendedWeight = roundToGymWeight(lastMaxWeight * pct, weightIncrement);
+    recommendedReps = Math.max(lastMaxReps + repAdjust, 1);
+    const repNote = repAdjust < 0 ? ` and drop ${-repAdjust} rep for technique` : ' and match your previous reps';
+    reasoning = `It's been ${daysSinceLast} days since your last session. Ease back in at ${recommendedWeight}${weightUnit} (~${Math.round(pct * 100)}% of last time)${repNote}.`;
   }
 
   const effortLabel = effectiveEffort === 'easy' ? 'felt easy'
