@@ -1011,19 +1011,24 @@ function Workouts() {
         apiGet(`/.netlify/functions/workout-logs?clientId=${clientData.id}&date=${dateStr}`).catch(() => null)
       ]);
 
+      // If the user navigated to a different day while this refresh was in
+      // flight (common right after app resume — the resume handler kicks off
+      // a refresh and the user immediately taps a day), abandon. Otherwise
+      // we'd clobber the new day's data with stale-for-the-current-view
+      // results.
+      if (formatDate(selectedDateRef.current) !== dateStr) {
+        return;
+      }
+
       const allWorkouts = [];
 
-      // Process assignments - refresh signed URLs in parallel
+      // Add assignments immediately (without waiting for signed URL refresh) —
+      // matches fetchWorkout's pattern. The signed URL refresh is fired in the
+      // background AFTER state is set (see below) so the UI updates instantly
+      // on resume instead of waiting 1-3s for storage.from(...).createSignedUrls
+      // round-trips.
       if (assignmentRes?.assignments?.length > 0) {
-        const refreshedAssignments = await Promise.all(
-          assignmentRes.assignments.map(async (assignment) => {
-            if (assignment.workout_data) {
-              assignment.workout_data = await refreshSignedUrls(assignment.workout_data, assignment.coach_id);
-            }
-            return assignment;
-          })
-        );
-        allWorkouts.push(...refreshedAssignments);
+        assignmentRes.assignments.forEach(a => allWorkouts.push(a));
       }
 
       // Process adhoc workouts
@@ -1083,6 +1088,47 @@ function Workouts() {
         setCompletedExercises(new Set());
       }
       setError(null);
+
+      // Update the per-date cache so navigating away and back to this day
+      // shows the freshly-refreshed data instantly. Without this, after a
+      // resume-refresh the cache stays stale until the next date-change
+      // fetch overwrites it.
+      const cacheKey = `workouts_${clientData.id}_${dateStr}`;
+      const first = allWorkouts[0] || null;
+      const log = (first && !first.is_adhoc && logRes?.logs?.length > 0) ? logRes.logs[0] : null;
+      setCache(cacheKey, {
+        todayWorkout: first,
+        todayWorkouts: allWorkouts,
+        workoutLog: log
+      });
+
+      // Refresh signed URLs in the background AFTER state is set. This way
+      // the UI shows workout content immediately on resume, and video
+      // thumbnails/URLs fill in non-blockingly once signed URLs arrive.
+      if (assignmentRes?.assignments?.length > 0) {
+        Promise.all(
+          assignmentRes.assignments.map(async (assignment) => {
+            if (assignment.workout_data) {
+              assignment.workout_data = await refreshSignedUrls(assignment.workout_data, assignment.coach_id);
+            }
+            return assignment;
+          })
+        ).then((refreshedAssignments) => {
+          // Bail if user has since moved to a different day
+          if (formatDate(selectedDateRef.current) !== dateStr) return;
+          const matchKey = (w) => w.instance_id || w.id;
+          setTodayWorkouts(prev => prev.map(w => {
+            const refreshed = refreshedAssignments.find(r => matchKey(r) === matchKey(w));
+            return refreshed || w;
+          }));
+          setTodayWorkout(prev => {
+            if (!prev) return prev;
+            const refreshed = refreshedAssignments.find(r => matchKey(r) === matchKey(prev));
+            return refreshed || prev;
+          });
+        }).catch(() => { /* signed URL refresh is best-effort */ });
+      }
+
       // Also refresh week schedule so This Week / Coming Up stay in sync
       refreshWeekSchedule();
     } catch (err) {
@@ -1123,10 +1169,13 @@ function Workouts() {
         return;
       }
 
-      // Skip fetching if a pull-to-refresh is in progress to avoid race conditions
-      if (isRefreshingRef.current) {
-        return;
-      }
+      // NOTE: We deliberately do NOT bail out when isRefreshingRef.current is
+      // true. The old guard caused day-tap to silently drop whenever a refresh
+      // was in flight (typically right after app resume): the new day's fetch
+      // never ran and the user was stuck looking at yesterday's data with
+      // today selected. Race safety is now handled by the dateStr guard
+      // inside refreshWorkoutData itself, which compares against
+      // selectedDateRef.current before writing state.
 
       // Bypass service-worker cache for this fetch window so cold-start after
       // a save actually pulls fresh exercise_logs (including effort) from the
@@ -1374,25 +1423,51 @@ function Workouts() {
       }
     };
 
-    // Schedule prefetches sequentially during idle time. ±1 day covers the
-    // common case (next/prev). We deliberately keep it small to avoid burning
-    // mobile data and Netlify function invocations.
+    // Schedule prefetches sequentially during idle time. We prefetch the full
+    // visible week (in addition to ±1 from selectedDate, which catches the
+    // case where the user jumps to a date outside the current week via a
+    // notification or "Coming Up"). Sequential and idle-scheduled so we don't
+    // spike the network on slow mobile or fight the main thread during
+    // animations. prefetchOne short-circuits on cached dates so this is
+    // basically free after the first sweep.
     const idleId = idle(async () => {
+      const targets = [];
+      const seen = new Set();
+      const pushDate = (d) => {
+        if (!d || isNaN(d.getTime())) return;
+        const key = formatDate(d);
+        if (seen.has(key)) return;
+        seen.add(key);
+        targets.push(d);
+      };
+
+      // Adjacent days first — most likely to be tapped next
       const next = new Date(selectedDate);
       next.setDate(next.getDate() + 1);
+      pushDate(next);
       const prev = new Date(selectedDate);
       prev.setDate(prev.getDate() - 1);
-      // Sequential, not parallel — avoids spiking the network on slow mobile
-      await prefetchOne(next);
-      if (cancelled) return;
-      await prefetchOne(prev);
+      pushDate(prev);
+
+      // Then the rest of the visible week so any tap in the calendar strip
+      // is instant, even right after week navigation.
+      (weekDates || []).forEach(d => {
+        if (d instanceof Date && formatDate(d) !== formatDate(selectedDate)) {
+          pushDate(d);
+        }
+      });
+
+      for (const d of targets) {
+        if (cancelled) return;
+        await prefetchOne(d);
+      }
     });
 
     return () => {
       cancelled = true;
       cancelIdle(idleId);
     };
-  }, [clientData?.id, selectedDate, loading]);
+  }, [clientData?.id, selectedDate, loading, weekDates]);
 
   // Compute weekly schedule from active assignments + week dates
   const weekSchedule = useMemo(() => {
