@@ -11,6 +11,44 @@ const headers = {
   'Content-Type': 'application/json'
 };
 
+// Module-scoped per-id cache for the exercises table. The exercises table
+// changes rarely (coaches don't edit videos every minute), and every fetch
+// of this function used to re-query it. Cache hits skip a 50-150ms Supabase
+// round-trip — meaningful chunk of day-tap latency on slow mobile. TTL is
+// short enough that thumbnail / video updates propagate within minutes.
+const EXERCISE_CACHE = new Map(); // id → { data, ts }
+const EXERCISE_TTL_MS = 5 * 60 * 1000;
+
+async function fetchExercisesByIds(supabase, ids) {
+  if (!ids || ids.length === 0) return new Map();
+  const now = Date.now();
+  const out = new Map();
+  const missing = [];
+  for (const id of ids) {
+    const cached = EXERCISE_CACHE.get(id);
+    if (cached && (now - cached.ts) < EXERCISE_TTL_MS) {
+      out.set(id, cached.data);
+    } else {
+      missing.push(id);
+    }
+  }
+  if (missing.length > 0) {
+    const { data, error } = await supabase
+      .from('exercises')
+      .select('id, equipment, video_url, animation_url, thumbnail_url')
+      .in('id', missing);
+    if (!error && data) {
+      for (const ex of data) {
+        EXERCISE_CACHE.set(ex.id, { data: ex, ts: now });
+        out.set(ex.id, ex);
+      }
+    } else if (error) {
+      console.error('fetchExercisesByIds error:', error);
+    }
+  }
+  return out;
+}
+
 // Helper function to enrich exercises with fresh video URLs from the database
 // Workout snapshots may have been created before video_url was set on the exercise
 async function enrichExercisesWithVideos(exercises, supabase) {
@@ -23,17 +61,8 @@ async function enrichExercisesWithVideos(exercises, supabase) {
 
   if (exerciseIds.length === 0) return exercises;
 
-  const { data: exerciseData, error } = await supabase
-    .from('exercises')
-    .select('id, video_url, animation_url, thumbnail_url')
-    .in('id', exerciseIds);
-
-  if (error || !exerciseData) {
-    console.error('Error fetching video data:', error);
-    return exercises;
-  }
-
-  const videoMap = new Map(exerciseData.map(ex => [ex.id, ex]));
+  const videoMap = await fetchExercisesByIds(supabase, exerciseIds);
+  if (videoMap.size === 0) return exercises;
 
   return exercises.map(ex => {
     if (!ex.id || !videoMap.has(ex.id)) return ex;
@@ -423,15 +452,11 @@ exports.handler = withTimeout(async (event) => {
           }
 
           if (allExerciseIds.size > 0) {
-            // Single query for both equipment and video data
-            const { data: exerciseData } = await supabase
-              .from('exercises')
-              .select('id, equipment, video_url, animation_url, thumbnail_url')
-              .in('id', [...allExerciseIds]);
+            // Goes through fetchExercisesByIds → in-memory TTL cache, so warm
+            // function instances skip the DB round-trip entirely.
+            const exerciseMap = await fetchExercisesByIds(supabase, [...allExerciseIds]);
 
-            if (exerciseData) {
-              const exerciseMap = new Map(exerciseData.map(ex => [ex.id, ex]));
-
+            if (exerciseMap.size > 0) {
               // Apply enrichment to all workouts
               for (const w of todayWorkouts) {
                 if (w.workout_data?.exercises) {
