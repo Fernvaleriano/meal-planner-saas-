@@ -3607,12 +3607,15 @@ function Workouts() {
                 ...loggedSet,
                 prescribedWeight: assignmentSet.prescribedWeight ?? assignmentWeight ?? loggedSet.prescribedWeight ?? 0,
                 prescribedReps: assignmentSet.prescribedReps ?? assignmentSet.reps ?? loggedSet.prescribedReps ?? 0,
-                // Coach-prescribed fields (rest, duration) must come from the
-                // current assignment, not the log. Otherwise a coach update to
-                // these values is silently overwritten on the next load by the
-                // values that were captured in an older log.
+                // Coach-prescribed targets (reps, rest, duration, distance) must
+                // come from the current assignment, not the log. Otherwise a
+                // coach update to these values via "Save & Update Clients" is
+                // silently overwritten on the next load by the values that
+                // were captured in an older log.
+                reps: assignmentSet.reps ?? loggedSet.reps,
                 restSeconds: assignmentSet.restSeconds ?? loggedSet.restSeconds,
                 duration: assignmentSet.duration ?? loggedSet.duration,
+                distance: assignmentSet.distance ?? loggedSet.distance,
                 // Trust the assignment's per-set weightUnit when present — it's the
                 // coach's source of truth. If the assignment had a prescribed weight
                 // but no unit stamped, leave weightUnit undefined so the modal's
