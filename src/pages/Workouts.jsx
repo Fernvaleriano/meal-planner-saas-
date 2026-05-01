@@ -1147,11 +1147,13 @@ function Workouts() {
         setTodayWorkouts(dateCache.todayWorkouts || []);
         setWorkoutLog(dateCache.workoutLog || null);
       } else {
-        // No cache for this date — show loading and clear stale content
+        // No cache for this date — flip loading=true but DO NOT blank
+        // todayWorkout/todayWorkouts/workoutLog. The render dims the cards
+        // and ignores taps while `loading` is true (handleSelectWorkoutCard
+        // bails). This stale-while-revalidate keeps day-tap from feeling
+        // jarring on first visit; the full spinner only shows when there's
+        // truly nothing to display (initial cold load).
         setLoading(true);
-        setTodayWorkout(null);
-        setTodayWorkouts([]);
-        setWorkoutLog(null);
       }
       setError(null);
       setExpandedWorkout(false);
@@ -1299,6 +1301,98 @@ function Workouts() {
       mounted = false;
     };
   }, [clientData?.id, selectedDate]);
+
+  // Prefetch the next/previous day in the background so day-tap is instant.
+  // Runs after the main fetch settles (loading=false). Skips dates that are
+  // already cached. Uses requestIdleCallback when available so we don't fight
+  // the main thread during animations/transitions.
+  useEffect(() => {
+    if (!clientData?.id) return;
+    if (loading) return; // wait for main fetch to settle
+
+    let cancelled = false;
+    const idle = (cb) => {
+      if (typeof window !== 'undefined' && typeof window.requestIdleCallback === 'function') {
+        return window.requestIdleCallback(cb, { timeout: 2500 });
+      }
+      return setTimeout(cb, 800);
+    };
+    const cancelIdle = (id) => {
+      if (typeof window !== 'undefined' && typeof window.cancelIdleCallback === 'function') {
+        window.cancelIdleCallback(id);
+      } else {
+        clearTimeout(id);
+      }
+    };
+
+    const prefetchOne = async (date) => {
+      if (cancelled) return;
+      const dateStr = formatDate(date);
+      const cacheKey = `workouts_${clientData.id}_${dateStr}`;
+      // Skip if already cached — no point re-fetching
+      if (getCache(cacheKey)) return;
+
+      try {
+        const [assignmentRes, adhocRes, logRes] = await Promise.all([
+          apiGet(`/.netlify/functions/workout-assignments?clientId=${clientData.id}&date=${dateStr}`).catch(() => null),
+          apiGet(`/.netlify/functions/adhoc-workouts?clientId=${clientData.id}&date=${dateStr}`).catch(() => null),
+          apiGet(`/.netlify/functions/workout-logs?clientId=${clientData.id}&date=${dateStr}`).catch(() => null)
+        ]);
+        if (cancelled) return;
+
+        const allWorkouts = [];
+        if (assignmentRes?.assignments?.length > 0) {
+          assignmentRes.assignments.forEach(a => allWorkouts.push(a));
+        }
+        if (adhocRes?.workouts?.length > 0) {
+          adhocRes.workouts.forEach(w => {
+            allWorkouts.push({
+              id: w.id,
+              client_id: w.client_id,
+              workout_date: w.workout_date,
+              name: w.name || 'Custom Workout',
+              day_index: 0,
+              workout_data: w.workout_data,
+              is_adhoc: true
+            });
+          });
+        }
+        if (allWorkouts.length === 0 && logRes?.logs?.length > 0) {
+          const historical = buildWorkoutFromLog(logRes.logs[0]);
+          if (historical) allWorkouts.push(historical);
+        }
+
+        const first = allWorkouts[0] || null;
+        const log = (first && !first.is_adhoc && logRes?.logs?.length > 0) ? logRes.logs[0] : null;
+        setCache(cacheKey, {
+          todayWorkout: first,
+          todayWorkouts: allWorkouts,
+          workoutLog: log
+        });
+      } catch {
+        // Best-effort; failures are silent
+      }
+    };
+
+    // Schedule prefetches sequentially during idle time. ±1 day covers the
+    // common case (next/prev). We deliberately keep it small to avoid burning
+    // mobile data and Netlify function invocations.
+    const idleId = idle(async () => {
+      const next = new Date(selectedDate);
+      next.setDate(next.getDate() + 1);
+      const prev = new Date(selectedDate);
+      prev.setDate(prev.getDate() - 1);
+      // Sequential, not parallel — avoids spiking the network on slow mobile
+      await prefetchOne(next);
+      if (cancelled) return;
+      await prefetchOne(prev);
+    });
+
+    return () => {
+      cancelled = true;
+      cancelIdle(idleId);
+    };
+  }, [clientData?.id, selectedDate, loading]);
 
   // Compute weekly schedule from active assignments + week dates
   const weekSchedule = useMemo(() => {
@@ -2126,6 +2220,10 @@ function Workouts() {
   // Handle tapping a workout card - select it and expand to detail view
   const handleSelectWorkoutCard = useCallback((workout) => {
     if (!workout) return;
+    // Belt-and-braces guard for the stale-while-revalidate render path: cards
+    // are dimmed + pointer-events: none, but on Android the touchend can
+    // sometimes still fire one tap through during the opacity transition.
+    if (loading) return;
     const currentKey = todayWorkout?.instance_id || `${todayWorkout?.id}-${todayWorkout?.day_index}`;
     const newKey = workout.instance_id || `${workout.id}-${workout.day_index}`;
     if (newKey !== currentKey) {
@@ -2138,7 +2236,7 @@ function Workouts() {
       setCompletedExercises(fromData);
     }
     setExpandedWorkout(true);
-  }, [todayWorkout?.id, todayWorkout?.instance_id, todayWorkout?.day_index]);
+  }, [loading, todayWorkout?.id, todayWorkout?.instance_id, todayWorkout?.day_index]);
 
   // Go back from detail view to cards view
   const handleBackToCards = useCallback(() => {
@@ -4053,8 +4151,11 @@ function Workouts() {
           </div>
 
           {/* Workout Cards or Loading/Empty State */}
-          <div className={`workout-content ${isRefreshing ? 'refreshing' : ''}`}>
-            {loading ? (
+          <div
+            className={`workout-content ${isRefreshing ? 'refreshing' : ''} ${loading && todayWorkouts.length > 0 ? 'stale-loading' : ''}`}
+            style={loading && todayWorkouts.length > 0 ? { opacity: 0.55, pointerEvents: 'none', transition: 'opacity 120ms ease' } : undefined}
+          >
+            {loading && todayWorkouts.length === 0 ? (
               <div className="loading-state-v2">
                 <div className="loading-spinner"></div>
                 <span>Loading workout...</span>
