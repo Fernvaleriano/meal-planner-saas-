@@ -3603,8 +3603,20 @@ function Workouts() {
             const mergedSets = logged.sets_data.map((loggedSet, i) => {
               const assignmentSet = assignmentSets[i] || {};
               const assignmentWeight = Number(assignmentSet.weight) || 0;
+              // Start from the coach's current prescription (so pace, incline,
+              // percent1RM, hrZone and any future prescription field flow
+              // through automatically), then layer client-logged values on top
+              // (weight actually lifted, completion, rpe, effort), then
+              // re-assert the coach's prescription for fields where the log
+              // also stored a value — otherwise a coach update via "Save &
+              // Update Clients" is silently undone by the older log.
               return {
+                ...assignmentSet,
                 ...loggedSet,
+                reps: assignmentSet.reps ?? loggedSet.reps,
+                restSeconds: assignmentSet.restSeconds ?? loggedSet.restSeconds,
+                duration: assignmentSet.duration ?? loggedSet.duration,
+                distance: assignmentSet.distance ?? loggedSet.distance,
                 prescribedWeight: assignmentSet.prescribedWeight ?? assignmentWeight ?? loggedSet.prescribedWeight ?? 0,
                 prescribedReps: assignmentSet.prescribedReps ?? assignmentSet.reps ?? loggedSet.prescribedReps ?? 0,
                 // Trust the assignment's per-set weightUnit when present — it's the
