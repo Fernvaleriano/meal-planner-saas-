@@ -12654,6 +12654,37 @@
             return ex;
         }
 
+        // Bulk by-id fallback for exercises whose thumbnail wasn't in the cache
+        // (e.g. table has more rows than the cache page or the cache hasn't loaded yet).
+        async function acFillMissingThumbnails(workouts) {
+            const allExercises = [];
+            (workouts || []).forEach(w => (w.workout_data?.exercises || []).forEach(ex => allExercises.push(ex)));
+            const missingIds = [...new Set(
+                allExercises
+                    .filter(ex => !ex.thumbnail_url && !ex.animation_url)
+                    .map(ex => parseInt(ex.id, 10))
+                    .filter(id => Number.isFinite(id) && id > 0)
+            )];
+            if (missingIds.length === 0) return;
+            try {
+                const res = await fetch(`/.netlify/functions/exercises?ids=${missingIds.join(',')}`);
+                const data = await res.json();
+                const byId = {};
+                (data.exercises || []).forEach(e => { if (e.id != null) byId[String(e.id)] = e; });
+                allExercises.forEach(ex => {
+                    if (ex.thumbnail_url || ex.animation_url) return;
+                    const meta = byId[String(ex.id)];
+                    if (!meta) return;
+                    ex.thumbnail_url = meta.thumbnail_url || '';
+                    ex.animation_url = meta.animation_url || '';
+                    ex.video_url = meta.video_url || ex.video_url || '';
+                    acExerciseMetaById[String(ex.id)] = Object.assign(acExerciseMetaById[String(ex.id)] || {}, meta);
+                });
+            } catch (e) {
+                console.warn('Bulk thumbnail enrichment failed:', e);
+            }
+        }
+
         async function acInit() {
             acRenderCalendar();
             acLoadExerciseMeta(); // fire and forget — enriches thumbnails as data arrives
@@ -12887,7 +12918,10 @@
                             name: log.workout_name || 'Logged Workout',
                             workout_data: {
                                 exercises: (log.exercises || []).map(ex => ({
-                                    id: ex.id,
+                                    // Prefer the actual exercise_id (FK to exercises table) over
+                                    // the exercise_logs row id, so thumbnail enrichment by id works.
+                                    id: ex.exercise_id || ex.id,
+                                    exerciseLogId: ex.id,
                                     name: ex.exercise_name,
                                     setsData: ex.sets_data || [],
                                     sets: ex.total_sets,
@@ -12930,6 +12964,10 @@
                 } catch (e) { /* ignore */ }
 
                 if (allWorkouts.length > 0) {
+                    // First-pass enrich from in-memory cache, then fallback to bulk
+                    // by-id fetch for any exercise that's still missing a thumbnail.
+                    allWorkouts.forEach(w => (w.workout_data?.exercises || []).forEach(acEnrichExercise));
+                    await acFillMissingThumbnails(allWorkouts);
                     acRenderDayDetail(allWorkouts, dateStr);
                 } else {
                     bodyEl.innerHTML = `
