@@ -2066,13 +2066,13 @@
         }
 
         .ac-exd-sets-area {
-            padding: 0 24px 20px;
+            padding: 0 16px 16px;
         }
 
         .ac-exd-set-header, .ac-exd-set-row {
             display: grid;
-            grid-template-columns: 50px repeat(auto-fill, minmax(70px, 1fr)) 40px;
-            gap: 6px;
+            grid-template-columns: 36px 1fr 1fr 40px;
+            gap: 8px;
             align-items: center;
             margin-bottom: 6px;
         }
@@ -2084,12 +2084,69 @@
             text-align: center;
         }
 
+        .ac-exd-set-num {
+            font-size: 14px;
+            font-weight: 700;
+            color: #334155;
+            text-align: center;
+        }
+
+        .ac-exd-set-row.completed .ac-exd-set-input {
+            background: #ecfdf5;
+            border-color: #10b981;
+        }
+
+        .ac-exd-set-done {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: 2px solid #cbd5e1;
+            background: white;
+            color: #cbd5e1;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            transition: all 0.15s;
+        }
+
+        .ac-exd-set-done:hover {
+            border-color: #3b82f6;
+            color: #3b82f6;
+        }
+
+        .ac-exd-set-done.done {
+            background: #10b981;
+            border-color: #10b981;
+            color: white;
+        }
+
+        .ac-exd-add-set {
+            width: 100%;
+            padding: 10px;
+            margin-top: 6px;
+            background: #f1f5f9;
+            border: 1px dashed #cbd5e1;
+            border-radius: 8px;
+            color: #475569;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .ac-exd-add-set:hover {
+            background: #e2e8f0;
+        }
+
         .ac-exd-set-input {
             width: 100%;
-            padding: 8px 6px;
+            padding: 10px 6px;
             border: 1px solid #e2e8f0;
             border-radius: 8px;
-            font-size: 14px;
+            font-size: 16px;
             text-align: center;
             background: white;
         }
@@ -2334,6 +2391,11 @@
         [data-theme="dark"] .ac-exd-title { color: var(--text-primary); }
         [data-theme="dark"] .ac-exd-video-area { background: var(--bg-tertiary); }
         [data-theme="dark"] .ac-exd-set-input { background: var(--bg-tertiary); border-color: var(--border-color); color: var(--text-primary); }
+        [data-theme="dark"] .ac-exd-set-num { color: var(--text-primary); }
+        [data-theme="dark"] .ac-exd-set-row.completed .ac-exd-set-input { background: rgba(16,185,129,0.15); border-color: #10b981; }
+        [data-theme="dark"] .ac-exd-set-done { background: var(--bg-tertiary); border-color: var(--border-color); color: var(--text-secondary); }
+        [data-theme="dark"] .ac-exd-set-done.done { background: #10b981; border-color: #10b981; color: white; }
+        [data-theme="dark"] .ac-exd-add-set { background: var(--bg-tertiary); border-color: var(--border-color); color: var(--text-secondary); }
         [data-theme="dark"] .ac-exd-tabs { border-color: var(--border-color); }
         [data-theme="dark"] .ac-exd-tab { color: var(--text-secondary); }
         [data-theme="dark"] .ac-exd-tab.active { color: #60a5fa; border-color: #60a5fa; }
@@ -12533,6 +12595,9 @@
         let acWorkoutLogsCache = {}; // { 'YYYY-MM-DD': 'completed' | 'in_progress' | 'skipped' }
         let acCurrentAssignment = null;
         let acExercisesCache = [];
+        let acExerciseMetaById = {}; // id -> { thumbnail_url, animation_url, video_url, muscle_group, equipment }
+        let acExerciseMetaByName = {}; // lowercased name -> meta
+        let acExerciseMetaLoaded = false;
         let acCurrentMuscleFilter = 'all';
         let acModalMode = 'add'; // 'add' or 'swap'
         let acSwapExerciseIndex = -1;
@@ -12557,8 +12622,41 @@
             acLoadMonthData();
         }
 
+        async function acLoadExerciseMeta() {
+            if (acExerciseMetaLoaded) return;
+            try {
+                const res = await fetch(`/.netlify/functions/exercises?coachId=${window.coachUserId || ''}&limit=1000`);
+                const data = await res.json();
+                (data.exercises || []).forEach(ex => {
+                    if (!ex) return;
+                    if (ex.id) acExerciseMetaById[String(ex.id)] = ex;
+                    if (ex.name) acExerciseMetaByName[String(ex.name).toLowerCase().trim()] = ex;
+                });
+                acExerciseMetaLoaded = true;
+            } catch (e) {
+                console.warn('Could not load exercise metadata:', e);
+            }
+        }
+
+        function acEnrichExercise(ex) {
+            if (!ex) return ex;
+            if (ex.thumbnail_url || ex.animation_url) return ex;
+            const meta = (ex.id && acExerciseMetaById[String(ex.id)])
+                || (ex.name && acExerciseMetaByName[String(ex.name).toLowerCase().trim()]);
+            if (meta) {
+                ex.thumbnail_url = ex.thumbnail_url || meta.thumbnail_url || '';
+                ex.animation_url = ex.animation_url || meta.animation_url || '';
+                ex.video_url = ex.video_url || meta.video_url || '';
+                ex.muscle_group = ex.muscle_group || meta.muscle_group || '';
+                ex.equipment = ex.equipment || meta.equipment || '';
+                if (!ex.id && meta.id) ex.id = meta.id;
+            }
+            return ex;
+        }
+
         async function acInit() {
             acRenderCalendar();
+            acLoadExerciseMeta(); // fire and forget — enriches thumbnails as data arrives
             await acLoadMonthData();
             const today = acFormatDate(new Date());
             acSelectDay(today);
@@ -12773,6 +12871,9 @@
             bodyEl.innerHTML = '<div class="ac-loading"><div class="ac-spinner"></div></div>';
 
             try {
+                // Make sure exercise metadata is loaded so we can enrich thumbnails
+                if (!acExerciseMetaLoaded) await acLoadExerciseMeta();
+
                 // First, check if there's a workout log for this date
                 let workoutLogData = null;
                 try {
@@ -12858,6 +12959,7 @@
 
             workouts.forEach((workout, wIdx) => {
                 const exercises = workout.workout_data?.exercises || [];
+                exercises.forEach(acEnrichExercise);
                 const workoutName = workout.name || 'Workout';
                 const isAdhoc = !!workout.is_adhoc;
                 const assignmentId = workout.id;
@@ -13284,7 +13386,9 @@
         }
 
         // ---- Save Exercises Helper ----
-        async function acSaveExercises(exercises, assignmentId, dayIndex, isAdhoc, dateStr) {
+        // opts: { silent: true } skips the day re-render so an open modal stays put
+        async function acSaveExercises(exercises, assignmentId, dayIndex, isAdhoc, dateStr, opts) {
+            const silent = !!(opts && opts.silent);
             try {
                 if (isAdhoc) {
                     await fetch('/.netlify/functions/adhoc-workouts', {
@@ -13336,11 +13440,14 @@
                         });
                     }
                 }
-                // Cache is refreshed via acSelectDay below
-                acSelectDay(dateStr);
+                if (!silent) {
+                    // Cache is refreshed via acSelectDay below
+                    acSelectDay(dateStr);
+                }
             } catch (err) {
                 console.error('Error saving exercises:', err);
-                alert('Failed to save changes');
+                if (!silent) alert('Failed to save changes');
+                throw err;
             }
         }
 
@@ -13859,6 +13966,7 @@
             const exercises = workout.workout_data?.exercises || [];
             const ex = exercises[exIndex];
             if (!ex) return;
+            acEnrichExercise(ex);
 
             const modal = document.getElementById('acExerciseDetailModal');
             modal.dataset.exIndex = exIndex;
@@ -13896,32 +14004,29 @@
                 <label><input type="radio" name="acExdTracking" value="time" ${trackingType === 'time' ? 'checked' : ''} onchange="acUpdateTrackingType('time')"> Time-based</label>
             </div>`;
 
-            const repsLabel = trackingType === 'time' ? 'Duration (s)' : 'Reps (x)';
+            const repsLabel = trackingType === 'time' ? 'Duration (s)' : 'Reps';
             html += `<div class="ac-exd-sets-area" id="acExdSetsArea">`;
-
-            html += `<div style="margin-bottom:8px;">
-                <label style="font-size:13px; font-weight:600; color:#64748b; display:block; margin-bottom:4px;">${repsLabel}</label>
-                <div style="display:flex; gap:6px; flex-wrap:wrap;" id="acExdRepsRow">`;
-            for (let i = 0; i < Math.max(setsData.length, 1); i++) {
-                html += `<input class="ac-exd-set-input" type="number" value="${setsData[i]?.reps || 0}" style="width:60px;" data-set="${i}" data-field="reps" min="0">`;
+            html += `<div class="ac-exd-set-header">
+                <span>Set</span>
+                <span>${repsLabel}</span>
+                <span>Weight (lbs)</span>
+                <span></span>
+            </div>`;
+            html += `<div id="acExdSetRows">`;
+            const numSets = Math.max(setsData.length, 1);
+            for (let i = 0; i < numSets; i++) {
+                const s = setsData[i] || { reps: 0, weight: '' };
+                const completed = !!(s.completed || s._completed);
+                html += `<div class="ac-exd-set-row${completed ? ' completed' : ''}" data-set-row="${i}">
+                    <span class="ac-exd-set-num">${i + 1}</span>
+                    <input class="ac-exd-set-input" type="number" value="${s.reps || 0}" data-set="${i}" data-field="reps" min="0" inputmode="numeric">
+                    <input class="ac-exd-set-input" type="number" value="${s.weight || ''}" data-set="${i}" data-field="weight" min="0" step="0.5" inputmode="decimal" placeholder="">
+                    <button type="button" class="ac-exd-set-done${completed ? ' done' : ''}" title="Save this set" onclick="acExdSaveSet(${i})" aria-label="Save set ${i + 1}">&#10003;</button>
+                </div>`;
             }
-            for (let i = setsData.length; i < 10; i++) {
-                html += `<input class="ac-exd-set-input" type="number" value="0" style="width:60px; opacity:0.4;" data-set="${i}" data-field="reps" min="0" onfocus="this.style.opacity=1" onblur="if(!this.value||this.value==='0')this.style.opacity=0.4">`;
-            }
-            html += `</div></div>`;
-
-            html += `<div style="margin-bottom:8px;">
-                <label style="font-size:13px; font-weight:600; color:#64748b; display:block; margin-bottom:4px;">Weight (lbs)</label>
-                <div style="display:flex; gap:6px; flex-wrap:wrap;" id="acExdWeightRow">`;
-            for (let i = 0; i < Math.max(setsData.length, 1); i++) {
-                html += `<input class="ac-exd-set-input" type="number" value="${setsData[i]?.weight || ''}" style="width:60px;" data-set="${i}" data-field="weight" min="0" step="0.5" inputmode="decimal" placeholder="">`;
-            }
-            for (let i = setsData.length; i < 10; i++) {
-                html += `<input class="ac-exd-set-input" type="number" value="" style="width:60px; opacity:0.4;" data-set="${i}" data-field="weight" min="0" step="0.5" inputmode="decimal" placeholder="" onfocus="this.style.opacity=1" onblur="if(!this.value)this.style.opacity=0.4">`;
-            }
-            html += `</div></div>`;
-
-            html += '</div>';
+            html += `</div>`;
+            html += `<button type="button" class="ac-exd-add-set" onclick="acExdAddSetRow()">+ Add Set</button>`;
+            html += `</div>`;
 
             // Show coach-prescribed metrics (RPE, %1RM, HR Zone, Pace, Incline) only if coach toggled them on
             const hasMetrics = setsData.some(s => (ex.showRPE && s.rpe) || (ex.showPercent1RM && s.percent1RM) || (ex.showHRZone && s.hrZone) || (ex.showPace && s.pace) || (ex.showIncline && s.incline));
@@ -13942,11 +14047,6 @@
                 });
                 html += `</div></div>`;
             }
-
-            html += `<div class="ac-exd-calories">
-                <label>Calories (Kcal)</label>
-                <input class="ac-exd-set-input" type="number" id="acExdCalories" value="${ex.calories || ''}" style="width:80px;" min="0">
-            </div>`;
 
             html += `<div class="ac-exd-tabs">
                 <button class="ac-exd-tab active" onclick="acExdSwitchTab('progress', this)">Progress</button>
@@ -13975,11 +14075,85 @@
         }
 
         function acUpdateTrackingType(type) {
-            const label = type === 'time' ? 'Duration (s)' : 'Reps (x)';
-            const setsArea = document.getElementById('acExdSetsArea');
-            if (setsArea) {
-                const firstLabel = setsArea.querySelector('label');
-                if (firstLabel) firstLabel.textContent = label;
+            const label = type === 'time' ? 'Duration (s)' : 'Reps';
+            const header = document.querySelector('#acExdSetsArea .ac-exd-set-header');
+            if (header) {
+                const spans = header.querySelectorAll('span');
+                if (spans[1]) spans[1].textContent = label;
+            }
+        }
+
+        function acExdAddSetRow() {
+            const rowsContainer = document.getElementById('acExdSetRows');
+            if (!rowsContainer) return;
+            const existing = rowsContainer.querySelectorAll('.ac-exd-set-row');
+            const i = existing.length;
+            const last = existing[existing.length - 1];
+            const lastReps = last ? (last.querySelector('input[data-field="reps"]')?.value || 0) : 10;
+            const lastWeight = last ? (last.querySelector('input[data-field="weight"]')?.value || '') : '';
+            const row = document.createElement('div');
+            row.className = 'ac-exd-set-row';
+            row.dataset.setRow = i;
+            row.innerHTML = `
+                <span class="ac-exd-set-num">${i + 1}</span>
+                <input class="ac-exd-set-input" type="number" value="${lastReps}" data-set="${i}" data-field="reps" min="0" inputmode="numeric">
+                <input class="ac-exd-set-input" type="number" value="${lastWeight}" data-set="${i}" data-field="weight" min="0" step="0.5" inputmode="decimal">
+                <button type="button" class="ac-exd-set-done" title="Save this set" onclick="acExdSaveSet(${i})" aria-label="Save set ${i + 1}">&#10003;</button>
+            `;
+            rowsContainer.appendChild(row);
+        }
+
+        async function acExdSaveSet(setIdx) {
+            const modal = document.getElementById('acExerciseDetailModal');
+            const exIndex = parseInt(modal.dataset.exIndex);
+            const assignmentId = modal.dataset.assignmentId;
+            const dayIndex = parseInt(modal.dataset.dayIndex);
+            const isAdhoc = modal.dataset.isAdhoc === 'true';
+            const dateStr = modal.dataset.dateStr;
+
+            const bodyEl = document.getElementById('acDetailBody');
+            const workout = JSON.parse(bodyEl.dataset.workout || '{}');
+            const exercises = workout.workout_data?.exercises || [];
+            const ex = exercises[exIndex];
+            if (!ex) return;
+
+            const setRows = document.querySelectorAll('#acExdSetRows .ac-exd-set-row');
+            const newSetsData = [];
+            setRows.forEach((row, i) => {
+                const repsInput = row.querySelector('input[data-field="reps"]');
+                const weightInput = row.querySelector('input[data-field="weight"]');
+                const reps = parseInt(repsInput?.value) || 0;
+                const weight = parseFloat(weightInput?.value) || 0;
+                let completed = row.classList.contains('completed');
+                if (i === setIdx) completed = true;
+                newSetsData.push({
+                    setNumber: i + 1,
+                    reps,
+                    weight,
+                    weightUnit: 'lbs',
+                    completed
+                });
+            });
+
+            ex.setsData = newSetsData;
+            ex.sets = newSetsData.length;
+            ex.reps = (newSetsData[0]?.reps || ex.reps || 0).toString();
+            exercises[exIndex] = ex;
+
+            // Persist updated exercises and stash back so the modal stays open
+            bodyEl.dataset.workout = JSON.stringify(workout);
+
+            const targetRow = document.querySelector(`#acExdSetRows .ac-exd-set-row[data-set-row="${setIdx}"]`);
+            const doneBtn = targetRow?.querySelector('.ac-exd-set-done');
+            if (doneBtn) { doneBtn.disabled = true; doneBtn.textContent = '...'; }
+
+            try {
+                await acSaveExercises(exercises, assignmentId, dayIndex, isAdhoc, dateStr, { silent: true });
+                if (targetRow) targetRow.classList.add('completed');
+                if (doneBtn) { doneBtn.disabled = false; doneBtn.textContent = '✓'; doneBtn.classList.add('done'); }
+            } catch (e) {
+                if (doneBtn) { doneBtn.disabled = false; doneBtn.textContent = '✓'; }
+                alert('Failed to save set');
             }
         }
 
@@ -14018,10 +14192,13 @@
                     content.innerHTML = `<div style="padding:8px; font-size:13px; color:#64748b;">
                         <p><strong>Muscle Group:</strong> ${ex?.muscle_group || 'N/A'}</p>
                         <p><strong>Equipment:</strong> ${ex?.equipment || 'N/A'}</p>
-                        <p><strong>Rest Time:</strong> ${ex?.restSeconds || 60}s</p>
-                        <div style="margin-top:12px;">
+                        <div style="margin-top:12px; display:flex; align-items:center; gap:8px;">
                             <label style="font-weight:600;">Rest (seconds):</label>
-                            <input class="ac-exd-set-input" type="number" id="acExdRestTime" value="${ex?.restSeconds || 60}" style="width:80px; margin-left:8px;" min="0">
+                            <input class="ac-exd-set-input" type="number" id="acExdRestTime" value="${ex?.restSeconds || 60}" style="width:90px;" min="0" inputmode="numeric">
+                        </div>
+                        <div style="margin-top:12px; display:flex; align-items:center; gap:8px;">
+                            <label style="font-weight:600;">Calories (Kcal):</label>
+                            <input class="ac-exd-set-input" type="number" id="acExdCalories" value="${ex?.calories || ''}" style="width:90px;" min="0" inputmode="numeric">
                         </div>
                     </div>`;
                     break;
@@ -14089,19 +14266,22 @@
             const ex = exercises[exIndex];
             if (!ex) return;
 
-            const repsInputs = document.querySelectorAll('#acExdRepsRow input');
-            const weightInputs = document.querySelectorAll('#acExdWeightRow input');
+            const setRows = document.querySelectorAll('#acExdSetRows .ac-exd-set-row');
             const newSetsData = [];
 
-            repsInputs.forEach((input, i) => {
-                const reps = parseInt(input.value) || 0;
-                const weight = parseFloat(weightInputs[i]?.value) || 0;
-                if (reps > 0 || weight > 0) {
+            setRows.forEach(row => {
+                const repsInput = row.querySelector('input[data-field="reps"]');
+                const weightInput = row.querySelector('input[data-field="weight"]');
+                const reps = parseInt(repsInput?.value) || 0;
+                const weight = parseFloat(weightInput?.value) || 0;
+                const completed = row.classList.contains('completed');
+                if (reps > 0 || weight > 0 || completed) {
                     newSetsData.push({
                         setNumber: newSetsData.length + 1,
                         reps,
                         weight,
-                        weightUnit: 'lbs'
+                        weightUnit: 'lbs',
+                        completed
                     });
                 }
             });
