@@ -1738,6 +1738,29 @@ function Workouts() {
     }
   }, [weekDates]);
 
+  // Swipe-to-navigate on the week strip: left = next week, right = previous week.
+  // Only fire when the gesture is clearly horizontal so vertical page scroll still works.
+  const weekSwipeRef = useRef({ x: 0, y: 0, active: false });
+  const handleWeekStripTouchStart = useCallback((e) => {
+    const t = e.touches && e.touches[0];
+    if (!t) return;
+    weekSwipeRef.current = { x: t.clientX, y: t.clientY, active: true };
+  }, []);
+  const handleWeekStripTouchEnd = useCallback((e) => {
+    const start = weekSwipeRef.current;
+    if (!start.active) return;
+    weekSwipeRef.current.active = false;
+    const t = (e.changedTouches && e.changedTouches[0]) || null;
+    if (!t) return;
+    const dx = t.clientX - start.x;
+    const dy = t.clientY - start.y;
+    const SWIPE_THRESHOLD = 50;
+    if (Math.abs(dx) < SWIPE_THRESHOLD) return;
+    if (Math.abs(dx) < Math.abs(dy)) return;
+    if (dx < 0) goToNextWeek();
+    else goToPreviousWeek();
+  }, [goToNextWeek, goToPreviousWeek]);
+
   // Navigate to a specific date - updates both the selected date and the week view
   const navigateToDate = useCallback((date) => {
     try {
@@ -4214,7 +4237,11 @@ function Workouts() {
               </button>
             </div>
 
-            <div className="week-days-strip">
+            <div
+              className="week-days-strip"
+              onTouchStart={handleWeekStripTouchStart}
+              onTouchEnd={handleWeekStripTouchEnd}
+            >
               {(weekDates || []).map((date, idx) => {
                 if (!date || !(date instanceof Date) || isNaN(date.getTime())) return null;
 
