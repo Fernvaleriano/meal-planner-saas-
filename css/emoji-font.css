@@ -1,0 +1,10 @@
+/* Replace iOS Apple Color Emoji with Google's Noto Color Emoji so emoji glyphs
+   render in a consistent flat/Android style across iPhone, Android, and web.
+   Loaded from Google Fonts; the @font-face served has a unicode-range scoped
+   to emoji codepoints, so listing it first only affects emoji rendering. */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Color+Emoji&display=swap');
+
+html,
+body {
+    font-family: 'Noto Color Emoji', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
