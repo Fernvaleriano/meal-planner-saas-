@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
-import { X, Check, Plus, ChevronLeft, Play, Timer, BarChart3, ArrowLeftRight, Trash2, Mic, MicOff, MessageCircle, Loader2, AlertCircle, History, TrendingUp, Award, ChevronDown, ChevronUp, Send, Square, Sparkles, ExternalLink, Camera, Bot, Flame, Leaf, Zap, User } from 'lucide-react';
+import { X, Check, Plus, ChevronLeft, Play, Timer, BarChart3, ArrowLeftRight, Trash2, Mic, MicOff, MessageCircle, Loader2, AlertCircle, History, TrendingUp, Award, ChevronDown, ChevronUp, Send, Square, Sparkles, ExternalLink, Camera, Bot, Flame, Leaf, Zap, User, Lock, NotebookPen } from 'lucide-react';
 import { apiGet, apiPost, apiPut, apiDelete, getOrCreateWorkoutLogId } from '../../utils/api';
+import { supabase } from '../../utils/supabase';
 import { generateProgression, generateSetNudge, EFFORT_OPTIONS, parseSetsData, getMaxWeight, convertWeight } from '../../utils/workoutProgression';
 import { onAppSuspend, onAppResume } from '../../hooks/useAppLifecycle';
 import Portal from '../Portal';
@@ -172,6 +173,23 @@ const parseVoiceInput = (transcript, currentSets) => {
     understood
   };
 };
+
+// Format a timestamp for personal notes — relative for recent ("2h ago",
+// "3d ago"), absolute for older entries.
+function formatPersonalNoteTime(iso) {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  const diffMs = Date.now() - d.getTime();
+  const sec = Math.floor(diffMs / 1000);
+  if (sec < 60) return 'Just now';
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+  const day = Math.floor(hr / 24);
+  if (day < 7) return `${day}d ago`;
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+}
 
 // Simplified and more stable ExerciseDetailModal
 function ExerciseDetailModal({
@@ -382,6 +400,14 @@ function ExerciseDetailModal({
   const [isRecordingVoiceNote, setIsRecordingVoiceNote] = useState(false);
   const [voiceNoteUrl, setVoiceNoteUrl] = useState(null);
   const [voiceNoteUploading, setVoiceNoteUploading] = useState(false);
+
+  // Personal (private) notes state — tied to the exercise name, only the client sees these
+  const [personalNotes, setPersonalNotes] = useState([]);
+  const [personalNotesLoading, setPersonalNotesLoading] = useState(false);
+  const [personalNoteDraft, setPersonalNoteDraft] = useState('');
+  const [showPersonalNotes, setShowPersonalNotes] = useState(false);
+  const [personalNoteSaving, setPersonalNoteSaving] = useState(false);
+  const [showAllPersonalNotes, setShowAllPersonalNotes] = useState(false);
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const clientNoteTimerRef = useRef(null);
@@ -994,6 +1020,73 @@ function ExerciseDetailModal({
       if (text.trim()) saveClientNote(text);
     }, 2000);
   }, [saveClientNote]);
+
+  // Load personal (private) notes for this exercise. Notes are keyed by
+  // exercise_name (case-insensitive) so they follow the exercise across every
+  // workout it appears in — e.g. a "knee hurt on squats" note shows up the
+  // next time Squat is in the plan, not just on that one day.
+  useEffect(() => {
+    if (!clientId || !exercise?.name) {
+      setPersonalNotes([]);
+      return;
+    }
+    let cancelled = false;
+    setPersonalNotesLoading(true);
+    setShowAllPersonalNotes(false);
+    setPersonalNoteDraft('');
+    (async () => {
+      const { data, error } = await supabase
+        .from('client_exercise_personal_notes')
+        .select('id, note_text, created_at')
+        .eq('client_id', clientId)
+        .ilike('exercise_name', exercise.name)
+        .order('created_at', { ascending: false })
+        .limit(50);
+      if (cancelled) return;
+      if (error) {
+        console.error('Error loading personal notes:', error);
+        setPersonalNotes([]);
+      } else {
+        setPersonalNotes(data || []);
+      }
+      setPersonalNotesLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, [clientId, exercise?.name]);
+
+  const savePersonalNote = useCallback(async () => {
+    const text = personalNoteDraft.trim();
+    if (!text || !clientId || !exercise?.name) return;
+    setPersonalNoteSaving(true);
+    const { data, error } = await supabase
+      .from('client_exercise_personal_notes')
+      .insert({
+        client_id: clientId,
+        exercise_name: exercise.name,
+        note_text: text
+      })
+      .select('id, note_text, created_at')
+      .single();
+    setPersonalNoteSaving(false);
+    if (error) {
+      console.error('Error saving personal note:', error);
+      return;
+    }
+    setPersonalNotes(prev => [data, ...prev]);
+    setPersonalNoteDraft('');
+  }, [personalNoteDraft, clientId, exercise?.name]);
+
+  const deletePersonalNote = useCallback(async (noteId) => {
+    const { error } = await supabase
+      .from('client_exercise_personal_notes')
+      .delete()
+      .eq('id', noteId);
+    if (error) {
+      console.error('Error deleting personal note:', error);
+      return;
+    }
+    setPersonalNotes(prev => prev.filter(n => n.id !== noteId));
+  }, []);
 
   // Voice note recording
   const startVoiceNoteRecording = useCallback(async () => {
@@ -2558,6 +2651,115 @@ function ExerciseDetailModal({
                   <Send size={14} />
                   <span>Send Note</span>
                 </button>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Personal (Private) Notes — only the client can see these */}
+        <div className="personal-note-section">
+          <button
+            className="personal-note-toggle"
+            onClick={() => setShowPersonalNotes(!showPersonalNotes)}
+            type="button"
+          >
+            <div className="personal-note-toggle-left">
+              <NotebookPen size={18} />
+              <span>My Notes</span>
+              <span className="personal-note-private-badge">
+                <Lock size={10} />
+                Private
+              </span>
+              {personalNotes.length > 0 && (
+                <span className="personal-note-count">{personalNotes.length}</span>
+              )}
+            </div>
+            {showPersonalNotes ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          </button>
+
+          {/* Last note preview when collapsed — acts as a hint when this
+              exercise comes up again later. */}
+          {!showPersonalNotes && personalNotes.length > 0 && (
+            <div className="personal-note-preview">
+              <span className="personal-note-preview-label">Last note:</span>
+              <span className="personal-note-preview-text">{personalNotes[0].note_text}</span>
+              <span className="personal-note-preview-time">
+                {formatPersonalNoteTime(personalNotes[0].created_at)}
+              </span>
+            </div>
+          )}
+
+          {showPersonalNotes && (
+            <div className="personal-note-input-area">
+              <p className="personal-note-help">
+                Notes only you can see. They follow this exercise — write something here and you'll see it again next time {exercise?.name ? <strong>{exercise.name}</strong> : 'this exercise'} comes up.
+              </p>
+
+              <textarea
+                className="personal-note-textarea"
+                placeholder={`E.g. "knee hurt on the last set" or "go heavier next time"`}
+                value={personalNoteDraft}
+                onChange={(e) => setPersonalNoteDraft(e.target.value)}
+                rows={3}
+                maxLength={500}
+              />
+              <div className="personal-note-actions">
+                <span className="personal-note-char-count">{personalNoteDraft.length}/500</span>
+                <button
+                  className="personal-note-save-btn"
+                  onClick={savePersonalNote}
+                  disabled={!personalNoteDraft.trim() || personalNoteSaving}
+                  type="button"
+                >
+                  {personalNoteSaving ? <Loader2 size={14} className="spin" /> : <Plus size={14} />}
+                  <span>Add Note</span>
+                </button>
+              </div>
+
+              {personalNotesLoading ? (
+                <div className="personal-note-loading">
+                  <Loader2 size={16} className="spin" />
+                  <span>Loading your notes…</span>
+                </div>
+              ) : personalNotes.length === 0 ? (
+                <div className="personal-note-empty">
+                  No notes yet. Anything you add will show up the next time this exercise appears.
+                </div>
+              ) : (
+                <div className="personal-note-list">
+                  <div className="personal-note-list-header">
+                    Past notes
+                  </div>
+                  {(showAllPersonalNotes ? personalNotes : personalNotes.slice(0, 3)).map(note => (
+                    <div key={note.id} className="personal-note-item">
+                      <div className="personal-note-item-header">
+                        <span className="personal-note-item-time">
+                          {formatPersonalNoteTime(note.created_at)}
+                        </span>
+                        <button
+                          className="personal-note-delete-btn"
+                          onClick={() => deletePersonalNote(note.id)}
+                          type="button"
+                          aria-label="Delete note"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+                      <div className="personal-note-item-text">{note.note_text}</div>
+                    </div>
+                  ))}
+                  {personalNotes.length > 3 && (
+                    <button
+                      className="personal-note-show-more"
+                      onClick={() => setShowAllPersonalNotes(!showAllPersonalNotes)}
+                      type="button"
+                    >
+                      {showAllPersonalNotes
+                        ? 'Show less'
+                        : `Show ${personalNotes.length - 3} more`}
+                    </button>
+                  )}
+                </div>
               )}
             </div>
           )}
