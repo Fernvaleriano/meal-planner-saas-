@@ -1278,29 +1278,20 @@ function ExerciseDetailModal({
       pendingVoiceExtRef.current = null;
       setPendingVoiceUrl(null);
 
-      // Save voice note path to the exercise log (best-effort — workout-logs upsert)
+      // Save voice note path to the exercise log. Use the shared serialized
+      // helper so we don't race with the text-note auto-save and end up
+      // creating two workout_log rows for the same client+date.
       let logId = workoutLogIdRef.current;
       if (!logId) {
-        const existing = await apiGet(
-          `/.netlify/functions/workout-logs?clientId=${clientId}&startDate=${dateStr}&endDate=${dateStr}&limit=1`
+        logId = await getOrCreateWorkoutLogId(
+          clientId,
+          dateStr,
+          exercise?.workoutName || 'Workout'
         );
-        const logs = existing?.workouts || existing?.logs || [];
-        if (logs.length > 0) {
-          logId = logs[0].id;
-          workoutLogIdRef.current = logId;
-        }
+        if (logId) workoutLogIdRef.current = logId;
       }
       if (!logId) {
-        const logRes = await apiPost('/.netlify/functions/workout-logs', {
-          clientId,
-          workoutDate: dateStr,
-          workoutName: exercise?.workoutName || 'Workout',
-          status: 'in_progress'
-        });
-        if (logRes?.workout?.id) {
-          logId = logRes.workout.id;
-          workoutLogIdRef.current = logId;
-        }
+        console.error('[voice-note] Could not resolve workout log id; voice note path will not be linked', { clientId, dateStr });
       }
       if (logId) {
         const setsData = sets.map((s, i) => ({
@@ -1317,17 +1308,22 @@ function ExerciseDetailModal({
           ...(s.distance != null && { distance: s.distance }),
           ...(s.isDistanceBased && { isDistanceBased: true })
         }));
-        await apiPut('/.netlify/functions/workout-logs', {
-          workoutId: logId,
-          exercises: [{
-            exerciseId: exercise.id,
-            exerciseName: exercise.name || 'Unknown',
-            order: 1,
-            sets: setsData,
-            clientVoiceNotePath: filePath,
-            clientNotes: clientNote || undefined
-          }]
-        });
+        try {
+          await apiPut('/.netlify/functions/workout-logs', {
+            workoutId: logId,
+            exercises: [{
+              exerciseId: exercise.id,
+              exerciseName: exercise.name || 'Unknown',
+              order: 1,
+              sets: setsData,
+              clientVoiceNotePath: filePath,
+              clientNotes: clientNote || undefined
+            }]
+          });
+        } catch (putErr) {
+          console.error('[voice-note] Failed to link voice note to exercise_log', putErr);
+          throw putErr;
+        }
       }
 
       // Notify coach about voice note
