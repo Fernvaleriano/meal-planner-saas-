@@ -24,7 +24,7 @@ const DEMO_CLIENT = {
   weight: 152.5, // current (latest) weight after the loss progression
   height_ft: 5,
   height_in: 6,
-  activity_level: 'moderate',
+  activity_level: 1.55,
   unit_system: 'imperial',
   calorie_adjustment: -350,
   diet_type: null,
