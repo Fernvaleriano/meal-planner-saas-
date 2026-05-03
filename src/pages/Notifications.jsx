@@ -138,7 +138,7 @@ function Notifications() {
       navigate(meta.plan_id ? `/plans/${meta.plan_id}` : '/plans');
     } else if (notif.type === 'workout_assigned') {
       navigate(meta.start_date ? `/workouts?date=${encodeURIComponent(meta.start_date)}` : '/workouts');
-    } else if (notif.type === 'pr_reaction' || notif.type === 'note_reaction' || notif.type === 'workout_reaction' || notif.type === 'gym_checkin_reaction') {
+    } else if (notif.type === 'pr_reaction' || notif.type === 'note_reaction' || notif.type === 'workout_reaction') {
       navigate('/workout-history');
     } else if (notif.type === 'measurement_reaction') {
       navigate('/progress?tab=measurements');
@@ -149,6 +149,7 @@ function Notifications() {
     } else if (notif.type === 'chat_message') {
       navigate('/messages');
     }
+    // weigh_in_reaction and gym_checkin_reaction: mark as read, no navigation
   };
 
   return (
