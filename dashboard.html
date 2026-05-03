@@ -4855,9 +4855,8 @@
             font-size: 13px;
             color: #4c1d95;
             line-height: 1.4;
-            max-height: 60px;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
         }
         [data-theme="dark"] .priority-voice-player {
             background: #1e1033;
@@ -7918,13 +7917,14 @@
                                     }
                                 }
 
-                                // Build inline text note preview
+                                // Build inline text note (full content, no truncation)
                                 let textNoteHtml = '';
                                 if (hasText && note.client_notes.trim()) {
-                                    const preview = note.client_notes.length > 120
-                                        ? note.client_notes.substring(0, 120) + '...'
-                                        : note.client_notes;
-                                    textNoteHtml = `<div class="priority-text-note" onclick="event.stopPropagation()"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:3px;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>${preview}</div>`;
+                                    const escaped = note.client_notes
+                                        .replace(/&/g, '&amp;')
+                                        .replace(/</g, '&lt;')
+                                        .replace(/>/g, '&gt;');
+                                    textNoteHtml = `<div class="priority-text-note" onclick="event.stopPropagation()"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:3px;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>${escaped}</div>`;
                                 }
 
                                 // Escape exercise name for use in HTML attributes
