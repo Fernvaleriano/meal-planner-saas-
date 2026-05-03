@@ -146,6 +146,8 @@ function Notifications() {
       navigate('/progress?tab=photos');
     } else if (notif.type === 'checkin_reaction') {
       navigate('/check-in');
+    } else if (notif.type === 'chat_message') {
+      navigate('/messages');
     }
   };
 
