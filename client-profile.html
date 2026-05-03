@@ -14702,16 +14702,30 @@
         }
 
         async function acLoadExerciseHistory(exerciseIdOrName) {
-            try {
-                const res = await fetch(`/.netlify/functions/workout-logs?clientId=${clientId}&limit=30`);
-                const data = await res.json();
-                const logs = data.workouts || data.logs || [];
+            const content = document.getElementById('acExdTabContent');
+            if (!content) return;
 
+            if (!clientId) {
+                content.innerHTML = '<p style="color:#94a3b8; text-align:center; padding:16px;">No client selected.</p>';
+                return;
+            }
+
+            try {
+                const res = await fetch(`/.netlify/functions/workout-logs?clientId=${encodeURIComponent(clientId)}&limit=30`);
+                if (!res.ok) {
+                    throw new Error(`workout-logs request failed: ${res.status}`);
+                }
+                const data = await res.json();
+                const logs = Array.isArray(data?.workouts) ? data.workouts
+                    : Array.isArray(data?.logs) ? data.logs
+                    : [];
+
+                const target = (exerciseIdOrName || '').toString().toLowerCase();
                 const history = [];
                 logs.forEach(log => {
                     (log.exercises || []).forEach(ex => {
-                        const nameMatch = (ex.exercise_name || '').toLowerCase() === (exerciseIdOrName || '').toLowerCase() ||
-                                          ex.exercise_id === exerciseIdOrName;
+                        const nameMatch = (ex.exercise_name || '').toLowerCase() === target ||
+                                          (ex.exercise_id || '').toString().toLowerCase() === target;
                         if (nameMatch) {
                             history.push({
                                 date: log.workout_date,
@@ -14723,9 +14737,6 @@
                     });
                 });
 
-                const content = document.getElementById('acExdTabContent');
-                if (!content) return;
-
                 if (history.length === 0) {
                     content.innerHTML = '<p style="color:#94a3b8; text-align:center; padding:16px;">No history found for this exercise yet.</p>';
                     return;
@@ -14733,7 +14744,10 @@
 
                 let html = '';
                 history.slice(0, 10).forEach(h => {
-                    const dateStr = new Date(h.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                    const d = h.date ? new Date(h.date + 'T12:00:00') : null;
+                    const dateStr = d && !isNaN(d.getTime())
+                        ? d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                        : '—';
                     const setsStr = (h.sets || []).map(s => `${s.reps || 0}x${s.weight || 0}`).join(', ');
                     html += `<div class="ac-exd-history-item">
                         <span style="font-weight:600; color:#334155;">${dateStr}</span>
@@ -14745,6 +14759,7 @@
                 content.innerHTML = html;
             } catch (err) {
                 console.error('Error loading exercise history:', err);
+                content.innerHTML = '<p style="color:#94a3b8; text-align:center; padding:16px;">Could not load history. Please try again.</p>';
             }
         }
 
