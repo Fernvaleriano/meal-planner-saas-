@@ -7677,8 +7677,8 @@
 
                 // --- EXPIRING WORKOUT PROGRAMS ---
                 try {
-                    const fourteenDaysFromNow = new Date();
-                    fourteenDaysFromNow.setDate(fourteenDaysFromNow.getDate() + 14);
+                    const sevenDaysFromNow = new Date();
+                    sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
                     const threeDaysAgo = new Date();
                     threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
                     const today = new Date().toISOString().split('T')[0];
@@ -7690,18 +7690,29 @@
                         .eq('is_active', true)
                         .not('end_date', 'is', null)
                         .gte('end_date', threeDaysAgo.toISOString().split('T')[0])
-                        .lte('end_date', fourteenDaysFromNow.toISOString().split('T')[0])
+                        .lte('end_date', sevenDaysFromNow.toISOString().split('T')[0])
                         .order('end_date', { ascending: true })
                         .limit(10);
 
                     if (endingPrograms && endingPrograms.length > 0) {
+                        // Use calendar-day math so timezone offsets don't shift "today" by one
+                        const todayMidnight = new Date();
+                        todayMidnight.setHours(0, 0, 0, 0);
                         endingPrograms.slice(0, MAX_SHOWN).forEach(wp => {
                             const name = clientMap[wp.client_id] || 'Unknown Client';
-                            const daysLeft = Math.ceil((new Date(wp.end_date) - new Date()) / 86400000);
-                            const isExpired = daysLeft <= 0;
-                            const urgency = isExpired ? 'Program ended' : daysLeft <= 1 ? 'Ends tomorrow' : `Ends in ${daysLeft} days`;
-                            const dotColor = isExpired ? 'priority-dot--red' : daysLeft <= 3 ? 'priority-dot--amber' : 'priority-dot--amber';
-                            const labelClass = isExpired ? 'priority-label--action' : 'priority-label--pending';
+                            const endDateMidnight = new Date(wp.end_date + 'T00:00:00');
+                            const daysLeft = Math.round((endDateMidnight - todayMidnight) / 86400000);
+                            const isExpired = daysLeft < 0;
+                            const isToday = daysLeft === 0;
+                            const urgency = isExpired
+                                ? 'Program ended'
+                                : isToday
+                                    ? 'Ends today'
+                                    : daysLeft === 1
+                                        ? 'Ends tomorrow'
+                                        : `Ends in ${daysLeft} days`;
+                            const dotColor = isExpired ? 'priority-dot--red' : 'priority-dot--amber';
+                            const labelClass = (isExpired || isToday) ? 'priority-label--action' : 'priority-label--pending';
                             const aid = 'workout-program-' + wp.id;
                             const url = `client-profile.html?clientId=${wp.client_id}&tab=workouts`;
                             addAlert(aid, `
