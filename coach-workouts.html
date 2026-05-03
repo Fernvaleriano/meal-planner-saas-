@@ -13086,6 +13086,183 @@
             } catch(e) { /* ignore */ }
         }
 
+        // ============================================
+        // Per-day fan-out for program generation
+        // ============================================
+        // Netlify sync functions cap at 26s. A full multi-day program in one
+        // Claude call exceeds that. Instead, we fan out parallel per-day single
+        // workout calls (~5-10s each), then assemble locally + apply progression.
+
+        // Map split type + days-per-week → array of per-day target muscle groups.
+        // Each entry is what we'll pass as targetMuscle for a single-mode generate.
+        function computeSplitDays(daysPerWeek, split, focusAreas = []) {
+            const splits = {
+                'push_pull_legs': {
+                    3: [['push', 'Push Day'], ['pull', 'Pull Day'], ['legs', 'Leg Day']],
+                    4: [['push', 'Push Day'], ['pull', 'Pull Day'], ['legs', 'Leg Day'], ['upper_body', 'Upper Body']],
+                    5: [['push', 'Push Day'], ['pull', 'Pull Day'], ['legs', 'Leg Day'], ['push', 'Push Day 2'], ['pull', 'Pull Day 2']],
+                    6: [['push', 'Push A'], ['pull', 'Pull A'], ['legs', 'Legs A'], ['push', 'Push B'], ['pull', 'Pull B'], ['legs', 'Legs B']]
+                },
+                'upper_lower': {
+                    2: [['upper_body', 'Upper Body'], ['lower_body', 'Lower Body']],
+                    3: [['upper_body', 'Upper Body'], ['lower_body', 'Lower Body'], ['full_body', 'Full Body']],
+                    4: [['upper_body', 'Upper A'], ['lower_body', 'Lower A'], ['upper_body', 'Upper B'], ['lower_body', 'Lower B']],
+                    5: [['upper_body', 'Upper A'], ['lower_body', 'Lower A'], ['upper_body', 'Upper B'], ['lower_body', 'Lower B'], ['full_body', 'Full Body']],
+                    6: [['upper_body', 'Upper A'], ['lower_body', 'Lower A'], ['upper_body', 'Upper B'], ['lower_body', 'Lower B'], ['upper_body', 'Upper C'], ['lower_body', 'Lower C']]
+                },
+                'full_body': {
+                    2: [['full_body', 'Full Body A'], ['full_body', 'Full Body B']],
+                    3: [['full_body', 'Full Body A'], ['full_body', 'Full Body B'], ['full_body', 'Full Body C']],
+                    4: [['full_body', 'Full Body A'], ['full_body', 'Full Body B'], ['full_body', 'Full Body C'], ['full_body', 'Full Body D']],
+                    5: [['full_body', 'Full Body A'], ['full_body', 'Full Body B'], ['full_body', 'Full Body C'], ['full_body', 'Full Body D'], ['full_body', 'Full Body E']],
+                    6: [['full_body', 'Full Body A'], ['full_body', 'Full Body B'], ['full_body', 'Full Body C'], ['full_body', 'Full Body D'], ['full_body', 'Full Body E'], ['full_body', 'Full Body F']]
+                },
+                'bro_split': {
+                    3: [['chest', 'Chest Day'], ['back', 'Back Day'], ['legs', 'Leg Day']],
+                    4: [['chest', 'Chest Day'], ['back', 'Back Day'], ['shoulders', 'Shoulder Day'], ['legs', 'Leg Day']],
+                    5: [['chest', 'Chest Day'], ['back', 'Back Day'], ['shoulders', 'Shoulder Day'], ['arms', 'Arm Day'], ['legs', 'Leg Day']],
+                    6: [['chest', 'Chest Day'], ['back', 'Back Day'], ['shoulders', 'Shoulder Day'], ['arms', 'Arm Day'], ['legs', 'Leg Day'], ['core', 'Core & Conditioning']]
+                },
+                'push_pull': {
+                    2: [['push', 'Push Day'], ['pull', 'Pull Day']],
+                    3: [['push', 'Push Day'], ['pull', 'Pull Day'], ['full_body', 'Full Body']],
+                    4: [['push', 'Push A'], ['pull', 'Pull A'], ['push', 'Push B'], ['pull', 'Pull B']]
+                }
+            };
+
+            // Auto: pick a sensible default per days-per-week
+            const autoMap = {
+                2: 'upper_lower', 3: 'full_body', 4: 'upper_lower',
+                5: 'push_pull_legs', 6: 'push_pull_legs'
+            };
+            const effectiveSplit = (split === 'auto') ? (autoMap[daysPerWeek] || 'upper_lower') : split;
+            const table = splits[effectiveSplit];
+            if (!table || !table[daysPerWeek]) {
+                // Fallback to N full-body days
+                return Array.from({ length: daysPerWeek }, (_, i) => ({
+                    targetMuscle: 'full_body', dayName: `Day ${i + 1}`, dayNumber: i + 1
+                }));
+            }
+
+            // If focusAreas were specified, bias one extra day toward them
+            const days = table[daysPerWeek].map(([target, name], i) => ({
+                targetMuscle: target,
+                dayName: name,
+                dayNumber: i + 1
+            }));
+
+            // Translate "push"/"pull" into our backend's targetMuscle vocabulary.
+            // The single-mode endpoint accepts: chest, back, shoulders, arms, legs,
+            // glutes, core, upper_body, lower_body, full_body. Push/Pull don't exist,
+            // so map them to broader categories that cover the right muscles.
+            for (const d of days) {
+                if (d.targetMuscle === 'push') d.targetMuscle = 'upper_body'; // chest+shoulders+tris
+                else if (d.targetMuscle === 'pull') d.targetMuscle = 'upper_body'; // back+bis (still upper)
+            }
+            return days;
+        }
+
+        // Run promises with limited concurrency.
+        async function _withConcurrency(items, limit, worker) {
+            const results = new Array(items.length);
+            let cursor = 0;
+            const runners = Array.from({ length: Math.min(limit, items.length) }, async () => {
+                while (cursor < items.length) {
+                    const i = cursor++;
+                    results[i] = await worker(items[i], i);
+                }
+            });
+            await Promise.all(runners);
+            return results;
+        }
+
+        // Local copy of the backend's multi-week progression generator.
+        // Keep in sync with netlify/functions/generate-workout-claude.js.
+        function _generateMultiWeekProgressionLocal(week1Workouts, totalWeeks, goal) {
+            if (totalWeeks <= 1) return [];
+            const out = [];
+            for (let w = 2; w <= totalWeeks; w++) {
+                const isDeload = w % 4 === 0;
+                const weekIndex = w - 1;
+                const workouts = week1Workouts.map(workout => {
+                    const exercises = (workout.exercises || []).map(ex => {
+                        if (ex.isWarmup || ex.isStretch || ex.phase === 'warmup' || ex.phase === 'cooldown') return { ...ex };
+                        const baseSets = Number(ex.sets) || 3;
+                        const baseReps = String(ex.reps || '8-12');
+                        let newSets = baseSets;
+                        let newReps = baseReps;
+                        let progressNote = '';
+                        if (isDeload) {
+                            newSets = Math.max(2, baseSets - 1);
+                            progressNote = `Week ${w} (DELOAD): drop 1 set, use ~70% of recent working weight`;
+                        } else if (goal === 'strength') {
+                            progressNote = `Week ${w}: add 2.5-5 lb to working weight`;
+                        } else if (goal === 'hypertrophy') {
+                            const range = baseReps.match(/(\d+)\s*[-–]\s*(\d+)/);
+                            if (range) {
+                                const lowRep = parseInt(range[1]);
+                                const highRep = parseInt(range[2]);
+                                const repBump = Math.min(highRep, lowRep + (weekIndex - 1));
+                                newReps = `${repBump}-${highRep}`;
+                                if (weekIndex >= 3) newSets = baseSets + 1;
+                                progressNote = `Week ${w}: aim for ${newReps} reps`;
+                            } else {
+                                progressNote = `Week ${w}: aim for 1-2 more reps than last week`;
+                            }
+                        } else {
+                            const baseRest = Number(ex.restSeconds) || 60;
+                            const newRest = Math.max(20, baseRest - 10 * (weekIndex - 1));
+                            return { ...ex, restSeconds: newRest, notes: ex.notes ? `${ex.notes} | Week ${w}: shorten rest to ${newRest}s` : `Week ${w}: shorten rest to ${newRest}s` };
+                        }
+                        return { ...ex, sets: newSets, reps: newReps, notes: ex.notes ? `${ex.notes} | ${progressNote}` : progressNote };
+                    });
+                    return { ...workout, exercises };
+                });
+                out.push({ weekNumber: w, workouts, isDeload });
+            }
+            return out;
+        }
+
+        // Generate one day via the existing single-mode endpoint.
+        async function _generateOneDay(daySpec, sharedReq) {
+            const dayBody = {
+                ...sharedReq,
+                mode: 'single',
+                targetMuscle: daySpec.targetMuscle,
+                daysPerWeek: 1,
+                duration: 1,
+                split: 'auto',
+                focusAreas: [daySpec.targetMuscle],
+                includeProgression: false,
+                // Tag with day context so backend prompt is aware
+                clientName: sharedReq.clientName + ` — Day ${daySpec.dayNumber}`,
+                varietySeed: (sharedReq.varietySeed || Date.now()) + daySpec.dayNumber * 7919
+            };
+
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 60000);
+            try {
+                const response = await fetch('/.netlify/functions/generate-workout-claude', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(currentAccessToken && { 'Authorization': `Bearer ${currentAccessToken}` })
+                    },
+                    body: JSON.stringify(dayBody),
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+                const rawText = await response.text();
+                let data;
+                try { data = JSON.parse(rawText); }
+                catch { throw new Error(`Day ${daySpec.dayNumber}: server returned non-JSON (HTTP ${response.status})`); }
+                if (!response.ok || !data.success) throw new Error(`Day ${daySpec.dayNumber}: ${data.error || 'failed'}`);
+                return { daySpec, result: data };
+            } finally {
+                clearTimeout(timeoutId);
+            }
+        }
+
         // Build the AI request body from current form state.
         // Used by both initial generate and "regenerate" from preview.
         function _buildAIRequestBody({ varietySeed = Date.now(), excludeNames = [] } = {}) {
@@ -13165,25 +13342,49 @@
             if (closeBtn) closeBtn.style.display = 'none';
             window._aiGenerating = true;
 
-            // Progress text updates
-            const progressSteps = [
+            try {
+                let result;
+                if (isSingle) {
+                    // Single workout: existing flow, fast enough to fit in one call
+                    result = await _generateSingleWorkout(btn, requestBody);
+                } else {
+                    // Program mode: fan out per-day calls in parallel to avoid the
+                    // 26s Netlify gateway timeout. Each day call is small + fast.
+                    result = await _generateProgramByFanout(btn, requestBody);
+                }
+
+                window._lastAIResult = result;
+                window._lastAIRequest = requestBody;
+                _saveAIFormState();
+                closeAIModal();
+                openAIPreview();
+
+            } catch (error) {
+                console.error('AI generation error:', error);
+                if (error.name === 'AbortError') showToast('Generation timed out. Try fewer days or exercises.', 'error');
+                else showToast(error.message || 'Failed to generate workout', 'error');
+            } finally {
+                window._aiGenerating = false;
+                btn.disabled = false;
+                btn.innerHTML = isSingle ? 'Generate Workout' : 'Generate Program';
+                if (cancelBtn) cancelBtn.disabled = false;
+                if (closeBtn) closeBtn.style.display = '';
+            }
+        }
+
+        // Single-workout call (one day of training)
+        async function _generateSingleWorkout(btn, requestBody) {
+            const progressTimers = [
                 { text: 'Building your workout...', delay: 3000 },
                 { text: 'Selecting exercises from your database...', delay: 7000 },
                 { text: 'Matching exercises & adding videos...', delay: 12000 },
-                { text: 'Almost done — finalizing program...', delay: 18000 }
-            ];
-            const progressTimers = progressSteps.map(step =>
-                setTimeout(() => {
-                    if (window._aiGenerating) {
-                        btn.innerHTML = `<span class="generating-text"><span class="spinner"></span>${step.text}</span>`;
-                    }
-                }, step.delay)
-            );
+                { text: 'Almost done — finalizing...', delay: 18000 }
+            ].map(step => setTimeout(() => {
+                if (window._aiGenerating) btn.innerHTML = `<span class="generating-text"><span class="spinner"></span>${step.text}</span>`;
+            }, step.delay));
 
-            // 90-second timeout
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 90000);
-
+            const timeoutId = setTimeout(() => controller.abort(), 60000);
             try {
                 const response = await fetch('/.netlify/functions/generate-workout-claude', {
                     method: 'POST',
@@ -13194,49 +13395,122 @@
                     body: JSON.stringify(requestBody),
                     signal: controller.signal
                 });
-
                 clearTimeout(timeoutId);
-
-                // Robust parse: surface real errors when the function returns HTML
-                // (404, 502, timeout) instead of JSON.
                 const rawText = await response.text();
-                let result;
-                try { result = JSON.parse(rawText); }
-                catch (parseErr) {
-                    if (response.status === 404) throw new Error('AI endpoint not found. The new build may not be deployed yet.');
-                    if (response.status >= 500) throw new Error(`Server error (HTTP ${response.status}). The function may have timed out.`);
+                let data;
+                try { data = JSON.parse(rawText); }
+                catch {
+                    if (response.status === 404) throw new Error('AI endpoint not found.');
+                    if (response.status >= 500) throw new Error(`Server error (HTTP ${response.status}).`);
                     throw new Error(`Server returned non-JSON (HTTP ${response.status})`);
                 }
-
-                if (!response.ok || !result.success) {
-                    throw new Error(result.error || `Failed to generate workout (HTTP ${response.status})`);
-                }
-
-                // Stash the result for the preview modal (preview shows summary,
-                // applies on user confirmation, supports refine chat & regenerate)
-                window._lastAIResult = result;
-                window._lastAIRequest = requestBody;
-                _saveAIFormState();
-                closeAIModal();
-                openAIPreview();
-
-            } catch (error) {
-                clearTimeout(timeoutId);
-                console.error('AI generation error:', error);
-
-                if (error.name === 'AbortError') {
-                    showToast('Generation timed out. Try fewer workout days or exercises.', 'error');
-                } else {
-                    showToast(error.message || 'Failed to generate workout', 'error');
-                }
+                if (!response.ok || !data.success) throw new Error(data.error || `Failed (HTTP ${response.status})`);
+                return data;
             } finally {
                 progressTimers.forEach(t => clearTimeout(t));
-                window._aiGenerating = false;
-                btn.disabled = false;
-                btn.innerHTML = isSingle ? 'Generate Workout' : 'Generate Program';
-                if (cancelBtn) cancelBtn.disabled = false;
-                if (closeBtn) closeBtn.style.display = '';
+                clearTimeout(timeoutId);
             }
+        }
+
+        // Program-mode generation: fan out one call per day, then assemble + apply
+        // multi-week progression locally.
+        async function _generateProgramByFanout(btn, requestBody) {
+            const splitDays = computeSplitDays(requestBody.daysPerWeek, requestBody.split, requestBody.focusAreas);
+            const totalDays = splitDays.length;
+            let completed = 0;
+
+            const updateProgress = () => {
+                if (window._aiGenerating) {
+                    btn.innerHTML = `<span class="generating-text"><span class="spinner"></span>Building day ${completed}/${totalDays}...</span>`;
+                }
+            };
+            updateProgress();
+
+            // Run with concurrency limit of 3 to avoid hammering the API and to be
+            // gentler on Anthropic rate limits.
+            const dayResults = await _withConcurrency(splitDays, 3, async (daySpec) => {
+                const r = await _generateOneDay(daySpec, requestBody);
+                completed++;
+                updateProgress();
+                return r;
+            });
+
+            // Sort by day number to preserve order even with concurrent completion
+            dayResults.sort((a, b) => a.daySpec.dayNumber - b.daySpec.dayNumber);
+
+            // Aggregate match stats and exercises
+            const aggMatchStats = { total: 0, matched: 0, unmatched: 0, unmatchedNames: [], databaseExercises: 0, customExerciseCount: 0, exercisesWithVideos: 0 };
+            const week1Workouts = dayResults.map(({ daySpec, result }) => {
+                const ms = result.matchStats || {};
+                aggMatchStats.total += ms.total || 0;
+                aggMatchStats.matched += ms.matched || 0;
+                aggMatchStats.unmatched += ms.unmatched || 0;
+                if (Array.isArray(ms.unmatchedNames)) aggMatchStats.unmatchedNames.push(...ms.unmatchedNames);
+                aggMatchStats.databaseExercises = Math.max(aggMatchStats.databaseExercises, ms.databaseExercises || 0);
+                aggMatchStats.customExerciseCount = Math.max(aggMatchStats.customExerciseCount, ms.customExerciseCount || 0);
+                aggMatchStats.exercisesWithVideos = Math.max(aggMatchStats.exercisesWithVideos, ms.exercisesWithVideos || 0);
+                const dayWorkout = result.program?.weeks?.[0]?.workouts?.[0] || { exercises: [] };
+                return {
+                    dayNumber: daySpec.dayNumber,
+                    name: daySpec.dayName,
+                    targetMuscles: dayWorkout.targetMuscles || [daySpec.targetMuscle],
+                    exercises: dayWorkout.exercises || []
+                };
+            });
+
+            // Assemble the multi-day program
+            const program = {
+                programName: `${requestBody.daysPerWeek}-Day ${requestBody.goal.charAt(0).toUpperCase() + requestBody.goal.slice(1)} Program`,
+                description: `${requestBody.daysPerWeek} days/week, ${requestBody.duration} weeks, ${requestBody.experience} level`,
+                goal: requestBody.goal,
+                difficulty: requestBody.experience,
+                daysPerWeek: requestBody.daysPerWeek,
+                weeks: [{ weekNumber: 1, workouts: week1Workouts }]
+            };
+
+            // Apply multi-week progression locally
+            if (requestBody.includeProgression && requestBody.duration > 1) {
+                const newWeeks = _generateMultiWeekProgressionLocal(week1Workouts, requestBody.duration, requestBody.goal);
+                program.weeks = program.weeks.concat(newWeeks);
+            }
+
+            // Compute basic volume warnings client-side
+            const volumeSummary = (() => {
+                const muscleSetCount = {};
+                const ranges = { chest: [10, 20], back: [10, 20], shoulders: [8, 18], legs: [10, 22], glutes: [8, 18], arms: [6, 16], core: [6, 16] };
+                for (const w of week1Workouts) {
+                    for (const ex of (w.exercises || [])) {
+                        if (ex.isWarmup || ex.isStretch || ex.phase === 'warmup' || ex.phase === 'cooldown') continue;
+                        const g = (ex.muscle_group || ex.muscleGroup || 'other').toLowerCase();
+                        let key = 'other';
+                        if (/chest|pec/.test(g)) key = 'chest';
+                        else if (/back|lat|trap|rhomboid/.test(g)) key = 'back';
+                        else if (/shoulder|delt/.test(g)) key = 'shoulders';
+                        else if (/leg|quad|hamstring|calf/.test(g)) key = 'legs';
+                        else if (/glute/.test(g)) key = 'glutes';
+                        else if (/bicep|tricep|arm|forearm/.test(g)) key = 'arms';
+                        else if (/core|ab|oblique/.test(g)) key = 'core';
+                        muscleSetCount[key] = (muscleSetCount[key] || 0) + (Number(ex.sets) || 0);
+                    }
+                }
+                const warnings = [];
+                for (const [m, [low, high]] of Object.entries(ranges)) {
+                    const c = muscleSetCount[m] || 0;
+                    if (c > 0 && c < low) warnings.push(`${m}: only ${c} weekly sets (recommended ${low}-${high})`);
+                    else if (c > high) warnings.push(`${m}: ${c} weekly sets is high (recommended ${low}-${high})`);
+                }
+                return { setsByMuscle: muscleSetCount, warnings };
+            })();
+
+            return {
+                success: true,
+                program,
+                matchStats: aggMatchStats,
+                volumeSummary,
+                clientContextUsed: dayResults.some(d => d.result.clientContextUsed),
+                generatedWeeks: program.weeks.length,
+                fannedOut: true
+            };
         }
 
         // ============================================
