@@ -54,35 +54,28 @@ const PERSON_DESCRIPTION =
   'A 29-year-old fit athletic woman with shoulder-length brown hair pulled back in a ponytail, light tan skin, holding a smartphone';
 
 const GYM_SELFIE_PROMPTS = [
-  `${PERSON_DESCRIPTION}, taking a mirror selfie at a modern gym, wearing a black sports bra and high-waist black leggings, smartphone partially covering her face, soft daytime gym lighting, weight rack and dumbbells visible in background, candid lifestyle iPhone photo, hyperrealistic photograph, sharp focus, natural skin texture, no text or watermarks`,
-  `${PERSON_DESCRIPTION}, mirror selfie post-workout at a commercial gym, wearing a grey cropped tank top and black leggings, slight workout glow on her face, cardio machines and treadmills in background, natural gym lighting, candid iPhone photo, hyperrealistic photograph, sharp focus, no text or watermarks`,
-  `${PERSON_DESCRIPTION}, gym mirror selfie, wearing a navy blue sports bra and matching shorts, holding smartphone in front of mirror, squat rack and barbell visible behind her, bright fluorescent gym lighting, casual realistic phone photo, hyperrealistic photograph, sharp focus, no text or watermarks`,
-  `${PERSON_DESCRIPTION}, mirror selfie at the gym, wearing a maroon long sleeve crop top and black leggings, focused expression, kettlebells and a yoga mat visible in background, warm natural light, realistic candid phone selfie, hyperrealistic photograph, sharp focus, no text or watermarks`,
-  `${PERSON_DESCRIPTION}, mid-workout gym selfie in front of a wall mirror, wearing a white tank top and dark teal leggings, slight smile, dumbbell rack and battle ropes in background, soft overhead gym lighting, candid iPhone photo, hyperrealistic photograph, sharp focus, no text or watermarks`,
-  `${PERSON_DESCRIPTION}, gym mirror selfie wearing a black crop hoodie and black biker shorts, hand on hip, treadmills and squat racks behind her, late afternoon gym lighting through windows, casual realistic phone selfie, hyperrealistic photograph, sharp focus, no text or watermarks`
+  `${PERSON_DESCRIPTION}, taking a mirror selfie at a modern gym, wearing a black sports bra and high-waist black leggings, smartphone partially covering her face, soft daytime gym lighting, weight rack and dumbbells visible in background, candid lifestyle photo, realistic photograph, no text or watermarks`,
+  `${PERSON_DESCRIPTION}, mirror selfie post-workout at a commercial gym, wearing a grey cropped tank top and black leggings, slight workout glow, cardio machines and treadmills in background, natural gym lighting, candid iPhone photo, realistic photograph, no text or watermarks`,
+  `${PERSON_DESCRIPTION}, gym mirror selfie, wearing a navy blue sports bra and matching shorts, holding smartphone in front of mirror, squat rack and barbell visible behind her, bright fluorescent gym lighting, casual realistic phone photo, no text or watermarks`,
+  `${PERSON_DESCRIPTION}, mirror selfie at the gym, wearing a maroon long sleeve crop top and black leggings, ponytail, focused expression, kettlebells and a yoga mat visible in background, warm natural light, realistic candid phone selfie, no text or watermarks`
 ];
 
 const PROFILE_PHOTO_PROMPT =
-  `${PERSON_DESCRIPTION} (no smartphone in this photo), friendly genuine smile, casual outdoor headshot, athletic clothing, soft natural light, neutral blurred park background, professional but approachable lifestyle portrait, hyperrealistic photograph, sharp focus, natural skin texture, no text or watermarks`;
+  `${PERSON_DESCRIPTION}, friendly smile, casual outdoor headshot, athletic clothing, soft natural light, neutral background, professional but approachable lifestyle portrait, realistic photograph, no text or watermarks`;
 
-// Avoid words like "selfie" or "phone" in scale prompts — they cause models
-// to render a phone screen-within-a-photo recursion. Just describe the
-// composition as a candid first-person POV looking down.
 const SCALE_SELFIE_PROMPTS = [
-  `First-person POV photo looking straight down at a woman's bare feet standing on a sleek white digital bathroom scale, marble tile bathroom floor, soft morning natural light, no phone visible in the frame, hyperrealistic photograph, sharp focus, candid lifestyle composition, no text or watermarks`,
-  `Overhead photo of bare feet on a black digital bathroom scale, light hardwood floor, soft window light, no phone or other objects in the frame, hyperrealistic photograph, sharp focus, casual at-home morning composition, no text or watermarks`,
-  `Top-down photo of bare feet on a round white digital bathroom scale, beige bathroom mat partially visible at the edges, gentle warm overhead light, no phone visible in the frame, hyperrealistic photograph, sharp focus, candid lifestyle composition, no text or watermarks`
+  `Top-down phone photo of a digital bathroom scale on a tile floor, woman's bare feet standing on the scale, scale display showing weight digits, clean modern bathroom, soft morning light, realistic phone photo, no readable text overlays`,
+  `Overhead phone photo of bare feet on a white digital bathroom scale, light hardwood floor, scale screen visible, casual at-home lifestyle photo, realistic, no readable text overlays`,
+  `Phone selfie pointing down at a digital bathroom scale with bare feet on it, white bathroom mat partially visible, realistic morning lighting, casual lifestyle photo, no readable text overlays`
 ];
 
-// ─── Replicate image generation (Flux 1.1 Pro Ultra — top photorealism) ──────
-// Flux 1.1 Pro Ultra delivers the best photorealistic results on Replicate
-// for people/lifestyle shots. ~$0.06/image, ~10-15s per generation.
+// ─── Replicate Flux Schnell image generation ──────────────────────────────────
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 async function generateImage(prompt, aspectRatio = '3:4') {
-  const response = await fetch('https://api.replicate.com/v1/models/black-forest-labs/flux-1.1-pro-ultra/predictions', {
+  const response = await fetch('https://api.replicate.com/v1/models/black-forest-labs/flux-schnell/predictions', {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${REPLICATE_API_TOKEN}`,
@@ -93,9 +86,9 @@ async function generateImage(prompt, aspectRatio = '3:4') {
       input: {
         prompt,
         aspect_ratio: aspectRatio,
+        num_outputs: 1,
         output_format: 'jpg',
-        safety_tolerance: 2,
-        raw: false
+        output_quality: 85
       }
     })
   });
@@ -111,11 +104,11 @@ async function generateImage(prompt, aspectRatio = '3:4') {
     return Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
   }
 
-  // Poll if not ready (Pro Ultra is slower than Schnell, allow up to 60s)
+  // Poll if not ready
   let attempts = 0;
   while (
     (prediction.status === 'starting' || prediction.status === 'processing') &&
-    attempts < 60
+    attempts < 30
   ) {
     await sleep(1000);
     attempts++;
