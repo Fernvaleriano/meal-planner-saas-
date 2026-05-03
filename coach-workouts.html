@@ -6805,12 +6805,30 @@
                     </div>
                 </div>
 
+                <!-- Presets bar -->
+                <div class="ai-form-section" id="aiPresetBar" style="display:flex; align-items:center; gap:8px; padding:8px 0; border-bottom:1px solid var(--border); margin-bottom:8px;">
+                    <select id="aiPresetSelect" onchange="loadAIPreset(this.value)" style="flex:1; min-width:0;">
+                        <option value="">— Load a saved preset —</option>
+                    </select>
+                    <button type="button" class="ai-btn" style="padding:6px 12px; font-size:12px;" onclick="saveCurrentAsPreset()">Save preset</button>
+                    <button type="button" class="ai-btn" style="padding:6px 12px; font-size:12px; background:transparent;" onclick="deleteCurrentPreset()" title="Delete selected preset">×</button>
+                </div>
+
                 <!-- Shared Fields -->
                 <div class="ai-form-section" id="aiSharedFields">
-                    <div class="ai-form-group">
-                        <label>Client Name (optional)</label>
-                        <input type="text" id="aiClientName" placeholder="e.g., John Smith">
+                    <div class="ai-form-row">
+                        <div class="ai-form-group" style="flex:1;">
+                            <label>Client (optional — pulls real history)</label>
+                            <select id="aiClientSelect" onchange="onAIClientSelected(this.value)">
+                                <option value="">— No specific client (generic) —</option>
+                            </select>
+                        </div>
+                        <div class="ai-form-group" style="flex:1;">
+                            <label>Or type a name</label>
+                            <input type="text" id="aiClientName" placeholder="e.g., John Smith">
+                        </div>
                     </div>
+                    <div id="aiClientContextBadge" style="display:none; padding:8px 12px; background:rgba(16,185,129,0.08); border-left:3px solid #10b981; border-radius:6px; font-size:12px; margin-bottom:12px; line-height:1.5;"></div>
                     <div class="ai-form-row">
                         <div class="ai-form-group">
                             <label>Training Goal</label>
@@ -7003,10 +7021,72 @@
                             </label>
                         </div>
                     </div>
+                    <!-- Programming Detail (NEW) -->
                     <div class="ai-form-group">
-                        <label>Injuries or Limitations (optional)</label>
+                        <label>Programming Detail (optional)</label>
+                        <div class="ai-form-row">
+                            <div class="ai-form-group" style="flex:1; margin-bottom:0;">
+                                <label style="font-size:12px; color:var(--text-secondary);">Tempo</label>
+                                <select id="aiTempo">
+                                    <option value="standard" selected>Standard (controlled)</option>
+                                    <option value="controlled">Controlled (3-1-1)</option>
+                                    <option value="explosive">Explosive concentric</option>
+                                    <option value="tempo_3010">Tempo 3-0-1-0</option>
+                                    <option value="tempo_4020">Tempo 4-0-2-0 (high TUT)</option>
+                                </select>
+                            </div>
+                            <div class="ai-form-group" style="flex:1; margin-bottom:0;">
+                                <label style="font-size:12px; color:var(--text-secondary);">Intensity Target</label>
+                                <select id="aiIntensity">
+                                    <option value="" selected>None (use default)</option>
+                                    <option value="rpe:6">RPE 6 (easy)</option>
+                                    <option value="rpe:7">RPE 7 (moderate)</option>
+                                    <option value="rpe:8">RPE 8 (hard)</option>
+                                    <option value="rpe:9">RPE 9 (very hard)</option>
+                                    <option value="rir:0">0 RIR (to failure)</option>
+                                    <option value="rir:1">1 RIR</option>
+                                    <option value="rir:2">2 RIR</option>
+                                    <option value="rir:3">3 RIR</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="ai-form-row" style="margin-top:8px;">
+                            <div class="ai-form-group" style="flex:1; margin-bottom:0;">
+                                <label style="font-size:12px; color:var(--text-secondary);">Unilateral Preference</label>
+                                <select id="aiUnilateral">
+                                    <option value="mixed" selected>Mixed (default)</option>
+                                    <option value="prefer_unilateral">Prefer unilateral</option>
+                                    <option value="bilateral_only">Bilateral only</option>
+                                </select>
+                            </div>
+                            <div class="ai-form-group" style="flex:1; margin-bottom:0;">
+                                <label style="font-size:12px; color:var(--text-secondary);">Conditioning Finisher</label>
+                                <select id="aiConditioning">
+                                    <option value="none" selected>None</option>
+                                    <option value="hiit">HIIT (8-10 min)</option>
+                                    <option value="liss">LISS cardio (10-15 min)</option>
+                                    <option value="mixed">Alternate HIIT/LISS</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="ai-form-group">
+                        <label>Structured Injuries / Limitations</label>
+                        <div class="equipment-grid" style="margin-bottom:8px;">
+                            <label class="equipment-item"><input type="checkbox" name="injuryCode" value="lower_back"> Lower back</label>
+                            <label class="equipment-item"><input type="checkbox" name="injuryCode" value="knee"> Knee</label>
+                            <label class="equipment-item"><input type="checkbox" name="injuryCode" value="shoulder"> Shoulder</label>
+                            <label class="equipment-item"><input type="checkbox" name="injuryCode" value="wrist"> Wrist</label>
+                            <label class="equipment-item"><input type="checkbox" name="injuryCode" value="hip"> Hip</label>
+                            <label class="equipment-item"><input type="checkbox" name="injuryCode" value="neck"> Neck</label>
+                            <label class="equipment-item"><input type="checkbox" name="injuryCode" value="elbow"> Elbow</label>
+                            <label class="equipment-item"><input type="checkbox" name="injuryCode" value="ankle"> Ankle</label>
+                            <label class="equipment-item"><input type="checkbox" name="injuryCode" value="pregnancy"> Pregnancy</label>
+                        </div>
+                        <label style="font-size:12px; color:var(--text-secondary);">Additional notes (free text)</label>
                         <div style="display: flex; gap: 8px; align-items: center;">
-                            <input type="text" id="aiInjuries" placeholder="e.g., Lower back pain, avoid overhead pressing" style="flex:1;">
+                            <input type="text" id="aiInjuries" placeholder="e.g., Mild rotator cuff, avoid heavy overhead" style="flex:1;">
                             <button type="button" class="vtt-mic-btn vtt-mic-inline" title="Voice input" onclick="VoiceToText.toggle(document.getElementById('aiInjuries'), this)">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
                             </button>
@@ -7029,6 +7109,29 @@
                 <button class="ai-btn ai-btn-generate" id="aiGenerateBtn" onclick="generateAIWorkout()">
                     Generate Program
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Preview & Refine Modal (shows after generation, before applying) -->
+    <div class="modal-overlay" id="aiPreviewModal">
+        <div class="modal" style="max-width: 900px;">
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    Preview & Refine
+                </h3>
+                <button class="modal-close" onclick="closeAIPreview()">&times;</button>
+            </div>
+            <div class="modal-body" id="aiPreviewBody" style="max-height: 70vh; overflow-y: auto;">
+                <!-- Filled dynamically by renderAIPreview() -->
+            </div>
+            <div class="modal-footer" style="gap:8px; flex-wrap:wrap;">
+                <button class="ai-btn ai-btn-cancel" onclick="closeAIPreview()" style="margin-right:auto;">Discard</button>
+                <button class="ai-btn" onclick="regenerateFromPreview()" style="background:#f59e0b; color:white;">Regenerate (different exercises)</button>
+                <button class="ai-btn ai-btn-generate" onclick="applyAIPreview()" id="aiPreviewApplyBtn">Use this program</button>
             </div>
         </div>
     </div>
@@ -12853,6 +12956,9 @@
             document.getElementById('aiModalFooter').style.display = 'none';
             document.getElementById('aiModeSelector').style.display = '';
             document.getElementById('aiModal').classList.add('active');
+            // Refresh client list + presets each time
+            try { populateAIClientSelect(); } catch (e) {}
+            try { refreshPresetList(); } catch (e) {}
             // Restore saved form state
             _restoreAIFormState();
         }
@@ -12980,81 +13086,75 @@
             } catch(e) { /* ignore */ }
         }
 
-        async function generateAIWorkout() {
-            const btn = document.getElementById('aiGenerateBtn');
-            const originalText = btn.innerHTML;
+        // Build the AI request body from current form state.
+        // Used by both initial generate and "regenerate" from preview.
+        function _buildAIRequestBody({ varietySeed = Date.now(), excludeNames = [] } = {}) {
             const isSingle = aiMode === 'single';
-
-            // Get shared form values
-            const clientName = document.getElementById('aiClientName').value || 'Client';
+            const clientId = document.getElementById('aiClientSelect')?.value || null;
+            const clientName = document.getElementById('aiClientName').value
+                || (clientId && (clients.find(c => String(c.id) === String(clientId))?.client_name)) || 'Client';
             const goal = document.getElementById('aiGoal').value;
             const experience = document.getElementById('aiExperience').value;
             const injuries = document.getElementById('aiInjuries').value;
             const preferences = document.getElementById('aiPreferences').value;
+            const tempo = document.getElementById('aiTempo')?.value || 'standard';
+            const unilateralPreference = document.getElementById('aiUnilateral')?.value || 'mixed';
+            const conditioningStyle = document.getElementById('aiConditioning')?.value || 'none';
+            const intensityRaw = document.getElementById('aiIntensity')?.value || '';
+            const rpeTarget = intensityRaw.startsWith('rpe:') ? parseInt(intensityRaw.split(':')[1]) : null;
+            const rirTarget = intensityRaw.startsWith('rir:') ? parseInt(intensityRaw.split(':')[1]) : null;
+            const injuryCodes = Array.from(document.querySelectorAll('input[name="injuryCode"]:checked')).map(cb => cb.value);
 
-            const equipment = Array.from(document.querySelectorAll('input[name="equipment"]:checked'))
-                .map(cb => cb.value);
+            const equipment = Array.from(document.querySelectorAll('input[name="equipment"]:checked')).map(cb => cb.value);
+            if (equipment.length === 0) return { error: 'Please select at least one equipment type' };
 
-            if (equipment.length === 0) {
-                showToast('Please select at least one equipment type', 'error');
-                return;
-            }
+            const sharedFields = {
+                clientName, clientId, coachId: currentCoachId, goal, experience, equipment,
+                injuries, injuryCodes, preferences, tempo, rpeTarget, rirTarget,
+                unilateralPreference, conditioningStyle,
+                varietySeed, excludeExerciseNames: excludeNames
+            };
 
-            // Build request body based on mode
-            let requestBody;
             if (isSingle) {
                 const targetMuscle = document.getElementById('aiTargetMuscle').value;
-                const sessionDuration = parseInt(document.getElementById('aiSingleSessionDuration').value);
-                const trainingStyle = document.getElementById('aiSingleTrainingStyle').value;
-                const exerciseCount = document.getElementById('aiSingleExerciseCount').value;
-
-                requestBody = {
+                return {
                     mode: 'single',
-                    clientName,
-                    goal,
-                    experience,
+                    ...sharedFields,
                     targetMuscle,
                     daysPerWeek: 1,
                     duration: 1,
                     split: 'auto',
-                    sessionDuration,
-                    trainingStyle,
-                    exerciseCount,
+                    sessionDuration: parseInt(document.getElementById('aiSingleSessionDuration').value),
+                    trainingStyle: document.getElementById('aiSingleTrainingStyle').value,
+                    exerciseCount: document.getElementById('aiSingleExerciseCount').value,
                     focusAreas: (() => {
                         const singleFocus = Array.from(document.querySelectorAll('input[name="singleFocusArea"]:checked')).map(cb => cb.value);
                         return singleFocus.length > 0 ? singleFocus : [targetMuscle];
                     })(),
-                    equipment,
-                    injuries,
-                    preferences
-                };
-            } else {
-                const daysPerWeek = parseInt(document.getElementById('aiDaysPerWeek').value);
-                const duration = parseInt(document.getElementById('aiDuration').value);
-                const split = document.getElementById('aiSplit').value;
-                const sessionDuration = parseInt(document.getElementById('aiSessionDuration').value);
-                const trainingStyle = document.getElementById('aiTrainingStyle').value;
-                const exerciseCount = document.getElementById('aiExerciseCount').value;
-                const focusAreas = Array.from(document.querySelectorAll('input[name="focusArea"]:checked'))
-                    .map(cb => cb.value);
-
-                requestBody = {
-                    mode: 'program',
-                    clientName,
-                    goal,
-                    experience,
-                    daysPerWeek,
-                    duration,
-                    split,
-                    sessionDuration,
-                    trainingStyle,
-                    exerciseCount,
-                    focusAreas,
-                    equipment,
-                    injuries,
-                    preferences
+                    includeProgression: false
                 };
             }
+
+            return {
+                mode: 'program',
+                ...sharedFields,
+                daysPerWeek: parseInt(document.getElementById('aiDaysPerWeek').value),
+                duration: parseInt(document.getElementById('aiDuration').value),
+                split: document.getElementById('aiSplit').value,
+                sessionDuration: parseInt(document.getElementById('aiSessionDuration').value),
+                trainingStyle: document.getElementById('aiTrainingStyle').value,
+                exerciseCount: document.getElementById('aiExerciseCount').value,
+                focusAreas: Array.from(document.querySelectorAll('input[name="focusArea"]:checked')).map(cb => cb.value),
+                includeProgression: true
+            };
+        }
+
+        async function generateAIWorkout() {
+            const btn = document.getElementById('aiGenerateBtn');
+            const isSingle = aiMode === 'single';
+
+            const requestBody = _buildAIRequestBody();
+            if (requestBody.error) { showToast(requestBody.error, 'error'); return; }
 
             // Show loading & prevent accidental modal close
             btn.disabled = true;
@@ -13087,7 +13187,10 @@
             try {
                 const response = await fetch('/.netlify/functions/generate-workout-claude', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(currentAccessToken && { 'Authorization': `Bearer ${currentAccessToken}` })
+                    },
                     body: JSON.stringify(requestBody),
                     signal: controller.signal
                 });
@@ -13099,112 +13202,13 @@
                     throw new Error(result.error || 'Failed to generate workout');
                 }
 
-                // Populate program
-                const program = result.program;
-                const programGoal = requestBody.goal;
-
-                if (isSingle) {
-                    const targetLabel = document.getElementById('aiTargetMuscle').selectedOptions[0]?.text || requestBody.targetMuscle;
-                    document.getElementById('programName').value = program.programName || `${targetLabel} Workout`;
-                } else {
-                    document.getElementById('programName').value = program.programName || `${programGoal} Program`;
-                }
-                document.getElementById('programType').value = programGoal;
-                document.getElementById('programDifficulty').value = experience;
-                document.getElementById('daysPerWeek').value = requestBody.daysPerWeek;
-                document.getElementById('programDescription').value = program.description || '';
-
-                // Convert to workout days
-                workoutDays = [];
-                if (program.weeks && program.weeks[0]?.workouts) {
-                    program.weeks[0].workouts.forEach(workout => {
-                        workoutDays.push({
-                            name: workout.name,
-                            exercises: (workout.exercises || []).map(ex => {
-                                const repsVal = ex.isWarmup ? (ex.reps || '10-15') : ex.isStretch ? (ex.reps || '30s hold') : (ex.reps || '8-12');
-
-                                // Detect time-based exercises (warmups like "5 min", stretches like "30s hold")
-                                let trackingType = 'reps';
-                                let duration = null;
-                                const timedCheck = detectTimedRepsValue(String(repsVal));
-                                if (timedCheck.isTime) {
-                                    trackingType = 'time';
-                                    duration = timedCheck.durationSeconds;
-                                } else if (ex.isWarmup || ex.isStretch) {
-                                    // Warmups/stretches with plain numbers should still be time-based if they look like durations
-                                    const numVal = parseInt(repsVal);
-                                    if (!isNaN(numVal) && (ex.isStretch || (ex.isWarmup && String(repsVal).match(/^\d+$/) && numVal <= 10))) {
-                                        // Stretches: treat plain numbers as seconds (e.g., "30" → 30s)
-                                        // Warmups: treat small plain numbers as minutes (e.g., "4" → 4 min = 240s)
-                                        if (ex.isStretch) {
-                                            trackingType = 'time';
-                                            duration = numVal;
-                                        } else if (ex.isWarmup && numVal <= 10) {
-                                            trackingType = 'time';
-                                            duration = numVal * 60;
-                                        }
-                                    }
-                                }
-
-                                return {
-                                    id: ex.id,
-                                    name: ex.name,
-                                    video_url: ex.video_url,
-                                    animation_url: ex.animation_url,
-                                    thumbnail_url: ex.thumbnail_url,
-                                    muscle_group: ex.muscle_group || ex.muscleGroup,
-                                    equipment: ex.equipment,
-                                    instructions: ex.instructions,
-                                    sets: ex.isWarmup ? (ex.sets || 1) : ex.isStretch ? (ex.sets || 1) : (ex.sets || 3),
-                                    reps: repsVal,
-                                    restSeconds: ex.isWarmup ? (ex.restSeconds != null ? ex.restSeconds : 30) : ex.isStretch ? (ex.restSeconds != null ? ex.restSeconds : 0) : (ex.restSeconds || 90),
-                                    notes: ex.notes || '',
-                                    matched: ex.matched,
-                                    isSuperset: ex.isSuperset || false,
-                                    supersetGroup: ex.supersetGroup || null,
-                                    isWarmup: ex.isWarmup || false,
-                                    isStretch: ex.isStretch || false,
-                                    trackingType: trackingType,
-                                    duration: duration,
-                                    reference_links: (() => {
-                                        let refLinks = ex.reference_links || [];
-                                        const globalRefs = getGlobalRefsForExercise(ex.name);
-                                        if (globalRefs.length > 0 && refLinks.length === 0) {
-                                            return globalRefs.map(ref => ({ ...ref }));
-                                        } else if (globalRefs.length > 0 && refLinks.length > 0) {
-                                            const existingUrls = new Set(refLinks.map(l => l.url));
-                                            globalRefs.forEach(ref => {
-                                                if (!existingUrls.has(ref.url)) refLinks.push({ ...ref });
-                                            });
-                                            return refLinks;
-                                        }
-                                        return refLinks;
-                                    })()
-                                };
-                            })
-                        });
-                    });
-                }
-
-                renderWorkoutDays();
-                closeAIModal();
-
-                // Show match quality feedback
-                const stats = result.matchStats;
-                if (stats) {
-                    const matchPct = stats.total > 0 ? Math.round((stats.matched / stats.total) * 100) : 0;
-                    let toastMsg = isSingle ? 'Workout generated!' : 'Workout program generated!';
-                    toastMsg += ` ${stats.matched}/${stats.total} exercises matched`;
-                    if (stats.unmatched > 0) {
-                        toastMsg += ` (${stats.unmatched} without videos)`;
-                    }
-                    showToast(toastMsg, matchPct >= 80 ? 'success' : 'warning');
-                } else {
-                    showToast(isSingle ? 'Workout generated!' : 'Workout program generated!');
-                }
-
-                // Save form state for convenience
+                // Stash the result for the preview modal (preview shows summary,
+                // applies on user confirmation, supports refine chat & regenerate)
+                window._lastAIResult = result;
+                window._lastAIRequest = requestBody;
                 _saveAIFormState();
+                closeAIModal();
+                openAIPreview();
 
             } catch (error) {
                 clearTimeout(timeoutId);
@@ -13224,6 +13228,478 @@
                 if (closeBtn) closeBtn.style.display = '';
             }
         }
+
+        // ============================================
+        // AI Preview / Refine / Regenerate
+        // ============================================
+
+        // Convert AI program JSON → workoutDays[] format used by the editor.
+        // When weekIndex is null, only week 1 is populated (program editor renders
+        // a single week; multi-week progression is stored as program-level metadata).
+        function _aiResultToWorkoutDays(program) {
+            const days = [];
+            if (!program?.weeks?.[0]?.workouts) return days;
+            program.weeks[0].workouts.forEach(workout => {
+                days.push({
+                    name: workout.name,
+                    exercises: (workout.exercises || []).map(ex => {
+                        const repsVal = ex.isWarmup ? (ex.reps || '10-15') : ex.isStretch ? (ex.reps || '30s hold') : (ex.reps || '8-12');
+                        let trackingType = 'reps';
+                        let duration = null;
+                        const timedCheck = (typeof detectTimedRepsValue === 'function') ? detectTimedRepsValue(String(repsVal)) : { isTime: false };
+                        if (timedCheck.isTime) {
+                            trackingType = 'time';
+                            duration = timedCheck.durationSeconds;
+                        } else if (ex.isWarmup || ex.isStretch) {
+                            const numVal = parseInt(repsVal);
+                            if (!isNaN(numVal)) {
+                                if (ex.isStretch) { trackingType = 'time'; duration = numVal; }
+                                else if (ex.isWarmup && String(repsVal).match(/^\d+$/) && numVal <= 10) { trackingType = 'time'; duration = numVal * 60; }
+                            }
+                        }
+                        return {
+                            id: ex.id,
+                            name: ex.name,
+                            video_url: ex.video_url,
+                            animation_url: ex.animation_url,
+                            thumbnail_url: ex.thumbnail_url,
+                            muscle_group: ex.muscle_group || ex.muscleGroup,
+                            equipment: ex.equipment,
+                            instructions: ex.instructions,
+                            sets: ex.isWarmup ? (ex.sets || 1) : ex.isStretch ? (ex.sets || 1) : (ex.sets || 3),
+                            reps: repsVal,
+                            restSeconds: ex.isWarmup ? (ex.restSeconds != null ? ex.restSeconds : 30) : ex.isStretch ? (ex.restSeconds != null ? ex.restSeconds : 0) : (ex.restSeconds || 90),
+                            notes: ex.notes || '',
+                            matched: ex.matched,
+                            isCustom: !!ex.isCustom,
+                            isSuperset: ex.isSuperset || false,
+                            supersetGroup: ex.supersetGroup || null,
+                            isWarmup: ex.isWarmup || false,
+                            isStretch: ex.isStretch || false,
+                            trackingType,
+                            duration,
+                            reference_links: (() => {
+                                let refLinks = ex.reference_links || [];
+                                if (typeof getGlobalRefsForExercise !== 'function') return refLinks;
+                                const globalRefs = getGlobalRefsForExercise(ex.name);
+                                if (globalRefs.length > 0 && refLinks.length === 0) return globalRefs.map(r => ({ ...r }));
+                                if (globalRefs.length > 0 && refLinks.length > 0) {
+                                    const existing = new Set(refLinks.map(l => l.url));
+                                    globalRefs.forEach(r => { if (!existing.has(r.url)) refLinks.push({ ...r }); });
+                                }
+                                return refLinks;
+                            })()
+                        };
+                    })
+                });
+            });
+            return days;
+        }
+
+        function openAIPreview() {
+            renderAIPreview();
+            document.getElementById('aiPreviewModal').classList.add('active');
+        }
+
+        function closeAIPreview() {
+            document.getElementById('aiPreviewModal').classList.remove('active');
+        }
+
+        // Render the preview pane: program summary, per-day breakdown, volume warnings,
+        // unmatched-exercise indicator, and a refine chat box.
+        function renderAIPreview() {
+            const result = window._lastAIResult;
+            const req = window._lastAIRequest;
+            if (!result || !req) {
+                document.getElementById('aiPreviewBody').innerHTML = '<p>No program generated yet.</p>';
+                return;
+            }
+            const program = result.program;
+            const stats = result.matchStats || {};
+            const volumeSummary = result.volumeSummary;
+            const matchPct = stats.total > 0 ? Math.round((stats.matched / stats.total) * 100) : 0;
+            const unmatchedList = stats.unmatchedNames || [];
+            const customMatched = (program.weeks?.[0]?.workouts || []).reduce((acc, w) =>
+                acc + (w.exercises || []).filter(e => e.isCustom).length, 0);
+
+            const headerHtml = `
+                <div style="margin-bottom:16px; padding:12px; background:var(--bg-secondary); border-radius:8px;">
+                    <div style="font-size:18px; font-weight:600;">${program.programName || 'Untitled Program'}</div>
+                    <div style="color:var(--text-secondary); font-size:13px; margin-top:4px;">${program.description || ''}</div>
+                    <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; font-size:12px;">
+                        <span style="padding:3px 8px; background:rgba(99,102,241,0.1); border-radius:4px;">${program.daysPerWeek || 1} day${(program.daysPerWeek||1) > 1 ? 's' : ''}/week</span>
+                        <span style="padding:3px 8px; background:rgba(99,102,241,0.1); border-radius:4px;">${result.generatedWeeks || 1} week${(result.generatedWeeks||1) > 1 ? 's' : ''} generated</span>
+                        <span style="padding:3px 8px; background:rgba(99,102,241,0.1); border-radius:4px;">Goal: ${program.goal}</span>
+                        <span style="padding:3px 8px; background:rgba(99,102,241,0.1); border-radius:4px;">${program.difficulty}</span>
+                        <span style="padding:3px 8px; background:${matchPct >= 80 ? 'rgba(16,185,129,0.1)' : 'rgba(245,158,11,0.1)'}; border-radius:4px;">${stats.matched}/${stats.total} videos matched (${matchPct}%)</span>
+                        ${customMatched > 0 ? `<span style="padding:3px 8px; background:rgba(168,85,247,0.1); border-radius:4px;">${customMatched} custom exercise${customMatched > 1 ? 's' : ''}</span>` : ''}
+                        ${result.clientContextUsed ? '<span style="padding:3px 8px; background:rgba(16,185,129,0.1); border-radius:4px;">✓ Client history used</span>' : ''}
+                    </div>
+                </div>`;
+
+            // Volume warnings
+            let volumeHtml = '';
+            if (volumeSummary?.warnings?.length > 0) {
+                volumeHtml = `
+                    <div style="margin-bottom:16px; padding:10px 12px; background:rgba(245,158,11,0.08); border-left:3px solid #f59e0b; border-radius:6px; font-size:13px;">
+                        <strong>Volume notes:</strong>
+                        <ul style="margin:6px 0 0 18px; padding:0;">
+                            ${volumeSummary.warnings.map(w => `<li>${w}</li>`).join('')}
+                        </ul>
+                    </div>`;
+            }
+
+            // Unmatched exercises (no video)
+            let unmatchedHtml = '';
+            if (unmatchedList.length > 0) {
+                unmatchedHtml = `
+                    <div style="margin-bottom:16px; padding:10px 12px; background:rgba(239,68,68,0.06); border-left:3px solid #ef4444; border-radius:6px; font-size:13px;">
+                        <strong>${unmatchedList.length} exercise${unmatchedList.length > 1 ? 's' : ''} without video demos:</strong>
+                        <div style="margin-top:6px; color:var(--text-secondary);">${unmatchedList.join(', ')}</div>
+                        <div style="margin-top:6px; font-style:italic;">These will appear in the editor without video — try "Regenerate" or refine to swap them.</div>
+                    </div>`;
+            }
+
+            // Per-day exercise list
+            const daysHtml = (program.weeks?.[0]?.workouts || []).map((w, idx) => `
+                <details style="border:1px solid var(--border); border-radius:8px; padding:10px 12px; margin-bottom:8px;" ${idx === 0 ? 'open' : ''}>
+                    <summary style="cursor:pointer; font-weight:600;">
+                        Day ${idx + 1}: ${w.name || 'Untitled'}
+                        <span style="font-weight:400; color:var(--text-secondary); font-size:12px;"> · ${(w.exercises || []).filter(e => !e.isWarmup && !e.isStretch).length} main + warm-up/cool-down</span>
+                        <button type="button" onclick="event.preventDefault(); refineDay(${idx + 1});" style="margin-left:8px; padding:2px 8px; font-size:11px; background:transparent; border:1px solid var(--border); border-radius:4px; cursor:pointer;">↻ Refine this day</button>
+                    </summary>
+                    <table style="width:100%; margin-top:8px; font-size:12px; border-collapse:collapse;">
+                        <thead style="text-align:left; color:var(--text-secondary);">
+                            <tr><th style="padding:4px 6px;">Exercise</th><th style="padding:4px 6px;">Sets×Reps</th><th style="padding:4px 6px;">Rest</th><th style="padding:4px 6px;">Notes</th></tr>
+                        </thead>
+                        <tbody>
+                            ${(w.exercises || []).map(ex => {
+                                const phase = ex.phase || (ex.isWarmup ? 'warmup' : ex.isStretch ? 'cooldown' : 'main');
+                                const phaseColor = phase === 'warmup' ? '#3b82f6' : phase === 'cooldown' ? '#a855f7' : phase === 'conditioning' ? '#f59e0b' : 'var(--text-primary)';
+                                const noVideo = !ex.matched;
+                                return `<tr style="border-top:1px solid var(--border);">
+                                    <td style="padding:6px;">
+                                        <span style="color:${phaseColor};">${ex.name || ''}</span>
+                                        ${ex.isCustom ? '<span style="margin-left:6px; padding:1px 5px; font-size:10px; background:rgba(168,85,247,0.15); color:#a855f7; border-radius:3px;">CUSTOM</span>' : ''}
+                                        ${noVideo ? '<span style="margin-left:6px; padding:1px 5px; font-size:10px; background:rgba(239,68,68,0.15); color:#ef4444; border-radius:3px;" title="No video demo">NO VIDEO</span>' : ''}
+                                        ${ex.isSuperset && ex.supersetGroup ? `<span style="margin-left:6px; padding:1px 5px; font-size:10px; background:rgba(99,102,241,0.15); color:#6366f1; border-radius:3px;">SS-${ex.supersetGroup}</span>` : ''}
+                                    </td>
+                                    <td style="padding:6px;">${ex.sets || 1} × ${ex.reps || ''}</td>
+                                    <td style="padding:6px;">${ex.restSeconds || 0}s</td>
+                                    <td style="padding:6px; color:var(--text-secondary); max-width:240px;">${(ex.notes || '').slice(0, 80)}</td>
+                                </tr>`;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                </details>`).join('');
+
+            // Refine chat
+            const refineHtml = `
+                <div style="margin-top:16px; padding:14px; border:1px solid var(--border); border-radius:8px; background:var(--bg-secondary);">
+                    <div style="font-weight:600; margin-bottom:8px;">Refine with chat</div>
+                    <div style="color:var(--text-secondary); font-size:12px; margin-bottom:8px;">Examples: "Make day 3 harder", "Swap leg day to glute focus", "Replace all overhead pressing with horizontal", "Shorten rest by 30 seconds", "Add more arm work"</div>
+                    <div style="display:flex; gap:8px;">
+                        <input type="text" id="aiRefineInput" placeholder="Tell the AI what to change..." style="flex:1; padding:8px 10px; border:1px solid var(--border); border-radius:6px;" />
+                        <button class="ai-btn ai-btn-generate" onclick="refineFromPreview()" id="aiRefineBtn">Apply refinement</button>
+                    </div>
+                </div>`;
+
+            document.getElementById('aiPreviewBody').innerHTML = headerHtml + volumeHtml + unmatchedHtml + daysHtml + refineHtml;
+
+            // Allow Enter key to refine
+            const input = document.getElementById('aiRefineInput');
+            if (input) input.addEventListener('keydown', e => { if (e.key === 'Enter') refineFromPreview(); });
+        }
+
+        // Apply the previewed program to the editor
+        function applyAIPreview() {
+            const result = window._lastAIResult;
+            const req = window._lastAIRequest;
+            if (!result?.program) { showToast('No program to apply', 'error'); return; }
+            const program = result.program;
+            const isSingle = req.mode === 'single';
+
+            // Populate program-level fields
+            const fallbackName = isSingle
+                ? `${(req.targetMuscle || 'Workout').charAt(0).toUpperCase() + (req.targetMuscle || 'workout').slice(1)} Workout`
+                : `${req.goal} Program`;
+            document.getElementById('programName').value = program.programName || fallbackName;
+            document.getElementById('programType').value = req.goal;
+            document.getElementById('programDifficulty').value = req.experience;
+            document.getElementById('daysPerWeek').value = req.daysPerWeek;
+            document.getElementById('programDescription').value = program.description || '';
+
+            // Stash multi-week program data so the program editor can save it
+            window._currentMultiWeekProgram = program.weeks && program.weeks.length > 1 ? program : null;
+
+            workoutDays = _aiResultToWorkoutDays(program);
+            renderWorkoutDays();
+            closeAIPreview();
+
+            const stats = result.matchStats || {};
+            const matchPct = stats.total > 0 ? Math.round((stats.matched / stats.total) * 100) : 0;
+            const weeks = result.generatedWeeks || 1;
+            let msg = isSingle ? 'Workout applied!' : `${weeks}-week program applied!`;
+            msg += ` ${stats.matched}/${stats.total} matched`;
+            if (stats.unmatched > 0) msg += ` (${stats.unmatched} no-video)`;
+            showToast(msg, matchPct >= 80 ? 'success' : 'warning');
+        }
+
+        // Regenerate with a new variety seed and excluding what's currently shown
+        async function regenerateFromPreview() {
+            const result = window._lastAIResult;
+            if (!result?.program) { showToast('Nothing to regenerate yet', 'error'); return; }
+            const currentNames = (result.program.weeks?.[0]?.workouts || [])
+                .flatMap(w => (w.exercises || []).map(e => e.name))
+                .filter(Boolean);
+
+            const newReq = _buildAIRequestBody({ varietySeed: Date.now(), excludeNames: currentNames });
+            if (newReq.error) { showToast(newReq.error, 'error'); return; }
+
+            const applyBtn = document.getElementById('aiPreviewApplyBtn');
+            const orig = applyBtn.innerHTML;
+            applyBtn.disabled = true;
+            applyBtn.innerHTML = '<span class="spinner"></span> Regenerating...';
+
+            try {
+                const response = await fetch('/.netlify/functions/generate-workout-claude', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(currentAccessToken && { 'Authorization': `Bearer ${currentAccessToken}` })
+                    },
+                    body: JSON.stringify(newReq)
+                });
+                const data = await response.json();
+                if (!response.ok || !data.success) throw new Error(data.error || 'Regeneration failed');
+                window._lastAIResult = data;
+                window._lastAIRequest = newReq;
+                renderAIPreview();
+                showToast('Regenerated with different exercises', 'success');
+            } catch (err) {
+                showToast(err.message || 'Regeneration failed', 'error');
+            } finally {
+                applyBtn.disabled = false;
+                applyBtn.innerHTML = orig;
+            }
+        }
+
+        // Refine via /refine-workout-claude.js endpoint
+        async function refineFromPreview(scope = 'all') {
+            const input = document.getElementById('aiRefineInput');
+            const instruction = (input?.value || '').trim();
+            if (!instruction || instruction.length < 3) { showToast('Type a refinement instruction first', 'error'); return; }
+            const result = window._lastAIResult;
+            if (!result?.program) { showToast('No program to refine', 'error'); return; }
+            const req = window._lastAIRequest || {};
+
+            const btn = document.getElementById('aiRefineBtn');
+            const orig = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Refining...';
+
+            try {
+                const response = await fetch('/.netlify/functions/refine-workout-claude', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(currentAccessToken && { 'Authorization': `Bearer ${currentAccessToken}` })
+                    },
+                    body: JSON.stringify({
+                        program: result.program,
+                        instruction,
+                        coachId: currentCoachId,
+                        scope,
+                        equipment: req.equipment || []
+                    })
+                });
+                const data = await response.json();
+                if (!response.ok || !data.success) throw new Error(data.error || 'Refinement failed');
+                // Replace the program in our preview state
+                window._lastAIResult = {
+                    ...result,
+                    program: data.program,
+                    matchStats: data.matchStats || result.matchStats
+                };
+                renderAIPreview();
+                showToast(`Refined: ${instruction.slice(0, 60)}${instruction.length > 60 ? '…' : ''}`, 'success');
+            } catch (err) {
+                showToast(err.message || 'Refinement failed', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = orig;
+            }
+        }
+
+        // Refine a single day (called from the day's "Refine this day" button)
+        function refineDay(dayNumber) {
+            const input = document.getElementById('aiRefineInput');
+            if (!input) return;
+            input.focus();
+            input.placeholder = `Refining Day ${dayNumber} only — type your change...`;
+            input.dataset.scope = `day:${dayNumber}`;
+            // Wrap refineFromPreview to use the per-day scope
+            const handler = () => refineFromPreview(`day:${dayNumber}`);
+            const refineBtn = document.getElementById('aiRefineBtn');
+            refineBtn.onclick = handler;
+            input.onkeydown = e => { if (e.key === 'Enter') handler(); };
+        }
+
+        // ============================================
+        // AI Client Picker — loads real client context
+        // ============================================
+        function populateAIClientSelect() {
+            const sel = document.getElementById('aiClientSelect');
+            if (!sel || !Array.isArray(clients)) return;
+            sel.innerHTML = '<option value="">— No specific client (generic) —</option>' +
+                clients.map(c => `<option value="${c.id}">${c.client_name || 'Unnamed'}${c.email ? ' · ' + c.email : ''}</option>`).join('');
+        }
+
+        function onAIClientSelected(clientId) {
+            const badge = document.getElementById('aiClientContextBadge');
+            const nameInput = document.getElementById('aiClientName');
+            if (!clientId) {
+                if (badge) { badge.style.display = 'none'; badge.innerHTML = ''; }
+                return;
+            }
+            const c = clients.find(x => String(x.id) === String(clientId));
+            if (!c) return;
+            if (nameInput) nameInput.value = c.client_name || '';
+            // Pre-check structured injuries if the client has known ones (best-effort string match)
+            const knownInjuries = (c.injuries || '').toLowerCase();
+            ['lower_back', 'knee', 'shoulder', 'wrist', 'hip', 'neck', 'elbow', 'ankle'].forEach(code => {
+                const cb = document.querySelector(`input[name="injuryCode"][value="${code}"]`);
+                if (cb) cb.checked = knownInjuries.includes(code.replace('_', ' ')) || knownInjuries.includes(code);
+            });
+            if (badge) {
+                const bits = [];
+                if (c.goal) bits.push(`Goal: ${c.goal}`);
+                if (c.fitness_level) bits.push(`Level: ${c.fitness_level}`);
+                if (c.injuries) bits.push(`Injuries: ${c.injuries}`);
+                if (c.equipment_access) bits.push(`Equipment: ${c.equipment_access}`);
+                badge.innerHTML = `<strong>Client context loaded.</strong> ${bits.join(' · ') || 'Will pull recent training history on generation.'}`;
+                badge.style.display = '';
+            }
+        }
+
+        // ============================================
+        // AI Presets (saved in localStorage)
+        // ============================================
+        const AI_PRESETS_KEY = 'aiWorkoutPresets_v1';
+
+        function _loadAllPresets() {
+            try { return JSON.parse(localStorage.getItem(AI_PRESETS_KEY) || '{}'); } catch { return {}; }
+        }
+        function _saveAllPresets(map) {
+            localStorage.setItem(AI_PRESETS_KEY, JSON.stringify(map));
+        }
+
+        function refreshPresetList() {
+            const sel = document.getElementById('aiPresetSelect');
+            if (!sel) return;
+            const presets = _loadAllPresets();
+            const names = Object.keys(presets).sort();
+            sel.innerHTML = '<option value="">— Load a saved preset —</option>' +
+                names.map(n => `<option value="${n}">${n}</option>`).join('');
+        }
+
+        function _captureCurrentPreset() {
+            return {
+                mode: aiMode,
+                goal: document.getElementById('aiGoal')?.value,
+                experience: document.getElementById('aiExperience')?.value,
+                tempo: document.getElementById('aiTempo')?.value,
+                intensity: document.getElementById('aiIntensity')?.value,
+                unilateral: document.getElementById('aiUnilateral')?.value,
+                conditioning: document.getElementById('aiConditioning')?.value,
+                injuryCodes: Array.from(document.querySelectorAll('input[name="injuryCode"]:checked')).map(c => c.value),
+                equipment: Array.from(document.querySelectorAll('input[name="equipment"]:checked')).map(c => c.value),
+                preferences: document.getElementById('aiPreferences')?.value,
+                injuries: document.getElementById('aiInjuries')?.value,
+                programFields: {
+                    daysPerWeek: document.getElementById('aiDaysPerWeek')?.value,
+                    duration: document.getElementById('aiDuration')?.value,
+                    split: document.getElementById('aiSplit')?.value,
+                    sessionDuration: document.getElementById('aiSessionDuration')?.value,
+                    trainingStyle: document.getElementById('aiTrainingStyle')?.value,
+                    exerciseCount: document.getElementById('aiExerciseCount')?.value,
+                    focusAreas: Array.from(document.querySelectorAll('input[name="focusArea"]:checked')).map(c => c.value)
+                },
+                singleFields: {
+                    targetMuscle: document.getElementById('aiTargetMuscle')?.value,
+                    sessionDuration: document.getElementById('aiSingleSessionDuration')?.value,
+                    trainingStyle: document.getElementById('aiSingleTrainingStyle')?.value,
+                    exerciseCount: document.getElementById('aiSingleExerciseCount')?.value
+                }
+            };
+        }
+
+        function _applyPresetToForm(p) {
+            if (!p) return;
+            const setVal = (id, v) => { const el = document.getElementById(id); if (el && v != null) el.value = v; };
+            setVal('aiGoal', p.goal); setVal('aiExperience', p.experience);
+            setVal('aiTempo', p.tempo); setVal('aiIntensity', p.intensity);
+            setVal('aiUnilateral', p.unilateral); setVal('aiConditioning', p.conditioning);
+            setVal('aiPreferences', p.preferences); setVal('aiInjuries', p.injuries);
+            // Checkboxes
+            document.querySelectorAll('input[name="injuryCode"]').forEach(cb => { cb.checked = (p.injuryCodes || []).includes(cb.value); });
+            document.querySelectorAll('input[name="equipment"]').forEach(cb => { cb.checked = (p.equipment || []).includes(cb.value); });
+            document.querySelectorAll('input[name="focusArea"]').forEach(cb => { cb.checked = (p.programFields?.focusAreas || []).includes(cb.value); });
+            if (p.programFields) {
+                setVal('aiDaysPerWeek', p.programFields.daysPerWeek);
+                setVal('aiDuration', p.programFields.duration);
+                setVal('aiSplit', p.programFields.split);
+                setVal('aiSessionDuration', p.programFields.sessionDuration);
+                setVal('aiTrainingStyle', p.programFields.trainingStyle);
+                setVal('aiExerciseCount', p.programFields.exerciseCount);
+            }
+            if (p.singleFields) {
+                setVal('aiTargetMuscle', p.singleFields.targetMuscle);
+                setVal('aiSingleSessionDuration', p.singleFields.sessionDuration);
+                setVal('aiSingleTrainingStyle', p.singleFields.trainingStyle);
+                setVal('aiSingleExerciseCount', p.singleFields.exerciseCount);
+            }
+            if (p.mode && p.mode !== aiMode) selectAIMode(p.mode);
+        }
+
+        function saveCurrentAsPreset() {
+            const name = (prompt('Preset name (e.g., "4-day PPL hypertrophy"):') || '').trim();
+            if (!name) return;
+            const presets = _loadAllPresets();
+            presets[name] = _captureCurrentPreset();
+            _saveAllPresets(presets);
+            refreshPresetList();
+            const sel = document.getElementById('aiPresetSelect');
+            if (sel) sel.value = name;
+            showToast(`Saved preset "${name}"`, 'success');
+        }
+
+        function loadAIPreset(name) {
+            if (!name) return;
+            const presets = _loadAllPresets();
+            const p = presets[name];
+            if (!p) { showToast('Preset not found', 'error'); return; }
+            _applyPresetToForm(p);
+            showToast(`Loaded preset "${name}"`, 'success');
+        }
+
+        function deleteCurrentPreset() {
+            const sel = document.getElementById('aiPresetSelect');
+            const name = sel?.value;
+            if (!name) { showToast('Select a preset to delete', 'error'); return; }
+            if (!confirm(`Delete preset "${name}"?`)) return;
+            const presets = _loadAllPresets();
+            delete presets[name];
+            _saveAllPresets(presets);
+            refreshPresetList();
+            showToast(`Deleted "${name}"`, 'success');
+        }
+
+        // Refresh client list & presets on page load (fires after loadClients completes)
+        setTimeout(() => {
+            populateAIClientSelect();
+            refreshPresetList();
+        }, 1500);
 
         // ============================================
         // Custom Exercise Functions
