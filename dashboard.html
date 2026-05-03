@@ -7897,25 +7897,6 @@
                             .limit(10);
 
                         if (exerciseNotes && exerciseNotes.length > 0) {
-                            // Fetch signed URLs for any voice notes
-                            const voicePaths = exerciseNotes
-                                .filter(n => n.client_voice_note_path)
-                                .map(n => n.client_voice_note_path);
-                            let voiceUrls = {};
-                            if (voicePaths.length > 0) {
-                                try {
-                                    const urlRes = await fetch('/.netlify/functions/get-signed-urls', {
-                                        method: 'POST',
-                                        headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify({ filePaths: voicePaths, coachId })
-                                    });
-                                    const urlData = await urlRes.json();
-                                    voiceUrls = urlData.signedUrls || {};
-                                } catch (e) {
-                                    console.warn('Could not fetch voice note URLs:', e);
-                                }
-                            }
-
                             exerciseNotes.slice(0, MAX_SHOWN).forEach(note => {
                                 const clientId = note.workout_logs?.client_id;
                                 const name = clientMap[clientId] || 'Unknown Client';
@@ -7930,17 +7911,19 @@
                                 // Link to client profile with workout tab and specific workout
                                 const url = `client-profile.html?clientId=${clientId}&tab=workouts&workoutId=${workoutId}`;
 
-                                // Build inline voice player if voice note exists
+                                // Build inline voice player if voice note exists.
+                                // Use the serve-voice-note proxy (302 → fresh signed URL) instead of
+                                // a direct Supabase signed URL — iOS Safari has trouble loading
+                                // metadata from the long Supabase URLs, which leaves the player
+                                // stuck at 00:00 with no audio when the coach taps play.
                                 let voicePlayerHtml = '';
                                 if (hasVoice) {
-                                    const signedUrl = voiceUrls[note.client_voice_note_path];
-                                    if (signedUrl) {
-                                        voicePlayerHtml = `
-                                            <div class="priority-voice-player" onclick="event.stopPropagation()">
-                                                <span class="pvp-label"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:3px;"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>Play</span>
-                                                <audio controls preload="metadata" src="${signedUrl}"></audio>
-                                            </div>`;
-                                    }
+                                    const proxyUrl = '/.netlify/functions/serve-voice-note?path=' + encodeURIComponent(note.client_voice_note_path);
+                                    voicePlayerHtml = `
+                                        <div class="priority-voice-player" onclick="event.stopPropagation()">
+                                            <span class="pvp-label"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:3px;"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>Play</span>
+                                            <audio controls playsinline preload="metadata" src="${proxyUrl}" onerror="this.closest('.priority-voice-player').style.display='none'"></audio>
+                                        </div>`;
                                 }
 
                                 // Build inline text note (full content, no truncation)
