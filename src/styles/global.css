@@ -23486,6 +23486,125 @@ textarea,
     opacity: 0.85;
 }
 
+/* Pending voice-note actions: Discard / Re-record / Send to Coach */
+.client-voice-note-preview.pending {
+    padding: 10px;
+    background: rgba(139, 92, 246, 0.08);
+    border: 1px solid rgba(139, 92, 246, 0.25);
+    border-radius: 10px;
+}
+
+.client-voice-note-preview.sent {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.voice-note-pending-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+}
+
+.voice-note-action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid transparent;
+    background: transparent;
+    color: inherit;
+}
+
+.voice-note-action-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.voice-note-action-btn.discard {
+    background: rgba(107, 114, 128, 0.15);
+    border-color: rgba(107, 114, 128, 0.3);
+    color: #9ca3af;
+}
+
+.voice-note-action-btn.redo {
+    background: rgba(139, 92, 246, 0.12);
+    border-color: rgba(139, 92, 246, 0.3);
+    color: #a78bfa;
+}
+
+.voice-note-action-btn.send {
+    flex: 1;
+    background: #8b5cf6;
+    color: white;
+    border-color: #8b5cf6;
+}
+
+.voice-note-action-btn.delete-sent {
+    align-self: flex-end;
+    background: rgba(239, 68, 68, 0.12);
+    border-color: rgba(239, 68, 68, 0.3);
+    color: #f87171;
+    padding: 6px 10px;
+    font-size: 12px;
+}
+
+.client-note-delete-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 8px;
+    padding: 8px 12px;
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: 8px;
+    color: #f87171;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.client-note-delete-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Guided modal variants reuse the same .voice-note-action-btn / .client-note-delete-btn classes */
+.guided-client-voice-note-preview.pending {
+    padding: 10px;
+    background: rgba(139, 92, 246, 0.08);
+    border: 1px solid rgba(139, 92, 246, 0.25);
+    border-radius: 10px;
+}
+
+.guided-client-voice-note-preview.sent {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+[data-theme="light"] .voice-note-action-btn.discard {
+    background: rgba(107, 114, 128, 0.1);
+    color: #4b5563;
+}
+
+[data-theme="light"] .voice-note-action-btn.redo {
+    color: #6d28d9;
+}
+
+[data-theme="light"] .voice-note-action-btn.delete-sent,
+[data-theme="light"] .client-note-delete-btn {
+    background: rgba(239, 68, 68, 0.08);
+    color: #b91c1c;
+}
+
 [data-theme="light"] .client-note-for-coach-section {
     background: rgba(139, 92, 246, 0.08);
     border-color: rgba(139, 92, 246, 0.25);

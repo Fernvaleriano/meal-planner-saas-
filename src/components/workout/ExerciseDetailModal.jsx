@@ -334,6 +334,10 @@ function ExerciseDetailModal({
       if (clientNoteTimerRef.current) {
         clearTimeout(clientNoteTimerRef.current);
       }
+      // Revoke any staged voice-note blob URL so it doesn't leak
+      if (pendingVoiceBlobRef.current) {
+        pendingVoiceBlobRef.current = null;
+      }
     };
   }, []);
 
@@ -396,10 +400,14 @@ function ExerciseDetailModal({
   // Client note for coach state
   const [clientNote, setClientNote] = useState('');
   const [clientNoteSaved, setClientNoteSaved] = useState(false);
+  const [hasPersistedClientNote, setHasPersistedClientNote] = useState(false);
+  const [deletingClientNote, setDeletingClientNote] = useState(false);
   const [showNoteInput, setShowNoteInput] = useState(false);
   const [isRecordingVoiceNote, setIsRecordingVoiceNote] = useState(false);
   const [voiceNoteUrl, setVoiceNoteUrl] = useState(null);
   const [voiceNoteUploading, setVoiceNoteUploading] = useState(false);
+  const [pendingVoiceUrl, setPendingVoiceUrl] = useState(null);
+  const [deletingVoiceNote, setDeletingVoiceNote] = useState(false);
 
   // Personal (private) notes state — tied to the exercise name, only the client sees these
   const [personalNotes, setPersonalNotes] = useState([]);
@@ -413,6 +421,9 @@ function ExerciseDetailModal({
   const clientNoteTimerRef = useRef(null);
   const clientNoteRef = useRef('');
   const voiceNotePathRef = useRef(null);
+  const pendingVoiceBlobRef = useRef(null); // Blob recorded but not yet sent
+  const pendingVoiceMimeRef = useRef(null);
+  const pendingVoiceExtRef = useRef(null);
   const isMountedRef = useRef(true);
   const exerciseIdAtRecordStartRef = useRef(null);
   const exerciseRef = useRef(exercise); // Ref to avoid re-creating callbacks when exercise object reference changes
@@ -892,17 +903,28 @@ function ExerciseDetailModal({
     const savedNote = exercise?.clientNotes || '';
     const savedVoicePath = exercise?.clientVoiceNotePath || null;
     setClientNote(savedNote);
-    setClientNoteSaved(!!savedNote);
+    setClientNoteSaved(false);
+    setHasPersistedClientNote(!!savedNote);
     setShowNoteInput(!!savedNote || !!savedVoicePath);
     setIsRecordingVoiceNote(false);
+    setDeletingVoiceNote(false);
+    setDeletingClientNote(false);
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       mediaRecorderRef.current.stop();
     }
+    // Discard any pending (unsent) recording when switching exercises
+    if (pendingVoiceUrl) {
+      try { URL.revokeObjectURL(pendingVoiceUrl); } catch { /* ignore */ }
+    }
+    setPendingVoiceUrl(null);
+    pendingVoiceBlobRef.current = null;
+    pendingVoiceMimeRef.current = null;
+    pendingVoiceExtRef.current = null;
 
     // Resolve voice note storage path to a signed URL for playback
+    voiceNotePathRef.current = savedVoicePath;
     if (savedVoicePath && !savedVoicePath.startsWith('blob:') && !savedVoicePath.startsWith('http')) {
       setVoiceNoteUrl(null); // clear while loading
-      voiceNotePathRef.current = savedVoicePath;
       apiPost('/.netlify/functions/get-signed-urls', { filePaths: [savedVoicePath] })
         .then(res => {
           if (cancelled || !isMountedRef.current) return;
@@ -985,6 +1007,7 @@ function ExerciseDetailModal({
       });
 
       setClientNoteSaved(true);
+      setHasPersistedClientNote(!!(noteText && noteText.trim()));
       setTimeout(() => setClientNoteSaved(false), 3000);
 
       // Create notification for coach
@@ -1088,12 +1111,19 @@ function ExerciseDetailModal({
     setPersonalNotes(prev => prev.filter(n => n.id !== noteId));
   }, []);
 
-  // Voice note recording
+  // Voice note recording — staged for review (does not auto-send)
   const startVoiceNoteRecording = useCallback(async () => {
     try {
       // Store current exercise ID to detect if user switches exercises during recording
       const recordingExerciseId = exercise?.id;
       exerciseIdAtRecordStartRef.current = recordingExerciseId;
+
+      // Discard any previously staged (unsent) recording before starting a new one
+      if (pendingVoiceUrl) {
+        try { URL.revokeObjectURL(pendingVoiceUrl); } catch { /* ignore */ }
+      }
+      setPendingVoiceUrl(null);
+      pendingVoiceBlobRef.current = null;
 
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const isWebm = MediaRecorder.isTypeSupported('audio/webm');
@@ -1109,184 +1139,21 @@ function ExerciseDetailModal({
         }
       };
 
-      mediaRecorder.onstop = async () => {
+      mediaRecorder.onstop = () => {
         stream.getTracks().forEach(track => track.stop());
 
         // Guard: Don't process if component unmounted or exercise changed
-        if (!isMountedRef.current) {
-          return;
-        }
+        if (!isMountedRef.current) return;
+        if (exerciseIdAtRecordStartRef.current !== recordingExerciseId) return;
 
         const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
+        if (audioBlob.size === 0) return;
 
-        // Show blob URL for immediate playback while uploading
         const blobUrl = URL.createObjectURL(audioBlob);
-        setVoiceNoteUrl(blobUrl);
-        setVoiceNoteUploading(true);
-
-        try {
-          const fileName = `note_${exercise.id}_${Date.now()}.${fileExt}`;
-          const dateStr = getWorkoutDateStr();
-          let filePath = null;
-          let signedDownloadUrl = null;
-
-          // Try Method 1: Signed upload URL (direct to Supabase, no size limit)
-          try {
-            const urlRes = await apiPost('/.netlify/functions/upload-client-voice-note', {
-              mode: 'get-upload-url',
-              clientId,
-              fileName,
-              contentType: mimeType
-            });
-
-            if (urlRes?.uploadUrl) {
-              const uploadResponse = await fetch(urlRes.uploadUrl, {
-                method: 'PUT',
-                headers: { 'Content-Type': mimeType },
-                body: audioBlob
-              });
-
-              if (uploadResponse.ok) {
-                filePath = urlRes.filePath;
-                // Get signed download URL
-                const confirmRes = await apiPost('/.netlify/functions/upload-client-voice-note', {
-                  mode: 'confirm',
-                  filePath
-                });
-                signedDownloadUrl = confirmRes?.url || null;
-              } else {
-                console.warn('Direct upload failed, trying base64 fallback');
-              }
-            }
-          } catch (directErr) {
-            console.warn('Signed upload method failed, trying base64 fallback:', directErr.message);
-          }
-
-          // Fallback Method 2: Base64 through Netlify function (works for smaller files)
-          if (!filePath) {
-            try {
-              const reader = new FileReader();
-              const audioData = await new Promise((resolve, reject) => {
-                reader.onloadend = () => resolve(reader.result);
-                reader.onerror = reject;
-                reader.readAsDataURL(audioBlob);
-              });
-              const res = await apiPost('/.netlify/functions/upload-client-voice-note', {
-                clientId,
-                audioData,
-                fileName
-              });
-              if (res?.filePath) {
-                filePath = res.filePath;
-                signedDownloadUrl = res.url || null;
-              }
-            } catch (base64Err) {
-              console.error('Base64 upload also failed:', base64Err.message);
-            }
-          }
-
-          // Guard: Check if still mounted before state updates
-          if (!isMountedRef.current) {
-            URL.revokeObjectURL(blobUrl);
-            return;
-          }
-
-          // Update playback URL if we got a signed download URL
-          if (signedDownloadUrl) {
-            URL.revokeObjectURL(blobUrl);
-            setVoiceNoteUrl(signedDownloadUrl);
-          }
-
-          // Save voice note path to the exercise log
-          if (filePath) {
-            voiceNotePathRef.current = filePath;
-
-            // Guard: Skip database save if exercise changed during recording
-            if (exerciseIdAtRecordStartRef.current !== recordingExerciseId) {
-              setVoiceNoteUploading(false);
-              return;
-            }
-
-            let logId = workoutLogIdRef.current;
-            if (!logId) {
-              const existing = await apiGet(
-                `/.netlify/functions/workout-logs?clientId=${clientId}&startDate=${dateStr}&endDate=${dateStr}&limit=1`
-              );
-              const logs = existing?.workouts || existing?.logs || [];
-              if (logs.length > 0) {
-                logId = logs[0].id;
-                workoutLogIdRef.current = logId;
-              }
-            }
-            if (!logId) {
-              const logRes = await apiPost('/.netlify/functions/workout-logs', {
-                clientId,
-                workoutDate: dateStr,
-                workoutName: exercise?.workoutName || 'Workout',
-                status: 'in_progress'
-              });
-              if (logRes?.workout?.id) {
-                logId = logRes.workout.id;
-                workoutLogIdRef.current = logId;
-              }
-            }
-            if (logId) {
-              const setsData = sets.map((s, i) => ({
-                setNumber: i + 1,
-                reps: s.reps || 0,
-                weight: s.weight || 0,
-                weightUnit: s.weightUnit || weightUnit,
-                ...(s.prescribedWeight > 0 && { prescribedWeight: s.prescribedWeight }),
-                ...(s.prescribedReps > 0 && { prescribedReps: s.prescribedReps }),
-                rpe: s.rpe || null,
-                restSeconds: s.restSeconds ?? null,
-                isTimeBased: s.isTimeBased || false,
-                ...(s.duration != null && { duration: s.duration }),
-                ...(s.distance != null && { distance: s.distance }),
-                ...(s.isDistanceBased && { isDistanceBased: true })
-              }));
-              await apiPut('/.netlify/functions/workout-logs', {
-                workoutId: logId,
-                exercises: [{
-                  exerciseId: exercise.id,
-                  exerciseName: exercise.name || 'Unknown',
-                  order: 1,
-                  sets: setsData,
-                  clientVoiceNotePath: filePath,
-                  clientNotes: clientNote || undefined
-                }]
-              });
-            }
-
-            // Notify coach about voice note
-            if (coachId) {
-              try {
-                await apiPost('/.netlify/functions/notifications', {
-                  coachId,
-                  clientId,
-                  type: 'client_exercise_voice_note',
-                  title: 'Client Voice Note',
-                  message: `Left a voice note on ${exercise.name || 'an exercise'}`,
-                  metadata: {
-                    exerciseName: exercise.name,
-                    exerciseId: exercise.id,
-                    workoutDate: dateStr,
-                    voiceNotePath: filePath
-                  }
-                });
-              } catch (notifErr) {
-                console.error('Error creating voice note notification:', notifErr);
-              }
-            }
-          }
-        } catch (err) {
-          console.error('Error uploading voice note:', err);
-        } finally {
-          // Guard: Only update state if still mounted
-          if (isMountedRef.current) {
-            setVoiceNoteUploading(false);
-          }
-        }
+        pendingVoiceBlobRef.current = audioBlob;
+        pendingVoiceMimeRef.current = mimeType;
+        pendingVoiceExtRef.current = fileExt;
+        setPendingVoiceUrl(blobUrl);
       };
 
       mediaRecorder.start();
@@ -1294,7 +1161,7 @@ function ExerciseDetailModal({
     } catch (err) {
       console.error('Error starting voice recording:', err);
     }
-  }, [clientId, exercise?.id, exercise?.name, coachId, sets, clientNote, getWorkoutDateStr]);
+  }, [exercise?.id, pendingVoiceUrl]);
 
   const stopVoiceNoteRecording = useCallback(() => {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
@@ -1302,6 +1169,335 @@ function ExerciseDetailModal({
     }
     setIsRecordingVoiceNote(false);
   }, []);
+
+  // Discard a staged-but-unsent voice recording without uploading anything
+  const discardPendingVoiceNote = useCallback(() => {
+    if (pendingVoiceUrl) {
+      try { URL.revokeObjectURL(pendingVoiceUrl); } catch { /* ignore */ }
+    }
+    setPendingVoiceUrl(null);
+    pendingVoiceBlobRef.current = null;
+    pendingVoiceMimeRef.current = null;
+    pendingVoiceExtRef.current = null;
+  }, [pendingVoiceUrl]);
+
+  // Upload a staged voice note, save its path on the exercise log, notify the coach
+  const sendPendingVoiceNote = useCallback(async () => {
+    const audioBlob = pendingVoiceBlobRef.current;
+    const mimeType = pendingVoiceMimeRef.current;
+    const fileExt = pendingVoiceExtRef.current;
+    const recordingExerciseId = exerciseIdAtRecordStartRef.current;
+    const stagedUrl = pendingVoiceUrl;
+    if (!audioBlob || !mimeType || !fileExt) return;
+    if (!exercise?.id || exercise.id !== recordingExerciseId) return;
+
+    setVoiceNoteUploading(true);
+    setVoiceNoteUrl(stagedUrl); // optimistic playback while uploading
+
+    try {
+      const fileName = `note_${exercise.id}_${Date.now()}.${fileExt}`;
+      const dateStr = getWorkoutDateStr();
+      let filePath = null;
+      let signedDownloadUrl = null;
+
+      // Method 1: signed upload URL (direct to Supabase)
+      try {
+        const urlRes = await apiPost('/.netlify/functions/upload-client-voice-note', {
+          mode: 'get-upload-url',
+          clientId,
+          fileName,
+          contentType: mimeType
+        });
+        if (urlRes?.uploadUrl) {
+          const uploadResponse = await fetch(urlRes.uploadUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': mimeType },
+            body: audioBlob
+          });
+          if (uploadResponse.ok) {
+            filePath = urlRes.filePath;
+            const confirmRes = await apiPost('/.netlify/functions/upload-client-voice-note', {
+              mode: 'confirm',
+              filePath
+            });
+            signedDownloadUrl = confirmRes?.url || null;
+          }
+        }
+      } catch (directErr) {
+        console.warn('Signed upload failed, trying base64 fallback:', directErr.message);
+      }
+
+      // Fallback: base64 through Netlify function (smaller files)
+      if (!filePath) {
+        try {
+          const reader = new FileReader();
+          const audioData = await new Promise((resolve, reject) => {
+            reader.onloadend = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(audioBlob);
+          });
+          const res = await apiPost('/.netlify/functions/upload-client-voice-note', {
+            clientId,
+            audioData,
+            fileName
+          });
+          if (res?.filePath) {
+            filePath = res.filePath;
+            signedDownloadUrl = res.url || null;
+          }
+        } catch (base64Err) {
+          console.error('Base64 upload also failed:', base64Err.message);
+        }
+      }
+
+      if (!isMountedRef.current) return;
+
+      if (!filePath) {
+        // Upload failed — keep the staged blob so the user can retry. Surface
+        // an error tip without losing their recording.
+        setVoiceNoteUrl(null);
+        setProgressTip({
+          type: 'save_error',
+          icon: '⚠️',
+          title: 'Could not send voice note',
+          message: 'Upload failed — check your connection and tap Send again.'
+        });
+        return;
+      }
+
+      // Successful upload — replace the staged blob URL with the signed one
+      if (signedDownloadUrl) {
+        if (stagedUrl) {
+          try { URL.revokeObjectURL(stagedUrl); } catch { /* ignore */ }
+        }
+        setVoiceNoteUrl(signedDownloadUrl);
+      }
+      voiceNotePathRef.current = filePath;
+      pendingVoiceBlobRef.current = null;
+      pendingVoiceMimeRef.current = null;
+      pendingVoiceExtRef.current = null;
+      setPendingVoiceUrl(null);
+
+      // Save voice note path to the exercise log (best-effort — workout-logs upsert)
+      let logId = workoutLogIdRef.current;
+      if (!logId) {
+        const existing = await apiGet(
+          `/.netlify/functions/workout-logs?clientId=${clientId}&startDate=${dateStr}&endDate=${dateStr}&limit=1`
+        );
+        const logs = existing?.workouts || existing?.logs || [];
+        if (logs.length > 0) {
+          logId = logs[0].id;
+          workoutLogIdRef.current = logId;
+        }
+      }
+      if (!logId) {
+        const logRes = await apiPost('/.netlify/functions/workout-logs', {
+          clientId,
+          workoutDate: dateStr,
+          workoutName: exercise?.workoutName || 'Workout',
+          status: 'in_progress'
+        });
+        if (logRes?.workout?.id) {
+          logId = logRes.workout.id;
+          workoutLogIdRef.current = logId;
+        }
+      }
+      if (logId) {
+        const setsData = sets.map((s, i) => ({
+          setNumber: i + 1,
+          reps: s.reps || 0,
+          weight: s.weight || 0,
+          weightUnit: s.weightUnit || weightUnit,
+          ...(s.prescribedWeight > 0 && { prescribedWeight: s.prescribedWeight }),
+          ...(s.prescribedReps > 0 && { prescribedReps: s.prescribedReps }),
+          rpe: s.rpe || null,
+          restSeconds: s.restSeconds ?? null,
+          isTimeBased: s.isTimeBased || false,
+          ...(s.duration != null && { duration: s.duration }),
+          ...(s.distance != null && { distance: s.distance }),
+          ...(s.isDistanceBased && { isDistanceBased: true })
+        }));
+        await apiPut('/.netlify/functions/workout-logs', {
+          workoutId: logId,
+          exercises: [{
+            exerciseId: exercise.id,
+            exerciseName: exercise.name || 'Unknown',
+            order: 1,
+            sets: setsData,
+            clientVoiceNotePath: filePath,
+            clientNotes: clientNote || undefined
+          }]
+        });
+      }
+
+      // Notify coach about voice note
+      if (coachId) {
+        try {
+          await apiPost('/.netlify/functions/notifications', {
+            coachId,
+            clientId,
+            type: 'client_exercise_voice_note',
+            title: 'Client Voice Note',
+            message: `Left a voice note on ${exercise.name || 'an exercise'}`,
+            metadata: {
+              exerciseName: exercise.name,
+              exerciseId: exercise.id,
+              workoutDate: dateStr,
+              voiceNotePath: filePath
+            }
+          });
+        } catch (notifErr) {
+          console.error('Error creating voice note notification:', notifErr);
+        }
+      }
+    } catch (err) {
+      console.error('Error sending voice note:', err);
+    } finally {
+      if (isMountedRef.current) setVoiceNoteUploading(false);
+    }
+  }, [clientId, exercise?.id, exercise?.name, coachId, sets, clientNote, getWorkoutDateStr, pendingVoiceUrl, weightUnit]);
+
+  // Delete a previously sent voice note: remove from storage, clear path, drop
+  // unread coach notification. Already-read notifications are preserved.
+  const deleteSentVoiceNote = useCallback(async () => {
+    const filePath = voiceNotePathRef.current;
+    if (!filePath || deletingVoiceNote) return;
+
+    setDeletingVoiceNote(true);
+    const dateStr = getWorkoutDateStr();
+    try {
+      // 1. Remove the file from storage
+      try {
+        await apiPost('/.netlify/functions/upload-client-voice-note', {
+          mode: 'delete',
+          clientId,
+          filePath
+        });
+      } catch (delErr) {
+        console.error('Error deleting voice note file:', delErr);
+      }
+
+      // 2. Clear the path on the exercise log via workout-logs PUT
+      const logId = workoutLogIdRef.current;
+      if (logId) {
+        try {
+          const setsData = sets.map((s, i) => ({
+            setNumber: i + 1,
+            reps: s.reps || 0,
+            weight: s.weight || 0,
+            weightUnit: s.weightUnit || weightUnit,
+            ...(s.prescribedWeight > 0 && { prescribedWeight: s.prescribedWeight }),
+            ...(s.prescribedReps > 0 && { prescribedReps: s.prescribedReps }),
+            rpe: s.rpe || null,
+            restSeconds: s.restSeconds ?? null,
+            isTimeBased: s.isTimeBased || false,
+            ...(s.duration != null && { duration: s.duration }),
+            ...(s.distance != null && { distance: s.distance }),
+            ...(s.isDistanceBased && { isDistanceBased: true })
+          }));
+          await apiPut('/.netlify/functions/workout-logs', {
+            workoutId: logId,
+            exercises: [{
+              exerciseId: exercise.id,
+              exerciseName: exercise.name || 'Unknown',
+              order: 1,
+              sets: setsData,
+              clientVoiceNotePath: null,
+              clientNotes: clientNote || undefined
+            }]
+          });
+        } catch (logErr) {
+          console.error('Error clearing voice note path on log:', logErr);
+        }
+      }
+
+      // 3. Delete the unread coach notification (if any)
+      if (coachId) {
+        try {
+          await apiDelete('/.netlify/functions/notifications', {
+            coachId,
+            type: 'client_exercise_voice_note',
+            exerciseId: exercise?.id,
+            workoutDate: dateStr,
+            unreadOnly: true
+          });
+        } catch (notifErr) {
+          console.error('Error deleting voice note notification:', notifErr);
+        }
+      }
+
+      voiceNotePathRef.current = null;
+      if (isMountedRef.current) setVoiceNoteUrl(null);
+    } finally {
+      if (isMountedRef.current) setDeletingVoiceNote(false);
+    }
+  }, [clientId, coachId, exercise?.id, exercise?.name, sets, clientNote, getWorkoutDateStr, deletingVoiceNote, weightUnit]);
+
+  // Delete a previously sent text note: clear it on the log + drop unread notification
+  const deleteSentClientNote = useCallback(async () => {
+    if (!hasPersistedClientNote || deletingClientNote) return;
+    if (!clientId || !exercise?.id) return;
+
+    setDeletingClientNote(true);
+    if (clientNoteTimerRef.current) {
+      clearTimeout(clientNoteTimerRef.current);
+      clientNoteTimerRef.current = null;
+    }
+    const dateStr = getWorkoutDateStr();
+    try {
+      const logId = workoutLogIdRef.current;
+      if (logId) {
+        const setsData = sets.map((s, i) => ({
+          setNumber: i + 1,
+          reps: s.reps || 0,
+          weight: s.weight || 0,
+          weightUnit: s.weightUnit || weightUnit,
+          ...(s.prescribedWeight > 0 && { prescribedWeight: s.prescribedWeight }),
+          ...(s.prescribedReps > 0 && { prescribedReps: s.prescribedReps }),
+          rpe: s.rpe || null,
+          restSeconds: s.restSeconds ?? null,
+          isTimeBased: s.isTimeBased || false,
+          ...(s.duration != null && { duration: s.duration }),
+          ...(s.distance != null && { distance: s.distance }),
+          ...(s.isDistanceBased && { isDistanceBased: true })
+        }));
+        await apiPut('/.netlify/functions/workout-logs', {
+          workoutId: logId,
+          exercises: [{
+            exerciseId: exercise.id,
+            exerciseName: exercise.name || 'Unknown',
+            order: 1,
+            sets: setsData,
+            clientNotes: '',
+            clientVoiceNotePath: voiceNotePathRef.current || undefined
+          }]
+        });
+      }
+
+      if (coachId) {
+        try {
+          await apiDelete('/.netlify/functions/notifications', {
+            coachId,
+            type: 'client_exercise_note',
+            exerciseId: exercise?.id,
+            workoutDate: dateStr,
+            unreadOnly: true
+          });
+        } catch (notifErr) {
+          console.error('Error deleting client note notification:', notifErr);
+        }
+      }
+
+      if (isMountedRef.current) {
+        setClientNote('');
+        setHasPersistedClientNote(false);
+      }
+    } catch (err) {
+      console.error('Error deleting client note:', err);
+    } finally {
+      if (isMountedRef.current) setDeletingClientNote(false);
+    }
+  }, [clientId, coachId, exercise?.id, exercise?.name, sets, hasPersistedClientNote, deletingClientNote, getWorkoutDateStr, weightUnit]);
 
   // Coaching tips/mistakes/cues removed - "Ask Coach" provides more accurate guidance
 
@@ -2623,11 +2819,11 @@ function ExerciseDetailModal({
                     <button
                       className="voice-note-btn"
                       onClick={startVoiceNoteRecording}
-                      disabled={voiceNoteUploading}
+                      disabled={voiceNoteUploading || !!pendingVoiceUrl || deletingVoiceNote}
                       type="button"
                     >
                       <Mic size={16} />
-                      <span>{voiceNoteUploading ? 'Uploading...' : 'Voice Note'}</span>
+                      <span>{voiceNoteUploading ? 'Sending...' : 'Voice Note'}</span>
                     </button>
                   )}
                 </div>
@@ -2636,13 +2832,60 @@ function ExerciseDetailModal({
                 </div>
               </div>
 
-              {voiceNoteUrl && (
-                <div className="client-voice-note-preview">
-                  <audio controls src={voiceNoteUrl} preload="metadata" />
+              {/* Pending (recorded but not yet sent) — review-before-send */}
+              {pendingVoiceUrl && (
+                <div className="client-voice-note-preview pending">
+                  <audio controls src={pendingVoiceUrl} preload="metadata" />
+                  <div className="voice-note-pending-actions">
+                    <button
+                      type="button"
+                      className="voice-note-action-btn discard"
+                      onClick={discardPendingVoiceNote}
+                      disabled={voiceNoteUploading}
+                    >
+                      <Trash2 size={14} />
+                      <span>Discard</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="voice-note-action-btn redo"
+                      onClick={() => { discardPendingVoiceNote(); startVoiceNoteRecording(); }}
+                      disabled={voiceNoteUploading}
+                    >
+                      <Mic size={14} />
+                      <span>Re-record</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="voice-note-action-btn send"
+                      onClick={sendPendingVoiceNote}
+                      disabled={voiceNoteUploading}
+                    >
+                      <Send size={14} />
+                      <span>{voiceNoteUploading ? 'Sending...' : 'Send to Coach'}</span>
+                    </button>
+                  </div>
                 </div>
               )}
 
-              {clientNote.trim() && (
+              {/* Sent voice note — playback + delete */}
+              {!pendingVoiceUrl && voiceNoteUrl && (
+                <div className="client-voice-note-preview sent">
+                  <audio controls src={voiceNoteUrl} preload="metadata" />
+                  <button
+                    type="button"
+                    className="voice-note-action-btn delete-sent"
+                    onClick={deleteSentVoiceNote}
+                    disabled={deletingVoiceNote || voiceNoteUploading}
+                    title="Delete voice note"
+                  >
+                    <Trash2 size={14} />
+                    <span>{deletingVoiceNote ? 'Deleting...' : 'Delete'}</span>
+                  </button>
+                </div>
+              )}
+
+              {clientNote.trim() && !hasPersistedClientNote && (
                 <button
                   className="client-note-send-btn"
                   onClick={() => saveClientNote(clientNote)}
@@ -2650,6 +2893,18 @@ function ExerciseDetailModal({
                 >
                   <Send size={14} />
                   <span>Send Note</span>
+                </button>
+              )}
+
+              {hasPersistedClientNote && (
+                <button
+                  type="button"
+                  className="client-note-delete-btn"
+                  onClick={deleteSentClientNote}
+                  disabled={deletingClientNote}
+                >
+                  <Trash2 size={14} />
+                  <span>{deletingClientNote ? 'Deleting...' : 'Delete note'}</span>
                 </button>
               )}
             </div>

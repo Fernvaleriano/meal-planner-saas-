@@ -10,6 +10,14 @@ const headers = {
   'Content-Type': 'application/json'
 };
 
+// Only allow deletion of paths that look like a client voice note we wrote
+const isClientVoiceNotePath = (path, clientId) => {
+  if (typeof path !== 'string' || !path) return false;
+  if (path.includes('..') || path.startsWith('/')) return false;
+  const expectedPrefix = `client-voice-notes/${clientId}/`;
+  return path.startsWith(expectedPrefix);
+};
+
 const SIGNED_URL_EXPIRY = 7 * 24 * 60 * 60; // 7 days
 
 exports.handler = async (event) => {
@@ -78,6 +86,47 @@ exports.handler = async (event) => {
           filePath,
           contentType: ct
         })
+      };
+    }
+
+    // MODE: Delete a previously uploaded voice note from storage and (optionally)
+    // clear the path on the exercise log row.
+    if (mode === 'delete') {
+      const { filePath, exerciseLogId } = body;
+      if (!filePath || !clientId) {
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({ error: 'filePath and clientId are required' })
+        };
+      }
+      if (!isClientVoiceNotePath(filePath, clientId)) {
+        return {
+          statusCode: 403,
+          headers,
+          body: JSON.stringify({ error: 'filePath does not belong to this client' })
+        };
+      }
+
+      const { error: removeError } = await supabase.storage
+        .from('workout-assets')
+        .remove([filePath]);
+
+      if (removeError) {
+        console.error('Voice note delete error:', removeError.message);
+      }
+
+      if (exerciseLogId) {
+        await supabase
+          .from('exercise_logs')
+          .update({ client_voice_note_path: null })
+          .eq('id', exerciseLogId);
+      }
+
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({ success: !removeError, error: removeError?.message || null })
       };
     }
 
