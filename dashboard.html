@@ -5054,8 +5054,9 @@
         }
         .cag-row {
             display: grid;
-            grid-template-columns: 1fr auto;
+            grid-template-columns: minmax(0, 1fr) auto;
             align-items: center;
+            gap: 12px;
             padding: 12px 18px;
             border-bottom: 1px solid #f8fafc;
             cursor: pointer;
@@ -5072,6 +5073,10 @@
             align-items: center;
             gap: 12px;
             min-width: 0;
+        }
+        .cag-client-info > div {
+            min-width: 0;
+            flex: 1;
         }
         .cag-avatar {
             width: 36px;
@@ -5105,8 +5110,11 @@
         .cag-badges {
             display: flex;
             align-items: center;
+            flex-wrap: wrap;
+            justify-content: flex-end;
             gap: 6px;
             flex-shrink: 0;
+            max-width: 100%;
         }
         .cag-badge {
             display: inline-flex;
@@ -5174,6 +5182,24 @@
         [data-theme="dark"] .cag-badge.purple { background: #2e1065; color: #a78bfa; }
         [data-theme="dark"] .cag-badge.blue { background: #172554; color: #60a5fa; }
         [data-theme="dark"] .cag-badge.gray { background: #334155; color: #94a3b8; }
+
+        @media (max-width: 600px) {
+            .cag-row {
+                grid-template-columns: 1fr;
+                gap: 10px;
+                padding: 14px 16px;
+            }
+            .cag-client-info {
+                gap: 10px;
+            }
+            .cag-badges {
+                justify-content: flex-start;
+                padding-left: 46px;
+            }
+            .cag-detail {
+                white-space: normal;
+            }
+        }
 
         /* Notifications Overview */
         .notif-overview-list {
