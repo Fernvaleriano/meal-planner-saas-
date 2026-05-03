@@ -7728,11 +7728,19 @@
                 window._preselectedClientId = clientIdParam;
             }
 
+            const openVideosParam = urlParams.get('openVideos');
+
             // Add initial day and show workout info modal for new programs
-            if (workoutDays.length === 0) {
+            // (skip when the user is just opening the videos library from elsewhere)
+            if (workoutDays.length === 0 && !openVideosParam) {
                 addWorkoutDay();
                 // Show the Workout Information modal instead of just the settings bar
                 openWorkoutInfoModal();
+            }
+
+            // Auto-open the My Videos library when linked from the workout plans page
+            if (openVideosParam) {
+                openMyVideosModal();
             }
         }
 
