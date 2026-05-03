@@ -8,6 +8,8 @@ import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefr
 import { BADGE_TIERS, getEarnedTiers, getNextTier, generateBadgeShareCard, shareOrDownloadBadge } from '../utils/badges';
 
 import { useToast } from '../components/Toast';
+import CoachReactionBadge from '../components/CoachReactionBadge';
+import { useClientReactions } from '../hooks/useClientReactions';
 // Get today's date in local timezone (NOT UTC)
 const getLocalDateString = () => {
   const now = new Date();
@@ -174,6 +176,11 @@ function Progress() {
     ? searchParams.get('tab')
     : 'measurements';
   const [activeTab, setActiveTab] = useState(initialTab);
+
+  // Coach reactions on measurements / photos so we can show a small badge
+  // on the entries the coach reacted to.
+  const { getReaction: getMeasurementReaction } = useClientReactions('measurement');
+  const { getReaction: getPhotoReaction } = useClientReactions('photo');
   const [measurements, setMeasurements] = useState([]);
   const [photos, setPhotos] = useState([]);
   const [loadingMeasurements, setLoadingMeasurements] = useState(true);
@@ -639,23 +646,27 @@ function Progress() {
 
             {expanded && (
               <ul className="metric-history-list">
-                {visibleEntries.map(m => (
-                  <li key={m.id} className="metric-history-item">
-                    <div className="metric-history-meta">
-                      <span className="metric-history-date">{formatDate(m.measured_date)}</span>
-                      <span className="metric-history-value">
-                        {m[config.dbField]} {unit}
-                      </span>
-                    </div>
-                    <button
-                      className="metric-history-delete"
-                      aria-label="Delete entry"
-                      onClick={() => setConfirmDelete({ id: m.id, label: config.label, value: m[config.dbField], unit, date: formatDate(m.measured_date) })}
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </li>
-                ))}
+                {visibleEntries.map(m => {
+                  const coachReaction = getMeasurementReaction('measurement', m.id);
+                  return (
+                    <li key={m.id} className="metric-history-item">
+                      <div className="metric-history-meta">
+                        <span className="metric-history-date">{formatDate(m.measured_date)}</span>
+                        <span className="metric-history-value">
+                          {m[config.dbField]} {unit}
+                        </span>
+                      </div>
+                      <CoachReactionBadge reaction={coachReaction} title={`Coach reacted ${coachReaction?.reaction || ''}`} />
+                      <button
+                        className="metric-history-delete"
+                        aria-label="Delete entry"
+                        onClick={() => setConfirmDelete({ id: m.id, label: config.label, value: m[config.dbField], unit, date: formatDate(m.measured_date) })}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </li>
+                  );
+                })}
                 {entries.length > visibleEntries.length && (
                   <li className="metric-history-more">
                     Showing the most recent {visibleEntries.length} of {entries.length}
@@ -824,6 +835,7 @@ function Progress() {
                   {photos.map((photo, idx) => {
                     const isSelected = selectedPhotos.some(p => p.id === photo.id);
                     const selectedIndex = selectedPhotos.findIndex(p => p.id === photo.id);
+                    const coachReaction = getPhotoReaction('photo', photo.id);
                     return (
                       <div
                         key={photo.id || idx}
@@ -831,6 +843,11 @@ function Progress() {
                         onClick={() => handlePhotoClick(photo)}
                       >
                         <img src={photo.url || photo.photo_url} alt="Progress" loading="lazy" />
+                        <CoachReactionBadge
+                          reaction={coachReaction}
+                          size="overlay"
+                          title={`Coach reacted ${coachReaction?.reaction || ''}`}
+                        />
                         {isSelected && (
                           <div className="photo-selected-badge">{selectedIndex === 0 ? 'Before' : 'After'}</div>
                         )}

@@ -797,6 +797,47 @@ a.nav-left {
     color: var(--gray-600);
 }
 
+/* Inline badge that shows a coach's reaction on the item it was left on
+   (measurement row, meal entry, PR card, photo, etc.). Sits next to the
+   item's existing content rather than replacing it. */
+.coach-reaction-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--teal-500, #14b8a6);
+    color: #fff;
+    border-radius: 999px;
+    font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
+    line-height: 1;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+    flex-shrink: 0;
+    user-select: none;
+}
+
+.coach-reaction-badge--sm {
+    width: 22px;
+    height: 22px;
+    font-size: 13px;
+    padding: 0;
+}
+
+.coach-reaction-badge--md {
+    width: 28px;
+    height: 28px;
+    font-size: 16px;
+    padding: 0;
+}
+
+.coach-reaction-badge--overlay {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    width: 28px;
+    height: 28px;
+    font-size: 16px;
+    z-index: 2;
+}
+
 .comment-display {
     background: var(--gray-100);
     border-radius: 12px;

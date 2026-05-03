@@ -17,6 +17,8 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { apiGet } from '../utils/api';
 import { usePullToRefreshEvent } from '../hooks/usePullToRefreshEvent';
+import CoachReactionBadge from '../components/CoachReactionBadge';
+import { useClientReactions } from '../hooks/useClientReactions';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -348,6 +350,10 @@ export default function WorkoutHistory() {
   const [workouts, setWorkouts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Coach reactions on workouts so we can show a small badge on the cards
+  // the coach has reacted to.
+  const { getReaction: getWorkoutReaction } = useClientReactions('workout');
 
   // Detail view
   const [selectedWorkoutId, setSelectedWorkoutId] = useState(null);
@@ -882,6 +888,15 @@ export default function WorkoutHistory() {
                   </div>
                 </div>
                 <div className="workout-history-card-right">
+                  {(() => {
+                    const coachReaction = getWorkoutReaction('workout', workout.id);
+                    return (
+                      <CoachReactionBadge
+                        reaction={coachReaction}
+                        title={`Coach reacted ${coachReaction?.reaction || ''}`}
+                      />
+                    );
+                  })()}
                   {workout.total_volume > 0 && (
                     <div className="workout-history-card-volume">
                       {formatVolume(workout.total_volume)}
