@@ -9417,6 +9417,28 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="/js/api-helper.js"></script>
     <script>
+        // Voice note playback failure handler. iOS Safari can't decode webm/opus
+        // (the format Chrome/Android record by default). When the audio element
+        // errors, log details and replace it with a download link so the coach
+        // can at least save the file.
+        window.handleClientProfileVoiceError = function(audioEl, proxyUrl, fileExt) {
+            const err = audioEl.error;
+            console.warn('[voice-note] playback error', {
+                code: err?.code,
+                message: err?.message,
+                src: proxyUrl,
+                ext: fileExt,
+                networkState: audioEl.networkState,
+                readyState: audioEl.readyState,
+                userAgent: navigator.userAgent
+            });
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+            const reason = (isIOS && fileExt === 'webm')
+                ? "iPhone can't play this voice note (recorded in webm). Open on desktop or download below."
+                : "Couldn't play this voice note.";
+            audioEl.outerHTML = `<span style="color:#b91c1c; font-size:12px;">⚠ ${reason}</span> <a href="${proxyUrl}" download style="color:#7c3aed; font-size:12px; font-weight:600; text-decoration:underline;">Download</a>`;
+        };
+
         // Sidebar section collapse functionality
 
         function toggleSidebarSection(label) {
@@ -14911,9 +14933,10 @@
                     let voiceHtml = '';
                     if (note.clientVoiceNotePath) {
                         const proxyUrl = '/.netlify/functions/serve-voice-note?path=' + encodeURIComponent(note.clientVoiceNotePath);
+                        const fileExt = (note.clientVoiceNotePath.split('.').pop() || '').toLowerCase();
                         voiceHtml = `<div class="cn-voice-note">
                                 <span class="cn-voice-label">🎙️ Voice Note</span>
-                                <audio controls playsinline preload="metadata" src="${proxyUrl}" onerror="this.outerHTML='<em style=&quot;color:#94a3b8;font-size:13px;&quot;>Unable to load</em>'"></audio>
+                                <audio controls playsinline preload="metadata" src="${proxyUrl}" onerror="window.handleClientProfileVoiceError(this, '${proxyUrl}', '${fileExt}')"></audio>
                               </div>`;
                     }
 
@@ -15352,7 +15375,8 @@
                     // sometimes fail to load in iOS Safari, leaving the player
                     // stuck at 00:00 with no audio.
                     const proxyUrl = '/.netlify/functions/serve-voice-note?path=' + encodeURIComponent(ex.clientVoiceNotePath);
-                    voiceHtml = `<div class="wp-voice-note">🎙️ <audio controls playsinline src="${proxyUrl}" preload="metadata" style="height: 32px; width: 100%; max-width: 250px;" onerror="this.outerHTML='<em style=&quot;color:#6b7280;&quot;>Voice note unavailable</em>'"></audio></div>`;
+                    const fileExt = (ex.clientVoiceNotePath.split('.').pop() || '').toLowerCase();
+                    voiceHtml = `<div class="wp-voice-note">🎙️ <audio controls playsinline src="${proxyUrl}" preload="metadata" style="height: 32px; width: 100%; max-width: 250px;" onerror="window.handleClientProfileVoiceError(this, '${proxyUrl}', '${fileExt}')"></audio></div>`;
                 }
 
                 const prBadge = ex.isPr ? '<span class="wp-pr-badge">PR</span>' : '';
