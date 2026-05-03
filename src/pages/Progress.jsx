@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronLeft, Ruler, Camera, X, Plus, Minus, ChevronDown, Trash2, Columns2, Sparkles, TrendingDown, TrendingUp, ChevronRight, Calendar, Award, Share2 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, apiDelete } from '../utils/api';
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
@@ -161,6 +161,7 @@ function MiniChart({ dataPoints, color = '#14b8a6' }) {
 
 function Progress() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { clientData } = useAuth();
   const { showError, showSuccess } = useToast();
 
@@ -169,7 +170,10 @@ function Progress() {
   const weightUnit = isMetric ? 'kg' : 'lbs';
   const circumUnit = isMetric ? 'cm' : 'in';
 
-  const [activeTab, setActiveTab] = useState('measurements');
+  const initialTab = ['measurements', 'photos', 'achievements'].includes(searchParams.get('tab'))
+    ? searchParams.get('tab')
+    : 'measurements';
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [measurements, setMeasurements] = useState([]);
   const [photos, setPhotos] = useState([]);
   const [loadingMeasurements, setLoadingMeasurements] = useState(true);
