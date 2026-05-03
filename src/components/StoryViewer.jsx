@@ -5,7 +5,7 @@ import { apiPost } from '../utils/api';
 
 const PROGRESS_DURATION = 6000; // 6 seconds per story
 
-function StoryViewer({ stories, coachName, coachAvatar, clientId, onClose }) {
+function StoryViewer({ stories, coachName, coachAvatar, clientId, coachId, onClose }) {
   const [currentIndex, setCurrentIndex] = useState(() => {
     // Start at first unseen story
     const firstUnseen = stories.findIndex(s => !s.viewed);
@@ -140,7 +140,7 @@ function StoryViewer({ stories, coachName, coachAvatar, clientId, onClose }) {
       await apiPost('/.netlify/functions/reply-to-story', {
         storyId: story.id,
         clientId,
-        coachId: story.coachId || null,
+        coachId: coachId || story.coachId || null,
         message: replyText.trim()
       });
       setReplyText('');

@@ -272,6 +272,7 @@ function TopNav() {
           coachName={coachData?.name}
           coachAvatar={coachData?.avatar}
           clientId={clientData?.id}
+          coachId={clientData?.coach_id}
           onClose={handleStoryViewerClose}
         />
       )}
