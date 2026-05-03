@@ -18,6 +18,115 @@ const isClientVoiceNotePath = (path, clientId) => {
   return path.startsWith(expectedPrefix);
 };
 
+// Resolve (or create) the workout_log row for a given client+date and upsert
+// the exercise_log row with the given voice-note path / text note. Runs entirely
+// on the server with the service role so we don't depend on the client to wire
+// together three separate authenticated calls — and so two concurrent client
+// calls (text auto-save + voice send) can't each create their own workout_log.
+async function linkVoiceNoteToExerciseLog(supabase, {
+  clientId,
+  workoutDate,
+  workoutName,
+  exerciseId,
+  exerciseName,
+  filePath,
+  clientNote
+}) {
+  if (!clientId || !workoutDate || !exerciseId) {
+    return { ok: false, error: 'clientId, workoutDate, and exerciseId are required' };
+  }
+
+  // Resolve coach_id for the workout_log row (helps coach-side queries that
+  // join on coach_id)
+  let coachId = null;
+  try {
+    const { data: clientRecord } = await supabase
+      .from('clients')
+      .select('coach_id')
+      .eq('id', clientId)
+      .maybeSingle();
+    coachId = clientRecord?.coach_id || null;
+  } catch { /* ignore */ }
+
+  // Find or create the workout_log
+  let workoutLogId = null;
+  const { data: existingLogs } = await supabase
+    .from('workout_logs')
+    .select('id, coach_id')
+    .eq('client_id', clientId)
+    .eq('workout_date', workoutDate)
+    .limit(1);
+  if (existingLogs && existingLogs.length > 0) {
+    workoutLogId = existingLogs[0].id;
+    if (!existingLogs[0].coach_id && coachId) {
+      await supabase
+        .from('workout_logs')
+        .update({ coach_id: coachId })
+        .eq('id', workoutLogId);
+    }
+  } else {
+    const { data: created, error: createErr } = await supabase
+      .from('workout_logs')
+      .insert({
+        client_id: clientId,
+        workout_date: workoutDate,
+        workout_name: workoutName || 'Workout',
+        status: 'in_progress',
+        coach_id: coachId
+      })
+      .select('id')
+      .single();
+    if (createErr) {
+      return { ok: false, error: `Could not create workout_log: ${createErr.message}` };
+    }
+    workoutLogId = created?.id || null;
+  }
+
+  if (!workoutLogId) {
+    return { ok: false, error: 'Could not resolve workout_log id' };
+  }
+
+  // Upsert the exercise_log row
+  const { data: existingExLogs } = await supabase
+    .from('exercise_logs')
+    .select('id')
+    .eq('workout_log_id', workoutLogId)
+    .eq('exercise_id', exerciseId)
+    .limit(1);
+
+  const updateFields = {};
+  if (filePath !== undefined) updateFields.client_voice_note_path = filePath;
+  if (clientNote !== undefined) updateFields.client_notes = clientNote;
+
+  if (existingExLogs && existingExLogs.length > 0) {
+    const { error: updErr } = await supabase
+      .from('exercise_logs')
+      .update(updateFields)
+      .eq('id', existingExLogs[0].id);
+    if (updErr) return { ok: false, error: `Could not update exercise_log: ${updErr.message}` };
+    return { ok: true, workoutLogId, exerciseLogId: existingExLogs[0].id };
+  }
+
+  const { data: insertedEx, error: insErr } = await supabase
+    .from('exercise_logs')
+    .insert([{
+      workout_log_id: workoutLogId,
+      exercise_id: exerciseId,
+      exercise_name: exerciseName || 'Unknown',
+      exercise_order: 1,
+      sets_data: [],
+      total_sets: 0,
+      total_reps: 0,
+      total_volume: 0,
+      max_weight: 0,
+      ...updateFields
+    }])
+    .select('id')
+    .single();
+  if (insErr) return { ok: false, error: `Could not insert exercise_log: ${insErr.message}` };
+  return { ok: true, workoutLogId, exerciseLogId: insertedEx?.id || null };
+}
+
 const SIGNED_URL_EXPIRY = 7 * 24 * 60 * 60; // 7 days
 
 exports.handler = async (event) => {
@@ -132,7 +241,15 @@ exports.handler = async (event) => {
 
     // MODE 2: Confirm upload was successful, save path to exercise_log, get download URL
     if (mode === 'confirm') {
-      const { filePath, exerciseLogId } = body;
+      const {
+        filePath,
+        exerciseLogId,
+        workoutDate,
+        workoutName,
+        exerciseId,
+        exerciseName,
+        clientNote
+      } = body;
       if (!filePath) {
         return {
           statusCode: 400,
@@ -141,8 +258,24 @@ exports.handler = async (event) => {
         };
       }
 
-      // If we have an exercise log ID, update it with the voice note path
-      if (exerciseLogId) {
+      // Preferred path: caller passed enough metadata for us to find/create the
+      // workout_log + exercise_log atomically (no client-side races). If only
+      // exerciseLogId is provided, fall back to the legacy direct update.
+      let linkResult = null;
+      if (clientId && workoutDate && exerciseId) {
+        linkResult = await linkVoiceNoteToExerciseLog(supabase, {
+          clientId,
+          workoutDate,
+          workoutName,
+          exerciseId,
+          exerciseName,
+          filePath,
+          clientNote
+        });
+        if (!linkResult.ok) {
+          console.error('linkVoiceNoteToExerciseLog failed:', linkResult.error);
+        }
+      } else if (exerciseLogId) {
         await supabase
           .from('exercise_logs')
           .update({ client_voice_note_path: filePath })
@@ -160,13 +293,24 @@ exports.handler = async (event) => {
         body: JSON.stringify({
           success: true,
           url: signedUrlData?.signedUrl || null,
-          filePath
+          filePath,
+          linkedExerciseLogId: linkResult?.exerciseLogId || null,
+          linkedWorkoutLogId: linkResult?.workoutLogId || null,
+          linkError: linkResult && !linkResult.ok ? linkResult.error : null
         })
       };
     }
 
     // LEGACY MODE: Direct upload via base64 (kept for backward compatibility, works for small files)
-    const { audioData, exerciseLogId } = body;
+    const {
+      audioData,
+      exerciseLogId,
+      workoutDate,
+      workoutName,
+      exerciseId,
+      exerciseName,
+      clientNote
+    } = body;
 
     if (!clientId || !audioData || !fileName) {
       return {
@@ -208,7 +352,21 @@ exports.handler = async (event) => {
       throw error;
     }
 
-    if (exerciseLogId) {
+    let linkResult = null;
+    if (workoutDate && exerciseId) {
+      linkResult = await linkVoiceNoteToExerciseLog(supabase, {
+        clientId,
+        workoutDate,
+        workoutName,
+        exerciseId,
+        exerciseName,
+        filePath,
+        clientNote
+      });
+      if (!linkResult.ok) {
+        console.error('linkVoiceNoteToExerciseLog failed (base64 path):', linkResult.error);
+      }
+    } else if (exerciseLogId) {
       await supabase
         .from('exercise_logs')
         .update({ client_voice_note_path: filePath })
@@ -225,7 +383,10 @@ exports.handler = async (event) => {
       body: JSON.stringify({
         success: true,
         url: signedUrlData?.signedUrl || null,
-        filePath
+        filePath,
+        linkedExerciseLogId: linkResult?.exerciseLogId || null,
+        linkedWorkoutLogId: linkResult?.workoutLogId || null,
+        linkError: linkResult && !linkResult.ok ? linkResult.error : null
       })
     };
 
