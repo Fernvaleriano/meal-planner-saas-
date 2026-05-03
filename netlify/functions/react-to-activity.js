@@ -141,6 +141,11 @@ exports.handler = async (event) => {
           title = `${reaction} ${coachName} reacted to ${subject}!`;
           message = `${coachName} reacted with ${reaction} to ${itemDetail.longLabel || 'your logged measurements'}`;
           notifType = 'measurement_reaction';
+        } else if (itemType === 'weigh_in') {
+          const subject = itemDetail.shortLabel || 'your weigh-in';
+          title = `${reaction} ${coachName} reacted to ${subject}!`;
+          message = `${coachName} reacted with ${reaction} to ${itemDetail.longLabel || 'your weigh-in'}`;
+          notifType = 'weigh_in_reaction';
         } else {
           const subject = itemDetail.shortLabel || 'your workout note';
           title = `${reaction} ${coachName} reacted to ${subject}`;
@@ -178,6 +183,7 @@ exports.handler = async (event) => {
           : itemType === 'checkin' ? 'your check-in'
           : itemType === 'photo' ? 'your progress photo'
           : itemType === 'measurement' ? 'your measurements'
+          : itemType === 'weigh_in' ? 'your weigh-in'
           : 'your workout note'
         );
         const chatMessage = `Reacted ${reaction} to ${subject}`;
@@ -317,6 +323,35 @@ async function fetchItemDetail(supabase, itemType, itemId) {
         shortLabel: `your ${type} photo`,
         longLabel: `your ${type} progress photo`
       };
+    }
+
+    if (itemType === 'weigh_in') {
+      const { data } = await supabase
+        .from('weight_proofs')
+        .select('weight, weight_unit, proof_date')
+        .eq('id', itemId)
+        .maybeSingle();
+      if (!data) return {};
+      const parts = [];
+      if (data.weight != null) {
+        const unit = data.weight_unit || 'lbs';
+        parts.push(`${formatNum(data.weight)} ${unit}`);
+      }
+      let dateLabel = '';
+      if (data.proof_date) {
+        const d = new Date(data.proof_date + 'T00:00:00');
+        if (!isNaN(d.getTime())) {
+          dateLabel = d.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+        }
+      }
+      const weightLabel = parts.join(', ');
+      if (!weightLabel && !dateLabel) return {};
+      const subject = weightLabel && dateLabel
+        ? `your ${dateLabel} weigh-in (${weightLabel})`
+        : weightLabel
+          ? `your weigh-in of ${weightLabel}`
+          : `your ${dateLabel} weigh-in`;
+      return { shortLabel: subject, longLabel: subject };
     }
 
     if (itemType === 'gym_checkin') {
