@@ -62,7 +62,7 @@ exports.handler = async (event) => {
 
       let query = supabase
         .from('exercises')
-        .select('*', { count: 'exact' });
+        .select('*');
 
       // Show global exercises + coach's custom exercises
       if (coachId) {
@@ -110,7 +110,7 @@ exports.handler = async (event) => {
         .order('name', { ascending: true })
         .range(parseInt(offset), parseInt(offset) + parseInt(limit) - 1);
 
-      const { data: exercises, error, count } = await query;
+      const { data: exercises, error } = await query;
 
       if (error) throw error;
 
@@ -143,7 +143,7 @@ exports.handler = async (event) => {
         headers,
         body: JSON.stringify({
           exercises: filteredExercises,
-          total: genderVariant && genderVariant !== 'all' ? filteredExercises.length : count,
+          total: filteredExercises.length,
           limit: parseInt(limit),
           offset: parseInt(offset)
         })

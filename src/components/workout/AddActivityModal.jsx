@@ -7,17 +7,22 @@ import SmartThumbnail from './SmartThumbnail';
 const INITIAL_DISPLAY_COUNT = 30;
 const LOAD_MORE_COUNT = 30;
 
-// ── Exercise list cache (module-level, survives modal mount/unmount) ──
+// ── Exercise list cache ──
 // The exercise library is essentially static (~3000 rows) and the previous
 // implementation re-fetched it on every modal open. After the iOS app is
 // backgrounded, that fetch could stall for up to 60s — Netlify cold start +
 // suspended TCP socket + the 15s timeout + 401-retry path on top of an SW
-// `X-Cache-Bypass` header set during the resume window. Caching the list in
-// memory makes every modal open after the first one instant, and a
-// background revalidation keeps it fresh.
+// `X-Cache-Bypass` header set during the resume window.
+//
+// Two-tier cache:
+//  • In-memory Map — survives modal mount/unmount within the SPA session.
+//  • localStorage — survives a full app kill / WebView eviction on iOS.
+// Stale data is always shown instantly; a background revalidate keeps it
+// fresh. Concurrent opens share the same in-flight request.
 const exerciseCache = new Map(); // cacheKey -> { exercises, timestamp }
 const inflightExerciseFetch = new Map(); // cacheKey -> Promise<exercises[]>
 const EXERCISE_CACHE_FRESH_MS = 60 * 60 * 1000; // 1 hour
+const EXERCISE_LS_PREFIX = 'zique-exercise-cache-v1:';
 
 const buildExerciseCacheKey = (coachId, genderPreference) =>
   `${coachId || 'none'}|${genderPreference || 'all'}`;
@@ -29,6 +34,30 @@ const buildExercisesUrl = (coachId, genderPreference) => {
     url += `&genderVariant=${genderPreference}`;
   }
   return url;
+};
+
+const readExerciseCache = (cacheKey) => {
+  const mem = exerciseCache.get(cacheKey);
+  if (mem) return mem;
+  try {
+    const raw = localStorage.getItem(EXERCISE_LS_PREFIX + cacheKey);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || !Array.isArray(parsed.exercises)) return null;
+    exerciseCache.set(cacheKey, parsed); // hydrate in-memory
+    return parsed;
+  } catch {
+    return null;
+  }
+};
+
+const writeExerciseCache = (cacheKey, entry) => {
+  exerciseCache.set(cacheKey, entry);
+  try {
+    localStorage.setItem(EXERCISE_LS_PREFIX + cacheKey, JSON.stringify(entry));
+  } catch {
+    // Quota exceeded or private mode — in-memory cache still works.
+  }
 };
 
 // Check if URL is an image (not a video)
@@ -542,7 +571,7 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelec
     isMountedRef.current = true;
 
     const cacheKey = buildExerciseCacheKey(coachId, genderPreference);
-    const cached = exerciseCache.get(cacheKey);
+    const cached = readExerciseCache(cacheKey);
     const isFresh = cached && (Date.now() - cached.timestamp) < EXERCISE_CACHE_FRESH_MS;
 
     if (cached) {
@@ -574,7 +603,7 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelec
 
       try {
         const list = await promise;
-        exerciseCache.set(cacheKey, { exercises: list, timestamp: Date.now() });
+        writeExerciseCache(cacheKey, { exercises: list, timestamp: Date.now() });
         if (!isMountedRef.current) return;
         setExercises(list);
       } catch (error) {
