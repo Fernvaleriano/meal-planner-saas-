@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { X, ChevronLeft, ChevronRight, Send, ExternalLink } from 'lucide-react';
 import { apiPost } from '../utils/api';
 
@@ -162,7 +163,7 @@ function StoryViewer({ stories, coachName, coachAvatar, clientId, onClose }) {
 
   const avatarUrl = coachAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(coachName || 'Coach')}&background=0d9488&color=fff`;
 
-  return (
+  return createPortal(
     <div style={styles.overlay} onClick={onClose}>
       <div
         ref={containerRef}
@@ -293,7 +294,8 @@ function StoryViewer({ stories, coachName, coachAvatar, clientId, onClose }) {
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -498,7 +500,7 @@ const styles = {
     zIndex: 5,
   },
   footer: {
-    padding: '10px 12px',
+    padding: '10px 12px calc(10px + env(safe-area-inset-bottom, 0px))',
     display: 'flex',
     alignItems: 'center',
     gap: 8,
