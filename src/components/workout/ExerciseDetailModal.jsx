@@ -1197,8 +1197,19 @@ function ExerciseDetailModal({
     try {
       const fileName = `note_${exercise.id}_${Date.now()}.${fileExt}`;
       const dateStr = getWorkoutDateStr();
+      // Metadata passed to the server so it can do the workout_log + exercise_log
+      // upsert atomically (no client-side races between text-auto-save and voice-send)
+      const linkPayload = {
+        clientId,
+        workoutDate: dateStr,
+        workoutName: exercise?.workoutName || 'Workout',
+        exerciseId: exercise.id,
+        exerciseName: exercise.name || 'Unknown',
+        clientNote: clientNote || undefined
+      };
       let filePath = null;
       let signedDownloadUrl = null;
+      let linkError = null;
 
       // Method 1: signed upload URL (direct to Supabase)
       try {
@@ -1218,9 +1229,11 @@ function ExerciseDetailModal({
             filePath = urlRes.filePath;
             const confirmRes = await apiPost('/.netlify/functions/upload-client-voice-note', {
               mode: 'confirm',
-              filePath
+              filePath,
+              ...linkPayload
             });
             signedDownloadUrl = confirmRes?.url || null;
+            linkError = confirmRes?.linkError || null;
           }
         }
       } catch (directErr) {
@@ -1237,13 +1250,14 @@ function ExerciseDetailModal({
             reader.readAsDataURL(audioBlob);
           });
           const res = await apiPost('/.netlify/functions/upload-client-voice-note', {
-            clientId,
             audioData,
-            fileName
+            fileName,
+            ...linkPayload
           });
           if (res?.filePath) {
             filePath = res.filePath;
             signedDownloadUrl = res.url || null;
+            linkError = res.linkError || null;
           }
         } catch (base64Err) {
           console.error('Base64 upload also failed:', base64Err.message);
@@ -1253,8 +1267,7 @@ function ExerciseDetailModal({
       if (!isMountedRef.current) return;
 
       if (!filePath) {
-        // Upload failed — keep the staged blob so the user can retry. Surface
-        // an error tip without losing their recording.
+        // Upload failed — keep the staged blob so the user can retry.
         setVoiceNoteUrl(null);
         setProgressTip({
           type: 'save_error',
@@ -1263,6 +1276,16 @@ function ExerciseDetailModal({
           message: 'Upload failed — check your connection and tap Send again.'
         });
         return;
+      }
+
+      if (linkError) {
+        console.error('[voice-note] Server failed to link voice note to exercise_log:', linkError);
+        setProgressTip({
+          type: 'save_error',
+          icon: '⚠️',
+          title: 'Voice note saved, but coach may not see it',
+          message: 'Try logging at least one set on this exercise, then tap Send again.'
+        });
       }
 
       // Successful upload — replace the staged blob URL with the signed one
@@ -1277,54 +1300,6 @@ function ExerciseDetailModal({
       pendingVoiceMimeRef.current = null;
       pendingVoiceExtRef.current = null;
       setPendingVoiceUrl(null);
-
-      // Save voice note path to the exercise log. Use the shared serialized
-      // helper so we don't race with the text-note auto-save and end up
-      // creating two workout_log rows for the same client+date.
-      let logId = workoutLogIdRef.current;
-      if (!logId) {
-        logId = await getOrCreateWorkoutLogId(
-          clientId,
-          dateStr,
-          exercise?.workoutName || 'Workout'
-        );
-        if (logId) workoutLogIdRef.current = logId;
-      }
-      if (!logId) {
-        console.error('[voice-note] Could not resolve workout log id; voice note path will not be linked', { clientId, dateStr });
-      }
-      if (logId) {
-        const setsData = sets.map((s, i) => ({
-          setNumber: i + 1,
-          reps: s.reps || 0,
-          weight: s.weight || 0,
-          weightUnit: s.weightUnit || weightUnit,
-          ...(s.prescribedWeight > 0 && { prescribedWeight: s.prescribedWeight }),
-          ...(s.prescribedReps > 0 && { prescribedReps: s.prescribedReps }),
-          rpe: s.rpe || null,
-          restSeconds: s.restSeconds ?? null,
-          isTimeBased: s.isTimeBased || false,
-          ...(s.duration != null && { duration: s.duration }),
-          ...(s.distance != null && { distance: s.distance }),
-          ...(s.isDistanceBased && { isDistanceBased: true })
-        }));
-        try {
-          await apiPut('/.netlify/functions/workout-logs', {
-            workoutId: logId,
-            exercises: [{
-              exerciseId: exercise.id,
-              exerciseName: exercise.name || 'Unknown',
-              order: 1,
-              sets: setsData,
-              clientVoiceNotePath: filePath,
-              clientNotes: clientNote || undefined
-            }]
-          });
-        } catch (putErr) {
-          console.error('[voice-note] Failed to link voice note to exercise_log', putErr);
-          throw putErr;
-        }
-      }
 
       // Notify coach about voice note
       if (coachId) {

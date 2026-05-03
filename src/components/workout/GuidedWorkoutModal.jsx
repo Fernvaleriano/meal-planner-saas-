@@ -1181,8 +1181,18 @@ function GuidedWorkoutModal({
     try {
       const fileName = `note_${exercise.id}_${Date.now()}.${fileExt}`;
       const dateStr = getWorkoutDateStr();
+      // Metadata so the server can do workout_log + exercise_log upsert atomically
+      const linkPayload = {
+        clientId,
+        workoutDate: dateStr,
+        workoutName: workoutName || 'Workout',
+        exerciseId: exercise.id,
+        exerciseName: exercise.name || 'Unknown',
+        clientNote: clientNotes[recordingExIndex] || undefined
+      };
       let filePath = null;
       let signedDownloadUrl = null;
+      let linkError = null;
 
       try {
         const urlRes = await apiPost('/.netlify/functions/upload-client-voice-note', {
@@ -1201,9 +1211,11 @@ function GuidedWorkoutModal({
             filePath = urlRes.filePath;
             const confirmRes = await apiPost('/.netlify/functions/upload-client-voice-note', {
               mode: 'confirm',
-              filePath
+              filePath,
+              ...linkPayload
             });
             signedDownloadUrl = confirmRes?.url || null;
+            linkError = confirmRes?.linkError || null;
           }
         }
       } catch (directErr) {
@@ -1219,13 +1231,14 @@ function GuidedWorkoutModal({
             reader.readAsDataURL(audioBlob);
           });
           const res = await apiPost('/.netlify/functions/upload-client-voice-note', {
-            clientId,
             audioData,
-            fileName
+            fileName,
+            ...linkPayload
           });
           if (res?.filePath) {
             filePath = res.filePath;
             signedDownloadUrl = res.url || null;
+            linkError = res.linkError || null;
           }
         } catch (base64Err) {
           console.error('Base64 upload failed:', base64Err);
@@ -1237,6 +1250,10 @@ function GuidedWorkoutModal({
         // Keep staged blob so user can retry without losing the recording.
         setVoiceNoteUrl(null);
         return;
+      }
+
+      if (linkError) {
+        console.error('[voice-note] Server failed to link voice note to exercise_log:', linkError);
       }
 
       if (signedDownloadUrl) {
@@ -1251,9 +1268,6 @@ function GuidedWorkoutModal({
       pendingVoiceExtRef.current = null;
       pendingVoiceExIndexRef.current = null;
       setPendingVoiceUrl(null);
-
-      // Persist path on the exercise log via saveClientNote (preserves any text)
-      saveClientNote(clientNotes[recordingExIndex] || '', recordingExIndex);
 
       // Notify coach about voice note
       if (coachId) {
