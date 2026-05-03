@@ -414,12 +414,28 @@
         }
 
         .update-clients-list-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
             padding: 8px 12px;
             border-radius: var(--radius-sm);
             background: var(--bg-tertiary);
             margin-bottom: 4px;
             font-size: 0.85rem;
             color: var(--text-primary);
+            cursor: pointer;
+        }
+
+        .update-clients-list-item:hover {
+            background: var(--bg-quaternary, var(--bg-secondary));
+        }
+
+        .update-client-checkbox {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+            accent-color: var(--success);
+            flex-shrink: 0;
         }
 
         .btn-success {
@@ -11663,10 +11679,14 @@
 
                 listEl.innerHTML = activeForProgram.map(a => {
                     const clientName = a.clients?.client_name || a.clients?.email || 'Unknown Client';
-                    return `<div class="update-clients-list-item">${clientName}</div>`;
+                    return `<label class="update-clients-list-item">
+                        <input type="checkbox" class="update-client-checkbox" data-assignment-id="${a.id}" checked onchange="updateSelectedClientCount()">
+                        <span>${clientName}</span>
+                    </label>`;
                 }).join('');
 
                 document.getElementById('confirmUpdateClientsModal').classList.add('active');
+                updateSelectedClientCount();
             } catch (err) {
                 console.error('Error checking assignments:', err);
                 showToast('Error checking client assignments: ' + err.message, 'error');
@@ -11677,7 +11697,24 @@
             document.getElementById('confirmUpdateClientsModal').classList.remove('active');
         }
 
+        function updateSelectedClientCount() {
+            const checkboxes = document.querySelectorAll('#updateClientsList .update-client-checkbox');
+            const selected = document.querySelectorAll('#updateClientsList .update-client-checkbox:checked').length;
+            const btn = document.getElementById('confirmUpdateClientsBtn');
+            if (selected === 0) {
+                btn.textContent = 'Save Only';
+            } else if (selected === checkboxes.length) {
+                btn.textContent = `Save & Update All (${selected})`;
+            } else {
+                btn.textContent = `Save & Update (${selected})`;
+            }
+        }
+
         async function confirmSaveAndUpdateClients() {
+            const selectedAssignmentIds = Array.from(
+                document.querySelectorAll('#updateClientsList .update-client-checkbox:checked')
+            ).map(cb => cb.dataset.assignmentId);
+
             closeUpdateClientsModal();
 
             const name = document.getElementById('programName').value.trim();
@@ -11711,7 +11748,8 @@
                         programData: { days: workoutDays },
                         heroImageUrl: heroImageUrl || undefined,
                         isClubWorkout: document.getElementById('isClubWorkout').checked,
-                        updateClientAssignments: true
+                        updateClientAssignments: selectedAssignmentIds.length > 0,
+                        assignmentIds: selectedAssignmentIds
                     })
                 });
 
