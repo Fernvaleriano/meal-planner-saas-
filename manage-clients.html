@@ -2209,6 +2209,7 @@
             <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
                 <button class="btn btn-primary" onclick="openAddClientModal()">+ Add Your First Client</button>
                 <button class="btn" id="loadSampleDataBtn" onclick="loadSampleData()" style="background: linear-gradient(135deg, #8b5cf6, #6366f1); color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px;">&#x1F4CB; Load Sample Data</button>
+                <button class="btn" id="generateDemoBtnEmpty" onclick="generateDemoClient()" style="background: linear-gradient(135deg, #ec4899, #f97316); color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px;">&#x1F3AC; Generate Demo Client</button>
             </div>
         </div>
 
@@ -2241,6 +2242,12 @@
                     </svg>
                     <span id="archiveToggleText">View Archived</span>
                     <span class="archive-count" id="archivedCount">0</span>
+                </button>
+
+                <!-- Demo Client Button (creates / refreshes a fake demo client for showcasing) -->
+                <button class="archive-toggle" id="generateDemoBtn" onclick="generateDemoClient()" title="Create or refresh a demo client with AI-generated photos and activity for showcasing the platform" style="background: linear-gradient(135deg, #ec4899, #f97316); color: white; border-color: transparent;">
+                    <span style="font-size: 14px;">&#x1F3AC;</span>
+                    <span id="generateDemoBtnText">Demo Client</span>
                 </button>
             </div>
             <span class="client-count" id="clientCount">0 clients</span>
@@ -3943,6 +3950,66 @@
                 setTimeout(() => {
                     btn.innerHTML = originalText;
                 }, 3000);
+            }
+        }
+
+        // Generate or refresh the coach's personal demo client (AI-generated
+        // photos + ~6 weeks of gym check-ins and weigh-ins). Used for showcasing
+        // the platform during sales demos. Calling it again wipes and re-seeds.
+        async function generateDemoClient() {
+            if (!currentCoachId) {
+                alert('Please wait — coach session is still loading.');
+                return;
+            }
+
+            const confirmMsg = 'Generate / refresh demo client?\n\n' +
+                'This creates a fake client (Jessica Martinez) with AI-generated ' +
+                'gym selfies, weigh-in photos, and ~6 weeks of activity. If a demo ' +
+                'client already exists, it will be wiped and re-created.\n\n' +
+                'Image generation takes about 15–25 seconds. Continue?';
+
+            if (!confirm(confirmMsg)) return;
+
+            const buttons = [
+                document.getElementById('generateDemoBtn'),
+                document.getElementById('generateDemoBtnEmpty')
+            ].filter(Boolean);
+            const originals = buttons.map(b => b.innerHTML);
+            buttons.forEach(b => {
+                b.disabled = true;
+                b.style.opacity = '0.7';
+                b.innerHTML = '&#x23F3; Generating demo data…';
+            });
+
+            try {
+                const result = await apiPost('/.netlify/functions/seed-demo-client', {
+                    coachId: currentCoachId,
+                    action: 'seed'
+                });
+
+                if (result.success) {
+                    buttons.forEach(b => {
+                        b.innerHTML = '&#x2705; Demo client ready!';
+                    });
+                    setTimeout(() => loadClients(), 1200);
+                    setTimeout(() => {
+                        buttons.forEach((b, i) => {
+                            b.innerHTML = originals[i];
+                            b.disabled = false;
+                            b.style.opacity = '1';
+                        });
+                    }, 4000);
+                } else {
+                    throw new Error(result.error || 'Unknown error');
+                }
+            } catch (error) {
+                console.error('Error generating demo client:', error);
+                alert('Failed to generate demo client: ' + error.message);
+                buttons.forEach((b, i) => {
+                    b.innerHTML = originals[i];
+                    b.disabled = false;
+                    b.style.opacity = '1';
+                });
             }
         }
 
