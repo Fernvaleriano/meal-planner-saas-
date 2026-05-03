@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, ChevronDown, Plus, Camera, Search, Heart, Copy, ArrowLeft, FileText, Sunrise, Sun, Moon, Apple, Droplets, Bot, Maximize2, BarChart3, Check, Trash2, Dumbbell, UtensilsCrossed, Mic, X, ChefHat, Sparkles, Send, Zap, MapPin, Salad, RotateCcw, Pencil, Share2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronDown, Plus, Minus, Camera, Search, Heart, Copy, ArrowLeft, FileText, Sunrise, Sun, Moon, Coffee, Apple, Droplets, Bot, Maximize2, BarChart3, Check, CheckCircle, Trash2, Dumbbell, UtensilsCrossed, Mic, X, ChefHat, Sparkles, Send, Zap, MapPin, Salad, RotateCcw, Pencil, Share2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, apiPut, apiDelete, fetchWithTimeout } from '../utils/api';
 import { FavoritesModal, SnapPhotoModal, ScanLabelModal, SearchFoodsModal } from '../components/FoodModals';
@@ -157,6 +157,11 @@ function Diary() {
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const preVoiceInputRef = useRef('');
+
+  // AI Log Modal: parsed-food confirmation state
+  const [aiLogParsedFoods, setAiLogParsedFoods] = useState(null);
+  const [aiLogServings, setAiLogServings] = useState(1);
+  const [aiLogShowConfirmation, setAiLogShowConfirmation] = useState(false);
 
   // Water: tracks latest tapped value for rapid-tap accuracy
   const waterLatestRef = useRef(null);
@@ -3760,26 +3765,36 @@ function Diary() {
                 <div style={{ flex: 1, height: '1px', background: 'var(--gray-200)' }} />
               </div>
 
-              {/* Meal Type Selector */}
+              {/* Meal Type Selector with icons (matches Dashboard) */}
               <div style={{ marginBottom: '16px' }}>
                 <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500, fontSize: '0.9rem' }}>Add to:</label>
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                  {['breakfast', 'lunch', 'dinner', 'snack'].map(meal => (
+                <div className="meal-type-selector" role="group" aria-label="Select meal type">
+                  {[
+                    { id: 'breakfast', Icon: Sunrise, label: 'Breakfast' },
+                    { id: 'lunch', Icon: Sun, label: 'Lunch' },
+                    { id: 'dinner', Icon: Moon, label: 'Dinner' },
+                    { id: 'snack', Icon: Coffee, label: 'Snack' }
+                  ].map(meal => (
                     <button
-                      key={meal}
-                      className={`ai-chip ${selectedMealType === meal ? 'active' : ''}`}
-                      onClick={() => setSelectedMealType(meal)}
+                      key={meal.id}
+                      className={`meal-type-btn ${selectedMealType === meal.id ? 'active' : ''}`}
+                      onClick={() => setSelectedMealType(meal.id)}
+                      aria-label={`Select ${meal.label}`}
+                      aria-pressed={selectedMealType === meal.id}
                     >
-                      {meal.charAt(0).toUpperCase() + meal.slice(1)}
+                      <span className="meal-icon" aria-hidden="true"><meal.Icon size={24} /></span>
+                      <span className="meal-label">{meal.label}</span>
                     </button>
                   ))}
                 </div>
               </div>
 
-              {/* Food Input */}
+              {/* Food Input (controlled — shared with voice transcript) */}
               <textarea
                 id="aiLogInput"
                 placeholder="e.g., 2 eggs with toast and butter, black coffee"
+                value={aiInput}
+                onChange={(e) => setAiInput(e.target.value)}
                 style={{
                   width: '100%',
                   padding: '12px',
@@ -3792,73 +3807,177 @@ function Diary() {
                 }}
               />
 
-              <button
-                className="btn-primary"
-                onClick={async () => {
-                  const input = document.getElementById('aiLogInput');
-                  if (!input.value.trim()) return;
+              {/* Voice + Log Food row (matches Dashboard) */}
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  className={`voice-btn ${isRecording ? 'recording' : ''} ${isTranscribing ? 'transcribing' : ''}`}
+                  onClick={toggleVoiceInput}
+                  disabled={isTranscribing || aiLogging}
+                  aria-label={isTranscribing ? 'Transcribing...' : isRecording ? 'Stop voice input' : 'Start voice input'}
+                  aria-pressed={isRecording}
+                >
+                  <Mic size={20} aria-hidden="true" />
+                </button>
+                <button
+                  className="btn-primary"
+                  onClick={async () => {
+                    if (!aiInput.trim()) return;
+                    if (isRecording) stopVoiceInput();
 
-                  setAiInput(input.value);
-                  setShowAILogModal(false);
-
-                  // Use handleAiLog for food logging
-                  setAiLogging(true);
-                  try {
-                    const aiData = await apiPost('/.netlify/functions/analyze-food-text', {
-                      text: input.value
-                    });
-
-                    if (!aiData?.foods || aiData.foods.length === 0) {
-                      showError('Could not recognize any foods. Please try again with more details.');
-                      return;
-                    }
-
-                    const dateStr = formatDate(currentDate);
-
-                    for (const food of aiData.foods) {
-                      await apiPost('/.netlify/functions/food-diary', {
-                        clientId: clientData.id,
-                        coachId: clientData.coach_id,
-                        entryDate: dateStr,
-                        mealType: selectedMealType,
-                        foodName: food.name,
-                        calories: food.calories,
-                        protein: food.protein,
-                        carbs: food.carbs,
-                        fat: food.fat,
-                        fiber: food.fiber,
-                        sugar: food.sugar,
-                        sodium: food.sodium,
-                        potassium: food.potassium,
-                        calcium: food.calcium,
-                        iron: food.iron,
-                        vitaminC: food.vitaminC,
-                        cholesterol: food.cholesterol,
-                        servingSize: 1,
-                        servingUnit: 'serving',
-                        numberOfServings: 1,
-                        foodSource: 'ai'
+                    setAiLogging(true);
+                    try {
+                      const aiData = await apiPost('/.netlify/functions/analyze-food-text', {
+                        text: aiInput
                       });
+
+                      if (!aiData?.foods || aiData.foods.length === 0) {
+                        showError('Could not recognize any foods. Please try again with more details.');
+                        return;
+                      }
+
+                      // Show confirmation with parsed foods (preview before saving)
+                      setAiLogParsedFoods(aiData.foods);
+                      setAiLogServings(1);
+                      setAiLogShowConfirmation(true);
+                    } catch (err) {
+                      console.error('Error analyzing food:', err);
+                      showError('Failed to analyze food. Please try again.');
+                    } finally {
+                      setAiLogging(false);
                     }
+                  }}
+                  style={{ flex: 1, padding: '14px', borderRadius: '8px', background: '#0d9488', color: 'white', border: 'none', fontWeight: 600, fontSize: '1rem' }}
+                  disabled={aiLogging || !aiInput.trim() || aiLogShowConfirmation}
+                >
+                  {aiLogging ? 'Analyzing...' : 'Log Food'}
+                </button>
+              </div>
 
-                    setAiInput('');
+              {/* Food Confirmation Box — preview servings + macros before saving */}
+              {aiLogShowConfirmation && aiLogParsedFoods && (
+                <div className="food-confirmation-box" style={{ marginTop: '16px' }}>
+                  <div className="food-confirmation-header">
+                    <CheckCircle size={18} className="confirm-icon" />
+                    <span>Ready to log</span>
+                  </div>
 
-                    // Re-fetch diary data so entries appear and server-side totals (including micronutrients) are correct
-                    refreshDiaryData();
+                  {aiLogParsedFoods.map((food, idx) => (
+                    <div key={idx} className="food-confirmation-item">
+                      <div className="food-confirmation-name">
+                        <span>{food.name}</span>
+                        <span className="food-calories">{Math.round((food.calories || 0) * aiLogServings)} cal</span>
+                      </div>
+                    </div>
+                  ))}
 
-                    showSuccess(`Added ${aiData.foods.length} food(s) to ${selectedMealType}!`);
-                  } catch (err) {
-                    console.error('Error logging food:', err);
-                    showError('Failed to log food. Please try again.');
-                  } finally {
-                    setAiLogging(false);
-                  }
-                }}
-                style={{ width: '100%', padding: '14px', borderRadius: '8px', background: '#0d9488', color: 'white', border: 'none', fontWeight: 600, fontSize: '1rem' }}
-                disabled={aiLogging}
-              >
-                {aiLogging ? 'Logging...' : 'Log Food'}
-              </button>
+                  <div className="food-confirmation-servings">
+                    <span id="ai-log-servings-label">Servings:</span>
+                    <div className="servings-adjuster" role="group" aria-labelledby="ai-log-servings-label">
+                      <button
+                        className="servings-btn"
+                        onClick={() => setAiLogServings(prev => Math.max(0.5, prev - 0.5))}
+                        aria-label="Decrease servings"
+                      >
+                        <Minus size={16} aria-hidden="true" />
+                      </button>
+                      <span className="servings-value" aria-live="polite">{aiLogServings}</span>
+                      <button
+                        className="servings-btn"
+                        onClick={() => setAiLogServings(prev => prev + 0.5)}
+                        aria-label="Increase servings"
+                      >
+                        <Plus size={16} aria-hidden="true" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="food-confirmation-macros">
+                    <div className="macro-item">
+                      <span className="macro-value">{Math.round(aiLogParsedFoods.reduce((sum, f) => sum + (f.calories || 0), 0) * aiLogServings)}</span>
+                      <span className="macro-label">CALORIES</span>
+                    </div>
+                    <div className="macro-item protein">
+                      <span className="macro-value">{Math.round(aiLogParsedFoods.reduce((sum, f) => sum + (f.protein || 0), 0) * aiLogServings)}g</span>
+                      <span className="macro-label">PROTEIN</span>
+                    </div>
+                    <div className="macro-item carbs">
+                      <span className="macro-value">{Math.round(aiLogParsedFoods.reduce((sum, f) => sum + (f.carbs || 0), 0) * aiLogServings)}g</span>
+                      <span className="macro-label">CARBS</span>
+                    </div>
+                    <div className="macro-item fat">
+                      <span className="macro-value">{Math.round(aiLogParsedFoods.reduce((sum, f) => sum + (f.fat || 0), 0) * aiLogServings)}g</span>
+                      <span className="macro-label">FAT</span>
+                    </div>
+                  </div>
+
+                  <div className="food-confirmation-actions">
+                    <button
+                      className="confirm-cancel-btn"
+                      onClick={() => {
+                        setAiLogParsedFoods(null);
+                        setAiLogShowConfirmation(false);
+                        setAiLogServings(1);
+                      }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      className="confirm-add-btn"
+                      onClick={async () => {
+                        if (!aiLogParsedFoods || aiLogParsedFoods.length === 0) return;
+
+                        setAiLogging(true);
+                        try {
+                          const dateStr = formatDate(currentDate);
+                          for (const food of aiLogParsedFoods) {
+                            await apiPost('/.netlify/functions/food-diary', {
+                              clientId: clientData.id,
+                              coachId: clientData.coach_id,
+                              entryDate: dateStr,
+                              mealType: selectedMealType,
+                              foodName: food.name,
+                              calories: Math.round((food.calories || 0) * aiLogServings),
+                              protein: Math.round((food.protein || 0) * aiLogServings),
+                              carbs: Math.round((food.carbs || 0) * aiLogServings),
+                              fat: Math.round((food.fat || 0) * aiLogServings),
+                              fiber: food.fiber != null ? Math.round((food.fiber * aiLogServings) * 10) / 10 : null,
+                              sugar: food.sugar != null ? Math.round((food.sugar * aiLogServings) * 10) / 10 : null,
+                              sodium: food.sodium != null ? Math.round(food.sodium * aiLogServings) : null,
+                              potassium: food.potassium != null ? Math.round(food.potassium * aiLogServings) : null,
+                              calcium: food.calcium != null ? Math.round(food.calcium * aiLogServings) : null,
+                              iron: food.iron != null ? Math.round((food.iron * aiLogServings) * 10) / 10 : null,
+                              vitaminC: food.vitaminC != null ? Math.round(food.vitaminC * aiLogServings) : null,
+                              cholesterol: food.cholesterol != null ? Math.round(food.cholesterol * aiLogServings) : null,
+                              servingSize: aiLogServings,
+                              servingUnit: 'serving',
+                              numberOfServings: aiLogServings,
+                              foodSource: 'ai'
+                            });
+                          }
+
+                          const count = aiLogParsedFoods.length;
+                          setAiInput('');
+                          setAiLogParsedFoods(null);
+                          setAiLogShowConfirmation(false);
+                          setAiLogServings(1);
+                          setShowAILogModal(false);
+                          refreshDiaryData();
+                          showSuccess(`Added ${count} food(s) to ${selectedMealType}!`);
+                        } catch (err) {
+                          console.error('Error logging food:', err);
+                          showError('Failed to log food. Please try again.');
+                        } finally {
+                          setAiLogging(false);
+                        }
+                      }}
+                      disabled={aiLogging}
+                    >
+                      <Check size={18} />
+                      {aiLogging ? 'Adding...' : `Add to ${selectedMealType?.charAt(0).toUpperCase() + selectedMealType?.slice(1)}`}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
