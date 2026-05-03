@@ -8269,9 +8269,12 @@
         <div class="client-card" id="clientCard" style="display: none;">
             <div class="client-header">
                 <div class="client-header-info">
-                    <div class="client-profile-avatar" id="clientAvatar">
+                    <div class="client-profile-avatar" id="clientAvatar" style="position: relative;">
                         <span id="clientAvatarInitial">?</span>
+                        <!-- Demo-only: replace profile photo button. Hidden by default; shown only when client.is_demo === true. -->
+                        <button id="replaceProfilePhotoBtn" type="button" onclick="triggerReplaceDemoPhoto('profile')" style="display: none; position: absolute; bottom: -4px; right: -4px; background: linear-gradient(135deg, #ec4899, #f97316); color: white; border: none; border-radius: 50%; width: 32px; height: 32px; font-size: 14px; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.25); align-items: center; justify-content: center;" title="Replace demo profile photo">📷</button>
                     </div>
+                    <input type="file" id="replaceDemoPhotoFileInput" accept="image/*" style="display: none;" onchange="handleReplaceDemoPhotoFile(event)" />
                     <div>
                         <div class="client-name" id="clientName">Loading...</div>
                         <div class="client-meta" id="clientMeta"></div>
@@ -9412,6 +9415,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="/js/api-helper.js"></script>
     <script>
         // Sidebar section collapse functionality
 
@@ -9869,6 +9873,12 @@
                 avatarImg.alt = client.client_name;
             } else {
                 avatarInitialEl.textContent = clientInitial;
+            }
+
+            // Demo-only: show profile photo replace button
+            const replaceProfileBtn = document.getElementById('replaceProfilePhotoBtn');
+            if (replaceProfileBtn) {
+                replaceProfileBtn.style.display = client.is_demo === true ? 'flex' : 'none';
             }
 
             // Build meta information
@@ -12335,6 +12345,8 @@
                 ? `<div style="display: inline-flex; align-items: center; gap: 4px; background: linear-gradient(135deg, #f97316, #ef4444); color: white; padding: 4px 10px; border-radius: 12px; font-size: 13px; font-weight: 600; margin-bottom: 12px;">🔥 ${streak} day streak</div>`
                 : '';
 
+            const isDemo = currentClient && currentClient.is_demo === true;
+
             container.innerHTML = `
                 ${streakBadge}
                 <div class="gym-proofs-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px;">
@@ -12343,9 +12355,15 @@
                         const dateStr = date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
                         const timeStr = p.proof_time ? new Date(p.proof_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : '';
                         const existingReaction = gymProofReactions[String(p.id)];
+                        const replaceBtn = isDemo
+                            ? `<button type="button" onclick="event.stopPropagation(); triggerReplaceDemoPhoto('gym_proof', ${p.id})" style="position: absolute; top: 6px; right: 6px; background: rgba(0,0,0,0.6); color: white; border: none; border-radius: 50%; width: 28px; height: 28px; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="Replace demo photo">📷</button>`
+                            : '';
                         return `
                             <div class="gym-proof-card" style="border-radius: 10px; overflow: hidden; background: var(--card-bg, #f7fafc); box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-                                <img src="${p.photo_url}" alt="Gym proof" style="width: 100%; aspect-ratio: 3/4; object-fit: cover; cursor: pointer;" onclick="window.open('${p.photo_url}', '_blank')" />
+                                <div style="position: relative;">
+                                    <img src="${p.photo_url}" alt="Gym proof" style="width: 100%; aspect-ratio: 3/4; object-fit: cover; cursor: pointer;" onclick="window.open('${p.photo_url}', '_blank')" />
+                                    ${replaceBtn}
+                                </div>
                                 <div style="padding: 8px; text-align: center;">
                                     <div style="font-size: 12px; font-weight: 600; color: var(--text-primary, #2d3748);">${dateStr}</div>
                                     ${timeStr ? `<div style="font-size: 11px; color: var(--text-secondary, #718096);">${timeStr}</div>` : ''}
@@ -12393,6 +12411,8 @@
 
             section.style.display = '';
 
+            const isDemo = currentClient && currentClient.is_demo === true;
+
             container.innerHTML = `
                 <div class="gym-proofs-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px;">
                     ${weightProofs.map(p => {
@@ -12403,9 +12423,15 @@
                         const weightStr = (displayWeight != null && displayWeight !== '')
                             ? `${displayWeight} ${coachUnitLabel()}`
                             : '';
+                        const replaceBtn = isDemo
+                            ? `<button type="button" onclick="event.stopPropagation(); triggerReplaceDemoPhoto('weight_proof', ${p.id})" style="position: absolute; top: 6px; right: 6px; background: rgba(0,0,0,0.6); color: white; border: none; border-radius: 50%; width: 28px; height: 28px; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="Replace demo photo">📷</button>`
+                            : '';
                         return `
                             <div class="gym-proof-card" style="border-radius: 10px; overflow: hidden; background: var(--card-bg, #f7fafc); box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-                                <img src="${p.photo_url}" alt="Weigh-in proof" style="width: 100%; aspect-ratio: 3/4; object-fit: cover; cursor: pointer;" onclick="window.open('${p.photo_url}', '_blank')" />
+                                <div style="position: relative;">
+                                    <img src="${p.photo_url}" alt="Weigh-in proof" style="width: 100%; aspect-ratio: 3/4; object-fit: cover; cursor: pointer;" onclick="window.open('${p.photo_url}', '_blank')" />
+                                    ${replaceBtn}
+                                </div>
                                 <div style="padding: 8px; text-align: center;">
                                     ${weightStr ? `<div style="font-size: 14px; font-weight: 700; color: var(--text-primary, #2d3748);">${weightStr}</div>` : ''}
                                     <div style="font-size: 12px; font-weight: 600; color: var(--text-primary, #2d3748);">${dateStr}</div>
@@ -12416,6 +12442,81 @@
                     }).join('')}
                 </div>
             `;
+        }
+
+        // ========== DEMO-ONLY PHOTO REPLACEMENT ==========
+        // These functions only do anything when currentClient.is_demo === true.
+        // The backend /.netlify/functions/replace-demo-photo endpoint enforces
+        // the same guardrail server-side, so real client photos can never be
+        // modified through this path.
+
+        let replaceDemoPhotoTarget = null; // { kind, proofId? }
+
+        function triggerReplaceDemoPhoto(kind, proofId) {
+            if (!currentClient || currentClient.is_demo !== true) {
+                alert('Photo replacement is only available on demo clients.');
+                return;
+            }
+            replaceDemoPhotoTarget = { kind, proofId: proofId || null };
+            const input = document.getElementById('replaceDemoPhotoFileInput');
+            if (input) {
+                input.value = ''; // reset so the same file can be reselected
+                input.click();
+            }
+        }
+
+        async function handleReplaceDemoPhotoFile(event) {
+            const file = event.target.files && event.target.files[0];
+            if (!file || !replaceDemoPhotoTarget) return;
+
+            // Reasonable size cap on the client side too (server enforces 10MB)
+            if (file.size > 10 * 1024 * 1024) {
+                alert('Image is too large (>10MB). Please choose a smaller file.');
+                return;
+            }
+
+            try {
+                const photoData = await readFileAsBase64(file);
+                const payload = {
+                    coachId: currentUser.id,
+                    clientId: currentClient.id,
+                    kind: replaceDemoPhotoTarget.kind,
+                    proofId: replaceDemoPhotoTarget.proofId,
+                    photoData
+                };
+
+                const result = await apiPost('/.netlify/functions/replace-demo-photo', payload);
+
+                if (!result || !result.success) {
+                    throw new Error((result && result.error) || 'Unknown error');
+                }
+
+                // Refresh whichever section just changed
+                if (replaceDemoPhotoTarget.kind === 'profile') {
+                    // Update the avatar img in place (avoid full reload)
+                    const avatarImg = document.querySelector('#clientAvatar img');
+                    if (avatarImg) avatarImg.src = result.photoUrl + '?t=' + Date.now();
+                    if (currentClient) currentClient.profile_photo_url = result.photoUrl;
+                } else if (replaceDemoPhotoTarget.kind === 'gym_proof') {
+                    await loadGymProofs(currentClient.id);
+                } else if (replaceDemoPhotoTarget.kind === 'weight_proof') {
+                    await loadWeightProofs(currentClient.id);
+                }
+            } catch (err) {
+                console.error('Failed to replace demo photo:', err);
+                alert('Failed to replace photo: ' + err.message);
+            } finally {
+                replaceDemoPhotoTarget = null;
+            }
+        }
+
+        function readFileAsBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = () => reject(new Error('Failed to read file'));
+                reader.readAsDataURL(file);
+            });
         }
 
         // ========== FAVORITES FUNCTIONS ==========
