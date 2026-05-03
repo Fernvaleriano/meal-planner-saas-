@@ -13196,10 +13196,20 @@
                 });
 
                 clearTimeout(timeoutId);
-                const result = await response.json();
+
+                // Robust parse: surface real errors when the function returns HTML
+                // (404, 502, timeout) instead of JSON.
+                const rawText = await response.text();
+                let result;
+                try { result = JSON.parse(rawText); }
+                catch (parseErr) {
+                    if (response.status === 404) throw new Error('AI endpoint not found. The new build may not be deployed yet.');
+                    if (response.status >= 500) throw new Error(`Server error (HTTP ${response.status}). The function may have timed out.`);
+                    throw new Error(`Server returned non-JSON (HTTP ${response.status})`);
+                }
 
                 if (!response.ok || !result.success) {
-                    throw new Error(result.error || 'Failed to generate workout');
+                    throw new Error(result.error || `Failed to generate workout (HTTP ${response.status})`);
                 }
 
                 // Stash the result for the preview modal (preview shows summary,
@@ -13461,6 +13471,8 @@
             applyBtn.disabled = true;
             applyBtn.innerHTML = '<span class="spinner"></span> Regenerating...';
 
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 90000);
             try {
                 const response = await fetch('/.netlify/functions/generate-workout-claude', {
                     method: 'POST',
@@ -13468,16 +13480,28 @@
                         'Content-Type': 'application/json',
                         ...(currentAccessToken && { 'Authorization': `Bearer ${currentAccessToken}` })
                     },
-                    body: JSON.stringify(newReq)
+                    body: JSON.stringify(newReq),
+                    signal: controller.signal
                 });
-                const data = await response.json();
+                clearTimeout(timeoutId);
+                const rawText = await response.text();
+                let data;
+                try { data = JSON.parse(rawText); }
+                catch {
+                    if (response.status === 404) throw new Error('Generate endpoint not found.');
+                    if (response.status >= 500) throw new Error(`Server error (${response.status}). The function may have timed out.`);
+                    throw new Error(`Server returned non-JSON (HTTP ${response.status})`);
+                }
                 if (!response.ok || !data.success) throw new Error(data.error || 'Regeneration failed');
                 window._lastAIResult = data;
                 window._lastAIRequest = newReq;
                 renderAIPreview();
                 showToast('Regenerated with different exercises', 'success');
             } catch (err) {
-                showToast(err.message || 'Regeneration failed', 'error');
+                clearTimeout(timeoutId);
+                if (err.name === 'AbortError') showToast('Regeneration timed out. Try fewer days.', 'error');
+                else showToast(err.message || 'Regeneration failed', 'error');
+                console.error('Regenerate error:', err);
             } finally {
                 applyBtn.disabled = false;
                 applyBtn.innerHTML = orig;
@@ -13498,6 +13522,10 @@
             btn.disabled = true;
             btn.innerHTML = '<span class="spinner"></span> Refining...';
 
+            // 60s client timeout (matches Netlify's 26s + buffer for cold starts)
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 60000);
+
             try {
                 const response = await fetch('/.netlify/functions/refine-workout-claude', {
                     method: 'POST',
@@ -13511,10 +13539,33 @@
                         coachId: currentCoachId,
                         scope,
                         equipment: req.equipment || []
-                    })
+                    }),
+                    signal: controller.signal
                 });
-                const data = await response.json();
-                if (!response.ok || !data.success) throw new Error(data.error || 'Refinement failed');
+                clearTimeout(timeoutId);
+
+                // Robust response parsing: read as text first so we can show useful
+                // errors when the function returns HTML (404, 502, timeout) instead
+                // of JSON. iOS Safari otherwise just shows a useless "string did not
+                // match the expected pattern" parse error.
+                const rawText = await response.text();
+                let data;
+                try {
+                    data = JSON.parse(rawText);
+                } catch (parseErr) {
+                    if (response.status === 404) {
+                        throw new Error('Refine endpoint not found. The new feature may not be deployed yet — wait a minute and try again.');
+                    }
+                    if (response.status >= 500) {
+                        throw new Error(`Server error (${response.status}). The function may have timed out or crashed. Try a simpler instruction.`);
+                    }
+                    const snippet = (rawText || '').slice(0, 120).replace(/\s+/g, ' ').trim();
+                    throw new Error(`Server returned non-JSON (HTTP ${response.status}). ${snippet ? 'Body: ' + snippet : ''}`);
+                }
+
+                if (!response.ok || !data.success) {
+                    throw new Error(data.error || `Refinement failed (HTTP ${response.status})`);
+                }
                 // Replace the program in our preview state
                 window._lastAIResult = {
                     ...result,
@@ -13522,9 +13573,16 @@
                     matchStats: data.matchStats || result.matchStats
                 };
                 renderAIPreview();
-                showToast(`Refined: ${instruction.slice(0, 60)}${instruction.length > 60 ? '…' : ''}`, 'success');
+                const weeksMsg = data.weeksRebuilt ? ' (multi-week progression rebuilt)' : '';
+                showToast(`Refined: ${instruction.slice(0, 60)}${instruction.length > 60 ? '…' : ''}${weeksMsg}`, 'success');
             } catch (err) {
-                showToast(err.message || 'Refinement failed', 'error');
+                clearTimeout(timeoutId);
+                if (err.name === 'AbortError') {
+                    showToast('Refinement timed out. Try a simpler instruction or fewer days.', 'error');
+                } else {
+                    showToast(err.message || 'Refinement failed', 'error');
+                }
+                console.error('Refine error:', err);
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = orig;
