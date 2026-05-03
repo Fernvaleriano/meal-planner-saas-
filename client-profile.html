@@ -9179,6 +9179,26 @@
             </div>
         </div>
 
+        <!-- Weigh-In Photos Section -->
+        <div class="checkins-section" id="weightProofsSection">
+            <div class="checkins-header collapsible-header" onclick="toggleSection('weightProofs')" style="cursor: pointer;">
+                <h2 class="checkins-title">⚖️ Weigh-Ins</h2>
+                <button class="section-toggle-btn" type="button">
+                    <span class="toggle-icon" id="weightProofsToggleIcon">▼</span>
+                </button>
+            </div>
+            <div id="weightProofsContent" class="collapsible-content">
+                <div id="weightProofsContainer">
+                    <div class="loading skeleton-loading">
+                        <div class="skeleton-checkin">
+                            <div class="skeleton skeleton-checkin-date"></div>
+                            <div class="skeleton skeleton-checkin-content"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Check-ins Section (collapsed by default) -->
         <div class="checkins-section">
             <div class="checkins-header collapsible-header" onclick="toggleSection('checkins')" style="cursor: pointer;">
@@ -9518,6 +9538,7 @@
         const CHECKIN_ENDPOINT = '/.netlify/functions/save-checkin';
         const RESPOND_CHECKIN_ENDPOINT = '/.netlify/functions/respond-checkin';
         const GYM_PROOF_ENDPOINT = '/.netlify/functions/save-gym-proof';
+        const WEIGHT_PROOF_ENDPOINT = '/.netlify/functions/save-weight-proof';
         const FAVORITES_ENDPOINT = '/.netlify/functions/toggle-favorite';
         const CLIENT_PROTOCOLS_ENDPOINT = '/.netlify/functions/client-protocols';
 
@@ -9583,6 +9604,9 @@
             });
             // Re-render stats with new unit
             displayStats();
+            if (typeof weightProofs !== 'undefined' && weightProofs.length) {
+                displayWeightProofs();
+            }
             // Save preference to localStorage (mirror) and persist to coaches.unit_preference
             // so the choice follows the coach across devices.
             localStorage.setItem('coachDisplayUnit', unit);
@@ -9778,6 +9802,7 @@
                 loadMeasurements(clientId),
                 loadCheckins(clientId),
                 loadGymProofs(clientId),
+                loadWeightProofs(clientId),
                 loadFavorites(clientId),
                 loadFoodDiary(clientId),
                 loadWorkoutLogs(clientId),
@@ -12328,6 +12353,63 @@
                                 <div class="gym-proof-reactions">
                                     ${GYM_REACTIONS.map(r => `<button class="gym-reaction-btn ${existingReaction && existingReaction.reaction === r ? 'reacted' : ''}" onclick="reactToGymCheckin(${p.id}, '${r}', this)" title="${r}">${r}</button>`).join('')}
                                     <span class="gym-reaction-sent">Sent!</span>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+        }
+
+        // ========== WEIGHT PROOFS FUNCTIONS ==========
+
+        let weightProofs = [];
+
+        async function loadWeightProofs(cId) {
+            try {
+                const response = await fetch(`${WEIGHT_PROOF_ENDPOINT}?clientId=${cId}&limit=50`);
+                if (!response.ok) throw new Error('Failed to load weight proofs');
+                const data = await response.json();
+                weightProofs = data.proofs || [];
+                displayWeightProofs();
+            } catch (error) {
+                console.error('Error loading weight proofs:', error);
+                document.getElementById('weightProofsContainer').innerHTML = `
+                    <div class="empty-state">
+                        <p>Unable to load weigh-ins</p>
+                    </div>
+                `;
+            }
+        }
+
+        function displayWeightProofs() {
+            const container = document.getElementById('weightProofsContainer');
+            const section = document.getElementById('weightProofsSection');
+
+            if (!weightProofs.length) {
+                section.style.display = 'none';
+                return;
+            }
+
+            section.style.display = '';
+
+            container.innerHTML = `
+                <div class="gym-proofs-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px;">
+                    ${weightProofs.map(p => {
+                        const date = new Date(p.proof_date + 'T00:00:00');
+                        const dateStr = date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                        const timeStr = p.proof_time ? new Date(p.proof_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : '';
+                        const displayWeight = weightForCoach(p.weight, p.weight_unit);
+                        const weightStr = (displayWeight != null && displayWeight !== '')
+                            ? `${displayWeight} ${coachUnitLabel()}`
+                            : '';
+                        return `
+                            <div class="gym-proof-card" style="border-radius: 10px; overflow: hidden; background: var(--card-bg, #f7fafc); box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                                <img src="${p.photo_url}" alt="Weigh-in proof" style="width: 100%; aspect-ratio: 3/4; object-fit: cover; cursor: pointer;" onclick="window.open('${p.photo_url}', '_blank')" />
+                                <div style="padding: 8px; text-align: center;">
+                                    ${weightStr ? `<div style="font-size: 14px; font-weight: 700; color: var(--text-primary, #2d3748);">${weightStr}</div>` : ''}
+                                    <div style="font-size: 12px; font-weight: 600; color: var(--text-primary, #2d3748);">${dateStr}</div>
+                                    ${timeStr ? `<div style="font-size: 11px; color: var(--text-secondary, #718096);">${timeStr}</div>` : ''}
                                 </div>
                             </div>
                         `;
