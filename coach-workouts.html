@@ -10056,9 +10056,19 @@
             renderExerciseGrid();
         }
 
-        // ===== Fuzzy exercise search helpers =====
-        // Handles: punctuation ("push up (on knees)" matches "push up on knees"),
-        // plurals (curl ↔ curls), and common fitness synonyms (db ↔ dumbbell, pushup ↔ push up).
+        // ===== Fuzzy exercise search helpers (v2 — typo & partial-match tolerant) =====
+        // Pipeline:
+        //   1. Direct name hits (exact / prefix / substring) — highest scores.
+        //   2. Weighted token coverage — query tokens are matched against name,
+        //      then haystack (muscles, equipment, etc.). At least 50% weighted
+        //      coverage is required, so "overhead seated dumbbell extension"
+        //      finds "Triceps extension seated - DB" (3 of 4 tokens hit).
+        //   3. Trigram similarity (Dice coefficient) for typo tolerance —
+        //      "tirceps" matches "triceps", "dumbel" matches "dumbbell".
+        //   4. Soft positional modifiers (overhead/seated/incline/etc.) carry
+        //      lower weight, so they don't disqualify a match when missing.
+        //   5. Movement-pattern aliases — "skullcrusher" finds "Lying Triceps
+        //      Extension" via aliases injected into the haystack.
         const FUZZY_SYNONYMS = {
             'pushup': ['push up'], 'pushups': ['push up'], 'pushp': ['push up'],
             'pullup': ['pull up'], 'pullups': ['pull up'],
@@ -10071,8 +10081,11 @@
             'bicep': ['biceps'], 'biceps': ['bicep'],
             'ab': ['abs', 'abdominal'], 'abs': ['abdominal', 'abdominals'],
             'db': ['dumbbell'], 'dumbell': ['dumbbell'], 'dumbells': ['dumbbell'],
+            'dumbbell': ['db'], 'dumbbells': ['db'],
             'bb': ['barbell'], 'barbel': ['barbell'], 'barbells': ['barbell'],
+            'barbell': ['bb'],
             'kb': ['kettlebell'], 'kettle': ['kettlebell'], 'kettlebells': ['kettlebell'],
+            'kettlebell': ['kb'],
             'bw': ['bodyweight'], 'bodyweigh': ['bodyweight'],
             'lat': ['lats', 'latissimus'], 'lats': ['lat', 'latissimus'],
             'glute': ['glutes'], 'glutes': ['glute'],
@@ -10085,6 +10098,33 @@
             'rdl': ['romanian dead lift', 'romanian deadlift'],
             'ohp': ['overhead press'], 'bp': ['bench press']
         };
+
+        // Movement-pattern aliases: slang term → required tokens that must ALL
+        // appear in the exercise NAME (not haystack — keeps slang from leaking
+        // onto unrelated exercises). When matched, the slang gets injected into
+        // the exercise's searchable haystack so coaches find the exercise via
+        // any of its colloquial names.
+        const MOVEMENT_ALIASES = [
+            { slang: ['skullcrusher', 'skullcrushers', 'skull crusher', 'skull crushers'],
+              requires: ['lying', 'triceps', 'extension'] },
+            { slang: ['lawnmower', 'lawnmowers', 'lawn mower', 'lawn mowers'],
+              requires: ['single', 'arm', 'row'] },
+            { slang: ['suitcase', 'suitcase carry', 'suitcase carries'],
+              requires: ['single', 'arm', 'farmer'] },
+            { slang: ['hip thrust', 'hip thrusts'],
+              requires: ['glute', 'bridge'] }
+        ];
+
+        // Soft modifiers: positional / equipment-qualifier words that often
+        // appear in queries but aren't always essential for finding the right
+        // exercise. They contribute partial weight and don't disqualify when
+        // missing — the difference between "must match" and "nice to match".
+        const SOFT_MODIFIERS = new Set([
+            'seated', 'standing', 'lying', 'kneeling', 'incline', 'decline',
+            'flat', 'overhead', 'reverse', 'wide', 'narrow', 'close',
+            'underhand', 'overhand', 'alternating', 'single', 'one', 'unilateral',
+            'bilateral', 'machine', 'free', 'weighted', 'assisted', 'with', 'and'
+        ]);
 
         function normalizeForSearch(str) {
             return (str || '')
@@ -10099,13 +10139,11 @@
             if (FUZZY_SYNONYMS[token]) {
                 FUZZY_SYNONYMS[token].forEach(v => variants.add(v));
             }
-            // Basic plural handling
             if (token.length > 3 && token.endsWith('s')) {
                 variants.add(token.slice(0, -1));
             } else if (token.length > 2) {
                 variants.add(token + 's');
             }
-            // -ing / -ed stemming for words like "rowing"/"row", "curled"/"curl"
             if (token.length > 4 && token.endsWith('ing')) {
                 variants.add(token.slice(0, -3));
             }
@@ -10117,43 +10155,142 @@
 
         function getExerciseSearchText(ex) {
             if (ex._searchText) return ex._searchText;
+            const nameNorm = normalizeForSearch(ex.name);
             const secondary = Array.isArray(ex.secondary_muscles)
                 ? ex.secondary_muscles.join(' ')
                 : (ex.secondary_muscles || '');
-            const parts = [
+            const baseParts = [
                 ex.name, ex.muscle_group, ex.primary_muscles,
                 secondary, ex.equipment, ex.exercise_type, ex.category
             ].filter(Boolean).join(' ');
-            ex._searchText = normalizeForSearch(parts);
-            return ex._searchText;
+            let combined = normalizeForSearch(baseParts);
+
+            const aliasTerms = [];
+            for (const entry of MOVEMENT_ALIASES) {
+                if (entry.requires.every(t => nameNorm.includes(t))) {
+                    aliasTerms.push(...entry.slang);
+                }
+            }
+            if (aliasTerms.length) combined += ' ' + aliasTerms.join(' ');
+            ex._searchText = combined;
+            ex._nameNorm = nameNorm;
+            return combined;
         }
 
-        function fuzzyMatchExercise(ex, queryRaw) {
-            const query = normalizeForSearch(queryRaw);
-            if (!query) return true;
-            const haystack = getExerciseSearchText(ex);
-            if (haystack.includes(query)) return true;
-            const tokens = query.split(' ').filter(Boolean);
-            return tokens.every(token => {
-                if (haystack.includes(token)) return true;
-                return expandSearchToken(token).some(v => haystack.includes(v));
-            });
+        // Trigram set with start/end padding (mirrors Postgres pg_trgm).
+        function trigramSet(s) {
+            const padded = `  ${s}  `;
+            const set = new Set();
+            for (let i = 0; i <= padded.length - 3; i++) {
+                set.add(padded.substr(i, 3));
+            }
+            return set;
         }
 
+        // Dice coefficient on trigrams — more forgiving than Jaccard for
+        // single-token typos. "tirceps"↔"triceps" ≈ 0.56, "dumbel"↔"dumbbell" ≈ 0.67.
+        function trigramSimilarity(a, b) {
+            if (!a || !b || a.length < 3 || b.length < 3) return 0;
+            const A = trigramSet(a);
+            const B = trigramSet(b);
+            let inter = 0;
+            for (const t of A) if (B.has(t)) inter++;
+            return (2 * inter) / (A.size + B.size);
+        }
+
+        // Best trigram similarity between a query token and any single word
+        // in the haystack. Comparing token-to-token (not token-to-haystack)
+        // is what makes typo tolerance work cleanly.
+        function bestWordTrigramSim(token, text) {
+            let best = 0;
+            const words = text.split(' ');
+            for (const w of words) {
+                if (w.length < 3) continue;
+                const s = trigramSimilarity(token, w);
+                if (s > best) best = s;
+            }
+            return best;
+        }
+
+        // Score an exercise against a query. Returns 0 when it should be hidden.
+        // Higher score = better match. Used for both filtering AND ranking.
         function scoreExerciseMatch(ex, queryRaw) {
             const query = normalizeForSearch(queryRaw);
             if (!query) return 0;
-            const nameNorm = normalizeForSearch(ex.name);
-            if (nameNorm === query) return 1000;
-            if (nameNorm.startsWith(query)) return 800;
-            if (nameNorm.includes(query)) return 600;
+
+            const haystack = getExerciseSearchText(ex);
+            const nameNorm = ex._nameNorm || normalizeForSearch(ex.name);
+
+            // Tier 1: direct hits on the name — these always win.
+            if (nameNorm === query) return 10000;
+            if (nameNorm.startsWith(query)) return 8000;
+            if (nameNorm.includes(query)) return 6000;
+            if (haystack.includes(query)) return 4000;
+
             const tokens = query.split(' ').filter(Boolean);
-            const allInName = tokens.every(t => {
-                if (nameNorm.includes(t)) return true;
-                return expandSearchToken(t).some(v => nameNorm.includes(v));
-            });
-            if (allInName) return 400;
-            return 100;
+            if (tokens.length === 0) return 0;
+
+            let coverage = 0;     // weighted matched-token total
+            let nameHits = 0;     // weight of tokens that hit the name
+            let trigramBoost = 0;
+            let totalWeight = 0;
+
+            for (const token of tokens) {
+                const weight = SOFT_MODIFIERS.has(token) ? 0.4 : 1.0;
+                totalWeight += weight;
+
+                const variants = expandSearchToken(token);
+                let matchedInName = false, matchedInHaystack = false;
+                for (const v of variants) {
+                    if (nameNorm.includes(v)) { matchedInName = true; break; }
+                }
+                if (!matchedInName) {
+                    for (const v of variants) {
+                        if (haystack.includes(v)) { matchedInHaystack = true; break; }
+                    }
+                }
+
+                if (matchedInName) {
+                    coverage += weight;
+                    nameHits += weight;
+                } else if (matchedInHaystack) {
+                    coverage += weight * 0.7;
+                } else if (token.length >= 4) {
+                    // Typo tolerance: trigram against name first (stronger), then haystack.
+                    const sim = Math.max(
+                        bestWordTrigramSim(token, nameNorm),
+                        bestWordTrigramSim(token, haystack) * 0.85
+                    );
+                    if (sim >= 0.5) {
+                        coverage += weight * sim;
+                        trigramBoost += sim;
+                    }
+                }
+            }
+
+            if (totalWeight === 0) return 0;
+            const ratio = coverage / totalWeight;
+
+            // Need ≥50% weighted coverage to surface at all. Below that the
+            // result feels like noise (e.g. typing "bench press squat" should
+            // not return random row exercises).
+            if (ratio < 0.5) return 0;
+
+            const nameRatio = nameHits / totalWeight;
+            const lengthPenalty = Math.max(0, nameNorm.length - 30);
+
+            const score = Math.round(ratio * 2000)
+                        + Math.round(nameRatio * 1500)
+                        + Math.round(trigramBoost * 200)
+                        - lengthPenalty;
+            return Math.max(score, 1);
+        }
+
+        // Boolean wrapper kept for existing callsites — match iff score > 0.
+        function fuzzyMatchExercise(ex, queryRaw) {
+            const query = normalizeForSearch(queryRaw);
+            if (!query) return true;
+            return scoreExerciseMatch(ex, queryRaw) > 0;
         }
         // ===== End fuzzy search helpers =====
 
