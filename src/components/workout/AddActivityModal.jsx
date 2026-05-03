@@ -7,6 +7,30 @@ import SmartThumbnail from './SmartThumbnail';
 const INITIAL_DISPLAY_COUNT = 30;
 const LOAD_MORE_COUNT = 30;
 
+// ── Exercise list cache (module-level, survives modal mount/unmount) ──
+// The exercise library is essentially static (~3000 rows) and the previous
+// implementation re-fetched it on every modal open. After the iOS app is
+// backgrounded, that fetch could stall for up to 60s — Netlify cold start +
+// suspended TCP socket + the 15s timeout + 401-retry path on top of an SW
+// `X-Cache-Bypass` header set during the resume window. Caching the list in
+// memory makes every modal open after the first one instant, and a
+// background revalidation keeps it fresh.
+const exerciseCache = new Map(); // cacheKey -> { exercises, timestamp }
+const inflightExerciseFetch = new Map(); // cacheKey -> Promise<exercises[]>
+const EXERCISE_CACHE_FRESH_MS = 60 * 60 * 1000; // 1 hour
+
+const buildExerciseCacheKey = (coachId, genderPreference) =>
+  `${coachId || 'none'}|${genderPreference || 'all'}`;
+
+const buildExercisesUrl = (coachId, genderPreference) => {
+  let url = '/.netlify/functions/exercises?limit=3000';
+  if (coachId) url += `&coachId=${coachId}`;
+  if (genderPreference && genderPreference !== 'all') {
+    url += `&genderVariant=${genderPreference}`;
+  }
+  return url;
+};
+
 // Check if URL is an image (not a video)
 const isImageUrl = (url) => {
   if (!url) return false;
@@ -508,45 +532,62 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelec
     recognition.start();
   }, [isListening]);
 
-  // Fetch all exercises with cleanup
+  // Fetch all exercises with cleanup.
+  //
+  // Serves cached data instantly (skipping the spinner) when available, and
+  // revalidates in the background. Concurrent opens share a single in-flight
+  // request via `inflightExerciseFetch`, so reopening the modal mid-fetch
+  // doesn't kick off a duplicate Netlify call.
   useEffect(() => {
     isMountedRef.current = true;
 
-    const fetchExercises = async () => {
-      if (!isMountedRef.current) return;
-      setLoading(true);
+    const cacheKey = buildExerciseCacheKey(coachId, genderPreference);
+    const cached = exerciseCache.get(cacheKey);
+    const isFresh = cached && (Date.now() - cached.timestamp) < EXERCISE_CACHE_FRESH_MS;
+
+    if (cached) {
+      // Show cached list immediately — no spinner, no blocking on network.
+      setExercises(cached.exercises);
+      setLoading(false);
+    }
+
+    // Skip the network call entirely if cache is fresh enough.
+    if (isFresh) {
+      return () => {
+        isMountedRef.current = false;
+        if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+      };
+    }
+
+    const runFetch = async () => {
+      let promise = inflightExerciseFetch.get(cacheKey);
+      if (!promise) {
+        const url = buildExercisesUrl(coachId, genderPreference);
+        promise = apiGet(url).then(res => res?.exercises || []);
+        inflightExerciseFetch.set(cacheKey, promise);
+        promise.finally(() => {
+          if (inflightExerciseFetch.get(cacheKey) === promise) {
+            inflightExerciseFetch.delete(cacheKey);
+          }
+        });
+      }
 
       try {
-        // Build URL with gender preference filter and coachId for custom exercises
-        let url = '/.netlify/functions/exercises?limit=3000';
-        // Include coachId to show coach's custom exercises alongside global exercises
-        if (coachId) {
-          url += `&coachId=${coachId}`;
-        }
-        if (genderPreference && genderPreference !== 'all') {
-          url += `&genderVariant=${genderPreference}`;
-        }
-        const res = await apiGet(url);
-
+        const list = await promise;
+        exerciseCache.set(cacheKey, { exercises: list, timestamp: Date.now() });
         if (!isMountedRef.current) return;
-
-        if (res?.exercises) {
-          setExercises(res.exercises);
-        } else {
-          setExercises([]);
-        }
+        setExercises(list);
       } catch (error) {
         if (!isMountedRef.current) return;
         console.error('Error fetching exercises:', error);
-        setExercises([]);
-      }
-
-      if (isMountedRef.current) {
-        setLoading(false);
+        // Only blank out the list if we have nothing cached to fall back to.
+        if (!cached) setExercises([]);
+      } finally {
+        if (isMountedRef.current) setLoading(false);
       }
     };
 
-    fetchExercises();
+    runFetch();
 
     return () => {
       isMountedRef.current = false;
