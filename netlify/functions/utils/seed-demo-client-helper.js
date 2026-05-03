@@ -147,7 +147,7 @@ async function ensureBucket(supabase, bucketName) {
   if (!buckets.some(b => b.name === bucketName)) {
     const { error: createErr } = await supabase.storage.createBucket(bucketName, {
       public: true,
-      fileSizeLimit: 5242880
+      fileSizeLimit: 10485760 // 10MB — Flux Pro Ultra outputs can run 1-3MB
     });
     if (createErr) throw new Error(`Bucket create failed (${bucketName}): ${createErr.message}`);
   }
