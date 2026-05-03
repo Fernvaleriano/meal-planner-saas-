@@ -95,16 +95,18 @@ exports.handler = async (event) => {
       try {
         let mealType = 'meal';
         let foodName = 'your meal';
+        let entryDate = null;
 
         if (entryType === 'workout') {
           // For workout reactions, get workout name
           const { data: workoutLog } = await supabase
             .from('workout_logs')
-            .select('workout_name')
+            .select('workout_name, workout_date')
             .eq('id', entryId)
             .single();
           mealType = 'workout';
           foodName = workoutLog?.workout_name || 'workout';
+          entryDate = workoutLog?.workout_date || null;
         } else {
           // Get the diary entry to include food name
           const { data: entry } = await supabase
@@ -114,6 +116,7 @@ exports.handler = async (event) => {
             .single();
           mealType = entry?.meal_type || 'meal';
           foodName = entry?.food_name || 'your meal';
+          entryDate = entry?.entry_date || null;
         }
 
         // Get the coach's name/business
@@ -138,7 +141,8 @@ exports.handler = async (event) => {
               food_name: foodName,
               meal_type: mealType,
               reaction: reaction,
-              coach_name: coachName
+              coach_name: coachName,
+              entry_date: entryDate
             },
             is_read: false,
             created_at: new Date().toISOString()

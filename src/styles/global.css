@@ -4378,13 +4378,13 @@ textarea,
 
 /* Highlighted entry (from notification navigation) */
 .meal-entry-swipeable.highlighted .meal-entry-content {
-    background: rgba(13, 148, 136, 0.15);
+    background: linear-gradient(rgba(13, 148, 136, 0.15), rgba(13, 148, 136, 0.15)), var(--gray-50);
     border: 2px solid var(--brand-primary);
     animation: highlight-pulse 1.5s ease-in-out infinite;
 }
 
 [data-theme="dark"] .meal-entry-swipeable.highlighted .meal-entry-content {
-    background: rgba(13, 148, 136, 0.25);
+    background: linear-gradient(rgba(13, 148, 136, 0.25), rgba(13, 148, 136, 0.25)), #334155;
 }
 
 @keyframes highlight-pulse {
