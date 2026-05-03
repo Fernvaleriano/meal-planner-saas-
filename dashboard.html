@@ -6530,6 +6530,33 @@
             </span>`;
         }
 
+        // Voice note playback failure handler. iOS Safari can't decode webm/opus,
+        // which is what Chrome/Android record by default. When the audio element
+        // errors, log details for debugging and replace it with a download link
+        // so the coach can at least save the file off-device.
+        window.handleVoiceNoteError = function(audioEl, proxyUrl, fileExt) {
+            const err = audioEl.error;
+            console.warn('[voice-note] playback error', {
+                code: err?.code,
+                message: err?.message,
+                src: proxyUrl,
+                ext: fileExt,
+                networkState: audioEl.networkState,
+                readyState: audioEl.readyState,
+                userAgent: navigator.userAgent
+            });
+            const container = audioEl.closest('.priority-voice-player');
+            if (!container) return;
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+            const reason = (isIOS && fileExt === 'webm')
+                ? "Your iPhone can't play this voice note (recorded in webm). Open on desktop or download below."
+                : "Couldn't play this voice note.";
+            container.innerHTML = `
+                <span class="pvp-label" style="color:#b91c1c;">⚠ ${reason}</span>
+                <a href="${proxyUrl}" download style="color:#7c3aed; font-size:12px; font-weight:600; text-decoration:underline;">Download</a>
+            `;
+        };
+
         // Auto-archive and navigate when clicking Review/View links
         function reviewAndArchive(alertId, url) {
             // Find the alert and auto-dismiss it
@@ -7919,10 +7946,11 @@
                                 let voicePlayerHtml = '';
                                 if (hasVoice) {
                                     const proxyUrl = '/.netlify/functions/serve-voice-note?path=' + encodeURIComponent(note.client_voice_note_path);
+                                    const fileExt = (note.client_voice_note_path.split('.').pop() || '').toLowerCase();
                                     voicePlayerHtml = `
-                                        <div class="priority-voice-player" onclick="event.stopPropagation()">
+                                        <div class="priority-voice-player" onclick="event.stopPropagation()" data-vn-ext="${fileExt}">
                                             <span class="pvp-label"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:3px;"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>Play</span>
-                                            <audio controls playsinline preload="metadata" src="${proxyUrl}" onerror="this.closest('.priority-voice-player').style.display='none'"></audio>
+                                            <audio controls playsinline preload="metadata" src="${proxyUrl}" onerror="window.handleVoiceNoteError(this, '${proxyUrl}', '${fileExt}')"></audio>
                                         </div>`;
                                 }
 
