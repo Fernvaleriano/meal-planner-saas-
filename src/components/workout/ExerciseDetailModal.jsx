@@ -2806,7 +2806,11 @@ function ExerciseDetailModal({
               {/* Pending (recorded but not yet sent) — review-before-send */}
               {pendingVoiceUrl && (
                 <div className="client-voice-note-preview pending">
-                  <audio controls src={pendingVoiceUrl} preload="metadata" />
+                  {/* preload="auto": MediaRecorder blobs lack proper duration metadata at the
+                      start of the file, so with preload="metadata" the first tap on the
+                      native control is consumed loading the data and a second tap is needed
+                      to actually play. Forcing full preload makes the first tap play. */}
+                  <audio controls src={pendingVoiceUrl} preload="auto" />
                   <div className="voice-note-pending-actions">
                     <button
                       type="button"
@@ -2842,7 +2846,7 @@ function ExerciseDetailModal({
               {/* Sent voice note — playback + delete */}
               {!pendingVoiceUrl && voiceNoteUrl && (
                 <div className="client-voice-note-preview sent">
-                  <audio controls src={voiceNoteUrl} preload="metadata" />
+                  <audio controls src={voiceNoteUrl} preload="auto" />
                   <button
                     type="button"
                     className="voice-note-action-btn delete-sent"
