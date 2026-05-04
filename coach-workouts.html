@@ -7101,6 +7101,17 @@
                             <label class="equipment-item"><input type="checkbox" name="injuryCode" value="ankle"> Ankle</label>
                             <label class="equipment-item"><input type="checkbox" name="injuryCode" value="pregnancy"> Pregnancy</label>
                         </div>
+                        <label style="font-size:12px; color:var(--text-secondary); margin-top:8px; display:block;">Movement Screen (deterministic exercise exclusions)</label>
+                        <div class="equipment-grid" style="margin-bottom:8px;">
+                            <label class="equipment-item"><input type="checkbox" name="movementFlag" value="overhead_mobility"> Limited overhead mobility</label>
+                            <label class="equipment-item"><input type="checkbox" name="movementFlag" value="ankle_mobility"> Limited ankle mobility</label>
+                            <label class="equipment-item"><input type="checkbox" name="movementFlag" value="hip_mobility"> Limited hip mobility</label>
+                            <label class="equipment-item"><input type="checkbox" name="movementFlag" value="wrist_pain"> Wrist pain on pressing</label>
+                            <label class="equipment-item"><input type="checkbox" name="movementFlag" value="shoulder_impingement"> Shoulder impingement</label>
+                            <label class="equipment-item"><input type="checkbox" name="movementFlag" value="knee_tracks_inward"> Knee tracks inward</label>
+                            <label class="equipment-item"><input type="checkbox" name="movementFlag" value="lower_back_rounding"> Back rounds at depth</label>
+                            <label class="equipment-item"><input type="checkbox" name="movementFlag" value="asymmetric_grip"> Asymmetric grip strength</label>
+                        </div>
                         <label style="font-size:12px; color:var(--text-secondary);">Additional notes (free text)</label>
                         <div style="display: flex; gap: 8px; align-items: center;">
                             <input type="text" id="aiInjuries" placeholder="e.g., Mild rotator cuff, avoid heavy overhead" style="flex:1;">
@@ -12973,9 +12984,16 @@
             document.getElementById('aiModalFooter').style.display = 'none';
             document.getElementById('aiModeSelector').style.display = '';
             document.getElementById('aiModal').classList.add('active');
-            // Refresh client list + presets each time
+            // Refresh client list + presets each time. If clients haven't
+            // loaded yet (e.g. user clicked Generate before page finished),
+            // kick off loadClients() and re-populate when it returns.
             try { populateAIClientSelect(); } catch (e) {}
             try { refreshPresetList(); } catch (e) {}
+            if (!Array.isArray(clients) || clients.length === 0) {
+                if (typeof loadClients === 'function') {
+                    loadClients().then(() => { try { populateAIClientSelect(); } catch (e) {} });
+                }
+            }
             // Restore saved form state
             _restoreAIFormState();
         }
@@ -13304,13 +13322,14 @@
             const rpeTarget = intensityRaw.startsWith('rpe:') ? parseInt(intensityRaw.split(':')[1]) : null;
             const rirTarget = intensityRaw.startsWith('rir:') ? parseInt(intensityRaw.split(':')[1]) : null;
             const injuryCodes = Array.from(document.querySelectorAll('input[name="injuryCode"]:checked')).map(cb => cb.value);
+            const movementScreenFlags = Array.from(document.querySelectorAll('input[name="movementFlag"]:checked')).map(cb => cb.value);
 
             const equipment = Array.from(document.querySelectorAll('input[name="equipment"]:checked')).map(cb => cb.value);
             if (equipment.length === 0) return { error: 'Please select at least one equipment type' };
 
             const sharedFields = {
                 clientName, clientId, coachId: currentCoachId, goal, experience, equipment,
-                injuries, injuryCodes, preferences, tempo, rpeTarget, rirTarget,
+                injuries, injuryCodes, movementScreenFlags, preferences, tempo, rpeTarget, rirTarget,
                 unilateralPreference, conditioningStyle,
                 varietySeed, excludeExerciseNames: excludeNames
             };
@@ -13612,6 +13631,8 @@
                 volumeSummary,
                 splitViolations: allSplitViolations,
                 clientContextUsed: dayResults.some(d => d.result.clientContextUsed),
+                clientContextSummary: dayResults.find(d => d.result.clientContextSummary)?.result.clientContextSummary || null,
+                clientAnalysis: dayResults.find(d => d.result.clientAnalysis)?.result.clientAnalysis || null,
                 generatedWeeks: program.weeks.length,
                 fannedOut: true
             };
@@ -13725,6 +13746,61 @@
                     </div>
                 </div>`;
 
+            // Client context details panel — surfaces exactly what was pulled
+            // so the coach can verify the AI saw the right data.
+            let clientContextHtml = '';
+            const ctx = result.clientContextSummary;
+            if (ctx && (ctx.topExercises?.length || ctx.lastProgramName || ctx.sessionCount)) {
+                const topLiftLines = (ctx.topExercises || []).map(e => `<li>${e.name}: top ${e.topWeight} lb · ${e.sessions} sessions</li>`).join('');
+                clientContextHtml = `
+                    <div style="margin-bottom:16px; padding:10px 12px; background:rgba(16,185,129,0.06); border-left:3px solid #10b981; border-radius:6px; font-size:13px;">
+                        <strong>Personalized for ${ctx.clientName || 'this client'}:</strong>
+                        <div style="margin-top:6px; color:var(--text-secondary); display:grid; gap:4px;">
+                            ${ctx.lastProgramName ? `<div>📋 <strong>Last program:</strong> "${ctx.lastProgramName}" — progressing from there</div>` : ''}
+                            ${ctx.sessionCount > 0 ? `<div>💪 <strong>Recent activity:</strong> ${ctx.sessionCount} sessions in last 30 days${ctx.avgRPE ? `, avg RPE ${ctx.avgRPE}` : ''}</div>` : ''}
+                            ${ctx.hasIntake ? `<div>📝 <strong>Intake form</strong> data used</div>` : ''}
+                            ${ctx.hasCoachNotes ? `<div>📌 <strong>Your coach notes</strong> on this client used</div>` : ''}
+                            ${topLiftLines ? `<div>🏋️ <strong>Top recent lifts (informing working weights):</strong><ul style="margin:4px 0 0 18px; padding:0;">${topLiftLines}</ul></div>` : ''}
+                        </div>
+                    </div>`;
+            }
+
+            // Coach's Intelligence Briefing — what the AI saw + decided
+            let briefingHtml = '';
+            const analysis = result.clientAnalysis;
+            if (analysis && analysis.sessionsAnalyzed > 0) {
+                const tagFor = (action) => {
+                    if (action === 'swap_for_variety') return '<span style="color:#f59e0b; font-weight:600;">🔄 SWAP</span>';
+                    if (action === 'progress_load') return '<span style="color:#10b981; font-weight:600;">📈 PROGRESS</span>';
+                    if (action === 'optional_swap') return '<span style="color:#6366f1; font-weight:600;">🔁 ROTATE</span>';
+                    if (action === 'investigate_or_swap') return '<span style="color:#ef4444; font-weight:600;">⚠ REGRESSED</span>';
+                    return '<span style="color:#6b7280; font-weight:600;">✓ PERSIST</span>';
+                };
+                const exerciseRows = analysis.exerciseAnalysis.map(ex =>
+                    `<tr style="border-top:1px solid var(--border);">
+                        <td style="padding:4px 6px;">${tagFor(ex.action)}</td>
+                        <td style="padding:4px 6px;">${ex.name}</td>
+                        <td style="padding:4px 6px; color:var(--text-secondary);">${ex.sessions}× · top ${ex.currentMax} lb · ${ex.weightTrend}</td>
+                        <td style="padding:4px 6px; color:var(--text-secondary); font-size:11px;">${ex.reasoning}</td>
+                    </tr>`
+                ).join('');
+                briefingHtml = `
+                    <details style="margin-bottom:16px; padding:10px 12px; background:rgba(99,102,241,0.06); border-left:3px solid #6366f1; border-radius:6px; font-size:13px;" open>
+                        <summary style="cursor:pointer; font-weight:600;">🧠 Coach's Intelligence Briefing — what the AI based decisions on</summary>
+                        <div style="margin-top:8px;">
+                            <div style="margin-bottom:6px;">${analysis.sessionsAnalyzed} sessions in last 60 days · ${analysis.sessionsPerWeek}/wk · ${analysis.avgRPE ? `avg RPE ${analysis.avgRPE}` : 'no RPE data'} · training age: ${analysis.trainingAge}</div>
+                            ${analysis.deloadDue ? '<div style="color:#f59e0b; font-weight:600; margin-bottom:6px;">⚠ Deload was due — program adjusted accordingly</div>' : ''}
+                            <div style="font-style:italic; margin-bottom:8px;">${analysis.overallRecommendation}</div>
+                            ${exerciseRows ? `<table style="width:100%; font-size:12px; border-collapse:collapse;">
+                                <thead style="text-align:left; color:var(--text-secondary);">
+                                    <tr><th style="padding:4px 6px;">Decision</th><th style="padding:4px 6px;">Exercise</th><th style="padding:4px 6px;">Stats</th><th style="padding:4px 6px;">Why</th></tr>
+                                </thead>
+                                <tbody>${exerciseRows}</tbody>
+                            </table>` : ''}
+                        </div>
+                    </details>`;
+            }
+
             // Volume warnings
             let volumeHtml = '';
             if (volumeSummary?.warnings?.length > 0) {
@@ -13808,7 +13884,7 @@
                     </div>
                 </div>`;
 
-            document.getElementById('aiPreviewBody').innerHTML = headerHtml + splitHtml + volumeHtml + unmatchedHtml + daysHtml + refineHtml;
+            document.getElementById('aiPreviewBody').innerHTML = headerHtml + clientContextHtml + briefingHtml + splitHtml + volumeHtml + unmatchedHtml + daysHtml + refineHtml;
 
             // Allow Enter key to refine
             const input = document.getElementById('aiRefineInput');
@@ -14023,13 +14099,28 @@
                 const cb = document.querySelector(`input[name="injuryCode"][value="${code}"]`);
                 if (cb) cb.checked = knownInjuries.includes(code.replace('_', ' ')) || knownInjuries.includes(code);
             });
+            // If the client has equipment_access on file, try to auto-toggle the
+            // equipment grid to match (coach can still adjust). String parsing is
+            // best-effort: looks for keywords in the free-text field.
+            if (c.equipment_access) {
+                const eq = c.equipment_access.toLowerCase();
+                const has = (kw) => kw.some(k => eq.includes(k));
+                document.querySelectorAll('input[name="equipment"]').forEach(cb => {
+                    if (cb.value === 'barbell') cb.checked = has(['barbell', 'bb']);
+                    else if (cb.value === 'dumbbell') cb.checked = has(['dumbbell', 'db']);
+                    else if (cb.value === 'cable') cb.checked = has(['cable']);
+                    else if (cb.value === 'machine') cb.checked = has(['machine']);
+                    else if (cb.value === 'bodyweight') cb.checked = has(['bodyweight', 'body weight', 'home', 'no equipment']) || true; // bodyweight is always available
+                    else if (cb.value === 'kettlebell') cb.checked = has(['kettlebell', 'kb']);
+                });
+            }
             if (badge) {
                 const bits = [];
                 if (c.goal) bits.push(`Goal: ${c.goal}`);
                 if (c.fitness_level) bits.push(`Level: ${c.fitness_level}`);
                 if (c.injuries) bits.push(`Injuries: ${c.injuries}`);
-                if (c.equipment_access) bits.push(`Equipment: ${c.equipment_access}`);
-                badge.innerHTML = `<strong>Client context loaded.</strong> ${bits.join(' · ') || 'Will pull recent training history on generation.'}`;
+                if (c.equipment_access) bits.push(`Equipment: ${c.equipment_access} <em>(grid auto-set, adjust if wrong)</em>`);
+                badge.innerHTML = `<strong>${c.client_name}'s context loaded.</strong> ${bits.join(' · ') || 'Will pull recent training history on generation.'}`;
                 badge.style.display = '';
             }
         }

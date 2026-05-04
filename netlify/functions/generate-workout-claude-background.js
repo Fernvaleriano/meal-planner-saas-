@@ -14,6 +14,7 @@
 const Anthropic = require('@anthropic-ai/sdk');
 const { createClient } = require('@supabase/supabase-js');
 const { corsHeaders, handleCors } = require('./utils/auth');
+const { analyzeClientHistory, formatAnalysisForPrompt, applyMovementScreenExclusions } = require('./utils/client-analysis');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -460,7 +461,7 @@ exports.handler = async (event) => {
     daysPerWeek = 4, duration = 4, split = 'auto', sessionDuration = 60,
     trainingStyle = 'straight_sets', exerciseCount = '5-6',
     focusAreas = [], equipment = ['barbell', 'dumbbell', 'cable', 'machine', 'bodyweight'],
-    injuries = '', injuryCodes = [], preferences = '',
+    injuries = '', injuryCodes = [], movementScreenFlags = [], preferences = '',
     tempo = 'standard', rpeTarget = null, rirTarget = null,
     unilateralPreference = 'mixed', conditioningStyle = 'none',
     includeProgression = true, varietySeed = Date.now()
@@ -491,7 +492,8 @@ exports.handler = async (event) => {
     const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
     const allExercises = await loadExercises(supabase, coachId);
     const exercisesWithVideos = allExercises.filter(e => e.video_url || e.animation_url);
-    const exercisesAfterInjuries = applyInjuryExclusions(exercisesWithVideos, injuryCodes);
+    let exercisesAfterInjuries = applyInjuryExclusions(exercisesWithVideos, injuryCodes);
+    exercisesAfterInjuries = applyMovementScreenExclusions(exercisesAfterInjuries, movementScreenFlags);
 
     // Equipment filter
     const matchesEquipment = (ex) => {
@@ -527,24 +529,141 @@ exports.handler = async (event) => {
     const warmupSuitable = allNames.filter(n => /jump|jack|burpee|mountain climber|high knee|butt kick|arm circle|leg swing|hip circle|torso twist|march|skip|jog/i.test(n)).slice(0, 8);
     const stretchExercises = allNames.filter(n => /stretch/i.test(n)).slice(0, 20);
 
-    // Client context block
+    // Rich client context: profile + 30 days of training logs + top exercises +
+    // last assigned program + intake form responses + coach notes. The whole
+    // point of picking a client is to personalize the program from this data.
     let clientContextBlock = '';
+    let clientContextSummary = null;
     if (clientId) {
       try {
-        const { data: client } = await supabase.from('clients')
-          .select('client_name, age, gender, goal, fitness_level, injuries')
-          .eq('id', clientId).maybeSingle();
+        const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        const [clientRes, logsRes, intakeRes, lastAssignmentRes] = await Promise.all([
+          supabase.from('clients')
+            .select('id, client_name, age, gender, height_cm, weight_kg, goal, fitness_level, injuries, equipment_access, training_days_per_week, notes')
+            .eq('id', clientId).maybeSingle(),
+          supabase.from('workout_logs')
+            .select('id, workout_date, duration_minutes, perceived_exertion')
+            .eq('client_id', clientId)
+            .gte('workout_date', thirtyDaysAgo)
+            .order('workout_date', { ascending: false })
+            .limit(20),
+          supabase.from('client_intake_responses')
+            .select('responses, submitted_at')
+            .eq('client_id', clientId)
+            .order('submitted_at', { ascending: false })
+            .limit(1).maybeSingle(),
+          supabase.from('client_workout_assignments')
+            .select('name, start_date, end_date, is_active, created_at')
+            .eq('client_id', clientId)
+            .order('created_at', { ascending: false })
+            .limit(1).maybeSingle()
+        ]);
+
+        const client = clientRes.data;
+        const recentLogs = logsRes.data || [];
+        const intake = intakeRes.data?.responses || null;
+        const lastProgram = lastAssignmentRes.data || null;
+
+        // Per-exercise progress: top weight, sessions, PRs in last 30 days
+        let exerciseHistory = [];
+        if (recentLogs.length > 0) {
+          const logIds = recentLogs.map(l => l.id);
+          const { data: exLogs } = await supabase.from('exercise_logs')
+            .select('exercise_name, max_weight, total_volume, total_sets, total_reps, is_pr')
+            .in('workout_log_id', logIds)
+            .limit(300);
+          if (exLogs) {
+            const byName = {};
+            for (const ex of exLogs) {
+              if (!byName[ex.exercise_name]) byName[ex.exercise_name] = { topWeight: 0, sessions: 0, prs: 0, totalVolume: 0 };
+              byName[ex.exercise_name].topWeight = Math.max(byName[ex.exercise_name].topWeight, ex.max_weight || 0);
+              byName[ex.exercise_name].totalVolume += ex.total_volume || 0;
+              byName[ex.exercise_name].sessions++;
+              if (ex.is_pr) byName[ex.exercise_name].prs++;
+            }
+            exerciseHistory = Object.entries(byName)
+              .sort((a, b) => b[1].sessions - a[1].sessions)
+              .slice(0, 12);
+          }
+        }
+
+        const avgRPE = recentLogs.filter(l => l.perceived_exertion).length > 0
+          ? recentLogs.reduce((s, l) => s + (l.perceived_exertion || 0), 0) / recentLogs.filter(l => l.perceived_exertion).length
+          : null;
+
         if (client) {
-          const lines = ['\n=== CLIENT PROFILE ==='];
+          const lines = ['\n=== CLIENT PROFILE (use this to personalize the program) ==='];
           if (client.client_name) lines.push(`Name: ${client.client_name}`);
           if (client.age) lines.push(`Age: ${client.age}`);
           if (client.gender) lines.push(`Gender: ${client.gender}`);
-          if (client.goal) lines.push(`Goal: ${client.goal}`);
-          if (client.fitness_level) lines.push(`Level: ${client.fitness_level}`);
-          if (client.injuries) lines.push(`Injuries: ${client.injuries}`);
+          if (client.height_cm) lines.push(`Height: ${client.height_cm} cm`);
+          if (client.weight_kg) lines.push(`Weight: ${client.weight_kg} kg`);
+          if (client.goal) lines.push(`Stated goal: ${client.goal}`);
+          if (client.fitness_level) lines.push(`Fitness level: ${client.fitness_level}`);
+          if (client.injuries) lines.push(`Logged injuries: ${client.injuries}`);
+          if (client.equipment_access) lines.push(`Equipment access: ${client.equipment_access}`);
+          if (client.training_days_per_week) lines.push(`Available days: ${client.training_days_per_week}/week`);
+          if (client.notes) lines.push(`Coach notes: ${client.notes}`);
+
+          if (lastProgram) {
+            lines.push(`\nMost recent program: "${lastProgram.name}"${lastProgram.is_active ? ' (currently active)' : ''}, started ${lastProgram.start_date || lastProgram.created_at}`);
+            lines.push(`  → Build progressive overload from this program. Vary exercise selection so the client gets fresh stimulus, but keep the trajectory.`);
+          }
+
+          if (exerciseHistory.length > 0) {
+            lines.push(`\nRecent training history (last 30 days, top ${exerciseHistory.length} exercises):`);
+            for (const [name, data] of exerciseHistory) {
+              lines.push(`  • ${name}: top ${data.topWeight} lb, ${data.sessions} sessions${data.prs ? `, ${data.prs} PR${data.prs > 1 ? 's' : ''}` : ''}`);
+            }
+            lines.push(`  → Use these top weights to set realistic working-weight ranges in the notes (e.g. "start at ~85% of 225 lb top = 190 lb").`);
+            lines.push(`  → Avoid stale exercises: pick variations of these movements rather than repeating the exact same exercises.`);
+          }
+
+          if (recentLogs.length > 0) {
+            lines.push(`\nRecent sessions: ${recentLogs.length} in last 30 days${avgRPE ? `, average RPE ${avgRPE.toFixed(1)}` : ''}`);
+            if (avgRPE && avgRPE >= 8.5) lines.push(`  → High average RPE — schedule a deload or reduce volume slightly to allow recovery.`);
+            else if (avgRPE && avgRPE <= 6) lines.push(`  → Low average RPE — client has room to push intensity.`);
+          } else {
+            lines.push(`\nNo recent training logs — client may be returning from a layoff. Start conservatively with ~70% intensity and build up.`);
+          }
+
+          if (intake) {
+            // Intake form responses are a JSON blob — pass a compact version
+            const intakeStr = typeof intake === 'string' ? intake : JSON.stringify(intake).slice(0, 500);
+            lines.push(`\nIntake form excerpt: ${intakeStr}`);
+          }
+
+          lines.push(`\nUse this context to: (a) calibrate weights/intensity to the client's actual top loads, (b) pick exercises that aren't stale (vary from recent), (c) progress from where the client currently is — not from scratch, (d) respect logged injuries with extra care.`);
+
           clientContextBlock = lines.join('\n');
+          clientContextSummary = {
+            clientName: client.client_name,
+            sessionCount: recentLogs.length,
+            avgRPE: avgRPE ? avgRPE.toFixed(1) : null,
+            topExercises: exerciseHistory.slice(0, 5).map(([name, data]) => ({ name, topWeight: data.topWeight, sessions: data.sessions })),
+            lastProgramName: lastProgram?.name || null,
+            hasIntake: !!intake,
+            hasCoachNotes: !!client.notes
+          };
         }
-      } catch (e) { /* ignore */ }
+      } catch (e) {
+        console.warn('Client context fetch failed:', e.message);
+      }
+    }
+
+    // Run the coach-grade analyzer on the client's history, then append its
+    // briefing to the prompt. This is what makes the AI decide which
+    // exercises to keep vs swap vs progress based on real performance trends.
+    let clientAnalysis = null;
+    if (clientId) {
+      try {
+        clientAnalysis = await analyzeClientHistory(supabase, clientId);
+        if (clientAnalysis) {
+          clientContextBlock = (clientContextBlock || '') + '\n' + formatAnalysisForPrompt(clientAnalysis);
+        }
+      } catch (e) {
+        console.warn('analyzeClientHistory failed:', e.message);
+      }
     }
 
     // Compute split days
@@ -648,6 +767,8 @@ exports.handler = async (event) => {
         volumeSummary: { setsByMuscle, warnings },
         splitViolations: allViolations,
         clientContextUsed: !!clientContextBlock,
+        clientContextSummary,
+        clientAnalysis,
         generatedWeeks: program.weeks.length,
         backgroundJob: true,
         modelUsed: 'claude-sonnet-4-5'
