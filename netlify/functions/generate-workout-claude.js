@@ -603,7 +603,8 @@ exports.handler = async (event) => {
     let muscleGroupIdx = 0;
     for (const [group, list] of Object.entries(exercisesByMuscleGroup)) {
       // Use varietySeed + group offset so different muscle groups don't all get the same shuffle
-      const sampled = sampleArray(list, 50, varietySeed + (muscleGroupIdx++ * 7919));
+      // 30 per group keeps the prompt small enough for Haiku to stay fast
+      const sampled = sampleArray(list, 30, varietySeed + (muscleGroupIdx++ * 7919));
       exercisesByMuscleGroupSampled[group] = sampled.map(s => s.name);
     }
 
@@ -834,9 +835,12 @@ Return this exact JSON structure:
       userMessage = `Create a complete ${daysPerWeek}-day workout program for ${clientName}. Goal: ${goal}. Experience: ${experience}.${injuries ? ` Injuries: "${injuries}".` : ''}${preferences ? ` Preferences: "${preferences}".` : ''} Return ONLY valid JSON, no markdown.`;
     }
 
+    // Claude Haiku 4.5 — fast enough to stay safely under Netlify's 26s
+    // function timeout for per-day generation. Refinement (refine-workout-claude.js)
+    // still uses Sonnet for higher-quality interpretation.
     const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-5',
-      max_tokens: 8192,
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 4096,
       messages: [{ role: 'user', content: userMessage }],
       system: systemPrompt
     });
