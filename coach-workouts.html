@@ -13446,6 +13446,7 @@
 
             // Aggregate match stats and exercises
             const aggMatchStats = { total: 0, matched: 0, unmatched: 0, unmatchedNames: [], databaseExercises: 0, customExerciseCount: 0, exercisesWithVideos: 0 };
+            const allSplitViolations = [];
             const week1Workouts = dayResults.map(({ daySpec, result }) => {
                 const ms = result.matchStats || {};
                 aggMatchStats.total += ms.total || 0;
@@ -13455,6 +13456,12 @@
                 aggMatchStats.databaseExercises = Math.max(aggMatchStats.databaseExercises, ms.databaseExercises || 0);
                 aggMatchStats.customExerciseCount = Math.max(aggMatchStats.customExerciseCount, ms.customExerciseCount || 0);
                 aggMatchStats.exercisesWithVideos = Math.max(aggMatchStats.exercisesWithVideos, ms.exercisesWithVideos || 0);
+                if (Array.isArray(result.splitViolations) && result.splitViolations.length > 0) {
+                    // Tag each violation with the day name for context
+                    for (const v of result.splitViolations) {
+                        allSplitViolations.push({ ...v, day: daySpec.dayName });
+                    }
+                }
                 const dayWorkout = result.program?.weeks?.[0]?.workouts?.[0] || { exercises: [] };
                 return {
                     dayNumber: daySpec.dayNumber,
@@ -13513,6 +13520,7 @@
                 program,
                 matchStats: aggMatchStats,
                 volumeSummary,
+                splitViolations: allSplitViolations,
                 clientContextUsed: dayResults.some(d => d.result.clientContextUsed),
                 generatedWeeks: program.weeks.length,
                 fannedOut: true
@@ -13650,6 +13658,20 @@
                     </div>`;
             }
 
+            // Split violations (e.g. biceps on push day)
+            let splitHtml = '';
+            const splitViolations = result.splitViolations || [];
+            if (splitViolations.length > 0) {
+                splitHtml = `
+                    <div style="margin-bottom:16px; padding:10px 12px; background:rgba(239,68,68,0.10); border-left:3px solid #ef4444; border-radius:6px; font-size:13px;">
+                        <strong>⚠ ${splitViolations.length} split violation${splitViolations.length > 1 ? 's' : ''}:</strong>
+                        <ul style="margin:6px 0 0 18px; padding:0;">
+                            ${splitViolations.map(v => `<li><strong>${v.day}</strong>: "${v.exercise}" — ${v.reason}</li>`).join('')}
+                        </ul>
+                        <div style="margin-top:6px; font-style:italic;">The AI placed exercises that don't fit this day's split. Try "Regenerate" to get a clean split, or use refine to swap specific exercises.</div>
+                    </div>`;
+            }
+
             // Per-day exercise list
             const daysHtml = (program.weeks?.[0]?.workouts || []).map((w, idx) => `
                 <details style="border:1px solid var(--border); border-radius:8px; padding:10px 12px; margin-bottom:8px;" ${idx === 0 ? 'open' : ''}>
@@ -13672,6 +13694,7 @@
                                         <span style="color:${phaseColor};">${ex.name || ''}</span>
                                         ${ex.isCustom ? '<span style="margin-left:6px; padding:1px 5px; font-size:10px; background:rgba(168,85,247,0.15); color:#a855f7; border-radius:3px;">CUSTOM</span>' : ''}
                                         ${noVideo ? '<span style="margin-left:6px; padding:1px 5px; font-size:10px; background:rgba(239,68,68,0.15); color:#ef4444; border-radius:3px;" title="No video demo">NO VIDEO</span>' : ''}
+                                        ${ex.splitViolation ? `<span style="margin-left:6px; padding:1px 5px; font-size:10px; background:rgba(239,68,68,0.20); color:#ef4444; border-radius:3px; font-weight:600;" title="${ex.splitViolation}">⚠ WRONG SPLIT</span>` : ''}
                                         ${ex.isSuperset && ex.supersetGroup ? `<span style="margin-left:6px; padding:1px 5px; font-size:10px; background:rgba(99,102,241,0.15); color:#6366f1; border-radius:3px;">SS-${ex.supersetGroup}</span>` : ''}
                                     </td>
                                     <td style="padding:6px;">${ex.sets || 1} × ${ex.reps || ''}</td>
@@ -13694,7 +13717,7 @@
                     </div>
                 </div>`;
 
-            document.getElementById('aiPreviewBody').innerHTML = headerHtml + volumeHtml + unmatchedHtml + daysHtml + refineHtml;
+            document.getElementById('aiPreviewBody').innerHTML = headerHtml + splitHtml + volumeHtml + unmatchedHtml + daysHtml + refineHtml;
 
             // Allow Enter key to refine
             const input = document.getElementById('aiRefineInput');

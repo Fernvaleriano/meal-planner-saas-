@@ -723,20 +723,46 @@ If a category lacks options, select similar exercises from related categories.
 
     // Muscle map for single workouts
     const muscleGroupMap = {
-      'chest': 'chest ONLY (pecs, upper chest, lower chest) — NO back, NO biceps, NO leg work',
-      'back': 'back ONLY (lats, rhomboids, traps, rear delts) — NO chest, NO triceps, NO leg work',
-      'shoulders': 'shoulders ONLY (front delts, side delts, rear delts) — NO chest pressing focus, NO back rowing focus',
-      'arms': 'arms ONLY (biceps, triceps, forearms) — NO chest, back, leg, or shoulder work',
-      'legs': 'legs (quads, hamstrings, calves) — NO upper body work',
-      'glutes': 'glutes and hamstrings — NO upper body work',
-      'core': 'core ONLY (abs, obliques, lower back) — NO compound lifts',
+      'chest': 'chest (pecs, upper chest, lower chest)',
+      'back': 'back (lats, rhomboids, traps, rear delts)',
+      'shoulders': 'shoulders (front delts, side delts, rear delts)',
+      'arms': 'arms (biceps, triceps, forearms)',
+      'legs': 'legs (quads, hamstrings, calves)',
+      'glutes': 'glutes and hamstrings',
+      'core': 'core (abs, obliques, lower back)',
       'upper_body': 'upper body (chest, back, shoulders, arms — all four)',
       'lower_body': 'lower body (quads, hamstrings, glutes, calves)',
       'full_body': 'full body (all major muscle groups)',
-      // PUSH/PULL split-aware targets — these are CRITICAL for proper PPL programming
-      'push': 'PUSH MUSCLES ONLY: chest (pecs), shoulders (especially front + side delts), and triceps. ABSOLUTELY NO back, NO biceps, NO rows, NO pulldowns, NO curls, NO leg work. Every main exercise must be a horizontal press, vertical press, fly, or tricep movement.',
-      'pull': 'PULL MUSCLES ONLY: back (lats, mid-back, rear delts, traps) and biceps. ABSOLUTELY NO chest, NO triceps, NO front/side delt presses, NO leg work. Every main exercise must be a row, pulldown, pull-up, face pull, shrug, or biceps curl.'
+      'push': 'push (chest, shoulders, triceps)',
+      'pull': 'pull (back, biceps)'
     };
+
+    // Strong, separate constraint block for split-aware days. The general
+    // "focus" instruction allows 30% off-target, which Haiku/Sonnet abuse to
+    // sneak biceps onto push days. This block is 100% strict.
+    let strictSplitConstraint = '';
+    if (targetMuscle === 'push') {
+      strictSplitConstraint = `
+
+=== STRICT PUSH-DAY RULE (100% — NEVER VIOLATE) ===
+This is a PUSH workout. EVERY single main exercise must directly train chest, shoulders, OR triceps.
+ABSOLUTELY FORBIDDEN — do not include ANY of these on a push day:
+- Any back exercise: rows of any kind, pulldowns, pull-ups, chin-ups, face pulls, shrugs, deadlifts, pullovers
+- Any biceps exercise: bicep curls of any kind (barbell, dumbbell, hammer, preacher, spider, concentration, cable, incline)
+- Any leg exercise
+If you include even ONE row, curl, or pulldown, the workout is WRONG. There is no "but it works secondaries" exception. 100% push only.`;
+    } else if (targetMuscle === 'pull') {
+      strictSplitConstraint = `
+
+=== STRICT PULL-DAY RULE (100% — NEVER VIOLATE) ===
+This is a PULL workout. EVERY single main exercise must directly train back, rear delts, OR biceps.
+ABSOLUTELY FORBIDDEN — do not include ANY of these on a pull day:
+- Any chest exercise: bench press, incline press, decline press, dumbbell press, fly, dip, push-up, hammer strength chest press
+- Any triceps exercise: tricep extension, pushdown, kickback, skull crusher, close-grip press, overhead extension
+- Any front-delt-pressing exercise: overhead press, military press, shoulder press, Arnold press, push press
+- Any leg exercise
+If you include even ONE press, fly, or tricep movement, the workout is WRONG. 100% pull only.`;
+    }
 
     const repRangeBlock = goal === 'strength'
       ? `- Main compounds: 4-5 sets of 3-6 reps, 2-3 min rest\n- Accessories: 3-4 sets of 6-8 reps, 90-120s rest`
@@ -747,6 +773,7 @@ If a category lacks options, select similar exercises from related categories.
     const baseSystem = (modeBlock) => `You are an elite strength & conditioning coach with 20+ years of experience. Return ONLY valid JSON.
 
 ${modeBlock}
+${strictSplitConstraint}
 ${availableExercisesPrompt}
 ${clientContextBlock}
 
@@ -841,11 +868,11 @@ Return this exact JSON structure:
       userMessage = `Create a complete ${daysPerWeek}-day workout program for ${clientName}. Goal: ${goal}. Experience: ${experience}.${injuries ? ` Injuries: "${injuries}".` : ''}${preferences ? ` Preferences: "${preferences}".` : ''} Return ONLY valid JSON, no markdown.`;
     }
 
-    // Claude Haiku 4.5 — fast enough to stay safely under Netlify's 26s
-    // function timeout for per-day generation. Refinement (refine-workout-claude.js)
-    // still uses Sonnet for higher-quality interpretation.
+    // Per-day generation runs through the fan-out path now (each call is one day)
+    // so Sonnet 4.5 fits within Netlify's 26s window. Sonnet follows split rules
+    // much more strictly than Haiku, which kept sneaking biceps onto push days.
     const message = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      model: 'claude-sonnet-4-5',
       max_tokens: 4096,
       messages: [{ role: 'user', content: userMessage }],
       system: systemPrompt
@@ -953,6 +980,40 @@ Return this exact JSON structure:
     // Volume sanity check
     const volumeSummary = computeVolumeSummary(programData);
 
+    // Split-violation detector: for push/pull single-mode generations, flag any
+    // exercise that doesn't belong on this day's split. Marks them with
+    // splitViolation=true so the frontend can show a visible badge.
+    const splitViolations = [];
+    if (isSingleWorkout && (targetMuscle === 'push' || targetMuscle === 'pull')) {
+      const violationCheck = (ex) => {
+        if (ex.isWarmup || ex.isStretch || ex.phase === 'warmup' || ex.phase === 'cooldown') return null;
+        const name = (ex.name || '').toLowerCase();
+        const mg = (ex.muscle_group || ex.muscleGroup || '').toLowerCase();
+        if (targetMuscle === 'push') {
+          // Pull-day moves on a push day = violation
+          if (/\b(curl|row|pulldown|pull-down|pull down|pullup|pull-up|pull up|chinup|chin-up|chin up|face pull|shrug|deadlift|pullover|pull over)\b/.test(name)) return 'pull movement on push day';
+          if (/\b(back|biceps?|lats?|rhomboid|trap)\b/.test(mg) && !/(rear delt|trap.*shoulder)/i.test(mg)) return `${mg} on push day`;
+        } else if (targetMuscle === 'pull') {
+          // Push-day moves on a pull day = violation
+          if (/\b(bench press|chest press|incline press|decline press|fly|flye|dip|push-up|pushup|push up|tricep|skull crusher|pushdown|push-down|push down|kickback|overhead press|military press|shoulder press|arnold press|push press)\b/.test(name)) return 'push movement on pull day';
+          if (/\b(chest|pec|tricep|triceps)\b/.test(mg)) return `${mg} on pull day`;
+          // Front-delt-heavy presses caught above; rear delt is fine on pull day
+        }
+        return null;
+      };
+      for (const week of programData.weeks) {
+        for (const workout of (week.workouts || [])) {
+          for (const ex of (workout.exercises || [])) {
+            const v = violationCheck(ex);
+            if (v) {
+              ex.splitViolation = v;
+              splitViolations.push({ day: workout.name || workout.dayNumber, exercise: ex.name, reason: v });
+            }
+          }
+        }
+      }
+    }
+
     return {
       statusCode: 200,
       headers,
@@ -969,6 +1030,7 @@ Return this exact JSON structure:
           exercisesWithVideos: exercisesWithVideos.length
         },
         volumeSummary,
+        splitViolations,
         clientContextUsed: !!clientContext,
         cachedExerciseDb: true,
         generatedWeeks: programData.weeks.length
