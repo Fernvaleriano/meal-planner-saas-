@@ -1050,9 +1050,10 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
         )}
 
         {/* Coach's Voice Note — uses proxy URL that never expires.
-            preload="metadata" fetches only the duration header so the length
-            displays before the user presses play, without downloading the
-            full audio. */}
+            preload="auto": with preload="metadata", iOS WebKit consumes the
+            first tap on the native play control loading the audio data — the
+            timeline advances silently and a second tap is required to actually
+            hear sound. Forcing full preload makes the first tap play. */}
         {(exercise.voiceNoteUrl || exercise.voiceNotePath) && (
           <div className="coach-voice-note">
             <span className="note-label">
@@ -1061,11 +1062,12 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
             </span>
             <audio
               controls
+              playsInline
               src={exercise.voiceNotePath
                 ? `/.netlify/functions/serve-voice-note?path=${encodeURIComponent(exercise.voiceNotePath)}`
                 : exercise.voiceNoteUrl}
               className="voice-note-audio"
-              preload="metadata"
+              preload="auto"
               onError={(e) => {
                 // Hide voice note if file is missing/deleted
                 const container = e.target.closest('.coach-voice-note');

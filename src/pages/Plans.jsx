@@ -1862,9 +1862,10 @@ Keep it practical and brief. Format with clear sections.`;
                           <span className="meal-voice-note-label">🎙️ Voice Note:</span>
                           <audio
                             controls
+                            playsInline
                             src={getVoiceNoteProxyUrl(meal)}
                             className="meal-voice-audio"
-                            preload="none"
+                            preload="auto"
                             onClick={(e) => e.stopPropagation()}
                             onPlay={(e) => e.stopPropagation()}
                             onError={(e) => {

@@ -8860,7 +8860,7 @@
                     <div class="voice-note-container" id="voiceNote-${di}-${ei}">
                         ${exercise.voiceNoteUrl ? `
                             <div class="voice-note-player">
-                                <audio controls src="${exercise.voiceNoteUrl}" style="height: 28px; width: 100%;"></audio>
+                                <audio controls playsinline preload="auto" src="${exercise.voiceNoteUrl}" style="height: 28px; width: 100%;"></audio>
                                 <button class="voice-note-delete" onclick="deleteVoiceNote(${di}, ${ei})" title="Delete voice note">×</button>
                             </div>
                         ` : `
@@ -9128,7 +9128,7 @@
                         <div class="voice-note-container" id="voiceNote-${dayIndex}-${exIndex}">
                             ${exercise.voiceNoteUrl ? `
                                 <div class="voice-note-player">
-                                    <audio controls src="${exercise.voiceNoteUrl}" style="height: 28px; width: 100%;"></audio>
+                                    <audio controls playsinline preload="auto" src="${exercise.voiceNoteUrl}" style="height: 28px; width: 100%;"></audio>
                                     <button class="voice-note-delete" onclick="deleteVoiceNote(${dayIndex}, ${exIndex})" title="Delete voice note">×</button>
                                 </div>
                             ` : `

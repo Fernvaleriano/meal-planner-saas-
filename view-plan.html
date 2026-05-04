@@ -4102,7 +4102,7 @@
                             ${voiceNoteUrl ? `
                                 <div style="margin-top: 10px;">
                                     <div style="font-weight: 600; color: #92400e; font-size: 0.85em; margin-bottom: 6px;">🎤 Voice Message:</div>
-                                    <audio controls src="${voiceNoteUrl}" onerror="handleVoiceNoteError(this)" style="width: 100%; max-width: 300px;"></audio>
+                                    <audio controls playsinline preload="auto" src="${voiceNoteUrl}" onerror="handleVoiceNoteError(this)" style="width: 100%; max-width: 300px;"></audio>
                                 </div>
                             ` : ''}
                         </div>
@@ -4117,7 +4117,7 @@
                             <span style="font-weight: 600; color: #047857; font-size: 0.85em;">🎤 Voice Message:</span>
                             <button onclick="deleteMealVoiceNote('${index}', ${dayIndex}, ${mealIndex})" style="background: #dc2626; color: white; padding: 2px 8px; font-size: 0.75em; border-radius: 4px; border: none; cursor: pointer;">Delete</button>
                         </div>
-                        <audio controls src="${voiceNoteUrl}" onerror="handleVoiceNoteError(this)" style="width: 100%; max-width: 300px;"></audio>
+                        <audio controls playsinline preload="auto" src="${voiceNoteUrl}" onerror="handleVoiceNoteError(this)" style="width: 100%; max-width: 300px;"></audio>
                     </div>
                 ` : '';
 
