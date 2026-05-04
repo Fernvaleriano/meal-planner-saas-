@@ -15021,7 +15021,7 @@
                         const fileExt = (note.clientVoiceNotePath.split('.').pop() || '').toLowerCase();
                         voiceHtml = `<div class="cn-voice-note">
                                 <span class="cn-voice-label">🎙️ Voice Note</span>
-                                <audio controls playsinline preload="metadata" src="${proxyUrl}" onerror="window.handleClientProfileVoiceError(this, '${proxyUrl}', '${fileExt}')"></audio>
+                                <audio controls playsinline preload="auto" src="${proxyUrl}" onerror="window.handleClientProfileVoiceError(this, '${proxyUrl}', '${fileExt}')"></audio>
                               </div>`;
                     }
 
@@ -15461,7 +15461,7 @@
                     // stuck at 00:00 with no audio.
                     const proxyUrl = '/.netlify/functions/serve-voice-note?path=' + encodeURIComponent(ex.clientVoiceNotePath);
                     const fileExt = (ex.clientVoiceNotePath.split('.').pop() || '').toLowerCase();
-                    voiceHtml = `<div class="wp-voice-note">🎙️ <audio controls playsinline src="${proxyUrl}" preload="metadata" style="height: 32px; width: 100%; max-width: 250px;" onerror="window.handleClientProfileVoiceError(this, '${proxyUrl}', '${fileExt}')"></audio></div>`;
+                    voiceHtml = `<div class="wp-voice-note">🎙️ <audio controls playsinline src="${proxyUrl}" preload="auto" style="height: 32px; width: 100%; max-width: 250px;" onerror="window.handleClientProfileVoiceError(this, '${proxyUrl}', '${fileExt}')"></audio></div>`;
                 }
 
                 const prBadge = ex.isPr ? '<span class="wp-pr-badge">PR</span>' : '';

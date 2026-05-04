@@ -601,14 +601,19 @@ function WorkoutFeedCard({ workout, coachId, onUpdate, weightUnit = 'lbs' }) {
                       </div>
                     )}
 
-                    {/* Client voice note - uses proxy URL that never expires */}
+                    {/* Client voice note - uses proxy URL that never expires.
+                        preload="auto" prevents iOS WebKit from consuming the
+                        first tap on the play control loading audio data
+                        (which would otherwise advance the timeline silently
+                        and require a second tap to hear sound). */}
                     {exercise.clientVoiceNotePath && (
                       <div className="workout-feed-client-voice-note">
                         <Mic size={12} />
                         <audio
                           controls
+                          playsInline
                           src={`/.netlify/functions/serve-voice-note?path=${encodeURIComponent(exercise.clientVoiceNotePath)}`}
-                          preload="metadata"
+                          preload="auto"
                           className="feed-voice-note-player"
                           onError={(e) => {
                             // Hide voice note if file is missing/deleted
