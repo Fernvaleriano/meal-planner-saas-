@@ -191,7 +191,7 @@ textarea,
 .top-nav {
     background: var(--brand-gradient);
     /* Add safe-area-inset-top for iPhone notch/Dynamic Island */
-    padding: calc(8px + env(safe-area-inset-top, 0px)) 24px 8px 24px;
+    padding: calc(2px + env(safe-area-inset-top, 0px)) 24px 2px 24px;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -204,7 +204,7 @@ textarea,
 /* Mobile-responsive header adjustments */
 @media (max-width: 500px) {
     .top-nav {
-        padding: calc(6px + env(safe-area-inset-top, 0px)) 16px 6px 16px;
+        padding: calc(2px + env(safe-area-inset-top, 0px)) 16px 2px 16px;
     }
 }
 
@@ -272,24 +272,24 @@ textarea,
 }
 
 .nav-logo-left {
-    height: 100px;
+    height: 112px;
     width: auto;
-    max-width: 220px;
+    max-width: 350px;
     object-fit: contain;
 }
 
 /* Responsive logo sizing for different screen sizes */
 @media (max-width: 500px) {
     .nav-logo-left {
-        height: 90px;
-        max-width: 200px;
+        height: 98px;
+        max-width: 300px;
     }
 }
 
 @media (max-width: 380px) {
     .nav-logo-left {
-        height: 80px;
-        max-width: 180px;
+        height: 88px;
+        max-width: 270px;
     }
 }
 
