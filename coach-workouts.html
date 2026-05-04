@@ -7071,6 +7071,23 @@
                         </div>
                     </div>
 
+                    <!-- Quality vs Speed toggle (program mode only) -->
+                    <div class="ai-form-group" id="aiQualityRow">
+                        <label>Generation Quality (program mode)</label>
+                        <div style="display:flex; gap:8px;">
+                            <label class="equipment-item" style="flex:1; cursor:pointer;">
+                                <input type="radio" name="aiQualityMode" value="quality" checked>
+                                <strong>High Quality</strong> — Sonnet, ~1-3 min
+                                <div style="font-size:11px; color:var(--text-secondary); margin-top:2px;">Coach-level programming. Runs in background; you can close the modal.</div>
+                            </label>
+                            <label class="equipment-item" style="flex:1; cursor:pointer;">
+                                <input type="radio" name="aiQualityMode" value="fast">
+                                <strong>Fast</strong> — Haiku, ~20s
+                                <div style="font-size:11px; color:var(--text-secondary); margin-top:2px;">Quicker but less polished. Auto-fixes split mistakes.</div>
+                            </label>
+                        </div>
+                    </div>
+
                     <div class="ai-form-group">
                         <label>Structured Injuries / Limitations</label>
                         <div class="equipment-grid" style="margin-bottom:8px;">
@@ -13354,9 +13371,14 @@
                     // Single workout: existing flow, fast enough to fit in one call
                     result = await _generateSingleWorkout(btn, requestBody);
                 } else {
-                    // Program mode: fan out per-day calls in parallel to avoid the
-                    // 26s Netlify gateway timeout. Each day call is small + fast.
-                    result = await _generateProgramByFanout(btn, requestBody);
+                    // Program mode: choose between background (Sonnet, slower, higher
+                    // quality) and fan-out (Haiku, faster, less polished).
+                    const qualityMode = document.querySelector('input[name="aiQualityMode"]:checked')?.value || 'quality';
+                    if (qualityMode === 'quality') {
+                        result = await _generateProgramByBackground(btn, requestBody);
+                    } else {
+                        result = await _generateProgramByFanout(btn, requestBody);
+                    }
                 }
 
                 window._lastAIResult = result;
@@ -13416,6 +13438,74 @@
                 progressTimers.forEach(t => clearTimeout(t));
                 clearTimeout(timeoutId);
             }
+        }
+
+        // Program-mode generation via background function + polling.
+        // Sonnet quality, no 26s timeout. Job runs server-side, frontend polls
+        // every 3s for progress + final result. Total wait ~1-3 min for a 5-day
+        // program, but you can close the modal and the job keeps running.
+        async function _generateProgramByBackground(btn, requestBody) {
+            // Generate a job ID (UUID-ish, valid against the polling endpoint regex)
+            const jobId = (crypto.randomUUID ? crypto.randomUUID() : `job-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`).replace(/-/g, '').slice(0, 32);
+
+            requestBody.jobId = jobId;
+
+            btn.innerHTML = '<span class="generating-text"><span class="spinner"></span>Submitting job...</span>';
+
+            // Submit (background function returns 202 immediately)
+            const submitResp = await fetch('/.netlify/functions/generate-workout-claude-background', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(currentAccessToken && { 'Authorization': `Bearer ${currentAccessToken}` })
+                },
+                body: JSON.stringify(requestBody)
+            });
+            if (!submitResp.ok && submitResp.status !== 202) {
+                const txt = await submitResp.text();
+                throw new Error(`Failed to submit job (HTTP ${submitResp.status}): ${txt.slice(0, 120)}`);
+            }
+
+            // Poll for status (every 3s, up to 5 min)
+            const startTime = Date.now();
+            const maxWaitMs = 5 * 60 * 1000;
+            const pollIntervalMs = 3000;
+            let lastProgress = -1;
+
+            while (Date.now() - startTime < maxWaitMs) {
+                await new Promise(r => setTimeout(r, pollIntervalMs));
+
+                const statusResp = await fetch(`/.netlify/functions/get-workout-job?coachId=${encodeURIComponent(currentCoachId)}&jobId=${encodeURIComponent(jobId)}`, {
+                    headers: { ...(currentAccessToken && { 'Authorization': `Bearer ${currentAccessToken}` }) }
+                });
+
+                if (!statusResp.ok) continue; // transient, keep polling
+
+                const rawText = await statusResp.text();
+                let status;
+                try { status = JSON.parse(rawText); }
+                catch { continue; }
+
+                const elapsed = Math.round((Date.now() - startTime) / 1000);
+
+                if (status.status === 'pending' || status.status === 'queued') {
+                    btn.innerHTML = `<span class="generating-text"><span class="spinner"></span>Queued... (${elapsed}s)</span>`;
+                } else if (status.status === 'running') {
+                    const completed = status.progress?.completedDays ?? 0;
+                    const total = status.progress?.totalDays ?? '?';
+                    if (completed !== lastProgress) {
+                        lastProgress = completed;
+                        btn.innerHTML = `<span class="generating-text"><span class="spinner"></span>Building Day ${completed + 1}/${total}... (${elapsed}s)</span>`;
+                    }
+                } else if (status.status === 'completed') {
+                    btn.innerHTML = '<span class="generating-text">Done! Opening preview...</span>';
+                    if (!status.result) throw new Error('Job completed but no result was returned.');
+                    return status.result;
+                } else if (status.status === 'failed') {
+                    throw new Error(status.error || 'Background job failed');
+                }
+            }
+            throw new Error('Job is taking too long (>5 min). Check back later or try a smaller program.');
         }
 
         // Program-mode generation: fan out one call per day, then assemble + apply
