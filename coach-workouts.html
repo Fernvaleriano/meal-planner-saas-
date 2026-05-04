@@ -12973,9 +12973,16 @@
             document.getElementById('aiModalFooter').style.display = 'none';
             document.getElementById('aiModeSelector').style.display = '';
             document.getElementById('aiModal').classList.add('active');
-            // Refresh client list + presets each time
+            // Refresh client list + presets each time. If clients haven't
+            // loaded yet (e.g. user clicked Generate before page finished),
+            // kick off loadClients() and re-populate when it returns.
             try { populateAIClientSelect(); } catch (e) {}
             try { refreshPresetList(); } catch (e) {}
+            if (!Array.isArray(clients) || clients.length === 0) {
+                if (typeof loadClients === 'function') {
+                    loadClients().then(() => { try { populateAIClientSelect(); } catch (e) {} });
+                }
+            }
             // Restore saved form state
             _restoreAIFormState();
         }
@@ -13725,6 +13732,25 @@
                     </div>
                 </div>`;
 
+            // Client context details panel — surfaces exactly what was pulled
+            // so the coach can verify the AI saw the right data.
+            let clientContextHtml = '';
+            const ctx = result.clientContextSummary;
+            if (ctx && (ctx.topExercises?.length || ctx.lastProgramName || ctx.sessionCount)) {
+                const topLiftLines = (ctx.topExercises || []).map(e => `<li>${e.name}: top ${e.topWeight} lb · ${e.sessions} sessions</li>`).join('');
+                clientContextHtml = `
+                    <div style="margin-bottom:16px; padding:10px 12px; background:rgba(16,185,129,0.06); border-left:3px solid #10b981; border-radius:6px; font-size:13px;">
+                        <strong>Personalized for ${ctx.clientName || 'this client'}:</strong>
+                        <div style="margin-top:6px; color:var(--text-secondary); display:grid; gap:4px;">
+                            ${ctx.lastProgramName ? `<div>📋 <strong>Last program:</strong> "${ctx.lastProgramName}" — progressing from there</div>` : ''}
+                            ${ctx.sessionCount > 0 ? `<div>💪 <strong>Recent activity:</strong> ${ctx.sessionCount} sessions in last 30 days${ctx.avgRPE ? `, avg RPE ${ctx.avgRPE}` : ''}</div>` : ''}
+                            ${ctx.hasIntake ? `<div>📝 <strong>Intake form</strong> data used</div>` : ''}
+                            ${ctx.hasCoachNotes ? `<div>📌 <strong>Your coach notes</strong> on this client used</div>` : ''}
+                            ${topLiftLines ? `<div>🏋️ <strong>Top recent lifts (informing working weights):</strong><ul style="margin:4px 0 0 18px; padding:0;">${topLiftLines}</ul></div>` : ''}
+                        </div>
+                    </div>`;
+            }
+
             // Volume warnings
             let volumeHtml = '';
             if (volumeSummary?.warnings?.length > 0) {
@@ -13808,7 +13834,7 @@
                     </div>
                 </div>`;
 
-            document.getElementById('aiPreviewBody').innerHTML = headerHtml + splitHtml + volumeHtml + unmatchedHtml + daysHtml + refineHtml;
+            document.getElementById('aiPreviewBody').innerHTML = headerHtml + clientContextHtml + splitHtml + volumeHtml + unmatchedHtml + daysHtml + refineHtml;
 
             // Allow Enter key to refine
             const input = document.getElementById('aiRefineInput');

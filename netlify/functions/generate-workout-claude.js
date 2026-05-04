@@ -291,7 +291,7 @@ function sampleArray(arr, n, seed = Date.now()) {
 async function fetchClientContext(supabase, clientId) {
   if (!clientId) return null;
   try {
-    const [clientRes, logsRes, intakeRes] = await Promise.all([
+    const [clientRes, logsRes, intakeRes, lastAssignmentRes] = await Promise.all([
       supabase
         .from('clients')
         .select('id, client_name, age, gender, height_cm, weight_kg, goal, fitness_level, injuries, equipment_access, training_days_per_week, notes')
@@ -310,13 +310,20 @@ async function fetchClientContext(supabase, clientId) {
         .eq('client_id', clientId)
         .order('submitted_at', { ascending: false })
         .limit(1)
+        .maybeSingle(),
+      supabase
+        .from('client_workout_assignments')
+        .select('name, start_date, end_date, is_active, created_at')
+        .eq('client_id', clientId)
+        .order('created_at', { ascending: false })
+        .limit(1)
         .maybeSingle()
     ]);
 
     const client = clientRes.data;
     if (!client) return null;
 
-    let exerciseHistory = [];
+    let exerciseHistoryRaw = [];
     if (logsRes.data && logsRes.data.length > 0) {
       const logIds = logsRes.data.map(l => l.id);
       const { data: exLogs } = await supabase
@@ -332,21 +339,22 @@ async function fetchClientContext(supabase, clientId) {
           byName[ex.exercise_name].sessions++;
           if (ex.is_pr) byName[ex.exercise_name].prs++;
         }
-        exerciseHistory = Object.entries(byName)
+        exerciseHistoryRaw = Object.entries(byName)
           .sort((a, b) => b[1].sessions - a[1].sessions)
-          .slice(0, 10)
-          .map(([name, data]) => `${name}: top ${data.topWeight}, ${data.sessions} sessions${data.prs ? `, ${data.prs} PRs` : ''}`);
+          .slice(0, 10);
       }
     }
 
     return {
       profile: client,
       intake: intakeRes?.data?.responses || null,
+      lastProgram: lastAssignmentRes?.data || null,
       recentSessionCount: logsRes.data?.length || 0,
       avgRPE: logsRes.data?.length > 0
         ? (logsRes.data.reduce((s, l) => s + (l.perceived_exertion || 0), 0) / logsRes.data.filter(l => l.perceived_exertion).length || null)
         : null,
-      exerciseHistory
+      exerciseHistory: exerciseHistoryRaw.map(([name, data]) => `${name}: top ${data.topWeight}, ${data.sessions} sessions${data.prs ? `, ${data.prs} PRs` : ''}`),
+      exerciseHistoryRaw // kept for the summary block
     };
   } catch (err) {
     console.warn('fetchClientContext failed:', err.message);
@@ -371,11 +379,25 @@ function formatClientContextForPrompt(ctx) {
     if (p.training_days_per_week) lines.push(`Available days: ${p.training_days_per_week}/week`);
     if (p.notes) lines.push(`Coach notes: ${p.notes}`);
   }
+  if (ctx.lastProgram) {
+    lines.push(`\nMost recent program: "${ctx.lastProgram.name}"${ctx.lastProgram.is_active ? ' (currently active)' : ''}, started ${ctx.lastProgram.start_date || ctx.lastProgram.created_at}`);
+    lines.push('  → Build progressive overload from this program. Vary exercise selection so the client gets fresh stimulus, but keep the trajectory.');
+  }
   if (ctx.exerciseHistory && ctx.exerciseHistory.length > 0) {
     lines.push(`\nRecent training history (last 30 days, top 10):\n  ${ctx.exerciseHistory.join('\n  ')}`);
+    lines.push('  → Use these top weights to set realistic working-weight ranges in the notes.');
+    lines.push('  → Avoid stale exercises: prefer variations rather than repeating the exact same lifts.');
   }
   if (ctx.recentSessionCount > 0) {
     lines.push(`\nRecent sessions: ${ctx.recentSessionCount} in last 30 days${ctx.avgRPE ? `, average RPE ${ctx.avgRPE.toFixed(1)}` : ''}`);
+    if (ctx.avgRPE && ctx.avgRPE >= 8.5) lines.push('  → High average RPE — consider reducing volume slightly or scheduling a deload soon.');
+    else if (ctx.avgRPE && ctx.avgRPE <= 6) lines.push('  → Low average RPE — client has room to push intensity.');
+  } else {
+    lines.push('\nNo recent training logs — client may be returning from a layoff. Start conservatively with ~70% intensity and build up.');
+  }
+  if (ctx.intake) {
+    const intakeStr = typeof ctx.intake === 'string' ? ctx.intake : JSON.stringify(ctx.intake).slice(0, 500);
+    lines.push(`\nIntake form excerpt: ${intakeStr}`);
   }
   lines.push('\nUse this context to: (a) calibrate weights/intensity, (b) avoid recently overused exercises for variety, (c) progress from where the client is, (d) respect logged injuries.');
   return lines.join('\n');
@@ -1038,6 +1060,15 @@ Return this exact JSON structure:
         volumeSummary,
         splitViolations,
         clientContextUsed: !!clientContext,
+        clientContextSummary: clientContext ? {
+          clientName: clientContext.profile?.client_name,
+          sessionCount: clientContext.recentSessionCount,
+          avgRPE: clientContext.avgRPE ? clientContext.avgRPE.toFixed(1) : null,
+          topExercises: (clientContext.exerciseHistoryRaw || []).slice(0, 5).map(([name, data]) => ({ name, topWeight: data.topWeight, sessions: data.sessions })),
+          lastProgramName: clientContext.lastProgram?.name || null,
+          hasIntake: !!clientContext.intake,
+          hasCoachNotes: !!clientContext.profile?.notes
+        } : null,
         cachedExerciseDb: true,
         generatedWeeks: programData.weeks.length
       })
