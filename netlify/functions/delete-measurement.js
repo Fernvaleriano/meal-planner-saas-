@@ -65,6 +65,28 @@ exports.handler = async (event, context) => {
       };
     }
 
+    // Cascade-delete any linked Weigh-In photo proofs and their stored images
+    // so the modal's "Recent Weigh-Ins" doesn't show orphans after deletion.
+    try {
+      const { data: linkedProofs } = await supabase
+        .from('weight_proofs')
+        .select('id, storage_path')
+        .eq('measurement_id', measurementId);
+
+      if (linkedProofs?.length) {
+        const paths = linkedProofs.map(p => p.storage_path).filter(Boolean);
+        if (paths.length) {
+          await supabase.storage.from('weight-proofs').remove(paths);
+        }
+        await supabase
+          .from('weight_proofs')
+          .delete()
+          .eq('measurement_id', measurementId);
+      }
+    } catch (proofErr) {
+      console.error('Non-critical: failed to clean up linked weight proofs:', proofErr);
+    }
+
     // Delete the measurement
     const { error: deleteError } = await supabase
       .from('client_measurements')

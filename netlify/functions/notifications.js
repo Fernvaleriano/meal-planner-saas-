@@ -7,7 +7,7 @@ exports.handler = async (event) => {
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS'
+    'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS'
   };
 
   if (event.httpMethod === 'OPTIONS') {
@@ -16,6 +16,72 @@ exports.handler = async (event) => {
 
   try {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+
+    // DELETE - Remove unread notifications matching a filter. Used when a client
+    // undoes a just-sent note/voice note: we only purge notifications the coach
+    // hasn't seen yet so we don't rewrite history they already read.
+    if (event.httpMethod === 'DELETE') {
+      const body = event.body ? JSON.parse(event.body) : {};
+      const {
+        coachId,
+        type,
+        exerciseId,
+        workoutDate,
+        unreadOnly = true
+      } = body;
+
+      if (!coachId || !type) {
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({ error: 'coachId and type are required' })
+        };
+      }
+
+      const { data: coach } = await supabase
+        .from('coaches')
+        .select('user_id')
+        .eq('id', coachId)
+        .maybeSingle();
+
+      if (!coach?.user_id) {
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({ success: true, deleted: 0 })
+        };
+      }
+
+      let delQuery = supabase
+        .from('notifications')
+        .delete()
+        .eq('user_id', coach.user_id)
+        .eq('type', type);
+
+      if (unreadOnly) delQuery = delQuery.eq('is_read', false);
+      if (exerciseId !== undefined && exerciseId !== null) {
+        delQuery = delQuery.eq('metadata->>exerciseId', String(exerciseId));
+      }
+      if (workoutDate) {
+        delQuery = delQuery.eq('metadata->>workoutDate', String(workoutDate));
+      }
+
+      const { error: delError, count } = await delQuery.select('id', { count: 'exact' });
+      if (delError) {
+        console.error('Error deleting notifications:', delError);
+        return {
+          statusCode: 500,
+          headers,
+          body: JSON.stringify({ error: delError.message })
+        };
+      }
+
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({ success: true, deleted: count || 0 })
+      };
+    }
 
     // GET - Fetch notifications
     if (event.httpMethod === 'GET') {
@@ -124,6 +190,10 @@ exports.handler = async (event) => {
           }
         } else if (clientId) {
           insertObj.client_id = typeof clientId === 'string' ? parseInt(clientId) : clientId;
+        }
+
+        if (metadata && typeof metadata === 'object') {
+          insertObj.metadata = metadata;
         }
 
         const { data: notification, error: insertError } = await supabase

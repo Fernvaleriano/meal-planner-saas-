@@ -10,6 +10,40 @@ const headers = {
   'Content-Type': 'application/json'
 };
 
+// Module-scoped per-id cache for the exercises table. Exercises change rarely
+// and every fetch used to re-query — cached lookups skip a 50-150ms Supabase
+// round-trip on warm function instances. Short TTL so coach edits propagate.
+const EXERCISE_CACHE = new Map(); // id → { data, ts }
+const EXERCISE_TTL_MS = 5 * 60 * 1000;
+
+async function fetchExercisesByIds(supabase, ids) {
+  if (!ids || ids.length === 0) return new Map();
+  const now = Date.now();
+  const out = new Map();
+  const missing = [];
+  for (const id of ids) {
+    const cached = EXERCISE_CACHE.get(id);
+    if (cached && (now - cached.ts) < EXERCISE_TTL_MS) {
+      out.set(id, cached.data);
+    } else {
+      missing.push(id);
+    }
+  }
+  if (missing.length > 0) {
+    const { data, error } = await supabase
+      .from('exercises')
+      .select('id, video_url, animation_url, thumbnail_url, is_custom')
+      .in('id', missing);
+    if (!error && data) {
+      for (const ex of data) {
+        EXERCISE_CACHE.set(ex.id, { data: ex, ts: now });
+        out.set(ex.id, ex);
+      }
+    }
+  }
+  return out;
+}
+
 // Enrich exercises with the latest media URLs from the exercises table.
 // Ad-hoc workout snapshots may have been created before thumbnails were set.
 async function enrichExercisesWithMedia(exercises, supabase) {
@@ -21,14 +55,8 @@ async function enrichExercisesWithMedia(exercises, supabase) {
 
   if (exerciseIds.length === 0) return exercises;
 
-  const { data: exerciseData, error } = await supabase
-    .from('exercises')
-    .select('id, video_url, animation_url, thumbnail_url')
-    .in('id', exerciseIds);
-
-  if (error || !exerciseData) return exercises;
-
-  const mediaMap = new Map(exerciseData.map(ex => [ex.id, ex]));
+  const mediaMap = await fetchExercisesByIds(supabase, exerciseIds);
+  if (mediaMap.size === 0) return exercises;
 
   return exercises.map(ex => {
     if (!ex.id || !mediaMap.has(ex.id)) return ex;
@@ -38,6 +66,8 @@ async function enrichExercisesWithMedia(exercises, supabase) {
     if (fresh.thumbnail_url && fresh.thumbnail_url !== ex.thumbnail_url) updates.thumbnail_url = fresh.thumbnail_url;
     if (fresh.video_url && !ex.video_url) updates.video_url = fresh.video_url;
     if (fresh.animation_url && !ex.animation_url) updates.animation_url = fresh.animation_url;
+    // Backfill is_custom so coach-recorded videos play unmuted on the client
+    if (fresh.is_custom === true && ex.is_custom !== true) updates.is_custom = true;
     if (Object.keys(updates).length === 0) return ex;
     return { ...ex, ...updates };
   });

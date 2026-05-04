@@ -4855,9 +4855,8 @@
             font-size: 13px;
             color: #4c1d95;
             line-height: 1.4;
-            max-height: 60px;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
         }
         [data-theme="dark"] .priority-voice-player {
             background: #1e1033;
@@ -5055,8 +5054,9 @@
         }
         .cag-row {
             display: grid;
-            grid-template-columns: 1fr auto;
+            grid-template-columns: minmax(0, 1fr) auto;
             align-items: center;
+            gap: 12px;
             padding: 12px 18px;
             border-bottom: 1px solid #f8fafc;
             cursor: pointer;
@@ -5073,6 +5073,10 @@
             align-items: center;
             gap: 12px;
             min-width: 0;
+        }
+        .cag-client-info > div:not(.cag-avatar) {
+            min-width: 0;
+            flex: 1;
         }
         .cag-avatar {
             width: 36px;
@@ -5106,8 +5110,11 @@
         .cag-badges {
             display: flex;
             align-items: center;
+            flex-wrap: wrap;
+            justify-content: flex-end;
             gap: 6px;
             flex-shrink: 0;
+            max-width: 100%;
         }
         .cag-badge {
             display: inline-flex;
@@ -5175,6 +5182,24 @@
         [data-theme="dark"] .cag-badge.purple { background: #2e1065; color: #a78bfa; }
         [data-theme="dark"] .cag-badge.blue { background: #172554; color: #60a5fa; }
         [data-theme="dark"] .cag-badge.gray { background: #334155; color: #94a3b8; }
+
+        @media (max-width: 600px) {
+            .cag-row {
+                grid-template-columns: 1fr;
+                gap: 10px;
+                padding: 14px 16px;
+            }
+            .cag-client-info {
+                gap: 10px;
+            }
+            .cag-badges {
+                justify-content: flex-start;
+                padding-left: 46px;
+            }
+            .cag-detail {
+                white-space: normal;
+            }
+        }
 
         /* Notifications Overview */
         .notif-overview-list {
@@ -6505,6 +6530,33 @@
             </span>`;
         }
 
+        // Voice note playback failure handler. iOS Safari can't decode webm/opus,
+        // which is what Chrome/Android record by default. When the audio element
+        // errors, log details for debugging and replace it with a download link
+        // so the coach can at least save the file off-device.
+        window.handleVoiceNoteError = function(audioEl, proxyUrl, fileExt) {
+            const err = audioEl.error;
+            console.warn('[voice-note] playback error', {
+                code: err?.code,
+                message: err?.message,
+                src: proxyUrl,
+                ext: fileExt,
+                networkState: audioEl.networkState,
+                readyState: audioEl.readyState,
+                userAgent: navigator.userAgent
+            });
+            const container = audioEl.closest('.priority-voice-player');
+            if (!container) return;
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+            const reason = (isIOS && fileExt === 'webm')
+                ? "Your iPhone can't play this voice note (recorded in webm). Open on desktop or download below."
+                : "Couldn't play this voice note.";
+            container.innerHTML = `
+                <span class="pvp-label" style="color:#b91c1c;">⚠ ${reason}</span>
+                <a href="${proxyUrl}" download style="color:#7c3aed; font-size:12px; font-weight:600; text-decoration:underline;">Download</a>
+            `;
+        };
+
         // Auto-archive and navigate when clicking Review/View links
         function reviewAndArchive(alertId, url) {
             // Find the alert and auto-dismiss it
@@ -7677,8 +7729,8 @@
 
                 // --- EXPIRING WORKOUT PROGRAMS ---
                 try {
-                    const fourteenDaysFromNow = new Date();
-                    fourteenDaysFromNow.setDate(fourteenDaysFromNow.getDate() + 14);
+                    const sevenDaysFromNow = new Date();
+                    sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
                     const threeDaysAgo = new Date();
                     threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
                     const today = new Date().toISOString().split('T')[0];
@@ -7690,18 +7742,29 @@
                         .eq('is_active', true)
                         .not('end_date', 'is', null)
                         .gte('end_date', threeDaysAgo.toISOString().split('T')[0])
-                        .lte('end_date', fourteenDaysFromNow.toISOString().split('T')[0])
+                        .lte('end_date', sevenDaysFromNow.toISOString().split('T')[0])
                         .order('end_date', { ascending: true })
                         .limit(10);
 
                     if (endingPrograms && endingPrograms.length > 0) {
+                        // Use calendar-day math so timezone offsets don't shift "today" by one
+                        const todayMidnight = new Date();
+                        todayMidnight.setHours(0, 0, 0, 0);
                         endingPrograms.slice(0, MAX_SHOWN).forEach(wp => {
                             const name = clientMap[wp.client_id] || 'Unknown Client';
-                            const daysLeft = Math.ceil((new Date(wp.end_date) - new Date()) / 86400000);
-                            const isExpired = daysLeft <= 0;
-                            const urgency = isExpired ? 'Program ended' : daysLeft <= 1 ? 'Ends tomorrow' : `Ends in ${daysLeft} days`;
-                            const dotColor = isExpired ? 'priority-dot--red' : daysLeft <= 3 ? 'priority-dot--amber' : 'priority-dot--amber';
-                            const labelClass = isExpired ? 'priority-label--action' : 'priority-label--pending';
+                            const endDateMidnight = new Date(wp.end_date + 'T00:00:00');
+                            const daysLeft = Math.round((endDateMidnight - todayMidnight) / 86400000);
+                            const isExpired = daysLeft < 0;
+                            const isToday = daysLeft === 0;
+                            const urgency = isExpired
+                                ? 'Program ended'
+                                : isToday
+                                    ? 'Ends today'
+                                    : daysLeft === 1
+                                        ? 'Ends tomorrow'
+                                        : `Ends in ${daysLeft} days`;
+                            const dotColor = isExpired ? 'priority-dot--red' : 'priority-dot--amber';
+                            const labelClass = (isExpired || isToday) ? 'priority-label--action' : 'priority-label--pending';
                             const aid = 'workout-program-' + wp.id;
                             const url = `client-profile.html?clientId=${wp.client_id}&tab=workouts`;
                             addAlert(aid, `
@@ -7770,6 +7833,75 @@
                 // PRs render in the Wins card via the activity timeline (loadActivityFeed),
                 // so we don't add them to the Needs You alerts here — that would duplicate them.
 
+                // --- MISSED COACH-PRESCRIBED TARGETS ---
+                // Surfaces sets where the client logged less weight or fewer reps than the
+                // coach prescribed. This is the signal a strength coach needs to decide
+                // whether to deload, hold, or push the next session.
+                try {
+                    const clientIds = (allClients || []).map(c => c.id);
+                    if (clientIds.length > 0) {
+                        const { data: recentLogs } = await supabaseClient
+                            .from('exercise_logs')
+                            .select('id, exercise_name, sets_data, created_at, workout_logs!inner(id, client_id, workout_name)')
+                            .in('workout_logs.client_id', clientIds)
+                            .gte('created_at', weekAgo.toISOString())
+                            .order('created_at', { ascending: false })
+                            .limit(60);
+                        const misses = [];
+                        (recentLogs || []).forEach(log => {
+                            const sets = Array.isArray(log.sets_data) ? log.sets_data : [];
+                            const missedSets = sets.filter(s => {
+                                const pw = Number(s?.prescribedWeight) || 0;
+                                const pr = Number(s?.prescribedReps) || 0;
+                                if (pw <= 0 && pr <= 0) return false;
+                                const w = Number(s?.weight) || 0;
+                                const r = Number(s?.reps) || 0;
+                                return (pw > 0 && w > 0 && w < pw) || (pr > 0 && r > 0 && r < pr);
+                            });
+                            if (missedSets.length === 0) return;
+                            const worst = missedSets.reduce((acc, s) => {
+                                const pw = Number(s.prescribedWeight) || 0;
+                                const pr = Number(s.prescribedReps) || 0;
+                                const wDelta = pw > 0 ? pw - (Number(s.weight) || 0) : 0;
+                                const rDelta = pr > 0 ? pr - (Number(s.reps) || 0) : 0;
+                                const score = wDelta + rDelta * 2;
+                                return score > acc.score ? { set: s, score } : acc;
+                            }, { set: null, score: -1 }).set;
+                            misses.push({ log, worst, count: missedSets.length });
+                        });
+                        misses.slice(0, MAX_SHOWN).forEach(m => {
+                            const cId = m.log.workout_logs?.client_id;
+                            const name = clientMap[cId] || 'Unknown Client';
+                            const unit = clientUnitMap[cId] || 'lbs';
+                            const aid = 'missed-target-' + m.log.id;
+                            const workoutId = m.log.workout_logs?.id;
+                            const url = `client-profile.html?clientId=${cId}&tab=workouts&workoutId=${workoutId}`;
+                            const w = Number(m.worst.weight) || 0;
+                            const pw = Number(m.worst.prescribedWeight) || 0;
+                            const r = Number(m.worst.reps) || 0;
+                            const pr = Number(m.worst.prescribedReps) || 0;
+                            const detail = pw > 0 && w < pw
+                                ? `${w}${unit} vs target ${pw}${unit}`
+                                : `${r} reps vs target ${pr}`;
+                            const setsCopy = m.count > 1 ? `${m.count} sets` : '1 set';
+                            addAlert(aid, `
+                                <div class="priority-alert priority-alert--clickable" onclick="reviewAndArchive('${aid}', '${url}')">
+                                    __CHECKBOX__
+                                    <span class="priority-dot priority-dot--amber"></span>
+                                    <span>
+                                        <span class="priority-label priority-label--action">Missed target:</span>
+                                        <strong>${name}</strong> on ${m.log.exercise_name} — ${detail}
+                                        <span class="priority-alert-detail">· ${setsCopy} below prescription · ${timeAgo(m.log.created_at)}</span>
+                                        <span class="priority-alert-link">Review →</span>
+                                    </span>
+                                </div>
+                            `, cId, 'missed_target', m.log.id, 'workout');
+                        });
+                    }
+                } catch (e) {
+                    console.warn('Could not check missed prescribed targets:', e);
+                }
+
                 // --- CLIENT WORKOUT NOTES (Voice & Text) ---
                 try {
                     const clientIds = (allClients || []).map(c => c.id);
@@ -7792,25 +7924,6 @@
                             .limit(10);
 
                         if (exerciseNotes && exerciseNotes.length > 0) {
-                            // Fetch signed URLs for any voice notes
-                            const voicePaths = exerciseNotes
-                                .filter(n => n.client_voice_note_path)
-                                .map(n => n.client_voice_note_path);
-                            let voiceUrls = {};
-                            if (voicePaths.length > 0) {
-                                try {
-                                    const urlRes = await fetch('/.netlify/functions/get-signed-urls', {
-                                        method: 'POST',
-                                        headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify({ filePaths: voicePaths, coachId })
-                                    });
-                                    const urlData = await urlRes.json();
-                                    voiceUrls = urlData.signedUrls || {};
-                                } catch (e) {
-                                    console.warn('Could not fetch voice note URLs:', e);
-                                }
-                            }
-
                             exerciseNotes.slice(0, MAX_SHOWN).forEach(note => {
                                 const clientId = note.workout_logs?.client_id;
                                 const name = clientMap[clientId] || 'Unknown Client';
@@ -7825,26 +7938,30 @@
                                 // Link to client profile with workout tab and specific workout
                                 const url = `client-profile.html?clientId=${clientId}&tab=workouts&workoutId=${workoutId}`;
 
-                                // Build inline voice player if voice note exists
+                                // Build inline voice player if voice note exists.
+                                // Use the serve-voice-note proxy (302 → fresh signed URL) instead of
+                                // a direct Supabase signed URL — iOS Safari has trouble loading
+                                // metadata from the long Supabase URLs, which leaves the player
+                                // stuck at 00:00 with no audio when the coach taps play.
                                 let voicePlayerHtml = '';
                                 if (hasVoice) {
-                                    const signedUrl = voiceUrls[note.client_voice_note_path];
-                                    if (signedUrl) {
-                                        voicePlayerHtml = `
-                                            <div class="priority-voice-player" onclick="event.stopPropagation()">
-                                                <span class="pvp-label"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:3px;"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>Play</span>
-                                                <audio controls preload="metadata" src="${signedUrl}"></audio>
-                                            </div>`;
-                                    }
+                                    const proxyUrl = '/.netlify/functions/serve-voice-note?path=' + encodeURIComponent(note.client_voice_note_path);
+                                    const fileExt = (note.client_voice_note_path.split('.').pop() || '').toLowerCase();
+                                    voicePlayerHtml = `
+                                        <div class="priority-voice-player" onclick="event.stopPropagation()" data-vn-ext="${fileExt}">
+                                            <span class="pvp-label"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:3px;"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>Play</span>
+                                            <audio controls playsinline preload="auto" src="${proxyUrl}" onerror="window.handleVoiceNoteError(this, '${proxyUrl}', '${fileExt}')"></audio>
+                                        </div>`;
                                 }
 
-                                // Build inline text note preview
+                                // Build inline text note (full content, no truncation)
                                 let textNoteHtml = '';
                                 if (hasText && note.client_notes.trim()) {
-                                    const preview = note.client_notes.length > 120
-                                        ? note.client_notes.substring(0, 120) + '...'
-                                        : note.client_notes;
-                                    textNoteHtml = `<div class="priority-text-note" onclick="event.stopPropagation()"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:3px;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>${preview}</div>`;
+                                    const escaped = note.client_notes
+                                        .replace(/&/g, '&amp;')
+                                        .replace(/</g, '&lt;')
+                                        .replace(/>/g, '&gt;');
+                                    textNoteHtml = `<div class="priority-text-note" onclick="event.stopPropagation()"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:3px;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>${escaped}</div>`;
                                 }
 
                                 // Escape exercise name for use in HTML attributes
@@ -8268,6 +8385,12 @@
                 }
 
                 console.log('Coach data loaded successfully');
+
+                // Mirror coach's unit preference into localStorage so getCoachDisplayUnit()
+                // and other read-sites stay in sync across devices.
+                if (coachData.unit_preference === 'metric' || coachData.unit_preference === 'imperial') {
+                    localStorage.setItem('coachDisplayUnit', coachData.unit_preference);
+                }
 
                 // Check for URL parameters (reactivation/subscription success)
                 const urlParams = new URLSearchParams(window.location.search);
@@ -10120,5 +10243,6 @@
     <script src="/js/api-helper.js"></script>
     <script src="/js/trainer-support-agent.js"></script>
     <script src="/js/voice-commander.js"></script>
+    <script src="/js/twemoji-init.js"></script>
 </body>
 </html>

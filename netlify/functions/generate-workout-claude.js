@@ -1,85 +1,109 @@
 // Netlify Function for AI workout program generation using Claude
+// Major rewrite — supports:
+//   • Custom (coach-owned) exercises in addition to global library
+//   • Multi-week periodization with progressive overload
+//   • Client-aware generation (intake form, recent logs, injury history)
+//   • Structured injury contraindications (deterministic exclusions)
+//   • Tempo, RPE/RIR, unilateral preference, conditioning modes
+//   • Randomized exercise variety (different result on regeneration)
+//   • Cross-day volume sanity check
+//   • In-memory exercise DB cache (5 min TTL) to cut latency
 const Anthropic = require('@anthropic-ai/sdk');
 const { createClient } = require('@supabase/supabase-js');
+const { corsHeaders, handleCors, authenticateRequest } = require('./utils/auth');
+const { analyzeClientHistory, formatAnalysisForPrompt, applyMovementScreenExclusions } = require('./utils/client-analysis');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
 const headers = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  ...corsHeaders,
   'Content-Type': 'application/json'
 };
 
-// Detect if an exercise is a warmup by name
+// ─── In-memory cache for exercise DB ──────────────────────────────────────────
+// Keyed by `coachId || 'global'`. Reset on cold start. 5 min TTL.
+const EXERCISE_CACHE_TTL_MS = 5 * 60 * 1000;
+const exerciseCache = new Map();
+
+async function loadExercises(supabase, coachId) {
+  const cacheKey = coachId || 'global';
+  const cached = exerciseCache.get(cacheKey);
+  if (cached && Date.now() - cached.timestamp < EXERCISE_CACHE_TTL_MS) {
+    return cached.exercises;
+  }
+
+  let all = [];
+  let offset = 0;
+  const pageSize = 1000;
+  while (true) {
+    let query = supabase
+      .from('exercises')
+      .select('id, name, video_url, animation_url, thumbnail_url, muscle_group, equipment, instructions, secondary_muscles, is_compound, is_unilateral, difficulty, coach_id')
+      .range(offset, offset + pageSize - 1);
+
+    // Include the coach's custom exercises alongside global ones
+    if (coachId) {
+      query = query.or(`coach_id.is.null,coach_id.eq.${coachId}`);
+    } else {
+      query = query.is('coach_id', null);
+    }
+
+    const { data, error } = await query;
+    if (error) throw new Error('Unable to load exercise database: ' + error.message);
+    if (!data || data.length === 0) break;
+    all = all.concat(data);
+    if (data.length < pageSize) break;
+    offset += pageSize;
+  }
+
+  exerciseCache.set(cacheKey, { exercises: all, timestamp: Date.now() });
+  return all;
+}
+
+// ─── Heuristics for warmup/stretch detection ──────────────────────────────────
 function isWarmupExercise(name) {
-  const lower = name.toLowerCase();
-  const warmupKeywords = [
-    'warm up', 'warmup', 'warm-up',
-    'dynamic stretch', 'activation', 'mobility', 'light cardio',
-    'elliptical', 'treadmill', 'rowing machine', 'stationary bike',
-    'exercise bike', 'assault airbike', 'air bike', 'recumbent',
-    'stair climb', 'spin bike',
-    'jump rope', 'skipping rope',
-    'jumping jack', 'high knee', 'butt kick', 'butt kicks',
-    'mountain climber', 'bear crawl', 'inchworm',
-    'burpee', 'half burpee',
-    'arm circle', 'arm swing', 'leg swing', 'hip circle', 'torso twist',
-    'march', 'air punches march',
-    'jogging', 'jog in place', 'running in place',
-    'box jump', 'squat jump', 'tuck jump', 'broad jump',
-    'star jump', 'seal jack', 'jump squat', 'plyo',
-    'lateral box jump', 'kneeling squat jump',
-    'agility ladder', 'lateral shuffle', 'carioca',
-    'a skip', 'b skip', 'power skip',
-    'battle rope', 'rebounder',
-    'sprinter lunge', 'downward dog sprint',
-    'step up'
+  const lower = (name || '').toLowerCase();
+  const kws = [
+    'warm up', 'warmup', 'warm-up', 'dynamic stretch', 'activation', 'mobility',
+    'light cardio', 'elliptical', 'treadmill', 'rowing machine', 'stationary bike',
+    'exercise bike', 'assault airbike', 'air bike', 'recumbent', 'stair climb',
+    'spin bike', 'jump rope', 'skipping rope', 'jumping jack', 'high knee',
+    'butt kick', 'mountain climber', 'bear crawl', 'inchworm', 'burpee', 'half burpee',
+    'arm circle', 'arm swing', 'leg swing', 'hip circle', 'torso twist', 'march',
+    'air punches march', 'jogging', 'jog in place', 'running in place', 'box jump',
+    'squat jump', 'tuck jump', 'broad jump', 'star jump', 'seal jack', 'jump squat',
+    'plyo', 'lateral box jump', 'kneeling squat jump', 'agility ladder',
+    'lateral shuffle', 'carioca', 'a skip', 'b skip', 'power skip', 'battle rope',
+    'rebounder', 'sprinter lunge', 'downward dog sprint'
   ];
-  return warmupKeywords.some(kw => lower.includes(kw));
+  return kws.some(k => lower.includes(k));
 }
 
-// Detect if an exercise is a stretch by name
 function isStretchExercise(name) {
-  const lower = name.toLowerCase();
-  const stretchKeywords = [
-    'stretch', 'yoga', 'cool down', 'cooldown', 'cool-down',
-    'flexibility', 'static hold', 'foam roll', 'foam roller',
-    'fist against chin', '90 to 90', '90/90',
-    'child pose', 'childs pose', "child's pose",
-    'pigeon glute', 'double pigeon',
-    'downward dog toe to heel', 'downward dog with fingers',
-    'cobra stretch', 'cobra side ab', 'cobra yoga pose', 'spinal twist',
-    'cat cow', 'cat stretch',
-    'scorpion', 'pretzel',
-    'butterfly yoga', 'crescent moon pose',
-    'dead hang',
-    'side lying floor',
-    'knee to chest', 'knee hug',
-    'ceiling look', 'neck tilt', 'neck turn', 'neck rotation',
-    'middle back rotation',
-    'easy pose',
-    'back slaps wrap',
-    'cable lat prayer', 'armless prayer',
-    'alternating leg downward dog',
-    'all fours quad'
+  const lower = (name || '').toLowerCase();
+  const kws = [
+    'stretch', 'yoga', 'cool down', 'cooldown', 'cool-down', 'flexibility',
+    'static hold', 'foam roll', 'foam roller', 'fist against chin', '90 to 90',
+    '90/90', 'child pose', 'childs pose', "child's pose", 'pigeon glute',
+    'double pigeon', 'downward dog toe to heel', 'cobra stretch', 'cobra side ab',
+    'cobra yoga pose', 'spinal twist', 'cat cow', 'cat stretch', 'scorpion',
+    'pretzel', 'butterfly yoga', 'crescent moon pose', 'dead hang', 'side lying floor',
+    'knee to chest', 'knee hug', 'ceiling look', 'neck tilt', 'neck turn', 'neck rotation',
+    'middle back rotation', 'easy pose', 'back slaps wrap', 'cable lat prayer',
+    'armless prayer', 'alternating leg downward dog', 'all fours quad'
   ];
-  return stretchKeywords.some(kw => lower.includes(kw));
+  return kws.some(k => lower.includes(k));
 }
 
-// Normalize exercise name for matching
+// ─── Name normalization & similarity scoring (preserved from previous version) ──
 function normalizeExerciseName(name) {
-  return name
+  return (name || '')
     .toLowerCase()
-    // Remove version numbers like (1), (2), etc.
     .replace(/\s*\(\d+\)\s*/g, '')
-    // Remove special characters except spaces
     .replace(/[^a-z0-9\s]/g, '')
-    // Normalize whitespace
     .replace(/\s+/g, ' ')
     .trim()
-    // Common abbreviations and variations
     .replace(/\bdb\b/g, 'dumbbell')
     .replace(/\bbb\b/g, 'barbell')
     .replace(/\boh\b/g, 'overhead')
@@ -89,38 +113,26 @@ function normalizeExerciseName(name) {
     .replace(/\bext\b/g, 'extension')
     .replace(/\blat\b/g, 'lateral')
     .replace(/\bkb\b/g, 'kettlebell')
-    // Remove gender/variation indicators
     .replace(/\b(male|female|variation|version)\b/g, '')
-    // Remove filler words
     .replace(/\b(the|a|an|with|on|for)\b/g, '')
     .replace(/\s+/g, ' ')
     .trim();
 }
 
-// Extract key words for matching (equipment + movement)
 function extractKeyWords(name) {
   const normalized = normalizeExerciseName(name);
   const words = normalized.split(' ');
-
-  // Key movement words (including core-specific)
   const movementWords = ['press', 'curl', 'row', 'fly', 'raise', 'extension', 'pulldown', 'pushdown',
     'squat', 'lunge', 'deadlift', 'pull', 'push', 'crunch', 'plank', 'dip', 'shrug',
     'crossover', 'kickback', 'pullover', 'twist', 'rotation', 'hold', 'walk', 'step',
     'bicycle', 'russian', 'woodchop', 'rollout', 'climber', 'bug', 'bird', 'dog', 'hip',
     'bridge', 'thrust', 'flutter', 'scissor', 'hollow', 'situp', 'jackknife', 'v-up'];
-
-  // Key equipment words
   const equipmentWords = ['barbell', 'dumbbell', 'cable', 'machine', 'kettlebell', 'band',
     'bodyweight', 'smith', 'ez', 'trap', 'hex'];
-
-  // Key position/variation words
   const positionWords = ['incline', 'decline', 'flat', 'seated', 'standing', 'lying',
     'bent', 'reverse', 'close', 'wide', 'single', 'one', 'arm', 'leg'];
-
-  // Key muscle words
   const muscleWords = ['chest', 'back', 'shoulder', 'bicep', 'tricep', 'quad', 'hamstring',
     'glute', 'calf', 'lat', 'pec', 'delt', 'trap', 'ab', 'core'];
-
   const keyWords = [];
   for (const word of words) {
     if (movementWords.some(m => word.includes(m) || m.includes(word)) ||
@@ -130,151 +142,385 @@ function extractKeyWords(name) {
       keyWords.push(word);
     }
   }
-
   return keyWords;
 }
 
-// Calculate similarity score between two strings
 function calculateSimilarity(aiName, dbName) {
   const normalizedAi = normalizeExerciseName(aiName);
   const normalizedDb = normalizeExerciseName(dbName);
-
-  // Exact match after normalization
   if (normalizedAi === normalizedDb) return 1;
-
-  // Check if one contains the other
   if (normalizedDb.includes(normalizedAi)) return 0.95;
   if (normalizedAi.includes(normalizedDb)) return 0.9;
-
-  // Key word matching
   const aiKeyWords = extractKeyWords(aiName);
   const dbKeyWords = extractKeyWords(dbName);
-
   if (aiKeyWords.length === 0 || dbKeyWords.length === 0) {
-    // Fall back to word matching
     const aiWords = normalizedAi.split(' ').filter(w => w.length > 2);
     const dbWords = normalizedDb.split(' ').filter(w => w.length > 2);
-
     let matches = 0;
     for (const word of aiWords) {
-      if (dbWords.some(w => w.includes(word) || word.includes(w))) {
-        matches++;
-      }
+      if (dbWords.some(w => w.includes(word) || word.includes(w))) matches++;
     }
     return matches / Math.max(aiWords.length, dbWords.length);
   }
-
-  // Count matching key words
   let matches = 0;
   let partialMatches = 0;
-
   for (const aiWord of aiKeyWords) {
     for (const dbWord of dbKeyWords) {
-      if (aiWord === dbWord) {
-        matches++;
-        break;
-      } else if (aiWord.includes(dbWord) || dbWord.includes(aiWord)) {
-        partialMatches++;
-        break;
-      }
+      if (aiWord === dbWord) { matches++; break; }
+      if (aiWord.includes(dbWord) || dbWord.includes(aiWord)) { partialMatches++; break; }
     }
   }
-
-  const score = (matches + partialMatches * 0.5) / Math.max(aiKeyWords.length, dbKeyWords.length);
-  return score;
+  return (matches + partialMatches * 0.5) / Math.max(aiKeyWords.length, dbKeyWords.length);
 }
 
-// Find best matching exercise from database
 function findBestExerciseMatch(aiName, aiMuscleGroup, exercises) {
-  // First, try exact match (case-insensitive)
-  const normalizedAiName = aiName.toLowerCase().trim();
-  const exactMatch = exercises.find(e => e.name.toLowerCase().trim() === normalizedAiName);
-  if (exactMatch) {
-    return exactMatch;
-  }
-
+  const normalizedAiName = (aiName || '').toLowerCase().trim();
+  const exact = exercises.find(e => e.name.toLowerCase().trim() === normalizedAiName);
+  if (exact) return exact;
   let bestMatch = null;
   let bestScore = 0;
   const threshold = 0.5;
-
   for (const exercise of exercises) {
     let score = calculateSimilarity(aiName, exercise.name);
-
-    // Boost score if muscle group matches
     if (aiMuscleGroup && exercise.muscle_group) {
-      const normalizedAiMuscle = aiMuscleGroup.toLowerCase();
-      const normalizedDbMuscle = exercise.muscle_group.toLowerCase();
-
-      if (normalizedAiMuscle === normalizedDbMuscle ||
-          normalizedAiMuscle.includes(normalizedDbMuscle) ||
-          normalizedDbMuscle.includes(normalizedAiMuscle)) {
-        score += 0.15;
-      } else if (exercise.secondary_muscles && Array.isArray(exercise.secondary_muscles)) {
-        // Only check secondary muscles if primary didn't match (cap bonus)
-        for (const secondary of exercise.secondary_muscles) {
-          if (secondary.toLowerCase().includes(normalizedAiMuscle) ||
-              normalizedAiMuscle.includes(secondary.toLowerCase())) {
-            score += 0.05;
-            break;
-          }
+      const am = aiMuscleGroup.toLowerCase();
+      const dm = exercise.muscle_group.toLowerCase();
+      if (am === dm || am.includes(dm) || dm.includes(am)) score += 0.15;
+      else if (Array.isArray(exercise.secondary_muscles)) {
+        for (const s of exercise.secondary_muscles) {
+          if (s.toLowerCase().includes(am) || am.includes(s.toLowerCase())) { score += 0.05; break; }
         }
       }
     }
-
-    // Prefer exercises that have videos
-    if (exercise.video_url || exercise.animation_url) {
-      score += 0.05;
-    }
-
+    if (exercise.video_url || exercise.animation_url) score += 0.05;
     if (score > bestScore && score >= threshold) {
       bestScore = score;
       bestMatch = exercise;
     }
   }
-
   return bestMatch;
 }
 
-// Find best match with equipment validation
 function findBestExerciseMatchWithEquipment(aiName, aiMuscleGroup, exercises, selectedEquipment) {
   if (!selectedEquipment || selectedEquipment.length === 0) {
     return findBestExerciseMatch(aiName, aiMuscleGroup, exercises);
   }
-
-  // First try matching with equipment filter
-  const equipmentFiltered = exercises.filter(ex => {
-    const exEquip = (ex.equipment || '').toLowerCase();
-    if (!exEquip || exEquip === 'none' || exEquip === 'bodyweight' || exEquip === 'body weight') {
-      return selectedEquipment.some(eq => eq.toLowerCase() === 'bodyweight');
+  const filtered = exercises.filter(ex => {
+    const eq = (ex.equipment || '').toLowerCase();
+    if (!eq || eq === 'none' || eq === 'bodyweight' || eq === 'body weight') {
+      return selectedEquipment.some(e => e.toLowerCase() === 'bodyweight');
     }
-    return selectedEquipment.some(eq => exEquip.includes(eq.toLowerCase()));
+    return selectedEquipment.some(e => eq.includes(e.toLowerCase()));
   });
-
-  const match = findBestExerciseMatch(aiName, aiMuscleGroup, equipmentFiltered);
+  const match = findBestExerciseMatch(aiName, aiMuscleGroup, filtered);
   if (match) return match;
-
-  // Fallback: try without equipment filter but with higher threshold
   return findBestExerciseMatch(aiName, aiMuscleGroup, exercises);
 }
 
-exports.handler = async (event) => {
-  // Handle CORS preflight
-  if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 200, headers, body: '' };
+// ─── Structured injury → contraindicated movement patterns ────────────────────
+// Maps a structured injury code to substring matchers that exclude exercises
+// purely deterministically (independent of the LLM).
+const INJURY_EXCLUSIONS = {
+  lower_back: [
+    'deadlift', 'good morning', 'romanian', 'rdl', 'bent over row', 'barbell row',
+    'back squat', 'overhead squat', 'sumo'
+  ],
+  knee: [
+    'jump squat', 'tuck jump', 'box jump', 'broad jump', 'pistol squat',
+    'bulgarian split squat', 'deep squat', 'sissy squat', 'lunge jump'
+  ],
+  shoulder: [
+    'overhead press', 'military press', 'snatch', 'jerk', 'behind the neck',
+    'upright row', 'arnold press', 'handstand'
+  ],
+  wrist: [
+    'push up', 'pushup', 'push-up', 'handstand', 'planche', 'front squat',
+    'clean', 'snatch'
+  ],
+  hip: [
+    'pistol squat', 'cossack squat', 'deep squat', 'jefferson curl'
+  ],
+  neck: [
+    'shrug', 'behind the neck', 'upright row', 'wrestler bridge'
+  ],
+  elbow: [
+    'skull crusher', 'close grip bench', 'tricep extension', 'tate press'
+  ],
+  ankle: [
+    'jump rope', 'box jump', 'broad jump', 'depth jump', 'sprint',
+    'lunge jump', 'tuck jump'
+  ],
+  pregnancy: [
+    'crunch', 'sit up', 'situp', 'plank', 'leg raise', 'flutter kick',
+    'russian twist', 'jump', 'sprint', 'box jump', 'deadlift', 'twist'
+  ]
+};
+
+function applyInjuryExclusions(exercises, injuryCodes) {
+  if (!injuryCodes || injuryCodes.length === 0) return exercises;
+  const banSubstrings = new Set();
+  for (const code of injuryCodes) {
+    const list = INJURY_EXCLUSIONS[code];
+    if (list) list.forEach(s => banSubstrings.add(s));
   }
+  if (banSubstrings.size === 0) return exercises;
+  return exercises.filter(ex => {
+    const n = (ex.name || '').toLowerCase();
+    for (const ban of banSubstrings) {
+      if (n.includes(ban)) return false;
+    }
+    return true;
+  });
+}
+
+// ─── Random sampling helper for exercise variety ──────────────────────────────
+function sampleArray(arr, n, seed = Date.now()) {
+  if (arr.length <= n) return arr.slice();
+  // Fisher-Yates with a basic seeded RNG for variety on regeneration
+  const out = arr.slice();
+  let s = seed;
+  for (let i = out.length - 1; i > 0; i--) {
+    s = (s * 9301 + 49297) % 233280;
+    const j = Math.floor((s / 233280) * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out.slice(0, n);
+}
+
+// ─── Client context fetcher ───────────────────────────────────────────────────
+// Pulls intake form, recent logs, and injury history into a compact context block.
+async function fetchClientContext(supabase, clientId) {
+  if (!clientId) return null;
+  try {
+    const [clientRes, logsRes, lastAssignmentRes] = await Promise.all([
+      supabase
+        .from('clients')
+        .select('id, client_name, age, gender, height_ft, height_in, weight, default_goal, fitness_level, health_concerns, equipment_access, exercise_frequency, notes, health_flags, fitness_goal_details, unavailable_equipment')
+        .eq('id', clientId)
+        .maybeSingle(),
+      supabase
+        .from('workout_logs')
+        .select('id, workout_date, duration_minutes, energy_level, workout_rating')
+        .eq('client_id', clientId)
+        .gte('workout_date', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0])
+        .order('workout_date', { ascending: false })
+        .limit(20),
+      supabase
+        .from('client_workout_assignments')
+        .select('name, start_date, end_date, is_active, created_at')
+        .eq('client_id', clientId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+    ]);
+
+    const client = clientRes.data;
+    if (!client) return null;
+
+    let exerciseHistoryRaw = [];
+    if (logsRes.data && logsRes.data.length > 0) {
+      const logIds = logsRes.data.map(l => l.id);
+      const { data: exLogs } = await supabase
+        .from('exercise_logs')
+        .select('exercise_name, max_weight, total_volume, total_sets, total_reps, is_pr')
+        .in('workout_log_id', logIds)
+        .limit(200);
+      if (exLogs) {
+        const byName = {};
+        for (const ex of exLogs) {
+          if (!byName[ex.exercise_name]) byName[ex.exercise_name] = { topWeight: 0, sessions: 0, prs: 0 };
+          byName[ex.exercise_name].topWeight = Math.max(byName[ex.exercise_name].topWeight, ex.max_weight || 0);
+          byName[ex.exercise_name].sessions++;
+          if (ex.is_pr) byName[ex.exercise_name].prs++;
+        }
+        exerciseHistoryRaw = Object.entries(byName)
+          .sort((a, b) => b[1].sessions - a[1].sessions)
+          .slice(0, 10);
+      }
+    }
+
+    return {
+      profile: client,
+      intake: null, // form_responses lookup deferred
+      lastProgram: lastAssignmentRes?.data || null,
+      recentSessionCount: logsRes.data?.length || 0,
+      // Use workout_rating as a proxy for RPE (no perceived_exertion column exists)
+      avgRPE: logsRes.data?.length > 0
+        ? (logsRes.data.reduce((s, l) => s + (l.workout_rating || 0), 0) / logsRes.data.filter(l => l.workout_rating).length || null)
+        : null,
+      exerciseHistory: exerciseHistoryRaw.map(([name, data]) => `${name}: top ${data.topWeight}, ${data.sessions} sessions${data.prs ? `, ${data.prs} PRs` : ''}`),
+      exerciseHistoryRaw // kept for the summary block
+    };
+  } catch (err) {
+    console.warn('fetchClientContext failed:', err.message);
+    return null;
+  }
+}
+
+function formatClientContextForPrompt(ctx) {
+  if (!ctx) return '';
+  const lines = ['\n=== CLIENT PROFILE (use this to personalize the program) ==='];
+  if (ctx.profile) {
+    const p = ctx.profile;
+    if (p.client_name) lines.push(`Name: ${p.client_name}`);
+    if (p.age) lines.push(`Age: ${p.age}`);
+    if (p.gender) lines.push(`Gender: ${p.gender}`);
+    if (p.height_ft) lines.push(`Height: ${p.height_ft}'${p.height_in || 0}"`);
+    if (p.weight) lines.push(`Weight: ${p.weight} lb`);
+    if (p.default_goal) lines.push(`Stated goal: ${p.default_goal}`);
+    if (p.fitness_goal_details) lines.push(`Goal details: ${p.fitness_goal_details}`);
+    if (p.fitness_level) lines.push(`Fitness level: ${p.fitness_level}`);
+    if (p.health_concerns) lines.push(`Logged injuries / health concerns: ${p.health_concerns}`);
+    if (p.equipment_access) lines.push(`Equipment access: ${p.equipment_access}`);
+    if (p.exercise_frequency) lines.push(`Exercise frequency: ${p.exercise_frequency}`);
+    if (p.notes) lines.push(`Coach notes: ${p.notes}`);
+    // Read structured health flags
+    const hf = p.health_flags || {};
+    if (hf.aiNotes) lines.push(`AI-specific coach notes: ${hf.aiNotes}`);
+    if (Array.isArray(hf.injuryCodes) && hf.injuryCodes.length) lines.push(`Structured injuries: ${hf.injuryCodes.join(', ')}`);
+    if (Array.isArray(hf.movementFlags) && hf.movementFlags.length) lines.push(`Movement screen flags: ${hf.movementFlags.join(', ')}`);
+  }
+  if (ctx.lastProgram) {
+    lines.push(`\nMost recent program: "${ctx.lastProgram.name}"${ctx.lastProgram.is_active ? ' (currently active)' : ''}, started ${ctx.lastProgram.start_date || ctx.lastProgram.created_at}`);
+    lines.push('  → Build progressive overload from this program. Vary exercise selection so the client gets fresh stimulus, but keep the trajectory.');
+  }
+  if (ctx.exerciseHistory && ctx.exerciseHistory.length > 0) {
+    lines.push(`\nRecent training history (last 30 days, top 10):\n  ${ctx.exerciseHistory.join('\n  ')}`);
+    lines.push('  → Use these top weights to set realistic working-weight ranges in the notes.');
+    lines.push('  → Avoid stale exercises: prefer variations rather than repeating the exact same lifts.');
+  }
+  if (ctx.recentSessionCount > 0) {
+    lines.push(`\nRecent sessions: ${ctx.recentSessionCount} in last 30 days${ctx.avgRPE ? `, average RPE ${ctx.avgRPE.toFixed(1)}` : ''}`);
+    if (ctx.avgRPE && ctx.avgRPE >= 8.5) lines.push('  → High average RPE — consider reducing volume slightly or scheduling a deload soon.');
+    else if (ctx.avgRPE && ctx.avgRPE <= 6) lines.push('  → Low average RPE — client has room to push intensity.');
+  } else {
+    lines.push('\nNo recent training logs — client may be returning from a layoff. Start conservatively with ~70% intensity and build up.');
+  }
+  if (ctx.intake) {
+    const intakeStr = typeof ctx.intake === 'string' ? ctx.intake : JSON.stringify(ctx.intake).slice(0, 500);
+    lines.push(`\nIntake form excerpt: ${intakeStr}`);
+  }
+  lines.push('\nUse this context to: (a) calibrate weights/intensity, (b) avoid recently overused exercises for variety, (c) progress from where the client is, (d) respect logged injuries.');
+  return lines.join('\n');
+}
+
+// ─── Volume sanity check ──────────────────────────────────────────────────────
+// Counts weekly working sets per major muscle group across the program.
+// Flags muscles that are way under (≤5 sets) or way over (≥25 sets) the
+// generally accepted hypertrophy/strength range.
+function computeVolumeSummary(programData) {
+  const muscleSetCount = {};
+  const ranges = {
+    chest: [10, 20], back: [10, 20], shoulders: [8, 18], legs: [10, 22],
+    glutes: [8, 18], arms: [6, 16], core: [6, 16]
+  };
+  if (!programData?.weeks?.[0]?.workouts) return null;
+  for (const workout of programData.weeks[0].workouts) {
+    for (const ex of (workout.exercises || [])) {
+      if (ex.isWarmup || ex.isStretch || ex.phase === 'warmup' || ex.phase === 'cooldown') continue;
+      const group = (ex.muscle_group || ex.muscleGroup || 'other').toLowerCase();
+      const sets = Number(ex.sets) || 0;
+      // Map subgroups to coarse categories
+      let key = 'other';
+      if (/chest|pec/.test(group)) key = 'chest';
+      else if (/back|lat|trap|rhomboid/.test(group)) key = 'back';
+      else if (/shoulder|delt/.test(group)) key = 'shoulders';
+      else if (/leg|quad|hamstring|calf|calves/.test(group)) key = 'legs';
+      else if (/glute/.test(group)) key = 'glutes';
+      else if (/bicep|tricep|arm|forearm/.test(group)) key = 'arms';
+      else if (/core|ab|oblique/.test(group)) key = 'core';
+      muscleSetCount[key] = (muscleSetCount[key] || 0) + sets;
+    }
+  }
+  const warnings = [];
+  for (const [muscle, [low, high]] of Object.entries(ranges)) {
+    const count = muscleSetCount[muscle] || 0;
+    if (count > 0 && count < low) warnings.push(`${muscle}: only ${count} weekly sets (recommended ${low}-${high})`);
+    else if (count > high) warnings.push(`${muscle}: ${count} weekly sets is high (recommended ${low}-${high})`);
+  }
+  return { setsByMuscle: muscleSetCount, warnings };
+}
+
+// ─── Multi-week progression generator ─────────────────────────────────────────
+// Given a generated week 1, produces week 2..N programmatically using a
+// double-progression model (alternate weeks add reps OR add sets/load) plus a
+// deload every 4th week.
+function generateMultiWeekProgression(week1Workouts, totalWeeks, goal) {
+  if (totalWeeks <= 1) return [];
+  const additionalWeeks = [];
+  for (let w = 2; w <= totalWeeks; w++) {
+    const isDeload = w % 4 === 0; // Deload every 4th week
+    const weekIndex = w - 1;
+
+    const workouts = week1Workouts.map(workout => {
+      const exercises = (workout.exercises || []).map(ex => {
+        if (ex.isWarmup || ex.isStretch || ex.phase === 'warmup' || ex.phase === 'cooldown') {
+          // Don't progress warmups/cooldowns
+          return { ...ex };
+        }
+        const baseSets = Number(ex.sets) || 3;
+        const baseReps = String(ex.reps || '8-12');
+
+        let newSets = baseSets;
+        let newReps = baseReps;
+        let progressNote = '';
+
+        if (isDeload) {
+          // Deload: -1 set, same reps, lighter load
+          newSets = Math.max(2, baseSets - 1);
+          progressNote = `Week ${w} (DELOAD): drop 1 set, use ~70% of recent working weight, focus on form`;
+        } else if (goal === 'strength') {
+          // Strength: add load (suggested via notes), keep reps low
+          progressNote = `Week ${w}: add 2.5-5 lb to working weight; if all reps hit at top of range, increase 5-10 lb next week`;
+        } else if (goal === 'hypertrophy') {
+          // Double progression: add reps until top of range, then add a set
+          const range = baseReps.match(/(\d+)\s*[-–]\s*(\d+)/);
+          if (range) {
+            const lowRep = parseInt(range[1]);
+            const highRep = parseInt(range[2]);
+            // Bump toward top of rep range each week, add set on weeks 3+
+            const repBump = Math.min(highRep, lowRep + (weekIndex - 1));
+            newReps = `${repBump}-${highRep}`;
+            if (weekIndex >= 3) newSets = baseSets + 1;
+            progressNote = `Week ${w}: aim for ${newReps} reps. Once you hit ${highRep} on all sets, add 5 lb next week.`;
+          } else {
+            progressNote = `Week ${w}: aim for 1-2 more reps than last week, or +2.5-5 lb if reps held`;
+          }
+        } else {
+          // fat_loss / general_fitness: increase density by trimming rest
+          const baseRest = Number(ex.restSeconds) || 60;
+          const newRest = Math.max(20, baseRest - 10 * (weekIndex - 1));
+          progressNote = `Week ${w}: shorten rest to ${newRest}s to increase density`;
+          return { ...ex, restSeconds: newRest, notes: ex.notes ? `${ex.notes} | ${progressNote}` : progressNote };
+        }
+
+        return {
+          ...ex,
+          sets: newSets,
+          reps: newReps,
+          notes: ex.notes ? `${ex.notes} | ${progressNote}` : progressNote
+        };
+      });
+
+      return { ...workout, exercises };
+    });
+
+    additionalWeeks.push({ weekNumber: w, workouts, isDeload });
+  }
+  return additionalWeeks;
+}
+
+// ─── Main handler ─────────────────────────────────────────────────────────────
+exports.handler = async (event) => {
+  const corsResponse = handleCors(event);
+  if (corsResponse) return corsResponse;
 
   if (event.httpMethod !== 'POST') {
-    return {
-      statusCode: 405,
-      headers,
-      body: JSON.stringify({ error: 'Method not allowed' })
-    };
+    return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method not allowed' }) };
   }
 
   const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
-
   if (!ANTHROPIC_API_KEY) {
-    console.error('ANTHROPIC_API_KEY not configured');
     return {
       statusCode: 503,
       headers,
@@ -291,6 +537,8 @@ exports.handler = async (event) => {
     const {
       mode = 'program',
       clientName = 'Client',
+      clientId = null,            // NEW: when set, pulls real client context
+      coachId = null,             // NEW: scopes custom exercises to this coach
       goal = 'hypertrophy',
       experience = 'intermediate',
       daysPerWeek = 4,
@@ -301,111 +549,139 @@ exports.handler = async (event) => {
       exerciseCount = '5-6',
       focusAreas = [],
       equipment = ['barbell', 'dumbbell', 'cable', 'machine', 'bodyweight'],
-      injuries = '',
+      injuries = '',                 // legacy free-text
+      injuryCodes = [],              // NEW: structured codes (lower_back, knee, etc.)
+      movementScreenFlags = [],      // NEW: structured movement screen issues
       preferences = '',
-      targetMuscle = ''
+      targetMuscle = '',
+      // NEW programming fields
+      tempo = 'standard',            // 'standard' | 'controlled' | 'explosive' | 'tempo_3010' | 'tempo_4020'
+      rpeTarget = null,              // 6 | 7 | 8 | 9 | null
+      rirTarget = null,              // 0 | 1 | 2 | 3 | null
+      unilateralPreference = 'mixed',// 'mixed' | 'prefer_unilateral' | 'bilateral_only'
+      conditioningStyle = 'none',    // 'none' | 'hiit' | 'liss' | 'mixed' — for fat-loss/general
+      includeProgression = true,     // generate weeks 2..N programmatically
+      excludeExerciseNames = [],     // NEW: names to exclude (e.g. recently used)
+      varietySeed = Date.now()       // NEW: deterministic randomization for "regenerate"
     } = body;
 
-    const isSingleWorkout = mode === 'single';
+    // Authenticate (optional — we accept unauthed for back-compat, but log it)
+    let authedUser = null;
+    try {
+      const auth = await authenticateRequest(event);
+      authedUser = auth.user;
+    } catch (e) { /* keep going */ }
 
+    const isSingleWorkout = mode === 'single';
     const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
 
-    // Fetch exercises from database FIRST so we can provide the list to Claude
-    let allExercises = [];
-    let exercisesWithVideos = [];
-    let exercisesByMuscleGroup = {};
-
-    if (SUPABASE_SERVICE_KEY) {
-      const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
-
-      // Fetch all exercises that have videos (prioritize those with media)
-      let offset = 0;
-      const pageSize = 1000;
-
-      while (true) {
-        const { data: exercises, error } = await supabase
-          .from('exercises')
-          .select('id, name, video_url, animation_url, thumbnail_url, muscle_group, equipment, instructions, secondary_muscles')
-          .is('coach_id', null) // Global exercises only
-          .range(offset, offset + pageSize - 1);
-
-        if (error) {
-          console.error('Error fetching exercises:', error);
-          throw new Error('Unable to load exercise database. Please try again.');
-        }
-
-        if (!exercises || exercises.length === 0) break;
-        allExercises = allExercises.concat(exercises);
-        if (exercises.length < pageSize) break;
-        offset += pageSize;
-      }
-
-      // Filter to only exercises with videos and group by muscle group
-      exercisesWithVideos = allExercises.filter(e => e.video_url || e.animation_url);
-
-      // CRITICAL: If no exercises have videos, log a warning
-      if (exercisesWithVideos.length === 0) {
-        console.error('WARNING: No exercises with videos found in database!');
-        console.error('You need to run the sync-exercises-from-videos endpoint to populate video URLs.');
-        console.error('Call: /.netlify/functions/sync-exercises-from-videos to see available folders');
-      } else if (exercisesWithVideos.length < 50) {
-        console.warn(`Only ${exercisesWithVideos.length} exercises have videos - workout variety may be limited`);
-      }
-
-      // Filter exercises by selected equipment BEFORE sending to Claude
-      const matchesSelectedEquipment = (ex) => {
-        const exEquipment = (ex.equipment || '').toLowerCase();
-        if (!equipment || equipment.length === 0) return true;
-        return equipment.some(eq => {
-          const eqLower = eq.toLowerCase();
-          if (eqLower === 'bodyweight') {
-            // Bodyweight matches exercises with no equipment, 'none', or 'bodyweight'
-            return !exEquipment || exEquipment === 'none' || exEquipment === 'bodyweight' || exEquipment === 'body weight';
-          }
-          if (eqLower === 'bands') {
-            return exEquipment.includes('band');
-          }
-          if (eqLower === 'pullup_bar') {
-            return exEquipment.includes('pull-up') || exEquipment.includes('pullup') || exEquipment.includes('pull up');
-          }
-          // Default: substring match (handles 'barbell' in 'Barbell', 'machine' in 'Smith Machine', etc.)
-          return exEquipment.includes(eqLower);
-        });
+    if (!SUPABASE_SERVICE_KEY) {
+      return {
+        statusCode: 500, headers,
+        body: JSON.stringify({ success: false, error: 'Server not configured (missing SUPABASE_SERVICE_KEY)' })
       };
+    }
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
-      const equipmentFilteredExercises = exercisesWithVideos.filter(matchesSelectedEquipment);
+    // Fetch exercises (cached) — includes coach's custom exercises if coachId given
+    const allExercises = await loadExercises(supabase, coachId);
+    let exercisesWithVideos = allExercises.filter(e => e.video_url || e.animation_url);
 
-      // Group FILTERED exercises by muscle group for the prompt (only equipment-matching exercises)
-      for (const ex of equipmentFilteredExercises) {
-        const group = (ex.muscle_group || 'other').toLowerCase();
-        if (!exercisesByMuscleGroup[group]) {
-          exercisesByMuscleGroup[group] = [];
-        }
-        // Include equipment metadata so Claude can make better selections
-        const equipLabel = ex.equipment ? ` [${ex.equipment}]` : '';
-        exercisesByMuscleGroup[group].push(`${ex.name}${equipLabel}`);
-      }
-
-      // Log what muscle groups we have available
-      const groupCounts = Object.entries(exercisesByMuscleGroup).map(([g, ex]) => `${g}:${ex.length}`).join(', ');
+    // Apply structured injury exclusions deterministically
+    // If a clientId was passed, pull their stored health_flags and union them
+    // with whatever the coach checked in the AI modal — so even if the coach
+    // doesn't manually check anything, the client's permanent flags still apply.
+    let mergedInjuryCodes = Array.isArray(injuryCodes) ? injuryCodes.slice() : [];
+    let mergedMovementFlags = Array.isArray(movementScreenFlags) ? movementScreenFlags.slice() : [];
+    if (clientId) {
+      try {
+        const { data: clientFlags } = await supabase
+          .from('clients')
+          .select('health_flags')
+          .eq('id', clientId)
+          .maybeSingle();
+        const hf = clientFlags?.health_flags || {};
+        if (Array.isArray(hf.injuryCodes)) mergedInjuryCodes = [...new Set([...mergedInjuryCodes, ...hf.injuryCodes])];
+        if (Array.isArray(hf.movementFlags)) mergedMovementFlags = [...new Set([...mergedMovementFlags, ...hf.movementFlags])];
+      } catch (e) { /* ignore */ }
     }
 
-    // If we have no exercises with videos, return an error with instructions
-    if (Object.keys(exercisesByMuscleGroup).length === 0) {
+    let exercisesAfterInjuries = applyInjuryExclusions(exercisesWithVideos, mergedInjuryCodes);
+    exercisesAfterInjuries = applyMovementScreenExclusions(exercisesAfterInjuries, mergedMovementFlags);
+
+    // Equipment filter
+    const matchesSelectedEquipment = (ex) => {
+      const exEquipment = (ex.equipment || '').toLowerCase();
+      if (!equipment || equipment.length === 0) return true;
+      return equipment.some(eq => {
+        const eqLower = eq.toLowerCase();
+        if (eqLower === 'bodyweight') {
+          return !exEquipment || exEquipment === 'none' || exEquipment === 'bodyweight' || exEquipment === 'body weight';
+        }
+        if (eqLower === 'bands') return exEquipment.includes('band');
+        if (eqLower === 'pullup_bar') return exEquipment.includes('pull-up') || exEquipment.includes('pullup') || exEquipment.includes('pull up');
+        return exEquipment.includes(eqLower);
+      });
+    };
+    let equipmentFilteredExercises = exercisesAfterInjuries.filter(matchesSelectedEquipment);
+
+    // Apply user-supplied "exclude these recently used" list
+    if (excludeExerciseNames.length > 0) {
+      const ban = new Set(excludeExerciseNames.map(n => n.toLowerCase().trim()));
+      equipmentFilteredExercises = equipmentFilteredExercises.filter(ex => !ban.has(ex.name.toLowerCase().trim()));
+    }
+
+    // Group by muscle, then RANDOMLY SAMPLE 50 per group (was 30, deterministic)
+    // for better variety on regeneration.
+    const exercisesByMuscleGroup = {};
+    for (const ex of equipmentFilteredExercises) {
+      const group = (ex.muscle_group || 'other').toLowerCase();
+      if (!exercisesByMuscleGroup[group]) exercisesByMuscleGroup[group] = [];
+      const equipLabel = ex.equipment ? ` [${ex.equipment}]` : '';
+      const customLabel = ex.coach_id ? ' (custom)' : '';
+      exercisesByMuscleGroup[group].push({ name: `${ex.name}${equipLabel}${customLabel}`, raw: ex });
+    }
+    // Randomize per muscle group sampling
+    const exercisesByMuscleGroupSampled = {};
+    let muscleGroupIdx = 0;
+    for (const [group, list] of Object.entries(exercisesByMuscleGroup)) {
+      // Use varietySeed + group offset so different muscle groups don't all get the same shuffle
+      // 20 per group keeps the prompt small enough for Haiku to stay fast.
+      // 20 × ~10 muscle groups = ~200 names, still plenty of variety.
+      const sampled = sampleArray(list, 20, varietySeed + (muscleGroupIdx++ * 7919));
+      exercisesByMuscleGroupSampled[group] = sampled.map(s => s.name);
+    }
+
+    if (Object.keys(exercisesByMuscleGroupSampled).length === 0) {
       return {
-        statusCode: 500,
-        headers,
+        statusCode: 500, headers,
         body: JSON.stringify({
           success: false,
-          error: 'No exercises with videos found in database. Please run the exercise sync first.',
-          help: 'Call /.netlify/functions/sync-exercises-from-videos to sync videos from storage to database.',
+          error: 'No exercises with videos available for the selected equipment/injury filters. Try selecting more equipment or fewer injury constraints.',
           totalExercises: allExercises.length,
-          exercisesWithVideos: 0
+          exercisesWithVideos: exercisesWithVideos.length
         })
       };
     }
 
-    // Build split instruction
+    // Pull client context if requested
+    const clientContext = await fetchClientContext(supabase, clientId);
+    let clientContextBlock = formatClientContextForPrompt(clientContext);
+
+    // Run the coach-grade analyzer and append its briefing to the prompt
+    let clientAnalysis = null;
+    if (clientId) {
+      try {
+        clientAnalysis = await analyzeClientHistory(supabase, clientId);
+        if (clientAnalysis) {
+          clientContextBlock = (clientContextBlock || '') + '\n' + formatAnalysisForPrompt(clientAnalysis);
+        }
+      } catch (e) {
+        console.warn('analyzeClientHistory failed:', e.message);
+      }
+    }
+
+    // Split / style / count instructions
     const splitMap = {
       'push_pull_legs': 'Use a Push/Pull/Legs split (Push: chest, shoulders, triceps; Pull: back, biceps; Legs: quads, hamstrings, glutes, calves)',
       'upper_lower': 'Use an Upper/Lower split (Upper: chest, back, shoulders, arms; Lower: quads, hamstrings, glutes, calves)',
@@ -416,114 +692,93 @@ exports.handler = async (event) => {
     };
     const splitInstruction = splitMap[split] || splitMap['auto'];
 
-    // Build training style instruction
     const styleMap = {
-      'straight_sets': 'Use straight sets (complete all sets of one exercise before moving to the next). All exercises should have "isSuperset": false and "supersetGroup": null.',
-      'supersets': 'MANDATORY: Use supersets — pair MOST main exercises into superset pairs. Each pair must have BOTH exercises marked with "isSuperset": true and the SAME "supersetGroup" letter (e.g., both exercises in the first pair get "supersetGroup": "A", the second pair gets "B", etc.). Place paired exercises CONSECUTIVELY in the exercises array. Aim for 2-3 superset pairs per workout. Rest 60-90s between superset rounds, 0s between exercises within a superset. Prefer ANTAGONISTIC pairings (chest+back, biceps+triceps, quads+hamstrings) for better recovery, or pair upper+lower for metabolic effect.',
-      'circuits': 'Use circuit training (cycle through all exercises with minimal rest). Group 3-5 exercises into circuits using "isSuperset": true and the same "supersetGroup" letter for all exercises in the circuit.',
-      'mixed': 'Mix straight sets with supersets — use 1-2 superset pairs per workout (mark both exercises with "isSuperset": true and the same "supersetGroup" letter like "A" or "B"), and keep the remaining exercises as straight sets ("isSuperset": false). Place superset pairs CONSECUTIVELY. Prefer antagonistic pairings (chest+back, biceps+triceps, quads+hamstrings).'
+      'straight_sets': 'Use straight sets. All exercises: "isSuperset": false, "supersetGroup": null.',
+      'supersets': 'MANDATORY: Pair MOST main exercises into supersets. Each pair gets the SAME "supersetGroup" letter ("A", "B", ...). Place pairs CONSECUTIVELY. Prefer antagonistic pairings.',
+      'circuits': 'Circuit training: group 3-5 exercises into circuits using "isSuperset": true and the same "supersetGroup" letter for all exercises in the circuit.',
+      'mixed': 'Mix straight sets with 1-2 superset pairs per workout. Mark superset pairs with "isSuperset": true and matching "supersetGroup" letter.'
     };
     const styleInstruction = styleMap[trainingStyle] || styleMap['straight_sets'];
 
-    // Parse exercise count
     const [minEx, maxEx] = exerciseCount.split('-').map(n => parseInt(n));
-    const exerciseCountInstruction = `Include ${minEx}-${maxEx} exercises per workout`;
+    const exerciseCountInstruction = `Include ${minEx}-${maxEx} MAIN exercises per workout (warm-up + cool-down are additional)`;
 
-    // Focus areas instruction - make it much stronger when specific areas are selected
-    let focusInstruction = '';
-    if (focusAreas.length > 0) {
-      focusInstruction = `IMPORTANT: This workout MUST focus primarily on ${focusAreas.join(' and ')}. At least 70% of the exercises should directly target ${focusAreas.join(' or ')} muscles.`;
+    // Tempo instruction
+    const tempoMap = {
+      'standard': 'Use a controlled tempo (1-2 sec eccentric, 1 sec concentric). Mention tempo in notes for compound lifts.',
+      'controlled': 'CONTROLLED TEMPO — note "3 sec eccentric, 1 sec pause, 1 sec concentric" in notes for main lifts. This emphasizes time under tension.',
+      'explosive': 'EXPLOSIVE TEMPO on concentric — "Lower for 2 sec, drive up explosively". For power development.',
+      'tempo_3010': 'TEMPO 3-0-1-0 — note "3 sec down, no pause, 1 sec up, no pause" on main lifts.',
+      'tempo_4020': 'TEMPO 4-0-2-0 — note "4 sec down, no pause, 2 sec up, no pause" on main lifts. High time under tension.'
+    };
+    const tempoInstruction = tempoMap[tempo] || tempoMap['standard'];
+
+    // RPE/RIR instruction
+    let intensityInstruction = '';
+    if (rpeTarget) intensityInstruction = `Target RPE ${rpeTarget}/10 on working sets. Add "RPE ${rpeTarget}" to notes on main lifts.`;
+    else if (rirTarget !== null && rirTarget !== undefined) intensityInstruction = `Target ${rirTarget} RIR (reps in reserve) on working sets. Add "${rirTarget} RIR" to notes on main lifts.`;
+
+    // Unilateral preference
+    let unilateralInstruction = '';
+    if (unilateralPreference === 'prefer_unilateral') {
+      unilateralInstruction = 'STRONGLY prefer unilateral (single-arm/single-leg) exercises where they exist — these correct imbalances and improve stability. Aim for 30-50% unilateral movements per workout.';
+    } else if (unilateralPreference === 'bilateral_only') {
+      unilateralInstruction = 'Use ONLY bilateral exercises (both sides working simultaneously). Avoid single-arm and single-leg movements.';
     }
 
-    // Build available exercises list from database (exercises with videos)
-    let availableExercisesPrompt = '';
+    // Conditioning instruction (for fat_loss / general_fitness)
+    let conditioningInstruction = '';
+    if (conditioningStyle === 'hiit' && (goal === 'fat_loss' || goal === 'general_fitness')) {
+      conditioningInstruction = '\n=== CONDITIONING FINISHER (last 8-10 min) ===\nAdd a HIIT finisher: 4-8 rounds, 30s work / 30s rest, using bodyweight or kettlebell movements (burpees, mountain climbers, kettlebell swings, jump rope). Mark with "phase": "conditioning".';
+    } else if (conditioningStyle === 'liss' && (goal === 'fat_loss' || goal === 'general_fitness')) {
+      conditioningInstruction = '\n=== CONDITIONING FINISHER ===\nAdd 10-15 minutes of LISS cardio (steady-state, RPE 5-6) at the end. Treadmill walk, easy bike, or rowing. Mark with "phase": "conditioning".';
+    } else if (conditioningStyle === 'mixed' && (goal === 'fat_loss' || goal === 'general_fitness')) {
+      conditioningInstruction = '\n=== CONDITIONING FINISHER ===\nAlternate days: HIIT finisher one day, LISS cardio (10-15 min) the next. Mark with "phase": "conditioning".';
+    }
+
+    // Focus areas
+    let focusInstruction = '';
+    if (focusAreas.length > 0) {
+      focusInstruction = `IMPORTANT: This workout MUST focus primarily on ${focusAreas.join(' and ')}. At least 70% of main exercises should directly target ${focusAreas.join(' or ')}.`;
+    }
+
+    // Build available exercises list
+    const exercisesList = Object.entries(exercisesByMuscleGroupSampled)
+      .map(([group, list]) => `${group.toUpperCase()}: ${list.join(', ')}`)
+      .join('\n');
+
+    // Build warmup/stretch references from full unfiltered DB so we always have these
+    const allExerciseNames = exercisesWithVideos.map(e => e.name);
+    const warmupSuitable = allExerciseNames
+      .filter(n => /jump|jack|burpee|mountain climber|high knee|butt kick|arm circle|leg swing|hip circle|torso twist|march|skip|jog|run in place/i.test(n))
+      .slice(0, 6);
+    const stretchExercises = allExerciseNames.filter(n => /stretch/i.test(n)).slice(0, 15);
+
     let warmupStretchInstructions = '';
-
-    if (Object.keys(exercisesByMuscleGroup).length > 0) {
-      const exercisesList = Object.entries(exercisesByMuscleGroup)
-        .map(([group, exercises]) => {
-          // Limit to first 30 exercises per group to avoid token limits
-          const limitedExercises = exercises.slice(0, 30);
-          return `${group.toUpperCase()}: ${limitedExercises.join(', ')}`;
-        })
-        .join('\n');
-
-      // Use ALL exercises with videos for warmup/stretch matching (not equipment-filtered,
-      // since warmups/stretches are typically bodyweight and should always be available)
-      const allExerciseNames = exercisesWithVideos.map(e => e.name);
-
-      // Build unfiltered groups for warmup/stretch category lookups
-      const allExercisesGrouped = {};
-      for (const ex of exercisesWithVideos) {
-        const group = (ex.muscle_group || 'other').toLowerCase();
-        if (!allExercisesGrouped[group]) allExercisesGrouped[group] = [];
-        allExercisesGrouped[group].push(ex.name);
+    if (warmupSuitable.length > 0 || stretchExercises.length > 0) {
+      warmupStretchInstructions = '\n\n=== WARMUP AND STRETCH EXERCISES ===';
+      if (warmupSuitable.length > 0) {
+        warmupStretchInstructions += `\n\nAVAILABLE WARM-UPS (copy name EXACTLY):\n${warmupSuitable.map(n => `"${n}"`).join(', ')}`;
+        warmupStretchInstructions += '\n\nInclude 2-3 warm-up exercises at the START. Mark with "isWarmup": true. Use 1-2 sets, 10-15 reps, 0-30 seconds rest.';
       }
-
-      // WARM-UP OPTIONS: bodyweight, cardio, light movements from ANY category
-      const warmupSuitableExercises = [];
-
-      // Check for cardio category (from unfiltered exercises)
-      if (allExercisesGrouped['cardio']?.length > 0) {
-        warmupSuitableExercises.push(...allExercisesGrouped['cardio'].slice(0, 5));
+      if (stretchExercises.length > 0) {
+        warmupStretchInstructions += `\n\nAVAILABLE STRETCHES (copy name EXACTLY):\n${stretchExercises.map(n => `"${n}"`).join(', ')}`;
+        warmupStretchInstructions += '\n\nInclude 2-3 stretches at the END targeting the SAME muscles trained. Mark with "isStretch": true. Use 1 set, "30s hold" reps, 0 rest.';
       }
+    }
 
-      // Check for dedicated warmup/mobility categories (from unfiltered exercises)
-      ['warmup', 'warm-up', 'mobility', 'flexibility'].forEach(cat => {
-        if (allExercisesGrouped[cat]?.length > 0) {
-          warmupSuitableExercises.push(...allExercisesGrouped[cat].slice(0, 5));
-        }
-      });
-
-      // Also find bodyweight exercises from any category (good for warm-ups)
-      const bodyweightWarmups = allExerciseNames.filter(name =>
-        /jump|jack|burpee|mountain climber|high knee|butt kick|arm circle|leg swing|hip circle|torso twist|march|skip|jog|run in place|squat jump/i.test(name)
-      );
-      warmupSuitableExercises.push(...bodyweightWarmups);
-
-      // Deduplicate warm-ups
-      const uniqueWarmups = [...new Set(warmupSuitableExercises)].slice(0, 15);
-
-      // STRETCH OPTIONS: Find exercises with "stretch" in the name (they have videos)
-      const stretchExercises = allExerciseNames.filter(name =>
-        /stretch/i.test(name)
-      );
-
-      // Log EXACTLY what we found
-
-      // Build warmup/stretch instructions - always include structure
-      if (uniqueWarmups.length > 0 || stretchExercises.length > 0) {
-        warmupStretchInstructions = '\n\n=== WARMUP AND STRETCH EXERCISES ===';
-
-        if (uniqueWarmups.length > 0) {
-          warmupStretchInstructions += `\n\nAVAILABLE WARM-UPS (copy name EXACTLY as shown):\n${uniqueWarmups.map(n => `"${n}"`).join(', ')}`;
-          warmupStretchInstructions += '\n\nInclude 2-3 warm-up exercises at the START of each workout. Mark them with "isWarmup": true. Use 1-2 sets, 10-15 reps, 0-30 seconds rest.';
-        } else {
-          warmupStretchInstructions += '\n\nNo warm-up exercises with videos found. Include 1-2 generic warm-ups anyway (e.g., "General Cardio Warm-up", "Dynamic Stretching") marked with "isWarmup": true — they will be included without video demos.';
-        }
-
-        if (stretchExercises.length > 0) {
-          warmupStretchInstructions += `\n\nAVAILABLE STRETCHES (copy name EXACTLY as shown):\n${stretchExercises.map(n => `"${n}"`).join(', ')}`;
-          warmupStretchInstructions += '\n\nInclude 2-3 stretches at the END of each workout. Mark them with "isStretch": true. Use 1 set, "30s hold" for reps, 0 seconds rest. CRITICAL: Stretches MUST target the same muscle group being trained in the workout (e.g. leg stretches for leg day, chest stretches for chest day). Never include unrelated stretches.';
-        } else {
-          warmupStretchInstructions += '\n\nNo stretch exercises with videos found. Include 2-3 generic stretches anyway (e.g., "Hamstring Stretch", "Chest Stretch") marked with "isStretch": true — they will be included without video demos.';
-        }
-      } else {
-        warmupStretchInstructions = '\n\nNo warm-up or stretch exercises with videos found. Still include 1-2 generic warm-ups and 2-3 stretches with appropriate flags — they will display without video demos but maintain proper workout structure.';
-      }
-
-      availableExercisesPrompt = `
+    const availableExercisesPrompt = `
 CRITICAL - AVAILABLE EXERCISES DATABASE:
-You MUST ONLY use exercises from this list. Each exercise has a demonstration video.
+You MUST ONLY use exercises from this list (each has a demonstration video).
+Custom exercises (marked "(custom)") are this coach's own additions — they are PREFERRED when they fit, since they reflect this coach's signature style.
 Using exercises not in this list will result in missing video demonstrations.
 
 ${exercisesList}
 
-If an exercise category doesn't have enough options, select similar exercises from other categories.
+If a category lacks options, select similar exercises from related categories.
 `;
-    }
 
-    // Build muscle group mapping for single workout mode
+    // Muscle map for single workouts
     const muscleGroupMap = {
       'chest': 'chest (pecs, upper chest, lower chest)',
       'back': 'back (lats, rhomboids, traps, rear delts)',
@@ -532,106 +787,97 @@ If an exercise category doesn't have enough options, select similar exercises fr
       'legs': 'legs (quads, hamstrings, calves)',
       'glutes': 'glutes and hamstrings',
       'core': 'core (abs, obliques, lower back)',
-      'upper_body': 'upper body (chest, back, shoulders, arms)',
+      'upper_body': 'upper body (chest, back, shoulders, arms — all four)',
       'lower_body': 'lower body (quads, hamstrings, glutes, calves)',
-      'full_body': 'full body (all major muscle groups)'
+      'full_body': 'full body (all major muscle groups)',
+      'push': 'push (chest, shoulders, triceps)',
+      'pull': 'pull (back, biceps)'
     };
+
+    // Strong, separate constraint block for split-aware days. The general
+    // "focus" instruction allows 30% off-target, which Haiku/Sonnet abuse to
+    // sneak biceps onto push days. This block is 100% strict.
+    let strictSplitConstraint = '';
+    if (targetMuscle === 'push') {
+      strictSplitConstraint = `
+
+=== STRICT PUSH-DAY RULE (100% — NEVER VIOLATE) ===
+This is a PUSH workout. EVERY single main exercise must directly train chest, shoulders, OR triceps.
+ABSOLUTELY FORBIDDEN — do not include ANY of these on a push day:
+- Any back exercise: rows of any kind, pulldowns, pull-ups, chin-ups, face pulls, shrugs, deadlifts, pullovers
+- Any biceps exercise: bicep curls of any kind (barbell, dumbbell, hammer, preacher, spider, concentration, cable, incline)
+- Any leg exercise
+If you include even ONE row, curl, or pulldown, the workout is WRONG. There is no "but it works secondaries" exception. 100% push only.`;
+    } else if (targetMuscle === 'pull') {
+      strictSplitConstraint = `
+
+=== STRICT PULL-DAY RULE (100% — NEVER VIOLATE) ===
+This is a PULL workout. EVERY single main exercise must directly train back, rear delts, OR biceps.
+ABSOLUTELY FORBIDDEN — do not include ANY of these on a pull day:
+- Any chest exercise: bench press, incline press, decline press, dumbbell press, fly, dip, push-up, hammer strength chest press
+- Any triceps exercise: tricep extension, pushdown, kickback, skull crusher, close-grip press, overhead extension
+- Any front-delt-pressing exercise: overhead press, military press, shoulder press, Arnold press, push press
+- Any leg exercise
+If you include even ONE press, fly, or tricep movement, the workout is WRONG. 100% pull only.`;
+    }
+
+    const repRangeBlock = goal === 'strength'
+      ? `- Main compounds: 4-5 sets of 3-6 reps, 2-3 min rest\n- Accessories: 3-4 sets of 6-8 reps, 90-120s rest`
+      : goal === 'hypertrophy'
+        ? `- Main compounds: 4 sets of 6-10 reps, 90-120s rest\n- Isolation: 3 sets of 10-15 reps, 60-90s rest\n- Finishers: 2-3 sets of 12-20 reps, 45-60s rest`
+        : `- All exercises: 2-3 sets of 15-20 reps, 30-45s rest`;
+
+    const baseSystem = (modeBlock) => `You are an elite strength & conditioning coach with 20+ years of experience. Return ONLY valid JSON.
+
+${modeBlock}
+${strictSplitConstraint}
+${availableExercisesPrompt}
+${clientContextBlock}
+
+=== MANDATORY WORKOUT PHASES ===
+PHASE 1 — WARM-UP (5-8 min): 1 cardio (3-5 min) + 1-2 dynamic prep targeting that day's muscles. Mark "isWarmup": true, "phase": "warmup". For cardio reps use TIME format ("3 min", "5 min").
+PHASE 2 — MAIN WORKOUT: ${exerciseCountInstruction}. ${styleInstruction}. ${focusInstruction}
+PHASE 3 — COOL-DOWN (5-7 min): 2-3 static stretches matching the day's muscles. Mark "isStretch": true, "phase": "cooldown". Reps must be "30s hold".
+${conditioningInstruction}
+
+=== INTENSITY & TEMPO ===
+${tempoInstruction}
+${intensityInstruction}
+${unilateralInstruction}
+
+=== REP RANGES (goal: ${goal}) ===
+${repRangeBlock}
+
+=== EXERCISE SELECTION ===
+- Use EXACT names from the AVAILABLE EXERCISES DATABASE (custom exercises are PREFERRED if they fit).
+- NEVER invent or modify names.
+- Don't repeat the same exercise across days unless it's a key compound.
+- Add brief, actionable form cues in "notes" for each main exercise. Don't repeat the exercise name in notes.
+- CARDIO MACHINES (treadmill, stairmaster, bike, rower, elliptical, jump rope) are CARDIO ONLY. They belong in WARM-UP (with "phase": "warmup", reps in time format like "5 min") or in a CONDITIONING FINISHER. They are NEVER main strength exercises with sets/reps like "3×12-15".
+- A "Push" day means ONLY chest, shoulders, triceps. A "Pull" day means ONLY back and biceps. NEVER mix them — putting a row on a push day or a chest press on a pull day is a programming error.
+- For LEG days: include at least one squat pattern, one hip hinge (RDL/deadlift/hip thrust), one hamstring isolation, one calf exercise, and ideally one glute-specific movement.
+
+CONSTRAINTS:
+- Equipment available: ${equipment.join(', ')}. Do NOT include exercises requiring other equipment.
+${mergedInjuryCodes && mergedInjuryCodes.length ? `- Structured injury exclusions ALREADY APPLIED: ${mergedInjuryCodes.join(', ')}. Continue to avoid movements that would aggravate these.` : ''}
+${mergedMovementFlags && mergedMovementFlags.length ? `- Structured movement-screen exclusions ALREADY APPLIED: ${mergedMovementFlags.join(', ')}. Avoid contraindicated patterns.` : ''}
+${injuries ? `\n=== INJURY/LIMITATION RESTRICTIONS (MANDATORY — NEVER VIOLATE) ===\nClient has: ${injuries}\n- DO NOT include any exercise that could aggravate these.\n- This overrides ALL other selection guidance — substitute a safe alternative.\n` : ''}
+${preferences ? `\n=== CLIENT PREFERENCES (MANDATORY) ===\nClient says: ${preferences}\n- Strictly follow these.\n` : ''}
+For supersets: BOTH paired exercises get "isSuperset": true and matching "supersetGroup".
+${warmupStretchInstructions}`;
 
     let systemPrompt;
     let userMessage;
 
     if (isSingleWorkout) {
       const muscleLabel = muscleGroupMap[targetMuscle] || targetMuscle;
-      systemPrompt = `You are an elite strength & conditioning coach with 20+ years of experience training athletes and physique competitors. Return ONLY valid JSON, no markdown or extra text.
-
-Create a single ${muscleLabel} workout for an ${experience}-level trainee optimized for ${goal}.
-${availableExercisesPrompt}
-
-=== MANDATORY WORKOUT PHASES ===
-Every workout MUST follow this exact structure in order:
-
-PHASE 1 — WARM-UP (5-8 minutes):
-- 1 general cardio exercise (3-5 min on elliptical, bike, rowing machine, or jump rope) marked with "isWarmup": true and "phase": "warmup"
-- 1-2 dynamic movement prep exercises targeting ${muscleLabel} (arm circles, leg swings, hip circles, band pull-aparts, etc.) marked with "isWarmup": true and "phase": "warmup"
-- Warm-up sets: 1-2 sets. For cardio warm-ups, use TIME format for reps: "3 min", "5 min" (NOT plain numbers). For dynamic movement prep, use rep counts: "10-15". Rest: 0-30 seconds.
-- Purpose: Raise core temperature, increase blood flow to working muscles, prep joints
-
-PHASE 2 — MAIN WORKOUT (${sessionDuration - 15} minutes):
-- ${exerciseCountInstruction} (NOT counting warm-up or cool-down exercises)
-- ${styleInstruction}
-- Start with the heaviest compound lifts when energy is highest, then progress to isolation work
-- Every exercise MUST directly target ${muscleLabel}
-- Mark all main exercises with "phase": "main"
-
-PHASE 3 — COOL-DOWN (5-7 minutes):
-- 2-3 static stretches targeting the SAME muscles trained in this workout
-- Mark with "isStretch": true and "phase": "cooldown"
-- Hold each stretch 30 seconds — use TIME format for reps: "30s hold" (NOT plain "30"). Config: 1 set, 0 rest
-- CRITICAL: Stretches MUST match the workout — e.g., leg stretches for leg day, chest/shoulder stretches for push day
-
-=== EXERCISE SELECTION (CRITICAL) ===
-- You MUST use EXACT exercise names from the AVAILABLE EXERCISES DATABASE above
-- NEVER invent or modify exercise names — if it's not in the list, don't use it
-- For ${muscleLabel}, prioritize these movement patterns:
-${targetMuscle === 'legs' || targetMuscle === 'lower_body' ? `  * Squat pattern (back squat, front squat, goblet squat, leg press, hack squat)
-  * Hip hinge (Romanian deadlift, stiff-leg deadlift, hip thrust, glute bridge)
-  * Single-leg (walking lunges, Bulgarian split squat, step-ups)
-  * Quad isolation (leg extension)
-  * Hamstring isolation (lying leg curl, seated leg curl)
-  * Calf work (standing calf raise, seated calf raise)` :
-targetMuscle === 'chest' ? `  * Horizontal press (barbell bench press, dumbbell bench press)
-  * Incline press (incline barbell/dumbbell press — critical for upper chest)
-  * Fly/stretch movement (dumbbell flyes, cable crossover, pec deck)
-  * Dip or decline work for lower chest
-  * Cable or machine finisher for peak contraction` :
-targetMuscle === 'back' ? `  * Vertical pull (lat pulldown, pull-ups, chin-ups)
-  * Horizontal row (barbell row, cable row, dumbbell row)
-  * Unilateral row (single-arm dumbbell row, single-arm cable row)
-  * Isolation pull (straight-arm pulldown, pullover)
-  * Rear delt/upper back (face pulls, reverse flyes)` :
-targetMuscle === 'shoulders' ? `  * Overhead press (barbell/dumbbell overhead press, seated or standing)
-  * Lateral raise (dumbbell lateral raise, cable lateral raise)
-  * Rear delt (face pulls, reverse flyes, rear delt machine)
-  * Front raise or upright row (use sparingly — front delts get work from pressing)
-  * Shrug or trap work if time allows` :
-targetMuscle === 'arms' ? `  * Bicep compound (barbell curl, EZ-bar curl)
-  * Bicep isolation (dumbbell curl, hammer curl, concentration curl, cable curl)
-  * Tricep compound (close-grip bench press, dips)
-  * Tricep isolation (skull crushers, tricep pushdown, overhead tricep extension)
-  * Forearm work if time allows (wrist curls, reverse curls)` :
-targetMuscle === 'core' ? `  * Anti-extension (plank, ab rollout, dead bug)
-  * Flexion (crunch variations, cable crunch, leg/knee raise)
-  * Rotation/anti-rotation (Russian twist, Pallof press, woodchop)
-  * Lateral flexion (side plank, oblique crunch)
-  * Hip flexion (hanging leg raise, lying leg raise)` :
-`  * Compound multi-joint movements first
-  * Isolation single-joint movements second
-  * Ensure balanced coverage of all target muscles`}
-
-=== REP RANGES & INTENSITY ===
-- Goal is ${goal}:
-${goal === 'strength' ? `  * Main compounds: 4-5 sets of 3-6 reps, 2-3 min rest (RPE 8-9)
-  * Accessories: 3-4 sets of 6-8 reps, 90-120s rest (RPE 7-8)` :
-goal === 'hypertrophy' ? `  * Main compounds: 4 sets of 6-10 reps, 90-120s rest (RPE 7-9)
-  * Isolation work: 3 sets of 10-15 reps, 60-90s rest (RPE 8-9)
-  * Finishers: 2-3 sets of 12-20 reps, 45-60s rest (pump work)` :
-`  * All exercises: 2-3 sets of 15-20 reps, 30-45s rest
-  * Focus on controlled tempo and sustained time under tension`}
-
-=== COACHING NOTES ===
-- Add brief, actionable form cues in the "notes" field for each main exercise (e.g., "Drive through heels, chest up", "Squeeze at top for 1 second")
-- Do NOT repeat the exercise name in notes
-
-CONSTRAINTS:
-- ONLY use exercises that require this equipment: ${equipment.join(', ')}. Do NOT include exercises requiring equipment not in this list.
-${injuries ? `\n=== INJURY/LIMITATION RESTRICTIONS (MANDATORY — NEVER VIOLATE) ===\nThe client has the following injuries or limitations: ${injuries}\n- You MUST NOT include ANY exercise that could aggravate these conditions\n- This overrides ALL other exercise selection guidance above — if a recommended movement pattern conflicts with these restrictions, SKIP that movement pattern entirely and substitute a safe alternative\n- When in doubt about whether an exercise is safe, EXCLUDE it\n` : '- No injury restrictions'}
-${preferences ? `\n=== CLIENT PREFERENCES (MANDATORY — MUST FOLLOW) ===\nThe client has specified: ${preferences}\n- You MUST strictly follow these preferences when selecting exercises\n- If a preference says to avoid or exclude a specific exercise or movement type, do NOT include it under any circumstances\n- These preferences override the default movement pattern recommendations above\n` : ''}
-For supersets: mark BOTH exercises with "isSuperset": true and "supersetGroup": "A" (or "B", "C" for multiple pairs)
+      const modeBlock = `Create a single ${muscleLabel} workout for an ${experience}-level trainee optimized for ${goal}.`;
+      systemPrompt = baseSystem(modeBlock) + `
 
 Return this exact JSON structure:
 {
-  "programName": "${targetMuscle.charAt(0).toUpperCase() + targetMuscle.slice(1)} Workout",
-  "description": "Brief description of this workout",
+  "programName": "${(targetMuscle || 'workout').charAt(0).toUpperCase() + (targetMuscle || 'workout').slice(1)} Workout",
+  "description": "Brief description",
   "goal": "${goal}",
   "difficulty": "${experience}",
   "daysPerWeek": 1,
@@ -639,83 +885,21 @@ Return this exact JSON structure:
     "weekNumber": 1,
     "workouts": [{
       "dayNumber": 1,
-      "name": "${targetMuscle.charAt(0).toUpperCase() + targetMuscle.slice(1)} Day",
+      "name": "${(targetMuscle || 'workout').charAt(0).toUpperCase() + (targetMuscle || 'workout').slice(1)} Day",
       "targetMuscles": ${JSON.stringify(targetMuscle === 'upper_body' ? ['chest', 'back', 'shoulders', 'arms'] : targetMuscle === 'lower_body' ? ['quads', 'hamstrings', 'glutes', 'calves'] : targetMuscle === 'full_body' ? ['chest', 'back', 'legs', 'shoulders'] : [targetMuscle])},
       "exercises": [
         {"name": "Cardio Warm-up", "muscleGroup": "cardio", "sets": 1, "reps": "5 min", "restSeconds": 0, "notes": "", "isSuperset": false, "supersetGroup": null, "isWarmup": true, "isStretch": false, "phase": "warmup"},
-        {"name": "Dynamic Warm-up", "muscleGroup": "cardio", "sets": 1, "reps": "10-15", "restSeconds": 0, "notes": "", "isSuperset": false, "supersetGroup": null, "isWarmup": true, "isStretch": false, "phase": "warmup"},
-${trainingStyle === 'supersets' || trainingStyle === 'mixed' ?
-`        {"name": "Compound Exercise A1", "muscleGroup": "${targetMuscle}", "sets": 4, "reps": "8-10", "restSeconds": 0, "notes": "Form cue", "isSuperset": true, "supersetGroup": "A", "isWarmup": false, "isStretch": false, "phase": "main"},
-        {"name": "Compound Exercise A2", "muscleGroup": "${targetMuscle}", "sets": 4, "reps": "8-10", "restSeconds": 90, "notes": "Form cue — rest 90s after completing both", "isSuperset": true, "supersetGroup": "A", "isWarmup": false, "isStretch": false, "phase": "main"},
-        {"name": "Isolation Exercise", "muscleGroup": "${targetMuscle}", "sets": 3, "reps": "10-12", "restSeconds": 60, "notes": "Form cue", "isSuperset": false, "supersetGroup": null, "isWarmup": false, "isStretch": false, "phase": "main"},` :
-`        {"name": "Compound Exercise", "muscleGroup": "${targetMuscle}", "sets": 4, "reps": "8-10", "restSeconds": 90, "notes": "Form cue", "isSuperset": false, "supersetGroup": null, "isWarmup": false, "isStretch": false, "phase": "main"},
-        {"name": "Isolation Exercise", "muscleGroup": "${targetMuscle}", "sets": 3, "reps": "10-12", "restSeconds": 60, "notes": "Form cue", "isSuperset": false, "supersetGroup": null, "isWarmup": false, "isStretch": false, "phase": "main"},`}
+        {"name": "Main Exercise", "muscleGroup": "${targetMuscle}", "sets": 4, "reps": "8-10", "restSeconds": 90, "notes": "Form cue", "isSuperset": false, "supersetGroup": null, "isWarmup": false, "isStretch": false, "phase": "main"},
         {"name": "Static Stretch", "muscleGroup": "stretching", "sets": 1, "reps": "30s hold", "restSeconds": 0, "notes": "", "isSuperset": false, "supersetGroup": null, "isWarmup": false, "isStretch": true, "phase": "cooldown"}
       ]
     }]
   }],
   "progressionNotes": "How to progress week over week"
-}
-${warmupStretchInstructions}`;
-      userMessage = `Create a single ${muscleLabel} workout for ${clientName}. Goal: ${goal}. Experience: ${experience}. Include ${exerciseCount} MAIN exercises (plus warm-up and cool-down).${injuries ? ` IMPORTANT: Client has these injuries/limitations — "${injuries}" — do NOT include any exercises that could aggravate them.` : ''}${preferences ? ` IMPORTANT: Client preferences — "${preferences}" — you MUST follow these strictly.` : ''} Return only valid JSON.`;
+}`;
+      userMessage = `Create a single ${muscleLabel} workout for ${clientName}. Goal: ${goal}. Experience: ${experience}. Include ${exerciseCount} MAIN exercises plus warm-up and cool-down.${injuries ? ` Client injuries: "${injuries}".` : ''}${preferences ? ` Preferences: "${preferences}".` : ''} Return ONLY valid JSON, no markdown.`;
     } else {
-      systemPrompt = `You are an elite strength & conditioning coach with 20+ years of experience designing periodized programs for athletes and physique competitors. Return ONLY valid JSON, no markdown or extra text.
-
-Create a ${daysPerWeek}-day ${goal} program for an ${experience}-level trainee.
-${availableExercisesPrompt}
-
-=== PROGRAM DESIGN ===
-- ${splitInstruction}
-- ${styleInstruction}
-- ${exerciseCountInstruction} (MAIN exercises only — warm-up and cool-down are additional)
-- Target session duration: ~${sessionDuration} minutes per workout
-${focusInstruction ? `\n${focusInstruction}` : ''}
-
-=== MANDATORY WORKOUT PHASES (EVERY workout day must follow this) ===
-
-PHASE 1 — WARM-UP (5-8 minutes):
-- 1 general cardio exercise (3-5 min on elliptical, stationary bike, rowing machine, or jump rope)
-- 1-2 dynamic movement prep exercises targeting that day's muscles (e.g., arm circles for upper body, leg swings for lower body, hip circles for leg day)
-- Mark ALL warm-up exercises with "isWarmup": true and "phase": "warmup"
-- Warm-up config: 1-2 sets. For cardio warm-ups, use TIME format for reps: "3 min", "5 min" (NOT plain numbers). For dynamic movement prep, use rep counts: "10-15". Rest: 0-30 seconds
-
-PHASE 2 — MAIN WORKOUT:
-- Start with heavy compound lifts when energy is highest
-- Progress to accessory/isolation exercises
-- Finish with pump/metabolic finishers if time allows
-- ALL exercises must directly target that day's muscle groups
-- Mark with "phase": "main"
-
-PHASE 3 — COOL-DOWN (5-7 minutes):
-- 2-3 static stretches targeting the SAME muscles trained that day
-- Mark with "isStretch": true and "phase": "cooldown"
-- Config: 1 set, reps MUST be "30s hold" (TIME format, NOT plain "30"), 0 rest
-- CRITICAL: Stretches MUST match the workout — chest stretches for chest day, hamstring stretches for leg day, etc.
-
-=== EXERCISE SELECTION (CRITICAL) ===
-- You MUST use EXACT exercise names from the AVAILABLE EXERCISES DATABASE above
-- NEVER invent or modify exercise names — if it's not in the list, don't use it
-- Program like a real coach: balanced push/pull ratios, no redundant movements, proper exercise ordering
-- Each day should have variety — don't repeat the same exercises across days unless it's a key compound lift
-
-=== REP RANGES & INTENSITY ===
-${goal === 'strength' ? `- Main compounds: 4-5 sets of 3-6 reps, 2-3 min rest
-- Accessories: 3-4 sets of 6-8 reps, 90-120s rest` :
-goal === 'hypertrophy' ? `- Main compounds: 4 sets of 6-10 reps, 90-120s rest
-- Isolation: 3 sets of 10-15 reps, 60-90s rest
-- Finishers: 2-3 sets of 12-20 reps, 45-60s rest` :
-`- All exercises: 2-3 sets of 15-20 reps, 30-45s rest`}
-
-=== COACHING NOTES ===
-- Add brief, actionable form cues in the "notes" field for each main exercise
-- Examples: "Drive through heels, chest up", "Squeeze at top for 1 sec", "Control the eccentric — 2 sec down"
-
-CONSTRAINTS:
-- ONLY use exercises that require this equipment: ${equipment.join(', ')}. Do NOT include exercises requiring equipment not in this list.
-${injuries ? `\n=== INJURY/LIMITATION RESTRICTIONS (MANDATORY — NEVER VIOLATE) ===\nThe client has the following injuries or limitations: ${injuries}\n- You MUST NOT include ANY exercise that could aggravate these conditions\n- This overrides ALL other exercise selection guidance — if a recommended movement pattern conflicts with these restrictions, SKIP it and substitute a safe alternative\n- When in doubt about whether an exercise is safe, EXCLUDE it\n` : '- No injury restrictions'}
-${preferences ? `\n=== CLIENT PREFERENCES (MANDATORY — MUST FOLLOW) ===\nThe client has specified: ${preferences}\n- You MUST strictly follow these preferences when selecting exercises\n- If a preference says to avoid or exclude a specific exercise or movement type, do NOT include it under any circumstances\n- These preferences override the default movement pattern recommendations above\n` : ''}
-For supersets: mark BOTH exercises with "isSuperset": true and "supersetGroup": "A" (or "B", "C")
-${warmupStretchInstructions}
+      const modeBlock = `Create a ${daysPerWeek}-day ${goal} program for an ${experience}-level trainee. ${splitInstruction}`;
+      systemPrompt = baseSystem(modeBlock) + `
 
 Return this exact JSON structure:
 {
@@ -729,174 +913,169 @@ Return this exact JSON structure:
     "workouts": [{
       "dayNumber": 1,
       "name": "Day Name",
-      "targetMuscles": ["muscle1", "muscle2"],
+      "targetMuscles": ["muscle1"],
       "exercises": [
         {"name": "Cardio Warm-up", "muscleGroup": "cardio", "sets": 1, "reps": "5 min", "restSeconds": 0, "notes": "", "isSuperset": false, "supersetGroup": null, "isWarmup": true, "isStretch": false, "phase": "warmup"},
-        {"name": "Dynamic Prep", "muscleGroup": "cardio", "sets": 1, "reps": "10-15", "restSeconds": 0, "notes": "", "isSuperset": false, "supersetGroup": null, "isWarmup": true, "isStretch": false, "phase": "warmup"},
-${trainingStyle === 'supersets' || trainingStyle === 'mixed' ?
-`        {"name": "Compound Exercise A1", "muscleGroup": "primary_muscle", "sets": 4, "reps": "8-10", "restSeconds": 0, "notes": "Form cue", "isSuperset": true, "supersetGroup": "A", "isWarmup": false, "isStretch": false, "phase": "main"},
-        {"name": "Compound Exercise A2", "muscleGroup": "primary_muscle", "sets": 4, "reps": "8-10", "restSeconds": 90, "notes": "Form cue — rest 90s after completing both", "isSuperset": true, "supersetGroup": "A", "isWarmup": false, "isStretch": false, "phase": "main"},
-        {"name": "Isolation Exercise", "muscleGroup": "primary_muscle", "sets": 3, "reps": "10-12", "restSeconds": 60, "notes": "Form cue", "isSuperset": false, "supersetGroup": null, "isWarmup": false, "isStretch": false, "phase": "main"},` :
-`        {"name": "Compound Exercise", "muscleGroup": "primary_muscle", "sets": 4, "reps": "8-10", "restSeconds": 90, "notes": "Form cue", "isSuperset": false, "supersetGroup": null, "isWarmup": false, "isStretch": false, "phase": "main"},
-        {"name": "Isolation Exercise", "muscleGroup": "primary_muscle", "sets": 3, "reps": "10-12", "restSeconds": 60, "notes": "Form cue", "isSuperset": false, "supersetGroup": null, "isWarmup": false, "isStretch": false, "phase": "main"},`}
+        {"name": "Main Exercise", "muscleGroup": "primary", "sets": 4, "reps": "8-10", "restSeconds": 90, "notes": "Form cue", "isSuperset": false, "supersetGroup": null, "isWarmup": false, "isStretch": false, "phase": "main"},
         {"name": "Static Stretch", "muscleGroup": "stretching", "sets": 1, "reps": "30s hold", "restSeconds": 0, "notes": "", "isSuperset": false, "supersetGroup": null, "isWarmup": false, "isStretch": true, "phase": "cooldown"}
       ]
     }]
   }],
-  "progressionNotes": "How to progress week over week (include specific weight/rep progression guidance)"
+  "progressionNotes": "How to progress week over week"
 }`;
-      userMessage = `Create a complete ${daysPerWeek}-day workout program for ${clientName}. Goal: ${goal}. Experience: ${experience}. Each day should include warm-up, ${exerciseCount} MAIN exercises, and cool-down stretches.${injuries ? ` IMPORTANT: Client has these injuries/limitations — "${injuries}" — do NOT include any exercises that could aggravate them.` : ''}${preferences ? ` IMPORTANT: Client preferences — "${preferences}" — you MUST follow these strictly.` : ''} Return only valid JSON.`;
+      userMessage = `Create a complete ${daysPerWeek}-day workout program for ${clientName}. Goal: ${goal}. Experience: ${experience}.${injuries ? ` Injuries: "${injuries}".` : ''}${preferences ? ` Preferences: "${preferences}".` : ''} Return ONLY valid JSON, no markdown.`;
     }
 
-    // Use Claude Sonnet 4 for superior exercise selection and workout programming.
-    // Downgrade to 'claude-3-5-sonnet-20241022' if cost is a concern.
+    // Haiku 4.5 — the only Anthropic model fast enough to fit per-day generation
+    // inside Netlify's 26s function timeout when paired with the strict push/pull
+    // constraint block. Sonnet 4.5 produces nicer programs but timed out for
+    // the user repeatedly. Split-violation detector + auto-fix below catches any
+    // mistakes Haiku makes. For coach-quality output, use the refine chat (which
+    // does run on Sonnet) or a future background-function path.
     const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 8192,
-      messages: [{
-        role: 'user',
-        content: userMessage
-      }],
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 4096,
+      messages: [{ role: 'user', content: userMessage }],
       system: systemPrompt
     });
 
     const responseText = message.content[0]?.text || '';
 
-    // Extract JSON from response
     let programData;
     try {
-      // Try direct parse first
       programData = JSON.parse(responseText.trim());
     } catch (e) {
-      // Try to extract JSON from markdown code blocks
       const jsonMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-      if (jsonMatch) {
-        programData = JSON.parse(jsonMatch[1].trim());
-      } else {
-        // Try to find JSON object in response
+      if (jsonMatch) programData = JSON.parse(jsonMatch[1].trim());
+      else {
         const objectMatch = responseText.match(/\{[\s\S]*\}/);
-        if (objectMatch) {
-          programData = JSON.parse(objectMatch[0]);
-        } else {
-          throw new Error('Could not extract JSON from response');
-        }
+        if (objectMatch) programData = JSON.parse(objectMatch[0]);
+        else throw new Error('Could not extract JSON from response');
       }
     }
 
-    // Validate structure
     if (!programData.weeks || !Array.isArray(programData.weeks)) {
-      console.error('Invalid AI response structure:', JSON.stringify(programData).slice(0, 500));
       throw new Error('AI returned an unexpected format. Please try again.');
     }
 
-    // Validate each workout has exercises with required fields
+    // Sanitize numeric fields
     for (const week of programData.weeks) {
-      for (const workout of week.workouts || []) {
-        if (!workout.exercises || !Array.isArray(workout.exercises)) {
-          workout.exercises = [];
-          continue;
-        }
+      for (const workout of (week.workouts || [])) {
+        if (!Array.isArray(workout.exercises)) workout.exercises = [];
         workout.exercises = workout.exercises.filter(ex => {
           if (!ex.name || typeof ex.name !== 'string') return false;
-          // Ensure numeric fields have valid defaults
           if (typeof ex.sets !== 'number' || ex.sets < 1) ex.sets = 3;
           if (!ex.reps) ex.reps = '8-12';
           if (typeof ex.restSeconds !== 'number') ex.restSeconds = 60;
+          // Strip "(custom)" / "[equipment]" labels the AI may have copied from our prompt
+          ex.name = ex.name.replace(/\s*\(custom\)\s*$/i, '').replace(/\s*\[[^\]]+\]\s*$/, '').trim();
           return true;
         });
       }
     }
 
-    // Match AI-generated exercises to database exercises (using allExercises fetched earlier)
+    // Match AI-generated exercises to DB (and apply equipment validation)
     let matchStats = { total: 0, matched: 0, unmatched: 0, unmatchedNames: [] };
 
-    // Use the exercises WITH videos list (already built earlier, or rebuild if needed)
-    if (exercisesWithVideos.length === 0) {
-      exercisesWithVideos = allExercises.filter(e => e.video_url || e.animation_url);
+    for (const week of programData.weeks) {
+      for (const workout of (week.workouts || [])) {
+        workout.exercises = (workout.exercises || []).map(aiEx => {
+          matchStats.total++;
+          const detectedWarmup = isWarmupExercise(aiEx.name);
+          const detectedStretch = isStretchExercise(aiEx.name);
+          const isWarmupOrStretch = aiEx.isWarmup || aiEx.isStretch || detectedWarmup || detectedStretch;
+          const exercisesToMatch = isWarmupOrStretch ? exercisesWithVideos : exercisesAfterInjuries;
+          const match = isWarmupOrStretch
+            ? findBestExerciseMatch(aiEx.name, aiEx.muscleGroup, exercisesToMatch)
+            : findBestExerciseMatchWithEquipment(aiEx.name, aiEx.muscleGroup, exercisesToMatch, equipment);
+
+          const baseFields = {
+            sets: aiEx.isWarmup ? (aiEx.sets || 1) : aiEx.isStretch ? (aiEx.sets || 1) : (aiEx.sets || 3),
+            reps: aiEx.isWarmup ? (aiEx.reps || '10-15') : aiEx.isStretch ? (aiEx.reps || '30s hold') : (aiEx.reps || '8-12'),
+            restSeconds: aiEx.isWarmup ? (aiEx.restSeconds != null ? aiEx.restSeconds : 30) : aiEx.isStretch ? (aiEx.restSeconds != null ? aiEx.restSeconds : 0) : (aiEx.restSeconds || 90),
+            notes: aiEx.notes || '',
+            isWarmup: aiEx.isWarmup || false,
+            isStretch: aiEx.isStretch || false,
+            isSuperset: aiEx.isSuperset || false,
+            supersetGroup: aiEx.supersetGroup || null,
+            phase: aiEx.phase || (aiEx.isWarmup ? 'warmup' : aiEx.isStretch ? 'cooldown' : 'main')
+          };
+
+          if (match) {
+            matchStats.matched++;
+            return {
+              id: match.id,
+              name: match.name,
+              video_url: match.video_url,
+              animation_url: match.animation_url,
+              thumbnail_url: match.thumbnail_url || null,
+              muscle_group: match.muscle_group,
+              equipment: match.equipment,
+              instructions: match.instructions,
+              isCustom: !!match.coach_id,
+              ...baseFields,
+              matched: true
+            };
+          } else {
+            matchStats.unmatched++;
+            if (!isWarmupOrStretch) matchStats.unmatchedNames.push(aiEx.name);
+            return {
+              name: aiEx.name,
+              muscle_group: aiEx.muscleGroup,
+              equipment: null,
+              ...baseFields,
+              matched: false
+            };
+          }
+        });
+      }
     }
 
-    if (allExercises.length > 0) {
+    // Multi-week progression — generate weeks 2..N
+    if (!isSingleWorkout && includeProgression && duration > 1 && programData.weeks.length === 1) {
+      const week1Workouts = programData.weeks[0].workouts || [];
+      const additionalWeeks = generateMultiWeekProgression(week1Workouts, duration, goal);
+      programData.weeks = programData.weeks.concat(additionalWeeks);
+    }
 
-      // Match exercises in each workout
+    // Split-violation detector + auto-fix. For push/pull single-mode generations,
+    // any exercise that doesn't belong on this day's split is REMOVED from the
+    // returned program. We still report removals in splitViolations so the
+    // frontend can show a banner and the coach can refine if too many got cut.
+    const splitViolations = [];
+    if (isSingleWorkout && (targetMuscle === 'push' || targetMuscle === 'pull')) {
+      const violationCheck = (ex) => {
+        if (ex.isWarmup || ex.isStretch || ex.phase === 'warmup' || ex.phase === 'cooldown') return null;
+        const name = (ex.name || '').toLowerCase();
+        const mg = (ex.muscle_group || ex.muscleGroup || '').toLowerCase();
+        if (targetMuscle === 'push') {
+          if (/\b(curl|row|pulldown|pull-down|pull down|pullup|pull-up|pull up|chinup|chin-up|chin up|face pull|shrug|deadlift|pullover|pull over)\b/.test(name)) return 'pull movement on push day';
+          if (/\b(back|biceps?|lats?|rhomboid|trap)\b/.test(mg) && !/(rear delt|trap.*shoulder)/i.test(mg)) return `${mg} on push day`;
+        } else if (targetMuscle === 'pull') {
+          if (/\b(bench press|chest press|incline press|decline press|fly|flye|dip|push-up|pushup|push up|tricep|skull crusher|pushdown|push-down|push down|kickback|overhead press|military press|shoulder press|arnold press|push press)\b/.test(name)) return 'push movement on pull day';
+          if (/\b(chest|pec|tricep|triceps)\b/.test(mg)) return `${mg} on pull day`;
+        }
+        return null;
+      };
       for (const week of programData.weeks) {
-        for (const workout of week.workouts || []) {
-          // Use map then filter to handle warmup/stretch removal
-          workout.exercises = (workout.exercises || [])
-            .map(aiExercise => {
-              matchStats.total++;
-
-              // Detect warmup/stretch by BOTH AI flag AND exercise name (more reliable)
-              const detectedWarmup = isWarmupExercise(aiExercise.name);
-              const detectedStretch = isStretchExercise(aiExercise.name);
-              const isWarmupOrStretch = aiExercise.isWarmup || aiExercise.isStretch || detectedWarmup || detectedStretch;
-
-              if (detectedWarmup || detectedStretch) {
-              }
-
-              // For warmups/stretches, ONLY match against exercises with videos
-              // For main exercises, match against all exercises with equipment validation
-              const exercisesToMatch = isWarmupOrStretch ? exercisesWithVideos : allExercises;
-              const match = isWarmupOrStretch
-                ? findBestExerciseMatch(aiExercise.name, aiExercise.muscleGroup, exercisesToMatch)
-                : findBestExerciseMatchWithEquipment(aiExercise.name, aiExercise.muscleGroup, exercisesToMatch, equipment);
-
-              if (match) {
-                matchStats.matched++;
-                return {
-                  id: match.id,
-                  name: match.name,
-                  video_url: match.video_url,
-                  animation_url: match.animation_url,
-                  thumbnail_url: match.thumbnail_url || null,
-                  muscle_group: match.muscle_group,
-                  equipment: match.equipment,
-                  instructions: match.instructions,
-                  sets: aiExercise.isWarmup ? (aiExercise.sets || 1) : aiExercise.isStretch ? (aiExercise.sets || 1) : (aiExercise.sets || 3),
-                  reps: aiExercise.isWarmup ? (aiExercise.reps || '10-15') : aiExercise.isStretch ? (aiExercise.reps || '30s hold') : (aiExercise.reps || '8-12'),
-                  restSeconds: aiExercise.isWarmup ? (aiExercise.restSeconds != null ? aiExercise.restSeconds : 30) : aiExercise.isStretch ? (aiExercise.restSeconds != null ? aiExercise.restSeconds : 0) : (aiExercise.restSeconds || 90),
-                  notes: aiExercise.notes || '',
-                  isWarmup: aiExercise.isWarmup || false,
-                  isStretch: aiExercise.isStretch || false,
-                  isSuperset: aiExercise.isSuperset || false,
-                  supersetGroup: aiExercise.supersetGroup || null,
-                  phase: aiExercise.phase || (aiExercise.isWarmup ? 'warmup' : aiExercise.isStretch ? 'cooldown' : 'main'),
-                  matched: true
-                };
-              } else {
-                // No match found — keep the exercise regardless (warmup/stretch or main)
-                matchStats.unmatched++;
-                if (!isWarmupOrStretch) {
-                  matchStats.unmatchedNames.push(aiExercise.name);
-                }
-                return {
-                  name: aiExercise.name,
-                  muscle_group: aiExercise.muscleGroup,
-                  equipment: null,
-                  sets: aiExercise.isWarmup ? (aiExercise.sets || 1) : aiExercise.isStretch ? (aiExercise.sets || 1) : (aiExercise.sets || 3),
-                  reps: aiExercise.isWarmup ? (aiExercise.reps || '10-15') : aiExercise.isStretch ? (aiExercise.reps || '30s hold') : (aiExercise.reps || '8-12'),
-                  restSeconds: aiExercise.isWarmup ? (aiExercise.restSeconds != null ? aiExercise.restSeconds : 30) : aiExercise.isStretch ? (aiExercise.restSeconds != null ? aiExercise.restSeconds : 0) : (aiExercise.restSeconds || 90),
-                  notes: aiExercise.notes || '',
-                  isWarmup: aiExercise.isWarmup || false,
-                  isStretch: aiExercise.isStretch || false,
-                  isSuperset: aiExercise.isSuperset || false,
-                  supersetGroup: aiExercise.supersetGroup || null,
-                  phase: aiExercise.phase || (aiExercise.isWarmup ? 'warmup' : aiExercise.isStretch ? 'cooldown' : 'main'),
-                  matched: false
-                };
-              }
-            })
-            .filter(ex => ex !== null); // Remove skipped warmups/stretches
+        for (const workout of (week.workouts || [])) {
+          const kept = [];
+          for (const ex of (workout.exercises || [])) {
+            const v = violationCheck(ex);
+            if (v) {
+              splitViolations.push({ day: workout.name || `Day ${workout.dayNumber}`, exercise: ex.name, reason: v, autoRemoved: true });
+              // Auto-fix: drop the violating exercise from the workout
+              continue;
+            }
+            kept.push(ex);
+          }
+          workout.exercises = kept;
         }
       }
     }
 
-    // Log match statistics
-    if (matchStats.unmatchedNames.length > 0) {
-    }
-
-    // Warmups and stretches are now kept in the output (proper workout structure)
-    // Only warmups/stretches that matched a database exercise with video are included
-    // (unmatched warmups/stretches were already filtered out during the matching step above)
+    // Volume sanity check (after auto-fix so it reflects the actual program)
+    const volumeSummary = computeVolumeSummary(programData);
 
     return {
       statusCode: 200,
@@ -910,8 +1089,24 @@ ${trainingStyle === 'supersets' || trainingStyle === 'mixed' ?
           unmatched: matchStats.unmatched,
           unmatchedNames: matchStats.unmatchedNames,
           databaseExercises: allExercises.length,
-          exercisesWithVideos: Object.values(exercisesByMuscleGroup).flat().length
-        }
+          customExerciseCount: allExercises.filter(e => e.coach_id).length,
+          exercisesWithVideos: exercisesWithVideos.length
+        },
+        volumeSummary,
+        splitViolations,
+        clientContextUsed: !!clientContext,
+        clientContextSummary: clientContext ? {
+          clientName: clientContext.profile?.client_name,
+          sessionCount: clientContext.recentSessionCount,
+          avgRPE: clientContext.avgRPE ? clientContext.avgRPE.toFixed(1) : null,
+          topExercises: (clientContext.exerciseHistoryRaw || []).slice(0, 5).map(([name, data]) => ({ name, topWeight: data.topWeight, sessions: data.sessions })),
+          lastProgramName: clientContext.lastProgram?.name || null,
+          hasIntake: !!clientContext.intake,
+          hasCoachNotes: !!clientContext.profile?.notes
+        } : null,
+        clientAnalysis,
+        cachedExerciseDb: true,
+        generatedWeeks: programData.weeks.length
       })
     };
 
@@ -919,7 +1114,6 @@ ${trainingStyle === 'supersets' || trainingStyle === 'mixed' ?
     console.error('Workout generation error:', error.message);
     console.error('Stack:', error.stack);
 
-    // Provide user-friendly error messages based on error type
     let userMessage = 'Failed to generate workout. Please try again.';
     let errorCode = 'GENERATION_ERROR';
 
@@ -943,11 +1137,7 @@ ${trainingStyle === 'supersets' || trainingStyle === 'mixed' ?
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({
-        success: false,
-        error: userMessage,
-        errorCode
-      })
+      body: JSON.stringify({ success: false, error: userMessage, errorCode })
     };
   }
 };

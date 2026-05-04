@@ -2209,6 +2209,7 @@
             <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
                 <button class="btn btn-primary" onclick="openAddClientModal()">+ Add Your First Client</button>
                 <button class="btn" id="loadSampleDataBtn" onclick="loadSampleData()" style="background: linear-gradient(135deg, #8b5cf6, #6366f1); color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px;">&#x1F4CB; Load Sample Data</button>
+                <button class="btn" id="generateDemoBtnEmpty" onclick="generateDemoClient()" style="background: linear-gradient(135deg, #ec4899, #f97316); color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px;">&#x1F3AC; Generate Demo Client</button>
             </div>
         </div>
 
@@ -2241,6 +2242,12 @@
                     </svg>
                     <span id="archiveToggleText">View Archived</span>
                     <span class="archive-count" id="archivedCount">0</span>
+                </button>
+
+                <!-- Demo Client Button (creates / refreshes a fake demo client for showcasing) -->
+                <button class="archive-toggle" id="generateDemoBtn" onclick="generateDemoClient()" title="Create or refresh a demo client with AI-generated photos and activity for showcasing the platform" style="background: linear-gradient(135deg, #ec4899, #f97316); color: white; border-color: transparent;">
+                    <span style="font-size: 14px;">&#x1F3AC;</span>
+                    <span id="generateDemoBtnText">Demo Client</span>
                 </button>
             </div>
             <span class="client-count" id="clientCount">0 clients</span>
@@ -2426,6 +2433,48 @@
                 <div class="form-group">
                     <label for="preferredFoods">Preferred Foods</label>
                     <input type="text" id="preferredFoods" placeholder="e.g., chicken, rice, broccoli">
+                </div>
+
+                <!-- Health & Limitations (for workout AI) -->
+                <h3 style="margin: 25px 0 15px 0; color: #0d9488; display: flex; align-items: center; gap: 6px;"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7Z"/></svg>Health &amp; Limitations <span style="font-weight: normal; font-size: 13px; color: #666;">(workout AI uses these every time)</span></h3>
+
+                <div class="form-group">
+                    <label for="healthConcerns">Free-text injuries / notes</label>
+                    <input type="text" id="healthConcerns" placeholder="e.g., Mild rotator cuff, avoid heavy overhead">
+                </div>
+
+                <div class="form-group">
+                    <label>Structured Injuries</label>
+                    <div class="checkbox-group">
+                        <label class="checkbox-label"><input type="checkbox" name="hfInjuryCode" value="lower_back"> Lower back</label>
+                        <label class="checkbox-label"><input type="checkbox" name="hfInjuryCode" value="knee"> Knee</label>
+                        <label class="checkbox-label"><input type="checkbox" name="hfInjuryCode" value="shoulder"> Shoulder</label>
+                        <label class="checkbox-label"><input type="checkbox" name="hfInjuryCode" value="wrist"> Wrist</label>
+                        <label class="checkbox-label"><input type="checkbox" name="hfInjuryCode" value="hip"> Hip</label>
+                        <label class="checkbox-label"><input type="checkbox" name="hfInjuryCode" value="neck"> Neck</label>
+                        <label class="checkbox-label"><input type="checkbox" name="hfInjuryCode" value="elbow"> Elbow</label>
+                        <label class="checkbox-label"><input type="checkbox" name="hfInjuryCode" value="ankle"> Ankle</label>
+                        <label class="checkbox-label"><input type="checkbox" name="hfInjuryCode" value="pregnancy"> Pregnancy</label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Movement Screen</label>
+                    <div class="checkbox-group">
+                        <label class="checkbox-label"><input type="checkbox" name="hfMovementFlag" value="overhead_mobility"> Limited overhead mobility</label>
+                        <label class="checkbox-label"><input type="checkbox" name="hfMovementFlag" value="ankle_mobility"> Limited ankle mobility</label>
+                        <label class="checkbox-label"><input type="checkbox" name="hfMovementFlag" value="hip_mobility"> Limited hip mobility</label>
+                        <label class="checkbox-label"><input type="checkbox" name="hfMovementFlag" value="wrist_pain"> Wrist pain on pressing</label>
+                        <label class="checkbox-label"><input type="checkbox" name="hfMovementFlag" value="shoulder_impingement"> Shoulder impingement</label>
+                        <label class="checkbox-label"><input type="checkbox" name="hfMovementFlag" value="knee_tracks_inward"> Knee tracks inward</label>
+                        <label class="checkbox-label"><input type="checkbox" name="hfMovementFlag" value="lower_back_rounding"> Back rounds at depth</label>
+                        <label class="checkbox-label"><input type="checkbox" name="hfMovementFlag" value="asymmetric_grip"> Asymmetric grip strength</label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="aiCoachNotes">Permanent AI coach notes</label>
+                    <textarea id="aiCoachNotes" rows="3" placeholder="e.g., Hates lunges. Form breaks past 10 reps. Prefers machines over free weights."></textarea>
                 </div>
 
                 <!-- Cooking Equipment -->
@@ -3483,6 +3532,17 @@
             document.getElementById('dislikedFoods').value = client.disliked_foods || '';
             document.getElementById('preferredFoods').value = client.preferred_foods || '';
 
+            // Health & Limitations
+            const hcEl = document.getElementById('healthConcerns');
+            if (hcEl) hcEl.value = client.health_concerns || '';
+            const aiNotesEl = document.getElementById('aiCoachNotes');
+            const hf = client.health_flags || {};
+            if (aiNotesEl) aiNotesEl.value = hf.aiNotes || '';
+            const injSet = new Set(Array.isArray(hf.injuryCodes) ? hf.injuryCodes : []);
+            document.querySelectorAll('input[name="hfInjuryCode"]').forEach(cb => { cb.checked = injSet.has(cb.value); });
+            const movSet = new Set(Array.isArray(hf.movementFlags) ? hf.movementFlags : []);
+            document.querySelectorAll('input[name="hfMovementFlag"]').forEach(cb => { cb.checked = movSet.has(cb.value); });
+
             // Cooking equipment
             const equipment = Array.isArray(client.cooking_equipment) ? client.cooking_equipment : [];
             document.querySelectorAll('input[name="equipment"]').forEach(checkbox => {
@@ -3598,6 +3658,14 @@
                     allergies: document.getElementById('allergies').value.trim() || null,
                     dislikedFoods: document.getElementById('dislikedFoods').value.trim() || null,
                     preferredFoods: document.getElementById('preferredFoods').value.trim() || null,
+
+                    // Health & Limitations (used by workout AI)
+                    healthConcerns: (document.getElementById('healthConcerns')?.value || '').trim() || null,
+                    healthFlags: {
+                        injuryCodes: Array.from(document.querySelectorAll('input[name="hfInjuryCode"]:checked')).map(cb => cb.value),
+                        movementFlags: Array.from(document.querySelectorAll('input[name="hfMovementFlag"]:checked')).map(cb => cb.value),
+                        aiNotes: (document.getElementById('aiCoachNotes')?.value || '').trim() || null
+                    },
 
                     // Equipment
                     cookingEquipment: Array.from(document.querySelectorAll('input[name="equipment"]:checked'))
@@ -3946,6 +4014,66 @@
             }
         }
 
+        // Generate or refresh the coach's personal demo client (AI-generated
+        // photos + ~6 weeks of gym check-ins and weigh-ins). Used for showcasing
+        // the platform during sales demos. Calling it again wipes and re-seeds.
+        async function generateDemoClient() {
+            if (!currentCoachId) {
+                alert('Please wait — coach session is still loading.');
+                return;
+            }
+
+            const confirmMsg = 'Generate / refresh demo client?\n\n' +
+                'This creates a fake client (Jessica Martinez) with AI-generated ' +
+                'gym selfies, weigh-in photos, and ~6 weeks of activity. If a demo ' +
+                'client already exists, it will be wiped and re-created.\n\n' +
+                'Image generation takes about 15–25 seconds. Continue?';
+
+            if (!confirm(confirmMsg)) return;
+
+            const buttons = [
+                document.getElementById('generateDemoBtn'),
+                document.getElementById('generateDemoBtnEmpty')
+            ].filter(Boolean);
+            const originals = buttons.map(b => b.innerHTML);
+            buttons.forEach(b => {
+                b.disabled = true;
+                b.style.opacity = '0.7';
+                b.innerHTML = '&#x23F3; Generating demo data…';
+            });
+
+            try {
+                const result = await apiPost('/.netlify/functions/seed-demo-client', {
+                    coachId: currentCoachId,
+                    action: 'seed'
+                });
+
+                if (result.success) {
+                    buttons.forEach(b => {
+                        b.innerHTML = '&#x2705; Demo client ready!';
+                    });
+                    setTimeout(() => loadClients(), 1200);
+                    setTimeout(() => {
+                        buttons.forEach((b, i) => {
+                            b.innerHTML = originals[i];
+                            b.disabled = false;
+                            b.style.opacity = '1';
+                        });
+                    }, 4000);
+                } else {
+                    throw new Error(result.error || 'Unknown error');
+                }
+            } catch (error) {
+                console.error('Error generating demo client:', error);
+                alert('Failed to generate demo client: ' + error.message);
+                buttons.forEach((b, i) => {
+                    b.innerHTML = originals[i];
+                    b.disabled = false;
+                    b.style.opacity = '1';
+                });
+            }
+        }
+
         // Event listeners
         addClientBtn.addEventListener('click', openAddClientModal);
 
@@ -4094,5 +4222,6 @@
     </nav>
     <script src="/js/trainer-support-agent.js"></script>
     <script src="/js/voice-commander.js"></script>
+    <script src="/js/twemoji-init.js"></script>
 </body>
 </html>

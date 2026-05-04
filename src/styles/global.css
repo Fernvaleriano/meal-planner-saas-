@@ -797,6 +797,47 @@ a.nav-left {
     color: var(--gray-600);
 }
 
+/* Inline badge that shows a coach's reaction on the item it was left on
+   (measurement row, meal entry, PR card, photo, etc.). Sits next to the
+   item's existing content rather than replacing it. */
+.coach-reaction-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--teal-500, #14b8a6);
+    color: #fff;
+    border-radius: 999px;
+    font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
+    line-height: 1;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+    flex-shrink: 0;
+    user-select: none;
+}
+
+.coach-reaction-badge--sm {
+    width: 22px;
+    height: 22px;
+    font-size: 13px;
+    padding: 0;
+}
+
+.coach-reaction-badge--md {
+    width: 28px;
+    height: 28px;
+    font-size: 16px;
+    padding: 0;
+}
+
+.coach-reaction-badge--overlay {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    width: 28px;
+    height: 28px;
+    font-size: 16px;
+    z-index: 2;
+}
+
 .comment-display {
     background: var(--gray-100);
     border-radius: 12px;
@@ -2739,8 +2780,8 @@ textarea,
     box-shadow: 0 8px 24px -8px rgba(234, 179, 8, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.15);
 }
 .meal-type-btn.active:nth-child(3) {
-    background: linear-gradient(135deg, rgba(167, 139, 250, 0.2) 0%, rgba(139, 92, 246, 0.35) 100%);
-    box-shadow: 0 8px 24px -8px rgba(139, 92, 246, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    background: linear-gradient(135deg, rgba(20, 184, 166, 0.2) 0%, rgba(13, 148, 136, 0.35) 100%);
+    box-shadow: 0 8px 24px -8px rgba(13, 148, 136, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.15);
 }
 .meal-type-btn.active:nth-child(4) {
     background: linear-gradient(135deg, rgba(248, 113, 113, 0.2) 0%, rgba(239, 68, 68, 0.35) 100%);
@@ -4337,13 +4378,13 @@ textarea,
 
 /* Highlighted entry (from notification navigation) */
 .meal-entry-swipeable.highlighted .meal-entry-content {
-    background: rgba(13, 148, 136, 0.15);
+    background: linear-gradient(rgba(13, 148, 136, 0.15), rgba(13, 148, 136, 0.15)), var(--gray-50);
     border: 2px solid var(--brand-primary);
     animation: highlight-pulse 1.5s ease-in-out infinite;
 }
 
 [data-theme="dark"] .meal-entry-swipeable.highlighted .meal-entry-content {
-    background: rgba(13, 148, 136, 0.25);
+    background: linear-gradient(rgba(13, 148, 136, 0.25), rgba(13, 148, 136, 0.25)), #334155;
 }
 
 @keyframes highlight-pulse {
@@ -8481,15 +8522,27 @@ textarea,
 .recipe-source-link {
     display: flex;
     align-items: center;
-    gap: 6px;
-    color: var(--brand-primary);
+    justify-content: center;
+    gap: 8px;
+    color: white;
+    background: var(--brand-primary);
     text-decoration: none;
-    font-size: 14px;
-    margin-bottom: 16px;
+    font-size: 15px;
+    font-weight: 600;
+    padding: 12px 16px;
+    border-radius: 12px;
+    margin-top: -8px;
+    margin-bottom: 20px;
+    transition: opacity 0.15s ease, transform 0.15s ease;
 }
 
 .recipe-source-link:hover {
-    text-decoration: underline;
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
+.recipe-source-link:active {
+    transform: translateY(0);
 }
 
 /* Recipes Main Tabs (My Recipes / Discover) */
@@ -9969,6 +10022,111 @@ textarea,
 [data-theme="dark"] .metric-log-btn {
     border-top-color: rgba(255, 255, 255, 0.06);
     color: #60a5fa;
+}
+
+/* ========== Metric History (per-card past entries with delete) ========== */
+.metric-history {
+    margin-top: 12px;
+    border-top: 1px solid var(--gray-100);
+    padding-top: 8px;
+}
+
+[data-theme="dark"] .metric-history {
+    border-top-color: rgba(255, 255, 255, 0.06);
+}
+
+.metric-history-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 8px 0;
+    background: none;
+    border: none;
+    color: var(--text-secondary, #64748b);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+[data-theme="dark"] .metric-history-toggle {
+    color: #94a3b8;
+}
+
+.metric-history-list {
+    list-style: none;
+    margin: 4px 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.metric-history-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: var(--gray-50, #f8fafc);
+}
+
+[data-theme="dark"] .metric-history-item {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.metric-history-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.metric-history-date {
+    font-size: 12px;
+    color: var(--text-secondary, #64748b);
+}
+
+[data-theme="dark"] .metric-history-date {
+    color: #94a3b8;
+}
+
+.metric-history-value {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary, #0f172a);
+}
+
+[data-theme="dark"] .metric-history-value {
+    color: #f1f5f9;
+}
+
+.metric-history-delete {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+
+.metric-history-delete:hover {
+    background: rgba(220, 38, 38, 0.08);
+    color: #dc2626;
+}
+
+.metric-history-more {
+    font-size: 12px;
+    color: var(--text-secondary, #94a3b8);
+    text-align: center;
+    padding: 6px 0 2px;
 }
 
 /* ========== Quick Log Modal ========== */
@@ -16634,6 +16792,168 @@ textarea,
     font-size: 13px;
 }
 
+/* ===== Weight Proof (Weigh-In) overrides ===== */
+.weight-proof-banner {
+    background: linear-gradient(135deg, rgba(20, 184, 166, 0.1) 0%, rgba(13, 148, 136, 0.08) 50%, rgba(2, 132, 199, 0.06) 100%);
+    border: 1.5px solid rgba(20, 184, 166, 0.25);
+    box-shadow: 0 2px 8px rgba(20, 184, 166, 0.08);
+}
+
+[data-theme="dark"] .weight-proof-banner {
+    background: linear-gradient(135deg, rgba(20, 184, 166, 0.2) 0%, rgba(13, 148, 136, 0.18) 50%, rgba(2, 132, 199, 0.14) 100%);
+    border: 1.5px solid rgba(20, 184, 166, 0.35);
+    box-shadow: 0 0 20px rgba(20, 184, 166, 0.15), 0 0 40px rgba(2, 132, 199, 0.08);
+}
+
+.weight-proof-banner::before {
+    background: radial-gradient(circle, rgba(20, 184, 166, 0.3), transparent 70%);
+}
+
+.weight-proof-banner-icon {
+    background: linear-gradient(135deg, #14b8a6, #0284c7);
+    box-shadow: 0 4px 12px rgba(20, 184, 166, 0.4);
+}
+
+.weight-proof-banner .gym-proof-banner-title {
+    color: #0f766e;
+}
+
+.weight-proof-banner .gym-proof-banner-sub {
+    color: #0d9488;
+}
+
+[data-theme="dark"] .weight-proof-banner .gym-proof-banner-title {
+    color: rgba(255, 255, 255, 0.95);
+}
+
+[data-theme="dark"] .weight-proof-banner .gym-proof-banner-sub {
+    color: rgba(255, 255, 255, 0.55);
+}
+
+/* Weigh-In modal — brand teal/blue */
+.weight-proof-icon-wrap {
+    background: linear-gradient(135deg, rgba(20, 184, 166, 0.2), rgba(2, 132, 199, 0.15)) !important;
+    color: #14b8a6 !important;
+}
+
+.weight-proof-capture-btn,
+.weight-proof-send-btn {
+    background: linear-gradient(135deg, #14b8a6, #0284c7) !important;
+}
+
+.weight-proof-today-value {
+    font-size: 28px;
+    font-weight: 800;
+    color: white;
+    margin: 4px 0 0;
+}
+
+/* Confirm step */
+.weight-proof-confirm {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.weight-proof-confirm-img {
+    width: 100%;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    max-height: 240px;
+    object-fit: cover;
+}
+
+.weight-proof-confidence {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.weight-proof-confidence--high {
+    background: rgba(34, 197, 94, 0.15);
+    color: #4ade80;
+}
+
+.weight-proof-confidence--medium {
+    background: rgba(245, 158, 11, 0.15);
+    color: #fbbf24;
+}
+
+.weight-proof-confidence--low {
+    background: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+}
+
+.weight-proof-warning {
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    background: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+}
+
+.weight-proof-label {
+    font-size: 13px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.7);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 4px;
+}
+
+.weight-proof-input-row {
+    display: flex;
+    gap: 10px;
+}
+
+.weight-proof-input {
+    flex: 1;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1.5px solid rgba(168, 85, 247, 0.4);
+    border-radius: 12px;
+    color: white;
+    font-size: 24px;
+    font-weight: 800;
+    text-align: center;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.weight-proof-input:focus {
+    outline: none;
+    border-color: #a855f7;
+    background: rgba(168, 85, 247, 0.1);
+}
+
+.weight-proof-unit {
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1.5px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    color: white;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+    min-width: 80px;
+}
+
+.weight-proof-history-weight {
+    display: block;
+    padding: 4px 6px 0;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 800;
+    color: white;
+}
+
 /* ===== Workout Quick Links ===== */
 .workout-quick-links {
     margin: 4px 16px 20px;
@@ -19177,12 +19497,32 @@ textarea,
     overflow: hidden;
     transition: all 0.2s;
     position: relative;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.14);
     /* Allow vertical scroll but let JS handle horizontal swipe gestures.
        React synthetic onTouchMove is passive by default, so preventDefault()
        is silently ignored on Android Chrome — touch-action does the blocking
        at the compositor level instead. */
     touch-action: pan-y;
+}
+
+/* Drop the within-section hairline at section boundaries — the next phase
+   header (or the end of the list) is the strong visual break. */
+.exercise-card-v2.section-end {
+    border-bottom: none;
+}
+
+/* Restore the hairline on the very last exercise so the list has a clear
+   bottom edge before the Add Activity button. */
+.exercise-card-v2.is-last {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+[data-theme="light"] .exercise-card-v2.is-last {
+    border-bottom-color: rgba(15, 23, 42, 0.10);
+}
+
+[data-theme="light"] .exercise-card-v2 {
+    border-bottom-color: rgba(15, 23, 42, 0.10);
 }
 
 /* Skip rendering for off-screen cards — frees GPU memory on iOS WebKit and
@@ -19337,10 +19677,12 @@ textarea,
 
 .exercise-card-v2.warmup-exercise {
     border-left: 3px solid #F59E0B;
+    border-bottom: 1px solid rgba(245, 158, 11, 0.45);
 }
 
 .exercise-card-v2.stretch-exercise {
     border-left: 3px solid #10B981;
+    border-bottom: 1px solid rgba(16, 185, 129, 0.45);
 }
 
 /* Equipment subtitle - like "No equipment" */
@@ -21579,6 +21921,18 @@ textarea,
     border-color: rgba(34, 197, 94, 0.25);
 }
 
+.coaching-rec-card.coach-prescribed,
+.ai-recommendation-card.coach-prescribed {
+    background: linear-gradient(135deg, rgba(168, 85, 247, 0.12) 0%, rgba(236, 72, 153, 0.06) 100%);
+    border-color: rgba(168, 85, 247, 0.3);
+}
+
+.coaching-rec-card.coach-prescribed .coaching-rec-badge,
+.ai-recommendation-card.coach-prescribed .ai-rec-badge {
+    background: rgba(168, 85, 247, 0.18);
+    color: #c084fc;
+}
+
 .coaching-rec-header {
     display: flex;
     align-items: center;
@@ -21993,6 +22347,86 @@ textarea,
 
 [data-theme="light"] .coaching-rec-last-date {
     color: #9ca3af;
+}
+
+/* Post-first-set coaching nudge */
+.set-nudge-card {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.12) 0%, rgba(34, 197, 94, 0.04) 100%);
+    border: 1px solid rgba(34, 197, 94, 0.25);
+    border-radius: 12px;
+    padding: 10px 32px 10px 12px;
+    margin: 0 16px 12px;
+}
+
+.set-nudge-icon {
+    font-size: 20px;
+    line-height: 1;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+.set-nudge-body {
+    flex: 1;
+    min-width: 0;
+}
+
+.set-nudge-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #34d399;
+    margin-bottom: 2px;
+}
+
+.set-nudge-message {
+    font-size: 12px;
+    line-height: 1.4;
+    color: #d1d5db;
+}
+
+.set-nudge-dismiss {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    background: transparent;
+    border: none;
+    color: #9ca3af;
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+}
+
+.set-nudge-dismiss:hover {
+    color: #f3f4f6;
+    background: rgba(255, 255, 255, 0.06);
+}
+
+[data-theme="light"] .set-nudge-card {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.10) 0%, rgba(34, 197, 94, 0.03) 100%);
+    border-color: rgba(34, 197, 94, 0.3);
+}
+
+[data-theme="light"] .set-nudge-title {
+    color: #15803d;
+}
+
+[data-theme="light"] .set-nudge-message {
+    color: #4b5563;
+}
+
+[data-theme="light"] .set-nudge-dismiss {
+    color: #6b7280;
+}
+
+[data-theme="light"] .set-nudge-dismiss:hover {
+    color: #111827;
+    background: rgba(0, 0, 0, 0.04);
 }
 
 /* Activity Progress Bar & Sets Progress - Light */
@@ -23052,6 +23486,125 @@ textarea,
     opacity: 0.85;
 }
 
+/* Pending voice-note actions: Discard / Re-record / Send to Coach */
+.client-voice-note-preview.pending {
+    padding: 10px;
+    background: rgba(139, 92, 246, 0.08);
+    border: 1px solid rgba(139, 92, 246, 0.25);
+    border-radius: 10px;
+}
+
+.client-voice-note-preview.sent {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.voice-note-pending-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+}
+
+.voice-note-action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid transparent;
+    background: transparent;
+    color: inherit;
+}
+
+.voice-note-action-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.voice-note-action-btn.discard {
+    background: rgba(107, 114, 128, 0.15);
+    border-color: rgba(107, 114, 128, 0.3);
+    color: #9ca3af;
+}
+
+.voice-note-action-btn.redo {
+    background: rgba(139, 92, 246, 0.12);
+    border-color: rgba(139, 92, 246, 0.3);
+    color: #a78bfa;
+}
+
+.voice-note-action-btn.send {
+    flex: 1;
+    background: #8b5cf6;
+    color: white;
+    border-color: #8b5cf6;
+}
+
+.voice-note-action-btn.delete-sent {
+    align-self: flex-end;
+    background: rgba(239, 68, 68, 0.12);
+    border-color: rgba(239, 68, 68, 0.3);
+    color: #f87171;
+    padding: 6px 10px;
+    font-size: 12px;
+}
+
+.client-note-delete-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 8px;
+    padding: 8px 12px;
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: 8px;
+    color: #f87171;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.client-note-delete-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Guided modal variants reuse the same .voice-note-action-btn / .client-note-delete-btn classes */
+.guided-client-voice-note-preview.pending {
+    padding: 10px;
+    background: rgba(139, 92, 246, 0.08);
+    border: 1px solid rgba(139, 92, 246, 0.25);
+    border-radius: 10px;
+}
+
+.guided-client-voice-note-preview.sent {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+[data-theme="light"] .voice-note-action-btn.discard {
+    background: rgba(107, 114, 128, 0.1);
+    color: #4b5563;
+}
+
+[data-theme="light"] .voice-note-action-btn.redo {
+    color: #6d28d9;
+}
+
+[data-theme="light"] .voice-note-action-btn.delete-sent,
+[data-theme="light"] .client-note-delete-btn {
+    background: rgba(239, 68, 68, 0.08);
+    color: #b91c1c;
+}
+
 [data-theme="light"] .client-note-for-coach-section {
     background: rgba(139, 92, 246, 0.08);
     border-color: rgba(139, 92, 246, 0.25);
@@ -23059,6 +23612,304 @@ textarea,
 
 [data-theme="light"] .client-note-toggle {
     color: #6d28d9;
+}
+
+/* Personal (Private) Notes Section — only the client sees these */
+.personal-note-section {
+    margin: 12px 16px 0;
+    border-radius: 12px;
+    background: rgba(56, 189, 248, 0.08);
+    border: 1px solid rgba(56, 189, 248, 0.25);
+}
+
+.personal-note-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 14px 16px;
+    background: none;
+    border: none;
+    color: #7dd3fc;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.personal-note-toggle-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.personal-note-toggle-left svg {
+    color: #38bdf8;
+}
+
+.personal-note-private-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 2px 6px;
+    border-radius: 8px;
+    background: rgba(56, 189, 248, 0.18);
+    color: #7dd3fc;
+}
+
+.personal-note-private-badge svg {
+    color: #7dd3fc;
+}
+
+.personal-note-count {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 7px;
+    background: rgba(56, 189, 248, 0.2);
+    border-radius: 10px;
+    color: #7dd3fc;
+}
+
+.personal-note-preview {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 0 16px 14px;
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.personal-note-preview-label {
+    color: #6b7280;
+    font-weight: 500;
+    flex-shrink: 0;
+}
+
+.personal-note-preview-text {
+    color: #e5e7eb;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.personal-note-preview-time {
+    color: #6b7280;
+    font-size: 11px;
+    flex-shrink: 0;
+}
+
+.personal-note-input-area {
+    padding: 0 16px 16px;
+}
+
+.personal-note-help {
+    font-size: 12px;
+    color: #94a3b8;
+    line-height: 1.45;
+    margin: 0 0 10px;
+}
+
+.personal-note-help strong {
+    color: #cbd5e1;
+    font-weight: 600;
+}
+
+.personal-note-textarea {
+    width: 100%;
+    min-height: 72px;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    color: #f3f4f6;
+    font-size: 14px;
+    font-family: inherit;
+    resize: vertical;
+    outline: none;
+}
+
+.personal-note-textarea:focus {
+    border-color: #38bdf8;
+}
+
+.personal-note-textarea::placeholder {
+    color: #6b7280;
+}
+
+.personal-note-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 8px;
+    margin-bottom: 14px;
+}
+
+.personal-note-char-count {
+    font-size: 11px;
+    color: #6b7280;
+}
+
+.personal-note-save-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    background: #38bdf8;
+    border: none;
+    border-radius: 10px;
+    color: #0c1422;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.personal-note-save-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.personal-note-save-btn:active:not(:disabled) {
+    opacity: 0.85;
+}
+
+.personal-note-loading,
+.personal-note-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 14px;
+    font-size: 13px;
+    color: #94a3b8;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 10px;
+}
+
+.personal-note-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.personal-note-list-header {
+    font-size: 11px;
+    font-weight: 600;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding-top: 4px;
+}
+
+.personal-note-item {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 10px;
+    padding: 10px 12px;
+}
+
+.personal-note-item-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+}
+
+.personal-note-item-time {
+    font-size: 11px;
+    font-weight: 500;
+    color: #7dd3fc;
+}
+
+.personal-note-delete-btn {
+    background: none;
+    border: none;
+    color: #6b7280;
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 4px;
+}
+
+.personal-note-delete-btn:hover {
+    color: #f87171;
+    background: rgba(239, 68, 68, 0.1);
+}
+
+.personal-note-item-text {
+    font-size: 13px;
+    line-height: 1.45;
+    color: #e5e7eb;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.personal-note-show-more {
+    background: none;
+    border: none;
+    color: #38bdf8;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 6px;
+    align-self: flex-start;
+}
+
+[data-theme="light"] .personal-note-section {
+    background: rgba(56, 189, 248, 0.08);
+    border-color: rgba(56, 189, 248, 0.25);
+}
+
+[data-theme="light"] .personal-note-toggle {
+    color: #0369a1;
+}
+
+[data-theme="light"] .personal-note-private-badge,
+[data-theme="light"] .personal-note-count {
+    color: #0369a1;
+    background: rgba(56, 189, 248, 0.18);
+}
+
+[data-theme="light"] .personal-note-preview-text,
+[data-theme="light"] .personal-note-item-text {
+    color: #1e293b;
+}
+
+[data-theme="light"] .personal-note-help {
+    color: #475569;
+}
+
+[data-theme="light"] .personal-note-help strong {
+    color: #0f172a;
+}
+
+[data-theme="light"] .personal-note-textarea {
+    background: #f8fafc;
+    border-color: #e2e8f0;
+    color: #1e293b;
+}
+
+[data-theme="light"] .personal-note-textarea::placeholder {
+    color: #94a3b8;
+}
+
+[data-theme="light"] .personal-note-item {
+    background: #f1f5f9;
+    border-color: #e2e8f0;
+}
+
+[data-theme="light"] .personal-note-item-time {
+    color: #0369a1;
+}
+
+[data-theme="light"] .personal-note-loading,
+[data-theme="light"] .personal-note-empty {
+    background: #f8fafc;
+    color: #64748b;
 }
 
 /* Ask Coach Section */
@@ -33691,49 +34542,111 @@ textarea,
     color: #10b981;
 }
 
-/* Coach tip buttons */
-.guided-coach-tips {
+/* Consolidated action icon row — Coach Note, Client Note, Reference Links, YouTube */
+.guided-action-row {
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 10px;
     margin-top: 12px;
+    flex-wrap: wrap;
 }
 
-.guided-coach-tip-btn {
+.guided-action-icon {
+    position: relative;
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 8px 16px;
-    background: rgba(13, 148, 136, 0.15);
-    border: 1px solid rgba(13, 148, 136, 0.3);
-    border-radius: 20px;
-    font-size: 13px;
-    font-weight: 500;
-    color: #0d9488;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1px solid transparent;
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.75);
     cursor: pointer;
-    transition: all 0.2s;
+    text-decoration: none;
+    transition: transform 0.15s ease, background 0.2s, border-color 0.2s, color 0.2s;
 }
 
-.guided-coach-tip-btn:active {
-    transform: scale(0.96);
+.guided-action-icon:active {
+    transform: scale(0.92);
 }
 
-.guided-coach-tip-btn.playing {
+.guided-action-icon.voice {
+    background: rgba(13, 148, 136, 0.15);
+    border-color: rgba(13, 148, 136, 0.35);
+    color: #0d9488;
+}
+
+.guided-action-icon.voice.playing {
     background: rgba(13, 148, 136, 0.3);
     border-color: #0d9488;
     animation: pulse-glow 1.5s ease-in-out infinite;
 }
 
-.guided-coach-tip-btn.text {
+.guided-action-icon.note {
     background: rgba(59, 130, 246, 0.15);
-    border-color: rgba(59, 130, 246, 0.3);
-    color: #3b82f6;
+    border-color: rgba(59, 130, 246, 0.35);
+    color: #60a5fa;
 }
 
-.guided-coach-tip-btn.text.active {
+.guided-action-icon.note.active {
     background: rgba(59, 130, 246, 0.3);
     border-color: #3b82f6;
+    color: #93c5fd;
+}
+
+.guided-action-icon.client-note {
+    background: rgba(139, 92, 246, 0.15);
+    border-color: rgba(139, 92, 246, 0.35);
+    color: #c4b5fd;
+}
+
+.guided-action-icon.client-note.active {
+    background: rgba(139, 92, 246, 0.3);
+    border-color: #a78bfa;
+    color: #ddd6fe;
+}
+
+.guided-action-icon.refs {
+    background: rgba(96, 165, 250, 0.15);
+    border-color: rgba(96, 165, 250, 0.35);
+    color: #60a5fa;
+}
+
+.guided-action-icon.refs.active {
+    background: rgba(96, 165, 250, 0.3);
+    border-color: #60a5fa;
+}
+
+.guided-action-icon.youtube {
+    background: rgba(255, 0, 0, 0.15);
+    border-color: rgba(255, 0, 0, 0.35);
+    color: #ff6b6b;
+}
+
+.guided-action-icon.youtube:active {
+    background: rgba(255, 0, 0, 0.3);
+}
+
+.guided-action-saved-dot {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #10b981;
+    box-shadow: 0 0 0 2px rgba(15, 23, 42, 1);
+}
+
+[data-theme="light"] .guided-action-icon {
+    background: rgba(0, 0, 0, 0.04);
+    color: rgba(0, 0, 0, 0.55);
+}
+
+[data-theme="light"] .guided-action-saved-dot {
+    box-shadow: 0 0 0 2px #ffffff;
 }
 
 /* Text note display */
@@ -33761,15 +34674,6 @@ textarea,
     flex-direction: column;
     align-items: center;
     gap: 8px;
-}
-
-.guided-reference-links-label {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    color: #60a5fa;
-    font-size: 13px;
-    font-weight: 600;
 }
 
 .guided-reference-links-list {
@@ -33869,40 +34773,6 @@ textarea,
 /* Client Note for Coach in Guided Workout */
 .guided-client-note-section {
     margin: 8px 16px 0;
-}
-
-.guided-client-note-toggle {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
-    padding: 12px 14px;
-    background: rgba(139, 92, 246, 0.1);
-    border: 1px solid rgba(139, 92, 246, 0.3);
-    border-radius: 12px;
-    color: #c4b5fd;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.guided-client-note-toggle:hover {
-    background: rgba(147, 51, 234, 0.15);
-}
-
-.guided-client-note-toggle-left {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.guided-client-note-toggle .note-saved-badge {
-    font-size: 11px;
-    color: #10b981;
-    background: rgba(16, 185, 129, 0.15);
-    padding: 2px 8px;
-    border-radius: 4px;
 }
 
 .guided-client-note-input-area {
@@ -34551,10 +35421,6 @@ textarea,
     color: #374151;
 }
 
-[data-theme="light"] .guided-reference-links-label {
-    color: #3b82f6;
-}
-
 [data-theme="light"] .guided-reference-link-chip.youtube {
     background: rgba(255, 0, 0, 0.08);
     color: #dc2626;
@@ -34837,17 +35703,6 @@ textarea,
 
 [data-theme="light"] .ai-rec-btn.ask:active {
     background: rgba(0, 0, 0, 0.08);
-}
-
-/* --- Light theme: Client Note Toggle --- */
-[data-theme="light"] .guided-client-note-toggle {
-    background: rgba(139, 92, 246, 0.08);
-    border-color: rgba(139, 92, 246, 0.2);
-    color: #7c3aed;
-}
-
-[data-theme="light"] .guided-client-note-toggle:hover {
-    background: rgba(139, 92, 246, 0.12);
 }
 
 /* --- Light theme: Ask AI Chat Modal --- */

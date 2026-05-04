@@ -4,6 +4,7 @@ import SmartThumbnail from './SmartThumbnail';
 import SetEditorModal from './SetEditorModal';
 import Portal from '../Portal';
 import { onAppResume, onAppSuspend } from '../../hooks/useAppLifecycle';
+import { convertWeight } from '../../utils/workoutProgression';
 
 // Parse reps - if it's a range like "8-12", average the range instead of truncating
 // Supports decimals like "1.5" (e.g. 1.5 miles)
@@ -143,7 +144,7 @@ const parseVoiceInputForSets = (transcript) => {
   }
 };
 
-function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick, workoutStarted, onSwapExercise, onDeleteExercise, onMoveUp, onMoveDown, isFirst, isLast, onUpdateExercise, onOpenSetEditor, weightUnit = 'lbs', clientId }) {
+function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick, workoutStarted, onSwapExercise, onDeleteExercise, onMoveUp, onMoveDown, isFirst, isLast, isSectionEnd, onUpdateExercise, onOpenSetEditor, weightUnit = 'lbs', clientId }) {
   // Early return if exercise is invalid
   if (!exercise || typeof exercise !== 'object') {
     return null;
@@ -158,9 +159,14 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
   const initializeSets = () => {
     // Check setsData first (saved by the 3-panel workout builder detail editor)
     if (Array.isArray(exercise.setsData) && exercise.setsData.length > 0) {
-      return exercise.setsData.slice(0, 20).filter(Boolean).map(set => ({
+      return exercise.setsData.slice(0, 20).filter(Boolean).map(set => {
+        // Convert coach's per-set unit to the client's profile unit. Builder defaults to
+        // 'lb'; if weightUnit was never stamped (older prescriptions), assume 'lbs' too.
+        const rawWeight = set?.weight || 0;
+        const fromUnit = set?.weightUnit || (rawWeight > 0 ? 'lbs' : weightUnit);
+        return {
         reps: set?.reps ?? parseReps(exercise.reps) ?? 12,
-        weight: set?.weight || 0,
+        weight: convertWeight(rawWeight, fromUnit, weightUnit),
         completed: set?.completed || false,
         duration: set?.duration || exercise.duration || parseTimeFromReps(exercise.reps) || null,
         distance: set?.distance || exercise.distance || null,
@@ -170,7 +176,8 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
         hrZone: set?.hrZone || null,
         pace: set?.pace || null,
         incline: set?.incline || null,
-      }));
+        };
+      });
     }
     if (Array.isArray(exercise.sets) && exercise.sets.length > 0) {
       // Cap at 20 sets to prevent malformed data from causing excessive renders
@@ -321,9 +328,12 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
     }
     lastSyncedSetsJsonRef.current = incoming;
 
-    const newSets = setsSource.slice(0, 20).filter(Boolean).map(set => ({
+    const newSets = setsSource.slice(0, 20).filter(Boolean).map(set => {
+      const rawWeight = set?.weight || 0;
+      const fromUnit = set?.weightUnit || (rawWeight > 0 ? 'lbs' : weightUnit);
+      return {
       reps: set?.reps ?? parseReps(exercise.reps) ?? 12,
-      weight: set?.weight || 0,
+      weight: convertWeight(rawWeight, fromUnit, weightUnit),
       completed: set?.completed || false,
       duration: set?.duration || exercise.duration || parseTimeFromReps(exercise.reps) || null,
       distance: set?.distance || exercise.distance || null,
@@ -334,7 +344,8 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
       // secondary signal isTimedExercise falls back to).
       ...(set?.isTimeBased ? { isTimeBased: true } : {}),
       ...(set?.isDistanceBased ? { isDistanceBased: true } : {})
-    }));
+      };
+    });
     if (newSets.length > 0) {
       setSets(newSets);
     }
@@ -762,7 +773,7 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
     >
       {/* Main Card Content */}
       <div
-        className={`exercise-card-v2 ${isCompleted ? 'completed' : ''} ${workoutStarted ? 'active' : ''} ${isSuperset ? 'superset-exercise' : ''} ${isWarmup ? 'warmup-exercise' : ''} ${isStretch ? 'stretch-exercise' : ''}`}
+        className={`exercise-card-v2 ${isCompleted ? 'completed' : ''} ${workoutStarted ? 'active' : ''} ${isSuperset ? 'superset-exercise' : ''} ${isWarmup ? 'warmup-exercise' : ''} ${isStretch ? 'stretch-exercise' : ''} ${isSectionEnd ? 'section-end' : ''} ${isLast ? 'is-last' : ''}`}
       >
         {/* HEADER ZONE - Swipe for swap/delete/move + swipe-right to complete */}
         <div className="header-swipe-zone">
@@ -1039,9 +1050,10 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
         )}
 
         {/* Coach's Voice Note — uses proxy URL that never expires.
-            preload="metadata" fetches only the duration header so the length
-            displays before the user presses play, without downloading the
-            full audio. */}
+            preload="auto": with preload="metadata", iOS WebKit consumes the
+            first tap on the native play control loading the audio data — the
+            timeline advances silently and a second tap is required to actually
+            hear sound. Forcing full preload makes the first tap play. */}
         {(exercise.voiceNoteUrl || exercise.voiceNotePath) && (
           <div className="coach-voice-note">
             <span className="note-label">
@@ -1050,11 +1062,12 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
             </span>
             <audio
               controls
+              playsInline
               src={exercise.voiceNotePath
                 ? `/.netlify/functions/serve-voice-note?path=${encodeURIComponent(exercise.voiceNotePath)}`
                 : exercise.voiceNoteUrl}
               className="voice-note-audio"
-              preload="metadata"
+              preload="auto"
               onError={(e) => {
                 // Hide voice note if file is missing/deleted
                 const container = e.target.closest('.coach-voice-note');
@@ -1155,6 +1168,7 @@ const arePropsEqual = (prev, next) => {
   if (prev.workoutStarted !== next.workoutStarted) return false;
   if (prev.isFirst !== next.isFirst) return false;
   if (prev.isLast !== next.isLast) return false;
+  if (prev.isSectionEnd !== next.isSectionEnd) return false;
   if (prev.weightUnit !== next.weightUnit) return false;
   if (prev.clientId !== next.clientId) return false;
 

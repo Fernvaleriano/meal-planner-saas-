@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { X, Play, Pause, SkipForward, SkipBack, ChevronRight, ChevronLeft, Check, Volume2, VolumeX, Mic, MessageSquare, Square, Send, ChevronUp, ChevronDown, MessageCircle, Bot, Loader2, Sparkles, Flame, Repeat, Clock, Zap, AlertTriangle, TrendingUp, ExternalLink, Minimize2, Maximize2, PictureInPicture2 } from 'lucide-react';
+import { X, Play, Pause, SkipForward, SkipBack, ChevronRight, ChevronLeft, Check, Volume2, VolumeX, Mic, MessageSquare, Square, Send, MessageCircle, Bot, Loader2, Sparkles, Flame, Repeat, Clock, Zap, AlertTriangle, TrendingUp, ExternalLink, User, Trash2, Minimize2, Maximize2, PictureInPicture2 } from 'lucide-react';
 import Portal from '../Portal';
 import SmartThumbnail from './SmartThumbnail';
 import SwapExerciseModal from './SwapExerciseModal';
-import { apiGet, apiPost, apiPut, getOrCreateWorkoutLogId } from '../../utils/api';
+import { apiGet, apiPost, apiPut, apiDelete, getOrCreateWorkoutLogId } from '../../utils/api';
 import { onAppResume } from '../../hooks/useAppLifecycle';
 import { parseDurationToSeconds } from '../../utils/workoutDuration';
-import { generateProgression, EFFORT_OPTIONS, EFFORT_TO_RIR, estimate1RM, parseSetsData, getMaxWeight, parseReps, isCompoundExercise, getWeightIncrement } from '../../utils/workoutProgression';
+import { generateProgression, EFFORT_OPTIONS, EFFORT_TO_RIR, estimate1RM, parseSetsData, getMaxWeight, parseReps, isCompoundExercise, getWeightIncrement, convertWeight } from '../../utils/workoutProgression';
 import { playTickSound, warmUpTickSound } from '../../utils/audioTick';
 
 // --- Resume helpers ---
@@ -268,14 +268,19 @@ function GuidedWorkoutModal({
   const [guidedVideoBlobUrl, setGuidedVideoBlobUrl] = useState(null);
   const [playingVoiceNote, setPlayingVoiceNote] = useState(false);
   const [showCoachNote, setShowCoachNote] = useState(false); // For text notes popup
+  const [showReferenceLinks, setShowReferenceLinks] = useState(false);
 
   // Client note for coach state
   const [showClientNoteInput, setShowClientNoteInput] = useState(false);
   const [clientNotes, setClientNotes] = useState({}); // { exIndex: string }
   const [clientNoteSaved, setClientNoteSaved] = useState({});
+  const [persistedClientNotes, setPersistedClientNotes] = useState({}); // { exIndex: bool } — true once saved
+  const [deletingClientNoteIdx, setDeletingClientNoteIdx] = useState(null);
   const [isRecordingVoiceNote, setIsRecordingVoiceNote] = useState(false);
-  const [voiceNoteUrl, setVoiceNoteUrl] = useState(null);
+  const [voiceNoteUrl, setVoiceNoteUrl] = useState(null); // { exIndex: signedUrl } for sent notes
   const [voiceNoteUploading, setVoiceNoteUploading] = useState(false);
+  const [pendingVoiceUrl, setPendingVoiceUrl] = useState(null); // { exIndex: blobUrl } for staged notes
+  const [deletingVoiceNoteIdx, setDeletingVoiceNoteIdx] = useState(null);
 
   // Progressive overload tip state
   const [progressTips, setProgressTips] = useState({}); // { exIndex: { type, icon, title, message } }
@@ -325,9 +330,18 @@ function GuidedWorkoutModal({
         // If sets is an array with existing data, use it; also check setsData (coach workout builder source of truth)
         const existingSet = Array.isArray(ex.sets) ? ex.sets[si] : null;
         const setsDataSet = Array.isArray(ex.setsData) ? ex.setsData[si] : null;
+        // Coach builder defaults to 'lb' in its unit dropdown. When per-set weightUnit
+        // is missing (older prescriptions), assume 'lbs' rather than the client's
+        // profile unit so conversion still kicks in.
+        const rawPrescribed = setsDataSet?.prescribedWeight ?? setsDataSet?.weight ?? 0;
+        const fromUnit = setsDataSet?.weightUnit || (rawPrescribed > 0 ? 'lbs' : weightUnit);
+        const prescribedW = convertWeight(rawPrescribed, fromUnit, weightUnit);
+        const prescribedR = setsDataSet?.prescribedReps ?? parseReps(setsDataSet?.reps || ex.reps);
         return {
           reps: existingSet?.reps || setsDataSet?.reps || defaultReps,
           weight: existingSet?.weight || 0,
+          prescribedWeight: prescribedW,
+          prescribedReps: prescribedR,
           duration: existingSet?.duration || setsDataSet?.duration || ex.duration || null,
           distance: existingSet?.distance || setsDataSet?.distance || ex.distance || null,
           restSeconds: existingSet?.restSeconds ?? setsDataSet?.restSeconds ?? ex.restSeconds ?? ex.rest_seconds ?? 90,
@@ -366,6 +380,10 @@ function GuidedWorkoutModal({
   const audioChunksRef = useRef([]);
   const clientNoteTimerRef = useRef(null);
   const voiceNotePathsRef = useRef({}); // { exIndex: filePath }
+  const pendingVoiceBlobRef = useRef(null); // Blob recorded but not yet sent
+  const pendingVoiceMimeRef = useRef(null);
+  const pendingVoiceExtRef = useRef(null);
+  const pendingVoiceExIndexRef = useRef(null);
   const workoutLogIdRef = useRef(workoutLogId);
   const isMountedRef = useRef(true);
   const exerciseIndexAtRecordStartRef = useRef(null);
@@ -1083,6 +1101,8 @@ function GuidedWorkoutModal({
           reps: s.reps || 0,
           weight: s.weight || 0,
           weightUnit: weightUnit,
+          ...(s.prescribedWeight > 0 && { prescribedWeight: s.prescribedWeight }),
+          ...(s.prescribedReps > 0 && { prescribedReps: s.prescribedReps }),
           effort: s.effort || null
         }));
 
@@ -1091,7 +1111,7 @@ function GuidedWorkoutModal({
             exerciseName: exercise.name || 'Unknown',
             order: exIndex + 1,
             sets: setsData,
-            clientNotes: noteText || undefined,
+            clientNotes: noteText !== undefined ? noteText : undefined,
             clientVoiceNotePath: voiceNotePathsRef.current[exIndex] || undefined
         };
         if (exercise.swapped_from) exPayload.swappedFromName = exercise.swapped_from;
@@ -1102,12 +1122,13 @@ function GuidedWorkoutModal({
         });
 
         setClientNoteSaved(prev => ({ ...prev, [exIndex]: true }));
+        setPersistedClientNotes(prev => ({ ...prev, [exIndex]: !!(noteText && noteText.trim()) }));
         setTimeout(() => setClientNoteSaved(prev => ({ ...prev, [exIndex]: false })), 2000);
       }
     } catch (err) {
       console.error('Error saving client note:', err);
     }
-  }, [clientId, coachId, exercises, currentExIndex, getWorkoutDateStr, workoutName, setLogs]);
+  }, [clientId, exercises, currentExIndex, getWorkoutDateStr, workoutName, setLogs, weightUnit]);
 
   // Handle client note change with auto-save debounce
   const handleClientNoteChange = useCallback((text) => {
@@ -1123,13 +1144,18 @@ function GuidedWorkoutModal({
     }, 2000);
   }, [currentExIndex, saveClientNote]);
 
-  // Voice note recording
+  // Voice note recording — staged for review (does not auto-send)
   const startVoiceNoteRecording = useCallback(async () => {
     try {
-      // Store current exercise index to detect if user switches during recording
       const recordingExIndex = currentExIndex;
-      const recordingExercise = exercises[recordingExIndex];
       exerciseIndexAtRecordStartRef.current = recordingExIndex;
+
+      // Discard any previously staged (unsent) recording before starting a new one
+      if (pendingVoiceUrl) {
+        try { URL.revokeObjectURL(pendingVoiceUrl); } catch { /* ignore */ }
+      }
+      setPendingVoiceUrl(null);
+      pendingVoiceBlobRef.current = null;
 
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const isWebm = MediaRecorder.isTypeSupported('audio/webm');
@@ -1143,103 +1169,21 @@ function GuidedWorkoutModal({
         if (event.data.size > 0) audioChunksRef.current.push(event.data);
       };
 
-      mediaRecorder.onstop = async () => {
+      mediaRecorder.onstop = () => {
         stream.getTracks().forEach(track => track.stop());
 
-        // Guard: Don't process if component unmounted
-        if (!isMountedRef.current) {
-          return;
-        }
+        if (!isMountedRef.current) return;
+        if (exerciseIndexAtRecordStartRef.current !== recordingExIndex) return;
 
         const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
+        if (audioBlob.size === 0) return;
+
         const blobUrl = URL.createObjectURL(audioBlob);
-        setVoiceNoteUrl(blobUrl);
-        setVoiceNoteUploading(true);
-
-        try {
-          // Use the exercise from when recording started, not current
-          const exercise = recordingExercise;
-          const fileName = `note_${exercise?.id}_${Date.now()}.${fileExt}`;
-          let filePath = null;
-          let signedDownloadUrl = null;
-
-          // Try signed upload URL first
-          try {
-            const urlRes = await apiPost('/.netlify/functions/upload-client-voice-note', {
-              mode: 'get-upload-url',
-              clientId,
-              fileName,
-              contentType: mimeType
-            });
-
-            if (urlRes?.uploadUrl) {
-              const uploadResponse = await fetch(urlRes.uploadUrl, {
-                method: 'PUT',
-                headers: { 'Content-Type': mimeType },
-                body: audioBlob
-              });
-
-              if (uploadResponse.ok) {
-                filePath = urlRes.filePath;
-                const confirmRes = await apiPost('/.netlify/functions/upload-client-voice-note', {
-                  mode: 'confirm',
-                  filePath
-                });
-                signedDownloadUrl = confirmRes?.url || null;
-              }
-            }
-          } catch (directErr) {
-            console.warn('Signed upload failed, trying base64 fallback');
-          }
-
-          // Fallback: base64 upload
-          if (!filePath) {
-            try {
-              const reader = new FileReader();
-              const audioData = await new Promise((resolve, reject) => {
-                reader.onloadend = () => resolve(reader.result);
-                reader.onerror = reject;
-                reader.readAsDataURL(audioBlob);
-              });
-              const res = await apiPost('/.netlify/functions/upload-client-voice-note', {
-                clientId,
-                audioData,
-                fileName
-              });
-              if (res?.filePath) {
-                filePath = res.filePath;
-                signedDownloadUrl = res.url || null;
-              }
-            } catch (base64Err) {
-              console.error('Base64 upload failed:', base64Err);
-            }
-          }
-
-          // Guard: Check if still mounted before state updates
-          if (!isMountedRef.current) {
-            URL.revokeObjectURL(blobUrl);
-            return;
-          }
-
-          if (signedDownloadUrl) {
-            URL.revokeObjectURL(blobUrl);
-            setVoiceNoteUrl(signedDownloadUrl);
-          }
-
-          if (filePath) {
-            // Use the index from when recording started
-            voiceNotePathsRef.current[recordingExIndex] = filePath;
-            // Auto-save the note using saveClientNote with the correct index
-            saveClientNote(clientNotes[recordingExIndex] || '', recordingExIndex);
-          }
-        } catch (uploadErr) {
-          console.error('Voice note upload error:', uploadErr);
-        } finally {
-          // Guard: Only update state if still mounted
-          if (isMountedRef.current) {
-            setVoiceNoteUploading(false);
-          }
-        }
+        pendingVoiceBlobRef.current = audioBlob;
+        pendingVoiceMimeRef.current = mimeType;
+        pendingVoiceExtRef.current = fileExt;
+        pendingVoiceExIndexRef.current = recordingExIndex;
+        setPendingVoiceUrl(blobUrl);
       };
 
       mediaRecorder.start();
@@ -1247,7 +1191,7 @@ function GuidedWorkoutModal({
     } catch (err) {
       console.error('Error starting voice recording:', err);
     }
-  }, [clientId, exercises, currentExIndex, clientNotes, saveClientNote]);
+  }, [currentExIndex, pendingVoiceUrl]);
 
   const stopVoiceNoteRecording = useCallback(() => {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
@@ -1255,6 +1199,293 @@ function GuidedWorkoutModal({
     }
     setIsRecordingVoiceNote(false);
   }, []);
+
+  // Discard a staged-but-unsent voice recording without uploading
+  const discardPendingVoiceNote = useCallback(() => {
+    if (pendingVoiceUrl) {
+      try { URL.revokeObjectURL(pendingVoiceUrl); } catch { /* ignore */ }
+    }
+    setPendingVoiceUrl(null);
+    pendingVoiceBlobRef.current = null;
+    pendingVoiceMimeRef.current = null;
+    pendingVoiceExtRef.current = null;
+    pendingVoiceExIndexRef.current = null;
+  }, [pendingVoiceUrl]);
+
+  // Upload a staged voice note, save its path on the exercise log, notify the coach
+  const sendPendingVoiceNote = useCallback(async () => {
+    const audioBlob = pendingVoiceBlobRef.current;
+    const mimeType = pendingVoiceMimeRef.current;
+    const fileExt = pendingVoiceExtRef.current;
+    const recordingExIndex = pendingVoiceExIndexRef.current;
+    const stagedUrl = pendingVoiceUrl;
+    if (!audioBlob || !mimeType || !fileExt || recordingExIndex == null) return;
+    const exercise = exercises[recordingExIndex];
+    if (!exercise?.id) return;
+
+    setVoiceNoteUploading(true);
+    setVoiceNoteUrl(stagedUrl); // optimistic playback
+
+    try {
+      const fileName = `note_${exercise.id}_${Date.now()}.${fileExt}`;
+      const dateStr = getWorkoutDateStr();
+      // Metadata so the server can do workout_log + exercise_log upsert atomically
+      const linkPayload = {
+        clientId,
+        workoutDate: dateStr,
+        workoutName: workoutName || 'Workout',
+        exerciseId: exercise.id,
+        exerciseName: exercise.name || 'Unknown',
+        clientNote: clientNotes[recordingExIndex] || undefined
+      };
+      let filePath = null;
+      let signedDownloadUrl = null;
+      let linkError = null;
+
+      try {
+        const urlRes = await apiPost('/.netlify/functions/upload-client-voice-note', {
+          mode: 'get-upload-url',
+          clientId,
+          fileName,
+          contentType: mimeType
+        });
+        if (urlRes?.uploadUrl) {
+          const uploadResponse = await fetch(urlRes.uploadUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': mimeType },
+            body: audioBlob
+          });
+          if (uploadResponse.ok) {
+            filePath = urlRes.filePath;
+            const confirmRes = await apiPost('/.netlify/functions/upload-client-voice-note', {
+              mode: 'confirm',
+              filePath,
+              ...linkPayload
+            });
+            signedDownloadUrl = confirmRes?.url || null;
+            linkError = confirmRes?.linkError || null;
+          }
+        }
+      } catch (directErr) {
+        console.warn('Signed upload failed, trying base64 fallback');
+      }
+
+      if (!filePath) {
+        try {
+          const reader = new FileReader();
+          const audioData = await new Promise((resolve, reject) => {
+            reader.onloadend = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(audioBlob);
+          });
+          const res = await apiPost('/.netlify/functions/upload-client-voice-note', {
+            audioData,
+            fileName,
+            ...linkPayload
+          });
+          if (res?.filePath) {
+            filePath = res.filePath;
+            signedDownloadUrl = res.url || null;
+            linkError = res.linkError || null;
+          }
+        } catch (base64Err) {
+          console.error('Base64 upload failed:', base64Err);
+        }
+      }
+
+      if (!isMountedRef.current) return;
+      if (!filePath) {
+        // Keep staged blob so user can retry without losing the recording.
+        setVoiceNoteUrl(null);
+        return;
+      }
+
+      if (linkError) {
+        console.error('[voice-note] Server failed to link voice note to exercise_log:', linkError);
+      }
+
+      if (signedDownloadUrl) {
+        if (stagedUrl) {
+          try { URL.revokeObjectURL(stagedUrl); } catch { /* ignore */ }
+        }
+        setVoiceNoteUrl(signedDownloadUrl);
+      }
+      voiceNotePathsRef.current[recordingExIndex] = filePath;
+      pendingVoiceBlobRef.current = null;
+      pendingVoiceMimeRef.current = null;
+      pendingVoiceExtRef.current = null;
+      pendingVoiceExIndexRef.current = null;
+      setPendingVoiceUrl(null);
+
+      // Notify coach about voice note
+      if (coachId) {
+        try {
+          await apiPost('/.netlify/functions/notifications', {
+            coachId,
+            clientId,
+            type: 'client_exercise_voice_note',
+            title: 'Client Voice Note',
+            message: `Left a voice note on ${exercise.name || 'an exercise'}`,
+            metadata: {
+              exerciseName: exercise.name,
+              exerciseId: exercise.id,
+              workoutDate: dateStr,
+              voiceNotePath: filePath
+            }
+          });
+        } catch (notifErr) {
+          console.error('Error creating voice note notification:', notifErr);
+        }
+      }
+    } catch (err) {
+      console.error('Error sending voice note:', err);
+    } finally {
+      if (isMountedRef.current) setVoiceNoteUploading(false);
+    }
+  }, [clientId, coachId, exercises, getWorkoutDateStr, pendingVoiceUrl, clientNotes, saveClientNote]);
+
+  // Delete a previously sent voice note for the current exercise
+  const deleteSentVoiceNote = useCallback(async () => {
+    const exIndex = currentExIndex;
+    const filePath = voiceNotePathsRef.current[exIndex];
+    if (!filePath || deletingVoiceNoteIdx != null) return;
+    const exercise = exercises[exIndex];
+    if (!exercise?.id) return;
+
+    setDeletingVoiceNoteIdx(exIndex);
+    const dateStr = getWorkoutDateStr();
+    try {
+      try {
+        await apiPost('/.netlify/functions/upload-client-voice-note', {
+          mode: 'delete',
+          clientId,
+          filePath
+        });
+      } catch (delErr) {
+        console.error('Error deleting voice note file:', delErr);
+      }
+
+      // Clear path on the exercise log
+      voiceNotePathsRef.current[exIndex] = null;
+      let logId = workoutLogIdRef.current;
+      if (!logId) {
+        logId = await getOrCreateWorkoutLogId(clientId, dateStr, workoutName);
+        if (logId) workoutLogIdRef.current = logId;
+      }
+      if (logId) {
+        const setsData = (setLogs[exIndex] || []).map((s, i) => ({
+          setNumber: i + 1,
+          reps: s.reps || 0,
+          weight: s.weight || 0,
+          weightUnit: weightUnit,
+          ...(s.prescribedWeight > 0 && { prescribedWeight: s.prescribedWeight }),
+          ...(s.prescribedReps > 0 && { prescribedReps: s.prescribedReps }),
+          effort: s.effort || null
+        }));
+        try {
+          await apiPut('/.netlify/functions/workout-logs', {
+            workoutId: logId,
+            exercises: [{
+              exerciseId: exercise.id,
+              exerciseName: exercise.name || 'Unknown',
+              order: exIndex + 1,
+              sets: setsData,
+              clientNotes: clientNotes[exIndex] || undefined,
+              clientVoiceNotePath: null
+            }]
+          });
+        } catch (logErr) {
+          console.error('Error clearing voice note path on log:', logErr);
+        }
+      }
+
+      // Drop unread coach notification
+      if (coachId) {
+        try {
+          await apiDelete('/.netlify/functions/notifications', {
+            coachId,
+            type: 'client_exercise_voice_note',
+            exerciseId: exercise.id,
+            workoutDate: dateStr,
+            unreadOnly: true
+          });
+        } catch (notifErr) {
+          console.error('Error deleting voice note notification:', notifErr);
+        }
+      }
+
+      if (isMountedRef.current) setVoiceNoteUrl(null);
+    } finally {
+      if (isMountedRef.current) setDeletingVoiceNoteIdx(null);
+    }
+  }, [clientId, coachId, exercises, currentExIndex, deletingVoiceNoteIdx, getWorkoutDateStr, workoutName, setLogs, weightUnit, clientNotes]);
+
+  // Delete a previously sent text note for the current exercise
+  const deleteSentClientNote = useCallback(async () => {
+    const exIndex = currentExIndex;
+    if (!persistedClientNotes[exIndex] || deletingClientNoteIdx != null) return;
+    const exercise = exercises[exIndex];
+    if (!exercise?.id) return;
+
+    setDeletingClientNoteIdx(exIndex);
+    if (clientNoteTimerRef.current) {
+      clearTimeout(clientNoteTimerRef.current);
+      clientNoteTimerRef.current = null;
+    }
+    const dateStr = getWorkoutDateStr();
+    try {
+      let logId = workoutLogIdRef.current;
+      if (!logId) {
+        logId = await getOrCreateWorkoutLogId(clientId, dateStr, workoutName);
+        if (logId) workoutLogIdRef.current = logId;
+      }
+      if (logId) {
+        const setsData = (setLogs[exIndex] || []).map((s, i) => ({
+          setNumber: i + 1,
+          reps: s.reps || 0,
+          weight: s.weight || 0,
+          weightUnit: weightUnit,
+          ...(s.prescribedWeight > 0 && { prescribedWeight: s.prescribedWeight }),
+          ...(s.prescribedReps > 0 && { prescribedReps: s.prescribedReps }),
+          effort: s.effort || null
+        }));
+        await apiPut('/.netlify/functions/workout-logs', {
+          workoutId: logId,
+          exercises: [{
+            exerciseId: exercise.id,
+            exerciseName: exercise.name || 'Unknown',
+            order: exIndex + 1,
+            sets: setsData,
+            clientNotes: '',
+            clientVoiceNotePath: voiceNotePathsRef.current[exIndex] || undefined
+          }]
+        });
+      }
+
+      if (coachId) {
+        try {
+          await apiDelete('/.netlify/functions/notifications', {
+            coachId,
+            type: 'client_exercise_note',
+            exerciseId: exercise.id,
+            workoutDate: dateStr,
+            unreadOnly: true
+          });
+        } catch (notifErr) {
+          console.error('Error deleting client note notification:', notifErr);
+        }
+      }
+
+      if (isMountedRef.current) {
+        setClientNotes(prev => ({ ...prev, [exIndex]: '' }));
+        setPersistedClientNotes(prev => ({ ...prev, [exIndex]: false }));
+      }
+    } catch (err) {
+      console.error('Error deleting client note:', err);
+    } finally {
+      if (isMountedRef.current) setDeletingClientNoteIdx(null);
+    }
+  }, [clientId, coachId, exercises, currentExIndex, persistedClientNotes, deletingClientNoteIdx, getWorkoutDateStr, workoutName, setLogs, weightUnit]);
 
   // Clean up recording on unmount
   useEffect(() => {
@@ -1283,10 +1514,25 @@ function GuidedWorkoutModal({
     };
   }, []);
 
-  // Reset voice note URL when exercise changes
+  // Reset voice note URL when exercise changes — and clear any staged-but-unsent
+  // recording so it doesn't carry over to the next exercise
   useEffect(() => {
     setVoiceNoteUrl(null);
     setShowClientNoteInput(false);
+    setPendingVoiceUrl(prevUrl => {
+      if (prevUrl) {
+        try { URL.revokeObjectURL(prevUrl); } catch { /* ignore */ }
+      }
+      return null;
+    });
+    pendingVoiceBlobRef.current = null;
+    pendingVoiceMimeRef.current = null;
+    pendingVoiceExtRef.current = null;
+    pendingVoiceExIndexRef.current = null;
+    setIsRecordingVoiceNote(false);
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      try { mediaRecorderRef.current.stop(); } catch { /* ignore */ }
+    }
   }, [currentExIndex]);
 
   // Unlock the AudioContext immediately on mount. The component mounts in
@@ -1864,8 +2110,16 @@ function GuidedWorkoutModal({
         // reps/weight for the just-completed member. memberPos advance is
         // deferred via pendingMemberPos so the UI keeps showing the finished
         // exercise (and its log inputs) during the rest.
+        // If the coach configured supersetRestSeconds on any member of this
+        // group, honor it exactly (no cap). Otherwise default to a short rest
+        // capped at 20s so the user can quickly log and move on.
+        const groupOverride = ss.groupIndices
+          .map(i => exercises[i]?.supersetRestSeconds)
+          .find(v => v != null);
         const scheduledRest = getRestForSet(exIdx, setIdx);
-        const interMemberRest = Math.min(scheduledRest || 15, 20);
+        const interMemberRest = groupOverride != null
+          ? Math.max(0, parseInt(groupOverride, 10) || 0)
+          : Math.min(scheduledRest || 15, 20);
         setSupersetState(prev => prev ? { ...prev, pendingMemberPos: nextMemberPos } : prev);
         setRestLogTarget({ exIndex: exIdx, setIndex: setIdx });
         setPhase('rest');
@@ -2699,8 +2953,68 @@ function GuidedWorkoutModal({
             ))}
           </div>
         )}
+        {/* Coach Prescribed (precedence) - replaces the algorithm card when coach set weights */}
+        {(() => {
+          const currentSetLogs = setLogs[currentExIndex] || [];
+          const hasCoachPrescription = !info.isTimed
+            && !currentExercise?.isWarmup
+            && !currentExercise?.isStretch
+            && currentExercise?.exercise_type !== 'stretch'
+            && currentExercise?.phase !== 'warmup'
+            && currentExercise?.phase !== 'cooldown'
+            && currentSetLogs.some(s => s.prescribedWeight > 0);
+          if (!hasCoachPrescription) return null;
+          const prescribedReps = currentSetLogs.find(s => s.prescribedReps > 0)?.prescribedReps
+            || currentSetLogs[0]?.prescribedReps || 0;
+          const prescribedWeight = Math.max(...currentSetLogs.map(s => s.prescribedWeight || 0));
+          const prescribedSets = currentSetLogs.length;
+          const lastSession = progressTips[currentExIndex]?.lastSession;
+          return (
+            <div className="ai-recommendation-card coach-prescribed">
+              <div className="ai-rec-header">
+                <div className="ai-rec-badge">
+                  <User size={14} />
+                  <span>Coach Prescribed</span>
+                </div>
+              </div>
+
+              <div className="ai-rec-values">
+                <div className="ai-rec-value-item">
+                  <span className="ai-rec-value-number">{prescribedSets}</span>
+                  <span className="ai-rec-value-label">sets</span>
+                </div>
+                <span className="ai-rec-value-divider">x</span>
+                <div className="ai-rec-value-item">
+                  <span className="ai-rec-value-number">{prescribedReps || '—'}</span>
+                  <span className="ai-rec-value-label">reps</span>
+                </div>
+                <span className="ai-rec-value-divider">@</span>
+                <div className="ai-rec-value-item">
+                  <span className="ai-rec-value-number">{prescribedWeight || '—'}</span>
+                  <span className="ai-rec-value-label">{weightUnit}</span>
+                </div>
+              </div>
+
+              <p className="ai-rec-reasoning">Your coach set these targets. Hit them if you can.</p>
+
+              {lastSession && (
+                <div className="ai-rec-last-session">
+                  <span>Last: {lastSession.reps} reps @ {lastSession.weight}{weightUnit}</span>
+                  <span className="ai-rec-last-date">{lastSession.date}</span>
+                </div>
+              )}
+
+              <div className="ai-rec-actions">
+                <button className="ai-rec-btn ask" onClick={handleOpenAskAI}>
+                  <MessageCircle size={16} />
+                  <span>Adjust</span>
+                </button>
+              </div>
+            </div>
+          );
+        })()}
         {/* Coaching Recommendation Card - shown prominently after exercise info */}
-        {aiRecommendations[currentExIndex] && !info.isTimed && !currentExercise?.isWarmup && !currentExercise?.isStretch && currentExercise?.exercise_type !== 'stretch' && currentExercise?.phase !== 'warmup' && currentExercise?.phase !== 'cooldown' && (
+        {aiRecommendations[currentExIndex] && !info.isTimed && !currentExercise?.isWarmup && !currentExercise?.isStretch && currentExercise?.exercise_type !== 'stretch' && currentExercise?.phase !== 'warmup' && currentExercise?.phase !== 'cooldown' && !(setLogs[currentExIndex] || []).some(s => s.prescribedWeight > 0) && (
           <div className={`ai-recommendation-card ${acceptedRecommendation[currentExIndex] ? 'accepted' : ''} ${aiRecommendations[currentExIndex]?.plateau ? 'plateau' : ''}`}>
             <div className="ai-rec-header">
               <div className="ai-rec-badge">
@@ -2793,29 +3107,73 @@ function GuidedWorkoutModal({
           </div>
         )}
 
-        {/* Coach tip buttons - voice note and/or text note */}
-        {(currentExercise.voiceNoteUrl || currentExercise.notes) && (
-          <div className="guided-coach-tips">
-            {currentExercise.voiceNoteUrl && (
+        {/* Consolidated action icon row — Coach Note, Client Note, Reference Links, YouTube */}
+        {(() => {
+          const refLinks = currentExercise.reference_links || [];
+          const youtubeLink = refLinks.find(l => l.type === 'youtube');
+          const otherLinks = refLinks.filter(l => l.type !== 'youtube');
+          return (
+            <div className="guided-action-row">
+              {currentExercise.voiceNoteUrl && (
+                <button
+                  className={`guided-action-icon voice ${playingVoiceNote ? 'playing' : ''}`}
+                  onClick={handlePlayVoiceNote}
+                  aria-label={playingVoiceNote ? 'Stop voice note' : "Coach's voice note"}
+                  title={playingVoiceNote ? 'Tap to stop' : "Coach's Voice Note"}
+                  type="button"
+                >
+                  <Mic size={18} />
+                </button>
+              )}
+              {currentExercise.notes && (
+                <button
+                  className={`guided-action-icon note ${showCoachNote ? 'active' : ''}`}
+                  onClick={() => setShowCoachNote(prev => !prev)}
+                  aria-label="Coach note"
+                  title="Coach Note"
+                  type="button"
+                >
+                  <MessageSquare size={18} />
+                </button>
+              )}
               <button
-                className={`guided-coach-tip-btn ${playingVoiceNote ? 'playing' : ''}`}
-                onClick={handlePlayVoiceNote}
+                className={`guided-action-icon client-note ${showClientNoteInput ? 'active' : ''}`}
+                onClick={() => setShowClientNoteInput(!showClientNoteInput)}
+                aria-label="Leave a note to coach"
+                title="Leave a Note to Coach"
+                type="button"
               >
-                <Mic size={16} />
-                <span>{playingVoiceNote ? 'Tap to stop' : "Coach's Voice Note"}</span>
+                <MessageCircle size={18} />
+                {clientNoteSaved[currentExIndex] && <span className="guided-action-saved-dot" />}
               </button>
-            )}
-            {currentExercise.notes && (
-              <button
-                className={`guided-coach-tip-btn text ${showCoachNote ? 'active' : ''}`}
-                onClick={() => setShowCoachNote(prev => !prev)}
-              >
-                <MessageSquare size={16} />
-                <span>Note</span>
-              </button>
-            )}
-          </div>
-        )}
+              {otherLinks.length > 0 && (
+                <button
+                  className={`guided-action-icon refs ${showReferenceLinks ? 'active' : ''}`}
+                  onClick={() => setShowReferenceLinks(prev => !prev)}
+                  aria-label="Reference links"
+                  title="Reference Links"
+                  type="button"
+                >
+                  <ExternalLink size={18} />
+                </button>
+              )}
+              {youtubeLink && (
+                <a
+                  href={youtubeLink.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="guided-action-icon youtube"
+                  aria-label="YouTube video"
+                  title="YouTube Video"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <Play size={18} />
+                </a>
+              )}
+            </div>
+          );
+        })()}
+
         {/* Text note display */}
         {showCoachNote && currentExercise.notes && (
           <div className="guided-text-note">
@@ -2823,22 +3181,9 @@ function GuidedWorkoutModal({
           </div>
         )}
 
-        {/* Leave a Note to Coach */}
-        <div className="guided-client-note-section">
-          <button
-            className="guided-client-note-toggle"
-            onClick={() => setShowClientNoteInput(!showClientNoteInput)}
-            type="button"
-          >
-            <div className="guided-client-note-toggle-left">
-              <MessageCircle size={18} />
-              <span>Leave a Note to Coach</span>
-            </div>
-            {clientNoteSaved[currentExIndex] && <span className="note-saved-badge">Saved</span>}
-            {showClientNoteInput ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-          </button>
-
-          {showClientNoteInput && (
+        {/* Leave a Note to Coach — input area shown when toggled from action row */}
+        {showClientNoteInput && (
+          <div className="guided-client-note-section">
             <div className="guided-client-note-input-area">
               <textarea
                 className="guided-client-note-textarea"
@@ -2863,11 +3208,11 @@ function GuidedWorkoutModal({
                     <button
                       className="guided-voice-note-btn"
                       onClick={startVoiceNoteRecording}
-                      disabled={voiceNoteUploading}
+                      disabled={voiceNoteUploading || !!pendingVoiceUrl || deletingVoiceNoteIdx === currentExIndex}
                       type="button"
                     >
                       <Mic size={16} />
-                      <span>{voiceNoteUploading ? 'Uploading...' : 'Voice Note'}</span>
+                      <span>{voiceNoteUploading ? 'Sending...' : 'Voice Note'}</span>
                     </button>
                   )}
                 </div>
@@ -2876,13 +3221,64 @@ function GuidedWorkoutModal({
                 </div>
               </div>
 
-              {voiceNoteUrl && (
-                <div className="guided-client-voice-note-preview">
-                  <audio controls src={voiceNoteUrl} preload="metadata" />
+              {/* Pending (recorded but not yet sent) — review-before-send */}
+              {pendingVoiceUrl && (
+                <div className="guided-client-voice-note-preview pending">
+                  {/* preload="auto": MediaRecorder blobs lack proper duration metadata at the
+                      start of the file, so with preload="metadata" the first tap on the
+                      native control is consumed loading the data and a second tap is needed
+                      to actually play. Forcing full preload makes the first tap play. */}
+                  <audio controls src={pendingVoiceUrl} preload="auto" />
+                  <div className="voice-note-pending-actions">
+                    <button
+                      type="button"
+                      className="voice-note-action-btn discard"
+                      onClick={discardPendingVoiceNote}
+                      disabled={voiceNoteUploading}
+                    >
+                      <Trash2 size={14} />
+                      <span>Discard</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="voice-note-action-btn redo"
+                      onClick={() => { discardPendingVoiceNote(); startVoiceNoteRecording(); }}
+                      disabled={voiceNoteUploading}
+                    >
+                      <Mic size={14} />
+                      <span>Re-record</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="voice-note-action-btn send"
+                      onClick={sendPendingVoiceNote}
+                      disabled={voiceNoteUploading}
+                    >
+                      <Send size={14} />
+                      <span>{voiceNoteUploading ? 'Sending...' : 'Send to Coach'}</span>
+                    </button>
+                  </div>
                 </div>
               )}
 
-              {(clientNotes[currentExIndex] || '').trim() && (
+              {/* Sent voice note — playback + delete */}
+              {!pendingVoiceUrl && voiceNoteUrl && (
+                <div className="guided-client-voice-note-preview sent">
+                  <audio controls src={voiceNoteUrl} preload="auto" />
+                  <button
+                    type="button"
+                    className="voice-note-action-btn delete-sent"
+                    onClick={deleteSentVoiceNote}
+                    disabled={deletingVoiceNoteIdx === currentExIndex || voiceNoteUploading}
+                    title="Delete voice note"
+                  >
+                    <Trash2 size={14} />
+                    <span>{deletingVoiceNoteIdx === currentExIndex ? 'Deleting...' : 'Delete'}</span>
+                  </button>
+                </div>
+              )}
+
+              {(clientNotes[currentExIndex] || '').trim() && !persistedClientNotes[currentExIndex] && (
                 <button
                   className="guided-client-note-send-btn"
                   onClick={() => saveClientNote(clientNotes[currentExIndex])}
@@ -2892,19 +3288,27 @@ function GuidedWorkoutModal({
                   <span>Send Note</span>
                 </button>
               )}
-            </div>
-          )}
-        </div>
 
-        {/* Reference Links */}
-        {currentExercise.reference_links && currentExercise.reference_links.length > 0 && (
-          <div className="guided-reference-links">
-            <div className="guided-reference-links-label">
-              <ExternalLink size={14} />
-              <span>Reference Links</span>
+              {persistedClientNotes[currentExIndex] && (
+                <button
+                  type="button"
+                  className="client-note-delete-btn"
+                  onClick={deleteSentClientNote}
+                  disabled={deletingClientNoteIdx === currentExIndex}
+                >
+                  <Trash2 size={14} />
+                  <span>{deletingClientNoteIdx === currentExIndex ? 'Deleting...' : 'Delete note'}</span>
+                </button>
+              )}
             </div>
+          </div>
+        )}
+
+        {/* Reference Links — list shown when toggled from action row (excludes YouTube, which has its own icon) */}
+        {showReferenceLinks && currentExercise.reference_links && currentExercise.reference_links.filter(l => l.type !== 'youtube').length > 0 && (
+          <div className="guided-reference-links">
             <div className="guided-reference-links-list">
-              {currentExercise.reference_links.map((link, idx) => (
+              {currentExercise.reference_links.filter(l => l.type !== 'youtube').map((link, idx) => (
                 <a
                   key={idx}
                   href={link.url}
@@ -2913,7 +3317,7 @@ function GuidedWorkoutModal({
                   className={`guided-reference-link-chip ${link.type || 'generic'}`}
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <span className="guided-ref-link-icon">{link.type === 'youtube' ? '▶' : link.type === 'instagram' ? '📷' : '🔗'}</span>
+                  <span className="guided-ref-link-icon">{link.type === 'instagram' ? '📷' : '🔗'}</span>
                   <span className="guided-ref-link-title">{link.title || 'Link'}</span>
                 </a>
               ))}
@@ -2997,22 +3401,34 @@ function GuidedWorkoutModal({
             </div>
           )
         ) : showVideo && (currentExercise?.customVideoUrl || currentExercise?.video_url || currentExercise?.animation_url) ? (
-          <div className="guided-video-container" style={{ position: 'relative' }}>
+          (() => {
+            // Per-day Custom Demos AND custom-exercise library videos are coach
+            // recordings with voice cues — play them unmuted with controls
+            // instead of as silent autoplaying demo loops (correct only for
+            // stock library animations).
+            const videoHasAudio = !!currentExercise?.customVideoUrl || currentExercise?.is_custom === true;
+            return (
+          <div
+            className="guided-video-container"
+            style={{ position: 'relative' }}
+            onClick={videoHasAudio ? (e) => e.stopPropagation() : undefined}
+          >
             <video
               key={guidedVideoKey}
               src={guidedVideoBlobUrl || currentExercise.customVideoUrl || currentExercise.video_url || currentExercise.animation_url}
-              autoPlay
-              loop
-              muted
+              autoPlay={!videoHasAudio}
+              loop={!videoHasAudio}
+              muted={!videoHasAudio}
+              controls={videoHasAudio}
               playsInline
-              preload="metadata"
+              preload={videoHasAudio ? 'auto' : 'metadata'}
               onCanPlay={() => { setGuidedVideoLoading(false); setGuidedVideoError(false); }}
               onPlaying={() => setGuidedVideoLoading(false)}
-              onWaiting={() => setGuidedVideoLoading(true)}
+              onWaiting={() => { if (!videoHasAudio) setGuidedVideoLoading(true); }}
               onError={handleGuidedVideoError}
             />
-            {guidedVideoLoading && !guidedVideoError && (
-              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)', zIndex: 2 }}>
+            {guidedVideoLoading && !guidedVideoError && !videoHasAudio && (
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)', zIndex: 2, pointerEvents: 'none' }}>
                 <Loader2 size={28} style={{ color: 'white', animation: 'spin 1s linear infinite' }} />
               </div>
             )}
@@ -3033,6 +3449,8 @@ function GuidedWorkoutModal({
               <X size={18} />
             </button>
           </div>
+            );
+          })()
         ) : (
           <div className="guided-thumbnail-wrapper">
             <SmartThumbnail

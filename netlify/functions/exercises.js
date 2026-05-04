@@ -110,7 +110,7 @@ exports.handler = async (event) => {
         .order('name', { ascending: true })
         .range(parseInt(offset), parseInt(offset) + parseInt(limit) - 1);
 
-      const { data: exercises, error, count } = await query;
+      const { data: exercises, error, count: dbTotal } = await query;
 
       if (error) throw error;
 
@@ -138,12 +138,20 @@ exports.handler = async (event) => {
         });
       }
 
+      // Total reflects the full result set in the DB (before pagination), not
+      // just this batch — clients rely on it to know when to stop paginating.
+      // When gender filtering is active we can't trust the DB count (it's
+      // applied post-query), so fall back to the batch length.
+      const total = (genderVariant && genderVariant !== 'all')
+        ? filteredExercises.length
+        : (typeof dbTotal === 'number' ? dbTotal : filteredExercises.length);
+
       return {
         statusCode: 200,
         headers,
         body: JSON.stringify({
           exercises: filteredExercises,
-          total: genderVariant && genderVariant !== 'all' ? filteredExercises.length : count,
+          total,
           limit: parseInt(limit),
           offset: parseInt(offset)
         })

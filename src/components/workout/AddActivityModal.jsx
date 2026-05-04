@@ -7,6 +7,59 @@ import SmartThumbnail from './SmartThumbnail';
 const INITIAL_DISPLAY_COUNT = 30;
 const LOAD_MORE_COUNT = 30;
 
+// ── Exercise list cache ──
+// The exercise library is essentially static (~3000 rows) and the previous
+// implementation re-fetched it on every modal open. After the iOS app is
+// backgrounded, that fetch could stall for up to 60s — Netlify cold start +
+// suspended TCP socket + the 15s timeout + 401-retry path on top of an SW
+// `X-Cache-Bypass` header set during the resume window.
+//
+// Two-tier cache:
+//  • In-memory Map — survives modal mount/unmount within the SPA session.
+//  • localStorage — survives a full app kill / WebView eviction on iOS.
+// Stale data is always shown instantly; a background revalidate keeps it
+// fresh. Concurrent opens share the same in-flight request.
+const exerciseCache = new Map(); // cacheKey -> { exercises, timestamp }
+const inflightExerciseFetch = new Map(); // cacheKey -> Promise<exercises[]>
+const EXERCISE_CACHE_FRESH_MS = 60 * 60 * 1000; // 1 hour
+const EXERCISE_LS_PREFIX = 'zique-exercise-cache-v1:';
+
+const buildExerciseCacheKey = (coachId, genderPreference) =>
+  `${coachId || 'none'}|${genderPreference || 'all'}`;
+
+const buildExercisesUrl = (coachId, genderPreference) => {
+  let url = '/.netlify/functions/exercises?limit=3000';
+  if (coachId) url += `&coachId=${coachId}`;
+  if (genderPreference && genderPreference !== 'all') {
+    url += `&genderVariant=${genderPreference}`;
+  }
+  return url;
+};
+
+const readExerciseCache = (cacheKey) => {
+  const mem = exerciseCache.get(cacheKey);
+  if (mem) return mem;
+  try {
+    const raw = localStorage.getItem(EXERCISE_LS_PREFIX + cacheKey);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || !Array.isArray(parsed.exercises)) return null;
+    exerciseCache.set(cacheKey, parsed); // hydrate in-memory
+    return parsed;
+  } catch {
+    return null;
+  }
+};
+
+const writeExerciseCache = (cacheKey, entry) => {
+  exerciseCache.set(cacheKey, entry);
+  try {
+    localStorage.setItem(EXERCISE_LS_PREFIX + cacheKey, JSON.stringify(entry));
+  } catch {
+    // Quota exceeded or private mode — in-memory cache still works.
+  }
+};
+
 // Check if URL is an image (not a video)
 const isImageUrl = (url) => {
   if (!url) return false;
@@ -22,40 +75,174 @@ const getExerciseThumbnail = (exercise) => {
   return '/img/exercise-placeholder.svg';
 };
 
-// Fuzzy search - score how well a query matches an exercise
+// ===== Fuzzy exercise search (v2 — typo & partial-match tolerant) =====
+// Same engine as coach-workouts.html. Pipeline:
+//   1. Direct name hits (exact / prefix / substring) — highest scores.
+//   2. Weighted token coverage — query tokens matched against name then
+//      haystack (muscles, equipment). >=50% weighted coverage required, so
+//      "overhead seated dumbbell extension" finds "Triceps extension seated - DB".
+//   3. Trigram similarity (Dice coefficient) for typo tolerance —
+//      "tirceps" matches "triceps", "dumbel" matches "dumbbell".
+//   4. Soft positional modifiers (overhead/seated/incline/etc.) carry
+//      lower weight, so they don't disqualify a match when missing.
+//   5. Movement-pattern aliases — "skullcrusher" finds lying triceps extensions.
+const FUZZY_SYNONYMS = {
+  'pushup': ['push up'], 'pushups': ['push up'], 'pushp': ['push up'],
+  'pullup': ['pull up'], 'pullups': ['pull up'],
+  'chinup': ['chin up'], 'chinups': ['chin up'],
+  'situp': ['sit up'], 'situps': ['sit up'],
+  'stepup': ['step up'], 'stepups': ['step up'],
+  'stepdown': ['step down'],
+  'deadlift': ['dead lift'], 'deadlifts': ['dead lift'],
+  'tricep': ['triceps'], 'triceps': ['tricep'],
+  'bicep': ['biceps'], 'biceps': ['bicep'],
+  'ab': ['abs', 'abdominal'], 'abs': ['abdominal', 'abdominals'],
+  'db': ['dumbbell'], 'dumbell': ['dumbbell'], 'dumbells': ['dumbbell'],
+  'dumbbell': ['db'], 'dumbbells': ['db'],
+  'bb': ['barbell'], 'barbel': ['barbell'], 'barbells': ['barbell'],
+  'barbell': ['bb'],
+  'kb': ['kettlebell'], 'kettle': ['kettlebell'], 'kettlebells': ['kettlebell'],
+  'kettlebell': ['kb'],
+  'bw': ['bodyweight'], 'bodyweigh': ['bodyweight'],
+  'lat': ['lats', 'latissimus'], 'lats': ['lat', 'latissimus'],
+  'glute': ['glutes'], 'glutes': ['glute'],
+  'delt': ['delts', 'deltoid'], 'delts': ['delt', 'deltoid'], 'deltoid': ['delt'], 'deltoids': ['delt'],
+  'quad': ['quads', 'quadriceps'], 'quads': ['quad', 'quadriceps'], 'quadricep': ['quad'], 'quadriceps': ['quad'],
+  'ham': ['hamstring'], 'hams': ['hamstring'], 'hamstrings': ['hamstring'],
+  'pec': ['pecs', 'pectoral'], 'pecs': ['pec', 'pectoral'], 'pectoral': ['pec'], 'pectorals': ['pec'],
+  'calves': ['calf'], 'calf': ['calves'],
+  'knees': ['knee'], 'knee': ['knees'],
+  'rdl': ['romanian dead lift', 'romanian deadlift', 'stiff leg deadlift', 'stiff legged deadlift'],
+  'ohp': ['overhead press'], 'bp': ['bench press']
+};
+
+const MOVEMENT_ALIASES = [
+  { slang: ['skullcrusher', 'skullcrushers', 'skull crusher', 'skull crushers'],
+    requires: ['lying', 'triceps', 'extension'] },
+  { slang: ['lawnmower', 'lawnmowers', 'lawn mower', 'lawn mowers'],
+    requires: ['single', 'arm', 'row'] },
+  { slang: ['suitcase', 'suitcase carry', 'suitcase carries'],
+    requires: ['single', 'arm', 'farmer'] },
+  { slang: ['hip thrust', 'hip thrusts'],
+    requires: ['glute', 'bridge'] },
+  { slang: ['rdl', 'romanian deadlift', 'romanian dead lift'],
+    requires: ['stiff', 'leg', 'deadlift'] }
+];
+
+const SOFT_MODIFIERS = new Set([
+  'seated', 'standing', 'lying', 'kneeling', 'incline', 'decline',
+  'flat', 'overhead', 'reverse', 'wide', 'narrow', 'close',
+  'underhand', 'overhand', 'alternating', 'single', 'one', 'unilateral',
+  'bilateral', 'machine', 'free', 'weighted', 'assisted', 'with', 'and'
+]);
+
+const normalizeForSearch = (str) =>
+  (str || '').toLowerCase().replace(/[^\w\s]+/g, ' ').replace(/\s+/g, ' ').trim();
+
+const expandSearchToken = (token) => {
+  const variants = new Set([token]);
+  if (FUZZY_SYNONYMS[token]) FUZZY_SYNONYMS[token].forEach(v => variants.add(v));
+  if (token.length > 3 && token.endsWith('s')) variants.add(token.slice(0, -1));
+  else if (token.length > 2) variants.add(token + 's');
+  if (token.length > 4 && token.endsWith('ing')) variants.add(token.slice(0, -3));
+  if (token.length > 3 && token.endsWith('ed')) variants.add(token.slice(0, -2));
+  return Array.from(variants);
+};
+
+const getExerciseSearchText = (ex) => {
+  if (ex._searchText) return ex._searchText;
+  const nameNorm = normalizeForSearch(ex.name);
+  const secondary = Array.isArray(ex.secondary_muscles)
+    ? ex.secondary_muscles.join(' ')
+    : (ex.secondary_muscles || '');
+  const baseParts = [
+    ex.name, ex.muscle_group, ex.primary_muscles,
+    secondary, ex.equipment, ex.exercise_type, ex.category
+  ].filter(Boolean).join(' ');
+  let combined = normalizeForSearch(baseParts);
+  const aliasTerms = [];
+  for (const entry of MOVEMENT_ALIASES) {
+    if (entry.requires.every(t => nameNorm.includes(t))) aliasTerms.push(...entry.slang);
+  }
+  if (aliasTerms.length) combined += ' ' + aliasTerms.join(' ');
+  ex._searchText = combined;
+  ex._nameNorm = nameNorm;
+  return combined;
+};
+
+const trigramSet = (s) => {
+  const padded = `  ${s}  `;
+  const set = new Set();
+  for (let i = 0; i <= padded.length - 3; i++) set.add(padded.substr(i, 3));
+  return set;
+};
+
+const trigramSimilarity = (a, b) => {
+  if (!a || !b || a.length < 3 || b.length < 3) return 0;
+  const A = trigramSet(a);
+  const B = trigramSet(b);
+  let inter = 0;
+  for (const t of A) if (B.has(t)) inter++;
+  return (2 * inter) / (A.size + B.size);
+};
+
+const bestWordTrigramSim = (token, text) => {
+  let best = 0;
+  for (const w of text.split(' ')) {
+    if (w.length < 3) continue;
+    const s = trigramSimilarity(token, w);
+    if (s > best) best = s;
+  }
+  return best;
+};
+
+// Score an exercise against a query. Returns 0 when the exercise should be hidden.
 const fuzzyScore = (exercise, query) => {
   if (!query || !exercise?.name) return 0;
+  const q = normalizeForSearch(query);
+  if (!q) return 0;
 
-  const queryWords = query.toLowerCase().trim().split(/\s+/);
-  const name = (exercise.name || '').toLowerCase();
-  const equipment = (exercise.equipment || '').toLowerCase();
-  const muscle = (exercise.muscle_group || '').toLowerCase();
-  const difficulty = (exercise.difficulty || '').toLowerCase();
-  const fullText = `${name} ${equipment} ${muscle} ${difficulty}`;
+  const haystack = getExerciseSearchText(exercise);
+  const nameNorm = exercise._nameNorm || normalizeForSearch(exercise.name);
 
-  let score = 0;
+  if (nameNorm === q) return 10000;
+  if (nameNorm.startsWith(q)) return 8000;
+  if (nameNorm.includes(q)) return 6000;
+  if (haystack.includes(q)) return 4000;
 
-  // Check if ALL query words appear somewhere
-  const allWordsMatch = queryWords.every(word => fullText.includes(word));
-  if (allWordsMatch) score += 100;
+  const tokens = q.split(' ').filter(Boolean);
+  if (tokens.length === 0) return 0;
 
-  // Check each query word
-  for (const word of queryWords) {
-    if (word.length < 2) continue;
-
-    // Exact name match
-    if (name === word) score += 50;
-    // Name starts with word
-    else if (name.startsWith(word)) score += 30;
-    // Word appears in name
-    else if (name.includes(word)) score += 20;
-    // Word appears in equipment
-    else if (equipment.includes(word)) score += 10;
-    // Word appears in muscle
-    else if (muscle.includes(word)) score += 5;
+  let coverage = 0, nameHits = 0, trigramBoost = 0, totalWeight = 0;
+  for (const token of tokens) {
+    const weight = SOFT_MODIFIERS.has(token) ? 0.4 : 1.0;
+    totalWeight += weight;
+    const variants = expandSearchToken(token);
+    let inName = false, inHay = false;
+    for (const v of variants) if (nameNorm.includes(v)) { inName = true; break; }
+    if (!inName) for (const v of variants) if (haystack.includes(v)) { inHay = true; break; }
+    if (inName) { coverage += weight; nameHits += weight; }
+    else if (inHay) { coverage += weight * 0.7; }
+    else if (token.length >= 4) {
+      const sim = Math.max(
+        bestWordTrigramSim(token, nameNorm),
+        bestWordTrigramSim(token, haystack) * 0.85
+      );
+      if (sim >= 0.5) { coverage += weight * sim; trigramBoost += sim; }
+    }
   }
 
-  return score;
+  if (totalWeight === 0) return 0;
+  const ratio = coverage / totalWeight;
+  if (ratio < 0.5) return 0;
+
+  const nameRatio = nameHits / totalWeight;
+  const lengthPenalty = Math.max(0, nameNorm.length - 30);
+  const score = Math.round(ratio * 2000)
+              + Math.round(nameRatio * 1500)
+              + Math.round(trigramBoost * 200)
+              - lengthPenalty;
+  return Math.max(score, 1);
 };
 
 const MUSCLE_GROUPS = [
@@ -374,45 +561,62 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelec
     recognition.start();
   }, [isListening]);
 
-  // Fetch all exercises with cleanup
+  // Fetch all exercises with cleanup.
+  //
+  // Serves cached data instantly (skipping the spinner) when available, and
+  // revalidates in the background. Concurrent opens share a single in-flight
+  // request via `inflightExerciseFetch`, so reopening the modal mid-fetch
+  // doesn't kick off a duplicate Netlify call.
   useEffect(() => {
     isMountedRef.current = true;
 
-    const fetchExercises = async () => {
-      if (!isMountedRef.current) return;
-      setLoading(true);
+    const cacheKey = buildExerciseCacheKey(coachId, genderPreference);
+    const cached = readExerciseCache(cacheKey);
+    const isFresh = cached && (Date.now() - cached.timestamp) < EXERCISE_CACHE_FRESH_MS;
+
+    if (cached) {
+      // Show cached list immediately — no spinner, no blocking on network.
+      setExercises(cached.exercises);
+      setLoading(false);
+    }
+
+    // Skip the network call entirely if cache is fresh enough.
+    if (isFresh) {
+      return () => {
+        isMountedRef.current = false;
+        if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+      };
+    }
+
+    const runFetch = async () => {
+      let promise = inflightExerciseFetch.get(cacheKey);
+      if (!promise) {
+        const url = buildExercisesUrl(coachId, genderPreference);
+        promise = apiGet(url).then(res => res?.exercises || []);
+        inflightExerciseFetch.set(cacheKey, promise);
+        promise.finally(() => {
+          if (inflightExerciseFetch.get(cacheKey) === promise) {
+            inflightExerciseFetch.delete(cacheKey);
+          }
+        });
+      }
 
       try {
-        // Build URL with gender preference filter and coachId for custom exercises
-        let url = '/.netlify/functions/exercises?limit=3000';
-        // Include coachId to show coach's custom exercises alongside global exercises
-        if (coachId) {
-          url += `&coachId=${coachId}`;
-        }
-        if (genderPreference && genderPreference !== 'all') {
-          url += `&genderVariant=${genderPreference}`;
-        }
-        const res = await apiGet(url);
-
+        const list = await promise;
+        writeExerciseCache(cacheKey, { exercises: list, timestamp: Date.now() });
         if (!isMountedRef.current) return;
-
-        if (res?.exercises) {
-          setExercises(res.exercises);
-        } else {
-          setExercises([]);
-        }
+        setExercises(list);
       } catch (error) {
         if (!isMountedRef.current) return;
         console.error('Error fetching exercises:', error);
-        setExercises([]);
-      }
-
-      if (isMountedRef.current) {
-        setLoading(false);
+        // Only blank out the list if we have nothing cached to fall back to.
+        if (!cached) setExercises([]);
+      } finally {
+        if (isMountedRef.current) setLoading(false);
       }
     };
 
-    fetchExercises();
+    runFetch();
 
     return () => {
       isMountedRef.current = false;

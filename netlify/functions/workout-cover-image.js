@@ -48,14 +48,19 @@ function sleep(ms) {
 }
 
 // Generate image with Replicate
-async function generateCoverImage(programName, programType, description) {
-  // Build a fitness-focused prompt
+async function generateCoverImage(programName, programType, description, customPrompt) {
+  // If the coach provided a custom description, lead with it. Otherwise fall back
+  // to the program-type description.
+  const sceneLine = customPrompt && customPrompt.trim()
+    ? `Scene (coach's description): ${customPrompt.trim()}.`
+    : `Scene: ${description}.`;
+
   const prompt = `Professional fitness photography for a workout program called "${programName}".
-Scene: ${description}.
+${sceneLine}
 Style: Modern fitness aesthetic, motivational, professional gym or training environment.
 Mood: Energetic, inspiring, powerful.
 Composition: Wide aspect ratio suitable for a cover image.
-Technical: High quality, sharp focus, dramatic lighting.
+Technical: High quality, sharp focus, dramatic lighting, shot on 35mm, shallow depth of field.
 No text, words, logos, or watermarks.`;
 
   // Use Google Imagen 4 Fast (same as meal-image.js)
@@ -165,7 +170,7 @@ exports.handler = async (event) => {
 
   try {
     const body = JSON.parse(event.body || '{}');
-    const { programName, programType, description } = body;
+    const { programName, programType, description, customPrompt } = body;
 
     if (!programName) {
       return {
@@ -178,7 +183,7 @@ exports.handler = async (event) => {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
     // Generate the image
-    const generatedImageUrl = await generateCoverImage(programName, programType, description);
+    const generatedImageUrl = await generateCoverImage(programName, programType, description, customPrompt);
 
     // Download the generated image
     const imageBuffer = await downloadImage(generatedImageUrl);

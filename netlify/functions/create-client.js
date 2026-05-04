@@ -31,7 +31,9 @@ exports.handler = async (event, context) => {
       useBrandedFoods,
       password, // Optional: if provided, create auth user immediately
       // Equipment restrictions
-      unavailableEquipment
+      unavailableEquipment,
+      // Health & Limitations (workout AI)
+      healthConcerns, healthFlags
     } = body;
 
     // Validate required fields
@@ -222,6 +224,9 @@ exports.handler = async (event, context) => {
           allergies: allergies || null,
           disliked_foods: dislikedFoods || null,
           preferred_foods: preferredFoods || null,
+          // Health & Limitations (workout AI)
+          health_concerns: healthConcerns || null,
+          health_flags: healthFlags || {},
           // Equipment
           cooking_equipment: cookingEquipment || [],
           // Protein powder

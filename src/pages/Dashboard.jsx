@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
-import { Camera, Search, Heart, ScanLine, Mic, ChevronRight, ChevronDown, BarChart3, ClipboardCheck, TrendingUp, BookOpen, Pill, ChefHat, Check, CheckCircle, Minus, Plus, X, Sunrise, Sun, Moon, Coffee, Trophy, UserCircle } from 'lucide-react';
+import { Camera, Search, Heart, ScanLine, Mic, ChevronRight, ChevronDown, BarChart3, ClipboardCheck, TrendingUp, BookOpen, Pill, ChefHat, Check, CheckCircle, Minus, Plus, X, Sunrise, Sun, Moon, Coffee, Trophy, UserCircle, Scale } from 'lucide-react';
 import InstallAppBanner from '../components/InstallAppBanner';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, apiDelete } from '../utils/api';
@@ -8,6 +8,8 @@ import { SnapPhotoModal, SearchFoodsModal, FavoritesModal, ScanLabelModal } from
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
 import { onAppResume } from '../hooks/useAppLifecycle';
 import { useToast } from '../components/Toast';
+
+const WeightProofModal = lazy(() => import('../components/WeightProofModal'));
 
 // localStorage cache helpers
 const getCache = (key) => {
@@ -70,6 +72,7 @@ function Dashboard() {
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [favoritesModalOpen, setFavoritesModalOpen] = useState(false);
   const [scanLabelModalOpen, setScanLabelModalOpen] = useState(false);
+  const [weightProofOpen, setWeightProofOpen] = useState(false);
 
   // Voice input state
   const [isRecording, setIsRecording] = useState(false);
@@ -1067,6 +1070,22 @@ function Dashboard() {
         </div>
       </div>
 
+      {/* Weigh-In Banner — AI reads scale photo and logs into measurements */}
+      <button
+        className="gym-proof-banner weight-proof-banner"
+        onClick={() => setWeightProofOpen(true)}
+        aria-label="Open weigh-in"
+      >
+        <div className="gym-proof-banner-icon weight-proof-banner-icon">
+          <Scale size={20} />
+        </div>
+        <div className="gym-proof-banner-text">
+          <span className="gym-proof-banner-title">Weigh-In</span>
+          <span className="gym-proof-banner-sub">Snap your scale — AI logs the number for you</span>
+        </div>
+        <ChevronRight size={18} className="gym-proof-banner-arrow" />
+      </button>
+
       {/* Today's Progress Card */}
       <div className="progress-card">
         <div className="progress-card-header">
@@ -1317,6 +1336,14 @@ function Dashboard() {
         clientData={clientData}
         onFoodLogged={handleFoodLogged}
       />
+      {weightProofOpen && (
+        <Suspense fallback={null}>
+          <WeightProofModal
+            isOpen={weightProofOpen}
+            onClose={() => setWeightProofOpen(false)}
+          />
+        </Suspense>
+      )}
     </div>
   );
 }

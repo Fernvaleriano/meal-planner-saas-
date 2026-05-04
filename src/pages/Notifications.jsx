@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Check, Bell, MessageCircle, Heart, Dumbbell, UtensilsCrossed, FileText, Award, Trophy } from 'lucide-react';
+import { ArrowLeft, Check, Bell, MessageCircle, Heart, Dumbbell, UtensilsCrossed, FileText, Award, Trophy, Ruler, Camera, ClipboardCheck, MapPin } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost } from '../utils/api';
 import NotificationDetail from '../components/NotificationDetail';
@@ -76,6 +76,11 @@ function Notifications() {
       case 'workout_assigned': return <Dumbbell size={18} />;
       case 'pr_reaction': return <Trophy size={18} />;
       case 'note_reaction': return <Award size={18} />;
+      case 'workout_reaction': return <Dumbbell size={18} />;
+      case 'measurement_reaction': return <Ruler size={18} />;
+      case 'photo_reaction': return <Camera size={18} />;
+      case 'gym_checkin_reaction': return <MapPin size={18} />;
+      case 'checkin_reaction': return <ClipboardCheck size={18} />;
       case 'coach_responded': return <MessageCircle size={18} />;
       default: return <Bell size={18} />;
     }
@@ -89,6 +94,11 @@ function Notifications() {
       case 'workout_assigned': return 'notif-icon workout';
       case 'pr_reaction': return 'notif-icon reaction';
       case 'note_reaction': return 'notif-icon reaction';
+      case 'workout_reaction': return 'notif-icon reaction';
+      case 'measurement_reaction': return 'notif-icon reaction';
+      case 'photo_reaction': return 'notif-icon reaction';
+      case 'gym_checkin_reaction': return 'notif-icon reaction';
+      case 'checkin_reaction': return 'notif-icon reaction';
       case 'coach_responded': return 'notif-icon comment';
       default: return 'notif-icon default';
     }
@@ -128,9 +138,18 @@ function Notifications() {
       navigate(meta.plan_id ? `/plans/${meta.plan_id}` : '/plans');
     } else if (notif.type === 'workout_assigned') {
       navigate(meta.start_date ? `/workouts?date=${encodeURIComponent(meta.start_date)}` : '/workouts');
-    } else if (notif.type === 'pr_reaction' || notif.type === 'note_reaction') {
+    } else if (notif.type === 'pr_reaction' || notif.type === 'note_reaction' || notif.type === 'workout_reaction') {
       navigate('/workout-history');
+    } else if (notif.type === 'measurement_reaction') {
+      navigate('/progress?tab=measurements');
+    } else if (notif.type === 'photo_reaction') {
+      navigate('/progress?tab=photos');
+    } else if (notif.type === 'checkin_reaction') {
+      navigate('/check-in');
+    } else if (notif.type === 'chat_message') {
+      navigate('/messages');
     }
+    // weigh_in_reaction and gym_checkin_reaction: mark as read, no navigation
   };
 
   return (

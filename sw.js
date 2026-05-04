@@ -1,7 +1,7 @@
 // Zique Fitness PWA Service Worker
 const CACHE_NAME = 'zique-fitness-v14';
 const STATIC_CACHE = 'zique-static-v14';
-const DATA_CACHE = 'zique-data-v11';
+const DATA_CACHE = 'zique-data-v12';
 const CDN_CACHE = 'zique-cdn-v7';
 
 // Files to cache for offline use
@@ -73,6 +73,17 @@ const CACHEABLE_API_PATTERNS = [
 // revalidation is prioritized.
 const DATA_CACHE_MAX_AGE = 5 * 60 * 1000;
 
+// API endpoints that must ALWAYS go network-first (cache is offline-only fallback).
+// These hold data the coach can edit at any moment and propagate to clients —
+// serving stale cache here causes the "I saved a change but the client still
+// sees the old value" bug. The X-Cache-Bypass header path already handles this
+// correctly on resume; these patterns extend the same behaviour to every fetch.
+const NETWORK_FIRST_API_PATTERNS = [
+  /\/\.netlify\/functions\/workout-assignments/,
+  /\/\.netlify\/functions\/workout-logs/,
+  /\/\.netlify\/functions\/adhoc-workouts/
+];
+
 // Install event - cache static files and CDN resources
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -124,6 +135,11 @@ function isCacheableAPI(url) {
   return CACHEABLE_API_PATTERNS.some(pattern => pattern.test(url.pathname));
 }
 
+// Check if URL must be served network-first (cache only as offline fallback)
+function isNetworkFirstAPI(url) {
+  return NETWORK_FIRST_API_PATTERNS.some(pattern => pattern.test(url.pathname));
+}
+
 // Fetch event - serve from cache, fallback to network
 self.addEventListener('fetch', (event) => {
   const { request } = event;
@@ -153,7 +169,8 @@ self.addEventListener('fetch', (event) => {
   // try network, fall back to cache. This ensures resume refetches get FRESH data
   // instead of stale cache entries from before the app was backgrounded.
   if (url.pathname.startsWith('/.netlify/') && isCacheableAPI(url)) {
-    const bypassCache = request.headers.get('X-Cache-Bypass') === '1';
+    const bypassCache =
+      request.headers.get('X-Cache-Bypass') === '1' || isNetworkFirstAPI(url);
 
     if (bypassCache) {
       // NETWORK-FIRST: Resume refetch — get fresh data, fall back to cache

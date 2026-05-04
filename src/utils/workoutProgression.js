@@ -52,6 +52,25 @@ export const parseSetsData = (session) => {
 // Get max weight from a set array
 export const getMaxWeight = (sets) => sets.reduce((max, s) => Math.max(max, s.weight || 0), 0);
 
+// Normalize free-form weight unit strings (e.g. 'lb', 'lbs', 'LB', 'kg') to canonical 'lbs' | 'kg'
+export const normalizeWeightUnit = (u) => {
+  const s = (u || '').toString().toLowerCase();
+  if (s === 'kg' || s === 'kgs' || s === 'kilogram' || s === 'kilograms') return 'kg';
+  return 'lbs';
+};
+
+// Convert a numeric weight between lbs and kg, rounded to 1 decimal place
+export const convertWeight = (value, fromUnit, toUnit) => {
+  const v = Number(value) || 0;
+  if (v === 0) return 0;
+  const from = normalizeWeightUnit(fromUnit);
+  const to = normalizeWeightUnit(toUnit);
+  if (from === to) return v;
+  if (from === 'lbs' && to === 'kg') return Math.round(v * 0.45359237 * 10) / 10;
+  if (from === 'kg' && to === 'lbs') return Math.round(v * 2.20462262 * 10) / 10;
+  return v;
+};
+
 // Detect if exercise is compound based on name or explicit flag
 export const isCompoundExercise = (exercise) => {
   if (exercise?.is_compound !== undefined) return !!exercise.is_compound;
@@ -292,11 +311,39 @@ export const generateProgression = ({ previousSessions, exercise, weightUnit, la
   }
 
   // --- Extended context for long gaps ---
-  if (daysSinceLast !== null && daysSinceLast >= 14) {
-    // 2+ weeks off — suggest conservative approach
-    recommendedWeight = roundToGymWeight(lastMaxWeight * 0.9, weightIncrement);
-    recommendedReps = lastMaxReps;
-    reasoning = `It's been ${daysSinceLast} days since your last session. Ease back in at ${recommendedWeight}${weightUnit} and match your previous reps.`;
+  // Graded deload by layoff length. 0–13 days: no reduction (short breaks and
+  // planned deloads often produce a bounce). 60+ days: restart from a starting
+  // weight rather than anchoring on numbers that no longer apply.
+  if (daysSinceLast !== null && daysSinceLast >= 60) {
+    const oldestSession = previousSessions[previousSessions.length - 1];
+    const oldestWeight = oldestSession ? getMaxWeight(parseSetsData(oldestSession)) : 0;
+    const prescribedSetWeight = Array.isArray(exercise?.setsData) && Number(exercise.setsData[0]?.weight) > 0
+      ? Number(exercise.setsData[0].weight) : 0;
+    const startingWeight =
+      prescribedSetWeight > 0 ? prescribedSetWeight :
+      (oldestWeight > 0 && oldestWeight < lastMaxWeight) ? oldestWeight :
+      lastMaxWeight * 0.5;
+    recommendedWeight = roundToGymWeight(startingWeight, weightIncrement);
+    recommendedReps = isCompoundExercise(exercise) ? Math.max(lastMaxReps - 1, 1) : lastMaxReps;
+    reasoning = `It's been ${daysSinceLast} days — that's a long layoff. Restart at ${recommendedWeight}${weightUnit} (your starting weight) and rebuild from there.`;
+  } else if (daysSinceLast !== null && daysSinceLast >= 14) {
+    let pct;
+    let repAdjust = 0;
+    if (daysSinceLast >= 45) {
+      pct = 0.55;
+      if (isCompoundExercise(exercise)) repAdjust = -1;
+    } else if (daysSinceLast >= 30) {
+      pct = 0.65;
+      if (isCompoundExercise(exercise)) repAdjust = -1;
+    } else if (daysSinceLast >= 21) {
+      pct = 0.70;
+    } else {
+      pct = 0.80;
+    }
+    recommendedWeight = roundToGymWeight(lastMaxWeight * pct, weightIncrement);
+    recommendedReps = Math.max(lastMaxReps + repAdjust, 1);
+    const repNote = repAdjust < 0 ? ` and drop ${-repAdjust} rep for technique` : ' and match your previous reps';
+    reasoning = `It's been ${daysSinceLast} days since your last session. Ease back in at ${recommendedWeight}${weightUnit} (~${Math.round(pct * 100)}% of last time)${repNote}.`;
   }
 
   const effortLabel = effectiveEffort === 'easy' ? 'felt easy'
@@ -324,4 +371,112 @@ export const generateProgression = ({ previousSessions, exercise, weightUnit, la
     },
     progressMessage: `On ${dateLabel}: ${lastMaxReps} reps @ ${lastMaxWeight} ${weightUnit}${effortLabel ? ` (${effortLabel})` : ''}${plateauDetected ? ' — plateau detected' : ''}.`,
   };
+};
+
+/**
+ * Generate a one-shot coaching nudge after the client logs their first set
+ * of an exercise. Compares actual performance against the prescribed targets
+ * (and effort, if logged) and returns a short push message guiding intensity
+ * for the remaining sets.
+ *
+ * @param {Object} params
+ * @param {number} params.actualReps - Reps the client just logged
+ * @param {number} params.actualWeight - Weight the client just logged (in their unit)
+ * @param {number} params.prescribedReps - Coach's prescribed reps (or 0 if none)
+ * @param {number} params.prescribedWeight - Coach's prescribed weight (or 0 if none)
+ * @param {string|null} params.effort - 'easy' | 'moderate' | 'hard' | 'maxed' | null
+ * @param {string} params.weightUnit - 'lbs' or 'kg'
+ * @param {Object} params.exercise - Exercise object (used for compound detection / increment)
+ * @returns {{ icon: string, title: string, message: string } | null}
+ */
+export const generateSetNudge = ({
+  actualReps,
+  actualWeight,
+  prescribedReps,
+  prescribedWeight,
+  effort,
+  weightUnit,
+  exercise,
+}) => {
+  if (!actualReps && !actualWeight) return null;
+
+  const hasPrescribedReps = prescribedReps > 0;
+  const hasPrescribedWeight = prescribedWeight > 0;
+  const hasEffort = effort && EFFORT_TO_RIR[effort] !== undefined;
+
+  if (!hasPrescribedReps && !hasPrescribedWeight && !hasEffort) return null;
+
+  const increment = getWeightIncrement(exercise, weightUnit);
+  const repsDiff = hasPrescribedReps ? actualReps - prescribedReps : 0;
+
+  if (hasEffort) {
+    if (effort === 'easy') {
+      if (hasPrescribedWeight && actualWeight > 0) {
+        const next = roundToGymWeight(actualWeight + increment, increment);
+        return {
+          icon: '\u{1F4AA}',
+          title: 'Crushed it — push harder',
+          message: `Felt easy at ${actualWeight}${weightUnit}. Try ${next}${weightUnit} on the next set if it stays clean.`,
+        };
+      }
+      return {
+        icon: '\u{1F4AA}',
+        title: 'Crushed it — push harder',
+        message: 'Felt easy. Aim for more reps on the next set.',
+      };
+    }
+    if (effort === 'moderate') {
+      return {
+        icon: '\u{1F44D}',
+        title: 'Solid start',
+        message: 'Match this on the next sets — push for one more rep if it stays under control.',
+      };
+    }
+    if (effort === 'hard') {
+      return {
+        icon: '\u{1F525}',
+        title: 'Strong work',
+        message: 'Tough but in control. Hold this weight and aim to match the reps.',
+      };
+    }
+    if (effort === 'maxed') {
+      return {
+        icon: '\u{1F975}',
+        title: 'You went all out',
+        message: 'Drop a couple reps on the next set so you finish strong with good form.',
+      };
+    }
+  }
+
+  if (hasPrescribedReps) {
+    if (repsDiff >= 2) {
+      if (hasPrescribedWeight && actualWeight > 0) {
+        const next = roundToGymWeight(actualWeight + increment, increment);
+        return {
+          icon: '\u{1F4AA}',
+          title: 'Reps to spare',
+          message: `Hit ${actualReps} (target ${prescribedReps}). Try ${next}${weightUnit} on the next set.`,
+        };
+      }
+      return {
+        icon: '\u{1F4AA}',
+        title: 'Reps to spare',
+        message: `Hit ${actualReps} cleanly (target ${prescribedReps}). Push for more on the next set.`,
+      };
+    }
+    if (repsDiff <= -2) {
+      return {
+        icon: '\u{1F3AF}',
+        title: 'Stay sharp',
+        message: 'Came up short on reps. Hold the weight and focus on form — you’ll get there.',
+      };
+    }
+    return {
+      icon: '✅',
+      title: 'On target',
+      message: 'Hit your reps. Match this on the next sets.',
+    };
+  }
+
+  return null;
 };

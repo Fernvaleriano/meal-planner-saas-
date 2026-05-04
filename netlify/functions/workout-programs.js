@@ -195,6 +195,11 @@ exports.handler = async (event) => {
           query = query.eq('coach_id', program.coach_id);
         }
 
+        // If specific assignment IDs were provided, restrict propagation to those only
+        if (Array.isArray(updateData.assignmentIds) && updateData.assignmentIds.length > 0) {
+          query = query.in('id', updateData.assignmentIds);
+        }
+
         const { data: activeAssignments, error: fetchError } = await query;
 
         if (fetchError) {

@@ -1011,19 +1011,24 @@ function Workouts() {
         apiGet(`/.netlify/functions/workout-logs?clientId=${clientData.id}&date=${dateStr}`).catch(() => null)
       ]);
 
+      // If the user navigated to a different day while this refresh was in
+      // flight (common right after app resume — the resume handler kicks off
+      // a refresh and the user immediately taps a day), abandon. Otherwise
+      // we'd clobber the new day's data with stale-for-the-current-view
+      // results.
+      if (formatDate(selectedDateRef.current) !== dateStr) {
+        return;
+      }
+
       const allWorkouts = [];
 
-      // Process assignments - refresh signed URLs in parallel
+      // Add assignments immediately (without waiting for signed URL refresh) —
+      // matches fetchWorkout's pattern. The signed URL refresh is fired in the
+      // background AFTER state is set (see below) so the UI updates instantly
+      // on resume instead of waiting 1-3s for storage.from(...).createSignedUrls
+      // round-trips.
       if (assignmentRes?.assignments?.length > 0) {
-        const refreshedAssignments = await Promise.all(
-          assignmentRes.assignments.map(async (assignment) => {
-            if (assignment.workout_data) {
-              assignment.workout_data = await refreshSignedUrls(assignment.workout_data, assignment.coach_id);
-            }
-            return assignment;
-          })
-        );
-        allWorkouts.push(...refreshedAssignments);
+        assignmentRes.assignments.forEach(a => allWorkouts.push(a));
       }
 
       // Process adhoc workouts
@@ -1083,6 +1088,47 @@ function Workouts() {
         setCompletedExercises(new Set());
       }
       setError(null);
+
+      // Update the per-date cache so navigating away and back to this day
+      // shows the freshly-refreshed data instantly. Without this, after a
+      // resume-refresh the cache stays stale until the next date-change
+      // fetch overwrites it.
+      const cacheKey = `workouts_${clientData.id}_${dateStr}`;
+      const first = allWorkouts[0] || null;
+      const log = (first && !first.is_adhoc && logRes?.logs?.length > 0) ? logRes.logs[0] : null;
+      setCache(cacheKey, {
+        todayWorkout: first,
+        todayWorkouts: allWorkouts,
+        workoutLog: log
+      });
+
+      // Refresh signed URLs in the background AFTER state is set. This way
+      // the UI shows workout content immediately on resume, and video
+      // thumbnails/URLs fill in non-blockingly once signed URLs arrive.
+      if (assignmentRes?.assignments?.length > 0) {
+        Promise.all(
+          assignmentRes.assignments.map(async (assignment) => {
+            if (assignment.workout_data) {
+              assignment.workout_data = await refreshSignedUrls(assignment.workout_data, assignment.coach_id);
+            }
+            return assignment;
+          })
+        ).then((refreshedAssignments) => {
+          // Bail if user has since moved to a different day
+          if (formatDate(selectedDateRef.current) !== dateStr) return;
+          const matchKey = (w) => w.instance_id || w.id;
+          setTodayWorkouts(prev => prev.map(w => {
+            const refreshed = refreshedAssignments.find(r => matchKey(r) === matchKey(w));
+            return refreshed || w;
+          }));
+          setTodayWorkout(prev => {
+            if (!prev) return prev;
+            const refreshed = refreshedAssignments.find(r => matchKey(r) === matchKey(prev));
+            return refreshed || prev;
+          });
+        }).catch(() => { /* signed URL refresh is best-effort */ });
+      }
+
       // Also refresh week schedule so This Week / Coming Up stay in sync
       refreshWeekSchedule();
     } catch (err) {
@@ -1123,10 +1169,13 @@ function Workouts() {
         return;
       }
 
-      // Skip fetching if a pull-to-refresh is in progress to avoid race conditions
-      if (isRefreshingRef.current) {
-        return;
-      }
+      // NOTE: We deliberately do NOT bail out when isRefreshingRef.current is
+      // true. The old guard caused day-tap to silently drop whenever a refresh
+      // was in flight (typically right after app resume): the new day's fetch
+      // never ran and the user was stuck looking at yesterday's data with
+      // today selected. Race safety is now handled by the dateStr guard
+      // inside refreshWorkoutData itself, which compares against
+      // selectedDateRef.current before writing state.
 
       // Bypass service-worker cache for this fetch window so cold-start after
       // a save actually pulls fresh exercise_logs (including effort) from the
@@ -1147,11 +1196,13 @@ function Workouts() {
         setTodayWorkouts(dateCache.todayWorkouts || []);
         setWorkoutLog(dateCache.workoutLog || null);
       } else {
-        // No cache for this date — show loading and clear stale content
+        // No cache for this date — flip loading=true but DO NOT blank
+        // todayWorkout/todayWorkouts/workoutLog. The render dims the cards
+        // and ignores taps while `loading` is true (handleSelectWorkoutCard
+        // bails). This stale-while-revalidate keeps day-tap from feeling
+        // jarring on first visit; the full spinner only shows when there's
+        // truly nothing to display (initial cold load).
         setLoading(true);
-        setTodayWorkout(null);
-        setTodayWorkouts([]);
-        setWorkoutLog(null);
       }
       setError(null);
       setExpandedWorkout(false);
@@ -1264,14 +1315,19 @@ function Workouts() {
             })
           ).then((refreshedAssignments) => {
             if (!mounted) return;
+            // Match by instance_id, not id: when one assignment renders multiple
+            // cards on the same date (e.g. Day 1 added + Day 2 natural after a
+            // reschedule), every card shares the assignment id, so an id-only
+            // find() returns the first card for ALL of them and collapses the
+            // list into duplicates.
+            const matchKey = (w) => w.instance_id || w.id;
             setTodayWorkouts(prev => prev.map(w => {
-              const refreshed = refreshedAssignments.find(r => r.id === w.id);
+              const refreshed = refreshedAssignments.find(r => matchKey(r) === matchKey(w));
               return refreshed || w;
             }));
-            // Also update the selected workout if it was refreshed
             setTodayWorkout(prev => {
               if (!prev) return prev;
-              const refreshed = refreshedAssignments.find(r => r.id === prev.id);
+              const refreshed = refreshedAssignments.find(r => matchKey(r) === matchKey(prev));
               return refreshed || prev;
             });
           }).catch(() => { /* signed URL refresh is best-effort */ });
@@ -1294,6 +1350,124 @@ function Workouts() {
       mounted = false;
     };
   }, [clientData?.id, selectedDate]);
+
+  // Prefetch the next/previous day in the background so day-tap is instant.
+  // Runs after the main fetch settles (loading=false). Skips dates that are
+  // already cached. Uses requestIdleCallback when available so we don't fight
+  // the main thread during animations/transitions.
+  useEffect(() => {
+    if (!clientData?.id) return;
+    if (loading) return; // wait for main fetch to settle
+
+    let cancelled = false;
+    const idle = (cb) => {
+      if (typeof window !== 'undefined' && typeof window.requestIdleCallback === 'function') {
+        return window.requestIdleCallback(cb, { timeout: 2500 });
+      }
+      return setTimeout(cb, 800);
+    };
+    const cancelIdle = (id) => {
+      if (typeof window !== 'undefined' && typeof window.cancelIdleCallback === 'function') {
+        window.cancelIdleCallback(id);
+      } else {
+        clearTimeout(id);
+      }
+    };
+
+    const prefetchOne = async (date) => {
+      if (cancelled) return;
+      const dateStr = formatDate(date);
+      const cacheKey = `workouts_${clientData.id}_${dateStr}`;
+      // Skip if already cached — no point re-fetching
+      if (getCache(cacheKey)) return;
+
+      try {
+        const [assignmentRes, adhocRes, logRes] = await Promise.all([
+          apiGet(`/.netlify/functions/workout-assignments?clientId=${clientData.id}&date=${dateStr}`).catch(() => null),
+          apiGet(`/.netlify/functions/adhoc-workouts?clientId=${clientData.id}&date=${dateStr}`).catch(() => null),
+          apiGet(`/.netlify/functions/workout-logs?clientId=${clientData.id}&date=${dateStr}`).catch(() => null)
+        ]);
+        if (cancelled) return;
+
+        const allWorkouts = [];
+        if (assignmentRes?.assignments?.length > 0) {
+          assignmentRes.assignments.forEach(a => allWorkouts.push(a));
+        }
+        if (adhocRes?.workouts?.length > 0) {
+          adhocRes.workouts.forEach(w => {
+            allWorkouts.push({
+              id: w.id,
+              client_id: w.client_id,
+              workout_date: w.workout_date,
+              name: w.name || 'Custom Workout',
+              day_index: 0,
+              workout_data: w.workout_data,
+              is_adhoc: true
+            });
+          });
+        }
+        if (allWorkouts.length === 0 && logRes?.logs?.length > 0) {
+          const historical = buildWorkoutFromLog(logRes.logs[0]);
+          if (historical) allWorkouts.push(historical);
+        }
+
+        const first = allWorkouts[0] || null;
+        const log = (first && !first.is_adhoc && logRes?.logs?.length > 0) ? logRes.logs[0] : null;
+        setCache(cacheKey, {
+          todayWorkout: first,
+          todayWorkouts: allWorkouts,
+          workoutLog: log
+        });
+      } catch {
+        // Best-effort; failures are silent
+      }
+    };
+
+    // Schedule prefetches sequentially during idle time. We prefetch the full
+    // visible week (in addition to ±1 from selectedDate, which catches the
+    // case where the user jumps to a date outside the current week via a
+    // notification or "Coming Up"). Sequential and idle-scheduled so we don't
+    // spike the network on slow mobile or fight the main thread during
+    // animations. prefetchOne short-circuits on cached dates so this is
+    // basically free after the first sweep.
+    const idleId = idle(async () => {
+      const targets = [];
+      const seen = new Set();
+      const pushDate = (d) => {
+        if (!d || isNaN(d.getTime())) return;
+        const key = formatDate(d);
+        if (seen.has(key)) return;
+        seen.add(key);
+        targets.push(d);
+      };
+
+      // Adjacent days first — most likely to be tapped next
+      const next = new Date(selectedDate);
+      next.setDate(next.getDate() + 1);
+      pushDate(next);
+      const prev = new Date(selectedDate);
+      prev.setDate(prev.getDate() - 1);
+      pushDate(prev);
+
+      // Then the rest of the visible week so any tap in the calendar strip
+      // is instant, even right after week navigation.
+      (weekDates || []).forEach(d => {
+        if (d instanceof Date && formatDate(d) !== formatDate(selectedDate)) {
+          pushDate(d);
+        }
+      });
+
+      for (const d of targets) {
+        if (cancelled) return;
+        await prefetchOne(d);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+      cancelIdle(idleId);
+    };
+  }, [clientData?.id, selectedDate, loading, weekDates]);
 
   // Compute weekly schedule from active assignments + week dates
   const weekSchedule = useMemo(() => {
@@ -1498,16 +1672,22 @@ function Workouts() {
           }
 
           if (selectedDays.includes(dayName) && days.length > 0) {
-            const totalDaysDiff = Math.floor((date - startDate) / (24 * 60 * 60 * 1000));
+            // Normalize to UTC midnight so the day-count matches the server
+            // calc in workout-assignments.js. The raw `date - startDate` diff
+            // mixed local time-of-day from weekDates with a UTC-midnight
+            // startDate, so Math.floor could drift ±1 day by timezone/clock.
+            const startUTC = Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth(), startDate.getUTCDate());
+            const targetUTC = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
+            const totalDaysDiff = Math.floor((targetUTC - startUTC) / (24 * 60 * 60 * 1000));
             const daySet = new Set(selectedDays);
             const fullWeeks = Math.floor(totalDaysDiff / 7);
             const daysPerWeek = dayNamesList.filter(d => daySet.has(d)).length;
             let count = fullWeeks * daysPerWeek;
             const remainderDays = totalDaysDiff % 7;
             for (let i = 0; i < remainderDays; i++) {
-              const d = new Date(startDate);
-              d.setDate(d.getDate() + (fullWeeks * 7) + i);
-              if (daySet.has(dayNamesList[d.getDay()])) count++;
+              const d = new Date(startUTC);
+              d.setUTCDate(d.getUTCDate() + (fullWeeks * 7) + i);
+              if (daySet.has(dayNamesList[d.getUTCDay()])) count++;
             }
             const dayIndex = count % days.length;
 
@@ -1557,6 +1737,29 @@ function Workouts() {
       console.error('Error navigating to next week:', e);
     }
   }, [weekDates]);
+
+  // Swipe-to-navigate on the week strip: left = next week, right = previous week.
+  // Only fire when the gesture is clearly horizontal so vertical page scroll still works.
+  const weekSwipeRef = useRef({ x: 0, y: 0, active: false });
+  const handleWeekStripTouchStart = useCallback((e) => {
+    const t = e.touches && e.touches[0];
+    if (!t) return;
+    weekSwipeRef.current = { x: t.clientX, y: t.clientY, active: true };
+  }, []);
+  const handleWeekStripTouchEnd = useCallback((e) => {
+    const start = weekSwipeRef.current;
+    if (!start.active) return;
+    weekSwipeRef.current.active = false;
+    const t = (e.changedTouches && e.changedTouches[0]) || null;
+    if (!t) return;
+    const dx = t.clientX - start.x;
+    const dy = t.clientY - start.y;
+    const SWIPE_THRESHOLD = 50;
+    if (Math.abs(dx) < SWIPE_THRESHOLD) return;
+    if (Math.abs(dx) < Math.abs(dy)) return;
+    if (dx < 0) goToNextWeek();
+    else goToPreviousWeek();
+  }, [goToNextWeek, goToPreviousWeek]);
 
   // Navigate to a specific date - updates both the selected date and the week view
   const navigateToDate = useCallback((date) => {
@@ -2115,6 +2318,10 @@ function Workouts() {
   // Handle tapping a workout card - select it and expand to detail view
   const handleSelectWorkoutCard = useCallback((workout) => {
     if (!workout) return;
+    // Belt-and-braces guard for the stale-while-revalidate render path: cards
+    // are dimmed + pointer-events: none, but on Android the touchend can
+    // sometimes still fire one tap through during the opacity transition.
+    if (loading) return;
     const currentKey = todayWorkout?.instance_id || `${todayWorkout?.id}-${todayWorkout?.day_index}`;
     const newKey = workout.instance_id || `${workout.id}-${workout.day_index}`;
     if (newKey !== currentKey) {
@@ -2127,7 +2334,7 @@ function Workouts() {
       setCompletedExercises(fromData);
     }
     setExpandedWorkout(true);
-  }, [todayWorkout?.id, todayWorkout?.instance_id, todayWorkout?.day_index]);
+  }, [loading, todayWorkout?.id, todayWorkout?.instance_id, todayWorkout?.day_index]);
 
   // Go back from detail view to cards view
   const handleBackToCards = useCallback(() => {
@@ -2459,7 +2666,14 @@ function Workouts() {
         ...existingCache,
         todayWorkout: { ...(existingCache.todayWorkout || workout), workout_data: updatedWorkoutData },
         todayWorkouts: Array.isArray(existingCache.todayWorkouts)
-          ? existingCache.todayWorkouts.map(w => w?.id === workout.id ? { ...w, workout_data: updatedWorkoutData } : w)
+          ? existingCache.todayWorkouts.map(w => {
+              // Match by instance_id when both sides have one — multiple cards
+              // from the same assignment share `id` but have unique instance_ids.
+              const sameInstance = w?.instance_id && workout.instance_id
+                ? w.instance_id === workout.instance_id
+                : w?.id === workout.id;
+              return sameInstance ? { ...w, workout_data: updatedWorkoutData } : w;
+            })
           : [{ ...(existingCache.todayWorkout || workout), workout_data: updatedWorkoutData }]
       });
     } catch { /* ignore */ }
@@ -3457,7 +3671,8 @@ function Workouts() {
     }
   }, [todayWorkout, todayWorkouts, clientData?.id, selectedDate, showError, refreshWeekSchedule]);
 
-  // Handle deleting the entire workout program/assignment (all days)
+  // Handle deleting the entire workout program/assignment (every day it covers).
+  // Removes only the chosen program — other workouts on the same day stay put.
   const handleDeleteEntireProgram = useCallback(async (workout) => {
     if (!workout?.id) return;
 
@@ -3465,23 +3680,31 @@ function Workouts() {
 
     try {
       if (workout.is_adhoc) {
-        // Ad-hoc workouts don't have a program - just delete this one
+        // Ad-hoc workouts are single-day — just delete this one
         const isRealId = workout.id && !String(workout.id).startsWith('adhoc-') && !String(workout.id).startsWith('custom-') && !String(workout.id).startsWith('club-');
         if (isRealId) {
           await apiDelete(`/.netlify/functions/adhoc-workouts?workoutId=${workout.id}`);
         }
       } else {
-        // Delete the entire assignment
+        // Delete the entire assignment row — wipes this program from every
+        // past and future date it covered.
         await apiDelete(`/.netlify/functions/workout-assignments?assignmentId=${workout.id}`);
       }
 
-      // Clear all local workout state
-      setTodayWorkouts([]);
-      setTodayWorkout(null);
-      setWorkoutLog(null);
-      setCompletedExercises(new Set());
-      setWorkoutStarted(false);
-      setExpandedWorkout(false);
+      // Remove only this program's cards from local state — leave any other
+      // workouts on this day intact.
+      const remaining = todayWorkouts.filter(w => w.id !== workout.id);
+      setTodayWorkouts(remaining);
+      if (todayWorkout?.id === workout.id) {
+        setTodayWorkout(remaining.length > 0 ? remaining[0] : null);
+        setWorkoutLog(null);
+        setCompletedExercises(remaining.length > 0
+          ? getCompletedFromWorkoutData(remaining[0].workout_data, remaining[0].day_index || 0, remaining[0].id)
+          : new Set()
+        );
+        setWorkoutStarted(false);
+        setExpandedWorkout(false);
+      }
       setCardMenuWorkoutId(null);
 
       // Invalidate ALL per-date workout caches for this client — the program
@@ -3505,16 +3728,19 @@ function Workouts() {
     } catch (err) {
       console.error('Error deleting program:', err);
       if (err.status === 404 || err.message?.includes('not found')) {
-        // Already deleted - clean up local state
-        setTodayWorkouts([]);
-        setTodayWorkout(null);
+        // Already gone - clean up local state for this program only
+        const remaining = todayWorkouts.filter(w => w.id !== workout.id);
+        setTodayWorkouts(remaining);
+        if (todayWorkout?.id === workout.id) {
+          setTodayWorkout(remaining.length > 0 ? remaining[0] : null);
+        }
         setCardMenuWorkoutId(null);
         refreshWeekSchedule();
       } else {
         showError('Failed to delete program: ' + (err.message || 'Unknown error'));
       }
     }
-  }, [clientData?.id, showError, showSuccess, refreshWeekSchedule]);
+  }, [clientData?.id, todayWorkout, todayWorkouts, showError, showSuccess, refreshWeekSchedule]);
 
   // Get exercises from workout with safety checks
   const exercises = useMemo(() => {
@@ -3575,9 +3801,43 @@ function Workouts() {
           // coaching recommendations) persist on reload. The exercise_logs auto-save
           // writes sets_data; applying it here means the values survive even if the
           // workout assignment save was lost.
+          //
+          // BUT: preserve the assignment's prescribed values + weightUnit. Older logs
+          // may have auto-saved before per-set weightUnit stamping landed, which would
+          // overwrite the coach's prescription with un-converted numbers. The
+          // assignment's setsData is the source of truth for prescriptions.
           if (Array.isArray(logged.sets_data) && logged.sets_data.length > 0) {
-            updates.setsData = logged.sets_data;
-            updates.sets = logged.sets_data;
+            const assignmentSets = Array.isArray(ex.setsData) ? ex.setsData : [];
+            const mergedSets = logged.sets_data.map((loggedSet, i) => {
+              const assignmentSet = assignmentSets[i] || {};
+              const assignmentWeight = Number(assignmentSet.weight) || 0;
+              // Start from the coach's current prescription (so pace, incline,
+              // percent1RM, hrZone and any future prescription field flow
+              // through automatically), then layer client-logged values on top
+              // (weight actually lifted, completion, rpe, effort), then
+              // re-assert the coach's prescription for fields where the log
+              // also stored a value — otherwise a coach update via "Save &
+              // Update Clients" is silently undone by the older log.
+              return {
+                ...assignmentSet,
+                ...loggedSet,
+                reps: assignmentSet.reps ?? loggedSet.reps,
+                restSeconds: assignmentSet.restSeconds ?? loggedSet.restSeconds,
+                duration: assignmentSet.duration ?? loggedSet.duration,
+                distance: assignmentSet.distance ?? loggedSet.distance,
+                prescribedWeight: assignmentSet.prescribedWeight ?? assignmentWeight ?? loggedSet.prescribedWeight ?? 0,
+                prescribedReps: assignmentSet.prescribedReps ?? assignmentSet.reps ?? loggedSet.prescribedReps ?? 0,
+                // Trust the assignment's per-set weightUnit when present — it's the
+                // coach's source of truth. If the assignment had a prescribed weight
+                // but no unit stamped, leave weightUnit undefined so the modal's
+                // 'lbs' fallback kicks in (rather than inheriting a corrupted unit
+                // from a log that auto-saved before stamping landed).
+                weightUnit: assignmentSet.weightUnit
+                  || (assignmentWeight > 0 ? undefined : loggedSet.weightUnit)
+              };
+            });
+            updates.setsData = mergedSets;
+            updates.sets = mergedSets;
           }
           return updates;
         }
@@ -3977,7 +4237,11 @@ function Workouts() {
               </button>
             </div>
 
-            <div className="week-days-strip">
+            <div
+              className="week-days-strip"
+              onTouchStart={handleWeekStripTouchStart}
+              onTouchEnd={handleWeekStripTouchEnd}
+            >
               {(weekDates || []).map((date, idx) => {
                 if (!date || !(date instanceof Date) || isNaN(date.getTime())) return null;
 
@@ -4001,8 +4265,11 @@ function Workouts() {
           </div>
 
           {/* Workout Cards or Loading/Empty State */}
-          <div className={`workout-content ${isRefreshing ? 'refreshing' : ''}`}>
-            {loading ? (
+          <div
+            className={`workout-content ${isRefreshing ? 'refreshing' : ''} ${loading && todayWorkouts.length > 0 ? 'stale-loading' : ''}`}
+            style={loading && todayWorkouts.length > 0 ? { opacity: 0.55, pointerEvents: 'none', transition: 'opacity 120ms ease' } : undefined}
+          >
+            {loading && todayWorkouts.length === 0 ? (
               <div className="loading-state-v2">
                 <div className="loading-spinner"></div>
                 <span>Loading workout...</span>
@@ -4544,6 +4811,9 @@ function Workouts() {
                 const prevExercise = index > 0 ? exercises[index - 1] : null;
                 const prevPhase = prevExercise ? (prevExercise.phase || (prevExercise.isWarmup ? 'warmup' : prevExercise.isStretch ? 'cooldown' : 'main')) : null;
                 const showPhaseHeader = phase !== prevPhase;
+                const nextExercise = index < exercises.length - 1 ? exercises[index + 1] : null;
+                const nextPhase = nextExercise ? (nextExercise.phase || (nextExercise.isWarmup ? 'warmup' : nextExercise.isStretch ? 'cooldown' : 'main')) : null;
+                const isSectionEnd = nextPhase === null || nextPhase !== phase;
 
                 return (
                   <ErrorBoundary key={exercise.id || `exercise-${index}`} compact>
@@ -4578,6 +4848,7 @@ function Workouts() {
                       onMoveDown={handleMoveExerciseDown}
                       isFirst={index === 0}
                       isLast={index === exercises.length - 1}
+                      isSectionEnd={isSectionEnd}
                       onUpdateExercise={handleUpdateExercise}
                       onOpenSetEditor={openSetEditor}
                       weightUnit={weightUnit}
@@ -5030,7 +5301,7 @@ function Workouts() {
         <div className="card-sheet-overlay" onClick={() => { setShowDeleteConfirm(false); setCardMenuWorkout(null); setCardMenuWorkoutId(null); }}>
           <div className="delete-confirm-modal" onClick={e => e.stopPropagation()}>
             <h3>Delete workout plan</h3>
-            <p>Do you want to delete this workout plan? This will remove activities from your calendar associated with this plan.</p>
+            <p>Delete just this day, or remove every occurrence of this workout plan from your calendar?</p>
             <div className="delete-confirm-options">
               <button
                 className="delete-confirm-btn"

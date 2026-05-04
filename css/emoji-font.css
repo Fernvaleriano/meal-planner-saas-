@@ -1,0 +1,12 @@
+/* Sizing for emoji <img> tags inserted by Twemoji.
+   See js/twemoji-init.js — that script swaps native emoji glyphs (which
+   render as Apple Color Emoji on iOS) for inline SVG <img> elements that
+   look identical on iPhone, Android, and desktop. */
+img.twemoji,
+img.emoji {
+    height: 1em;
+    width: 1em;
+    margin: 0 0.05em 0 0.1em;
+    vertical-align: -0.1em;
+    display: inline-block;
+}

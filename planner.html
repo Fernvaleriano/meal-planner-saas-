@@ -470,9 +470,208 @@
             66% { content: '...'; }
         }
 
+        .ai-quick-btn {
+            min-height: 30px;
+            line-height: 1.1;
+            transition: opacity 0.15s, transform 0.15s, box-shadow 0.15s;
+        }
+
         .ai-quick-btn:hover {
             opacity: 0.85;
             transform: scale(1.02);
+        }
+
+        /* AI quick-action button row inside meal cards */
+        .ai-quick-actions-row {
+            padding: 10px 10px !important;
+            gap: 6px !important;
+        }
+
+        .ai-quick-actions-row .ai-quick-btn {
+            padding: 5px 9px !important;
+            font-size: 11px !important;
+            flex: 0 0 auto;
+            white-space: nowrap;
+        }
+
+        @media (max-width: 768px) {
+            .ai-quick-actions-row {
+                padding: 8px !important;
+                gap: 5px !important;
+            }
+            .ai-quick-actions-row .ai-quick-btn {
+                padding: 5px 8px !important;
+                font-size: 10px !important;
+                min-height: 28px;
+            }
+        }
+
+        /* Meal card AI chat input row — prevent mic/Send from overflowing */
+        .ai-chat-section {
+            min-width: 0;
+            box-sizing: border-box;
+            max-width: 100%;
+        }
+        .ai-chat-section input,
+        .ai-chat-section textarea {
+            min-width: 0;
+        }
+        .meal-card,
+        .meal-card-content,
+        .meal-card-content * {
+            box-sizing: border-box;
+        }
+
+        /* Meal card section dividers */
+        .meal-card-content > * + * {
+            margin-top: 6px;
+        }
+        .meal-card-content .ai-chat-section {
+            margin-top: 10px;
+        }
+
+        /* Plan status banner (Draft / Submit to Client / Bulk Post) */
+        .plan-status-section {
+            margin-top: 20px;
+            padding: 16px;
+            border-radius: 10px;
+        }
+
+        .plan-status-section.plan-status-draft {
+            background: #fef3c7;
+            border: 2px solid #f59e0b;
+        }
+
+        .plan-status-section .plan-status-text {
+            margin-bottom: 12px;
+        }
+
+        .plan-status-label {
+            display: inline-flex;
+            align-items: center;
+            font-size: 14px;
+            font-weight: 600;
+            color: #92400e;
+        }
+
+        .plan-status-pill {
+            background: #f59e0b;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            margin-left: 4px;
+        }
+
+        .plan-status-desc {
+            margin: 4px 0 0 0;
+            font-size: 12px;
+            color: #92400e;
+            line-height: 1.4;
+        }
+
+        .plan-status-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .plan-status-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            padding: 12px 16px;
+            font-weight: 600;
+            border-radius: 8px;
+            color: white;
+            border: none;
+            cursor: pointer;
+            white-space: nowrap;
+            min-width: 0;
+        }
+
+        .plan-status-btn-submit { background: #10b981; }
+        .plan-status-btn-submit:hover:not(:disabled) { background: #059669; }
+        .plan-status-btn-bulk { background: #7c3aed; }
+        .plan-status-btn-bulk:hover:not(:disabled) { background: #6d28d9; }
+
+        @media (min-width: 768px) {
+            .plan-status-section {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                gap: 16px;
+            }
+            .plan-status-section .plan-status-text {
+                flex: 1;
+                min-width: 0;
+                margin-bottom: 0;
+            }
+            .plan-status-actions {
+                display: flex;
+                flex-shrink: 0;
+                gap: 8px;
+            }
+            .plan-status-btn {
+                padding: 10px 18px;
+            }
+        }
+
+        /* Plan actions grid (Meal Prep / Grocery / PDF / Share / Template / Bulk) */
+        .plan-actions-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 8px;
+            margin-top: 16px;
+        }
+
+        .plan-action-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 12px 16px;
+            font-size: 14px;
+            font-weight: 600;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            transition: filter 0.15s, transform 0.15s, box-shadow 0.15s;
+            min-height: 44px;
+        }
+
+        .plan-action-btn:hover:not(:disabled) {
+            filter: brightness(1.05);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.12);
+        }
+
+        @media (min-width: 600px) {
+            .plan-actions-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            .plan-action-btn-wide {
+                grid-column: 1 / -1;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .plan-actions-grid {
+                grid-template-columns: 1fr 1fr 1fr;
+            }
+            .plan-action-btn-wide {
+                grid-column: auto;
+            }
+        }
+
+        [data-theme="dark"] .plan-status-section.plan-status-draft {
+            background: rgba(245, 158, 11, 0.12);
+            border-color: rgba(245, 158, 11, 0.5);
+        }
+
+        [data-theme="dark"] .plan-status-label,
+        [data-theme="dark"] .plan-status-desc {
+            color: #fcd34d;
         }
 
         .ai-brainstorm-toggle:hover {
@@ -785,6 +984,103 @@
             align-items: center;
             justify-content: center;
             z-index: 10000;
+        }
+
+        /* Reusable circular close button for modals */
+        .modal-close-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: none;
+            background: rgba(148, 163, 184, 0.15);
+            color: #475569;
+            font-size: 22px;
+            line-height: 1;
+            font-weight: 600;
+            cursor: pointer;
+            flex-shrink: 0;
+            transition: background 0.15s, color 0.15s, transform 0.15s;
+            padding: 0;
+        }
+
+        .modal-close-btn:hover {
+            background: rgba(148, 163, 184, 0.3);
+            color: #1e293b;
+            transform: scale(1.05);
+        }
+
+        [data-theme="dark"] .modal-close-btn {
+            background: rgba(148, 163, 184, 0.18);
+            color: #e2e8f0;
+        }
+
+        [data-theme="dark"] .modal-close-btn:hover {
+            background: rgba(148, 163, 184, 0.32);
+            color: #ffffff;
+        }
+
+        /* Style Your Image / Customize Image modal layout */
+        .image-style-modal-card {
+            padding: 1.5rem !important;
+            max-height: 92vh;
+            overflow-y: auto;
+        }
+
+        .image-style-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+
+        .image-style-modal-header h3 {
+            margin: 0;
+            flex: 1;
+            min-width: 0;
+            line-height: 1.3;
+        }
+
+        .image-style-meal-line {
+            margin: 0 0 14px 0;
+            line-height: 1.4;
+        }
+
+        .image-style-helper {
+            margin: 0 0 10px 0;
+        }
+
+        .image-style-suggestions {
+            margin-bottom: 14px;
+        }
+
+        .image-style-custom-input-wrap {
+            margin-bottom: 16px;
+        }
+
+        .image-style-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 4px;
+        }
+
+        @media (max-width: 480px) {
+            .image-style-modal-card {
+                padding: 1.1rem !important;
+                border-radius: 14px !important;
+            }
+
+            .image-style-modal-header h3 {
+                font-size: 1.05rem !important;
+            }
+
+            .image-style-actions .btn {
+                padding: 10px 12px;
+                font-size: 13px;
+            }
         }
 
         /* Editable meal name/type styles */
@@ -1747,30 +2043,46 @@
                 padding: 16px !important;
             }
 
-            /* Meal cards - cleaner mobile layout */
+            /* Meal cards - cleaner mobile layout: image+actions on top, content full-width below */
             .meal-card {
-                flex-direction: row;
-                align-items: flex-start;
+                flex-direction: column;
+                align-items: stretch;
                 text-align: left;
                 padding: 12px;
-                gap: 12px;
+                gap: 10px;
                 border-radius: 12px;
                 box-shadow: 0 1px 3px rgba(0,0,0,0.1);
                 margin-bottom: 12px;
             }
 
+            /* Image + AI/Upload buttons row sits at the top of the card */
+            .meal-card > div:first-child {
+                flex-direction: row !important;
+                align-items: center !important;
+                justify-content: flex-start !important;
+                width: 100%;
+                gap: 10px !important;
+            }
+
             .meal-card-image,
             .meal-card-image-placeholder,
             .meal-image-container {
-                width: 70px !important;
-                height: 70px !important;
-                min-width: 70px !important;
+                width: 64px !important;
+                height: 64px !important;
+                min-width: 64px !important;
                 border-radius: 10px !important;
             }
 
+            .meal-image-actions {
+                flex: 1;
+                gap: 6px;
+            }
+
             .meal-card-content {
-                width: 100%;
+                flex: 1;
                 min-width: 0;
+                width: auto;
+                max-width: 100%;
             }
 
             .meal-card-content h4 {
@@ -1870,7 +2182,7 @@
             }
 
             /* Day tabs scrollable */
-            .day-tabs, [style*="display: flex"][style*="gap"] {
+            .day-tabs {
                 overflow-x: auto;
                 -webkit-overflow-scrolling: touch;
                 flex-wrap: nowrap !important;
@@ -3016,17 +3328,19 @@
 
     <!-- CUSTOM IMAGE PROMPT MODAL -->
     <div id="image-prompt-modal" class="modal-overlay hidden">
-        <div class="card w-11/12 md:max-w-lg">
-            <div class="flex justify-between items-center mb-4">
+        <div class="card image-style-modal-card w-11/12 md:max-w-lg">
+            <div class="image-style-modal-header">
                 <h3 class="text-xl font-bold text-purple-600"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:6px;"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Customize Image</h3>
-                <button onclick="closeImagePromptModal()" class="text-2xl font-bold">&times;</button>
+                <button onclick="closeImagePromptModal()" class="modal-close-btn" aria-label="Close">&times;</button>
             </div>
-            <p class="text-gray-600 mb-2">Meal: <strong id="image-prompt-meal-name"></strong></p>
-            <p class="text-sm text-gray-500 mb-2">Pick a style or write your own:</p>
-            <div id="prompt-suggestions-container-custom" class="flex flex-col gap-2 mb-3"></div>
-            <input type="text" id="custom-image-prompt" class="input-field w-full mb-3"
-                   placeholder="Or describe your own style...">
-            <div class="flex gap-2">
+            <p class="text-gray-600 image-style-meal-line">Meal: <strong id="image-prompt-meal-name"></strong></p>
+            <p class="text-sm text-gray-500 image-style-helper">Pick a style or write your own:</p>
+            <div id="prompt-suggestions-container-custom" class="flex flex-col gap-2 image-style-suggestions"></div>
+            <div class="image-style-custom-input-wrap">
+                <input type="text" id="custom-image-prompt" class="input-field w-full"
+                       placeholder="Or describe your own style...">
+            </div>
+            <div class="image-style-actions">
                 <button onclick="closeImagePromptModal()" class="btn btn-secondary flex-1">Cancel</button>
                 <button onclick="submitCustomImagePrompt()" id="generate-custom-image-btn" class="btn btn-primary flex-1" disabled><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><circle cx="13.5" cy="6.5" r="2.5"/><circle cx="6" cy="12" r="2.5" fill="currentColor" opacity="0.3"/><circle cx="18" cy="16" r="2.5"/><path d="M17 2l-4 4M6 9.5V4M18 13.5V22"/></svg>Generate</button>
             </div>
@@ -3035,26 +3349,26 @@
 
     <!-- IMAGE STYLING QUESTIONS MODAL -->
     <div id="image-styling-modal" class="modal-overlay hidden">
-        <div class="card w-11/12 md:max-w-lg">
-            <div class="flex justify-between items-center mb-4">
+        <div class="card image-style-modal-card w-11/12 md:max-w-lg">
+            <div class="image-style-modal-header">
                 <h3 class="text-xl font-bold text-purple-600"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:6px;"><circle cx="13.5" cy="6.5" r="2.5"/><circle cx="6" cy="12" r="2.5" fill="currentColor" opacity="0.3"/><circle cx="18" cy="16" r="2.5"/><path d="M17 2l-4 4M6 9.5V4M18 13.5V22"/></svg>Style Your Image</h3>
-                <button onclick="closeImageStylingModal()" class="text-2xl font-bold">&times;</button>
+                <button onclick="closeImageStylingModal()" class="modal-close-btn" aria-label="Close">&times;</button>
             </div>
-            <p class="text-gray-600 mb-3">Meal: <strong id="styling-meal-name"></strong></p>
+            <p class="text-gray-600 image-style-meal-line">Meal: <strong id="styling-meal-name"></strong></p>
 
-            <p class="text-sm text-gray-500 mb-2">Pick a style or write your own:</p>
+            <p class="text-sm text-gray-500 image-style-helper">Pick a style or write your own:</p>
 
             <!-- Prompt Suggestions -->
-            <div id="prompt-suggestions-container" class="flex flex-col gap-2 mb-3"></div>
+            <div id="prompt-suggestions-container" class="flex flex-col gap-2 image-style-suggestions"></div>
 
             <!-- Custom Input -->
-            <div>
+            <div class="image-style-custom-input-wrap">
                 <input type="text" id="styling-custom-text" class="input-field w-full"
                        placeholder="Or describe your own style...">
             </div>
 
             <!-- Action Buttons -->
-            <div class="flex gap-2 mt-4">
+            <div class="image-style-actions">
                 <button onclick="closeImageStylingModal()" class="btn btn-secondary flex-1">Cancel</button>
                 <button onclick="generateStyledImage()" id="generate-styled-image-btn" class="btn btn-primary flex-1" disabled><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><circle cx="13.5" cy="6.5" r="2.5"/><circle cx="6" cy="12" r="2.5" fill="currentColor" opacity="0.3"/><circle cx="18" cy="16" r="2.5"/><path d="M17 2l-4 4M6 9.5V4M18 13.5V22"/></svg>Generate Image</button>
             </div>
@@ -6109,7 +6423,7 @@ function displayDietPlan(multiDayData) {
                         <!-- AI Chat - Always Visible -->
                         <div class="ai-chat-section" style="background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%); border: 2px solid #c4b5fd; border-radius: 8px; overflow: hidden;">
                             <!-- Quick Actions + Build Custom -->
-                            <div style="padding: 8px 10px; border-bottom: 1px solid #ddd6fe; display: flex; flex-wrap: wrap; gap: 4px;">
+                            <div class="ai-quick-actions-row" style="border-bottom: 1px solid #ddd6fe; display: flex; flex-wrap: wrap;">
                                 <button data-action="ai-quick-action" data-quick-action="alternatives" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="ai-quick-btn" style="padding: 4px 8px; font-size: 10px; background: #8b5cf6; color: white; border: none; border-radius: 4px; cursor: pointer;"><svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:2px;"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>Swap</button>
                                 <button data-action="ai-quick-action" data-quick-action="higher-protein" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="ai-quick-btn" style="padding: 4px 8px; font-size: 10px; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer;"><svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:2px;"><path d="M12 22V8M5 12l7-4 7 4"/><path d="M5 16l7-4 7 4"/></svg>+Protein</button>
                                 <button data-action="ai-quick-action" data-quick-action="lower-carb" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="ai-quick-btn" style="padding: 4px 8px; font-size: 10px; background: #22c55e; color: white; border: none; border-radius: 4px; cursor: pointer;"><svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:2px;"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><path d="M8 12h8"/></svg>-Carbs</button>
@@ -6156,7 +6470,7 @@ function displayDietPlan(multiDayData) {
                                         <span style="font-weight: 600; color: #047857; font-size: 11px;"><svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:2px;"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>Voice Message:</span>
                                         <button onclick="deleteMealVoiceNote(${dayIndex}, ${mealIndex})" style="background: #dc2626; color: white; padding: 2px 8px; font-size: 10px; border-radius: 4px; border: none; cursor: pointer;">Delete</button>
                                     </div>
-                                    <audio controls src="${voiceNoteUrl}" onerror="this.parentElement.style.display='none'" style="width: 100%; height: 32px;"></audio>
+                                    <audio controls playsinline preload="auto" src="${voiceNoteUrl}" onerror="this.parentElement.style.display='none'" style="width: 100%; height: 32px;"></audio>
                                 </div>
                                 ` : ''}
                             </div>
@@ -6236,33 +6550,31 @@ function displayDietPlan(multiDayData) {
         `;
     } else {
         planHTML += `
-            <div id="plan-status-banner" class="plan-status-section" style="margin-top: 20px; padding: 16px; background: #fef3c7; border-radius: 8px; border: 2px solid #f59e0b;">
-                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-                    <div>
-                        <span style="font-size: 14px; font-weight: 600; color: #92400e;"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Status: <span id="plan-status-text" style="background: #f59e0b; color: white; padding: 2px 8px; border-radius: 4px;">Draft</span></span>
-                        <p style="margin: 4px 0 0 0; font-size: 12px; color: #92400e;">This plan is saved but not yet visible to your client.</p>
-                    </div>
-                    <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-                        <button id="submitToClientBtn" data-action="submit-to-client" class="btn btn-primary" style="background: #10b981; color: white; font-size: 14px; padding: 10px 20px; white-space: nowrap;">
-                            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><polyline points="20 6 9 17 4 12"/></svg>Submit to Client
-                        </button>
-                        <button id="bulkPostBtn" data-action="open-bulk-post" class="btn btn-primary" style="background: #7c3aed; color: white; font-size: 14px; padding: 10px 20px; white-space: nowrap;">
-                            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Bulk Post
-                        </button>
-                    </div>
+            <div id="plan-status-banner" class="plan-status-section plan-status-draft">
+                <div class="plan-status-text">
+                    <span class="plan-status-label"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Status: <span id="plan-status-text" class="plan-status-pill">Draft</span></span>
+                    <p class="plan-status-desc">This plan is saved but not yet visible to your client.</p>
+                </div>
+                <div class="plan-status-actions">
+                    <button id="submitToClientBtn" data-action="submit-to-client" class="btn plan-status-btn plan-status-btn-submit">
+                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><polyline points="20 6 9 17 4 12"/></svg>Submit to Client
+                    </button>
+                    <button id="bulkPostBtn" data-action="open-bulk-post" class="btn plan-status-btn plan-status-btn-bulk">
+                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Bulk Post
+                    </button>
                 </div>
             </div>
         `;
     }
 
     planHTML += `
-        <div class="flex gap-2 mt-4 flex-wrap">
-            <button data-action="show-meal-prep-guide" class="btn btn-primary w-full" style="background:#ff6b6b; color:white;"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M9 12h6M9 16h6"/></svg>Meal Prep Guide</button>
-            <button data-action="show-grocery-list" class="btn btn-secondary w-full" style="color:white;"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>Grocery List</button>
-            <button data-action="download-pdf" class="btn btn-primary w-full" style="color:white;"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Download PDF</button>
-            <button data-action="share-plan" class="btn btn-primary w-full" style="background:#28a745; color:white;"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>Share Plan Link</button>
-            <button data-action="save-as-template" class="btn btn-secondary w-full" style="background:#8b5cf6; color:white;"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Save as Template</button>
-            <button id="bulkPostBtnBottom" data-action="open-bulk-post" class="btn btn-primary w-full" style="background:#7c3aed; color:white;"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Bulk Post to Multiple Clients</button>
+        <div class="plan-actions-grid">
+            <button data-action="show-meal-prep-guide" class="btn plan-action-btn" style="background:#ff6b6b; color:white;"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M9 12h6M9 16h6"/></svg>Meal Prep Guide</button>
+            <button data-action="show-grocery-list" class="btn plan-action-btn" style="background:#0d9488; color:white;"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>Grocery List</button>
+            <button data-action="download-pdf" class="btn plan-action-btn" style="background:#0d9488; color:white;"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Download PDF</button>
+            <button data-action="share-plan" class="btn plan-action-btn" style="background:#28a745; color:white;"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>Share Plan Link</button>
+            <button data-action="save-as-template" class="btn plan-action-btn" style="background:#8b5cf6; color:white;"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Save as Template</button>
+            <button id="bulkPostBtnBottom" data-action="open-bulk-post" class="btn plan-action-btn plan-action-btn-wide" style="background:#7c3aed; color:white;"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Bulk Post to Multiple Clients</button>
         </div>
     </div>`;
     resultDiv.innerHTML = planHTML;
@@ -6277,35 +6589,33 @@ function updatePlanStatusUI() {
     if (!banner || !statusText) return;
 
     const bulkPostBtn = document.getElementById('bulkPostBtn');
+    const descP = banner.querySelector('.plan-status-desc') || banner.querySelector('p');
+    const labelSpan = banner.querySelector('.plan-status-label') || banner.querySelector('div > span');
 
     if (lastPlanQuery.status === 'published') {
         banner.style.background = '#d1fae5';
         banner.style.borderColor = '#10b981';
         statusText.textContent = 'Published';
         statusText.style.background = '#10b981';
-        banner.querySelector('p').textContent = 'This plan is visible to your client.';
-        banner.querySelector('p').style.color = '#065f46';
-        banner.querySelector('div > span').style.color = '#065f46';
-        if (submitBtn) {
-            submitBtn.style.display = 'none';
+        if (descP) {
+            descP.textContent = 'This plan is visible to your client.';
+            descP.style.color = '#065f46';
         }
-        if (bulkPostBtn) {
-            bulkPostBtn.style.display = 'none';
-        }
+        if (labelSpan) labelSpan.style.color = '#065f46';
+        if (submitBtn) submitBtn.style.display = 'none';
+        if (bulkPostBtn) bulkPostBtn.style.display = 'none';
     } else {
         banner.style.background = '#fef3c7';
         banner.style.borderColor = '#f59e0b';
         statusText.textContent = 'Draft';
         statusText.style.background = '#f59e0b';
-        banner.querySelector('p').textContent = 'This plan is saved but not yet visible to your client.';
-        banner.querySelector('p').style.color = '#92400e';
-        banner.querySelector('div > span').style.color = '#92400e';
-        if (submitBtn) {
-            submitBtn.style.display = 'block';
+        if (descP) {
+            descP.textContent = 'This plan is saved but not yet visible to your client.';
+            descP.style.color = '#92400e';
         }
-        if (bulkPostBtn) {
-            bulkPostBtn.style.display = 'block';
-        }
+        if (labelSpan) labelSpan.style.color = '#92400e';
+        if (submitBtn) submitBtn.style.display = '';
+        if (bulkPostBtn) bulkPostBtn.style.display = '';
     }
 }
 
@@ -6324,13 +6634,13 @@ function showSaveRetryButton() {
         statusText.style.background = '#ef4444';
     }
 
-    const descP = banner.querySelector('p');
+    const descP = banner.querySelector('.plan-status-desc') || banner.querySelector('p');
     if (descP) {
         descP.textContent = 'Plan could not be saved. Click "Save Plan" to try again.';
         descP.style.color = '#991b1b';
     }
 
-    const colorSpan = banner.querySelector('div > span');
+    const colorSpan = banner.querySelector('.plan-status-label') || banner.querySelector('div > span');
     if (colorSpan) {
         colorSpan.style.color = '#991b1b';
     }
@@ -6350,13 +6660,14 @@ function showSaveRetryButton() {
     if (!saveBtn) {
         saveBtn = document.createElement('button');
         saveBtn.id = 'savePlanBtn';
-        saveBtn.className = 'btn btn-primary';
-        saveBtn.style.cssText = 'background: #3b82f6; font-size: 14px; padding: 10px 20px; white-space: nowrap;';
+        saveBtn.className = 'btn plan-status-btn';
+        saveBtn.style.cssText = 'background: #3b82f6;';
         saveBtn.innerHTML = '<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>Save Plan';
         saveBtn.onclick = retrySavePlan;
-        submitBtn.parentNode.appendChild(saveBtn);
+        const actionsContainer = banner.querySelector('.plan-status-actions') || (submitBtn && submitBtn.parentNode);
+        if (actionsContainer) actionsContainer.appendChild(saveBtn);
     }
-    saveBtn.style.display = 'block';
+    saveBtn.style.display = '';
 }
 
 // HIDE SAVE RETRY BUTTON (when save succeeds)
@@ -13384,5 +13695,6 @@ document.addEventListener('click', async (e) => {
     <script src="/js/voice-to-text.js"></script>
     <script src="/js/trainer-support-agent.js"></script>
     <script src="/js/voice-commander.js"></script>
+    <script src="/js/twemoji-init.js"></script>
 </body>
 </html>

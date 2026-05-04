@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { X, ChevronLeft, ChevronRight, Send, ExternalLink } from 'lucide-react';
 import { apiPost } from '../utils/api';
 
 const PROGRESS_DURATION = 6000; // 6 seconds per story
 
-function StoryViewer({ stories, coachName, coachAvatar, clientId, onClose }) {
+function StoryViewer({ stories, coachName, coachAvatar, clientId, coachId, onClose }) {
   const [currentIndex, setCurrentIndex] = useState(() => {
     // Start at first unseen story
     const firstUnseen = stories.findIndex(s => !s.viewed);
@@ -139,7 +140,7 @@ function StoryViewer({ stories, coachName, coachAvatar, clientId, onClose }) {
       await apiPost('/.netlify/functions/reply-to-story', {
         storyId: story.id,
         clientId,
-        coachId: story.coachId || null,
+        coachId: coachId || story.coachId || null,
         message: replyText.trim()
       });
       setReplyText('');
@@ -162,7 +163,7 @@ function StoryViewer({ stories, coachName, coachAvatar, clientId, onClose }) {
 
   const avatarUrl = coachAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(coachName || 'Coach')}&background=0d9488&color=fff`;
 
-  return (
+  return createPortal(
     <div style={styles.overlay} onClick={onClose}>
       <div
         ref={containerRef}
@@ -293,7 +294,8 @@ function StoryViewer({ stories, coachName, coachAvatar, clientId, onClose }) {
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -498,7 +500,7 @@ const styles = {
     zIndex: 5,
   },
   footer: {
-    padding: '10px 12px',
+    padding: '10px 12px calc(10px + env(safe-area-inset-bottom, 0px))',
     display: 'flex',
     alignItems: 'center',
     gap: 8,

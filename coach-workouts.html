@@ -414,12 +414,28 @@
         }
 
         .update-clients-list-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
             padding: 8px 12px;
             border-radius: var(--radius-sm);
             background: var(--bg-tertiary);
             margin-bottom: 4px;
             font-size: 0.85rem;
             color: var(--text-primary);
+            cursor: pointer;
+        }
+
+        .update-clients-list-item:hover {
+            background: var(--bg-quaternary, var(--bg-secondary));
+        }
+
+        .update-client-checkbox {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+            accent-color: var(--success);
+            flex-shrink: 0;
         }
 
         .btn-success {
@@ -2008,9 +2024,12 @@
 
         .wb-detail-play-btn {
             position: absolute;
-            width: 48px;
-            height: 48px;
-            background: rgba(0,0,0,0.5);
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 56px;
+            height: 56px;
+            background: rgba(0,0,0,0.6);
             border-radius: 50%;
             border: none;
             display: flex;
@@ -2018,6 +2037,12 @@
             justify-content: center;
             cursor: pointer;
             color: white;
+            transition: background 0.15s ease, transform 0.15s ease;
+        }
+
+        .wb-detail-play-btn:hover {
+            background: rgba(0,0,0,0.8);
+            transform: translate(-50%, -50%) scale(1.05);
         }
 
         /* Tracking Type Toggle */
@@ -2127,6 +2152,71 @@
             flex: 1;
             border-radius: 6px 0 0 6px;
             min-width: 0;
+        }
+
+        .wb-hms-input {
+            flex: 0 0 170px;
+            display: grid;
+            grid-template-columns: 1fr 10px 1fr 10px 1fr;
+            align-items: center;
+            min-width: 0;
+        }
+        .wb-hms-input .wb-hms-field {
+            width: 100%;
+            min-width: 0;
+            padding: 10px 2px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-primary);
+            text-align: center;
+            outline: none;
+            font-family: inherit;
+            -moz-appearance: textfield;
+            box-sizing: border-box;
+        }
+        .wb-hms-input .wb-hms-field:focus {
+            border-color: var(--brand-primary);
+            background: var(--bg-secondary);
+        }
+        .wb-hms-input .wb-hms-field::-webkit-outer-spin-button,
+        .wb-hms-input .wb-hms-field::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        .wb-hms-sep {
+            font-size: 14px;
+            color: var(--text-muted);
+            font-weight: 700;
+            text-align: center;
+        }
+        .wb-hms-input.config-hms {
+            flex: 0 0 130px;
+            grid-template-columns: 1fr 8px 1fr 8px 1fr;
+        }
+        .wb-hms-input.config-hms .wb-hms-field {
+            font-size: 13px;
+            padding: 6px 2px;
+            border-radius: 6px;
+        }
+        .wb-hms-input.config-hms .wb-hms-sep {
+            font-size: 11px;
+        }
+        .wb-sets-col-label-hms {
+            flex: 0 0 170px;
+            display: grid;
+            grid-template-columns: 1fr 10px 1fr 10px 1fr;
+            align-items: center;
+        }
+        .wb-sets-col-label-hms > span {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            text-align: center;
         }
 
         .wb-set-unit-select {
@@ -5920,7 +6010,7 @@
                                         Paste URL
                                     </button>
                                     <span class="or-divider">or</span>
-                                    <button type="button" class="btn-ai-generate" id="modalAiCoverBtn" onclick="generateModalAICoverImage()" style="font-size: 12px; padding: 6px 12px;">
+                                    <button type="button" class="btn-ai-generate" id="modalAiCoverBtn" onclick="showModalHeroAiPromptInput()" style="font-size: 12px; padding: 6px 12px;">
                                         <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
                                         </svg>
@@ -5930,6 +6020,20 @@
                                 <div id="modalHeroUrlInputContainer" style="display: none; margin-top: 8px; width: 100%;">
                                     <input type="text" id="modalHeroUrlInput" class="form-input" placeholder="https://example.com/image.jpg" style="width: 100%; font-size: 13px;">
                                     <button type="button" class="btn-primary" onclick="applyModalHeroUrl()" style="margin-top: 6px; font-size: 12px; padding: 6px 14px;">Apply URL</button>
+                                </div>
+                                <div id="modalHeroAiPromptContainer" style="display: none; margin-top: 8px; width: 100%; text-align: left;">
+                                    <label class="form-label" style="font-size: 12px; margin-bottom: 6px; display: block;">Describe the image you want</label>
+                                    <textarea id="modalHeroAiPromptInput" class="form-input" rows="3" placeholder="e.g. Male athlete doing barbell deadlifts in a moody gym, side view, dramatic light" style="width: 100%; font-size: 13px; resize: vertical;"></textarea>
+                                    <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px;">
+                                        <button type="button" class="btn-secondary" onclick="setModalHeroAiPromptStyle('Gym action shot, athlete mid-rep, dramatic lighting')" style="font-size: 11px; padding: 4px 10px;">Gym action</button>
+                                        <button type="button" class="btn-secondary" onclick="setModalHeroAiPromptStyle('Outdoor functional training at sunrise, natural light')" style="font-size: 11px; padding: 4px 10px;">Outdoor</button>
+                                        <button type="button" class="btn-secondary" onclick="setModalHeroAiPromptStyle('Equipment flat-lay on dark gym floor, top-down composition')" style="font-size: 11px; padding: 4px 10px;">Equipment</button>
+                                        <button type="button" class="btn-secondary" onclick="setModalHeroAiPromptStyle('Yoga studio, calm minimal aesthetic, soft natural light')" style="font-size: 11px; padding: 4px 10px;">Studio / yoga</button>
+                                    </div>
+                                    <div style="display: flex; gap: 8px; margin-top: 10px;">
+                                        <button type="button" class="btn-primary" id="modalAiCoverGenerateBtn" onclick="generateModalAICoverImage()" style="font-size: 12px; padding: 6px 14px;">Generate</button>
+                                        <button type="button" class="btn-secondary" onclick="hideModalHeroAiPromptInput()" style="font-size: 12px; padding: 6px 14px;">Cancel</button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -6142,7 +6246,7 @@
                                     Paste URL
                                 </button>
                                 <span class="or-divider">or</span>
-                                <button type="button" class="btn-ai-generate" id="aiCoverBtn" onclick="generateAICoverImage()">
+                                <button type="button" class="btn-ai-generate" id="aiCoverBtn" onclick="showHeroAiPromptInput()">
                                     <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
                                     </svg>
@@ -6152,6 +6256,20 @@
                             <div id="heroUrlInputContainer" style="display: none; margin-top: 12px; width: 100%;">
                                 <input type="text" id="heroUrlInput" class="form-input" placeholder="https://example.com/image.jpg" style="width: 100%;">
                                 <button type="button" class="btn-primary" onclick="applyHeroUrl()" style="margin-top: 8px;">Apply URL</button>
+                            </div>
+                            <div id="heroAiPromptContainer" style="display: none; margin-top: 12px; width: 100%; text-align: left;">
+                                <label class="form-label" style="font-size: 12px; margin-bottom: 6px; display: block;">Describe the image you want</label>
+                                <textarea id="heroAiPromptInput" class="form-input" rows="3" placeholder="e.g. A female athlete doing kettlebell swings in a sunlit gym, moody lighting, focus on grit and power" style="width: 100%; resize: vertical;"></textarea>
+                                <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;">
+                                    <button type="button" class="btn-secondary" onclick="setHeroAiPromptStyle('Gym action shot, athlete mid-rep, dramatic lighting')" style="font-size: 11px; padding: 4px 10px;">Gym action</button>
+                                    <button type="button" class="btn-secondary" onclick="setHeroAiPromptStyle('Outdoor functional training at sunrise, natural light')" style="font-size: 11px; padding: 4px 10px;">Outdoor</button>
+                                    <button type="button" class="btn-secondary" onclick="setHeroAiPromptStyle('Equipment flat-lay on dark gym floor, top-down composition')" style="font-size: 11px; padding: 4px 10px;">Equipment</button>
+                                    <button type="button" class="btn-secondary" onclick="setHeroAiPromptStyle('Yoga studio, calm minimal aesthetic, soft natural light')" style="font-size: 11px; padding: 4px 10px;">Studio / yoga</button>
+                                </div>
+                                <div style="display: flex; gap: 8px; margin-top: 10px;">
+                                    <button type="button" class="btn-primary" id="aiCoverGenerateBtn" onclick="generateAICoverImage()">Generate</button>
+                                    <button type="button" class="btn-secondary" onclick="hideHeroAiPromptInput()">Cancel</button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -6687,12 +6805,30 @@
                     </div>
                 </div>
 
+                <!-- Presets bar -->
+                <div class="ai-form-section" id="aiPresetBar" style="display:flex; align-items:center; gap:8px; padding:8px 0; border-bottom:1px solid var(--border); margin-bottom:8px;">
+                    <select id="aiPresetSelect" onchange="loadAIPreset(this.value)" style="flex:1; min-width:0;">
+                        <option value="">— Load a saved preset —</option>
+                    </select>
+                    <button type="button" class="ai-btn" style="padding:6px 12px; font-size:12px;" onclick="saveCurrentAsPreset()">Save preset</button>
+                    <button type="button" class="ai-btn" style="padding:6px 12px; font-size:12px; background:transparent;" onclick="deleteCurrentPreset()" title="Delete selected preset">×</button>
+                </div>
+
                 <!-- Shared Fields -->
                 <div class="ai-form-section" id="aiSharedFields">
-                    <div class="ai-form-group">
-                        <label>Client Name (optional)</label>
-                        <input type="text" id="aiClientName" placeholder="e.g., John Smith">
+                    <div class="ai-form-row">
+                        <div class="ai-form-group" style="flex:1;">
+                            <label>Client (optional — pulls real history)</label>
+                            <select id="aiClientSelect" onchange="onAIClientSelected(this.value)">
+                                <option value="">— No specific client (generic) —</option>
+                            </select>
+                        </div>
+                        <div class="ai-form-group" style="flex:1;">
+                            <label>Or type a name</label>
+                            <input type="text" id="aiClientName" placeholder="e.g., John Smith">
+                        </div>
                     </div>
+                    <div id="aiClientContextBadge" style="display:none; padding:8px 12px; background:rgba(16,185,129,0.08); border-left:3px solid #10b981; border-radius:6px; font-size:12px; margin-bottom:12px; line-height:1.5;"></div>
                     <div class="ai-form-row">
                         <div class="ai-form-group">
                             <label>Training Goal</label>
@@ -6885,10 +7021,100 @@
                             </label>
                         </div>
                     </div>
+                    <!-- Programming Detail (NEW) -->
                     <div class="ai-form-group">
-                        <label>Injuries or Limitations (optional)</label>
+                        <label>Programming Detail (optional)</label>
+                        <div class="ai-form-row">
+                            <div class="ai-form-group" style="flex:1; margin-bottom:0;">
+                                <label style="font-size:12px; color:var(--text-secondary);">Tempo</label>
+                                <select id="aiTempo">
+                                    <option value="standard" selected>Standard (controlled)</option>
+                                    <option value="controlled">Controlled (3-1-1)</option>
+                                    <option value="explosive">Explosive concentric</option>
+                                    <option value="tempo_3010">Tempo 3-0-1-0</option>
+                                    <option value="tempo_4020">Tempo 4-0-2-0 (high TUT)</option>
+                                </select>
+                            </div>
+                            <div class="ai-form-group" style="flex:1; margin-bottom:0;">
+                                <label style="font-size:12px; color:var(--text-secondary);">Intensity Target</label>
+                                <select id="aiIntensity">
+                                    <option value="" selected>None (use default)</option>
+                                    <option value="rpe:6">RPE 6 (easy)</option>
+                                    <option value="rpe:7">RPE 7 (moderate)</option>
+                                    <option value="rpe:8">RPE 8 (hard)</option>
+                                    <option value="rpe:9">RPE 9 (very hard)</option>
+                                    <option value="rir:0">0 RIR (to failure)</option>
+                                    <option value="rir:1">1 RIR</option>
+                                    <option value="rir:2">2 RIR</option>
+                                    <option value="rir:3">3 RIR</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="ai-form-row" style="margin-top:8px;">
+                            <div class="ai-form-group" style="flex:1; margin-bottom:0;">
+                                <label style="font-size:12px; color:var(--text-secondary);">Unilateral Preference</label>
+                                <select id="aiUnilateral">
+                                    <option value="mixed" selected>Mixed (default)</option>
+                                    <option value="prefer_unilateral">Prefer unilateral</option>
+                                    <option value="bilateral_only">Bilateral only</option>
+                                </select>
+                            </div>
+                            <div class="ai-form-group" style="flex:1; margin-bottom:0;">
+                                <label style="font-size:12px; color:var(--text-secondary);">Conditioning Finisher</label>
+                                <select id="aiConditioning">
+                                    <option value="none" selected>None</option>
+                                    <option value="hiit">HIIT (8-10 min)</option>
+                                    <option value="liss">LISS cardio (10-15 min)</option>
+                                    <option value="mixed">Alternate HIIT/LISS</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quality vs Speed toggle (program mode only) -->
+                    <div class="ai-form-group" id="aiQualityRow">
+                        <label>Generation Quality (program mode)</label>
+                        <div style="display:flex; gap:8px;">
+                            <label class="equipment-item" style="flex:1; cursor:pointer;">
+                                <input type="radio" name="aiQualityMode" value="quality" checked>
+                                <strong>High Quality</strong> — Sonnet, ~1-3 min
+                                <div style="font-size:11px; color:var(--text-secondary); margin-top:2px;">Coach-level programming. Runs in background; you can close the modal.</div>
+                            </label>
+                            <label class="equipment-item" style="flex:1; cursor:pointer;">
+                                <input type="radio" name="aiQualityMode" value="fast">
+                                <strong>Fast</strong> — Haiku, ~20s
+                                <div style="font-size:11px; color:var(--text-secondary); margin-top:2px;">Quicker but less polished. Auto-fixes split mistakes.</div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="ai-form-group">
+                        <label>Structured Injuries / Limitations</label>
+                        <div class="equipment-grid" style="margin-bottom:8px;">
+                            <label class="equipment-item"><input type="checkbox" name="injuryCode" value="lower_back"> Lower back</label>
+                            <label class="equipment-item"><input type="checkbox" name="injuryCode" value="knee"> Knee</label>
+                            <label class="equipment-item"><input type="checkbox" name="injuryCode" value="shoulder"> Shoulder</label>
+                            <label class="equipment-item"><input type="checkbox" name="injuryCode" value="wrist"> Wrist</label>
+                            <label class="equipment-item"><input type="checkbox" name="injuryCode" value="hip"> Hip</label>
+                            <label class="equipment-item"><input type="checkbox" name="injuryCode" value="neck"> Neck</label>
+                            <label class="equipment-item"><input type="checkbox" name="injuryCode" value="elbow"> Elbow</label>
+                            <label class="equipment-item"><input type="checkbox" name="injuryCode" value="ankle"> Ankle</label>
+                            <label class="equipment-item"><input type="checkbox" name="injuryCode" value="pregnancy"> Pregnancy</label>
+                        </div>
+                        <label style="font-size:12px; color:var(--text-secondary); margin-top:8px; display:block;">Movement Screen (deterministic exercise exclusions)</label>
+                        <div class="equipment-grid" style="margin-bottom:8px;">
+                            <label class="equipment-item"><input type="checkbox" name="movementFlag" value="overhead_mobility"> Limited overhead mobility</label>
+                            <label class="equipment-item"><input type="checkbox" name="movementFlag" value="ankle_mobility"> Limited ankle mobility</label>
+                            <label class="equipment-item"><input type="checkbox" name="movementFlag" value="hip_mobility"> Limited hip mobility</label>
+                            <label class="equipment-item"><input type="checkbox" name="movementFlag" value="wrist_pain"> Wrist pain on pressing</label>
+                            <label class="equipment-item"><input type="checkbox" name="movementFlag" value="shoulder_impingement"> Shoulder impingement</label>
+                            <label class="equipment-item"><input type="checkbox" name="movementFlag" value="knee_tracks_inward"> Knee tracks inward</label>
+                            <label class="equipment-item"><input type="checkbox" name="movementFlag" value="lower_back_rounding"> Back rounds at depth</label>
+                            <label class="equipment-item"><input type="checkbox" name="movementFlag" value="asymmetric_grip"> Asymmetric grip strength</label>
+                        </div>
+                        <label style="font-size:12px; color:var(--text-secondary);">Additional notes (free text)</label>
                         <div style="display: flex; gap: 8px; align-items: center;">
-                            <input type="text" id="aiInjuries" placeholder="e.g., Lower back pain, avoid overhead pressing" style="flex:1;">
+                            <input type="text" id="aiInjuries" placeholder="e.g., Mild rotator cuff, avoid heavy overhead" style="flex:1;">
                             <button type="button" class="vtt-mic-btn vtt-mic-inline" title="Voice input" onclick="VoiceToText.toggle(document.getElementById('aiInjuries'), this)">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
                             </button>
@@ -6911,6 +7137,29 @@
                 <button class="ai-btn ai-btn-generate" id="aiGenerateBtn" onclick="generateAIWorkout()">
                     Generate Program
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Preview & Refine Modal (shows after generation, before applying) -->
+    <div class="modal-overlay" id="aiPreviewModal">
+        <div class="modal" style="max-width: 900px;">
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    Preview & Refine
+                </h3>
+                <button class="modal-close" onclick="closeAIPreview()">&times;</button>
+            </div>
+            <div class="modal-body" id="aiPreviewBody" style="max-height: 70vh; overflow-y: auto;">
+                <!-- Filled dynamically by renderAIPreview() -->
+            </div>
+            <div class="modal-footer" style="gap:8px; flex-wrap:wrap;">
+                <button class="ai-btn ai-btn-cancel" onclick="closeAIPreview()" style="margin-right:auto;">Discard</button>
+                <button class="ai-btn" onclick="regenerateFromPreview()" style="background:#f59e0b; color:white;">Regenerate (different exercises)</button>
+                <button class="ai-btn ai-btn-generate" onclick="applyAIPreview()" id="aiPreviewApplyBtn">Use this program</button>
             </div>
         </div>
     </div>
@@ -7206,7 +7455,7 @@
 
                     <!-- Video Preview -->
                     <div class="custom-video-preview-container" id="ceVideoPreview">
-                        <video id="cePreviewVideo" controls muted playsinline></video>
+                        <video id="cePreviewVideo" controls playsinline></video>
                         <div class="custom-video-preview-info">
                             <span id="ceVideoSize">Video ready</span>
                             <button class="btn btn-secondary" onclick="removeCEVideo()" style="padding: 6px 12px; font-size: 12px; background: rgba(239, 68, 68, 0.1); color: var(--danger);">
@@ -7610,11 +7859,19 @@
                 window._preselectedClientId = clientIdParam;
             }
 
+            const openVideosParam = urlParams.get('openVideos');
+
             // Add initial day and show workout info modal for new programs
-            if (workoutDays.length === 0) {
+            // (skip when the user is just opening the videos library from elsewhere)
+            if (workoutDays.length === 0 && !openVideosParam) {
                 addWorkoutDay();
                 // Show the Workout Information modal instead of just the settings bar
                 openWorkoutInfoModal();
+            }
+
+            // Auto-open the My Videos library when linked from the workout plans page
+            if (openVideosParam) {
+                openMyVideosModal();
             }
         }
 
@@ -7864,22 +8121,40 @@
             document.getElementById('modalHeroImageUrl').value = url;
         }
 
+        function showModalHeroAiPromptInput() {
+            document.getElementById('modalHeroAiPromptContainer').style.display = 'block';
+            document.getElementById('modalHeroUrlInputContainer').style.display = 'none';
+            document.getElementById('modalHeroAiPromptInput').focus();
+        }
+
+        function hideModalHeroAiPromptInput() {
+            document.getElementById('modalHeroAiPromptContainer').style.display = 'none';
+        }
+
+        function setModalHeroAiPromptStyle(text) {
+            const ta = document.getElementById('modalHeroAiPromptInput');
+            ta.value = ta.value ? ta.value.trim() + ', ' + text : text;
+            ta.focus();
+        }
+
         async function generateModalAICoverImage() {
             const name = document.getElementById('modalProgramName').value.trim() || 'fitness workout';
-            const btn = document.getElementById('modalAiCoverBtn');
+            const customPrompt = (document.getElementById('modalHeroAiPromptInput').value || '').trim();
+            const btn = document.getElementById('modalAiCoverGenerateBtn');
             const origText = btn.innerHTML;
             btn.innerHTML = '<span class="spinner" style="width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;display:inline-block;"></span> Generating...';
             btn.disabled = true;
             try {
                 const res = await apiCall('/.netlify/functions/workout-cover-image', {
                     method: 'POST',
-                    body: JSON.stringify({ programName: name })
+                    body: JSON.stringify({ programName: name, customPrompt })
                 });
                 if (res.imageUrl) {
                     document.getElementById('modalHeroPreviewImg').src = res.imageUrl;
                     document.getElementById('modalHeroImagePreview').style.display = 'block';
                     document.getElementById('modalHeroUploadArea').style.display = 'none';
                     document.getElementById('modalHeroImageUrl').value = res.imageUrl;
+                    hideModalHeroAiPromptInput();
                 }
             } catch (err) {
                 showToast('Failed to generate cover image', 'error');
@@ -7992,6 +8267,68 @@
             showToast(count + ' exercise' + (count > 1 ? 's' : '') + ' deleted', 'success');
         }
 
+        // Format a duration in seconds as "1h 5m 10s" (omits zero leading parts)
+        function formatDurationHMS(totalSeconds) {
+            const t = Math.max(0, parseInt(totalSeconds) || 0);
+            const h = Math.floor(t / 3600);
+            const m = Math.floor((t % 3600) / 60);
+            const s = t % 60;
+            const parts = [];
+            if (h) parts.push(h + 'h');
+            if (m) parts.push(m + 'm');
+            if (s || parts.length === 0) parts.push(s + 's');
+            return parts.join(' ');
+        }
+
+        // Render a 3-field hours/minutes/seconds input. The wrapper carries the data
+        // needed to dispatch the change back to updateExerciseSet via onHMSSetChange.
+        function renderHMSSetInput(totalSeconds, di, ei, si, field, extraClass) {
+            const t = Math.max(0, parseInt(totalSeconds) || 0);
+            const h = Math.floor(t / 3600);
+            const m = Math.floor((t % 3600) / 60);
+            const s = t % 60;
+            const pad = n => String(n).padStart(2, '0');
+            return '<div class="wb-hms-input ' + (extraClass || '') + '" data-di="' + di + '" data-ei="' + ei + '" data-si="' + si + '" data-field="' + field + '" title="Hours : Minutes : Seconds">' +
+                '<input type="text" inputmode="numeric" maxlength="2" class="wb-hms-field" value="' + pad(h) + '" data-unit="h" oninput="onHMSSetChange(this)" onfocus="this.select()" onblur="onHMSBlur(this)" placeholder="00">' +
+                '<span class="wb-hms-sep">:</span>' +
+                '<input type="text" inputmode="numeric" maxlength="2" class="wb-hms-field" value="' + pad(m) + '" data-unit="m" oninput="onHMSSetChange(this)" onfocus="this.select()" onblur="onHMSBlur(this)" placeholder="00">' +
+                '<span class="wb-hms-sep">:</span>' +
+                '<input type="text" inputmode="numeric" maxlength="2" class="wb-hms-field" value="' + pad(s) + '" data-unit="s" oninput="onHMSSetChange(this)" onfocus="this.select()" onblur="onHMSBlur(this)" placeholder="00">' +
+                '</div>';
+        }
+
+        function onHMSSetChange(input) {
+            // Strip non-digits as the user types
+            const cleaned = (input.value || '').replace(/\D/g, '').slice(0, 2);
+            if (cleaned !== input.value) input.value = cleaned;
+            const wrap = input.closest('.wb-hms-input');
+            if (!wrap) return;
+            const fields = wrap.querySelectorAll('.wb-hms-field');
+            let h = 0, m = 0, s = 0;
+            fields.forEach(f => {
+                const v = parseInt(f.value) || 0;
+                if (f.dataset.unit === 'h') h = v;
+                else if (f.dataset.unit === 'm') m = Math.min(v, 59);
+                else if (f.dataset.unit === 's') s = Math.min(v, 59);
+            });
+            const total = h * 3600 + m * 60 + s;
+            const di = parseInt(wrap.dataset.di);
+            const ei = parseInt(wrap.dataset.ei);
+            const field = wrap.dataset.field;
+            const siRaw = wrap.dataset.si;
+            if (siRaw === '' || siRaw === undefined) {
+                // Exercise-level field (middle panel)
+                updateExercise(di, ei, field, total);
+            } else {
+                updateExerciseSet(di, ei, parseInt(siRaw), field, total);
+            }
+        }
+
+        function onHMSBlur(input) {
+            const v = parseInt(input.value) || 0;
+            input.value = String(v).padStart(2, '0');
+        }
+
         // Format set summary for exercise list (e.g. "10x 10x 10x")
         function formatSetsSummary(exercise) {
             const numSets = parseInt(exercise.sets) || 3;
@@ -8000,8 +8337,7 @@
                 const dur = (Array.isArray(exercise.setsData) && exercise.setsData[0] && exercise.setsData[0].duration)
                     ? parseInt(exercise.setsData[0].duration)
                     : (parseInt(exercise.duration) || 30);
-                if (dur >= 60) return `${Math.floor(dur / 60)} minute${Math.floor(dur / 60) !== 1 ? 's' : ''}`;
-                return `${dur} seconds`;
+                return formatDurationHMS(dur);
             }
             if (exercise.trackingType === 'distance') {
                 return `${exercise.distance || 1} ${exercise.distanceUnit || 'miles'}`;
@@ -8036,6 +8372,9 @@
                     }
                     result.push({
                         reps: isTimed ? undefined : parsedReps,
+                        // Adding the exercise IS the prescription — stamp prescribedReps
+                        // so the client's "Coach Prescribed" card knows this is intentional.
+                        prescribedReps: isTimed ? undefined : parsedReps,
                         duration: isTimed ? (parseInt(exercise.duration) || 30) : undefined,
                         distance: isDistance ? (parseFloat(exercise.distance) || 1) : undefined,
                         restSeconds: parseInt(exercise.restSeconds) || 30,
@@ -8050,6 +8389,23 @@
             const exercise = workoutDays[dayIndex].exercises[exIndex];
             const setsArr = buildSetsArray(exercise);
             setsArr[setIndex] = { ...setsArr[setIndex], [field]: value };
+            // Mirror the coach's explicit edit into the prescription snapshot. The client
+            // modal only treats prescribedWeight/Reps as the coach's targets when these
+            // fields are explicitly present — without this stamp the client never sees
+            // "Coach Prescribed" for legitimate prescriptions.
+            if (field === 'weight') {
+                setsArr[setIndex].prescribedWeight = value;
+            }
+            if (field === 'reps') {
+                setsArr[setIndex].prescribedReps = value;
+            }
+            // When the coach types a weight, also stamp the unit (default 'lb' to match the
+            // dropdown's default) so the client side knows how to convert. Without this,
+            // weightUnit stays undefined and the client renders the raw number with their
+            // own unit label — producing wrong values across unit-mismatched accounts.
+            if (field === 'weight' && !setsArr[setIndex].weightUnit) {
+                setsArr[setIndex].weightUnit = 'lb';
+            }
             exercise.setsData = setsArr;
             // Sync exercise-level fields from setsData so summaries stay consistent
             if (field === 'reps' && setsArr.length > 0 && setsArr[0].reps !== undefined) {
@@ -8325,10 +8681,21 @@
             const thumbSrc = exercise.thumbnail_url || '/img/exercise-placeholder.svg';
             const trackingType = exercise.trackingType || 'reps';
 
-            // Preview - always show the exercise animation/thumbnail
+            // Preview - always show the exercise animation/thumbnail.
+            // Stock library videos are silent demo loops → autoplay muted.
+            // Custom exercise videos are coach recordings with voice instructions →
+            // show poster + play button so click-to-play opens with sound.
             let previewHtml;
             if (hasVideo) {
-                previewHtml = '<video src="' + videoSrc + '" muted loop playsinline autoplay poster="' + thumbSrc + '" onerror="console.warn(\'[VideoDebug] Failed to load video:\', this.src); this.outerHTML=\'<img src=&quot;' + thumbSrc + '&quot; onerror=&quot;this.src=\\\'/img/exercise-placeholder.svg\\\'&quot;>\'"></video>';
+                if (exercise.is_custom) {
+                    const safeUrl = escapeHtml(videoSrc);
+                    previewHtml = '<img src="' + thumbSrc + '" onerror="this.src=\'/img/exercise-placeholder.svg\'">' +
+                        '<button class="wb-detail-play-btn" data-video-url="' + safeUrl + '" onclick="previewCustomExerciseVideo(this.dataset.videoUrl)" title="Play with sound">' +
+                        '<svg width="20" height="20" fill="white" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>' +
+                        '</button>';
+                } else {
+                    previewHtml = '<video src="' + videoSrc + '" muted loop playsinline autoplay poster="' + thumbSrc + '" onerror="console.warn(\'[VideoDebug] Failed to load video:\', this.src); this.outerHTML=\'<img src=&quot;' + thumbSrc + '&quot; onerror=&quot;this.src=\\\'/img/exercise-placeholder.svg\\\'&quot;>\'"></video>';
+                }
             } else {
                 console.warn('[VideoDebug] No video URL for exercise:', exercise.name, { video_url: exercise.video_url, animation_url: exercise.animation_url, customVideoUrl: exercise.customVideoUrl });
                 previewHtml = '<img src="' + thumbSrc + '" onerror="this.src=\'/img/exercise-placeholder.svg\'">';
@@ -8343,15 +8710,15 @@
                     exercise.reps = String(setsArr[0].reps);
                 }
             }
-            let setsHeaderLabel, setsInputField;
+            let setsHeaderLabelHtml, setsInputField;
             if (trackingType === 'time') {
-                setsHeaderLabel = 'Duration (s)';
-                setsInputField = (set, si) => `<input type="number" class="wb-set-input" value="${set.duration || 30}" min="1" onchange="updateExerciseSet(${di},${ei},${si},'duration',parseInt(this.value)||1)">`;
+                setsHeaderLabelHtml = '<div class="wb-sets-col-label-hms"><span>Hrs</span><span></span><span>Min</span><span></span><span>Sec</span></div>';
+                setsInputField = (set, si) => renderHMSSetInput(set.duration || 30, di, ei, si, 'duration');
             } else if (trackingType === 'distance') {
-                setsHeaderLabel = `Distance (${exercise.distanceUnit || 'miles'})`;
+                setsHeaderLabelHtml = `<span class="wb-sets-col-label">Distance (${exercise.distanceUnit || 'miles'})</span>`;
                 setsInputField = (set, si) => `<input type="number" class="wb-set-input" value="${set.distance || 1}" step="any" min="0.1" onchange="updateExerciseSet(${di},${ei},${si},'distance',parseFloat(this.value)||1)">`;
             } else {
-                setsHeaderLabel = 'Reps (x)';
+                setsHeaderLabelHtml = '<span class="wb-sets-col-label">Reps (x)</span>';
                 setsInputField = (set, si) => `<input type="number" class="wb-set-input" value="${set.reps || 10}" min="1" onchange="updateExerciseSet(${di},${ei},${si},'reps',parseInt(this.value)||1)">`;
             }
 
@@ -8431,7 +8798,7 @@
                 <div class="wb-detail-sets">
                     <div class="wb-sets-header-row">
                         <span class="wb-sets-col-num"></span>
-                        <span class="wb-sets-col-label">${setsHeaderLabel}</span>
+                        ${setsHeaderLabelHtml}
                         ${exercise.showWeight ? '<span class="wb-sets-col-label">Weight</span>' : ''}
                         ${exercise.showRPE ? '<span class="wb-sets-col-label">RPE</span>' : ''}
                         ${exercise.showPercent1RM ? '<span class="wb-sets-col-label">% 1RM</span>' : ''}
@@ -8493,7 +8860,7 @@
                     <div class="voice-note-container" id="voiceNote-${di}-${ei}">
                         ${exercise.voiceNoteUrl ? `
                             <div class="voice-note-player">
-                                <audio controls src="${exercise.voiceNoteUrl}" style="height: 28px; width: 100%;"></audio>
+                                <audio controls playsinline preload="auto" src="${exercise.voiceNoteUrl}" style="height: 28px; width: 100%;"></audio>
                                 <button class="voice-note-delete" onclick="deleteVoiceNote(${di}, ${ei})" title="Delete voice note">×</button>
                             </div>
                         ` : `
@@ -8512,13 +8879,13 @@
                     <label>Custom Video</label>
                     <div class="custom-video-container" id="customVideo-${di}-${ei}">
                         ${exercise.customVideoUrl ? `
-                            <div class="custom-video-preview">
-                                <video src="${exercise.customVideoUrl}" muted></video>
+                            <div class="custom-video-preview" onclick="previewCustomDemo(${di}, ${ei})" style="cursor:pointer;" title="Click to play with sound">
+                                <video src="${exercise.customVideoUrl}" muted preload="metadata"></video>
                                 <div class="video-info">
                                     <span class="video-label">Custom Demo</span><br>
-                                    Your video will show to client
+                                    Click to play with sound
                                 </div>
-                                <button class="custom-video-delete" onclick="deleteCustomVideo(${di}, ${ei})" title="Delete video">×</button>
+                                <button class="custom-video-delete" onclick="event.stopPropagation(); deleteCustomVideo(${di}, ${ei})" title="Delete video">×</button>
                             </div>
                         ` : `
                             <button class="custom-video-btn" id="videoRecordBtn-${di}-${ei}" onclick="startVideoRecording(${di}, ${ei})" title="Record custom demo">
@@ -8718,7 +9085,7 @@
                             </div>
                             <div class="config-group">
                                 ${exercise.trackingType === 'time'
-                                    ? `<input type="number" class="config-input" value="${exercise.duration || 30}" onchange="updateExercise(${dayIndex}, ${exIndex}, 'duration', this.value)" style="width:70px">`
+                                    ? renderHMSSetInput(exercise.duration || 30, dayIndex, exIndex, '', 'duration', 'config-hms')
                                     : exercise.trackingType === 'distance'
                                     ? `<input type="number" step="any" class="config-input" value="${exercise.distance || 1}" onchange="updateExercise(${dayIndex}, ${exIndex}, 'distance', this.value)" style="width:50px">
                                        <select class="config-input distance-unit-select" style="width:45px;padding:2px" onchange="updateExercise(${dayIndex}, ${exIndex}, 'distanceUnit', this.value)">
@@ -8737,6 +9104,12 @@
                                 <input type="number" class="config-input" value="${exercise.restSeconds != null ? exercise.restSeconds : 90}" onchange="updateExercise(${dayIndex}, ${exIndex}, 'restSeconds', this.value)">
                                 <span class="config-label">Rest</span>
                             </div>
+                            ${exercise.isSuperset ? `
+                            <div class="config-group" title="Rest between exercises inside the superset (between members of the group). Leave blank to use the default short rest.">
+                                <input type="number" class="config-input" min="0" value="${exercise.supersetRestSeconds != null ? exercise.supersetRestSeconds : ''}" placeholder="auto" onchange="updateSupersetRest(${dayIndex}, ${exIndex}, this.value)">
+                                <span class="config-label">SS Rest</span>
+                            </div>
+                            ` : ''}
                         </div>
                         <div class="exercise-notes">
                             <input type="text" class="notes-input" value="${exercise.notes || ''}" placeholder="Add notes (e.g., tempo, form tips...)" onchange="updateExercise(${dayIndex}, ${exIndex}, 'notes', this.value)">
@@ -8755,7 +9128,7 @@
                         <div class="voice-note-container" id="voiceNote-${dayIndex}-${exIndex}">
                             ${exercise.voiceNoteUrl ? `
                                 <div class="voice-note-player">
-                                    <audio controls src="${exercise.voiceNoteUrl}" style="height: 28px; width: 100%;"></audio>
+                                    <audio controls playsinline preload="auto" src="${exercise.voiceNoteUrl}" style="height: 28px; width: 100%;"></audio>
                                     <button class="voice-note-delete" onclick="deleteVoiceNote(${dayIndex}, ${exIndex})" title="Delete voice note">×</button>
                                 </div>
                             ` : `
@@ -8770,13 +9143,13 @@
                         </div>
                         <div class="custom-video-container" id="customVideo-${dayIndex}-${exIndex}">
                             ${exercise.customVideoUrl ? `
-                                <div class="custom-video-preview">
-                                    <video src="${exercise.customVideoUrl}" muted></video>
+                                <div class="custom-video-preview" onclick="previewCustomDemo(${dayIndex}, ${exIndex})" style="cursor:pointer;" title="Click to play with sound">
+                                    <video src="${exercise.customVideoUrl}" muted preload="metadata"></video>
                                     <div class="video-info">
                                         <span class="video-label">Custom Demo</span><br>
-                                        Your video will show to client
+                                        Click to play with sound
                                     </div>
-                                    <button class="custom-video-delete" onclick="deleteCustomVideo(${dayIndex}, ${exIndex})" title="Delete video">×</button>
+                                    <button class="custom-video-delete" onclick="event.stopPropagation(); deleteCustomVideo(${dayIndex}, ${exIndex})" title="Delete video">×</button>
                                 </div>
                             ` : `
                                 <button class="custom-video-btn" id="videoRecordBtn-${dayIndex}-${exIndex}" onclick="startVideoRecording(${dayIndex}, ${exIndex})" title="Record custom demo">
@@ -9102,6 +9475,25 @@
                 console.error('Backfill error:', err);
                 showToast('Backfill failed: ' + err.message, 'error');
             }
+        }
+
+        // Set supersetRestSeconds on the exercise and sync it to all other members
+        // of the same superset group on the same day, so the group shares one value.
+        // Empty string clears the override (play mode falls back to the default short rest).
+        function updateSupersetRest(dayIndex, exIndex, value) {
+            const exercise = workoutDays[dayIndex].exercises[exIndex];
+            if (!exercise) return;
+            const trimmed = (value ?? '').toString().trim();
+            const newVal = trimmed === '' ? null : Math.max(0, parseInt(trimmed) || 0);
+            exercise.supersetRestSeconds = newVal;
+            if (exercise.isSuperset && exercise.supersetGroup) {
+                workoutDays[dayIndex].exercises.forEach(ex => {
+                    if (ex !== exercise && ex.isSuperset && ex.supersetGroup === exercise.supersetGroup) {
+                        ex.supersetRestSeconds = newVal;
+                    }
+                });
+            }
+            renderWorkoutDays();
         }
 
         function updateExerciseLabel(dayIndex, exIndex, labelValue) {
@@ -9650,8 +10042,10 @@
                     const batch = result.exercises || [];
                     allExercises = allExercises.concat(batch);
 
-                    // Check if there are more exercises to fetch
-                    if (batch.length < batchSize || allExercises.length >= result.total) {
+                    // A short batch is the only reliable signal that we've reached
+                    // the end. result.total is unreliable when the server applies
+                    // post-query filtering, so don't rely on it as a stop condition.
+                    if (batch.length < batchSize) {
                         hasMore = false;
                     } else {
                         offset += batchSize;
@@ -9819,9 +10213,19 @@
             renderExerciseGrid();
         }
 
-        // ===== Fuzzy exercise search helpers =====
-        // Handles: punctuation ("push up (on knees)" matches "push up on knees"),
-        // plurals (curl ↔ curls), and common fitness synonyms (db ↔ dumbbell, pushup ↔ push up).
+        // ===== Fuzzy exercise search helpers (v2 — typo & partial-match tolerant) =====
+        // Pipeline:
+        //   1. Direct name hits (exact / prefix / substring) — highest scores.
+        //   2. Weighted token coverage — query tokens are matched against name,
+        //      then haystack (muscles, equipment, etc.). At least 50% weighted
+        //      coverage is required, so "overhead seated dumbbell extension"
+        //      finds "Triceps extension seated - DB" (3 of 4 tokens hit).
+        //   3. Trigram similarity (Dice coefficient) for typo tolerance —
+        //      "tirceps" matches "triceps", "dumbel" matches "dumbbell".
+        //   4. Soft positional modifiers (overhead/seated/incline/etc.) carry
+        //      lower weight, so they don't disqualify a match when missing.
+        //   5. Movement-pattern aliases — "skullcrusher" finds "Lying Triceps
+        //      Extension" via aliases injected into the haystack.
         const FUZZY_SYNONYMS = {
             'pushup': ['push up'], 'pushups': ['push up'], 'pushp': ['push up'],
             'pullup': ['pull up'], 'pullups': ['pull up'],
@@ -9834,8 +10238,11 @@
             'bicep': ['biceps'], 'biceps': ['bicep'],
             'ab': ['abs', 'abdominal'], 'abs': ['abdominal', 'abdominals'],
             'db': ['dumbbell'], 'dumbell': ['dumbbell'], 'dumbells': ['dumbbell'],
+            'dumbbell': ['db'], 'dumbbells': ['db'],
             'bb': ['barbell'], 'barbel': ['barbell'], 'barbells': ['barbell'],
+            'barbell': ['bb'],
             'kb': ['kettlebell'], 'kettle': ['kettlebell'], 'kettlebells': ['kettlebell'],
+            'kettlebell': ['kb'],
             'bw': ['bodyweight'], 'bodyweigh': ['bodyweight'],
             'lat': ['lats', 'latissimus'], 'lats': ['lat', 'latissimus'],
             'glute': ['glutes'], 'glutes': ['glute'],
@@ -9848,6 +10255,33 @@
             'rdl': ['romanian dead lift', 'romanian deadlift'],
             'ohp': ['overhead press'], 'bp': ['bench press']
         };
+
+        // Movement-pattern aliases: slang term → required tokens that must ALL
+        // appear in the exercise NAME (not haystack — keeps slang from leaking
+        // onto unrelated exercises). When matched, the slang gets injected into
+        // the exercise's searchable haystack so coaches find the exercise via
+        // any of its colloquial names.
+        const MOVEMENT_ALIASES = [
+            { slang: ['skullcrusher', 'skullcrushers', 'skull crusher', 'skull crushers'],
+              requires: ['lying', 'triceps', 'extension'] },
+            { slang: ['lawnmower', 'lawnmowers', 'lawn mower', 'lawn mowers'],
+              requires: ['single', 'arm', 'row'] },
+            { slang: ['suitcase', 'suitcase carry', 'suitcase carries'],
+              requires: ['single', 'arm', 'farmer'] },
+            { slang: ['hip thrust', 'hip thrusts'],
+              requires: ['glute', 'bridge'] }
+        ];
+
+        // Soft modifiers: positional / equipment-qualifier words that often
+        // appear in queries but aren't always essential for finding the right
+        // exercise. They contribute partial weight and don't disqualify when
+        // missing — the difference between "must match" and "nice to match".
+        const SOFT_MODIFIERS = new Set([
+            'seated', 'standing', 'lying', 'kneeling', 'incline', 'decline',
+            'flat', 'overhead', 'reverse', 'wide', 'narrow', 'close',
+            'underhand', 'overhand', 'alternating', 'single', 'one', 'unilateral',
+            'bilateral', 'machine', 'free', 'weighted', 'assisted', 'with', 'and'
+        ]);
 
         function normalizeForSearch(str) {
             return (str || '')
@@ -9862,13 +10296,11 @@
             if (FUZZY_SYNONYMS[token]) {
                 FUZZY_SYNONYMS[token].forEach(v => variants.add(v));
             }
-            // Basic plural handling
             if (token.length > 3 && token.endsWith('s')) {
                 variants.add(token.slice(0, -1));
             } else if (token.length > 2) {
                 variants.add(token + 's');
             }
-            // -ing / -ed stemming for words like "rowing"/"row", "curled"/"curl"
             if (token.length > 4 && token.endsWith('ing')) {
                 variants.add(token.slice(0, -3));
             }
@@ -9880,43 +10312,142 @@
 
         function getExerciseSearchText(ex) {
             if (ex._searchText) return ex._searchText;
+            const nameNorm = normalizeForSearch(ex.name);
             const secondary = Array.isArray(ex.secondary_muscles)
                 ? ex.secondary_muscles.join(' ')
                 : (ex.secondary_muscles || '');
-            const parts = [
+            const baseParts = [
                 ex.name, ex.muscle_group, ex.primary_muscles,
                 secondary, ex.equipment, ex.exercise_type, ex.category
             ].filter(Boolean).join(' ');
-            ex._searchText = normalizeForSearch(parts);
-            return ex._searchText;
+            let combined = normalizeForSearch(baseParts);
+
+            const aliasTerms = [];
+            for (const entry of MOVEMENT_ALIASES) {
+                if (entry.requires.every(t => nameNorm.includes(t))) {
+                    aliasTerms.push(...entry.slang);
+                }
+            }
+            if (aliasTerms.length) combined += ' ' + aliasTerms.join(' ');
+            ex._searchText = combined;
+            ex._nameNorm = nameNorm;
+            return combined;
         }
 
-        function fuzzyMatchExercise(ex, queryRaw) {
-            const query = normalizeForSearch(queryRaw);
-            if (!query) return true;
-            const haystack = getExerciseSearchText(ex);
-            if (haystack.includes(query)) return true;
-            const tokens = query.split(' ').filter(Boolean);
-            return tokens.every(token => {
-                if (haystack.includes(token)) return true;
-                return expandSearchToken(token).some(v => haystack.includes(v));
-            });
+        // Trigram set with start/end padding (mirrors Postgres pg_trgm).
+        function trigramSet(s) {
+            const padded = `  ${s}  `;
+            const set = new Set();
+            for (let i = 0; i <= padded.length - 3; i++) {
+                set.add(padded.substr(i, 3));
+            }
+            return set;
         }
 
+        // Dice coefficient on trigrams — more forgiving than Jaccard for
+        // single-token typos. "tirceps"↔"triceps" ≈ 0.56, "dumbel"↔"dumbbell" ≈ 0.67.
+        function trigramSimilarity(a, b) {
+            if (!a || !b || a.length < 3 || b.length < 3) return 0;
+            const A = trigramSet(a);
+            const B = trigramSet(b);
+            let inter = 0;
+            for (const t of A) if (B.has(t)) inter++;
+            return (2 * inter) / (A.size + B.size);
+        }
+
+        // Best trigram similarity between a query token and any single word
+        // in the haystack. Comparing token-to-token (not token-to-haystack)
+        // is what makes typo tolerance work cleanly.
+        function bestWordTrigramSim(token, text) {
+            let best = 0;
+            const words = text.split(' ');
+            for (const w of words) {
+                if (w.length < 3) continue;
+                const s = trigramSimilarity(token, w);
+                if (s > best) best = s;
+            }
+            return best;
+        }
+
+        // Score an exercise against a query. Returns 0 when it should be hidden.
+        // Higher score = better match. Used for both filtering AND ranking.
         function scoreExerciseMatch(ex, queryRaw) {
             const query = normalizeForSearch(queryRaw);
             if (!query) return 0;
-            const nameNorm = normalizeForSearch(ex.name);
-            if (nameNorm === query) return 1000;
-            if (nameNorm.startsWith(query)) return 800;
-            if (nameNorm.includes(query)) return 600;
+
+            const haystack = getExerciseSearchText(ex);
+            const nameNorm = ex._nameNorm || normalizeForSearch(ex.name);
+
+            // Tier 1: direct hits on the name — these always win.
+            if (nameNorm === query) return 10000;
+            if (nameNorm.startsWith(query)) return 8000;
+            if (nameNorm.includes(query)) return 6000;
+            if (haystack.includes(query)) return 4000;
+
             const tokens = query.split(' ').filter(Boolean);
-            const allInName = tokens.every(t => {
-                if (nameNorm.includes(t)) return true;
-                return expandSearchToken(t).some(v => nameNorm.includes(v));
-            });
-            if (allInName) return 400;
-            return 100;
+            if (tokens.length === 0) return 0;
+
+            let coverage = 0;     // weighted matched-token total
+            let nameHits = 0;     // weight of tokens that hit the name
+            let trigramBoost = 0;
+            let totalWeight = 0;
+
+            for (const token of tokens) {
+                const weight = SOFT_MODIFIERS.has(token) ? 0.4 : 1.0;
+                totalWeight += weight;
+
+                const variants = expandSearchToken(token);
+                let matchedInName = false, matchedInHaystack = false;
+                for (const v of variants) {
+                    if (nameNorm.includes(v)) { matchedInName = true; break; }
+                }
+                if (!matchedInName) {
+                    for (const v of variants) {
+                        if (haystack.includes(v)) { matchedInHaystack = true; break; }
+                    }
+                }
+
+                if (matchedInName) {
+                    coverage += weight;
+                    nameHits += weight;
+                } else if (matchedInHaystack) {
+                    coverage += weight * 0.7;
+                } else if (token.length >= 4) {
+                    // Typo tolerance: trigram against name first (stronger), then haystack.
+                    const sim = Math.max(
+                        bestWordTrigramSim(token, nameNorm),
+                        bestWordTrigramSim(token, haystack) * 0.85
+                    );
+                    if (sim >= 0.5) {
+                        coverage += weight * sim;
+                        trigramBoost += sim;
+                    }
+                }
+            }
+
+            if (totalWeight === 0) return 0;
+            const ratio = coverage / totalWeight;
+
+            // Need ≥50% weighted coverage to surface at all. Below that the
+            // result feels like noise (e.g. typing "bench press squat" should
+            // not return random row exercises).
+            if (ratio < 0.5) return 0;
+
+            const nameRatio = nameHits / totalWeight;
+            const lengthPenalty = Math.max(0, nameNorm.length - 30);
+
+            const score = Math.round(ratio * 2000)
+                        + Math.round(nameRatio * 1500)
+                        + Math.round(trigramBoost * 200)
+                        - lengthPenalty;
+            return Math.max(score, 1);
+        }
+
+        // Boolean wrapper kept for existing callsites — match iff score > 0.
+        function fuzzyMatchExercise(ex, queryRaw) {
+            const query = normalizeForSearch(queryRaw);
+            if (!query) return true;
+            return scoreExerciseMatch(ex, queryRaw) > 0;
         }
         // ===== End fuzzy search helpers =====
 
@@ -10417,16 +10948,34 @@
         }
 
         // AI Cover Image Generation
+        function showHeroAiPromptInput() {
+            document.getElementById('heroAiPromptContainer').style.display = 'block';
+            document.getElementById('heroUrlInputContainer').style.display = 'none';
+            const ta = document.getElementById('heroAiPromptInput');
+            ta.focus();
+        }
+
+        function hideHeroAiPromptInput() {
+            document.getElementById('heroAiPromptContainer').style.display = 'none';
+        }
+
+        function setHeroAiPromptStyle(text) {
+            const ta = document.getElementById('heroAiPromptInput');
+            ta.value = ta.value ? ta.value.trim() + ', ' + text : text;
+            ta.focus();
+        }
+
         async function generateAICoverImage() {
-            const btn = document.getElementById('aiCoverBtn');
-            const originalHtml = btn.innerHTML;
+            const genBtn = document.getElementById('aiCoverGenerateBtn');
+            const originalHtml = genBtn.innerHTML;
 
             // Get program info for context
             const programName = document.getElementById('programName').value || 'Workout Program';
             const programType = document.getElementById('programType').value || 'general_fitness';
             const daysPerWeek = document.getElementById('daysPerWeek').value || '4';
+            const customPrompt = (document.getElementById('heroAiPromptInput').value || '').trim();
 
-            // Build a descriptive prompt based on program type
+            // Build a descriptive prompt based on program type (fallback when no custom prompt)
             const typeDescriptions = {
                 'strength': 'strength training with heavy weights, power, determination',
                 'hypertrophy': 'muscle building, bodybuilding, fitness model physique',
@@ -10435,8 +10984,8 @@
             };
             const typeDesc = typeDescriptions[programType] || typeDescriptions['general_fitness'];
 
-            btn.disabled = true;
-            btn.innerHTML = '<span class="spinner"></span> Generating...';
+            genBtn.disabled = true;
+            genBtn.innerHTML = '<span class="spinner"></span> Generating...';
 
             try {
                 const response = await fetch('/.netlify/functions/workout-cover-image', {
@@ -10446,7 +10995,8 @@
                         programName,
                         programType,
                         daysPerWeek,
-                        description: typeDesc
+                        description: typeDesc,
+                        customPrompt
                     })
                 });
 
@@ -10458,14 +11008,15 @@
 
                 // Apply the generated image
                 setHeroImage(result.imageUrl);
+                hideHeroAiPromptInput();
                 showToast('Cover image generated!', 'success');
 
             } catch (error) {
                 console.error('AI cover generation error:', error);
                 showToast(error.message || 'Failed to generate cover image', 'error');
             } finally {
-                btn.disabled = false;
-                btn.innerHTML = originalHtml;
+                genBtn.disabled = false;
+                genBtn.innerHTML = originalHtml;
             }
         }
 
@@ -10489,11 +11040,23 @@
                 const newVideo = video.cloneNode(true);
                 video.parentNode.replaceChild(newVideo, video);
 
+                // Custom exercises are coach recordings with audio; stock library
+                // entries are silent demo loops.
+                const isCustomExerciseVideo = !!exercise.is_custom;
+                newVideo.muted = !isCustomExerciseVideo;
+                newVideo.loop = !isCustomExerciseVideo;
+                if (isCustomExerciseVideo) newVideo.volume = 1.0;
+
                 // Set up event handlers for loading states
                 newVideo.oncanplay = () => {
                     loader.style.display = 'none';
                     newVideo.style.opacity = '1';
-                    newVideo.play().catch(() => {});
+                    // Only auto-resume here for muted demo loops. Custom videos
+                    // were already started below inside the user gesture so the
+                    // browser allows unmuted playback.
+                    if (!isCustomExerciseVideo) {
+                        newVideo.play().catch(() => {});
+                    }
                 };
                 newVideo.onwaiting = () => {
                     loader.style.display = 'flex';
@@ -10509,6 +11072,14 @@
                 console.log('[VideoDebug] Loading preview video:', videoUrl);
                 newVideo.src = videoUrl;
                 newVideo.load();
+
+                // Kick off unmuted playback for custom exercise videos while the
+                // click gesture is still active. Browsers allow unmuted play()
+                // here but would block the same call from oncanplay (async).
+                if (isCustomExerciseVideo) {
+                    const p = newVideo.play();
+                    if (p && typeof p.catch === 'function') p.catch(() => {});
+                }
             } else {
                 loader.innerHTML = '<span style="color: #888;">No video available</span>';
             }
@@ -10581,6 +11152,9 @@
                 equipment: exercise.equipment,
                 exercise_type: exercise.exercise_type || '',
                 is_compound: exercise.is_compound || false,
+                // Propagate is_custom so the client can play coach-recorded
+                // videos unmuted (with controls) instead of as silent demo loops.
+                is_custom: exercise.is_custom === true ? true : undefined,
                 instructions: exercise.instructions,
                 sets: isWarmup ? 1 : isStretch ? 1 : 3,
                 reps: isWarmup ? '10-15' : isStretch ? '30s hold' : '8-12',
@@ -11249,10 +11823,14 @@
 
                 listEl.innerHTML = activeForProgram.map(a => {
                     const clientName = a.clients?.client_name || a.clients?.email || 'Unknown Client';
-                    return `<div class="update-clients-list-item">${clientName}</div>`;
+                    return `<label class="update-clients-list-item">
+                        <input type="checkbox" class="update-client-checkbox" data-assignment-id="${a.id}" checked onchange="updateSelectedClientCount()">
+                        <span>${clientName}</span>
+                    </label>`;
                 }).join('');
 
                 document.getElementById('confirmUpdateClientsModal').classList.add('active');
+                updateSelectedClientCount();
             } catch (err) {
                 console.error('Error checking assignments:', err);
                 showToast('Error checking client assignments: ' + err.message, 'error');
@@ -11263,7 +11841,24 @@
             document.getElementById('confirmUpdateClientsModal').classList.remove('active');
         }
 
+        function updateSelectedClientCount() {
+            const checkboxes = document.querySelectorAll('#updateClientsList .update-client-checkbox');
+            const selected = document.querySelectorAll('#updateClientsList .update-client-checkbox:checked').length;
+            const btn = document.getElementById('confirmUpdateClientsBtn');
+            if (selected === 0) {
+                btn.textContent = 'Save Only';
+            } else if (selected === checkboxes.length) {
+                btn.textContent = `Save & Update All (${selected})`;
+            } else {
+                btn.textContent = `Save & Update (${selected})`;
+            }
+        }
+
         async function confirmSaveAndUpdateClients() {
+            const selectedAssignmentIds = Array.from(
+                document.querySelectorAll('#updateClientsList .update-client-checkbox:checked')
+            ).map(cb => cb.dataset.assignmentId);
+
             closeUpdateClientsModal();
 
             const name = document.getElementById('programName').value.trim();
@@ -11297,7 +11892,8 @@
                         programData: { days: workoutDays },
                         heroImageUrl: heroImageUrl || undefined,
                         isClubWorkout: document.getElementById('isClubWorkout').checked,
-                        updateClientAssignments: true
+                        updateClientAssignments: selectedAssignmentIds.length > 0,
+                        assignmentIds: selectedAssignmentIds
                     })
                 });
 
@@ -11531,6 +12127,206 @@
             }
         }
 
+        // ============ WEBM DURATION FIX ============
+        // MediaRecorder produces WebM files that omit the Duration element in the
+        // EBML Info segment, which makes <video> elements stop playback early
+        // (often within 5 seconds of seek/buffer). This patcher inserts a proper
+        // Duration so the recorded file plays end-to-end.
+        // Adapted from the public-domain logic in https://github.com/yusitnikov/fix-webm-duration (MIT).
+        async function fixWebmDuration(blob, durationMs) {
+            try {
+                if (!durationMs || durationMs <= 0) return blob;
+                const buf = new Uint8Array(await blob.arrayBuffer());
+                const patched = patchWebmDuration(buf, durationMs);
+                if (!patched) return blob;
+                return new Blob([patched], { type: blob.type || 'video/webm' });
+            } catch (e) {
+                console.warn('[WebmFix] Could not patch duration:', e);
+                return blob;
+            }
+        }
+
+        function patchWebmDuration(bytes, durationMs) {
+            // EBML id constants (big-endian byte sequences)
+            const ID_SEGMENT = [0x18, 0x53, 0x80, 0x67];
+            const ID_INFO = [0x15, 0x49, 0xA9, 0x66];
+            const ID_DURATION = [0x44, 0x89];
+            const ID_TIMECODE_SCALE = [0x2A, 0xD7, 0xB1];
+
+            function bytesEq(off, ids) {
+                for (let i = 0; i < ids.length; i++) if (bytes[off + i] !== ids[i]) return false;
+                return true;
+            }
+
+            // Read variable-length integer (EBML VINT). Returns { value, length, isUnknown }.
+            function readVint(off) {
+                const first = bytes[off];
+                if (first === 0) throw new Error('Bad VINT at ' + off);
+                let mask = 0x80, len = 1;
+                while (!(first & mask)) { mask >>= 1; len++; if (len > 8) throw new Error('Bad VINT len'); }
+                let value = first & (mask - 1);
+                let allOnes = (first === ((mask << 1) - 1)); // unknown-size marker is all 1s after the length prefix
+                for (let i = 1; i < len; i++) {
+                    const b = bytes[off + i];
+                    if (b !== 0xFF) allOnes = false;
+                    value = value * 256 + b;
+                }
+                return { value, length: len, isUnknown: allOnes };
+            }
+
+            // Find Segment
+            let off = 0;
+            // Skip EBML header
+            if (!(bytes[0] === 0x1A && bytes[1] === 0x45 && bytes[2] === 0xDF && bytes[3] === 0xA3)) {
+                console.warn('[WebmFix] Not a WebM file (missing EBML header)');
+                return null;
+            }
+            off += 4;
+            const ebmlSize = readVint(off);
+            off += ebmlSize.length + ebmlSize.value;
+
+            // Segment
+            if (!bytesEq(off, ID_SEGMENT)) {
+                console.warn('[WebmFix] No Segment element after EBML header');
+                return null;
+            }
+            const segIdEnd = off + ID_SEGMENT.length;
+            const segSize = readVint(segIdEnd);
+            const segDataStart = segIdEnd + segSize.length;
+            const segEnd = segSize.isUnknown ? bytes.length : Math.min(segDataStart + segSize.value, bytes.length);
+
+            // Walk children looking for Info
+            let cursor = segDataStart;
+            while (cursor < segEnd) {
+                if (cursor + 2 > bytes.length) break;
+                // Element id is 1-4 bytes; detect length from leading 1-bit
+                const idFirst = bytes[cursor];
+                let idLen = 1, m = 0x80;
+                while (!(idFirst & m) && idLen < 4) { m >>= 1; idLen++; }
+                const idStart = cursor;
+                cursor += idLen;
+                const sz = readVint(cursor);
+                const dataStart = cursor + sz.length;
+                const dataEnd = sz.isUnknown ? segEnd : dataStart + sz.value;
+                cursor = dataEnd;
+
+                if (idLen === ID_INFO.length && bytesEq(idStart, ID_INFO)) {
+                    return patchInfo(bytes, idStart, sz, dataStart, dataEnd, durationMs, segSize.isUnknown);
+                }
+            }
+            console.warn('[WebmFix] No Info element found in Segment');
+            return null;
+        }
+
+        function patchInfo(bytes, idStart, infoSize, dataStart, dataEnd, durationMs, segmentUnknownSize) {
+            // Look for Duration and TimecodeScale within Info
+            let timecodeScale = 1000000; // default 1ms in nanoseconds
+            let durationDataStart = -1, durationDataLen = 0;
+
+            let cursor = dataStart;
+            while (cursor < dataEnd) {
+                const idFirst = bytes[cursor];
+                if (!idFirst) break;
+                let idLen = 1, m = 0x80;
+                while (!(idFirst & m) && idLen < 4) { m >>= 1; idLen++; }
+                const subIdStart = cursor;
+                cursor += idLen;
+                const subSizeFirst = bytes[cursor];
+                let szLen = 1, sm = 0x80;
+                while (!(subSizeFirst & sm) && szLen < 8) { sm >>= 1; szLen++; }
+                let subSize = subSizeFirst & (sm - 1);
+                for (let i = 1; i < szLen; i++) subSize = subSize * 256 + bytes[cursor + i];
+                cursor += szLen;
+                const subDataStart = cursor;
+                cursor += subSize;
+
+                if (idLen === 2 && bytes[subIdStart] === 0x44 && bytes[subIdStart + 1] === 0x89) {
+                    durationDataStart = subDataStart;
+                    durationDataLen = subSize;
+                } else if (idLen === 3 && bytes[subIdStart] === 0x2A && bytes[subIdStart + 1] === 0xD7 && bytes[subIdStart + 2] === 0xB1) {
+                    let v = 0;
+                    for (let i = 0; i < subSize; i++) v = v * 256 + bytes[subDataStart + i];
+                    if (v > 0) timecodeScale = v;
+                }
+            }
+
+            const durationInScale = (durationMs * 1e6) / timecodeScale;
+
+            if (durationDataStart >= 0 && (durationDataLen === 4 || durationDataLen === 8)) {
+                // Patch in place
+                writeFloatBE(bytes, durationDataStart, durationDataLen, durationInScale);
+                return bytes;
+            }
+
+            // Insertion grows the file by 11 bytes. If the Segment had a known size,
+            // we'd also need to update it — bail in that rare case (MediaRecorder
+            // writes Segment with unknown-size in practice).
+            if (!segmentUnknownSize) {
+                console.warn('[WebmFix] Cannot insert Duration — Segment has known size');
+                return null;
+            }
+            // Need to insert a new Duration element [44 89][88][8 bytes float64]
+            const newDur = new Uint8Array(11);
+            newDur[0] = 0x44; newDur[1] = 0x89;
+            newDur[2] = 0x88; // size = 8 with VINT marker
+            writeFloatBE(newDur, 3, 8, durationInScale);
+
+            const infoIdEnd = idStart + 4; // Info id is 4 bytes
+            let newSizeBytes;
+            if (infoSize.isUnknown) {
+                // Keep the unknown-size marker as-is; readers scan to next top-level element.
+                newSizeBytes = bytes.subarray(infoIdEnd, infoIdEnd + infoSize.length);
+            } else {
+                const newInfoDataLen = (dataEnd - dataStart) + newDur.length;
+                newSizeBytes = encodeVintSize(newInfoDataLen, infoSize.length);
+                if (!newSizeBytes) {
+                    console.warn('[WebmFix] New Info size does not fit in original encoding');
+                    return null;
+                }
+            }
+
+            // Build output: [...up to Info id end][size bytes][new duration][original info data][...rest]
+            const out = new Uint8Array(bytes.length + newDur.length);
+            let p = 0;
+            out.set(bytes.subarray(0, infoIdEnd), p); p += infoIdEnd;
+            out.set(newSizeBytes, p); p += newSizeBytes.length;
+            out.set(newDur, p); p += newDur.length;
+            out.set(bytes.subarray(dataStart), p);
+            return out;
+        }
+
+        function writeFloatBE(buf, offset, len, value) {
+            const ab = new ArrayBuffer(8);
+            const dv = new DataView(ab);
+            if (len === 4) {
+                dv.setFloat32(0, value, false);
+                for (let i = 0; i < 4; i++) buf[offset + i] = dv.getUint8(i);
+            } else {
+                dv.setFloat64(0, value, false);
+                for (let i = 0; i < 8; i++) buf[offset + i] = dv.getUint8(i);
+            }
+        }
+
+        function encodeVintSize(value, fixedLength) {
+            // Re-encode size to the same byte length as the original to avoid having
+            // to shift the rest of the file.
+            const len = fixedLength;
+            if (len < 1 || len > 8) return null;
+            const max = Math.pow(2, len * 7) - 2; // (2^(7L)) - 2 because all-1 means unknown
+            if (value > max) return null;
+            const out = new Uint8Array(len);
+            // Set length marker: bit (8 - len) of first byte
+            const marker = 1 << (8 - len);
+            // Encode value into len bytes big-endian
+            let v = value;
+            for (let i = len - 1; i >= 0; i--) {
+                out[i] = v & 0xFF;
+                v = Math.floor(v / 256);
+            }
+            out[0] |= marker;
+            return out;
+        }
+
         // ============ VIDEO COMPRESSION ============
         // Compresses video to 720p before upload to prevent large file playback issues
         async function compressVideo(file) {
@@ -11551,17 +12347,21 @@
 
             return new Promise((resolve) => {
                 const video = document.createElement('video');
-                video.muted = true;
+                // Audio is routed through Web Audio (see below) so nothing plays to speakers
                 video.playsInline = true;
                 video.preload = 'auto';
                 const objectUrl = URL.createObjectURL(file);
                 let resolved = false;
+                let audioCtx = null;
 
                 function finish(result) {
                     if (resolved) return;
                     resolved = true;
                     clearTimeout(safetyTimeout);
                     URL.revokeObjectURL(objectUrl);
+                    if (audioCtx && typeof audioCtx.close === 'function') {
+                        try { audioCtx.close(); } catch (_) {}
+                    }
                     resolve(result);
                 }
 
@@ -11591,11 +12391,36 @@
                     canvas.width = width;
                     canvas.height = height;
                     const ctx = canvas.getContext('2d');
-                    const stream = canvas.captureStream(24);
+                    const canvasStream = canvas.captureStream(24);
 
-                    // Pick best available codec
+                    // Combine canvas video with the source video's audio track so
+                    // compressed videos retain their sound.
+                    const stream = new MediaStream();
+                    canvasStream.getVideoTracks().forEach(t => stream.addTrack(t));
+                    try {
+                        const Ctx = window.AudioContext || window.webkitAudioContext;
+                        if (Ctx) {
+                            audioCtx = new Ctx();
+                            if (audioCtx.state === 'suspended' && typeof audioCtx.resume === 'function') {
+                                audioCtx.resume().catch(() => {});
+                            }
+                            const sourceNode = audioCtx.createMediaElementSource(video);
+                            const destNode = audioCtx.createMediaStreamDestination();
+                            sourceNode.connect(destNode);
+                            // Intentionally NOT connected to audioCtx.destination so the
+                            // source video stays silent during compression.
+                            destNode.stream.getAudioTracks().forEach(t => stream.addTrack(t));
+                        }
+                    } catch (audioErr) {
+                        console.warn('Could not capture audio for compression:', audioErr);
+                    }
+
+                    // Pick best available codec — include opus so audio is encoded
                     let mimeType = 'video/webm';
-                    for (const candidate of ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm']) {
+                    const codecCandidates = stream.getAudioTracks().length
+                        ? ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm;codecs=opus', 'video/webm']
+                        : ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'];
+                    for (const candidate of codecCandidates) {
                         if (MediaRecorder.isTypeSupported(candidate)) {
                             mimeType = candidate;
                             break;
@@ -11611,8 +12436,13 @@
 
                     const chunks = [];
                     recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
-                    recorder.onstop = () => {
-                        const blob = new Blob(chunks, { type: 'video/webm' });
+                    recorder.onstop = async () => {
+                        let blob = new Blob(chunks, { type: 'video/webm' });
+                        // Patch the WebM Duration metadata so playback doesn't stop early.
+                        const durMs = Math.max(1000, Math.round((video.duration || 0) * 1000));
+                        if (durMs > 1000) {
+                            blob = await fixWebmDuration(blob, durMs);
+                        }
                         console.log(`Video compressed: ${(file.size/1024/1024).toFixed(1)}MB → ${(blob.size/1024/1024).toFixed(1)}MB (${width}x${height})`);
                         finish(blob);
                     };
@@ -11654,13 +12484,30 @@
             }
 
             try {
-                // Request camera access
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: 'environment', width: { ideal: 720 }, height: { ideal: 480 } },
-                    audio: false
-                });
+                // Request camera + mic access (audio so coach demos include voice cues)
+                let stream;
+                try {
+                    stream = await navigator.mediaDevices.getUserMedia({
+                        video: { facingMode: 'environment', width: { ideal: 720 }, height: { ideal: 480 } },
+                        audio: true
+                    });
+                } catch (audioErr) {
+                    console.warn('Mic unavailable, recording without audio:', audioErr);
+                    stream = await navigator.mediaDevices.getUserMedia({
+                        video: { facingMode: 'environment', width: { ideal: 720 }, height: { ideal: 480 } },
+                        audio: false
+                    });
+                }
 
-                videoMediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+                // Pick a mimeType the browser can record with audio + video
+                let recordMimeType = 'video/webm';
+                for (const candidate of ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm;codecs=opus', 'video/webm']) {
+                    if (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(candidate)) {
+                        recordMimeType = candidate;
+                        break;
+                    }
+                }
+                videoMediaRecorder = new MediaRecorder(stream, { mimeType: recordMimeType });
                 videoChunks = [];
                 videoRecordingExercise = { dayIndex, exIndex };
                 videoRecordingSeconds = 0;
@@ -11675,7 +12522,11 @@
                     clearInterval(videoRecordingTimer);
                     stream.getTracks().forEach(track => track.stop());
 
-                    const videoBlob = new Blob(videoChunks, { type: 'video/webm' });
+                    let videoBlob = new Blob(videoChunks, { type: 'video/webm' });
+                    // MediaRecorder omits the WebM Duration metadata, which makes
+                    // browsers stop playback early. Patch it using the elapsed time.
+                    const recordedMs = Math.max(1000, videoRecordingSeconds * 1000);
+                    videoBlob = await fixWebmDuration(videoBlob, recordedMs);
                     await uploadCustomVideo(dayIndex, exIndex, videoBlob);
 
                     videoMediaRecorder = null;
@@ -11727,9 +12578,9 @@
             const file = event.target.files[0];
             if (!file) return;
 
-            // Check file size (max 500MB)
-            if (file.size > 500 * 1024 * 1024) {
-                showToast('Video too large. Max 500MB.', 'error');
+            // Check file size (max 1GB — fits a 2-min 4K iPhone clip with headroom).
+            if (file.size > 1024 * 1024 * 1024) {
+                showToast('Video too large. Max 1GB.', 'error');
                 return;
             }
 
@@ -11745,17 +12596,12 @@
                     return;
                 }
 
-                // Compress video before uploading (reduces 4K/large files to 720p)
-                let videoToUpload = file;
-                if (file.size > 2 * 1024 * 1024) {
-                    showToast('Compressing video for optimal playback...', 'success');
-                    videoToUpload = await compressVideo(file);
-                    if (videoToUpload !== file) {
-                        showToast(`Compressed: ${(file.size/1024/1024).toFixed(1)}MB → ${(videoToUpload.size/1024/1024).toFixed(1)}MB`, 'success');
-                    }
+                // Upload the original file. Browser-side re-encoding drops frames and
+                // breaks audio on iOS, so we let the original quality pass through.
+                if (file.size > 100 * 1024 * 1024) {
+                    showToast(`Uploading large video (${(file.size/1024/1024).toFixed(0)}MB)…`, 'success');
                 }
-
-                await uploadCustomVideo(dayIndex, exIndex, videoToUpload);
+                await uploadCustomVideo(dayIndex, exIndex, file);
             };
 
             video.src = URL.createObjectURL(file);
@@ -11765,10 +12611,13 @@
             try {
                 showToast('Uploading video...', 'success');
 
-                // Determine content type
-                const isWebm = videoBlob.type.includes('webm');
-                const contentType = isWebm ? 'video/webm' : 'video/mp4';
-                const extension = isWebm ? 'webm' : 'mp4';
+                // Preserve the source's actual mime type so iOS plays it back correctly.
+                // mov/quicktime is normalized to mp4 (iOS plays both, mp4 has wider support).
+                const sourceType = (videoBlob.type || '').toLowerCase();
+                let contentType, extension;
+                if (sourceType.includes('webm')) { contentType = 'video/webm'; extension = 'webm'; }
+                else if (sourceType.includes('quicktime') || sourceType.includes('mov')) { contentType = 'video/quicktime'; extension = 'mov'; }
+                else { contentType = 'video/mp4'; extension = 'mp4'; }
                 const fileName = `custom-video-${Date.now()}.${extension}`;
 
                 // Step 1: Get a signed upload URL
@@ -11828,6 +12677,40 @@
                 renderWorkoutDays();
                 showToast('Custom video deleted', 'success');
             }
+        }
+
+        // Open a video URL in a fullscreen overlay with sound. Browsers only allow
+        // unmuted play() inside the click gesture, so kick playback off here.
+        function openVideoWithSoundOverlay(url) {
+            if (!url) return;
+            const overlay = document.createElement('div');
+            overlay.className = 'video-preview-overlay';
+            overlay.innerHTML = `
+                <video src="${url}" controls playsinline preload="auto" style="max-width:100%;max-height:80vh;border-radius:8px"></video>
+                <button class="video-preview-close" onclick="this.parentElement.remove()">&times;</button>
+            `;
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) overlay.remove();
+            });
+            document.body.appendChild(overlay);
+            const videoEl = overlay.querySelector('video');
+            if (videoEl) {
+                videoEl.muted = false;
+                videoEl.volume = 1.0;
+                const p = videoEl.play();
+                if (p && typeof p.catch === 'function') p.catch(() => {});
+            }
+        }
+
+        // Open the per-exercise Custom Demo (coach upload on a workout day).
+        function previewCustomDemo(dayIndex, exIndex) {
+            const ex = workoutDays?.[dayIndex]?.exercises?.[exIndex];
+            openVideoWithSoundOverlay(ex?.customVideoUrl);
+        }
+
+        // Open a custom exercise's library video (coach recording with voice cues).
+        function previewCustomExerciseVideo(url) {
+            openVideoWithSoundOverlay(url);
         }
 
 
@@ -12106,6 +12989,16 @@
             document.getElementById('aiModalFooter').style.display = 'none';
             document.getElementById('aiModeSelector').style.display = '';
             document.getElementById('aiModal').classList.add('active');
+            // Refresh client list + presets each time. If clients haven't
+            // loaded yet (e.g. user clicked Generate before page finished),
+            // kick off loadClients() and re-populate when it returns.
+            try { populateAIClientSelect(); } catch (e) {}
+            try { refreshPresetList(); } catch (e) {}
+            if (!Array.isArray(clients) || clients.length === 0) {
+                if (typeof loadClients === 'function') {
+                    loadClients().then(() => { try { populateAIClientSelect(); } catch (e) {} });
+                }
+            }
             // Restore saved form state
             _restoreAIFormState();
         }
@@ -12233,81 +13126,259 @@
             } catch(e) { /* ignore */ }
         }
 
-        async function generateAIWorkout() {
-            const btn = document.getElementById('aiGenerateBtn');
-            const originalText = btn.innerHTML;
-            const isSingle = aiMode === 'single';
+        // ============================================
+        // Per-day fan-out for program generation
+        // ============================================
+        // Netlify sync functions cap at 26s. A full multi-day program in one
+        // Claude call exceeds that. Instead, we fan out parallel per-day single
+        // workout calls (~5-10s each), then assemble locally + apply progression.
 
-            // Get shared form values
-            const clientName = document.getElementById('aiClientName').value || 'Client';
+        // Map split type + days-per-week → array of per-day target muscle groups.
+        // Each entry is what we'll pass as targetMuscle for a single-mode generate.
+        function computeSplitDays(daysPerWeek, split, focusAreas = []) {
+            const splits = {
+                'push_pull_legs': {
+                    3: [['push', 'Push Day'], ['pull', 'Pull Day'], ['legs', 'Leg Day']],
+                    4: [['push', 'Push Day'], ['pull', 'Pull Day'], ['legs', 'Leg Day'], ['upper_body', 'Upper Body']],
+                    5: [['push', 'Push Day'], ['pull', 'Pull Day'], ['legs', 'Leg Day'], ['push', 'Push Day 2'], ['pull', 'Pull Day 2']],
+                    6: [['push', 'Push A'], ['pull', 'Pull A'], ['legs', 'Legs A'], ['push', 'Push B'], ['pull', 'Pull B'], ['legs', 'Legs B']]
+                },
+                'upper_lower': {
+                    2: [['upper_body', 'Upper Body'], ['lower_body', 'Lower Body']],
+                    3: [['upper_body', 'Upper Body'], ['lower_body', 'Lower Body'], ['full_body', 'Full Body']],
+                    4: [['upper_body', 'Upper A'], ['lower_body', 'Lower A'], ['upper_body', 'Upper B'], ['lower_body', 'Lower B']],
+                    5: [['upper_body', 'Upper A'], ['lower_body', 'Lower A'], ['upper_body', 'Upper B'], ['lower_body', 'Lower B'], ['full_body', 'Full Body']],
+                    6: [['upper_body', 'Upper A'], ['lower_body', 'Lower A'], ['upper_body', 'Upper B'], ['lower_body', 'Lower B'], ['upper_body', 'Upper C'], ['lower_body', 'Lower C']]
+                },
+                'full_body': {
+                    2: [['full_body', 'Full Body A'], ['full_body', 'Full Body B']],
+                    3: [['full_body', 'Full Body A'], ['full_body', 'Full Body B'], ['full_body', 'Full Body C']],
+                    4: [['full_body', 'Full Body A'], ['full_body', 'Full Body B'], ['full_body', 'Full Body C'], ['full_body', 'Full Body D']],
+                    5: [['full_body', 'Full Body A'], ['full_body', 'Full Body B'], ['full_body', 'Full Body C'], ['full_body', 'Full Body D'], ['full_body', 'Full Body E']],
+                    6: [['full_body', 'Full Body A'], ['full_body', 'Full Body B'], ['full_body', 'Full Body C'], ['full_body', 'Full Body D'], ['full_body', 'Full Body E'], ['full_body', 'Full Body F']]
+                },
+                'bro_split': {
+                    3: [['chest', 'Chest Day'], ['back', 'Back Day'], ['legs', 'Leg Day']],
+                    4: [['chest', 'Chest Day'], ['back', 'Back Day'], ['shoulders', 'Shoulder Day'], ['legs', 'Leg Day']],
+                    5: [['chest', 'Chest Day'], ['back', 'Back Day'], ['shoulders', 'Shoulder Day'], ['arms', 'Arm Day'], ['legs', 'Leg Day']],
+                    6: [['chest', 'Chest Day'], ['back', 'Back Day'], ['shoulders', 'Shoulder Day'], ['arms', 'Arm Day'], ['legs', 'Leg Day'], ['core', 'Core & Conditioning']]
+                },
+                'push_pull': {
+                    2: [['push', 'Push Day'], ['pull', 'Pull Day']],
+                    3: [['push', 'Push Day'], ['pull', 'Pull Day'], ['full_body', 'Full Body']],
+                    4: [['push', 'Push A'], ['pull', 'Pull A'], ['push', 'Push B'], ['pull', 'Pull B']]
+                }
+            };
+
+            // Auto: pick a sensible default per days-per-week
+            const autoMap = {
+                2: 'upper_lower', 3: 'full_body', 4: 'upper_lower',
+                5: 'push_pull_legs', 6: 'push_pull_legs'
+            };
+            const effectiveSplit = (split === 'auto') ? (autoMap[daysPerWeek] || 'upper_lower') : split;
+            const table = splits[effectiveSplit];
+            if (!table || !table[daysPerWeek]) {
+                // Fallback to N full-body days
+                return Array.from({ length: daysPerWeek }, (_, i) => ({
+                    targetMuscle: 'full_body', dayName: `Day ${i + 1}`, dayNumber: i + 1
+                }));
+            }
+
+            // If focusAreas were specified, bias one extra day toward them
+            const days = table[daysPerWeek].map(([target, name], i) => ({
+                targetMuscle: target,
+                dayName: name,
+                dayNumber: i + 1
+            }));
+
+            // The backend now handles 'push' and 'pull' as proper target muscles
+            // with strict split-aware exercise selection (see muscleGroupMap in
+            // generate-workout-claude.js). No translation needed.
+            return days;
+        }
+
+        // Run promises with limited concurrency.
+        async function _withConcurrency(items, limit, worker) {
+            const results = new Array(items.length);
+            let cursor = 0;
+            const runners = Array.from({ length: Math.min(limit, items.length) }, async () => {
+                while (cursor < items.length) {
+                    const i = cursor++;
+                    results[i] = await worker(items[i], i);
+                }
+            });
+            await Promise.all(runners);
+            return results;
+        }
+
+        // Local copy of the backend's multi-week progression generator.
+        // Keep in sync with netlify/functions/generate-workout-claude.js.
+        function _generateMultiWeekProgressionLocal(week1Workouts, totalWeeks, goal) {
+            if (totalWeeks <= 1) return [];
+            const out = [];
+            for (let w = 2; w <= totalWeeks; w++) {
+                const isDeload = w % 4 === 0;
+                const weekIndex = w - 1;
+                const workouts = week1Workouts.map(workout => {
+                    const exercises = (workout.exercises || []).map(ex => {
+                        if (ex.isWarmup || ex.isStretch || ex.phase === 'warmup' || ex.phase === 'cooldown') return { ...ex };
+                        const baseSets = Number(ex.sets) || 3;
+                        const baseReps = String(ex.reps || '8-12');
+                        let newSets = baseSets;
+                        let newReps = baseReps;
+                        let progressNote = '';
+                        if (isDeload) {
+                            newSets = Math.max(2, baseSets - 1);
+                            progressNote = `Week ${w} (DELOAD): drop 1 set, use ~70% of recent working weight`;
+                        } else if (goal === 'strength') {
+                            progressNote = `Week ${w}: add 2.5-5 lb to working weight`;
+                        } else if (goal === 'hypertrophy') {
+                            const range = baseReps.match(/(\d+)\s*[-–]\s*(\d+)/);
+                            if (range) {
+                                const lowRep = parseInt(range[1]);
+                                const highRep = parseInt(range[2]);
+                                const repBump = Math.min(highRep, lowRep + (weekIndex - 1));
+                                newReps = `${repBump}-${highRep}`;
+                                if (weekIndex >= 3) newSets = baseSets + 1;
+                                progressNote = `Week ${w}: aim for ${newReps} reps`;
+                            } else {
+                                progressNote = `Week ${w}: aim for 1-2 more reps than last week`;
+                            }
+                        } else {
+                            const baseRest = Number(ex.restSeconds) || 60;
+                            const newRest = Math.max(20, baseRest - 10 * (weekIndex - 1));
+                            return { ...ex, restSeconds: newRest, notes: ex.notes ? `${ex.notes} | Week ${w}: shorten rest to ${newRest}s` : `Week ${w}: shorten rest to ${newRest}s` };
+                        }
+                        return { ...ex, sets: newSets, reps: newReps, notes: ex.notes ? `${ex.notes} | ${progressNote}` : progressNote };
+                    });
+                    return { ...workout, exercises };
+                });
+                out.push({ weekNumber: w, workouts, isDeload });
+            }
+            return out;
+        }
+
+        // Generate one day via the existing single-mode endpoint.
+        async function _generateOneDay(daySpec, sharedReq) {
+            // Expand push/pull into their constituent muscles for the focusAreas
+            // hint, while keeping targetMuscle as 'push'/'pull' so the backend's
+            // split-aware system prompt still kicks in.
+            const focusMap = {
+                push: ['chest', 'shoulders', 'triceps'],
+                pull: ['back', 'biceps'],
+                upper_body: ['chest', 'back', 'shoulders', 'arms'],
+                lower_body: ['quads', 'hamstrings', 'glutes', 'calves'],
+                full_body: ['chest', 'back', 'legs', 'shoulders']
+            };
+            const focusAreas = focusMap[daySpec.targetMuscle] || [daySpec.targetMuscle];
+            const dayBody = {
+                ...sharedReq,
+                mode: 'single',
+                targetMuscle: daySpec.targetMuscle,
+                daysPerWeek: 1,
+                duration: 1,
+                split: 'auto',
+                focusAreas,
+                includeProgression: false,
+                // Tag with day context so backend prompt is aware
+                clientName: sharedReq.clientName + ` — Day ${daySpec.dayNumber}`,
+                varietySeed: (sharedReq.varietySeed || Date.now()) + daySpec.dayNumber * 7919
+            };
+
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 60000);
+            try {
+                const response = await fetch('/.netlify/functions/generate-workout-claude', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(currentAccessToken && { 'Authorization': `Bearer ${currentAccessToken}` })
+                    },
+                    body: JSON.stringify(dayBody),
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+                const rawText = await response.text();
+                let data;
+                try { data = JSON.parse(rawText); }
+                catch { throw new Error(`Day ${daySpec.dayNumber}: server returned non-JSON (HTTP ${response.status})`); }
+                if (!response.ok || !data.success) throw new Error(`Day ${daySpec.dayNumber}: ${data.error || 'failed'}`);
+                return { daySpec, result: data };
+            } finally {
+                clearTimeout(timeoutId);
+            }
+        }
+
+        // Build the AI request body from current form state.
+        // Used by both initial generate and "regenerate" from preview.
+        function _buildAIRequestBody({ varietySeed = Date.now(), excludeNames = [] } = {}) {
+            const isSingle = aiMode === 'single';
+            const clientId = document.getElementById('aiClientSelect')?.value || null;
+            const clientName = document.getElementById('aiClientName').value
+                || (clientId && (clients.find(c => String(c.id) === String(clientId))?.client_name)) || 'Client';
             const goal = document.getElementById('aiGoal').value;
             const experience = document.getElementById('aiExperience').value;
             const injuries = document.getElementById('aiInjuries').value;
             const preferences = document.getElementById('aiPreferences').value;
+            const tempo = document.getElementById('aiTempo')?.value || 'standard';
+            const unilateralPreference = document.getElementById('aiUnilateral')?.value || 'mixed';
+            const conditioningStyle = document.getElementById('aiConditioning')?.value || 'none';
+            const intensityRaw = document.getElementById('aiIntensity')?.value || '';
+            const rpeTarget = intensityRaw.startsWith('rpe:') ? parseInt(intensityRaw.split(':')[1]) : null;
+            const rirTarget = intensityRaw.startsWith('rir:') ? parseInt(intensityRaw.split(':')[1]) : null;
+            const injuryCodes = Array.from(document.querySelectorAll('input[name="injuryCode"]:checked')).map(cb => cb.value);
+            const movementScreenFlags = Array.from(document.querySelectorAll('input[name="movementFlag"]:checked')).map(cb => cb.value);
 
-            const equipment = Array.from(document.querySelectorAll('input[name="equipment"]:checked'))
-                .map(cb => cb.value);
+            const equipment = Array.from(document.querySelectorAll('input[name="equipment"]:checked')).map(cb => cb.value);
+            if (equipment.length === 0) return { error: 'Please select at least one equipment type' };
 
-            if (equipment.length === 0) {
-                showToast('Please select at least one equipment type', 'error');
-                return;
-            }
+            const sharedFields = {
+                clientName, clientId, coachId: currentCoachId, goal, experience, equipment,
+                injuries, injuryCodes, movementScreenFlags, preferences, tempo, rpeTarget, rirTarget,
+                unilateralPreference, conditioningStyle,
+                varietySeed, excludeExerciseNames: excludeNames
+            };
 
-            // Build request body based on mode
-            let requestBody;
             if (isSingle) {
                 const targetMuscle = document.getElementById('aiTargetMuscle').value;
-                const sessionDuration = parseInt(document.getElementById('aiSingleSessionDuration').value);
-                const trainingStyle = document.getElementById('aiSingleTrainingStyle').value;
-                const exerciseCount = document.getElementById('aiSingleExerciseCount').value;
-
-                requestBody = {
+                return {
                     mode: 'single',
-                    clientName,
-                    goal,
-                    experience,
+                    ...sharedFields,
                     targetMuscle,
                     daysPerWeek: 1,
                     duration: 1,
                     split: 'auto',
-                    sessionDuration,
-                    trainingStyle,
-                    exerciseCount,
+                    sessionDuration: parseInt(document.getElementById('aiSingleSessionDuration').value),
+                    trainingStyle: document.getElementById('aiSingleTrainingStyle').value,
+                    exerciseCount: document.getElementById('aiSingleExerciseCount').value,
                     focusAreas: (() => {
                         const singleFocus = Array.from(document.querySelectorAll('input[name="singleFocusArea"]:checked')).map(cb => cb.value);
                         return singleFocus.length > 0 ? singleFocus : [targetMuscle];
                     })(),
-                    equipment,
-                    injuries,
-                    preferences
-                };
-            } else {
-                const daysPerWeek = parseInt(document.getElementById('aiDaysPerWeek').value);
-                const duration = parseInt(document.getElementById('aiDuration').value);
-                const split = document.getElementById('aiSplit').value;
-                const sessionDuration = parseInt(document.getElementById('aiSessionDuration').value);
-                const trainingStyle = document.getElementById('aiTrainingStyle').value;
-                const exerciseCount = document.getElementById('aiExerciseCount').value;
-                const focusAreas = Array.from(document.querySelectorAll('input[name="focusArea"]:checked'))
-                    .map(cb => cb.value);
-
-                requestBody = {
-                    mode: 'program',
-                    clientName,
-                    goal,
-                    experience,
-                    daysPerWeek,
-                    duration,
-                    split,
-                    sessionDuration,
-                    trainingStyle,
-                    exerciseCount,
-                    focusAreas,
-                    equipment,
-                    injuries,
-                    preferences
+                    includeProgression: false
                 };
             }
+
+            return {
+                mode: 'program',
+                ...sharedFields,
+                daysPerWeek: parseInt(document.getElementById('aiDaysPerWeek').value),
+                duration: parseInt(document.getElementById('aiDuration').value),
+                split: document.getElementById('aiSplit').value,
+                sessionDuration: parseInt(document.getElementById('aiSessionDuration').value),
+                trainingStyle: document.getElementById('aiTrainingStyle').value,
+                exerciseCount: document.getElementById('aiExerciseCount').value,
+                focusAreas: Array.from(document.querySelectorAll('input[name="focusArea"]:checked')).map(cb => cb.value),
+                includeProgression: true
+            };
+        }
+
+        async function generateAIWorkout() {
+            const btn = document.getElementById('aiGenerateBtn');
+            const isSingle = aiMode === 'single';
+
+            const requestBody = _buildAIRequestBody();
+            if (requestBody.error) { showToast(requestBody.error, 'error'); return; }
 
             // Show loading & prevent accidental modal close
             btn.disabled = true;
@@ -12318,158 +13389,33 @@
             if (closeBtn) closeBtn.style.display = 'none';
             window._aiGenerating = true;
 
-            // Progress text updates
-            const progressSteps = [
-                { text: 'Building your workout...', delay: 3000 },
-                { text: 'Selecting exercises from your database...', delay: 7000 },
-                { text: 'Matching exercises & adding videos...', delay: 12000 },
-                { text: 'Almost done — finalizing program...', delay: 18000 }
-            ];
-            const progressTimers = progressSteps.map(step =>
-                setTimeout(() => {
-                    if (window._aiGenerating) {
-                        btn.innerHTML = `<span class="generating-text"><span class="spinner"></span>${step.text}</span>`;
-                    }
-                }, step.delay)
-            );
-
-            // 90-second timeout
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 90000);
-
             try {
-                const response = await fetch('/.netlify/functions/generate-workout-claude', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(requestBody),
-                    signal: controller.signal
-                });
-
-                clearTimeout(timeoutId);
-                const result = await response.json();
-
-                if (!response.ok || !result.success) {
-                    throw new Error(result.error || 'Failed to generate workout');
-                }
-
-                // Populate program
-                const program = result.program;
-                const programGoal = requestBody.goal;
-
+                let result;
                 if (isSingle) {
-                    const targetLabel = document.getElementById('aiTargetMuscle').selectedOptions[0]?.text || requestBody.targetMuscle;
-                    document.getElementById('programName').value = program.programName || `${targetLabel} Workout`;
+                    // Single workout: existing flow, fast enough to fit in one call
+                    result = await _generateSingleWorkout(btn, requestBody);
                 } else {
-                    document.getElementById('programName').value = program.programName || `${programGoal} Program`;
-                }
-                document.getElementById('programType').value = programGoal;
-                document.getElementById('programDifficulty').value = experience;
-                document.getElementById('daysPerWeek').value = requestBody.daysPerWeek;
-                document.getElementById('programDescription').value = program.description || '';
-
-                // Convert to workout days
-                workoutDays = [];
-                if (program.weeks && program.weeks[0]?.workouts) {
-                    program.weeks[0].workouts.forEach(workout => {
-                        workoutDays.push({
-                            name: workout.name,
-                            exercises: (workout.exercises || []).map(ex => {
-                                const repsVal = ex.isWarmup ? (ex.reps || '10-15') : ex.isStretch ? (ex.reps || '30s hold') : (ex.reps || '8-12');
-
-                                // Detect time-based exercises (warmups like "5 min", stretches like "30s hold")
-                                let trackingType = 'reps';
-                                let duration = null;
-                                const timedCheck = detectTimedRepsValue(String(repsVal));
-                                if (timedCheck.isTime) {
-                                    trackingType = 'time';
-                                    duration = timedCheck.durationSeconds;
-                                } else if (ex.isWarmup || ex.isStretch) {
-                                    // Warmups/stretches with plain numbers should still be time-based if they look like durations
-                                    const numVal = parseInt(repsVal);
-                                    if (!isNaN(numVal) && (ex.isStretch || (ex.isWarmup && String(repsVal).match(/^\d+$/) && numVal <= 10))) {
-                                        // Stretches: treat plain numbers as seconds (e.g., "30" → 30s)
-                                        // Warmups: treat small plain numbers as minutes (e.g., "4" → 4 min = 240s)
-                                        if (ex.isStretch) {
-                                            trackingType = 'time';
-                                            duration = numVal;
-                                        } else if (ex.isWarmup && numVal <= 10) {
-                                            trackingType = 'time';
-                                            duration = numVal * 60;
-                                        }
-                                    }
-                                }
-
-                                return {
-                                    id: ex.id,
-                                    name: ex.name,
-                                    video_url: ex.video_url,
-                                    animation_url: ex.animation_url,
-                                    thumbnail_url: ex.thumbnail_url,
-                                    muscle_group: ex.muscle_group || ex.muscleGroup,
-                                    equipment: ex.equipment,
-                                    instructions: ex.instructions,
-                                    sets: ex.isWarmup ? (ex.sets || 1) : ex.isStretch ? (ex.sets || 1) : (ex.sets || 3),
-                                    reps: repsVal,
-                                    restSeconds: ex.isWarmup ? (ex.restSeconds != null ? ex.restSeconds : 30) : ex.isStretch ? (ex.restSeconds != null ? ex.restSeconds : 0) : (ex.restSeconds || 90),
-                                    notes: ex.notes || '',
-                                    matched: ex.matched,
-                                    isSuperset: ex.isSuperset || false,
-                                    supersetGroup: ex.supersetGroup || null,
-                                    isWarmup: ex.isWarmup || false,
-                                    isStretch: ex.isStretch || false,
-                                    trackingType: trackingType,
-                                    duration: duration,
-                                    reference_links: (() => {
-                                        let refLinks = ex.reference_links || [];
-                                        const globalRefs = getGlobalRefsForExercise(ex.name);
-                                        if (globalRefs.length > 0 && refLinks.length === 0) {
-                                            return globalRefs.map(ref => ({ ...ref }));
-                                        } else if (globalRefs.length > 0 && refLinks.length > 0) {
-                                            const existingUrls = new Set(refLinks.map(l => l.url));
-                                            globalRefs.forEach(ref => {
-                                                if (!existingUrls.has(ref.url)) refLinks.push({ ...ref });
-                                            });
-                                            return refLinks;
-                                        }
-                                        return refLinks;
-                                    })()
-                                };
-                            })
-                        });
-                    });
-                }
-
-                renderWorkoutDays();
-                closeAIModal();
-
-                // Show match quality feedback
-                const stats = result.matchStats;
-                if (stats) {
-                    const matchPct = stats.total > 0 ? Math.round((stats.matched / stats.total) * 100) : 0;
-                    let toastMsg = isSingle ? 'Workout generated!' : 'Workout program generated!';
-                    toastMsg += ` ${stats.matched}/${stats.total} exercises matched`;
-                    if (stats.unmatched > 0) {
-                        toastMsg += ` (${stats.unmatched} without videos)`;
+                    // Program mode: choose between background (Sonnet, slower, higher
+                    // quality) and fan-out (Haiku, faster, less polished).
+                    const qualityMode = document.querySelector('input[name="aiQualityMode"]:checked')?.value || 'quality';
+                    if (qualityMode === 'quality') {
+                        result = await _generateProgramByBackground(btn, requestBody);
+                    } else {
+                        result = await _generateProgramByFanout(btn, requestBody);
                     }
-                    showToast(toastMsg, matchPct >= 80 ? 'success' : 'warning');
-                } else {
-                    showToast(isSingle ? 'Workout generated!' : 'Workout program generated!');
                 }
 
-                // Save form state for convenience
+                window._lastAIResult = result;
+                window._lastAIRequest = requestBody;
                 _saveAIFormState();
+                closeAIModal();
+                openAIPreview();
 
             } catch (error) {
-                clearTimeout(timeoutId);
                 console.error('AI generation error:', error);
-
-                if (error.name === 'AbortError') {
-                    showToast('Generation timed out. Try fewer workout days or exercises.', 'error');
-                } else {
-                    showToast(error.message || 'Failed to generate workout', 'error');
-                }
+                if (error.name === 'AbortError') showToast('Generation timed out. Try fewer days or exercises.', 'error');
+                else showToast(error.message || 'Failed to generate workout', 'error');
             } finally {
-                progressTimers.forEach(t => clearTimeout(t));
                 window._aiGenerating = false;
                 btn.disabled = false;
                 btn.innerHTML = isSingle ? 'Generate Workout' : 'Generate Program';
@@ -12477,6 +13423,845 @@
                 if (closeBtn) closeBtn.style.display = '';
             }
         }
+
+        // Single-workout call (one day of training)
+        async function _generateSingleWorkout(btn, requestBody) {
+            const progressTimers = [
+                { text: 'Building your workout...', delay: 3000 },
+                { text: 'Selecting exercises from your database...', delay: 7000 },
+                { text: 'Matching exercises & adding videos...', delay: 12000 },
+                { text: 'Almost done — finalizing...', delay: 18000 }
+            ].map(step => setTimeout(() => {
+                if (window._aiGenerating) btn.innerHTML = `<span class="generating-text"><span class="spinner"></span>${step.text}</span>`;
+            }, step.delay));
+
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 60000);
+            try {
+                const response = await fetch('/.netlify/functions/generate-workout-claude', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(currentAccessToken && { 'Authorization': `Bearer ${currentAccessToken}` })
+                    },
+                    body: JSON.stringify(requestBody),
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+                const rawText = await response.text();
+                let data;
+                try { data = JSON.parse(rawText); }
+                catch {
+                    if (response.status === 404) throw new Error('AI endpoint not found.');
+                    if (response.status >= 500) throw new Error(`Server error (HTTP ${response.status}).`);
+                    throw new Error(`Server returned non-JSON (HTTP ${response.status})`);
+                }
+                if (!response.ok || !data.success) throw new Error(data.error || `Failed (HTTP ${response.status})`);
+                return data;
+            } finally {
+                progressTimers.forEach(t => clearTimeout(t));
+                clearTimeout(timeoutId);
+            }
+        }
+
+        // Program-mode generation via background function + polling.
+        // Sonnet quality, no 26s timeout. Job runs server-side, frontend polls
+        // every 3s for progress + final result. Total wait ~1-3 min for a 5-day
+        // program, but you can close the modal and the job keeps running.
+        async function _generateProgramByBackground(btn, requestBody) {
+            // Generate a job ID (UUID-ish, valid against the polling endpoint regex)
+            const jobId = (crypto.randomUUID ? crypto.randomUUID() : `job-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`).replace(/-/g, '').slice(0, 32);
+
+            requestBody.jobId = jobId;
+
+            btn.innerHTML = '<span class="generating-text"><span class="spinner"></span>Submitting job...</span>';
+
+            // Submit (background function returns 202 immediately)
+            const submitResp = await fetch('/.netlify/functions/generate-workout-claude-background', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(currentAccessToken && { 'Authorization': `Bearer ${currentAccessToken}` })
+                },
+                body: JSON.stringify(requestBody)
+            });
+            if (!submitResp.ok && submitResp.status !== 202) {
+                const txt = await submitResp.text();
+                throw new Error(`Failed to submit job (HTTP ${submitResp.status}): ${txt.slice(0, 120)}`);
+            }
+
+            // Poll for status (every 3s, up to 5 min)
+            const startTime = Date.now();
+            const maxWaitMs = 5 * 60 * 1000;
+            const pollIntervalMs = 3000;
+            let lastProgress = -1;
+
+            while (Date.now() - startTime < maxWaitMs) {
+                await new Promise(r => setTimeout(r, pollIntervalMs));
+
+                const statusResp = await fetch(`/.netlify/functions/get-workout-job?coachId=${encodeURIComponent(currentCoachId)}&jobId=${encodeURIComponent(jobId)}`, {
+                    headers: { ...(currentAccessToken && { 'Authorization': `Bearer ${currentAccessToken}` }) }
+                });
+
+                if (!statusResp.ok) continue; // transient, keep polling
+
+                const rawText = await statusResp.text();
+                let status;
+                try { status = JSON.parse(rawText); }
+                catch { continue; }
+
+                const elapsed = Math.round((Date.now() - startTime) / 1000);
+
+                if (status.status === 'pending' || status.status === 'queued') {
+                    btn.innerHTML = `<span class="generating-text"><span class="spinner"></span>Queued... (${elapsed}s)</span>`;
+                } else if (status.status === 'running') {
+                    const completed = status.progress?.completedDays ?? 0;
+                    const total = status.progress?.totalDays ?? '?';
+                    if (completed !== lastProgress) {
+                        lastProgress = completed;
+                        btn.innerHTML = `<span class="generating-text"><span class="spinner"></span>Building Day ${completed + 1}/${total}... (${elapsed}s)</span>`;
+                    }
+                } else if (status.status === 'completed') {
+                    btn.innerHTML = '<span class="generating-text">Done! Opening preview...</span>';
+                    if (!status.result) throw new Error('Job completed but no result was returned.');
+                    return status.result;
+                } else if (status.status === 'failed') {
+                    throw new Error(status.error || 'Background job failed');
+                }
+            }
+            throw new Error('Job is taking too long (>5 min). Check back later or try a smaller program.');
+        }
+
+        // Program-mode generation: fan out one call per day, then assemble + apply
+        // multi-week progression locally.
+        async function _generateProgramByFanout(btn, requestBody) {
+            const splitDays = computeSplitDays(requestBody.daysPerWeek, requestBody.split, requestBody.focusAreas);
+            const totalDays = splitDays.length;
+            let completed = 0;
+
+            const updateProgress = () => {
+                if (window._aiGenerating) {
+                    btn.innerHTML = `<span class="generating-text"><span class="spinner"></span>Building day ${completed}/${totalDays}...</span>`;
+                }
+            };
+            updateProgress();
+
+            // Run with concurrency limit of 3 to avoid hammering the API and to be
+            // gentler on Anthropic rate limits.
+            const dayResults = await _withConcurrency(splitDays, 3, async (daySpec) => {
+                const r = await _generateOneDay(daySpec, requestBody);
+                completed++;
+                updateProgress();
+                return r;
+            });
+
+            // Sort by day number to preserve order even with concurrent completion
+            dayResults.sort((a, b) => a.daySpec.dayNumber - b.daySpec.dayNumber);
+
+            // Aggregate match stats and exercises
+            const aggMatchStats = { total: 0, matched: 0, unmatched: 0, unmatchedNames: [], databaseExercises: 0, customExerciseCount: 0, exercisesWithVideos: 0 };
+            const allSplitViolations = [];
+            const week1Workouts = dayResults.map(({ daySpec, result }) => {
+                const ms = result.matchStats || {};
+                aggMatchStats.total += ms.total || 0;
+                aggMatchStats.matched += ms.matched || 0;
+                aggMatchStats.unmatched += ms.unmatched || 0;
+                if (Array.isArray(ms.unmatchedNames)) aggMatchStats.unmatchedNames.push(...ms.unmatchedNames);
+                aggMatchStats.databaseExercises = Math.max(aggMatchStats.databaseExercises, ms.databaseExercises || 0);
+                aggMatchStats.customExerciseCount = Math.max(aggMatchStats.customExerciseCount, ms.customExerciseCount || 0);
+                aggMatchStats.exercisesWithVideos = Math.max(aggMatchStats.exercisesWithVideos, ms.exercisesWithVideos || 0);
+                if (Array.isArray(result.splitViolations) && result.splitViolations.length > 0) {
+                    // Tag each violation with the day name for context
+                    for (const v of result.splitViolations) {
+                        allSplitViolations.push({ ...v, day: daySpec.dayName });
+                    }
+                }
+                const dayWorkout = result.program?.weeks?.[0]?.workouts?.[0] || { exercises: [] };
+                return {
+                    dayNumber: daySpec.dayNumber,
+                    name: daySpec.dayName,
+                    targetMuscles: dayWorkout.targetMuscles || [daySpec.targetMuscle],
+                    exercises: dayWorkout.exercises || []
+                };
+            });
+
+            // Assemble the multi-day program
+            const program = {
+                programName: `${requestBody.daysPerWeek}-Day ${requestBody.goal.charAt(0).toUpperCase() + requestBody.goal.slice(1)} Program`,
+                description: `${requestBody.daysPerWeek} days/week, ${requestBody.duration} weeks, ${requestBody.experience} level`,
+                goal: requestBody.goal,
+                difficulty: requestBody.experience,
+                daysPerWeek: requestBody.daysPerWeek,
+                weeks: [{ weekNumber: 1, workouts: week1Workouts }]
+            };
+
+            // Apply multi-week progression locally
+            if (requestBody.includeProgression && requestBody.duration > 1) {
+                const newWeeks = _generateMultiWeekProgressionLocal(week1Workouts, requestBody.duration, requestBody.goal);
+                program.weeks = program.weeks.concat(newWeeks);
+            }
+
+            // Compute basic volume warnings client-side
+            const volumeSummary = (() => {
+                const muscleSetCount = {};
+                const ranges = { chest: [10, 20], back: [10, 20], shoulders: [8, 18], legs: [10, 22], glutes: [8, 18], arms: [6, 16], core: [6, 16] };
+                for (const w of week1Workouts) {
+                    for (const ex of (w.exercises || [])) {
+                        if (ex.isWarmup || ex.isStretch || ex.phase === 'warmup' || ex.phase === 'cooldown') continue;
+                        const g = (ex.muscle_group || ex.muscleGroup || 'other').toLowerCase();
+                        let key = 'other';
+                        if (/chest|pec/.test(g)) key = 'chest';
+                        else if (/back|lat|trap|rhomboid/.test(g)) key = 'back';
+                        else if (/shoulder|delt/.test(g)) key = 'shoulders';
+                        else if (/leg|quad|hamstring|calf/.test(g)) key = 'legs';
+                        else if (/glute/.test(g)) key = 'glutes';
+                        else if (/bicep|tricep|arm|forearm/.test(g)) key = 'arms';
+                        else if (/core|ab|oblique/.test(g)) key = 'core';
+                        muscleSetCount[key] = (muscleSetCount[key] || 0) + (Number(ex.sets) || 0);
+                    }
+                }
+                const warnings = [];
+                for (const [m, [low, high]] of Object.entries(ranges)) {
+                    const c = muscleSetCount[m] || 0;
+                    if (c > 0 && c < low) warnings.push(`${m}: only ${c} weekly sets (recommended ${low}-${high})`);
+                    else if (c > high) warnings.push(`${m}: ${c} weekly sets is high (recommended ${low}-${high})`);
+                }
+                return { setsByMuscle: muscleSetCount, warnings };
+            })();
+
+            return {
+                success: true,
+                program,
+                matchStats: aggMatchStats,
+                volumeSummary,
+                splitViolations: allSplitViolations,
+                clientContextUsed: dayResults.some(d => d.result.clientContextUsed),
+                clientContextSummary: dayResults.find(d => d.result.clientContextSummary)?.result.clientContextSummary || null,
+                clientAnalysis: dayResults.find(d => d.result.clientAnalysis)?.result.clientAnalysis || null,
+                generatedWeeks: program.weeks.length,
+                fannedOut: true
+            };
+        }
+
+        // ============================================
+        // AI Preview / Refine / Regenerate
+        // ============================================
+
+        // Convert AI program JSON → workoutDays[] format used by the editor.
+        // When weekIndex is null, only week 1 is populated (program editor renders
+        // a single week; multi-week progression is stored as program-level metadata).
+        function _aiResultToWorkoutDays(program) {
+            const days = [];
+            if (!program?.weeks?.[0]?.workouts) return days;
+            program.weeks[0].workouts.forEach(workout => {
+                days.push({
+                    name: workout.name,
+                    exercises: (workout.exercises || []).map(ex => {
+                        const repsVal = ex.isWarmup ? (ex.reps || '10-15') : ex.isStretch ? (ex.reps || '30s hold') : (ex.reps || '8-12');
+                        let trackingType = 'reps';
+                        let duration = null;
+                        const timedCheck = (typeof detectTimedRepsValue === 'function') ? detectTimedRepsValue(String(repsVal)) : { isTime: false };
+                        if (timedCheck.isTime) {
+                            trackingType = 'time';
+                            duration = timedCheck.durationSeconds;
+                        } else if (ex.isWarmup || ex.isStretch) {
+                            const numVal = parseInt(repsVal);
+                            if (!isNaN(numVal)) {
+                                if (ex.isStretch) { trackingType = 'time'; duration = numVal; }
+                                else if (ex.isWarmup && String(repsVal).match(/^\d+$/) && numVal <= 10) { trackingType = 'time'; duration = numVal * 60; }
+                            }
+                        }
+                        return {
+                            id: ex.id,
+                            name: ex.name,
+                            video_url: ex.video_url,
+                            animation_url: ex.animation_url,
+                            thumbnail_url: ex.thumbnail_url,
+                            muscle_group: ex.muscle_group || ex.muscleGroup,
+                            equipment: ex.equipment,
+                            instructions: ex.instructions,
+                            sets: ex.isWarmup ? (ex.sets || 1) : ex.isStretch ? (ex.sets || 1) : (ex.sets || 3),
+                            reps: repsVal,
+                            restSeconds: ex.isWarmup ? (ex.restSeconds != null ? ex.restSeconds : 30) : ex.isStretch ? (ex.restSeconds != null ? ex.restSeconds : 0) : (ex.restSeconds || 90),
+                            notes: ex.notes || '',
+                            matched: ex.matched,
+                            isCustom: !!ex.isCustom,
+                            isSuperset: ex.isSuperset || false,
+                            supersetGroup: ex.supersetGroup || null,
+                            isWarmup: ex.isWarmup || false,
+                            isStretch: ex.isStretch || false,
+                            trackingType,
+                            duration,
+                            reference_links: (() => {
+                                let refLinks = ex.reference_links || [];
+                                if (typeof getGlobalRefsForExercise !== 'function') return refLinks;
+                                const globalRefs = getGlobalRefsForExercise(ex.name);
+                                if (globalRefs.length > 0 && refLinks.length === 0) return globalRefs.map(r => ({ ...r }));
+                                if (globalRefs.length > 0 && refLinks.length > 0) {
+                                    const existing = new Set(refLinks.map(l => l.url));
+                                    globalRefs.forEach(r => { if (!existing.has(r.url)) refLinks.push({ ...r }); });
+                                }
+                                return refLinks;
+                            })()
+                        };
+                    })
+                });
+            });
+            return days;
+        }
+
+        function openAIPreview() {
+            renderAIPreview();
+            document.getElementById('aiPreviewModal').classList.add('active');
+        }
+
+        function closeAIPreview() {
+            document.getElementById('aiPreviewModal').classList.remove('active');
+        }
+
+        // Render the preview pane: program summary, per-day breakdown, volume warnings,
+        // unmatched-exercise indicator, and a refine chat box.
+        function renderAIPreview() {
+            const result = window._lastAIResult;
+            const req = window._lastAIRequest;
+            if (!result || !req) {
+                document.getElementById('aiPreviewBody').innerHTML = '<p>No program generated yet.</p>';
+                return;
+            }
+            const program = result.program;
+            const stats = result.matchStats || {};
+            const volumeSummary = result.volumeSummary;
+            const matchPct = stats.total > 0 ? Math.round((stats.matched / stats.total) * 100) : 0;
+            const unmatchedList = stats.unmatchedNames || [];
+            const customMatched = (program.weeks?.[0]?.workouts || []).reduce((acc, w) =>
+                acc + (w.exercises || []).filter(e => e.isCustom).length, 0);
+
+            const headerHtml = `
+                <div style="margin-bottom:16px; padding:12px; background:var(--bg-secondary); border-radius:8px;">
+                    <div style="font-size:18px; font-weight:600;">${program.programName || 'Untitled Program'}</div>
+                    <div style="color:var(--text-secondary); font-size:13px; margin-top:4px;">${program.description || ''}</div>
+                    <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; font-size:12px;">
+                        <span style="padding:3px 8px; background:rgba(99,102,241,0.1); border-radius:4px;">${program.daysPerWeek || 1} day${(program.daysPerWeek||1) > 1 ? 's' : ''}/week</span>
+                        <span style="padding:3px 8px; background:rgba(99,102,241,0.1); border-radius:4px;">${result.generatedWeeks || 1} week${(result.generatedWeeks||1) > 1 ? 's' : ''} generated</span>
+                        <span style="padding:3px 8px; background:rgba(99,102,241,0.1); border-radius:4px;">Goal: ${program.goal}</span>
+                        <span style="padding:3px 8px; background:rgba(99,102,241,0.1); border-radius:4px;">${program.difficulty}</span>
+                        <span style="padding:3px 8px; background:${matchPct >= 80 ? 'rgba(16,185,129,0.1)' : 'rgba(245,158,11,0.1)'}; border-radius:4px;">${stats.matched}/${stats.total} videos matched (${matchPct}%)</span>
+                        ${customMatched > 0 ? `<span style="padding:3px 8px; background:rgba(168,85,247,0.1); border-radius:4px;">${customMatched} custom exercise${customMatched > 1 ? 's' : ''}</span>` : ''}
+                        ${result.clientContextUsed ? '<span style="padding:3px 8px; background:rgba(16,185,129,0.1); border-radius:4px;">✓ Client history used</span>' : ''}
+                    </div>
+                </div>`;
+
+            // Client context details panel — surfaces exactly what was pulled
+            // so the coach can verify the AI saw the right data.
+            let clientContextHtml = '';
+            const ctx = result.clientContextSummary;
+            if (ctx && (ctx.topExercises?.length || ctx.lastProgramName || ctx.sessionCount)) {
+                const topLiftLines = (ctx.topExercises || []).map(e => `<li>${e.name}: top ${e.topWeight} lb · ${e.sessions} sessions</li>`).join('');
+                clientContextHtml = `
+                    <div style="margin-bottom:16px; padding:10px 12px; background:rgba(16,185,129,0.06); border-left:3px solid #10b981; border-radius:6px; font-size:13px;">
+                        <strong>Personalized for ${ctx.clientName || 'this client'}:</strong>
+                        <div style="margin-top:6px; color:var(--text-secondary); display:grid; gap:4px;">
+                            ${ctx.lastProgramName ? `<div>📋 <strong>Last program:</strong> "${ctx.lastProgramName}" — progressing from there</div>` : ''}
+                            ${ctx.sessionCount > 0 ? `<div>💪 <strong>Recent activity:</strong> ${ctx.sessionCount} sessions in last 30 days${ctx.avgRPE ? `, avg RPE ${ctx.avgRPE}` : ''}</div>` : ''}
+                            ${ctx.hasIntake ? `<div>📝 <strong>Intake form</strong> data used</div>` : ''}
+                            ${ctx.hasCoachNotes ? `<div>📌 <strong>Your coach notes</strong> on this client used</div>` : ''}
+                            ${topLiftLines ? `<div>🏋️ <strong>Top recent lifts (informing working weights):</strong><ul style="margin:4px 0 0 18px; padding:0;">${topLiftLines}</ul></div>` : ''}
+                        </div>
+                    </div>`;
+            }
+
+            // Coach's Intelligence Briefing — what the AI saw + decided
+            let briefingHtml = '';
+            const analysis = result.clientAnalysis;
+            if (analysis && analysis.sessionsAnalyzed > 0) {
+                const tagFor = (action) => {
+                    if (action === 'swap_for_variety') return '<span style="color:#f59e0b; font-weight:600;">🔄 SWAP</span>';
+                    if (action === 'progress_load') return '<span style="color:#10b981; font-weight:600;">📈 PROGRESS</span>';
+                    if (action === 'optional_swap') return '<span style="color:#6366f1; font-weight:600;">🔁 ROTATE</span>';
+                    if (action === 'investigate_or_swap') return '<span style="color:#ef4444; font-weight:600;">⚠ REGRESSED</span>';
+                    return '<span style="color:#6b7280; font-weight:600;">✓ PERSIST</span>';
+                };
+                const exerciseRows = analysis.exerciseAnalysis.map(ex =>
+                    `<tr style="border-top:1px solid var(--border);">
+                        <td style="padding:4px 6px;">${tagFor(ex.action)}</td>
+                        <td style="padding:4px 6px;">${ex.name}</td>
+                        <td style="padding:4px 6px; color:var(--text-secondary);">${ex.sessions}× · top ${ex.currentMax} lb · ${ex.weightTrend}</td>
+                        <td style="padding:4px 6px; color:var(--text-secondary); font-size:11px;">${ex.reasoning}</td>
+                    </tr>`
+                ).join('');
+                briefingHtml = `
+                    <details style="margin-bottom:16px; padding:10px 12px; background:rgba(99,102,241,0.06); border-left:3px solid #6366f1; border-radius:6px; font-size:13px;" open>
+                        <summary style="cursor:pointer; font-weight:600;">🧠 Coach's Intelligence Briefing — what the AI based decisions on</summary>
+                        <div style="margin-top:8px;">
+                            <div style="margin-bottom:6px;">${analysis.sessionsAnalyzed} sessions in last 60 days · ${analysis.sessionsPerWeek}/wk · ${analysis.avgRPE ? `avg RPE ${analysis.avgRPE}` : 'no RPE data'} · training age: ${analysis.trainingAge}</div>
+                            ${analysis.deloadDue ? '<div style="color:#f59e0b; font-weight:600; margin-bottom:6px;">⚠ Deload was due — program adjusted accordingly</div>' : ''}
+                            <div style="font-style:italic; margin-bottom:8px;">${analysis.overallRecommendation}</div>
+                            ${exerciseRows ? `<table style="width:100%; font-size:12px; border-collapse:collapse;">
+                                <thead style="text-align:left; color:var(--text-secondary);">
+                                    <tr><th style="padding:4px 6px;">Decision</th><th style="padding:4px 6px;">Exercise</th><th style="padding:4px 6px;">Stats</th><th style="padding:4px 6px;">Why</th></tr>
+                                </thead>
+                                <tbody>${exerciseRows}</tbody>
+                            </table>` : ''}
+                        </div>
+                    </details>`;
+            }
+
+            // Volume warnings
+            let volumeHtml = '';
+            if (volumeSummary?.warnings?.length > 0) {
+                volumeHtml = `
+                    <div style="margin-bottom:16px; padding:10px 12px; background:rgba(245,158,11,0.08); border-left:3px solid #f59e0b; border-radius:6px; font-size:13px;">
+                        <strong>Volume notes:</strong>
+                        <ul style="margin:6px 0 0 18px; padding:0;">
+                            ${volumeSummary.warnings.map(w => `<li>${w}</li>`).join('')}
+                        </ul>
+                    </div>`;
+            }
+
+            // Unmatched exercises (no video)
+            let unmatchedHtml = '';
+            if (unmatchedList.length > 0) {
+                unmatchedHtml = `
+                    <div style="margin-bottom:16px; padding:10px 12px; background:rgba(239,68,68,0.06); border-left:3px solid #ef4444; border-radius:6px; font-size:13px;">
+                        <strong>${unmatchedList.length} exercise${unmatchedList.length > 1 ? 's' : ''} without video demos:</strong>
+                        <div style="margin-top:6px; color:var(--text-secondary);">${unmatchedList.join(', ')}</div>
+                        <div style="margin-top:6px; font-style:italic;">These will appear in the editor without video — try "Regenerate" or refine to swap them.</div>
+                    </div>`;
+            }
+
+            // Split violations (e.g. biceps on push day) — auto-removed by backend
+            let splitHtml = '';
+            const splitViolations = result.splitViolations || [];
+            if (splitViolations.length > 0) {
+                const removedCount = splitViolations.filter(v => v.autoRemoved).length;
+                splitHtml = `
+                    <div style="margin-bottom:16px; padding:10px 12px; background:rgba(245,158,11,0.10); border-left:3px solid #f59e0b; border-radius:6px; font-size:13px;">
+                        <strong>${removedCount > 0 ? `Auto-removed ${removedCount} exercise${removedCount > 1 ? 's' : ''} that didn't fit the split:` : `⚠ ${splitViolations.length} split issue${splitViolations.length > 1 ? 's' : ''}:`}</strong>
+                        <ul style="margin:6px 0 0 18px; padding:0;">
+                            ${splitViolations.map(v => `<li><strong>${v.day}</strong>: "${v.exercise}" — ${v.reason}${v.autoRemoved ? ' <em>(removed)</em>' : ''}</li>`).join('')}
+                        </ul>
+                        <div style="margin-top:6px; font-style:italic;">${removedCount > 0 ? 'These were removed automatically. If a day is now too short, hit "Regenerate" or use the refine chat to add appropriate exercises.' : 'Try "Regenerate" or refine to fix.'}</div>
+                    </div>`;
+            }
+
+            // Per-day exercise list
+            const daysHtml = (program.weeks?.[0]?.workouts || []).map((w, idx) => `
+                <details style="border:1px solid var(--border); border-radius:8px; padding:10px 12px; margin-bottom:8px;" ${idx === 0 ? 'open' : ''}>
+                    <summary style="cursor:pointer; font-weight:600;">
+                        Day ${idx + 1}: ${w.name || 'Untitled'}
+                        <span style="font-weight:400; color:var(--text-secondary); font-size:12px;"> · ${(w.exercises || []).filter(e => !e.isWarmup && !e.isStretch).length} main + warm-up/cool-down</span>
+                        <button type="button" onclick="event.preventDefault(); refineDay(${idx + 1});" style="margin-left:8px; padding:2px 8px; font-size:11px; background:transparent; border:1px solid var(--border); border-radius:4px; cursor:pointer;">↻ Refine this day</button>
+                    </summary>
+                    <table style="width:100%; margin-top:8px; font-size:12px; border-collapse:collapse;">
+                        <thead style="text-align:left; color:var(--text-secondary);">
+                            <tr><th style="padding:4px 6px;">Exercise</th><th style="padding:4px 6px;">Sets×Reps</th><th style="padding:4px 6px;">Rest</th><th style="padding:4px 6px;">Notes</th></tr>
+                        </thead>
+                        <tbody>
+                            ${(w.exercises || []).map(ex => {
+                                const phase = ex.phase || (ex.isWarmup ? 'warmup' : ex.isStretch ? 'cooldown' : 'main');
+                                const phaseColor = phase === 'warmup' ? '#3b82f6' : phase === 'cooldown' ? '#a855f7' : phase === 'conditioning' ? '#f59e0b' : 'var(--text-primary)';
+                                const noVideo = !ex.matched;
+                                return `<tr style="border-top:1px solid var(--border);">
+                                    <td style="padding:6px;">
+                                        <span style="color:${phaseColor};">${ex.name || ''}</span>
+                                        ${ex.isCustom ? '<span style="margin-left:6px; padding:1px 5px; font-size:10px; background:rgba(168,85,247,0.15); color:#a855f7; border-radius:3px;">CUSTOM</span>' : ''}
+                                        ${noVideo ? '<span style="margin-left:6px; padding:1px 5px; font-size:10px; background:rgba(239,68,68,0.15); color:#ef4444; border-radius:3px;" title="No video demo">NO VIDEO</span>' : ''}
+                                        ${ex.splitViolation ? `<span style="margin-left:6px; padding:1px 5px; font-size:10px; background:rgba(239,68,68,0.20); color:#ef4444; border-radius:3px; font-weight:600;" title="${ex.splitViolation}">⚠ WRONG SPLIT</span>` : ''}
+                                        ${ex.isSuperset && ex.supersetGroup ? `<span style="margin-left:6px; padding:1px 5px; font-size:10px; background:rgba(99,102,241,0.15); color:#6366f1; border-radius:3px;">SS-${ex.supersetGroup}</span>` : ''}
+                                    </td>
+                                    <td style="padding:6px;">${ex.sets || 1} × ${ex.reps || ''}</td>
+                                    <td style="padding:6px;">${ex.restSeconds || 0}s</td>
+                                    <td style="padding:6px; color:var(--text-secondary); max-width:240px;">${(ex.notes || '').slice(0, 80)}</td>
+                                </tr>`;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                </details>`).join('');
+
+            // Refine chat
+            const refineHtml = `
+                <div style="margin-top:16px; padding:14px; border:1px solid var(--border); border-radius:8px; background:var(--bg-secondary);">
+                    <div style="font-weight:600; margin-bottom:8px;">Refine with chat</div>
+                    <div style="color:var(--text-secondary); font-size:12px; margin-bottom:8px;">Examples: "Make day 3 harder", "Swap leg day to glute focus", "Replace all overhead pressing with horizontal", "Shorten rest by 30 seconds", "Add more arm work"</div>
+                    <div style="display:flex; gap:8px;">
+                        <input type="text" id="aiRefineInput" placeholder="Tell the AI what to change..." style="flex:1; padding:8px 10px; border:1px solid var(--border); border-radius:6px;" />
+                        <button class="ai-btn ai-btn-generate" onclick="refineFromPreview()" id="aiRefineBtn">Apply refinement</button>
+                    </div>
+                </div>`;
+
+            document.getElementById('aiPreviewBody').innerHTML = headerHtml + clientContextHtml + briefingHtml + splitHtml + volumeHtml + unmatchedHtml + daysHtml + refineHtml;
+
+            // Allow Enter key to refine
+            const input = document.getElementById('aiRefineInput');
+            if (input) input.addEventListener('keydown', e => { if (e.key === 'Enter') refineFromPreview(); });
+        }
+
+        // Apply the previewed program to the editor
+        function applyAIPreview() {
+            const result = window._lastAIResult;
+            const req = window._lastAIRequest;
+            if (!result?.program) { showToast('No program to apply', 'error'); return; }
+            const program = result.program;
+            const isSingle = req.mode === 'single';
+
+            // Populate program-level fields
+            const fallbackName = isSingle
+                ? `${(req.targetMuscle || 'Workout').charAt(0).toUpperCase() + (req.targetMuscle || 'workout').slice(1)} Workout`
+                : `${req.goal} Program`;
+            document.getElementById('programName').value = program.programName || fallbackName;
+            document.getElementById('programType').value = req.goal;
+            document.getElementById('programDifficulty').value = req.experience;
+            document.getElementById('daysPerWeek').value = req.daysPerWeek;
+            document.getElementById('programDescription').value = program.description || '';
+
+            // Stash multi-week program data so the program editor can save it
+            window._currentMultiWeekProgram = program.weeks && program.weeks.length > 1 ? program : null;
+
+            workoutDays = _aiResultToWorkoutDays(program);
+            renderWorkoutDays();
+            closeAIPreview();
+
+            const stats = result.matchStats || {};
+            const matchPct = stats.total > 0 ? Math.round((stats.matched / stats.total) * 100) : 0;
+            const weeks = result.generatedWeeks || 1;
+            let msg = isSingle ? 'Workout applied!' : `${weeks}-week program applied!`;
+            msg += ` ${stats.matched}/${stats.total} matched`;
+            if (stats.unmatched > 0) msg += ` (${stats.unmatched} no-video)`;
+            showToast(msg, matchPct >= 80 ? 'success' : 'warning');
+        }
+
+        // Regenerate with a new variety seed and excluding what's currently shown
+        async function regenerateFromPreview() {
+            const result = window._lastAIResult;
+            if (!result?.program) { showToast('Nothing to regenerate yet', 'error'); return; }
+            const currentNames = (result.program.weeks?.[0]?.workouts || [])
+                .flatMap(w => (w.exercises || []).map(e => e.name))
+                .filter(Boolean);
+
+            const newReq = _buildAIRequestBody({ varietySeed: Date.now(), excludeNames: currentNames });
+            if (newReq.error) { showToast(newReq.error, 'error'); return; }
+
+            const applyBtn = document.getElementById('aiPreviewApplyBtn');
+            const orig = applyBtn.innerHTML;
+            applyBtn.disabled = true;
+            applyBtn.innerHTML = '<span class="spinner"></span> Regenerating...';
+
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 90000);
+            try {
+                const response = await fetch('/.netlify/functions/generate-workout-claude', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(currentAccessToken && { 'Authorization': `Bearer ${currentAccessToken}` })
+                    },
+                    body: JSON.stringify(newReq),
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+                const rawText = await response.text();
+                let data;
+                try { data = JSON.parse(rawText); }
+                catch {
+                    if (response.status === 404) throw new Error('Generate endpoint not found.');
+                    if (response.status >= 500) throw new Error(`Server error (${response.status}). The function may have timed out.`);
+                    throw new Error(`Server returned non-JSON (HTTP ${response.status})`);
+                }
+                if (!response.ok || !data.success) throw new Error(data.error || 'Regeneration failed');
+                window._lastAIResult = data;
+                window._lastAIRequest = newReq;
+                renderAIPreview();
+                showToast('Regenerated with different exercises', 'success');
+            } catch (err) {
+                clearTimeout(timeoutId);
+                if (err.name === 'AbortError') showToast('Regeneration timed out. Try fewer days.', 'error');
+                else showToast(err.message || 'Regeneration failed', 'error');
+                console.error('Regenerate error:', err);
+            } finally {
+                applyBtn.disabled = false;
+                applyBtn.innerHTML = orig;
+            }
+        }
+
+        // Refine via /refine-workout-claude.js endpoint
+        async function refineFromPreview(scope = 'all') {
+            const input = document.getElementById('aiRefineInput');
+            const instruction = (input?.value || '').trim();
+            if (!instruction || instruction.length < 3) { showToast('Type a refinement instruction first', 'error'); return; }
+            const result = window._lastAIResult;
+            if (!result?.program) { showToast('No program to refine', 'error'); return; }
+            const req = window._lastAIRequest || {};
+
+            const btn = document.getElementById('aiRefineBtn');
+            const orig = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Refining...';
+
+            // 60s client timeout (matches Netlify's 26s + buffer for cold starts)
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 60000);
+
+            try {
+                const response = await fetch('/.netlify/functions/refine-workout-claude', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(currentAccessToken && { 'Authorization': `Bearer ${currentAccessToken}` })
+                    },
+                    body: JSON.stringify({
+                        program: result.program,
+                        instruction,
+                        coachId: currentCoachId,
+                        scope,
+                        equipment: req.equipment || []
+                    }),
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+
+                // Robust response parsing: read as text first so we can show useful
+                // errors when the function returns HTML (404, 502, timeout) instead
+                // of JSON. iOS Safari otherwise just shows a useless "string did not
+                // match the expected pattern" parse error.
+                const rawText = await response.text();
+                let data;
+                try {
+                    data = JSON.parse(rawText);
+                } catch (parseErr) {
+                    if (response.status === 404) {
+                        throw new Error('Refine endpoint not found. The new feature may not be deployed yet — wait a minute and try again.');
+                    }
+                    if (response.status >= 500) {
+                        throw new Error(`Server error (${response.status}). The function may have timed out or crashed. Try a simpler instruction.`);
+                    }
+                    const snippet = (rawText || '').slice(0, 120).replace(/\s+/g, ' ').trim();
+                    throw new Error(`Server returned non-JSON (HTTP ${response.status}). ${snippet ? 'Body: ' + snippet : ''}`);
+                }
+
+                if (!response.ok || !data.success) {
+                    throw new Error(data.error || `Refinement failed (HTTP ${response.status})`);
+                }
+                // Replace the program in our preview state
+                window._lastAIResult = {
+                    ...result,
+                    program: data.program,
+                    matchStats: data.matchStats || result.matchStats
+                };
+                renderAIPreview();
+                const weeksMsg = data.weeksRebuilt ? ' (multi-week progression rebuilt)' : '';
+                showToast(`Refined: ${instruction.slice(0, 60)}${instruction.length > 60 ? '…' : ''}${weeksMsg}`, 'success');
+            } catch (err) {
+                clearTimeout(timeoutId);
+                if (err.name === 'AbortError') {
+                    showToast('Refinement timed out. Try a simpler instruction or fewer days.', 'error');
+                } else {
+                    showToast(err.message || 'Refinement failed', 'error');
+                }
+                console.error('Refine error:', err);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = orig;
+            }
+        }
+
+        // Refine a single day (called from the day's "Refine this day" button)
+        function refineDay(dayNumber) {
+            const input = document.getElementById('aiRefineInput');
+            if (!input) return;
+            input.focus();
+            input.placeholder = `Refining Day ${dayNumber} only — type your change...`;
+            input.dataset.scope = `day:${dayNumber}`;
+            // Wrap refineFromPreview to use the per-day scope
+            const handler = () => refineFromPreview(`day:${dayNumber}`);
+            const refineBtn = document.getElementById('aiRefineBtn');
+            refineBtn.onclick = handler;
+            input.onkeydown = e => { if (e.key === 'Enter') handler(); };
+        }
+
+        // ============================================
+        // AI Client Picker — loads real client context
+        // ============================================
+        function populateAIClientSelect() {
+            const sel = document.getElementById('aiClientSelect');
+            if (!sel || !Array.isArray(clients)) return;
+            sel.innerHTML = '<option value="">— No specific client (generic) —</option>' +
+                clients.map(c => `<option value="${c.id}">${c.client_name || 'Unnamed'}${c.email ? ' · ' + c.email : ''}</option>`).join('');
+        }
+
+        function onAIClientSelected(clientId) {
+            const badge = document.getElementById('aiClientContextBadge');
+            const nameInput = document.getElementById('aiClientName');
+            if (!clientId) {
+                if (badge) { badge.style.display = 'none'; badge.innerHTML = ''; }
+                return;
+            }
+            const c = clients.find(x => String(x.id) === String(clientId));
+            if (!c) return;
+            if (nameInput) nameInput.value = c.client_name || '';
+            // Pre-check structured injuries from the client's stored health_flags
+            // (set permanently on their profile) — falls back to keyword detection
+            // in the free-text health_concerns field for clients added before
+            // health_flags was a feature.
+            const hf = c.health_flags || {};
+            const storedInjuries = new Set(Array.isArray(hf.injuryCodes) ? hf.injuryCodes : []);
+            const storedMovement = new Set(Array.isArray(hf.movementFlags) ? hf.movementFlags : []);
+            const freeText = (c.health_concerns || '').toLowerCase();
+            ['lower_back', 'knee', 'shoulder', 'wrist', 'hip', 'neck', 'elbow', 'ankle', 'pregnancy'].forEach(code => {
+                const cb = document.querySelector(`input[name="injuryCode"][value="${code}"]`);
+                if (!cb) return;
+                cb.checked = storedInjuries.has(code) || freeText.includes(code.replace('_', ' ')) || freeText.includes(code);
+            });
+            ['overhead_mobility', 'ankle_mobility', 'hip_mobility', 'wrist_pain', 'shoulder_impingement', 'knee_tracks_inward', 'lower_back_rounding', 'asymmetric_grip'].forEach(flag => {
+                const cb = document.querySelector(`input[name="movementFlag"][value="${flag}"]`);
+                if (cb) cb.checked = storedMovement.has(flag);
+            });
+            // If the client has equipment_access on file, try to auto-toggle the
+            // equipment grid to match (coach can still adjust). String parsing is
+            // best-effort: looks for keywords in the free-text field.
+            if (c.equipment_access) {
+                const eq = c.equipment_access.toLowerCase();
+                const has = (kw) => kw.some(k => eq.includes(k));
+                document.querySelectorAll('input[name="equipment"]').forEach(cb => {
+                    if (cb.value === 'barbell') cb.checked = has(['barbell', 'bb']);
+                    else if (cb.value === 'dumbbell') cb.checked = has(['dumbbell', 'db']);
+                    else if (cb.value === 'cable') cb.checked = has(['cable']);
+                    else if (cb.value === 'machine') cb.checked = has(['machine']);
+                    else if (cb.value === 'bodyweight') cb.checked = has(['bodyweight', 'body weight', 'home', 'no equipment']) || true; // bodyweight is always available
+                    else if (cb.value === 'kettlebell') cb.checked = has(['kettlebell', 'kb']);
+                });
+            }
+            if (badge) {
+                const bits = [];
+                if (c.default_goal) bits.push(`Goal: ${c.default_goal}`);
+                if (c.fitness_level) bits.push(`Level: ${c.fitness_level}`);
+                if (c.health_concerns) bits.push(`Health concerns: ${c.health_concerns}`);
+                if (storedInjuries.size > 0) bits.push(`Injuries on file: ${[...storedInjuries].join(', ')} <em>(auto-checked)</em>`);
+                if (storedMovement.size > 0) bits.push(`Movement screen: ${[...storedMovement].join(', ')} <em>(auto-checked)</em>`);
+                if (hf.aiNotes) bits.push(`AI notes: ${hf.aiNotes}`);
+                if (c.equipment_access) bits.push(`Equipment: ${c.equipment_access} <em>(grid auto-set, adjust if wrong)</em>`);
+                badge.innerHTML = `<strong>${c.client_name}'s context loaded.</strong> ${bits.join(' · ') || 'Will pull recent training history on generation.'}`;
+                badge.style.display = '';
+            }
+        }
+
+        // ============================================
+        // AI Presets (saved in localStorage)
+        // ============================================
+        const AI_PRESETS_KEY = 'aiWorkoutPresets_v1';
+
+        function _loadAllPresets() {
+            try { return JSON.parse(localStorage.getItem(AI_PRESETS_KEY) || '{}'); } catch { return {}; }
+        }
+        function _saveAllPresets(map) {
+            localStorage.setItem(AI_PRESETS_KEY, JSON.stringify(map));
+        }
+
+        function refreshPresetList() {
+            const sel = document.getElementById('aiPresetSelect');
+            if (!sel) return;
+            const presets = _loadAllPresets();
+            const names = Object.keys(presets).sort();
+            sel.innerHTML = '<option value="">— Load a saved preset —</option>' +
+                names.map(n => `<option value="${n}">${n}</option>`).join('');
+        }
+
+        function _captureCurrentPreset() {
+            return {
+                mode: aiMode,
+                goal: document.getElementById('aiGoal')?.value,
+                experience: document.getElementById('aiExperience')?.value,
+                tempo: document.getElementById('aiTempo')?.value,
+                intensity: document.getElementById('aiIntensity')?.value,
+                unilateral: document.getElementById('aiUnilateral')?.value,
+                conditioning: document.getElementById('aiConditioning')?.value,
+                injuryCodes: Array.from(document.querySelectorAll('input[name="injuryCode"]:checked')).map(c => c.value),
+                equipment: Array.from(document.querySelectorAll('input[name="equipment"]:checked')).map(c => c.value),
+                preferences: document.getElementById('aiPreferences')?.value,
+                injuries: document.getElementById('aiInjuries')?.value,
+                programFields: {
+                    daysPerWeek: document.getElementById('aiDaysPerWeek')?.value,
+                    duration: document.getElementById('aiDuration')?.value,
+                    split: document.getElementById('aiSplit')?.value,
+                    sessionDuration: document.getElementById('aiSessionDuration')?.value,
+                    trainingStyle: document.getElementById('aiTrainingStyle')?.value,
+                    exerciseCount: document.getElementById('aiExerciseCount')?.value,
+                    focusAreas: Array.from(document.querySelectorAll('input[name="focusArea"]:checked')).map(c => c.value)
+                },
+                singleFields: {
+                    targetMuscle: document.getElementById('aiTargetMuscle')?.value,
+                    sessionDuration: document.getElementById('aiSingleSessionDuration')?.value,
+                    trainingStyle: document.getElementById('aiSingleTrainingStyle')?.value,
+                    exerciseCount: document.getElementById('aiSingleExerciseCount')?.value
+                }
+            };
+        }
+
+        function _applyPresetToForm(p) {
+            if (!p) return;
+            const setVal = (id, v) => { const el = document.getElementById(id); if (el && v != null) el.value = v; };
+            setVal('aiGoal', p.goal); setVal('aiExperience', p.experience);
+            setVal('aiTempo', p.tempo); setVal('aiIntensity', p.intensity);
+            setVal('aiUnilateral', p.unilateral); setVal('aiConditioning', p.conditioning);
+            setVal('aiPreferences', p.preferences); setVal('aiInjuries', p.injuries);
+            // Checkboxes
+            document.querySelectorAll('input[name="injuryCode"]').forEach(cb => { cb.checked = (p.injuryCodes || []).includes(cb.value); });
+            document.querySelectorAll('input[name="equipment"]').forEach(cb => { cb.checked = (p.equipment || []).includes(cb.value); });
+            document.querySelectorAll('input[name="focusArea"]').forEach(cb => { cb.checked = (p.programFields?.focusAreas || []).includes(cb.value); });
+            if (p.programFields) {
+                setVal('aiDaysPerWeek', p.programFields.daysPerWeek);
+                setVal('aiDuration', p.programFields.duration);
+                setVal('aiSplit', p.programFields.split);
+                setVal('aiSessionDuration', p.programFields.sessionDuration);
+                setVal('aiTrainingStyle', p.programFields.trainingStyle);
+                setVal('aiExerciseCount', p.programFields.exerciseCount);
+            }
+            if (p.singleFields) {
+                setVal('aiTargetMuscle', p.singleFields.targetMuscle);
+                setVal('aiSingleSessionDuration', p.singleFields.sessionDuration);
+                setVal('aiSingleTrainingStyle', p.singleFields.trainingStyle);
+                setVal('aiSingleExerciseCount', p.singleFields.exerciseCount);
+            }
+            if (p.mode && p.mode !== aiMode) selectAIMode(p.mode);
+        }
+
+        function saveCurrentAsPreset() {
+            const name = (prompt('Preset name (e.g., "4-day PPL hypertrophy"):') || '').trim();
+            if (!name) return;
+            const presets = _loadAllPresets();
+            presets[name] = _captureCurrentPreset();
+            _saveAllPresets(presets);
+            refreshPresetList();
+            const sel = document.getElementById('aiPresetSelect');
+            if (sel) sel.value = name;
+            showToast(`Saved preset "${name}"`, 'success');
+        }
+
+        function loadAIPreset(name) {
+            if (!name) return;
+            const presets = _loadAllPresets();
+            const p = presets[name];
+            if (!p) { showToast('Preset not found', 'error'); return; }
+            _applyPresetToForm(p);
+            showToast(`Loaded preset "${name}"`, 'success');
+        }
+
+        function deleteCurrentPreset() {
+            const sel = document.getElementById('aiPresetSelect');
+            const name = sel?.value;
+            if (!name) { showToast('Select a preset to delete', 'error'); return; }
+            if (!confirm(`Delete preset "${name}"?`)) return;
+            const presets = _loadAllPresets();
+            delete presets[name];
+            _saveAllPresets(presets);
+            refreshPresetList();
+            showToast(`Deleted "${name}"`, 'success');
+        }
+
+        // Refresh client list & presets on page load (fires after loadClients completes)
+        setTimeout(() => {
+            populateAIClientSelect();
+            refreshPresetList();
+        }, 1500);
 
         // ============================================
         // Custom Exercise Functions
@@ -12668,15 +14453,12 @@
                 return;
             }
 
-            // Compress video before storing (reduces 4K/large files to 1080p)
-            let videoFile = file;
-            if (file.size > 50 * 1024 * 1024) {
-                showToast('Compressing video for optimal playback...', 'success');
-                videoFile = await compressVideo(file);
-                if (videoFile !== file) {
-                    showToast(`Compressed: ${(file.size/1024/1024).toFixed(1)}MB → ${(videoFile.size/1024/1024).toFixed(1)}MB`, 'success');
-                }
+            // Upload the original file (no in-browser re-encode). The previous canvas
+            // compression dropped frames and broke audio on iOS Safari.
+            if (file.size > 100 * 1024 * 1024) {
+                showToast(`Loading large video (${(file.size/1024/1024).toFixed(0)}MB)…`, 'success');
             }
+            const videoFile = file;
 
             // Store blob directly (avoids memory-intensive base64 conversion)
             ceVideoBlob = videoFile;
@@ -12699,13 +14481,29 @@
 
         async function startCEVideoRecording() {
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: 'environment' },
-                    audio: false
-                });
+                let stream;
+                try {
+                    stream = await navigator.mediaDevices.getUserMedia({
+                        video: { facingMode: 'environment' },
+                        audio: true
+                    });
+                } catch (audioErr) {
+                    console.warn('Mic unavailable, recording without audio:', audioErr);
+                    stream = await navigator.mediaDevices.getUserMedia({
+                        video: { facingMode: 'environment' },
+                        audio: false
+                    });
+                }
 
+                let ceMimeType = 'video/webm';
+                for (const candidate of ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm;codecs=opus', 'video/webm']) {
+                    if (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(candidate)) {
+                        ceMimeType = candidate;
+                        break;
+                    }
+                }
                 ceVideoChunks = [];
-                ceVideoRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+                ceVideoRecorder = new MediaRecorder(stream, { mimeType: ceMimeType });
 
                 ceVideoRecorder.ondataavailable = (e) => {
                     if (e.data.size > 0) {
@@ -12716,11 +14514,14 @@
                 ceVideoRecorder.onstop = async () => {
                     stream.getTracks().forEach(track => track.stop());
 
-                    const blob = new Blob(ceVideoChunks, { type: 'video/webm' });
+                    let blob = new Blob(ceVideoChunks, { type: 'video/webm' });
+                    // Patch missing WebM Duration so playback doesn't stop early.
+                    const recordedMs = Math.max(1000, (typeof seconds === 'number' ? seconds : 0) * 1000);
+                    blob = await fixWebmDuration(blob, recordedMs);
 
                     // Store blob directly (avoids memory-intensive base64 conversion)
                     ceVideoBlob = blob;
-                    ceVideoData = 'video/webm';
+                    ceVideoData = blob.type || 'video/webm';
 
                     // Revoke previous object URL if any
                     const previewEl = document.getElementById('cePreviewVideo');
@@ -12875,11 +14676,14 @@
                 if (ceVideoBlob) {
                     saveBtn.innerHTML = '<span class="spinner"></span> Uploading video...';
 
-                    // Determine file extension and content type from the blob
-                    const blobType = ceVideoBlob.type || ceVideoData || 'video/webm';
-                    const isWebm = blobType.includes('webm');
-                    const contentType = isWebm ? 'video/webm' : 'video/mp4';
-                    const extension = isWebm ? 'webm' : 'mp4';
+                    // Preserve the source's actual mime type so iOS plays the audio track.
+                    // mp4/mov screen recordings tagged video/mp4 sometimes lose the AAC
+                    // track on playback; Supabase needs the right Content-Type.
+                    const blobType = (ceVideoBlob.type || ceVideoData || '').toLowerCase();
+                    let contentType, extension;
+                    if (blobType.includes('webm')) { contentType = 'video/webm'; extension = 'webm'; }
+                    else if (blobType.includes('quicktime') || blobType.includes('mov')) { contentType = 'video/quicktime'; extension = 'mov'; }
+                    else { contentType = 'video/mp4'; extension = 'mp4'; }
                     const fileName = `custom-${Date.now()}.${extension}`;
 
                     // Step 1: Get a signed upload URL
@@ -13624,13 +15428,24 @@
             const overlay = document.createElement('div');
             overlay.className = 'video-preview-overlay';
             overlay.innerHTML = `
-                <video src="${v.signedUrl}" controls autoplay playsinline style="max-width:100%;max-height:80vh;border-radius:8px"></video>
+                <video src="${v.signedUrl}" controls playsinline preload="auto" style="max-width:100%;max-height:80vh;border-radius:8px"></video>
                 <button class="video-preview-close" onclick="this.parentElement.remove()">&times;</button>
             `;
             overlay.addEventListener('click', (e) => {
                 if (e.target === overlay) overlay.remove();
             });
             document.body.appendChild(overlay);
+            // Try to start playback with sound. play() is invoked synchronously inside
+            // the user's click on the thumbnail, so the user gesture is still active —
+            // browsers allow unmuted playback. If it gets blocked anyway, the user can
+            // tap the native play button.
+            const videoEl = overlay.querySelector('video');
+            if (videoEl) {
+                videoEl.muted = false;
+                videoEl.volume = 1.0;
+                const p = videoEl.play();
+                if (p && typeof p.catch === 'function') p.catch(() => {});
+            }
         }
 
         // Rename video (display name stored in metadata)
@@ -13770,19 +15585,16 @@
             const video = myVideosCache[replaceVideoIndex];
             if (!video) return;
 
-            if (file.size > 500 * 1024 * 1024) {
-                showToast('Video must be under 500MB', 'error');
+            if (file.size > 1024 * 1024 * 1024) {
+                showToast('Video must be under 1GB', 'error');
                 return;
             }
 
             try {
-                showToast('Compressing & uploading...', 'success');
+                showToast('Uploading…', 'success');
 
-                // Compress if needed
-                let videoToUpload = file;
-                if (file.size > 2 * 1024 * 1024) {
-                    videoToUpload = await compressVideo(file);
-                }
+                // Upload original (browser re-encoding broke audio/quality).
+                const videoToUpload = file;
 
                 // Delete old file
                 await apiCall('/.netlify/functions/delete-coach-video', {
@@ -13790,8 +15602,12 @@
                     body: JSON.stringify({ coachId: currentCoachId, filePath: video.filePath })
                 });
 
-                // Upload new file with same naming convention
-                const ext = videoToUpload.type?.includes('webm') ? 'webm' : 'mp4';
+                // Preserve the source's actual mime type so iOS plays it back correctly.
+                const srcType = (videoToUpload.type || '').toLowerCase();
+                let ct, ext;
+                if (srcType.includes('webm')) { ct = 'video/webm'; ext = 'webm'; }
+                else if (srcType.includes('quicktime') || srcType.includes('mov')) { ct = 'video/quicktime'; ext = 'mov'; }
+                else { ct = 'video/mp4'; ext = 'mp4'; }
                 const newFileName = `custom-video-${Date.now()}.${ext}`;
 
                 const uploadUrlResult = await apiCall('/.netlify/functions/get-video-upload-url', {
@@ -13799,7 +15615,7 @@
                     body: JSON.stringify({
                         coachId: currentCoachId,
                         fileName: newFileName,
-                        contentType: videoToUpload.type || 'video/webm',
+                        contentType: ct,
                         folder: 'exercise-videos'
                     })
                 });
@@ -13810,7 +15626,7 @@
 
                 const replaceResponse = await fetch(uploadUrlResult.uploadUrl, {
                     method: 'PUT',
-                    headers: { 'Content-Type': videoToUpload.type || 'video/webm' },
+                    headers: { 'Content-Type': ct },
                     body: videoToUpload
                 });
 
@@ -13866,5 +15682,6 @@
     <script src="/js/api-helper.js"></script>
     <script src="/js/trainer-support-agent.js"></script>
     <script src="/js/voice-commander.js"></script>
+    <script src="/js/twemoji-init.js"></script>
 </body>
 </html>
