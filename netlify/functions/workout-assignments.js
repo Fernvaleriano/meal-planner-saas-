@@ -35,7 +35,7 @@ async function fetchExercisesByIds(supabase, ids) {
   if (missing.length > 0) {
     const { data, error } = await supabase
       .from('exercises')
-      .select('id, equipment, video_url, animation_url, thumbnail_url')
+      .select('id, equipment, video_url, animation_url, thumbnail_url, is_custom')
       .in('id', missing);
     if (!error && data) {
       for (const ex of data) {
@@ -73,6 +73,10 @@ async function enrichExercisesWithVideos(exercises, supabase) {
     // Only overwrite video/animation if the DB has a value and the snapshot doesn't
     if (fresh.video_url && !ex.video_url) updates.video_url = fresh.video_url;
     if (fresh.animation_url && !ex.animation_url) updates.animation_url = fresh.animation_url;
+    // Backfill is_custom so the client can play coach-recorded videos unmuted.
+    // Old workout snapshots dropped this flag, leaving custom-exercise videos
+    // muted on the client even though they have voice cues.
+    if (fresh.is_custom === true && ex.is_custom !== true) updates.is_custom = true;
     if (Object.keys(updates).length === 0) return ex;
     return { ...ex, ...updates };
   });
@@ -468,6 +472,8 @@ exports.handler = withTimeout(async (event) => {
                     if (fresh.thumbnail_url && fresh.thumbnail_url !== ex.thumbnail_url) updates.thumbnail_url = fresh.thumbnail_url;
                     if (fresh.video_url && !ex.video_url) updates.video_url = fresh.video_url;
                     if (fresh.animation_url && !ex.animation_url) updates.animation_url = fresh.animation_url;
+                    // Backfill is_custom so coach-recorded videos play unmuted on the client
+                    if (fresh.is_custom === true && ex.is_custom !== true) updates.is_custom = true;
                     if (Object.keys(updates).length === 0) return ex;
                     return { ...ex, ...updates };
                   });
