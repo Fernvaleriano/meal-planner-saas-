@@ -603,8 +603,9 @@ exports.handler = async (event) => {
     let muscleGroupIdx = 0;
     for (const [group, list] of Object.entries(exercisesByMuscleGroup)) {
       // Use varietySeed + group offset so different muscle groups don't all get the same shuffle
-      // 30 per group keeps the prompt small enough for Haiku to stay fast
-      const sampled = sampleArray(list, 30, varietySeed + (muscleGroupIdx++ * 7919));
+      // 20 per group keeps the prompt small enough for Haiku to stay fast.
+      // 20 × ~10 muscle groups = ~200 names, still plenty of variety.
+      const sampled = sampleArray(list, 20, varietySeed + (muscleGroupIdx++ * 7919));
       exercisesByMuscleGroupSampled[group] = sampled.map(s => s.name);
     }
 
@@ -692,10 +693,10 @@ exports.handler = async (event) => {
 
     // Build warmup/stretch references from full unfiltered DB so we always have these
     const allExerciseNames = exercisesWithVideos.map(e => e.name);
-    const warmupSuitable = [
-      ...allExerciseNames.filter(n => /jump|jack|burpee|mountain climber|high knee|butt kick|arm circle|leg swing|hip circle|torso twist|march|skip|jog|run in place/i.test(n)).slice(0, 12)
-    ];
-    const stretchExercises = allExerciseNames.filter(n => /stretch/i.test(n)).slice(0, 30);
+    const warmupSuitable = allExerciseNames
+      .filter(n => /jump|jack|burpee|mountain climber|high knee|butt kick|arm circle|leg swing|hip circle|torso twist|march|skip|jog|run in place/i.test(n))
+      .slice(0, 6);
+    const stretchExercises = allExerciseNames.filter(n => /stretch/i.test(n)).slice(0, 15);
 
     let warmupStretchInstructions = '';
     if (warmupSuitable.length > 0 || stretchExercises.length > 0) {
@@ -868,11 +869,14 @@ Return this exact JSON structure:
       userMessage = `Create a complete ${daysPerWeek}-day workout program for ${clientName}. Goal: ${goal}. Experience: ${experience}.${injuries ? ` Injuries: "${injuries}".` : ''}${preferences ? ` Preferences: "${preferences}".` : ''} Return ONLY valid JSON, no markdown.`;
     }
 
-    // Per-day generation runs through the fan-out path now (each call is one day)
-    // so Sonnet 4.5 fits within Netlify's 26s window. Sonnet follows split rules
-    // much more strictly than Haiku, which kept sneaking biceps onto push days.
+    // Haiku 4.5 — the only Anthropic model fast enough to fit per-day generation
+    // inside Netlify's 26s function timeout when paired with the strict push/pull
+    // constraint block. Sonnet 4.5 produces nicer programs but timed out for
+    // the user repeatedly. Split-violation detector + auto-fix below catches any
+    // mistakes Haiku makes. For coach-quality output, use the refine chat (which
+    // does run on Sonnet) or a future background-function path.
     const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-5',
+      model: 'claude-haiku-4-5-20251001',
       max_tokens: 4096,
       messages: [{ role: 'user', content: userMessage }],
       system: systemPrompt
@@ -977,12 +981,10 @@ Return this exact JSON structure:
       programData.weeks = programData.weeks.concat(additionalWeeks);
     }
 
-    // Volume sanity check
-    const volumeSummary = computeVolumeSummary(programData);
-
-    // Split-violation detector: for push/pull single-mode generations, flag any
-    // exercise that doesn't belong on this day's split. Marks them with
-    // splitViolation=true so the frontend can show a visible badge.
+    // Split-violation detector + auto-fix. For push/pull single-mode generations,
+    // any exercise that doesn't belong on this day's split is REMOVED from the
+    // returned program. We still report removals in splitViolations so the
+    // frontend can show a banner and the coach can refine if too many got cut.
     const splitViolations = [];
     if (isSingleWorkout && (targetMuscle === 'push' || targetMuscle === 'pull')) {
       const violationCheck = (ex) => {
@@ -990,29 +992,33 @@ Return this exact JSON structure:
         const name = (ex.name || '').toLowerCase();
         const mg = (ex.muscle_group || ex.muscleGroup || '').toLowerCase();
         if (targetMuscle === 'push') {
-          // Pull-day moves on a push day = violation
           if (/\b(curl|row|pulldown|pull-down|pull down|pullup|pull-up|pull up|chinup|chin-up|chin up|face pull|shrug|deadlift|pullover|pull over)\b/.test(name)) return 'pull movement on push day';
           if (/\b(back|biceps?|lats?|rhomboid|trap)\b/.test(mg) && !/(rear delt|trap.*shoulder)/i.test(mg)) return `${mg} on push day`;
         } else if (targetMuscle === 'pull') {
-          // Push-day moves on a pull day = violation
           if (/\b(bench press|chest press|incline press|decline press|fly|flye|dip|push-up|pushup|push up|tricep|skull crusher|pushdown|push-down|push down|kickback|overhead press|military press|shoulder press|arnold press|push press)\b/.test(name)) return 'push movement on pull day';
           if (/\b(chest|pec|tricep|triceps)\b/.test(mg)) return `${mg} on pull day`;
-          // Front-delt-heavy presses caught above; rear delt is fine on pull day
         }
         return null;
       };
       for (const week of programData.weeks) {
         for (const workout of (week.workouts || [])) {
+          const kept = [];
           for (const ex of (workout.exercises || [])) {
             const v = violationCheck(ex);
             if (v) {
-              ex.splitViolation = v;
-              splitViolations.push({ day: workout.name || workout.dayNumber, exercise: ex.name, reason: v });
+              splitViolations.push({ day: workout.name || `Day ${workout.dayNumber}`, exercise: ex.name, reason: v, autoRemoved: true });
+              // Auto-fix: drop the violating exercise from the workout
+              continue;
             }
+            kept.push(ex);
           }
+          workout.exercises = kept;
         }
       }
     }
+
+    // Volume sanity check (after auto-fix so it reflects the actual program)
+    const volumeSummary = computeVolumeSummary(programData);
 
     return {
       statusCode: 200,
