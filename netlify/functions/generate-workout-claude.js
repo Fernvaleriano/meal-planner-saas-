@@ -292,26 +292,19 @@ function sampleArray(arr, n, seed = Date.now()) {
 async function fetchClientContext(supabase, clientId) {
   if (!clientId) return null;
   try {
-    const [clientRes, logsRes, intakeRes, lastAssignmentRes] = await Promise.all([
+    const [clientRes, logsRes, lastAssignmentRes] = await Promise.all([
       supabase
         .from('clients')
-        .select('id, client_name, age, gender, height_cm, weight_kg, goal, fitness_level, injuries, equipment_access, training_days_per_week, notes')
+        .select('id, client_name, age, gender, height_ft, height_in, weight, default_goal, fitness_level, health_concerns, equipment_access, exercise_frequency, notes, health_flags, fitness_goal_details, unavailable_equipment')
         .eq('id', clientId)
         .maybeSingle(),
       supabase
         .from('workout_logs')
-        .select('id, workout_date, duration_minutes, perceived_exertion')
+        .select('id, workout_date, duration_minutes, energy_level, workout_rating')
         .eq('client_id', clientId)
         .gte('workout_date', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0])
         .order('workout_date', { ascending: false })
         .limit(20),
-      supabase
-        .from('client_intake_responses')
-        .select('responses, submitted_at')
-        .eq('client_id', clientId)
-        .order('submitted_at', { ascending: false })
-        .limit(1)
-        .maybeSingle(),
       supabase
         .from('client_workout_assignments')
         .select('name, start_date, end_date, is_active, created_at')
@@ -348,11 +341,12 @@ async function fetchClientContext(supabase, clientId) {
 
     return {
       profile: client,
-      intake: intakeRes?.data?.responses || null,
+      intake: null, // form_responses lookup deferred
       lastProgram: lastAssignmentRes?.data || null,
       recentSessionCount: logsRes.data?.length || 0,
+      // Use workout_rating as a proxy for RPE (no perceived_exertion column exists)
       avgRPE: logsRes.data?.length > 0
-        ? (logsRes.data.reduce((s, l) => s + (l.perceived_exertion || 0), 0) / logsRes.data.filter(l => l.perceived_exertion).length || null)
+        ? (logsRes.data.reduce((s, l) => s + (l.workout_rating || 0), 0) / logsRes.data.filter(l => l.workout_rating).length || null)
         : null,
       exerciseHistory: exerciseHistoryRaw.map(([name, data]) => `${name}: top ${data.topWeight}, ${data.sessions} sessions${data.prs ? `, ${data.prs} PRs` : ''}`),
       exerciseHistoryRaw // kept for the summary block
@@ -371,14 +365,20 @@ function formatClientContextForPrompt(ctx) {
     if (p.client_name) lines.push(`Name: ${p.client_name}`);
     if (p.age) lines.push(`Age: ${p.age}`);
     if (p.gender) lines.push(`Gender: ${p.gender}`);
-    if (p.height_cm) lines.push(`Height: ${p.height_cm} cm`);
-    if (p.weight_kg) lines.push(`Weight: ${p.weight_kg} kg`);
-    if (p.goal) lines.push(`Stated goal: ${p.goal}`);
+    if (p.height_ft) lines.push(`Height: ${p.height_ft}'${p.height_in || 0}"`);
+    if (p.weight) lines.push(`Weight: ${p.weight} lb`);
+    if (p.default_goal) lines.push(`Stated goal: ${p.default_goal}`);
+    if (p.fitness_goal_details) lines.push(`Goal details: ${p.fitness_goal_details}`);
     if (p.fitness_level) lines.push(`Fitness level: ${p.fitness_level}`);
-    if (p.injuries) lines.push(`Logged injuries: ${p.injuries}`);
+    if (p.health_concerns) lines.push(`Logged injuries / health concerns: ${p.health_concerns}`);
     if (p.equipment_access) lines.push(`Equipment access: ${p.equipment_access}`);
-    if (p.training_days_per_week) lines.push(`Available days: ${p.training_days_per_week}/week`);
+    if (p.exercise_frequency) lines.push(`Exercise frequency: ${p.exercise_frequency}`);
     if (p.notes) lines.push(`Coach notes: ${p.notes}`);
+    // Read structured health flags
+    const hf = p.health_flags || {};
+    if (hf.aiNotes) lines.push(`AI-specific coach notes: ${hf.aiNotes}`);
+    if (Array.isArray(hf.injuryCodes) && hf.injuryCodes.length) lines.push(`Structured injuries: ${hf.injuryCodes.join(', ')}`);
+    if (Array.isArray(hf.movementFlags) && hf.movementFlags.length) lines.push(`Movement screen flags: ${hf.movementFlags.join(', ')}`);
   }
   if (ctx.lastProgram) {
     lines.push(`\nMost recent program: "${ctx.lastProgram.name}"${ctx.lastProgram.is_active ? ' (currently active)' : ''}, started ${ctx.lastProgram.start_date || ctx.lastProgram.created_at}`);
@@ -588,8 +588,26 @@ exports.handler = async (event) => {
     let exercisesWithVideos = allExercises.filter(e => e.video_url || e.animation_url);
 
     // Apply structured injury exclusions deterministically
-    let exercisesAfterInjuries = applyInjuryExclusions(exercisesWithVideos, injuryCodes);
-    exercisesAfterInjuries = applyMovementScreenExclusions(exercisesAfterInjuries, movementScreenFlags);
+    // If a clientId was passed, pull their stored health_flags and union them
+    // with whatever the coach checked in the AI modal — so even if the coach
+    // doesn't manually check anything, the client's permanent flags still apply.
+    let mergedInjuryCodes = Array.isArray(injuryCodes) ? injuryCodes.slice() : [];
+    let mergedMovementFlags = Array.isArray(movementScreenFlags) ? movementScreenFlags.slice() : [];
+    if (clientId) {
+      try {
+        const { data: clientFlags } = await supabase
+          .from('clients')
+          .select('health_flags')
+          .eq('id', clientId)
+          .maybeSingle();
+        const hf = clientFlags?.health_flags || {};
+        if (Array.isArray(hf.injuryCodes)) mergedInjuryCodes = [...new Set([...mergedInjuryCodes, ...hf.injuryCodes])];
+        if (Array.isArray(hf.movementFlags)) mergedMovementFlags = [...new Set([...mergedMovementFlags, ...hf.movementFlags])];
+      } catch (e) { /* ignore */ }
+    }
+
+    let exercisesAfterInjuries = applyInjuryExclusions(exercisesWithVideos, mergedInjuryCodes);
+    exercisesAfterInjuries = applyMovementScreenExclusions(exercisesAfterInjuries, mergedMovementFlags);
 
     // Equipment filter
     const matchesSelectedEquipment = (ex) => {
@@ -841,7 +859,8 @@ ${repRangeBlock}
 
 CONSTRAINTS:
 - Equipment available: ${equipment.join(', ')}. Do NOT include exercises requiring other equipment.
-${injuryCodes && injuryCodes.length ? `- Structured injury exclusions ALREADY APPLIED: ${injuryCodes.join(', ')}. Continue to avoid movements that would aggravate these.` : ''}
+${mergedInjuryCodes && mergedInjuryCodes.length ? `- Structured injury exclusions ALREADY APPLIED: ${mergedInjuryCodes.join(', ')}. Continue to avoid movements that would aggravate these.` : ''}
+${mergedMovementFlags && mergedMovementFlags.length ? `- Structured movement-screen exclusions ALREADY APPLIED: ${mergedMovementFlags.join(', ')}. Avoid contraindicated patterns.` : ''}
 ${injuries ? `\n=== INJURY/LIMITATION RESTRICTIONS (MANDATORY — NEVER VIOLATE) ===\nClient has: ${injuries}\n- DO NOT include any exercise that could aggravate these.\n- This overrides ALL other selection guidance — substitute a safe alternative.\n` : ''}
 ${preferences ? `\n=== CLIENT PREFERENCES (MANDATORY) ===\nClient says: ${preferences}\n- Strictly follow these.\n` : ''}
 For supersets: BOTH paired exercises get "isSuperset": true and matching "supersetGroup".
