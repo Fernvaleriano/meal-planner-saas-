@@ -32,7 +32,7 @@ async function fetchExercisesByIds(supabase, ids) {
   if (missing.length > 0) {
     const { data, error } = await supabase
       .from('exercises')
-      .select('id, video_url, animation_url, thumbnail_url')
+      .select('id, video_url, animation_url, thumbnail_url, is_custom')
       .in('id', missing);
     if (!error && data) {
       for (const ex of data) {
@@ -66,6 +66,8 @@ async function enrichExercisesWithMedia(exercises, supabase) {
     if (fresh.thumbnail_url && fresh.thumbnail_url !== ex.thumbnail_url) updates.thumbnail_url = fresh.thumbnail_url;
     if (fresh.video_url && !ex.video_url) updates.video_url = fresh.video_url;
     if (fresh.animation_url && !ex.animation_url) updates.animation_url = fresh.animation_url;
+    // Backfill is_custom so coach-recorded videos play unmuted on the client
+    if (fresh.is_custom === true && ex.is_custom !== true) updates.is_custom = true;
     if (Object.keys(updates).length === 0) return ex;
     return { ...ex, ...updates };
   });

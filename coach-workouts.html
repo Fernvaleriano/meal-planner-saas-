@@ -11152,6 +11152,9 @@
                 equipment: exercise.equipment,
                 exercise_type: exercise.exercise_type || '',
                 is_compound: exercise.is_compound || false,
+                // Propagate is_custom so the client can play coach-recorded
+                // videos unmuted (with controls) instead of as silent demo loops.
+                is_custom: exercise.is_custom === true ? true : undefined,
                 instructions: exercise.instructions,
                 sets: isWarmup ? 1 : isStretch ? 1 : 3,
                 reps: isWarmup ? '10-15' : isStretch ? '30s hold' : '8-12',
