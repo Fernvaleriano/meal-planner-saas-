@@ -10042,8 +10042,10 @@
                     const batch = result.exercises || [];
                     allExercises = allExercises.concat(batch);
 
-                    // Check if there are more exercises to fetch
-                    if (batch.length < batchSize || allExercises.length >= result.total) {
+                    // A short batch is the only reliable signal that we've reached
+                    // the end. result.total is unreliable when the server applies
+                    // post-query filtering, so don't rely on it as a stop condition.
+                    if (batch.length < batchSize) {
                         hasMore = false;
                     } else {
                         offset += batchSize;
