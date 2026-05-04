@@ -13658,17 +13658,18 @@
                     </div>`;
             }
 
-            // Split violations (e.g. biceps on push day)
+            // Split violations (e.g. biceps on push day) — auto-removed by backend
             let splitHtml = '';
             const splitViolations = result.splitViolations || [];
             if (splitViolations.length > 0) {
+                const removedCount = splitViolations.filter(v => v.autoRemoved).length;
                 splitHtml = `
-                    <div style="margin-bottom:16px; padding:10px 12px; background:rgba(239,68,68,0.10); border-left:3px solid #ef4444; border-radius:6px; font-size:13px;">
-                        <strong>⚠ ${splitViolations.length} split violation${splitViolations.length > 1 ? 's' : ''}:</strong>
+                    <div style="margin-bottom:16px; padding:10px 12px; background:rgba(245,158,11,0.10); border-left:3px solid #f59e0b; border-radius:6px; font-size:13px;">
+                        <strong>${removedCount > 0 ? `Auto-removed ${removedCount} exercise${removedCount > 1 ? 's' : ''} that didn't fit the split:` : `⚠ ${splitViolations.length} split issue${splitViolations.length > 1 ? 's' : ''}:`}</strong>
                         <ul style="margin:6px 0 0 18px; padding:0;">
-                            ${splitViolations.map(v => `<li><strong>${v.day}</strong>: "${v.exercise}" — ${v.reason}</li>`).join('')}
+                            ${splitViolations.map(v => `<li><strong>${v.day}</strong>: "${v.exercise}" — ${v.reason}${v.autoRemoved ? ' <em>(removed)</em>' : ''}</li>`).join('')}
                         </ul>
-                        <div style="margin-top:6px; font-style:italic;">The AI placed exercises that don't fit this day's split. Try "Regenerate" to get a clean split, or use refine to swap specific exercises.</div>
+                        <div style="margin-top:6px; font-style:italic;">${removedCount > 0 ? 'These were removed automatically. If a day is now too short, hit "Regenerate" or use the refine chat to add appropriate exercises.' : 'Try "Regenerate" or refine to fix.'}</div>
                     </div>`;
             }
 
