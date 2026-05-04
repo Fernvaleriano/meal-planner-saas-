@@ -492,8 +492,22 @@ exports.handler = async (event) => {
     const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
     const allExercises = await loadExercises(supabase, coachId);
     const exercisesWithVideos = allExercises.filter(e => e.video_url || e.animation_url);
-    let exercisesAfterInjuries = applyInjuryExclusions(exercisesWithVideos, injuryCodes);
-    exercisesAfterInjuries = applyMovementScreenExclusions(exercisesAfterInjuries, movementScreenFlags);
+    // Merge per-generation flags with the client's stored health_flags so
+    // permanent injuries always apply even if the coach didn't manually check
+    // anything in the modal.
+    let mergedInjuryCodes = Array.isArray(injuryCodes) ? injuryCodes.slice() : [];
+    let mergedMovementFlags = Array.isArray(movementScreenFlags) ? movementScreenFlags.slice() : [];
+    if (clientId) {
+      try {
+        const { data: hfRow } = await supabase.from('clients').select('health_flags').eq('id', clientId).maybeSingle();
+        const hf = hfRow?.health_flags || {};
+        if (Array.isArray(hf.injuryCodes)) mergedInjuryCodes = [...new Set([...mergedInjuryCodes, ...hf.injuryCodes])];
+        if (Array.isArray(hf.movementFlags)) mergedMovementFlags = [...new Set([...mergedMovementFlags, ...hf.movementFlags])];
+      } catch (e) { /* ignore */ }
+    }
+
+    let exercisesAfterInjuries = applyInjuryExclusions(exercisesWithVideos, mergedInjuryCodes);
+    exercisesAfterInjuries = applyMovementScreenExclusions(exercisesAfterInjuries, mergedMovementFlags);
 
     // Equipment filter
     const matchesEquipment = (ex) => {
@@ -530,28 +544,24 @@ exports.handler = async (event) => {
     const stretchExercises = allNames.filter(n => /stretch/i.test(n)).slice(0, 20);
 
     // Rich client context: profile + 30 days of training logs + top exercises +
-    // last assigned program + intake form responses + coach notes. The whole
-    // point of picking a client is to personalize the program from this data.
+    // last assigned program + coach notes. The whole point of picking a client
+    // is to personalize the program from this data.
     let clientContextBlock = '';
     let clientContextSummary = null;
+    let clientHealthFlags = {};
     if (clientId) {
       try {
         const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-        const [clientRes, logsRes, intakeRes, lastAssignmentRes] = await Promise.all([
+        const [clientRes, logsRes, lastAssignmentRes] = await Promise.all([
           supabase.from('clients')
-            .select('id, client_name, age, gender, height_cm, weight_kg, goal, fitness_level, injuries, equipment_access, training_days_per_week, notes')
+            .select('id, client_name, age, gender, height_ft, height_in, weight, default_goal, fitness_level, health_concerns, equipment_access, exercise_frequency, notes, health_flags, fitness_goal_details')
             .eq('id', clientId).maybeSingle(),
           supabase.from('workout_logs')
-            .select('id, workout_date, duration_minutes, perceived_exertion')
+            .select('id, workout_date, duration_minutes, energy_level, workout_rating')
             .eq('client_id', clientId)
             .gte('workout_date', thirtyDaysAgo)
             .order('workout_date', { ascending: false })
             .limit(20),
-          supabase.from('client_intake_responses')
-            .select('responses, submitted_at')
-            .eq('client_id', clientId)
-            .order('submitted_at', { ascending: false })
-            .limit(1).maybeSingle(),
           supabase.from('client_workout_assignments')
             .select('name, start_date, end_date, is_active, created_at')
             .eq('client_id', clientId)
@@ -561,8 +571,9 @@ exports.handler = async (event) => {
 
         const client = clientRes.data;
         const recentLogs = logsRes.data || [];
-        const intake = intakeRes.data?.responses || null;
+        const intake = null;
         const lastProgram = lastAssignmentRes.data || null;
+        clientHealthFlags = client?.health_flags || {};
 
         // Per-exercise progress: top weight, sessions, PRs in last 30 days
         let exerciseHistory = [];
@@ -587,8 +598,12 @@ exports.handler = async (event) => {
           }
         }
 
-        const avgRPE = recentLogs.filter(l => l.perceived_exertion).length > 0
-          ? recentLogs.reduce((s, l) => s + (l.perceived_exertion || 0), 0) / recentLogs.filter(l => l.perceived_exertion).length
+        // workout_rating (1-5 scale) is the closest field to RPE we have.
+        // Convert to a 0-10 scale by multiplying by 2 so the rest of the
+        // analyzer's RPE thresholds (high >=8.5, low <=6) still make sense.
+        const ratingsValid = recentLogs.filter(l => l.workout_rating);
+        const avgRPE = ratingsValid.length > 0
+          ? (ratingsValid.reduce((s, l) => s + (l.workout_rating || 0), 0) / ratingsValid.length) * 2
           : null;
 
         if (client) {
@@ -596,14 +611,18 @@ exports.handler = async (event) => {
           if (client.client_name) lines.push(`Name: ${client.client_name}`);
           if (client.age) lines.push(`Age: ${client.age}`);
           if (client.gender) lines.push(`Gender: ${client.gender}`);
-          if (client.height_cm) lines.push(`Height: ${client.height_cm} cm`);
-          if (client.weight_kg) lines.push(`Weight: ${client.weight_kg} kg`);
-          if (client.goal) lines.push(`Stated goal: ${client.goal}`);
+          if (client.height_ft) lines.push(`Height: ${client.height_ft}'${client.height_in || 0}"`);
+          if (client.weight) lines.push(`Weight: ${client.weight} lb`);
+          if (client.default_goal) lines.push(`Stated goal: ${client.default_goal}`);
+          if (client.fitness_goal_details) lines.push(`Goal details: ${client.fitness_goal_details}`);
           if (client.fitness_level) lines.push(`Fitness level: ${client.fitness_level}`);
-          if (client.injuries) lines.push(`Logged injuries: ${client.injuries}`);
+          if (client.health_concerns) lines.push(`Logged injuries / health concerns: ${client.health_concerns}`);
           if (client.equipment_access) lines.push(`Equipment access: ${client.equipment_access}`);
-          if (client.training_days_per_week) lines.push(`Available days: ${client.training_days_per_week}/week`);
+          if (client.exercise_frequency) lines.push(`Exercise frequency: ${client.exercise_frequency}`);
           if (client.notes) lines.push(`Coach notes: ${client.notes}`);
+          if (clientHealthFlags?.aiNotes) lines.push(`AI-specific coach notes: ${clientHealthFlags.aiNotes}`);
+          if (Array.isArray(clientHealthFlags?.injuryCodes) && clientHealthFlags.injuryCodes.length) lines.push(`Structured injuries: ${clientHealthFlags.injuryCodes.join(', ')}`);
+          if (Array.isArray(clientHealthFlags?.movementFlags) && clientHealthFlags.movementFlags.length) lines.push(`Movement screen flags: ${clientHealthFlags.movementFlags.join(', ')}`);
 
           if (lastProgram) {
             lines.push(`\nMost recent program: "${lastProgram.name}"${lastProgram.is_active ? ' (currently active)' : ''}, started ${lastProgram.start_date || lastProgram.created_at}`);

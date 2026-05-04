@@ -32,7 +32,9 @@ exports.handler = async (event, context) => {
       // Client portal permissions
       canChangeMeals, canReviseMeals, canCustomMeals, canRequestNewPlan,
       // Equipment restrictions
-      unavailableEquipment
+      unavailableEquipment,
+      // Health & Limitations (workout AI)
+      healthConcerns, healthFlags
     } = body;
 
     // Validate required fields
@@ -98,6 +100,10 @@ exports.handler = async (event, context) => {
 
     // Equipment restrictions
     if (unavailableEquipment !== undefined) updateData.unavailable_equipment = unavailableEquipment;
+
+    // Health & Limitations (workout AI personalization)
+    if (healthConcerns !== undefined) updateData.health_concerns = healthConcerns;
+    if (healthFlags !== undefined) updateData.health_flags = healthFlags;
 
     // Update client (verify it belongs to this coach)
     const { data, error } = await supabase

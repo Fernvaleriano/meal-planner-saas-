@@ -14093,11 +14093,22 @@
             const c = clients.find(x => String(x.id) === String(clientId));
             if (!c) return;
             if (nameInput) nameInput.value = c.client_name || '';
-            // Pre-check structured injuries if the client has known ones (best-effort string match)
-            const knownInjuries = (c.injuries || '').toLowerCase();
-            ['lower_back', 'knee', 'shoulder', 'wrist', 'hip', 'neck', 'elbow', 'ankle'].forEach(code => {
+            // Pre-check structured injuries from the client's stored health_flags
+            // (set permanently on their profile) — falls back to keyword detection
+            // in the free-text health_concerns field for clients added before
+            // health_flags was a feature.
+            const hf = c.health_flags || {};
+            const storedInjuries = new Set(Array.isArray(hf.injuryCodes) ? hf.injuryCodes : []);
+            const storedMovement = new Set(Array.isArray(hf.movementFlags) ? hf.movementFlags : []);
+            const freeText = (c.health_concerns || '').toLowerCase();
+            ['lower_back', 'knee', 'shoulder', 'wrist', 'hip', 'neck', 'elbow', 'ankle', 'pregnancy'].forEach(code => {
                 const cb = document.querySelector(`input[name="injuryCode"][value="${code}"]`);
-                if (cb) cb.checked = knownInjuries.includes(code.replace('_', ' ')) || knownInjuries.includes(code);
+                if (!cb) return;
+                cb.checked = storedInjuries.has(code) || freeText.includes(code.replace('_', ' ')) || freeText.includes(code);
+            });
+            ['overhead_mobility', 'ankle_mobility', 'hip_mobility', 'wrist_pain', 'shoulder_impingement', 'knee_tracks_inward', 'lower_back_rounding', 'asymmetric_grip'].forEach(flag => {
+                const cb = document.querySelector(`input[name="movementFlag"][value="${flag}"]`);
+                if (cb) cb.checked = storedMovement.has(flag);
             });
             // If the client has equipment_access on file, try to auto-toggle the
             // equipment grid to match (coach can still adjust). String parsing is
@@ -14116,9 +14127,12 @@
             }
             if (badge) {
                 const bits = [];
-                if (c.goal) bits.push(`Goal: ${c.goal}`);
+                if (c.default_goal) bits.push(`Goal: ${c.default_goal}`);
                 if (c.fitness_level) bits.push(`Level: ${c.fitness_level}`);
-                if (c.injuries) bits.push(`Injuries: ${c.injuries}`);
+                if (c.health_concerns) bits.push(`Health concerns: ${c.health_concerns}`);
+                if (storedInjuries.size > 0) bits.push(`Injuries on file: ${[...storedInjuries].join(', ')} <em>(auto-checked)</em>`);
+                if (storedMovement.size > 0) bits.push(`Movement screen: ${[...storedMovement].join(', ')} <em>(auto-checked)</em>`);
+                if (hf.aiNotes) bits.push(`AI notes: ${hf.aiNotes}`);
                 if (c.equipment_access) bits.push(`Equipment: ${c.equipment_access} <em>(grid auto-set, adjust if wrong)</em>`);
                 badge.innerHTML = `<strong>${c.client_name}'s context loaded.</strong> ${bits.join(' · ') || 'Will pull recent training history on generation.'}`;
                 badge.style.display = '';
