@@ -13151,14 +13151,9 @@
                 dayNumber: i + 1
             }));
 
-            // Translate "push"/"pull" into our backend's targetMuscle vocabulary.
-            // The single-mode endpoint accepts: chest, back, shoulders, arms, legs,
-            // glutes, core, upper_body, lower_body, full_body. Push/Pull don't exist,
-            // so map them to broader categories that cover the right muscles.
-            for (const d of days) {
-                if (d.targetMuscle === 'push') d.targetMuscle = 'upper_body'; // chest+shoulders+tris
-                else if (d.targetMuscle === 'pull') d.targetMuscle = 'upper_body'; // back+bis (still upper)
-            }
+            // The backend now handles 'push' and 'pull' as proper target muscles
+            // with strict split-aware exercise selection (see muscleGroupMap in
+            // generate-workout-claude.js). No translation needed.
             return days;
         }
 
@@ -13225,6 +13220,17 @@
 
         // Generate one day via the existing single-mode endpoint.
         async function _generateOneDay(daySpec, sharedReq) {
+            // Expand push/pull into their constituent muscles for the focusAreas
+            // hint, while keeping targetMuscle as 'push'/'pull' so the backend's
+            // split-aware system prompt still kicks in.
+            const focusMap = {
+                push: ['chest', 'shoulders', 'triceps'],
+                pull: ['back', 'biceps'],
+                upper_body: ['chest', 'back', 'shoulders', 'arms'],
+                lower_body: ['quads', 'hamstrings', 'glutes', 'calves'],
+                full_body: ['chest', 'back', 'legs', 'shoulders']
+            };
+            const focusAreas = focusMap[daySpec.targetMuscle] || [daySpec.targetMuscle];
             const dayBody = {
                 ...sharedReq,
                 mode: 'single',
@@ -13232,7 +13238,7 @@
                 daysPerWeek: 1,
                 duration: 1,
                 split: 'auto',
-                focusAreas: [daySpec.targetMuscle],
+                focusAreas,
                 includeProgression: false,
                 // Tag with day context so backend prompt is aware
                 clientName: sharedReq.clientName + ` — Day ${daySpec.dayNumber}`,

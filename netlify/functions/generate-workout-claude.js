@@ -723,16 +723,19 @@ If a category lacks options, select similar exercises from related categories.
 
     // Muscle map for single workouts
     const muscleGroupMap = {
-      'chest': 'chest (pecs, upper chest, lower chest)',
-      'back': 'back (lats, rhomboids, traps, rear delts)',
-      'shoulders': 'shoulders (front delts, side delts, rear delts)',
-      'arms': 'arms (biceps, triceps, forearms)',
-      'legs': 'legs (quads, hamstrings, calves)',
-      'glutes': 'glutes and hamstrings',
-      'core': 'core (abs, obliques, lower back)',
-      'upper_body': 'upper body (chest, back, shoulders, arms)',
+      'chest': 'chest ONLY (pecs, upper chest, lower chest) — NO back, NO biceps, NO leg work',
+      'back': 'back ONLY (lats, rhomboids, traps, rear delts) — NO chest, NO triceps, NO leg work',
+      'shoulders': 'shoulders ONLY (front delts, side delts, rear delts) — NO chest pressing focus, NO back rowing focus',
+      'arms': 'arms ONLY (biceps, triceps, forearms) — NO chest, back, leg, or shoulder work',
+      'legs': 'legs (quads, hamstrings, calves) — NO upper body work',
+      'glutes': 'glutes and hamstrings — NO upper body work',
+      'core': 'core ONLY (abs, obliques, lower back) — NO compound lifts',
+      'upper_body': 'upper body (chest, back, shoulders, arms — all four)',
       'lower_body': 'lower body (quads, hamstrings, glutes, calves)',
-      'full_body': 'full body (all major muscle groups)'
+      'full_body': 'full body (all major muscle groups)',
+      // PUSH/PULL split-aware targets — these are CRITICAL for proper PPL programming
+      'push': 'PUSH MUSCLES ONLY: chest (pecs), shoulders (especially front + side delts), and triceps. ABSOLUTELY NO back, NO biceps, NO rows, NO pulldowns, NO curls, NO leg work. Every main exercise must be a horizontal press, vertical press, fly, or tricep movement.',
+      'pull': 'PULL MUSCLES ONLY: back (lats, mid-back, rear delts, traps) and biceps. ABSOLUTELY NO chest, NO triceps, NO front/side delt presses, NO leg work. Every main exercise must be a row, pulldown, pull-up, face pull, shrug, or biceps curl.'
     };
 
     const repRangeBlock = goal === 'strength'
@@ -766,6 +769,9 @@ ${repRangeBlock}
 - NEVER invent or modify names.
 - Don't repeat the same exercise across days unless it's a key compound.
 - Add brief, actionable form cues in "notes" for each main exercise. Don't repeat the exercise name in notes.
+- CARDIO MACHINES (treadmill, stairmaster, bike, rower, elliptical, jump rope) are CARDIO ONLY. They belong in WARM-UP (with "phase": "warmup", reps in time format like "5 min") or in a CONDITIONING FINISHER. They are NEVER main strength exercises with sets/reps like "3×12-15".
+- A "Push" day means ONLY chest, shoulders, triceps. A "Pull" day means ONLY back and biceps. NEVER mix them — putting a row on a push day or a chest press on a pull day is a programming error.
+- For LEG days: include at least one squat pattern, one hip hinge (RDL/deadlift/hip thrust), one hamstring isolation, one calf exercise, and ideally one glute-specific movement.
 
 CONSTRAINTS:
 - Equipment available: ${equipment.join(', ')}. Do NOT include exercises requiring other equipment.
