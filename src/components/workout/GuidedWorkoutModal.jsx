@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { X, Play, Pause, SkipForward, SkipBack, ChevronRight, ChevronLeft, Check, Volume2, VolumeX, Mic, MessageSquare, Square, Send, MessageCircle, Bot, Loader2, Sparkles, Flame, Repeat, Clock, Zap, AlertTriangle, TrendingUp, ExternalLink, User, Trash2 } from 'lucide-react';
+import { X, Play, Pause, SkipForward, SkipBack, ChevronRight, ChevronLeft, Check, Volume2, VolumeX, Mic, MessageSquare, Square, Send, MessageCircle, Bot, Loader2, Sparkles, Flame, Repeat, Clock, Zap, AlertTriangle, TrendingUp, ExternalLink, User, Trash2, Minimize2, Maximize2, PictureInPicture2 } from 'lucide-react';
+import Portal from '../Portal';
 import SmartThumbnail from './SmartThumbnail';
 import SwapExerciseModal from './SwapExerciseModal';
 import { apiGet, apiPost, apiPut, apiDelete, getOrCreateWorkoutLogId } from '../../utils/api';
@@ -299,6 +300,12 @@ function GuidedWorkoutModal({
   const [showResumePrompt, setShowResumePrompt] = useState(false);
   const [resumeData, setResumeData] = useState(null);
 
+  // Background playback (mini-player) state — collapses the modal into a
+  // floating bubble so the workout keeps running while the user uses other tabs
+  const [isMinimized, setIsMinimized] = useState(false);
+  const [isPiPActive, setIsPiPActive] = useState(false);
+  const miniVideoRef = useRef(null);
+
   // Skip for later (deferred exercises) state
   const [skippedQueue, setSkippedQueue] = useState([]); // exercise indices deferred for later
   const [pendingNextExIdx, setPendingNextExIdx] = useState(null); // where to continue after deferred review
@@ -495,6 +502,47 @@ function GuidedWorkoutModal({
     setIsPaused(false);
     clearResumeState();
   }, []);
+
+  // Minimize / restore the modal into a floating mini-player.
+  // The full overlay is hidden via CSS but the component stays mounted so
+  // timers, autosave, and the rest cycle continue ticking in the background.
+  const handleMinimize = useCallback(() => setIsMinimized(true), []);
+  const handleRestore = useCallback(() => setIsMinimized(false), []);
+
+  // Native OS-level Picture-in-Picture — pops the demo video into a floating
+  // window that survives the user leaving the browser entirely (Instagram, etc.).
+  const handleEnterPiP = useCallback(async () => {
+    const video = miniVideoRef.current;
+    if (!video) return;
+    try {
+      if (document.pictureInPictureElement) {
+        await document.exitPictureInPicture();
+        return;
+      }
+      if (document.pictureInPictureEnabled && typeof video.requestPictureInPicture === 'function') {
+        await video.requestPictureInPicture();
+      } else if (typeof video.webkitSetPresentationMode === 'function') {
+        // iOS Safari fallback
+        video.webkitSetPresentationMode('picture-in-picture');
+      }
+    } catch (err) {
+      console.warn('[guided-mini-player] PiP request failed:', err);
+    }
+  }, []);
+
+  // Track PiP enter/leave so the icon reflects current state
+  useEffect(() => {
+    const video = miniVideoRef.current;
+    if (!video) return;
+    const onEnter = () => setIsPiPActive(true);
+    const onLeave = () => setIsPiPActive(false);
+    video.addEventListener('enterpictureinpicture', onEnter);
+    video.addEventListener('leavepictureinpicture', onLeave);
+    return () => {
+      video.removeEventListener('enterpictureinpicture', onEnter);
+      video.removeEventListener('leavepictureinpicture', onLeave);
+    };
+  }, [isMinimized]);
 
   // Save progress when closing mid-workout (not when completing)
   const handleCloseWithSave = useCallback(() => {
@@ -2778,7 +2826,7 @@ function GuidedWorkoutModal({
   }
 
   return (
-    <div className="guided-workout-overlay" onTouchStart={warmUpTickSound} onClick={warmUpTickSound}>
+    <div className={`guided-workout-overlay ${isMinimized ? 'minimized' : ''}`} onTouchStart={warmUpTickSound} onClick={warmUpTickSound}>
       {/* Top bar */}
       <div className="guided-top-bar">
         <button className="guided-close-btn" onClick={handleCloseWithSave}>
@@ -2786,6 +2834,15 @@ function GuidedWorkoutModal({
         </button>
         <div className="guided-workout-name">{workoutName || 'Workout'}</div>
         <div className="guided-top-right">
+          <button
+            className="guided-minimize-btn"
+            onClick={handleMinimize}
+            type="button"
+            aria-label="Minimize workout"
+            title="Minimize"
+          >
+            <Minimize2 size={18} />
+          </button>
           <button
             className={`guided-voice-toggle ${voiceEnabled ? 'on' : 'off'}`}
             onClick={() => setVoiceEnabled(!voiceEnabled)}
@@ -3858,6 +3915,76 @@ function GuidedWorkoutModal({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Floating mini-player — appears when the modal is minimized so the
+          workout keeps running while the user navigates other tabs. The Portal
+          escapes the parent's display:none, so it stays visible everywhere. */}
+      {isMinimized && (
+        <Portal>
+          <div
+            className="guided-mini-player"
+            role="button"
+            tabIndex={0}
+            onClick={handleRestore}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleRestore(); }}
+          >
+            <div className="guided-mini-video-wrap">
+              {(currentExercise?.customVideoUrl || currentExercise?.video_url || currentExercise?.animation_url) ? (
+                <video
+                  ref={miniVideoRef}
+                  src={currentExercise.customVideoUrl || currentExercise.video_url || currentExercise.animation_url}
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  preload="metadata"
+                />
+              ) : (
+                <div className="guided-mini-video-fallback">
+                  <Play size={20} fill="white" />
+                </div>
+              )}
+            </div>
+            <div className="guided-mini-info">
+              <div className="guided-mini-name" title={currentExercise?.name}>
+                {currentExercise?.name || 'Workout'}
+              </div>
+              <div className="guided-mini-timer">
+                {phase === 'rest' ? `Rest ${formatTime(timer)}` : formatTime(totalElapsed)}
+              </div>
+            </div>
+            <div className="guided-mini-actions">
+              <button
+                type="button"
+                className={`guided-mini-btn ${isPiPActive ? 'active' : ''}`}
+                onClick={(e) => { e.stopPropagation(); handleEnterPiP(); }}
+                aria-label={isPiPActive ? 'Exit Picture-in-Picture' : 'Pop out video'}
+                title={isPiPActive ? 'Exit Picture-in-Picture' : 'Pop out video'}
+              >
+                <PictureInPicture2 size={16} />
+              </button>
+              <button
+                type="button"
+                className="guided-mini-btn"
+                onClick={(e) => { e.stopPropagation(); handleRestore(); }}
+                aria-label="Restore workout"
+                title="Restore"
+              >
+                <Maximize2 size={16} />
+              </button>
+              <button
+                type="button"
+                className="guided-mini-btn close"
+                onClick={(e) => { e.stopPropagation(); handleCloseWithSave(); }}
+                aria-label="End workout"
+                title="End workout"
+              >
+                <X size={16} />
+              </button>
+            </div>
+          </div>
+        </Portal>
       )}
     </div>
   );
