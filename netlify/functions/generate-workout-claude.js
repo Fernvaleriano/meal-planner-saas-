@@ -11,6 +11,7 @@
 const Anthropic = require('@anthropic-ai/sdk');
 const { createClient } = require('@supabase/supabase-js');
 const { corsHeaders, handleCors, authenticateRequest } = require('./utils/auth');
+const { analyzeClientHistory, formatAnalysisForPrompt, applyMovementScreenExclusions } = require('./utils/client-analysis');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -550,6 +551,7 @@ exports.handler = async (event) => {
       equipment = ['barbell', 'dumbbell', 'cable', 'machine', 'bodyweight'],
       injuries = '',                 // legacy free-text
       injuryCodes = [],              // NEW: structured codes (lower_back, knee, etc.)
+      movementScreenFlags = [],      // NEW: structured movement screen issues
       preferences = '',
       targetMuscle = '',
       // NEW programming fields
@@ -586,7 +588,8 @@ exports.handler = async (event) => {
     let exercisesWithVideos = allExercises.filter(e => e.video_url || e.animation_url);
 
     // Apply structured injury exclusions deterministically
-    const exercisesAfterInjuries = applyInjuryExclusions(exercisesWithVideos, injuryCodes);
+    let exercisesAfterInjuries = applyInjuryExclusions(exercisesWithVideos, injuryCodes);
+    exercisesAfterInjuries = applyMovementScreenExclusions(exercisesAfterInjuries, movementScreenFlags);
 
     // Equipment filter
     const matchesSelectedEquipment = (ex) => {
@@ -645,7 +648,20 @@ exports.handler = async (event) => {
 
     // Pull client context if requested
     const clientContext = await fetchClientContext(supabase, clientId);
-    const clientContextBlock = formatClientContextForPrompt(clientContext);
+    let clientContextBlock = formatClientContextForPrompt(clientContext);
+
+    // Run the coach-grade analyzer and append its briefing to the prompt
+    let clientAnalysis = null;
+    if (clientId) {
+      try {
+        clientAnalysis = await analyzeClientHistory(supabase, clientId);
+        if (clientAnalysis) {
+          clientContextBlock = (clientContextBlock || '') + '\n' + formatAnalysisForPrompt(clientAnalysis);
+        }
+      } catch (e) {
+        console.warn('analyzeClientHistory failed:', e.message);
+      }
+    }
 
     // Split / style / count instructions
     const splitMap = {
@@ -1069,6 +1085,7 @@ Return this exact JSON structure:
           hasIntake: !!clientContext.intake,
           hasCoachNotes: !!clientContext.profile?.notes
         } : null,
+        clientAnalysis,
         cachedExerciseDb: true,
         generatedWeeks: programData.weeks.length
       })

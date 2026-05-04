@@ -14,6 +14,7 @@
 const Anthropic = require('@anthropic-ai/sdk');
 const { createClient } = require('@supabase/supabase-js');
 const { corsHeaders, handleCors } = require('./utils/auth');
+const { analyzeClientHistory, formatAnalysisForPrompt, applyMovementScreenExclusions } = require('./utils/client-analysis');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -460,7 +461,7 @@ exports.handler = async (event) => {
     daysPerWeek = 4, duration = 4, split = 'auto', sessionDuration = 60,
     trainingStyle = 'straight_sets', exerciseCount = '5-6',
     focusAreas = [], equipment = ['barbell', 'dumbbell', 'cable', 'machine', 'bodyweight'],
-    injuries = '', injuryCodes = [], preferences = '',
+    injuries = '', injuryCodes = [], movementScreenFlags = [], preferences = '',
     tempo = 'standard', rpeTarget = null, rirTarget = null,
     unilateralPreference = 'mixed', conditioningStyle = 'none',
     includeProgression = true, varietySeed = Date.now()
@@ -491,7 +492,8 @@ exports.handler = async (event) => {
     const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
     const allExercises = await loadExercises(supabase, coachId);
     const exercisesWithVideos = allExercises.filter(e => e.video_url || e.animation_url);
-    const exercisesAfterInjuries = applyInjuryExclusions(exercisesWithVideos, injuryCodes);
+    let exercisesAfterInjuries = applyInjuryExclusions(exercisesWithVideos, injuryCodes);
+    exercisesAfterInjuries = applyMovementScreenExclusions(exercisesAfterInjuries, movementScreenFlags);
 
     // Equipment filter
     const matchesEquipment = (ex) => {
@@ -649,6 +651,21 @@ exports.handler = async (event) => {
       }
     }
 
+    // Run the coach-grade analyzer on the client's history, then append its
+    // briefing to the prompt. This is what makes the AI decide which
+    // exercises to keep vs swap vs progress based on real performance trends.
+    let clientAnalysis = null;
+    if (clientId) {
+      try {
+        clientAnalysis = await analyzeClientHistory(supabase, clientId);
+        if (clientAnalysis) {
+          clientContextBlock = (clientContextBlock || '') + '\n' + formatAnalysisForPrompt(clientAnalysis);
+        }
+      } catch (e) {
+        console.warn('analyzeClientHistory failed:', e.message);
+      }
+    }
+
     // Compute split days
     const splitDays = computeSplitDays(daysPerWeek, split);
     const totalDays = splitDays.length;
@@ -751,6 +768,7 @@ exports.handler = async (event) => {
         splitViolations: allViolations,
         clientContextUsed: !!clientContextBlock,
         clientContextSummary,
+        clientAnalysis,
         generatedWeeks: program.weeks.length,
         backgroundJob: true,
         modelUsed: 'claude-sonnet-4-5'
