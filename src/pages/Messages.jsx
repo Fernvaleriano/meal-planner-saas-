@@ -74,6 +74,13 @@ function Messages() {
   // Lightbox state
   const [lightboxUrl, setLightboxUrl] = useState(null);
 
+  useEffect(() => {
+    if (!lightboxUrl) return;
+    const onKey = (e) => { if (e.key === 'Escape') setLightboxUrl(null); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [lightboxUrl]);
+
   // Scroll to bottom of messages
   const scrollToBottom = useCallback((instant = false) => {
     const container = messagesContainerRef.current;
