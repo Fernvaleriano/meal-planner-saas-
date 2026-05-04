@@ -305,6 +305,8 @@ function GuidedWorkoutModal({
   const [isMinimized, setIsMinimized] = useState(false);
   const [isPiPActive, setIsPiPActive] = useState(false);
   const miniVideoRef = useRef(null);
+  const isMinimizedRef = useRef(false);
+  isMinimizedRef.current = isMinimized;
 
   // Skip for later (deferred exercises) state
   const [skippedQueue, setSkippedQueue] = useState([]); // exercise indices deferred for later
@@ -1774,8 +1776,11 @@ function GuidedWorkoutModal({
 
   // Lock body AND html scroll — position:fixed technique for Android compatibility.
   // Must lock both body + html for iOS Safari.
+  // When minimized into the floating mini-player we release the lock so the
+  // user can scroll the underlying page (Diary, Messages, etc.) normally.
   const scrollLockPosRef = useRef(0);
   useEffect(() => {
+    if (isMinimized) return; // Don't lock while collapsed into mini-player
     scrollLockPosRef.current = window.scrollY;
     const body = document.body;
     const html = document.documentElement;
@@ -1790,18 +1795,21 @@ function GuidedWorkoutModal({
       body.style.position = orig.bp; body.style.top = orig.bt; body.style.width = orig.bw;
       window.scrollTo(0, scrollLockPosRef.current);
     };
-  }, []);
+  }, [isMinimized]);
 
   // Handle app resume: restore scroll lock and force re-layout
   // This fixes blank screen / frozen UI on iOS Safari when returning from background
   useEffect(() => {
     const unsubscribe = onAppResume((backgroundMs) => {
-      // Re-ensure body scroll is locked since we're still mounted
-      document.body.style.overflow = 'hidden';
-      document.documentElement.style.overflow = 'hidden';
-      document.body.style.position = 'fixed';
-      document.body.style.top = `-${scrollLockPosRef.current}px`;
-      document.body.style.width = '100%';
+      // Re-ensure body scroll is locked since we're still mounted —
+      // but only if the modal is currently full-screen, not collapsed.
+      if (!isMinimizedRef.current) {
+        document.body.style.overflow = 'hidden';
+        document.documentElement.style.overflow = 'hidden';
+        document.body.style.position = 'fixed';
+        document.body.style.top = `-${scrollLockPosRef.current}px`;
+        document.body.style.width = '100%';
+      }
 
       // On resume, try to resume the existing AudioContext instead of closing
       // it. Closing forces a new context that needs a fresh user-gesture to
