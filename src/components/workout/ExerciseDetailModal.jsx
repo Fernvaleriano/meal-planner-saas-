@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
-import { X, Check, Plus, ChevronLeft, Play, Timer, BarChart3, ArrowLeftRight, Trash2, Mic, MicOff, MessageCircle, Loader2, AlertCircle, History, TrendingUp, Award, ChevronDown, ChevronUp, Send, Square, Sparkles, ExternalLink, Camera, Bot, Flame, Leaf, Zap, User, Lock, NotebookPen } from 'lucide-react';
+import { X, Check, Plus, ChevronLeft, Play, Timer, BarChart3, ArrowLeftRight, Trash2, Mic, MicOff, MessageCircle, Loader2, AlertCircle, History, TrendingUp, Award, ChevronDown, ChevronUp, Send, Square, Sparkles, ExternalLink, Bot, Flame, Leaf, Zap, User, Lock, NotebookPen } from 'lucide-react';
 import { apiGet, apiPost, apiPut, apiDelete, getOrCreateWorkoutLogId } from '../../utils/api';
 import { supabase } from '../../utils/supabase';
 import { generateProgression, generateSetNudge, EFFORT_OPTIONS, parseSetsData, getMaxWeight, convertWeight } from '../../utils/workoutProgression';
@@ -429,10 +429,6 @@ function ExerciseDetailModal({
   const exerciseRef = useRef(exercise); // Ref to avoid re-creating callbacks when exercise object reference changes
   exerciseRef.current = exercise; // Keep ref in sync
 
-  // Thumbnail upload state
-  const [thumbnailUploading, setThumbnailUploading] = useState(false);
-  const [localThumbnailUrl, setLocalThumbnailUrl] = useState(null);
-  const thumbnailInputRef = useRef(null);
   const activityThumbsRef = useRef(null);
   const modalOverlayRef = useRef(null);
 
@@ -2045,8 +2041,9 @@ function ExerciseDetailModal({
   };
 
   // Get proper thumbnail — skip video URLs to avoid loading .mp4 as <img>
-  const safeThumbnailUrl = localThumbnailUrl ||
-    (exercise?.thumbnail_url && !isVideoUrl(exercise.thumbnail_url) ? exercise.thumbnail_url : null);
+  const safeThumbnailUrl = exercise?.thumbnail_url && !isVideoUrl(exercise.thumbnail_url)
+    ? exercise.thumbnail_url
+    : null;
   const thumbnailUrl = safeThumbnailUrl ||
     (isImageUrl(exercise?.animation_url) ? exercise?.animation_url : null) ||
     '/img/exercise-placeholder.svg';
@@ -2056,68 +2053,6 @@ function ExerciseDetailModal({
   // silent autoplaying demo loops (which is correct only for stock library
   // animations).
   const videoHasAudio = hasCustomVideo || isCustomExercise;
-
-  // Reset local thumbnail when exercise changes
-  useEffect(() => {
-    setLocalThumbnailUrl(null);
-  }, [exercise?.id]);
-
-  // Handle thumbnail upload for custom exercises
-  const handleThumbnailUpload = useCallback(async (e) => {
-    const file = e.target.files?.[0];
-    if (!file || !exercise?.id) return;
-
-    // Validate file type
-    const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-    if (!validTypes.includes(file.type)) {
-      return;
-    }
-
-    // Validate file size (5MB max)
-    if (file.size > 5 * 1024 * 1024) {
-      return;
-    }
-
-    setThumbnailUploading(true);
-
-    try {
-      // Convert to base64
-      const reader = new FileReader();
-      const base64 = await new Promise((resolve, reject) => {
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-
-      const response = await fetch('/.netlify/functions/upload-exercise-thumbnail', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          exerciseId: exercise.id,
-          imageBase64: base64,
-          imageName: file.name
-        })
-      });
-
-      const data = await response.json();
-      if (data.success && data.exercise?.thumbnail_url) {
-        setLocalThumbnailUrl(data.exercise.thumbnail_url);
-        // Propagate the new thumbnail_url to the parent so ExerciseCard/SmartThumbnail
-        // in the workout list updates without needing a page reload.
-        if (onUpdateExercise && exercise) {
-          onUpdateExercise({ ...exercise, thumbnail_url: data.exercise.thumbnail_url });
-        }
-      }
-    } catch (err) {
-      console.error('Thumbnail upload failed:', err);
-    } finally {
-      setThumbnailUploading(false);
-      // Reset file input
-      if (thumbnailInputRef.current) {
-        thumbnailInputRef.current.value = '';
-      }
-    }
-  }, [exercise, onUpdateExercise]);
 
   // Debug: Log video URL when playing (helps identify mismatched videos in database)
   const handlePlayVideo = useCallback(() => {
@@ -2397,27 +2332,6 @@ function ExerciseDetailModal({
                     src="/img/exercise-placeholder.svg"
                     alt={exercise.name || 'Exercise'}
                   />
-                )}
-                {/* Thumbnail upload button for custom exercises */}
-                {isCustomExercise && coachId && (
-                  <>
-                    <input
-                      ref={thumbnailInputRef}
-                      type="file"
-                      accept="image/jpeg,image/png,image/gif,image/webp"
-                      onChange={handleThumbnailUpload}
-                      style={{ display: 'none' }}
-                    />
-                    <button
-                      className="thumbnail-upload-btn"
-                      onClick={(e) => { e.stopPropagation(); thumbnailInputRef.current?.click(); }}
-                      disabled={thumbnailUploading}
-                      type="button"
-                      title="Upload thumbnail"
-                    >
-                      {thumbnailUploading ? <Loader2 size={16} className="spin" /> : <Camera size={16} />}
-                    </button>
-                  </>
                 )}
               </div>
               {videoUrl && (
