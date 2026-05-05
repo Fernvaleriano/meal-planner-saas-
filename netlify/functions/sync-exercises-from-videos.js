@@ -176,8 +176,7 @@ exports.handler = async (event) => {
     const exercisesRaw = videoFiles.map(item => {
       const itemPath = `${folderParam}/${item.name}`;
       const { data: urlData } = supabase.storage.from(BUCKET_NAME).getPublicUrl(itemPath);
-      const rawName = cleanExerciseName(item.name);
-      const { name: exerciseName, gender } = extractGenderVariant(rawName);
+      const exerciseName = cleanExerciseName(item.name);
 
       return {
         name: exerciseName,
@@ -187,7 +186,6 @@ exports.handler = async (event) => {
         difficulty: 'intermediate',
         video_url: urlData.publicUrl,
         animation_url: urlData.publicUrl,
-        gender_variant: gender,
         source: 'video-sync'
       };
     });
