@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect, memo, useCallback } from 'react';
-import { Check, Plus, Clock, Minus, Play, Timer, Zap, ArrowLeftRight, Trash2, ChevronUp, ChevronDown, GripVertical, Mic, MicOff, ExternalLink } from 'lucide-react';
+import { Check, Plus, Clock, Minus, Timer, Zap, ArrowLeftRight, Trash2, ChevronUp, ChevronDown, GripVertical, Mic, MicOff, ExternalLink } from 'lucide-react';
 import SmartThumbnail from './SmartThumbnail';
 import SetEditorModal from './SetEditorModal';
 import Portal from '../Portal';
+import VoiceNotePlayer from '../VoiceNotePlayer';
 import { onAppResume, onAppSuspend } from '../../hooks/useAppLifecycle';
 import { convertWeight } from '../../utils/workoutProgression';
 
@@ -1041,27 +1042,20 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
           </div>
         )}
 
-        {/* Coach's Voice Note — uses proxy URL that never expires.
-            preload="auto": with preload="metadata", iOS WebKit consumes the
-            first tap on the native play control loading the audio data — the
-            timeline advances silently and a second tap is required to actually
-            hear sound. Forcing full preload makes the first tap play. */}
+        {/* Coach's Voice Note — shared VoiceNotePlayer matches the meal-card
+            player (custom play/pause + brand-teal progress). Proxy URL never
+            expires; container hides itself if the audio file is missing. */}
         {(exercise.voiceNoteUrl || exercise.voiceNotePath) && (
           <div className="coach-voice-note">
             <span className="note-label">
-              <Mic size={14} />
-              Coach's Voice Note:
+              <Mic size={12} />
+              Voice note from your coach
             </span>
-            <audio
-              controls
-              playsInline
+            <VoiceNotePlayer
               src={exercise.voiceNotePath
                 ? `/.netlify/functions/serve-voice-note?path=${encodeURIComponent(exercise.voiceNotePath)}`
                 : exercise.voiceNoteUrl}
-              className="voice-note-audio"
-              preload="auto"
-              onError={(e) => {
-                // Hide voice note if file is missing/deleted
+              onMissing={(e) => {
                 const container = e.target.closest('.coach-voice-note');
                 if (container) container.style.display = 'none';
               }}
