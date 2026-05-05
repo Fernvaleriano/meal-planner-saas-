@@ -8,6 +8,7 @@ import Portal from '../Portal';
 import SetEditorModal from './SetEditorModal';
 import SwapExerciseModal from './SwapExerciseModal';
 import AskCoachChat from './AskCoachChat';
+import VoiceNotePlayer from '../VoiceNotePlayer';
 import AskAIChatModal from './AskAIChatModal';
 
 // Number words to digits mapping for voice input (expanded)
@@ -3115,27 +3116,20 @@ function ExerciseDetailModal({
           </div>
         </div>
 
-        {/* Coach Voice Note — uses proxy URL that never expires.
-            preload="auto": with preload="metadata", iOS WebKit consumes the
-            first tap on the native play control loading the audio data — the
-            timeline advances silently and a second tap is required to actually
-            hear sound. Forcing full preload makes the first tap play. */}
+        {/* Coach Voice Note — shared VoiceNotePlayer matches the meal-card and
+            exercise-card players. Proxy URL never expires; section hides
+            itself if the audio file is missing. */}
         {(exercise.voiceNoteUrl || exercise.voiceNotePath) && (
           <div className="coach-voice-note-section">
             <div className="voice-note-header">
-              <Mic size={16} />
-              <span>Coach's Tip</span>
+              <Mic size={12} />
+              <span>Voice note from your coach</span>
             </div>
-            <audio
-              controls
-              playsInline
+            <VoiceNotePlayer
               src={exercise.voiceNotePath
                 ? `/.netlify/functions/serve-voice-note?path=${encodeURIComponent(exercise.voiceNotePath)}`
                 : exercise.voiceNoteUrl}
-              className="voice-note-audio-player"
-              preload="auto"
-              onError={(e) => {
-                // Hide voice note if file is missing/deleted
+              onMissing={(e) => {
                 const container = e.target.closest('.coach-voice-note-section');
                 if (container) container.style.display = 'none';
               }}
