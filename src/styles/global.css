@@ -3454,24 +3454,6 @@ textarea,
     color: #f1f5f9;
 }
 
-.view-plan-btn {
-    width: 100%;
-    padding: 12px 24px;
-    background: var(--brand-gradient);
-    color: white;
-    border: none;
-    border-radius: 12px;
-    font-size: 0.9rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.view-plan-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 14px rgba(13, 148, 136, 0.25);
-}
-
 /* ========================================
    DASHBOARD - TODAY'S SUPPLEMENTS CARD
    ======================================== */
@@ -6789,15 +6771,164 @@ textarea,
     padding-bottom: 20px;
 }
 
+.plans-page-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
 .page-title {
     font-size: 1.5rem;
     font-weight: 700;
     color: var(--gray-900);
-    margin-bottom: 20px;
+    margin: 0;
 }
 
 [data-theme="dark"] .page-title {
     color: #f1f5f9;
+}
+
+.plans-count-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    height: 22px;
+    padding: 0 8px;
+    border-radius: 999px;
+    background: var(--gray-100);
+    color: var(--gray-600);
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1;
+}
+
+[data-theme="dark"] .plans-count-badge {
+    background: rgba(20, 184, 166, 0.18);
+    color: #5eead4;
+}
+
+/* Toolbar: search + sort */
+.plans-toolbar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    align-items: center;
+}
+
+.plans-search {
+    position: relative;
+    flex: 1;
+    display: flex;
+    align-items: center;
+}
+
+.plans-search-icon {
+    position: absolute;
+    left: 12px;
+    color: var(--gray-500);
+    pointer-events: none;
+}
+
+.plans-search-input {
+    width: 100%;
+    padding: 10px 36px 10px 36px;
+    border: 1px solid var(--gray-100);
+    border-radius: 12px;
+    background: white;
+    color: var(--gray-900);
+    font-size: 0.9rem;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.plans-search-input::placeholder {
+    color: var(--gray-500);
+}
+
+.plans-search-input:focus {
+    border-color: var(--brand-primary);
+    box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
+}
+
+[data-theme="dark"] .plans-search-input {
+    background: #1e293b;
+    border-color: #334155;
+    color: #f1f5f9;
+}
+
+.plans-search-clear {
+    position: absolute;
+    right: 8px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: none;
+    background: var(--gray-100);
+    color: var(--gray-600);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0;
+}
+
+[data-theme="dark"] .plans-search-clear {
+    background: #334155;
+    color: #cbd5e1;
+}
+
+.plans-sort {
+    padding: 10px 12px;
+    border: 1px solid var(--gray-100);
+    border-radius: 12px;
+    background: white;
+    color: var(--gray-800);
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    padding-right: 30px;
+}
+
+[data-theme="dark"] .plans-sort {
+    background-color: #1e293b;
+    border-color: #334155;
+    color: #f1f5f9;
+}
+
+.plans-sort:focus {
+    border-color: var(--brand-primary);
+    box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
+}
+
+.plans-no-results {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--gray-500);
+}
+
+.plans-no-results p {
+    margin: 0 0 12px;
+    font-size: 0.95rem;
+}
+
+.plans-clear-link {
+    background: none;
+    border: none;
+    color: var(--brand-primary);
+    font-weight: 600;
+    cursor: pointer;
+    padding: 4px 8px;
+    font-size: 0.9rem;
 }
 
 .plans-loading {
@@ -6815,17 +6946,19 @@ textarea,
 .plans-grid {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 12px;
 }
 
 .plan-card {
+    position: relative;
     background: white;
-    border-radius: 20px;
-    padding: 20px;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+    border-radius: 18px;
+    padding: 16px 18px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
     border: 1px solid var(--gray-100);
     cursor: pointer;
-    transition: all 0.2s;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+    outline: none;
 }
 
 [data-theme="dark"] .plan-card {
@@ -6833,56 +6966,151 @@ textarea,
     border-color: #334155;
 }
 
-.plan-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+.plan-card:hover,
+.plan-card:focus-visible {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(0,0,0,0.06);
     border-color: var(--brand-primary);
 }
 
-.plan-card-header {
-    margin-bottom: 12px;
+.plan-card:active {
+    transform: translateY(0);
 }
 
-.plan-card-title {
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: var(--brand-primary);
+.plan-card-header {
+    margin-bottom: 10px;
+}
+
+.plan-card-title-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
     margin-bottom: 4px;
 }
 
+.plan-card-title {
+    flex: 1;
+    min-width: 0;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--brand-primary);
+    line-height: 1.35;
+    /* Truncate to two lines */
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    word-break: break-word;
+}
+
+.plan-card-badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    height: 20px;
+    padding: 0 8px;
+    border-radius: 999px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    line-height: 1;
+}
+
+.plan-card-badge-latest {
+    background: var(--brand-gradient);
+    color: white;
+    box-shadow: 0 1px 4px rgba(13, 148, 136, 0.25);
+}
+
 .plan-card-date {
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     color: var(--gray-500);
+    font-weight: 500;
+}
+
+.plan-card-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 10px;
+}
+
+.plan-card-tag {
+    display: inline-flex;
+    align-items: center;
+    height: 22px;
+    padding: 0 10px;
+    border-radius: 999px;
+    background: rgba(13, 148, 136, 0.08);
+    color: var(--brand-primary-dark);
+    font-size: 0.72rem;
+    font-weight: 600;
+    line-height: 1;
+}
+
+[data-theme="dark"] .plan-card-tag {
+    background: rgba(20, 184, 166, 0.15);
+    color: #5eead4;
 }
 
 .plan-card-summary {
-    font-size: 0.9rem;
+    font-size: 0.875rem;
     color: var(--gray-600);
-    line-height: 1.5;
-    margin-bottom: 16px;
-    padding: 12px 16px;
-    background: rgba(13, 148, 136, 0.1);
+    line-height: 1.45;
+    margin: 0 0 12px;
+    padding: 10px 14px;
+    background: rgba(13, 148, 136, 0.07);
     border-left: 3px solid var(--brand-primary);
-    border-radius: 0 12px 12px 0;
+    border-radius: 0 10px 10px 0;
+    /* Clamp summary to keep cards uniform */
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }
 
 [data-theme="dark"] .plan-card-summary {
-    background: rgba(20, 184, 166, 0.15);
+    background: rgba(20, 184, 166, 0.12);
     color: #94a3b8;
 }
 
 .plan-card-details {
     display: flex;
     flex-wrap: wrap;
-    gap: 12px;
+    gap: 16px;
+    padding: 10px 14px;
     background: var(--gray-50);
-    padding: 12px 16px;
-    border-radius: 12px;
-    margin-bottom: 16px;
+    border-radius: 10px;
+    margin-bottom: 12px;
 }
 
 [data-theme="dark"] .plan-card-details {
-    background: #0f172a;
+    background: rgba(15, 23, 42, 0.6);
+}
+
+.plan-card-footer {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+.plan-card-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--brand-primary);
+    font-size: 0.85rem;
+    font-weight: 600;
+    transition: gap 0.15s ease;
+}
+
+.plan-card:hover .plan-card-cta {
+    gap: 8px;
+}
+
+[data-theme="dark"] .plan-card-cta {
+    color: #5eead4;
 }
 
 /* Empty State Card */

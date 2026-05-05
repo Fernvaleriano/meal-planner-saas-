@@ -88,6 +88,10 @@ function Plans() {
   });
   const [selectedDay, setSelectedDay] = useState(0);
 
+  // Plans list filtering / sorting
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState('recent'); // 'recent' | 'oldest' | 'calories'
+
   // Meal action states
   const [selectedMeal, setSelectedMeal] = useState(null);
   const [showMealModal, setShowMealModal] = useState(false);
@@ -515,6 +519,44 @@ function Plans() {
       minute: '2-digit',
       hour12: true
     });
+  };
+
+  // Human-friendly relative time: "2 days ago", "3 weeks ago", etc.
+  const getRelativeTime = (dateStr) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffSec = Math.round(diffMs / 1000);
+    const diffMin = Math.round(diffSec / 60);
+    const diffHr = Math.round(diffMin / 60);
+    const diffDay = Math.round(diffHr / 24);
+    const diffWeek = Math.round(diffDay / 7);
+    const diffMonth = Math.round(diffDay / 30);
+    const diffYear = Math.round(diffDay / 365);
+
+    if (diffSec < 60) return 'Just now';
+    if (diffMin < 60) return `${diffMin}m ago`;
+    if (diffHr < 24) return `${diffHr}h ago`;
+    if (diffDay < 7) return diffDay === 1 ? 'Yesterday' : `${diffDay}d ago`;
+    if (diffWeek < 5) return diffWeek === 1 ? '1 week ago' : `${diffWeek} weeks ago`;
+    if (diffMonth < 12) return diffMonth === 1 ? '1 month ago' : `${diffMonth} months ago`;
+    return diffYear === 1 ? '1 year ago' : `${diffYear} years ago`;
+  };
+
+  // Infer descriptive tags from plan name + summary keywords.
+  const getPlanTags = (plan, details) => {
+    const haystack = `${details.planName || ''} ${details.summary || ''}`.toLowerCase();
+    const tags = [];
+    if (/no[\s-]?cook/.test(haystack)) tags.push('No-Cook');
+    if (/high[\s-]?protein|protein[\s-]?focused/.test(haystack)) tags.push('High-Protein');
+    if (/vegan/.test(haystack)) tags.push('Vegan');
+    else if (/vegetarian/.test(haystack)) tags.push('Vegetarian');
+    if (/keto|low[\s-]?carb/.test(haystack)) tags.push('Low-Carb');
+    if (/mediterranean/.test(haystack)) tags.push('Mediterranean');
+    if (/gluten[\s-]?free/.test(haystack)) tags.push('Gluten-Free');
+    if (/dairy[\s-]?free/.test(haystack)) tags.push('Dairy-Free');
+    return tags;
   };
 
   // Open meal detail modal
@@ -2557,6 +2599,34 @@ Keep it practical and brief. Format with clear sections.`;
     );
   }
 
+  // Filter + sort the plans list for display
+  const visiblePlans = (() => {
+    const q = searchQuery.trim().toLowerCase();
+    let list = plans;
+    if (q) {
+      list = list.filter(p => {
+        const d = getPlanDetails(p);
+        const haystack = `${d.planName || ''} ${d.summary || ''}`.toLowerCase();
+        return haystack.includes(q);
+      });
+    }
+    const sorted = [...list];
+    if (sortBy === 'recent') {
+      sorted.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    } else if (sortBy === 'oldest') {
+      sorted.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    } else if (sortBy === 'calories') {
+      sorted.sort((a, b) => {
+        const ca = getPlanDetails(a).calories;
+        const cb = getPlanDetails(b).calories;
+        const na = typeof ca === 'number' ? ca : -1;
+        const nb = typeof cb === 'number' ? cb : -1;
+        return nb - na;
+      });
+    }
+    return sorted;
+  })();
+
   // Plans list view
   return (
     <div className="plans-page" ref={bindToContainer}>
@@ -2566,7 +2636,12 @@ Keep it practical and brief. Format with clear sections.`;
         threshold={threshold}
       />
 
-      <h1 className="page-title">Meal Plans</h1>
+      <div className="plans-page-header">
+        <h1 className="page-title">Meal Plans</h1>
+        {plans.length > 0 && (
+          <span className="plans-count-badge">{plans.length}</span>
+        )}
+      </div>
 
       {plans.length === 0 ? (
         <div className="empty-state-card">
@@ -2577,47 +2652,132 @@ Keep it practical and brief. Format with clear sections.`;
           </p>
         </div>
       ) : (
-        <div className="plans-grid">
-          {plans.map(plan => {
-            const { numDays, calories, goal, summary, planName } = getPlanDetails(plan);
+        <>
+          <div className="plans-toolbar">
+            <div className="plans-search">
+              <Search size={16} className="plans-search-icon" />
+              <input
+                type="text"
+                placeholder="Search plans…"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="plans-search-input"
+              />
+              {searchQuery && (
+                <button
+                  className="plans-search-clear"
+                  onClick={() => setSearchQuery('')}
+                  aria-label="Clear search"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+            <select
+              className="plans-sort"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              aria-label="Sort plans"
+            >
+              <option value="recent">Newest</option>
+              <option value="oldest">Oldest</option>
+              <option value="calories">Calories</option>
+            </select>
+          </div>
 
-            return (
-              <div
-                key={plan.id}
-                className="plan-card"
-                onClick={() => handleViewPlan(plan)}
+          {visiblePlans.length === 0 ? (
+            <div className="plans-no-results">
+              <p>No plans match "{searchQuery}"</p>
+              <button
+                className="plans-clear-link"
+                onClick={() => setSearchQuery('')}
               >
-                <div className="plan-card-header">
-                  <div className="plan-card-title">{planName || `${numDays}-Day Meal Plan`}</div>
-                  <div className="plan-card-date">
-                    {formatDate(plan.created_at)} at {formatTime(plan.created_at)}
-                  </div>
-                </div>
+                Clear search
+              </button>
+            </div>
+          ) : (
+            <div className="plans-grid">
+              {visiblePlans.map((plan, idx) => {
+                const details = getPlanDetails(plan);
+                const { numDays, calories, goal, summary, planName } = details;
+                const tags = getPlanTags(plan, details);
+                const isLatest = sortBy === 'recent' && idx === 0 && !searchQuery;
+                const showCalories = typeof calories === 'number' && calories > 0;
+                const showGoal = goal && goal !== '-';
 
-                {summary && (
-                  <p className="plan-card-summary">{summary}</p>
-                )}
+                return (
+                  <div
+                    key={plan.id}
+                    className="plan-card"
+                    onClick={() => handleViewPlan(plan)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handleViewPlan(plan);
+                      }
+                    }}
+                  >
+                    <div className="plan-card-header">
+                      <div className="plan-card-title-row">
+                        <div className="plan-card-title">
+                          {planName || `${numDays}-Day Meal Plan`}
+                        </div>
+                        {isLatest && (
+                          <span className="plan-card-badge plan-card-badge-latest">Latest</span>
+                        )}
+                      </div>
+                      <div className="plan-card-date">
+                        {getRelativeTime(plan.created_at)}
+                      </div>
+                    </div>
 
-                <div className="plan-card-details">
-                  <div className="plan-detail-item">
-                    <span className="plan-detail-label">Duration</span>
-                    <span className="plan-detail-value">{numDays} {numDays === 1 ? 'Day' : 'Days'}</span>
-                  </div>
-                  <div className="plan-detail-item">
-                    <span className="plan-detail-label">Calories</span>
-                    <span className="plan-detail-value">{calories} cal</span>
-                  </div>
-                  <div className="plan-detail-item">
-                    <span className="plan-detail-label">Goal</span>
-                    <span className="plan-detail-value">{goal}</span>
-                  </div>
-                </div>
+                    {(tags.length > 0) && (
+                      <div className="plan-card-tags">
+                        {tags.map(tag => (
+                          <span key={tag} className="plan-card-tag">{tag}</span>
+                        ))}
+                      </div>
+                    )}
 
-                <button className="view-plan-btn">View Plan</button>
-              </div>
-            );
-          })}
-        </div>
+                    {summary && (
+                      <p className="plan-card-summary">{summary}</p>
+                    )}
+
+                    <div className="plan-card-details">
+                      <div className="plan-detail-item">
+                        <span className="plan-detail-label">Duration</span>
+                        <span className="plan-detail-value">
+                          {numDays} {numDays === 1 ? 'Day' : 'Days'}
+                        </span>
+                      </div>
+                      {showCalories && (
+                        <div className="plan-detail-item">
+                          <span className="plan-detail-label">Calories</span>
+                          <span className="plan-detail-value">{calories} cal</span>
+                        </div>
+                      )}
+                      {showGoal && (
+                        <div className="plan-detail-item">
+                          <span className="plan-detail-label">Goal</span>
+                          <span className="plan-detail-value">{goal}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="plan-card-footer">
+                      <span className="plan-card-cta">
+                        View plan
+                        <ChevronRight size={16} />
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </>
       )}
     </div>
   );
