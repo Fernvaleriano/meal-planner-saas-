@@ -215,7 +215,16 @@ function GymProofModal({ isOpen, onClose }) {
       }
     } catch (err) {
       console.error('Error submitting gym proof:', err);
-      alert('Failed to submit. Please try again.');
+      if (err?.status === 409) {
+        // Already checked in today — refresh and show the "checked in" state
+        await checkTodayProof();
+        setStep(STEPS.INSTRUCTIONS);
+        setPhotoData(null);
+        setStampedPhoto(null);
+        alert("You've already checked in today. Come back tomorrow!");
+      } else {
+        alert('Failed to submit. Please try again.');
+      }
     } finally {
       setSubmitting(false);
     }
