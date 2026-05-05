@@ -3510,7 +3510,7 @@ textarea,
 }
 
 .supplements-icon {
-    color: #10b981;
+    color: #14b8a6;
 }
 
 .supplements-counter {
@@ -3546,11 +3546,42 @@ textarea,
     font-size: 0.75rem;
     font-weight: 600;
     color: var(--gray-500);
-    letter-spacing: 0.03em;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.supplement-group-label svg {
+    color: #14b8a6;
+    flex-shrink: 0;
 }
 
 [data-theme="dark"] .supplement-group-label {
     color: #64748b;
+}
+
+[data-theme="light"] .supplement-group-label svg {
+    color: #0d9488;
+}
+
+/* Compliance progress bar — visual peer to the X/Y counter so daily
+   adherence reads at a glance instead of as a small pill in the corner. */
+.supplements-progress-bar {
+    height: 4px;
+    background: rgba(148, 163, 184, 0.15);
+    border-radius: 2px;
+    overflow: hidden;
+    margin: 0 0 16px;
+}
+
+.supplements-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #0d9488 0%, #14b8a6 100%);
+    border-radius: 2px;
+    transition: width 0.3s ease;
+}
+
+[data-theme="dark"] .supplements-progress-bar {
+    background: rgba(255, 255, 255, 0.06);
 }
 
 .supplement-checkbox-item {

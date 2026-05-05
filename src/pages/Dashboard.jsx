@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
-import { Camera, Search, Heart, ScanLine, Mic, ChevronRight, ChevronDown, BarChart3, ClipboardCheck, TrendingUp, BookOpen, Pill, ChefHat, Check, CheckCircle, Minus, Plus, X, Sunrise, Sun, Moon, Coffee, Trophy, UserCircle, Scale } from 'lucide-react';
+import { Camera, Search, Heart, ScanLine, Mic, ChevronRight, ChevronDown, BarChart3, ClipboardCheck, TrendingUp, BookOpen, Pill, ChefHat, Check, CheckCircle, Minus, Plus, X, Sunrise, Sun, Sunset, Moon, Coffee, Utensils, Dumbbell, Star, Clock, Trophy, UserCircle, Scale } from 'lucide-react';
 import InstallAppBanner from '../components/InstallAppBanner';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, apiDelete } from '../utils/api';
@@ -1152,31 +1152,85 @@ function Dashboard() {
             </div>
             <span className="supplements-counter">{takenSupplementsCount}/{supplements.length}</span>
           </div>
+          {/* Compliance progress bar — fills as supplements are checked off */}
+          <div className="supplements-progress-bar" role="progressbar" aria-valuenow={takenSupplementsCount} aria-valuemin={0} aria-valuemax={supplements.length}>
+            <div
+              className="supplements-progress-fill"
+              style={{ width: `${supplements.length > 0 ? (takenSupplementsCount / supplements.length) * 100 : 0}%` }}
+            />
+          </div>
           <div className="supplements-list">
             {(() => {
-              // Group supplements by timing
+              // Map timing keys to Lucide components. Both dashed and
+              // underscored variants are listed because the backend uses
+              // either depending on the entry point that created the
+              // supplement record. Same goes for timingLabels below.
               const timingIcons = {
-                morning: '🌅',
-                'with-breakfast': '🍳',
-                'before-workout': '💪',
-                'after-workout': '🏋️',
-                'with-lunch': '🥗',
-                'with-dinner': '🍽️',
-                evening: '🌙',
-                'before-bed': '😴',
-                custom: '⏰'
+                morning: Sunrise,
+                'with-breakfast': Coffee,
+                'with_breakfast': Coffee,
+                'before-workout': Dumbbell,
+                'before_workout': Dumbbell,
+                'after-workout': Dumbbell,
+                'after_workout': Dumbbell,
+                'with-lunch': Utensils,
+                'with_lunch': Utensils,
+                'with-meals': Utensils,
+                'with_meals': Utensils,
+                'with-dinner': Utensils,
+                'with_dinner': Utensils,
+                evening: Sunset,
+                bedtime: Moon,
+                'before-bed': Moon,
+                'before_bed': Moon,
+                custom: Star,
               };
               const timingLabels = {
-                morning: 'MORNING',
-                'with-breakfast': 'WITH BREAKFAST',
-                'before-workout': 'BEFORE WORKOUT',
-                'after-workout': 'AFTER WORKOUT',
-                'with-lunch': 'WITH LUNCH',
-                'with-dinner': 'WITH DINNER',
-                evening: 'EVENING',
-                'before-bed': 'BEFORE BED',
-                custom: 'CUSTOM'
+                morning: 'Morning',
+                'with-breakfast': 'With Breakfast',
+                'with_breakfast': 'With Breakfast',
+                'before-workout': 'Before Workout',
+                'before_workout': 'Before Workout',
+                'after-workout': 'After Workout',
+                'after_workout': 'After Workout',
+                'with-lunch': 'With Lunch',
+                'with_lunch': 'With Lunch',
+                'with-meals': 'With Meals',
+                'with_meals': 'With Meals',
+                'with-dinner': 'With Dinner',
+                'with_dinner': 'With Dinner',
+                evening: 'Evening',
+                bedtime: 'Bedtime',
+                'before-bed': 'Bedtime',
+                'before_bed': 'Bedtime',
+                custom: 'Custom',
               };
+              // Chronological order through the day. Keys not in this list
+              // sort to the end (alphabetical fallback inside the bucket).
+              const TIMING_ORDER = [
+                'morning',
+                'with-breakfast', 'with_breakfast',
+                'before-workout', 'before_workout',
+                'after-workout', 'after_workout',
+                'with-lunch', 'with_lunch',
+                'with-meals', 'with_meals',
+                'with-dinner', 'with_dinner',
+                'evening',
+                'bedtime', 'before-bed', 'before_bed',
+                'custom',
+              ];
+              const orderIndex = (k) => {
+                const i = TIMING_ORDER.indexOf(k);
+                return i === -1 ? TIMING_ORDER.length : i;
+              };
+              // Humanize unknown timing keys: replace _/- with spaces and
+              // Title Case so a stray "with_snack" renders as "With Snack"
+              // instead of "WITH_SNACK".
+              const humanizeTiming = (t) => t
+                .split(/[_-]/)
+                .filter(Boolean)
+                .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+                .join(' ');
 
               // Group by timing
               const grouped = supplements.reduce((acc, supp) => {
@@ -1186,11 +1240,17 @@ function Dashboard() {
                 return acc;
               }, {});
 
-              return Object.entries(grouped).map(([timing, supps]) => (
+              const sortedEntries = Object.entries(grouped).sort(
+                ([a], [b]) => orderIndex(a) - orderIndex(b) || a.localeCompare(b)
+              );
+
+              return sortedEntries.map(([timing, supps]) => {
+                const TimingIcon = timingIcons[timing] || Clock;
+                return (
                 <div key={timing} className="supplement-group">
                   <div className="supplement-group-label">
-                    <span>{timingIcons[timing] || '⏰'}</span>
-                    <span>{timingLabels[timing] || timing.toUpperCase()}</span>
+                    <TimingIcon size={13} />
+                    <span>{timingLabels[timing] || humanizeTiming(timing)}</span>
                   </div>
                   {supps.map((supp) => {
                     const titration = getSupplementTitration(supp);
@@ -1260,7 +1320,8 @@ function Dashboard() {
                     );
                   })}
                 </div>
-              ));
+                );
+              });
             })()}
           </div>
         </div>
