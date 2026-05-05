@@ -138,6 +138,36 @@ exports.handler = async (event) => {
         };
       }
 
+      // Enforce one gym check-in per day per client (weigh-ins are not limited)
+      const todayDate = getDefaultDate(null, timezone);
+      const { data: existingProof, error: existingError } = await supabase
+        .from('gym_proofs')
+        .select('id, photo_url, proof_date, proof_time, created_at')
+        .eq('client_id', clientId)
+        .eq('proof_date', todayDate)
+        .limit(1)
+        .maybeSingle();
+
+      if (existingError) {
+        return {
+          statusCode: 500,
+          headers,
+          body: JSON.stringify({ error: 'Failed to check existing proof: ' + existingError.message })
+        };
+      }
+
+      if (existingProof) {
+        return {
+          statusCode: 409,
+          headers,
+          body: JSON.stringify({
+            error: 'Already checked in today',
+            alreadyCheckedIn: true,
+            proof: existingProof
+          })
+        };
+      }
+
       // Ensure bucket exists
       const bucketResult = await ensureBucketExists(supabase);
       if (!bucketResult.success) {
@@ -196,7 +226,7 @@ exports.handler = async (event) => {
           photo_url: urlData.publicUrl,
           storage_path: filename,
           client_name: clientName,
-          proof_date: getDefaultDate(null, timezone),
+          proof_date: todayDate,
           proof_time: new Date().toISOString()
         }])
         .select()
