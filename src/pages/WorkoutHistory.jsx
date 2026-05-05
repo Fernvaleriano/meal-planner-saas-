@@ -33,6 +33,32 @@ const formatDate = (dateStr) => {
   }
 };
 
+const formatDateWithDay = (dateStr) => {
+  try {
+    const d = new Date(dateStr + 'T00:00:00');
+    return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  } catch {
+    return dateStr;
+  }
+};
+
+const PROGRAM_TYPE_COLORS = {
+  hypertrophy: '#a855f7',
+  strength: '#ef4444',
+  endurance: '#10b981',
+  flexibility: '#06b6d4',
+  custom: '#64748b'
+};
+
+const PROGRAM_TYPE_LABELS = {
+  all: 'All',
+  hypertrophy: 'Hypertrophy',
+  strength: 'Strength',
+  endurance: 'Endurance',
+  flexibility: 'Mobility',
+  custom: 'Other'
+};
+
 const formatFullDate = (dateStr) => {
   try {
     const d = new Date(dateStr + 'T00:00:00');
@@ -65,7 +91,25 @@ const formatDuration = (mins) => {
 // MiniLineChart - self-contained SVG line chart
 // ---------------------------------------------------------------------------
 
-function MiniLineChart({ data, height = 180, color = '#6366f1', label = 'Value', unit = '' }) {
+// Round a number up to a "nice" axis value (1, 2, 5 × 10^n).
+function niceCeil(x) {
+  if (x <= 0) return 1;
+  const exp = Math.floor(Math.log10(x));
+  const f = x / Math.pow(10, exp);
+  let nf;
+  if (f <= 1) nf = 1;
+  else if (f <= 2) nf = 2;
+  else if (f <= 5) nf = 5;
+  else nf = 10;
+  return nf * Math.pow(10, exp);
+}
+
+function formatTick(val) {
+  if (Math.abs(val) >= 1000) return `${(val / 1000).toFixed(val % 1000 === 0 ? 0 : 1)}k`;
+  return Math.round(val).toLocaleString();
+}
+
+function MiniLineChart({ data, height = 180, color = '#6366f1', unit = '', allowNegative = false }) {
   const svgRef = useRef(null);
   const containerRef = useRef(null);
   const [hoveredIndex, setHoveredIndex] = useState(null);
@@ -98,9 +142,12 @@ function MiniLineChart({ data, height = 180, color = '#6366f1', label = 'Value',
     const values = data.map((d) => d.value);
     const rawMin = Math.min(...values);
     const rawMax = Math.max(...values);
-    const range = rawMax - rawMin || 1;
-    const minVal = rawMin - range * 0.1;
-    const maxVal = rawMax + range * 0.1;
+
+    // Clamp lower bound at 0 for non-negative metrics so the y-axis
+    // never reports impossible values like -1,086 for total volume.
+    let minVal = allowNegative ? rawMin : Math.max(0, rawMin);
+    let maxVal = niceCeil(rawMax > 0 ? rawMax * 1.05 : 1);
+    if (maxVal <= minVal) maxVal = minVal + 1;
     const valRange = maxVal - minVal || 1;
 
     const points = data.map((d, i) => ({
@@ -113,24 +160,24 @@ function MiniLineChart({ data, height = 180, color = '#6366f1', label = 'Value',
     const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x},${p.y}`).join(' ');
     const areaPath = `${linePath} L${points[points.length - 1].x},${paddingTop + plotH} L${points[0].x},${paddingTop + plotH} Z`;
 
-    // Y-axis ticks (5 ticks)
+    // Y-axis ticks (5 ticks, evenly spaced between 0 and the nice max)
     const yTicks = [];
     for (let i = 0; i <= 4; i++) {
       const val = minVal + (valRange * i) / 4;
       const y = paddingTop + plotH - (i / 4) * plotH;
-      yTicks.push({ y, label: Math.round(val).toLocaleString() });
+      yTicks.push({ y, label: formatTick(val) });
     }
 
-    // X-axis labels - show a subset to avoid crowding
-    const maxLabels = Math.min(data.length, Math.floor(plotW / 48));
-    const step = Math.max(1, Math.ceil(data.length / maxLabels));
+    // X-axis labels - evenly distributed (always include first and last)
+    const targetLabelCount = Math.min(data.length, Math.max(2, Math.floor(plotW / 60)));
     const xLabels = [];
-    for (let i = 0; i < data.length; i += step) {
-      xLabels.push({ x: points[i].x, label: data[i].label });
-    }
-    // Always include the last label
-    if (xLabels.length > 0 && xLabels[xLabels.length - 1].x !== points[points.length - 1].x) {
-      xLabels.push({ x: points[points.length - 1].x, label: data[data.length - 1].label });
+    if (data.length === 1) {
+      xLabels.push({ x: points[0].x, label: data[0].label });
+    } else {
+      for (let i = 0; i < targetLabelCount; i++) {
+        const idx = Math.round((i / (targetLabelCount - 1)) * (data.length - 1));
+        xLabels.push({ x: points[idx].x, label: data[idx].label });
+      }
     }
 
     return {
@@ -149,7 +196,7 @@ function MiniLineChart({ data, height = 180, color = '#6366f1', label = 'Value',
       minVal,
       maxVal
     };
-  }, [data, containerWidth, height]);
+  }, [data, containerWidth, height, allowNegative]);
 
   const handleMouseMove = useCallback(
     (e) => {
@@ -366,6 +413,12 @@ export default function WorkoutHistory() {
   const [exerciseStats, setExerciseStats] = useState(null);
   const [loadingExerciseHistory, setLoadingExerciseHistory] = useState(false);
 
+  // Chart time range (days, or 'all')
+  const [chartRange, setChartRange] = useState('all');
+
+  // Active program-type filter
+  const [activeFilter, setActiveFilter] = useState('all');
+
   // -----------------------------------------------------------------------
   // Fetch workout list
   // -----------------------------------------------------------------------
@@ -473,17 +526,93 @@ export default function WorkoutHistory() {
     return { total, volume, avgDuration, calories, totalSets };
   }, [workouts]);
 
-  // Chart data: total volume per workout, chronological, last 20
+  // Chart data: total volume per workout, chronological, filtered by range
   const volumeChartData = useMemo(() => {
     const sorted = [...workouts]
       .filter((w) => w.total_volume > 0)
-      .sort((a, b) => new Date(a.workout_date) - new Date(b.workout_date))
-      .slice(-20);
-    return sorted.map((w) => ({
-      label: formatDate(w.workout_date),
-      value: w.total_volume || 0
-    }));
-  }, [workouts]);
+      .sort((a, b) => new Date(a.workout_date) - new Date(b.workout_date));
+
+    if (chartRange === 'all') {
+      return sorted.slice(-30).map((w) => ({
+        label: formatDate(w.workout_date),
+        value: w.total_volume || 0
+      }));
+    }
+
+    const days = Number(chartRange);
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - days);
+    return sorted
+      .filter((w) => new Date(w.workout_date + 'T00:00:00') >= cutoff)
+      .map((w) => ({
+        label: formatDate(w.workout_date),
+        value: w.total_volume || 0
+      }));
+  }, [workouts, chartRange]);
+
+  // Infer a coarse program type for accent color + filter chips.
+  // Uses workout_name keywords since the API doesn't return program_type on logs.
+  const categorizeWorkout = useCallback((workout) => {
+    const name = (workout.workout_name || '').toLowerCase();
+    if (/hypertrophy|bodybuild|split/.test(name)) return 'hypertrophy';
+    if (/strength|powerlifting|5x5|deadlift|squat|bench|3 day/.test(name)) return 'strength';
+    if (/cardio|hiit|endurance|running|cycling/.test(name)) return 'endurance';
+    if (/mobility|stretch|yoga|flex/.test(name)) return 'flexibility';
+    return 'custom';
+  }, []);
+
+  // Available filter chips, only show categories with workouts.
+  const filterCounts = useMemo(() => {
+    const counts = { all: workouts.length };
+    workouts.forEach((w) => {
+      const cat = categorizeWorkout(w);
+      counts[cat] = (counts[cat] || 0) + 1;
+    });
+    return counts;
+  }, [workouts, categorizeWorkout]);
+
+  // Apply the active filter then group by ISO week.
+  const groupedWorkouts = useMemo(() => {
+    const filtered = workouts.filter((w) => {
+      if (activeFilter === 'all') return true;
+      return categorizeWorkout(w) === activeFilter;
+    });
+
+    const groups = []; // [{ key, label, items: [] }]
+    const groupIndex = new Map();
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    filtered.forEach((w) => {
+      const d = new Date(w.workout_date + 'T00:00:00');
+      // Start of week (Monday)
+      const day = d.getDay(); // 0=Sun
+      const offset = (day + 6) % 7;
+      const weekStart = new Date(d);
+      weekStart.setDate(d.getDate() - offset);
+      weekStart.setHours(0, 0, 0, 0);
+      const key = weekStart.toISOString().slice(0, 10);
+
+      let label;
+      const diffDays = Math.round((startOfToday - weekStart) / 86400000);
+      if (diffDays >= 0 && diffDays < 7) label = 'This Week';
+      else if (diffDays >= 7 && diffDays < 14) label = 'Last Week';
+      else {
+        label = weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        const weekEnd = new Date(weekStart);
+        weekEnd.setDate(weekStart.getDate() + 6);
+        label = `Week of ${label}`;
+      }
+
+      if (!groupIndex.has(key)) {
+        groupIndex.set(key, groups.length);
+        groups.push({ key, label, items: [] });
+      }
+      groups[groupIndex.get(key)].items.push(w);
+    });
+
+    return groups;
+  }, [workouts, activeFilter, categorizeWorkout]);
 
   // -----------------------------------------------------------------------
   // Render helpers
@@ -491,21 +620,24 @@ export default function WorkoutHistory() {
 
   const renderSummaryStats = () => (
     <div className="workout-history-stats-bar">
-      <div className="workout-history-stat">
+      <div className="workout-history-stat" style={{ '--stat-accent': '#6366f1' }}>
         <div className="workout-history-stat-icon">
           <Calendar size={18} />
         </div>
         <div className="workout-history-stat-value">{summaryStats.total}</div>
         <div className="workout-history-stat-label">Workouts</div>
       </div>
-      <div className="workout-history-stat">
+      <div className="workout-history-stat" style={{ '--stat-accent': '#a855f7' }}>
         <div className="workout-history-stat-icon">
           <Dumbbell size={18} />
         </div>
-        <div className="workout-history-stat-value">{formatVolume(summaryStats.volume)}</div>
-        <div className="workout-history-stat-label">Total Vol</div>
+        <div className="workout-history-stat-value">
+          {formatVolume(summaryStats.volume)}
+          <span className="workout-history-stat-unit">{weightUnit}</span>
+        </div>
+        <div className="workout-history-stat-label">Total Volume</div>
       </div>
-      <div className="workout-history-stat">
+      <div className="workout-history-stat" style={{ '--stat-accent': '#10b981' }}>
         <div className="workout-history-stat-icon">
           <Clock size={18} />
         </div>
@@ -513,7 +645,7 @@ export default function WorkoutHistory() {
         <div className="workout-history-stat-label">Avg Duration</div>
       </div>
       {summaryStats.calories > 0 ? (
-        <div className="workout-history-stat">
+        <div className="workout-history-stat" style={{ '--stat-accent': '#f59e0b' }}>
           <div className="workout-history-stat-icon">
             <Flame size={18} />
           </div>
@@ -523,7 +655,7 @@ export default function WorkoutHistory() {
           <div className="workout-history-stat-label">Calories</div>
         </div>
       ) : (
-        <div className="workout-history-stat">
+        <div className="workout-history-stat" style={{ '--stat-accent': '#f59e0b' }}>
           <div className="workout-history-stat-icon">
             <Target size={18} />
           </div>
@@ -534,22 +666,52 @@ export default function WorkoutHistory() {
     </div>
   );
 
+  const CHART_RANGES = [
+    { key: '30', label: '1M' },
+    { key: '90', label: '3M' },
+    { key: '365', label: '1Y' },
+    { key: 'all', label: 'All' }
+  ];
+
   const renderVolumeChart = () => {
-    if (volumeChartData.length < 2) return null;
+    // Need at least 2 workouts overall (across any range) to show the chart at all.
+    const hasAnyVolume = workouts.some((w) => w.total_volume > 0);
+    if (!hasAnyVolume) return null;
+
     return (
       <div className="workout-history-chart-section">
-        <h3 className="workout-history-section-title">
-          <TrendingUp size={18} />
-          Volume Progress
-        </h3>
+        <div className="workout-history-chart-header">
+          <h3 className="workout-history-section-title">
+            <TrendingUp size={18} />
+            Volume Progress
+          </h3>
+          <div className="workout-history-range-toggle" role="tablist" aria-label="Chart time range">
+            {CHART_RANGES.map((r) => (
+              <button
+                key={r.key}
+                role="tab"
+                aria-selected={chartRange === r.key}
+                className={`workout-history-range-btn ${chartRange === r.key ? 'is-active' : ''}`}
+                onClick={() => setChartRange(r.key)}
+              >
+                {r.label}
+              </button>
+            ))}
+          </div>
+        </div>
         <div className="workout-history-chart-container">
-          <MiniLineChart
-            data={volumeChartData}
-            height={200}
-            color="#6366f1"
-            label="Volume"
-            unit={weightUnit}
-          />
+          {volumeChartData.length >= 2 ? (
+            <MiniLineChart
+              data={volumeChartData}
+              height={200}
+              color="#6366f1"
+              unit={weightUnit}
+            />
+          ) : (
+            <div className="workout-history-chart-empty">
+              Not enough data in this range. Try a longer window.
+            </div>
+          )}
         </div>
       </div>
     );
@@ -846,6 +1008,96 @@ export default function WorkoutHistory() {
     );
   };
 
+  const renderFilterChips = () => {
+    if (workouts.length === 0) return null;
+    const order = ['all', 'hypertrophy', 'strength', 'endurance', 'flexibility', 'custom'];
+    const visible = order.filter((k) => k === 'all' || filterCounts[k] > 0);
+    if (visible.length <= 2) return null; // not worth showing if everything is one bucket
+    return (
+      <div className="workout-history-chips" role="tablist" aria-label="Filter by type">
+        {visible.map((key) => {
+          const count = filterCounts[key] || 0;
+          const accent = PROGRAM_TYPE_COLORS[key] || '#6366f1';
+          const isActive = activeFilter === key;
+          return (
+            <button
+              key={key}
+              role="tab"
+              aria-selected={isActive}
+              className={`workout-history-chip ${isActive ? 'is-active' : ''}`}
+              style={isActive ? { '--chip-accent': accent } : undefined}
+              onClick={() => setActiveFilter(key)}
+            >
+              {PROGRAM_TYPE_LABELS[key] || key}
+              <span className="workout-history-chip-count">{count}</span>
+            </button>
+          );
+        })}
+      </div>
+    );
+  };
+
+  const renderWorkoutCard = (workout) => {
+    const isSelected = selectedWorkoutId === workout.id;
+    const category = categorizeWorkout(workout);
+    const accent = PROGRAM_TYPE_COLORS[category];
+    return (
+      <div key={workout.id}>
+        <button
+          className={`workout-history-card ${isSelected ? 'workout-history-card-selected' : ''}`}
+          style={{ '--card-accent': accent }}
+          onClick={() => openWorkoutDetail(workout.id)}
+        >
+          <div className="workout-history-card-left">
+            <div className="workout-history-card-date">
+              {formatDateWithDay(workout.workout_date)}
+            </div>
+            <div className="workout-history-card-name">
+              {workout.workout_name || 'Workout'}
+            </div>
+            <div className="workout-history-card-meta">
+              <span>
+                <Target size={12} /> {workout.total_sets || 0} sets
+              </span>
+              <span>
+                <Clock size={12} /> {workout.duration_minutes ? formatDuration(workout.duration_minutes) : '—'}
+              </span>
+              <span>
+                <Dumbbell size={12} />{' '}
+                {workout.total_volume > 0
+                  ? `${formatVolume(workout.total_volume)} ${weightUnit}`
+                  : '—'}
+              </span>
+            </div>
+          </div>
+          <div className="workout-history-card-right">
+            {(() => {
+              const coachReaction = getWorkoutReaction('workout', workout.id);
+              return (
+                <CoachReactionBadge
+                  reaction={coachReaction}
+                  title={`Coach reacted ${coachReaction?.reaction || ''}`}
+                />
+              );
+            })()}
+            {workout.workout_rating && (
+              <div className="workout-history-card-rating">
+                {workout.workout_rating}/10
+              </div>
+            )}
+            <ChevronDown
+              size={16}
+              className={`workout-history-card-chevron ${isSelected ? 'workout-history-card-chevron-open' : ''}`}
+            />
+          </div>
+        </button>
+
+        {/* Detail view rendered inline below the selected card */}
+        {isSelected && renderWorkoutDetail()}
+      </div>
+    );
+  };
+
   const renderWorkoutList = () => {
     if (workouts.length === 0 && !loading) {
       return (
@@ -857,69 +1109,29 @@ export default function WorkoutHistory() {
       );
     }
 
-    return (
-      <div className="workout-history-list">
-        {workouts.map((workout) => {
-          const isSelected = selectedWorkoutId === workout.id;
-          return (
-            <div key={workout.id}>
-              <button
-                className={`workout-history-card ${isSelected ? 'workout-history-card-selected' : ''}`}
-                onClick={() => openWorkoutDetail(workout.id)}
-              >
-                <div className="workout-history-card-left">
-                  <div className="workout-history-card-date">
-                    {formatDate(workout.workout_date)}
-                  </div>
-                  <div className="workout-history-card-name">
-                    {workout.workout_name || 'Workout'}
-                  </div>
-                  <div className="workout-history-card-meta">
-                    {workout.duration_minutes && (
-                      <span>
-                        <Clock size={12} /> {formatDuration(workout.duration_minutes)}
-                      </span>
-                    )}
-                    {workout.total_sets > 0 && (
-                      <span>
-                        <Target size={12} /> {workout.total_sets} sets
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <div className="workout-history-card-right">
-                  {(() => {
-                    const coachReaction = getWorkoutReaction('workout', workout.id);
-                    return (
-                      <CoachReactionBadge
-                        reaction={coachReaction}
-                        title={`Coach reacted ${coachReaction?.reaction || ''}`}
-                      />
-                    );
-                  })()}
-                  {workout.total_volume > 0 && (
-                    <div className="workout-history-card-volume">
-                      {formatVolume(workout.total_volume)}
-                      <span className="workout-history-card-volume-label">{weightUnit}</span>
-                    </div>
-                  )}
-                  {workout.workout_rating && (
-                    <div className="workout-history-card-rating">
-                      {workout.workout_rating}/10
-                    </div>
-                  )}
-                  <ChevronDown
-                    size={16}
-                    className={`workout-history-card-chevron ${isSelected ? 'workout-history-card-chevron-open' : ''}`}
-                  />
-                </div>
-              </button>
+    if (groupedWorkouts.length === 0) {
+      return (
+        <div className="workout-history-empty">
+          <p>No workouts match this filter.</p>
+        </div>
+      );
+    }
 
-              {/* Detail view rendered inline below the selected card */}
-              {isSelected && renderWorkoutDetail()}
+    return (
+      <div className="workout-history-groups">
+        {groupedWorkouts.map((group) => (
+          <div key={group.key} className="workout-history-group">
+            <div className="workout-history-group-header">
+              <span>{group.label}</span>
+              <span className="workout-history-group-count">
+                {group.items.length} {group.items.length === 1 ? 'workout' : 'workouts'}
+              </span>
             </div>
-          );
-        })}
+            <div className="workout-history-list">
+              {group.items.map((w) => renderWorkoutCard(w))}
+            </div>
+          </div>
+        ))}
       </div>
     );
   };
@@ -970,6 +1182,7 @@ export default function WorkoutHistory() {
               <Calendar size={18} />
               All Workouts
             </h3>
+            {renderFilterChips()}
             {renderWorkoutList()}
           </div>
         </>
