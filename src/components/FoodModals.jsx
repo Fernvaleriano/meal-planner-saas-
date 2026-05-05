@@ -798,7 +798,8 @@ export function FavoritesModal({ isOpen, onClose, mealType, clientData, onFoodLo
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={e => e.stopPropagation()}>
+      <div className="modal-content favorites-modal" onClick={e => e.stopPropagation()}>
+        <div className="sheet-drag-handle" aria-hidden="true" />
         <div className="modal-header">
           <h2>Favorites</h2>
           <button className="modal-close" onClick={onClose}><X size={24} /></button>
@@ -819,26 +820,49 @@ export function FavoritesModal({ isOpen, onClose, mealType, clientData, onFoodLo
             </div>
           ) : (
             <div className="favorites-list">
-              {favorites.map((fav) => (
-                <div key={fav.id} className="favorite-item" onClick={() => setConfirmFavorite(fav)}>
-                  <div className="favorite-info">
-                    <div className="favorite-name">{fav.meal_name}</div>
-                    <div className="favorite-type">{fav.meal_type}</div>
-                    <div className="favorite-macros">
-                      <span>{fav.calories} cal</span>
-                      <span>P: {fav.protein}g</span>
-                      <span>C: {fav.carbs}g</span>
-                      <span>F: {fav.fat}g</span>
+              {favorites.map((fav) => {
+                const cal = Math.round(fav.calories || 0);
+                const p = Math.round(fav.protein || 0);
+                const c = Math.round(fav.carbs || 0);
+                const f = Math.round(fav.fat || 0);
+                return (
+                  <div
+                    key={fav.id}
+                    className="favorite-item"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setConfirmFavorite(fav)}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setConfirmFavorite(fav); } }}
+                  >
+                    <div className="favorite-info">
+                      <div className="favorite-name">{fav.meal_name}</div>
+                      <div className="favorite-meta">
+                        <span className="favorite-cal">{cal} cal</span>
+                        {fav.meal_type && (
+                          <span className="favorite-type-badge">{fav.meal_type}</span>
+                        )}
+                      </div>
+                      <div className="favorite-macros">
+                        <span className="macro macro-protein"><span className="macro-dot" />P {p}g</span>
+                        <span className="macro macro-carbs"><span className="macro-dot" />C {c}g</span>
+                        <span className="macro macro-fat"><span className="macro-dot" />F {f}g</span>
+                      </div>
+                    </div>
+                    <div className="favorite-actions">
+                      <button
+                        className="favorite-delete-btn"
+                        aria-label="Delete favorite"
+                        onClick={(e) => deleteFavorite(fav.id, e)}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                      <span className="favorite-add-cue" aria-hidden="true">
+                        <Plus size={18} />
+                      </span>
                     </div>
                   </div>
-                  <button
-                    className="favorite-delete-btn"
-                    onClick={(e) => deleteFavorite(fav.id, e)}
-                  >
-                    <Trash2 size={18} />
-                  </button>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
