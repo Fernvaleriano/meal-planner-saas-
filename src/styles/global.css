@@ -2770,22 +2770,17 @@ textarea,
     text-transform: capitalize;
 }
 
-/* Meal type specific colors - modern gradients */
-.meal-type-btn.active:nth-child(1) {
-    background: linear-gradient(135deg, rgba(251, 191, 36, 0.25) 0%, rgba(245, 158, 11, 0.35) 100%);
-    box-shadow: 0 8px 24px -8px rgba(245, 158, 11, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.15);
-}
-.meal-type-btn.active:nth-child(2) {
-    background: linear-gradient(135deg, rgba(250, 204, 21, 0.2) 0%, rgba(234, 179, 8, 0.35) 100%);
-    box-shadow: 0 8px 24px -8px rgba(234, 179, 8, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.15);
-}
-.meal-type-btn.active:nth-child(3) {
-    background: linear-gradient(135deg, rgba(20, 184, 166, 0.2) 0%, rgba(13, 148, 136, 0.35) 100%);
-    box-shadow: 0 8px 24px -8px rgba(13, 148, 136, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.15);
-}
+/* Meal type selector — unified brand-teal active state across all four
+   tabs. The previous per-position rainbow (amber / yellow / teal / red)
+   re-introduced the same color soup the Quick Actions grid had. The
+   selected meal is now signalled by brand teal only; the icon shape and
+   the meal label do the rest of the differentiation. */
+.meal-type-btn.active:nth-child(1),
+.meal-type-btn.active:nth-child(2),
+.meal-type-btn.active:nth-child(3),
 .meal-type-btn.active:nth-child(4) {
-    background: linear-gradient(135deg, rgba(248, 113, 113, 0.2) 0%, rgba(239, 68, 68, 0.35) 100%);
-    box-shadow: 0 8px 24px -8px rgba(239, 68, 68, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    background: linear-gradient(135deg, rgba(20, 184, 166, 0.22) 0%, rgba(13, 148, 136, 0.38) 100%);
+    box-shadow: 0 8px 24px -8px rgba(13, 148, 136, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.15);
 }
 
 /* Food Input */
@@ -3161,7 +3156,7 @@ textarea,
 
 .daily-progress-percent {
     font-weight: 700;
-    color: var(--brand-primary);
+    color: #14b8a6;
 }
 
 .daily-progress-track {
@@ -16397,7 +16392,7 @@ textarea,
     justify-content: center;
     width: 48px;
     height: 48px;
-    background: linear-gradient(135deg, #0d9488, #3b82f6);
+    background: linear-gradient(135deg, #0d9488 0%, #14b8a6 100%);
     border-radius: 14px;
     color: white;
     flex-shrink: 0;
