@@ -49,12 +49,12 @@ const compressImage = (file, maxWidth = 1200, quality = 0.8) => {
 
 // Time frame options
 const TIME_FRAMES = [
-  { label: '1 Week', value: '1w', days: 7 },
-  { label: '1 Month', value: '1m', days: 30 },
-  { label: '3 Months', value: '3m', days: 90 },
-  { label: '6 Months', value: '6m', days: 180 },
-  { label: '1 Year', value: '1y', days: 365 },
-  { label: 'All Time', value: 'all', days: null },
+  { label: '1 Week',   shortLabel: '1W',  value: '1w', days: 7 },
+  { label: '1 Month',  shortLabel: '1M',  value: '1m', days: 30 },
+  { label: '3 Months', shortLabel: '3M',  value: '3m', days: 90 },
+  { label: '6 Months', shortLabel: '6M',  value: '6m', days: 180 },
+  { label: '1 Year',   shortLabel: '1Y',  value: '1y', days: 365 },
+  { label: 'All Time', shortLabel: 'All', value: 'all', days: null },
 ];
 
 // Metric definitions
@@ -188,7 +188,6 @@ function Progress() {
 
   // Time frame
   const [timeFrame, setTimeFrame] = useState('1y');
-  const [showTimeFrameDropdown, setShowTimeFrameDropdown] = useState(false);
 
   // Quick log modal
   const [quickLogMetric, setQuickLogMetric] = useState(null);
@@ -236,14 +235,6 @@ function Progress() {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
-
-  // Close time frame dropdown on outside click
-  useEffect(() => {
-    if (!showTimeFrameDropdown) return;
-    const handleClick = () => setShowTimeFrameDropdown(false);
-    document.addEventListener('click', handleClick);
-    return () => document.removeEventListener('click', handleClick);
-  }, [showTimeFrameDropdown]);
 
   // Pull-to-refresh
   const refreshProgressData = useCallback(async () => {
@@ -581,7 +572,6 @@ function Progress() {
   };
 
   const photoTypeLabels = { front: 'Front', side: 'Side', back: 'Back', progress: 'Progress' };
-  const currentTimeFrameLabel = TIME_FRAMES.find(t => t.value === timeFrame)?.label || '1 Year';
 
   // Metric card component
   const MetricCard = ({ config }) => {
@@ -603,9 +593,9 @@ function Progress() {
       <div className="metric-card">
         <div className="metric-card-header">
           <span className="metric-card-title">{config.label.toUpperCase()}</span>
-          {data && data.change !== null && (
-            <div className={`metric-change ${data.change < 0 ? 'decrease' : data.change > 0 ? 'increase' : ''}`}>
-              {data.change < 0 ? <TrendingDown size={14} /> : data.change > 0 ? <TrendingUp size={14} /> : null}
+          {data && data.change !== null && data.change !== 0 && (
+            <div className="metric-change neutral">
+              {data.change < 0 ? <TrendingDown size={14} /> : <TrendingUp size={14} />}
               <span>{data.change > 0 ? '+' : ''}{data.change} {unit}</span>
             </div>
           )}
@@ -749,26 +739,19 @@ function Progress() {
       <div className="progress-content">
         {activeTab === 'measurements' ? (
           <>
-            {/* Time Frame Selector */}
-            <div className="time-frame-bar">
-              <span className="time-frame-label">Time frame</span>
-              <div className="time-frame-selector" onClick={(e) => { e.stopPropagation(); setShowTimeFrameDropdown(!showTimeFrameDropdown); }}>
-                <span className="time-frame-value">{currentTimeFrameLabel}</span>
-                <ChevronDown size={16} />
-                {showTimeFrameDropdown && (
-                  <div className="time-frame-dropdown">
-                    {TIME_FRAMES.map(tf => (
-                      <button
-                        key={tf.value}
-                        className={`time-frame-option ${timeFrame === tf.value ? 'active' : ''}`}
-                        onClick={(e) => { e.stopPropagation(); setTimeFrame(tf.value); setShowTimeFrameDropdown(false); }}
-                      >
-                        {tf.label}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+            {/* Time Frame Segmented Control */}
+            <div className="time-frame-segmented" role="tablist" aria-label="Time frame">
+              {TIME_FRAMES.map(tf => (
+                <button
+                  key={tf.value}
+                  role="tab"
+                  aria-selected={timeFrame === tf.value}
+                  className={`time-frame-segment ${timeFrame === tf.value ? 'active' : ''}`}
+                  onClick={() => setTimeFrame(tf.value)}
+                >
+                  {tf.shortLabel}
+                </button>
+              ))}
             </div>
 
             {/* Log All Button */}
@@ -782,13 +765,41 @@ function Progress() {
                 <div className="spinner"></div>
                 <p>Loading measurements...</p>
               </div>
-            ) : (
-              <div className="metric-cards-list">
-                {METRIC_CONFIGS.map(config => (
-                  <MetricCard key={config.key} config={config} />
-                ))}
-              </div>
-            )}
+            ) : (() => {
+              const tracked = METRIC_CONFIGS.filter(c => getMetricData(c.dbField));
+              const untracked = METRIC_CONFIGS.filter(c => !getMetricData(c.dbField));
+              return (
+                <>
+                  {tracked.length > 0 && (
+                    <div className="metric-cards-list">
+                      {tracked.map(config => (
+                        <MetricCard key={config.key} config={config} />
+                      ))}
+                    </div>
+                  )}
+                  {untracked.length > 0 && (
+                    <div className="untracked-metrics-card">
+                      <div className="untracked-metrics-title">Track more</div>
+                      <div className="untracked-metrics-row">
+                        {untracked.map(config => (
+                          <button
+                            key={config.key}
+                            className="untracked-metric-chip"
+                            onClick={() => openQuickLog(config)}
+                          >
+                            <Plus size={14} />
+                            <span>{config.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {tracked.length === 0 && untracked.length === 0 && (
+                    <div className="metric-no-data">No measurements yet. Tap "Log All Measurements" to start.</div>
+                  )}
+                </>
+              );
+            })()}
           </>
         ) : activeTab === 'photos' ? (
           <>
@@ -890,13 +901,10 @@ function Progress() {
                     <div className="achievements-stat-value">{totalCheckinCount}</div>
                     <div className="achievements-stat-label">Check-ins</div>
                   </div>
+                  <div className="achievements-stat-divider" aria-hidden="true" />
                   <div className="achievements-stat">
                     <div className="achievements-stat-value">{earnedTiers.length} / {BADGE_TIERS.length}</div>
-                    <div className="achievements-stat-label">Badges</div>
-                  </div>
-                  <div className="achievements-stat">
-                    <div className="achievements-stat-value">{nextTier ? nextTier.icon : '💎'}</div>
-                    <div className="achievements-stat-label">{nextTier ? 'Next' : 'All Done!'}</div>
+                    <div className="achievements-stat-label">Badges Earned</div>
                   </div>
                 </div>
 
@@ -932,6 +940,9 @@ function Progress() {
                 <div className="badges-grid">
                   {BADGE_TIERS.map(tier => {
                     const earned = totalCheckinCount >= tier.threshold;
+                    const pct = earned
+                      ? 100
+                      : Math.max(0, Math.min(100, (totalCheckinCount / tier.threshold) * 100));
                     return (
                       <div
                         key={tier.threshold}
@@ -944,6 +955,16 @@ function Progress() {
                         <span className="badge-icon">{tier.icon}</span>
                         <div className="badge-name">{tier.name}</div>
                         <div className="badge-threshold">{tier.desc}</div>
+                        {!earned && (
+                          <div className="badge-card-progress">
+                            <div className="badge-card-progress-bar">
+                              <div className="badge-card-progress-fill" style={{ width: `${pct}%` }} />
+                            </div>
+                            <div className="badge-card-progress-label">
+                              {totalCheckinCount} / {tier.threshold}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     );
                   })}
