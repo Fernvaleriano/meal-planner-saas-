@@ -5021,35 +5021,42 @@ function Workouts() {
               <X size={24} />
             </button>
             <div className="summary-header">
-              <div className="summary-stars">
-                <Star size={28} className="star-side" />
-                <Star size={40} className="star-main" />
-                <Star size={28} className="star-side" />
+              <div className="summary-trophy">
+                <div className="summary-trophy-glow" />
+                <div className="summary-trophy-badge">
+                  <Award size={36} strokeWidth={2.2} />
+                </div>
               </div>
               <h2>Great job!</h2>
               <p className="summary-subtitle">Training finished</p>
             </div>
+            <div className="summary-hero-card">
+              <span className="hero-stat-value">{formatDuration(workoutDuration || estimateWorkoutMinutes(exercises) || todayWorkout?.workout_data?.estimatedMinutes || 45)}</span>
+              <span className="hero-stat-label">Duration</span>
+            </div>
             <div className="summary-stats-grid">
               <div className="summary-stat-card">
+                <Flame size={16} className="stat-icon" />
                 <span className="stat-value">{estimatedCalories}</span>
                 <span className="stat-label">Calories</span>
               </div>
               <div className="summary-stat-card">
+                <CheckCircle size={16} className="stat-icon" />
                 <span className="stat-value">{completedExercises.size}</span>
                 <span className="stat-label">Activities</span>
               </div>
               <div className="summary-stat-card">
-                <span className="stat-value">{totalLifted > 0 ? totalLifted.toLocaleString() : '--'}</span>
-                <span className="stat-label">Lifted ({weightUnit})</span>
-              </div>
-              <div className="summary-stat-card">
+                <RotateCcw size={16} className="stat-icon" />
                 <span className="stat-value">{totalSets}</span>
                 <span className="stat-label">Sets</span>
               </div>
-              <div className="summary-stat-card full">
-                <span className="stat-value">{formatDuration(workoutDuration || estimateWorkoutMinutes(exercises) || todayWorkout?.workout_data?.estimatedMinutes || 45)}</span>
-                <span className="stat-label">Duration</span>
-              </div>
+              {totalLifted > 0 && (
+                <div className="summary-stat-card">
+                  <Weight size={16} className="stat-icon" />
+                  <span className="stat-value">{totalLifted.toLocaleString()}</span>
+                  <span className="stat-label">Lifted ({weightUnit})</span>
+                </div>
+              )}
             </div>
             {workoutPRs.length > 0 && (
               <div className="summary-prs-section">
@@ -5095,6 +5102,8 @@ function Workouts() {
             <div className="share-card-preview" ref={shareCardRef}>
               <div className="share-card-bg" style={shareBgImage ? { backgroundImage: `url(${shareBgImage})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}>
                 <div className="share-card-overlay" />
+                <div className="share-card-scrim-top" />
+                <div className="share-card-scrim-bottom" />
                 <div className="share-card-content">
                   <div className="share-card-brand">
                     <img src="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/Untitled%20design%20-%202026-02-10T171903.769.png" alt="Zique Fitness" className="share-card-logo" />
@@ -5144,7 +5153,6 @@ function Workouts() {
                       ))}
                     </div>
                   )}
-                  <div className="share-card-footer">Powered by Zique Fitness</div>
                 </div>
               </div>
             </div>
@@ -5158,31 +5166,51 @@ function Workouts() {
               onChange={handleBgImageChange}
             />
             <button className="change-image-btn" onClick={() => shareBgInputRef.current?.click()}>
-              Change image
+              <PenSquare size={14} />
+              Change background
             </button>
 
             {/* Toggle Controls */}
             <div className="share-toggles">
-              <h3>Statistics</h3>
               {[
-                { key: 'duration', label: 'Duration', value: formatDuration(workoutDuration || estimateWorkoutMinutes(exercises) || todayWorkout?.workout_data?.estimatedMinutes || 45) },
-                { key: 'calories', label: 'Calories', value: estimatedCalories },
-                { key: 'activities', label: 'Activities', value: completedExercises.size },
-                { key: 'lifted', label: 'Lifted', value: `${totalLifted > 0 ? totalLifted.toLocaleString() : 0} ${weightUnit}` },
-                { key: 'sets', label: 'Sets', value: totalSets },
-                ...(workoutPRs.length > 0 ? [{ key: 'prs', label: 'New PRs', value: `${workoutPRs.length} PR${workoutPRs.length !== 1 ? 's' : ''}` }] : [])
-              ].map(({ key, label, value }) => (
-                <div className="share-toggle-row" key={key}>
-                  <div className="toggle-info">
-                    <span className="toggle-label">{label}</span>
-                    <span className="toggle-value">{value}</span>
-                  </div>
-                  <button
-                    className={`toggle-switch ${shareToggles[key] ? 'active' : ''}`}
-                    onClick={() => setShareToggles(prev => ({ ...prev, [key]: !prev[key] }))}
-                  >
-                    <span className="toggle-knob" />
-                  </button>
+                {
+                  title: 'Performance',
+                  items: [
+                    { key: 'duration', label: 'Duration', value: formatDuration(workoutDuration || estimateWorkoutMinutes(exercises) || todayWorkout?.workout_data?.estimatedMinutes || 45) },
+                    { key: 'calories', label: 'Calories', value: estimatedCalories }
+                  ]
+                },
+                {
+                  title: 'Volume',
+                  items: [
+                    { key: 'sets', label: 'Sets', value: totalSets },
+                    { key: 'lifted', label: 'Lifted', value: `${totalLifted > 0 ? totalLifted.toLocaleString() : 0} ${weightUnit}` }
+                  ]
+                },
+                {
+                  title: 'Activity',
+                  items: [
+                    { key: 'activities', label: 'Activities', value: completedExercises.size },
+                    ...(workoutPRs.length > 0 ? [{ key: 'prs', label: 'New PRs', value: `${workoutPRs.length} PR${workoutPRs.length !== 1 ? 's' : ''}` }] : [])
+                  ]
+                }
+              ].map(({ title, items }) => (
+                <div className="share-toggle-group" key={title}>
+                  <h4 className="share-toggle-group-title">{title}</h4>
+                  {items.map(({ key, label, value }) => (
+                    <div className={`share-toggle-row${shareToggles[key] ? '' : ' off'}`} key={key}>
+                      <div className="toggle-info">
+                        <span className="toggle-label">{label}</span>
+                        <span className="toggle-value">{value}</span>
+                      </div>
+                      <button
+                        className={`toggle-switch ${shareToggles[key] ? 'active' : ''}`}
+                        onClick={() => setShareToggles(prev => ({ ...prev, [key]: !prev[key] }))}
+                      >
+                        <span className="toggle-knob" />
+                      </button>
+                    </div>
+                  ))}
                 </div>
               ))}
             </div>
