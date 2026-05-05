@@ -1853,12 +1853,14 @@ Keep it practical and brief. Format with clear sections.`;
               const p = pct(actual, target);
               return (
                 <div className={`target-box ${cls}`}>
-                  <span className="target-dot" aria-hidden="true" />
-                  <span className="target-value">
-                    {actual}g
-                    {target > 0 && <span className="target-suffix"> / {target}g</span>}
-                  </span>
-                  <span className="target-label">{label}</span>
+                  <div className="target-box-header">
+                    <span className="target-dot" aria-hidden="true" />
+                    <span className="target-label">{label}</span>
+                  </div>
+                  <div className="target-box-value">
+                    <span className="target-value">{actual}<span className="target-unit">g</span></span>
+                    {target > 0 && <span className="target-suffix">/ {target}g</span>}
+                  </div>
                   {p !== null && (
                     <div className="target-bar" aria-hidden="true">
                       <div className="target-bar-fill" style={{ width: `${p}%` }} />
