@@ -24789,32 +24789,34 @@ textarea,
     white-space: pre-wrap;
 }
 
-/* Coach Voice Note Section in Modal */
+/* Coach Voice Note Section in Modal — matches the meal-card and exercise-card
+   voice notes (compact teal-bordered card + shared VoiceNotePlayer) so the
+   same UI shows up everywhere. */
 .coach-voice-note-section {
-    padding: 16px;
-    background: linear-gradient(135deg, rgba(13, 148, 136, 0.15) 0%, rgba(2, 132, 199, 0.15) 100%);
-    border-top: 1px solid rgba(13, 148, 136, 0.3);
-    border-bottom: 1px solid rgba(13, 148, 136, 0.3);
+    margin: 12px 16px;
+    padding: 10px 12px;
+    background: rgba(20, 184, 166, 0.08);
+    border: 1px solid rgba(20, 184, 166, 0.22);
+    border-left: 3px solid #5eead4;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 }
 
 .coach-voice-note-section .voice-note-header {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 12px;
+    gap: 5px;
     color: #5eead4;
-    font-weight: 600;
-    font-size: 14px;
+    font-weight: 700;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
 }
 
 .coach-voice-note-section .voice-note-header svg {
     color: #5eead4;
-}
-
-.coach-voice-note-section .voice-note-audio-player {
-    width: 100%;
-    height: 40px;
-    border-radius: 20px;
 }
 
 /* Coach Text Note Section in Modal */
@@ -24875,17 +24877,17 @@ textarea,
 
 /* Coach Voice Note Section - Light Mode */
 [data-theme="light"] .coach-voice-note-section {
-    background: linear-gradient(135deg, rgba(13, 148, 136, 0.08) 0%, rgba(2, 132, 199, 0.08) 100%);
-    border-top-color: rgba(13, 148, 136, 0.2);
-    border-bottom-color: rgba(13, 148, 136, 0.2);
+    background: rgba(13, 148, 136, 0.05);
+    border-color: rgba(13, 148, 136, 0.18);
+    border-left-color: var(--brand-primary, #0d9488);
 }
 
 [data-theme="light"] .coach-voice-note-section .voice-note-header {
-    color: #0d9488;
+    color: #0f766e;
 }
 
 [data-theme="light"] .coach-voice-note-section .voice-note-header svg {
-    color: #0d9488;
+    color: #0f766e;
 }
 
 /* Coach Text Note Section - Light Mode */
