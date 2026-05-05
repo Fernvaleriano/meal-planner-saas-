@@ -1,0 +1,54 @@
+-- One-off cleanup: fold gender_variant into the exercise name.
+--
+-- After we removed _Male/_Female stripping from the storage webhook and the
+-- sync function, any existing row with gender_variant set is dead data:
+-- new uploads now create rows like "Normal Squat Smith Machine Male" by
+-- name, leaving the old gender_variant rows orphaned.
+--
+-- This script renames those old rows so they line up with the new naming
+-- convention, then nulls out gender_variant.
+--
+-- Run order:
+--   1. PREVIEW first (see what will change, no writes).
+--   2. Run the UPDATE wrapped in BEGIN/COMMIT once you're satisfied.
+--
+-- Safe to re-run: the UPDATE only touches rows where gender_variant IS NOT NULL.
+
+-- =====================================================================
+-- 1) PREVIEW — what would change?
+-- =====================================================================
+-- SELECT
+--   id,
+--   name AS old_name,
+--   name || ' ' || INITCAP(gender_variant) AS new_name,
+--   gender_variant
+-- FROM exercises
+-- WHERE gender_variant IS NOT NULL
+-- ORDER BY name;
+
+-- =====================================================================
+-- 2) PREVIEW — would any rename collide with an existing name?
+-- =====================================================================
+-- SELECT
+--   e.id,
+--   e.name AS old_name,
+--   e.name || ' ' || INITCAP(e.gender_variant) AS proposed_new_name,
+--   conflict.id AS conflicting_existing_id
+-- FROM exercises e
+-- JOIN exercises conflict
+--   ON LOWER(TRIM(conflict.name)) = LOWER(TRIM(e.name || ' ' || INITCAP(e.gender_variant)))
+--  AND conflict.id <> e.id
+-- WHERE e.gender_variant IS NOT NULL;
+-- (If this returns rows, resolve those manually before running the UPDATE.)
+
+-- =====================================================================
+-- 3) APPLY — uncomment to run
+-- =====================================================================
+-- BEGIN;
+--
+-- UPDATE exercises
+-- SET name = name || ' ' || INITCAP(gender_variant),
+--     gender_variant = NULL
+-- WHERE gender_variant IS NOT NULL;
+--
+-- COMMIT;
