@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Bell } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { useBranding } from '../context/BrandingContext';
 import { apiGet } from '../utils/api';
 import { onAppResume, onAppSuspend } from '../hooks/useAppLifecycle';
 import StoryViewer from './StoryViewer';
@@ -25,7 +24,6 @@ const STORY_CACHE_TTL = 60000; // 1 minute cache
 
 function TopNav() {
   const { clientData } = useAuth();
-  const { branding } = useBranding();
   const navigate = useNavigate();
   const [unreadCount, setUnreadCount] = useState(() => {
     if (notificationCache.data &&
@@ -67,10 +65,6 @@ function TopNav() {
   });
   const [showStoryViewer, setShowStoryViewer] = useState(false);
   const hasFetchedStoriesRef = useRef(false);
-
-  const ORIGINAL_LOGO = 'https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/Untitled%20design%20(7).svg';
-  // Use coach's custom logo if they uploaded one, otherwise always show the original
-  const logoUrl = branding?.brand_logo_url || ORIGINAL_LOGO;
 
   // Fetch notifications (only for unread count badge)
   const fetchNotifications = useCallback(async (force = false) => {
@@ -200,17 +194,7 @@ function TopNav() {
 
   return (
     <nav className="top-nav">
-      {/* Left: Logo */}
-      <Link to="/" className="nav-left" aria-label="Go to home">
-        <img
-          src={logoUrl}
-          alt={branding?.brand_name || 'Zique Fitness'}
-          className="nav-logo-left"
-          onError={(e) => { e.target.src = ORIGINAL_LOGO; }}
-        />
-      </Link>
-
-      {/* Center: Empty spacer */}
+      {/* Left spacer (logo removed) */}
       <div className="nav-center"></div>
 
       {/* Right: Stories + Notifications */}
