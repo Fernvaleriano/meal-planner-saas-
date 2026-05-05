@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronDown, Flame, Share2, X } from 'lucide-react';
+import { ChevronLeft, ChevronDown, Flame, Share2, X, NotebookPen, Calendar, Zap, Moon, Utensils, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost } from '../utils/api';
@@ -159,7 +159,17 @@ function CheckIn() {
     }
   };
 
-  const RatingButtons = ({ type, label, hint }) => (
+  // Band the adherence percentage into low / mid / high so the history
+  // pills can carry semantic color (red / amber / green) instead of every
+  // entry rendering as the same teal regardless of how the week went.
+  const adherenceBand = (pct) => {
+    const n = Number(pct);
+    if (!Number.isFinite(n) || n < 40) return 'low';
+    if (n < 70) return 'mid';
+    return 'high';
+  };
+
+  const RatingButtons = ({ type, label, hint, lowLabel, highLabel }) => (
     <div className="rating-group">
       <label className="rating-label">{label}{hint && <span className="rating-hint"> ({hint})</span>}</label>
       <div className="rating-buttons">
@@ -175,6 +185,12 @@ function CheckIn() {
           </button>
         ))}
       </div>
+      {(lowLabel || highLabel) && (
+        <div className="rating-scale-labels" aria-hidden="true">
+          <span>{lowLabel}</span>
+          <span>{highLabel}</span>
+        </div>
+      )}
     </div>
   );
 
@@ -197,13 +213,16 @@ function CheckIn() {
       <div className="checkin-content">
         {/* Check-in Form */}
         <div className="section-card">
-          <h2 className="section-title">📝 How are things going?</h2>
+          <h2 className="section-title">
+            <NotebookPen size={18} className="section-title-icon" />
+            <span>How are things going?</span>
+          </h2>
 
           <form onSubmit={handleSubmit}>
-            <RatingButtons type="energy" label="Energy Level" />
-            <RatingButtons type="sleep" label="Sleep Quality" />
-            <RatingButtons type="hunger" label="Hunger Level" hint="1=always hungry, 5=satisfied" />
-            <RatingButtons type="stress" label="Stress Level" hint="1=low, 5=high" />
+            <RatingButtons type="energy" label="Energy Level" lowLabel="Drained" highLabel="Energized" />
+            <RatingButtons type="sleep" label="Sleep Quality" lowLabel="Poor" highLabel="Great" />
+            <RatingButtons type="hunger" label="Hunger Level" hint="1=always hungry, 5=satisfied" lowLabel="Always hungry" highLabel="Satisfied" />
+            <RatingButtons type="stress" label="Stress Level" hint="1=low, 5=high" lowLabel="Calm" highLabel="Overwhelmed" />
 
             {/* Adherence Slider */}
             <div className="adherence-container">
@@ -268,7 +287,10 @@ function CheckIn() {
             onClick={() => setHistoryExpanded(!historyExpanded)}
             aria-expanded={historyExpanded}
           >
-            <h3 className="section-title" style={{ margin: 0 }}>📅 Previous Check-ins</h3>
+            <h3 className="section-title" style={{ margin: 0 }}>
+              <Calendar size={18} className="section-title-icon" />
+              <span>Previous Check-ins</span>
+            </h3>
             <ChevronDown
               size={20}
               style={{
@@ -292,36 +314,47 @@ function CheckIn() {
                 </div>
               ) : (
                 <div className="checkin-history">
-                  {history.map((entry, idx) => (
-                    <div key={idx} className="checkin-entry">
-                      <div className="checkin-entry-header">
-                        <span className="checkin-date">
-                          {new Date(entry.checkin_date || entry.created_at).toLocaleDateString('en-US', {
-                            weekday: 'short',
-                            month: 'short',
-                            day: 'numeric'
-                          })}
-                        </span>
-                        <span className="checkin-adherence-badge">{entry.meal_plan_adherence || entry.adherence_percent || 0}%</span>
-                      </div>
-                      <div className="checkin-ratings">
-                        {entry.energy_level && <span>⚡ Energy: {entry.energy_level}/5</span>}
-                        {entry.sleep_quality && <span>😴 Sleep: {entry.sleep_quality}/5</span>}
-                        {entry.hunger_level && <span>🍽️ Hunger: {entry.hunger_level}/5</span>}
-                        {entry.stress_level && <span>😰 Stress: {entry.stress_level}/5</span>}
-                      </div>
-                      {entry.wins && (
-                        <div className="checkin-notes">
-                          <strong>Wins:</strong> {entry.wins}
+                  {history.map((entry, idx) => {
+                    const adherencePct = entry.meal_plan_adherence || entry.adherence_percent || 0;
+                    // Treat literal "None" / "N/A" / blank as no entry so the
+                    // history doesn't render placeholder strings as if they
+                    // were real notes.
+                    const isMeaningful = (s) => {
+                      if (!s) return false;
+                      const v = String(s).trim().toLowerCase();
+                      return v.length > 0 && v !== 'none' && v !== 'n/a' && v !== 'na';
+                    };
+                    return (
+                      <div key={idx} className="checkin-entry">
+                        <div className="checkin-entry-header">
+                          <span className="checkin-date">
+                            {new Date(entry.checkin_date || entry.created_at).toLocaleDateString('en-US', {
+                              weekday: 'short',
+                              month: 'short',
+                              day: 'numeric'
+                            })}
+                          </span>
+                          <span className={`checkin-adherence-badge band-${adherenceBand(adherencePct)}`}>{adherencePct}%</span>
                         </div>
-                      )}
-                      {entry.challenges && (
-                        <div className="checkin-notes">
-                          <strong>Challenges:</strong> {entry.challenges}
+                        <div className="checkin-ratings">
+                          {entry.energy_level && <span><Zap size={13} /> Energy: {entry.energy_level}/5</span>}
+                          {entry.sleep_quality && <span><Moon size={13} /> Sleep: {entry.sleep_quality}/5</span>}
+                          {entry.hunger_level && <span><Utensils size={13} /> Hunger: {entry.hunger_level}/5</span>}
+                          {entry.stress_level && <span><AlertCircle size={13} /> Stress: {entry.stress_level}/5</span>}
                         </div>
-                      )}
-                    </div>
-                  ))}
+                        {isMeaningful(entry.wins) && (
+                          <div className="checkin-notes">
+                            <strong>Wins:</strong> {entry.wins}
+                          </div>
+                        )}
+                        {isMeaningful(entry.challenges) && (
+                          <div className="checkin-notes">
+                            <strong>Challenges:</strong> {entry.challenges}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </>
