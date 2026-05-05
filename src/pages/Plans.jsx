@@ -1834,31 +1834,56 @@ Keep it practical and brief. Format with clear sections.`;
               carbs: acc.carbs + (meal.carbs || 0),
               fat: acc.fat + (meal.fat || 0),
             }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
+
+            const targets = currentDay.targets || {};
+            const pct = (cur, goal) => goal > 0 ? Math.min(100, Math.round((cur / goal) * 100)) : 0;
+            const isOver = (cur, goal) => goal > 0 && cur > goal;
+
+            const calPct = pct(totals.calories, targets.calories);
+            const proteinPct = pct(totals.protein, targets.protein);
+            const carbsPct = pct(totals.carbs, targets.carbs);
+            const fatPct = pct(totals.fat, targets.fat);
+
+            const macros = [
+              { key: 'protein', label: 'Protein', value: totals.protein, goal: targets.protein, pct: proteinPct, over: isOver(totals.protein, targets.protein) },
+              { key: 'carbs',   label: 'Carbs',   value: totals.carbs,   goal: targets.carbs,   pct: carbsPct,   over: isOver(totals.carbs, targets.carbs) },
+              { key: 'fat',     label: 'Fat',     value: totals.fat,     goal: targets.fat,     pct: fatPct,     over: isOver(totals.fat, targets.fat) },
+            ];
+
             return (
               <div className="daily-targets-card">
                 <div className="daily-targets-header">
                   <h3 className="daily-targets-title">Daily Totals</h3>
-                  <span className="daily-targets-cal">
+                  <span className={`daily-targets-cal ${isOver(totals.calories, targets.calories) ? 'is-over' : ''}`}>
                     <Flame size={14} />
-                    {totals.calories} cal
+                    <span className="cal-current">{totals.calories}</span>
+                    {targets.calories ? <span className="cal-goal"> / {targets.calories}</span> : null}
+                    <span className="cal-unit">cal</span>
                   </span>
                 </div>
+                {targets.calories ? (
+                  <div className={`daily-targets-cal-bar ${isOver(totals.calories, targets.calories) ? 'is-over' : ''}`} aria-hidden="true">
+                    <div className="daily-targets-cal-fill" style={{ width: `${calPct}%` }} />
+                  </div>
+                ) : null}
                 <div className="daily-targets-grid">
-                  <div className="target-box protein">
-                    <span className="target-dot" aria-hidden="true" />
-                    <span className="target-value">{totals.protein}g</span>
-                    <span className="target-label">Protein</span>
-                  </div>
-                  <div className="target-box carbs">
-                    <span className="target-dot" aria-hidden="true" />
-                    <span className="target-value">{totals.carbs}g</span>
-                    <span className="target-label">Carbs</span>
-                  </div>
-                  <div className="target-box fat">
-                    <span className="target-dot" aria-hidden="true" />
-                    <span className="target-value">{totals.fat}g</span>
-                    <span className="target-label">Fat</span>
-                  </div>
+                  {macros.map(m => (
+                    <div key={m.key} className={`target-box ${m.key} ${m.over ? 'is-over' : ''}`}>
+                      <span className="target-dot" aria-hidden="true" />
+                      <div className="target-content">
+                        <div className="target-numbers">
+                          <span className="target-value">{m.value}g</span>
+                          {m.goal ? <span className="target-goal">/ {m.goal}g</span> : null}
+                        </div>
+                        <span className="target-label">{m.label}</span>
+                      </div>
+                      {m.goal ? (
+                        <div className="target-progress" aria-hidden="true">
+                          <div className="target-fill" style={{ width: `${m.pct}%` }} />
+                        </div>
+                      ) : null}
+                    </div>
+                  ))}
                 </div>
               </div>
             );

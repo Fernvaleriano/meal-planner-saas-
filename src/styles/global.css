@@ -7761,7 +7761,7 @@ textarea,
 
 .daily-targets-cal {
     display: inline-flex;
-    align-items: center;
+    align-items: baseline;
     gap: 5px;
     font-size: 0.95rem;
     font-weight: 700;
@@ -7769,34 +7769,79 @@ textarea,
     padding: 4px 10px;
     border-radius: 999px;
     background: rgba(13, 148, 136, 0.1);
+    max-width: 60%;
+    min-width: 0;
 }
 
 .daily-targets-cal svg {
     flex-shrink: 0;
+    align-self: center;
+}
+
+.daily-targets-cal .cal-current { font-weight: 700; }
+.daily-targets-cal .cal-goal {
+    font-weight: 500;
+    opacity: 0.7;
+    font-size: 0.85em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+}
+.daily-targets-cal .cal-unit { font-weight: 600; font-size: 0.85em; }
+
+.daily-targets-cal.is-over {
+    color: #f43f5e;
+    background: rgba(244, 63, 94, 0.12);
 }
 
 [data-theme="dark"] .daily-targets-cal {
     color: #5eead4;
     background: rgba(20, 184, 166, 0.16);
 }
+[data-theme="dark"] .daily-targets-cal.is-over {
+    color: #fb7185;
+    background: rgba(244, 63, 94, 0.18);
+}
+
+/* Calorie progress bar (under header) */
+.daily-targets-cal-bar {
+    position: relative;
+    height: 4px;
+    width: 100%;
+    background: rgba(148, 163, 184, 0.14);
+    border-radius: 999px;
+    overflow: hidden;
+    margin: 6px 0 14px;
+}
+.daily-targets-cal-fill {
+    height: 100%;
+    width: 0;
+    max-width: 100%;
+    background: #0d9488;
+    border-radius: 999px;
+    transition: width 0.35s ease;
+}
+[data-theme="dark"] .daily-targets-cal-fill { background: #5eead4; }
+.daily-targets-cal-bar.is-over .daily-targets-cal-fill { background: #f43f5e; }
 
 .daily-targets-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 8px;
 }
 
 .target-box {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    grid-template-rows: auto auto;
-    align-items: baseline;
-    column-gap: 8px;
-    padding: 10px 12px;
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 10px 12px 14px;
     border-radius: 12px;
     background: var(--gray-50);
     border: 1px solid var(--gray-100);
     min-width: 0;
+    overflow: hidden;
 }
 
 [data-theme="dark"] .target-box {
@@ -7805,16 +7850,31 @@ textarea,
 }
 
 .target-dot {
-    grid-row: 1 / span 2;
+    flex-shrink: 0;
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    align-self: center;
+    margin-top: 7px;
 }
 
 .target-box.protein .target-dot { background: #3b82f6; }
 .target-box.carbs .target-dot { background: #f59e0b; }
 .target-box.fat .target-dot { background: #ef4444; }
+
+.target-content {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.target-numbers {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    min-width: 0;
+}
 
 .target-value {
     font-size: 1.05rem;
@@ -7822,11 +7882,28 @@ textarea,
     color: var(--gray-900);
     line-height: 1.1;
     white-space: nowrap;
+    flex-shrink: 0;
 }
 
 [data-theme="dark"] .target-value {
     color: #f1f5f9;
 }
+
+.target-goal {
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: var(--gray-400);
+    line-height: 1.1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+}
+
+[data-theme="dark"] .target-goal { color: #64748b; }
+
+.target-box.is-over .target-goal { color: #f43f5e; }
+[data-theme="dark"] .target-box.is-over .target-goal { color: #fb7185; }
 
 .target-label {
     font-size: 0.68rem;
@@ -7840,6 +7917,28 @@ textarea,
 [data-theme="dark"] .target-label {
     color: #94a3b8;
 }
+
+/* Progress bar — clipped by .target-box overflow:hidden */
+.target-progress {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 3px;
+    background: rgba(148, 163, 184, 0.14);
+    pointer-events: none;
+}
+.target-fill {
+    height: 100%;
+    width: 0;
+    max-width: 100%;
+    transition: width 0.35s ease;
+}
+.target-box.protein .target-fill { background: #3b82f6; }
+.target-box.carbs   .target-fill { background: #f59e0b; }
+.target-box.fat     .target-fill { background: #ef4444; }
+
+.target-box.is-over .target-fill { background: #f43f5e; }
 
 /* Meal Card with Image */
 .meal-card-image {
