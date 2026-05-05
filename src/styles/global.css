@@ -21783,11 +21783,15 @@ textarea,
     aspect-ratio: 4 / 3;
 }
 
-/* Thumbnail upload button for custom exercises */
+/* Thumbnail upload button for custom exercises — anchored to bottom-LEFT
+   so it does not collide with the play button at bottom-right. The play
+   button has z-index 2 and the camera was at z-index 3, so they used to
+   stack with the camera intercepting taps meant for the play button. */
 .exercise-images-v3 .thumbnail-upload-btn {
     position: absolute;
     bottom: 8px;
-    right: 8px;
+    left: 8px;
+    right: auto;
     width: 36px;
     height: 36px;
     background: rgba(0, 0, 0, 0.6);

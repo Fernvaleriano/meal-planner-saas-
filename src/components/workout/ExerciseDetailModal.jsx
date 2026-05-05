@@ -2021,7 +2021,6 @@ function ExerciseDetailModal({
         exercise?.duration || exercise?.exercise_type === 'cardio' || exercise?.exercise_type === 'timed'
       ))
   );
-  const difficultyLevel = exercise?.difficulty || 'Novice';
   const isWarmupExercise = !!(exercise?.isWarmup || exercise?.phase === 'warmup' || exercise?.section === 'warm-up');
   const isStretchExercise = !!(exercise?.isStretch || exercise?.phase === 'cooldown' || exercise?.section === 'cool-down' || exercise?.exercise_type === 'stretch');
   const isSupersetExercise = !!(exercise?.isSuperset && exercise?.supersetGroup);
@@ -2476,12 +2475,6 @@ function ExerciseDetailModal({
             )}
           </div>
         )}
-
-        {/* Difficulty */}
-        <div className="difficulty-section">
-          <BarChart3 size={16} />
-          <span>{difficultyLevel}</span>
-        </div>
 
         {/* Sets/Reps */}
         <div className="modal-time-boxes-wrapper">
