@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { ChevronLeft, ChevronRight, Play, Clock, Flame, CheckCircle, Dumbbell, Target, Calendar, TrendingUp, Award, Heart, MoreVertical, X, History, Settings, LogOut, Plus, Copy, ArrowRightLeft, SkipForward, PenSquare, Trash2, MoveRight, Share2, Star, Weight, Users, RotateCcw, Zap } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Play, Clock, Flame, Check, CheckCircle, Dumbbell, Target, Calendar, TrendingUp, Award, Heart, MoreVertical, X, History, Settings, LogOut, Plus, Copy, ArrowRightLeft, SkipForward, PenSquare, Trash2, MoveRight, Share2, Star, Weight, Users, RotateCcw, Zap } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { warmUpTickSound, installGlobalAudioUnlock } from '../utils/audioTick';
 import { useAuth } from '../context/AuthContext';
@@ -4858,24 +4858,31 @@ function Workouts() {
                 );
               })}
 
-              {/* Add Activity Button */}
+              {/* Add Activity — quiet escape hatch link, kept inside the
+                  exercises list block so it reads as "extend this workout"
+                  rather than a top-level page action. */}
               <div className="add-activity-section">
                 <button className="add-activity-btn" onClick={() => setShowAddActivity(true)}>
-                  <Plus size={20} />
-                  <span>Add Activity</span>
+                  <Plus size={16} />
+                  <span>Add another activity</span>
                 </button>
               </div>
             </div>
           </div>
 
-          {/* Finish Training Button at Bottom */}
+          {/* Finish Training — primary footer CTA with progress caption above */}
           <div className="finish-training-section">
+            {totalExercises > 0 && (
+              <div className="finish-progress-caption">
+                {completedCount} of {totalExercises} activities complete
+              </div>
+            )}
             <button
               className={`finish-training-btn ${completedCount === totalExercises && totalExercises > 0 ? 'ready' : ''}`}
               onClick={handleFinishClick}
             >
+              {completedCount === totalExercises && totalExercises > 0 && <Check size={18} />}
               <span className="btn-text">Finish training</span>
-              <span className="btn-progress">{completedCount}/{totalExercises} activities done</span>
             </button>
           </div>
         </div>
