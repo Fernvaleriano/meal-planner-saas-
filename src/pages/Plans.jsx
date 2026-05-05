@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Calendar, Flame, Target, Clock, Utensils, Coffee, Sun, Moon, Apple, Heart, ClipboardList, RefreshCw, Pencil, Crosshair, BookOpen, X, Plus, Minus, Trash2, Search, Undo2, RotateCcw, ShoppingCart, ChefHat, FileDown, Check, MessageSquare, Mic, MoreHorizontal } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, Flame, Target, Clock, Utensils, Coffee, Sun, Moon, Apple, Heart, ClipboardList, RefreshCw, Pencil, Crosshair, BookOpen, X, Plus, Minus, Trash2, Search, Undo2, RotateCcw, ShoppingCart, ChefHat, FileDown, Check, MessageSquare, Mic, MoreHorizontal, Play, Pause } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost } from '../utils/api';
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
@@ -54,12 +54,13 @@ const stripMealPrefix = (str) => {
 // Falls back to meal.name if no ingredients are available.
 const getMealDisplayName = (meal) => {
   if (meal.ingredients && Array.isArray(meal.ingredients) && meal.ingredients.length > 0) {
-    return meal.ingredients.map(ing => {
+    const joined = meal.ingredients.map(ing => {
       if (typeof ing === 'string') return ing;
       const amount = ing.amount || '';
       const name = ing.name || ing.food || '';
       return amount ? `${name} (${amount})` : name;
     }).join(', ');
+    return stripMealPrefix(joined) || 'Meal';
   }
   return stripMealPrefix(meal.name || meal.title || '') || 'Meal';
 };
@@ -72,6 +73,99 @@ const getLocalDateString = () => {
   const day = String(now.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 };
+
+const formatVoiceTime = (seconds) => {
+  if (!Number.isFinite(seconds) || seconds < 0) return '0:00';
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}:${String(s).padStart(2, '0')}`;
+};
+
+// Custom voice-note player — replaces native <audio controls> for a
+// brand-consistent, dark-theme-friendly UI. Click anywhere on the
+// progress bar to seek; tap container shouldn't bubble to the meal card.
+function VoiceNotePlayer({ src, onMissing }) {
+  const audioRef = useRef(null);
+  const barRef = useRef(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [duration, setDuration] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
+
+  useEffect(() => {
+    setIsPlaying(false);
+    setCurrentTime(0);
+    setDuration(0);
+  }, [src]);
+
+  const togglePlay = (e) => {
+    e?.stopPropagation();
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (isPlaying) {
+      audio.pause();
+    } else {
+      const playPromise = audio.play();
+      if (playPromise && typeof playPromise.catch === 'function') {
+        playPromise.catch(() => { /* ignore */ });
+      }
+    }
+  };
+
+  const handleSeek = (e) => {
+    e.stopPropagation();
+    const audio = audioRef.current;
+    const bar = barRef.current;
+    if (!audio || !bar || !duration) return;
+    const rect = bar.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    audio.currentTime = ratio * duration;
+    setCurrentTime(audio.currentTime);
+  };
+
+  const progressPct = duration > 0 ? (currentTime / duration) * 100 : 0;
+  const remaining = Math.max(0, duration - currentTime);
+
+  return (
+    <div className="vn-player" onClick={(e) => e.stopPropagation()}>
+      <button
+        type="button"
+        className="vn-play-btn"
+        onClick={togglePlay}
+        aria-label={isPlaying ? 'Pause voice note' : 'Play voice note'}
+      >
+        {isPlaying ? <Pause size={16} /> : <Play size={16} fill="currentColor" />}
+      </button>
+      <div
+        className="vn-progress"
+        ref={barRef}
+        role="slider"
+        aria-valuemin={0}
+        aria-valuemax={Math.round(duration) || 0}
+        aria-valuenow={Math.round(currentTime) || 0}
+        onClick={handleSeek}
+      >
+        <div className="vn-progress-fill" style={{ width: `${progressPct}%` }} />
+        <div className="vn-progress-thumb" style={{ left: `${progressPct}%` }} />
+      </div>
+      <span className="vn-time">
+        {isPlaying || currentTime > 0 ? formatVoiceTime(currentTime) : `-${formatVoiceTime(remaining)}`}
+      </span>
+      <audio
+        ref={audioRef}
+        src={src}
+        preload="metadata"
+        playsInline
+        onPlay={() => setIsPlaying(true)}
+        onPause={() => setIsPlaying(false)}
+        onEnded={() => { setIsPlaying(false); setCurrentTime(0); }}
+        onLoadedMetadata={(e) => setDuration(e.currentTarget.duration || 0)}
+        onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime || 0)}
+        onError={onMissing}
+      />
+    </div>
+  );
+}
 
 function Plans() {
   const { clientData } = useAuth();
@@ -513,10 +607,11 @@ function Plans() {
     return <Utensils size={18} className="meal-type-icon" />;
   };
 
-  // Format date
+  // Format date — short weekday helps anchor "when was this assigned"
   const formatDate = (dateStr) => {
     const date = new Date(dateStr);
     return date.toLocaleDateString('en-US', {
+      weekday: 'short',
       month: 'short',
       day: 'numeric',
       year: 'numeric'
@@ -1766,10 +1861,14 @@ Keep it practical and brief. Format with clear sections.`;
             </h1>
             <div className="plan-detail-meta">
               <span>{formatDate(selectedPlan.created_at)}</span>
+              {numDays > 1 && (
+                <>
+                  <span className="plan-meta-dot">·</span>
+                  <span>{numDays} days</span>
+                </>
+              )}
               <span className="plan-meta-dot">·</span>
-              <span>{numDays} {numDays === 1 ? 'day' : 'days'}</span>
-              <span className="plan-meta-dot">·</span>
-              <span>{calories === '-' ? '— cal' : `${calories} cal`}</span>
+              <span>{calories === '-' ? '— cal' : `${Number(calories).toLocaleString()} cal`}</span>
               {goal && goal !== '-' && (
                 <>
                   <span className="plan-meta-dot">·</span>
@@ -1826,7 +1925,7 @@ Keep it practical and brief. Format with clear sections.`;
         <div className="day-content">
           <h2 className="day-title">Day {selectedDay + 1}</h2>
 
-          {/* Daily Totals - calculated from actual meals */}
+          {/* Daily Totals - calculated from actual meals, with progress vs target if available */}
           {currentDay.plan && Array.isArray(currentDay.plan) && (() => {
             const totals = currentDay.plan.reduce((acc, meal) => ({
               calories: acc.calories + (meal.calories || 0),
@@ -1834,31 +1933,55 @@ Keep it practical and brief. Format with clear sections.`;
               carbs: acc.carbs + (meal.carbs || 0),
               fat: acc.fat + (meal.fat || 0),
             }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
+
+            const targets = currentDay.targets || {};
+            const pct = (actual, target) => {
+              if (!target || target <= 0) return null;
+              return Math.min(100, Math.round((actual / target) * 100));
+            };
+            const calPct = pct(totals.calories, targets.calories);
+
+            const renderBox = (cls, actual, target, label) => {
+              const p = pct(actual, target);
+              return (
+                <div className={`target-box ${cls}`}>
+                  <span className="target-dot" aria-hidden="true" />
+                  <span className="target-value">
+                    {actual}g
+                    {target > 0 && <span className="target-suffix"> / {target}g</span>}
+                  </span>
+                  <span className="target-label">{label}</span>
+                  {p !== null && (
+                    <div className="target-bar" aria-hidden="true">
+                      <div className="target-bar-fill" style={{ width: `${p}%` }} />
+                    </div>
+                  )}
+                </div>
+              );
+            };
+
             return (
               <div className="daily-targets-card">
                 <div className="daily-targets-header">
                   <h3 className="daily-targets-title">Daily Totals</h3>
                   <span className="daily-targets-cal">
                     <Flame size={14} />
-                    {totals.calories} cal
+                    {Number(totals.calories).toLocaleString()}
+                    {targets.calories > 0 && (
+                      <span className="daily-targets-cal-target"> / {Number(targets.calories).toLocaleString()}</span>
+                    )}
+                    {' cal'}
                   </span>
                 </div>
+                {calPct !== null && (
+                  <div className="daily-cal-bar" aria-hidden="true">
+                    <div className="daily-cal-bar-fill" style={{ width: `${calPct}%` }} />
+                  </div>
+                )}
                 <div className="daily-targets-grid">
-                  <div className="target-box protein">
-                    <span className="target-dot" aria-hidden="true" />
-                    <span className="target-value">{totals.protein}g</span>
-                    <span className="target-label">Protein</span>
-                  </div>
-                  <div className="target-box carbs">
-                    <span className="target-dot" aria-hidden="true" />
-                    <span className="target-value">{totals.carbs}g</span>
-                    <span className="target-label">Carbs</span>
-                  </div>
-                  <div className="target-box fat">
-                    <span className="target-dot" aria-hidden="true" />
-                    <span className="target-value">{totals.fat}g</span>
-                    <span className="target-label">Fat</span>
-                  </div>
+                  {renderBox('protein', totals.protein, targets.protein || 0, 'Protein')}
+                  {renderBox('carbs', totals.carbs, targets.carbs || 0, 'Carbs')}
+                  {renderBox('fat', totals.fat, targets.fat || 0, 'Fat')}
                 </div>
               </div>
             );
@@ -1930,16 +2053,9 @@ Keep it practical and brief. Format with clear sections.`;
                             <Mic size={12} />
                             Voice note from your coach
                           </span>
-                          <audio
-                            controls
-                            playsInline
+                          <VoiceNotePlayer
                             src={getVoiceNoteProxyUrl(meal)}
-                            className="meal-voice-audio"
-                            preload="auto"
-                            onClick={(e) => e.stopPropagation()}
-                            onPlay={(e) => e.stopPropagation()}
-                            onError={(e) => {
-                              // Hide voice note if file is missing/deleted
+                            onMissing={(e) => {
                               const container = e.target.closest('.meal-voice-note');
                               if (container) container.style.display = 'none';
                             }}
