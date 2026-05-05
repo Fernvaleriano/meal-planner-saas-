@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ChevronLeft, Clock, X, Search, Sparkles, Globe, BookOpen, Heart, Download, Plus, Trash2, Edit3, Eye, EyeOff, Upload, Link, Camera, Youtube, Loader } from 'lucide-react';
+import { ChevronLeft, Clock, X, Search, Sparkles, Globe, BookOpen, Heart, Download, Plus, Trash2, Edit3, Eye, EyeOff, Upload, Link, Camera, Youtube, Loader, Zap, Package, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, apiPut, apiDelete } from '../utils/api';
@@ -7,11 +7,11 @@ import { usePullToRefreshEvent } from '../hooks/usePullToRefreshEvent';
 
 import { useToast } from '../components/Toast';
 const CATEGORIES = [
-  { id: 'all', icon: '📖', label: 'All' },
-  { id: 'grab_go', icon: '⚡', label: 'Grab & Go' },
-  { id: 'quick', icon: '⏱️', label: 'Quick' },
-  { id: 'meal_prep', icon: '📦', label: 'Meal Prep' },
-  { id: 'family', icon: '👨‍👩‍👧‍👦', label: 'Family' }
+  { id: 'all', icon: BookOpen, label: 'All' },
+  { id: 'grab_go', icon: Zap, label: 'Grab & Go' },
+  { id: 'quick', icon: Clock, label: 'Quick' },
+  { id: 'meal_prep', icon: Package, label: 'Meal Prep' },
+  { id: 'family', icon: Users, label: 'Family' }
 ];
 
 const CATEGORY_LABELS = {
@@ -573,16 +573,19 @@ function Recipes() {
 
           {/* Category Tabs */}
           <div className="category-tabs-scroll">
-            {CATEGORIES.map(cat => (
-              <button
-                key={cat.id}
-                className={`category-tab-btn ${activeCategory === cat.id ? 'active' : ''}`}
-                onClick={() => setActiveCategory(cat.id)}
-              >
-                <span className="category-icon">{cat.icon}</span>
-                <span className="category-label">{cat.label}</span>
-              </button>
-            ))}
+            {CATEGORIES.map(cat => {
+              const Icon = cat.icon;
+              return (
+                <button
+                  key={cat.id}
+                  className={`category-tab-btn ${activeCategory === cat.id ? 'active' : ''}`}
+                  onClick={() => setActiveCategory(cat.id)}
+                >
+                  <Icon size={20} className="category-icon" strokeWidth={2} />
+                  <span className="category-label">{cat.label}</span>
+                </button>
+              );
+            })}
           </div>
 
           {/* My Recipes Content */}
@@ -637,11 +640,13 @@ function Recipes() {
                         )}
                       </div>
                       <h3 className="recipe-name">{recipe.name}</h3>
-                      <div className="recipe-macros">
-                        <span><strong>{recipe.calories || '-'}</strong> cal</span>
-                        <span><strong>{recipe.protein || '-'}g</strong> protein</span>
-                        <span><strong>{recipe.carbs || '-'}g</strong> carbs</span>
-                      </div>
+                      {(recipe.calories || recipe.protein || recipe.carbs) ? (
+                        <div className="recipe-macros">
+                          {recipe.calories ? <span><strong>{recipe.calories}</strong> cal</span> : null}
+                          {recipe.protein ? <span><strong>{recipe.protein}g</strong> protein</span> : null}
+                          {recipe.carbs ? <span><strong>{recipe.carbs}g</strong> carbs</span> : null}
+                        </div>
+                      ) : null}
                       {isCoach && !recipe.is_public && (
                         <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                           <EyeOff size={11} /> Hidden from clients
@@ -741,11 +746,13 @@ function Recipes() {
                           )}
                         </div>
                         <h3 className="recipe-name">{recipe.name}</h3>
-                        <div className="recipe-macros">
-                          <span><strong>{recipe.calories || '-'}</strong> cal</span>
-                          <span><strong>{recipe.protein || '-'}g</strong> P</span>
-                          <span><strong>{recipe.carbs || '-'}g</strong> C</span>
-                        </div>
+                        {(recipe.calories || recipe.protein || recipe.carbs) ? (
+                          <div className="recipe-macros">
+                            {recipe.calories ? <span><strong>{recipe.calories}</strong> cal</span> : null}
+                            {recipe.protein ? <span><strong>{recipe.protein}g</strong> P</span> : null}
+                            {recipe.carbs ? <span><strong>{recipe.carbs}g</strong> C</span> : null}
+                          </div>
+                        ) : null}
                       </div>
                     </div>
                   ))}
