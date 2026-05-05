@@ -121,11 +121,18 @@ function Layout() {
               {tabPaths.map(tabPath => {
                 if (!visited.has(tabPath)) return null;
                 const Component = TAB_COMPONENTS[tabPath];
+                const isActive = activeTab === tabPath;
+                // Messages tab needs to participate in the flex chain so the
+                // input bar pins to the bottom and the messages area fills
+                // all available height (especially during loading).
+                const needsFlexFill = isActive && tabPath === '/messages';
+                const style = !isActive
+                  ? { display: 'none' }
+                  : needsFlexFill
+                    ? { display: 'flex', flex: 1, minHeight: 0, flexDirection: 'column' }
+                    : { display: 'block' };
                 return (
-                  <div
-                    key={tabPath}
-                    style={{ display: activeTab === tabPath ? 'block' : 'none' }}
-                  >
+                  <div key={tabPath} style={style}>
                     <Component />
                   </div>
                 );

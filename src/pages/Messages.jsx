@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Send, Search, MessageCircle, X, Trash2, Check, CheckCheck, Paperclip, Loader, SmilePlus } from 'lucide-react';
+import { Send, Search, MessageCircle, X, Trash2, Check, CheckCheck, Paperclip, SmilePlus } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost } from '../utils/api';
 import { supabase } from '../utils/supabase';
@@ -1002,8 +1002,12 @@ function Messages() {
         <div className="chat-messages-container" ref={messagesContainerRef}>
           {messages.length === 0 && (
             loadingMessages ? (
-              <div className="chat-empty-thread">
-                <Loader size={28} className="spin" />
+              <div className="chat-skeleton" aria-hidden="true">
+                <div className="chat-skeleton-bubble theirs short" />
+                <div className="chat-skeleton-bubble theirs long" />
+                <div className="chat-skeleton-bubble mine medium" />
+                <div className="chat-skeleton-bubble theirs medium" />
+                <div className="chat-skeleton-bubble mine short" />
               </div>
             ) : (
               <div className="chat-empty-thread">
