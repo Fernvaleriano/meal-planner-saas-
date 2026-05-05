@@ -33,6 +33,22 @@ const DIFFICULTY_COLORS = {
   advanced: '#ef4444'
 };
 
+function hexToRgba(hex, alpha) {
+  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  if (!m) return `rgba(255, 255, 255, ${alpha})`;
+  return `rgba(${parseInt(m[1], 16)}, ${parseInt(m[2], 16)}, ${parseInt(m[3], 16)}, ${alpha})`;
+}
+
+function difficultyStyle(difficulty) {
+  const color = DIFFICULTY_COLORS[difficulty];
+  if (!color) return undefined;
+  return {
+    color,
+    '--difficulty-bg': hexToRgba(color, 0.16),
+    '--difficulty-border': hexToRgba(color, 0.35)
+  };
+}
+
 const DIFFICULTY_LABELS = {
   beginner: 'Beginner',
   intermediate: 'Intermediate',
@@ -713,6 +729,8 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
   }
 
   // Main list view
+  const resultCount = filteredWorkouts.length;
+  const totalCount = workouts.length;
   return (
     <div className="club-workouts-overlay" onClick={onClose}>
       <div className="club-workouts-modal" onClick={e => e.stopPropagation()}>
@@ -720,10 +738,19 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
           <button className="club-workouts-close" onClick={onClose}>
             <X size={24} />
           </button>
-          <h2>
-            <Users size={20} />
-            Club Workouts
-          </h2>
+          <div className="club-workouts-title">
+            <h2>
+              <Users size={20} />
+              Club Workouts
+            </h2>
+            {!loading && totalCount > 0 && (
+              <span className="club-workouts-subtitle">
+                {hasActiveFilters && resultCount !== totalCount
+                  ? `${resultCount} of ${totalCount}`
+                  : `${totalCount} ${totalCount === 1 ? 'program' : 'programs'}`}
+              </span>
+            )}
+          </div>
           <div style={{ width: 24 }} />
         </div>
 
@@ -742,6 +769,7 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
             </div>
 
             {/* Filter Pills Row */}
+            <div className="club-filter-pills-scroll">
             <div className="club-filter-pills">
               {/* Category/Goal Filter */}
               <div className="club-filter-pill-wrapper">
@@ -853,6 +881,8 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
               </div>
             </div>
 
+            </div>
+
             {/* Clear Filters */}
             {hasActiveFilters && (
               <button className="club-clear-filters" onClick={clearAllFilters}>
@@ -926,20 +956,28 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
                           {workout.difficulty && (
                             <span
                               className="club-workout-badge difficulty small"
-                              style={{ color: DIFFICULTY_COLORS[workout.difficulty] }}
+                              style={difficultyStyle(workout.difficulty)}
                             >
                               {workout.difficulty}
                             </span>
                           )}
-                          {isMultiDay && (
+                          {isMultiDay ? (
                             <span className="club-workout-badge category small">
                               <Layers size={12} /> {workout.total_days} days
+                            </span>
+                          ) : (
+                            <span className="club-workout-badge category small">
+                              <Dumbbell size={12} /> Single
                             </span>
                           )}
                         </div>
                         <div className="club-workout-card-stats">
-                          <span><Dumbbell size={14} /> {exerciseCount}</span>
-                          <span><Clock size={14} /> {estMinutes}m</span>
+                          <span title={`${exerciseCount} exercises`}>
+                            <Dumbbell size={13} /> {exerciseCount}
+                          </span>
+                          <span title={`${estMinutes} minutes`}>
+                            <Clock size={13} /> {estMinutes}m
+                          </span>
                         </div>
                       </div>
                     </div>
