@@ -21783,40 +21783,6 @@ textarea,
     aspect-ratio: 4 / 3;
 }
 
-/* Thumbnail upload button for custom exercises — anchored to bottom-LEFT
-   so it does not collide with the play button at bottom-right. The play
-   button has z-index 2 and the camera was at z-index 3, so they used to
-   stack with the camera intercepting taps meant for the play button. */
-.exercise-images-v3 .thumbnail-upload-btn {
-    position: absolute;
-    bottom: 8px;
-    left: 8px;
-    right: auto;
-    width: 36px;
-    height: 36px;
-    background: rgba(0, 0, 0, 0.6);
-    -webkit-backdrop-filter: blur(8px);
-    backdrop-filter: blur(8px);
-    border: 1.5px solid rgba(255, 255, 255, 0.2);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    cursor: pointer;
-    z-index: 3;
-    transition: background 0.2s;
-}
-
-.exercise-images-v3 .thumbnail-upload-btn:active {
-    background: rgba(13, 148, 136, 0.8);
-}
-
-.exercise-images-v3 .thumbnail-upload-btn:disabled {
-    opacity: 0.7;
-    cursor: default;
-}
-
 /* Difficulty Section — small inline pill instead of a full-width row, so
    it reads as metadata next to the exercise rather than a section heading. */
 .difficulty-section {
