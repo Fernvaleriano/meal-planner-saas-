@@ -37517,6 +37517,66 @@ textarea,
     font-size: 14px;
 }
 
+/* Skeleton loader for the message thread — fills the area with shimmering
+   bubble placeholders so the page feels shaped like a chat while loading,
+   instead of a lone spinner on a vast empty canvas. */
+.chat-skeleton {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 8px 4px;
+}
+
+.chat-skeleton-bubble {
+    height: 36px;
+    border-radius: 18px;
+    background: linear-gradient(
+        90deg,
+        var(--gray-200) 0%,
+        var(--gray-100) 50%,
+        var(--gray-200) 100%
+    );
+    background-size: 200% 100%;
+    animation: chat-skeleton-shimmer 1.4s ease-in-out infinite;
+    opacity: 0.7;
+}
+
+.chat-skeleton-bubble.short  { width: 38%; }
+.chat-skeleton-bubble.medium { width: 58%; }
+.chat-skeleton-bubble.long   { width: 72%; }
+
+.chat-skeleton-bubble.theirs {
+    align-self: flex-start;
+    border-bottom-left-radius: 6px;
+}
+
+.chat-skeleton-bubble.mine {
+    align-self: flex-end;
+    border-bottom-right-radius: 6px;
+}
+
+[data-theme="dark"] .chat-skeleton-bubble {
+    background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0.05) 0%,
+        rgba(255, 255, 255, 0.10) 50%,
+        rgba(255, 255, 255, 0.05) 100%
+    );
+    background-size: 200% 100%;
+}
+
+@keyframes chat-skeleton-shimmer {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .chat-skeleton-bubble {
+        animation: none;
+    }
+}
+
 /* Dark theme overrides */
 [data-theme="dark"] .chat-convo-item:hover {
     background: rgba(255, 255, 255, 0.05);
