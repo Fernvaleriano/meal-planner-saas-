@@ -33762,6 +33762,23 @@ textarea,
     z-index: 2;
 }
 
+.guided-video-unmute {
+    position: absolute;
+    top: 8px;
+    right: 48px;
+    width: 32px;
+    height: 32px;
+    background: rgba(0, 0, 0, 0.7);
+    border: none;
+    border-radius: 50%;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 2;
+}
+
 /* Timer area */
 .guided-timer-area {
     flex: 1;

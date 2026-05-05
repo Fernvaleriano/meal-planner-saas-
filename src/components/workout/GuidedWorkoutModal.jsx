@@ -269,6 +269,7 @@ function GuidedWorkoutModal({
   const [playingVoiceNote, setPlayingVoiceNote] = useState(false);
   const [showCoachNote, setShowCoachNote] = useState(false); // For text notes popup
   const [showReferenceLinks, setShowReferenceLinks] = useState(false);
+  const [videoMuted, setVideoMuted] = useState(true); // Custom videos start muted so background music keeps playing
 
   // Client note for coach state
   const [showClientNoteInput, setShowClientNoteInput] = useState(false);
@@ -1661,6 +1662,7 @@ function GuidedWorkoutModal({
     setPlayingVoiceNote(false);
     setShowCoachNote(false);
     setShowVideo(false);
+    setVideoMuted(true);
     setGuidedVideoLoading(true);
     setGuidedVideoError(false);
     setGuidedVideoKey(0);
@@ -3411,25 +3413,24 @@ function GuidedWorkoutModal({
         ) : showVideo && (currentExercise?.customVideoUrl || currentExercise?.video_url || currentExercise?.animation_url) ? (
           (() => {
             // Per-day Custom Demos AND custom-exercise library videos are coach
-            // recordings with voice cues. We still autoplay them on loop like
-            // stock animations, but start muted so the client's background
-            // music keeps playing — they can unmute via the native controls
-            // if they want to hear the coach (which will pause their music,
-            // their choice).
+            // recordings with voice cues. Autoplay/loop/muted them like stock
+            // animations so the client's background music keeps playing and
+            // the video starts on its own — no native controls (which on iOS
+            // can render a play-button overlay despite autoplay+muted). A
+            // small unmute toggle lets the client opt into the coach's voice,
+            // which is then their explicit choice to pause their music.
             const videoHasAudio = !!currentExercise?.customVideoUrl || currentExercise?.is_custom === true;
             return (
           <div
             className="guided-video-container"
             style={{ position: 'relative' }}
-            onClick={videoHasAudio ? (e) => e.stopPropagation() : undefined}
           >
             <video
               key={guidedVideoKey}
               src={guidedVideoBlobUrl || currentExercise.customVideoUrl || currentExercise.video_url || currentExercise.animation_url}
               autoPlay
               loop
-              muted
-              controls={videoHasAudio}
+              muted={!videoHasAudio || videoMuted}
               playsInline
               preload={videoHasAudio ? 'auto' : 'metadata'}
               onCanPlay={() => { setGuidedVideoLoading(false); setGuidedVideoError(false); }}
@@ -3437,6 +3438,17 @@ function GuidedWorkoutModal({
               onWaiting={() => setGuidedVideoLoading(true)}
               onError={handleGuidedVideoError}
             />
+            {videoHasAudio && (
+              <button
+                type="button"
+                className="guided-video-unmute"
+                onClick={(e) => { e.stopPropagation(); setVideoMuted(m => !m); }}
+                aria-label={videoMuted ? 'Unmute coach voice' : 'Mute coach voice'}
+                title={videoMuted ? 'Unmute (will pause your music)' : 'Mute'}
+              >
+                {videoMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+              </button>
+            )}
             {guidedVideoLoading && !guidedVideoError && !videoHasAudio && (
               <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)', zIndex: 2, pointerEvents: 'none' }}>
                 <Loader2 size={28} style={{ color: 'white', animation: 'spin 1s linear infinite' }} />
