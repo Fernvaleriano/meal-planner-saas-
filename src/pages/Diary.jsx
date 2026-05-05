@@ -89,7 +89,13 @@ function Diary() {
   const [waterUnit, setWaterUnit] = useState(clientData?.water_unit || 'glasses');
   const [aiInput, setAiInput] = useState('');
   const [aiLogging, setAiLogging] = useState(false);
-  const [selectedMealType, setSelectedMealType] = useState('snack');
+  const [selectedMealType, setSelectedMealType] = useState(() => {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 11) return 'breakfast';
+    if (hour >= 11 && hour < 15) return 'lunch';
+    if (hour >= 15 && hour < 21) return 'dinner';
+    return 'snack';
+  });
 
   // Modal states
   const [showCopyDayModal, setShowCopyDayModal] = useState(false);
@@ -2498,19 +2504,19 @@ function Diary() {
 
       {/* Quick Actions Row */}
       <div className="diary-quick-actions">
-        <button className="diary-action-btn" onClick={() => setShowCopyDayModal(true)}>
+        <button className="diary-action-btn" onClick={() => setShowCopyDayModal(true)} aria-label="Copy day">
           <Copy size={16} />
-          Copy Day
+          Copy
         </button>
-        <button className="diary-action-btn" onClick={() => setShowDailyReportModal(true)}>
+        <button className="diary-action-btn" onClick={() => setShowDailyReportModal(true)} aria-label="Daily report">
           <FileText size={16} />
           Daily
         </button>
-        <button className="diary-action-btn" onClick={() => { fetchWeeklyData(); setShowWeeklySummaryModal(true); }}>
+        <button className="diary-action-btn" onClick={() => { fetchWeeklyData(); setShowWeeklySummaryModal(true); }} aria-label="Weekly summary">
           <BarChart3 size={16} />
           Weekly
         </button>
-        <button className="diary-action-btn" onClick={() => setShowShareDiaryModal(true)}>
+        <button className="diary-action-btn" onClick={() => setShowShareDiaryModal(true)} aria-label="Share diary">
           <Share2 size={16} />
           Share
         </button>
@@ -2544,43 +2550,44 @@ function Diary() {
             <span className="calorie-stat-value">{goals.calorie_goal}</span>
             <span className="calorie-stat-label">Goal</span>
           </div>
-          <span className="calorie-operator">-</span>
+          <span className="calorie-divider" aria-hidden="true" />
           <div className="calorie-stat">
             <span className="calorie-stat-value">{totals.calories}</span>
             <span className="calorie-stat-label">Food</span>
           </div>
-          <span className="calorie-operator">=</span>
+          <span className="calorie-divider" aria-hidden="true" />
           <div className="calorie-stat">
             <span className="calorie-stat-value remaining">{remaining}</span>
             <span className="calorie-stat-label">Left</span>
           </div>
         </div>
 
-        {/* Macro Progress Bars - Horizontal Scroll */}
+        {/* Macro Progress Bars - 3-column grid for primary macros, horizontal scroll for micros */}
+        <div className="macro-progress-primary">
+          <div className="macro-bar-item">
+            <span className="macro-bar-label protein">P:</span>
+            <span className="macro-bar-value">{Math.round(totals.protein)}/{goals.protein_goal}g</span>
+            <div className="macro-bar-track">
+              <div className="macro-bar-fill protein" style={{ width: `${proteinProgress}%` }} />
+            </div>
+          </div>
+          <div className="macro-bar-item">
+            <span className="macro-bar-label carbs">C:</span>
+            <span className="macro-bar-value">{Math.round(totals.carbs)}/{goals.carbs_goal}g</span>
+            <div className="macro-bar-track">
+              <div className="macro-bar-fill carbs" style={{ width: `${carbsProgress}%` }} />
+            </div>
+          </div>
+          <div className="macro-bar-item">
+            <span className="macro-bar-label fat">F:</span>
+            <span className="macro-bar-value">{Math.round(totals.fat)}/{goals.fat_goal}g</span>
+            <div className="macro-bar-track">
+              <div className="macro-bar-fill fat" style={{ width: `${fatProgress}%` }} />
+            </div>
+          </div>
+        </div>
         <div className="macro-progress-scroll">
           <div className="macro-progress-bars">
-            <div className="macro-bar-item">
-              <span className="macro-bar-label protein">P:</span>
-              <span className="macro-bar-value">{Math.round(totals.protein)}/{goals.protein_goal}g</span>
-              <div className="macro-bar-track">
-                <div className="macro-bar-fill protein" style={{ width: `${proteinProgress}%` }} />
-              </div>
-            </div>
-            <div className="macro-bar-item">
-              <span className="macro-bar-label carbs">C:</span>
-              <span className="macro-bar-value">{Math.round(totals.carbs)}/{goals.carbs_goal}g</span>
-              <div className="macro-bar-track">
-                <div className="macro-bar-fill carbs" style={{ width: `${carbsProgress}%` }} />
-              </div>
-            </div>
-            <div className="macro-bar-item">
-              <span className="macro-bar-label fat">F:</span>
-              <span className="macro-bar-value">{Math.round(totals.fat)}/{goals.fat_goal}g</span>
-              <div className="macro-bar-track">
-                <div className="macro-bar-fill fat" style={{ width: `${fatProgress}%` }} />
-              </div>
-            </div>
-            {/* Micronutrients - scroll right to see */}
             <div className="macro-bar-item">
               <span className="macro-bar-label fiber">Fiber:</span>
               <span className="macro-bar-value">{Math.round(totals.fiber || 0)}/{goals.fiber_goal || 28}g</span>

@@ -191,20 +191,25 @@ textarea,
 .top-nav {
     background: var(--brand-gradient);
     /* Add safe-area-inset-top for iPhone notch/Dynamic Island */
-    padding: calc(2px + env(safe-area-inset-top, 0px)) 24px 2px 24px;
+    padding: calc(8px + env(safe-area-inset-top, 0px)) 20px 8px 20px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    box-shadow: var(--shadow-lg);
+    box-shadow: var(--shadow-md);
     position: sticky;
     top: 0;
     z-index: 100;
 }
 
+[data-theme="dark"] .top-nav {
+    background: linear-gradient(135deg, #0f766e 0%, #075985 100%);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
 /* Mobile-responsive header adjustments */
 @media (max-width: 500px) {
     .top-nav {
-        padding: calc(2px + env(safe-area-inset-top, 0px)) 16px 2px 16px;
+        padding: calc(8px + env(safe-area-inset-top, 0px)) 14px 8px 14px;
     }
 }
 
@@ -272,24 +277,24 @@ textarea,
 }
 
 .nav-logo-left {
-    height: 112px;
+    height: 40px;
     width: auto;
-    max-width: 350px;
+    max-width: 180px;
     object-fit: contain;
 }
 
 /* Responsive logo sizing for different screen sizes */
 @media (max-width: 500px) {
     .nav-logo-left {
-        height: 98px;
-        max-width: 300px;
+        height: 36px;
+        max-width: 150px;
     }
 }
 
 @media (max-width: 380px) {
     .nav-logo-left {
-        height: 88px;
-        max-width: 270px;
+        height: 32px;
+        max-width: 130px;
     }
 }
 
@@ -3862,11 +3867,12 @@ textarea,
 
 .diary-action-btn {
     flex: 1;
+    min-width: 0;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 6px;
-    padding: 10px 12px;
+    padding: 10px 8px;
     background: var(--gray-100);
     border: 1px solid var(--gray-200);
     border-radius: 10px;
@@ -3875,6 +3881,11 @@ textarea,
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.diary-action-btn svg {
+    flex-shrink: 0;
 }
 
 [data-theme="dark"] .diary-action-btn {
@@ -4069,6 +4080,29 @@ textarea,
 .calorie-operator {
     font-size: 1rem;
     color: var(--gray-400);
+}
+
+.calorie-divider {
+    width: 1px;
+    height: 28px;
+    background: var(--gray-200);
+}
+
+[data-theme="dark"] .calorie-divider {
+    background: #334155;
+}
+
+/* Primary macros (P/C/F) — fixed 3-column grid, never clipped */
+.macro-progress-primary {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.macro-progress-primary .macro-bar-item {
+    flex: none;
+    min-width: 0;
 }
 
 /* Macro Progress Scroll Container */
@@ -4575,9 +4609,15 @@ textarea,
 }
 
 .meal-footer-btn.save {
-    background: rgba(239, 68, 68, 0.1);
-    border: 1px solid rgba(239, 68, 68, 0.2);
-    color: #ef4444;
+    background: rgba(13, 148, 136, 0.1);
+    border: 1px solid rgba(13, 148, 136, 0.25);
+    color: var(--brand-primary);
+}
+
+[data-theme="dark"] .meal-footer-btn.save {
+    background: rgba(20, 184, 166, 0.12);
+    border-color: rgba(20, 184, 166, 0.3);
+    color: var(--brand-primary-light);
 }
 
 .meal-footer-btn:hover {
@@ -4707,14 +4747,26 @@ textarea,
     display: flex;
     align-items: center;
     gap: 8px;
-    background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+    background: white;
+    border: 1px solid var(--gray-100);
     border-radius: 14px;
-    padding: 12px 12px;
+    padding: 12px 14px;
     margin-bottom: 16px;
-    color: white;
+    color: var(--gray-700);
     overflow: hidden;
     box-sizing: border-box;
     max-width: 100%;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="dark"] .water-intake-compact {
+    background: #1e293b;
+    border-color: #334155;
+    color: #e2e8f0;
+}
+
+.water-intake-compact .water-icon {
+    color: #0ea5e9;
 }
 
 .water-intake-left {
@@ -4750,9 +4802,9 @@ textarea,
     height: 28px;
     min-width: 28px;
     border-radius: 8px;
-    background: rgba(255, 255, 255, 0.2);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    color: white;
+    background: var(--gray-100);
+    border: 1px solid var(--gray-200);
+    color: var(--gray-700);
     font-size: 1rem;
     font-weight: 600;
     cursor: pointer;
@@ -4763,9 +4815,19 @@ textarea,
     flex-shrink: 0;
 }
 
+[data-theme="dark"] .water-btn-compact {
+    background: #334155;
+    border-color: #475569;
+    color: #e2e8f0;
+}
+
 .water-btn-compact:hover:not(:disabled) {
-    background: rgba(255, 255, 255, 0.3);
+    background: var(--gray-200);
     transform: scale(1.05);
+}
+
+[data-theme="dark"] .water-btn-compact:hover:not(:disabled) {
+    background: #475569;
 }
 
 .water-btn-compact:disabled {
@@ -4778,45 +4840,53 @@ textarea,
     appearance: none;
     flex: 1;
     min-width: 0;
-    height: 8px;
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 4px;
+    height: 6px;
+    background: var(--gray-100);
+    border-radius: 3px;
     outline: none;
     cursor: pointer;
+}
+
+[data-theme="dark"] .water-slider {
+    background: #334155;
 }
 
 .water-slider::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
-    width: 20px;
-    height: 20px;
+    width: 18px;
+    height: 18px;
     border-radius: 50%;
-    background: white;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+    background: #0ea5e9;
+    box-shadow: 0 1px 4px rgba(14, 165, 233, 0.4);
     cursor: pointer;
     margin-top: -6px;
 }
 
 .water-slider::-moz-range-thumb {
-    width: 20px;
-    height: 20px;
+    width: 18px;
+    height: 18px;
     border-radius: 50%;
-    background: white;
+    background: #0ea5e9;
     border: none;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 1px 4px rgba(14, 165, 233, 0.4);
     cursor: pointer;
 }
 
 .water-slider::-webkit-slider-runnable-track {
-    height: 8px;
-    border-radius: 4px;
+    height: 6px;
+    border-radius: 3px;
 }
 
 .water-slider::-moz-range-track {
-    height: 8px;
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 4px;
+    height: 6px;
+    background: var(--gray-100);
+    border-radius: 3px;
     border: none;
+}
+
+[data-theme="dark"] .water-slider::-moz-range-track {
+    background: #334155;
 }
 
 /* Water tracker responsive - small screens */
