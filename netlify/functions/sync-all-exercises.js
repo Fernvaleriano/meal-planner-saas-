@@ -63,21 +63,12 @@ function parseExerciseFilename(filename) {
   const withoutParenSuffix = withoutExt.replace(/\s*\(\d+\)$/, '');
   const withoutFrameSuffix = withoutParenSuffix.replace(/[\s_]?\d+$/, '');
 
-  // Detect gender variant from _Female, _Male, _female, _male suffix
-  let genderVariant = null;
-  const genderMatch = withoutFrameSuffix.match(/[_\s](female|male)$/i);
-  if (genderMatch) {
-    genderVariant = genderMatch[1].toLowerCase();
-  }
-
-  // Strip gender suffix, then clean up
   const name = withoutFrameSuffix
-    .replace(/[_\s](female|male)$/i, '')
     .replace(/[_-]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 
-  return { name, genderVariant };
+  return { name };
 }
 
 const normalizeForMatch = (s) => (s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -139,7 +130,7 @@ async function syncVideos(supabase, videos, dryRun, exercisesByName, exercisesBy
   let skipped = 0;
 
   for (const video of videos) {
-    const { name: exerciseName, genderVariant } = parseExerciseFilename(video.filename);
+    const { name: exerciseName } = parseExerciseFilename(video.filename);
     const nameLower = exerciseName.toLowerCase().trim();
 
     if (exercisesByVideo.has(video.url)) {
@@ -147,15 +138,14 @@ async function syncVideos(supabase, videos, dryRun, exercisesByName, exercisesBy
       continue;
     }
 
-    const variantKey = genderVariant ? `${nameLower}__${genderVariant}` : nameLower;
-    const existing = exercisesByName.get(variantKey) || exercisesByName.get(nameLower);
+    const existing = exercisesByName.get(nameLower);
 
     if (existing && exercisesByVideo.has(existing.video_url)) {
       skipped++;
       continue;
     }
 
-    if (existing && !genderVariant) {
+    if (existing) {
       toUpdate.push({ id: existing.id, video_url: video.url, animation_url: video.url });
     } else {
       toCreate.push({
@@ -166,13 +156,12 @@ async function syncVideos(supabase, videos, dryRun, exercisesByName, exercisesBy
         difficulty: 'intermediate',
         video_url: video.url,
         animation_url: video.url,
-        gender_variant: genderVariant,
         source: 'storage-sync',
         description: `${exerciseName} exercise`,
         instructions: `Perform the ${exerciseName} with proper form.`,
         is_custom: false
       });
-      exercisesByName.set(variantKey, { name: exerciseName });
+      exercisesByName.set(nameLower, { name: exerciseName });
     }
   }
 
@@ -183,7 +172,7 @@ async function syncVideos(supabase, videos, dryRun, exercisesByName, exercisesBy
     await runInBatches(toCreate, 20, async (exercise) => {
       const { error } = await supabase.from('exercises').insert(exercise);
       if (error) {
-        errors.push(`${exercise.name} (${exercise.gender_variant || 'unisex'}): ${error.message}`);
+        errors.push(`${exercise.name}: ${error.message}`);
       } else {
         created++;
       }
@@ -207,7 +196,6 @@ async function syncVideos(supabase, videos, dryRun, exercisesByName, exercisesBy
     errorMessages: errors.slice(0, 10),
     sample: toCreate.slice(0, 10).map(e => ({
       name: e.name,
-      gender: e.gender_variant || 'unisex',
       muscle_group: e.muscle_group
     }))
   };
@@ -216,17 +204,13 @@ async function syncVideos(supabase, videos, dryRun, exercisesByName, exercisesBy
 async function syncThumbs(supabase, thumbs, dryRun) {
   const { data: exercisesWithThumbs } = await supabase
     .from('exercises')
-    .select('id, name, thumbnail_url, gender_variant');
+    .select('id, name, thumbnail_url');
 
   const thumbLookup = new Map();
   const thumbLookupNormalized = new Map();
   for (const ex of exercisesWithThumbs || []) {
-    const nameLower = ex.name.toLowerCase().trim();
-    const nameNorm = normalizeForMatch(ex.name);
-    const key = ex.gender_variant ? `${nameLower}__${ex.gender_variant}` : nameLower;
-    const normKey = ex.gender_variant ? `${nameNorm}__${ex.gender_variant}` : nameNorm;
-    thumbLookup.set(key, ex);
-    thumbLookupNormalized.set(normKey, ex);
+    thumbLookup.set(ex.name.toLowerCase().trim(), ex);
+    thumbLookupNormalized.set(normalizeForMatch(ex.name), ex);
   }
 
   const thumbToUpdate = [];
@@ -235,17 +219,11 @@ async function syncThumbs(supabase, thumbs, dryRun) {
   const unmatchedThumbs = [];
 
   for (const thumb of thumbs) {
-    const { name: exerciseName, genderVariant } = parseExerciseFilename(thumb.filename);
+    const { name: exerciseName } = parseExerciseFilename(thumb.filename);
     const nameLower = exerciseName.toLowerCase().trim();
     const nameNorm = normalizeForMatch(exerciseName);
-    const variantKey = genderVariant ? `${nameLower}__${genderVariant}` : nameLower;
-    const variantNormKey = genderVariant ? `${nameNorm}__${genderVariant}` : nameNorm;
 
-    const existing =
-      thumbLookup.get(variantKey) ||
-      thumbLookup.get(nameLower) ||
-      thumbLookupNormalized.get(variantNormKey) ||
-      thumbLookupNormalized.get(nameNorm);
+    const existing = thumbLookup.get(nameLower) || thumbLookupNormalized.get(nameNorm);
 
     if (!existing) {
       thumbsUnmatched++;
@@ -289,15 +267,12 @@ async function syncThumbs(supabase, thumbs, dryRun) {
 async function loadExerciseMaps(supabase) {
   const { data: existingExercises } = await supabase
     .from('exercises')
-    .select('id, name, video_url, gender_variant');
+    .select('id, name, video_url');
 
   const exercisesByName = new Map();
   const exercisesByVideo = new Map();
   for (const ex of existingExercises || []) {
-    const key = ex.gender_variant
-      ? `${ex.name.toLowerCase().trim()}__${ex.gender_variant}`
-      : ex.name.toLowerCase().trim();
-    exercisesByName.set(key, ex);
+    exercisesByName.set(ex.name.toLowerCase().trim(), ex);
     if (ex.video_url) exercisesByVideo.set(ex.video_url, ex);
   }
   return { exercisesByName, exercisesByVideo };

@@ -62,49 +62,32 @@ function parseExerciseFilename(filename) {
   const withoutParenSuffix = withoutExt.replace(/\s*\(\d+\)$/, '');
   const withoutFrameSuffix = withoutParenSuffix.replace(/[\s_]?\d+$/, '');
 
-  let genderVariant = null;
-  const genderMatch = withoutFrameSuffix.match(/[_\s](female|male)$/i);
-  if (genderMatch) genderVariant = genderMatch[1].toLowerCase();
-
   const name = withoutFrameSuffix
-    .replace(/[_\s](female|male)$/i, '')
     .replace(/[_-]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 
-  return { name, genderVariant };
+  return { name };
 }
 
 const normalizeForMatch = (s) => (s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 
-async function findExercise(supabase, { name, genderVariant }) {
+async function findExercise(supabase, { name }) {
   const nameLower = name.toLowerCase().trim();
   const nameNorm = normalizeForMatch(name);
 
   const { data: candidates } = await supabase
     .from('exercises')
-    .select('id, name, gender_variant, video_url, thumbnail_url, animation_url')
+    .select('id, name, video_url, thumbnail_url, animation_url')
     .ilike('name', name);
 
-  if (candidates && candidates.length > 0) {
-    const exact = candidates.find(c =>
-      c.name.toLowerCase().trim() === nameLower &&
-      (genderVariant ? c.gender_variant === genderVariant : !c.gender_variant)
-    );
-    if (exact) return exact;
-    const nameOnly = candidates.find(c => c.name.toLowerCase().trim() === nameLower);
-    if (nameOnly) return nameOnly;
-  }
+  const exact = (candidates || []).find(c => c.name.toLowerCase().trim() === nameLower);
+  if (exact) return exact;
 
   const { data: all } = await supabase
     .from('exercises')
-    .select('id, name, gender_variant, video_url, thumbnail_url, animation_url');
+    .select('id, name, video_url, thumbnail_url, animation_url');
 
-  const variantMatch = (all || []).find(c =>
-    normalizeForMatch(c.name) === nameNorm &&
-    (genderVariant ? c.gender_variant === genderVariant : !c.gender_variant)
-  );
-  if (variantMatch) return variantMatch;
   return (all || []).find(c => normalizeForMatch(c.name) === nameNorm) || null;
 }
 
@@ -112,12 +95,12 @@ async function handleVideoInsert(supabase, filePath) {
   const segments = filePath.split('/');
   const filename = segments.pop();
   const folder = segments.join('/');
-  const { name, genderVariant } = parseExerciseFilename(filename);
+  const { name } = parseExerciseFilename(filename);
 
   const { data: urlData } = supabase.storage.from(VIDEO_BUCKET).getPublicUrl(filePath);
   const publicUrl = urlData.publicUrl;
 
-  const existing = await findExercise(supabase, { name, genderVariant });
+  const existing = await findExercise(supabase, { name });
 
   if (existing) {
     if (existing.video_url === publicUrl) return { action: 'skipped', reason: 'already_linked', exerciseId: existing.id };
@@ -137,7 +120,6 @@ async function handleVideoInsert(supabase, filePath) {
     difficulty: 'intermediate',
     video_url: publicUrl,
     animation_url: publicUrl,
-    gender_variant: genderVariant,
     source: 'storage-webhook',
     description: `${name} exercise`,
     instructions: `Perform the ${name} with proper form.`,
@@ -150,12 +132,12 @@ async function handleVideoInsert(supabase, filePath) {
 
 async function handleThumbnailInsert(supabase, filePath) {
   const filename = filePath.split('/').pop();
-  const { name, genderVariant } = parseExerciseFilename(filename);
+  const { name } = parseExerciseFilename(filename);
 
   const { data: urlData } = supabase.storage.from(THUMBNAIL_BUCKET).getPublicUrl(filePath);
   const publicUrl = urlData.publicUrl;
 
-  const existing = await findExercise(supabase, { name, genderVariant });
+  const existing = await findExercise(supabase, { name });
   if (!existing) return { action: 'unmatched', filename };
   if (existing.thumbnail_url === publicUrl) return { action: 'skipped', reason: 'already_linked', exerciseId: existing.id };
 
