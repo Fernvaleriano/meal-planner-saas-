@@ -892,7 +892,7 @@ function Dashboard() {
         </svg>
         <div className="progress-ring-value">
           <span className="current">{Math.round(current)}</span>
-          <span className="target">/{target}{label !== 'Calories' ? 'g' : ''}</span>
+          <span className="target">/{target}{label === 'Calories' ? ' kcal' : 'g'}</span>
         </div>
         <div className="progress-ring-label">{label}</div>
       </div>
@@ -1100,25 +1100,25 @@ function Dashboard() {
           <ProgressRing
             current={todayProgress.calories}
             target={targets.calories}
-            color="#3b82f6"
+            color="#14b8a6"
             label="Calories"
           />
           <ProgressRing
             current={todayProgress.protein}
             target={targets.protein}
-            color="#ef4444"
+            color="#14b8a6"
             label="Protein"
           />
           <ProgressRing
             current={todayProgress.carbs}
             target={targets.carbs}
-            color="#f59e0b"
+            color="#14b8a6"
             label="Carbs"
           />
           <ProgressRing
             current={todayProgress.fat}
             target={targets.fat}
-            color="#a855f7"
+            color="#14b8a6"
             label="Fat"
           />
         </div>
