@@ -7812,21 +7812,20 @@ textarea,
 
 .daily-targets-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 8px;
 }
 
 .target-box {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    grid-template-rows: auto auto auto;
-    align-items: baseline;
-    column-gap: 8px;
-    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px;
     border-radius: 12px;
     background: var(--gray-50);
     border: 1px solid var(--gray-100);
     min-width: 0;
+    overflow: hidden;
 }
 
 [data-theme="dark"] .target-box {
@@ -7834,30 +7833,55 @@ textarea,
     border-color: rgba(148, 163, 184, 0.1);
 }
 
+.target-box-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+}
+
 .target-dot {
-    grid-row: 1 / span 2;
-    width: 8px;
-    height: 8px;
+    width: 7px;
+    height: 7px;
     border-radius: 50%;
-    align-self: center;
+    flex-shrink: 0;
 }
 
 .target-box.protein .target-dot { background: #3b82f6; }
 .target-box.carbs .target-dot { background: #f59e0b; }
 .target-box.fat .target-dot { background: #ef4444; }
 
+.target-box-value {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    min-width: 0;
+    overflow: hidden;
+}
+
 .target-value {
-    font-size: 1.05rem;
+    font-size: 1rem;
     font-weight: 700;
     color: var(--gray-900);
     line-height: 1.1;
     white-space: nowrap;
 }
 
+.target-unit {
+    font-size: 0.78em;
+    font-weight: 600;
+    margin-left: 1px;
+    opacity: 0.85;
+}
+
 .target-suffix {
-    font-size: 0.8rem;
+    font-size: 0.72rem;
     font-weight: 500;
     color: var(--gray-500);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
 }
 
 [data-theme="dark"] .target-value {
@@ -7869,12 +7893,15 @@ textarea,
 }
 
 .target-label {
-    font-size: 0.68rem;
-    font-weight: 600;
+    font-size: 0.62rem;
+    font-weight: 700;
     color: var(--gray-500);
     text-transform: uppercase;
-    letter-spacing: 0.4px;
-    line-height: 1.2;
+    letter-spacing: 0.5px;
+    line-height: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 [data-theme="dark"] .target-label {
@@ -7883,12 +7910,23 @@ textarea,
 
 /* Per-macro progress bar — matches the macro's accent color */
 .target-bar {
-    grid-column: 1 / -1;
-    margin-top: 8px;
+    margin-top: 2px;
     height: 3px;
     border-radius: 999px;
     background: rgba(148, 163, 184, 0.18);
     overflow: hidden;
+}
+
+@media (max-width: 360px) {
+    .target-box {
+        padding: 8px;
+    }
+    .target-value {
+        font-size: 0.92rem;
+    }
+    .target-suffix {
+        font-size: 0.66rem;
+    }
 }
 
 .target-bar-fill {
