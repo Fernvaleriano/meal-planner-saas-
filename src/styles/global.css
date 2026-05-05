@@ -36286,27 +36286,108 @@ textarea,
     background: var(--gray-100);
 }
 
-/* Reaction messages in chat */
+/* Reaction notification messages — demoted to a slim inline pill so a
+   string of "Reacted X to your Y" entries no longer dominates the
+   conversation view at the same visual weight as real messages. */
 .chat-msg.reaction-msg .reaction-bubble {
     background: transparent !important;
-    border: 1px solid var(--gray-300);
-    padding: 6px 12px;
+    border: none;
+    padding: 2px 0;
+    box-shadow: none;
+    border-radius: 0;
+    max-width: 100%;
 }
 
 .chat-msg.reaction-msg .reaction-bubble p {
-    font-size: 13px;
+    font-size: 12px;
     font-style: italic;
+    color: rgba(255, 255, 255, 0.45);
+    margin: 0;
+    line-height: 1.35;
+}
+
+.chat-msg.reaction-msg .chat-msg-time {
+    font-size: 10px;
+    opacity: 0.55;
+    margin-top: 1px;
+}
+
+.chat-msg.reaction-msg .chat-reaction-trigger {
+    display: none;
+}
+
+[data-theme="light"] .chat-msg.reaction-msg .reaction-bubble p {
+    color: rgba(15, 23, 42, 0.5);
+}
+
+/* Emoji-only messages — render at large size without a bubble, matching
+   the iMessage / WhatsApp / Telegram convention. The bubble class still
+   applies for layout (alignment, time) but its background is suppressed. */
+.chat-msg.emoji-only .emoji-only-bubble {
+    background: transparent !important;
+    box-shadow: none !important;
+    padding: 4px 0;
+    border: none !important;
+    max-width: 100%;
+}
+
+.chat-msg.emoji-only .emoji-only-bubble p {
+    font-size: 44px;
+    line-height: 1.1;
+    margin: 0;
+    background: transparent;
+}
+
+.chat-msg.emoji-only .chat-msg-time {
+    font-size: 10px;
+    opacity: 0.55;
+}
+
+/* Reply quote block — when a coach replies in the
+   "Re: <subject> — \"<quote>\" — <reply>" format, render the subject and
+   quoted excerpt as a left-bar quote above the actual reply text. */
+.chat-reply-quote {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 6px 10px;
+    margin: 0 0 6px;
+    border-left: 3px solid currentColor;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 4px;
     opacity: 0.85;
 }
 
-.chat-msg.mine.reaction-msg .reaction-bubble {
-    background: transparent !important;
-    color: var(--brand-primary);
-    border-color: var(--brand-primary);
+.chat-msg.mine .chat-reply-quote {
+    background: rgba(255, 255, 255, 0.14);
 }
 
-.chat-msg.theirs.reaction-msg .reaction-bubble {
-    color: var(--gray-600);
+.chat-reply-subject {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    opacity: 0.7;
+}
+
+.chat-reply-quote-text {
+    font-size: 13px;
+    font-style: italic;
+    line-height: 1.35;
+    opacity: 0.9;
+}
+
+.chat-reply-text {
+    margin: 0;
+    line-height: 1.4;
+}
+
+[data-theme="light"] .chat-reply-quote {
+    background: rgba(15, 23, 42, 0.05);
+}
+
+[data-theme="light"] .chat-msg.mine .chat-reply-quote {
+    background: rgba(255, 255, 255, 0.18);
 }
 
 /* ========================================

@@ -25,6 +25,40 @@ const setMsgCache = (key, data) => {
 
 const REACTION_EMOJIS = ['❤️', '💪', '🔥', '👏', '😂', '👍'];
 
+// "Reacted [emoji] to your X" notifications are sent as plain messages by
+// the backend. Detect them so they can be demoted from full-size bubbles to
+// quiet inline pills. The trailing target is intentionally permissive so
+// new reactable surfaces (measurements, weigh-in, gym check-in, etc.) all
+// match without having to update the regex each time.
+const REACTION_NOTIFICATION_RE = /^Reacted\s+\S.*?\s+to\s+your\s+/i;
+
+// Coach replies are sent in the format:
+//   Re: <subject> — "<quoted excerpt>" — <reply text>
+// using U+2014 em-dashes. Parse the structure so it can render as a proper
+// quote block instead of one long run-on line.
+const parseReplyMessage = (text) => {
+  if (!text) return null;
+  const match = text.match(/^Re:\s+(.+?)\s+—\s+["“](.+?)["”]\s+—\s+([\s\S]+)$/);
+  if (!match) return null;
+  return {
+    subject: match[1].trim(),
+    quote: match[2].trim(),
+    reply: match[3].trim(),
+  };
+};
+
+// Detect emoji-only messages (up to ~3 emoji, no other text) so we can
+// render them at large size without a bubble — the universal iMessage /
+// WhatsApp / Telegram convention. ‍ (ZWJ) and ️ (variation
+// selector) are kept explicit so the regex is invariant to file encoding.
+const EMOJI_STRIP_RE = /[\p{Emoji_Presentation}\p{Extended_Pictographic}\u200D\uFE0F\s]/gu;
+const isEmojiOnlyMessage = (text) => {
+  if (!text) return false;
+  const trimmed = text.trim();
+  if (!trimmed || trimmed.length > 12) return false;
+  return trimmed.replace(EMOJI_STRIP_RE, '').length === 0;
+};
+
 function Messages() {
   const { user, clientData } = useAuth();
   const location = useLocation();
@@ -992,7 +1026,12 @@ function Messages() {
             const msg = item.data;
             const isMine = msg.sender_type === myType;
             const hasMedia = !!msg.media_url;
-            const isOldReaction = msg.message && /^Reacted .+ to your (breakfast|lunch|dinner|snack|meal|workout|new PR!|workout note)$/i.test(msg.message);
+            const isOldReaction = !!(msg.message && REACTION_NOTIFICATION_RE.test(msg.message));
+            // Reply detection is best-effort and only applied when the message
+            // is plain text (no media). On parse failure, parsedReply is null
+            // and the bubble falls through to the regular text render.
+            const parsedReply = !hasMedia && !isOldReaction ? parseReplyMessage(msg.message) : null;
+            const emojiOnly = !hasMedia && !isOldReaction && !parsedReply && isEmojiOnlyMessage(msg.message);
 
             // Build grouped reactions from the reactionMap for this message
             const msgReactionList = reactionMap[msg.id] || [];
@@ -1012,7 +1051,7 @@ function Messages() {
             return (
               <div
                 key={msg.id}
-                className={`chat-msg ${isMine ? 'mine' : 'theirs'} ${isOldReaction ? 'reaction-msg' : ''}`}
+                className={`chat-msg ${isMine ? 'mine' : 'theirs'} ${isOldReaction ? 'reaction-msg' : ''} ${emojiOnly ? 'emoji-only' : ''} ${parsedReply ? 'has-reply-quote' : ''}`}
               >
                 <div className="chat-msg-row">
                   {/* Reaction trigger on left for own messages */}
@@ -1031,7 +1070,7 @@ function Messages() {
                   )}
 
                   <div
-                    className={`chat-msg-bubble ${hasMedia ? 'media-bubble' : ''} ${isOldReaction ? 'reaction-bubble' : ''}`}
+                    className={`chat-msg-bubble ${hasMedia ? 'media-bubble' : ''} ${isOldReaction ? 'reaction-bubble' : ''} ${emojiOnly ? 'emoji-only-bubble' : ''} ${parsedReply ? 'reply-bubble' : ''}`}
                     onClick={(e) => {
                       if (isMine) {
                         e.stopPropagation();
@@ -1040,7 +1079,17 @@ function Messages() {
                     }}
                   >
                     {renderMedia(msg)}
-                    {msg.message && <p>{msg.message}</p>}
+                    {parsedReply ? (
+                      <>
+                        <div className="chat-reply-quote">
+                          <span className="chat-reply-subject">{parsedReply.subject}</span>
+                          <span className="chat-reply-quote-text">{parsedReply.quote}</span>
+                        </div>
+                        <p className="chat-reply-text">{parsedReply.reply}</p>
+                      </>
+                    ) : (
+                      msg.message && <p>{msg.message}</p>
+                    )}
 
                     {/* Time + read receipt */}
                     <span className="chat-msg-time">
