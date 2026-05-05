@@ -82,6 +82,18 @@ function parseDurationToSeconds(value) {
   return 0;
 }
 
+// Normalize titles that were entered in ALL CAPS (e.g. "BOOTY SCULPTOR & CORE")
+// to Title Case, while preserving intentional mixed-case names like "HIIT Burner"
+// or "4-Day Powerlifting Program".
+function normalizeTitle(str) {
+  if (!str) return '';
+  const letters = str.replace(/[^a-zA-Z]/g, '');
+  if (letters.length >= 4 && letters === letters.toUpperCase()) {
+    return str.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+  }
+  return str;
+}
+
 function formatDuration(seconds) {
   const num = parseDurationToSeconds(seconds);
   if (!num) return '30s';
@@ -365,7 +377,7 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
               <ChevronRight size={24} style={{ transform: 'rotate(180deg)' }} />
             </button>
 
-            <h2>{selectedWorkout.name}</h2>
+            <h2>{normalizeTitle(selectedWorkout.name)}</h2>
             <button className="club-workouts-close" onClick={onClose}>
               <X size={24} />
             </button>
@@ -509,7 +521,7 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
           <div className="club-workouts-content">
             {/* Program Summary */}
             <div className="schedule-program-summary">
-              <h3>{program.name}</h3>
+              <h3>{normalizeTitle(program.name)}</h3>
               <div className="schedule-program-meta">
                 <span><Layers size={14} /> {program.total_days || program.days?.length} workout days</span>
                 <span><Dumbbell size={14} /> {program.total_exercises} exercises</span>
@@ -628,7 +640,7 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
             <button className="club-workouts-back" onClick={() => setSelectedProgram(null)}>
               <ChevronRight size={24} style={{ transform: 'rotate(180deg)' }} />
             </button>
-            <h2>{program.name}</h2>
+            <h2>{normalizeTitle(program.name)}</h2>
             <button className="club-workouts-close" onClick={onClose}>
               <X size={24} />
             </button>
@@ -940,8 +952,7 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
                     {heroImage && <div className="club-workout-card-overlay" />}
                     <div className="club-workout-card-inner">
                       <div className="club-workout-card-header">
-                        <h3>{workout.name}</h3>
-                        <ChevronRight size={20} />
+                        <h3>{normalizeTitle(workout.name)}</h3>
                       </div>
                       {workout.description && (
                         <p className="club-workout-card-desc">{workout.description}</p>
