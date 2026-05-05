@@ -3411,9 +3411,11 @@ function GuidedWorkoutModal({
         ) : showVideo && (currentExercise?.customVideoUrl || currentExercise?.video_url || currentExercise?.animation_url) ? (
           (() => {
             // Per-day Custom Demos AND custom-exercise library videos are coach
-            // recordings with voice cues — play them unmuted with controls
-            // instead of as silent autoplaying demo loops (correct only for
-            // stock library animations).
+            // recordings with voice cues. We still autoplay them on loop like
+            // stock animations, but start muted so the client's background
+            // music keeps playing — they can unmute via the native controls
+            // if they want to hear the coach (which will pause their music,
+            // their choice).
             const videoHasAudio = !!currentExercise?.customVideoUrl || currentExercise?.is_custom === true;
             return (
           <div
@@ -3424,15 +3426,15 @@ function GuidedWorkoutModal({
             <video
               key={guidedVideoKey}
               src={guidedVideoBlobUrl || currentExercise.customVideoUrl || currentExercise.video_url || currentExercise.animation_url}
-              autoPlay={!videoHasAudio}
-              loop={!videoHasAudio}
-              muted={!videoHasAudio}
+              autoPlay
+              loop
+              muted
               controls={videoHasAudio}
               playsInline
               preload={videoHasAudio ? 'auto' : 'metadata'}
               onCanPlay={() => { setGuidedVideoLoading(false); setGuidedVideoError(false); }}
               onPlaying={() => setGuidedVideoLoading(false)}
-              onWaiting={() => { if (!videoHasAudio) setGuidedVideoLoading(true); }}
+              onWaiting={() => setGuidedVideoLoading(true)}
               onError={handleGuidedVideoError}
             />
             {guidedVideoLoading && !guidedVideoError && !videoHasAudio && (
