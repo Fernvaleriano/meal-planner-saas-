@@ -552,6 +552,24 @@ async function handleQuestion(event) {
     const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
+    // ISO week starts Monday. Used for week-to-date workout adherence so we
+    // don't flag clients on Tue/Wed for not finishing the whole week's plan yet.
+    const todayDow = now.getDay(); // 0=Sun..6=Sat
+    const daysSinceMonday = todayDow === 0 ? 6 : todayDow - 1;
+    const startOfWeek = new Date(now);
+    startOfWeek.setHours(0, 0, 0, 0);
+    startOfWeek.setDate(startOfWeek.getDate() - daysSinceMonday);
+    const daysIntoWeek = daysSinceMonday + 1; // 1=Mon..7=Sun
+    const dayCodeToIsoIdx = { mon: 0, tue: 1, wed: 2, thu: 3, fri: 4, sat: 5, sun: 6 };
+    const scheduledDaysElapsedThisWeek = (selectedDays) => {
+      if (!Array.isArray(selectedDays) || selectedDays.length === 0) return 0;
+      return selectedDays.filter(code => {
+        const idx = dayCodeToIsoIdx[String(code).toLowerCase()];
+        return idx !== undefined && idx <= daysSinceMonday;
+      }).length;
+    };
+    const lastWeekdayName = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][daysSinceMonday];
+
     // Fetch all client data for this coach
     const { data: clients, error: clientsError } = await supabase
       .from('clients')
@@ -950,14 +968,21 @@ async function handleQuestion(event) {
           programEndDate: clientAssignment?.end_date || null,
           programSchedule: clientAssignment?.workout_data?.schedule?.selectedDays || null,
           hasMultiplePrograms: allClientAssignments.length > 1,
-          // Weekly adherence: workouts completed this week vs scheduled days
-          workoutsThisWeek: clientWorkoutLogs.filter(w => new Date(w.created_at) >= sevenDaysAgo).length,
+          // Week-to-date adherence: workouts completed since Monday vs scheduled
+          // days that have already elapsed this week. Avoids flagging "low
+          // adherence" early in the week when the client hasn't reached their
+          // scheduled workout days yet.
+          workoutsThisWeek: clientWorkoutLogs.filter(w => new Date(w.created_at) >= startOfWeek).length,
           scheduledDaysPerWeek: clientAssignment?.workout_data?.schedule?.selectedDays?.length || 0,
+          scheduledDaysElapsedThisWeek: scheduledDaysElapsedThisWeek(clientAssignment?.workout_data?.schedule?.selectedDays || []),
+          daysIntoWeek,
           adherencePercent: (() => {
-            const scheduled = clientAssignment?.workout_data?.schedule?.selectedDays?.length || 0;
-            if (scheduled === 0) return null;
-            const thisWeek = clientWorkoutLogs.filter(w => new Date(w.created_at) >= sevenDaysAgo).length;
-            return Math.round((thisWeek / scheduled) * 100);
+            const selectedDays = clientAssignment?.workout_data?.schedule?.selectedDays || [];
+            if (selectedDays.length === 0) return null;
+            const elapsed = scheduledDaysElapsedThisWeek(selectedDays);
+            if (elapsed === 0) return null; // No scheduled workouts due yet this week
+            const completed = clientWorkoutLogs.filter(w => new Date(w.created_at) >= startOfWeek).length;
+            return Math.round((completed / elapsed) * 100);
           })()
         },
         body: {
@@ -1084,10 +1109,10 @@ async function handleQuestion(event) {
         if (c.workouts.programSchedule) {
           parts.push(`scheduled days: ${c.workouts.programSchedule.join(', ')}`);
         }
-        // Adherence tracking
+        // Adherence tracking (week-to-date: completed vs scheduled-so-far this week)
         if (c.workouts.adherencePercent !== null) {
           const adherenceLabel = c.workouts.adherencePercent >= 80 ? 'GOOD' : c.workouts.adherencePercent >= 50 ? 'MODERATE' : 'LOW';
-          parts.push(`WEEKLY ADHERENCE: ${c.workouts.workoutsThisWeek}/${c.workouts.scheduledDaysPerWeek} workouts this week (${c.workouts.adherencePercent}% - ${adherenceLabel})`);
+          parts.push(`WEEK-TO-DATE ADHERENCE: ${c.workouts.workoutsThisWeek}/${c.workouts.scheduledDaysElapsedThisWeek} scheduled workouts completed so far this week (${c.workouts.scheduledDaysPerWeek} total scheduled per week, ${c.workouts.adherencePercent}% pace - ${adherenceLabel})`);
         }
         if (c.workouts.recentExercises.length > 0) {
           const exerciseStrs = c.workouts.recentExercises.slice(0, 5).map(e => {
@@ -1165,7 +1190,14 @@ async function handleQuestion(event) {
     const clientsWithNoProgram = activePortalClients.filter(c => c.workouts.programStatus === 'no_program').length;
     const clientsWithExpiredProgram = activePortalClients.filter(c => c.workouts.programStatus === 'expired').length;
     const clientsWithEndingSoon = activePortalClients.filter(c => c.workouts.programStatus === 'ending_soon').length;
-    const clientsWithLowAdherence = activePortalClients.filter(c => c.workouts.adherencePercent !== null && c.workouts.adherencePercent < 50);
+    // Only flag low adherence once at least 2 scheduled workout days have passed
+    // this week — otherwise we'd flag clients on Mon/Tue who simply haven't
+    // reached their scheduled workouts yet.
+    const clientsWithLowAdherence = activePortalClients.filter(c =>
+      c.workouts.adherencePercent !== null &&
+      c.workouts.adherencePercent < 50 &&
+      c.workouts.scheduledDaysElapsedThisWeek >= 2
+    );
     const avgAdherence = (() => {
       const withAdherence = activePortalClients.filter(c => c.workouts.adherencePercent !== null);
       if (withAdherence.length === 0) return null;
@@ -1212,6 +1244,14 @@ ${parts.join('\n')}
 
     const prompt = `You are an AI assistant helping a fitness/nutrition coach manage their clients. You have access to comprehensive data including workouts, exercises, personal records, nutrition, body measurements, meal plans, supplements, check-ins, and more. You also have access to the coach's own personal fitness data when available. Answer the coach's question thoroughly based on the data below. When the coach says "my" or "me", they are referring to themselves (the coach), not a client.
 
+TODAY: ${lastWeekdayName} (day ${daysIntoWeek} of 7 in the current week, week starts Monday).
+
+ADHERENCE INTERPRETATION RULES (read carefully before flagging anyone):
+- "WEEK-TO-DATE ADHERENCE" compares workouts completed since Monday against scheduled workouts that have ALREADY come due this week — not the whole week's plan.
+- It is only ${daysIntoWeek === 1 ? 'Monday' : daysIntoWeek === 2 ? 'Tuesday' : daysIntoWeek === 3 ? 'Wednesday' : daysIntoWeek === 4 ? 'Thursday' : daysIntoWeek === 5 ? 'Friday' : daysIntoWeek === 6 ? 'Saturday' : 'Sunday'}, so most of the week is still ahead. Do NOT flag a client as "low adherence" or write things like "completing X out of Y scheduled workouts this week" framed as a failure — workouts not yet due cannot count as missed.
+- Only flag low adherence if the client has actually missed scheduled workout days that have already passed this week (i.e. completed < scheduled-so-far AND at least 2 scheduled days have already elapsed).
+- Never compare workouts done so far to the full weekly target on Mon/Tue/Wed.
+
 SUMMARY:
 - Total clients: ${clients.length}
 - Active this week: ${activeCount}
@@ -1225,8 +1265,8 @@ SUMMARY:
 - Clients with NO program: ${clientsWithNoProgram}
 - Clients with EXPIRED program: ${clientsWithExpiredProgram}
 - Clients with program ENDING SOON: ${clientsWithEndingSoon}
-${avgAdherence !== null ? `- Average workout adherence: ${avgAdherence}%` : ''}
-${clientsWithLowAdherence.length > 0 ? `- LOW ADHERENCE (<50%): ${clientsWithLowAdherence.map(c => `${c.name} (${c.workouts.adherencePercent}%)`).join(', ')}` : ''}
+${avgAdherence !== null ? `- Average week-to-date workout adherence: ${avgAdherence}%` : ''}
+${clientsWithLowAdherence.length > 0 ? `- LOW WEEK-TO-DATE ADHERENCE (<50% of scheduled-so-far, with ≥2 scheduled days already passed): ${clientsWithLowAdherence.map(c => `${c.name} (${c.workouts.workoutsThisWeek}/${c.workouts.scheduledDaysElapsedThisWeek} so far, ${c.workouts.adherencePercent}%)`).join(', ')}` : ''}
 ${coachSelfContext}
 CLIENT DETAILS:
 ${clientContext}
