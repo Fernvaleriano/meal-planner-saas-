@@ -6412,8 +6412,8 @@ textarea,
 .settings-card {
     background: white;
     border-radius: 16px;
-    padding: 20px;
-    margin-bottom: 16px;
+    padding: 8px 20px 12px;
+    margin-bottom: 14px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.03);
     border: 1px solid var(--gray-100);
 }
@@ -6424,16 +6424,17 @@ textarea,
 }
 
 .settings-card-title {
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     font-weight: 700;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.08em;
     color: var(--gray-500);
-    margin-bottom: 16px;
+    padding: 12px 0 4px;
+    margin-bottom: 4px;
     text-transform: uppercase;
 }
 
 [data-theme="dark"] .settings-card-title {
-    color: #64748b;
+    color: #94a3b8;
 }
 
 /* Settings Item */
@@ -6441,12 +6442,13 @@ textarea,
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 12px 0;
+    padding: 10px 0;
     width: 100%;
     background: none;
     border: none;
     text-align: left;
     cursor: default;
+    gap: 12px;
 }
 
 .settings-item.clickable {
@@ -6464,43 +6466,49 @@ textarea,
 }
 
 .settings-icon-box {
-    width: 44px;
-    height: 44px;
-    border-radius: 12px;
+    width: 40px;
+    height: 40px;
+    border-radius: 11px;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
 }
 
+/* Unified icon palette: brand (CTAs), neutral (info), water (semantic), danger */
+.settings-icon-box.brand,
 .settings-icon-box.teal {
-    background: rgba(13, 148, 136, 0.15);
+    background: rgba(13, 148, 136, 0.12);
     color: var(--brand-primary);
 }
 
-.settings-icon-box.purple {
-    background: rgba(139, 92, 246, 0.15);
-    color: #8b5cf6;
-}
-
+.settings-icon-box.neutral,
+.settings-icon-box.purple,
+.settings-icon-box.blue,
+.settings-icon-box.green,
 .settings-icon-box.orange {
-    background: rgba(245, 158, 11, 0.15);
-    color: #f59e0b;
+    background: var(--gray-100);
+    color: var(--gray-600);
 }
 
-.settings-icon-box.logout {
+[data-theme="dark"] .settings-icon-box.neutral,
+[data-theme="dark"] .settings-icon-box.purple,
+[data-theme="dark"] .settings-icon-box.blue,
+[data-theme="dark"] .settings-icon-box.green,
+[data-theme="dark"] .settings-icon-box.orange {
+    background: rgba(148, 163, 184, 0.12);
+    color: #cbd5e1;
+}
+
+.settings-icon-box.water {
+    background: rgba(14, 165, 233, 0.12);
+    color: #0ea5e9;
+}
+
+.settings-icon-box.logout,
+.settings-icon-box.danger {
     background: rgba(239, 68, 68, 0.1);
     color: #ef4444;
-}
-
-.settings-icon-box.blue {
-    background: rgba(59, 130, 246, 0.15);
-    color: #3b82f6;
-}
-
-.settings-icon-box.green {
-    background: rgba(16, 185, 129, 0.15);
-    color: #10b981;
 }
 
 /* Gender Select Dropdown */
@@ -6563,13 +6571,14 @@ textarea,
 }
 
 .settings-item-subtitle {
-    font-size: 0.85rem;
+    font-size: 0.8125rem;
     color: var(--gray-500);
     margin-top: 2px;
+    line-height: 1.35;
 }
 
 [data-theme="dark"] .settings-item-subtitle {
-    color: #64748b;
+    color: #94a3b8;
 }
 
 .settings-chevron {
@@ -6623,6 +6632,43 @@ textarea,
     left: 25px;
 }
 
+/* Section header with inline action (e.g. Edit) */
+.settings-card-title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0 4px;
+    margin-bottom: 4px;
+}
+
+.settings-card-title-row .settings-card-title {
+    padding: 0;
+    margin: 0;
+}
+
+.settings-inline-action {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--brand-primary);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    transition: background 0.15s ease;
+}
+
+.settings-inline-action:hover {
+    background: rgba(13, 148, 136, 0.08);
+}
+
+.settings-inline-action:active {
+    transform: scale(0.97);
+}
+
 /* Coach Info */
 .coach-item {
     padding: 12px 0;
@@ -6632,6 +6678,42 @@ textarea,
     display: flex;
     align-items: center;
     gap: 12px;
+    flex: 1;
+    min-width: 0;
+}
+
+.coach-message-btn {
+    background: rgba(13, 148, 136, 0.1);
+    color: var(--brand-primary);
+    border: none;
+    border-radius: 10px;
+    padding: 8px 14px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: background 0.15s ease, transform 0.1s ease;
+    flex-shrink: 0;
+    text-decoration: none;
+}
+
+.coach-message-btn:hover {
+    background: rgba(13, 148, 136, 0.18);
+}
+
+.coach-message-btn:active {
+    transform: scale(0.96);
+}
+
+[data-theme="dark"] .coach-message-btn {
+    background: rgba(45, 212, 191, 0.15);
+    color: #2dd4bf;
+}
+
+[data-theme="dark"] .coach-message-btn:hover {
+    background: rgba(45, 212, 191, 0.25);
 }
 
 .coach-avatar {

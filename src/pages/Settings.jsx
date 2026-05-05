@@ -146,8 +146,14 @@ function Settings() {
 
   const getActivityLabel = (val) => {
     if (!val) return 'Not set';
-    const key = String(parseFloat(val));
-    return activityLevelLabels[key] || `${val}`;
+    const num = parseFloat(val);
+    if (Number.isNaN(num)) return `${val}`;
+    const key = String(num);
+    if (activityLevelLabels[key]) return activityLevelLabels[key];
+    // Snap to nearest known level so values like 1.73 resolve to "Very Active"
+    const known = Object.keys(activityLevelLabels).map(parseFloat);
+    const nearest = known.reduce((a, b) => Math.abs(b - num) < Math.abs(a - num) ? b : a);
+    return activityLevelLabels[String(nearest)];
   };
 
   // Scroll to top on mount
@@ -481,59 +487,43 @@ function Settings() {
       </div>
 
       {/* My Coach Section */}
-      <div className="settings-card">
-        <div className="settings-card-title">MY COACH</div>
-        <div className="settings-item coach-item">
-          <div className="coach-info">
-            {coachData?.profile_photo_url ? (
-              <img
-                src={coachData.profile_photo_url}
-                alt={coachData.coach_name}
-                className="coach-avatar-img"
-              />
-            ) : (
-              <div className="coach-avatar">
-                {getCoachInitial(coachData?.coach_name)}
-              </div>
-            )}
-            <div className="coach-details">
-              <div className="coach-name">{coachData?.coach_name || 'Loading...'}</div>
-              <div className="coach-label">Nutrition Coach</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Profile Section */}
-      <div className="settings-card">
-        <div className="settings-card-title">PROFILE</div>
-        <div className="settings-item clickable" onClick={handlePhotoClick}>
-          <div className="settings-item-left">
-            <div className="settings-icon-box teal">
-              {uploadingPhoto ? <Loader size={20} className="spin" /> : <Camera size={20} />}
-            </div>
-            <div className="settings-item-text">
-              <div className="settings-item-title">Profile Photo</div>
-              <div className="settings-item-subtitle">
-                {uploadingPhoto ? 'Uploading...' : 'Change your profile photo'}
+      {clientData?.coach_id && (
+        <div className="settings-card">
+          <div className="settings-card-title">MY COACH</div>
+          <div className="settings-item coach-item">
+            <div className="coach-info">
+              {coachData?.profile_photo_url ? (
+                <img
+                  src={coachData.profile_photo_url}
+                  alt={coachData.coach_name}
+                  className="coach-avatar-img"
+                />
+              ) : (
+                <div className="coach-avatar">
+                  {getCoachInitial(coachData?.coach_name)}
+                </div>
+              )}
+              <div className="coach-details">
+                <div className="coach-name">{coachData?.coach_name || 'Loading...'}</div>
+                <div className="coach-label">Nutrition Coach</div>
               </div>
             </div>
+            <Link to="/messages" className="coach-message-btn" aria-label="Message your coach">
+              Message
+            </Link>
           </div>
-          <ChevronRight size={20} className="settings-chevron" />
         </div>
-      </div>
+      )}
 
       {/* My Profile Section */}
       <div className="settings-card">
-        <div className="settings-card-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          MY PROFILE
+        <div className="settings-card-title-row">
+          <div className="settings-card-title">MY PROFILE</div>
           <button
+            type="button"
             onClick={openProfileModal}
-            style={{
-              background: 'none', border: 'none', cursor: 'pointer',
-              color: 'var(--teal-500, #0d9488)', fontSize: '0.75rem', fontWeight: 600,
-              display: 'flex', alignItems: 'center', gap: '4px', padding: 0
-            }}
+            className="settings-inline-action"
+            aria-label="Edit profile"
           >
             <Edit3 size={14} /> Edit
           </button>
@@ -541,8 +531,8 @@ function Settings() {
 
         <div className="settings-item">
           <div className="settings-item-left">
-            <div className="settings-icon-box blue">
-              <User size={20} />
+            <div className="settings-icon-box neutral">
+              <User size={18} />
             </div>
             <div className="settings-item-text">
               <div className="settings-item-title">Physical Stats</div>
@@ -562,8 +552,8 @@ function Settings() {
 
         <div className="settings-item">
           <div className="settings-item-left">
-            <div className="settings-icon-box green">
-              <Utensils size={20} />
+            <div className="settings-icon-box neutral">
+              <Utensils size={18} />
             </div>
             <div className="settings-item-text">
               <div className="settings-item-title">Activity Level</div>
@@ -576,8 +566,8 @@ function Settings() {
 
         <div className="settings-item">
           <div className="settings-item-left">
-            <div className="settings-icon-box orange">
-              <Utensils size={20} />
+            <div className="settings-icon-box neutral">
+              <Utensils size={18} />
             </div>
             <div className="settings-item-text">
               <div className="settings-item-title">Diet & Food Preferences</div>
@@ -596,7 +586,7 @@ function Settings() {
             <div className="settings-divider"></div>
             <div className="settings-item">
               <div className="settings-item-left">
-                <div className="settings-item-text" style={{ marginLeft: '44px' }}>
+                <div className="settings-item-text" style={{ marginLeft: '52px' }}>
                   <div className="settings-item-title" style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>Allergies</div>
                   <div className="settings-item-subtitle">{clientData.allergies}</div>
                 </div>
@@ -610,7 +600,7 @@ function Settings() {
             <div className="settings-divider"></div>
             <div className="settings-item">
               <div className="settings-item-left">
-                <div className="settings-item-text" style={{ marginLeft: '44px' }}>
+                <div className="settings-item-text" style={{ marginLeft: '52px' }}>
                   <div className="settings-item-title" style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>Disliked Foods</div>
                   <div className="settings-item-subtitle">{clientData.disliked_foods}</div>
                 </div>
@@ -624,7 +614,7 @@ function Settings() {
             <div className="settings-divider"></div>
             <div className="settings-item">
               <div className="settings-item-left">
-                <div className="settings-item-text" style={{ marginLeft: '44px' }}>
+                <div className="settings-item-text" style={{ marginLeft: '52px' }}>
                   <div className="settings-item-title" style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>Preferred Foods</div>
                   <div className="settings-item-subtitle">{clientData.preferred_foods}</div>
                 </div>
@@ -638,7 +628,7 @@ function Settings() {
             <div className="settings-divider"></div>
             <div className="settings-item">
               <div className="settings-item-left">
-                <div className="settings-item-text" style={{ marginLeft: '44px' }}>
+                <div className="settings-item-text" style={{ marginLeft: '52px' }}>
                   <div className="settings-item-title" style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>Protein Powder</div>
                   <div className="settings-item-subtitle">
                     {[
@@ -659,8 +649,8 @@ function Settings() {
         <div className="settings-card-title">PREFERENCES</div>
         <div className="settings-item">
           <div className="settings-item-left">
-            <div className="settings-icon-box purple">
-              <Moon size={20} />
+            <div className="settings-icon-box neutral">
+              <Moon size={18} />
             </div>
             <div className="settings-item-text">
               <div className="settings-item-title">Dark Mode</div>
@@ -681,8 +671,8 @@ function Settings() {
         {/* Exercise Demonstration Gender Preference */}
         <div className="settings-item">
           <div className="settings-item-left">
-            <div className="settings-icon-box blue">
-              <Users size={20} />
+            <div className="settings-icon-box neutral">
+              <Users size={18} />
             </div>
             <div className="settings-item-text">
               <div className="settings-item-title">Exercise Demos</div>
@@ -712,8 +702,8 @@ function Settings() {
         {/* Weight Unit Preference */}
         <div className="settings-item">
           <div className="settings-item-left">
-            <div className="settings-icon-box green">
-              <Scale size={20} />
+            <div className="settings-icon-box neutral">
+              <Scale size={18} />
             </div>
             <div className="settings-item-text">
               <div className="settings-item-title">Weight Unit</div>
@@ -742,8 +732,8 @@ function Settings() {
         {/* Water Intake Goal */}
         <div className="settings-item">
           <div className="settings-item-left">
-            <div className="settings-icon-box blue" style={{ background: 'linear-gradient(135deg, #0ea5e9, #0284c7)', color: '#fff' }}>
-              <Droplets size={20} />
+            <div className="settings-icon-box water">
+              <Droplets size={18} />
             </div>
             <div className="settings-item-text">
               <div className="settings-item-title">Water Goal</div>
@@ -791,8 +781,8 @@ function Settings() {
           <div className="settings-card-title">COACH TOOLS</div>
           <Link to="/branding" className="settings-item clickable" style={{ textDecoration: 'none', color: 'inherit' }}>
             <div className="settings-item-left">
-              <div className="settings-icon-box purple">
-                <Palette size={20} />
+              <div className="settings-icon-box brand">
+                <Palette size={18} />
               </div>
               <div className="settings-item-text">
                 <div className="settings-item-title">Branding Settings</div>
@@ -806,8 +796,8 @@ function Settings() {
 
           <Link to="/billing" className="settings-item clickable" style={{ textDecoration: 'none', color: 'inherit' }}>
             <div className="settings-item-left">
-              <div className="settings-icon-box green">
-                <CreditCard size={20} />
+              <div className="settings-icon-box brand">
+                <CreditCard size={18} />
               </div>
               <div className="settings-item-text">
                 <div className="settings-item-title">Client Billing</div>
@@ -825,8 +815,8 @@ function Settings() {
           <div className="settings-card-title">BILLING</div>
           <Link to="/my-billing" className="settings-item clickable" style={{ textDecoration: 'none', color: 'inherit' }}>
             <div className="settings-item-left">
-              <div className="settings-icon-box green">
-                <CreditCard size={20} />
+              <div className="settings-icon-box brand">
+                <CreditCard size={18} />
               </div>
               <div className="settings-item-text">
                 <div className="settings-item-title">Billing & Subscription</div>
@@ -843,8 +833,8 @@ function Settings() {
         <div className="settings-card-title">ACCOUNT</div>
         <div className="settings-item clickable" onClick={() => setShowPasswordModal(true)}>
           <div className="settings-item-left">
-            <div className="settings-icon-box orange">
-              <Lock size={20} />
+            <div className="settings-icon-box neutral">
+              <Lock size={18} />
             </div>
             <div className="settings-item-text">
               <div className="settings-item-title">Change Password</div>
@@ -858,8 +848,8 @@ function Settings() {
 
         <div className="settings-item clickable logout-item" onClick={handleLogout}>
           <div className="settings-item-left">
-            <div className="settings-icon-box logout">
-              <LogOut size={20} />
+            <div className="settings-icon-box danger">
+              <LogOut size={18} />
             </div>
             <div className="settings-item-text">
               <div className="settings-item-title logout-text">Log Out</div>
@@ -870,7 +860,7 @@ function Settings() {
 
       {/* Version Footer */}
       <div className="settings-version">
-        {branding?.brand_name || 'Zique Fitness Nutrition'} v1.0
+        {branding?.brand_name || 'Zique'} &middot; v1.0
       </div>
 
 
