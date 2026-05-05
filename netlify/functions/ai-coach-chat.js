@@ -57,15 +57,19 @@ exports.handler = async (event) => {
 Context:
 - Exercise: ${exerciseName}
 ${lastSession ? `- Last session: ${lastSession.reps} reps at ${lastSession.weight}kg` : '- First time with this exercise — set a strong baseline'}
-${currentRec ? `- Current recommendation: ${currentRec.sets} sets x ${currentRec.reps} reps @ ${currentRec.weight}kg` : ''}
+${currentRec ? `- Current recommendation (already shown to client): ${currentRec.sets} sets x ${currentRec.reps} reps @ ${currentRec.weight}kg` : ''}
 
 COACHING PHILOSOPHY:
 - Default mindset is PROGRESSIVE OVERLOAD. If nothing is wrong, push forward.
-- When they feel strong: be aggressive. Bump weight by 2.5-5kg or add 2-3 reps. Challenge them.
+- When they feel strong / want to be challenged: be aggressive. EITHER bump weight 2.5-5kg while holding the rep target, OR add 2-3 reps at the same weight. Challenge them.
 - When they want a PR: calculate a realistic but ambitious target. Hype them up.
 - When they're tired: respect it, but don't baby them. Maintain weight, maybe drop 1-2 reps. Remind them showing up tired is still progress.
 - When something feels off/hurts: SAFETY FIRST. Drop weight 20-30%, reduce reps. Never push through pain. Be firm about this.
 - When asking about progress: reference their last session and explain what the trajectory looks like.
+
+CRITICAL — DO NOT REGRESS THE PLAN:
+${currentRec ? `- The client is currently looking at ${currentRec.sets}x${currentRec.reps} @ ${currentRec.weight}kg. When they ask to be pushed, NEVER suggest fewer reps OR less weight than this. Going harder means MORE on at least one dimension while holding the other steady (or also going up). Suggesting "${currentRec.weight}kg for fewer than ${currentRec.reps} reps" reads as a regression — don't do it.` : '- Without an active recommendation, anchor to the last session and only push above it.'}
+- The only times reps or weight should drop below the current recommendation are pain, injury, fatigue, or soreness — never when the client says they feel strong.
 
 CRITICAL SAFETY RULES:
 1. ANY mention of pain, injury, discomfort, or something "hurting" → reduce weight 20-30%, reduce reps 2-3. Non-negotiable.
@@ -222,23 +226,31 @@ function getFallbackResponse(message, context) {
 
   // Feeling strong / push me — be aggressive
   if (msg.includes('strong') || msg.includes('push me') || msg.includes('good') || msg.includes('great') || msg.includes('energized') || msg.includes('feel strong')) {
-    if (lastSession) {
-      const bumpWeight = lastSession.reps >= 10;
-      if (bumpWeight) {
-        const newWeight = lastSession.weight + 2.5;
+    // Anchor to whichever is higher: the displayed recommendation or the last session.
+    // The client already sees currentRec, so a "push me" reply must never drop reps OR weight below it.
+    const baseWeight = Math.max(currentRec?.weight || 0, lastSession?.weight || 0);
+    const baseReps = Math.max(currentRec?.reps || 0, lastSession?.reps || 0);
+
+    if (baseReps > 0 && baseWeight > 0) {
+      // Already hitting double digits → bump weight, hold the rep target.
+      // Lower rep range → add reps at the same weight.
+      if (baseReps >= 10) {
+        const newWeight = baseWeight + 2.5;
+        const lastRef = lastSession ? `You crushed ${lastSession.reps} reps last time — ` : '';
         return {
-          reply: `That's what I like to hear! You crushed ${lastSession.reps} reps last time — time to level up. Let's go ${newWeight}kg for ${Math.max(lastSession.reps - 2, 8)} reps. Show that weight who's boss.`,
-          suggestedReps: Math.max(lastSession.reps - 2, 8),
+          reply: `That's what I like to hear! ${lastRef}time to level up. Let's go ${newWeight}kg for ${baseReps} reps. Show that weight who's boss.`,
+          suggestedReps: baseReps,
           suggestedWeight: newWeight,
-          reasoning: "Feeling strong + hit rep target = weight increase"
+          reasoning: "Feeling strong — bumped weight, held rep target"
         };
       }
-      const newReps = lastSession.reps + 2;
+      const newReps = baseReps + 2;
+      const lastRef = lastSession ? `You hit ${lastSession.reps} reps last time — ` : '';
       return {
-        reply: `Let's go! You hit ${lastSession.reps} reps last time — today we're getting ${newReps} at ${lastSession.weight}kg. You've got this.`,
+        reply: `Let's go! ${lastRef}today we're getting ${newReps} at ${baseWeight}kg. You've got this.`,
         suggestedReps: newReps,
-        suggestedWeight: lastSession.weight,
-        reasoning: "Feeling strong - aggressive rep increase"
+        suggestedWeight: baseWeight,
+        reasoning: "Feeling strong — added reps at current weight"
       };
     }
     return {
