@@ -19685,11 +19685,15 @@ textarea,
     border-bottom: 1px solid rgba(16, 185, 129, 0.45);
 }
 
-/* Equipment subtitle - like "No equipment" */
+/* Equipment subtitle — secondary text, muted to keep title dominant */
 .exercise-card-v2 .equipment-subtitle {
-    font-size: 13px;
-    color: #6b7280;
-    margin-bottom: 12px;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.45);
+    margin-bottom: 8px;
+}
+
+[data-theme="light"] .exercise-card-v2 .equipment-subtitle {
+    color: rgba(15, 23, 42, 0.5);
 }
 
 /* Time/Reps boxes row - horizontally scrollable */
@@ -19712,7 +19716,7 @@ textarea,
 .exercise-card-v2 .time-box {
     min-width: 60px;
     height: 44px;
-    background: #2a2a2a;
+    background: rgba(255, 255, 255, 0.04);
     border-radius: 10px;
     display: flex;
     align-items: center;
@@ -19720,7 +19724,7 @@ textarea,
     font-size: 15px;
     font-weight: 500;
     color: white;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.06);
     flex-shrink: 0;
 }
 
@@ -19791,16 +19795,20 @@ textarea,
 
 .exercise-card-v2 .rest-box {
     min-width: 60px;
-    height: 28px;
+    height: 24px;
     flex: 0 0 auto;
-    background: rgba(42, 42, 42, 0.8);
+    background: transparent;
     border-radius: 6px;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 4px;
-    font-size: 12px;
-    color: #9ca3af;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+[data-theme="light"] .exercise-card-v2 .rest-box {
+    color: rgba(15, 23, 42, 0.5);
 }
 
 .exercise-card-v2 .rest-box svg {
@@ -19993,36 +20001,32 @@ textarea,
     color: white;
 }
 
-/* Coach Note */
+/* Coach Note — subtle warm tint with a left orange accent bar; italic so it
+   reads as guidance instead of metadata. The accent bar replaces the
+   "Coach Note:" label that was dropped at the JSX level. */
 .exercise-card-v2 .coach-note {
-    padding: 10px 14px;
-    background: rgba(245, 158, 11, 0.1);
-    border-top: 1px solid rgba(245, 158, 11, 0.2);
+    margin: 0 16px 12px;
+    padding: 10px 12px;
+    background: rgba(245, 158, 11, 0.06);
+    border-left: 3px solid rgba(245, 158, 11, 0.65);
+    border-radius: 4px;
     font-size: 13px;
+    font-style: italic;
+    line-height: 1.5;
 }
 
-.exercise-card-v2 .note-label {
-    color: #f59e0b;
-    font-weight: 500;
-    margin-right: 6px;
-}
-
-.exercise-card-v2 .note-text {
-    color: #fbbf24;
+.exercise-card-v2 .coach-note .note-text {
+    color: rgba(255, 255, 255, 0.78);
 }
 
 /* Coach Note - Light Mode */
 [data-theme="light"] .exercise-card-v2 .coach-note {
-    background: rgba(245, 158, 11, 0.1);
-    border-top-color: rgba(180, 83, 9, 0.25);
+    background: rgba(245, 158, 11, 0.08);
+    border-left-color: rgba(180, 83, 9, 0.65);
 }
 
-[data-theme="light"] .exercise-card-v2 .note-label {
-    color: #92400e;
-}
-
-[data-theme="light"] .exercise-card-v2 .note-text {
-    color: #78350f;
+[data-theme="light"] .exercise-card-v2 .coach-note .note-text {
+    color: #44403c;
 }
 
 
@@ -20068,27 +20072,16 @@ textarea,
     background: rgba(255, 255, 255, 0.1);
 }
 
-/* Coach Reference Links - Card */
+/* Coach Reference Links — neutral outline chips, no heavy background. The
+   per-type colors (YouTube red, Instagram pink) competed with the warm-up
+   accent and pulled attention away from the exercise itself. */
 .exercise-card-v2 .coach-reference-links {
-    padding: 10px 14px;
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(99, 102, 241, 0.1) 100%);
-    border-top: 1px solid rgba(59, 130, 246, 0.2);
+    padding: 0 16px 12px;
+    background: transparent;
+    border-top: none;
     display: flex;
     flex-direction: column;
-    gap: 8px;
-}
-
-.exercise-card-v2 .coach-reference-links .note-label {
-    color: #60a5fa;
-    font-weight: 600;
-    font-size: 13px;
-    display: flex;
-    align-items: center;
     gap: 6px;
-}
-
-.exercise-card-v2 .coach-reference-links .note-label svg {
-    color: #60a5fa;
 }
 
 .exercise-card-v2 .coach-reference-links .reference-links-list {
@@ -20101,46 +20094,40 @@ textarea,
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    padding: 6px 12px;
-    border-radius: 20px;
+    padding: 5px 10px;
+    border-radius: 6px;
     font-size: 12px;
     font-weight: 500;
     text-decoration: none;
     transition: all 0.2s;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.55);
+    border: 1px solid rgba(148, 163, 184, 0.22);
 }
 
-.exercise-card-v2 .coach-reference-links .reference-link-chip.youtube {
-    background: rgba(255, 0, 0, 0.15);
-    color: #ff6b6b;
-    border: 1px solid rgba(255, 0, 0, 0.3);
+.exercise-card-v2 .coach-reference-links .reference-link-chip:hover,
+.exercise-card-v2 .coach-reference-links .reference-link-chip:active {
+    color: rgba(255, 255, 255, 0.85);
+    border-color: rgba(148, 163, 184, 0.45);
+    background: rgba(255, 255, 255, 0.04);
 }
 
-.exercise-card-v2 .coach-reference-links .reference-link-chip.youtube:active {
-    background: rgba(255, 0, 0, 0.3);
+[data-theme="light"] .exercise-card-v2 .coach-reference-links .reference-link-chip {
+    color: rgba(15, 23, 42, 0.55);
+    border-color: rgba(15, 23, 42, 0.18);
 }
 
-.exercise-card-v2 .coach-reference-links .reference-link-chip.instagram {
-    background: rgba(225, 48, 108, 0.15);
-    color: #f472b6;
-    border: 1px solid rgba(225, 48, 108, 0.3);
-}
-
-.exercise-card-v2 .coach-reference-links .reference-link-chip.instagram:active {
-    background: rgba(225, 48, 108, 0.3);
-}
-
-.exercise-card-v2 .coach-reference-links .reference-link-chip.generic {
-    background: rgba(59, 130, 246, 0.15);
-    color: #60a5fa;
-    border: 1px solid rgba(59, 130, 246, 0.3);
-}
-
-.exercise-card-v2 .coach-reference-links .reference-link-chip.generic:active {
-    background: rgba(59, 130, 246, 0.3);
+[data-theme="light"] .exercise-card-v2 .coach-reference-links .reference-link-chip:hover,
+[data-theme="light"] .exercise-card-v2 .coach-reference-links .reference-link-chip:active {
+    color: rgba(15, 23, 42, 0.85);
+    border-color: rgba(15, 23, 42, 0.35);
+    background: rgba(15, 23, 42, 0.04);
 }
 
 .exercise-card-v2 .coach-reference-links .link-type-icon {
     font-size: 11px;
+    flex-shrink: 0;
+    opacity: 0.8;
 }
 
 .exercise-card-v2 .coach-reference-links .link-title {

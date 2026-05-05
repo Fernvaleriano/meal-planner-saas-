@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, memo, useCallback } from 'react';
-import { Check, Plus, Clock, Minus, Play, Timer, Zap, Flame, Leaf, ArrowLeftRight, Trash2, ChevronUp, ChevronDown, GripVertical, Mic, MicOff, ExternalLink } from 'lucide-react';
+import { Check, Plus, Clock, Minus, Play, Timer, Zap, ArrowLeftRight, Trash2, ChevronUp, ChevronDown, GripVertical, Mic, MicOff, ExternalLink } from 'lucide-react';
 import SmartThumbnail from './SmartThumbnail';
 import SetEditorModal from './SetEditorModal';
 import Portal from '../Portal';
@@ -851,8 +851,8 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
                 <h3 className="exercise-title">{exercise.name || 'Exercise'}</h3>
               </div>
 
-              {/* Equipment subtitle */}
-              {exercise.equipment && (
+              {/* Equipment subtitle - hide when missing or literal "none" */}
+              {exercise.equipment && exercise.equipment.trim().toLowerCase() !== 'none' && (
                 <span className="equipment-subtitle">{exercise.equipment}</span>
               )}
 
@@ -873,27 +873,15 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
                 </span>
               )}
 
-              {/* Exercise Type Badges */}
-              {(isSuperset || isWarmup || isStretch) && (
+              {/* Exercise Type Badges — only superset shown here. The warm-up
+                  and stretch labels are conveyed by the parent phase header
+                  divider so the in-card badges would be redundant. */}
+              {isSuperset && (
                 <div className="exercise-badges">
-                  {isSuperset && (
-                    <span className="exercise-badge superset-badge">
-                      <Zap size={10} />
-                      Superset {exercise.supersetGroup}
-                    </span>
-                  )}
-                  {isWarmup && (
-                    <span className="exercise-badge warmup-badge">
-                      <Flame size={10} />
-                      Warm-up
-                    </span>
-                  )}
-                  {isStretch && (
-                    <span className="exercise-badge stretch-badge">
-                      <Leaf size={10} />
-                      Stretch
-                    </span>
-                  )}
+                  <span className="exercise-badge superset-badge">
+                    <Zap size={10} />
+                    Superset {exercise.supersetGroup}
+                  </span>
                 </div>
               )}
             </div>
@@ -982,12 +970,15 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
                 </>
               ) : (
                 <>
-                  {sets.map((set, idx) => (
-                    <div key={idx} className="time-box with-weight">
-                      <span className="reps-value">{parseReps(set?.reps != null ? set.reps : exercise.reps)}x</span>
-                      <span className="weight-value">{set?.weight != null ? set.weight : 0} {weightUnit}</span>
-                    </div>
-                  ))}
+                  {sets.map((set, idx) => {
+                    const w = set?.weight != null ? set.weight : 0;
+                    return (
+                      <div key={idx} className={`time-box ${w > 0 ? 'with-weight' : ''}`}>
+                        <span className="reps-value">{parseReps(set?.reps != null ? set.reps : exercise.reps)}x</span>
+                        {w > 0 && <span className="weight-value">{w} {weightUnit}</span>}
+                      </div>
+                    );
+                  })}
                 </>
               )}
             </div>
@@ -1041,10 +1032,11 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
         </div>
       )}
 
-      {/* Coach Notes */}
+      {/* Coach Notes — italic guidance with a left accent bar; the styling
+          alone signals it is a coach note, so the explicit label is dropped
+          to reduce repetition across cards. */}
         {exercise.notes && (
           <div className="coach-note">
-            <span className="note-label">Coach Note:</span>
             <span className="note-text">{exercise.notes}</span>
           </div>
         )}
@@ -1077,13 +1069,10 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
           </div>
         )}
 
-        {/* Reference Links */}
+        {/* Reference Links — chips render inline without a section label.
+            The link icon + chip styling is sufficient context. */}
         {exercise.reference_links && exercise.reference_links.length > 0 && (
           <div className="coach-reference-links">
-            <span className="note-label">
-              <ExternalLink size={14} />
-              Reference Links:
-            </span>
             <div className="reference-links-list">
               {exercise.reference_links.map((link, idx) => (
                 <a
@@ -1094,8 +1083,10 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
                   className={`reference-link-chip ${link.type || 'generic'}`}
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <span className="link-type-icon">{link.type === 'youtube' ? '▶' : link.type === 'instagram' ? '📷' : '🔗'}</span>
-                  <span className="link-title">{link.title || 'Link'}</span>
+                  <ExternalLink size={12} className="link-type-icon" />
+                  <span className="link-title">
+                    {link.title || (link.type === 'youtube' ? 'Watch demo' : link.type === 'instagram' ? 'View post' : 'Open link')}
+                  </span>
                 </a>
               ))}
             </div>
