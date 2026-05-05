@@ -2430,13 +2430,10 @@ function ExerciseDetailModal({
           )}
         </div>
 
-        {/* Reference Links — positioned under the video demo, above reps */}
+        {/* Reference Links — neutral list rows, no section label or per-type
+            color block. Each row reads as a quiet outbound link. */}
         {exercise.reference_links && exercise.reference_links.length > 0 && (
           <div className="coach-reference-links-section">
-            <div className="reference-links-header">
-              <ExternalLink size={16} />
-              <span>Reference Links</span>
-            </div>
             <div className="reference-links-list-modal">
               {exercise.reference_links.map((link, idx) => (
                 <a
@@ -2446,11 +2443,10 @@ function ExerciseDetailModal({
                   rel="noopener noreferrer"
                   className={`reference-link-row ${link.type || 'generic'}`}
                 >
-                  <span className={`ref-link-icon ${link.type || 'generic'}`}>
-                    {link.type === 'youtube' ? '▶' : link.type === 'instagram' ? '📷' : '🔗'}
+                  <ExternalLink size={16} className="ref-link-icon" />
+                  <span className="ref-link-text">
+                    {link.title || (link.type === 'youtube' ? 'Watch demo' : link.type === 'instagram' ? 'View post' : 'Open link')}
                   </span>
-                  <span className="ref-link-text">{link.title || link.url}</span>
-                  <ExternalLink size={14} className="ref-link-arrow" />
                 </a>
               ))}
             </div>
@@ -2506,31 +2502,34 @@ function ExerciseDetailModal({
             }
           }}>
             <div className="time-boxes-row">
-              {sets.map((set, idx) => (
-                <div key={idx} className={`time-box ${!isTimedExercise && !isDistanceExercise || set?.weight ? 'with-weight' : ''} clickable`}>
-                  {isDistanceExercise ? (
-                    <>
-                      <span className="reps-value">{set?.distance || exercise.distance || 1} {distanceUnitLabel}</span>
-                      {set?.weight > 0 && <span className="weight-value">{set.weight} {weightUnit}</span>}
-                    </>
-                  ) : isTimedExercise ? (
-                    <>
-                      <span className="reps-value">{formatDuration(set?.duration || exercise.duration)}</span>
-                      {set?.weight > 0 && <span className="weight-value">{set.weight} {weightUnit}</span>}
-                    </>
-                  ) : exercise.repType === 'failure' ? (
-                    <>
-                      <span className="reps-value till-failure-text">{set?.reps && set.reps > 0 ? `${set.reps}x` : 'TF'}</span>
-                      <span className="weight-value">{set?.weight || 0} {weightUnit}</span>
-                    </>
-                  ) : (
-                    <>
-                      <span className="reps-value">{parseReps(set?.reps || exercise.reps)}x</span>
-                      <span className="weight-value">{set?.weight || 0} {weightUnit}</span>
-                    </>
-                  )}
-                </div>
-              ))}
+              {sets.map((set, idx) => {
+                const hasWeight = set?.weight > 0;
+                return (
+                  <div key={idx} className={`time-box ${hasWeight ? 'with-weight' : ''} clickable`}>
+                    {isDistanceExercise ? (
+                      <>
+                        <span className="reps-value">{set?.distance || exercise.distance || 1} {distanceUnitLabel}</span>
+                        {hasWeight && <span className="weight-value">{set.weight} {weightUnit}</span>}
+                      </>
+                    ) : isTimedExercise ? (
+                      <>
+                        <span className="reps-value">{formatDuration(set?.duration || exercise.duration)}</span>
+                        {hasWeight && <span className="weight-value">{set.weight} {weightUnit}</span>}
+                      </>
+                    ) : exercise.repType === 'failure' ? (
+                      <>
+                        <span className="reps-value till-failure-text">{set?.reps && set.reps > 0 ? `${set.reps}x` : 'TF'}</span>
+                        {hasWeight && <span className="weight-value">{set.weight} {weightUnit}</span>}
+                      </>
+                    ) : (
+                      <>
+                        <span className="reps-value">{parseReps(set?.reps || exercise.reps)}x</span>
+                        {hasWeight && <span className="weight-value">{set.weight} {weightUnit}</span>}
+                      </>
+                    )}
+                  </div>
+                );
+              })}
               <div className="time-box add-box" onClick={handleAddSet}>
                 <Plus size={18} />
               </div>

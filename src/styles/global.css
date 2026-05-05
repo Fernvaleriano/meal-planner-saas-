@@ -21735,28 +21735,40 @@ textarea,
     object-fit: cover;
 }
 
-/* Center Play Button */
+/* Play Button — anchored to the bottom-right of the demo image so it does
+   not cover the muscle figure / movement the user is trying to study.
+   Smaller and a touch less aggressive in shadow than the dead-center
+   variant it replaces. */
 .exercise-images-v3 .center-play-btn {
     position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 64px;
-    height: 64px;
+    top: auto;
+    left: auto;
+    transform: none;
+    bottom: 12px;
+    right: 12px;
+    width: 52px;
+    height: 52px;
     background: #3b82f6;
-    border: none;
+    border: 2px solid rgba(255, 255, 255, 0.9);
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     color: white;
     cursor: pointer;
-    box-shadow: 0 4px 20px rgba(59, 130, 246, 0.5);
+    box-shadow: 0 6px 18px rgba(59, 130, 246, 0.4), 0 2px 6px rgba(0, 0, 0, 0.25);
     z-index: 2;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.exercise-images-v3 .center-play-btn:active {
+    transform: scale(0.94);
 }
 
 .exercise-images-v3 .center-play-btn svg {
-    margin-left: 4px;
+    margin-left: 3px;
+    width: 22px;
+    height: 22px;
 }
 
 /* Single Image Mode */
@@ -21801,18 +21813,27 @@ textarea,
     cursor: default;
 }
 
-/* Difficulty Section */
+/* Difficulty Section — small inline pill instead of a full-width row, so
+   it reads as metadata next to the exercise rather than a section heading. */
 .difficulty-section {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 8px;
-    padding: 12px 16px;
-    color: #9ca3af;
-    font-size: 14px;
+    gap: 6px;
+    margin: 8px 16px 0;
+    padding: 4px 10px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 12px;
+    color: rgba(255, 255, 255, 0.65);
+    font-size: 12px;
+    font-weight: 500;
+    width: fit-content;
 }
 
 .difficulty-section svg {
-    color: #9ca3af;
+    width: 12px;
+    height: 12px;
+    color: rgba(255, 255, 255, 0.55);
 }
 
 /* Modal Time Boxes */
@@ -22280,11 +22301,13 @@ textarea,
 
 /* Difficulty Section - Light */
 [data-theme="light"] .difficulty-section {
-    color: #6b7280;
+    color: rgba(15, 23, 42, 0.65);
+    background: rgba(15, 23, 42, 0.04);
+    border-color: rgba(15, 23, 42, 0.15);
 }
 
 [data-theme="light"] .difficulty-section svg {
-    color: #6b7280;
+    color: rgba(15, 23, 42, 0.55);
 }
 
 /* Modal Time Boxes - Light */
@@ -23220,124 +23243,87 @@ textarea,
     color: #92400e;
 }
 
-/* Coach Reference Links Section - Modal */
+/* Coach Reference Links Section - Modal
+   Switched from a heavy blue-gradient panel with branded YouTube/Instagram
+   icon blocks to a quiet outline-row list. The big colored icon squares
+   were ad-like and pulled focus away from the exercise demo above. */
 .coach-reference-links-section {
-    padding: 16px;
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.12) 0%, rgba(99, 102, 241, 0.12) 100%);
-    border-top: 1px solid rgba(59, 130, 246, 0.25);
-    border-bottom: 1px solid rgba(59, 130, 246, 0.25);
-}
-
-.coach-reference-links-section .reference-links-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 12px;
-    color: #60a5fa;
-    font-weight: 600;
-    font-size: 14px;
-}
-
-.coach-reference-links-section .reference-links-header svg {
-    color: #60a5fa;
+    padding: 12px 16px 4px;
+    background: transparent;
+    border-top: none;
+    border-bottom: none;
 }
 
 .reference-links-list-modal {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
 }
 
 .reference-link-row {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 12px 14px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 10px;
+    gap: 10px;
+    padding: 10px 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    border-radius: 8px;
     text-decoration: none;
     transition: all 0.2s;
 }
 
 .reference-link-row:active {
-    background: rgba(255, 255, 255, 0.1);
-    transform: scale(0.98);
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(148, 163, 184, 0.35);
+    transform: scale(0.99);
 }
 
 .reference-link-row .ref-link-icon {
-    width: 36px;
-    height: 36px;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
+    color: rgba(255, 255, 255, 0.55);
     flex-shrink: 0;
-}
-
-.reference-link-row .ref-link-icon.youtube {
-    background: rgba(255, 0, 0, 0.2);
-}
-
-.reference-link-row .ref-link-icon.instagram {
-    background: rgba(225, 48, 108, 0.2);
-}
-
-.reference-link-row .ref-link-icon.generic {
-    background: rgba(59, 130, 246, 0.2);
 }
 
 .reference-link-row .ref-link-text {
     flex: 1;
     font-size: 14px;
-    color: #e2e8f0;
+    color: rgba(255, 255, 255, 0.82);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
-.reference-link-row .ref-link-arrow {
-    color: #64748b;
-    flex-shrink: 0;
-}
-
 /* Reference Links - Light Mode */
 [data-theme="light"] .coach-reference-links-section {
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(99, 102, 241, 0.08) 100%);
-    border-top-color: rgba(59, 130, 246, 0.15);
-    border-bottom-color: rgba(59, 130, 246, 0.15);
-}
-
-[data-theme="light"] .coach-reference-links-section .reference-links-header {
-    color: #3b82f6;
-}
-
-[data-theme="light"] .coach-reference-links-section .reference-links-header svg {
-    color: #3b82f6;
+    background: transparent;
 }
 
 [data-theme="light"] .reference-link-row {
-    background: rgba(0, 0, 0, 0.04);
+    background: rgba(15, 23, 42, 0.025);
+    border-color: rgba(15, 23, 42, 0.14);
 }
 
 [data-theme="light"] .reference-link-row:active {
-    background: rgba(0, 0, 0, 0.08);
+    background: rgba(15, 23, 42, 0.06);
+    border-color: rgba(15, 23, 42, 0.28);
+}
+
+[data-theme="light"] .reference-link-row .ref-link-icon {
+    color: rgba(15, 23, 42, 0.5);
 }
 
 [data-theme="light"] .reference-link-row .ref-link-text {
     color: #1e293b;
 }
 
-[data-theme="light"] .reference-link-row .ref-link-arrow {
-    color: #94a3b8;
-}
-
-/* Client Note for Coach Section */
+/* Client Note for Coach Section
+   Neutral panel — paired visually with the Personal Notes panel below so the
+   two collapsibles feel like a set instead of two competing color systems
+   (was purple-on-cyan, which was a lot for one screen). */
 .client-note-for-coach-section {
     margin: 12px 16px 0;
     border-radius: 12px;
-    background: rgba(139, 92, 246, 0.1);
-    border: 1px solid rgba(139, 92, 246, 0.3);
+    background: rgba(255, 255, 255, 0.025);
+    border: 1px solid rgba(148, 163, 184, 0.2);
 }
 
 .client-note-toggle {
@@ -23348,7 +23334,7 @@ textarea,
     padding: 14px 16px;
     background: none;
     border: none;
-    color: #c4b5fd;
+    color: rgba(255, 255, 255, 0.85);
     font-size: 15px;
     font-weight: 600;
     cursor: pointer;
@@ -23361,7 +23347,7 @@ textarea,
 }
 
 .client-note-toggle-left svg {
-    color: #a78bfa;
+    color: rgba(255, 255, 255, 0.55);
 }
 
 .note-saved-badge {
@@ -23392,7 +23378,7 @@ textarea,
 }
 
 .client-note-textarea:focus {
-    border-color: #8b5cf6;
+    border-color: rgba(20, 184, 166, 0.55);
 }
 
 .client-note-textarea::placeholder {
@@ -23426,10 +23412,10 @@ textarea,
     align-items: center;
     gap: 6px;
     padding: 6px 12px;
-    background: rgba(139, 92, 246, 0.15);
-    border: 1px solid rgba(139, 92, 246, 0.3);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(148, 163, 184, 0.28);
     border-radius: 8px;
-    color: #a78bfa;
+    color: rgba(255, 255, 255, 0.78);
     font-size: 13px;
     cursor: pointer;
 }
@@ -23474,7 +23460,7 @@ textarea,
     width: 100%;
     margin-top: 10px;
     padding: 10px;
-    background: #8b5cf6;
+    background: #14b8a6;
     border: none;
     border-radius: 10px;
     color: white;
@@ -23615,12 +23601,15 @@ textarea,
     color: #6d28d9;
 }
 
-/* Personal (Private) Notes Section — only the client sees these */
+/* Personal (Private) Notes Section — only the client sees these.
+   Neutral panel shell (matches the Coach Note panel above) so the two
+   collapsibles read as a paired set. The "PRIVATE" badge keeps the
+   accent color so the privacy state is still clearly signalled. */
 .personal-note-section {
     margin: 12px 16px 0;
     border-radius: 12px;
-    background: rgba(56, 189, 248, 0.08);
-    border: 1px solid rgba(56, 189, 248, 0.25);
+    background: rgba(255, 255, 255, 0.025);
+    border: 1px solid rgba(148, 163, 184, 0.2);
 }
 
 .personal-note-toggle {
@@ -23631,7 +23620,7 @@ textarea,
     padding: 14px 16px;
     background: none;
     border: none;
-    color: #7dd3fc;
+    color: rgba(255, 255, 255, 0.85);
     font-size: 15px;
     font-weight: 600;
     cursor: pointer;
@@ -23644,7 +23633,7 @@ textarea,
 }
 
 .personal-note-toggle-left svg {
-    color: #38bdf8;
+    color: rgba(255, 255, 255, 0.55);
 }
 
 .personal-note-private-badge {
