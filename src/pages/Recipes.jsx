@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { ChevronLeft, Clock, X, Search, Sparkles, Globe, BookOpen, Heart, Download, Plus, Trash2, Edit3, Eye, EyeOff, Upload, Link, Camera, Youtube, Loader, Zap, Package, Users } from 'lucide-react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { ChevronLeft, Clock, X, Search, Sparkles, Globe, BookOpen, Heart, Download, Plus, Trash2, Edit3, Eye, EyeOff, Upload, Link, Camera, Youtube, Loader, Zap, Package, Users, Check, Flame, ChefHat } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, apiPut, apiDelete } from '../utils/api';
@@ -82,6 +82,17 @@ function Recipes() {
   const [youtubeUrl, setYoutubeUrl] = useState('');
   const [youtubeLoading, setYoutubeLoading] = useState(false);
   const [youtubeError, setYoutubeError] = useState('');
+
+  // Recipe modal: local UI state for tappable check-off (visual only)
+  const [checkedIngredients, setCheckedIngredients] = useState(() => new Set());
+  const [completedSteps, setCompletedSteps] = useState(() => new Set());
+
+  useEffect(() => {
+    if (selectedRecipe) {
+      setCheckedIngredients(new Set());
+      setCompletedSteps(new Set());
+    }
+  }, [selectedRecipe?.id, selectedRecipe?.spoonacular_id]);
 
   const handleImageUpload = async (e) => {
     const file = e.target.files?.[0];
@@ -506,6 +517,99 @@ function Recipes() {
     printWindow.print();
   };
 
+  // ── Recipe modal display helpers (visual only — no scaling/persistence) ──
+  const splitIngredient = (line) => {
+    const sepMatch = line.match(/\s+[–—-]\s+/);
+    if (sepMatch) {
+      const idx = line.indexOf(sepMatch[0]);
+      return { name: line.slice(0, idx).trim(), qty: line.slice(idx + sepMatch[0].length).trim() };
+    }
+    const parenMatch = line.match(/^([^,(]+?)[,(]\s*(.+)$/);
+    if (parenMatch) {
+      const qty = parenMatch[2].replace(/\)$/, '').trim();
+      if (/\d/.test(qty)) return { name: parenMatch[1].trim(), qty };
+    }
+    return { name: line.trim(), qty: '' };
+  };
+
+  const parseIngredients = (raw) => {
+    if (!raw) return [];
+    const lines = raw.includes('\n') ? raw.split('\n') : raw.split(',');
+    return lines.map(l => l.trim()).filter(Boolean);
+  };
+
+  const parseSteps = (raw) => {
+    if (!raw) return [];
+    const lines = raw.includes('\n')
+      ? raw.split('\n').map(l => l.trim()).filter(Boolean)
+      : [raw.trim()];
+    return lines.map(l => l.replace(/^\s*\d+[\.\)]\s*/, ''));
+  };
+
+  const recipeServings = parseInt(selectedRecipe?.servings) || 1;
+
+  const macroBreakdown = useMemo(() => {
+    if (!selectedRecipe) return null;
+    const pCal = (selectedRecipe.protein || 0) * 4;
+    const cCal = (selectedRecipe.carbs || 0) * 4;
+    const fCal = (selectedRecipe.fat || 0) * 9;
+    const total = pCal + cCal + fCal;
+    if (total <= 0) return null;
+    return {
+      proteinPct: (pCal / total) * 100,
+      carbsPct: (cCal / total) * 100,
+      fatPct: (fCal / total) * 100,
+    };
+  }, [selectedRecipe?.protein, selectedRecipe?.carbs, selectedRecipe?.fat]);
+
+  const dailyGoals = !isCoach ? {
+    calories: clientData?.calorie_goal || 2000,
+    protein: clientData?.protein_goal || 150,
+    carbs: clientData?.carbs_goal || 200,
+    fat: clientData?.fat_goal || 65,
+  } : null;
+
+  const totalTime = (parseInt(selectedRecipe?.prep_time_minutes) || 0) + (parseInt(selectedRecipe?.cook_time_minutes) || 0);
+
+  const dietTags = useMemo(() => {
+    if (!selectedRecipe) return [];
+    const tags = [];
+    if (selectedRecipe.time_category && CATEGORY_LABELS[selectedRecipe.time_category]) {
+      tags.push({ label: CATEGORY_LABELS[selectedRecipe.time_category], variant: 'category' });
+    }
+    const perServingProtein = selectedRecipe.protein || 0;
+    const perServingCal = selectedRecipe.calories || 0;
+    const perServingCarbs = selectedRecipe.carbs || 0;
+    if (perServingProtein >= 25) tags.push({ label: 'High protein', variant: 'protein' });
+    if (perServingCal > 0 && perServingCal < 350) tags.push({ label: 'Low calorie', variant: 'calorie' });
+    if (perServingCarbs > 0 && perServingCarbs < 15) tags.push({ label: 'Low carb', variant: 'carb' });
+    if (totalTime > 0 && totalTime <= 15) tags.push({ label: `${totalTime} min`, variant: 'time' });
+    return tags;
+  }, [selectedRecipe?.id, selectedRecipe?.protein, selectedRecipe?.calories, selectedRecipe?.carbs, selectedRecipe?.time_category, totalTime]);
+
+  const difficulty = useMemo(() => {
+    if (!selectedRecipe) return 'Easy';
+    if (totalTime >= 45) return 'Advanced';
+    if (totalTime >= 25) return 'Medium';
+    return 'Easy';
+  }, [totalTime, selectedRecipe?.id]);
+
+  const toggleIngredient = (idx) => {
+    setCheckedIngredients(prev => {
+      const next = new Set(prev);
+      next.has(idx) ? next.delete(idx) : next.add(idx);
+      return next;
+    });
+  };
+
+  const toggleStep = (idx) => {
+    setCompletedSteps(prev => {
+      const next = new Set(prev);
+      next.has(idx) ? next.delete(idx) : next.add(idx);
+      return next;
+    });
+  };
+
   return (
     <div className="recipes-page">
       {/* Header */}
@@ -773,10 +877,29 @@ function Recipes() {
                 <X size={24} />
               </button>
             </div>
-            <div className="modal-body">
+            <div className="modal-body recipe-modal-body">
+              {/* Hero image with tag overlay */}
               {selectedRecipe.image_url && (
-                <img src={selectedRecipe.image_url} alt={selectedRecipe.name} className="recipe-modal-image" />
+                <div className="recipe-hero">
+                  <img src={selectedRecipe.image_url} alt={selectedRecipe.name} className="recipe-hero-image" />
+                  {dietTags.length > 0 && (
+                    <div className="recipe-hero-tags">
+                      {dietTags.slice(0, 3).map((t, i) => (
+                        <span key={i} className={`recipe-tag-chip variant-${t.variant}`}>{t.label}</span>
+                      ))}
+                    </div>
+                  )}
+                </div>
               )}
+
+              {/* Meta strip */}
+              <div className="recipe-meta-strip">
+                {totalTime > 0 && (
+                  <span className="recipe-meta-item"><Clock size={14} />{totalTime} min</span>
+                )}
+                <span className="recipe-meta-item"><ChefHat size={14} />{difficulty}</span>
+                <span className="recipe-meta-item"><Users size={14} />{recipeServings} {recipeServings === 1 ? 'serving' : 'servings'}</span>
+              </div>
 
               {/* Source link */}
               {selectedRecipe.source_url && (
@@ -798,110 +921,199 @@ function Recipes() {
                 </a>
               )}
 
-              {/* Nutrition */}
-              <div className="recipe-section">
-                <h4 className="recipe-section-title">Nutrition Per Serving</h4>
-                <div className="recipe-nutrition-grid">
-                  <div className="nutrition-box">
-                    <span className="nutrition-value calories">{selectedRecipe.calories || '-'}</span>
-                    <span className="nutrition-label">Calories</span>
-                  </div>
-                  <div className="nutrition-box">
-                    <span className="nutrition-value protein">{selectedRecipe.protein || '-'}g</span>
-                    <span className="nutrition-label">Protein</span>
-                  </div>
-                  <div className="nutrition-box">
-                    <span className="nutrition-value carbs">{selectedRecipe.carbs || '-'}g</span>
-                    <span className="nutrition-label">Carbs</span>
-                  </div>
-                  <div className="nutrition-box">
-                    <span className="nutrition-value fat">{selectedRecipe.fat || '-'}g</span>
-                    <span className="nutrition-label">Fat</span>
+              {/* Nutrition card: macro bar + % of daily goal (display only) */}
+              {(selectedRecipe.calories || selectedRecipe.protein || selectedRecipe.carbs || selectedRecipe.fat) ? (
+                <div className="recipe-section recipe-nutrition-section">
+                  <h4 className="recipe-section-title">Nutrition Per Serving</h4>
+
+                  <div className="recipe-macro-card">
+                    <div className="recipe-macro-headline">
+                      <div className="macro-headline-main">
+                        <Flame size={18} className="macro-headline-icon" />
+                        <span className="macro-headline-value">{selectedRecipe.calories ?? '—'}</span>
+                        <span className="macro-headline-unit">kcal</span>
+                      </div>
+                      {!isCoach && dailyGoals && selectedRecipe.calories ? (
+                        <span className="macro-headline-goal">
+                          {Math.round((selectedRecipe.calories / dailyGoals.calories) * 100)}% of daily goal
+                        </span>
+                      ) : null}
+                    </div>
+
+                    {macroBreakdown && (
+                      <div className="macro-stacked-bar" role="img" aria-label="Macro distribution">
+                        <div className="macro-bar-segment seg-protein" style={{ width: `${macroBreakdown.proteinPct}%` }} />
+                        <div className="macro-bar-segment seg-carbs" style={{ width: `${macroBreakdown.carbsPct}%` }} />
+                        <div className="macro-bar-segment seg-fat" style={{ width: `${macroBreakdown.fatPct}%` }} />
+                      </div>
+                    )}
+
+                    <div className="macro-rows">
+                      {[
+                        { key: 'protein', label: 'Protein', val: selectedRecipe.protein, color: 'protein', goal: dailyGoals?.protein },
+                        { key: 'carbs', label: 'Carbs', val: selectedRecipe.carbs, color: 'carbs', goal: dailyGoals?.carbs },
+                        { key: 'fat', label: 'Fat', val: selectedRecipe.fat, color: 'fat', goal: dailyGoals?.fat },
+                      ].map(m => (
+                        <div key={m.key} className={`macro-row macro-${m.color}`}>
+                          <span className="macro-row-dot" />
+                          <span className="macro-row-label">{m.label}</span>
+                          <span className="macro-row-value">{m.val ?? 0}g</span>
+                          {!isCoach && m.goal && m.val ? (
+                            <span className="macro-row-pct">{Math.round((m.val / m.goal) * 100)}%</span>
+                          ) : <span className="macro-row-pct" />}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
-              </div>
+              ) : null}
 
               {/* Description */}
               {selectedRecipe.description && (
-                <div className="recipe-section">
-                  <p style={{ color: '#9ca3af', fontSize: '14px', lineHeight: '1.5' }}>{selectedRecipe.description}</p>
-                </div>
+                <p className="recipe-description">{selectedRecipe.description}</p>
               )}
 
-              {/* Ingredients */}
-              {selectedRecipe.ingredients && (
-                <div className="recipe-section">
-                  <h4 className="recipe-section-title">Ingredients</h4>
-                  <ul className="recipe-ingredients-list">
-                    {selectedRecipe.ingredients.includes('\n')
-                      ? selectedRecipe.ingredients.split('\n').filter(i => i.trim()).map((item, idx) => (
-                          <li key={idx}>{item.trim()}</li>
-                        ))
-                      : selectedRecipe.ingredients.split(',').map((item, idx) => (
-                          <li key={idx}>{item.trim()}</li>
-                        ))
-                    }
-                  </ul>
-                </div>
-              )}
-
-              {/* Instructions */}
-              {selectedRecipe.instructions && (
-                <div className="recipe-section">
-                  <h4 className="recipe-section-title">Instructions</h4>
-                  <div className="recipe-instructions">
-                    {selectedRecipe.instructions.includes('\n')
-                      ? selectedRecipe.instructions.split('\n').filter(i => i.trim()).map((step, idx) => (
-                          <p key={idx} className="recipe-step">{step}</p>
-                        ))
-                      : <p>{selectedRecipe.instructions}</p>
-                    }
-                  </div>
-                </div>
-              )}
-
-              {/* Action buttons */}
-              <div className="recipe-action-buttons">
-                {isCoach ? (
-                  <>
-                    {selectedRecipe.source !== 'spoonacular' && (
-                      <>
-                        <button className="recipe-action-btn favorite" onClick={() => openEditForm(selectedRecipe)}>
-                          <Edit3 size={18} />
-                          <span>Edit</span>
-                        </button>
+              {/* Ingredients - tappable rows */}
+              {selectedRecipe.ingredients && (() => {
+                const items = parseIngredients(selectedRecipe.ingredients);
+                return (
+                  <div className="recipe-section">
+                    <div className="recipe-section-header">
+                      <h4 className="recipe-section-title">
+                        Ingredients <span className="recipe-section-count">· {items.length}</span>
+                      </h4>
+                      {checkedIngredients.size > 0 && (
                         <button
-                          className="recipe-action-btn download"
-                          onClick={() => handleDeleteRecipe(selectedRecipe)}
-                          style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444' }}
+                          type="button"
+                          className="recipe-section-action"
+                          onClick={() => setCheckedIngredients(new Set())}
                         >
-                          <Trash2 size={18} />
-                          <span>Delete</span>
+                          Reset
                         </button>
-                      </>
-                    )}
-                    <button className="recipe-action-btn log" onClick={handleDownloadPDF}>
+                      )}
+                    </div>
+                    <ul className="recipe-ingredient-rows">
+                      {items.map((line, idx) => {
+                        const { name, qty } = splitIngredient(line);
+                        const checked = checkedIngredients.has(idx);
+                        return (
+                          <li key={idx}>
+                            <button
+                              type="button"
+                              className={`ingredient-row ${checked ? 'is-checked' : ''}`}
+                              onClick={() => toggleIngredient(idx)}
+                            >
+                              <span className="ingredient-check">
+                                {checked && <Check size={14} strokeWidth={3} />}
+                              </span>
+                              <span className="ingredient-name">{name}</span>
+                              {qty && <span className="ingredient-qty">{qty}</span>}
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                );
+              })()}
+
+              {/* Instructions - step cards */}
+              {selectedRecipe.instructions && (() => {
+                const steps = parseSteps(selectedRecipe.instructions);
+                return (
+                  <div className="recipe-section">
+                    <div className="recipe-section-header">
+                      <h4 className="recipe-section-title">
+                        Instructions <span className="recipe-section-count">· {steps.length} {steps.length === 1 ? 'step' : 'steps'}</span>
+                      </h4>
+                      {completedSteps.size > 0 && (
+                        <button
+                          type="button"
+                          className="recipe-section-action"
+                          onClick={() => setCompletedSteps(new Set())}
+                        >
+                          Reset
+                        </button>
+                      )}
+                    </div>
+                    <ol className="recipe-step-list">
+                      {steps.map((step, idx) => {
+                        const done = completedSteps.has(idx);
+                        return (
+                          <li key={idx}>
+                            <button
+                              type="button"
+                              className={`recipe-step-card ${done ? 'is-done' : ''}`}
+                              onClick={() => toggleStep(idx)}
+                            >
+                              <span className="step-number">
+                                {done ? <Check size={14} strokeWidth={3} /> : idx + 1}
+                              </span>
+                              <span className="step-text">{step}</span>
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ol>
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Sticky action bar */}
+            <div className="recipe-modal-cta">
+              {isCoach ? (
+                <>
+                  {selectedRecipe.source !== 'spoonacular' && (
+                    <button
+                      className="cta-secondary cta-danger"
+                      onClick={() => handleDeleteRecipe(selectedRecipe)}
+                      aria-label="Delete recipe"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  )}
+                  <button
+                    className="cta-secondary"
+                    onClick={handleDownloadPDF}
+                    aria-label="Download PDF"
+                  >
+                    <Download size={18} />
+                  </button>
+                  {selectedRecipe.source !== 'spoonacular' ? (
+                    <button className="cta-primary" onClick={() => openEditForm(selectedRecipe)}>
+                      <Edit3 size={18} />
+                      <span>Edit Recipe</span>
+                    </button>
+                  ) : (
+                    <button className="cta-primary" onClick={handleDownloadPDF}>
                       <Download size={18} />
                       <span>Download</span>
                     </button>
-                  </>
-                ) : (
-                  <>
-                    <button className="recipe-action-btn favorite" onClick={handleFavorite}>
-                      <Heart size={18} />
-                      <span>Favorite</span>
-                    </button>
-                    <button className="recipe-action-btn log" onClick={handleLogToDiary}>
-                      <Plus size={18} />
-                      <span>Log to Diary</span>
-                    </button>
-                    <button className="recipe-action-btn download" onClick={handleDownloadPDF}>
-                      <Download size={18} />
-                      <span>Download</span>
-                    </button>
-                  </>
-                )}
-              </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <button
+                    className="cta-secondary"
+                    onClick={handleFavorite}
+                    aria-label="Save to favorites"
+                  >
+                    <Heart size={18} />
+                  </button>
+                  <button
+                    className="cta-secondary"
+                    onClick={handleDownloadPDF}
+                    aria-label="Download PDF"
+                  >
+                    <Download size={18} />
+                  </button>
+                  <button className="cta-primary" onClick={handleLogToDiary}>
+                    <Plus size={18} />
+                    <span>Log to Diary</span>
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
