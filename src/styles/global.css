@@ -35426,9 +35426,31 @@ textarea,
     text-align: right;
 }
 
+/* Stacked elapsed wrapper: tiny "Total" label above value */
+.guided-elapsed-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    line-height: 1.1;
+    min-width: 50px;
+}
+
+.guided-elapsed-wrap .guided-elapsed-label {
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    opacity: 0.4;
+}
+
+.guided-elapsed-wrap .guided-elapsed {
+    min-width: 0;
+    opacity: 0.7;
+}
+
 /* Progress bar */
 .guided-progress-bar {
-    height: 3px;
+    height: 4px;
     background: rgba(255,255,255,0.1);
     margin: 0 16px;
     border-radius: 2px;
@@ -35660,6 +35682,24 @@ textarea,
     width: 140px;
     height: 140px;
     cursor: pointer;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+/* Soft dark gradient overlay tones down white-background exercise illustrations
+   so they don't fight the dark UI. Tap targets remain interactive (pointer-events: none). */
+.guided-thumbnail-wrapper::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0.10) 0%, rgba(15, 23, 42, 0.18) 100%);
+    pointer-events: none;
+    border-radius: inherit;
+}
+
+[data-theme="light"] .guided-thumbnail-wrapper::after {
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.04) 100%);
 }
 
 .guided-play-hint {
@@ -35701,19 +35741,28 @@ textarea,
 
 .guided-video-close {
     position: absolute;
-    top: 8px;
-    right: 8px;
-    width: 32px;
-    height: 32px;
-    background: rgba(0, 0, 0, 0.7);
+    top: 6px;
+    right: 6px;
+    width: 26px;
+    height: 26px;
+    background: rgba(0, 0, 0, 0.45);
     border: none;
     border-radius: 50%;
-    color: white;
+    color: rgba(255, 255, 255, 0.85);
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     z-index: 2;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    transition: background 0.15s, color 0.15s;
+}
+
+.guided-video-close:hover,
+.guided-video-close:active {
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
 }
 
 .guided-video-unmute {
@@ -36028,8 +36077,8 @@ textarea,
 }
 
 .guided-pause-btn {
-    background: rgba(255,255,255,0.1);
-    border: none;
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.16);
     color: white;
     padding: 12px 10px;
     border-radius: 14px;
@@ -36042,10 +36091,12 @@ textarea,
     cursor: pointer;
     flex: 1;
     min-width: 0;
+    transition: background 0.15s, border-color 0.15s;
 }
 
 .guided-pause-btn:active {
-    background: rgba(255,255,255,0.2);
+    background: rgba(255,255,255,0.22);
+    border-color: rgba(255,255,255,0.28);
 }
 
 /* Up next */
@@ -36075,12 +36126,21 @@ textarea,
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 8px 16px 16px;
+    padding: 12px 16px 16px;
     padding-bottom: calc(60px + env(safe-area-inset-bottom, 16px));
+    margin-top: 4px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+[data-theme="light"] .guided-activity-progress {
+    border-top-color: rgba(0, 0, 0, 0.06);
 }
 
 .guided-activity-header {
-    font-size: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
     color: rgba(255, 255, 255, 0.5);
     white-space: nowrap;
 }
@@ -36506,11 +36566,33 @@ textarea,
 /* Consolidated action icon row — Coach Note, Client Note, Reference Links, YouTube */
 .guided-action-row {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: center;
-    gap: 10px;
-    margin-top: 12px;
+    gap: 14px;
+    margin-top: 14px;
     flex-wrap: wrap;
+}
+
+/* Each action wraps a button + a tiny label below for unambiguous affordance */
+.guided-action-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    min-width: 44px;
+}
+
+.guided-action-label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: rgba(255, 255, 255, 0.45);
+    line-height: 1;
+}
+
+[data-theme="light"] .guided-action-label {
+    color: rgba(0, 0, 0, 0.5);
 }
 
 .guided-action-icon {
@@ -36521,7 +36603,7 @@ textarea,
     width: 40px;
     height: 40px;
     border-radius: 50%;
-    border: 1px solid transparent;
+    border: 1px solid rgba(255, 255, 255, 0.08);
     background: rgba(255, 255, 255, 0.06);
     color: rgba(255, 255, 255, 0.75);
     cursor: pointer;
@@ -36533,61 +36615,36 @@ textarea,
     transform: scale(0.92);
 }
 
+/* Voice keeps the brand teal accent because it's also the "playing" indicator */
 .guided-action-icon.voice {
-    background: rgba(13, 148, 136, 0.15);
-    border-color: rgba(13, 148, 136, 0.35);
-    color: #0d9488;
+    color: #2dd4bf;
 }
 
 .guided-action-icon.voice.playing {
-    background: rgba(13, 148, 136, 0.3);
-    border-color: #0d9488;
+    background: rgba(13, 148, 136, 0.25);
+    border-color: rgba(13, 148, 136, 0.6);
+    color: #5eead4;
     animation: pulse-glow 1.5s ease-in-out infinite;
 }
 
-.guided-action-icon.note {
-    background: rgba(59, 130, 246, 0.15);
-    border-color: rgba(59, 130, 246, 0.35);
-    color: #60a5fa;
-}
-
-.guided-action-icon.note.active {
-    background: rgba(59, 130, 246, 0.3);
-    border-color: #3b82f6;
-    color: #93c5fd;
-}
-
-.guided-action-icon.client-note {
-    background: rgba(139, 92, 246, 0.15);
-    border-color: rgba(139, 92, 246, 0.35);
-    color: #c4b5fd;
-}
-
-.guided-action-icon.client-note.active {
-    background: rgba(139, 92, 246, 0.3);
-    border-color: #a78bfa;
-    color: #ddd6fe;
-}
-
-.guided-action-icon.refs {
-    background: rgba(96, 165, 250, 0.15);
-    border-color: rgba(96, 165, 250, 0.35);
-    color: #60a5fa;
-}
-
+/* Active states: subtle teal accent (unified primary) instead of rainbow */
+.guided-action-icon.note.active,
+.guided-action-icon.client-note.active,
 .guided-action-icon.refs.active {
-    background: rgba(96, 165, 250, 0.3);
-    border-color: #60a5fa;
+    background: rgba(13, 148, 136, 0.18);
+    border-color: rgba(13, 148, 136, 0.45);
+    color: #5eead4;
 }
 
+/* YouTube keeps a faint red accent so it's recognizable as the brand video link */
 .guided-action-icon.youtube {
-    background: rgba(255, 0, 0, 0.15);
-    border-color: rgba(255, 0, 0, 0.35);
-    color: #ff6b6b;
+    color: #fb7185;
 }
 
+.guided-action-icon.youtube:hover,
 .guided-action-icon.youtube:active {
-    background: rgba(255, 0, 0, 0.3);
+    background: rgba(239, 68, 68, 0.15);
+    border-color: rgba(239, 68, 68, 0.35);
 }
 
 .guided-action-saved-dot {
@@ -37093,22 +37150,25 @@ textarea,
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    background: rgba(255,255,255,0.08);
-    border: 1px solid rgba(255,255,255,0.15);
-    color: rgba(255,255,255,0.7);
+    background: rgba(13, 148, 136, 0.10);
+    border: 1px solid rgba(13, 148, 136, 0.35);
+    color: #5eead4;
     font-size: 11px;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    padding: 4px 10px;
+    padding: 5px 12px;
     border-radius: 20px;
     cursor: pointer;
     transition: all 0.2s;
 }
 
+.guided-swap-btn:hover,
 .guided-swap-btn:active {
-    background: rgba(255,255,255,0.15);
-    transform: scale(0.95);
+    background: rgba(13, 148, 136, 0.2);
+    border-color: rgba(13, 148, 136, 0.55);
+    color: #99f6e4;
+    transform: scale(0.97);
 }
 
 /* Resume workout prompt */

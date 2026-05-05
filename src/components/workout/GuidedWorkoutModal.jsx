@@ -2851,15 +2851,20 @@ function GuidedWorkoutModal({
             aria-label="Minimize workout"
             title="Minimize"
           >
-            <Minimize2 size={18} />
+            <PictureInPicture2 size={18} />
           </button>
           <button
             className={`guided-voice-toggle ${voiceEnabled ? 'on' : 'off'}`}
             onClick={() => setVoiceEnabled(!voiceEnabled)}
+            aria-label={voiceEnabled ? 'Mute voice cues' : 'Unmute voice cues'}
+            title={voiceEnabled ? 'Voice cues on' : 'Voice cues off'}
           >
             {voiceEnabled ? <Volume2 size={18} /> : <VolumeX size={18} />}
           </button>
-          <div className="guided-elapsed">{formatTime(totalElapsed)}</div>
+          <div className="guided-elapsed-wrap" aria-label="Total elapsed time">
+            <span className="guided-elapsed-label">Total</span>
+            <span className="guided-elapsed">{formatTime(totalElapsed)}</span>
+          </div>
         </div>
       </div>
 
@@ -3125,60 +3130,75 @@ function GuidedWorkoutModal({
           return (
             <div className="guided-action-row">
               {currentExercise.voiceNoteUrl && (
-                <button
-                  className={`guided-action-icon voice ${playingVoiceNote ? 'playing' : ''}`}
-                  onClick={handlePlayVoiceNote}
-                  aria-label={playingVoiceNote ? 'Stop voice note' : "Coach's voice note"}
-                  title={playingVoiceNote ? 'Tap to stop' : "Coach's Voice Note"}
-                  type="button"
-                >
-                  <Mic size={18} />
-                </button>
+                <div className="guided-action-item">
+                  <button
+                    className={`guided-action-icon voice ${playingVoiceNote ? 'playing' : ''}`}
+                    onClick={handlePlayVoiceNote}
+                    aria-label={playingVoiceNote ? 'Stop voice note' : "Coach's voice note"}
+                    title={playingVoiceNote ? 'Tap to stop' : "Coach's Voice Note"}
+                    type="button"
+                  >
+                    <Mic size={18} />
+                  </button>
+                  <span className="guided-action-label">Voice</span>
+                </div>
               )}
               {currentExercise.notes && (
-                <button
-                  className={`guided-action-icon note ${showCoachNote ? 'active' : ''}`}
-                  onClick={() => setShowCoachNote(prev => !prev)}
-                  aria-label="Coach note"
-                  title="Coach Note"
-                  type="button"
-                >
-                  <MessageSquare size={18} />
-                </button>
+                <div className="guided-action-item">
+                  <button
+                    className={`guided-action-icon note ${showCoachNote ? 'active' : ''}`}
+                    onClick={() => setShowCoachNote(prev => !prev)}
+                    aria-label="Coach note"
+                    title="Coach Note"
+                    type="button"
+                  >
+                    <MessageSquare size={18} />
+                  </button>
+                  <span className="guided-action-label">Notes</span>
+                </div>
               )}
-              <button
-                className={`guided-action-icon client-note ${showClientNoteInput ? 'active' : ''}`}
-                onClick={() => setShowClientNoteInput(!showClientNoteInput)}
-                aria-label="Leave a note to coach"
-                title="Leave a Note to Coach"
-                type="button"
-              >
-                <MessageCircle size={18} />
-                {clientNoteSaved[currentExIndex] && <span className="guided-action-saved-dot" />}
-              </button>
-              {otherLinks.length > 0 && (
+              <div className="guided-action-item">
                 <button
-                  className={`guided-action-icon refs ${showReferenceLinks ? 'active' : ''}`}
-                  onClick={() => setShowReferenceLinks(prev => !prev)}
-                  aria-label="Reference links"
-                  title="Reference Links"
+                  className={`guided-action-icon client-note ${showClientNoteInput ? 'active' : ''}`}
+                  onClick={() => setShowClientNoteInput(!showClientNoteInput)}
+                  aria-label="Leave a note to coach"
+                  title="Leave a Note to Coach"
                   type="button"
                 >
-                  <ExternalLink size={18} />
+                  <MessageCircle size={18} />
+                  {clientNoteSaved[currentExIndex] && <span className="guided-action-saved-dot" />}
                 </button>
+                <span className="guided-action-label">Reply</span>
+              </div>
+              {otherLinks.length > 0 && (
+                <div className="guided-action-item">
+                  <button
+                    className={`guided-action-icon refs ${showReferenceLinks ? 'active' : ''}`}
+                    onClick={() => setShowReferenceLinks(prev => !prev)}
+                    aria-label="Reference links"
+                    title="Reference Links"
+                    type="button"
+                  >
+                    <ExternalLink size={18} />
+                  </button>
+                  <span className="guided-action-label">Links</span>
+                </div>
               )}
               {youtubeLink && (
-                <a
-                  href={youtubeLink.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="guided-action-icon youtube"
-                  aria-label="YouTube video"
-                  title="YouTube Video"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <Play size={18} />
-                </a>
+                <div className="guided-action-item">
+                  <a
+                    href={youtubeLink.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="guided-action-icon youtube"
+                    aria-label="YouTube video"
+                    title="YouTube Video"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Play size={18} />
+                  </a>
+                  <span className="guided-action-label">Video</span>
+                </div>
               )}
             </div>
           );
