@@ -257,16 +257,10 @@ export const generateProgression = ({ previousSessions, exercise, weightUnit, la
       reasoning = `Plateau detected — time to deload. Drop to ${recommendedWeight}${weightUnit} and rebuild.`;
     }
   } else if (effectiveEffort === 'easy') {
-    // 4+ RIR — push harder
-    if (lastMaxReps >= repRangeTop) {
-      recommendedWeight = lastMaxWeight + weightIncrement;
-      // Practical rep drop: subtract 2 from actual, not drop to range bottom
-      recommendedReps = Math.max(lastMaxReps - 2, prescribedReps - 2);
-      reasoning = `Easy at ${lastMaxReps} reps — you've earned a weight increase! Drop to ${recommendedReps} reps and build back up.`;
-    } else {
-      recommendedReps = Math.min(lastMaxReps + 2, repRangeTop);
-      reasoning = `Felt easy — push for ${recommendedReps} reps. Once you hit ${repRangeTop}, we'll increase the weight.`;
-    }
+    // 4+ RIR — weight is too light. Bump weight, hold reps.
+    recommendedWeight = lastMaxWeight + weightIncrement;
+    recommendedReps = lastMaxReps;
+    reasoning = `Felt easy at ${lastMaxWeight}${weightUnit} — bumping to ${recommendedWeight}${weightUnit}. Hold ${recommendedReps} reps.`;
   } else if (effectiveEffort === 'moderate') {
     // 2-3 RIR — steady progress
     if (lastMaxReps >= repRangeTop) {
