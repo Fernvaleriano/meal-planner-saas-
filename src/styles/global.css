@@ -3257,36 +3257,49 @@ textarea,
     transform: scale(0.98);
 }
 
+/* Quick Action icon container — unified across all six tiles. The earlier
+   per-tile rainbow (mint / pink / yellow / red / amber / indigo) competed
+   with the rest of the app's brand palette and made the dashboard look
+   like a consumer toy. One neutral container, one teal glyph: the icon
+   shape itself differentiates the action. */
 .quick-action-card-icon {
     width: 56px;
     height: 56px;
-    border-radius: 16px;
+    border-radius: 14px;
     display: flex;
     align-items: center;
     justify-content: center;
     margin-bottom: 12px;
-    background: linear-gradient(135deg, #ccfbf1 0%, #99f6e4 100%);
-    color: var(--brand-primary);
+    background: rgba(20, 184, 166, 0.10);
+    color: #14b8a6;
+    border: 1px solid rgba(20, 184, 166, 0.18);
 }
 
-.quick-action-card-icon.teal {
-    background: linear-gradient(135deg, #ccfbf1 0%, #99f6e4 100%);
+[data-theme="light"] .quick-action-card-icon {
+    background: rgba(13, 148, 136, 0.08);
     color: #0d9488;
+    border-color: rgba(13, 148, 136, 0.18);
 }
 
-.quick-action-card-icon.pink {
-    background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%);
-    color: #ec4899;
-}
-
-.quick-action-card-icon.yellow {
-    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-    color: #f59e0b;
-}
-
+/* Legacy color modifiers — kept as no-ops so any older JSX or third-party
+   reuse referencing .teal / .pink / .yellow / .red still renders the
+   unified style instead of falling back to the original rainbow. */
+.quick-action-card-icon.teal,
+.quick-action-card-icon.pink,
+.quick-action-card-icon.yellow,
 .quick-action-card-icon.red {
-    background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
-    color: #ef4444;
+    background: rgba(20, 184, 166, 0.10);
+    color: #14b8a6;
+    border-color: rgba(20, 184, 166, 0.18);
+}
+
+[data-theme="light"] .quick-action-card-icon.teal,
+[data-theme="light"] .quick-action-card-icon.pink,
+[data-theme="light"] .quick-action-card-icon.yellow,
+[data-theme="light"] .quick-action-card-icon.red {
+    background: rgba(13, 148, 136, 0.08);
+    color: #0d9488;
+    border-color: rgba(13, 148, 136, 0.18);
 }
 
 .quick-action-card span {
