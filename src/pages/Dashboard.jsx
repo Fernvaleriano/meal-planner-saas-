@@ -1270,37 +1270,37 @@ function Dashboard() {
       <h3 className="section-heading">Quick Actions</h3>
       <div className="quick-actions-grid">
         <Link to="/check-in" className="quick-action-card">
-          <div className="quick-action-card-icon teal">
+          <div className="quick-action-card-icon">
             <ClipboardCheck size={24} />
           </div>
           <span>Check-In</span>
         </Link>
         <Link to="/progress" className="quick-action-card">
-          <div className="quick-action-card-icon pink">
+          <div className="quick-action-card-icon">
             <TrendingUp size={24} />
           </div>
           <span>Progress</span>
         </Link>
         <Link to="/recipes" className="quick-action-card">
-          <div className="quick-action-card-icon yellow">
+          <div className="quick-action-card-icon">
             <ChefHat size={24} />
           </div>
           <span>Recipes</span>
         </Link>
         <div className="quick-action-card" onClick={() => setFavoritesModalOpen(true)} style={{ cursor: 'pointer' }}>
-          <div className="quick-action-card-icon red">
+          <div className="quick-action-card-icon">
             <Heart size={24} />
           </div>
           <span>Favorites</span>
         </div>
         <Link to="/challenges" className="quick-action-card">
-          <div className="quick-action-card-icon" style={{ background: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b' }}>
+          <div className="quick-action-card-icon">
             <Trophy size={24} />
           </div>
           <span>Challenges</span>
         </Link>
         <Link to="/settings" className="quick-action-card">
-          <div className="quick-action-card-icon" style={{ background: 'rgba(99, 102, 241, 0.15)', color: '#6366f1' }}>
+          <div className="quick-action-card-icon">
             <UserCircle size={24} />
           </div>
           <span>Profile</span>
