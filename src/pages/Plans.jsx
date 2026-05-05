@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Calendar, Flame, Target, Clock, Utensils, Coffee, Sun, Moon, Apple, Heart, ClipboardList, RefreshCw, Pencil, Crosshair, BookOpen, X, Plus, Minus, Trash2, Search, Undo2, RotateCcw, ShoppingCart, ChefHat, FileDown, Check, MessageSquare } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, Flame, Target, Clock, Utensils, Coffee, Sun, Moon, Apple, Heart, ClipboardList, RefreshCw, Pencil, Crosshair, BookOpen, X, Plus, Minus, Trash2, Search, Undo2, RotateCcw, ShoppingCart, ChefHat, FileDown, Check, MessageSquare, Mic, MoreHorizontal } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost } from '../utils/api';
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
@@ -41,6 +41,14 @@ const setCache = (key, data) => {
   } catch (e) { /* ignore */ }
 };
 
+// Strip a "Meal N:" / "Meal N -" prefix that some legacy plans store
+// inside the meal name itself. The meal_type / section label already
+// orders the cards, so the prefix is redundant in the UI.
+const stripMealPrefix = (str) => {
+  if (!str || typeof str !== 'string') return str;
+  return str.replace(/^\s*meal\s*\d+\s*[:\-–—]\s*/i, '').trim();
+};
+
 // Returns ingredient list as the display name for a meal card.
 // If ingredients exist, joins them as a comma-separated string.
 // Falls back to meal.name if no ingredients are available.
@@ -53,7 +61,7 @@ const getMealDisplayName = (meal) => {
       return amount ? `${name} (${amount})` : name;
     }).join(', ');
   }
-  return meal.name || meal.title || 'Meal';
+  return stripMealPrefix(meal.name || meal.title || '') || 'Meal';
 };
 
 // Get today's date in local timezone (NOT UTC)
@@ -475,8 +483,11 @@ function Plans() {
     const goal = planData.goal ? (goalLabels[planData.goal.toLowerCase()] || planData.goal) : '-';
     const summary = planData.summary || null;
 
-    // Get custom plan name if coach provided one
-    const planName = plan.plan_name || planData.planName || null;
+    // Get custom plan name if coach provided one. Strip any leading "Meal N:"
+    // prefix that sometimes leaks in when a meal description was used as the
+    // plan title — keeps the header tight.
+    const rawPlanName = plan.plan_name || planData.planName || null;
+    const planName = rawPlanName ? stripMealPrefix(rawPlanName) : null;
 
     return { numDays, calories, goal, summary, planName };
   };
@@ -1746,28 +1757,26 @@ Keep it practical and brief. Format with clear sections.`;
 
         {/* Header */}
         <div className="plan-detail-header">
-          <button className="back-btn" onClick={handleBackToPlans}>
-            <ChevronLeft size={24} />
+          <button className="back-btn" onClick={handleBackToPlans} aria-label="Back to plans">
+            <ChevronLeft size={22} />
           </button>
           <div className="plan-detail-title">
-            <h1>{planName || `${numDays}-Day Meal Plan`}</h1>
-            <span className="plan-detail-date">{formatDate(selectedPlan.created_at)}</span>
-          </div>
-        </div>
-
-        {/* Plan Stats */}
-        <div className="plan-stats">
-          <div className="plan-stat">
-            <Calendar size={18} />
-            <span>{numDays} Days</span>
-          </div>
-          <div className="plan-stat">
-            <Flame size={18} />
-            <span>{calories} cal</span>
-          </div>
-          <div className="plan-stat">
-            <Target size={18} />
-            <span>{goal}</span>
+            <h1 title={planName || `${numDays}-Day Meal Plan`}>
+              {planName || `${numDays}-Day Meal Plan`}
+            </h1>
+            <div className="plan-detail-meta">
+              <span>{formatDate(selectedPlan.created_at)}</span>
+              <span className="plan-meta-dot">·</span>
+              <span>{numDays} {numDays === 1 ? 'day' : 'days'}</span>
+              <span className="plan-meta-dot">·</span>
+              <span>{calories === '-' ? '— cal' : `${calories} cal`}</span>
+              {goal && goal !== '-' && (
+                <>
+                  <span className="plan-meta-dot">·</span>
+                  <span>{goal}</span>
+                </>
+              )}
+            </div>
           </div>
         </div>
 
@@ -1818,29 +1827,42 @@ Keep it practical and brief. Format with clear sections.`;
           <h2 className="day-title">Day {selectedDay + 1}</h2>
 
           {/* Daily Totals - calculated from actual meals */}
-          {currentDay.plan && Array.isArray(currentDay.plan) && (
-            <div className="daily-targets-card">
-              <h3 className="daily-targets-title">Daily Totals</h3>
-              <div className="daily-targets-grid">
-                <div className="target-box calories">
-                  <span className="target-value">{currentDay.plan.reduce((sum, meal) => sum + (meal.calories || 0), 0)}</span>
-                  <span className="target-label">Calories</span>
+          {currentDay.plan && Array.isArray(currentDay.plan) && (() => {
+            const totals = currentDay.plan.reduce((acc, meal) => ({
+              calories: acc.calories + (meal.calories || 0),
+              protein: acc.protein + (meal.protein || 0),
+              carbs: acc.carbs + (meal.carbs || 0),
+              fat: acc.fat + (meal.fat || 0),
+            }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
+            return (
+              <div className="daily-targets-card">
+                <div className="daily-targets-header">
+                  <h3 className="daily-targets-title">Daily Totals</h3>
+                  <span className="daily-targets-cal">
+                    <Flame size={14} />
+                    {totals.calories} cal
+                  </span>
                 </div>
-                <div className="target-box protein">
-                  <span className="target-value">{currentDay.plan.reduce((sum, meal) => sum + (meal.protein || 0), 0)}g</span>
-                  <span className="target-label">Protein</span>
-                </div>
-                <div className="target-box carbs">
-                  <span className="target-value">{currentDay.plan.reduce((sum, meal) => sum + (meal.carbs || 0), 0)}g</span>
-                  <span className="target-label">Carbs</span>
-                </div>
-                <div className="target-box fat">
-                  <span className="target-value">{currentDay.plan.reduce((sum, meal) => sum + (meal.fat || 0), 0)}g</span>
-                  <span className="target-label">Fat</span>
+                <div className="daily-targets-grid">
+                  <div className="target-box protein">
+                    <span className="target-dot" aria-hidden="true" />
+                    <span className="target-value">{totals.protein}g</span>
+                    <span className="target-label">Protein</span>
+                  </div>
+                  <div className="target-box carbs">
+                    <span className="target-dot" aria-hidden="true" />
+                    <span className="target-value">{totals.carbs}g</span>
+                    <span className="target-label">Carbs</span>
+                  </div>
+                  <div className="target-box fat">
+                    <span className="target-dot" aria-hidden="true" />
+                    <span className="target-value">{totals.fat}g</span>
+                    <span className="target-label">Fat</span>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* Meals - check for currentDay.plan array (PWA format) */}
           {currentDay.plan && Array.isArray(currentDay.plan) && currentDay.plan.length > 0 ? (
@@ -1890,7 +1912,10 @@ Keep it practical and brief. Format with clear sections.`;
                       {/* Coach Note */}
                       {meal.coach_note && (
                         <div className="meal-coach-note">
-                          <span className="meal-coach-note-label">📝 Coach:</span>
+                          <span className="meal-coach-note-label">
+                            <Pencil size={12} />
+                            Coach note
+                          </span>
                           <span className="meal-coach-note-text">{meal.coach_note}</span>
                         </div>
                       )}
@@ -1901,7 +1926,10 @@ Keep it practical and brief. Format with clear sections.`;
                           className="meal-voice-note"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          <span className="meal-voice-note-label">🎙️ Voice Note:</span>
+                          <span className="meal-voice-note-label">
+                            <Mic size={12} />
+                            Voice note from your coach
+                          </span>
                           <audio
                             controls
                             playsInline
@@ -1919,7 +1947,18 @@ Keep it practical and brief. Format with clear sections.`;
                         </div>
                       )}
 
-                      <p className="meal-card-tap-hint">Tap to see options</p>
+                      <button
+                        className="meal-card-details-link"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (!isProcessing) openMealModal(meal, selectedDay, idx);
+                        }}
+                        tabIndex={-1}
+                        aria-label="Open meal options"
+                      >
+                        <span>Details</span>
+                        <ChevronRight size={16} />
+                      </button>
                     </div>
                   </div>
                 );
@@ -2032,22 +2071,26 @@ Keep it practical and brief. Format with clear sections.`;
 
         {/* Plan Action Buttons */}
         <div className="plan-action-bar">
-          <button className="plan-action-btn" onClick={() => setShowGroceryModal(true)}>
-            <ShoppingCart size={20} />
-            <span>Grocery List</span>
-          </button>
-          <button className="plan-action-btn" onClick={handleMealPrep}>
-            <ChefHat size={20} />
-            <span>Meal Prep</span>
-          </button>
-          <button className="plan-action-btn" onClick={handleDownloadPDF}>
-            <FileDown size={20} />
-            <span>Download PDF</span>
-          </button>
-          <button className="plan-action-btn revert" onClick={handleRevertToOriginal}>
-            <RotateCcw size={20} />
-            <span>Revert</span>
-          </button>
+          <div className="plan-action-primary">
+            <button className="plan-action-btn primary" onClick={() => setShowGroceryModal(true)}>
+              <ShoppingCart size={18} />
+              <span>Grocery List</span>
+            </button>
+            <button className="plan-action-btn primary" onClick={handleMealPrep}>
+              <ChefHat size={18} />
+              <span>Meal Prep</span>
+            </button>
+          </div>
+          <div className="plan-action-secondary">
+            <button className="plan-action-btn secondary" onClick={handleDownloadPDF}>
+              <FileDown size={16} />
+              <span>Download PDF</span>
+            </button>
+            <button className="plan-action-btn secondary revert" onClick={handleRevertToOriginal}>
+              <RotateCcw size={16} />
+              <span>Revert to original</span>
+            </button>
+          </div>
         </div>
 
         {/* Floating Undo Button */}

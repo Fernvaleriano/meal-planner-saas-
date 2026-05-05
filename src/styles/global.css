@@ -7250,14 +7250,14 @@ textarea,
 /* Plan Detail View */
 .plan-detail-header {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 12px;
-    margin-bottom: 20px;
+    margin-bottom: 16px;
 }
 
 .back-btn {
-    width: 44px;
-    height: 44px;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
     background: var(--gray-100);
     border: none;
@@ -7268,34 +7268,71 @@ textarea,
     justify-content: center;
     transition: all 0.2s;
     flex-shrink: 0;
+    margin-top: 2px;
 }
 
 [data-theme="dark"] .back-btn {
-    background: #334155;
-    color: #94a3b8;
+    background: rgba(148, 163, 184, 0.12);
+    color: #cbd5e1;
 }
 
 .back-btn:hover {
     background: var(--gray-200);
 }
 
+[data-theme="dark"] .back-btn:hover {
+    background: rgba(148, 163, 184, 0.2);
+}
+
+.plan-detail-title {
+    flex: 1;
+    min-width: 0;
+}
+
 .plan-detail-title h1 {
-    font-size: 1.5rem;
+    font-size: 1.4rem;
     font-weight: 700;
+    line-height: 1.25;
     color: var(--gray-900);
     margin-bottom: 4px;
+    /* Clamp to 2 lines so a long coach-set plan name never eats the screen */
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    word-break: break-word;
 }
 
 [data-theme="dark"] .plan-detail-title h1 {
     color: #f1f5f9;
 }
 
+.plan-detail-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.82rem;
+    color: var(--gray-500);
+    line-height: 1.4;
+}
+
+[data-theme="dark"] .plan-detail-meta {
+    color: #94a3b8;
+}
+
+.plan-meta-dot {
+    opacity: 0.6;
+}
+
+/* Legacy date span - keep selector working in case any callers still use it */
 .plan-detail-date {
-    font-size: 0.9rem;
+    font-size: 0.82rem;
     color: var(--gray-500);
 }
 
-/* Plan Stats */
+/* Plan Stats — legacy chip row, kept for any other consumers */
 .plan-stats {
     display: flex;
     gap: 12px;
@@ -7519,18 +7556,27 @@ textarea,
 
 .meal-type-icon {
     flex-shrink: 0;
+    color: var(--brand-primary);
+    opacity: 0.85;
 }
 
+/* Subtle hue per meal type — let the photo carry the warmth */
 .meal-type-icon.breakfast { color: #f59e0b; }
 .meal-type-icon.lunch { color: #eab308; }
 .meal-type-icon.dinner { color: #8b5cf6; }
-.meal-type-icon.snack { color: #ef4444; }
+.meal-type-icon.snack { color: #f87171; }
+
+[data-theme="dark"] .meal-type-icon.breakfast { color: #fbbf24; }
+[data-theme="dark"] .meal-type-icon.lunch { color: #facc15; }
+[data-theme="dark"] .meal-type-icon.dinner { color: #a78bfa; }
+[data-theme="dark"] .meal-type-icon.snack { color: #fca5a5; }
 
 .meal-card-type {
-    font-size: 0.85rem;
+    font-size: 0.78rem;
     font-weight: 600;
     color: var(--gray-600);
-    text-transform: capitalize;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
 }
 
 [data-theme="dark"] .meal-card-type {
@@ -7545,10 +7591,18 @@ textarea,
 }
 
 .meal-card-name {
-    font-size: 1.1rem;
+    font-size: 1.02rem;
     font-weight: 700;
+    line-height: 1.35;
     color: var(--gray-900);
     margin-bottom: 8px;
+    /* Clamp ingredient-list titles to 2 lines so cards stay scannable */
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    word-break: break-word;
 }
 
 [data-theme="dark"] .meal-card-name {
@@ -7673,8 +7727,8 @@ textarea,
 .daily-targets-card {
     background: white;
     border-radius: 16px;
-    padding: 20px;
-    margin-bottom: 20px;
+    padding: 16px 18px;
+    margin-bottom: 16px;
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
     border: 1px solid var(--gray-100);
 }
@@ -7684,57 +7738,107 @@ textarea,
     border-color: #334155;
 }
 
+.daily-targets-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
 .daily-targets-title {
-    font-size: 1rem;
+    font-size: 0.85rem;
     font-weight: 700;
-    color: var(--gray-900);
-    margin-bottom: 16px;
-    text-align: center;
+    color: var(--gray-700);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin: 0;
 }
 
 [data-theme="dark"] .daily-targets-title {
-    color: #f1f5f9;
+    color: #94a3b8;
+}
+
+.daily-targets-cal {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #0d9488;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: rgba(13, 148, 136, 0.1);
+}
+
+.daily-targets-cal svg {
+    flex-shrink: 0;
+}
+
+[data-theme="dark"] .daily-targets-cal {
+    color: #5eead4;
+    background: rgba(20, 184, 166, 0.16);
 }
 
 .daily-targets-grid {
-    display: flex;
-    justify-content: center;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
     gap: 8px;
-    width: 100%;
-    margin: 0 auto;
 }
 
 .target-box {
-    background: #1e293b;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-rows: auto auto;
+    align-items: baseline;
+    column-gap: 8px;
+    padding: 10px 12px;
     border-radius: 12px;
-    padding: 12px 6px;
-    text-align: center;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    flex: 1;
+    background: var(--gray-50);
+    border: 1px solid var(--gray-100);
     min-width: 0;
-    max-width: 85px;
 }
 
-.target-box.calories { background: #14b8a6; }
-.target-box.protein { background: #3b82f6; }
-.target-box.carbs { background: #f59e0b; }
-.target-box.fat { background: #ef4444; }
+[data-theme="dark"] .target-box {
+    background: rgba(148, 163, 184, 0.06);
+    border-color: rgba(148, 163, 184, 0.1);
+}
+
+.target-dot {
+    grid-row: 1 / span 2;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    align-self: center;
+}
+
+.target-box.protein .target-dot { background: #3b82f6; }
+.target-box.carbs .target-dot { background: #f59e0b; }
+.target-box.fat .target-dot { background: #ef4444; }
 
 .target-value {
-    font-size: 1.1rem;
+    font-size: 1.05rem;
     font-weight: 700;
-    color: white;
+    color: var(--gray-900);
+    line-height: 1.1;
     white-space: nowrap;
 }
 
+[data-theme="dark"] .target-value {
+    color: #f1f5f9;
+}
+
 .target-label {
-    font-size: 0.6rem;
+    font-size: 0.68rem;
     font-weight: 600;
-    color: rgba(255, 255, 255, 0.9);
+    color: var(--gray-500);
     text-transform: uppercase;
-    letter-spacing: 0.3px;
+    letter-spacing: 0.4px;
+    line-height: 1.2;
+}
+
+[data-theme="dark"] .target-label {
+    color: #94a3b8;
 }
 
 /* Meal Card with Image */
@@ -7773,16 +7877,17 @@ textarea,
 .macro-item {
     font-size: 0.75rem;
     font-weight: 600;
-    color: var(--gray-600);
+    color: var(--gray-700);
     background: var(--gray-100);
-    padding: 3px 8px;
+    padding: 4px 9px;
     border-radius: 6px;
     white-space: nowrap;
+    letter-spacing: 0.1px;
 }
 
 [data-theme="dark"] .macro-item {
-    background: #334155;
-    color: #94a3b8;
+    background: rgba(148, 163, 184, 0.14);
+    color: #cbd5e1;
 }
 
 /* ==================== FOOD MODALS ==================== */
@@ -11885,38 +11990,69 @@ textarea,
     transform: translateY(0);
 }
 
-.meal-card-tap-hint {
-    font-size: 0.75rem;
-    color: var(--gray-400);
-    margin-top: 8px;
-    text-align: center;
+/* Right-aligned Details affordance — replaces center-aligned "Tap to see options" hint */
+.meal-card-details-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    margin-top: 4px;
+    margin-left: auto;
+    padding: 6px 4px 4px 8px;
+    background: transparent;
+    border: none;
+    color: var(--brand-primary);
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    align-self: flex-end;
+    transition: opacity 0.15s ease;
 }
 
-[data-theme="dark"] .meal-card-tap-hint {
-    color: #64748b;
+.meal-card-details-link:hover {
+    opacity: 0.75;
 }
 
-/* Meal Coach Note */
-.meal-coach-note {
-    background: #fef3c7;
-    border-left: 3px solid #f59e0b;
-    padding: 8px 10px;
-    margin: 10px 0;
-    border-radius: 0 6px 6px 0;
+.meal-card-content {
+    /* allow Details link to right-align */
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    align-items: stretch;
+}
+
+[data-theme="dark"] .meal-card-details-link {
+    color: #5eead4;
+}
+
+/* Legacy class — keep declared so any cached HTML doesn't break, but hide */
+.meal-card-tap-hint { display: none; }
+
+/* Meal Coach Note — bordered surface, no warm yellow flood */
+.meal-coach-note {
+    background: rgba(245, 158, 11, 0.06);
+    border: 1px solid rgba(245, 158, 11, 0.2);
+    border-left: 3px solid #f59e0b;
+    padding: 10px 12px;
+    margin: 10px 0;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
 }
 
 [data-theme="dark"] .meal-coach-note {
-    background: #422006;
-    border-left-color: #f59e0b;
+    background: rgba(245, 158, 11, 0.08);
+    border-color: rgba(245, 158, 11, 0.25);
 }
 
 .meal-coach-note-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
     font-size: 0.7rem;
-    font-weight: 600;
-    color: #92400e;
+    font-weight: 700;
+    color: #b45309;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
 }
 
 [data-theme="dark"] .meal-coach-note-label {
@@ -11924,37 +12060,44 @@ textarea,
 }
 
 .meal-coach-note-text {
-    font-size: 0.8rem;
-    color: #78350f;
-    line-height: 1.4;
+    font-size: 0.85rem;
+    color: var(--gray-800);
+    line-height: 1.5;
     white-space: pre-wrap;
 }
 
 [data-theme="dark"] .meal-coach-note-text {
-    color: #fde68a;
+    color: #e2e8f0;
 }
 
-/* Meal Voice Note */
+/* Meal Voice Note — restyled to fit dark theme, no flat purple block */
 .meal-voice-note {
-    background: #ede9fe;
+    background: rgba(99, 102, 241, 0.05);
+    border: 1px solid rgba(99, 102, 241, 0.18);
     border-left: 3px solid #8b5cf6;
-    padding: 8px 10px;
+    padding: 10px 12px;
     margin: 10px 0;
-    border-radius: 0 6px 6px 0;
+    border-radius: 8px;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 8px;
 }
 
 [data-theme="dark"] .meal-voice-note {
-    background: #2e1065;
+    background: rgba(139, 92, 246, 0.08);
+    border-color: rgba(139, 92, 246, 0.22);
     border-left-color: #a78bfa;
 }
 
 .meal-voice-note-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
     font-size: 0.7rem;
-    font-weight: 600;
+    font-weight: 700;
     color: #6d28d9;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
 }
 
 [data-theme="dark"] .meal-voice-note-label {
@@ -11964,15 +12107,15 @@ textarea,
 .meal-voice-audio {
     width: 100%;
     height: 36px;
-    border-radius: 4px;
+    border-radius: 8px;
 }
 
 .meal-voice-audio::-webkit-media-controls-panel {
-    background: #f5f3ff;
+    background: rgba(255, 255, 255, 0.7);
 }
 
 [data-theme="dark"] .meal-voice-audio::-webkit-media-controls-panel {
-    background: #1e1b4b;
+    background: rgba(15, 23, 42, 0.6);
 }
 
 /* Meal Modal Overlay */
@@ -13218,111 +13361,127 @@ textarea,
    PLAN ACTION BAR
    ======================================== */
 .plan-action-bar {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
-    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 14px;
     margin-top: 16px;
-    background: linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%);
-    border-radius: 20px;
     margin-bottom: 80px;
+    background: rgba(30, 41, 59, 0.6);
+    border-radius: 18px;
     border: 1px solid rgba(148, 163, 184, 0.1);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="light"] .plan-action-bar {
+    background: white;
+    border-color: var(--gray-200);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+}
+
+.plan-action-primary {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.plan-action-secondary {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
 }
 
 .plan-action-btn {
-    display: flex;
-    flex-direction: column;
+    display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 8px;
-    padding: 16px 12px;
-    border: none;
-    border-radius: 14px;
-    background: linear-gradient(135deg, rgba(51, 65, 85, 0.8) 0%, rgba(30, 41, 59, 0.9) 100%);
-    color: #94a3b8;
-    font-size: 0.8rem;
-    font-weight: 500;
+    padding: 12px 14px;
+    border: 1px solid transparent;
+    border-radius: 12px;
+    font-weight: 600;
     cursor: pointer;
-    transition: all 0.3s ease;
-    border: 1px solid rgba(148, 163, 184, 0.15);
+    transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+    text-align: center;
+    white-space: nowrap;
 }
 
 .plan-action-btn svg {
-    color: #64748b;
-    transition: all 0.3s ease;
+    flex-shrink: 0;
 }
 
-.plan-action-btn:hover {
-    background: linear-gradient(135deg, rgba(79, 70, 229, 0.3) 0%, rgba(99, 102, 241, 0.2) 100%);
-    color: #e2e8f0;
-    transform: translateY(-2px);
-    border-color: rgba(99, 102, 241, 0.4);
-    box-shadow: 0 4px 15px rgba(99, 102, 241, 0.2);
+/* Primary actions — solid teal, the main thing a user wants here */
+.plan-action-btn.primary {
+    background: var(--brand-primary, #0d9488);
+    color: #fff;
+    font-size: 0.9rem;
+    border-color: transparent;
 }
 
-.plan-action-btn:hover svg {
-    color: #a5b4fc;
+.plan-action-btn.primary:hover {
+    background: #0b827a;
 }
 
-.plan-action-btn:active {
-    transform: translateY(0);
+.plan-action-btn.primary:active {
+    background: #0a7269;
 }
 
-.plan-action-btn.revert {
-    color: #fbbf24;
+[data-theme="dark"] .plan-action-btn.primary {
+    background: rgba(20, 184, 166, 0.18);
+    color: #5eead4;
+    border-color: rgba(20, 184, 166, 0.35);
 }
 
-.plan-action-btn.revert svg {
-    color: #f59e0b;
+[data-theme="dark"] .plan-action-btn.primary:hover {
+    background: rgba(20, 184, 166, 0.28);
+    border-color: rgba(20, 184, 166, 0.5);
 }
 
-.plan-action-btn.revert:hover {
-    background: linear-gradient(135deg, rgba(245, 158, 11, 0.3) 0%, rgba(251, 191, 36, 0.2) 100%);
-    color: #fef3c7;
-    border-color: rgba(245, 158, 11, 0.4);
-    box-shadow: 0 4px 15px rgba(245, 158, 11, 0.2);
+/* Secondary actions — ghost / muted */
+.plan-action-btn.secondary {
+    background: transparent;
+    color: var(--gray-600);
+    font-size: 0.82rem;
+    font-weight: 500;
+    padding: 9px 12px;
+    border-color: var(--gray-200);
 }
 
-.plan-action-btn.revert:hover svg {
-    color: #fcd34d;
+.plan-action-btn.secondary:hover {
+    background: var(--gray-50);
+    color: var(--gray-800);
 }
 
-/* Light theme adjustments */
-[data-theme="light"] .plan-action-bar {
-    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-    border-color: rgba(148, 163, 184, 0.2);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
-}
-
-[data-theme="light"] .plan-action-btn {
-    background: white;
-    color: #475569;
-    border-color: rgba(148, 163, 184, 0.2);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-}
-
-[data-theme="light"] .plan-action-btn svg {
-    color: #64748b;
-}
-
-[data-theme="light"] .plan-action-btn:hover {
-    background: linear-gradient(135deg, rgba(79, 70, 229, 0.1) 0%, rgba(99, 102, 241, 0.08) 100%);
-    color: #4f46e5;
-    border-color: rgba(99, 102, 241, 0.3);
-}
-
-[data-theme="light"] .plan-action-btn:hover svg {
-    color: #4f46e5;
-}
-
-/* Dark theme (default) */
-[data-theme="dark"] .plan-action-bar {
-    background: linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%);
-}
-
-[data-theme="dark"] .plan-action-btn {
-    background: linear-gradient(135deg, rgba(51, 65, 85, 0.8) 0%, rgba(30, 41, 59, 0.9) 100%);
+[data-theme="dark"] .plan-action-btn.secondary {
     color: #94a3b8;
+    border-color: rgba(148, 163, 184, 0.2);
+}
+
+[data-theme="dark"] .plan-action-btn.secondary:hover {
+    background: rgba(148, 163, 184, 0.08);
+    color: #e2e8f0;
+}
+
+/* Revert is destructive — orange ghost */
+.plan-action-btn.secondary.revert {
+    color: #b45309;
+    border-color: rgba(245, 158, 11, 0.3);
+}
+
+.plan-action-btn.secondary.revert:hover {
+    background: rgba(245, 158, 11, 0.08);
+    color: #92400e;
+    border-color: rgba(245, 158, 11, 0.5);
+}
+
+[data-theme="dark"] .plan-action-btn.secondary.revert {
+    color: #fbbf24;
+    border-color: rgba(245, 158, 11, 0.3);
+}
+
+[data-theme="dark"] .plan-action-btn.secondary.revert:hover {
+    background: rgba(245, 158, 11, 0.1);
+    color: #fcd34d;
+    border-color: rgba(245, 158, 11, 0.5);
 }
 
 /* ========================================
