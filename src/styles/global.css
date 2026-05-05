@@ -8934,6 +8934,24 @@ textarea,
     width: 100%;
 }
 
+/* Endpoint labels under the 1-5 row, e.g. "Drained" --- "Energized".
+   Removes the guesswork on which end means good vs. bad without forcing
+   every metric to spell out a hint sentence. */
+.rating-scale-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 8px;
+    padding: 0 4px;
+    font-size: 11px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.4);
+    letter-spacing: 0.02em;
+}
+
+[data-theme="light"] .rating-scale-labels {
+    color: rgba(15, 23, 42, 0.5);
+}
+
 .rating-btn {
     flex: 1 1 0;
     min-width: 0;
@@ -9120,14 +9138,15 @@ textarea,
 
 .adherence-value {
     text-align: center;
-    font-weight: 800;
+    font-weight: 700;
     background: linear-gradient(135deg, #0d9488 0%, #14b8a6 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    font-size: 32px;
-    margin-top: 16px;
+    font-size: 22px;
+    margin-top: 12px;
     text-shadow: none;
+    letter-spacing: -0.01em;
 }
 
 [data-theme="dark"] .adherence-value {
@@ -9185,12 +9204,26 @@ textarea,
 }
 
 .checkin-adherence-badge {
-    background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
+    background: linear-gradient(135deg, #0d9488 0%, #14b8a6 100%);
     color: white;
     padding: 4px 12px;
     border-radius: 20px;
     font-size: 13px;
     font-weight: 600;
+}
+
+/* Semantic colour bands so a 16% week and a 100% week no longer render
+   as the same teal pill. Red <40, amber 40-69, green >=70. */
+.checkin-adherence-badge.band-low {
+    background: linear-gradient(135deg, #b91c1c 0%, #ef4444 100%);
+}
+
+.checkin-adherence-badge.band-mid {
+    background: linear-gradient(135deg, #b45309 0%, #f59e0b 100%);
+}
+
+.checkin-adherence-badge.band-high {
+    background: linear-gradient(135deg, #047857 0%, #10b981 100%);
 }
 
 .checkin-ratings {
@@ -9200,6 +9233,43 @@ textarea,
     font-size: 13px;
     color: var(--gray-600);
     margin-bottom: 10px;
+}
+
+/* Inline icons in the history stat rows (Energy / Sleep / Hunger / Stress).
+   Lucide icons render as block <svg>; force them inline-flex with the
+   sibling text and tint to brand teal so they stop reading as default
+   black/dark glyphs. */
+.checkin-ratings span {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.checkin-ratings span svg {
+    color: #14b8a6;
+    flex-shrink: 0;
+}
+
+[data-theme="light"] .checkin-ratings span svg {
+    color: #0d9488;
+}
+
+/* Section title with leading Lucide icon (e.g. CheckIn page headings).
+   Scoped via :has() so existing .section-title usages without an icon
+   keep their original block layout. */
+.section-title:has(.section-title-icon) {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.section-title-icon {
+    color: #14b8a6;
+    flex-shrink: 0;
+}
+
+[data-theme="light"] .section-title-icon {
+    color: #0d9488;
 }
 
 [data-theme="dark"] .checkin-ratings {
