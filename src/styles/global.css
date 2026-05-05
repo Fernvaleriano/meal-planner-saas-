@@ -3843,41 +3843,95 @@ textarea,
 /* Quick Actions Row */
 .diary-quick-actions {
     display: flex;
-    gap: 8px;
+    align-items: center;
+    gap: 10px;
     margin-bottom: 16px;
 }
 
-.diary-action-btn {
+.diary-view-toggle {
     flex: 1;
-    min-width: 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    background: var(--gray-100);
+    border: 1px solid var(--gray-200);
+    border-radius: 12px;
+    padding: 4px;
+    gap: 4px;
+}
+
+[data-theme="dark"] .diary-view-toggle {
+    background: #1e293b;
+    border-color: #334155;
+}
+
+.diary-view-btn {
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 6px;
-    padding: 10px 8px;
-    background: var(--gray-100);
-    border: 1px solid var(--gray-200);
-    border-radius: 10px;
+    padding: 9px 8px;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
     color: var(--gray-700);
-    font-size: 0.8rem;
-    font-weight: 500;
+    font-size: 0.85rem;
+    font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: background 0.15s, color 0.15s, box-shadow 0.15s;
     white-space: nowrap;
 }
 
-.diary-action-btn svg {
+.diary-view-btn svg {
     flex-shrink: 0;
 }
 
-[data-theme="dark"] .diary-action-btn {
-    background: #334155;
-    border-color: #475569;
-    color: #e2e8f0;
+.diary-view-btn:hover {
+    background: rgba(255, 255, 255, 0.6);
+    color: var(--gray-900);
 }
 
-.diary-action-btn:hover {
+[data-theme="dark"] .diary-view-btn {
+    color: #cbd5e1;
+}
+
+[data-theme="dark"] .diary-view-btn:hover {
+    background: #334155;
+    color: #f1f5f9;
+}
+
+.diary-utility-actions {
+    display: flex;
+    gap: 6px;
+}
+
+.diary-icon-btn {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--gray-100);
+    border: 1px solid var(--gray-200);
+    border-radius: 12px;
+    color: var(--gray-700);
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.diary-icon-btn:hover {
     background: var(--gray-200);
+    color: var(--gray-900);
+}
+
+[data-theme="dark"] .diary-icon-btn {
+    background: #1e293b;
+    border-color: #334155;
+    color: #cbd5e1;
+}
+
+[data-theme="dark"] .diary-icon-btn:hover {
+    background: #334155;
+    color: #f1f5f9;
 }
 
 /* Add Food Section */
@@ -3988,7 +4042,8 @@ textarea,
 }
 
 [data-theme="dark"] .calorie-ring-bg {
-    stroke: #334155;
+    stroke: #475569;
+    opacity: 0.55;
 }
 
 .calorie-ring-progress {
@@ -4005,73 +4060,95 @@ textarea,
     left: 50%;
     transform: translate(-50%, -50%);
     text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
-.calorie-remaining {
-    display: block;
-    font-size: 2.5rem;
+.calorie-eaten {
+    font-size: 2.4rem;
     font-weight: 700;
     color: var(--gray-900);
     line-height: 1;
+    letter-spacing: -0.02em;
 }
 
-[data-theme="dark"] .calorie-remaining {
+[data-theme="dark"] .calorie-eaten {
     color: #f1f5f9;
 }
 
-.calorie-label {
-    display: block;
-    font-size: 0.9rem;
+.calorie-eaten-divider {
+    font-size: 0.85rem;
     color: var(--gray-500);
     margin-top: 4px;
+    font-variant-numeric: tabular-nums;
 }
 
-/* Calorie Breakdown */
+[data-theme="dark"] .calorie-eaten-divider {
+    color: #94a3b8;
+}
+
+.calorie-label {
+    font-size: 0.7rem;
+    color: var(--gray-400);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-top: 2px;
+    font-weight: 600;
+}
+
+[data-theme="dark"] .calorie-label {
+    color: #94a3b8;
+}
+
+/* Calorie Breakdown — single remaining pill */
 .calorie-breakdown {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 12px;
     margin-bottom: 20px;
 }
 
-.calorie-stat {
-    text-align: center;
+.calorie-remaining-pill {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 8px 18px;
+    background: rgba(16, 185, 129, 0.08);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    border-radius: 999px;
+    color: var(--brand-primary, #10b981);
 }
 
-.calorie-stat-value {
-    display: block;
-    font-size: 1.25rem;
+.calorie-remaining-pill.over {
+    background: rgba(239, 68, 68, 0.08);
+    border-color: rgba(239, 68, 68, 0.25);
+    color: #ef4444;
+}
+
+[data-theme="dark"] .calorie-remaining-pill {
+    background: rgba(16, 185, 129, 0.14);
+    border-color: rgba(16, 185, 129, 0.3);
+}
+
+[data-theme="dark"] .calorie-remaining-pill.over {
+    background: rgba(239, 68, 68, 0.16);
+    border-color: rgba(239, 68, 68, 0.35);
+}
+
+.calorie-remaining-value {
+    font-size: 1.35rem;
     font-weight: 700;
-    color: var(--gray-800);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
 }
 
-.calorie-stat-value.remaining {
-    color: var(--brand-primary);
-}
-
-[data-theme="dark"] .calorie-stat-value {
-    color: #f1f5f9;
-}
-
-.calorie-stat-label {
-    font-size: 0.75rem;
-    color: var(--gray-500);
-}
-
-.calorie-operator {
-    font-size: 1rem;
-    color: var(--gray-400);
-}
-
-.calorie-divider {
-    width: 1px;
-    height: 28px;
-    background: var(--gray-200);
-}
-
-[data-theme="dark"] .calorie-divider {
-    background: #334155;
+.calorie-remaining-label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    opacity: 0.85;
 }
 
 /* Primary macros (P/C/F) — fixed 3-column grid, never clipped */
@@ -4109,11 +4186,32 @@ textarea,
 
 .macro-bar-item {
     flex: 1;
-    min-width: 90px;
-    display: flex;
-    flex-wrap: wrap;
+    min-width: 100px;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-rows: auto auto;
+    column-gap: 6px;
+    row-gap: 4px;
     align-items: center;
-    gap: 4px;
+}
+
+.macro-bar-item .macro-bar-label {
+    grid-column: 1;
+    grid-row: 1;
+}
+
+.macro-bar-item .macro-bar-value {
+    grid-column: 2;
+    grid-row: 1;
+    text-align: right;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.macro-bar-item .macro-bar-track {
+    grid-column: 1 / -1;
+    grid-row: 2;
 }
 
 .macro-bar-label {
@@ -39976,5 +40074,397 @@ textarea,
         right: 14px;
         width: 48px;
         height: 48px;
+    }
+}
+
+/* =====================================================
+   Weekly Summary Modal — redesigned
+   ===================================================== */
+
+.weekly-summary-modal {
+    max-width: 520px;
+}
+
+.weekly-summary-header {
+    gap: 12px;
+}
+
+.weekly-adherence-pill {
+    margin-left: auto;
+    margin-right: 8px;
+    padding: 4px 10px;
+    background: rgba(16, 185, 129, 0.12);
+    color: #059669;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+}
+
+[data-theme="dark"] .weekly-adherence-pill {
+    background: rgba(16, 185, 129, 0.2);
+    color: #34d399;
+}
+
+.weekly-summary-body {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    padding: 18px 20px 22px;
+}
+
+/* Average cards */
+.weekly-averages-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.weekly-avg-card {
+    border-radius: 14px;
+    padding: 14px 16px;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    min-height: 78px;
+    justify-content: center;
+}
+
+.weekly-avg-calories {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+.weekly-avg-protein {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+}
+
+.weekly-avg-value {
+    font-size: 1.65rem;
+    font-weight: 700;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+}
+
+.weekly-avg-unit {
+    font-size: 1rem;
+    font-weight: 600;
+    opacity: 0.85;
+    margin-left: 1px;
+}
+
+.weekly-avg-label {
+    font-size: 0.78rem;
+    opacity: 0.92;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+}
+
+/* Bar chart */
+.weekly-chart-section {
+    background: var(--gray-50, #f8fafc);
+    border: 1px solid var(--gray-100);
+    border-radius: 14px;
+    padding: 14px 14px 12px;
+}
+
+[data-theme="dark"] .weekly-chart-section {
+    background: #0f172a;
+    border-color: #1e293b;
+}
+
+.weekly-chart-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.weekly-chart-header h4 {
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--gray-700);
+}
+
+[data-theme="dark"] .weekly-chart-header h4 {
+    color: #cbd5e1;
+}
+
+.weekly-chart-goal {
+    font-size: 0.72rem;
+    color: var(--gray-500);
+    font-weight: 500;
+}
+
+[data-theme="dark"] .weekly-chart-goal {
+    color: #94a3b8;
+}
+
+.weekly-chart {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+    height: 120px;
+    padding-top: 4px;
+}
+
+.weekly-chart-goal-line {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 0;
+    border-top: 1px dashed rgba(100, 116, 139, 0.55);
+    pointer-events: none;
+    z-index: 1;
+}
+
+.weekly-chart-goal-line::after {
+    content: 'goal';
+    position: absolute;
+    right: 0;
+    top: -16px;
+    font-size: 0.65rem;
+    color: var(--gray-500);
+    font-weight: 500;
+    background: var(--gray-50, #f8fafc);
+    padding: 0 4px;
+}
+
+[data-theme="dark"] .weekly-chart-goal-line::after {
+    background: #0f172a;
+    color: #94a3b8;
+}
+
+.weekly-chart-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+}
+
+.weekly-chart-bar-wrap {
+    flex: 1;
+    width: 100%;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    position: relative;
+    z-index: 2;
+}
+
+.weekly-chart-bar {
+    width: 100%;
+    max-width: 28px;
+    min-height: 3px;
+    background: linear-gradient(180deg, #34d399 0%, #10b981 100%);
+    border-radius: 6px 6px 2px 2px;
+    transition: height 0.35s ease;
+}
+
+.weekly-chart-bar.over-goal {
+    background: linear-gradient(180deg, #fb923c 0%, #f97316 100%);
+}
+
+.weekly-chart-bar.empty {
+    height: 8px;
+    min-height: 8px;
+    background: transparent;
+    border: 1px dashed var(--gray-300);
+    border-radius: 4px;
+    width: 70%;
+}
+
+[data-theme="dark"] .weekly-chart-bar.empty {
+    border-color: #334155;
+}
+
+.weekly-chart-label {
+    font-size: 0.72rem;
+    color: var(--gray-500);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+[data-theme="dark"] .weekly-chart-label {
+    color: #94a3b8;
+}
+
+/* Daily breakdown */
+.weekly-breakdown-section h4 {
+    margin: 0 0 10px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--gray-700);
+}
+
+[data-theme="dark"] .weekly-breakdown-section h4 {
+    color: #cbd5e1;
+}
+
+.weekly-breakdown-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.weekly-breakdown-row {
+    display: grid;
+    grid-template-columns: 56px 1fr auto;
+    align-items: center;
+    gap: 12px;
+    padding: 9px 12px;
+    background: var(--gray-50, #f8fafc);
+    border-radius: 8px;
+    font-size: 0.88rem;
+    font-variant-numeric: tabular-nums;
+}
+
+[data-theme="dark"] .weekly-breakdown-row {
+    background: #0f172a;
+}
+
+.weekly-breakdown-row.empty {
+    background: transparent;
+    border: 1px dashed var(--gray-300);
+    grid-template-columns: 56px 1fr;
+    color: var(--gray-400);
+}
+
+[data-theme="dark"] .weekly-breakdown-row.empty {
+    border-color: #334155;
+    color: #64748b;
+}
+
+.weekly-breakdown-day {
+    font-weight: 600;
+    color: var(--gray-700);
+}
+
+[data-theme="dark"] .weekly-breakdown-day {
+    color: #e2e8f0;
+}
+
+.weekly-breakdown-row.empty .weekly-breakdown-day {
+    color: var(--gray-500);
+}
+
+.weekly-breakdown-cal {
+    text-align: right;
+    color: var(--gray-800);
+    font-weight: 600;
+}
+
+[data-theme="dark"] .weekly-breakdown-cal {
+    color: #f1f5f9;
+}
+
+.weekly-breakdown-protein {
+    text-align: right;
+    color: #3b82f6;
+    font-weight: 600;
+    min-width: 56px;
+}
+
+.weekly-breakdown-unit {
+    font-weight: 500;
+    opacity: 0.7;
+    font-size: 0.78rem;
+}
+
+.weekly-breakdown-empty {
+    font-size: 0.8rem;
+    font-style: italic;
+}
+
+/* Week totals */
+.weekly-totals-card {
+    background: var(--gray-50, #f8fafc);
+    border: 1px solid var(--gray-100);
+    border-radius: 14px;
+    padding: 14px 16px 16px;
+}
+
+[data-theme="dark"] .weekly-totals-card {
+    background: #0f172a;
+    border-color: #1e293b;
+}
+
+.weekly-totals-header h4 {
+    margin: 0 0 12px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--gray-700);
+}
+
+[data-theme="dark"] .weekly-totals-header h4 {
+    color: #cbd5e1;
+}
+
+.weekly-totals-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+}
+
+.weekly-totals-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.weekly-totals-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--gray-500);
+    font-weight: 600;
+}
+
+[data-theme="dark"] .weekly-totals-label {
+    color: #94a3b8;
+}
+
+.weekly-totals-value {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--gray-900);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+}
+
+[data-theme="dark"] .weekly-totals-value {
+    color: #f1f5f9;
+}
+
+.weekly-totals-unit {
+    font-size: 0.78rem;
+    font-weight: 600;
+    opacity: 0.7;
+    margin-left: 1px;
+}
+
+@media (max-width: 480px) {
+    .weekly-totals-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .weekly-summary-body {
+        padding: 16px;
+        gap: 16px;
+    }
+
+    .weekly-chart {
+        height: 110px;
+    }
+
+    .weekly-avg-value {
+        font-size: 1.45rem;
     }
 }

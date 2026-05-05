@@ -2225,8 +2225,9 @@ function Diary() {
           />
         </svg>
         <div className="calorie-ring-value">
-          <span className="calorie-remaining">{remaining}</span>
-          <span className="calorie-label">Remaining</span>
+          <span className="calorie-eaten">{totals.calories.toLocaleString()}</span>
+          <span className="calorie-eaten-divider">of {(goals.calorie_goal || 0).toLocaleString()}</span>
+          <span className="calorie-label">eaten</span>
         </div>
       </div>
     );
@@ -2502,24 +2503,44 @@ function Diary() {
         </button>
       </div>
 
-      {/* Quick Actions Row */}
+      {/* Quick Actions Row — view toggle + utility icons */}
       <div className="diary-quick-actions">
-        <button className="diary-action-btn" onClick={() => setShowCopyDayModal(true)} aria-label="Copy day">
-          <Copy size={16} />
-          Copy
-        </button>
-        <button className="diary-action-btn" onClick={() => setShowDailyReportModal(true)} aria-label="Daily report">
-          <FileText size={16} />
-          Daily
-        </button>
-        <button className="diary-action-btn" onClick={() => { fetchWeeklyData(); setShowWeeklySummaryModal(true); }} aria-label="Weekly summary">
-          <BarChart3 size={16} />
-          Weekly
-        </button>
-        <button className="diary-action-btn" onClick={() => setShowShareDiaryModal(true)} aria-label="Share diary">
-          <Share2 size={16} />
-          Share
-        </button>
+        <div className="diary-view-toggle" role="group" aria-label="Diary view">
+          <button
+            className="diary-view-btn"
+            onClick={() => setShowDailyReportModal(true)}
+            aria-label="Daily report"
+          >
+            <FileText size={15} />
+            <span>Daily</span>
+          </button>
+          <button
+            className="diary-view-btn"
+            onClick={() => { fetchWeeklyData(); setShowWeeklySummaryModal(true); }}
+            aria-label="Weekly summary"
+          >
+            <BarChart3 size={15} />
+            <span>Weekly</span>
+          </button>
+        </div>
+        <div className="diary-utility-actions">
+          <button
+            className="diary-icon-btn"
+            onClick={() => setShowCopyDayModal(true)}
+            aria-label="Copy day"
+            title="Copy day"
+          >
+            <Copy size={16} />
+          </button>
+          <button
+            className="diary-icon-btn"
+            onClick={() => setShowShareDiaryModal(true)}
+            aria-label="Share diary"
+            title="Share diary"
+          >
+            <Share2 size={16} />
+          </button>
+        </div>
       </div>
 
       {/* Calorie Summary */}
@@ -2546,19 +2567,9 @@ function Diary() {
         </div>
         <CalorieRing />
         <div className="calorie-breakdown">
-          <div className="calorie-stat">
-            <span className="calorie-stat-value">{goals.calorie_goal}</span>
-            <span className="calorie-stat-label">Goal</span>
-          </div>
-          <span className="calorie-divider" aria-hidden="true" />
-          <div className="calorie-stat">
-            <span className="calorie-stat-value">{totals.calories}</span>
-            <span className="calorie-stat-label">Food</span>
-          </div>
-          <span className="calorie-divider" aria-hidden="true" />
-          <div className="calorie-stat">
-            <span className="calorie-stat-value remaining">{remaining}</span>
-            <span className="calorie-stat-label">Left</span>
+          <div className={`calorie-remaining-pill ${remaining < 0 ? 'over' : ''}`}>
+            <span className="calorie-remaining-value">{Math.abs(remaining).toLocaleString()}</span>
+            <span className="calorie-remaining-label">{remaining < 0 ? 'over goal' : 'cal left'}</span>
           </div>
         </div>
 
@@ -3282,12 +3293,17 @@ function Diary() {
       {/* Weekly Summary Modal */}
       {showWeeklySummaryModal && (
         <div className="modal-overlay active" onClick={() => setShowWeeklySummaryModal(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
+          <div className="modal-content weekly-summary-modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-header weekly-summary-header">
               <button className="modal-close" onClick={() => setShowWeeklySummaryModal(false)}>&times;</button>
               <span style={{ fontWeight: 600 }}>Weekly Summary</span>
+              {weeklyData && (
+                <span className="weekly-adherence-pill" title="Days logged this week">
+                  {weeklyData.daysLogged}/7 days
+                </span>
+              )}
             </div>
-            <div className="modal-body" style={{ padding: '20px' }}>
+            <div className="modal-body weekly-summary-body">
               {weeklyLoading ? (
                 <div style={{ textAlign: 'center', padding: '40px' }}>
                   <div className="ai-loading-dots">
@@ -3298,36 +3314,89 @@ function Diary() {
               ) : weeklyData ? (
                 <>
                   {/* Weekly Averages */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
-                    <div style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', borderRadius: '12px', padding: '16px', color: 'white', textAlign: 'center' }}>
-                      <div style={{ fontSize: '1.5rem', fontWeight: 700 }}>{weeklyData.averages.calories}</div>
-                      <div style={{ fontSize: '0.85rem', opacity: 0.9 }}>Avg Calories/Day</div>
+                  <div className="weekly-averages-grid">
+                    <div className="weekly-avg-card weekly-avg-calories">
+                      <div className="weekly-avg-value">
+                        {weeklyData.averages.calories.toLocaleString()}
+                      </div>
+                      <div className="weekly-avg-label">Avg Calories / Day</div>
                     </div>
-                    <div style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)', borderRadius: '12px', padding: '16px', color: 'white', textAlign: 'center' }}>
-                      <div style={{ fontSize: '1.5rem', fontWeight: 700 }}>{weeklyData.averages.protein}g</div>
-                      <div style={{ fontSize: '0.85rem', opacity: 0.9 }}>Avg Protein/Day</div>
+                    <div className="weekly-avg-card weekly-avg-protein">
+                      <div className="weekly-avg-value">
+                        {weeklyData.averages.protein}<span className="weekly-avg-unit">g</span>
+                      </div>
+                      <div className="weekly-avg-label">Avg Protein / Day</div>
                     </div>
                   </div>
 
+                  {/* Calorie Bar Chart */}
+                  <div className="weekly-chart-section">
+                    <div className="weekly-chart-header">
+                      <h4>Calories by Day</h4>
+                      <span className="weekly-chart-goal">
+                        Goal: {goals.calorie_goal.toLocaleString()}
+                      </span>
+                    </div>
+                    {(() => {
+                      const goal = goals.calorie_goal || 2000;
+                      const maxCal = Math.max(goal, ...weeklyData.days.map(d => d.calories || 0));
+                      const chartMax = maxCal * 1.1;
+                      const goalPct = (goal / chartMax) * 100;
+                      return (
+                        <div className="weekly-chart" role="img" aria-label="Calories per day bar chart">
+                          <div
+                            className="weekly-chart-goal-line"
+                            style={{ bottom: `${goalPct}%` }}
+                            aria-hidden="true"
+                          />
+                          {weeklyData.days.map((day, idx) => {
+                            const heightPct = day.logged ? (day.calories / chartMax) * 100 : 0;
+                            const overGoal = day.calories > goal;
+                            return (
+                              <div key={idx} className="weekly-chart-col">
+                                <div className="weekly-chart-bar-wrap">
+                                  {day.logged ? (
+                                    <div
+                                      className={`weekly-chart-bar ${overGoal ? 'over-goal' : ''}`}
+                                      style={{ height: `${heightPct}%` }}
+                                      title={`${day.dayName}: ${day.calories} cal`}
+                                    />
+                                  ) : (
+                                    <div className="weekly-chart-bar empty" title={`${day.dayName}: no data`} />
+                                  )}
+                                </div>
+                                <div className="weekly-chart-label">{day.dayName}</div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    })()}
+                  </div>
+
                   {/* Daily Breakdown */}
-                  <div style={{ marginBottom: '16px' }}>
-                    <h4 style={{ marginBottom: '12px', color: 'var(--gray-700)' }}>Daily Breakdown</h4>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div className="weekly-breakdown-section">
+                    <h4>Daily Breakdown</h4>
+                    <div className="weekly-breakdown-list">
                       {weeklyData.days.map((day, idx) => (
-                        <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: day.logged ? 'var(--gray-50)' : 'transparent', borderRadius: '8px', border: day.logged ? 'none' : '1px dashed var(--gray-300)' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span style={{ fontWeight: 500, color: 'var(--gray-700)', minWidth: '36px' }}>{day.dayName}</span>
-                            {day.logged ? (
-                              <Check size={14} style={{ color: '#10b981' }} />
-                            ) : (
-                              <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>No data</span>
-                            )}
-                          </div>
-                          {day.logged && (
-                            <div style={{ display: 'flex', gap: '12px', fontSize: '0.85rem' }}>
-                              <span style={{ color: 'var(--gray-600)' }}>{day.calories} cal</span>
-                              <span style={{ color: '#3b82f6' }}>{Math.round(day.protein)}g P</span>
-                            </div>
+                        <div
+                          key={idx}
+                          className={`weekly-breakdown-row ${day.logged ? '' : 'empty'}`}
+                        >
+                          <span className="weekly-breakdown-day">{day.dayName}</span>
+                          {day.logged ? (
+                            <>
+                              <span className="weekly-breakdown-cal">
+                                {day.calories.toLocaleString()}
+                                <span className="weekly-breakdown-unit"> cal</span>
+                              </span>
+                              <span className="weekly-breakdown-protein">
+                                {Math.round(day.protein)}
+                                <span className="weekly-breakdown-unit">g P</span>
+                              </span>
+                            </>
+                          ) : (
+                            <span className="weekly-breakdown-empty">No data</span>
                           )}
                         </div>
                       ))}
@@ -3335,16 +3404,27 @@ function Diary() {
                   </div>
 
                   {/* Week Totals */}
-                  <div style={{ background: 'var(--gray-100)', borderRadius: '12px', padding: '16px' }}>
-                    <h4 style={{ marginBottom: '8px', color: 'var(--gray-700)' }}>Week Totals</h4>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '0.9rem' }}>
-                      <div><strong>Total Calories:</strong> {weeklyData.totals.calories.toLocaleString()}</div>
-                      <div><strong>Total Protein:</strong> {Math.round(weeklyData.totals.protein)}g</div>
-                      <div><strong>Total Carbs:</strong> {Math.round(weeklyData.totals.carbs)}g</div>
-                      <div><strong>Total Fat:</strong> {Math.round(weeklyData.totals.fat)}g</div>
+                  <div className="weekly-totals-card">
+                    <div className="weekly-totals-header">
+                      <h4>Week Totals</h4>
                     </div>
-                    <div style={{ marginTop: '8px', fontSize: '0.85rem', color: '#64748b' }}>
-                      Days logged: {weeklyData.daysLogged}/7
+                    <div className="weekly-totals-grid">
+                      <div className="weekly-totals-stat">
+                        <span className="weekly-totals-label">Calories</span>
+                        <span className="weekly-totals-value">{weeklyData.totals.calories.toLocaleString()}</span>
+                      </div>
+                      <div className="weekly-totals-stat">
+                        <span className="weekly-totals-label">Protein</span>
+                        <span className="weekly-totals-value">{Math.round(weeklyData.totals.protein)}<span className="weekly-totals-unit">g</span></span>
+                      </div>
+                      <div className="weekly-totals-stat">
+                        <span className="weekly-totals-label">Carbs</span>
+                        <span className="weekly-totals-value">{Math.round(weeklyData.totals.carbs)}<span className="weekly-totals-unit">g</span></span>
+                      </div>
+                      <div className="weekly-totals-stat">
+                        <span className="weekly-totals-label">Fat</span>
+                        <span className="weekly-totals-value">{Math.round(weeklyData.totals.fat)}<span className="weekly-totals-unit">g</span></span>
+                      </div>
                     </div>
                   </div>
                 </>
