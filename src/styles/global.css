@@ -20076,12 +20076,25 @@ textarea,
    per-type colors (YouTube red, Instagram pink) competed with the warm-up
    accent and pulled attention away from the exercise itself. */
 .exercise-card-v2 .coach-reference-links {
-    padding: 0 16px 12px;
+    padding: 10px 16px 12px;
     background: transparent;
     border-top: none;
     display: flex;
     flex-direction: column;
     gap: 6px;
+}
+
+/* When the reference links follow the voice-note band (which has its own
+   teal tint), the chip otherwise sits flush against the colored band and
+   reads as part of it. A thin separator + extra top padding pulls the
+   chips back into the card body. */
+.exercise-card-v2 .coach-voice-note + .coach-reference-links {
+    padding-top: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+[data-theme="light"] .exercise-card-v2 .coach-voice-note + .coach-reference-links {
+    border-top-color: rgba(15, 23, 42, 0.08);
 }
 
 .exercise-card-v2 .coach-reference-links .reference-links-list {
@@ -20094,40 +20107,41 @@ textarea,
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    padding: 5px 10px;
+    padding: 6px 10px;
     border-radius: 6px;
     font-size: 12px;
     font-weight: 500;
     text-decoration: none;
     transition: all 0.2s;
-    background: transparent;
-    color: rgba(255, 255, 255, 0.55);
-    border: 1px solid rgba(148, 163, 184, 0.22);
+    background: rgba(255, 255, 255, 0.04);
+    color: rgba(255, 255, 255, 0.78);
+    border: 1px solid rgba(148, 163, 184, 0.32);
 }
 
 .exercise-card-v2 .coach-reference-links .reference-link-chip:hover,
 .exercise-card-v2 .coach-reference-links .reference-link-chip:active {
-    color: rgba(255, 255, 255, 0.85);
-    border-color: rgba(148, 163, 184, 0.45);
-    background: rgba(255, 255, 255, 0.04);
+    color: rgba(255, 255, 255, 0.95);
+    border-color: rgba(148, 163, 184, 0.55);
+    background: rgba(255, 255, 255, 0.08);
 }
 
 [data-theme="light"] .exercise-card-v2 .coach-reference-links .reference-link-chip {
-    color: rgba(15, 23, 42, 0.55);
-    border-color: rgba(15, 23, 42, 0.18);
+    background: rgba(15, 23, 42, 0.03);
+    color: rgba(15, 23, 42, 0.75);
+    border-color: rgba(15, 23, 42, 0.22);
 }
 
 [data-theme="light"] .exercise-card-v2 .coach-reference-links .reference-link-chip:hover,
 [data-theme="light"] .exercise-card-v2 .coach-reference-links .reference-link-chip:active {
-    color: rgba(15, 23, 42, 0.85);
-    border-color: rgba(15, 23, 42, 0.35);
-    background: rgba(15, 23, 42, 0.04);
+    color: rgba(15, 23, 42, 0.95);
+    border-color: rgba(15, 23, 42, 0.4);
+    background: rgba(15, 23, 42, 0.06);
 }
 
 .exercise-card-v2 .coach-reference-links .link-type-icon {
     font-size: 11px;
     flex-shrink: 0;
-    opacity: 0.8;
+    opacity: 0.85;
 }
 
 .exercise-card-v2 .coach-reference-links .link-title {
