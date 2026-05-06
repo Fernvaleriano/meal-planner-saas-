@@ -270,3 +270,323 @@ body, .main-content, .main-container { background: #f7f7f8 !important; }
 /* ----- Sidebar polish: flatter active state ----- */
 [data-theme="dark"] .sidebar { background: #0a0d14 !important; border-right: 1px solid rgba(255,255,255,0.06) !important; }
 .sidebar { background: #ffffff !important; border-right: 1px solid rgba(0,0,0,0.06) !important; }
+
+/* ============================================================
+   UNIVERSAL DEEP OVERRIDES — apply across every live page
+   ============================================================ */
+
+/* === 1. Flatten the brand gradient at the variable level ===
+   Every `background: var(--brand-gradient)` in the codebase
+   (buttons, avatars, banners, headers) becomes solid teal.
+   Same for purple-gradient. One line, app-wide effect. */
+:root,
+html[data-theme="light"],
+html[data-theme="dark"] {
+    --brand-gradient: var(--brand-primary, #0d9488) !important;
+    --purple-gradient: var(--brand-primary, #0d9488) !important;
+}
+
+/* === 2. Headings: max 600 weight, tighter tracking everywhere === */
+h1, h2, h3,
+.page-header h1, .page-header h2, .page-header h3,
+.section-header h1, .section-header h2, .section-header h3,
+.modal-header h1, .modal-header h2, .modal-header h3,
+.welcome-card h1, .welcome-card h2,
+.client-header h1, .client-header h2,
+.profile-header h1, .profile-header h2,
+.detail-header h1, .detail-header h2,
+.thread-header h1, .thread-header h2 {
+    font-weight: 600 !important;
+    letter-spacing: -0.02em !important;
+}
+
+/* === 3. Universal card surfaces ===
+   Hairline border, flat fill, no decorative shadows. */
+.card,
+.client-card, .exercise-card, .plan-card, .recipe-card,
+.challenge-card, .template-card, .profile-card, .settings-card,
+.billing-card, .stat-card, .action-card, .builder-card,
+.detail-info-card, .leaderboard-card, .theme-option-card,
+.promo-card, .mockup-progress-card, .mockup-ai-card,
+.checkin-card, .ai-mode-card, .form-card,
+.convo-list-panel, .thread-panel, .preview-panel, .bulk-panel {
+    border-radius: 14px !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+    border: 1px solid rgba(0,0,0,0.06) !important;
+}
+[data-theme="dark"] .card,
+[data-theme="dark"] .client-card,
+[data-theme="dark"] .exercise-card,
+[data-theme="dark"] .plan-card,
+[data-theme="dark"] .recipe-card,
+[data-theme="dark"] .challenge-card,
+[data-theme="dark"] .template-card,
+[data-theme="dark"] .profile-card,
+[data-theme="dark"] .settings-card,
+[data-theme="dark"] .billing-card,
+[data-theme="dark"] .stat-card,
+[data-theme="dark"] .action-card,
+[data-theme="dark"] .builder-card,
+[data-theme="dark"] .detail-info-card,
+[data-theme="dark"] .leaderboard-card,
+[data-theme="dark"] .theme-option-card,
+[data-theme="dark"] .promo-card,
+[data-theme="dark"] .mockup-progress-card,
+[data-theme="dark"] .mockup-ai-card,
+[data-theme="dark"] .checkin-card,
+[data-theme="dark"] .ai-mode-card,
+[data-theme="dark"] .form-card,
+[data-theme="dark"] .convo-list-panel,
+[data-theme="dark"] .thread-panel,
+[data-theme="dark"] .preview-panel,
+[data-theme="dark"] .bulk-panel {
+    background: #14171f !important;
+    border: 1px solid rgba(255,255,255,0.06) !important;
+}
+
+/* Strip decorative gradient bars at the top of cards */
+.card::before,
+.client-card::before, .exercise-card::before, .plan-card::before,
+.recipe-card::before, .challenge-card::before, .template-card::before,
+.profile-card::before, .settings-card::before, .billing-card::before,
+.stat-card::before, .action-card::before, .builder-card::before,
+.checkin-card::before, .promo-card::before {
+    display: none !important;
+}
+
+/* === 4. Modals: flat surface + soft drop shadow only === */
+.modal,
+.modal-content, .modal-body,
+.confirm-modal, .assign-modal, .custom-exercise-modal,
+.subscription-modal {
+    border-radius: 16px !important;
+    box-shadow: 0 12px 48px rgba(0,0,0,0.10) !important;
+    background: #ffffff !important;
+    border: 1px solid rgba(0,0,0,0.06) !important;
+}
+[data-theme="dark"] .modal,
+[data-theme="dark"] .modal-content,
+[data-theme="dark"] .modal-body,
+[data-theme="dark"] .confirm-modal,
+[data-theme="dark"] .assign-modal,
+[data-theme="dark"] .custom-exercise-modal,
+[data-theme="dark"] .subscription-modal {
+    background: #14171f !important;
+    border: 1px solid rgba(255,255,255,0.08) !important;
+    box-shadow: 0 12px 48px rgba(0,0,0,0.40) !important;
+}
+
+/* === 5. Buttons ===
+   - Generic: hairline, 12px radius, no glow halo, no transform on hover
+   - Primary classes: solid teal */
+.btn, button.btn,
+.add-day-btn, .add-exercise-btn, .add-link-btn, .ai-btn,
+.assign-btn, .bulk-send-btn, .send-btn, .submit-btn,
+.template-scratch-btn, .add-meal-link-btn, .ai-quick-btn,
+.modal-btn, .plan-action-btn, .change-btn, .copy-btn,
+.email-mockup-btn, .email-preview-btn, .preview-device-btn,
+.create-exercise-header-btn {
+    border-radius: 12px !important;
+    box-shadow: none !important;
+    font-weight: 500 !important;
+    letter-spacing: -0.005em !important;
+    transition: background 0.15s, color 0.15s, border-color 0.15s !important;
+}
+.btn:hover, button.btn:hover,
+.add-day-btn:hover, .add-exercise-btn:hover, .ai-btn:hover,
+.assign-btn:hover, .bulk-send-btn:hover, .send-btn:hover,
+.submit-btn:hover, .template-scratch-btn:hover {
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+/* Primary button color */
+.btn-primary, .submit-btn,
+.add-day-btn, .send-btn, .bulk-send-btn, .assign-btn,
+.modal-btn-primary, .ai-btn--primary {
+    background: var(--brand-primary, #0d9488) !important;
+    color: #fff !important;
+    border: 1px solid var(--brand-primary, #0d9488) !important;
+}
+.btn-primary:hover, .submit-btn:hover,
+.add-day-btn:hover, .send-btn:hover, .bulk-send-btn:hover,
+.assign-btn:hover, .modal-btn-primary:hover {
+    background: var(--brand-primary-dark, #0f766e) !important;
+    border-color: var(--brand-primary-dark, #0f766e) !important;
+}
+
+/* === 6. Form inputs / selects / textareas === */
+input[type="text"], input[type="email"], input[type="password"],
+input[type="number"], input[type="search"], input[type="tel"],
+input[type="url"], input[type="date"], input[type="time"],
+input[type="datetime-local"], textarea, select,
+.search-input, .form-input, .input,
+.config-input, .day-name-input, .msg-input, .bulk-input,
+.client-link-input, .color-hex-input, .mockup-food-input,
+.custom-meal-input, .qe-cq-options-input,
+.client-select, .filter-select, .distance-unit-select,
+.exercise-label-select {
+    border-radius: 10px !important;
+    border: 1px solid rgba(0,0,0,0.10) !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+    font-size: 0.9375rem !important;
+    transition: border-color 0.15s, box-shadow 0.15s !important;
+}
+input:focus, textarea:focus, select:focus,
+.search-input:focus, .form-input:focus, .input:focus,
+.config-input:focus, .day-name-input:focus, .msg-input:focus {
+    outline: none !important;
+    border-color: var(--brand-primary, #0d9488) !important;
+    box-shadow: 0 0 0 3px rgba(13,148,136,0.12) !important;
+}
+[data-theme="dark"] input[type="text"],
+[data-theme="dark"] input[type="email"],
+[data-theme="dark"] input[type="password"],
+[data-theme="dark"] input[type="number"],
+[data-theme="dark"] input[type="search"],
+[data-theme="dark"] input[type="tel"],
+[data-theme="dark"] input[type="url"],
+[data-theme="dark"] input[type="date"],
+[data-theme="dark"] input[type="time"],
+[data-theme="dark"] input[type="datetime-local"],
+[data-theme="dark"] textarea,
+[data-theme="dark"] select,
+[data-theme="dark"] .search-input,
+[data-theme="dark"] .form-input,
+[data-theme="dark"] .input,
+[data-theme="dark"] .config-input,
+[data-theme="dark"] .day-name-input,
+[data-theme="dark"] .msg-input,
+[data-theme="dark"] .bulk-input,
+[data-theme="dark"] .client-select,
+[data-theme="dark"] .filter-select {
+    background: #14171f !important;
+    border-color: rgba(255,255,255,0.10) !important;
+    color: #f1f5f9 !important;
+}
+[data-theme="dark"] input:focus,
+[data-theme="dark"] textarea:focus,
+[data-theme="dark"] select:focus {
+    box-shadow: 0 0 0 3px rgba(13,148,136,0.20) !important;
+}
+
+/* === 7. Badges / pills: quiet neutral default === */
+.badge:not(.tier-badge):not(.activity-summary-badge):not(.notification-badge):not(.sidebar-msg-badge),
+.exercise-badge, .difficulty-badge, .challenge-badge,
+.challenge-type-badge, .club-badge, .archived-badge,
+.invite-badge, .goal-badge, .profile-badge, .pro-badge,
+.failed-badge, .mockup-ai-badge, .reaction-badge,
+.subscription-status-badge, .custom-exercise-badge,
+.client-count-badge, .convo-total-badge {
+    background: rgba(15,23,42,0.06) !important;
+    color: #475569 !important;
+    border: none !important;
+    box-shadow: none !important;
+    font-weight: 500 !important;
+}
+[data-theme="dark"] .badge:not(.tier-badge):not(.activity-summary-badge):not(.notification-badge):not(.sidebar-msg-badge),
+[data-theme="dark"] .exercise-badge,
+[data-theme="dark"] .difficulty-badge,
+[data-theme="dark"] .challenge-badge,
+[data-theme="dark"] .challenge-type-badge,
+[data-theme="dark"] .club-badge,
+[data-theme="dark"] .archived-badge,
+[data-theme="dark"] .invite-badge,
+[data-theme="dark"] .goal-badge,
+[data-theme="dark"] .profile-badge,
+[data-theme="dark"] .pro-badge,
+[data-theme="dark"] .failed-badge,
+[data-theme="dark"] .mockup-ai-badge,
+[data-theme="dark"] .reaction-badge,
+[data-theme="dark"] .subscription-status-badge,
+[data-theme="dark"] .custom-exercise-badge,
+[data-theme="dark"] .client-count-badge,
+[data-theme="dark"] .convo-total-badge {
+    background: rgba(255,255,255,0.06) !important;
+    color: #cbd5e1 !important;
+}
+
+/* Unread/notification badges keep their accent but lose glow */
+.convo-unread-badge, .notification-badge, .sidebar-msg-badge {
+    background: var(--brand-primary, #0d9488) !important;
+    color: #fff !important;
+    box-shadow: none !important;
+    font-weight: 600 !important;
+}
+
+/* === 8. Filter tabs / segment buttons / chips: neutral when inactive === */
+.chip, .filter-tab, .seg-btn,
+.view-toggle-btn, .preview-device-toggle .preview-device-btn {
+    border-radius: 999px !important;
+    border: 1px solid rgba(0,0,0,0.08) !important;
+    background: transparent !important;
+    color: #475569 !important;
+    font-weight: 500 !important;
+    box-shadow: none !important;
+}
+[data-theme="dark"] .chip,
+[data-theme="dark"] .filter-tab,
+[data-theme="dark"] .seg-btn,
+[data-theme="dark"] .view-toggle-btn,
+[data-theme="dark"] .preview-device-toggle .preview-device-btn {
+    border-color: rgba(255,255,255,0.10) !important;
+    color: #cbd5e1 !important;
+}
+.chip.active, .filter-tab.active, .seg-btn.active,
+.view-toggle-btn.active,
+.preview-device-toggle .preview-device-btn.active {
+    background: var(--brand-primary, #0d9488) !important;
+    color: #fff !important;
+    border-color: var(--brand-primary, #0d9488) !important;
+}
+
+/* === 9. Page headers: lighter weight and quieter borders === */
+.page-header, .section-header,
+.client-header, .profile-header, .detail-header,
+.thread-header, .convo-list-header, .modal-header,
+.preview-header, .plan-header, .challenge-card-header,
+.email-mockup-header, .mockup-progress-header,
+.mockup-ai-header, .mockup-header,
+.custom-meal-header, .convo-header {
+    border-bottom: 1px solid rgba(0,0,0,0.06) !important;
+    background: transparent !important;
+}
+[data-theme="dark"] .page-header,
+[data-theme="dark"] .section-header,
+[data-theme="dark"] .client-header,
+[data-theme="dark"] .profile-header,
+[data-theme="dark"] .detail-header,
+[data-theme="dark"] .thread-header,
+[data-theme="dark"] .convo-list-header,
+[data-theme="dark"] .modal-header,
+[data-theme="dark"] .preview-header,
+[data-theme="dark"] .plan-header,
+[data-theme="dark"] .convo-header {
+    border-bottom-color: rgba(255,255,255,0.06) !important;
+}
+
+/* === 10. Toggle switches: quieter, single accent === */
+.toggle-switch, .qe-switch {
+    box-shadow: none !important;
+}
+
+/* === 11. Soften any inline font-weight: 800 (bespoke headings) === */
+[style*="font-weight: 800"],
+[style*="font-weight:800"] { font-weight: 600 !important; }
+
+/* === 12. Common stat tiles inside profile/billing/stats pages === */
+.stat, .client-stat, .detail-stat {
+    border-radius: 12px !important;
+    box-shadow: none !important;
+    background: rgba(15,23,42,0.025) !important;
+    border: 1px solid rgba(15,23,42,0.05) !important;
+}
+[data-theme="dark"] .stat,
+[data-theme="dark"] .client-stat,
+[data-theme="dark"] .detail-stat {
+    background: rgba(255,255,255,0.03) !important;
+    border: 1px solid rgba(255,255,255,0.06) !important;
+}
