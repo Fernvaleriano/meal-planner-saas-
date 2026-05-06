@@ -1161,3 +1161,77 @@ table tbody td, .data-table tbody td {
     background: rgba(15,23,42,0.025) !important;
     border: 1px solid rgba(15,23,42,0.05) !important;
 }
+
+/* ============================================================
+   SEVENTH PASS — planner.html polish
+   The page itself is fine, but the empty meal-card image
+   placeholder shimmers in bright cyan over a dark canvas, the
+   AI chat section uses a washed-out light-purple gradient, and
+   the meal-card surface is so subtle it almost disappears.
+   ============================================================ */
+
+/* Quiet the bright cyan shimmer empty-state thumbnail */
+.meal-card-image-placeholder {
+    background: rgba(15,23,42,0.04) !important;
+    color: #94a3b8 !important;
+    animation: none !important;
+}
+[data-theme="dark"] .meal-card-image-placeholder {
+    background: rgba(255,255,255,0.04) !important;
+    color: #64748b !important;
+    animation: none !important;
+}
+
+/* Meal-card image fallback bg uniform with surface */
+.meal-card-image { background: rgba(15,23,42,0.04) !important; }
+[data-theme="dark"] .meal-card-image { background: rgba(255,255,255,0.04) !important; }
+
+/* Anchor each meal-card with a visible surface */
+.meal-card {
+    background: #ffffff !important;
+    border: 1px solid rgba(0,0,0,0.06) !important;
+    border-radius: 14px !important;
+    box-shadow: none !important;
+}
+[data-theme="dark"] .meal-card {
+    background: rgba(255,255,255,0.025) !important;
+    border-color: rgba(255,255,255,0.06) !important;
+}
+
+/* AI chat section: neutralize the washed-out purple gradient.
+   Inline gradients/borders win specificity, so target the
+   wrapper class with broader selectors. */
+.ai-chat-section[style*="linear-gradient"] {
+    background: rgba(15,23,42,0.03) !important;
+    border: 1px solid rgba(15,23,42,0.06) !important;
+}
+[data-theme="dark"] .ai-chat-section[style*="linear-gradient"] {
+    background: rgba(255,255,255,0.03) !important;
+    border: 1px solid rgba(255,255,255,0.06) !important;
+}
+.ai-chat-section .ai-quick-actions-row[style*="border-bottom"] {
+    border-bottom-color: rgba(15,23,42,0.06) !important;
+}
+[data-theme="dark"] .ai-chat-section .ai-quick-actions-row[style*="border-bottom"] {
+    border-bottom-color: rgba(255,255,255,0.06) !important;
+}
+
+/* Unify macro pills shape with the rest of the app (radius + weight) */
+.meal-macro-pill {
+    border-radius: 999px !important;
+    font-weight: 500 !important;
+    padding: 3px 10px !important;
+}
+
+/* Note for Client + Reference Links collapsibles: less saturated bars */
+.meal-card details > summary[style*="background"] {
+    background: rgba(15,23,42,0.03) !important;
+    border: 1px solid rgba(15,23,42,0.06) !important;
+    color: #475569 !important;
+    border-radius: 10px !important;
+}
+[data-theme="dark"] .meal-card details > summary[style*="background"] {
+    background: rgba(255,255,255,0.03) !important;
+    border-color: rgba(255,255,255,0.06) !important;
+    color: #cbd5e1 !important;
+}
