@@ -201,6 +201,37 @@ function extractRestSecondsFromNote(noteText) {
   return null;
 }
 
+// Extract rest cue from a prescription string and return { restSeconds, cleaned }.
+// Handles "@ 90s rest", ", 90 sec rest", "rest 60s", "rest: 90 seconds", "no rest".
+// Returns { restSeconds: null, cleaned: original } when nothing is found.
+function extractRestFromPrescription(prescription) {
+  if (!prescription) return { restSeconds: null, cleaned: prescription };
+  let cleaned = prescription;
+  let restSeconds = null;
+
+  // "90s rest", "90 sec rest", "90 seconds rest"
+  const trailingRest = cleaned.match(/[,;@]?\s*(\d+)\s*(?:s|sec|secs|seconds?)\s+rest\b\.?/i);
+  // "rest 90s", "rest: 90 sec", "rest 90 seconds"
+  const leadingRest = cleaned.match(/[,;@]?\s*rest[:\s]+(\d+)\s*(?:s|sec|secs|seconds?)\b\.?/i);
+  // "no rest"
+  const noRest = cleaned.match(/[,;@]?\s*no\s+rest\b\.?/i);
+
+  if (trailingRest) {
+    restSeconds = parseInt(trailingRest[1], 10);
+    cleaned = cleaned.replace(trailingRest[0], '').trim();
+  } else if (leadingRest) {
+    restSeconds = parseInt(leadingRest[1], 10);
+    cleaned = cleaned.replace(leadingRest[0], '').trim();
+  } else if (noRest) {
+    restSeconds = 0;
+    cleaned = cleaned.replace(noRest[0], '').trim();
+  }
+
+  // Strip any trailing punctuation left behind by the removal
+  cleaned = cleaned.replace(/[\s,;@]+$/, '').trim();
+  return { restSeconds, cleaned };
+}
+
 function findBestExerciseMatch(pdfName, pdfMuscleGroup, exercises) {
   const rawName = String(pdfName || '').toLowerCase().trim();
   const exactRawMatch = exercises.find(e => String(e.name || '').toLowerCase().trim() === rawName);
@@ -482,6 +513,10 @@ function parseStructuredDay(chunk) {
   let activeSupersetGroup = null;
   let supersetRemaining = 0;
   let lastExerciseIndices = [];
+  // Buffer notes that appear before any exercise (e.g. right after a section header)
+  // so they get attached to the next exercise instead of being silently dropped.
+  let pendingNote = '';
+  let pendingRestFromNote = null;
 
   const isSkippableLine = (line) => {
     if (/^(?:CLIENT PROFILE|PROGRESSION FROM PART|INTENSITY TECHNIQUES SUMMARY|VOLUME INCREASE|INTENSITY INCREASE|LOADING|\d+-WEEK PROGRESSION CYCLE)$/i.test(line)) return true;
@@ -526,8 +561,9 @@ function parseStructuredDay(chunk) {
 
     if (/^Coach note:/i.test(line)) {
       const noteText = line.replace(/^Coach note:\s*/i, '').trim();
-      if (noteText && lastExerciseIndices.length > 0) {
-        const detectedRestSeconds = extractRestSecondsFromNote(noteText);
+      if (!noteText) continue;
+      const detectedRestSeconds = extractRestSecondsFromNote(noteText);
+      if (lastExerciseIndices.length > 0) {
         for (const idx of lastExerciseIndices) {
           const prior = exercises[idx].notes;
           exercises[idx].notes = prior ? `${prior} ${noteText}` : noteText;
@@ -535,6 +571,10 @@ function parseStructuredDay(chunk) {
             exercises[idx].restSeconds = detectedRestSeconds;
           }
         }
+      } else {
+        // Orphan note at the top of a section — attach to the next exercise.
+        pendingNote = pendingNote ? `${pendingNote} ${noteText}` : noteText;
+        if (detectedRestSeconds != null) pendingRestFromNote = detectedRestSeconds;
       }
       continue;
     }
@@ -545,7 +585,9 @@ function parseStructuredDay(chunk) {
     if (!exMatch) continue;
 
     const originalName = exMatch[1].trim();
-    const prescription = exMatch[2].trim();
+    // Pull rest cue out of the prescription before parsing sets/reps so it doesn't
+    // pollute the reps string (e.g. "4x8-10 @ 90s rest" → reps "8-10", restSeconds 90).
+    const { restSeconds: prescriptionRest, cleaned: prescription } = extractRestFromPrescription(exMatch[2].trim());
 
     let sets = null;
     let reps = '';
@@ -583,18 +625,26 @@ function parseStructuredDay(chunk) {
     const isStretch = currentSection === 'cooldown' || isStretchExercise(originalName);
     const isSuperset = Boolean(activeSupersetGroup && supersetRemaining > 0);
 
+    let resolvedRest;
+    if (prescriptionRest != null) resolvedRest = prescriptionRest;
+    else if (pendingRestFromNote != null) resolvedRest = pendingRestFromNote;
+    else resolvedRest = isWarmup || isStretch ? 0 : 60;
+
     const exercise = {
       originalName,
       muscleGroup: guessMusclGroup(originalName),
       sets,
       reps,
-      restSeconds: isWarmup || isStretch ? 0 : 60,
-      notes: '',
+      restSeconds: resolvedRest,
+      notes: pendingNote,
       isWarmup,
       isStretch,
       isSuperset,
       supersetGroup: isSuperset ? activeSupersetGroup : null
     };
+
+    pendingNote = '';
+    pendingRestFromNote = null;
 
     exercises.push(exercise);
 
@@ -631,7 +681,7 @@ Rules:
 - Mark cool-down/stretch/mobility exercises with isStretch=true
 - Include coaching notes from "Coach note:" lines in the notes field. Escape any double quotes in notes.
 - Detect supersets (A1/A2, B1/B2 patterns or explicit "Superset" labels): isSuperset=true, supersetGroup="A"/"B"/"C"
-- Rest: convert to seconds. If not specified, use 0 for warmups/stretches, 90 for compounds, 60 for isolation.
+- Rest: convert to seconds. Extract rest cues from anywhere on the exercise line ("@ 90s rest", "rest 60s", "no rest" → 0) and from coach notes. Do NOT include the rest cue in the reps string. If not specified, use 0 for warmups/stretches, 90 for compounds, 60 for isolation.
 - For HIIT/interval/circuit workouts with rounds: group repeated exercises across rounds. E.g. "Box jump, 30 sec" in Rounds 1-3 = one exercise with sets=3, reps="30 sec"
 - Ignore section headers like "Block A:", "WORKING SETS:", "WARM-UP:", week progressions ("Week 1-4: 30 min"), and other non-exercise text
 
@@ -944,6 +994,18 @@ exports.handler = async (event) => {
         const detectedSuperset = ex.isSuperset || false;
         const detectedSupersetGroup = ex.supersetGroup || null;
 
+        // Apply seed-template note convention: warmups → "WARM-UP — …", stretches → "COOL-DOWN — …".
+        // Skip when the note already begins with that label so we don't double-prefix.
+        const rawNote = (ex.notes || '').trim();
+        let finalNote = rawNote;
+        if (rawNote) {
+          if (detectedWarmup && !/^warm[\s-]?up\b/i.test(rawNote)) {
+            finalNote = `WARM-UP — ${rawNote}`;
+          } else if (detectedStretch && !/^cool[\s-]?down\b/i.test(rawNote)) {
+            finalNote = `COOL-DOWN — ${rawNote}`;
+          }
+        }
+
         const match = findBestExerciseMatch(ex.originalName, ex.muscleGroup, allExercises);
 
         if (match) {
@@ -970,7 +1032,7 @@ exports.handler = async (event) => {
             sets: ex.sets || (detectedWarmup ? 1 : detectedStretch ? 1 : 3),
             reps: String(repsVal),
             restSeconds: ex.restSeconds != null ? ex.restSeconds : (detectedWarmup ? 30 : detectedStretch ? 0 : 90),
-            notes: ex.notes || '',
+            notes: finalNote,
             isWarmup: detectedWarmup,
             isStretch: detectedStretch,
             isSuperset: detectedSuperset,
@@ -998,7 +1060,7 @@ exports.handler = async (event) => {
             sets: ex.sets || (detectedWarmup ? 1 : detectedStretch ? 1 : 3),
             reps: String(unmatchedRepsVal),
             restSeconds: ex.restSeconds != null ? ex.restSeconds : (detectedWarmup ? 30 : detectedStretch ? 0 : 90),
-            notes: ex.notes || '',
+            notes: finalNote,
             isWarmup: detectedWarmup,
             isStretch: detectedStretch,
             isSuperset: detectedSuperset,
