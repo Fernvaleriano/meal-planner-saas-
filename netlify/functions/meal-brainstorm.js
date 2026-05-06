@@ -217,31 +217,38 @@ IMPORTANT:
         let responseMessage = aiResponse;
 
         if (isMealSuggestionRequest) {
-            try {
-                // Clean up the response - remove markdown code blocks if present
-                let cleanedResponse = aiResponse.trim();
-                if (cleanedResponse.startsWith('```json')) {
-                    cleanedResponse = cleanedResponse.replace(/^```json\s*/, '').replace(/\s*```$/, '');
-                } else if (cleanedResponse.startsWith('```')) {
-                    cleanedResponse = cleanedResponse.replace(/^```\s*/, '').replace(/\s*```$/, '');
-                }
+            // Strip markdown fences and isolate the JSON object even if the model
+            // adds prose, trailing notes, or extra fences.
+            let cleaned = aiResponse.trim();
+            cleaned = cleaned.replace(/^```(?:json)?\s*/i, '').replace(/```$/g, '').trim();
+            const firstBrace = cleaned.indexOf('{');
+            const lastBrace = cleaned.lastIndexOf('}');
+            if (firstBrace !== -1 && lastBrace > firstBrace) {
+                cleaned = cleaned.slice(firstBrace, lastBrace + 1);
+            }
 
-                const parsed = JSON.parse(cleanedResponse);
-                if (parsed.suggestions && Array.isArray(parsed.suggestions)) {
-                    suggestions = parsed.suggestions.map(s => ({
-                        name: s.name || 'Unnamed meal',
-                        calories: parseInt(s.calories) || 0,
-                        protein: parseInt(s.protein) || 0,
-                        carbs: parseInt(s.carbs) || 0,
-                        fat: parseInt(s.fat) || 0,
-                        description: s.description || '',
-                        ingredients: Array.isArray(s.ingredients) ? s.ingredients : [],
-                        instructions: s.instructions || ''
-                    }));
-                    responseMessage = parsed.message || 'Here are some suggestions:';
-                }
+            let parsed = null;
+            try {
+                parsed = JSON.parse(cleaned);
             } catch (parseError) {
-                // Fall back to plain text response
+                console.error('[meal-brainstorm] JSON parse failed:', parseError.message, 'raw:', aiResponse.slice(0, 500));
+            }
+
+            if (parsed && Array.isArray(parsed.suggestions)) {
+                suggestions = parsed.suggestions.map(s => ({
+                    name: s.name || 'Unnamed meal',
+                    calories: parseInt(s.calories) || 0,
+                    protein: parseInt(s.protein) || 0,
+                    carbs: parseInt(s.carbs) || 0,
+                    fat: parseInt(s.fat) || 0,
+                    description: s.description || '',
+                    ingredients: Array.isArray(s.ingredients) ? s.ingredients : [],
+                    instructions: s.instructions || ''
+                }));
+                responseMessage = parsed.message || 'Here are a few options — tap one to apply.';
+            } else {
+                // Parsing failed or schema didn't match — never leak raw JSON to the UI.
+                responseMessage = "I couldn't format alternatives this time. Try tapping Swap again, or describe what you want in the chat.";
             }
         }
 
