@@ -3574,7 +3574,7 @@
 
                 <!-- Quick action buttons row: Start from Scratch, Use Template, Import -->
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <button data-action="toggle-scratch" id="scratch-toggle-btn" class="btn btn-ghost w-full text-sm py-3" onclick="document.getElementById('dp_start_from_scratch').checked = !document.getElementById('dp_start_from_scratch').checked; this.style.background = document.getElementById('dp_start_from_scratch').checked ? '#0d9488' : ''; this.style.color = document.getElementById('dp_start_from_scratch').checked ? 'white' : ''; this.style.borderColor = document.getElementById('dp_start_from_scratch').checked ? '#0d9488' : ''; this.innerHTML = document.getElementById('dp_start_from_scratch').checked ? '<svg width=\'16\' height=\'16\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' viewBox=\'0 0 24 24\' style=\'display:inline;vertical-align:middle;margin-right:6px;\'><polyline points=\'20 6 9 17 4 12\'/></svg>DIY Mode On' : '<svg width=\'16\' height=\'16\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' viewBox=\'0 0 24 24\' style=\'display:inline;vertical-align:middle;margin-right:6px;\'><line x1=\'12\' y1=\'5\' x2=\'12\' y2=\'19\'/><line x1=\'5\' y1=\'12\' x2=\'19\' y2=\'12\'/></svg>Start from Scratch';">
+                    <button data-action="start-from-scratch" id="scratch-toggle-btn" class="btn btn-ghost w-full text-sm py-3" onclick="startFromScratchPlan()">
                         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:6px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Start from Scratch
                     </button>
 
@@ -5328,7 +5328,8 @@ async function generateDietPlan() {
         document.getElementById('dp_custom_carbs').value = carbsG;
         document.getElementById('dp_custom_fat').value = fatG;
     }
-    if (!isTemplateMode && (!age || !weight || !heightFt)) {
+    const isScratchMode = document.getElementById('dp_start_from_scratch').checked;
+    if (!isTemplateMode && !isScratchMode && (!age || !weight || !heightFt)) {
         alert('Please fill in all required fields');
         return;
     }
@@ -5627,6 +5628,7 @@ async function generateDietPlan() {
         }
 
         button.disabled = false;
+        document.getElementById('dp_start_from_scratch').checked = false;
         return; // Exit early - skip AI generation
     }
 
@@ -11864,6 +11866,7 @@ document.addEventListener('click', function(event) {
 
     const actions = {
         'generate-plan': generateDietPlan,
+        'start-from-scratch': startFromScratchPlan,
         'close-modal': () => document.getElementById('recipe-modal').classList.add('hidden'),
         'get-recipe': () => {
             const target = event.target.closest('[data-meal-name]');
@@ -12210,6 +12213,21 @@ document.getElementById('dp_fat_pct').addEventListener('input', function() {
     lastEditedMacro = 'fat';
     autoFillRemainingPercentage('fat');
 });
+
+// Start from Scratch — open an empty diet plan immediately (no Create Plan step needed)
+function startFromScratchPlan() {
+    document.getElementById('dp_start_from_scratch').checked = true;
+    document.getElementById('dp_use_template').checked = false;
+    document.getElementById('template-selector-fields').classList.add('hidden');
+
+    const templateBtn = document.getElementById('template-toggle-btn');
+    if (templateBtn) {
+        templateBtn.style.background = '#7c3aed';
+        templateBtn.innerHTML = '<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:6px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Use Template';
+    }
+
+    return generateDietPlan();
+}
 
 // Toggle Use Template from the button
 function toggleUseTemplate() {
