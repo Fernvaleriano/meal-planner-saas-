@@ -4076,10 +4076,11 @@ function Workouts() {
           // two-thirds for the visual (muscle map / cover image).
           const statY = height * 0.82;
           const slotWidth = width / activeToggles.length;
-          // Auto-scale value font: each slot gets `slotWidth - 24px` of breathing
-          // room, so target ~70% of that for the value height. Clamped 40-72px.
-          const valueFont = Math.max(40, Math.min(72, Math.floor(slotWidth * 0.46)));
-          const labelFont = valueFont >= 56 ? 20 : 18;
+          // Auto-scale value font with a softer cap. 72px maxed out at 4 stats
+          // and read as too shouty — 56px is bold but lets the stats sit
+          // calmly under the photo.
+          const valueFont = Math.max(38, Math.min(56, Math.floor(slotWidth * 0.36)));
+          const labelFont = valueFont >= 50 ? 18 : 16;
           // Strong text shadow so stats read on bright photo backgrounds
           // without needing a dark scrim band underneath.
           ctx.save();
