@@ -32623,7 +32623,9 @@ textarea,
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.9);
+    background: rgba(2, 6, 23, 0.78);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     z-index: 1000;
     display: flex;
     align-items: flex-start;
@@ -32632,15 +32634,21 @@ textarea,
     padding-top: env(safe-area-inset-top, 20px);
     padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
     overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
 }
 
 .create-workout-modal {
-    background: #0f172a;
+    background: linear-gradient(180deg, #111c33 0%, #0b1426 100%);
     border-radius: 20px;
     width: 100%;
     max-width: 500px;
     display: flex;
     flex-direction: column;
+    overflow: hidden;
+    border: 1px solid rgba(148, 163, 184, 0.08);
+    box-shadow: 0 24px 60px -12px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.02);
     animation: slideUpFade 0.3s ease;
     max-height: calc(100vh - 40px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
     max-height: calc(100dvh - 40px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
@@ -32650,29 +32658,35 @@ textarea,
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 16px 20px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 14px 16px;
+    padding-top: max(14px, env(safe-area-inset-top, 0px));
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
     flex-shrink: 0;
+    background: rgba(255, 255, 255, 0.02);
+    gap: 8px;
 }
 
 .create-workout-header h2 {
-    font-size: 1.125rem;
+    font-size: 1.0625rem;
     font-weight: 600;
     color: white;
     margin: 0;
+    letter-spacing: -0.01em;
 }
 
 .create-workout-close {
-    background: none;
+    background: rgba(255, 255, 255, 0.04);
     border: none;
-    color: #94a3b8;
-    padding: 8px;
+    color: #cbd5e1;
+    width: 36px;
+    height: 36px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 8px;
+    border-radius: 10px;
     transition: all 0.2s;
+    flex-shrink: 0;
 }
 
 .create-workout-close:hover {
@@ -32681,35 +32695,47 @@ textarea,
 }
 
 .create-workout-save {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05);
     border: none;
     color: #64748b;
-    padding: 8px 16px;
-    border-radius: 8px;
+    padding: 8px 18px;
+    border-radius: 10px;
     font-size: 0.9rem;
     font-weight: 600;
     cursor: not-allowed;
     transition: all 0.2s;
+    flex-shrink: 0;
+    min-height: 36px;
+    letter-spacing: 0.01em;
 }
 
 .create-workout-save.active {
     background: var(--brand-primary, #14b8a6);
     color: white;
     cursor: pointer;
+    box-shadow: 0 4px 12px rgba(20, 184, 166, 0.3);
 }
 
 .create-workout-save.active:hover {
     background: var(--brand-primary-dark, #0d9488);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(20, 184, 166, 0.4);
+}
+
+.create-workout-save.active:active {
+    transform: translateY(0);
 }
 
 .create-workout-content {
     flex: 1;
     overflow-y: auto;
-    padding: 20px;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+    padding: 20px 18px;
     padding-bottom: calc(40px + env(safe-area-inset-bottom, 0px));
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 18px;
     -webkit-overflow-scrolling: touch;
 }
 
@@ -32722,12 +32748,13 @@ textarea,
 .create-workout-name-input {
     width: 100%;
     padding: 14px 16px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 12px;
     color: white;
-    font-size: 1rem;
-    font-weight: 500;
+    font-size: 1.0625rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
     transition: all 0.2s;
 }
 
@@ -32748,19 +32775,19 @@ textarea,
 
 .create-workout-description {
     width: 100%;
-    padding: 14px 16px;
-    padding-bottom: 28px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 12px 14px;
+    padding-bottom: 26px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 12px;
     color: white;
     font-size: 0.9rem;
     font-family: inherit;
-    resize: vertical;
-    min-height: 70px;
+    resize: none;
+    min-height: 64px;
     max-height: 140px;
     transition: all 0.2s;
-    line-height: 1.4;
+    line-height: 1.45;
 }
 
 .create-workout-description:focus {
@@ -32784,36 +32811,40 @@ textarea,
 
 /* Dropdown selectors row */
 .create-workout-dropdowns {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: 12px;
+    min-width: 0;
 }
 
 .create-workout-dropdown {
     display: flex;
     flex-direction: column;
     gap: 6px;
+    min-width: 0;
 }
 
 .create-workout-dropdown > label {
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     font-weight: 600;
     color: #94a3b8;
     text-transform: uppercase;
-    letter-spacing: 0.03em;
+    letter-spacing: 0.05em;
 }
 
 .create-workout-select-wrap {
     position: relative;
     display: flex;
     align-items: center;
+    min-width: 0;
 }
 
 .create-workout-select {
     width: 100%;
-    padding: 12px 36px 12px 14px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    min-width: 0;
+    padding: 12px 32px 12px 14px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 10px;
     color: white;
     font-size: 0.9rem;
@@ -32821,6 +32852,9 @@ textarea,
     -webkit-appearance: none;
     cursor: pointer;
     transition: all 0.2s;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
 }
 
 .create-workout-select:focus {
@@ -32844,15 +32878,17 @@ textarea,
 /* Date input - keeps native date picker UI */
 .create-workout-date-input {
     width: 100%;
+    min-width: 0;
     padding: 12px 14px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 10px;
     color: white;
     font-size: 0.9rem;
     cursor: pointer;
     transition: all 0.2s;
     color-scheme: dark;
+    font-family: inherit;
 }
 
 .create-workout-date-input:focus {
@@ -32876,17 +32912,23 @@ textarea,
 .create-workout-days-section {
     display: flex;
     flex-direction: column;
-    gap: 0;
+    gap: 4px;
+    margin-top: 4px;
 }
 
 .create-workout-day-tabs {
     display: flex;
     align-items: center;
-    gap: 0;
+    gap: 6px;
     overflow-x: auto;
+    overflow-y: hidden;
     scrollbar-width: none;
     -ms-overflow-style: none;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 4px 2px 8px;
+    margin: 0 -2px;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x;
 }
 
 .create-workout-day-tabs::-webkit-scrollbar {
@@ -32894,35 +32936,55 @@ textarea,
 }
 
 .create-workout-day-tab {
-    padding: 10px 20px;
-    background: none;
-    border: none;
-    border-bottom: 2px solid transparent;
-    color: #64748b;
-    font-size: 0.9rem;
+    min-width: 40px;
+    height: 36px;
+    padding: 0 14px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 10px;
+    color: #94a3b8;
+    font-size: 0.875rem;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
     white-space: nowrap;
     flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .create-workout-day-tab:hover {
-    color: #94a3b8;
+    color: #e2e8f0;
+    background: rgba(255, 255, 255, 0.07);
 }
 
 .create-workout-day-tab.active {
-    color: var(--brand-primary, #14b8a6);
-    border-bottom-color: var(--brand-primary, #14b8a6);
+    color: white;
+    background: var(--brand-primary, #14b8a6);
+    border-color: var(--brand-primary, #14b8a6);
+    box-shadow: 0 4px 12px rgba(20, 184, 166, 0.25);
 }
 
 .create-workout-day-tab.add-day {
-    padding: 10px 14px;
-    color: #475569;
+    min-width: 36px;
+    padding: 0 10px;
+    color: #64748b;
+    border-style: dashed;
+    background: transparent;
 }
 
 .create-workout-day-tab.add-day:hover {
     color: var(--brand-primary, #14b8a6);
+    border-color: rgba(20, 184, 166, 0.4);
+    background: rgba(20, 184, 166, 0.06);
+}
+
+.create-workout-day-tab.add-day.active,
+.create-workout-day-tab.add-day:active {
+    background: rgba(20, 184, 166, 0.1);
+    color: var(--brand-primary, #14b8a6);
+    box-shadow: none;
 }
 
 /* Day Header (name + menu) */
@@ -32930,7 +32992,9 @@ textarea,
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 12px 0 4px;
+    padding: 10px 0 6px;
+    gap: 8px;
+    min-width: 0;
 }
 
 .create-workout-day-name {
@@ -32938,6 +33002,12 @@ textarea,
     font-weight: 600;
     color: white;
     margin: 0;
+    letter-spacing: -0.01em;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .create-workout-day-name-input {
@@ -33052,22 +33122,31 @@ textarea,
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 40px 20px;
+    padding: 36px 20px 28px;
     color: #475569;
     text-align: center;
-    gap: 12px;
+    gap: 10px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px dashed rgba(255, 255, 255, 0.08);
+    border-radius: 14px;
+}
+
+.create-workout-empty svg {
+    color: rgba(148, 163, 184, 0.35);
+    margin-bottom: 4px;
 }
 
 .create-workout-empty p {
-    font-size: 1rem;
-    font-weight: 500;
-    color: #64748b;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #cbd5e1;
     margin: 0;
 }
 
 .create-workout-empty span {
-    font-size: 0.85rem;
-    color: #475569;
+    font-size: 0.8125rem;
+    color: #64748b;
+    line-height: 1.4;
 }
 
 .create-workout-exercise-list {
@@ -33439,21 +33518,26 @@ textarea,
     align-items: center;
     justify-content: center;
     gap: 8px;
-    padding: 14px;
-    background: transparent;
-    border: 2px dashed rgba(255, 255, 255, 0.2);
+    padding: 13px;
+    background: rgba(20, 184, 166, 0.08);
+    border: 1.5px dashed rgba(20, 184, 166, 0.4);
     border-radius: 12px;
     color: var(--brand-primary, #14b8a6);
-    font-size: 0.9rem;
+    font-size: 0.9375rem;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
-    margin-top: 8px;
+    margin-top: 6px;
+    letter-spacing: 0.01em;
 }
 
 .create-workout-add-btn:hover {
     border-color: var(--brand-primary, #14b8a6);
-    background: rgba(20, 184, 166, 0.1);
+    background: rgba(20, 184, 166, 0.14);
+}
+
+.create-workout-add-btn:active {
+    transform: scale(0.99);
 }
 
 /* Light theme */
