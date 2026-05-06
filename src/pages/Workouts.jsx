@@ -5339,13 +5339,16 @@ function Workouts() {
 
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && cardMenuWorkout && (
-        <div className="card-sheet-overlay" onClick={() => { setShowDeleteConfirm(false); setCardMenuWorkout(null); setCardMenuWorkoutId(null); }}>
-          <div className="delete-confirm-modal" onClick={e => e.stopPropagation()}>
-            <h3>Delete workout plan</h3>
-            <p>Delete just this day, or remove every occurrence of this workout plan from your calendar?</p>
-            <div className="delete-confirm-options">
+        <div className="workout-delete-overlay" onClick={() => { setShowDeleteConfirm(false); setCardMenuWorkout(null); setCardMenuWorkoutId(null); }}>
+          <div className="workout-delete-modal" onClick={e => e.stopPropagation()} role="dialog" aria-modal="true">
+            <div className="workout-delete-icon">
+              <Trash2 size={26} strokeWidth={2.2} />
+            </div>
+            <h3>Delete workout?</h3>
+            <p>Choose how much you want to remove from your calendar.</p>
+            <div className="workout-delete-options">
               <button
-                className="delete-confirm-btn"
+                className="workout-delete-option"
                 onClick={() => {
                   const w = cardMenuWorkout;
                   setShowDeleteConfirm(false);
@@ -5354,10 +5357,11 @@ function Workouts() {
                   handleDeleteCardWorkout(w);
                 }}
               >
-                Delete this day
+                <span className="workout-delete-option-title">Delete this day</span>
+                <span className="workout-delete-option-sub">Removes only the session on this date</span>
               </button>
               <button
-                className="delete-confirm-btn danger"
+                className="workout-delete-option danger"
                 onClick={() => {
                   const w = cardMenuWorkout;
                   setShowDeleteConfirm(false);
@@ -5366,11 +5370,12 @@ function Workouts() {
                   handleDeleteEntireProgram(w);
                 }}
               >
-                Delete all days
+                <span className="workout-delete-option-title">Delete all days</span>
+                <span className="workout-delete-option-sub">Removes every occurrence of this plan</span>
               </button>
             </div>
             <button
-              className="delete-confirm-cancel"
+              className="workout-delete-cancel"
               onClick={() => { setShowDeleteConfirm(false); setCardMenuWorkout(null); setCardMenuWorkoutId(null); }}
             >
               Cancel

@@ -17695,6 +17695,184 @@ textarea,
     background: rgba(96, 165, 250, 0.08);
 }
 
+/* Workout Delete Confirmation Modal — refreshed UI */
+.workout-delete-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(2, 6, 23, 0.62);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    z-index: 9998;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    animation: fadeIn 0.18s ease;
+}
+
+.workout-delete-modal {
+    width: 100%;
+    max-width: 360px;
+    background: #1e293b;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 22px;
+    padding: 24px 22px 18px;
+    text-align: center;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+    animation: workoutDeletePop 0.22s cubic-bezier(0.2, 0.8, 0.3, 1.2);
+}
+
+@keyframes workoutDeletePop {
+    from { opacity: 0; transform: translateY(8px) scale(0.96); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.workout-delete-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    margin: 4px auto 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #f87171;
+    background: rgba(239, 68, 68, 0.14);
+    box-shadow: 0 0 0 6px rgba(239, 68, 68, 0.06);
+}
+
+.workout-delete-modal h3 {
+    font-size: 19px;
+    font-weight: 700;
+    color: #f8fafc;
+    margin: 0 0 6px;
+    letter-spacing: -0.01em;
+}
+
+.workout-delete-modal p {
+    font-size: 14px;
+    color: #94a3b8;
+    line-height: 1.45;
+    margin: 0 0 20px;
+}
+
+.workout-delete-options {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.workout-delete-option {
+    width: 100%;
+    padding: 13px 16px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 14px;
+    color: #e2e8f0;
+    font-family: inherit;
+    cursor: pointer;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.08s ease;
+}
+
+.workout-delete-option:hover {
+    background: rgba(255, 255, 255, 0.07);
+    border-color: rgba(255, 255, 255, 0.14);
+}
+
+.workout-delete-option:active {
+    transform: scale(0.99);
+}
+
+.workout-delete-option-title {
+    font-size: 15.5px;
+    font-weight: 600;
+    line-height: 1.25;
+}
+
+.workout-delete-option-sub {
+    font-size: 12.5px;
+    font-weight: 400;
+    color: #94a3b8;
+    line-height: 1.35;
+}
+
+.workout-delete-option.danger {
+    background: rgba(239, 68, 68, 0.12);
+    border-color: rgba(239, 68, 68, 0.28);
+}
+
+.workout-delete-option.danger .workout-delete-option-title {
+    color: #fca5a5;
+}
+
+.workout-delete-option.danger .workout-delete-option-sub {
+    color: rgba(252, 165, 165, 0.72);
+}
+
+.workout-delete-option.danger:hover {
+    background: rgba(239, 68, 68, 0.18);
+    border-color: rgba(239, 68, 68, 0.4);
+}
+
+.workout-delete-cancel {
+    width: 100%;
+    margin-top: 10px;
+    padding: 13px 16px;
+    background: transparent;
+    border: none;
+    color: #cbd5e1;
+    font-size: 15px;
+    font-weight: 600;
+    font-family: inherit;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.workout-delete-cancel:hover,
+.workout-delete-cancel:active {
+    background: rgba(255, 255, 255, 0.06);
+    color: #f1f5f9;
+}
+
+/* Light theme support */
+[data-theme="light"] .workout-delete-modal {
+    background: #ffffff;
+    border-color: rgba(15, 23, 42, 0.06);
+    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.18);
+}
+
+[data-theme="light"] .workout-delete-modal h3 { color: #0f172a; }
+[data-theme="light"] .workout-delete-modal p { color: #64748b; }
+
+[data-theme="light"] .workout-delete-option {
+    background: #f8fafc;
+    border-color: rgba(15, 23, 42, 0.08);
+    color: #0f172a;
+}
+[data-theme="light"] .workout-delete-option:hover {
+    background: #f1f5f9;
+    border-color: rgba(15, 23, 42, 0.14);
+}
+[data-theme="light"] .workout-delete-option-sub { color: #64748b; }
+
+[data-theme="light"] .workout-delete-option.danger {
+    background: rgba(239, 68, 68, 0.08);
+    border-color: rgba(239, 68, 68, 0.22);
+}
+[data-theme="light"] .workout-delete-option.danger .workout-delete-option-title { color: #b91c1c; }
+[data-theme="light"] .workout-delete-option.danger .workout-delete-option-sub { color: rgba(185, 28, 28, 0.7); }
+
+[data-theme="light"] .workout-delete-cancel { color: #475569; }
+[data-theme="light"] .workout-delete-cancel:hover {
+    background: rgba(15, 23, 42, 0.05);
+    color: #0f172a;
+}
+
 /* Action buttons below workout cards */
 .cards-action-buttons {
     display: flex;
