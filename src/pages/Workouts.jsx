@@ -4004,10 +4004,22 @@ function Workouts() {
           ctx.fillRect(0, 0, width, height);
         }
 
-        // Dark overlay — heavier when there's a custom background photo so
-        // the muscle map figure reads cleanly against busy imagery.
-        ctx.fillStyle = shareBgImage ? 'rgba(0, 0, 0, 0.6)' : 'rgba(0, 0, 0, 0.45)';
-        ctx.fillRect(0, 0, width, height);
+        // Light top scrim — keeps the logo legible without darkening the
+        // selfie/photo people upload as the background.
+        const topScrim = ctx.createLinearGradient(0, 0, 0, height * 0.22);
+        topScrim.addColorStop(0, shareBgImage ? 'rgba(0, 0, 0, 0.55)' : 'rgba(0, 0, 0, 0.4)');
+        topScrim.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = topScrim;
+        ctx.fillRect(0, 0, width, height * 0.22);
+
+        // Heavy bottom scrim — anchors the muscle figure + stats + footer
+        // so they read on top of any photo. Starts higher (~45%) than before
+        // because the figure now lives in the lower-left corner.
+        const bottomScrim = ctx.createLinearGradient(0, height * 0.42, 0, height);
+        bottomScrim.addColorStop(0, 'rgba(0, 0, 0, 0)');
+        bottomScrim.addColorStop(1, shareBgImage ? 'rgba(0, 0, 0, 0.92)' : 'rgba(0, 0, 0, 0.7)');
+        ctx.fillStyle = bottomScrim;
+        ctx.fillRect(0, height * 0.42, width, height * 0.58);
 
         // Brand logo (full logo image containing icon + name, preserving aspect ratio)
         if (logoImg) {
@@ -4019,24 +4031,16 @@ function Workouts() {
           ctx.drawImage(logoImg, (width - logoWidth) / 2, 20, logoWidth, logoHeight);
         }
 
-        // Muscle map — always rendered. The dark overlay above provides
-        // contrast against custom background photos.
+        // Muscle map — anchored bottom-left (Virtuagym-style) so the upper
+        // area stays open for the user's selfie/cover photo to show through.
         if (muscleMapImg) {
-          // Reserve the band between the logo (~y=130) and the stats (~y=0.78*h).
-          const bandTop = height * 0.16;
-          const bandBottom = height * 0.74;
-          const bandHeight = bandBottom - bandTop;
           const aspect = muscleMapImg.naturalWidth / muscleMapImg.naturalHeight || (4 / 3);
-          let drawH = bandHeight;
-          let drawW = drawH * aspect;
-          // Cap width to 90% of canvas so there's breathing room on the sides.
-          const maxW = width * 0.9;
-          if (drawW > maxW) {
-            drawW = maxW;
-            drawH = drawW / aspect;
-          }
-          const drawX = (width - drawW) / 2;
-          const drawY = bandTop + (bandHeight - drawH) / 2;
+          // Target: figure spans ~42% of canvas width, sits with its bottom
+          // edge ~6px above the stats row at y = 0.82 * h.
+          const drawW = width * 0.42;
+          const drawH = drawW / aspect;
+          const drawX = width * 0.05;
+          const drawY = (height * 0.82) - drawH - 28;
           ctx.drawImage(muscleMapImg, drawX, drawY, drawW, drawH);
         }
 
