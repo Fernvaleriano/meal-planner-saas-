@@ -4117,7 +4117,9 @@ function GuidedWorkoutModal({
           </p>
           <button
             onClick={() => {
-              pendingSecondSideRef.current = false;
+              // Hide the overlay but keep the ref TRUE so doMarkSetDone
+              // skips the gate on this re-entry; the gate resets the ref
+              // once it falls through.
               setPendingSecondSide(false);
               doMarkSetDone(currentExIndex, currentSetIndex, info);
             }}
