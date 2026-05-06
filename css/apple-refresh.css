@@ -931,3 +931,165 @@ table tbody td, .data-table tbody td {
     border-color: var(--brand-primary, #0d9488) !important;
     color: #ffffff !important;
 }
+
+/* ============================================================
+   FIFTH PASS — supplement-protocols page
+   The library/protocol cards used a teal-tinted (mint/dark-teal)
+   surface and teal/purple accent typography that bypass the
+   universal card override.
+   ============================================================ */
+
+/* Container sections — flat */
+.library-section, .protocols-section {
+    background: #ffffff !important;
+    border-radius: 16px !important;
+    box-shadow: none !important;
+    border: 1px solid rgba(0,0,0,0.06) !important;
+}
+[data-theme="dark"] .library-section,
+[data-theme="dark"] .protocols-section {
+    background: #14171f !important;
+    border: 1px solid rgba(255,255,255,0.06) !important;
+    box-shadow: none !important;
+}
+
+/* Section headings — quiet (was bright teal / purple) */
+.library-header h2, .protocols-header h2 {
+    color: #0f172a !important;
+    font-weight: 600 !important;
+    font-size: 1.25rem !important;
+    letter-spacing: -0.02em !important;
+}
+[data-theme="dark"] .library-header h2,
+[data-theme="dark"] .protocols-header h2 {
+    color: #f1f5f9 !important;
+}
+
+/* Library card — neutral surface */
+.library-card {
+    background: rgba(15,23,42,0.025) !important;
+    border: 1px solid rgba(15,23,42,0.06) !important;
+    border-radius: 12px !important;
+    box-shadow: none !important;
+    transition: border-color 0.15s, background 0.15s !important;
+}
+.library-card:hover {
+    border-color: rgba(13,148,136,0.40) !important;
+    background: rgba(13,148,136,0.04) !important;
+    box-shadow: none !important;
+}
+[data-theme="dark"] .library-card {
+    background: rgba(255,255,255,0.025) !important;
+    border-color: rgba(255,255,255,0.06) !important;
+}
+[data-theme="dark"] .library-card:hover {
+    border-color: rgba(45,212,191,0.40) !important;
+    background: rgba(45,212,191,0.05) !important;
+}
+
+/* Library card name — dark/light text, weight 600 */
+.library-card-name {
+    color: #0f172a !important;
+    font-weight: 600 !important;
+    letter-spacing: -0.01em !important;
+}
+[data-theme="dark"] .library-card-name { color: #f1f5f9 !important; }
+
+/* Category pill — neutral monochrome */
+.library-card-category {
+    background: rgba(15,23,42,0.06) !important;
+    color: #475569 !important;
+    font-weight: 500 !important;
+    box-shadow: none !important;
+}
+[data-theme="dark"] .library-card-category {
+    background: rgba(255,255,255,0.06) !important;
+    color: #cbd5e1 !important;
+}
+
+/* Card detail text — quiet */
+.library-card-details, .protocol-timing, .protocol-notes,
+.protocol-schedule-phase, .protocol-private-notes {
+    color: #64748b !important;
+}
+[data-theme="dark"] .library-card-details,
+[data-theme="dark"] .protocol-timing,
+[data-theme="dark"] .protocol-notes,
+[data-theme="dark"] .protocol-schedule-phase,
+[data-theme="dark"] .protocol-private-notes {
+    color: #94a3b8 !important;
+}
+
+/* Protocol card — neutral surface (was deep purple) */
+.protocol-card {
+    background: rgba(15,23,42,0.025) !important;
+    border: 1px solid rgba(15,23,42,0.06) !important;
+    border-radius: 12px !important;
+    box-shadow: none !important;
+}
+.protocol-card:hover {
+    border-color: rgba(13,148,136,0.40) !important;
+    box-shadow: none !important;
+}
+[data-theme="dark"] .protocol-card {
+    background: rgba(255,255,255,0.025) !important;
+    border-color: rgba(255,255,255,0.06) !important;
+}
+[data-theme="dark"] .protocol-card:hover {
+    border-color: rgba(45,212,191,0.40) !important;
+}
+
+.protocol-name {
+    color: #0f172a !important;
+    font-weight: 600 !important;
+    letter-spacing: -0.01em !important;
+}
+[data-theme="dark"] .protocol-name { color: #f1f5f9 !important; }
+
+/* Titration status pills — neutral severity ramp */
+.titration-status.active-phase {
+    background: rgba(16,185,129,0.10) !important;
+    color: #047857 !important;
+}
+.titration-status.upcoming-change {
+    background: rgba(245,158,11,0.10) !important;
+    color: #b45309 !important;
+}
+.titration-status.completed {
+    background: rgba(15,23,42,0.06) !important;
+    color: #64748b !important;
+}
+[data-theme="dark"] .titration-status.active-phase {
+    background: rgba(16,185,129,0.15) !important;
+    color: #6ee7b7 !important;
+}
+[data-theme="dark"] .titration-status.upcoming-change {
+    background: rgba(245,158,11,0.15) !important;
+    color: #fcd34d !important;
+}
+[data-theme="dark"] .titration-status.completed {
+    background: rgba(255,255,255,0.06) !important;
+    color: #94a3b8 !important;
+}
+
+/* Titration phase dots — single accent */
+.titration-phase-dot.active { background: var(--brand-primary, #0d9488) !important; }
+.titration-phase-dot.past   { background: rgba(13,148,136,0.45) !important; }
+
+/* .btn-teal helper class (slips through [class$="-btn"]) */
+.btn-teal {
+    background: var(--brand-primary, #0d9488) !important;
+    color: #ffffff !important;
+    border: 1px solid var(--brand-primary, #0d9488) !important;
+    box-shadow: none !important;
+}
+.btn-teal:hover {
+    background: var(--brand-primary-dark, #0f766e) !important;
+    border-color: var(--brand-primary-dark, #0f766e) !important;
+}
+
+/* .btn-danger keeps semantic red but loses the heavy weight */
+.btn-danger {
+    box-shadow: none !important;
+    font-weight: 500 !important;
+}
