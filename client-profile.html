@@ -8287,10 +8287,10 @@
                     </div>
                 </div>
                 <div class="client-actions">
-                    <button class="btn btn-primary" onclick="generateNewPlan()">🔥 Generate New Plan</button>
-                    <button class="btn btn-edit" onclick="editClient()">✏️ Edit</button>
-                    <button class="btn btn-secondary" onclick="sendPasswordReset()" title="Send password reset email to client">🔑 Reset Password</button>
-                    <button class="btn btn-back" onclick="window.location.href='manage-clients.html'">← Back</button>
+                    <button class="btn btn-primary" onclick="generateNewPlan()"><i data-lucide="sparkles" style="width:16px;height:16px;"></i> Generate New Plan</button>
+                    <button class="btn btn-edit" onclick="editClient()"><i data-lucide="pencil" style="width:16px;height:16px;"></i> Edit</button>
+                    <button class="btn btn-secondary" onclick="sendPasswordReset()" title="Send password reset email to client"><i data-lucide="key" style="width:16px;height:16px;"></i> Reset Password</button>
+                    <button class="btn btn-back" onclick="window.location.href='manage-clients.html'"><i data-lucide="arrow-left" style="width:16px;height:16px;"></i> Back</button>
                 </div>
             </div>
             <div class="client-stats" id="clientStats"></div>
@@ -9911,20 +9911,21 @@
 
             // Build meta information
             const metaItems = [];
-            if (client.email) metaItems.push(`📧 ${client.email}`);
-            if (client.phone) metaItems.push(`📞 ${client.phone}`);
+            if (client.email) metaItems.push(`<i data-lucide="mail" style="width:14px;height:14px;"></i> ${client.email}`);
+            if (client.phone) metaItems.push(`<i data-lucide="phone" style="width:14px;height:14px;"></i> ${client.phone}`);
             if (client.default_goal) {
                 const goalLabels = {
                     'lose_weight': 'Lose Weight',
                     'maintain': 'Maintain',
                     'gain_muscle': 'Gain Muscle'
                 };
-                metaItems.push(`🎯 ${goalLabels[client.default_goal] || client.default_goal}`);
+                metaItems.push(`<i data-lucide="target" style="width:14px;height:14px;"></i> ${goalLabels[client.default_goal] || client.default_goal}`);
             }
 
             document.getElementById('clientMeta').innerHTML = metaItems
                 .map(item => `<div class="client-meta-item">${item}</div>`)
                 .join('');
+            if (window.lucide && lucide.createIcons) lucide.createIcons();
 
             // Show client card and action bar
             document.getElementById('clientCard').style.display = 'block';
