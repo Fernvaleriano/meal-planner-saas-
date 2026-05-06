@@ -4053,7 +4053,7 @@ function Workouts() {
           // center so on portrait selfies the figure overlays the chest
           // instead of the face, and on the no-photo path it sits closer
           // to the stats (matches Virtuagym's bottom-weighted layout).
-          const drawX = width * 0.04;
+          const drawX = -width * 0.01;
           const drawY = (height * 0.62) - (drawH / 2);
 
           ctx.save();
