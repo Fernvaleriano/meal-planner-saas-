@@ -1,21 +1,26 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Plus, Dumbbell, Trash2, Clock, Hash, ArrowLeftRight, ChevronDown, MoreVertical, Pencil } from 'lucide-react';
+import { X, Plus, Dumbbell, Trash2, Clock, Hash, ArrowLeftRight, ChevronDown, MoreVertical, Pencil, ImagePlus } from 'lucide-react';
 import AddActivityModal from './AddActivityModal';
 import SwapExerciseModal from './SwapExerciseModal';
 import SmartThumbnail from './SmartThumbnail';
 import { estimateWorkoutMinutes, estimateWorkoutCalories } from '../../utils/workoutDuration';
+import { apiPost } from '../../utils/api';
 
 const DIFFICULTY_OPTIONS = ['Beginner', 'Novice', 'Intermediate', 'Advanced'];
 const CATEGORY_OPTIONS = ['Main Workout Programs', 'Strength Training', 'Hypertrophy', 'Fat Loss', 'HIIT', 'Cardio', 'Mobility', 'Sport Specific', 'Rehabilitation', 'Custom'];
 const FREQUENCY_OPTIONS = [1, 2, 3, 4, 5, 6, 7];
 
-function CreateWorkoutModal({ onClose, onCreateWorkout, selectedDate, coachId = null, isCoach = false }) {
+function CreateWorkoutModal({ onClose, onCreateWorkout, selectedDate, coachId = null, isCoach = false, clientId = null }) {
   const [workoutName, setWorkoutName] = useState('');
   const [description, setDescription] = useState('');
   const [difficulty, setDifficulty] = useState('Beginner');
   const [category, setCategory] = useState('Main Workout Programs');
   const [frequency, setFrequency] = useState(3);
   const [startDate, setStartDate] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [imageError, setImageError] = useState('');
+  const imageInputRef = useRef(null);
 
   // Multi-day state
   const [days, setDays] = useState([{ name: 'Day 1', exercises: [] }]);
@@ -300,6 +305,63 @@ function CreateWorkoutModal({ onClose, onCreateWorkout, selectedDate, coachId = 
     }
   };
 
+  // Cover image handlers
+  const handleImageFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    // Reset input so picking the same file again still triggers change
+    if (imageInputRef.current) imageInputRef.current.value = '';
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setImageError('Please select an image file.');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setImageError('Image must be under 10MB.');
+      return;
+    }
+
+    setImageError('');
+    setUploadingImage(true);
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const dataUrl = event.target?.result;
+      // Show local preview immediately
+      setImageUrl(dataUrl);
+      try {
+        const result = await apiPost('/.netlify/functions/upload-workout-cover', {
+          clientId,
+          imageData: dataUrl,
+          fileName: file.name
+        });
+        if (result?.imageUrl) {
+          setImageUrl(result.imageUrl);
+        } else {
+          setImageError('Failed to upload image. Please try again.');
+          setImageUrl('');
+        }
+      } catch (err) {
+        console.error('Error uploading workout cover:', err);
+        setImageError('Failed to upload image. Please try again.');
+        setImageUrl('');
+      } finally {
+        setUploadingImage(false);
+      }
+    };
+    reader.onerror = () => {
+      setImageError('Could not read the selected file.');
+      setUploadingImage(false);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveImage = () => {
+    setImageUrl('');
+    setImageError('');
+    if (imageInputRef.current) imageInputRef.current.value = '';
+  };
+
   // Calculate workout duration
   const calculateWorkoutTime = (exerciseList) => estimateWorkoutMinutes(exerciseList);
 
@@ -317,6 +379,9 @@ function CreateWorkoutModal({ onClose, onCreateWorkout, selectedDate, coachId = 
       const estimatedMinutes = calculateWorkoutTime(allExercises);
       const estimatedCalories = estimateWorkoutCalories(allExercises);
 
+      // Only persist a remote URL — skip local data: previews if upload failed.
+      const finalImageUrl = imageUrl && /^https?:\/\//.test(imageUrl) ? imageUrl : null;
+
       const workoutData = {
         name: workoutName.trim(),
         description: description.trim(),
@@ -327,6 +392,7 @@ function CreateWorkoutModal({ onClose, onCreateWorkout, selectedDate, coachId = 
         exercises: isSingleDay ? days[0].exercises : allExercises,
         estimatedMinutes,
         estimatedCalories,
+        image_url: finalImageUrl,
       };
 
       // Include multi-day structure if more than 1 day
@@ -348,7 +414,7 @@ function CreateWorkoutModal({ onClose, onCreateWorkout, selectedDate, coachId = 
   };
 
   const hasExercises = days.some(day => day.exercises.length > 0);
-  const canCreate = workoutName.trim() && hasExercises && !saving;
+  const canCreate = workoutName.trim() && hasExercises && !saving && !uploadingImage;
 
   // Render exercise item (reused for each day)
   const renderExerciseItem = (exercise, index) => (
@@ -541,6 +607,56 @@ function CreateWorkoutModal({ onClose, onCreateWorkout, selectedDate, coachId = 
                 className="create-workout-name-input"
                 maxLength={50}
               />
+            </div>
+
+            {/* Cover Image */}
+            <div className="create-workout-field">
+              <input
+                ref={imageInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImageFileChange}
+                style={{ display: 'none' }}
+              />
+              {imageUrl ? (
+                <div className="create-workout-cover-preview">
+                  <img src={imageUrl} alt="Workout cover" />
+                  {uploadingImage && (
+                    <div className="create-workout-cover-uploading">Uploading...</div>
+                  )}
+                  <div className="create-workout-cover-actions">
+                    <button
+                      type="button"
+                      className="create-workout-cover-action-btn"
+                      onClick={() => imageInputRef.current?.click()}
+                      disabled={uploadingImage}
+                    >
+                      Replace
+                    </button>
+                    <button
+                      type="button"
+                      className="create-workout-cover-action-btn danger"
+                      onClick={handleRemoveImage}
+                      disabled={uploadingImage}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  className="create-workout-cover-upload"
+                  onClick={() => imageInputRef.current?.click()}
+                  disabled={uploadingImage}
+                >
+                  <ImagePlus size={20} />
+                  <span>{uploadingImage ? 'Uploading...' : 'Add cover photo'}</span>
+                </button>
+              )}
+              {imageError && (
+                <div className="create-workout-cover-error">{imageError}</div>
+              )}
             </div>
 
             {/* Description */}
