@@ -257,6 +257,10 @@ function GuidedWorkoutModal({
   const [currentSetIndex, setCurrentSetIndex] = useState(0);
   const [phase, setPhase] = useState('get-ready'); // get-ready, exercise, rest, complete
   const [timer, setTimer] = useState(10);
+  // Unilateral exercises: after the client logs the first side we pause and
+  // prompt them to do the other side before starting the rest timer.
+  const [pendingSecondSide, setPendingSecondSide] = useState(false);
+  const pendingSecondSideRef = useRef(false);
   const [isPaused, setIsPaused] = useState(false);
   const [completedSets, setCompletedSets] = useState({}); // { exIndex: Set([setIndex, ...]) }
   const [totalElapsed, setTotalElapsed] = useState(0);
@@ -2100,6 +2104,19 @@ function GuidedWorkoutModal({
   }, [onTimerComplete]);
 
   const doMarkSetDone = useCallback((exIdx, setIdx, exInfo) => {
+    // Unilateral gate: pause after the first side and prompt for the other
+    // side. The switch-sides overlay re-invokes this callback to fall through.
+    const exForUnilateral = exercises[exIdx];
+    if (exForUnilateral?.is_unilateral && !pendingSecondSideRef.current) {
+      pendingSecondSideRef.current = true;
+      setPendingSecondSide(true);
+      setRepCountdownActive(false);
+      speak('Switch sides', voiceEnabled);
+      return;
+    }
+    pendingSecondSideRef.current = false;
+    setPendingSecondSide(false);
+
     setRepCountdownActive(false);
     setCompletedSets(prev => {
       const updated = { ...prev };
@@ -2478,6 +2495,8 @@ function GuidedWorkoutModal({
     if (intervalRef.current) clearInterval(intervalRef.current);
     setRepCountdownActive(false);
     setEditingField(null);
+    pendingSecondSideRef.current = false;
+    setPendingSecondSide(false);
 
     if (phase === 'rest') {
       doAdvanceAfterRest(currentExIndex, currentSetIndex, info);
@@ -2550,6 +2569,8 @@ function GuidedWorkoutModal({
     if (intervalRef.current) clearInterval(intervalRef.current);
     setRepCountdownActive(false);
     setEditingField(null);
+    pendingSecondSideRef.current = false;
+    setPendingSecondSide(false);
 
     // In superset mode — exit superset and go to exercise before the group
     const ss = supersetStateRef.current;
@@ -4027,6 +4048,57 @@ function GuidedWorkoutModal({
             </div>
           </div>
         </Portal>
+      )}
+
+      {/* Switch-sides overlay for unilateral exercises */}
+      {pendingSecondSide && !isMinimized && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.85)',
+            backdropFilter: 'blur(8px)',
+            zIndex: 9999,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '24px',
+            textAlign: 'center'
+          }}
+        >
+          <div style={{ fontSize: '64px', marginBottom: '16px' }}>🔄</div>
+          <h2 style={{ color: '#fff', fontSize: '32px', margin: '0 0 12px', fontWeight: 700 }}>
+            Switch sides
+          </h2>
+          <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: '18px', margin: '0 0 32px', maxWidth: '420px' }}>
+            Now do the other side — same reps. Tap when you've finished.
+          </p>
+          <button
+            onClick={() => {
+              pendingSecondSideRef.current = false;
+              setPendingSecondSide(false);
+              doMarkSetDone(currentExIndex, currentSetIndex, info);
+            }}
+            style={{
+              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '999px',
+              padding: '18px 48px',
+              fontSize: '18px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '10px',
+              boxShadow: '0 8px 24px rgba(16, 185, 129, 0.4)'
+            }}
+          >
+            <Check size={22} />
+            Done — Other Side Complete
+          </button>
+        </div>
       )}
     </div>
   );
