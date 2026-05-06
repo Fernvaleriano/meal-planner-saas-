@@ -4000,23 +4000,25 @@ function Workouts() {
         if (shareToggles.sets) activeToggles.push({ label: 'Sets', value: String(totalSets) });
 
         if (activeToggles.length > 0) {
-          const statY = height * 0.45;
+          // Anchor stats near the bottom (above the footer), leaving the upper
+          // two-thirds for the visual (muscle map / cover image).
+          const statY = height * 0.82;
           const spacing = width / (activeToggles.length + 1);
           activeToggles.forEach((stat, i) => {
             const x = spacing * (i + 1);
             ctx.fillStyle = 'white';
-            ctx.font = 'bold 48px -apple-system, BlinkMacSystemFont, sans-serif';
+            ctx.font = 'bold 64px -apple-system, BlinkMacSystemFont, sans-serif';
             ctx.textAlign = 'center';
             ctx.fillText(stat.value, x, statY);
-            ctx.fillStyle = '#9ca3af';
-            ctx.font = '18px -apple-system, BlinkMacSystemFont, sans-serif';
-            ctx.fillText(stat.label, x, statY + 32);
+            ctx.fillStyle = '#cbd5e1';
+            ctx.font = '20px -apple-system, BlinkMacSystemFont, sans-serif';
+            ctx.fillText(stat.label, x, statY + 38);
           });
         }
 
         // PRs section
         if (shareToggles.prs && workoutPRs.length > 0) {
-          const prStartY = activeToggles.length > 0 ? height * 0.65 : height / 2 - 20;
+          const prStartY = activeToggles.length > 0 ? height * 0.55 : height / 2 - 20;
           ctx.fillStyle = '#fbbf24';
           ctx.font = 'bold 20px -apple-system, BlinkMacSystemFont, sans-serif';
           ctx.textAlign = 'center';
