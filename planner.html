@@ -530,6 +530,309 @@
             margin-top: 10px;
         }
 
+        /* Consolidated meal action bar — Swap / Edit / Save */
+        .meal-action-bar {
+            display: flex;
+            gap: 6px;
+            padding: 8px 10px;
+            border-bottom: 1px solid #e5e7eb;
+            background: #fafafa;
+            flex-wrap: wrap;
+        }
+        [data-theme="dark"] .meal-action-bar {
+            background: #1a1f2e;
+            border-bottom-color: #2a3142;
+        }
+        .meal-action-pop {
+            position: relative;
+        }
+        .meal-action-pop > summary {
+            list-style: none;
+            cursor: pointer;
+            padding: 6px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #374151;
+            background: white;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            user-select: none;
+            transition: background 0.15s, border-color 0.15s;
+        }
+        .meal-action-pop > summary::-webkit-details-marker { display: none; }
+        .meal-action-pop > summary:hover {
+            background: #f3f4f6;
+            border-color: #9ca3af;
+        }
+        .meal-action-pop[open] > summary {
+            background: #eef2ff;
+            border-color: #6366f1;
+            color: #4338ca;
+        }
+        [data-theme="dark"] .meal-action-pop > summary {
+            background: #232a3a;
+            border-color: #374151;
+            color: #e5e7eb;
+        }
+        [data-theme="dark"] .meal-action-pop > summary:hover {
+            background: #2a3142;
+        }
+        [data-theme="dark"] .meal-action-pop[open] > summary {
+            background: #312e81;
+            border-color: #6366f1;
+            color: #c7d2fe;
+        }
+        .meal-action-options {
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 0;
+            z-index: 20;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            padding: 4px;
+            background: white;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            min-width: 160px;
+        }
+        [data-theme="dark"] .meal-action-options {
+            background: #1f2937;
+            border-color: #374151;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        .meal-action-options button {
+            text-align: left;
+            padding: 7px 10px;
+            font-size: 12px;
+            font-weight: 500;
+            color: #374151;
+            background: transparent;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .meal-action-options button:hover {
+            background: #f3f4f6;
+            color: #111827;
+        }
+        [data-theme="dark"] .meal-action-options button {
+            color: #d1d5db;
+        }
+        [data-theme="dark"] .meal-action-options button:hover {
+            background: #374151;
+            color: #f9fafb;
+        }
+        .meal-action-bar > .meal-action-btn {
+            padding: 6px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #374151;
+            background: white;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.15s, border-color 0.15s;
+        }
+        .meal-action-bar > .meal-action-btn:hover {
+            background: #f3f4f6;
+            border-color: #9ca3af;
+        }
+        [data-theme="dark"] .meal-action-bar > .meal-action-btn {
+            background: #232a3a;
+            border-color: #374151;
+            color: #e5e7eb;
+        }
+        [data-theme="dark"] .meal-action-bar > .meal-action-btn:hover {
+            background: #2a3142;
+        }
+
+        /* Day-level macro progress bars (replaces duplicate target+totals cards) */
+        .day-macro-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            padding: 12px 16px;
+        }
+        @media (max-width: 640px) {
+            .day-macro-row {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+                padding: 10px 12px;
+            }
+        }
+        .day-macro {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .day-macro-label {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #6b7280;
+        }
+        [data-theme="dark"] .day-macro-label {
+            color: #94a3b8;
+        }
+        .day-macro-value {
+            font-size: 14px;
+            font-weight: 700;
+            color: #111827;
+        }
+        [data-theme="dark"] .day-macro-value {
+            color: #f1f5f9;
+        }
+        .day-macro-value .target {
+            font-weight: 500;
+            color: #6b7280;
+            font-size: 12px;
+        }
+        [data-theme="dark"] .day-macro-value .target {
+            color: #94a3b8;
+        }
+        .day-macro-bar {
+            height: 4px;
+            background: #e5e7eb;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        [data-theme="dark"] .day-macro-bar {
+            background: #2a3142;
+        }
+        .day-macro-bar > span {
+            display: block;
+            height: 100%;
+            border-radius: 2px;
+            transition: width 0.3s ease;
+        }
+        .day-macro-bar.cal > span { background: #f59e0b; }
+        .day-macro-bar.pro > span { background: #10b981; }
+        .day-macro-bar.carb > span { background: #3b82f6; }
+        .day-macro-bar.fat > span { background: #8b5cf6; }
+        .day-macro-bar > span.over { background: #ef4444 !important; }
+        .day-macro-delta {
+            font-size: 10px;
+            font-weight: 600;
+            color: #6b7280;
+        }
+        .day-macro-delta.under { color: #d97706; }
+        .day-macro-delta.over { color: #dc2626; }
+        .day-macro-delta.ok { color: #059669; }
+
+        /* Compact daily-targets summary line */
+        .targets-summary-line {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: baseline;
+            gap: 4px 14px;
+            padding: 8px 14px;
+            margin-bottom: 12px;
+            background: rgba(13, 148, 136, 0.06);
+            border-left: 3px solid #0d9488;
+            border-radius: 4px;
+            font-size: 13px;
+            color: #475569;
+        }
+        [data-theme="dark"] .targets-summary-line {
+            background: rgba(13, 148, 136, 0.1);
+            color: #cbd5e1;
+        }
+        .targets-summary-line strong {
+            color: #0d9488;
+            font-weight: 700;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .targets-summary-line span {
+            color: inherit;
+        }
+        .targets-summary-line span b {
+            color: #111827;
+            font-weight: 700;
+        }
+        [data-theme="dark"] .targets-summary-line span b {
+            color: #f1f5f9;
+        }
+
+        /* Quieter day divider */
+        .day-divider.day-divider-quiet {
+            background: #1e293b;
+            color: #f1f5f9;
+            border-radius: 8px;
+            margin: 16px 0 0;
+        }
+        [data-theme="dark"] .day-divider.day-divider-quiet {
+            background: #0f172a;
+        }
+
+        /* Compact unit toggle (moved from header to inline position) */
+        .unit-toggle-compact {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            color: #6b7280;
+        }
+        .unit-toggle-compact .unit-toggle-pill {
+            transform: scale(0.85);
+            transform-origin: left center;
+        }
+
+        /* Neutral utility-style plan-action buttons (replaces rainbow grid) */
+        .plan-actions-grid.plan-actions-utility {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-top: 12px;
+        }
+        @media (min-width: 640px) {
+            .plan-actions-grid.plan-actions-utility {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+        @media (min-width: 1024px) {
+            .plan-actions-grid.plan-actions-utility {
+                grid-template-columns: repeat(6, 1fr);
+            }
+        }
+        .plan-action-btn-utility {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            padding: 9px 10px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #475569;
+            background: white;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.15s, border-color 0.15s, color 0.15s;
+            min-height: 38px;
+            white-space: nowrap;
+        }
+        .plan-action-btn-utility:hover:not(:disabled) {
+            background: #f1f5f9;
+            border-color: #94a3b8;
+            color: #1e293b;
+        }
+        [data-theme="dark"] .plan-action-btn-utility {
+            background: #1f2937;
+            border-color: #374151;
+            color: #cbd5e1;
+        }
+        [data-theme="dark"] .plan-action-btn-utility:hover:not(:disabled) {
+            background: #2a3142;
+            border-color: #4b5563;
+            color: #f1f5f9;
+        }
+
         /* Plan status banner (Draft / Submit to Client / Bulk Post) */
         .plan-status-section {
             margin-top: 20px;
@@ -886,8 +1189,16 @@
         /* ===== MEAL IMAGE ACTION BUTTONS ===== */
         .meal-image-actions {
             display: flex;
-            gap: 4px;
-            width: 100%;
+            gap: 0;
+            width: 120px;
+            margin-top: -4px;
+            border-radius: 0 0 0.5rem 0.5rem;
+            overflow: hidden;
+            border: 1px solid #e5e7eb;
+            border-top: none;
+        }
+        [data-theme="dark"] .meal-image-actions {
+            border-color: #374151;
         }
 
         .meal-image-actions .img-action-btn {
@@ -900,32 +1211,48 @@
             font-size: 10px;
             font-weight: 600;
             border: none;
-            border-radius: 6px;
+            border-radius: 0;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: background 0.15s;
             white-space: nowrap;
+        }
+        .meal-image-actions .img-action-btn + .img-action-btn {
+            border-left: 1px solid #e5e7eb;
+        }
+        [data-theme="dark"] .meal-image-actions .img-action-btn + .img-action-btn {
+            border-left-color: #374151;
         }
 
         .img-action-btn.ai-gen {
-            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
-            color: white;
+            background: #f8fafc;
+            color: #4338ca;
+        }
+        [data-theme="dark"] .img-action-btn.ai-gen {
+            background: #1f2937;
+            color: #c7d2fe;
         }
 
         .img-action-btn.ai-gen:hover:not(:disabled) {
-            background: linear-gradient(135deg, #7c3aed, #6d28d9);
-            transform: translateY(-1px);
-            box-shadow: 0 2px 8px rgba(124, 58, 237, 0.3);
+            background: #eef2ff;
+        }
+        [data-theme="dark"] .img-action-btn.ai-gen:hover:not(:disabled) {
+            background: #312e81;
         }
 
         .img-action-btn.upload {
-            background: linear-gradient(135deg, #0d9488, #0f766e);
-            color: white;
+            background: #f8fafc;
+            color: #0d9488;
+        }
+        [data-theme="dark"] .img-action-btn.upload {
+            background: #1f2937;
+            color: #5eead4;
         }
 
         .img-action-btn.upload:hover:not(:disabled) {
-            background: linear-gradient(135deg, #0f766e, #115e59);
-            transform: translateY(-1px);
-            box-shadow: 0 2px 8px rgba(13, 148, 136, 0.3);
+            background: #f0fdfa;
+        }
+        [data-theme="dark"] .img-action-btn.upload:hover:not(:disabled) {
+            background: #134e4a;
         }
 
         .img-action-btn:disabled {
@@ -3048,14 +3375,15 @@
     <!-- DIET PLAN VIEW -->
     <div id="diet-plan-view">
         <div class="card">
-            <h2 class="text-2xl font-bold text-gray-800 mb-8" style="display: flex; align-items: center; gap: 12px;"><span style="width: 40px; height: 40px; background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.2rem;">&#127869;</span> Full Diet Plan Generator</h2>
-
-            <!-- Unit System Toggle -->
-            <div class="flex justify-center items-center gap-3 mb-6">
-                <span class="text-sm font-medium text-gray-500">Unit System:</span>
-                <div class="unit-toggle-pill">
-                    <button id="unit-imperial" class="unit-toggle-btn active" onclick="toggleUnitSystem('imperial')">Imperial (lbs/ft)</button>
-                    <button id="unit-metric" class="unit-toggle-btn" onclick="toggleUnitSystem('metric')">Metric (kg/cm)</button>
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 24px; flex-wrap: wrap;">
+                <h2 class="text-2xl font-bold text-gray-800" style="display: flex; align-items: center; gap: 12px; margin: 0;"><span style="width: 40px; height: 40px; background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.2rem;">&#127869;</span> Full Diet Plan Generator</h2>
+                <!-- Unit System Toggle (compact, inline) -->
+                <div class="unit-toggle-compact">
+                    <span>Units:</span>
+                    <div class="unit-toggle-pill">
+                        <button id="unit-imperial" class="unit-toggle-btn active" onclick="toggleUnitSystem('imperial')">lb/ft</button>
+                        <button id="unit-metric" class="unit-toggle-btn" onclick="toggleUnitSystem('metric')">kg/cm</button>
+                    </div>
                 </div>
             </div>
 
@@ -6241,26 +6569,12 @@ function displayDietPlan(multiDayData) {
                 <h3>Your ${multiDayData.length}-Day Plan</h3>
             </div>
 
-            <div style="margin-bottom: 20px;">
-                <p class="targets-section-label">Daily Nutrition Targets</p>
-                <div class="macro-grid">
-                    <div class="macro-card macro-calories">
-                        <div class="macro-card-label">Calories</div>
-                        <div class="macro-card-value">${targets.calories}</div>
-                    </div>
-                    <div class="macro-card macro-protein">
-                        <div class="macro-card-label">Protein</div>
-                        <div class="macro-card-value">${targets.protein}g</div>
-                    </div>
-                    <div class="macro-card macro-carbs">
-                        <div class="macro-card-label">Carbs</div>
-                        <div class="macro-card-value">${targets.carbs}g</div>
-                    </div>
-                    <div class="macro-card macro-fat">
-                        <div class="macro-card-label">Fat</div>
-                        <div class="macro-card-value">${targets.fat}g</div>
-                    </div>
-                </div>
+            <div class="targets-summary-line">
+                <strong>Daily Targets</strong>
+                <span><b>${targets.calories}</b> kcal</span>
+                <span><b>${targets.protein}</b>g protein</span>
+                <span><b>${targets.carbs}</b>g carbs</span>
+                <span><b>${targets.fat}</b>g fat</span>
             </div>
 
     `;
@@ -6290,59 +6604,56 @@ function displayDietPlan(multiDayData) {
             fat: dayTotals.calories > 0 ? Math.round((dayTotals.fat * 9) / dayTotals.calories * 100) : 0
         };
 
+        // Helper: render a macro progress block (label / value-of-target / fill bar / delta)
+        const renderMacro = (label, klass, actual, target, unit) => {
+            const pct = target > 0 ? Math.min(100, Math.round((actual / target) * 100)) : 0;
+            const overTarget = target > 0 && actual > target * 1.05;
+            const underTarget = target > 0 && actual < target * 0.95;
+            const diff = actual - target;
+            const deltaSign = diff >= 0 ? '+' : '';
+            const deltaClass = overTarget ? 'over' : (underTarget ? 'under' : 'ok');
+            return `
+                <div class="day-macro">
+                    <div class="day-macro-label">${label}</div>
+                    <div class="day-macro-value">${actual}${unit} <span class="target">/ ${target}${unit}</span></div>
+                    <div class="day-macro-bar ${klass}"><span style="width: ${pct}%;" class="${overTarget ? 'over' : ''}"></span></div>
+                    <div class="day-macro-delta ${deltaClass}">${deltaSign}${diff}${unit} (${target > 0 ? deltaSign + ((diff / target) * 100).toFixed(0) : '0'}%)</div>
+                </div>`;
+        };
+
+        // Filter out blank/none placeholder values that coaches often type.
+        const isMeaningful = v => v && !['none', 'n/a', 'na', 'no', 'nothing'].includes(v.trim().toLowerCase());
+
         planHTML += `
-            <div class="day-divider" style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1rem;">
-                <span>Day ${dayData.day}</span>
-                <button data-action="regenerate-day" data-day-index="${dayIndex}" class="btn btn-secondary text-xs" style="background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3); padding: 0.5rem 1rem;"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:3px;"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>Regenerate Day</button>
+            <div class="day-divider day-divider-quiet" style="display: flex; justify-content: space-between; align-items: center; padding: 0.6rem 1rem;">
+                <span style="font-weight: 700; font-size: 14px;">Day ${dayData.day}</span>
+                <button data-action="regenerate-day" data-day-index="${dayIndex}" class="btn btn-secondary text-xs" style="background: rgba(255,255,255,0.08); color: #f1f5f9; border: 1px solid rgba(255,255,255,0.15); padding: 0.4rem 0.8rem; font-size: 12px;"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:3px;"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>Regenerate</button>
             </div>
             ${(() => {
                 const reminders = [];
-                if (lastPlanQuery.preference && lastPlanQuery.preference.toLowerCase() !== 'omnivore') {
-                    const icon = '';
-                    reminders.push('<span style="background:#065f46;color:#d1fae5;padding:2px 8px;border-radius:9999px;font-size:11px;font-weight:600;">' + icon + ' ' + lastPlanQuery.preference + '</span>');
+                if (lastPlanQuery.preference && lastPlanQuery.preference.toLowerCase() !== 'omnivore' && isMeaningful(lastPlanQuery.preference)) {
+                    reminders.push('<span style="background:#065f46;color:#d1fae5;padding:2px 8px;border-radius:9999px;font-size:11px;font-weight:600;">' + lastPlanQuery.preference + '</span>');
                 }
                 if (lastPlanQuery.allergies) {
-                    lastPlanQuery.allergies.split(',').map(a => a.trim()).filter(Boolean).forEach(a => {
-                        reminders.push('<span style="background:#991b1b;color:#fecaca;padding:2px 8px;border-radius:9999px;font-size:11px;font-weight:600;">⚠️ ' + a + '</span>');
+                    lastPlanQuery.allergies.split(',').map(a => a.trim()).filter(isMeaningful).forEach(a => {
+                        reminders.push('<span style="background:#991b1b;color:#fecaca;padding:2px 8px;border-radius:9999px;font-size:11px;font-weight:600;">&#9888; ' + a + '</span>');
                     });
                 }
                 if (lastPlanQuery.dislikedFoods) {
-                    lastPlanQuery.dislikedFoods.split(',').map(d => d.trim()).filter(Boolean).forEach(d => {
-                        reminders.push('<span style="background:#78350f;color:#fde68a;padding:2px 8px;border-radius:9999px;font-size:11px;font-weight:600;">👎 ' + d + '</span>');
+                    lastPlanQuery.dislikedFoods.split(',').map(d => d.trim()).filter(isMeaningful).forEach(d => {
+                        reminders.push('<span style="background:#78350f;color:#fde68a;padding:2px 8px;border-radius:9999px;font-size:11px;font-weight:600;">&#128078; ' + d + '</span>');
                     });
                 }
                 if (reminders.length === 0) return '';
-                return '<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:6px 12px;background:linear-gradient(135deg,#1e293b,#334155);border-radius:8px;margin:4px 8px 8px;">' +
-                    '<span style="font-size:11px;color:#94a3b8;font-weight:700;margin-right:4px;">Dietary Reminders</span>' +
+                return '<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:6px 12px;background:#0f172a;border-radius:0 0 8px 8px;margin:0 0 8px;">' +
+                    '<span style="font-size:11px;color:#94a3b8;font-weight:700;margin-right:4px;">Reminders</span>' +
                     reminders.join('') + '</div>';
             })()}
-            <div class="day-totals-wrapper">
-                <p class="day-totals-title">Day ${dayData.day} Totals</p>
-                <div class="macro-grid">
-                    <div class="macro-card macro-calories">
-                        <div class="macro-card-label">Calories</div>
-                        <div class="macro-card-value">${dayTotals.calories}</div>
-                        <div class="macro-card-sub ${getVarianceColor(dayVariance.calories)}">${formatVariance(dayTotals.calories, targets.calories, dayVariance.calories)}</div>
-                    </div>
-                    <div class="macro-card macro-protein">
-                        <div class="macro-card-label">Protein</div>
-                        <div class="macro-card-value">${dayTotals.protein}g</div>
-                        <div class="macro-card-sub" style="color: #10b981;">${macroPercent.protein}%</div>
-                        <div class="macro-card-sub ${getVarianceColor(dayVariance.protein)}">${formatVariance(dayTotals.protein, targets.protein, dayVariance.protein)}</div>
-                    </div>
-                    <div class="macro-card macro-carbs">
-                        <div class="macro-card-label">Carbs</div>
-                        <div class="macro-card-value">${dayTotals.carbs}g</div>
-                        <div class="macro-card-sub" style="color: #3b82f6;">${macroPercent.carbs}%</div>
-                        <div class="macro-card-sub ${getVarianceColor(dayVariance.carbs)}">${formatVariance(dayTotals.carbs, targets.carbs, dayVariance.carbs)}</div>
-                    </div>
-                    <div class="macro-card macro-fat">
-                        <div class="macro-card-label">Fat</div>
-                        <div class="macro-card-value">${dayTotals.fat}g</div>
-                        <div class="macro-card-sub" style="color: #8b5cf6;">${macroPercent.fat}%</div>
-                        <div class="macro-card-sub ${getVarianceColor(dayVariance.fat)}">${formatVariance(dayTotals.fat, targets.fat, dayVariance.fat)}</div>
-                    </div>
-                </div>
+            <div class="day-macro-row">
+                ${renderMacro('Calories', 'cal', dayTotals.calories, targets.calories, '')}
+                ${renderMacro('Protein', 'pro', dayTotals.protein, targets.protein, 'g')}
+                ${renderMacro('Carbs', 'carb', dayTotals.carbs, targets.carbs, 'g')}
+                ${renderMacro('Fat', 'fat', dayTotals.fat, targets.fat, 'g')}
             </div>`;
         dayData.plan.forEach((meal, mealIndex) => {
             const mealNoteId = `meal-note-${dayIndex}-${mealIndex}`;
@@ -6391,8 +6702,8 @@ function displayDietPlan(multiDayData) {
 
                 planHTML += `
                 <div class="meal-card">
-                    <div style="display: flex; flex-direction: column; align-items: center; gap: 6px;">
-                        <div class="meal-card-image-placeholder" id="${mealImageId}" data-meal-name="${htmlAttrMealName}" onclick="showMealImageLarge(this)">
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 0;">
+                        <div class="meal-card-image-placeholder" id="${mealImageId}" data-meal-name="${htmlAttrMealName}" onclick="showMealImageLarge(this)" style="border-radius: 0.5rem 0.5rem 0 0;">
                             <svg width="24" height="24" fill="none" stroke="#94a3b8" stroke-width="1.5" viewBox="0 0 24 24"><path d="M3 2l1.578 17.824A2 2 0 0 0 6.556 21.5h10.888a2 2 0 0 0 1.978-1.676L21 2"/><path d="M8 2v3a4 4 0 0 0 8 0V2"/><path d="M12 14v4"/><path d="M9 18h6"/></svg>
                         </div>
                         <div class="meal-image-actions">
@@ -6422,32 +6733,40 @@ function displayDietPlan(multiDayData) {
                         <button data-action="get-recipe" data-meal-name="${meal.name}" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="btn btn-secondary text-xs w-full mb-2"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:3px;"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>Recipe & Ingredients</button>
 
                         <!-- AI Chat - Always Visible -->
-                        <div class="ai-chat-section" style="background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%); border: 2px solid #c4b5fd; border-radius: 8px; overflow: hidden;">
-                            <!-- Quick Actions + Build Custom -->
-                            <div class="ai-quick-actions-row" style="border-bottom: 1px solid #ddd6fe; display: flex; flex-wrap: wrap;">
-                                <button data-action="ai-quick-action" data-quick-action="alternatives" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="ai-quick-btn" style="padding: 4px 8px; font-size: 10px; background: #8b5cf6; color: white; border: none; border-radius: 4px; cursor: pointer;"><svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:2px;"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>Swap</button>
-                                <button data-action="ai-quick-action" data-quick-action="higher-protein" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="ai-quick-btn" style="padding: 4px 8px; font-size: 10px; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer;"><svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:2px;"><path d="M12 22V8M5 12l7-4 7 4"/><path d="M5 16l7-4 7 4"/></svg>+Protein</button>
-                                <button data-action="ai-quick-action" data-quick-action="lower-carb" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="ai-quick-btn" style="padding: 4px 8px; font-size: 10px; background: #22c55e; color: white; border: none; border-radius: 4px; cursor: pointer;"><svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:2px;"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><path d="M8 12h8"/></svg>-Carbs</button>
-                                <button data-action="ai-quick-action" data-quick-action="simpler" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="ai-quick-btn" style="padding: 4px 8px; font-size: 10px; background: #f59e0b; color: white; border: none; border-radius: 4px; cursor: pointer;"><svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:2px;"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/></svg>Simpler</button>
-                                <button data-action="adjust-portions" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="ai-quick-btn" style="padding: 4px 8px; font-size: 10px; background: #6366f1; color: white; border: none; border-radius: 4px; cursor: pointer;"><svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:2px;"><path d="M12 3v18M3 12l3-3 3 3M15 9l3-3 3 3"/></svg>Adjust</button>
-                                <button data-action="custom-meal" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="ai-quick-btn" style="padding: 4px 8px; font-size: 10px; background: #7c3aed; color: white; border: none; border-radius: 4px; cursor: pointer;"><svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:2px;"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>Custom</button>
-                                <button data-action="save-meal-to-library" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" class="ai-quick-btn" style="padding: 4px 8px; font-size: 10px; background: #ec4899; color: white; border: none; border-radius: 4px; cursor: pointer;"><svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:2px;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>Save</button>
+                        <div class="ai-chat-section" style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; overflow: visible;">
+                            <!-- Consolidated action bar: Swap (with options) / Edit (with options) / Save -->
+                            <div class="meal-action-bar">
+                                <details class="meal-action-pop">
+                                    <summary>Swap &#9662;</summary>
+                                    <div class="meal-action-options">
+                                        <button data-action="ai-quick-action" data-quick-action="alternatives" data-day-index="${dayIndex}" data-meal-index="${mealIndex}">Similar macros</button>
+                                        <button data-action="ai-quick-action" data-quick-action="higher-protein" data-day-index="${dayIndex}" data-meal-index="${mealIndex}">+ Protein</button>
+                                        <button data-action="ai-quick-action" data-quick-action="lower-carb" data-day-index="${dayIndex}" data-meal-index="${mealIndex}">&minus; Carbs</button>
+                                        <button data-action="ai-quick-action" data-quick-action="simpler" data-day-index="${dayIndex}" data-meal-index="${mealIndex}">Simpler version</button>
+                                    </div>
+                                </details>
+                                <details class="meal-action-pop">
+                                    <summary>Edit &#9662;</summary>
+                                    <div class="meal-action-options">
+                                        <button data-action="adjust-portions" data-day-index="${dayIndex}" data-meal-index="${mealIndex}">Adjust portions</button>
+                                        <button data-action="custom-meal" data-day-index="${dayIndex}" data-meal-index="${mealIndex}">Custom builder</button>
+                                    </div>
+                                </details>
+                                <button class="meal-action-btn" data-action="save-meal-to-library" data-day-index="${dayIndex}" data-meal-index="${mealIndex}" title="Save this meal to your library">Save</button>
                             </div>
                             <!-- Chat Messages -->
-                            <div id="ai-chat-messages-${dayIndex}-${mealIndex}" class="ai-chat-messages" style="max-height: 150px; overflow-y: auto; padding: 8px 10px; min-height: 40px;">
-                                <p style="font-size: 11px; color: #7c3aed; font-style: italic;">Describe a meal or ask for changes...</p>
-                            </div>
+                            <div id="ai-chat-messages-${dayIndex}-${mealIndex}" class="ai-chat-messages" style="max-height: 220px; overflow-y: auto; padding: 8px 10px; min-height: 0;"></div>
                             <!-- Chat Input -->
-                            <div style="padding: 8px 10px; border-top: 1px solid #ddd6fe; display: flex; gap: 6px;">
+                            <div style="padding: 8px 10px; border-top: 1px solid #e5e7eb; display: flex; gap: 6px;">
                                 <input type="text" id="ai-chat-input-${dayIndex}-${mealIndex}"
-                                    placeholder="e.g., 2 eggs with toast and avocado..."
-                                    style="flex: 1; padding: 8px 10px; border: 1px solid #c4b5fd; border-radius: 6px; font-size: 12px; background: white; color: #1f2937;"
+                                    placeholder="Ask AI for a swap or describe a meal..."
+                                    style="flex: 1; padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 12px; background: white; color: #1f2937;"
                                     onkeypress="if(event.key==='Enter')sendAiBrainstorm(${dayIndex},${mealIndex})">
                                 <button type="button" class="vtt-mic-btn vtt-mic-inline" title="Voice input" onclick="VoiceToText.toggle(document.getElementById('ai-chat-input-${dayIndex}-${mealIndex}'), this)">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
                                 </button>
                                 <button data-action="send-ai-brainstorm" data-day-index="${dayIndex}" data-meal-index="${mealIndex}"
-                                    style="padding: 8px 14px; background: #7c3aed; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;">
+                                    style="padding: 8px 14px; background: #0d9488; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;">
                                     Send
                                 </button>
                             </div>
@@ -6556,12 +6875,9 @@ function displayDietPlan(multiDayData) {
                     <span class="plan-status-label"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Status: <span id="plan-status-text" class="plan-status-pill">Draft</span></span>
                     <p class="plan-status-desc">This plan is saved but not yet visible to your client.</p>
                 </div>
-                <div class="plan-status-actions">
+                <div class="plan-status-actions" style="grid-template-columns: 1fr;">
                     <button id="submitToClientBtn" data-action="submit-to-client" class="btn plan-status-btn plan-status-btn-submit">
                         <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><polyline points="20 6 9 17 4 12"/></svg>Submit to Client
-                    </button>
-                    <button id="bulkPostBtn" data-action="open-bulk-post" class="btn plan-status-btn plan-status-btn-bulk">
-                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Bulk Post
                     </button>
                 </div>
             </div>
@@ -6569,13 +6885,13 @@ function displayDietPlan(multiDayData) {
     }
 
     planHTML += `
-        <div class="plan-actions-grid">
-            <button data-action="show-meal-prep-guide" class="btn plan-action-btn" style="background:#ff6b6b; color:white;"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M9 12h6M9 16h6"/></svg>Meal Prep Guide</button>
-            <button data-action="show-grocery-list" class="btn plan-action-btn" style="background:#0d9488; color:white;"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>Grocery List</button>
-            <button data-action="download-pdf" class="btn plan-action-btn" style="background:#0d9488; color:white;"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Download PDF</button>
-            <button data-action="share-plan" class="btn plan-action-btn" style="background:#28a745; color:white;"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>Share Plan Link</button>
-            <button data-action="save-as-template" class="btn plan-action-btn" style="background:#8b5cf6; color:white;"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Save as Template</button>
-            <button id="bulkPostBtnBottom" data-action="open-bulk-post" class="btn plan-action-btn plan-action-btn-wide" style="background:#7c3aed; color:white;"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Bulk Post to Multiple Clients</button>
+        <div class="plan-actions-grid plan-actions-utility">
+            <button data-action="show-meal-prep-guide" class="btn plan-action-btn-utility"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M9 12h6M9 16h6"/></svg>Meal Prep</button>
+            <button data-action="show-grocery-list" class="btn plan-action-btn-utility"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>Grocery List</button>
+            <button data-action="download-pdf" class="btn plan-action-btn-utility"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Download PDF</button>
+            <button data-action="share-plan" class="btn plan-action-btn-utility"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>Share Link</button>
+            <button data-action="save-as-template" class="btn plan-action-btn-utility"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Save as Template</button>
+            <button id="bulkPostBtnBottom" data-action="open-bulk-post" class="btn plan-action-btn-utility"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Post to Multiple</button>
         </div>
     </div>`;
     resultDiv.innerHTML = planHTML;
@@ -11670,6 +11986,25 @@ document.addEventListener('click', function(event) {
     };
 
     if (actions[actionTarget.dataset.action]) actions[actionTarget.dataset.action]();
+
+    // Auto-close any meal-action dropdown when an option inside it is clicked.
+    const popoverParent = actionTarget.closest('.meal-action-pop');
+    if (popoverParent) popoverParent.removeAttribute('open');
+});
+
+// Close meal-action dropdowns on outside click, and ensure only one is open at a time.
+document.addEventListener('click', (e) => {
+    const summary = e.target.closest('.meal-action-pop > summary');
+    if (summary) {
+        // Opening (or toggling) one popover — close any others.
+        const current = summary.parentElement;
+        document.querySelectorAll('.meal-action-pop[open]').forEach(d => {
+            if (d !== current) d.removeAttribute('open');
+        });
+        return;
+    }
+    if (e.target.closest('.meal-action-pop')) return;
+    document.querySelectorAll('.meal-action-pop[open]').forEach(d => d.removeAttribute('open'));
 });
 
 // Unit system toggle
