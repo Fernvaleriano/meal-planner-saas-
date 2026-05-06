@@ -4057,6 +4057,7 @@ function Workouts() {
           ctx.shadowBlur = 24;
           ctx.shadowOffsetX = 0;
           ctx.shadowOffsetY = 4;
+          ctx.globalAlpha = 0.78;
           ctx.drawImage(muscleMapImg, drawX, drawY, drawW, drawH);
           ctx.restore();
         }
