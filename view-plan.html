@@ -3839,15 +3839,29 @@
             return null;
         }
 
-        // Hide voice note container when audio fails (file deleted/missing)
+        // Voice note playback failure handler. Previously this hid the entire
+        // container on error, which made coaches and clients think the voice
+        // note didn't exist. Now we surface a download link so the file stays
+        // reachable — and on iOS, where webm/opus can't decode natively, this
+        // is the only way to hear it.
         function handleVoiceNoteError(audioEl) {
-            const container = audioEl.closest('.voice-note-container, [style*="Voice"]');
-            if (container) {
-                container.style.display = 'none';
-            } else {
-                // Fallback: hide the audio element's parent
-                audioEl.parentElement.style.display = 'none';
-            }
+            const src = audioEl.currentSrc || audioEl.src || '';
+            const err = audioEl.error;
+            const ext = (src.split('.').pop() || '').split('?')[0].toLowerCase();
+            console.warn('[voice-note] playback error', {
+                code: err?.code,
+                message: err?.message,
+                src,
+                ext,
+                networkState: audioEl.networkState,
+                readyState: audioEl.readyState,
+                userAgent: navigator.userAgent
+            });
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+            const reason = (isIOS && (ext === 'webm' || ext === ''))
+                ? "iPhone can't play this voice note (webm). Open on desktop or download below."
+                : "Couldn't play this voice note.";
+            audioEl.outerHTML = `<span style="color:#b91c1c; font-size:12px;">⚠ ${reason}</span> <a href="${src}" download style="color:#7c3aed; font-size:12px; font-weight:600; text-decoration:underline; margin-left:6px;">Download</a>`;
         }
 
         function displayMealPlan() {

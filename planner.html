@@ -6470,7 +6470,7 @@ function displayDietPlan(multiDayData) {
                                         <span style="font-weight: 600; color: #047857; font-size: 11px;"><svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:2px;"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>Voice Message:</span>
                                         <button onclick="deleteMealVoiceNote(${dayIndex}, ${mealIndex})" style="background: #dc2626; color: white; padding: 2px 8px; font-size: 10px; border-radius: 4px; border: none; cursor: pointer;">Delete</button>
                                     </div>
-                                    <audio controls playsinline preload="auto" src="${voiceNoteUrl}" onerror="this.parentElement.style.display='none'" style="width: 100%; height: 32px;"></audio>
+                                    <audio controls playsinline preload="auto" src="${voiceNoteUrl}" onerror="window.handleMealVoiceError(this, '${voiceNoteUrl}')" style="width: 100%; height: 32px;"></audio>
                                 </div>
                                 ` : ''}
                             </div>
@@ -7378,6 +7378,30 @@ function extractVoiceNotePath(url) {
     } catch (e) { /* ignore */ }
     return null;
 }
+
+// Voice note playback failure handler. Previously the meal audio container
+// hid itself on error (display:none), which made the coach think the voice
+// note never existed. Now we surface a download link so the file is still
+// reachable — and on iOS, where webm/opus can't decode natively, this is
+// the only way the coach can hear it.
+window.handleMealVoiceError = function(audioEl, src) {
+    const err = audioEl.error;
+    const ext = (src.split('.').pop() || '').split('?')[0].toLowerCase();
+    console.warn('[voice-note] meal playback error', {
+        code: err?.code,
+        message: err?.message,
+        src,
+        ext,
+        networkState: audioEl.networkState,
+        readyState: audioEl.readyState,
+        userAgent: navigator.userAgent
+    });
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    const reason = (isIOS && (ext === 'webm' || ext === ''))
+        ? "iPhone can't play this voice note (webm). Open on desktop or download below."
+        : "Couldn't play this voice note.";
+    audioEl.outerHTML = `<span style="color:#b91c1c; font-size:12px;">⚠ ${reason}</span> <a href="${src}" download style="color:#7c3aed; font-size:12px; font-weight:600; text-decoration:underline; margin-left:6px;">Download</a>`;
+};
 
 // VOICE NOTE RECORDING FOR MEALS
 async function toggleMealVoiceRecording(dayIndex, mealIndex) {

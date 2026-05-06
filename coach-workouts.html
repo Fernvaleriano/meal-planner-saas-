@@ -8858,12 +8858,14 @@
                 <div class="wb-detail-section">
                     <label>Voice Note</label>
                     <div class="voice-note-container" id="voiceNote-${di}-${ei}">
-                        ${exercise.voiceNoteUrl ? `
+                        ${exercise.voiceNoteUrl || exercise.voiceNotePath ? (() => {
+                            const _vnSrc = buildVoiceNoteSrc(exercise);
+                            return `
                             <div class="voice-note-player">
-                                <audio controls playsinline preload="auto" src="${exercise.voiceNoteUrl}" style="height: 28px; width: 100%;"></audio>
+                                <audio controls playsinline preload="auto" src="${_vnSrc}" onerror="window.handleVoiceNoteError(this, '${_vnSrc}')" style="height: 28px; width: 100%;"></audio>
                                 <button class="voice-note-delete" onclick="deleteVoiceNote(${di}, ${ei})" title="Delete voice note">×</button>
                             </div>
-                        ` : `
+                        `; })() : `
                             <button class="voice-note-btn" id="voiceBtn-${di}-${ei}" onclick="toggleVoiceRecording(${di}, ${ei})" title="Record voice note">
                                 <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24">
                                     <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
@@ -9126,12 +9128,14 @@
                             <span class="label-hint">Label</span>
                         </div>
                         <div class="voice-note-container" id="voiceNote-${dayIndex}-${exIndex}">
-                            ${exercise.voiceNoteUrl ? `
+                            ${exercise.voiceNoteUrl || exercise.voiceNotePath ? (() => {
+                                const _vnSrc = buildVoiceNoteSrc(exercise);
+                                return `
                                 <div class="voice-note-player">
-                                    <audio controls playsinline preload="auto" src="${exercise.voiceNoteUrl}" style="height: 28px; width: 100%;"></audio>
+                                    <audio controls playsinline preload="auto" src="${_vnSrc}" onerror="window.handleVoiceNoteError(this, '${_vnSrc}')" style="height: 28px; width: 100%;"></audio>
                                     <button class="voice-note-delete" onclick="deleteVoiceNote(${dayIndex}, ${exIndex})" title="Delete voice note">×</button>
                                 </div>
-                            ` : `
+                            `; })() : `
                                 <button class="voice-note-btn" id="voiceBtn-${dayIndex}-${exIndex}" onclick="toggleVoiceRecording(${dayIndex}, ${exIndex})" title="Record voice note">
                                     <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24">
                                         <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
@@ -12122,10 +12126,57 @@
         function deleteVoiceNote(dayIndex, exIndex) {
             if (confirm('Delete this voice note?')) {
                 workoutDays[dayIndex].exercises[exIndex].voiceNoteUrl = null;
+                workoutDays[dayIndex].exercises[exIndex].voiceNotePath = null;
                 renderExerciseDetail();
                 showToast('Voice note deleted', 'success');
             }
         }
+
+        // Extract storage file path from a Supabase signed URL so we can route
+        // playback through the serve-voice-note proxy (which mints a fresh
+        // signed URL on every request). Older exercises only have a stale
+        // 7-day voiceNoteUrl saved — this lets us still play them reliably.
+        function extractVoiceNotePath(url) {
+            if (!url || typeof url !== 'string') return null;
+            try {
+                const match = url.match(/\/storage\/v1\/object\/sign\/workout-assets\/([^?]+)/);
+                if (match) return decodeURIComponent(match[1]);
+            } catch (e) { /* ignore */ }
+            return null;
+        }
+
+        // Build the playback URL for an exercise voice note. Always prefer the
+        // proxy when we have a path — it 302s to a fresh signed URL so audio
+        // never breaks from URL expiry.
+        function buildVoiceNoteSrc(exercise) {
+            if (!exercise) return '';
+            const path = exercise.voiceNotePath || extractVoiceNotePath(exercise.voiceNoteUrl);
+            if (path) return '/.netlify/functions/serve-voice-note?path=' + encodeURIComponent(path);
+            return exercise.voiceNoteUrl || '';
+        }
+
+        // Voice note playback failure handler. iOS Safari can't decode webm/opus
+        // (the format Chrome/Android record by default). When the audio element
+        // errors, log details and replace it with a download link so the coach
+        // can still hear the voice note off-device.
+        window.handleVoiceNoteError = function(audioEl, src) {
+            const err = audioEl.error;
+            const ext = (src.split('.').pop() || '').split('?')[0].toLowerCase();
+            console.warn('[voice-note] playback error', {
+                code: err?.code,
+                message: err?.message,
+                src,
+                ext,
+                networkState: audioEl.networkState,
+                readyState: audioEl.readyState,
+                userAgent: navigator.userAgent
+            });
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+            const reason = (isIOS && (ext === 'webm' || ext === ''))
+                ? "iPhone can't play this voice note (webm). Open on desktop or download below."
+                : "Couldn't play this voice note.";
+            audioEl.outerHTML = `<span style="color:#b91c1c; font-size:12px;">⚠ ${reason}</span> <a href="${src}" download style="color:#7c3aed; font-size:12px; font-weight:600; text-decoration:underline; margin-left:6px;">Download</a>`;
+        };
 
         // ============ WEBM DURATION FIX ============
         // MediaRecorder produces WebM files that omit the Duration element in the
