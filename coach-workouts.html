@@ -12178,6 +12178,23 @@
             audioEl.outerHTML = `<span style="color:#b91c1c; font-size:12px;">⚠ ${reason}</span> <a href="${src}" download style="color:#7c3aed; font-size:12px; font-weight:600; text-decoration:underline; margin-left:6px;">Download</a>`;
         };
 
+        // iOS Safari only allows ONE active media session at a time. When the
+        // exercise card list has many <audio> elements visible at once, tapping
+        // play on a second one silently fails because the first hasn't released
+        // the session. Globally pause every other audio element when one starts
+        // so the new tap always wins. Capture phase is required because the
+        // 'play' event does not bubble.
+        if (!window.__voiceNoteAudioCoordinator) {
+            window.__voiceNoteAudioCoordinator = true;
+            document.addEventListener('play', (e) => {
+                const target = e.target;
+                if (!(target instanceof HTMLAudioElement)) return;
+                document.querySelectorAll('audio').forEach(a => {
+                    if (a !== target && !a.paused) a.pause();
+                });
+            }, true);
+        }
+
         // ============ WEBM DURATION FIX ============
         // MediaRecorder produces WebM files that omit the Duration element in the
         // EBML Info segment, which makes <video> elements stop playback early
