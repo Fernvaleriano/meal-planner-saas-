@@ -633,7 +633,12 @@ function Workouts() {
   const [coachBranding, setCoachBranding] = useState(null);
   const shareCardRef = useRef(null);
   const shareBgInputRef = useRef(null);
-  const [weekScheduleData, setWeekScheduleData] = useState(null); // Raw active assignments for week schedule
+  // Hydrate from localStorage so "This Week" / "Coming Up" paint instantly on
+  // reopen instead of waiting for the activeOnly=true network round-trip.
+  const [weekScheduleData, setWeekScheduleData] = useState(() => {
+    if (!clientData?.id) return null;
+    return getCache(`week_schedule_${clientData.id}`) || null;
+  });
   const menuRef = useRef(null);
   const heroMenuRef = useRef(null);
   const todayWorkoutRef = useRef(null);
@@ -979,6 +984,7 @@ function Workouts() {
       .then(data => {
         if (data?.assignments) {
           setWeekScheduleData(data.assignments);
+          setCache(`week_schedule_${clientData.id}`, data.assignments);
         }
       })
       .catch(() => {});
