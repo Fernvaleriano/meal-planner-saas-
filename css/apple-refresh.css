@@ -1093,3 +1093,71 @@ table tbody td, .data-table tbody td {
     box-shadow: none !important;
     font-weight: 500 !important;
 }
+
+/* ============================================================
+   SIXTH PASS — dark-mode text contrast fixes
+   Flipping the universal card surfaces to dark left a number of
+   page-defined text colors (var(--gray-800), inline styles) as
+   dark-on-dark. Restore readable contrast across all pages.
+   ============================================================ */
+
+/* High-contrast headings + values: bright slate in dark mode */
+[data-theme="dark"] .section-title,
+[data-theme="dark"] .stat-value,
+[data-theme="dark"] .stat-number,
+[data-theme="dark"] .billing-card h1,
+[data-theme="dark"] .billing-card h2,
+[data-theme="dark"] .billing-card h3,
+[data-theme="dark"] .billing-card h4,
+[data-theme="dark"] .stat-card h1,
+[data-theme="dark"] .stat-card h2,
+[data-theme="dark"] .stat-card h3,
+[data-theme="dark"] [style*="color: var(--gray-800)"],
+[data-theme="dark"] [style*="color:var(--gray-800)"],
+[data-theme="dark"] [style*="color: var(--gray-900)"],
+[data-theme="dark"] [style*="color:var(--gray-900)"],
+[data-theme="dark"] [style*="color: #1e293b"],
+[data-theme="dark"] [style*="color:#1e293b"],
+[data-theme="dark"] [style*="color: #0f172a"],
+[data-theme="dark"] [style*="color:#0f172a"] {
+    color: #f1f5f9 !important;
+}
+
+/* Mid-tone body / sub-headings */
+[data-theme="dark"] [style*="color: var(--gray-700)"],
+[data-theme="dark"] [style*="color:var(--gray-700)"],
+[data-theme="dark"] [style*="color: var(--gray-600)"],
+[data-theme="dark"] [style*="color:var(--gray-600)"],
+[data-theme="dark"] [style*="color: #334155"],
+[data-theme="dark"] [style*="color:#334155"],
+[data-theme="dark"] [style*="color: #475569"],
+[data-theme="dark"] [style*="color:#475569"] {
+    color: #cbd5e1 !important;
+}
+
+/* Quiet labels / meta */
+[data-theme="dark"] .stat-label,
+[data-theme="dark"] .stat-meta,
+[data-theme="dark"] .billing-card .stat-label,
+[data-theme="dark"] [style*="color: var(--gray-500)"],
+[data-theme="dark"] [style*="color:var(--gray-500)"],
+[data-theme="dark"] [style*="color: var(--gray-400)"],
+[data-theme="dark"] [style*="color:var(--gray-400)"],
+[data-theme="dark"] [style*="color: #64748b"],
+[data-theme="dark"] [style*="color:#64748b"] {
+    color: #94a3b8 !important;
+}
+
+/* Stat-change indicators — keep semantic color but brighter on dark */
+[data-theme="dark"] .stat-change.up   { color: #4ade80 !important; }
+[data-theme="dark"] .stat-change.down { color: #f87171 !important; }
+
+/* Stat-card surface needs to be readable in dark mode (was light gray) */
+[data-theme="dark"] .stat-card {
+    background: rgba(255,255,255,0.03) !important;
+    border: 1px solid rgba(255,255,255,0.06) !important;
+}
+.stat-card {
+    background: rgba(15,23,42,0.025) !important;
+    border: 1px solid rgba(15,23,42,0.05) !important;
+}
