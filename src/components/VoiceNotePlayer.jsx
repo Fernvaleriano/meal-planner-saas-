@@ -8,6 +8,23 @@ const formatVoiceTime = (seconds) => {
   return `${m}:${String(s).padStart(2, '0')}`;
 };
 
+// iOS Safari only grants one active media session at a time. When several
+// VoiceNotePlayers are mounted (e.g. one per exercise in the day), tapping
+// play on a second one silently fails because the first hasn't released the
+// session. Install a single document-level capture-phase listener (capture
+// because 'play' does not bubble) that pauses every other audio when one
+// starts, so the new tap always wins.
+if (typeof window !== 'undefined' && !window.__voiceNoteAudioCoordinator) {
+  window.__voiceNoteAudioCoordinator = true;
+  document.addEventListener('play', (e) => {
+    const target = e.target;
+    if (!(target instanceof HTMLAudioElement)) return;
+    document.querySelectorAll('audio').forEach(a => {
+      if (a !== target && !a.paused) a.pause();
+    });
+  }, true);
+}
+
 // Custom voice-note player — replaces native <audio controls> for a
 // brand-consistent, dark-theme-friendly UI. Click the progress bar to seek;
 // taps don't bubble so the surrounding card doesn't activate.
@@ -30,11 +47,25 @@ export default function VoiceNotePlayer({ src, onMissing }) {
     if (!audio) return;
     if (isPlaying) {
       audio.pause();
-    } else {
-      const playPromise = audio.play();
-      if (playPromise && typeof playPromise.catch === 'function') {
-        playPromise.catch(() => { /* ignore */ });
-      }
+      return;
+    }
+    // Defense in depth: pause every other audio synchronously before we call
+    // play(). The global coordinator handles this too once 'play' fires, but
+    // pausing here first avoids the iOS race where the new play() rejects
+    // with NotAllowedError before the coordinator gets a chance to run.
+    document.querySelectorAll('audio').forEach(a => {
+      if (a !== audio && !a.paused) a.pause();
+    });
+    const playPromise = audio.play();
+    if (playPromise && typeof playPromise.catch === 'function') {
+      playPromise.catch((err) => {
+        console.warn('[voice-note] play rejected', {
+          name: err?.name,
+          message: err?.message,
+          src: audio.currentSrc || audio.src,
+          userAgent: navigator.userAgent
+        });
+      });
     }
   };
 
@@ -81,7 +112,7 @@ export default function VoiceNotePlayer({ src, onMissing }) {
       <audio
         ref={audioRef}
         src={src}
-        preload="metadata"
+        preload="auto"
         playsInline
         onPlay={() => setIsPlaying(true)}
         onPause={() => setIsPlaying(false)}
