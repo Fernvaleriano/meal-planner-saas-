@@ -3125,8 +3125,8 @@ function GuidedWorkoutModal({
             <div className="ai-recommendation-card coach-prescribed">
               <div className="ai-rec-header">
                 <div className="ai-rec-badge">
-                  <User size={14} />
-                  <span>Coach Prescribed</span>
+                  <Sparkles size={14} />
+                  <span>Coaching Recommendation</span>
                 </div>
               </div>
 
@@ -3147,7 +3147,7 @@ function GuidedWorkoutModal({
                 </div>
               </div>
 
-              <p className="ai-rec-reasoning">Your coach set these targets. Hit them if you can.</p>
+              <p className="ai-rec-reasoning">Recommended targets for this exercise. Push to hit them.</p>
 
               {lastSession && (
                 <div className="ai-rec-last-session">
