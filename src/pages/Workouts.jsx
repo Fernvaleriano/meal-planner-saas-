@@ -5289,6 +5289,7 @@ function Workouts() {
           selectedDate={selectedDate}
           coachId={clientData?.coach_id}
           isCoach={!!clientData?.is_coach}
+          clientId={clientData?.id}
         />
       )}
 

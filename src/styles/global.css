@@ -32809,6 +32809,105 @@ textarea,
     pointer-events: none;
 }
 
+/* Cover photo upload */
+.create-workout-cover-upload {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 18px 16px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px dashed rgba(255, 255, 255, 0.18);
+    border-radius: 12px;
+    color: #cbd5e1;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.create-workout-cover-upload:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: var(--brand-primary, #14b8a6);
+    color: white;
+}
+
+.create-workout-cover-upload:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.create-workout-cover-preview {
+    position: relative;
+    width: 100%;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.create-workout-cover-preview img {
+    display: block;
+    width: 100%;
+    height: 180px;
+    object-fit: cover;
+}
+
+.create-workout-cover-uploading {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    padding: 4px 10px;
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: 999px;
+    backdrop-filter: blur(4px);
+}
+
+.create-workout-cover-actions {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    display: flex;
+    gap: 6px;
+}
+
+.create-workout-cover-action-btn {
+    padding: 6px 12px;
+    background: rgba(0, 0, 0, 0.65);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    backdrop-filter: blur(4px);
+    transition: background 0.15s;
+}
+
+.create-workout-cover-action-btn:hover:not(:disabled) {
+    background: rgba(0, 0, 0, 0.85);
+}
+
+.create-workout-cover-action-btn.danger:hover:not(:disabled) {
+    background: rgba(220, 38, 38, 0.85);
+    border-color: rgba(220, 38, 38, 0.6);
+}
+
+.create-workout-cover-action-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.create-workout-cover-error {
+    margin-top: 6px;
+    color: #f87171;
+    font-size: 0.8rem;
+}
+
 /* Dropdown selectors row */
 .create-workout-dropdowns {
     display: grid;
