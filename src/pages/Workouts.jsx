@@ -4045,16 +4045,19 @@ function Workouts() {
           const aspect = muscleMapImg.naturalWidth / muscleMapImg.naturalHeight || (4 / 3);
           const drawW = width * 0.42;
           const drawH = drawW / aspect;
-          // Vertical center anchored at ~52% of height (mid-card, just below
-          // the logo band).
+          // Vertical center anchored at ~62% of height. Lower than dead-
+          // center so on portrait selfies the figure overlays the chest
+          // instead of the face, and on the no-photo path it sits closer
+          // to the stats (matches Virtuagym's bottom-weighted layout).
           const drawX = width * 0.04;
-          const drawY = (height * 0.52) - (drawH / 2);
+          const drawY = (height * 0.62) - (drawH / 2);
 
           ctx.save();
           ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
           ctx.shadowBlur = 24;
           ctx.shadowOffsetX = 0;
           ctx.shadowOffsetY = 4;
+          ctx.globalAlpha = 0.78;
           ctx.drawImage(muscleMapImg, drawX, drawY, drawW, drawH);
           ctx.restore();
         }

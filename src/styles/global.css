@@ -16641,9 +16641,10 @@ textarea,
 .share-card-muscle-map {
     position: absolute;
     left: 4%;
-    /* Centered vertically — sits over the user's chest area in a portrait
-       selfie, not over the face (top) or stats (bottom). */
-    top: 50%;
+    /* Anchored at 62% from top so on portrait selfies the figure overlays
+       the chest area (not the face), and on the no-photo path it sits
+       closer to the stats — matches Virtuagym's bottom-weighted layout. */
+    top: 62%;
     transform: translateY(-50%);
     width: 42%;
     z-index: 2;
@@ -16656,6 +16657,7 @@ textarea,
     width: 100%;
     height: auto;
     object-fit: contain;
+    opacity: 0.78;
     filter: drop-shadow(0 4px 16px rgba(0, 0, 0, 0.7)) drop-shadow(0 0 4px rgba(0, 0, 0, 0.5));
 }
 
