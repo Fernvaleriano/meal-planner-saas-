@@ -2146,8 +2146,9 @@ function GuidedWorkoutModal({
   }, [onTimerComplete]);
 
   const doMarkSetDone = useCallback((exIdx, setIdx, exInfo) => {
-    // Unilateral gate: pause after the first side and prompt for the other
-    // side. The switch-sides overlay re-invokes this callback to fall through.
+    // Unilateral gate: after the first side is logged, announce "switch sides"
+    // and re-arm the same exercise screen (rep countdown / timer / video) for
+    // the second side. The set is only marked done after the second Done tap.
     // Trust the live DB lookup (unilateralIds) first; fall back to the cached
     // flag on the exercise object if the lookup hasn't returned yet.
     const exForUnilateral = exercises[exIdx];
@@ -2156,8 +2157,26 @@ function GuidedWorkoutModal({
     if (isUnilateral && !pendingSecondSideRef.current) {
       pendingSecondSideRef.current = true;
       setPendingSecondSide(true);
-      setRepCountdownActive(false);
       speak('Switch sides', voiceEnabled);
+
+      // Re-arm the exercise: restart rep countdown for rep-based, restart
+      // timer for timed. Same video keeps playing (we don't touch showVideo).
+      if (exInfo?.isTimed) {
+        const setLog = setLogsRef.current[exIdx]?.[setIdx];
+        setTimer(setLog?.duration || exInfo.duration);
+      } else {
+        if (repIntervalRef.current) clearInterval(repIntervalRef.current);
+        const setLog = setLogsRef.current[exIdx]?.[setIdx];
+        const reps = setLog?.reps || parseReps(exInfo?.reps);
+        if (reps > 0 && Number.isInteger(reps) && exInfo?.trackingType !== 'failure') {
+          repTotalRef.current = reps;
+          setRepCountdownActive(false); // reset first so the effect re-fires
+          setTimeout(() => {
+            setCurrentRep(reps);
+            setRepCountdownActive(true);
+          }, 0);
+        }
+      }
       return;
     }
     pendingSecondSideRef.current = false;
@@ -4112,54 +4131,33 @@ function GuidedWorkoutModal({
         </Portal>
       )}
 
-      {/* Switch-sides overlay for unilateral exercises */}
+      {/* Switch-sides indicator for unilateral exercises — small banner at
+          the top of the exercise screen so the client knows they're on the
+          second side. Same video and rep countdown continue underneath. */}
       {pendingSecondSide && !isMinimized && (
         <div
           style={{
             position: 'fixed',
-            inset: 0,
-            background: 'rgba(0, 0, 0, 0.85)',
-            backdropFilter: 'blur(8px)',
+            top: '72px',
+            left: '50%',
+            transform: 'translateX(-50%)',
             zIndex: 9999,
-            display: 'flex',
-            flexDirection: 'column',
+            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+            color: '#fff',
+            padding: '10px 20px',
+            borderRadius: '999px',
+            fontSize: '15px',
+            fontWeight: 600,
+            display: 'inline-flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            padding: '24px',
-            textAlign: 'center'
+            gap: '8px',
+            boxShadow: '0 8px 24px rgba(16, 185, 129, 0.4)',
+            pointerEvents: 'none',
+            animation: 'guidedSwitchSidesPulse 0.4s ease-out'
           }}
         >
-          <div style={{ fontSize: '64px', marginBottom: '16px' }}>🔄</div>
-          <h2 style={{ color: '#fff', fontSize: '32px', margin: '0 0 12px', fontWeight: 700 }}>
-            Switch sides
-          </h2>
-          <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: '18px', margin: '0 0 32px', maxWidth: '420px' }}>
-            Now do the other side — same reps. Tap when you've finished.
-          </p>
-          <button
-            onClick={() => {
-              pendingSecondSideRef.current = false;
-              setPendingSecondSide(false);
-              doMarkSetDone(currentExIndex, currentSetIndex, info);
-            }}
-            style={{
-              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-              color: '#fff',
-              border: 'none',
-              borderRadius: '999px',
-              padding: '18px 48px',
-              fontSize: '18px',
-              fontWeight: 600,
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '10px',
-              boxShadow: '0 8px 24px rgba(16, 185, 129, 0.4)'
-            }}
-          >
-            <Check size={22} />
-            Done — Other Side Complete
-          </button>
+          <span style={{ fontSize: '18px' }}>🔄</span>
+          Switch sides — second side
         </div>
       )}
     </div>
