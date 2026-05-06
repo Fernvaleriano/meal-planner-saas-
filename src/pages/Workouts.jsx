@@ -4076,27 +4076,28 @@ function Workouts() {
           // two-thirds for the visual (muscle map / cover image).
           const statY = height * 0.82;
           const slotWidth = width / activeToggles.length;
-          // Auto-scale value font with a softer cap. 72px maxed out at 4 stats
-          // and read as too shouty — 56px is bold but lets the stats sit
-          // calmly under the photo.
-          const valueFont = Math.max(38, Math.min(56, Math.floor(slotWidth * 0.36)));
-          const labelFont = valueFont >= 50 ? 18 : 16;
-          // Strong text shadow so stats read on bright photo backgrounds
-          // without needing a dark scrim band underneath.
+          // Smaller, calmer numbers — Virtuagym uses similar weight at this
+          // proportional size.
+          const valueFont = Math.max(32, Math.min(48, Math.floor(slotWidth * 0.3)));
+          const labelFont = 15;
+          // Inset each stat from its slot's left edge so numbers + labels
+          // line up at the start of the column (left-justified within slot)
+          // instead of centered.
+          const slotPad = 22;
           ctx.save();
           ctx.shadowColor = 'rgba(0, 0, 0, 0.85)';
           ctx.shadowBlur = 14;
           ctx.shadowOffsetX = 0;
           ctx.shadowOffsetY = 2;
           activeToggles.forEach((stat, i) => {
-            const x = slotWidth * (i + 0.5);
+            const x = slotWidth * i + slotPad;
             ctx.fillStyle = 'white';
             ctx.font = `bold ${valueFont}px -apple-system, BlinkMacSystemFont, sans-serif`;
-            ctx.textAlign = 'center';
+            ctx.textAlign = 'left';
             ctx.fillText(stat.value, x, statY);
             ctx.fillStyle = '#e2e8f0';
             ctx.font = `${labelFont}px -apple-system, BlinkMacSystemFont, sans-serif`;
-            ctx.fillText(stat.label, x, statY + valueFont * 0.6);
+            ctx.fillText(stat.label, x, statY + valueFont * 0.55);
           });
           ctx.restore();
         }
