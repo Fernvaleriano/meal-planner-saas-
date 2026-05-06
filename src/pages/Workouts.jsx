@@ -4010,7 +4010,7 @@ function Workouts() {
         // have a consistent canvas under them, then layer top/bottom edge
         // scrims for the logo and footer.
         if (shareBgImage) {
-          ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
           ctx.fillRect(0, 0, width, height);
 
           const topScrim = ctx.createLinearGradient(0, 0, 0, height * 0.18);
