@@ -8371,6 +8371,11 @@
                             parsedReps = parseInt(exercise.reps) || 10;
                         }
                     }
+                    // Preserve an intentional 0-rest (cooldown stretches) — `parseInt(0) || 30`
+                    // would silently rewrite it to 30 every time setsData is rebuilt.
+                    const restRaw = exercise.restSeconds;
+                    const restParsed = (restRaw != null && restRaw !== '') ? parseInt(restRaw, 10) : NaN;
+                    const resolvedRest = Number.isFinite(restParsed) ? restParsed : 30;
                     result.push({
                         reps: isTimed ? undefined : parsedReps,
                         // Adding the exercise IS the prescription — stamp prescribedReps
@@ -8378,7 +8383,7 @@
                         prescribedReps: isTimed ? undefined : parsedReps,
                         duration: isTimed ? (parseInt(exercise.duration) || 30) : undefined,
                         distance: isDistance ? (parseFloat(exercise.distance) || 1) : undefined,
-                        restSeconds: parseInt(exercise.restSeconds) || 30,
+                        restSeconds: resolvedRest,
                     });
                 }
             }
@@ -15307,7 +15312,7 @@
                             });
                         }
 
-                        return {
+                        const built = {
                             id: ex.id || null,
                             name: ex.name,
                             video_url: ex.video_url || null,
@@ -15331,6 +15336,11 @@
                             distanceUnit: distanceUnit,
                             reference_links: refLinks
                         };
+                        // Pre-seed per-set data from the imported prescription so rest/reps
+                        // stay consistent before the coach opens the detail panel — otherwise
+                        // setsData gets built lazily and any subsequent rebuild can drift.
+                        built.setsData = buildSetsArray(built);
+                        return built;
                     })
                 });
             }
