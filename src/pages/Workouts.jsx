@@ -4047,13 +4047,13 @@ function Workouts() {
         // background without needing a dark plate behind it.
         if (muscleMapImg) {
           const aspect = muscleMapImg.naturalWidth / muscleMapImg.naturalHeight || (4 / 3);
-          const drawW = width * 0.42;
+          const drawW = width * 0.32;
           const drawH = drawW / aspect;
           // Vertical center anchored at ~62% of height. Lower than dead-
           // center so on portrait selfies the figure overlays the chest
           // instead of the face, and on the no-photo path it sits closer
           // to the stats (matches Virtuagym's bottom-weighted layout).
-          const drawX = width * 0.04;
+          const drawX = -width * 0.01;
           const drawY = (height * 0.62) - (drawH / 2);
 
           ctx.save();
@@ -4061,7 +4061,6 @@ function Workouts() {
           ctx.shadowBlur = 24;
           ctx.shadowOffsetX = 0;
           ctx.shadowOffsetY = 4;
-          ctx.globalAlpha = 0.78;
           ctx.drawImage(muscleMapImg, drawX, drawY, drawW, drawH);
           ctx.restore();
         }
