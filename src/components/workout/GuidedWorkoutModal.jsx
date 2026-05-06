@@ -7,7 +7,7 @@ import { apiGet, apiPost, apiPut, apiDelete, getOrCreateWorkoutLogId } from '../
 import { onAppResume } from '../../hooks/useAppLifecycle';
 import { parseDurationToSeconds } from '../../utils/workoutDuration';
 import { generateProgression, EFFORT_OPTIONS, EFFORT_TO_RIR, estimate1RM, parseSetsData, getMaxWeight, parseReps, isCompoundExercise, getWeightIncrement, convertWeight } from '../../utils/workoutProgression';
-import { playTickSound, warmUpTickSound } from '../../utils/audioTick';
+import { playTickSound, warmUpTickSound, resumeAudio, startTickKeepAlive, stopTickKeepAlive } from '../../utils/audioTick';
 
 // --- Resume helpers ---
 const RESUME_STORAGE_KEY = 'guided_workout_resume';
@@ -101,23 +101,28 @@ const formatDuration = (seconds) => {
   return `${seconds}s`;
 };
 
-// Text-to-speech helper — returns a promise that resolves when speech ends
+// Text-to-speech helper — returns a promise that resolves when speech ends.
+// On iOS, speechSynthesis.speak() flips the AVAudioSession category and
+// puts our tick AudioContext into 'interrupted'. Pinging resumeAudio() on
+// utterance end (and on the safety timeout) brings the context back so the
+// next rep tick still plays.
 const speak = (text, enabled) => {
   return new Promise((resolve) => {
     if (!enabled || typeof speechSynthesis === 'undefined') { resolve(); return; }
+    const done = () => { try { resumeAudio(); } catch { /* ignore */ } resolve(); };
     try {
       speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.rate = 0.95;
       utterance.pitch = 1.0;
       utterance.volume = 1.0;
-      utterance.onend = resolve;
-      utterance.onerror = resolve;
+      utterance.onend = done;
+      utterance.onerror = done;
       speechSynthesis.speak(utterance);
       // Safety: resolve after 6s max in case onend never fires
-      setTimeout(resolve, 6000);
+      setTimeout(done, 6000);
     } catch (e) {
-      resolve(); // Don't block if TTS fails
+      done(); // Don't block if TTS fails
     }
   });
 };
@@ -2337,8 +2342,17 @@ function GuidedWorkoutModal({
     if (!repCountdownActive || isPaused) return;
     if (currentRep <= 0) {
       setRepCountdownActive(false);
+      stopTickKeepAlive();
       return;
     }
+
+    // Keep the iOS AVAudioSession warm during the set — between slow reps
+    // (4–5s tempos) the AudioContext can drift to sleep otherwise, and the
+    // next rep tick lands silent. Idempotent: safe to call each rep.
+    startTickKeepAlive();
+    // Belt-and-suspenders resume in case TTS or a transient interruption
+    // left the context suspended. Cheap when it's already running.
+    resumeAudio();
 
     // Play tick on the very first rep (so rep 12 → tick immediately, not after waiting)
     if (currentRep === repTotalRef.current) {
@@ -2390,6 +2404,13 @@ function GuidedWorkoutModal({
 
     return () => {
       if (repIntervalRef.current) clearInterval(repIntervalRef.current);
+      // Only stop the audio keep-alive when the set is actually finished or
+      // the user paused. The effect re-runs on every rep tick, but
+      // repCountdownActive stays true across reps, so this leaves the
+      // keep-alive running through the entire set as intended.
+      if (!repCountdownActive || isPaused) {
+        stopTickKeepAlive();
+      }
     };
   }, [repCountdownActive, currentRep, isPaused, voiceEnabled]);
 
