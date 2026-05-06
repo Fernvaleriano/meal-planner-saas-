@@ -266,6 +266,11 @@ function GuidedWorkoutModal({
   // prompt them to do the other side before starting the rest timer.
   const [pendingSecondSide, setPendingSecondSide] = useState(false);
   const pendingSecondSideRef = useRef(false);
+  // Live unilateral flags by exercise id. Workouts saved before the DB
+  // backfill have stale is_unilateral=false in workout_data, so we fetch
+  // the current value from the exercises table on mount and trust it
+  // over the cached flag.
+  const [unilateralIds, setUnilateralIds] = useState(() => new Set());
   const [isPaused, setIsPaused] = useState(false);
   const [completedSets, setCompletedSets] = useState({}); // { exIndex: Set([setIndex, ...]) }
   const [totalElapsed, setTotalElapsed] = useState(0);
@@ -506,6 +511,38 @@ function GuidedWorkoutModal({
     setResumeData(null);
     clearResumeState();
   }, [resumeData, exercises.length]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Fetch live is_unilateral flags by exercise id. Workouts can carry stale
+  // flags in workout_data (e.g. saved before a backfill, or before a coach
+  // toggled the flag on a custom exercise), so we trust the live DB value.
+  useEffect(() => {
+    const ids = (exercises || [])
+      .map(ex => ex?.id)
+      .filter(id => typeof id === 'number' || (typeof id === 'string' && /^\d+$/.test(id)));
+    if (ids.length === 0) {
+      setUnilateralIds(new Set());
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await apiGet(`/.netlify/functions/exercises?ids=${ids.join(',')}`);
+        if (cancelled) return;
+        const flagged = new Set(
+          (res?.exercises || [])
+            .filter(ex => ex?.is_unilateral === true)
+            .map(ex => ex.id)
+        );
+        setUnilateralIds(flagged);
+      } catch (err) {
+        // Non-fatal — fall back to whatever is_unilateral is on the cached
+        // exercise object. Switch-sides prompt may not fire, but nothing
+        // else breaks.
+        console.warn('[GuidedWorkoutModal] failed to fetch unilateral flags:', err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [exercises]);
 
   // Handle resume decline — start fresh
   const handleResumeDismiss = useCallback(() => {
@@ -2111,8 +2148,12 @@ function GuidedWorkoutModal({
   const doMarkSetDone = useCallback((exIdx, setIdx, exInfo) => {
     // Unilateral gate: pause after the first side and prompt for the other
     // side. The switch-sides overlay re-invokes this callback to fall through.
+    // Trust the live DB lookup (unilateralIds) first; fall back to the cached
+    // flag on the exercise object if the lookup hasn't returned yet.
     const exForUnilateral = exercises[exIdx];
-    if (exForUnilateral?.is_unilateral && !pendingSecondSideRef.current) {
+    const isUnilateral = (exForUnilateral?.id != null && unilateralIds.has(exForUnilateral.id))
+      || exForUnilateral?.is_unilateral === true;
+    if (isUnilateral && !pendingSecondSideRef.current) {
       pendingSecondSideRef.current = true;
       setPendingSecondSide(true);
       setRepCountdownActive(false);
@@ -2218,7 +2259,7 @@ function GuidedWorkoutModal({
       }
     }
     setEditingField(null);
-  }, [exercises, onExerciseComplete, persistExerciseData, returnFromDeferredExercise, advanceToNextExercise, voiceEnabled]);
+  }, [exercises, onExerciseComplete, persistExerciseData, returnFromDeferredExercise, advanceToNextExercise, voiceEnabled, unilateralIds]);
 
   // Keep doMarkSetDone ref in sync for rep countdown effect
   const doMarkSetDoneRef = useRef(doMarkSetDone);
