@@ -590,3 +590,209 @@ input:focus, textarea:focus, select:focus,
     background: rgba(255,255,255,0.03) !important;
     border: 1px solid rgba(255,255,255,0.06) !important;
 }
+
+/* ============================================================
+   THIRD PASS — universal catch-alls for buttons, avatars,
+   hovers, alerts, progress, tabs, status, tables
+   ============================================================ */
+
+/* === 13. Catch-all for every "*-btn" class ===
+   Standardize shape only — keep semantic colors (delete=red, etc.) */
+[class$="-btn"],
+[class*="-btn "] {
+    border-radius: 12px !important;
+    box-shadow: none !important;
+    font-weight: 500 !important;
+    letter-spacing: -0.005em !important;
+    transition: background 0.15s, color 0.15s, border-color 0.15s !important;
+}
+[class$="-btn"]:hover,
+[class*="-btn "]:hover,
+[class$="-btn"]:active,
+[class*="-btn "]:active {
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+/* === 14. Universal avatar normalization ===
+   Neutral surface, hairline ring, no glow. Only when no image. */
+.avatar, .client-avatar, .profile-avatar,
+.feed-avatar, .thread-avatar, .convo-avatar,
+.meal-feed-avatar, .sidebar-user-avatar,
+.mockup-user-avatar, .interaction-avatar,
+.cag-avatar, .chip-avatar, .client-profile-avatar,
+.client-select-avatar {
+    background: #e5e7eb !important;
+    color: #475569 !important;
+    box-shadow: none !important;
+    border: 1px solid rgba(0,0,0,0.06) !important;
+}
+[data-theme="dark"] .avatar,
+[data-theme="dark"] .client-avatar,
+[data-theme="dark"] .profile-avatar,
+[data-theme="dark"] .feed-avatar,
+[data-theme="dark"] .thread-avatar,
+[data-theme="dark"] .convo-avatar,
+[data-theme="dark"] .meal-feed-avatar,
+[data-theme="dark"] .sidebar-user-avatar,
+[data-theme="dark"] .mockup-user-avatar,
+[data-theme="dark"] .interaction-avatar,
+[data-theme="dark"] .cag-avatar,
+[data-theme="dark"] .chip-avatar,
+[data-theme="dark"] .client-profile-avatar,
+[data-theme="dark"] .client-select-avatar {
+    background: #2a2f3a !important;
+    color: #cbd5e1 !important;
+    border-color: rgba(255,255,255,0.08) !important;
+}
+
+/* === 15. Kill the hover-lift transforms on every covered card ===
+   No card "springs up" on hover; just a subtle bg/shadow nudge. */
+.card:hover, .client-card:hover, .exercise-card:hover, .plan-card:hover,
+.recipe-card:hover, .challenge-card:hover, .template-card:hover,
+.profile-card:hover, .settings-card:hover, .billing-card:hover,
+.stat-card:hover, .action-card:hover, .builder-card:hover,
+.detail-info-card:hover, .leaderboard-card:hover,
+.theme-option-card:hover, .promo-card:hover,
+.checkin-card:hover, .ai-mode-card:hover,
+.activity-client-card:hover, .meal-feed-card:hover,
+.overview-card:hover, .stat:hover, .client-stat:hover {
+    transform: none !important;
+}
+
+/* === 16. Alerts / toasts ===
+   Flat surface + thin colored left rail for severity. */
+.alert, .alert-box, .toast, .alert-item {
+    border-radius: 12px !important;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.06) !important;
+    border: 1px solid rgba(0,0,0,0.06) !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+}
+[data-theme="dark"] .alert,
+[data-theme="dark"] .alert-box,
+[data-theme="dark"] .toast,
+[data-theme="dark"] .alert-item {
+    background: #14171f !important;
+    border: 1px solid rgba(255,255,255,0.08) !important;
+    color: #f1f5f9 !important;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.30) !important;
+}
+.alert-success { border-left: 3px solid #10b981 !important; }
+.alert-error   { border-left: 3px solid #ef4444 !important; }
+.alert-info    { border-left: 3px solid var(--brand-primary, #0d9488) !important; }
+.alert-title   { font-weight: 600 !important; letter-spacing: -0.01em !important; }
+
+/* === 17. Progress bars: track + fill, no gradient === */
+.progress, .progress-bar, .progress-container {
+    background: rgba(15,23,42,0.06) !important;
+    border-radius: 999px !important;
+    box-shadow: none !important;
+    overflow: hidden !important;
+}
+[data-theme="dark"] .progress,
+[data-theme="dark"] .progress-bar,
+[data-theme="dark"] .progress-container {
+    background: rgba(255,255,255,0.06) !important;
+}
+.progress-fill {
+    background: var(--brand-primary, #0d9488) !important;
+    box-shadow: none !important;
+    border-radius: 999px !important;
+}
+.progress-text {
+    font-weight: 500 !important;
+    color: #475569 !important;
+}
+[data-theme="dark"] .progress-text { color: #cbd5e1 !important; }
+
+/* === 18. Secondary tabs: underline style, no pills === */
+.tab-btn, .tab-navigation .tab, .chart-tab,
+.tab-navigation [class*="tab"] {
+    background: transparent !important;
+    border: none !important;
+    border-bottom: 2px solid transparent !important;
+    box-shadow: none !important;
+    color: #64748b !important;
+    font-weight: 500 !important;
+    border-radius: 0 !important;
+    padding: 8px 14px !important;
+    transition: color 0.15s, border-color 0.15s !important;
+}
+.tab-btn:hover, .chart-tab:hover { color: #0f172a !important; }
+[data-theme="dark"] .tab-btn:hover,
+[data-theme="dark"] .chart-tab:hover { color: #f1f5f9 !important; }
+.tab-btn.active, .tab-navigation .tab.active, .chart-tab.active {
+    color: var(--brand-primary, #0d9488) !important;
+    border-bottom-color: var(--brand-primary, #0d9488) !important;
+    background: transparent !important;
+}
+.tab-navigation, .chart-tabs {
+    border-bottom: 1px solid rgba(0,0,0,0.06) !important;
+}
+[data-theme="dark"] .tab-navigation,
+[data-theme="dark"] .chart-tabs {
+    border-bottom-color: rgba(255,255,255,0.06) !important;
+}
+
+/* === 19. Status indicators: no neon glow ===
+   .status-dot keeps its semantic color, just loses the halo. */
+.status-dot, .status-icon { box-shadow: none !important; }
+.status-badge {
+    background: rgba(15,23,42,0.06) !important;
+    color: #475569 !important;
+    border: none !important;
+    box-shadow: none !important;
+    font-weight: 500 !important;
+}
+[data-theme="dark"] .status-badge {
+    background: rgba(255,255,255,0.06) !important;
+    color: #cbd5e1 !important;
+}
+.status-info { color: #475569 !important; }
+[data-theme="dark"] .status-info { color: #94a3b8 !important; }
+
+/* === 20. Tables: minimal grid, uppercase quiet headers === */
+table, .data-table {
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+    width: 100% !important;
+    background: transparent !important;
+}
+table thead th, .data-table thead th {
+    font-weight: 600 !important;
+    color: #94a3b8 !important;
+    font-size: 0.6875rem !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.06em !important;
+    border-bottom: 1px solid rgba(0,0,0,0.08) !important;
+    padding: 12px 16px !important;
+    text-align: left !important;
+    background: transparent !important;
+}
+table tbody td, .data-table tbody td {
+    border-bottom: 1px solid rgba(0,0,0,0.05) !important;
+    padding: 12px 16px !important;
+}
+[data-theme="dark"] table thead th,
+[data-theme="dark"] .data-table thead th {
+    border-bottom-color: rgba(255,255,255,0.08) !important;
+}
+[data-theme="dark"] table tbody td,
+[data-theme="dark"] .data-table tbody td {
+    border-bottom-color: rgba(255,255,255,0.05) !important;
+}
+.table-row-clickable {
+    cursor: pointer !important;
+    transition: background 0.15s !important;
+}
+.table-row-clickable:hover {
+    background: rgba(15,23,42,0.025) !important;
+}
+[data-theme="dark"] .table-row-clickable:hover {
+    background: rgba(255,255,255,0.025) !important;
+}
+.table-actions {
+    display: flex !important;
+    gap: 8px !important;
+}
