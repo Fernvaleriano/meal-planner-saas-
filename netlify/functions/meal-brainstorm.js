@@ -6,27 +6,56 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 function extractSuggestionsJSON(raw) {
     if (!raw) return null;
 
-    // 1. Strip markdown fences and isolate the outermost {...}.
+    // Accept any of these wrapper key names — different prompts/models drift.
+    const pickList = obj => {
+        if (!obj || typeof obj !== 'object') return null;
+        for (const k of ['suggestions', 'alternatives', 'options', 'meals', 'results']) {
+            if (Array.isArray(obj[k]) && obj[k].length > 0) return obj[k];
+        }
+        // Sometimes the whole response IS the array.
+        if (Array.isArray(obj) && obj.length > 0) return obj;
+        return null;
+    };
+    const wrap = (list, msg) => list ? {
+        message: msg || 'Here are a few options — tap one to apply.',
+        suggestions: list
+    } : null;
+
+    // 1. Strip markdown fences and isolate the outermost {...} or [...].
     let cleaned = raw.trim()
         .replace(/^```(?:json)?\s*/i, '')
         .replace(/```$/g, '')
         .trim();
-    const firstBrace = cleaned.indexOf('{');
-    const lastBrace = cleaned.lastIndexOf('}');
-    if (firstBrace !== -1 && lastBrace > firstBrace) {
-        cleaned = cleaned.slice(firstBrace, lastBrace + 1);
-    }
+    const firstObj = cleaned.indexOf('{');
+    const firstArr = cleaned.indexOf('[');
+    const start = firstObj === -1 ? firstArr
+                : firstArr === -1 ? firstObj
+                : Math.min(firstObj, firstArr);
+    if (start > 0) cleaned = cleaned.slice(start);
+    // Trim any trailing prose after the structure.
+    const lastObj = cleaned.lastIndexOf('}');
+    const lastArr = cleaned.lastIndexOf(']');
+    const end = Math.max(lastObj, lastArr);
+    if (end !== -1 && end < cleaned.length - 1) cleaned = cleaned.slice(0, end + 1);
 
     // 2. Strict parse.
-    try { return JSON.parse(cleaned); } catch (_) { /* fall through */ }
+    try {
+        const parsed = JSON.parse(cleaned);
+        const list = pickList(parsed);
+        if (list) return wrap(list, parsed.message);
+    } catch (_) { /* fall through */ }
 
     // 3. Repair common LLM JSON quirks and try again.
     const repaired = cleaned
-        .replace(/[‘’]/g, "'")   // smart single quotes -> '
-        .replace(/[“”]/g, '"')   // smart double quotes -> "
-        .replace(/,(\s*[}\]])/g, '$1')     // trailing commas
-        .replace(/\r?\n/g, ' ');           // collapse newlines inside strings
-    try { return JSON.parse(repaired); } catch (_) { /* fall through */ }
+        .replace(/[‘’]/g, "'")
+        .replace(/[“”]/g, '"')
+        .replace(/,(\s*[}\]])/g, '$1')
+        .replace(/\r?\n/g, ' ');
+    try {
+        const parsed = JSON.parse(repaired);
+        const list = pickList(parsed);
+        if (list) return wrap(list, parsed.message);
+    } catch (_) { /* fall through */ }
 
     // 4. Regex fallback — recover individual suggestion objects by scanning for
     //    "name" + macro fields. Survives truncated wrappers and missing braces.
@@ -46,12 +75,8 @@ function extractSuggestionsJSON(raw) {
         });
     }
     if (recovered.length > 0) {
-        // Try to also pull out a friendly intro message.
         const msgMatch = /"message"\s*:\s*"([^"]+)"/.exec(repaired);
-        return {
-            message: msgMatch ? msgMatch[1] : 'Here are a few options — tap one to apply.',
-            suggestions: recovered
-        };
+        return wrap(recovered, msgMatch ? msgMatch[1] : null);
     }
 
     return null;
@@ -295,23 +320,30 @@ IMPORTANT:
             }
         }
 
-        return {
-            statusCode: 200,
-            headers,
-            body: JSON.stringify({
-                response: responseMessage,
-                suggestions: suggestions,
-                hasSuggestions: suggestions.length > 0,
-                originalMeal: {
-                    type: meal.type,
-                    name: meal.name,
-                    calories: meal.calories,
-                    protein: meal.protein,
-                    carbs: meal.carbs,
-                    fat: meal.fat
-                }
-            })
+        const responseBody = {
+            response: responseMessage,
+            suggestions: suggestions,
+            hasSuggestions: suggestions.length > 0,
+            originalMeal: {
+                type: meal.type,
+                name: meal.name,
+                calories: meal.calories,
+                protein: meal.protein,
+                carbs: meal.carbs,
+                fat: meal.fat
+            }
         };
+        // Diagnostic: when a suggestion request returns no suggestions, expose
+        // the raw model output (truncated) so we can see why parsing failed
+        // without needing access to Netlify function logs.
+        if (isMealSuggestionRequest && suggestions.length === 0) {
+            responseBody._debug = {
+                rawModelResponse: aiResponse.slice(0, 800),
+                rawLength: aiResponse.length,
+                model: 'gemini-2.5-flash'
+            };
+        }
+        return { statusCode: 200, headers, body: JSON.stringify(responseBody) };
 
     } catch (error) {
         console.error('Meal Brainstorm error:', error);
