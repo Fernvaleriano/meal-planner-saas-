@@ -1,0 +1,272 @@
+/* ============================================================
+   APPLE-STYLE UI REFRESH — shared override stylesheet
+   Additive only. To revert: remove the <link> from each page.
+   ============================================================ */
+
+/* ----- Canvas: quiet, near-black in dark / true white in light ----- */
+[data-theme="dark"] body,
+[data-theme="dark"] .main-content,
+[data-theme="dark"] .main-container { background: #0a0d14 !important; }
+[data-theme="dark"] .main-header {
+    background: rgba(10, 13, 20, 0.72) !important;
+    border-bottom-color: rgba(255,255,255,0.06) !important;
+    backdrop-filter: saturate(180%) blur(20px) !important;
+    -webkit-backdrop-filter: saturate(180%) blur(20px) !important;
+}
+body, .main-content, .main-container { background: #f7f7f8 !important; }
+.main-header {
+    background: rgba(255,255,255,0.72) !important;
+    border-bottom-color: rgba(0,0,0,0.06) !important;
+    backdrop-filter: saturate(180%) blur(20px) !important;
+    -webkit-backdrop-filter: saturate(180%) blur(20px) !important;
+}
+
+/* ----- Typography: lighter weights, tighter tracking ----- */
+.main-header-title { font-size: 1.0625rem !important; font-weight: 600 !important; letter-spacing: -0.015em !important; }
+.welcome-card h1   { font-size: 1.5rem !important;   font-weight: 600 !important; letter-spacing: -0.02em !important; }
+.action-center-heading { font-size: 1rem !important; font-weight: 600 !important; letter-spacing: -0.01em !important; }
+.overview-card-title   { font-size: 0.9375rem !important; font-weight: 600 !important; letter-spacing: -0.005em !important; }
+
+/* ----- Surfaces: hairline borders, no decorative shadows ----- */
+.overview-card,
+.stats-strip,
+.stories-compact {
+    border-radius: 14px !important;
+    box-shadow: none !important;
+}
+.overview-card,
+.stats-strip,
+.stories-compact {
+    background: #ffffff !important;
+    border: 1px solid rgba(0,0,0,0.06) !important;
+}
+[data-theme="dark"] .overview-card,
+[data-theme="dark"] .stats-strip,
+[data-theme="dark"] .stories-compact {
+    background: #14171f !important;
+    border: 1px solid rgba(255,255,255,0.06) !important;
+}
+
+/* Kill the gradient stripe at the top of each overview card */
+.overview-card::before { display: none !important; }
+
+/* Hero card for the only actionable column — subtle accent ring */
+#overviewCardAlerts {
+    box-shadow: inset 0 0 0 1px rgba(13,148,136,0.35) !important;
+    border-color: transparent !important;
+}
+[data-theme="dark"] #overviewCardAlerts {
+    box-shadow: inset 0 0 0 1px rgba(45,212,191,0.45) !important;
+    border-color: transparent !important;
+}
+
+/* ----- Card icons: single accent (was 3 different colors) ----- */
+.overview-card-icon,
+.overview-card-icon--activity,
+.overview-card-icon--alerts,
+.overview-card-icon--meals {
+    width: 30px !important;
+    height: 30px !important;
+    border-radius: 9px !important;
+    background: rgba(13,148,136,0.10) !important;
+    color: var(--brand-primary) !important;
+}
+[data-theme="dark"] .overview-card-icon,
+[data-theme="dark"] .overview-card-icon--activity,
+[data-theme="dark"] .overview-card-icon--alerts,
+[data-theme="dark"] .overview-card-icon--meals {
+    background: rgba(255,255,255,0.06) !important;
+    color: #e2e8f0 !important;
+}
+.overview-card-header { padding: 18px 20px 12px !important; }
+.overview-card-body   { padding: 0 20px 18px !important; }
+
+/* ----- Stats strip: hero numerals, quiet labels, more air ----- */
+.stats-strip { padding: 18px 24px !important; gap: 4px !important; }
+.stats-strip-item {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 2px !important;
+    padding: 4px 18px !important;
+}
+.stats-strip-number {
+    font-size: 1.5rem !important;
+    font-weight: 600 !important;
+    letter-spacing: -0.025em !important;
+    color: #0f172a !important;
+}
+[data-theme="dark"] .stats-strip-number { color: #f8fafc !important; }
+.stats-strip-number--pending { color: var(--brand-primary) !important; }
+.stats-strip-label {
+    font-size: 0.6875rem !important;
+    font-weight: 500 !important;
+    color: #94a3b8 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.06em !important;
+}
+.stats-strip-divider {
+    height: 36px !important;
+    background: rgba(0,0,0,0.06) !important;
+}
+[data-theme="dark"] .stats-strip-divider { background: rgba(255,255,255,0.07) !important; }
+
+/* ----- AI hero: calmer focus, no transform, no halo glow ----- */
+.ai-hero-input {
+    border-radius: 14px !important;
+    border: 1px solid rgba(0,0,0,0.08) !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+    font-size: 0.9375rem !important;
+    font-weight: 400 !important;
+    padding: 15px 18px !important;
+}
+.ai-hero-input:focus {
+    border-color: var(--brand-primary) !important;
+    box-shadow: 0 0 0 3px rgba(13,148,136,0.12) !important;
+}
+.ai-hero-input::placeholder { color: #9ca3af !important; }
+[data-theme="dark"] .ai-hero-input {
+    background: #14171f !important;
+    border-color: rgba(255,255,255,0.08) !important;
+    color: #f1f5f9 !important;
+}
+[data-theme="dark"] .ai-hero-input::placeholder { color: #6b7280 !important; }
+[data-theme="dark"] .ai-hero-input:focus { box-shadow: 0 0 0 3px rgba(13,148,136,0.20) !important; }
+
+.ai-hero-mic, .ai-hero-send-btn {
+    border-radius: 14px !important;
+    box-shadow: none !important;
+    border-width: 1px !important;
+}
+.ai-hero-send-btn:hover {
+    transform: none !important;
+    box-shadow: none !important;
+    background: var(--brand-primary-dark) !important;
+}
+
+/* ----- Quick chips: minimal, single style ----- */
+.hero-chip {
+    background: transparent !important;
+    border: 1px solid rgba(0,0,0,0.08) !important;
+    border-radius: 999px !important;
+    font-size: 0.8125rem !important;
+    font-weight: 500 !important;
+    padding: 6px 13px !important;
+    color: #475569 !important;
+}
+[data-theme="dark"] .hero-chip {
+    background: transparent !important;
+    border-color: rgba(255,255,255,0.10) !important;
+    color: #cbd5e1 !important;
+}
+.hero-chip:hover { background: rgba(0,0,0,0.04) !important; color: #0f172a !important; }
+[data-theme="dark"] .hero-chip:hover { background: rgba(255,255,255,0.06) !important; color: #f1f5f9 !important; }
+
+/* ----- Tier badge: one quiet style for every tier ----- */
+.tier-badge,
+.tier-badge.free,
+.tier-badge.starter,
+.tier-badge.basic,
+.tier-badge.growth,
+.tier-badge.professional,
+.tier-badge.branded {
+    background: rgba(13,148,136,0.10) !important;
+    color: var(--brand-primary) !important;
+    font-weight: 600 !important;
+    font-size: 0.625rem !important;
+    letter-spacing: 0.08em !important;
+    padding: 4px 10px !important;
+}
+[data-theme="dark"] .tier-badge,
+[data-theme="dark"] .tier-badge.free,
+[data-theme="dark"] .tier-badge.starter,
+[data-theme="dark"] .tier-badge.basic,
+[data-theme="dark"] .tier-badge.growth,
+[data-theme="dark"] .tier-badge.professional,
+[data-theme="dark"] .tier-badge.branded {
+    background: rgba(45,212,191,0.14) !important;
+    color: #5eead4 !important;
+}
+
+/* ----- Activity summary badges: monochrome (was 5 colors) ----- */
+.activity-summary-badge.workout,
+.activity-summary-badge.pr,
+.activity-summary-badge.checkin,
+.activity-summary-badge.photo,
+.activity-summary-badge.measurement {
+    background: rgba(15,23,42,0.06) !important;
+    color: #475569 !important;
+    font-weight: 500 !important;
+}
+[data-theme="dark"] .activity-summary-badge.workout,
+[data-theme="dark"] .activity-summary-badge.pr,
+[data-theme="dark"] .activity-summary-badge.checkin,
+[data-theme="dark"] .activity-summary-badge.photo,
+[data-theme="dark"] .activity-summary-badge.measurement {
+    background: rgba(255,255,255,0.06) !important;
+    color: #cbd5e1 !important;
+}
+
+/* ----- Meal macro pills: monochrome (was red/blue/green/orange) ----- */
+.meal-feed-macro.calories,
+.meal-feed-macro.protein,
+.meal-feed-macro.carbs,
+.meal-feed-macro.fat {
+    background: rgba(15,23,42,0.06) !important;
+    color: #475569 !important;
+}
+[data-theme="dark"] .meal-feed-macro.calories,
+[data-theme="dark"] .meal-feed-macro.protein,
+[data-theme="dark"] .meal-feed-macro.carbs,
+[data-theme="dark"] .meal-feed-macro.fat {
+    background: rgba(255,255,255,0.06) !important;
+    color: #cbd5e1 !important;
+}
+
+/* ----- Priority dots: kill the neon glow ----- */
+.priority-dot--red,
+.priority-dot--amber,
+.priority-dot--green,
+.priority-dot--purple,
+.priority-dot--blue { box-shadow: none !important; }
+
+/* ----- Avatars: neutral (no brand-gradient halos) ----- */
+.activity-client-avatar {
+    background: #e5e7eb !important;
+    color: #475569 !important;
+}
+[data-theme="dark"] .activity-client-avatar {
+    background: #2a2f3a !important;
+    color: #cbd5e1 !important;
+}
+
+/* Activity & meal cards inside the columns: very quiet surfaces */
+.activity-client-card {
+    background: rgba(15,23,42,0.025) !important;
+    border-color: rgba(15,23,42,0.05) !important;
+}
+[data-theme="dark"] .activity-client-card {
+    background: rgba(255,255,255,0.025) !important;
+    border-color: rgba(255,255,255,0.05) !important;
+}
+[data-theme="dark"] .meal-feed-card {
+    background: rgba(255,255,255,0.025) !important;
+    border: 1px solid rgba(255,255,255,0.05) !important;
+}
+
+/* ----- Spacing: more air between sections ----- */
+.ai-hero-section { margin-bottom: 28px !important; }
+.dashboard-glance { margin-bottom: 24px !important; }
+.stats-strip { margin-bottom: 20px !important; }
+.overview-cards-grid { gap: 14px !important; }
+
+/* ----- Header profile avatar: hairline ring, no glow ----- */
+.header-profile-avatar { box-shadow: none !important; border: 1px solid rgba(0,0,0,0.08) !important; }
+[data-theme="dark"] .header-profile-avatar { border-color: rgba(255,255,255,0.10) !important; }
+
+/* ----- Notification bell: quieter ----- */
+.notification-badge { box-shadow: none !important; font-weight: 600 !important; }
+
+/* ----- Sidebar polish: flatter active state ----- */
+[data-theme="dark"] .sidebar { background: #0a0d14 !important; border-right: 1px solid rgba(255,255,255,0.06) !important; }
+.sidebar { background: #ffffff !important; border-right: 1px solid rgba(0,0,0,0.06) !important; }
