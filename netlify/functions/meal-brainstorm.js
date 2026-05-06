@@ -1,4 +1,62 @@
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+
+// Robust extractor for the meal-suggestion JSON payload. LLMs frequently emit
+// near-JSON with smart quotes, trailing commas, or get truncated mid-object.
+// Tries strict parse → repaired parse → regex-based suggestion recovery.
+function extractSuggestionsJSON(raw) {
+    if (!raw) return null;
+
+    // 1. Strip markdown fences and isolate the outermost {...}.
+    let cleaned = raw.trim()
+        .replace(/^```(?:json)?\s*/i, '')
+        .replace(/```$/g, '')
+        .trim();
+    const firstBrace = cleaned.indexOf('{');
+    const lastBrace = cleaned.lastIndexOf('}');
+    if (firstBrace !== -1 && lastBrace > firstBrace) {
+        cleaned = cleaned.slice(firstBrace, lastBrace + 1);
+    }
+
+    // 2. Strict parse.
+    try { return JSON.parse(cleaned); } catch (_) { /* fall through */ }
+
+    // 3. Repair common LLM JSON quirks and try again.
+    const repaired = cleaned
+        .replace(/[‘’]/g, "'")   // smart single quotes -> '
+        .replace(/[“”]/g, '"')   // smart double quotes -> "
+        .replace(/,(\s*[}\]])/g, '$1')     // trailing commas
+        .replace(/\r?\n/g, ' ');           // collapse newlines inside strings
+    try { return JSON.parse(repaired); } catch (_) { /* fall through */ }
+
+    // 4. Regex fallback — recover individual suggestion objects by scanning for
+    //    "name" + macro fields. Survives truncated wrappers and missing braces.
+    const suggestionRe = /"name"\s*:\s*"([^"]+)"[^{}]*?"calories"\s*:\s*(\d+)[^{}]*?"protein"\s*:\s*(\d+)[^{}]*?"carbs"\s*:\s*(\d+)[^{}]*?"fat"\s*:\s*(\d+)/g;
+    const recovered = [];
+    let match;
+    while ((match = suggestionRe.exec(repaired)) !== null) {
+        recovered.push({
+            name: match[1],
+            calories: parseInt(match[2]) || 0,
+            protein: parseInt(match[3]) || 0,
+            carbs: parseInt(match[4]) || 0,
+            fat: parseInt(match[5]) || 0,
+            description: '',
+            ingredients: [],
+            instructions: ''
+        });
+    }
+    if (recovered.length > 0) {
+        // Try to also pull out a friendly intro message.
+        const msgMatch = /"message"\s*:\s*"([^"]+)"/.exec(repaired);
+        return {
+            message: msgMatch ? msgMatch[1] : 'Here are a few options — tap one to apply.',
+            suggestions: recovered
+        };
+    }
+
+    return null;
+}
+
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
 
 const headers = {
@@ -187,7 +245,7 @@ IMPORTANT:
                 }],
                 generationConfig: {
                     temperature: isMealSuggestionRequest ? 0.7 : 0.8,
-                    maxOutputTokens: 1024
+                    maxOutputTokens: isMealSuggestionRequest ? 4096 : 1024
                 }
             })
         });
@@ -217,24 +275,9 @@ IMPORTANT:
         let responseMessage = aiResponse;
 
         if (isMealSuggestionRequest) {
-            // Strip markdown fences and isolate the JSON object even if the model
-            // adds prose, trailing notes, or extra fences.
-            let cleaned = aiResponse.trim();
-            cleaned = cleaned.replace(/^```(?:json)?\s*/i, '').replace(/```$/g, '').trim();
-            const firstBrace = cleaned.indexOf('{');
-            const lastBrace = cleaned.lastIndexOf('}');
-            if (firstBrace !== -1 && lastBrace > firstBrace) {
-                cleaned = cleaned.slice(firstBrace, lastBrace + 1);
-            }
+            const parsed = extractSuggestionsJSON(aiResponse);
 
-            let parsed = null;
-            try {
-                parsed = JSON.parse(cleaned);
-            } catch (parseError) {
-                console.error('[meal-brainstorm] JSON parse failed:', parseError.message, 'raw:', aiResponse.slice(0, 500));
-            }
-
-            if (parsed && Array.isArray(parsed.suggestions)) {
+            if (parsed && Array.isArray(parsed.suggestions) && parsed.suggestions.length > 0) {
                 suggestions = parsed.suggestions.map(s => ({
                     name: s.name || 'Unnamed meal',
                     calories: parseInt(s.calories) || 0,
@@ -247,7 +290,7 @@ IMPORTANT:
                 }));
                 responseMessage = parsed.message || 'Here are a few options — tap one to apply.';
             } else {
-                // Parsing failed or schema didn't match — never leak raw JSON to the UI.
+                console.error('[meal-brainstorm] no suggestions extracted. raw:', aiResponse.slice(0, 800));
                 responseMessage = "I couldn't format alternatives this time. Try tapping Swap again, or describe what you want in the chat.";
             }
         }
