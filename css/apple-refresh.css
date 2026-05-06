@@ -1161,3 +1161,184 @@ table tbody td, .data-table tbody td {
     background: rgba(15,23,42,0.025) !important;
     border: 1px solid rgba(15,23,42,0.05) !important;
 }
+
+/* ============================================================
+   SEVENTH PASS — planner.html polish
+   The page itself is fine, but the empty meal-card image
+   placeholder shimmers in bright cyan over a dark canvas, the
+   AI chat section uses a washed-out light-purple gradient, and
+   the meal-card surface is so subtle it almost disappears.
+   ============================================================ */
+
+/* Quiet the bright cyan shimmer empty-state thumbnail */
+.meal-card-image-placeholder {
+    background: rgba(15,23,42,0.04) !important;
+    color: #94a3b8 !important;
+    animation: none !important;
+}
+[data-theme="dark"] .meal-card-image-placeholder {
+    background: rgba(255,255,255,0.04) !important;
+    color: #64748b !important;
+    animation: none !important;
+}
+
+/* Meal-card image fallback bg uniform with surface */
+.meal-card-image { background: rgba(15,23,42,0.04) !important; }
+[data-theme="dark"] .meal-card-image { background: rgba(255,255,255,0.04) !important; }
+
+/* Anchor each meal-card with a visible surface */
+.meal-card {
+    background: #ffffff !important;
+    border: 1px solid rgba(0,0,0,0.06) !important;
+    border-radius: 14px !important;
+    box-shadow: none !important;
+}
+[data-theme="dark"] .meal-card {
+    background: rgba(255,255,255,0.025) !important;
+    border-color: rgba(255,255,255,0.06) !important;
+}
+
+/* AI chat section: neutralize the washed-out purple gradient.
+   Inline gradients/borders win specificity, so target the
+   wrapper class with broader selectors. */
+.ai-chat-section[style*="linear-gradient"] {
+    background: rgba(15,23,42,0.03) !important;
+    border: 1px solid rgba(15,23,42,0.06) !important;
+}
+[data-theme="dark"] .ai-chat-section[style*="linear-gradient"] {
+    background: rgba(255,255,255,0.03) !important;
+    border: 1px solid rgba(255,255,255,0.06) !important;
+}
+.ai-chat-section .ai-quick-actions-row[style*="border-bottom"] {
+    border-bottom-color: rgba(15,23,42,0.06) !important;
+}
+[data-theme="dark"] .ai-chat-section .ai-quick-actions-row[style*="border-bottom"] {
+    border-bottom-color: rgba(255,255,255,0.06) !important;
+}
+
+/* Unify macro pills shape with the rest of the app (radius + weight) */
+.meal-macro-pill {
+    border-radius: 999px !important;
+    font-weight: 500 !important;
+    padding: 3px 10px !important;
+}
+
+/* Note for Client + Reference Links collapsibles: less saturated bars */
+.meal-card details > summary[style*="background"] {
+    background: rgba(15,23,42,0.03) !important;
+    border: 1px solid rgba(15,23,42,0.06) !important;
+    color: #475569 !important;
+    border-radius: 10px !important;
+}
+[data-theme="dark"] .meal-card details > summary[style*="background"] {
+    background: rgba(255,255,255,0.03) !important;
+    border-color: rgba(255,255,255,0.06) !important;
+    color: #cbd5e1 !important;
+}
+
+/* ============================================================
+   EIGHTH PASS — planner.html micro-polish per UI critique
+   1. Pink delete/undo buttons -> ghost icons
+   2. "Recipe & Ingredients" button -> inline-sized
+   3. AI chat section wrapper -> transparent shell
+   4. Note-for-Client / Reference-Links bars -> neutral surfaces
+   ============================================================ */
+
+/* (1) Delete + Undo action buttons in meal-card -> ghost icon style */
+.meal-card-content button[data-action="delete-meal"],
+.meal-card-content button[data-action="undo-meal"] {
+    background: transparent !important;
+    color: #dc2626 !important;
+    border: 1px solid rgba(220, 38, 38, 0.20) !important;
+    border-radius: 8px !important;
+    padding: 6px !important;
+    width: 30px !important;
+    height: 30px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-shadow: none !important;
+}
+.meal-card-content button[data-action="delete-meal"]:hover,
+.meal-card-content button[data-action="undo-meal"]:hover {
+    background: rgba(220, 38, 38, 0.08) !important;
+    border-color: rgba(220, 38, 38, 0.35) !important;
+    transform: none !important;
+}
+[data-theme="dark"] .meal-card-content button[data-action="delete-meal"],
+[data-theme="dark"] .meal-card-content button[data-action="undo-meal"] {
+    color: #f87171 !important;
+    border-color: rgba(248, 113, 113, 0.25) !important;
+}
+[data-theme="dark"] .meal-card-content button[data-action="delete-meal"]:hover,
+[data-theme="dark"] .meal-card-content button[data-action="undo-meal"]:hover {
+    background: rgba(248, 113, 113, 0.10) !important;
+    border-color: rgba(248, 113, 113, 0.40) !important;
+}
+
+/* (2) Recipe & Ingredients button: inline width, smaller */
+.meal-card-content button[data-action="get-recipe"] {
+    width: auto !important;
+    align-self: flex-start !important;
+    padding: 7px 14px !important;
+    font-size: 12px !important;
+    font-weight: 500 !important;
+    border-radius: 8px !important;
+}
+
+/* (3) AI chat section -> transparent shell, hairline divider only */
+.meal-card .ai-chat-section,
+.meal-card .ai-chat-section[style] {
+    background: transparent !important;
+    border: 1px solid rgba(15,23,42,0.06) !important;
+    border-radius: 10px !important;
+    overflow: hidden !important;
+}
+[data-theme="dark"] .meal-card .ai-chat-section,
+[data-theme="dark"] .meal-card .ai-chat-section[style] {
+    background: transparent !important;
+    border: 1px solid rgba(255,255,255,0.06) !important;
+}
+.meal-card .ai-chat-section [style*="border-bottom"] {
+    border-bottom-color: rgba(15,23,42,0.06) !important;
+}
+[data-theme="dark"] .meal-card .ai-chat-section [style*="border-bottom"] {
+    border-bottom-color: rgba(255,255,255,0.06) !important;
+}
+.meal-card .ai-chat-section [style*="border-top"] {
+    border-top-color: rgba(15,23,42,0.06) !important;
+}
+[data-theme="dark"] .meal-card .ai-chat-section [style*="border-top"] {
+    border-top-color: rgba(255,255,255,0.06) !important;
+}
+
+/* (4) Note-for-Client / Reference-Links collapsibles -> neutral bars
+       (Stronger selector — matches any inline style on the summary) */
+.meal-card-content details > summary,
+.meal-card-content details > summary[style] {
+    background: rgba(15,23,42,0.03) !important;
+    color: #475569 !important;
+    border: 1px solid rgba(15,23,42,0.06) !important;
+    border-radius: 8px !important;
+    padding: 8px 10px !important;
+    font-size: 12px !important;
+    font-weight: 500 !important;
+}
+[data-theme="dark"] .meal-card-content details > summary,
+[data-theme="dark"] .meal-card-content details > summary[style] {
+    background: rgba(255,255,255,0.03) !important;
+    color: #cbd5e1 !important;
+    border-color: rgba(255,255,255,0.06) !important;
+}
+
+/* Open-state inner panel of Note-for-Client (cream bg + amber border) */
+.meal-card-content details[open] > div[style*="background"] {
+    background: rgba(15,23,42,0.02) !important;
+    border: 1px solid rgba(15,23,42,0.06) !important;
+    border-top: none !important;
+    border-radius: 0 0 8px 8px !important;
+}
+[data-theme="dark"] .meal-card-content details[open] > div[style*="background"] {
+    background: rgba(255,255,255,0.02) !important;
+    border-color: rgba(255,255,255,0.06) !important;
+}
