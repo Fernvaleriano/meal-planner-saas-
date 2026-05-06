@@ -75,6 +75,18 @@ const formatDuration = (minutes) => {
   return `${mins} min`;
 };
 
+// Compact duration for the share card — paired with a "Duration" label,
+// so the unit suffix is redundant. Mirrors Virtuagym's "25:30" feel.
+const formatDurationCompact = (minutes) => {
+  if (!minutes || minutes <= 0) return '0';
+  const hrs = Math.floor(minutes / 60);
+  const mins = Math.round(minutes % 60);
+  if (hrs > 0) {
+    return `${hrs}:${String(mins).padStart(2, '0')}`;
+  }
+  return String(mins);
+};
+
 // Helper to extract file path from a stale Supabase signed URL
 // Signed URL format: https://xxx.supabase.co/storage/v1/object/sign/workout-assets/{path}?token=...
 const extractPathFromSignedUrl = (url) => {
@@ -3991,7 +4003,7 @@ function Workouts() {
         }
 
         // Stats
-        const dur = formatDuration(workoutDuration || estimateWorkoutMinutes(exercises) || todayWorkout?.workout_data?.estimatedMinutes || 45);
+        const dur = formatDurationCompact(workoutDuration || estimateWorkoutMinutes(exercises) || todayWorkout?.workout_data?.estimatedMinutes || 45);
         const activeToggles = [];
         if (shareToggles.duration) activeToggles.push({ label: 'Duration', value: dur });
         if (shareToggles.calories) activeToggles.push({ label: 'Calories', value: String(estimatedCalories) });
@@ -4003,16 +4015,20 @@ function Workouts() {
           // Anchor stats near the bottom (above the footer), leaving the upper
           // two-thirds for the visual (muscle map / cover image).
           const statY = height * 0.82;
-          const spacing = width / (activeToggles.length + 1);
+          const slotWidth = width / activeToggles.length;
+          // Auto-scale value font: each slot gets `slotWidth - 24px` of breathing
+          // room, so target ~70% of that for the value height. Clamped 40-72px.
+          const valueFont = Math.max(40, Math.min(72, Math.floor(slotWidth * 0.46)));
+          const labelFont = valueFont >= 56 ? 20 : 18;
           activeToggles.forEach((stat, i) => {
-            const x = spacing * (i + 1);
+            const x = slotWidth * (i + 0.5);
             ctx.fillStyle = 'white';
-            ctx.font = 'bold 64px -apple-system, BlinkMacSystemFont, sans-serif';
+            ctx.font = `bold ${valueFont}px -apple-system, BlinkMacSystemFont, sans-serif`;
             ctx.textAlign = 'center';
             ctx.fillText(stat.value, x, statY);
             ctx.fillStyle = '#cbd5e1';
-            ctx.font = '20px -apple-system, BlinkMacSystemFont, sans-serif';
-            ctx.fillText(stat.label, x, statY + 38);
+            ctx.font = `${labelFont}px -apple-system, BlinkMacSystemFont, sans-serif`;
+            ctx.fillText(stat.label, x, statY + valueFont * 0.6);
           });
         }
 
@@ -5143,7 +5159,7 @@ function Workouts() {
                     )}
                     {shareToggles.duration && (
                       <div className="share-stat">
-                        <span className="share-stat-value">{formatDuration(workoutDuration || estimateWorkoutMinutes(exercises) || todayWorkout?.workout_data?.estimatedMinutes || 45)}</span>
+                        <span className="share-stat-value">{formatDurationCompact(workoutDuration || estimateWorkoutMinutes(exercises) || todayWorkout?.workout_data?.estimatedMinutes || 45)}</span>
                         <span className="share-stat-label">Duration</span>
                       </div>
                     )}
