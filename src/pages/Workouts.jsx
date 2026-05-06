@@ -4004,22 +4004,26 @@ function Workouts() {
           ctx.fillRect(0, 0, width, height);
         }
 
-        // Minimal scrims — Virtuagym lets the photo breathe end-to-end and
-        // relies on text shadows + figure outlines for contrast. Keep just
-        // enough darkening at the very top and bottom edges to anchor the
-        // logo and stats without dimming the actual photo content.
+        // Photo backgrounds vary wildly in brightness — bathroom tile and
+        // sky shots blow out compared to Virtuagym's controlled studio
+        // selfies. Add a uniform mid-darken so the figure + stats always
+        // have a consistent canvas under them, then layer top/bottom edge
+        // scrims for the logo and footer.
         if (shareBgImage) {
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+          ctx.fillRect(0, 0, width, height);
+
           const topScrim = ctx.createLinearGradient(0, 0, 0, height * 0.18);
-          topScrim.addColorStop(0, 'rgba(0, 0, 0, 0.45)');
+          topScrim.addColorStop(0, 'rgba(0, 0, 0, 0.55)');
           topScrim.addColorStop(1, 'rgba(0, 0, 0, 0)');
           ctx.fillStyle = topScrim;
           ctx.fillRect(0, 0, width, height * 0.18);
 
-          const bottomScrim = ctx.createLinearGradient(0, height * 0.78, 0, height);
+          const bottomScrim = ctx.createLinearGradient(0, height * 0.72, 0, height);
           bottomScrim.addColorStop(0, 'rgba(0, 0, 0, 0)');
-          bottomScrim.addColorStop(1, 'rgba(0, 0, 0, 0.55)');
+          bottomScrim.addColorStop(1, 'rgba(0, 0, 0, 0.7)');
           ctx.fillStyle = bottomScrim;
-          ctx.fillRect(0, height * 0.78, width, height * 0.22);
+          ctx.fillRect(0, height * 0.72, width, height * 0.28);
         } else {
           // No photo — apply a slight overall darken so the gradient bg
           // doesn't blow out the white text.
