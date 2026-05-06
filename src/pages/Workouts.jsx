@@ -17,6 +17,7 @@ import Portal from '../components/Portal';
 import ErrorBoundary from '../components/ErrorBoundary';
 import { useToast } from '../components/Toast';
 import { parseDurationToSeconds, estimateWorkoutMinutes, estimateWorkoutCalories } from '../utils/workoutDuration';
+import { getPrimaryWorkedMuscle } from '../utils/muscleGroups';
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
 
 const GymProofModal = React.lazy(() => import('../components/GymProofModal'));
@@ -73,6 +74,21 @@ const formatDuration = (minutes) => {
     return mins > 0 ? `${hrs}h ${mins}m` : `${hrs}h`;
   }
   return `${mins} min`;
+};
+
+// Public Supabase prefix where the share-card muscle-map images live.
+// Files are named `${gender}-${muscle}.png` (e.g. female-glutes.png).
+const MUSCLE_MAP_URL_PREFIX = 'https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/exercise-thumbnails/muscle-maps';
+
+// We have base + 8 muscle groups per gender; cardio falls back to base
+// because we didn't generate a cardio-specific render.
+const MUSCLE_MAP_AVAILABLE = new Set(['base', 'chest', 'back', 'shoulders', 'biceps', 'triceps', 'legs', 'glutes', 'core']);
+
+const buildMuscleMapUrl = (gender, exercises) => {
+  const safeGender = gender === 'female' ? 'female' : 'male';
+  const primary = getPrimaryWorkedMuscle(exercises);
+  const muscle = primary && MUSCLE_MAP_AVAILABLE.has(primary) ? primary : 'base';
+  return `${MUSCLE_MAP_URL_PREFIX}/${safeGender}-${muscle}.png`;
 };
 
 // Compact duration for the share card — paired with a "Duration" label,
@@ -3977,7 +3993,7 @@ function Workouts() {
       canvas.height = height;
       const ctx = canvas.getContext('2d');
 
-      const drawCard = (logoImg) => {
+      const drawCard = (logoImg, muscleMapImg) => {
         // Background
         if (!shareBgImage) {
           const grad = ctx.createLinearGradient(0, 0, width, height);
@@ -4000,6 +4016,26 @@ function Workouts() {
           const logoWidth = logoImg.naturalWidth * logoScale;
           const logoHeight = logoImg.naturalHeight * logoScale;
           ctx.drawImage(logoImg, (width - logoWidth) / 2, 20, logoWidth, logoHeight);
+        }
+
+        // Muscle map (only when no custom background image — they conflict visually)
+        if (!shareBgImage && muscleMapImg) {
+          // Reserve the band between the logo (~y=130) and the stats (~y=0.78*h).
+          const bandTop = height * 0.16;
+          const bandBottom = height * 0.74;
+          const bandHeight = bandBottom - bandTop;
+          const aspect = muscleMapImg.naturalWidth / muscleMapImg.naturalHeight || (4 / 3);
+          let drawH = bandHeight;
+          let drawW = drawH * aspect;
+          // Cap width to 90% of canvas so there's breathing room on the sides.
+          const maxW = width * 0.9;
+          if (drawW > maxW) {
+            drawW = maxW;
+            drawH = drawW / aspect;
+          }
+          const drawX = (width - drawW) / 2;
+          const drawY = bandTop + (bandHeight - drawH) / 2;
+          ctx.drawImage(muscleMapImg, drawX, drawY, drawW, drawH);
         }
 
         // Stats
@@ -4085,7 +4121,7 @@ function Workouts() {
       };
 
       // Load logo image if available, then draw card
-      const renderCard = (logoImg) => {
+      const renderCard = (logoImg, muscleMapImg) => {
         if (shareBgImage) {
           const img = new Image();
           img.crossOrigin = 'anonymous';
@@ -4094,21 +4130,39 @@ function Workouts() {
             const sw = img.width * scale;
             const sh = img.height * scale;
             ctx.drawImage(img, (width - sw) / 2, (height - sh) / 2, sw, sh);
-            drawCard(logoImg);
+            drawCard(logoImg, muscleMapImg);
           };
-          img.onerror = () => drawCard(logoImg);
+          img.onerror = () => drawCard(logoImg, muscleMapImg);
           img.src = shareBgImage;
         } else {
-          drawCard(logoImg);
+          drawCard(logoImg, muscleMapImg);
         }
       };
 
+      // Load logo and muscle map in parallel — both can fail independently
+      // without blocking the export. Skip the muscle map when the user has a
+      // custom background image since they conflict visually.
+      const loadImage = (src) => new Promise((resolve) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => resolve(img);
+        img.onerror = () => resolve(null);
+        img.src = src;
+      });
+
       const logoUrl = 'https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/Untitled%20design%20-%202026-02-10T171903.769.png';
-      const logo = new Image();
-      logo.crossOrigin = 'anonymous';
-      logo.onload = () => renderCard(logo);
-      logo.onerror = () => renderCard(null);
-      logo.src = logoUrl;
+      const muscleMapUrl = !shareBgImage
+        ? buildMuscleMapUrl(
+            clientData?.preferred_exercise_gender === 'female' || clientData?.gender === 'female' ? 'female' : 'male',
+            exercises
+          )
+        : null;
+
+      const [logo, muscleMap] = await Promise.all([
+        loadImage(logoUrl),
+        muscleMapUrl ? loadImage(muscleMapUrl) : Promise.resolve(null)
+      ]);
+      renderCard(logo, muscleMap);
     } catch (err) {
       console.error('Error sharing results:', err);
     }
@@ -5132,6 +5186,18 @@ function Workouts() {
                   <div className="share-card-brand">
                     <img src="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/Untitled%20design%20-%202026-02-10T171903.769.png" alt="Zique Fitness" className="share-card-logo" />
                   </div>
+                  {!shareBgImage && (
+                    <div className="share-card-muscle-map">
+                      <img
+                        src={buildMuscleMapUrl(
+                          clientData?.preferred_exercise_gender === 'female' || clientData?.gender === 'female' ? 'female' : 'male',
+                          exercises
+                        )}
+                        alt="Muscles worked"
+                        crossOrigin="anonymous"
+                      />
+                    </div>
+                  )}
                   <div className="share-card-stats">
                     {shareToggles.calories && (
                       <div className="share-stat">

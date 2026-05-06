@@ -16637,6 +16637,24 @@ textarea,
     filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.4));
 }
 
+.share-card-muscle-map {
+    flex: 1 1 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 0;
+    margin: 4px 0 8px;
+}
+
+.share-card-muscle-map img {
+    max-width: 92%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.4));
+}
+
 .share-card-stats {
     display: flex;
     justify-content: space-around;
