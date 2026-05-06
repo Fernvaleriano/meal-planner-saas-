@@ -167,10 +167,9 @@ const playBufferNow = (ctx, buffer) => {
   }
 };
 
-// Last-resort oscillator path. Used only if the AudioBuffer approach fails
-// for some reason (e.g., createBuffer threw). Keeps the audible behavior
-// identical to the legacy implementation.
-const playOscillatorFallback = (ctx) => {
+// Primary tick path — short oscillator burst. Mirrors the legacy
+// implementation that produced audible ticks for users in prior builds.
+const playOscillator = (ctx) => {
   try {
     const now = ctx.currentTime;
     const osc = ctx.createOscillator();
@@ -186,13 +185,23 @@ const playOscillatorFallback = (ctx) => {
     osc.onended = () => {
       try { osc.disconnect(); env.disconnect(); } catch { /* ignore */ }
     };
-  } catch { /* ignore */ }
+    return true;
+  } catch {
+    return false;
+  }
 };
 
+// Why oscillator-first: an earlier rewrite preferred AudioBufferSourceNode
+// (theoretically more reliable on iOS) but in production iOS Safari + the
+// Capacitor WebView, scheduled buffer sources sometimes silently no-op when
+// the audio session has been touched recently. The legacy oscillator path
+// is what users actually heard in prior builds, so we keep it as the
+// primary path and use the buffer as a fallback.
 const playTick = (ctx) => {
+  if (playOscillator(ctx)) return true;
   const buffer = buildTickBuffer(ctx);
-  if (buffer && playBufferNow(ctx, buffer)) return;
-  playOscillatorFallback(ctx);
+  if (buffer && playBufferNow(ctx, buffer)) return true;
+  return false;
 };
 
 export const playTickSound = () => {
@@ -201,31 +210,10 @@ export const playTickSound = () => {
   if (isCoachVideoAudioActive()) return;
   const ctx = ensureCtx();
   if (!ctx) return;
-  if (ctx.state === 'running') {
-    playTick(ctx);
-    return;
-  }
-  // Context isn't running. Fire resume() and play once it resolves so the
-  // tick still lands (a hair late) instead of being lost. Also try a
-  // synchronous schedule — iOS sometimes accepts buffer scheduling on a
-  // suspending context and plays it the moment the context flips to running.
+  // Cheap when already running; nudges a suspended/interrupted context
+  // back toward 'running' before we schedule the oscillator.
   resumeCtxSync(ctx);
   playTick(ctx);
-  try {
-    const p = ctx.resume && ctx.resume();
-    if (p && typeof p.then === 'function') {
-      p.then(() => {
-        if (ctx.state === 'running') {
-          // Only re-fire if our optimistic schedule clearly missed (the
-          // last scheduled time is in the past relative to the now-running
-          // ctx). Otherwise we'd double-tick.
-          if (lastScheduledTime < ctx.currentTime - 0.05) {
-            playTick(ctx);
-          }
-        }
-      }).catch(() => {});
-    }
-  } catch { /* ignore */ }
 };
 
 // Must be called from a real user-gesture handler (onClick, onTouchStart).
