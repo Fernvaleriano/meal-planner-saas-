@@ -16663,11 +16663,11 @@ textarea,
 
 .share-card-stats {
     display: flex;
-    justify-content: space-around;
+    justify-content: flex-start;
     align-items: flex-end;
-    padding: 0 4px;
+    padding: 0 22px;
     flex-wrap: nowrap;
-    gap: 8px;
+    gap: 0;
     margin-top: auto;
     margin-bottom: 8px;
 }
@@ -16675,12 +16675,12 @@ textarea,
 .share-stat {
     flex: 1 1 0;
     min-width: 0;
-    text-align: center;
+    text-align: left;
 }
 
 .share-stat-value {
     display: block;
-    font-size: 44px;
+    font-size: 32px;
     font-weight: 800;
     color: white;
     line-height: 1;
@@ -16692,24 +16692,22 @@ textarea,
 }
 
 /* Auto-shrink when 4+ stats are visible to prevent overlap */
-.share-card-stats .share-stat:nth-child(4):nth-last-child(1) ~ .share-stat .share-stat-value,
-.share-card-stats .share-stat:nth-child(4):nth-last-child(1) .share-stat-value,
 .share-card-stats .share-stat:nth-last-child(n+4) .share-stat-value,
 .share-card-stats .share-stat:nth-last-child(n+4) ~ .share-stat .share-stat-value {
-    font-size: 36px;
+    font-size: 26px;
 }
 
 .share-card-stats .share-stat:nth-last-child(n+5) .share-stat-value,
 .share-card-stats .share-stat:nth-last-child(n+5) ~ .share-stat .share-stat-value {
-    font-size: 30px;
+    font-size: 22px;
 }
 
 .share-stat-label {
     display: block;
-    font-size: 13px;
+    font-size: 11px;
     color: rgba(255, 255, 255, 0.78);
     letter-spacing: 0.01em;
-    margin-top: 8px;
+    margin-top: 6px;
     font-weight: 500;
     text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
 }
