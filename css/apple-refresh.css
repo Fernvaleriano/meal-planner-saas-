@@ -796,3 +796,138 @@ table tbody td, .data-table tbody td {
     display: flex !important;
     gap: 8px !important;
 }
+
+/* ============================================================
+   FOURTH PASS — page-shell consistency for the Workout Builder
+   and other pages with .top-nav / inverted btn-primary
+   ============================================================ */
+
+/* === 21. Kill the multi-color page background radial blobs === */
+.bg-pattern { display: none !important; }
+
+/* === 22. Top-nav (Workout Builder, Workout Plans, Form Responses) ===
+   Flatten the teal/blue gradient to a calm translucent surface,
+   matching the main app header on every other page. */
+.top-nav {
+    background: rgba(255,255,255,0.72) !important;
+    border-bottom: 1px solid rgba(0,0,0,0.06) !important;
+    backdrop-filter: saturate(180%) blur(20px) !important;
+    -webkit-backdrop-filter: saturate(180%) blur(20px) !important;
+}
+[data-theme="dark"] .top-nav {
+    background: rgba(10,13,20,0.72) !important;
+    border-bottom-color: rgba(255,255,255,0.06) !important;
+}
+.top-nav .nav-back,
+.top-nav .nav-title { color: #0f172a !important; }
+[data-theme="dark"] .top-nav .nav-back,
+[data-theme="dark"] .top-nav .nav-title { color: #f1f5f9 !important; }
+.nav-title { font-weight: 600 !important; letter-spacing: -0.015em !important; }
+
+/* === 23. Universal .btn-primary / .btn-secondary ===
+   Primary = solid teal everywhere (cancels the workout pages'
+   inverted "white text on teal" treatment).
+   Secondary = hairline ghost button. */
+.btn-primary {
+    background: var(--brand-primary, #0d9488) !important;
+    color: #ffffff !important;
+    border: 1px solid var(--brand-primary, #0d9488) !important;
+    box-shadow: none !important;
+    font-weight: 500 !important;
+}
+.btn-primary:hover {
+    background: var(--brand-primary-dark, #0f766e) !important;
+    border-color: var(--brand-primary-dark, #0f766e) !important;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+.btn-secondary {
+    background: transparent !important;
+    border: 1px solid rgba(0,0,0,0.10) !important;
+    color: #0f172a !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    font-weight: 500 !important;
+}
+.btn-secondary:hover {
+    background: rgba(0,0,0,0.04) !important;
+    transform: none !important;
+}
+[data-theme="dark"] .btn-secondary {
+    background: transparent !important;
+    border-color: rgba(255,255,255,0.10) !important;
+    color: #f1f5f9 !important;
+}
+[data-theme="dark"] .btn-secondary:hover {
+    background: rgba(255,255,255,0.06) !important;
+}
+
+/* === 24. AI / purple-themed buttons -> brand teal === */
+.btn-ai-generate, .ai-btn {
+    background: var(--brand-primary, #0d9488) !important;
+    color: #ffffff !important;
+    border: 1px solid var(--brand-primary, #0d9488) !important;
+    box-shadow: none !important;
+}
+.btn-ai-generate:hover, .ai-btn:hover {
+    background: var(--brand-primary-dark, #0f766e) !important;
+    transform: none !important;
+}
+
+/* === 25. Save dropdown (workout builder) === */
+.save-dropdown { box-shadow: none !important; }
+.btn-save-main, .btn-save-toggle {
+    background: var(--brand-primary, #0d9488) !important;
+    color: #ffffff !important;
+    border: 1px solid var(--brand-primary, #0d9488) !important;
+    box-shadow: none !important;
+}
+.btn-save-main:hover, .btn-save-toggle:hover {
+    background: var(--brand-primary-dark, #0f766e) !important;
+}
+.save-dropdown-menu {
+    border-radius: 12px !important;
+    box-shadow: 0 12px 48px rgba(0,0,0,0.10) !important;
+    border: 1px solid rgba(0,0,0,0.06) !important;
+    background: #ffffff !important;
+}
+[data-theme="dark"] .save-dropdown-menu {
+    background: #14171f !important;
+    border-color: rgba(255,255,255,0.08) !important;
+    box-shadow: 0 12px 48px rgba(0,0,0,0.40) !important;
+}
+.save-dropdown-item {
+    background: transparent !important;
+    color: inherit !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+.save-dropdown-item:hover {
+    background: rgba(13,148,136,0.08) !important;
+}
+
+/* === 26. Workout Builder panel headers — quiet uppercase labels === */
+.wb-panel-header {
+    background: transparent !important;
+    border-bottom: 1px solid rgba(0,0,0,0.06) !important;
+}
+[data-theme="dark"] .wb-panel-header {
+    border-bottom-color: rgba(255,255,255,0.06) !important;
+}
+.wb-panel-header span {
+    font-weight: 500 !important;
+    letter-spacing: 0.06em !important;
+    font-size: 0.6875rem !important;
+    color: #94a3b8 !important;
+}
+.wb-panel-add-btn {
+    border-radius: 999px !important;
+    box-shadow: none !important;
+}
+.wb-panel-add-btn:hover {
+    background: var(--brand-primary, #0d9488) !important;
+    border-color: var(--brand-primary, #0d9488) !important;
+    color: #ffffff !important;
+}
