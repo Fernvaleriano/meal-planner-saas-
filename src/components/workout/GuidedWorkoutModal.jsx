@@ -261,6 +261,10 @@ function GuidedWorkoutModal({
   // prompt them to do the other side before starting the rest timer.
   const [pendingSecondSide, setPendingSecondSide] = useState(false);
   const pendingSecondSideRef = useRef(false);
+  // Brief countdown (5s) shown in the switch-sides banner so the client
+  // has time to physically swap sides before reps/timer restart.
+  const [switchCountdown, setSwitchCountdown] = useState(0);
+  const switchCountdownTimeoutRef = useRef(null);
   // Live unilateral flags by exercise id. Workouts saved before the DB
   // backfill have stale is_unilateral=false in workout_data, so we fetch
   // the current value from the exercises table on mount and trust it
@@ -2154,24 +2158,45 @@ function GuidedWorkoutModal({
       setPendingSecondSide(true);
       speak('Switch sides', voiceEnabled);
 
-      // Re-arm the exercise: restart rep countdown for rep-based, restart
-      // timer for timed. Same video keeps playing (we don't touch showVideo).
-      if (exInfo?.isTimed) {
-        const setLog = setLogsRef.current[exIdx]?.[setIdx];
-        setTimer(setLog?.duration || exInfo.duration);
-      } else {
-        if (repIntervalRef.current) clearInterval(repIntervalRef.current);
-        const setLog = setLogsRef.current[exIdx]?.[setIdx];
-        const reps = setLog?.reps || parseReps(exInfo?.reps);
-        if (reps > 0 && Number.isInteger(reps) && exInfo?.trackingType !== 'failure') {
-          repTotalRef.current = reps;
-          setRepCountdownActive(false); // reset first so the effect re-fires
-          setTimeout(() => {
+      // Stop any active rep countdown / timer immediately so nothing keeps
+      // ticking while the client is physically switching sides.
+      if (repIntervalRef.current) clearInterval(repIntervalRef.current);
+      setRepCountdownActive(false);
+
+      // 5-second hold with audible ticks, then re-arm the exercise for
+      // side 2 (rep countdown for reps, timer for timed).
+      let secondsLeft = 5;
+      setSwitchCountdown(secondsLeft);
+      playTickSound();
+
+      const onSwitchCountdownEnd = () => {
+        switchCountdownTimeoutRef.current = null;
+        setSwitchCountdown(0);
+        if (exInfo?.isTimed) {
+          const setLog = setLogsRef.current[exIdx]?.[setIdx];
+          setTimer(setLog?.duration || exInfo.duration);
+        } else {
+          const setLog = setLogsRef.current[exIdx]?.[setIdx];
+          const reps = setLog?.reps || parseReps(exInfo?.reps);
+          if (reps > 0 && Number.isInteger(reps) && exInfo?.trackingType !== 'failure') {
+            repTotalRef.current = reps;
             setCurrentRep(reps);
             setRepCountdownActive(true);
-          }, 0);
+          }
         }
-      }
+      };
+
+      const tick = () => {
+        secondsLeft -= 1;
+        if (secondsLeft > 0) {
+          setSwitchCountdown(secondsLeft);
+          playTickSound();
+          switchCountdownTimeoutRef.current = setTimeout(tick, 1000);
+        } else {
+          onSwitchCountdownEnd();
+        }
+      };
+      switchCountdownTimeoutRef.current = setTimeout(tick, 1000);
       return;
     }
     pendingSecondSideRef.current = false;
@@ -2557,6 +2582,11 @@ function GuidedWorkoutModal({
     setEditingField(null);
     pendingSecondSideRef.current = false;
     setPendingSecondSide(false);
+    if (switchCountdownTimeoutRef.current) {
+      clearTimeout(switchCountdownTimeoutRef.current);
+      switchCountdownTimeoutRef.current = null;
+    }
+    setSwitchCountdown(0);
 
     if (phase === 'rest') {
       doAdvanceAfterRest(currentExIndex, currentSetIndex, info);
@@ -2631,6 +2661,11 @@ function GuidedWorkoutModal({
     setEditingField(null);
     pendingSecondSideRef.current = false;
     setPendingSecondSide(false);
+    if (switchCountdownTimeoutRef.current) {
+      clearTimeout(switchCountdownTimeoutRef.current);
+      switchCountdownTimeoutRef.current = null;
+    }
+    setSwitchCountdown(0);
 
     // In superset mode — exit superset and go to exercise before the group
     const ss = supersetStateRef.current;
@@ -4136,7 +4171,9 @@ function GuidedWorkoutModal({
           }}
         >
           <span style={{ fontSize: '18px' }}>🔄</span>
-          Switch sides — second side
+          {switchCountdown > 0
+            ? `Switch sides — ${switchCountdown}…`
+            : 'Side 2 — same reps'}
         </div>
       )}
     </div>
