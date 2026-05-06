@@ -16584,8 +16584,9 @@ textarea,
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.55);
+    background: rgba(0, 0, 0, 0.18);
     z-index: 1;
+    pointer-events: none;
 }
 
 .share-card-scrim-top {
@@ -16593,8 +16594,8 @@ textarea,
     top: 0;
     left: 0;
     right: 0;
-    height: 40%;
-    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0) 100%);
+    height: 22%;
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.55) 0%, rgba(0, 0, 0, 0) 100%);
     z-index: 1;
     pointer-events: none;
 }
@@ -16604,8 +16605,8 @@ textarea,
     bottom: 0;
     left: 0;
     right: 0;
-    height: 55%;
-    background: linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0) 100%);
+    height: 58%;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.92) 0%, rgba(0, 0, 0, 0) 100%);
     z-index: 1;
     pointer-events: none;
 }
@@ -16638,21 +16639,22 @@ textarea,
 }
 
 .share-card-muscle-map {
-    flex: 1 1 auto;
+    position: absolute;
+    left: 5%;
+    /* Stats sit ~80px above the bottom; figure parks just above that. */
+    bottom: 110px;
+    width: 42%;
+    z-index: 2;
+    pointer-events: none;
     display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 0;
-    margin: 4px 0 8px;
+    justify-content: flex-start;
 }
 
 .share-card-muscle-map img {
-    max-width: 92%;
-    max-height: 100%;
-    width: auto;
+    width: 100%;
     height: auto;
     object-fit: contain;
-    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.4));
+    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.6));
 }
 
 .share-card-stats {
