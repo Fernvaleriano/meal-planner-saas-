@@ -4004,8 +4004,9 @@ function Workouts() {
           ctx.fillRect(0, 0, width, height);
         }
 
-        // Dark overlay for text readability
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+        // Dark overlay — heavier when there's a custom background photo so
+        // the muscle map figure reads cleanly against busy imagery.
+        ctx.fillStyle = shareBgImage ? 'rgba(0, 0, 0, 0.6)' : 'rgba(0, 0, 0, 0.45)';
         ctx.fillRect(0, 0, width, height);
 
         // Brand logo (full logo image containing icon + name, preserving aspect ratio)
@@ -4018,8 +4019,9 @@ function Workouts() {
           ctx.drawImage(logoImg, (width - logoWidth) / 2, 20, logoWidth, logoHeight);
         }
 
-        // Muscle map (only when no custom background image — they conflict visually)
-        if (!shareBgImage && muscleMapImg) {
+        // Muscle map — always rendered. The dark overlay above provides
+        // contrast against custom background photos.
+        if (muscleMapImg) {
           // Reserve the band between the logo (~y=130) and the stats (~y=0.78*h).
           const bandTop = height * 0.16;
           const bandBottom = height * 0.74;
@@ -4151,16 +4153,14 @@ function Workouts() {
       });
 
       const logoUrl = 'https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/Untitled%20design%20-%202026-02-10T171903.769.png';
-      const muscleMapUrl = !shareBgImage
-        ? buildMuscleMapUrl(
-            clientData?.preferred_exercise_gender === 'female' || clientData?.gender === 'female' ? 'female' : 'male',
-            exercises
-          )
-        : null;
+      const muscleMapUrl = buildMuscleMapUrl(
+        clientData?.preferred_exercise_gender === 'female' || clientData?.gender === 'female' ? 'female' : 'male',
+        exercises
+      );
 
       const [logo, muscleMap] = await Promise.all([
         loadImage(logoUrl),
-        muscleMapUrl ? loadImage(muscleMapUrl) : Promise.resolve(null)
+        loadImage(muscleMapUrl)
       ]);
       renderCard(logo, muscleMap);
     } catch (err) {
@@ -5186,18 +5186,16 @@ function Workouts() {
                   <div className="share-card-brand">
                     <img src="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/Untitled%20design%20-%202026-02-10T171903.769.png" alt="Zique Fitness" className="share-card-logo" />
                   </div>
-                  {!shareBgImage && (
-                    <div className="share-card-muscle-map">
-                      <img
-                        src={buildMuscleMapUrl(
-                          clientData?.preferred_exercise_gender === 'female' || clientData?.gender === 'female' ? 'female' : 'male',
-                          exercises
-                        )}
-                        alt="Muscles worked"
-                        crossOrigin="anonymous"
-                      />
-                    </div>
-                  )}
+                  <div className="share-card-muscle-map">
+                    <img
+                      src={buildMuscleMapUrl(
+                        clientData?.preferred_exercise_gender === 'female' || clientData?.gender === 'female' ? 'female' : 'male',
+                        exercises
+                      )}
+                      alt="Muscles worked"
+                      crossOrigin="anonymous"
+                    />
+                  </div>
                   <div className="share-card-stats">
                     {shareToggles.calories && (
                       <div className="share-stat">
