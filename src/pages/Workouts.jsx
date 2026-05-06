@@ -4142,13 +4142,15 @@ function Workouts() {
       };
 
       // Load logo and muscle map in parallel — both can fail independently
-      // without blocking the export. Skip the muscle map when the user has a
-      // custom background image since they conflict visually.
-      const loadImage = (src) => new Promise((resolve) => {
+      // without blocking the export.
+      const loadImage = (src, label) => new Promise((resolve) => {
         const img = new Image();
         img.crossOrigin = 'anonymous';
         img.onload = () => resolve(img);
-        img.onerror = () => resolve(null);
+        img.onerror = (e) => {
+          console.warn(`[share-card] image failed to load (${label || 'image'}):`, src, e);
+          resolve(null);
+        };
         img.src = src;
       });
 
@@ -4158,10 +4160,14 @@ function Workouts() {
         exercises
       );
 
+      console.log('[share-card] muscle map URL:', muscleMapUrl);
       const [logo, muscleMap] = await Promise.all([
-        loadImage(logoUrl),
-        loadImage(muscleMapUrl)
+        loadImage(logoUrl, 'logo'),
+        loadImage(muscleMapUrl, 'muscle-map')
       ]);
+      if (!muscleMap) {
+        console.warn('[share-card] muscle map skipped — image failed to load');
+      }
       renderCard(logo, muscleMap);
     } catch (err) {
       console.error('Error sharing results:', err);
