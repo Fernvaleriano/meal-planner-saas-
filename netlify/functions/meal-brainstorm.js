@@ -1,88 +1,10 @@
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+// Meal Brainstorm — uses Claude (Anthropic SDK) for reliable structured output.
+// Migrated from Gemini after JSON-parse failures became the dominant failure mode.
+const AnthropicModule = require('@anthropic-ai/sdk');
+const Anthropic = AnthropicModule.default || AnthropicModule;
 
-// Robust extractor for the meal-suggestion JSON payload. LLMs frequently emit
-// near-JSON with smart quotes, trailing commas, or get truncated mid-object.
-// Tries strict parse → repaired parse → regex-based suggestion recovery.
-function extractSuggestionsJSON(raw) {
-    if (!raw) return null;
-
-    // Accept any of these wrapper key names — different prompts/models drift.
-    const pickList = obj => {
-        if (!obj || typeof obj !== 'object') return null;
-        for (const k of ['suggestions', 'alternatives', 'options', 'meals', 'results']) {
-            if (Array.isArray(obj[k]) && obj[k].length > 0) return obj[k];
-        }
-        // Sometimes the whole response IS the array.
-        if (Array.isArray(obj) && obj.length > 0) return obj;
-        return null;
-    };
-    const wrap = (list, msg) => list ? {
-        message: msg || 'Here are a few options — tap one to apply.',
-        suggestions: list
-    } : null;
-
-    // 1. Strip markdown fences and isolate the outermost {...} or [...].
-    let cleaned = raw.trim()
-        .replace(/^```(?:json)?\s*/i, '')
-        .replace(/```$/g, '')
-        .trim();
-    const firstObj = cleaned.indexOf('{');
-    const firstArr = cleaned.indexOf('[');
-    const start = firstObj === -1 ? firstArr
-                : firstArr === -1 ? firstObj
-                : Math.min(firstObj, firstArr);
-    if (start > 0) cleaned = cleaned.slice(start);
-    // Trim any trailing prose after the structure.
-    const lastObj = cleaned.lastIndexOf('}');
-    const lastArr = cleaned.lastIndexOf(']');
-    const end = Math.max(lastObj, lastArr);
-    if (end !== -1 && end < cleaned.length - 1) cleaned = cleaned.slice(0, end + 1);
-
-    // 2. Strict parse.
-    try {
-        const parsed = JSON.parse(cleaned);
-        const list = pickList(parsed);
-        if (list) return wrap(list, parsed.message);
-    } catch (_) { /* fall through */ }
-
-    // 3. Repair common LLM JSON quirks and try again.
-    const repaired = cleaned
-        .replace(/[‘’]/g, "'")
-        .replace(/[“”]/g, '"')
-        .replace(/,(\s*[}\]])/g, '$1')
-        .replace(/\r?\n/g, ' ');
-    try {
-        const parsed = JSON.parse(repaired);
-        const list = pickList(parsed);
-        if (list) return wrap(list, parsed.message);
-    } catch (_) { /* fall through */ }
-
-    // 4. Regex fallback — recover individual suggestion objects by scanning for
-    //    "name" + macro fields. Survives truncated wrappers and missing braces.
-    const suggestionRe = /"name"\s*:\s*"([^"]+)"[^{}]*?"calories"\s*:\s*(\d+)[^{}]*?"protein"\s*:\s*(\d+)[^{}]*?"carbs"\s*:\s*(\d+)[^{}]*?"fat"\s*:\s*(\d+)/g;
-    const recovered = [];
-    let match;
-    while ((match = suggestionRe.exec(repaired)) !== null) {
-        recovered.push({
-            name: match[1],
-            calories: parseInt(match[2]) || 0,
-            protein: parseInt(match[3]) || 0,
-            carbs: parseInt(match[4]) || 0,
-            fat: parseInt(match[5]) || 0,
-            description: '',
-            ingredients: [],
-            instructions: ''
-        });
-    }
-    if (recovered.length > 0) {
-        const msgMatch = /"message"\s*:\s*"([^"]+)"/.exec(repaired);
-        return wrap(recovered, msgMatch ? msgMatch[1] : null);
-    }
-
-    return null;
-}
-
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
+const MODEL = 'claude-haiku-4-5';
 
 const headers = {
     'Access-Control-Allow-Origin': '*',
@@ -91,266 +13,239 @@ const headers = {
     'Content-Type': 'application/json'
 };
 
+// JSON schema for the meal-suggestions tool. Claude is forced to call this
+// tool and the API validates its input against the schema (strict: true), so
+// the response cannot be malformed. No post-hoc parsing fallbacks needed.
+const SUGGESTIONS_SCHEMA = {
+    type: 'object',
+    additionalProperties: false,
+    properties: {
+        message: {
+            type: 'string',
+            description: 'A 1-2 sentence intro framing the suggestions for the coach.'
+        },
+        suggestions: {
+            type: 'array',
+            description: 'Between 2 and 3 meal options that fit the coach\'s request.',
+            items: {
+                type: 'object',
+                additionalProperties: false,
+                properties: {
+                    name: {
+                        type: 'string',
+                        description: 'Meal name including portion sizes, e.g. "6oz Grilled Chicken with 1 cup Rice".'
+                    },
+                    calories: { type: 'integer' },
+                    protein: { type: 'integer' },
+                    carbs: { type: 'integer' },
+                    fat: { type: 'integer' },
+                    description: {
+                        type: 'string',
+                        description: 'One-line description of the meal.'
+                    },
+                    ingredients: {
+                        type: 'array',
+                        items: { type: 'string' },
+                        description: 'Each ingredient with its quantity.'
+                    },
+                    instructions: {
+                        type: 'string',
+                        description: 'Numbered preparation steps as a single string.'
+                    }
+                },
+                required: ['name', 'calories', 'protein', 'carbs', 'fat', 'description', 'ingredients', 'instructions']
+            }
+        }
+    },
+    required: ['message', 'suggestions']
+};
+
+const SUGGESTION_QUICK_ACTIONS = new Set([
+    'alternatives', 'higher-protein', 'lower-carb', 'simpler', 'lower-cal', 'more-alternatives'
+]);
+
+const MEAL_KEYWORDS = [
+    'how about', 'what about', 'can i have', 'i want', 'make it', 'change to',
+    'swap for', 'replace with', 'give me', 'suggest', 'recommend', 'instead',
+    'protein shake', 'smoothie', 'breakfast', 'lunch', 'dinner', 'snack',
+    'eggs', 'chicken', 'salmon', 'steak', 'oatmeal', 'salad', 'sandwich',
+    'with a', 'and a', 'plus', 'add'
+];
+
+function buildUserRequest(meal, message, quickAction) {
+    if (quickAction) {
+        const prompts = {
+            'alternatives': `Suggest 3 alternative meals that could replace "${meal.name}" with similar macros (around ${meal.calories} cal, ${meal.protein}g protein). Keep the same meal type (${meal.type}).`,
+            'more-alternatives': `Suggest 3 MORE alternative meals (different from typical suggestions) that could replace "${meal.name}" with similar macros (around ${meal.calories} cal, ${meal.protein}g protein). Be creative and offer variety.`,
+            'higher-protein': `Suggest 2-3 variations of "${meal.name}" with MORE protein while keeping calories similar. Current: ${meal.protein}g protein, ${meal.calories} cal. Target: at least ${Math.round(meal.protein * 1.3)}g protein.`,
+            'lower-carb': `Suggest 2-3 variations of "${meal.name}" with FEWER carbs while keeping protein similar. Current: ${meal.carbs}g carbs. Target: under ${Math.round(meal.carbs * 0.6)}g carbs.`,
+            'simpler': `Suggest 2-3 simpler versions of "${meal.name}" using fewer ingredients and easier preparation, while keeping similar nutrition.`,
+            'prep-tips': `Give meal prep tips and suggestions for "${meal.name}". Include storage tips, batch cooking ideas, and time-saving shortcuts.`,
+            'lower-cal': `Suggest 2-3 variations of "${meal.name}" with fewer calories while staying satisfying. Current: ${meal.calories} cal. Target: around ${Math.round(meal.calories * 0.75)} cal.`,
+            'budget': `Suggest budget-friendly alternatives or modifications for "${meal.name}" using cheaper ingredients.`
+        };
+        return prompts[quickAction] || message;
+    }
+    if (message && MEAL_KEYWORDS.some(kw => message.toLowerCase().includes(kw))) {
+        return `The coach wants to replace the current ${meal.type} with: "${message}". Create 1-2 variations of this meal idea with accurate macros that fit around ${meal.calories} calories.`;
+    }
+    return message;
+}
+
+function buildContextBlock(meal, dayTargets, clientPreferences, userRequest) {
+    const lines = [];
+    lines.push(`CURRENT MEAL (${meal.type.toUpperCase()}):`);
+    lines.push(`- Name: ${meal.name}`);
+    lines.push(`- Macros: ${meal.calories} cal | ${meal.protein}g P | ${meal.carbs}g C | ${meal.fat}g F`);
+    if (meal.ingredients) {
+        const ing = Array.isArray(meal.ingredients) ? meal.ingredients.join(', ') : meal.ingredients;
+        lines.push(`- Ingredients: ${ing}`);
+    }
+    if (dayTargets) {
+        lines.push('');
+        lines.push(`DAILY TARGETS: ${dayTargets.calories} cal | ${dayTargets.protein}g P | ${dayTargets.carbs}g C | ${dayTargets.fat}g F`);
+    }
+    if (clientPreferences) {
+        const prefs = [];
+        if (clientPreferences.allergies) prefs.push(`Allergies: ${clientPreferences.allergies}`);
+        if (clientPreferences.dislikes) prefs.push(`Dislikes: ${clientPreferences.dislikes}`);
+        if (clientPreferences.dietType) prefs.push(`Diet: ${clientPreferences.dietType}`);
+        if (prefs.length > 0) {
+            lines.push('');
+            lines.push(`CLIENT PREFERENCES: ${prefs.join(' | ')}`);
+        }
+    }
+    lines.push('');
+    lines.push(`COACH'S REQUEST: ${userRequest}`);
+    return lines.join('\n');
+}
+
 exports.handler = async (event) => {
     if (event.httpMethod === 'OPTIONS') {
         return { statusCode: 200, headers, body: '' };
     }
-
     if (event.httpMethod !== 'POST') {
-        return {
-            statusCode: 405,
-            headers,
-            body: JSON.stringify({ error: 'Method not allowed' })
-        };
+        return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method not allowed' }) };
     }
-
-    if (!GEMINI_API_KEY) {
-        return {
-            statusCode: 500,
-            headers,
-            body: JSON.stringify({ error: 'AI not configured. Please add GEMINI_API_KEY.' })
-        };
+    if (!ANTHROPIC_API_KEY) {
+        return { statusCode: 500, headers, body: JSON.stringify({ error: 'AI not configured. Please add ANTHROPIC_API_KEY.' }) };
     }
 
     try {
         const body = JSON.parse(event.body || '{}');
-        const {
-            meal,           // { type, name, calories, protein, carbs, fat, ingredients }
-            message,        // User's question/request
-            quickAction,    // Optional: 'alternatives', 'higher-protein', 'lower-carb', 'simpler', 'prep-tips'
-            dayTargets,     // { calories, protein, carbs, fat }
-            clientPreferences, // { allergies, dislikes, dietType }
-            chatHistory     // Previous messages in this session
-        } = body;
+        const { meal, message, quickAction, dayTargets, clientPreferences, chatHistory } = body;
 
         if (!meal || (!message && !quickAction)) {
-            return {
-                statusCode: 400,
-                headers,
-                body: JSON.stringify({ error: 'meal and message/quickAction are required' })
-            };
+            return { statusCode: 400, headers, body: JSON.stringify({ error: 'meal and message/quickAction are required' }) };
         }
 
-        // Determine if this is a meal suggestion request (should return options)
-        // Check quick actions OR detect meal-related keywords in custom messages
-        const mealSuggestionKeywords = [
-            'how about', 'what about', 'can i have', 'i want', 'make it', 'change to',
-            'swap for', 'replace with', 'give me', 'suggest', 'recommend', 'instead',
-            'protein shake', 'smoothie', 'breakfast', 'lunch', 'dinner', 'snack',
-            'eggs', 'chicken', 'salmon', 'steak', 'oatmeal', 'salad', 'sandwich',
-            'with a', 'and a', 'plus', 'add'
-        ];
-        const messageHasMealKeywords = message && mealSuggestionKeywords.some(kw => message.toLowerCase().includes(kw));
-        const isMealSuggestionRequest = (quickAction && ['alternatives', 'higher-protein', 'lower-carb', 'simpler', 'lower-cal', 'more-alternatives'].includes(quickAction)) || messageHasMealKeywords;
+        const messageHasMealKeywords = message && MEAL_KEYWORDS.some(kw => message.toLowerCase().includes(kw));
+        const isMealSuggestionRequest = (quickAction && SUGGESTION_QUICK_ACTIONS.has(quickAction)) || messageHasMealKeywords;
 
-        // Build the prompt based on quick action or custom message
-        let userRequest = message;
-        if (quickAction) {
-            const actionPrompts = {
-                'alternatives': `Suggest 3 alternative meals that could replace "${meal.name}" with similar macros (around ${meal.calories} cal, ${meal.protein}g protein). Keep the same meal type (${meal.type}).`,
-                'more-alternatives': `Suggest 3 MORE alternative meals (different from typical suggestions) that could replace "${meal.name}" with similar macros (around ${meal.calories} cal, ${meal.protein}g protein). Be creative and offer variety.`,
-                'higher-protein': `Suggest 2-3 variations of "${meal.name}" with MORE protein while keeping calories similar. Current: ${meal.protein}g protein, ${meal.calories} cal. Target: at least ${Math.round(meal.protein * 1.3)}g protein.`,
-                'lower-carb': `Suggest 2-3 variations of "${meal.name}" with FEWER carbs while keeping protein similar. Current: ${meal.carbs}g carbs. Target: under ${Math.round(meal.carbs * 0.6)}g carbs.`,
-                'simpler': `Suggest 2-3 simpler versions of "${meal.name}" using fewer ingredients and easier preparation, while keeping similar nutrition.`,
-                'prep-tips': `Give meal prep tips and suggestions for "${meal.name}". Include storage tips, batch cooking ideas, and time-saving shortcuts.`,
-                'lower-cal': `Suggest 2-3 variations of "${meal.name}" with fewer calories while staying satisfying. Current: ${meal.calories} cal. Target: around ${Math.round(meal.calories * 0.75)} cal.`,
-                'budget': `Suggest budget-friendly alternatives or modifications for "${meal.name}" using cheaper ingredients.`
-            };
-            userRequest = actionPrompts[quickAction] || message;
-        }
+        const userRequest = buildUserRequest(meal, message, quickAction);
+        const contextBlock = buildContextBlock(meal, dayTargets, clientPreferences, userRequest);
 
-        // For custom meal descriptions, enhance the request
-        if (!quickAction && messageHasMealKeywords) {
-            userRequest = `The coach wants to replace the current ${meal.type} with: "${message}". Create 1-2 variations of this meal idea with accurate macros that fit around ${meal.calories} calories.`;
-        }
-
-        // Build meal context
-        const mealContext = `
-CURRENT MEAL (${meal.type.toUpperCase()}):
-- Name: ${meal.name}
-- Calories: ${meal.calories} cal
-- Protein: ${meal.protein}g
-- Carbs: ${meal.carbs}g
-- Fat: ${meal.fat}g
-${meal.ingredients ? `- Ingredients: ${Array.isArray(meal.ingredients) ? meal.ingredients.join(', ') : meal.ingredients}` : ''}
-`;
-
-        const targetsContext = dayTargets ? `
-DAILY TARGETS:
-- Total Calories: ${dayTargets.calories} cal
-- Protein: ${dayTargets.protein}g
-- Carbs: ${dayTargets.carbs}g
-- Fat: ${dayTargets.fat}g
-` : '';
-
-        const preferencesContext = clientPreferences ? `
-CLIENT PREFERENCES:
-${clientPreferences.allergies ? `- Allergies/Avoid: ${clientPreferences.allergies}` : ''}
-${clientPreferences.dislikes ? `- Dislikes: ${clientPreferences.dislikes}` : ''}
-${clientPreferences.dietType ? `- Diet Type: ${clientPreferences.dietType}` : ''}
-` : '';
-
-        const historyContext = chatHistory && chatHistory.length > 0 ? `
-PREVIOUS CONVERSATION:
-${chatHistory.slice(-4).map(msg => `${msg.role === 'user' ? 'Coach' : 'AI'}: ${msg.content}`).join('\n')}
-` : '';
-
-        // Different prompt based on whether we need structured meal suggestions
-        let systemPrompt;
-        if (isMealSuggestionRequest) {
-            systemPrompt = `You are an AI assistant helping a nutrition coach brainstorm meal ideas. You MUST respond with a JSON object containing meal suggestions WITH full recipes.
-
-${mealContext}
-${targetsContext}
-${preferencesContext}
-${historyContext}
-
-COACH'S REQUEST: "${userRequest}"
-
-You MUST respond with ONLY a valid JSON object in this exact format (no other text before or after):
-{
-    "message": "Brief explanation of your suggestions (1-2 sentences)",
-    "suggestions": [
-        {
-            "name": "Meal name with portions (e.g., '6oz Grilled Chicken with Roasted Vegetables')",
-            "calories": 450,
-            "protein": 40,
-            "carbs": 25,
-            "fat": 18,
-            "description": "Brief description of the meal",
-            "ingredients": ["6oz chicken breast", "1 cup broccoli", "1 tbsp olive oil", "salt and pepper to taste"],
-            "instructions": "1. Season chicken with salt and pepper. 2. Heat olive oil in a pan over medium-high heat. 3. Cook chicken 6-7 minutes per side until internal temp reaches 165°F. 4. Steam broccoli for 4-5 minutes. 5. Serve chicken over vegetables."
-        }
-    ]
-}
-
-RULES:
-- Include 2-3 meal suggestions in the suggestions array
-- All macros must be realistic numbers (integers)
-- Meal names should include portion sizes
-- MUST include ingredients array with specific quantities
-- MUST include instructions as a single string with numbered steps
-- Consider client preferences and restrictions
-- Keep meals practical and easy to prepare
-- ONLY output valid JSON, nothing else`;
-        } else {
-            systemPrompt = `You are an AI assistant helping a nutrition coach brainstorm and refine meal ideas for their client. Be practical, specific, and provide actionable suggestions.
-
-${mealContext}
-${targetsContext}
-${preferencesContext}
-${historyContext}
-
-COACH'S REQUEST: "${userRequest}"
-
-INSTRUCTIONS:
-1. Be concise and practical - coaches are busy
-2. When suggesting alternatives, include approximate macros for each
-3. When modifying meals, explain what changes to make
-4. Consider the client's preferences and restrictions
-5. Keep suggestions realistic and easy to prepare
-6. If suggesting a new meal, format it clearly with name and macros
-
-IMPORTANT:
-- Do NOT use markdown formatting like **bold**, *italics*, or bullet points with asterisks
-- Use plain text with numbered lists (1. 2. 3.) or dashes (-)
-- Keep response under 250 words unless detailed instructions are needed
-- Be encouraging and helpful`;
-        }
-
-        // Call Gemini AI
-        const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{
-                    parts: [{
-                        text: systemPrompt
-                    }]
-                }],
-                generationConfig: {
-                    temperature: isMealSuggestionRequest ? 0.7 : 0.8,
-                    maxOutputTokens: isMealSuggestionRequest ? 4096 : 1024
+        // Conversational context for follow-up swaps in the same chat panel.
+        const messages = [];
+        if (Array.isArray(chatHistory)) {
+            for (const msg of chatHistory.slice(-4)) {
+                if (msg && msg.role && msg.content) {
+                    messages.push({
+                        role: msg.role === 'assistant' ? 'assistant' : 'user',
+                        content: String(msg.content)
+                    });
                 }
-            })
-        });
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error('Gemini API error:', response.status, errorText);
-            return {
-                statusCode: 500,
-                headers,
-                body: JSON.stringify({ error: 'AI brainstorm failed' })
-            };
+            }
         }
+        messages.push({ role: 'user', content: contextBlock });
 
-        const data = await response.json();
+        const client = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
 
-        let aiResponse = '';
-        if (data.candidates && data.candidates[0] && data.candidates[0].content) {
-            aiResponse = data.candidates[0].content.parts
-                .filter(p => p.text)
-                .map(p => p.text)
-                .join('');
-        }
-
-        // Try to parse JSON response for meal suggestions
         let suggestions = [];
-        let responseMessage = aiResponse;
+        let responseMessage = '';
 
         if (isMealSuggestionRequest) {
-            const parsed = extractSuggestionsJSON(aiResponse);
+            // Force Claude to call the suggestions tool. With tool_choice fixed
+            // and strict: true, the response is guaranteed to match the schema.
+            const systemPrompt = `You are a nutrition coach's AI assistant helping brainstorm meal swaps and variations for a client. Suggest 2-3 practical, easy-to-prepare meals. Macros must be realistic integers. Always respect client allergies, dislikes, and diet type. Meal names must include portion sizes. Each suggestion needs an ingredients list with quantities and numbered preparation steps.`;
 
-            if (parsed && Array.isArray(parsed.suggestions) && parsed.suggestions.length > 0) {
-                suggestions = parsed.suggestions.map(s => ({
-                    name: s.name || 'Unnamed meal',
-                    calories: parseInt(s.calories) || 0,
-                    protein: parseInt(s.protein) || 0,
-                    carbs: parseInt(s.carbs) || 0,
-                    fat: parseInt(s.fat) || 0,
+            const response = await client.messages.create({
+                model: MODEL,
+                max_tokens: 4096,
+                system: systemPrompt,
+                messages,
+                tools: [{
+                    name: 'submit_meal_suggestions',
+                    description: 'Return your suggested meal alternatives in a structured form so the coach can tap to apply.',
+                    input_schema: SUGGESTIONS_SCHEMA,
+                    strict: true
+                }],
+                tool_choice: { type: 'tool', name: 'submit_meal_suggestions' }
+            });
+
+            const toolUse = response.content.find(b => b.type === 'tool_use');
+            if (toolUse && toolUse.input && Array.isArray(toolUse.input.suggestions)) {
+                suggestions = toolUse.input.suggestions.map(s => ({
+                    name: s.name,
+                    calories: s.calories,
+                    protein: s.protein,
+                    carbs: s.carbs,
+                    fat: s.fat,
                     description: s.description || '',
                     ingredients: Array.isArray(s.ingredients) ? s.ingredients : [],
                     instructions: s.instructions || ''
                 }));
-                responseMessage = parsed.message || 'Here are a few options — tap one to apply.';
+                responseMessage = toolUse.input.message || 'Here are a few options — tap one to apply.';
             } else {
-                console.error('[meal-brainstorm] no suggestions extracted. raw:', aiResponse.slice(0, 800));
-                responseMessage = "I couldn't format alternatives this time. Try tapping Swap again, or describe what you want in the chat.";
+                console.error('[meal-brainstorm] no tool_use block. stop_reason:', response.stop_reason);
+                responseMessage = "I couldn't format alternatives this time. Try again, or describe what you want in the chat.";
             }
+        } else {
+            // Free-form coaching reply (prep tips, advice, plain Q&A).
+            const systemPrompt = `You are a nutrition coach's AI assistant. Be concise and practical — coaches are busy. Use plain text only: no markdown, no bold, no italics, no asterisk bullets. Use numbered lists or dashes when needed. Keep responses under 250 words unless detailed steps are required. Be encouraging.`;
+
+            const response = await client.messages.create({
+                model: MODEL,
+                max_tokens: 1024,
+                system: systemPrompt,
+                messages
+            });
+
+            responseMessage = response.content
+                .filter(b => b.type === 'text')
+                .map(b => b.text)
+                .join('\n')
+                .trim() || "I couldn't generate a response. Please try again.";
         }
 
-        const responseBody = {
-            response: responseMessage,
-            suggestions: suggestions,
-            hasSuggestions: suggestions.length > 0,
-            originalMeal: {
-                type: meal.type,
-                name: meal.name,
-                calories: meal.calories,
-                protein: meal.protein,
-                carbs: meal.carbs,
-                fat: meal.fat
-            }
+        return {
+            statusCode: 200,
+            headers,
+            body: JSON.stringify({
+                response: responseMessage,
+                suggestions,
+                hasSuggestions: suggestions.length > 0,
+                originalMeal: {
+                    type: meal.type,
+                    name: meal.name,
+                    calories: meal.calories,
+                    protein: meal.protein,
+                    carbs: meal.carbs,
+                    fat: meal.fat
+                }
+            })
         };
-        // Diagnostic: when a suggestion request returns no suggestions, expose
-        // the raw model output (truncated) so we can see why parsing failed
-        // without needing access to Netlify function logs.
-        if (isMealSuggestionRequest && suggestions.length === 0) {
-            responseBody._debug = {
-                rawModelResponse: aiResponse.slice(0, 800),
-                rawLength: aiResponse.length,
-                model: 'gemini-2.5-flash'
-            };
-        }
-        return { statusCode: 200, headers, body: JSON.stringify(responseBody) };
-
     } catch (error) {
         console.error('Meal Brainstorm error:', error);
-        return {
-            statusCode: 500,
-            headers,
-            body: JSON.stringify({ error: 'Failed to brainstorm', details: error.message })
-        };
+        if (Anthropic.AuthenticationError && error instanceof Anthropic.AuthenticationError) {
+            return { statusCode: 500, headers, body: JSON.stringify({ error: 'AI auth failed (check ANTHROPIC_API_KEY)' }) };
+        }
+        if (Anthropic.RateLimitError && error instanceof Anthropic.RateLimitError) {
+            return { statusCode: 429, headers, body: JSON.stringify({ error: 'AI is busy. Please try again in a moment.' }) };
+        }
+        if (Anthropic.APIError && error instanceof Anthropic.APIError) {
+            return { statusCode: error.status || 500, headers, body: JSON.stringify({ error: 'AI brainstorm failed', details: error.message }) };
+        }
+        return { statusCode: 500, headers, body: JSON.stringify({ error: 'Failed to brainstorm', details: error.message }) };
     }
 };
