@@ -4004,22 +4004,28 @@ function Workouts() {
           ctx.fillRect(0, 0, width, height);
         }
 
-        // Light top scrim — keeps the logo legible without darkening the
-        // selfie/photo people upload as the background.
-        const topScrim = ctx.createLinearGradient(0, 0, 0, height * 0.22);
-        topScrim.addColorStop(0, shareBgImage ? 'rgba(0, 0, 0, 0.55)' : 'rgba(0, 0, 0, 0.4)');
-        topScrim.addColorStop(1, 'rgba(0, 0, 0, 0)');
-        ctx.fillStyle = topScrim;
-        ctx.fillRect(0, 0, width, height * 0.22);
+        // Minimal scrims — Virtuagym lets the photo breathe end-to-end and
+        // relies on text shadows + figure outlines for contrast. Keep just
+        // enough darkening at the very top and bottom edges to anchor the
+        // logo and stats without dimming the actual photo content.
+        if (shareBgImage) {
+          const topScrim = ctx.createLinearGradient(0, 0, 0, height * 0.18);
+          topScrim.addColorStop(0, 'rgba(0, 0, 0, 0.45)');
+          topScrim.addColorStop(1, 'rgba(0, 0, 0, 0)');
+          ctx.fillStyle = topScrim;
+          ctx.fillRect(0, 0, width, height * 0.18);
 
-        // Heavy bottom scrim — anchors the muscle figure + stats + footer
-        // so they read on top of any photo. Starts higher (~45%) than before
-        // because the figure now lives in the lower-left corner.
-        const bottomScrim = ctx.createLinearGradient(0, height * 0.42, 0, height);
-        bottomScrim.addColorStop(0, 'rgba(0, 0, 0, 0)');
-        bottomScrim.addColorStop(1, shareBgImage ? 'rgba(0, 0, 0, 0.92)' : 'rgba(0, 0, 0, 0.7)');
-        ctx.fillStyle = bottomScrim;
-        ctx.fillRect(0, height * 0.42, width, height * 0.58);
+          const bottomScrim = ctx.createLinearGradient(0, height * 0.78, 0, height);
+          bottomScrim.addColorStop(0, 'rgba(0, 0, 0, 0)');
+          bottomScrim.addColorStop(1, 'rgba(0, 0, 0, 0.55)');
+          ctx.fillStyle = bottomScrim;
+          ctx.fillRect(0, height * 0.78, width, height * 0.22);
+        } else {
+          // No photo — apply a slight overall darken so the gradient bg
+          // doesn't blow out the white text.
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+          ctx.fillRect(0, 0, width, height);
+        }
 
         // Brand logo (full logo image containing icon + name, preserving aspect ratio)
         if (logoImg) {
@@ -4031,17 +4037,26 @@ function Workouts() {
           ctx.drawImage(logoImg, (width - logoWidth) / 2, 20, logoWidth, logoHeight);
         }
 
-        // Muscle map — anchored bottom-left (Virtuagym-style) so the upper
-        // area stays open for the user's selfie/cover photo to show through.
+        // Muscle map — Virtuagym-style: middle-left, sits over the user's
+        // chest/torso area in a portrait selfie, sized to be visible but
+        // not dominating. Soft white drop-shadow gives it contrast on any
+        // background without needing a dark plate behind it.
         if (muscleMapImg) {
           const aspect = muscleMapImg.naturalWidth / muscleMapImg.naturalHeight || (4 / 3);
-          // Target: figure spans ~42% of canvas width, sits with its bottom
-          // edge ~6px above the stats row at y = 0.82 * h.
           const drawW = width * 0.42;
           const drawH = drawW / aspect;
-          const drawX = width * 0.05;
-          const drawY = (height * 0.82) - drawH - 28;
+          // Vertical center anchored at ~52% of height (mid-card, just below
+          // the logo band).
+          const drawX = width * 0.04;
+          const drawY = (height * 0.52) - (drawH / 2);
+
+          ctx.save();
+          ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
+          ctx.shadowBlur = 24;
+          ctx.shadowOffsetX = 0;
+          ctx.shadowOffsetY = 4;
           ctx.drawImage(muscleMapImg, drawX, drawY, drawW, drawH);
+          ctx.restore();
         }
 
         // Stats
@@ -4062,16 +4077,24 @@ function Workouts() {
           // room, so target ~70% of that for the value height. Clamped 40-72px.
           const valueFont = Math.max(40, Math.min(72, Math.floor(slotWidth * 0.46)));
           const labelFont = valueFont >= 56 ? 20 : 18;
+          // Strong text shadow so stats read on bright photo backgrounds
+          // without needing a dark scrim band underneath.
+          ctx.save();
+          ctx.shadowColor = 'rgba(0, 0, 0, 0.85)';
+          ctx.shadowBlur = 14;
+          ctx.shadowOffsetX = 0;
+          ctx.shadowOffsetY = 2;
           activeToggles.forEach((stat, i) => {
             const x = slotWidth * (i + 0.5);
             ctx.fillStyle = 'white';
             ctx.font = `bold ${valueFont}px -apple-system, BlinkMacSystemFont, sans-serif`;
             ctx.textAlign = 'center';
             ctx.fillText(stat.value, x, statY);
-            ctx.fillStyle = '#cbd5e1';
+            ctx.fillStyle = '#e2e8f0';
             ctx.font = `${labelFont}px -apple-system, BlinkMacSystemFont, sans-serif`;
             ctx.fillText(stat.label, x, statY + valueFont * 0.6);
           });
+          ctx.restore();
         }
 
         // PRs section
@@ -4092,10 +4115,14 @@ function Workouts() {
         }
 
         // Footer
-        ctx.fillStyle = '#9ca3af';
+        ctx.save();
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+        ctx.shadowBlur = 8;
+        ctx.fillStyle = '#cbd5e1';
         ctx.font = '18px -apple-system, BlinkMacSystemFont, sans-serif';
         ctx.textAlign = 'center';
         ctx.fillText('Powered by Zique Fitness', width / 2, height - 30);
+        ctx.restore();
 
         // Convert and share
         canvas.toBlob(async (blob) => {

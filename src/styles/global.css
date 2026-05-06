@@ -16584,7 +16584,7 @@ textarea,
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.18);
+    background: rgba(0, 0, 0, 0.05);
     z-index: 1;
     pointer-events: none;
 }
@@ -16594,8 +16594,8 @@ textarea,
     top: 0;
     left: 0;
     right: 0;
-    height: 22%;
-    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.55) 0%, rgba(0, 0, 0, 0) 100%);
+    height: 18%;
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.45) 0%, rgba(0, 0, 0, 0) 100%);
     z-index: 1;
     pointer-events: none;
 }
@@ -16605,8 +16605,8 @@ textarea,
     bottom: 0;
     left: 0;
     right: 0;
-    height: 58%;
-    background: linear-gradient(to top, rgba(0, 0, 0, 0.92) 0%, rgba(0, 0, 0, 0) 100%);
+    height: 22%;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.55) 0%, rgba(0, 0, 0, 0) 100%);
     z-index: 1;
     pointer-events: none;
 }
@@ -16640,9 +16640,11 @@ textarea,
 
 .share-card-muscle-map {
     position: absolute;
-    left: 5%;
-    /* Stats sit ~80px above the bottom; figure parks just above that. */
-    bottom: 110px;
+    left: 4%;
+    /* Centered vertically — sits over the user's chest area in a portrait
+       selfie, not over the face (top) or stats (bottom). */
+    top: 50%;
+    transform: translateY(-50%);
     width: 42%;
     z-index: 2;
     pointer-events: none;
@@ -16654,7 +16656,7 @@ textarea,
     width: 100%;
     height: auto;
     object-fit: contain;
-    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.6));
+    filter: drop-shadow(0 4px 16px rgba(0, 0, 0, 0.7)) drop-shadow(0 0 4px rgba(0, 0, 0, 0.5));
 }
 
 .share-card-stats {
@@ -16681,7 +16683,7 @@ textarea,
     color: white;
     line-height: 1;
     letter-spacing: -0.02em;
-    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.9), 0 0 4px rgba(0, 0, 0, 0.7);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
