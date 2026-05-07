@@ -64,7 +64,7 @@ exports.handler = async (event) => {
   try {
     let clientsQuery = supabase
       .from('clients')
-      .select('id, client_name, goal, target_weight, current_weight, last_activity_at')
+      .select('id, client_name, default_goal, weight, calorie_goal, last_activity_at')
       .eq('coach_id', coachId)
       .eq('is_archived', false);
     if (onlyClientId) clientsQuery = clientsQuery.eq('id', onlyClientId);
@@ -89,11 +89,12 @@ exports.handler = async (event) => {
         .order('workout_log_id', { ascending: false })
         .limit(2000),
       supabase
-        .from('weight_logs')
-        .select('client_id, date, weight')
+        .from('client_measurements')
+        .select('client_id, measured_date, weight')
         .in('client_id', clientIds)
-        .gte('date', weightSince)
-        .order('date', { ascending: true }),
+        .gte('measured_date', weightSince)
+        .not('weight', 'is', null)
+        .order('measured_date', { ascending: true }),
       supabase
         .from('client_checkins')
         .select('client_id, checkin_date, meal_plan_adherence, workouts_completed, workouts_planned, energy_level, sleep_quality')
@@ -145,10 +146,10 @@ exports.handler = async (event) => {
 
       // --- Body-weight plateau detection ---
       const myWeights = weightLogs.filter((w) => w.client_id === client.id);
-      if (myWeights.length >= 4 && client.goal && client.goal !== 'maintain') {
+      if (myWeights.length >= 4 && client.default_goal && client.default_goal !== 'maintain') {
         const first = Number(myWeights[0].weight);
         const last = Number(myWeights[myWeights.length - 1].weight);
-        const days = (new Date(myWeights[myWeights.length - 1].date) - new Date(myWeights[0].date)) / 86400000;
+        const days = (new Date(myWeights[myWeights.length - 1].measured_date) - new Date(myWeights[0].measured_date)) / 86400000;
         if (days >= 14 && first > 0) {
           const pctChange = Math.abs(last - first) / first;
           if (pctChange < WEIGHT_PLATEAU_PCT) {
@@ -157,7 +158,7 @@ exports.handler = async (event) => {
               clientName: client.client_name,
               type: 'weight',
               metric: 'body weight',
-              evidence: `${first.toFixed(1)} → ${last.toFixed(1)} over ${Math.round(days)} days (goal: ${client.goal})`,
+              evidence: `${first.toFixed(1)} → ${last.toFixed(1)} over ${Math.round(days)} days (goal: ${client.default_goal})`,
               severity: days >= 28 ? 'high' : 'medium'
             });
           }

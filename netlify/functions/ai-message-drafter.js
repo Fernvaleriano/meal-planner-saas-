@@ -47,11 +47,11 @@ exports.handler = async (event) => {
     const since = new Date(Date.now() - 14 * 86400000).toISOString().split('T')[0];
 
     const [clientRes, checkinsRes, weightRes, workoutRes, prRes, dietRes, lastChatRes] = await Promise.all([
-      supabase.from('clients').select('id, client_name, goal, target_weight, current_weight, dietary_preference').eq('id', clientId).eq('coach_id', coachId).maybeSingle(),
+      supabase.from('clients').select('id, client_name, default_goal, weight, calorie_goal, diet_type').eq('id', clientId).eq('coach_id', coachId).maybeSingle(),
       supabase.from('client_checkins').select('checkin_date, weight, energy_level, sleep_quality, hunger_level, stress_level, meal_plan_adherence, workouts_completed, workouts_planned, wins, challenges, questions').eq('client_id', clientId).gte('checkin_date', since).order('checkin_date', { ascending: false }).limit(4),
-      supabase.from('weight_logs').select('date, weight').eq('client_id', clientId).gte('date', since).order('date', { ascending: true }),
+      supabase.from('client_measurements').select('measured_date, weight').eq('client_id', clientId).gte('measured_date', since).not('weight', 'is', null).order('measured_date', { ascending: true }),
       supabase.from('workout_logs').select('workout_date, duration_minutes, notes').eq('client_id', clientId).gte('workout_date', since).order('workout_date', { ascending: false }).limit(10),
-      supabase.from('personal_records').select('exercise_name, weight, reps, date').eq('related_client_id', clientId).gte('date', since).order('date', { ascending: false }).limit(5),
+      supabase.from('personal_records').select('exercise_name, record_type, record_value, achieved_date').eq('client_id', clientId).gte('achieved_date', since).order('achieved_date', { ascending: false }).limit(5),
       supabase.from('food_diary_entries').select('entry_date, calories, protein').eq('client_id', clientId).gte('entry_date', since).order('entry_date', { ascending: false }).limit(60),
       supabase.from('chat_messages').select('sender_type, message, created_at').eq('coach_id', coachId).eq('client_id', clientId).order('created_at', { ascending: false }).limit(6)
     ]);
@@ -94,10 +94,10 @@ function buildContext(client, checkins, weights, workouts, prs, diet, chat) {
   return {
     firstName,
     fullName: client.client_name,
-    goal: client.goal || 'unspecified',
-    targetWeight: client.target_weight,
-    currentWeight: client.current_weight,
-    diet: client.dietary_preference,
+    goal: client.default_goal || 'unspecified',
+    targetWeight: null,
+    currentWeight: client.weight,
+    diet: client.diet_type,
     last14: {
       checkinCount: checkins.length,
       latestCheckin,
@@ -128,7 +128,7 @@ LAST 14 DAYS:
 - days with food logged: ${ctx.last14.daysFoodLogged}
 - weight change: ${ctx.last14.weightDelta != null ? ctx.last14.weightDelta + ' (units as logged)' : 'n/a'}
 - avg meal-plan adherence: ${ctx.last14.adherenceAvg != null ? ctx.last14.adherenceAvg + '%' : 'n/a'}
-- PRs hit: ${ctx.last14.prsHit}${ctx.last14.bestPR ? ` (best: ${ctx.last14.bestPR.exercise_name} ${ctx.last14.bestPR.weight}×${ctx.last14.bestPR.reps})` : ''}
+- PRs hit: ${ctx.last14.prsHit}${ctx.last14.bestPR ? ` (best: ${ctx.last14.bestPR.exercise_name} ${ctx.last14.bestPR.record_value} ${ctx.last14.bestPR.record_type || ''})` : ''}
 ${ctx.last14.latestCheckin ? `- last check-in: energy ${ctx.last14.latestCheckin.energy_level}/5, sleep ${ctx.last14.latestCheckin.sleep_quality}/5, stress ${ctx.last14.latestCheckin.stress_level}/5; wins: "${(ctx.last14.latestCheckin.wins || '').slice(0, 200)}"; challenges: "${(ctx.last14.latestCheckin.challenges || '').slice(0, 200)}"` : ''}
 ${ctx.last14.lastClientMessage ? `- last client message: "${ctx.last14.lastClientMessage.text.slice(0, 200)}"` : ''}
 
