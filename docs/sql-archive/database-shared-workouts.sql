@@ -9,6 +9,8 @@ CREATE TABLE IF NOT EXISTS shared_workout_programs (
   coach_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   coach_program_id INTEGER REFERENCES workout_programs(id) ON DELETE CASCADE,
   expires_at TIMESTAMP WITH TIME ZONE,
+  cta_url TEXT,
+  cta_label TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
