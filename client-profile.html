@@ -4615,6 +4615,61 @@
             margin-bottom: 4px;
         }
 
+        /* Threaded replies on a check-in */
+        .checkin-thread {
+            margin-top: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .checkin-thread-msg {
+            padding: 10px 12px;
+            border-radius: 10px;
+            font-size: 14px;
+            max-width: 88%;
+        }
+        .checkin-thread-msg.coach {
+            background: #e0f2fe;
+            color: #0c4a6e;
+            align-self: flex-start;
+        }
+        .checkin-thread-msg.client {
+            background: #f1f5f9;
+            color: #1e293b;
+            align-self: flex-end;
+        }
+        .checkin-thread-msg .who {
+            font-size: 11px;
+            font-weight: 600;
+            opacity: 0.75;
+            margin-bottom: 2px;
+        }
+        .checkin-reply-form {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        .checkin-reply-form input {
+            flex: 1;
+            padding: 10px 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        .checkin-reply-form button {
+            padding: 10px 14px;
+            border-radius: 8px;
+            background: #0ea5e9;
+            color: white;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .checkin-reply-form button:disabled { opacity: 0.6; cursor: not-allowed; }
+        [data-theme="dark"] .checkin-thread-msg.coach { background: #0c4a6e; color: #e0f2fe; }
+        [data-theme="dark"] .checkin-thread-msg.client { background: #1e293b; color: #e2e8f0; }
+        [data-theme="dark"] .checkin-reply-form input { background: #1e293b; color: #e2e8f0; border-color: #334155; }
+
         /* Achievements / Badges Section */
         .achievements-section {
             background: white;
@@ -12192,6 +12247,11 @@
                                 <div class="coach-existing-response-label">Your Response:</div>
                                 <div class="coach-existing-response-text">${c.coach_feedback}</div>
                             </div>
+                            ${renderCheckinThread(c)}
+                            <div class="checkin-reply-form">
+                                <input type="text" id="reply-${c.id}" placeholder="Reply to your client..." onkeydown="if(event.key==='Enter'){event.preventDefault();replyToCheckin(${c.id});}" />
+                                <button onclick="replyToCheckin(${c.id})">Send</button>
+                            </div>
                         ` : `
                             <div class="coach-response-form">
                                 <textarea id="response-${c.id}" placeholder="Write a response to encourage and guide your client..."></textarea>
@@ -12250,6 +12310,57 @@
                 alert('Failed to send response. Please try again.');
                 btn.textContent = 'Send Response';
                 btn.disabled = false;
+            }
+        }
+
+        function renderCheckinThread(c) {
+            let msgs = Array.isArray(c.thread) ? c.thread.slice() : [];
+            // The first coach message in the thread is the same one already
+            // shown in the "Your Response" panel above — drop it so it isn't
+            // duplicated.
+            if (msgs.length && c.coach_feedback) {
+                const first = msgs[0];
+                if (first && first.sender_type === 'coach' && (first.message || '').trim() === c.coach_feedback.trim()) {
+                    msgs = msgs.slice(1);
+                }
+            }
+            if (!msgs.length) return '';
+            const clientName = currentClient?.client_name || 'Client';
+            return `<div class="checkin-thread">${msgs.map(m => `
+                <div class="checkin-thread-msg ${m.sender_type === 'coach' ? 'coach' : 'client'}">
+                    <div class="who">${m.sender_type === 'coach' ? 'You' : escapeHtml(clientName)}</div>
+                    ${escapeHtml(m.message || '')}
+                </div>
+            `).join('')}</div>`;
+        }
+
+        async function replyToCheckin(checkinId) {
+            const input = document.getElementById(`reply-${checkinId}`);
+            const text = (input?.value || '').trim();
+            if (!text) return;
+            const sendBtn = input.nextElementSibling;
+            sendBtn.disabled = true;
+            try {
+                const res = await fetch('/.netlify/functions/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'send',
+                        coachId: currentUser.id,
+                        clientId: currentClient.id,
+                        senderType: 'coach',
+                        message: text,
+                        relatedCheckinId: checkinId
+                    })
+                });
+                if (!res.ok) throw new Error('Failed to send reply');
+                input.value = '';
+                await loadCheckins(currentClient.id);
+            } catch (err) {
+                console.error('Error sending check-in reply:', err);
+                alert('Failed to send reply. Please try again.');
+            } finally {
+                sendBtn.disabled = false;
             }
         }
 

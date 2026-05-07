@@ -1083,6 +1083,9 @@ function Messages() {
                     }}
                   >
                     {renderMedia(msg)}
+                    {msg.related_checkin_id && (
+                      <span className="msg-checkin-pill">📝 Re: Check-in</span>
+                    )}
                     {parsedReply ? (
                       <>
                         <div className="chat-reply-quote">
