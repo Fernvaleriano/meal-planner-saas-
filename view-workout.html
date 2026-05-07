@@ -355,6 +355,19 @@
             transition: transform 0.1s;
         }
         .vn-play-btn:active { transform: scale(0.92); }
+        .vn-play-btn:disabled {
+            background: var(--bg-tertiary);
+            color: var(--text-muted);
+            cursor: default;
+        }
+        .vn-play-btn:disabled:active { transform: none; }
+        @keyframes vnSpin { to { transform: rotate(360deg); } }
+        .voice-note[data-vn-state="ready"] [data-vn-icon="loading"] { display: none; }
+        .voice-note[data-vn-state="loading"] [data-vn-icon="play"],
+        .voice-note[data-vn-state="loading"] [data-vn-icon="pause"] { display: none !important; }
+        .voice-note[data-vn-state="error"] [data-vn-icon="loading"] { display: none; }
+        .voice-note[data-vn-state="error"] .vn-play-btn { background: var(--bg-tertiary); }
+        .voice-note[data-vn-state="error"] [data-vn-icon="play"] { color: var(--text-muted); }
         .vn-meta {
             display: flex;
             align-items: center;
@@ -694,27 +707,39 @@
                 : (ex.voiceNoteUrl || '');
             if (!src) return '';
             const id = `vn-${voiceNoteCounter++}`;
+            // We deliberately omit src + use preload="none". iOS Safari
+            // silently throttles concurrent <audio preload="auto"> fetches
+            // when many are on a page (e.g. all voice notes in a multi-day
+            // program), leaving most never-loaded so taps do nothing. We
+            // load each track via fetch() into a blob URL after render,
+            // which doesn't share that throttle.
             return `
-                <div class="voice-note" data-vn-id="${id}">
-                    <button type="button" class="vn-play-btn" data-vn-action="toggle" aria-label="Play voice note">
+                <div class="voice-note" data-vn-id="${id}" data-vn-state="loading">
+                    <button type="button" class="vn-play-btn" data-vn-action="toggle" aria-label="Play voice note" disabled>
                         <svg data-vn-icon="play" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
                         <svg data-vn-icon="pause" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="display:none;"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg>
+                        <svg data-vn-icon="loading" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="animation: vnSpin 0.9s linear infinite;"><circle cx="12" cy="12" r="9" stroke-opacity="0.25"/><path d="M21 12a9 9 0 0 1-9 9" stroke-linecap="round"/></svg>
                     </button>
                     <span class="vn-meta">🎙 Coach</span>
                     <div class="vn-progress" data-vn-action="seek">
                         <div class="vn-progress-fill" data-vn-fill></div>
                     </div>
                     <span class="vn-time" data-vn-time>0:00</span>
-                    <audio src="${escapeHtml(src)}" preload="auto" playsinline data-vn-audio></audio>
+                    <audio preload="none" playsinline data-vn-audio data-vn-src="${escapeHtml(src)}"></audio>
                 </div>
             `;
         }
 
         function renderExercise(ex, exIdx) {
-            const customVideo = ex.customVideoUrl || '';
+            // For custom videos, ALWAYS go through the proxy when we have a
+            // path — it 302s to a fresh signed URL on every request, so we
+            // never serve a stale URL from the share record's JSONB.
+            const customPath = ex.customVideoPath || '';
+            const customVideo = customPath
+                ? `/.netlify/functions/serve-shared-video?path=${encodeURIComponent(customPath)}`
+                : (ex.customVideoUrl || '');
             const defaultVideo = ex.video_url || ex.animation_url || '';
             const media = customVideo || defaultVideo;
-            const customPath = ex.customVideoPath || '';
             const thumb = ex.thumbnail_url || ex.customVideoThumbnail || '';
             const hasMedia = !!media;
             const thumbHtml = thumb
@@ -874,16 +899,24 @@
             };
         }
 
-        function showVnError(playerEl, src) {
-            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-            const reason = isIOS
-                ? "iPhone can't play this voice note format."
-                : "Couldn't play this voice note.";
-            playerEl.innerHTML = `
-                <span class="vn-meta">🎙 Coach</span>
-                <span class="vn-error">⚠ ${reason}</span>
-                <a href="${escapeHtml(src)}" download>Download</a>
-            `;
+        async function preloadVoiceNoteAsBlob(playerEl, audio) {
+            const src = audio.dataset.vnSrc;
+            if (!src) return;
+            try {
+                const resp = await fetch(src, { credentials: 'omit' });
+                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                const blob = await resp.blob();
+                const blobUrl = URL.createObjectURL(blob);
+                audio.src = blobUrl;
+                playerEl.dataset.vnState = 'ready';
+                const btn = playerEl.querySelector('[data-vn-action="toggle"]');
+                if (btn) btn.disabled = false;
+            } catch (err) {
+                console.warn('[voice-note] preload failed', { src, err: err && err.message });
+                playerEl.dataset.vnState = 'error';
+                const btn = playerEl.querySelector('[data-vn-action="toggle"]');
+                if (btn) btn.title = 'Voice note unavailable';
+            }
         }
 
         function attachVoiceNoteHandlers() {
@@ -893,6 +926,9 @@
                 playerEl.addEventListener('click', (e) => e.stopPropagation());
                 const els = getVnElements(playerEl);
                 if (!els.audio) return;
+                // Kick off blob preload — bypasses iOS Safari's silent
+                // throttle on concurrent <audio> network fetches.
+                preloadVoiceNoteAsBlob(playerEl, els.audio);
 
                 els.audio.addEventListener('play', () => {
                     els.playIcon.style.display = 'none';
