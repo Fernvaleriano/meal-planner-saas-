@@ -404,23 +404,6 @@
 
         .msg-bubble p { margin: 0; font-size: 15px; line-height: 1.4; white-space: pre-wrap; }
 
-        .msg-checkin-pill {
-            display: inline-block;
-            font-size: 11px;
-            font-weight: 600;
-            padding: 2px 8px;
-            border-radius: 999px;
-            background: rgba(255, 255, 255, 0.22);
-            color: inherit;
-            text-decoration: none;
-            margin-bottom: 6px;
-        }
-        .msg.theirs .msg-checkin-pill {
-            background: rgba(15, 23, 42, 0.08);
-            color: var(--gray-700, #334155);
-        }
-        .msg-checkin-pill:hover { text-decoration: underline; }
-
         .msg-time { display: block; font-size: 10px; margin-top: 4px; opacity: 0.7; }
         .msg.mine .msg-time { text-align: right; color: rgba(255, 255, 255, 0.7); }
         .msg.theirs .msg-time { color: var(--gray-400); }
@@ -1339,15 +1322,10 @@
                     reactionsHtml = `<div class="msg-reactions">${badges}</div>`;
                 }
 
-                const checkinPill = msg.related_checkin_id
-                    ? `<a class="msg-checkin-pill" href="client-profile.html?clientId=${activeClientId}#checkin-${msg.related_checkin_id}" title="View check-in">📝 Re: Check-in</a>`
-                    : '';
-
                 html += `
                     <div class="msg-wrapper">
                         <div class="msg ${isMine ? 'mine' : 'theirs'}" data-msg-id="${msg.id}" ${isMine ? 'oncontextmenu="showContextMenu(event, ' + msg.id + ')"' : ''}>
                             <div class="${bubbleClass}">
-                                ${checkinPill}
                                 ${mediaHtml}
                                 ${hasText ? `<p>${escapeHtml(msg.message)}</p>` : ''}
                                 <span class="msg-time">${formatMsgTime(msg.created_at)}</span>
