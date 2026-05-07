@@ -4041,20 +4041,13 @@ function Workouts() {
           ctx.drawImage(logoImg, (width - logoWidth) / 2, 20, logoWidth, logoHeight);
         }
 
-        // Muscle map — Virtuagym-style: middle-left, sits over the user's
-        // chest/torso area in a portrait selfie, sized to be visible but
-        // not dominating. Soft white drop-shadow gives it contrast on any
-        // background without needing a dark plate behind it.
         if (muscleMapImg) {
           const aspect = muscleMapImg.naturalWidth / muscleMapImg.naturalHeight || (4 / 3);
-          const drawW = width * 0.32;
+          const drawW = width * 0.18;
           const drawH = drawW / aspect;
-          // Vertical center anchored at ~62% of height. Lower than dead-
-          // center so on portrait selfies the figure overlays the chest
-          // instead of the face, and on the no-photo path it sits closer
-          // to the stats (matches Virtuagym's bottom-weighted layout).
-          const drawX = -width * 0.01;
-          const drawY = (height * 0.62) - (drawH / 2);
+          const inset = width * 0.04;
+          const drawX = width - drawW - inset;
+          const drawY = inset;
 
           ctx.save();
           ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
