@@ -129,7 +129,7 @@
     const { data: { user } } = await sb.auth.getUser();
     if (!user) return [];
     // Resolve coach id
-    const { data: coach } = await sb.from('coaches').select('id').eq('user_id', user.id).maybeSingle();
+    const { data: coach } = await sb.from('coaches').select('id').eq('id', user.id).maybeSingle();
     if (!coach) return [];
     const { data: clients } = await sb.from('clients')
       .select('id, client_name, email, profile_photo_url, last_activity_at')

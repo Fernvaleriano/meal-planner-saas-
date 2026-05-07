@@ -60,12 +60,12 @@ exports.handler = async (event) => {
   try {
     const since = new Date(Date.now() - 14 * 86400000).toISOString();
 
-    // Resolve coach.user_id
-    const { data: coach } = await supabase.from('coaches').select('user_id').eq('id', coachId).maybeSingle();
+    // In this schema, coaches.id == auth.users.id (Supabase convention),
+    // so coachId is also the coach's auth user id.
 
-    // Notifications coach SENT (related_client_id != null, sender = coach):
-    // The schema mixes coach-bound (user_id=coach) and client-bound rows. We
-    // care about ones we sent to clients, so filter on related_client_id.
+    // Notifications coach SENT (related_client_id != null, sender = coach).
+    // The schema mixes coach-bound (user_id=coach) and client-bound rows.
+    // We care about ones we sent to clients, so filter on related_client_id.
     const { data: sent, error: sentErr } = await supabase
       .from('notifications')
       .select('id, type, title, message, related_client_id, created_at, is_read, read_at, user_id')
@@ -74,8 +74,8 @@ exports.handler = async (event) => {
       .limit(500);
     if (sentErr) throw sentErr;
 
-    // Filter to those originating from this coach (rows where the coach is
-    // either user_id or related to a client this coach owns).
+    // Filter to those originating from this coach (rows related to a client
+    // this coach owns, or addressed to a client user this coach owns).
     const { data: myClients } = await supabase
       .from('clients')
       .select('id, user_id, client_name')

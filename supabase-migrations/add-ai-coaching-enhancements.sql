@@ -33,7 +33,7 @@ DROP POLICY IF EXISTS "coach can read own briefings" ON coach_daily_briefings;
 CREATE POLICY "coach can read own briefings" ON coach_daily_briefings
     FOR SELECT USING (
         EXISTS (
-            SELECT 1 FROM coaches c WHERE c.id = coach_daily_briefings.coach_id AND c.user_id = auth.uid()
+            SELECT 1 FROM coaches c WHERE c.id = coach_daily_briefings.coach_id AND c.id = auth.uid()
         )
     );
 
@@ -73,7 +73,7 @@ CREATE POLICY "users can read confirmations of their notifications" ON notificat
                    OR EXISTS (
                        SELECT 1 FROM clients cl
                        JOIN coaches co ON co.id = cl.coach_id
-                       WHERE cl.id = n.related_client_id AND co.user_id = auth.uid()
+                       WHERE cl.id = n.related_client_id AND co.id = auth.uid()
                    ))
         )
     );
@@ -137,7 +137,7 @@ ALTER TABLE coach_command_center_pins ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "coach manages own pins" ON coach_command_center_pins;
 CREATE POLICY "coach manages own pins" ON coach_command_center_pins
     FOR ALL USING (
-        EXISTS (SELECT 1 FROM coaches c WHERE c.id = coach_command_center_pins.coach_id AND c.user_id = auth.uid())
+        EXISTS (SELECT 1 FROM coaches c WHERE c.id = coach_command_center_pins.coach_id AND c.id = auth.uid())
     );
 
 -- ─────────────────────────────────────────────────────────────────────
@@ -166,7 +166,7 @@ ALTER TABLE ai_message_drafts ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "coach manages own drafts" ON ai_message_drafts;
 CREATE POLICY "coach manages own drafts" ON ai_message_drafts
     FOR ALL USING (
-        EXISTS (SELECT 1 FROM coaches c WHERE c.id = ai_message_drafts.coach_id AND c.user_id = auth.uid())
+        EXISTS (SELECT 1 FROM coaches c WHERE c.id = ai_message_drafts.coach_id AND c.id = auth.uid())
     );
 
 -- ─────────────────────────────────────────────────────────────────────
@@ -194,5 +194,5 @@ ALTER TABLE ai_plateau_acknowledgements ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "coach manages own plateau acks" ON ai_plateau_acknowledgements;
 CREATE POLICY "coach manages own plateau acks" ON ai_plateau_acknowledgements
     FOR ALL USING (
-        EXISTS (SELECT 1 FROM coaches c WHERE c.id = ai_plateau_acknowledgements.coach_id AND c.user_id = auth.uid())
+        EXISTS (SELECT 1 FROM coaches c WHERE c.id = ai_plateau_acknowledgements.coach_id AND c.id = auth.uid())
     );

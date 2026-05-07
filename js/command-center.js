@@ -32,7 +32,7 @@
                 window.location.href = '/login.html';
                 return;
             }
-            const { data: coach } = await supabaseClient.from('coaches').select('id').eq('user_id', user.id).maybeSingle();
+            const { data: coach } = await supabaseClient.from('coaches').select('id').eq('id', user.id).maybeSingle();
             if (!coach) {
                 window.location.href = '/login.html';
                 return;

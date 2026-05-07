@@ -119,15 +119,15 @@ async function targetsMaster(supabase, target) {
     if ((data?.email || '').toLowerCase() === MASTER_EMAIL) return true;
   }
   if (target.coachId) {
-    const { data } = await supabase.from('coaches').select('email, user_id').eq('id', target.coachId).maybeSingle();
+    const { data } = await supabase.from('coaches').select('email').eq('id', target.coachId).maybeSingle();
     if ((data?.email || '').toLowerCase() === MASTER_EMAIL) return true;
   }
   return false;
 }
 
 async function runSnapshot(supabase, actor) {
-  // Resolve master coach
-  const { data: master } = await supabase.from('coaches').select('id, user_id, email').eq('email', MASTER_EMAIL).maybeSingle();
+  // Resolve master coach (coaches.id == auth user id in this schema)
+  const { data: master } = await supabase.from('coaches').select('id, email').eq('email', MASTER_EMAIL).maybeSingle();
   if (!master) {
     return { ok: false, reason: 'Master coach record not found in coaches table — nothing to snapshot.' };
   }
