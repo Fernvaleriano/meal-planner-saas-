@@ -656,6 +656,23 @@
             }[c]));
         }
 
+        // Rewrite any stored signed URL pointing at the workout-assets bucket
+        // to go through our proxy instead. Coaches store custom videos as
+        // signed URLs on exercises.animation_url / exercises.video_url with
+        // tokens that expire ~7 days after upload. The proxy 302s to a fresh
+        // signed URL on every request so links never break.
+        function freshenWorkoutAssetUrl(url) {
+            if (!url || typeof url !== 'string') return url || '';
+            const m = url.match(/\/object\/sign\/workout-assets\/(.+?)(?:\?|$)/);
+            if (!m) return url;
+            try {
+                const path = decodeURIComponent(m[1]);
+                return `/.netlify/functions/serve-shared-video?path=${encodeURIComponent(path)}`;
+            } catch (_e) {
+                return url;
+            }
+        }
+
         // ---------- Renderers ----------
         function renderSets(ex) {
             const setsData = Array.isArray(ex.setsData) ? ex.setsData : [];
@@ -731,14 +748,18 @@
         }
 
         function renderExercise(ex, exIdx) {
-            // For custom videos, ALWAYS go through the proxy when we have a
-            // path — it 302s to a fresh signed URL on every request, so we
-            // never serve a stale URL from the share record's JSONB.
+            // Custom videos can land in multiple fields depending on how the
+            // exercise was created:
+            //   - customVideoUrl/customVideoPath: per-workout overrides
+            //   - animation_url / video_url: signed URLs on a coach's custom
+            //     exercise in the global exercises table
+            // We try each in priority order and rewrite stored signed URLs so
+            // they refresh on every load.
             const customPath = ex.customVideoPath || '';
             const customVideo = customPath
                 ? `/.netlify/functions/serve-shared-video?path=${encodeURIComponent(customPath)}`
-                : (ex.customVideoUrl || '');
-            const defaultVideo = ex.video_url || ex.animation_url || '';
+                : freshenWorkoutAssetUrl(ex.customVideoUrl || '');
+            const defaultVideo = freshenWorkoutAssetUrl(ex.video_url || ex.animation_url || '');
             const media = customVideo || defaultVideo;
             const thumb = ex.thumbnail_url || ex.customVideoThumbnail || '';
             const hasMedia = !!media;
