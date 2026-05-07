@@ -1095,6 +1095,15 @@
                         <option value="never">Never</option>
                     </select>
                 </div>
+                <div class="share-form-group">
+                    <label for="shareCtaUrl">Sign-up link <span style="font-weight:400;color:var(--text-muted);">(optional)</span></label>
+                    <input type="url" id="shareCtaUrl" placeholder="https://buy.stripe.com/... or your MoonClerk link" style="width:100%;padding:10px 12px;border-radius:var(--radius-sm);border:1px solid var(--border-color);background:var(--bg-tertiary);color:var(--text-primary);font-family:inherit;font-size:0.85rem;">
+                    <p style="font-size:0.7rem;color:var(--text-muted);margin-top:6px;">Where the "Get Started" button at the bottom of the preview takes them. Leave empty to hide it.</p>
+                </div>
+                <div class="share-form-group">
+                    <label for="shareCtaLabel">Button label <span style="font-weight:400;color:var(--text-muted);">(optional)</span></label>
+                    <input type="text" id="shareCtaLabel" placeholder="Get Started →" maxlength="60" style="width:100%;padding:10px 12px;border-radius:var(--radius-sm);border:1px solid var(--border-color);background:var(--bg-tertiary);color:var(--text-primary);font-family:inherit;font-size:0.85rem;">
+                </div>
                 <div class="modal-actions">
                     <button class="modal-btn cancel" onclick="closeShareModal()">Cancel</button>
                     <button class="modal-btn primary" id="shareGenerateBtn" onclick="confirmShare()">Create Link</button>
@@ -1422,6 +1431,9 @@
         // Share workout preview link
         let pendingShareId = null;
 
+        const SHARE_CTA_URL_KEY = 'shareWorkoutCtaUrl';
+        const SHARE_CTA_LABEL_KEY = 'shareWorkoutCtaLabel';
+
         function openShareModal(id) {
             const program = programs.find(p => p.id === id);
             if (!program) return;
@@ -1430,6 +1442,11 @@
             document.getElementById('shareForm').style.display = 'block';
             document.getElementById('shareResult').style.display = 'none';
             document.getElementById('shareExpiry').value = '7';
+            // Pre-fill CTA inputs from last-used values
+            try {
+                document.getElementById('shareCtaUrl').value = localStorage.getItem(SHARE_CTA_URL_KEY) || '';
+                document.getElementById('shareCtaLabel').value = localStorage.getItem(SHARE_CTA_LABEL_KEY) || '';
+            } catch (_e) {}
             document.getElementById('shareGenerateBtn').disabled = false;
             document.getElementById('shareGenerateBtn').textContent = 'Create Link';
             document.getElementById('shareModal').classList.add('active');
@@ -1446,7 +1463,15 @@
             if (!program) return;
 
             const expiry = document.getElementById('shareExpiry').value;
+            const ctaUrlRaw = (document.getElementById('shareCtaUrl').value || '').trim();
+            const ctaLabel = (document.getElementById('shareCtaLabel').value || '').trim();
             const btn = document.getElementById('shareGenerateBtn');
+
+            if (ctaUrlRaw && !/^https?:\/\//i.test(ctaUrlRaw)) {
+                showToast('Sign-up link must start with http:// or https://', 'error');
+                return;
+            }
+
             btn.disabled = true;
             btn.textContent = 'Creating...';
 
@@ -1465,9 +1490,17 @@
                         },
                         coachProgramId: program.id,
                         coachId: currentCoachId,
-                        expiresInDays: expiry
+                        expiresInDays: expiry,
+                        ctaUrl: ctaUrlRaw || undefined,
+                        ctaLabel: ctaLabel || undefined
                     })
                 });
+
+                // Persist for next time so the coach doesn't have to re-paste
+                try {
+                    if (ctaUrlRaw) localStorage.setItem(SHARE_CTA_URL_KEY, ctaUrlRaw);
+                    if (ctaLabel) localStorage.setItem(SHARE_CTA_LABEL_KEY, ctaLabel);
+                } catch (_e) {}
 
                 document.getElementById('shareLinkInput').value = result.shareUrl;
                 const note = result.expiresAt

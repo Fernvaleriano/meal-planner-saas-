@@ -26,7 +26,7 @@ exports.handler = async (event) => {
 
     const { data, error } = await supabase
       .from('shared_workout_programs')
-      .select('program_data, created_at, expires_at, coach_id')
+      .select('program_data, created_at, expires_at, coach_id, cta_url, cta_label')
       .eq('share_id', shareId)
       .single();
 
@@ -121,7 +121,9 @@ exports.handler = async (event) => {
         programData: data.program_data,
         createdAt: data.created_at,
         expiresAt: data.expires_at,
-        coachBranding
+        coachBranding,
+        ctaUrl: data.cta_url || null,
+        ctaLabel: data.cta_label || null
       })
     };
   } catch (error) {

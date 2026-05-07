@@ -15,7 +15,7 @@ exports.handler = async (event) => {
   }
 
   try {
-    const { programData, coachProgramId, coachId, expiresInDays } = JSON.parse(event.body);
+    const { programData, coachProgramId, coachId, expiresInDays, ctaUrl, ctaLabel } = JSON.parse(event.body);
 
     if (!programData) {
       return {
@@ -48,6 +48,22 @@ exports.handler = async (event) => {
     };
     if (coachProgramId) insertData.coach_program_id = coachProgramId;
     if (coachId) insertData.coach_id = coachId;
+
+    if (ctaUrl && typeof ctaUrl === 'string') {
+      const trimmed = ctaUrl.trim();
+      if (trimmed) {
+        if (!/^https?:\/\//i.test(trimmed)) {
+          return {
+            statusCode: 400,
+            body: JSON.stringify({ error: 'ctaUrl must start with http:// or https://' })
+          };
+        }
+        insertData.cta_url = trimmed.slice(0, 2048);
+      }
+    }
+    if (ctaLabel && typeof ctaLabel === 'string') {
+      insertData.cta_label = ctaLabel.trim().slice(0, 60);
+    }
 
     const { error } = await supabase
       .from('shared_workout_programs')
