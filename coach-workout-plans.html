@@ -543,6 +543,78 @@
             opacity: 0.9;
         }
 
+        .modal-btn.primary {
+            background: var(--brand-gradient);
+            color: white;
+        }
+
+        .share-form-group {
+            text-align: left;
+            margin-bottom: 16px;
+        }
+
+        .share-form-group label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+        }
+
+        .share-form-group select {
+            width: 100%;
+            padding: 10px 12px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border-color);
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.9rem;
+        }
+
+        .share-link-box {
+            display: flex;
+            gap: 8px;
+            background: var(--bg-tertiary);
+            padding: 8px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border-color);
+            margin-bottom: 12px;
+        }
+
+        .share-link-box input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--text-primary);
+            font-family: monospace;
+            font-size: 0.8rem;
+            padding: 6px 4px;
+            min-width: 0;
+        }
+
+        .share-link-box input:focus { outline: none; }
+
+        .share-copy-btn {
+            background: var(--brand-primary);
+            color: white;
+            border: none;
+            padding: 8px 14px;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            font-size: 0.8rem;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .share-copy-btn:hover { opacity: 0.9; }
+
+        .share-expiry-note {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 16px;
+        }
+
         /* Toast */
         .toast {
             position: fixed;
@@ -1007,6 +1079,41 @@
         </div>
     </div>
 
+    <!-- Share Modal -->
+    <div class="modal-overlay" id="shareModal">
+        <div class="modal-content" style="max-width: 460px;">
+            <h3 id="shareModalTitle">Share Workout Preview</h3>
+            <p style="margin-bottom: 16px;">Generate a public link prospects can view without signing in. They'll see the workout but can't track sets.</p>
+
+            <div id="shareForm">
+                <div class="share-form-group">
+                    <label for="shareExpiry">Link expires</label>
+                    <select id="shareExpiry">
+                        <option value="1">1 day</option>
+                        <option value="7" selected>7 days</option>
+                        <option value="30">30 days</option>
+                        <option value="never">Never</option>
+                    </select>
+                </div>
+                <div class="modal-actions">
+                    <button class="modal-btn cancel" onclick="closeShareModal()">Cancel</button>
+                    <button class="modal-btn primary" id="shareGenerateBtn" onclick="confirmShare()">Create Link</button>
+                </div>
+            </div>
+
+            <div id="shareResult" style="display:none;">
+                <div class="share-link-box">
+                    <input type="text" id="shareLinkInput" readonly>
+                    <button class="share-copy-btn" onclick="copyShareLink()">Copy</button>
+                </div>
+                <p class="share-expiry-note" id="shareExpiryNote"></p>
+                <div class="modal-actions">
+                    <button class="modal-btn cancel" onclick="closeShareModal()">Done</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast -->
     <div class="toast" id="toast"></div>
 
@@ -1234,6 +1341,11 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
                                 </svg>
                             </button>
+                            <button class="plan-action-btn" onclick="openShareModal(${p.id})" title="Share preview link">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
+                                </svg>
+                            </button>
                             <button class="plan-action-btn delete" onclick="openDeleteModal(${p.id}, '${(p.name || '').replace(/'/g, "\\'")}')" title="Delete">
                                 <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
@@ -1305,6 +1417,82 @@
             const program = programs.find(p => p.id === id);
             if (!program) return;
             openWorkoutPrintDialog(program);
+        }
+
+        // Share workout preview link
+        let pendingShareId = null;
+
+        function openShareModal(id) {
+            const program = programs.find(p => p.id === id);
+            if (!program) return;
+            pendingShareId = id;
+            document.getElementById('shareModalTitle').textContent = `Share "${program.name || 'Workout'}"`;
+            document.getElementById('shareForm').style.display = 'block';
+            document.getElementById('shareResult').style.display = 'none';
+            document.getElementById('shareExpiry').value = '7';
+            document.getElementById('shareGenerateBtn').disabled = false;
+            document.getElementById('shareGenerateBtn').textContent = 'Create Link';
+            document.getElementById('shareModal').classList.add('active');
+        }
+
+        function closeShareModal() {
+            document.getElementById('shareModal').classList.remove('active');
+            pendingShareId = null;
+        }
+
+        async function confirmShare() {
+            if (!pendingShareId) return;
+            const program = programs.find(p => p.id === pendingShareId);
+            if (!program) return;
+
+            const expiry = document.getElementById('shareExpiry').value;
+            const btn = document.getElementById('shareGenerateBtn');
+            btn.disabled = true;
+            btn.textContent = 'Creating...';
+
+            try {
+                const result = await apiCall('/.netlify/functions/save-shared-workout', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        programData: {
+                            name: program.name,
+                            description: program.description,
+                            program_type: program.program_type,
+                            difficulty: program.difficulty,
+                            duration_weeks: program.duration_weeks,
+                            days_per_week: program.days_per_week,
+                            days: (program.program_data && program.program_data.days) || []
+                        },
+                        coachProgramId: program.id,
+                        coachId: currentCoachId,
+                        expiresInDays: expiry
+                    })
+                });
+
+                document.getElementById('shareLinkInput').value = result.shareUrl;
+                const note = result.expiresAt
+                    ? `Expires ${new Date(result.expiresAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}.`
+                    : 'This link does not expire.';
+                document.getElementById('shareExpiryNote').textContent = note;
+                document.getElementById('shareForm').style.display = 'none';
+                document.getElementById('shareResult').style.display = 'block';
+            } catch (err) {
+                showToast('Failed to create share link', 'error');
+                btn.disabled = false;
+                btn.textContent = 'Create Link';
+            }
+        }
+
+        async function copyShareLink() {
+            const input = document.getElementById('shareLinkInput');
+            try {
+                await navigator.clipboard.writeText(input.value);
+                showToast('Link copied to clipboard', 'success');
+            } catch (_e) {
+                input.select();
+                document.execCommand('copy');
+                showToast('Link copied', 'success');
+            }
         }
 
         function showToast(message, type = 'success') {
