@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Workout Preview</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -10,288 +10,442 @@
     <style>
         :root {
             --brand-primary: #0d9488;
+            --brand-primary-soft: rgba(13, 148, 136, 0.12);
             --brand-secondary: #0284c7;
+            --brand-secondary-soft: rgba(2, 132, 199, 0.12);
             --brand-gradient: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
-            --bg-primary: #0f172a;
-            --bg-secondary: #1e293b;
-            --bg-tertiary: #334155;
+            --bg-primary: #0b1220;
+            --bg-secondary: #131c2e;
+            --bg-tertiary: #1e2a40;
+            --bg-elevated: #182238;
             --text-primary: #f8fafc;
             --text-secondary: #94a3b8;
             --text-muted: #64748b;
-            --border-color: #334155;
+            --border-color: rgba(148, 163, 184, 0.12);
+            --border-strong: rgba(148, 163, 184, 0.22);
             --success: #10b981;
             --warning: #f59e0b;
             --danger: #ef4444;
+            --warmup: #f97316;
+            --maincolor: #0d9488;
+            --cooldown: #6366f1;
             --radius-sm: 8px;
             --radius-md: 12px;
             --radius-lg: 16px;
+            --radius-xl: 22px;
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.18);
+            --shadow-md: 0 6px 20px -8px rgba(0,0,0,0.55);
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
         body {
-            font-family: 'Inter', -apple-system, sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             background: var(--bg-primary);
             color: var(--text-primary);
             min-height: 100vh;
-            padding-bottom: 120px;
+            padding-bottom: calc(110px + env(safe-area-inset-bottom));
+            -webkit-font-smoothing: antialiased;
+            line-height: 1.4;
         }
 
+        /* ---------- Top bar ---------- */
         .top-bar {
             background: var(--brand-gradient);
-            padding: 24px 20px;
+            padding: 28px 20px 24px;
             text-align: center;
+            position: relative;
+            overflow: hidden;
         }
-
+        .top-bar::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 30% 20%, rgba(255,255,255,0.18), transparent 60%);
+            pointer-events: none;
+        }
         .top-bar-logo {
-            max-height: 40px;
-            margin-bottom: 8px;
+            max-height: 44px;
+            max-width: 180px;
+            object-fit: contain;
+            margin-bottom: 10px;
+            filter: drop-shadow(0 2px 6px rgba(0,0,0,0.25));
         }
-
         .top-bar-coach {
-            font-size: 0.875rem;
-            color: rgba(255,255,255,0.85);
-            font-weight: 500;
-            margin-bottom: 4px;
+            font-size: 0.95rem;
+            color: rgba(255,255,255,0.95);
+            font-weight: 600;
+            letter-spacing: 0.01em;
         }
-
         .top-bar-title {
-            font-size: 1.05rem;
-            color: white;
-            font-weight: 700;
+            font-size: 0.72rem;
+            color: rgba(255,255,255,0.7);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.18em;
+            margin-top: 6px;
         }
 
+        /* ---------- Container ---------- */
         .container {
             max-width: 720px;
             margin: 0 auto;
-            padding: 20px;
+            padding: 24px 16px 8px;
+            animation: fadeUp 0.4s ease-out;
+        }
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
+        /* ---------- Program header ---------- */
         .program-header {
-            background: var(--bg-secondary);
+            background: linear-gradient(180deg, var(--bg-elevated), var(--bg-secondary));
             border: 1px solid var(--border-color);
-            border-radius: var(--radius-lg);
-            padding: 24px;
-            margin-bottom: 20px;
+            border-radius: var(--radius-xl);
+            padding: 22px 22px 20px;
+            margin-bottom: 16px;
+            box-shadow: var(--shadow-md);
         }
-
         .program-name {
             font-size: 1.5rem;
             font-weight: 800;
-            margin-bottom: 8px;
+            margin-bottom: 10px;
+            letter-spacing: -0.01em;
+            line-height: 1.25;
         }
-
         .program-meta {
             display: flex;
             flex-wrap: wrap;
-            gap: 12px;
-            font-size: 0.8rem;
-            color: var(--text-secondary);
-            margin-bottom: 12px;
+            gap: 6px;
+            margin-bottom: 14px;
         }
-
         .meta-pill {
             background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
             padding: 4px 10px;
             border-radius: 999px;
+            font-size: 0.72rem;
+            font-weight: 500;
             text-transform: capitalize;
+            letter-spacing: 0.01em;
         }
-
         .program-desc {
             color: var(--text-secondary);
-            font-size: 0.9rem;
-            line-height: 1.5;
+            font-size: 0.88rem;
+            line-height: 1.55;
         }
 
+        /* ---------- Expiry banner ---------- */
         .expiry-banner {
-            background: rgba(245, 158, 11, 0.1);
-            border: 1px solid rgba(245, 158, 11, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(245, 158, 11, 0.08);
+            border: 1px solid rgba(245, 158, 11, 0.25);
             color: var(--warning);
             padding: 10px 14px;
-            border-radius: var(--radius-sm);
-            font-size: 0.8rem;
-            margin-bottom: 20px;
-            text-align: center;
+            border-radius: var(--radius-md);
+            font-size: 0.78rem;
+            font-weight: 500;
+            margin-bottom: 16px;
         }
+        .expiry-banner svg { flex-shrink: 0; }
 
+        /* ---------- Day card ---------- */
         .day-card {
             background: var(--bg-secondary);
             border: 1px solid var(--border-color);
-            border-radius: var(--radius-lg);
+            border-radius: var(--radius-xl);
             margin-bottom: 16px;
             overflow: hidden;
+            box-shadow: var(--shadow-md);
         }
-
         .day-header {
             padding: 16px 20px;
-            background: var(--bg-tertiary);
+            background: linear-gradient(180deg, var(--bg-elevated), var(--bg-secondary));
             font-weight: 700;
-            font-size: 1.05rem;
+            font-size: 1rem;
+            letter-spacing: -0.005em;
             border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
+        .day-header-num {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 26px;
+            height: 26px;
+            background: var(--brand-primary-soft);
+            color: var(--brand-primary);
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 800;
+            flex-shrink: 0;
+        }
+        .day-body { padding: 8px 6px 10px; }
 
-        .day-body { padding: 8px; }
-
+        /* ---------- Section labels ---------- */
         .section-label {
-            font-size: 0.7rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.66rem;
             font-weight: 700;
             text-transform: uppercase;
-            color: var(--text-muted);
-            letter-spacing: 0.08em;
-            padding: 14px 12px 6px;
+            letter-spacing: 0.12em;
+            padding: 14px 14px 8px;
         }
+        .section-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+        }
+        .section-warm-up { color: var(--warmup); }
+        .section-warm-up .section-dot { background: var(--warmup); }
+        .section-main { color: var(--brand-primary); }
+        .section-main .section-dot { background: var(--brand-primary); }
+        .section-cool-down { color: var(--cooldown); }
+        .section-cool-down .section-dot { background: var(--cooldown); }
 
+        /* ---------- Exercise card ---------- */
         .exercise-card {
-            background: var(--bg-primary);
+            background: var(--bg-elevated);
             border: 1px solid var(--border-color);
             border-radius: var(--radius-md);
-            padding: 14px;
-            margin: 8px;
+            padding: 12px;
+            margin: 6px 8px;
             display: flex;
-            gap: 14px;
+            gap: 12px;
+            transition: border-color 0.15s, transform 0.15s;
+        }
+        .exercise-card:hover {
+            border-color: var(--border-strong);
         }
 
         .exercise-thumb {
-            width: 72px;
-            height: 72px;
-            border-radius: var(--radius-sm);
+            width: 76px;
+            height: 76px;
+            border-radius: var(--radius-md);
             background: var(--bg-tertiary);
             flex-shrink: 0;
             overflow: hidden;
             cursor: pointer;
             position: relative;
+            box-shadow: inset 0 0 0 1px var(--border-color);
         }
-
         .exercise-thumb img,
         .exercise-thumb video {
             width: 100%;
             height: 100%;
             object-fit: cover;
+            display: block;
         }
-
+        .exercise-thumb .thumb-fallback {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            font-size: 1.5rem;
+            background: var(--bg-tertiary);
+        }
         .exercise-thumb .play-overlay {
             position: absolute;
             inset: 0;
             display: flex;
             align-items: center;
             justify-content: center;
-            background: rgba(0,0,0,0.35);
-            color: white;
+            background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.45) 100%);
+            transition: background 0.15s;
         }
+        .exercise-thumb:hover .play-overlay { background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.55) 100%); }
+        .play-overlay-circle {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.95);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--bg-primary);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+        .play-overlay-circle svg { margin-left: 2px; }
 
         .exercise-info { flex: 1; min-width: 0; }
-
         .exercise-name {
             font-weight: 600;
             font-size: 0.95rem;
             margin-bottom: 4px;
+            line-height: 1.3;
+            color: var(--text-primary);
         }
-
         .exercise-muscle {
-            font-size: 0.75rem;
+            font-size: 0.72rem;
             color: var(--text-muted);
+            font-weight: 500;
+            text-transform: capitalize;
             margin-bottom: 8px;
         }
 
+        /* ---------- Sets ---------- */
         .sets-list {
             display: flex;
             flex-direction: column;
-            gap: 4px;
-            margin-top: 6px;
+            gap: 3px;
+            margin-top: 4px;
         }
-
         .set-row {
             display: flex;
             gap: 12px;
             font-size: 0.8rem;
             color: var(--text-secondary);
+            align-items: center;
         }
-
         .set-num {
             color: var(--text-muted);
-            width: 48px;
+            min-width: 44px;
             font-weight: 600;
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
         }
+        .set-detail { color: var(--text-primary); font-weight: 500; }
 
+        /* ---------- Notes ---------- */
         .exercise-notes {
-            margin-top: 8px;
-            padding: 8px 10px;
-            background: rgba(13, 148, 136, 0.08);
-            border-left: 2px solid var(--brand-primary);
-            border-radius: 4px;
-            font-size: 0.78rem;
-            color: var(--text-secondary);
-            font-style: italic;
-            line-height: 1.4;
+            margin-top: 10px;
+            padding: 10px 12px;
+            background: var(--brand-primary-soft);
+            border-left: 3px solid var(--brand-primary);
+            border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+            font-size: 0.8rem;
+            color: var(--text-primary);
+            line-height: 1.5;
         }
 
+        /* ---------- Voice note (custom player) ---------- */
         .voice-note {
-            margin-top: 8px;
-            padding: 8px 10px;
-            background: rgba(2, 132, 199, 0.08);
-            border-left: 2px solid var(--brand-secondary);
-            border-radius: 4px;
+            margin-top: 10px;
+            padding: 8px 10px 8px 8px;
+            background: var(--brand-secondary-soft);
+            border: 1px solid rgba(2, 132, 199, 0.2);
+            border-radius: 999px;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
         }
-
-        .voice-note-label {
-            font-size: 0.7rem;
+        .vn-play-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--brand-secondary);
+            border: none;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: transform 0.1s;
+        }
+        .vn-play-btn:active { transform: scale(0.92); }
+        .vn-meta {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.66rem;
             font-weight: 700;
-            text-transform: uppercase;
             color: var(--brand-secondary);
-            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            flex-shrink: 0;
+        }
+        .vn-progress {
+            flex: 1;
+            min-width: 0;
+            height: 6px;
+            background: rgba(2, 132, 199, 0.2);
+            border-radius: 999px;
+            position: relative;
+            cursor: pointer;
+            overflow: hidden;
+        }
+        .vn-progress-fill {
+            position: absolute;
+            inset: 0 auto 0 0;
+            background: var(--brand-secondary);
+            border-radius: 999px;
+            width: 0%;
+            transition: width 0.05s linear;
+        }
+        .vn-time {
+            font-size: 0.72rem;
+            font-variant-numeric: tabular-nums;
+            color: var(--brand-secondary);
+            font-weight: 600;
+            min-width: 36px;
+            text-align: right;
+            flex-shrink: 0;
+        }
+        .vn-error {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.75rem;
+            color: var(--warning);
+            flex: 1;
+        }
+        .vn-error a {
+            color: var(--brand-secondary);
+            font-weight: 600;
+            text-decoration: underline;
             white-space: nowrap;
         }
 
-        .voice-note audio {
-            flex: 1;
-            min-width: 0;
-            height: 32px;
-        }
-
+        /* ---------- Reference links ---------- */
         .ref-links {
-            margin-top: 8px;
+            margin-top: 10px;
             display: flex;
             flex-direction: column;
             gap: 6px;
         }
-
         .ref-link {
             display: flex;
             align-items: center;
-            gap: 8px;
-            padding: 8px 10px;
+            gap: 10px;
+            padding: 9px 12px;
             background: var(--bg-tertiary);
             border: 1px solid var(--border-color);
             border-radius: var(--radius-sm);
             color: var(--text-primary);
             text-decoration: none;
-            font-size: 0.8rem;
-            transition: border-color 0.15s, background 0.15s;
+            font-size: 0.82rem;
+            transition: border-color 0.15s, background 0.15s, transform 0.1s;
         }
-
         .ref-link:hover {
             border-color: var(--brand-primary);
-            background: rgba(13, 148, 136, 0.08);
+            background: var(--bg-elevated);
         }
-
+        .ref-link:active { transform: scale(0.99); }
         .ref-link-icon {
-            width: 24px;
-            height: 24px;
-            border-radius: 6px;
+            width: 26px;
+            height: 26px;
+            border-radius: 7px;
             display: flex;
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
             color: white;
         }
-
         .ref-link-icon.youtube { background: #ff0000; }
         .ref-link-icon.instagram { background: linear-gradient(135deg, #833ab4, #fd1d1d, #fcb045); }
-        .ref-link-icon.generic { background: var(--bg-primary); color: var(--text-secondary); }
-
+        .ref-link-icon.generic { background: var(--bg-elevated); color: var(--text-secondary); border: 1px solid var(--border-color); }
         .ref-link-title {
             flex: 1;
             min-width: 0;
@@ -300,126 +454,151 @@
             white-space: nowrap;
             font-weight: 500;
         }
-
         .ref-link-arrow {
             color: var(--text-muted);
             flex-shrink: 0;
         }
 
+        /* ---------- Video modal ---------- */
         .video-modal {
             display: none;
             position: fixed;
             inset: 0;
-            background: rgba(0,0,0,0.9);
+            background: rgba(0,0,0,0.92);
             z-index: 1000;
             align-items: center;
             justify-content: center;
             padding: 20px;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
         }
-
-        .video-modal.active { display: flex; }
-
+        .video-modal.active {
+            display: flex;
+            animation: fadeIn 0.18s ease-out;
+        }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         .video-modal video {
             max-width: 100%;
             max-height: 80vh;
             border-radius: var(--radius-md);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
         }
-
+        .video-modal-loading {
+            color: white;
+            font-size: 0.9rem;
+        }
         .video-modal-close {
             position: absolute;
-            top: 20px;
+            top: calc(20px + env(safe-area-inset-top));
             right: 20px;
-            background: rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.12);
             border: none;
             color: white;
             width: 40px;
             height: 40px;
             border-radius: 50%;
-            font-size: 1.5rem;
+            font-size: 1.4rem;
             cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.15s;
         }
+        .video-modal-close:hover { background: rgba(255,255,255,0.2); }
 
+        /* ---------- CTA banner ---------- */
         .cta-banner {
             position: fixed;
             bottom: 0;
             left: 0;
             right: 0;
             background: var(--brand-gradient);
-            padding: 14px 16px;
+            padding: 14px 16px calc(14px + env(safe-area-inset-bottom));
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 12px;
-            box-shadow: 0 -4px 20px rgba(0,0,0,0.3);
+            gap: 14px;
+            box-shadow: 0 -8px 30px rgba(0,0,0,0.4);
             z-index: 50;
+            text-decoration: none;
+            transition: transform 0.15s;
         }
-
+        .cta-banner:active { transform: scale(0.99); }
         .cta-text {
             color: white;
-            font-size: 0.85rem;
-            font-weight: 600;
+            font-size: 0.9rem;
+            font-weight: 700;
             line-height: 1.3;
+            min-width: 0;
+            flex: 1;
         }
-
         .cta-text small {
             display: block;
             font-size: 0.72rem;
-            font-weight: 400;
+            font-weight: 500;
             opacity: 0.9;
             margin-top: 2px;
         }
-
         .cta-btn {
             background: white;
             color: var(--brand-primary);
-            border: none;
             padding: 10px 18px;
             border-radius: var(--radius-md);
             font-weight: 700;
             font-size: 0.85rem;
-            cursor: pointer;
-            text-decoration: none;
             white-space: nowrap;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+            flex-shrink: 0;
         }
 
-        .cta-btn:hover { opacity: 0.95; }
-
+        /* ---------- States ---------- */
         .empty-state, .error-state {
             text-align: center;
             padding: 60px 20px;
             color: var(--text-secondary);
         }
-
         .empty-state .icon, .error-state .icon {
             font-size: 3rem;
             margin-bottom: 16px;
+            opacity: 0.7;
         }
+        .error-state h2 {
+            color: var(--text-primary);
+            margin-bottom: 8px;
+            font-size: 1.25rem;
+        }
+        .error-state p { font-size: 0.9rem; }
 
-        .error-state h2 { color: var(--text-primary); margin-bottom: 8px; }
-
+        /* ---------- Mobile ---------- */
         @media (max-width: 600px) {
+            .container { padding: 16px 12px 8px; }
+            .program-header { padding: 18px 18px 16px; }
             .program-name { font-size: 1.25rem; }
-            .exercise-thumb { width: 60px; height: 60px; }
+            .day-header { padding: 14px 16px; font-size: 0.95rem; }
+            .exercise-thumb { width: 64px; height: 64px; }
+            .exercise-card { padding: 10px; gap: 10px; margin: 6px; }
+            .exercise-name { font-size: 0.9rem; }
         }
     </style>
 </head>
 <body>
-    <div class="top-bar">
+    <header class="top-bar">
         <img id="brandLogo" class="top-bar-logo" alt="" style="display:none;">
         <div class="top-bar-coach" id="coachName"></div>
         <div class="top-bar-title">Workout Preview</div>
-    </div>
+    </header>
 
-    <div class="container" id="container">
+    <main class="container" id="container">
         <div class="empty-state">
             <div class="icon">⏳</div>
             <p>Loading workout...</p>
         </div>
-    </div>
+    </main>
 
     <div class="video-modal" id="videoModal" onclick="if(event.target.id==='videoModal')closeVideo()">
-        <button class="video-modal-close" onclick="closeVideo()">×</button>
+        <button class="video-modal-close" onclick="closeVideo()" aria-label="Close">×</button>
         <video id="videoPlayer" controls playsinline></video>
+        <div id="videoModalLoading" class="video-modal-loading" style="display:none;">Loading video...</div>
     </div>
 
     <a class="cta-banner" id="ctaBanner" href="#" target="_blank" rel="noopener noreferrer" style="display:none;">
@@ -434,7 +613,9 @@
         const params = new URLSearchParams(window.location.search);
         const shareId = params.get('share');
         const container = document.getElementById('container');
+        let voiceNoteCounter = 0;
 
+        // ---------- Format helpers ----------
         function fmtRest(seconds) {
             const s = Number(seconds) || 0;
             if (s <= 0) return '';
@@ -443,7 +624,6 @@
             const r = s % 60;
             return r ? `${m}m ${r}s rest` : `${m}m rest`;
         }
-
         function fmtDuration(seconds) {
             const s = Number(seconds) || 0;
             if (s < 60) return `${s}s`;
@@ -451,18 +631,24 @@
             const r = s % 60;
             return r ? `${m}m ${r}s` : `${m}m`;
         }
-
+        function fmtTime(seconds) {
+            const s = Math.max(0, Math.floor(Number(seconds) || 0));
+            const m = Math.floor(s / 60);
+            const r = s % 60;
+            return `${m}:${String(r).padStart(2, '0')}`;
+        }
         function escapeHtml(str) {
             return String(str || '').replace(/[&<>"']/g, c => ({
                 '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
             }[c]));
         }
 
+        // ---------- Renderers ----------
         function renderSets(ex) {
             const setsData = Array.isArray(ex.setsData) ? ex.setsData : [];
             if (!setsData.length) {
                 if (ex.trackingType === 'time' && ex.duration) {
-                    return `<div class="set-row"><span class="set-num">Time</span><span>${fmtDuration(ex.duration)}</span></div>`;
+                    return `<div class="set-row"><span class="set-num">Time</span><span class="set-detail">${fmtDuration(ex.duration)}</span></div>`;
                 }
                 return '';
             }
@@ -476,52 +662,77 @@
                 }
                 const rest = fmtRest(s.restSeconds);
                 if (rest) parts.push(rest);
-                return `<div class="set-row"><span class="set-num">Set ${i + 1}</span><span>${escapeHtml(parts.join(' · '))}</span></div>`;
+                return `<div class="set-row"><span class="set-num">Set ${i + 1}</span><span class="set-detail">${escapeHtml(parts.join(' · '))}</span></div>`;
             }).join('');
         }
 
-        function renderExercise(ex) {
-            // Prefer the coach's custom upload over the default exercise-library video
-            const media = ex.customVideoUrl || ex.video_url || ex.animation_url || '';
-            const thumb = ex.thumbnail_url || '';
-            const hasMedia = !!media;
-            const thumbHtml = thumb
-                ? `<img src="${escapeHtml(thumb)}" alt="" onerror="this.style.display='none'">`
-                : (hasMedia ? `<video src="${escapeHtml(media)}" muted playsinline preload="metadata"></video>` : '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);">💪</div>');
-            const playOverlay = hasMedia ? `<div class="play-overlay"><svg width="20" height="20" fill="white" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>` : '';
-            const muscle = ex.muscle_group ? `<div class="exercise-muscle">${escapeHtml(ex.muscle_group)}${ex.equipment ? ' · ' + escapeHtml(ex.equipment) : ''}</div>` : '';
-            const notes = ex.notes ? `<div class="exercise-notes">${escapeHtml(ex.notes)}</div>` : '';
-            // Prefer the serve-voice-note proxy so audio always 302s to a
-            // fresh signed URL (avoids URL-expiry breakage on long-lived shares)
-            const voiceNoteSrc = ex.voiceNotePath
+        const refIcons = {
+            youtube: `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>`,
+            instagram: `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>`,
+            generic: `<svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>`
+        };
+
+        function renderRefLinks(ex) {
+            const links = Array.isArray(ex.reference_links) ? ex.reference_links.filter(l => l && l.url) : [];
+            if (!links.length) return '';
+            return `<div class="ref-links">${links.map(l => {
+                const t = (l.type === 'youtube' || l.type === 'instagram') ? l.type : 'generic';
+                const title = l.title || (function(){ try { return new URL(l.url).hostname.replace('www.', ''); } catch(_e) { return l.url; } })();
+                return `<a class="ref-link" href="${escapeHtml(l.url)}" target="_blank" rel="noopener noreferrer">
+                    <span class="ref-link-icon ${t}">${refIcons[t]}</span>
+                    <span class="ref-link-title">${escapeHtml(title)}</span>
+                    <svg class="ref-link-arrow" width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                </a>`;
+            }).join('')}</div>`;
+        }
+
+        function renderVoiceNote(ex) {
+            // Always prefer the serve-voice-note proxy — it 302s to a fresh
+            // signed URL on every request so audio never breaks from URL expiry.
+            const src = ex.voiceNotePath
                 ? `/.netlify/functions/serve-voice-note?path=${encodeURIComponent(ex.voiceNotePath)}`
                 : (ex.voiceNoteUrl || '');
-            const voiceNote = voiceNoteSrc
-                ? `<div class="voice-note"><span class="voice-note-label">🎙️ Coach</span><audio controls playsinline preload="auto" src="${escapeHtml(voiceNoteSrc)}" onerror="handleVoiceNoteError(this, '${escapeHtml(voiceNoteSrc)}')"></audio></div>`
-                : '';
+            if (!src) return '';
+            const id = `vn-${voiceNoteCounter++}`;
+            return `
+                <div class="voice-note" data-vn-id="${id}">
+                    <button type="button" class="vn-play-btn" data-vn-action="toggle" aria-label="Play voice note">
+                        <svg data-vn-icon="play" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                        <svg data-vn-icon="pause" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="display:none;"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg>
+                    </button>
+                    <span class="vn-meta">🎙 Coach</span>
+                    <div class="vn-progress" data-vn-action="seek">
+                        <div class="vn-progress-fill" data-vn-fill></div>
+                    </div>
+                    <span class="vn-time" data-vn-time>0:00</span>
+                    <audio src="${escapeHtml(src)}" preload="auto" playsinline data-vn-audio></audio>
+                </div>
+            `;
+        }
 
-            const refIcons = {
-                youtube: `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>`,
-                instagram: `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>`,
-                generic: `<svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>`
-            };
-            const links = Array.isArray(ex.reference_links) ? ex.reference_links.filter(l => l && l.url) : [];
-            const refLinksHtml = links.length
-                ? `<div class="ref-links">${links.map(l => {
-                        const t = (l.type === 'youtube' || l.type === 'instagram') ? l.type : 'generic';
-                        const title = l.title || (function(){ try { return new URL(l.url).hostname.replace('www.', ''); } catch(_e) { return l.url; } })();
-                        return `<a class="ref-link" href="${escapeHtml(l.url)}" target="_blank" rel="noopener noreferrer">
-                            <span class="ref-link-icon ${t}">${refIcons[t]}</span>
-                            <span class="ref-link-title">${escapeHtml(title)}</span>
-                            <svg class="ref-link-arrow" width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
-                        </a>`;
-                    }).join('')}</div>`
+        function renderExercise(ex, exIdx) {
+            const customVideo = ex.customVideoUrl || '';
+            const defaultVideo = ex.video_url || ex.animation_url || '';
+            const media = customVideo || defaultVideo;
+            const customPath = ex.customVideoPath || '';
+            const thumb = ex.thumbnail_url || ex.customVideoThumbnail || '';
+            const hasMedia = !!media;
+            const thumbHtml = thumb
+                ? `<img src="${escapeHtml(thumb)}" alt="" loading="lazy" decoding="async" onerror="this.style.display='none'; this.parentNode.querySelector('.thumb-fallback').style.display='flex';">`
+                : (hasMedia ? `<video src="${escapeHtml(media)}" muted playsinline preload="metadata"></video>` : '');
+            const fallbackVisible = !thumb && !hasMedia ? 'flex' : 'none';
+            const playOverlay = hasMedia ? `<div class="play-overlay"><div class="play-overlay-circle"><svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div></div>` : '';
+            const muscle = ex.muscle_group ? `<div class="exercise-muscle">${escapeHtml(ex.muscle_group)}${ex.equipment ? ' · ' + escapeHtml(ex.equipment) : ''}</div>` : '';
+            const notes = ex.notes ? `<div class="exercise-notes">${escapeHtml(ex.notes)}</div>` : '';
+            const onclickAttr = hasMedia
+                ? `onclick="playVideo('${escapeHtml(media)}', '${escapeHtml(customPath)}')"`
                 : '';
 
             return `
                 <div class="exercise-card">
-                    <div class="exercise-thumb" ${hasMedia ? `onclick="playVideo('${escapeHtml(media)}')"` : ''}>
+                    <div class="exercise-thumb" ${onclickAttr}>
                         ${thumbHtml}
+                        <div class="thumb-fallback" style="display:${fallbackVisible}">💪</div>
                         ${playOverlay}
                     </div>
                     <div class="exercise-info">
@@ -529,14 +740,14 @@
                         ${muscle}
                         <div class="sets-list">${renderSets(ex)}</div>
                         ${notes}
-                        ${voiceNote}
-                        ${refLinksHtml}
+                        ${renderVoiceNote(ex)}
+                        ${renderRefLinks(ex)}
                     </div>
                 </div>
             `;
         }
 
-        function renderDay(day) {
+        function renderDay(day, dayIdx) {
             const exercises = Array.isArray(day.exercises) ? day.exercises : [];
             const grouped = { 'warm-up': [], main: [], 'cool-down': [] };
             exercises.forEach(ex => {
@@ -547,39 +758,103 @@
             const sectionsHtml = ['warm-up', 'main', 'cool-down']
                 .filter(k => grouped[k].length)
                 .map(k => `
-                    <div class="section-label">${labels[k]}</div>
-                    ${grouped[k].map(renderExercise).join('')}
+                    <div class="section-label section-${k}"><span class="section-dot"></span>${labels[k]}</div>
+                    ${grouped[k].map((ex, i) => renderExercise(ex, i)).join('')}
                 `).join('');
 
             return `
                 <div class="day-card">
-                    <div class="day-header">${escapeHtml(day.name || 'Day')}</div>
-                    <div class="day-body">${sectionsHtml || '<div style="padding:20px;color:var(--text-muted);text-align:center;">No exercises</div>'}</div>
+                    <div class="day-header">
+                        <span class="day-header-num">${dayIdx + 1}</span>
+                        ${escapeHtml(day.name || `Day ${dayIdx + 1}`)}
+                    </div>
+                    <div class="day-body">${sectionsHtml || '<div style="padding:20px;color:var(--text-muted);text-align:center;font-size:0.85rem;">No exercises</div>'}</div>
                 </div>
             `;
         }
 
-        function playVideo(url) {
-            if (!url) return;
+        // ---------- Video playback (with fresh-URL fallback) ----------
+        async function playVideo(url, customPath) {
+            if (!url && !customPath) return;
             const player = document.getElementById('videoPlayer');
-            player.src = url;
-            document.getElementById('videoModal').classList.add('active');
+            const loading = document.getElementById('videoModalLoading');
+            const modal = document.getElementById('videoModal');
+            // Reset state
+            player.style.display = 'block';
+            loading.style.display = 'none';
+            modal.classList.add('active');
+            // Clear any previous blob to free memory
+            if (player.dataset.blobUrl) {
+                try { URL.revokeObjectURL(player.dataset.blobUrl); } catch (_) {}
+                delete player.dataset.blobUrl;
+            }
+            player.src = url || '';
+            player.dataset.customPath = customPath || '';
+            player.onerror = handleVideoError;
             player.play().catch(() => {});
         }
 
-        // iOS Safari can't decode webm/opus voice notes. When the audio
-        // element errors, swap it for a download link so the recipient
-        // can still hear the coach's note off-device.
-        function handleVoiceNoteError(audioEl, src) {
-            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-            const reason = isIOS
-                ? "iPhone can't play this voice note format. Tap to download."
-                : "Couldn't play this voice note.";
-            audioEl.outerHTML = `<span style="color:var(--warning); font-size:0.78rem;">⚠ ${reason}</span> <a href="${src}" download style="color:var(--brand-secondary); font-size:0.78rem; font-weight:600; text-decoration:underline; margin-left:6px;">Download</a>`;
+        // When a custom video fails (expired URL, encoding, cache),
+        // request a fresh signed URL and load it as a blob — same fallback
+        // strategy as the React client app's ExerciseDetailModal.
+        async function handleVideoError(e) {
+            const player = e.target;
+            const customPath = player.dataset.customPath;
+            // No fallback path — show generic message
+            if (!customPath || player.dataset.blobAttempted === '1') {
+                player.style.display = 'none';
+                const loading = document.getElementById('videoModalLoading');
+                loading.textContent = 'Video unavailable.';
+                loading.style.display = 'block';
+                return;
+            }
+            player.dataset.blobAttempted = '1';
+            const loading = document.getElementById('videoModalLoading');
+            player.style.display = 'none';
+            loading.textContent = 'Loading video...';
+            loading.style.display = 'block';
+            try {
+                const resp = await fetch('/.netlify/functions/get-signed-video-url', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ filePath: customPath })
+                });
+                const data = await resp.json();
+                if (!data || !data.success || !data.url) throw new Error('No fresh URL');
+                const videoResp = await fetch(data.url);
+                if (!videoResp.ok) throw new Error(`HTTP ${videoResp.status}`);
+                const blob = await videoResp.blob();
+                const blobUrl = URL.createObjectURL(blob);
+                player.dataset.blobUrl = blobUrl;
+                player.style.display = 'block';
+                loading.style.display = 'none';
+                player.src = blobUrl;
+                player.play().catch(() => {});
+            } catch (err) {
+                console.error('Video fallback failed:', err);
+                loading.textContent = 'Video unavailable.';
+            }
         }
 
-        // iOS allows only one active media session at a time. Globally pause
-        // every other audio when one starts so the new tap always wins.
+        function closeVideo() {
+            const player = document.getElementById('videoPlayer');
+            player.pause();
+            if (player.dataset.blobUrl) {
+                try { URL.revokeObjectURL(player.dataset.blobUrl); } catch (_) {}
+                delete player.dataset.blobUrl;
+            }
+            delete player.dataset.blobAttempted;
+            player.removeAttribute('src');
+            player.load();
+            document.getElementById('videoModal').classList.remove('active');
+        }
+
+        // ---------- Voice note player (event-delegated) ----------
+        // iOS Safari only allows one active media session at a time. The
+        // global capture-phase 'play' listener pauses every other audio so
+        // tapping a new one wins. We also synchronously pause others BEFORE
+        // calling .play() to dodge the iOS race where the new play() rejects
+        // with NotAllowedError before the listener fires.
         document.addEventListener('play', (e) => {
             const target = e.target;
             if (!(target instanceof HTMLAudioElement)) return;
@@ -588,17 +863,102 @@
             });
         }, true);
 
-        function closeVideo() {
-            const player = document.getElementById('videoPlayer');
-            player.pause();
-            player.src = '';
-            document.getElementById('videoModal').classList.remove('active');
+        function getVnElements(playerEl) {
+            return {
+                audio: playerEl.querySelector('[data-vn-audio]'),
+                playIcon: playerEl.querySelector('[data-vn-icon="play"]'),
+                pauseIcon: playerEl.querySelector('[data-vn-icon="pause"]'),
+                fill: playerEl.querySelector('[data-vn-fill]'),
+                time: playerEl.querySelector('[data-vn-time]'),
+                progress: playerEl.querySelector('.vn-progress')
+            };
         }
 
-        function renderError(title, message) {
+        function showVnError(playerEl, src) {
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+            const reason = isIOS
+                ? "iPhone can't play this voice note format."
+                : "Couldn't play this voice note.";
+            playerEl.innerHTML = `
+                <span class="vn-meta">🎙 Coach</span>
+                <span class="vn-error">⚠ ${reason}</span>
+                <a href="${escapeHtml(src)}" download>Download</a>
+            `;
+        }
+
+        function attachVoiceNoteHandlers() {
+            document.querySelectorAll('.voice-note[data-vn-id]').forEach(playerEl => {
+                if (playerEl.dataset.vnInit === '1') return;
+                playerEl.dataset.vnInit = '1';
+                const els = getVnElements(playerEl);
+                if (!els.audio) return;
+
+                els.audio.addEventListener('play', () => {
+                    els.playIcon.style.display = 'none';
+                    els.pauseIcon.style.display = '';
+                });
+                els.audio.addEventListener('pause', () => {
+                    els.playIcon.style.display = '';
+                    els.pauseIcon.style.display = 'none';
+                });
+                els.audio.addEventListener('ended', () => {
+                    els.playIcon.style.display = '';
+                    els.pauseIcon.style.display = 'none';
+                    if (els.fill) els.fill.style.width = '0%';
+                    if (els.time) els.time.textContent = '0:00';
+                });
+                els.audio.addEventListener('timeupdate', () => {
+                    const dur = els.audio.duration;
+                    const cur = els.audio.currentTime;
+                    if (els.fill && Number.isFinite(dur) && dur > 0) {
+                        els.fill.style.width = `${(cur / dur) * 100}%`;
+                    }
+                    if (els.time) els.time.textContent = fmtTime(cur);
+                });
+                els.audio.addEventListener('loadedmetadata', () => {
+                    if (els.time && els.audio.paused) {
+                        els.time.textContent = fmtTime(els.audio.duration || 0);
+                    }
+                });
+                els.audio.addEventListener('error', () => showVnError(playerEl, els.audio.src));
+
+                playerEl.querySelector('[data-vn-action="toggle"]').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (!els.audio.paused) {
+                        els.audio.pause();
+                        return;
+                    }
+                    // Defense in depth: synchronously pause every other audio
+                    // BEFORE play() is called, so iOS doesn't reject the new
+                    // play() request with NotAllowedError.
+                    document.querySelectorAll('audio').forEach(a => {
+                        if (a !== els.audio && !a.paused) a.pause();
+                    });
+                    const promise = els.audio.play();
+                    if (promise && typeof promise.catch === 'function') {
+                        promise.catch(err => {
+                            console.warn('[voice-note] play rejected', err && err.name, err && err.message);
+                            showVnError(playerEl, els.audio.src);
+                        });
+                    }
+                });
+
+                els.progress.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const dur = els.audio.duration;
+                    if (!Number.isFinite(dur) || dur <= 0) return;
+                    const rect = els.progress.getBoundingClientRect();
+                    const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+                    els.audio.currentTime = ratio * dur;
+                });
+            });
+        }
+
+        // ---------- Render ----------
+        function renderError(title, message, icon) {
             container.innerHTML = `
                 <div class="error-state">
-                    <div class="icon">🔒</div>
+                    <div class="icon">${icon || '🔒'}</div>
                     <h2>${escapeHtml(title)}</h2>
                     <p>${escapeHtml(message)}</p>
                 </div>
@@ -609,7 +969,6 @@
             const p = payload.programData || {};
             const days = Array.isArray(p.days) ? p.days : (p.program_data && Array.isArray(p.program_data.days) ? p.program_data.days : []);
 
-            // Top-bar coach branding
             const branding = payload.coachBranding;
             if (branding) {
                 if (branding.logoUrl) {
@@ -619,18 +978,22 @@
                 }
                 if (branding.displayName) {
                     document.getElementById('coachName').textContent = branding.displayName;
-                    document.getElementById('ctaTitle').textContent = `Like this workout? Train with ${branding.displayName}.`;
+                    document.getElementById('ctaTitle').textContent = `Train with ${branding.displayName}.`;
                 }
             }
 
-            // Expiry banner
             let expiryHtml = '';
             if (payload.expiresAt) {
                 const exp = new Date(payload.expiresAt);
                 const msLeft = exp.getTime() - Date.now();
                 const daysLeft = Math.ceil(msLeft / (1000 * 60 * 60 * 24));
                 const label = daysLeft <= 1 ? 'less than a day' : `${daysLeft} days`;
-                expiryHtml = `<div class="expiry-banner">This preview link expires in ${label}.</div>`;
+                expiryHtml = `
+                    <div class="expiry-banner">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke-width="2"/><path stroke-linecap="round" stroke-width="2" d="M12 6v6l4 2"/></svg>
+                        This preview expires in ${label}.
+                    </div>
+                `;
             }
 
             const meta = [
@@ -649,12 +1012,12 @@
             `;
 
             const daysHtml = days.length
-                ? days.map(renderDay).join('')
+                ? days.map((d, i) => renderDay(d, i)).join('')
                 : '<div class="empty-state"><div class="icon">📋</div><p>This workout has no days yet.</p></div>';
 
             container.innerHTML = expiryHtml + headerHtml + daysHtml;
+            attachVoiceNoteHandlers();
 
-            // Show CTA — coach-customized link if provided, otherwise hide it
             const cta = document.getElementById('ctaBanner');
             const ctaButton = document.getElementById('ctaButton');
             if (payload.ctaUrl) {
@@ -668,23 +1031,23 @@
 
         async function loadWorkout() {
             if (!shareId) {
-                renderError('Missing link', 'No share ID was provided.');
+                renderError('Missing link', 'No share ID was provided.', '🔗');
                 return;
             }
             try {
                 const res = await fetch(`/.netlify/functions/get-shared-workout?shareId=${encodeURIComponent(shareId)}`);
                 if (res.status === 410) {
-                    renderError('Link expired', 'This workout preview link has expired. Reach out to your coach for a new one.');
+                    renderError('Link expired', 'This workout preview link has expired. Reach out to your coach for a new one.', '⏳');
                     return;
                 }
                 if (!res.ok) {
-                    renderError('Workout not found', 'This link is invalid or has been removed.');
+                    renderError('Workout not found', 'This link is invalid or has been removed.', '🔒');
                     return;
                 }
                 const data = await res.json();
                 renderProgram(data);
             } catch (err) {
-                renderError('Couldn’t load workout', 'Something went wrong. Please try again.');
+                renderError('Couldn’t load workout', 'Something went wrong. Please try again.', '⚠️');
             }
         }
 
