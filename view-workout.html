@@ -481,7 +481,8 @@
         }
 
         function renderExercise(ex) {
-            const media = ex.video_url || ex.animation_url || '';
+            // Prefer the coach's custom upload over the default exercise-library video
+            const media = ex.customVideoUrl || ex.video_url || ex.animation_url || '';
             const thumb = ex.thumbnail_url || '';
             const hasMedia = !!media;
             const thumbHtml = thumb
@@ -490,8 +491,13 @@
             const playOverlay = hasMedia ? `<div class="play-overlay"><svg width="20" height="20" fill="white" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>` : '';
             const muscle = ex.muscle_group ? `<div class="exercise-muscle">${escapeHtml(ex.muscle_group)}${ex.equipment ? ' · ' + escapeHtml(ex.equipment) : ''}</div>` : '';
             const notes = ex.notes ? `<div class="exercise-notes">${escapeHtml(ex.notes)}</div>` : '';
-            const voiceNote = ex.voiceNoteUrl
-                ? `<div class="voice-note"><span class="voice-note-label">🎙️ Coach</span><audio controls preload="metadata" src="${escapeHtml(ex.voiceNoteUrl)}"></audio></div>`
+            // Prefer the serve-voice-note proxy so audio always 302s to a
+            // fresh signed URL (avoids URL-expiry breakage on long-lived shares)
+            const voiceNoteSrc = ex.voiceNotePath
+                ? `/.netlify/functions/serve-voice-note?path=${encodeURIComponent(ex.voiceNotePath)}`
+                : (ex.voiceNoteUrl || '');
+            const voiceNote = voiceNoteSrc
+                ? `<div class="voice-note"><span class="voice-note-label">🎙️ Coach</span><audio controls playsinline preload="auto" src="${escapeHtml(voiceNoteSrc)}" onerror="handleVoiceNoteError(this, '${escapeHtml(voiceNoteSrc)}')"></audio></div>`
                 : '';
 
             const refIcons = {
@@ -560,6 +566,27 @@
             document.getElementById('videoModal').classList.add('active');
             player.play().catch(() => {});
         }
+
+        // iOS Safari can't decode webm/opus voice notes. When the audio
+        // element errors, swap it for a download link so the recipient
+        // can still hear the coach's note off-device.
+        function handleVoiceNoteError(audioEl, src) {
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+            const reason = isIOS
+                ? "iPhone can't play this voice note format. Tap to download."
+                : "Couldn't play this voice note.";
+            audioEl.outerHTML = `<span style="color:var(--warning); font-size:0.78rem;">⚠ ${reason}</span> <a href="${src}" download style="color:var(--brand-secondary); font-size:0.78rem; font-weight:600; text-decoration:underline; margin-left:6px;">Download</a>`;
+        }
+
+        // iOS allows only one active media session at a time. Globally pause
+        // every other audio when one starts so the new tap always wins.
+        document.addEventListener('play', (e) => {
+            const target = e.target;
+            if (!(target instanceof HTMLAudioElement)) return;
+            document.querySelectorAll('audio').forEach(a => {
+                if (a !== target && !a.paused) a.pause();
+            });
+        }, true);
 
         function closeVideo() {
             const player = document.getElementById('videoPlayer');

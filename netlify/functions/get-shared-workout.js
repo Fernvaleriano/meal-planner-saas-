@@ -52,22 +52,22 @@ exports.handler = async (event) => {
       };
     }
 
-    // Generate signed URLs for any voice notes embedded in the program.
-    // Voice notes live in the `workout-assets` bucket and are private,
-    // so we sign each path before returning so the public viewer can play them.
+    // Generate fresh signed URLs for any custom-uploaded videos embedded in
+    // the program. Voice notes use the serve-voice-note proxy on the client
+    // side (which 302s to a fresh signed URL), so they don't need signing here.
     const programData = data.program_data || {};
     const days = Array.isArray(programData.days) ? programData.days : [];
-    const voicePaths = [];
+    const videoPaths = [];
     for (const day of days) {
       for (const ex of (day && day.exercises) || []) {
-        if (ex && ex.voiceNotePath) voicePaths.push(ex.voiceNotePath);
+        if (ex && ex.customVideoPath) videoPaths.push(ex.customVideoPath);
       }
     }
-    if (voicePaths.length) {
+    if (videoPaths.length) {
       try {
         const SIGNED_URL_EXPIRY = 24 * 60 * 60;
         const signed = await Promise.all(
-          voicePaths.map(path =>
+          videoPaths.map(path =>
             supabase.storage
               .from('workout-assets')
               .createSignedUrl(path, SIGNED_URL_EXPIRY)
@@ -79,15 +79,15 @@ exports.handler = async (event) => {
         for (const day of days) {
           if (Array.isArray(day.exercises)) {
             day.exercises = day.exercises.map(ex => {
-              if (ex && ex.voiceNotePath && urlMap[ex.voiceNotePath]) {
-                return { ...ex, voiceNoteUrl: urlMap[ex.voiceNotePath] };
+              if (ex && ex.customVideoPath && urlMap[ex.customVideoPath]) {
+                return { ...ex, customVideoUrl: urlMap[ex.customVideoPath] };
               }
               return ex;
             });
           }
         }
       } catch (signErr) {
-        console.error('Voice note signing failed:', signErr);
+        console.error('Custom video signing failed:', signErr);
       }
     }
 
