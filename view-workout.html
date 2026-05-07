@@ -225,6 +225,32 @@
             line-height: 1.4;
         }
 
+        .voice-note {
+            margin-top: 8px;
+            padding: 8px 10px;
+            background: rgba(2, 132, 199, 0.08);
+            border-left: 2px solid var(--brand-secondary);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .voice-note-label {
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--brand-secondary);
+            letter-spacing: 0.05em;
+            white-space: nowrap;
+        }
+
+        .voice-note audio {
+            flex: 1;
+            min-width: 0;
+            height: 32px;
+        }
+
         .video-modal {
             display: none;
             position: fixed;
@@ -409,6 +435,9 @@
             const playOverlay = hasMedia ? `<div class="play-overlay"><svg width="20" height="20" fill="white" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>` : '';
             const muscle = ex.muscle_group ? `<div class="exercise-muscle">${escapeHtml(ex.muscle_group)}${ex.equipment ? ' · ' + escapeHtml(ex.equipment) : ''}</div>` : '';
             const notes = ex.notes ? `<div class="exercise-notes">${escapeHtml(ex.notes)}</div>` : '';
+            const voiceNote = ex.voiceNoteUrl
+                ? `<div class="voice-note"><span class="voice-note-label">🎙️ Coach</span><audio controls preload="metadata" src="${escapeHtml(ex.voiceNoteUrl)}"></audio></div>`
+                : '';
 
             return `
                 <div class="exercise-card">
@@ -421,6 +450,7 @@
                         ${muscle}
                         <div class="sets-list">${renderSets(ex)}</div>
                         ${notes}
+                        ${voiceNote}
                     </div>
                 </div>
             `;

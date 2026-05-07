@@ -52,6 +52,45 @@ exports.handler = async (event) => {
       };
     }
 
+    // Generate signed URLs for any voice notes embedded in the program.
+    // Voice notes live in the `workout-assets` bucket and are private,
+    // so we sign each path before returning so the public viewer can play them.
+    const programData = data.program_data || {};
+    const days = Array.isArray(programData.days) ? programData.days : [];
+    const voicePaths = [];
+    for (const day of days) {
+      for (const ex of (day && day.exercises) || []) {
+        if (ex && ex.voiceNotePath) voicePaths.push(ex.voiceNotePath);
+      }
+    }
+    if (voicePaths.length) {
+      try {
+        const SIGNED_URL_EXPIRY = 24 * 60 * 60;
+        const signed = await Promise.all(
+          voicePaths.map(path =>
+            supabase.storage
+              .from('workout-assets')
+              .createSignedUrl(path, SIGNED_URL_EXPIRY)
+              .then(({ data: d, error: e }) => ({ path, url: e ? null : d && d.signedUrl }))
+          )
+        );
+        const urlMap = {};
+        for (const { path, url } of signed) if (url) urlMap[path] = url;
+        for (const day of days) {
+          if (Array.isArray(day.exercises)) {
+            day.exercises = day.exercises.map(ex => {
+              if (ex && ex.voiceNotePath && urlMap[ex.voiceNotePath]) {
+                return { ...ex, voiceNoteUrl: urlMap[ex.voiceNotePath] };
+              }
+              return ex;
+            });
+          }
+        }
+      } catch (signErr) {
+        console.error('Voice note signing failed:', signErr);
+      }
+    }
+
     let coachBranding = null;
     if (data.coach_id) {
       try {
