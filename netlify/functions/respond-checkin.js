@@ -52,6 +52,24 @@ exports.handler = async (event) => {
 
     if (error) throw error;
 
+    // Mirror the response into chat_messages so it appears in the inbox
+    // and the client can reply, forming a thread tied to this check-in.
+    if (feedback && feedback.trim() && checkin?.client_id) {
+      const { error: chatInsertError } = await supabase
+        .from('chat_messages')
+        .insert([{
+          coach_id: coachId,
+          client_id: checkin.client_id,
+          sender_type: 'coach',
+          message: feedback.trim(),
+          is_read: false,
+          related_checkin_id: parseInt(checkinId)
+        }]);
+      if (chatInsertError) {
+        console.error('Failed to mirror coach response to chat_messages:', chatInsertError);
+      }
+    }
+
     // Create notification for client
     if (checkin?.client_id) {
 
