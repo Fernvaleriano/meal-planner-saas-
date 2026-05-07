@@ -41,10 +41,6 @@ function CheckIn() {
   const [unlockedBadge, setUnlockedBadge] = useState(null); // { tier, newCount, earnedTiers }
   const [sharingBadge, setSharingBadge] = useState(false);
 
-  // Per-checkin reply input state, keyed by checkin id
-  const [replyDrafts, setReplyDrafts] = useState({});
-  const [replySending, setReplySending] = useState({});
-
   // Scroll to top on mount
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -137,29 +133,6 @@ function CheckIn() {
       showError('Error submitting check-in. Please try again.');
     } finally {
       setSubmitting(false);
-    }
-  };
-
-  const sendCheckinReply = async (checkinId) => {
-    const text = (replyDrafts[checkinId] || '').trim();
-    if (!text || replySending[checkinId]) return;
-    setReplySending(prev => ({ ...prev, [checkinId]: true }));
-    try {
-      await apiPost('/.netlify/functions/chat', {
-        action: 'send',
-        coachId: clientData.coach_id,
-        clientId: clientData.id,
-        senderType: 'client',
-        message: text,
-        relatedCheckinId: checkinId
-      });
-      setReplyDrafts(prev => ({ ...prev, [checkinId]: '' }));
-      await loadHistory();
-    } catch (err) {
-      console.error('Error sending check-in reply:', err);
-      showError('Could not send reply. Please try again.');
-    } finally {
-      setReplySending(prev => ({ ...prev, [checkinId]: false }));
     }
   };
 
@@ -379,57 +352,6 @@ function CheckIn() {
                             <strong>Challenges:</strong> {entry.challenges}
                           </div>
                         )}
-                        {(() => {
-                          const thread = Array.isArray(entry.thread) ? entry.thread : [];
-                          // Drop the first coach message if it duplicates
-                          // coach_feedback (already shown in the panel above).
-                          let extras = thread;
-                          if (thread.length && entry.coach_feedback) {
-                            const first = thread[0];
-                            if (first?.sender_type === 'coach' && (first.message || '').trim() === entry.coach_feedback.trim()) {
-                              extras = thread.slice(1);
-                            }
-                          }
-                          const hasResponse = !!entry.coach_feedback || extras.length > 0;
-                          if (!hasResponse) return null;
-                          return (
-                            <div className="checkin-thread">
-                              {entry.coach_feedback && (
-                                <div className="checkin-thread-msg coach">
-                                  <div className="who">Coach</div>
-                                  <div>{entry.coach_feedback}</div>
-                                </div>
-                              )}
-                              {extras.map(m => (
-                                <div key={m.id} className={`checkin-thread-msg ${m.sender_type === 'coach' ? 'coach' : 'client'}`}>
-                                  <div className="who">{m.sender_type === 'coach' ? 'Coach' : 'You'}</div>
-                                  <div>{m.message}</div>
-                                </div>
-                              ))}
-                              <div className="checkin-reply-form">
-                                <input
-                                  type="text"
-                                  placeholder="Reply to your coach..."
-                                  value={replyDrafts[entry.id] || ''}
-                                  onChange={e => setReplyDrafts(prev => ({ ...prev, [entry.id]: e.target.value }))}
-                                  onKeyDown={e => {
-                                    if (e.key === 'Enter') {
-                                      e.preventDefault();
-                                      sendCheckinReply(entry.id);
-                                    }
-                                  }}
-                                />
-                                <button
-                                  type="button"
-                                  onClick={() => sendCheckinReply(entry.id)}
-                                  disabled={!!replySending[entry.id] || !(replyDrafts[entry.id] || '').trim()}
-                                >
-                                  {replySending[entry.id] ? '…' : 'Send'}
-                                </button>
-                              </div>
-                            </div>
-                          );
-                        })()}
                       </div>
                     );
                   })}

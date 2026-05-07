@@ -40,35 +40,11 @@ exports.handler = async (event) => {
         .select('*', { count: 'exact', head: true })
         .eq('client_id', clientId);
 
-      // Attach the threaded chat reply trail (if any) for each check-in,
-      // so the client/coach can render replies inline under the original
-      // coach response.
-      const checkins = data || [];
-      const checkinIds = checkins.map(c => c.id);
-      if (checkinIds.length > 0) {
-        const { data: threadRows, error: threadError } = await supabase
-          .from('chat_messages')
-          .select('id, sender_type, message, created_at, related_checkin_id')
-          .in('related_checkin_id', checkinIds)
-          .is('deleted_at', null)
-          .order('created_at', { ascending: true });
-        if (threadError) {
-          console.error('Failed to fetch checkin threads:', threadError);
-        } else {
-          const byCheckin = {};
-          (threadRows || []).forEach(m => {
-            if (m.message && m.message.startsWith('__REACTION__:')) return;
-            (byCheckin[m.related_checkin_id] ||= []).push(m);
-          });
-          checkins.forEach(c => { c.thread = byCheckin[c.id] || []; });
-        }
-      }
-
       return {
         statusCode: 200,
         headers,
         body: JSON.stringify({
-          checkins,
+          checkins: data || [],
           stats: {},
           pagination: {
             total: count || 0,

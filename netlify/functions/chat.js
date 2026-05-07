@@ -169,7 +169,7 @@ exports.handler = async (event) => {
       if (action === 'messages' && coachId && clientId) {
         let query = supabase
           .from('chat_messages')
-          .select('id, sender_type, message, media_url, media_type, is_read, created_at, related_checkin_id')
+          .select('id, sender_type, message, media_url, media_type, is_read, created_at')
           .eq('coach_id', coachId)
           .eq('client_id', clientId)
           .is('deleted_at', null)
@@ -205,7 +205,7 @@ exports.handler = async (event) => {
 
       // Send a message
       if (action === 'send') {
-        const { coachId, clientId, senderType, message, mediaUrl, mediaType, relatedCheckinId } = body;
+        const { coachId, clientId, senderType, message, mediaUrl, mediaType } = body;
 
         if (!coachId || !clientId || !senderType || (!message?.trim() && !mediaUrl)) {
           return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'coachId, clientId, senderType, and message or media required' }) };
@@ -226,10 +226,6 @@ exports.handler = async (event) => {
         if (mediaUrl) {
           insertData.media_url = mediaUrl;
           insertData.media_type = mediaType || 'image';
-        }
-
-        if (relatedCheckinId) {
-          insertData.related_checkin_id = parseInt(relatedCheckinId);
         }
 
         const { data: newMessage, error: insertError } = await supabase
