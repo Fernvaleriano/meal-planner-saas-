@@ -60,7 +60,15 @@ exports.handler = async (event) => {
     const videoPaths = [];
     for (const day of days) {
       for (const ex of (day && day.exercises) || []) {
-        if (ex && ex.customVideoPath) videoPaths.push(ex.customVideoPath);
+        if (!ex) continue;
+        // Legacy data: customVideoPath missing but customVideoUrl exists.
+        // Extract the path from the signed URL pattern so we can sign fresh.
+        // Mirrors the same recovery in netlify/functions/workout-assignments.js.
+        if (!ex.customVideoPath && ex.customVideoUrl) {
+          const m = ex.customVideoUrl.match(/\/object\/sign\/workout-assets\/(.+?)(?:\?|$)/);
+          if (m) ex.customVideoPath = decodeURIComponent(m[1]);
+        }
+        if (ex.customVideoPath) videoPaths.push(ex.customVideoPath);
       }
     }
     if (videoPaths.length) {
