@@ -890,6 +890,7 @@
             document.querySelectorAll('.voice-note[data-vn-id]').forEach(playerEl => {
                 if (playerEl.dataset.vnInit === '1') return;
                 playerEl.dataset.vnInit = '1';
+                playerEl.addEventListener('click', (e) => e.stopPropagation());
                 const els = getVnElements(playerEl);
                 if (!els.audio) return;
 
@@ -920,7 +921,16 @@
                         els.time.textContent = fmtTime(els.audio.duration || 0);
                     }
                 });
-                els.audio.addEventListener('error', () => showVnError(playerEl, els.audio.src));
+                // Note: do NOT replace the player UI on the audio element's
+                // 'error' event — that fires during preload too (iOS Safari
+                // throttles concurrent audio fetches), and destroying the UI
+                // means the user can never retry a tap. Just log.
+                els.audio.addEventListener('error', () => {
+                    console.warn('[voice-note] media error', {
+                        code: els.audio.error && els.audio.error.code,
+                        src: els.audio.currentSrc || els.audio.src
+                    });
+                });
 
                 playerEl.querySelector('[data-vn-action="toggle"]').addEventListener('click', (e) => {
                     e.stopPropagation();
@@ -937,8 +947,16 @@
                     const promise = els.audio.play();
                     if (promise && typeof promise.catch === 'function') {
                         promise.catch(err => {
-                            console.warn('[voice-note] play rejected', err && err.name, err && err.message);
-                            showVnError(playerEl, els.audio.src);
+                            // Log only — never destroy the player UI. Mirrors
+                            // src/components/VoiceNotePlayer.jsx behavior so a
+                            // transient iOS rejection doesn't permanently break
+                            // a player.
+                            console.warn('[voice-note] play rejected', {
+                                name: err && err.name,
+                                message: err && err.message,
+                                src: els.audio.currentSrc || els.audio.src,
+                                userAgent: navigator.userAgent
+                            });
                         });
                     }
                 });
