@@ -50,8 +50,11 @@ exports.handler = async (event) => {
   if (clientId && SUPABASE_SERVICE_KEY) {
     try {
       const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
-      const { data: client } = await supabase.from('clients').select('client_name, goal, fitness_level, exercise_restrictions').eq('id', clientId).maybeSingle();
-      if (client) clientContext = `\nCLIENT CONTEXT: name=${client.client_name}, goal=${client.goal}, level=${client.fitness_level || 'unknown'}, restrictions=${client.exercise_restrictions || 'none'}`;
+      const { data: client } = await supabase.from('clients').select('client_name, default_goal, fitness_level, health_concerns, unavailable_equipment').eq('id', clientId).maybeSingle();
+      if (client) {
+        const restrictions = [client.health_concerns, Array.isArray(client.unavailable_equipment) && client.unavailable_equipment.length ? `unavailable equipment: ${client.unavailable_equipment.join(', ')}` : null].filter(Boolean).join('; ') || 'none';
+        clientContext = `\nCLIENT CONTEXT: name=${client.client_name}, goal=${client.default_goal}, level=${client.fitness_level || 'unknown'}, restrictions=${restrictions}`;
+      }
     } catch {}
   }
 

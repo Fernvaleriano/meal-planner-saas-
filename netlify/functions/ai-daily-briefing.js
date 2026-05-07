@@ -106,7 +106,7 @@ async function buildBriefing(supabase, coachId) {
 
   const { data: clients } = await supabase
     .from('clients')
-    .select('id, client_name, last_activity_at, goal')
+    .select('id, client_name, last_activity_at, default_goal')
     .eq('coach_id', coachId)
     .eq('is_archived', false);
 
@@ -127,7 +127,7 @@ async function buildBriefing(supabase, coachId) {
   const [checkinRes, workoutRes, prRes, msgRes, assignmentRes] = await Promise.all([
     supabase.from('client_checkins').select('client_id, checkin_date, meal_plan_adherence, workouts_completed, workouts_planned, wins, challenges, energy_level, stress_level, coach_responded_at').in('client_id', ids).gte('checkin_date', since7).order('checkin_date', { ascending: false }),
     supabase.from('workout_logs').select('client_id, workout_date, duration_minutes').in('client_id', ids).gte('workout_date', since14),
-    supabase.from('personal_records').select('related_client_id, exercise_name, weight, reps, date').in('related_client_id', ids).gte('date', since7),
+    supabase.from('personal_records').select('client_id, exercise_name, record_type, record_value, achieved_date').in('client_id', ids).gte('achieved_date', since7),
     supabase.from('chat_messages').select('client_id, sender_type, message, is_read, created_at').eq('coach_id', coachId).gte('created_at', since3).order('created_at', { ascending: false }),
     supabase.from('client_workout_assignments').select('client_id, name, end_date, is_active').eq('coach_id', coachId).eq('is_active', true)
   ]);
@@ -154,7 +154,7 @@ async function buildBriefing(supabase, coachId) {
     if (!a.lastWorkout || w.workout_date > a.lastWorkout) a.lastWorkout = w.workout_date;
   }
   for (const ci of checkins) { const a = activity[ci.client_id]; if (a && (!a.lastCheckin || ci.checkin_date > a.lastCheckin.checkin_date)) a.lastCheckin = ci; }
-  for (const p of prs) { const a = activity[p.related_client_id]; if (a) a.prsLast7 += 1; }
+  for (const p of prs) { const a = activity[p.client_id]; if (a) a.prsLast7 += 1; }
   for (const m of msgs) { if (m.sender_type === 'client' && !m.is_read) { const a = activity[m.client_id]; if (a) a.unrespondedMessage = true; } }
 
   // Build priorities
@@ -178,8 +178,8 @@ async function buildBriefing(supabase, coachId) {
   // Wins
   const wins = [];
   for (const p of prs.slice(0, 6)) {
-    const c = clients.find((x) => x.id === p.related_client_id);
-    if (c) wins.push({ clientName: c.client_name, fact: `PR on ${p.exercise_name}: ${p.weight}×${p.reps}` });
+    const c = clients.find((x) => x.id === p.client_id);
+    if (c) wins.push({ clientName: c.client_name, fact: `PR on ${p.exercise_name}: ${p.record_value}${p.record_type ? ' ' + p.record_type : ''}` });
   }
 
   const stats = {
