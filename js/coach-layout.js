@@ -32,7 +32,7 @@
     }
 
     function injectToggleButton() {
-        const header = document.querySelector('.main-header');
+        const header = document.querySelector('.main-header, .top-nav');
         if (!header || header.querySelector('.sidebar-collapse-btn')) return;
         header.insertBefore(buildButton(), header.firstChild);
     }

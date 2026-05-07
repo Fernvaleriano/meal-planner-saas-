@@ -330,7 +330,8 @@ body {
     transition: margin-left 0.25s ease;
 }
 
-body.sidebar-is-collapsed .main-content {
+body.sidebar-is-collapsed .main-content,
+body.sidebar-is-collapsed .top-nav {
     margin-left: var(--sidebar-width-collapsed);
 }
 
@@ -804,6 +805,16 @@ body.sidebar-is-collapsed .main-content {
 [data-theme="dark"] .sidebar-collapse-btn:hover {
     background: var(--gray-700);
     color: var(--gray-100);
+}
+
+/* When toggle lives in the teal/gradient .top-nav, use white-on-translucent */
+.top-nav .sidebar-collapse-btn {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.top-nav .sidebar-collapse-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: #ffffff;
 }
 
 /* Show only on desktop — mobile already has .mobile-menu-btn */
