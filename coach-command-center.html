@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" href="/icons/logo.png" type="image/png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <script src="/js/theme.js"></script>
+    <link rel="stylesheet" href="/css/voice-commander.css">
+    <link rel="stylesheet" href="/css/coach-layout.css">
+    <meta name="theme-color" content="#0d9488">
+    <title>Command Center · Zique</title>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" as="script">
+    <link rel="preconnect" href="https://qewqcjzlfqamqwbccapr.supabase.co" crossorigin>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --brand-primary: #0d9488;
+            --brand-secondary: #0284c7;
+            --brand-gradient: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
+            --gray-50: #f8fafc;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-300: #cbd5e1;
+            --gray-500: #64748b;
+            --gray-700: #334155;
+            --gray-800: #1e293b;
+            --danger: #dc2626;
+            --warn: #d97706;
+            --ok: #16a34a;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: var(--gray-50); color: var(--gray-800); min-height: 100vh; }
+        [data-theme="dark"] body { background: #0b1220; color: #e2e8f0; }
+
+        .ccc-shell { max-width: 1400px; margin: 0 auto; padding: 28px 28px 80px; }
+
+        /* Hero */
+        .ccc-hero { background: var(--brand-gradient); border-radius: 24px; padding: 32px 36px; color: #fff; box-shadow: 0 8px 30px rgba(13,148,136,.25); position: relative; overflow: hidden; }
+        .ccc-hero::after { content: ''; position: absolute; top: -40%; right: -10%; width: 380px; height: 380px; background: radial-gradient(circle, rgba(255,255,255,.18), transparent 70%); pointer-events: none; }
+        .ccc-hero-eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; opacity: .85; }
+        .ccc-hero-headline { font-size: 32px; font-weight: 800; line-height: 1.1; margin-top: 10px; max-width: 760px; }
+        .ccc-hero-summary { font-size: 16px; opacity: .92; margin-top: 12px; max-width: 720px; line-height: 1.5; }
+        .ccc-hero-advice { margin-top: 20px; padding: 14px 18px; background: rgba(255,255,255,.16); border-radius: 12px; font-size: 14px; line-height: 1.5; backdrop-filter: blur(6px); }
+        .ccc-hero-actions { margin-top: 22px; display: flex; gap: 10px; flex-wrap: wrap; }
+        .ccc-btn { padding: 10px 16px; border-radius: 10px; border: 1px solid rgba(255,255,255,.32); background: rgba(255,255,255,.18); color: #fff; font-weight: 600; font-size: 13px; cursor: pointer; backdrop-filter: blur(6px); display: inline-flex; align-items: center; gap: 6px; transition: transform .12s, background .12s; }
+        .ccc-btn:hover { background: rgba(255,255,255,.28); transform: translateY(-1px); }
+        .ccc-btn--solid { background: #fff; color: var(--brand-primary); border: 0; }
+        .ccc-btn--solid:hover { background: #fff; }
+
+        /* Stats strip */
+        .ccc-stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-top: 22px; }
+        .ccc-stat { background: #fff; padding: 16px 18px; border-radius: 14px; border: 1px solid var(--gray-200); }
+        [data-theme="dark"] .ccc-stat { background: #1e293b; border-color: #334155; }
+        .ccc-stat-label { font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--gray-500); }
+        .ccc-stat-value { font-size: 26px; font-weight: 800; margin-top: 4px; }
+        .ccc-stat-sub { font-size: 12px; color: var(--gray-500); margin-top: 2px; }
+
+        /* Main grid */
+        .ccc-grid { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 16px; margin-top: 24px; }
+        @media (max-width: 1024px) { .ccc-grid { grid-template-columns: 1fr; } .ccc-stats { grid-template-columns: repeat(2, 1fr); } }
+
+        .ccc-card { background: #fff; border: 1px solid var(--gray-200); border-radius: 16px; padding: 20px 22px; }
+        [data-theme="dark"] .ccc-card { background: #1e293b; border-color: #334155; }
+        .ccc-card-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+        .ccc-card-title { font-size: 16px; font-weight: 700; display: inline-flex; align-items: center; gap: 8px; }
+        .ccc-card-title .ccc-pill { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: var(--gray-100); color: var(--gray-700); }
+
+        .ccc-row { display: flex; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--gray-100); align-items: center; }
+        [data-theme="dark"] .ccc-row { border-bottom-color: #2a3850; }
+        .ccc-row:last-child { border-bottom: 0; }
+        .ccc-sev { width: 4px; align-self: stretch; border-radius: 4px; }
+        .ccc-sev--high { background: var(--danger); }
+        .ccc-sev--medium { background: var(--warn); }
+        .ccc-sev--low { background: var(--ok); }
+        .ccc-row-body { flex: 1; min-width: 0; }
+        .ccc-row-line1 { font-weight: 600; font-size: 14px; }
+        .ccc-row-line2 { font-size: 12px; color: var(--gray-500); margin-top: 2px; }
+        .ccc-row-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+        .ccc-tiny { padding: 6px 10px; font-size: 12px; border-radius: 8px; border: 1px solid var(--gray-200); background: #fff; cursor: pointer; color: var(--gray-700); display: inline-flex; align-items: center; gap: 4px; }
+        [data-theme="dark"] .ccc-tiny { background: #0f172a; border-color: #334155; color: #cbd5e1; }
+        .ccc-tiny:hover { background: var(--gray-50); border-color: var(--brand-primary); color: var(--brand-primary); }
+        [data-theme="dark"] .ccc-tiny:hover { background: #0b1220; }
+
+        .ccc-empty { padding: 30px 12px; text-align: center; color: var(--gray-500); font-size: 14px; }
+        .ccc-loading { padding: 30px 12px; text-align: center; color: var(--gray-500); font-size: 14px; }
+
+        .ccc-back { display: inline-flex; align-items: center; gap: 6px; color: var(--gray-500); font-size: 13px; text-decoration: none; margin-bottom: 14px; }
+        .ccc-back:hover { color: var(--brand-primary); }
+
+        .ccc-tabs { display: inline-flex; background: var(--gray-100); border-radius: 10px; padding: 3px; margin-bottom: 16px; }
+        [data-theme="dark"] .ccc-tabs { background: #0f172a; }
+        .ccc-tab { padding: 7px 14px; font-size: 13px; font-weight: 600; border: 0; background: transparent; cursor: pointer; border-radius: 8px; color: var(--gray-500); }
+        .ccc-tab.active { background: #fff; color: var(--gray-800); box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+        [data-theme="dark"] .ccc-tab.active { background: #1e293b; color: #f1f5f9; }
+
+        /* Drafter modal */
+        .ccc-modal { position: fixed; inset: 0; background: rgba(15,23,42,.6); z-index: 99998; display: none; align-items: center; justify-content: center; padding: 20px; }
+        .ccc-modal.open { display: flex; }
+        .ccc-modal-panel { background: #fff; max-width: 720px; width: 100%; border-radius: 18px; max-height: 85vh; overflow: hidden; display: flex; flex-direction: column; }
+        [data-theme="dark"] .ccc-modal-panel { background: #1e293b; color: #e2e8f0; }
+        .ccc-modal-head { padding: 18px 22px; border-bottom: 1px solid var(--gray-200); display: flex; justify-content: space-between; align-items: center; }
+        [data-theme="dark"] .ccc-modal-head { border-bottom-color: #334155; }
+        .ccc-modal-body { padding: 18px 22px; overflow-y: auto; }
+        .ccc-modal-foot { padding: 14px 22px; border-top: 1px solid var(--gray-200); display: flex; justify-content: flex-end; gap: 8px; }
+        [data-theme="dark"] .ccc-modal-foot { border-top-color: #334155; }
+        .ccc-draft { border: 1px solid var(--gray-200); border-radius: 12px; padding: 14px; margin-bottom: 12px; }
+        [data-theme="dark"] .ccc-draft { border-color: #334155; }
+        .ccc-draft-kind { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--brand-primary); }
+        .ccc-draft textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--gray-200); border-radius: 8px; font-family: inherit; font-size: 14px; min-height: 100px; margin-top: 8px; resize: vertical; }
+        [data-theme="dark"] .ccc-draft textarea { background: #0f172a; color: #e2e8f0; border-color: #334155; }
+        .ccc-draft-why { font-size: 12px; color: var(--gray-500); margin-top: 6px; font-style: italic; }
+    </style>
+</head>
+<body>
+    <div class="ccc-shell">
+        <a class="ccc-back" href="/dashboard.html">&larr; Back to dashboard</a>
+
+        <!-- Hero / briefing -->
+        <div class="ccc-hero" id="cccHero">
+            <div class="ccc-hero-eyebrow">Today's briefing</div>
+            <div class="ccc-hero-headline" id="cccHeadline">Loading your morning brief…</div>
+            <div class="ccc-hero-summary" id="cccSummary"></div>
+            <div class="ccc-hero-advice" id="cccAdvice" style="display:none;"></div>
+            <div class="ccc-hero-actions">
+                <button class="ccc-btn ccc-btn--solid" onclick="cccOpenSwitcher()">Quick client (⌘K)</button>
+                <button class="ccc-btn" onclick="cccRefresh(true)">Refresh briefing</button>
+                <a class="ccc-btn" href="/manage-clients.html">All clients</a>
+            </div>
+        </div>
+
+        <!-- Stats strip -->
+        <div class="ccc-stats" id="cccStats">
+            <div class="ccc-stat"><div class="ccc-stat-label">Active clients</div><div class="ccc-stat-value" id="statActive">—</div></div>
+            <div class="ccc-stat"><div class="ccc-stat-label">Check-ins this week</div><div class="ccc-stat-value" id="statCheckins">—</div></div>
+            <div class="ccc-stat"><div class="ccc-stat-label">Inactive 5+ days</div><div class="ccc-stat-value" id="statInactive">—</div></div>
+            <div class="ccc-stat"><div class="ccc-stat-label">Plateaus detected</div><div class="ccc-stat-value" id="statPlateaus">—</div></div>
+            <div class="ccc-stat"><div class="ccc-stat-label">Unread messages</div><div class="ccc-stat-value" id="statMsgs">—</div></div>
+        </div>
+
+        <!-- Tabs / two-pane -->
+        <div class="ccc-grid">
+            <div class="ccc-card">
+                <div class="ccc-card-head">
+                    <div class="ccc-card-title">Priorities <span class="ccc-pill" id="prioritiesCount">0</span></div>
+                    <div class="ccc-tabs">
+                        <button class="ccc-tab active" data-tab="all">All</button>
+                        <button class="ccc-tab" data-tab="high">High</button>
+                        <button class="ccc-tab" data-tab="message">Unread</button>
+                        <button class="ccc-tab" data-tab="inactive">Inactive</button>
+                        <button class="ccc-tab" data-tab="program">Programs</button>
+                    </div>
+                </div>
+                <div id="prioritiesList"><div class="ccc-loading">Scanning your clients…</div></div>
+            </div>
+
+            <div>
+                <div class="ccc-card" style="margin-bottom:16px;">
+                    <div class="ccc-card-head">
+                        <div class="ccc-card-title">Plateaus <span class="ccc-pill" id="plateauCount">0</span></div>
+                        <button class="ccc-tiny" onclick="cccLoadPlateaus(true)">Re-scan</button>
+                    </div>
+                    <div id="plateauList"><div class="ccc-loading">Looking for stagnation…</div></div>
+                </div>
+
+                <div class="ccc-card" style="margin-bottom:16px;">
+                    <div class="ccc-card-head">
+                        <div class="ccc-card-title">Wins this week <span class="ccc-pill" id="winsCount">0</span></div>
+                    </div>
+                    <div id="winsList"><div class="ccc-loading">Looking for PRs…</div></div>
+                </div>
+
+                <div class="ccc-card">
+                    <div class="ccc-card-head">
+                        <div class="ccc-card-title">Notification health</div>
+                        <a class="ccc-tiny" href="/reminder-settings.html">Settings</a>
+                    </div>
+                    <div id="notifHealth"><div class="ccc-loading">Checking delivery…</div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Message drafter modal -->
+    <div class="ccc-modal" id="drafterModal">
+        <div class="ccc-modal-panel">
+            <div class="ccc-modal-head">
+                <div>
+                    <div style="font-size: 12px; color: var(--gray-500); font-weight: 600;">AI MESSAGE DRAFTS</div>
+                    <div id="drafterName" style="font-size: 18px; font-weight: 700;"></div>
+                </div>
+                <button class="ccc-tiny" onclick="cccCloseDrafter()">Close</button>
+            </div>
+            <div class="ccc-modal-body" id="drafterBody">
+                <div class="ccc-loading">Drafting…</div>
+            </div>
+            <div class="ccc-modal-foot">
+                <button class="ccc-tiny" onclick="cccCloseDrafter()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="/js/api-helper.js"></script>
+    <script src="/js/coach-layout.js"></script>
+    <script src="/js/command-center.js"></script>
+</body>
+</html>

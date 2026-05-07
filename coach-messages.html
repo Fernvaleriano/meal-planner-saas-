@@ -1126,13 +1126,27 @@
             document.getElementById('bulkInput').addEventListener('input', updateBulkPanelState);
             setupRealtimeList();
 
-            // Deep-link: auto-open conversation if ?clientId= is in URL
+            // Deep-link: auto-open conversation if ?clientId= is in URL,
+            // and if ?prefill= is present, drop that text into the input
+            // (used by the Command Center "Send draft" buttons).
             const urlParams = new URLSearchParams(window.location.search);
             const deepLinkClientId = urlParams.get('clientId');
+            const prefill = urlParams.get('prefill');
             if (deepLinkClientId) {
                 const convo = conversations.find(c => String(c.clientId) === String(deepLinkClientId));
                 if (convo) {
                     openThread(convo.clientId, convo.clientName);
+                    if (prefill) {
+                        // openThread re-renders the input; wait one tick.
+                        setTimeout(() => {
+                            const input = document.getElementById('msgInput');
+                            if (input) {
+                                input.value = prefill;
+                                input.focus();
+                                input.dispatchEvent(new Event('input', { bubbles: true }));
+                            }
+                        }, 100);
+                    }
                 }
             }
         }
