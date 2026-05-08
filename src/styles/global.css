@@ -16657,7 +16657,7 @@ textarea,
 
 .share-stat-value {
     display: block;
-    font-size: 32px;
+    font-size: 26px;
     font-weight: 800;
     color: white;
     line-height: 1;
@@ -16671,12 +16671,12 @@ textarea,
 /* Auto-shrink when 4+ stats are visible to prevent overlap */
 .share-card-stats .share-stat:nth-last-child(n+4) .share-stat-value,
 .share-card-stats .share-stat:nth-last-child(n+4) ~ .share-stat .share-stat-value {
-    font-size: 26px;
+    font-size: 22px;
 }
 
 .share-card-stats .share-stat:nth-last-child(n+5) .share-stat-value,
 .share-card-stats .share-stat:nth-last-child(n+5) ~ .share-stat .share-stat-value {
-    font-size: 22px;
+    font-size: 18px;
 }
 
 .share-stat-label {
