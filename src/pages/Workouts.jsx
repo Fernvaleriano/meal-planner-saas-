@@ -5177,6 +5177,12 @@ function Workouts() {
                     <img src="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/Untitled%20design%20-%202026-02-10T171903.769.png" alt="Zique Fitness" className="share-card-logo" />
                   </div>
                   <div className="share-card-stats">
+                    {shareToggles.duration && (
+                      <div className="share-stat">
+                        <span className="share-stat-value">{formatDurationCompact(workoutDuration || estimateWorkoutMinutes(exercises) || todayWorkout?.workout_data?.estimatedMinutes || 45)}</span>
+                        <span className="share-stat-label">Duration</span>
+                      </div>
+                    )}
                     {shareToggles.calories && (
                       <div className="share-stat">
                         <span className="share-stat-value">{estimatedCalories}</span>
@@ -5199,12 +5205,6 @@ function Workouts() {
                       <div className="share-stat">
                         <span className="share-stat-value">{totalSets}</span>
                         <span className="share-stat-label">Sets</span>
-                      </div>
-                    )}
-                    {shareToggles.duration && (
-                      <div className="share-stat">
-                        <span className="share-stat-value">{formatDurationCompact(workoutDuration || estimateWorkoutMinutes(exercises) || todayWorkout?.workout_data?.estimatedMinutes || 45)}</span>
-                        <span className="share-stat-label">Duration</span>
                       </div>
                     )}
                   </div>
