@@ -486,9 +486,17 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
   const videoUrl = exercise.customVideoUrl || exercise.video_url || exercise.animation_url;
   const hasVideo = !!videoUrl;
 
-  // Format duration for display - show minutes if over 59 seconds
+  // Format duration for display - show minutes if over 59 seconds, hours if 60+ minutes
   const formatDuration = (seconds) => {
     if (!seconds) return null;
+    if (seconds >= 3600) {
+      const hrs = Math.floor(seconds / 3600);
+      const mins = Math.floor((seconds % 3600) / 60);
+      const secs = seconds % 60;
+      const minPart = mins > 0 ? ` ${mins}m` : '';
+      const secPart = secs > 0 ? ` ${secs}s` : '';
+      return `${hrs}h${minPart}${secPart}`;
+    }
     if (seconds > 59) {
       const mins = Math.floor(seconds / 60);
       const secs = seconds % 60;

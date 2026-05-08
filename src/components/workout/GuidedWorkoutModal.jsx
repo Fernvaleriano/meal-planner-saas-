@@ -93,6 +93,14 @@ const formatTime = (seconds) => {
 // Format seconds to readable duration (for exercise info)
 const formatDuration = (seconds) => {
   if (!seconds) return '30s';
+  if (seconds >= 3600) {
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    const minPart = mins > 0 ? ` ${mins}m` : '';
+    const secPart = secs > 0 ? ` ${secs}s` : '';
+    return `${hrs}h${minPart}${secPart}`;
+  }
   if (seconds >= 60) {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
