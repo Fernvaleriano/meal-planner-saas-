@@ -75,16 +75,17 @@ const formatDuration = (minutes) => {
   return `${mins} min`;
 };
 
-// Compact duration for the share card — paired with a "Duration" label,
-// so the unit suffix is redundant. Mirrors Virtuagym's "25:30" feel.
+// Compact duration for the share card. Uses explicit unit suffixes (1h 36m)
+// instead of a colon ("1:36") to avoid ambiguity with mm:ss. Seconds are
+// intentionally omitted to keep the value short.
 const formatDurationCompact = (minutes) => {
-  if (!minutes || minutes <= 0) return '0';
+  if (!minutes || minutes <= 0) return '0m';
   const hrs = Math.floor(minutes / 60);
   const mins = Math.round(minutes % 60);
   if (hrs > 0) {
-    return `${hrs}:${String(mins).padStart(2, '0')}`;
+    return mins > 0 ? `${hrs}h ${mins}m` : `${hrs}h`;
   }
-  return String(mins);
+  return `${mins}m`;
 };
 
 // Helper to extract file path from a stale Supabase signed URL
@@ -4043,20 +4044,19 @@ function Workouts() {
           // proportional size.
           const valueFont = Math.max(32, Math.min(48, Math.floor(slotWidth * 0.3)));
           const labelFont = 15;
-          // Inset each stat from its slot's left edge so numbers + labels
-          // line up at the start of the column (left-justified within slot)
-          // instead of centered.
-          const slotPad = 22;
           ctx.save();
           ctx.shadowColor = 'rgba(0, 0, 0, 0.85)';
           ctx.shadowBlur = 14;
           ctx.shadowOffsetX = 0;
           ctx.shadowOffsetY = 2;
+          // Center each stat in its slot so the row stays symmetric for any
+          // number of stats (the middle item lands on the canvas centerline
+          // with 3 stats, and pairs sit symmetrically with 4).
           activeToggles.forEach((stat, i) => {
-            const x = slotWidth * i + slotPad;
+            const x = slotWidth * i + slotWidth / 2;
             ctx.fillStyle = 'white';
             ctx.font = `bold ${valueFont}px -apple-system, BlinkMacSystemFont, sans-serif`;
-            ctx.textAlign = 'left';
+            ctx.textAlign = 'center';
             ctx.fillText(stat.value, x, statY);
             ctx.fillStyle = '#e2e8f0';
             ctx.font = `${labelFont}px -apple-system, BlinkMacSystemFont, sans-serif`;
