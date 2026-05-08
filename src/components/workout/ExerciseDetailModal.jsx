@@ -2186,9 +2186,17 @@ function ExerciseDetailModal({
     return 12;
   };
 
-  // Format duration - show minutes if 60 seconds or more
+  // Format duration - show minutes if 60 seconds or more, hours if 60+ minutes
   const formatDuration = (seconds) => {
     if (!seconds) return '30s';
+    if (seconds >= 3600) {
+      const hrs = Math.floor(seconds / 3600);
+      const mins = Math.floor((seconds % 3600) / 60);
+      const secs = seconds % 60;
+      const minPart = mins > 0 ? ` ${mins}m` : '';
+      const secPart = secs > 0 ? ` ${secs}s` : '';
+      return `${hrs}h${minPart}${secPart}`;
+    }
     if (seconds >= 60) {
       const mins = Math.floor(seconds / 60);
       const secs = seconds % 60;
