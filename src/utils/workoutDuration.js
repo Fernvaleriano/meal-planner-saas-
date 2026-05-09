@@ -1,5 +1,5 @@
 /**
- * Shared workout duration estimation utilities.
+ * Shared workout duration & calorie estimation utilities.
  *
  * Centralises the calculation that was previously duplicated across
  * Workouts.jsx, WorkoutBuilder.jsx, CreateWorkoutModal.jsx, and
@@ -76,8 +76,39 @@ function estimateSetSeconds(ex) {
   return 40; // default when reps unknown
 }
 
+/**
+ * Resolve the duration of a single set for a time-based exercise.
+ * Returns seconds.
+ */
+function resolveTimedSetSeconds(ex) {
+  return (
+    parseDurationToSeconds(Array.isArray(ex.setsData) && ex.setsData[0]?.duration) ||
+    parseDurationToSeconds(ex.duration) ||
+    parseDurationToSeconds(Array.isArray(ex.sets) && ex.sets[0]?.duration) ||
+    parseDurationToSeconds(ex.reps) ||
+    30
+  );
+}
+
+/**
+ * Compute work/rest seconds for a single exercise.
+ * `isLast` controls whether the trailing inter-set rest is included
+ * (skipped on the final exercise to avoid counting rest after the last set).
+ */
+function exerciseSeconds(ex, isLast) {
+  const numSets = resolveSetCount(ex);
+  const restSeconds = ex.restSeconds || ex.rest_seconds || 60;
+  const restSets = isLast ? Math.max(numSets - 1, 0) : numSets;
+
+  const perSet = isTimeBased(ex) ? resolveTimedSetSeconds(ex) : estimateSetSeconds(ex);
+  return {
+    work: numSets * perSet,
+    rest: restSets * restSeconds
+  };
+}
+
 // ---------------------------------------------------------------------------
-// Main estimation
+// Main duration estimation
 // ---------------------------------------------------------------------------
 
 const TRANSITION_SECONDS = 30; // time moving between exercises
@@ -92,33 +123,11 @@ export function estimateWorkoutMinutes(exercises) {
   if (!exercises || exercises.length === 0) return 0;
 
   let totalSeconds = 0;
-
   for (let i = 0; i < exercises.length; i++) {
-    const ex = exercises[i];
-    const numSets = resolveSetCount(ex);
-    const restSeconds = ex.restSeconds || ex.rest_seconds || 60;
-    const isLast = i === exercises.length - 1;
-
-    if (isTimeBased(ex)) {
-      // Use per-set setsData duration first (coach workout builder source of truth), then exercise-level
-      const setDuration =
-        parseDurationToSeconds(Array.isArray(ex.setsData) && ex.setsData[0]?.duration) ||
-        parseDurationToSeconds(ex.duration) ||
-        parseDurationToSeconds(Array.isArray(ex.sets) && ex.sets[0]?.duration) ||
-        parseDurationToSeconds(ex.reps) ||
-        30;
-      // Rest between sets + rest after final set (except last exercise)
-      const restSets = isLast ? Math.max(numSets - 1, 0) : numSets;
-      totalSeconds += numSets * setDuration + restSets * restSeconds;
-    } else {
-      const perSet = estimateSetSeconds(ex);
-      // Rest between sets + rest after final set (except last exercise)
-      const restSets = isLast ? Math.max(numSets - 1, 0) : numSets;
-      totalSeconds += numSets * perSet + restSets * restSeconds;
-    }
+    const { work, rest } = exerciseSeconds(exercises[i], i === exercises.length - 1);
+    totalSeconds += work + rest;
   }
 
-  // Transition time between exercises (equipment setup, moving stations)
   if (exercises.length > 1) {
     totalSeconds += (exercises.length - 1) * TRANSITION_SECONDS;
   }
@@ -126,9 +135,91 @@ export function estimateWorkoutMinutes(exercises) {
   return Math.ceil(totalSeconds / 60);
 }
 
+// ---------------------------------------------------------------------------
+// Calorie estimation (MET-based)
+// ---------------------------------------------------------------------------
+
+// Default body weight when none is supplied. ~75 kg ≈ 165 lb is a reasonable
+// generic-adult assumption that lines up with published MET tables.
+const DEFAULT_WEIGHT_KG = 75;
+const LBS_TO_KG = 0.45359237;
+
 /**
- * Very rough calorie estimate.  5 kcal / min as a baseline.
+ * Resolve a client's body weight in kilograms from their profile record.
+ * Returns `undefined` when no usable weight is stored, in which case
+ * `estimateWorkoutCalories` will fall back to its default body weight.
+ *
+ * The `weight` column on `clients` stores the value in the user's chosen
+ * unit (kg if `unit_preference === 'metric'`, otherwise pounds).
  */
-export function estimateWorkoutCalories(exercises) {
-  return Math.round(estimateWorkoutMinutes(exercises) * 5);
+export function clientWeightKg(clientData) {
+  if (!clientData) return undefined;
+  const raw = parseFloat(clientData.weight);
+  if (!raw || raw <= 0 || !isFinite(raw)) return undefined;
+  const isMetric = clientData.unit_preference === 'metric';
+  return isMetric ? raw : raw * LBS_TO_KG;
+}
+
+// MET values sourced from the 2011 Compendium of Physical Activities. The
+// published values already account for typical rest patterns within each
+// activity, so they're applied to the exercise's *total* elapsed time
+// (work + rest) rather than splitting work and rest separately.
+const MET = {
+  warmup: 3.5,        // dynamic warm-up: jumping jacks, arm circles, light jog
+  cooldown: 2.3,      // static stretching, easy walking
+  flexibility: 2.5,   // yoga, mobility flows
+  cardio_high: 8.0,   // HIIT, vigorous intervals, calisthenics circuits
+  strength_mod: 5.0   // standard resistance training, multiple exercises
+};
+
+/**
+ * Pick a MET value for an exercise based on its section, type, and tracking.
+ */
+function getExerciseMET(ex) {
+  const section = (ex.section || '').toLowerCase();
+  if (section === 'warm-up' || section === 'warmup') return MET.warmup;
+  if (section === 'cool-down' || section === 'cooldown') return MET.cooldown;
+
+  const type = (ex.exercise_type || ex.type || '').toLowerCase();
+  if (type === 'cardio') return MET.cardio_high;
+  if (type === 'flexibility' || type === 'stretching' || type === 'mobility') {
+    return MET.flexibility;
+  }
+
+  // Timed bodyweight moves (planks, mountain climbers, burpees, jumping jacks
+  // outside of an explicit warm-up section) are typically circuit-style.
+  if (ex.trackingType === 'time') return MET.cardio_high;
+
+  // Default: moderate resistance training.
+  return MET.strength_mod;
+}
+
+/**
+ * Estimate calories burned for a workout using the MET formula:
+ *   kcal = MET × bodyWeightKg × hours
+ *
+ * Each exercise's MET is applied to its full elapsed time (work + rest) since
+ * published MET values already account for typical rest cadence within an
+ * activity.
+ *
+ * @param {Array} exercises – flat array of exercise objects
+ * @param {Object} [options]
+ * @param {number} [options.weightKg] – body weight in kg (defaults to 75)
+ * @returns {number} estimated kilocalories (rounded)
+ */
+export function estimateWorkoutCalories(exercises, options = {}) {
+  if (!exercises || exercises.length === 0) return 0;
+  const weight = options.weightKg && options.weightKg > 0 ? options.weightKg : DEFAULT_WEIGHT_KG;
+
+  let metSeconds = 0;
+  for (let i = 0; i < exercises.length; i++) {
+    const ex = exercises[i];
+    const { work, rest } = exerciseSeconds(ex, i === exercises.length - 1);
+    metSeconds += getExerciseMET(ex) * (work + rest);
+  }
+  // Light walking between stations.
+  if (exercises.length > 1) {
+    metSeconds += 2.5 * (exercises.length - 1) * TRANSITION_SECONDS;
+  }
+  return Math.round((metSeconds * weight) / 3600);
 }

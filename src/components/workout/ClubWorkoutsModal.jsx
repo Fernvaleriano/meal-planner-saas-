@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { X, Dumbbell, Clock, Flame, ChevronRight, ChevronDown, Search, Filter, Users, Loader2, CalendarPlus, Layers, Calendar, Check } from 'lucide-react';
 import { apiGet } from '../../utils/api';
 import SmartThumbnail from './SmartThumbnail';
+import { estimateWorkoutMinutes, estimateWorkoutCalories } from '../../utils/workoutDuration';
 
 const CATEGORY_LABELS = {
   strength: 'Strength',
@@ -115,7 +116,8 @@ const DAY_LABELS = [
   { key: 'sat', label: 'S', full: 'Saturday' }
 ];
 
-function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachId }) {
+function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachId, bodyWeightKg }) {
+  const calorieOpts = useMemo(() => ({ weightKg: bodyWeightKg }), [bodyWeightKg]);
   const [workouts, setWorkouts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState('');
@@ -313,11 +315,12 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
   const handleUseWorkout = useCallback((workout, forDate) => {
     if (!workout?.workout_data) return;
 
+    const exercises = workout.workout_data.exercises || [];
     const workoutData = {
       name: workout.name,
-      exercises: workout.workout_data.exercises || [],
-      estimatedMinutes: workout.workout_data.estimatedMinutes || 45,
-      estimatedCalories: workout.workout_data.estimatedCalories || 300,
+      exercises,
+      estimatedMinutes: workout.workout_data.estimatedMinutes || estimateWorkoutMinutes(exercises) || 45,
+      estimatedCalories: workout.workout_data.estimatedCalories || estimateWorkoutCalories(exercises, calorieOpts),
       club_workout_id: workout.id,
       image_url: workout.image_url || null,
       scheduledDate: forDate || null
@@ -365,9 +368,10 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
   if (selectedWorkout) {
     const exercises = selectedWorkout.workout_data?.exercises || [];
     const estimatedMinutes = selectedWorkout.workout_data?.estimatedMinutes ||
+      estimateWorkoutMinutes(exercises) ||
       Math.ceil(exercises.length * 4);
     const estimatedCalories = selectedWorkout.workout_data?.estimatedCalories ||
-      Math.round(estimatedMinutes * 5);
+      estimateWorkoutCalories(exercises, calorieOpts);
 
     return (
       <div className="club-workouts-overlay" onClick={onClose}>
