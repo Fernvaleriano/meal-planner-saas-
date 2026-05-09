@@ -41,32 +41,22 @@ A partial React rebuild exists in `src/` but is **not the primary codebase**. So
 ### Decision
 - **New domain purchased:** `ziquecoach.com`
 - **App name:** "Ziquecoach"
-- **App ID:** `com.ziquecoach.app`
-- **Status:** NOT YET IMPLEMENTED — waiting until closer to App Store launch
+- **App ID:** `com.ziquecoach.app` (already updated in Capacitor/iOS/Android configs)
+- **Status:** NOT YET IMPLEMENTED — planning complete, waiting on user to start
+- **Strategy update (May 2026):** Only ~10 active clients, so doing a clean cutover (have clients re-save the homescreen icon) instead of dual-domain. Old domain stays as a 301 redirect for ~12 months as safety net.
 
-### Strategy (Dual Domain)
-- `www.ziquecoach.com` → marketing/signup site for **coaches** signing up
-- `ziquefitnessnutrition.com` → stays alive for **existing clients** so their homescreen saves keep working
-- Gradually transition clients to the native app (Capacitor), which eliminates the homescreen/domain dependency
-- Eventually sunset the old domain once clients are on the native app
+### Full audit & checklist
+**See `DOMAIN-CHANGE-CHECKLIST.md`** for the complete phase-by-phase plan: external services (Supabase/Stripe/DNS), all ~240 code references across 60+ files (with file paths and line numbers), cutover steps, and post-cutover monitoring.
 
-### What Needs to Happen (When Ready)
-1. Update codebase: all domain refs, app name, app ID, email addresses to ziquecoach.com
-2. Point ziquecoach.com DNS to Netlify
-3. Set up email DNS records (SPF/DKIM) for @ziquecoach.com
-4. Update Stripe webhook URL
-5. Update Supabase redirect URLs
-6. Keep ziquefitnessnutrition.com alive with redirects
-7. Submit to App Store as "Ziquecoach"
+### Decisions still needed before starting
+1. New email addresses at `ziquecoach.com` (`noreply@`, `contact@`, `privacy@`)?
+2. Master/admin account email — migrate `contact@ziquefitness.com` to new domain or keep?
+3. Capacitor hostname `app.ziquefitness.com` → `app.ziquecoach.com`?
+4. Order of operations — code first or external setup first?
 
-### Known Issues to Fix During Domain Change
-- Inconsistent domain fallbacks in code (3 different variants: ziquefitnessnutrition.com, ziquefitness.com, ziquefitnutrition.com typo)
-- ~20 files need domain/URL updates
-- Email addresses across 6+ files need updating
-
-### Key Insight
-- Code changes can be done ahead of DNS flip (fallbacks don't affect live site since Netlify URL env var controls actual routing)
-- PWA homescreen saves WILL break for clients on the old domain — native app solves this long-term
+### Key insight
+- Code changes can be done ahead of DNS flip (fallbacks don't affect live site since Netlify `URL` env var controls actual routing)
+- PWA homescreen saves WILL break for clients on the old domain — clean cutover with re-save instructions is the plan
 
 ## Default Workout Template Format
 
