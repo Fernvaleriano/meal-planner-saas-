@@ -1,5 +1,9 @@
 const { createClient } = require('@supabase/supabase-js');
 const { withTimeout } = require('./utils/with-timeout');
+const {
+  estimateWorkoutMinutes,
+  estimateWorkoutCalories
+} = require('./utils/workout-estimates');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -279,8 +283,8 @@ exports.handler = withTimeout(async (event) => {
               days = [{
                 exercises: workoutData.exercises,
                 name: workoutData.name || activeAssignment.name || 'Workout',
-                estimatedMinutes: workoutData.estimatedMinutes || 45,
-                estimatedCalories: workoutData.estimatedCalories || 300
+                estimatedMinutes: workoutData.estimatedMinutes || estimateWorkoutMinutes(workoutData.exercises) || 45,
+                estimatedCalories: workoutData.estimatedCalories || estimateWorkoutCalories(workoutData.exercises)
               }];
             }
             const schedule = workoutData.schedule || activeAssignment.schedule || {};
@@ -401,8 +405,8 @@ exports.handler = withTimeout(async (event) => {
                     workout_data: {
                       ...day,
                       exercises: (day.exercises || []).map(ex => { const { completed, ...rest } = ex; return rest; }),
-                      estimatedMinutes: day.estimatedMinutes || 45,
-                      estimatedCalories: day.estimatedCalories || 300,
+                      estimatedMinutes: day.estimatedMinutes || estimateWorkoutMinutes(day.exercises) || 45,
+                      estimatedCalories: day.estimatedCalories || estimateWorkoutCalories(day.exercises),
                       image_url: resolvedImageUrl
                     },
                     program_id: activeAssignment.program_id,
@@ -429,8 +433,8 @@ exports.handler = withTimeout(async (event) => {
                   workout_data: {
                     ...natDay,
                     exercises: (natDay.exercises || []).map(ex => { const { completed, ...rest } = ex; return rest; }),
-                    estimatedMinutes: natDay.estimatedMinutes || 45,
-                    estimatedCalories: natDay.estimatedCalories || 300,
+                    estimatedMinutes: natDay.estimatedMinutes || estimateWorkoutMinutes(natDay.exercises) || 45,
+                    estimatedCalories: natDay.estimatedCalories || estimateWorkoutCalories(natDay.exercises),
                     image_url: resolvedImageUrl
                   },
                   program_id: activeAssignment.program_id,

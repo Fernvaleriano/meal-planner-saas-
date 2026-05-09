@@ -1497,8 +1497,8 @@ function Workouts() {
           days = [{
             exercises: workoutData.exercises,
             name: workoutData.name || assignment.name || 'Workout',
-            estimatedMinutes: workoutData.estimatedMinutes || 45,
-            estimatedCalories: workoutData.estimatedCalories || 300
+            estimatedMinutes: workoutData.estimatedMinutes || estimateWorkoutMinutes(workoutData.exercises) || 45,
+            estimatedCalories: workoutData.estimatedCalories || estimateWorkoutCalories(workoutData.exercises)
           }];
         }
         const assignSchedule = workoutData.schedule || assignment.schedule || {};
@@ -2148,8 +2148,8 @@ function Workouts() {
       const adHocWorkoutData = {
         name: 'Custom Workout',
         exercises: newExercises,
-        estimatedMinutes: 30,
-        estimatedCalories: 150
+        estimatedMinutes: estimateWorkoutMinutes(newExercises) || 30,
+        estimatedCalories: estimateWorkoutCalories(newExercises)
       };
 
       const adHocWorkout = {
@@ -3910,8 +3910,11 @@ function Workouts() {
   }, [exercises]);
 
   const estimatedCalories = useMemo(() => {
-    return todayWorkout?.workout_data?.estimatedCalories || Math.round(totalSets * 6.5) || 300;
-  }, [todayWorkout, totalSets]);
+    // Prefer the saved value, otherwise compute on the fly from the actual
+    // exercise list so we don't fall back to a generic placeholder.
+    const computed = estimateWorkoutCalories(exercises);
+    return todayWorkout?.workout_data?.estimatedCalories || computed || 0;
+  }, [todayWorkout, exercises]);
 
   // Handle finish button click - show confirmation if activities are incomplete
   // exercisesOverride: optional array of exercises with final logged data (from play mode)
@@ -4773,7 +4776,7 @@ function Workouts() {
                 </span>
                 <span className="stat-item">
                   <Flame size={16} />
-                  {estimateWorkoutCalories(exercises) || todayWorkout.workout_data?.estimatedCalories || 300} kcal
+                  {estimateWorkoutCalories(exercises) || todayWorkout.workout_data?.estimatedCalories || 0} kcal
                 </span>
               </div>
             </div>
