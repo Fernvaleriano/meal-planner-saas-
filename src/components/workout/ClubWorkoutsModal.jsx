@@ -116,7 +116,8 @@ const DAY_LABELS = [
   { key: 'sat', label: 'S', full: 'Saturday' }
 ];
 
-function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachId }) {
+function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachId, bodyWeightKg }) {
+  const calorieOpts = useMemo(() => ({ weightKg: bodyWeightKg }), [bodyWeightKg]);
   const [workouts, setWorkouts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState('');
@@ -319,7 +320,7 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
       name: workout.name,
       exercises,
       estimatedMinutes: workout.workout_data.estimatedMinutes || estimateWorkoutMinutes(exercises) || 45,
-      estimatedCalories: workout.workout_data.estimatedCalories || estimateWorkoutCalories(exercises),
+      estimatedCalories: workout.workout_data.estimatedCalories || estimateWorkoutCalories(exercises, calorieOpts),
       club_workout_id: workout.id,
       image_url: workout.image_url || null,
       scheduledDate: forDate || null
@@ -370,7 +371,7 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
       estimateWorkoutMinutes(exercises) ||
       Math.ceil(exercises.length * 4);
     const estimatedCalories = selectedWorkout.workout_data?.estimatedCalories ||
-      estimateWorkoutCalories(exercises);
+      estimateWorkoutCalories(exercises, calorieOpts);
 
     return (
       <div className="club-workouts-overlay" onClick={onClose}>

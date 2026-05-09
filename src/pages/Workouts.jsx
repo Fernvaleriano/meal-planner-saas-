@@ -16,7 +16,7 @@ import SetEditorModal from '../components/workout/SetEditorModal';
 import Portal from '../components/Portal';
 import ErrorBoundary from '../components/ErrorBoundary';
 import { useToast } from '../components/Toast';
-import { parseDurationToSeconds, estimateWorkoutMinutes, estimateWorkoutCalories } from '../utils/workoutDuration';
+import { parseDurationToSeconds, estimateWorkoutMinutes, estimateWorkoutCalories, clientWeightKg } from '../utils/workoutDuration';
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
 
 const GymProofModal = React.lazy(() => import('../components/GymProofModal'));
@@ -563,6 +563,9 @@ function Workouts() {
 
   // User's preferred weight unit (default to lbs for imperial)
   const weightUnit = clientData?.unit_preference === 'metric' ? 'kg' : 'lbs';
+  // Client's body weight in kg (or undefined → calorie estimator falls back to its default)
+  const bodyWeightKg = useMemo(() => clientWeightKg(clientData), [clientData]);
+  const calorieOpts = useMemo(() => ({ weightKg: bodyWeightKg }), [bodyWeightKg]);
   const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [weekDates, setWeekDates] = useState(() => getWeekDates(new Date()));
 
@@ -1498,7 +1501,7 @@ function Workouts() {
             exercises: workoutData.exercises,
             name: workoutData.name || assignment.name || 'Workout',
             estimatedMinutes: workoutData.estimatedMinutes || estimateWorkoutMinutes(workoutData.exercises) || 45,
-            estimatedCalories: workoutData.estimatedCalories || estimateWorkoutCalories(workoutData.exercises)
+            estimatedCalories: workoutData.estimatedCalories || estimateWorkoutCalories(workoutData.exercises, calorieOpts)
           }];
         }
         const assignSchedule = workoutData.schedule || assignment.schedule || {};
@@ -2149,7 +2152,7 @@ function Workouts() {
         name: 'Custom Workout',
         exercises: newExercises,
         estimatedMinutes: estimateWorkoutMinutes(newExercises) || 30,
-        estimatedCalories: estimateWorkoutCalories(newExercises)
+        estimatedCalories: estimateWorkoutCalories(newExercises, calorieOpts)
       };
 
       const adHocWorkout = {
@@ -3910,11 +3913,12 @@ function Workouts() {
   }, [exercises]);
 
   const estimatedCalories = useMemo(() => {
-    // Prefer the saved value, otherwise compute on the fly from the actual
-    // exercise list so we don't fall back to a generic placeholder.
-    const computed = estimateWorkoutCalories(exercises);
-    return todayWorkout?.workout_data?.estimatedCalories || computed || 0;
-  }, [todayWorkout, exercises]);
+    // Always recompute from the actual exercise list using the client's body
+    // weight so the number is personalized; fall back to the saved value
+    // (server-computed at default weight) only when we can't compute one.
+    const computed = estimateWorkoutCalories(exercises, calorieOpts);
+    return computed || todayWorkout?.workout_data?.estimatedCalories || 0;
+  }, [todayWorkout, exercises, calorieOpts]);
 
   // Handle finish button click - show confirmation if activities are incomplete
   // exercisesOverride: optional array of exercises with final logged data (from play mode)
@@ -4319,7 +4323,7 @@ function Workouts() {
                         const daySpecificName = workout.workout_data?.name && workout.workout_data.name !== workout.name
                           ? workout.workout_data.name : null;
                         const estMinutes = estimateWorkoutMinutes(cardExercises) || workout.workout_data?.estimatedMinutes || null;
-                        const estCalories = estimateWorkoutCalories(cardExercises) || workout.workout_data?.estimatedCalories || null;
+                        const estCalories = estimateWorkoutCalories(cardExercises, calorieOpts) || workout.workout_data?.estimatedCalories || null;
 
                         return (
                           <div
@@ -4390,7 +4394,7 @@ function Workouts() {
                               const daySpecificName = workout.workout_data?.name && workout.workout_data.name !== workout.name
                                 ? workout.workout_data.name : null;
                               const estMinutes = estimateWorkoutMinutes(cardExercises) || workout.workout_data?.estimatedMinutes || null;
-                              const estCalories = estimateWorkoutCalories(cardExercises) || workout.workout_data?.estimatedCalories || null;
+                              const estCalories = estimateWorkoutCalories(cardExercises, calorieOpts) || workout.workout_data?.estimatedCalories || null;
 
                               return (
                                 <React.Fragment key={workout.instance_id || `${workout.id}-${workout.day_index}`}>
@@ -4776,7 +4780,7 @@ function Workouts() {
                 </span>
                 <span className="stat-item">
                   <Flame size={16} />
-                  {estimateWorkoutCalories(exercises) || todayWorkout.workout_data?.estimatedCalories || 0} kcal
+                  {estimateWorkoutCalories(exercises, calorieOpts) || todayWorkout.workout_data?.estimatedCalories || 0} kcal
                 </span>
               </div>
             </div>
@@ -5383,6 +5387,7 @@ function Workouts() {
           onSelectWorkout={handleSelectClubWorkout}
           onScheduleProgram={handleScheduleClubProgram}
           coachId={clientData?.coach_id}
+          bodyWeightKg={bodyWeightKg}
         />
       )}
 

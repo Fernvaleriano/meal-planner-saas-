@@ -142,6 +142,23 @@ export function estimateWorkoutMinutes(exercises) {
 // Default body weight when none is supplied. ~75 kg ≈ 165 lb is a reasonable
 // generic-adult assumption that lines up with published MET tables.
 const DEFAULT_WEIGHT_KG = 75;
+const LBS_TO_KG = 0.45359237;
+
+/**
+ * Resolve a client's body weight in kilograms from their profile record.
+ * Returns `undefined` when no usable weight is stored, in which case
+ * `estimateWorkoutCalories` will fall back to its default body weight.
+ *
+ * The `weight` column on `clients` stores the value in the user's chosen
+ * unit (kg if `unit_preference === 'metric'`, otherwise pounds).
+ */
+export function clientWeightKg(clientData) {
+  if (!clientData) return undefined;
+  const raw = parseFloat(clientData.weight);
+  if (!raw || raw <= 0 || !isFinite(raw)) return undefined;
+  const isMetric = clientData.unit_preference === 'metric';
+  return isMetric ? raw : raw * LBS_TO_KG;
+}
 
 // MET values sourced from the 2011 Compendium of Physical Activities. The
 // published values already account for typical rest patterns within each
