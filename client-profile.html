@@ -13534,15 +13534,19 @@
                         <button class="ac-bulk-btn" onclick="acBulkCheckDone()">&#9745; Check done</button>
                         <button class="ac-bulk-btn" onclick="acBulkUncheckDone()">&#9744; Uncheck</button>
                         <button class="ac-bulk-btn danger" onclick="acBulkDelete()">&#128465; Delete</button>
-                        <button class="ac-bulk-btn" onclick="acBulkMoveTo()">&#9999; Move to</button>
-                        <button class="ac-bulk-btn" onclick="acBulkCopyTo()">&#128203; Copy to</button>
+                        <button class="ac-bulk-btn" onclick="acBulkMoveTo()">&#9999; Move exercises</button>
+                        <button class="ac-bulk-btn" onclick="acBulkCopyTo()">&#128203; Copy exercises</button>
                     </div>`;
                 }
 
-                // Action buttons for this workout
+                // Action buttons for this workout. wIdx disambiguates duplicate
+                // cards (same assignmentId, different instance_id) so move/copy/
+                // delete target the right one when a day has multiple workouts.
                 html += `<div class="ac-detail-actions">
                     <button class="ac-action-btn" onclick="acOpenAddExercise('${assignmentId}', ${dayIndex}, ${isAdhoc}, '${dateStr}')">+ Add Exercise</button>
-                    <button class="ac-action-btn danger" onclick="acDeleteWorkout('${assignmentId}', ${isAdhoc}, '${dateStr}')">Delete Workout</button>
+                    <button class="ac-action-btn" onclick="acMoveWorkout(${wIdx}, '${dateStr}')">&#9999; Move Workout</button>
+                    <button class="ac-action-btn" onclick="acCopyWorkout(${wIdx}, '${dateStr}')">&#128203; Copy Workout</button>
+                    <button class="ac-action-btn danger" onclick="acDeleteWorkout(${wIdx}, '${dateStr}')">Delete Workout</button>
                     ${!isAdhoc ? `<button class="ac-action-btn danger" onclick="removeEntireProgram()" style="background:#dc2626;color:#fff;border-color:#dc2626;">Remove Program</button>` : ''}
                 </div>`;
 
@@ -14935,8 +14939,13 @@
         }
 
         // ---- Delete Workout from Date ----
-        async function acDeleteWorkout(assignmentId, isAdhoc, dateStr) {
+        async function acDeleteWorkout(wIdx, dateStr) {
+            const workout = (acDayWorkouts || [])[wIdx];
+            if (!workout) { alert('Could not find workout to delete'); return; }
             if (!confirm('Delete this workout from ' + dateStr + '?')) return;
+
+            const assignmentId = workout.id;
+            const isAdhoc = !!workout.is_adhoc;
 
             try {
                 if (isAdhoc) {
@@ -14950,7 +14959,12 @@
                         body: JSON.stringify({
                             assignmentId,
                             action: 'skip',
-                            targetDate: dateStr
+                            targetDate: dateStr,
+                            // Without these, deleting an added/rescheduled card would
+                            // suppress the natural workout instead of the added one.
+                            sourceDayIndex: workout.day_index != null ? workout.day_index : 0,
+                            isAdded: !!workout.is_added,
+                            instanceId: workout.instance_id || null
                         })
                     });
                 }
@@ -14962,6 +14976,121 @@
                 console.error('Error deleting workout:', err);
                 alert('Failed to delete workout');
             }
+        }
+
+        // ---- Move / Copy entire workout to another date ----
+        // The bulk "Move exercises" / "Copy exercises" actions only shuffle
+        // exercises around — they do NOT change the assignment schedule, so a
+        // moved program day still appears on its original date. These two
+        // helpers move/copy the WHOLE workout card by writing a date_override
+        // on the assignment (for program workouts) or by recreating the row on
+        // a new date (for ad-hoc workouts). wIdx targets the specific card so
+        // duplicates on the same day stay independent.
+        function acMoveWorkout(wIdx, dateStr) {
+            const workout = (acDayWorkouts || [])[wIdx];
+            if (!workout) { alert('Could not find workout to move'); return; }
+            const assignmentId = workout.id;
+            const isAdhoc = !!workout.is_adhoc;
+
+            acOpenDatePicker('Move workout to date', async function(targetDate) {
+                if (!targetDate || targetDate === dateStr) return;
+                try {
+                    if (isAdhoc) {
+                        // Recreate on target, delete original. Mirrors the client
+                        // app's adhoc reschedule path (POST upserts by client+date).
+                        await fetch('/.netlify/functions/adhoc-workouts', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                clientId,
+                                workoutDate: targetDate,
+                                workoutData: workout.workout_data || {},
+                                name: workout.name || workout.workout_data?.name || 'Workout'
+                            })
+                        });
+                        await fetch(`/.netlify/functions/adhoc-workouts?workoutId=${assignmentId}`, {
+                            method: 'DELETE'
+                        });
+                    } else {
+                        const res = await fetch('/.netlify/functions/client-workout-log', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                assignmentId,
+                                action: 'reschedule',
+                                sourceDayIndex: workout.day_index != null ? workout.day_index : 0,
+                                sourceDate: dateStr,
+                                targetDate,
+                                isAdded: !!workout.is_added,
+                                instanceId: workout.instance_id || null
+                            })
+                        });
+                        if (!res.ok) {
+                            const errBody = await res.json().catch(() => ({}));
+                            throw new Error(errBody.error || 'Failed to move workout');
+                        }
+                    }
+
+                    // Both source and target dots are stale — reload the month so
+                    // the calendar reflects the new schedule, then jump to the
+                    // target so the coach sees what they just did.
+                    await acLoadMonthData();
+                    acRenderCalendar();
+                    acSelectDay(targetDate);
+                } catch (err) {
+                    console.error('Error moving workout:', err);
+                    alert('Failed to move workout: ' + (err.message || 'unknown error'));
+                }
+            });
+        }
+
+        function acCopyWorkout(wIdx, dateStr) {
+            const workout = (acDayWorkouts || [])[wIdx];
+            if (!workout) { alert('Could not find workout to copy'); return; }
+            const assignmentId = workout.id;
+            const isAdhoc = !!workout.is_adhoc;
+
+            acOpenDatePicker('Copy workout to date', async function(targetDate) {
+                if (!targetDate) return;
+                try {
+                    if (isAdhoc) {
+                        await fetch('/.netlify/functions/adhoc-workouts', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                clientId,
+                                workoutDate: targetDate,
+                                workoutData: workout.workout_data || {},
+                                name: workout.name || workout.workout_data?.name || 'Workout'
+                            })
+                        });
+                    } else {
+                        const res = await fetch('/.netlify/functions/client-workout-log', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                assignmentId,
+                                action: 'duplicate',
+                                sourceDayIndex: workout.day_index != null ? workout.day_index : 0,
+                                targetDate,
+                                isAdded: !!workout.is_added,
+                                instanceId: workout.instance_id || null
+                            })
+                        });
+                        if (!res.ok) {
+                            const errBody = await res.json().catch(() => ({}));
+                            throw new Error(errBody.error || 'Failed to copy workout');
+                        }
+                    }
+
+                    await acLoadMonthData();
+                    acRenderCalendar();
+                    acSelectDay(targetDate);
+                } catch (err) {
+                    console.error('Error copying workout:', err);
+                    alert('Failed to copy workout: ' + (err.message || 'unknown error'));
+                }
+            });
         }
 
         // Initialize the activity calendar when data loads

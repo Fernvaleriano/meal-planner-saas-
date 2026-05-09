@@ -577,15 +577,30 @@ exports.handler = async (event) => {
         updateFields.total_reps = totalReps;
       }
 
-      // Update workout log
-      const { data: workout, error } = await supabase
-        .from('workout_logs')
-        .update(updateFields)
-        .eq('id', workoutId)
-        .select()
-        .single();
+      // Update workout log. PostgREST rejects an empty body with a 400/500
+      // ("Empty Update") so skip the call entirely when there's nothing to
+      // change — happens when the caller is only managing exercise_logs (e.g.
+      // bulk-delete that emptied the exercises array) and didn't pass any
+      // workout-level fields.
+      let workout = null;
+      if (Object.keys(updateFields).length > 0) {
+        const { data, error } = await supabase
+          .from('workout_logs')
+          .update(updateFields)
+          .eq('id', workoutId)
+          .select()
+          .single();
 
-      if (error) throw error;
+        if (error) throw error;
+        workout = data;
+      } else {
+        const { data } = await supabase
+          .from('workout_logs')
+          .select('*')
+          .eq('id', workoutId)
+          .single();
+        workout = data;
+      }
 
       // Send PR notifications to coach (non-blocking)
       if (prNotifications.length > 0 && workoutLogData?.coach_id && workoutLogData?.client_id) {
