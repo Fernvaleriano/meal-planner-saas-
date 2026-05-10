@@ -180,7 +180,7 @@ async function sendWithMailgun({ to, subject, text, html, emailFrom, emailFromNa
  * @param {string} options.customSubject - Custom email subject (optional)
  * @param {string} options.customMessage - Custom email message (optional)
  * @param {boolean} options.isFollowup - Is this a follow-up reminder?
- * @param {boolean} options.whiteLabel - Is this a white-label email? (no Zique branding)
+ * @param {boolean} options.whiteLabel - Is this a white-label email? (no Ziquecoach branding)
  * @param {Object} options.branding - Coach branding settings (optional)
  * @returns {Object} - { subject, text, html }
  */
@@ -744,7 +744,7 @@ We're sorry to see you go! If there's anything we could have done better, we'd l
 Thank you for trying Ziquecoach.
 
 Best,
-The Zique Team
+The Ziquecoach Team
 
 ---
 Ziquecoach
@@ -792,7 +792,7 @@ ${APP_URL}`;
         <p style="margin-top: 30px; color: #64748b;">
             Thank you for trying Ziquecoach.<br><br>
             Best,<br>
-            <strong>The Zique Team</strong>
+            <strong>The Ziquecoach Team</strong>
         </p>
     </div>
 
@@ -834,7 +834,7 @@ We're sorry to see you go! If there's anything we could have done better, we'd l
 Thank you for being a part of Ziquecoach.
 
 Best,
-The Zique Team
+The Ziquecoach Team
 
 ---
 Ziquecoach
@@ -881,7 +881,7 @@ ${APP_URL}`;
         <p style="margin-top: 30px; color: #64748b;">
             Thank you for being a part of Ziquecoach.<br><br>
             Best,<br>
-            <strong>The Zique Team</strong>
+            <strong>The Ziquecoach Team</strong>
         </p>
     </div>
 
@@ -961,7 +961,7 @@ ${APP_URL}/dashboard.html
 Thank you for continuing with Ziquecoach!
 
 Best,
-The Zique Team
+The Ziquecoach Team
 
 ---
 Ziquecoach
@@ -1005,7 +1005,7 @@ ${APP_URL}`;
         <p style="margin-top: 30px; color: #64748b;">
             Thank you for continuing with Ziquecoach!<br><br>
             Best,<br>
-            <strong>The Zique Team</strong>
+            <strong>The Ziquecoach Team</strong>
         </p>
     </div>
 
@@ -1062,7 +1062,7 @@ Common reasons for failed payments:
 If you need help, just reply to this email.
 
 Best,
-The Zique Team
+The Ziquecoach Team
 
 ---
 Ziquecoach
@@ -1106,7 +1106,7 @@ ${APP_URL}`;
         <p style="margin-top: 30px; color: #64748b;">
             If you need help, just reply to this email.<br><br>
             Best,<br>
-            <strong>The Zique Team</strong>
+            <strong>The Ziquecoach Team</strong>
         </p>
     </div>
 
@@ -1169,7 +1169,7 @@ All your data will be safely preserved. You can reactivate anytime.
 Questions? Just reply to this email.
 
 Best,
-The Zique Team
+The Ziquecoach Team
 
 ---
 Ziquecoach
@@ -1214,7 +1214,7 @@ ${APP_URL}`;
         <p style="margin-top: 30px; color: #64748b;">
             Questions? Just reply to this email.<br><br>
             Best,<br>
-            <strong>The Zique Team</strong>
+            <strong>The Ziquecoach Team</strong>
         </p>
     </div>
 
@@ -1420,7 +1420,7 @@ With your new account, you can:
 We're excited to have you on board!
 
 Best,
-The Zique Team
+The Ziquecoach Team
 
 ---
 Ziquecoach
@@ -1476,7 +1476,7 @@ ${APP_URL}`;
                 <p style="margin-top: 30px; color: #334155;">
                     We're excited to have you on board!<br><br>
                     Best,<br>
-                    <strong>The Zique Team</strong>
+                    <strong>The Ziquecoach Team</strong>
                 </p>
             </td>
         </tr>
