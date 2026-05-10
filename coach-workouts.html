@@ -1923,6 +1923,44 @@
             border-top: 2px solid var(--brand-primary);
         }
 
+        /* Superset grouping — visually link exercises in the same group.
+           A thick colored left border + tinted background marks every member of
+           a superset. When adjacent rows share a group, their borders merge into
+           a single "bracket" so the link between them is unmistakable. */
+        .wb-ex-row.ss-grouped {
+            border-left-width: 4px;
+            border-left-style: solid;
+            position: relative;
+        }
+        .wb-ex-row.ss-A { border-left-color: #8b5cf6; background: linear-gradient(to right, rgba(139,92,246,0.10), var(--bg-secondary) 35%); }
+        .wb-ex-row.ss-B { border-left-color: #6366f1; background: linear-gradient(to right, rgba(99,102,241,0.10), var(--bg-secondary) 35%); }
+        .wb-ex-row.ss-C { border-left-color: #ec4899; background: linear-gradient(to right, rgba(236,72,153,0.10), var(--bg-secondary) 35%); }
+        .wb-ex-row.ss-A:hover, .wb-ex-row.ss-B:hover, .wb-ex-row.ss-C:hover {
+            background: var(--bg-tertiary);
+        }
+        /* Chain modifiers stitch adjacent same-group rows together */
+        .wb-ex-row.ss-chain-top    { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+        .wb-ex-row.ss-chain-middle { border-radius: 0; border-top-width: 0; }
+        .wb-ex-row.ss-chain-bottom { border-top-left-radius: 0; border-top-right-radius: 0; border-top-width: 0; }
+        /* Hide the insert-between divider inside a chain so the link reads as one block */
+        .wb-insert-divider.ss-chain-hide { display: none; }
+        /* Group label that sits over the bracket on the first row of a chain */
+        .wb-ex-row .ss-chain-label {
+            position: absolute;
+            top: -7px;
+            left: 6px;
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: 0.4px;
+            padding: 1px 5px;
+            border-radius: 3px;
+            color: #fff;
+            text-transform: uppercase;
+        }
+        .wb-ex-row.ss-A .ss-chain-label { background: #8b5cf6; }
+        .wb-ex-row.ss-B .ss-chain-label { background: #6366f1; }
+        .wb-ex-row.ss-C .ss-chain-label { background: #ec4899; }
+
         .wb-insert-divider {
             display: flex;
             align-items: center;
@@ -8657,6 +8695,11 @@
                 return;
             }
             const totalEx = day.exercises.length;
+            // Group key per row used to compute chain (visual bracket) position.
+            const groupAt = (i) => {
+                const ex = day.exercises[i];
+                return ex && ex.isSuperset && ex.supersetGroup ? ex.supersetGroup : null;
+            };
             container.innerHTML = day.exercises.map((exercise, exIndex) => {
                 const thumbSrc = exercise.thumbnail_url || '/img/exercise-placeholder.svg';
                 const summary = formatSetsSummary(exercise);
@@ -8664,9 +8707,26 @@
                 if (exercise.isWarmup) badges += '<span class="wb-ex-row-badge" style="background:rgba(245,158,11,0.2);color:#f59e0b;">Warmup</span>';
                 if (exercise.isStretch) badges += '<span class="wb-ex-row-badge" style="background:rgba(16,185,129,0.2);color:#10b981;">Stretch</span>';
                 if (exercise.isSuperset) badges += '<span class="wb-ex-row-badge" style="background:rgba(99,102,241,0.2);color:#6366f1;">SS ' + (exercise.supersetGroup || '') + '</span>';
-                const insertBtn = '<div class="wb-insert-divider"><button class="wb-insert-btn" onclick="event.stopPropagation(); openExerciseModal(' + activeDayIndex + ', ' + (exIndex + 1) + ')" title="Insert exercise here"><svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg></button></div>';
+
+                // Superset grouping classes — color the row by group and stitch
+                // it to neighbors that share the same group.
+                const grp = groupAt(exIndex);
+                const prevSame = grp && groupAt(exIndex - 1) === grp;
+                const nextSame = grp && groupAt(exIndex + 1) === grp;
+                let ssClasses = '';
+                let chainLabel = '';
+                if (grp) {
+                    ssClasses = ' ss-grouped ss-' + grp;
+                    if (prevSame && nextSame) ssClasses += ' ss-chain-middle';
+                    else if (nextSame) ssClasses += ' ss-chain-top';
+                    else if (prevSame) ssClasses += ' ss-chain-bottom';
+                    if (!prevSame) chainLabel = '<span class="ss-chain-label">Superset ' + grp + '</span>';
+                }
+                const dividerClass = (grp && nextSame) ? 'wb-insert-divider ss-chain-hide' : 'wb-insert-divider';
+                const insertBtn = '<div class="' + dividerClass + '"><button class="wb-insert-btn" onclick="event.stopPropagation(); openExerciseModal(' + activeDayIndex + ', ' + (exIndex + 1) + ')" title="Insert exercise here"><svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg></button></div>';
                 const isChecked = checkedExerciseIndices.has(exIndex);
-                return '<div class="wb-ex-row exercise-item ' + (selectedExerciseIndex === exIndex ? 'selected' : '') + '" draggable="true" data-day="' + activeDayIndex + '" data-index="' + exIndex + '" ondragstart="onExDragStart(event)" ondragover="onExDragOver(event)" ondrop="onExDrop(event)" ondragend="onExDragEnd(event)" ondragleave="onExDragLeave(event)" onclick="selectExercise(' + exIndex + ')">' +
+                return '<div class="wb-ex-row exercise-item' + ssClasses + ' ' + (selectedExerciseIndex === exIndex ? 'selected' : '') + '" draggable="true" data-day="' + activeDayIndex + '" data-index="' + exIndex + '" ondragstart="onExDragStart(event)" ondragover="onExDragOver(event)" ondrop="onExDrop(event)" ondragend="onExDragEnd(event)" ondragleave="onExDragLeave(event)" onclick="selectExercise(' + exIndex + ')">' +
+                    chainLabel +
                     '<div class="wb-ex-row-drag" onclick="event.stopPropagation()">' +
                         '<button class="wb-ex-move-btn" onclick="event.stopPropagation(); moveExerciseInPanel(' + activeDayIndex + ',' + exIndex + ',-1)" title="Move up"' + (exIndex === 0 ? ' disabled' : '') + '>&#9650;</button>' +
                         '<svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24" style="opacity:0.3;cursor:grab;"><circle cx="9" cy="5" r="1.5"/><circle cx="15" cy="5" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="19" r="1.5"/><circle cx="15" cy="19" r="1.5"/></svg>' +
