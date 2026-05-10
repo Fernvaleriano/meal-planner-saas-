@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 
-const DEFAULT_LOGO = 'https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/zique%20fitness%20white%20logo.png';
+const DEFAULT_LOGO = 'https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/ziquecoach-logo-white.png';
 const DEFAULT_PRIMARY = '#0d9488';
 
 /**

@@ -38,7 +38,7 @@ function ForgotPassword() {
         {/* Logo */}
         <div className="login-logo">
           <img
-            src="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/Untitled%20design%20(3).svg"
+            src="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/ziquecoach-logo-teal.png"
             alt="Ziquecoach"
           />
         </div>

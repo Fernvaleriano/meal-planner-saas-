@@ -860,7 +860,7 @@ function Settings() {
 
       {/* Version Footer */}
       <div className="settings-version">
-        {branding?.brand_name || 'Zique'} &middot; v1.0
+        {branding?.brand_name || 'Ziquecoach'} &middot; v1.0
       </div>
 
 

@@ -11,7 +11,7 @@ const DEFAULT_BRANDING = {
   brand_primary_color: '#0d9488',
   brand_secondary_color: '#0284c7',
   brand_accent_color: '#10b981',
-  brand_logo_url: 'https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/zique%20fitness%20white%20logo.png',
+  brand_logo_url: 'https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/ziquecoach-logo-white.png',
   brand_favicon_url: null,
   brand_bg_color: null,
   brand_bg_secondary_color: null,

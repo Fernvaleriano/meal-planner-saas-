@@ -83,7 +83,7 @@ function DesktopSidebar() {
     <aside className="desktop-nav">
       <div className="desktop-nav-logo">
         <img
-          src={branding?.brand_logo_url || 'https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/zique%20fitness%20white%20logo.png'}
+          src={branding?.brand_logo_url || 'https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/ziquecoach-logo-white.png'}
           alt={branding?.brand_name || 'Ziquecoach'}
         />
       </div>

@@ -598,7 +598,7 @@ function BrandingSettings() {
                 type="text"
                 value={form.brand_short_name}
                 onChange={(e) => updateForm('brand_short_name', e.target.value)}
-                placeholder="Zique"
+                placeholder="Ziquecoach"
                 className="bs-text-input"
                 maxLength={12}
               />
