@@ -48,15 +48,19 @@ A partial React rebuild exists in `src/` but is **not the primary codebase**. So
 ### Full audit & checklist
 **See `DOMAIN-CHANGE-CHECKLIST.md`** for the complete phase-by-phase plan: external services (Supabase/Stripe/DNS), all ~240 code references across 60+ files (with file paths and line numbers), cutover steps, and post-cutover monitoring.
 
-### Decisions still needed before starting
-1. New email addresses at `ziquecoach.com` (`noreply@`, `contact@`, `privacy@`)?
-2. Master/admin account email — migrate `contact@ziquefitness.com` to new domain or keep?
-3. Capacitor hostname `app.ziquefitness.com` → `app.ziquecoach.com`?
-4. Order of operations — code first or external setup first?
+### Decisions LOCKED IN (May 2026)
+- System email sender: `noreply@ziquecoach.com` (NEW)
+- Business contact email: `contact@ziquefitness.com` (KEEP — user's personal email)
+- Master/admin account email: `contact@ziquefitness.com` (KEEP — hardcoded in master-account-guard files, no change needed)
+- Capacitor hostname: change `app.ziquefitness.com` → `app.ziquecoach.com`
+- Old domain `ziquefitnessnutrition.com`: 301 redirect to new domain for ~12 months, then sunset
+- BOTH old domains (`ziquefitnessnutrition.com` AND `ziquefitness.com`) must stay on auto-renew
 
-### Key insight
+### Key insights
 - Code changes can be done ahead of DNS flip (fallbacks don't affect live site since Netlify `URL` env var controls actual routing)
-- PWA homescreen saves WILL break for clients on the old domain — clean cutover with re-save instructions is the plan
+- Coach branding is stored in DATABASE (`coaches` table), not just code — needs updating via Branding Settings page after code changes, otherwise clients still see old brand
+- New Ziquecoach logo needs uploading to Supabase storage (current logo file has "zique fitness" in name)
+- Existing clients will be logged out during the 301 redirect (cookies don't cross domains) — heads-up message should include "Forgot Password?" reminder
 
 ## Default Workout Template Format
 
