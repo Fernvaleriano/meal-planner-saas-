@@ -19,6 +19,12 @@ let sessionCache = {
   refreshPromise: null
 };
 
+// In-flight getSession() promise — concurrent apiGet calls share one underlying
+// supabase.auth.getSession() invocation instead of each kicking their own.
+// Without this, 3 parallel apiGets on resume each acquire Supabase's internal
+// navigator.locks lock in serial, multiplying the iOS-resume hang.
+let inflightGetSessionPromise = null;
+
 // Session is considered fresh if retrieved within the last 2 minutes
 const SESSION_CACHE_TTL = 120000;
 
@@ -32,6 +38,40 @@ const FETCH_TIMEOUT_MS = 15000;
 // hang for 20-30s because the HTTP connection died during suspension. Cap it so
 // we fall back to getSession() or 401-retry instead of blocking the data layer.
 const SESSION_REFRESH_TIMEOUT = 6000;
+
+// getSession() timeout — on iOS PWA resume, supabase.auth.getSession() can
+// stall for many seconds waiting on the navigator.locks lock that Supabase
+// uses to serialize storage access. If it doesn't return in 2.5s we read the
+// session straight from localStorage and proceed; the 401-retry path still
+// handles a stale token correctly, so falling back is safe.
+const GET_SESSION_TIMEOUT = 2500;
+
+/**
+ * Fallback: read the persisted Supabase session straight from localStorage,
+ * bypassing the supabase-js lock. Used when supabase.auth.getSession() hangs
+ * after iOS resume. Returns the same shape getSession() would.
+ */
+function readSessionFromLocalStorage() {
+  try {
+    if (typeof localStorage === 'undefined') return null;
+    // Supabase v2 stores under `sb-<projectRef>-auth-token`. We don't know the
+    // ref at this layer, so scan for any matching key.
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (!key || !key.startsWith('sb-') || !key.endsWith('-auth-token')) continue;
+      const raw = localStorage.getItem(key);
+      if (!raw) continue;
+      const parsed = JSON.parse(raw);
+      // Newer supabase-js stores the session object directly; older versions
+      // wrap it under `currentSession`. Handle both.
+      const session = parsed?.currentSession || parsed;
+      if (session && session.access_token) return session;
+    }
+  } catch {
+    // ignore — fallback is best-effort
+  }
+  return null;
+}
 
 // ── SW Cache Bypass ──
 // When true, authenticatedFetch adds X-Cache-Bypass header so the service worker
@@ -102,40 +142,71 @@ async function getAuthToken() {
   }
 
   // No cached session (cleared on resume, or first call).
-  // supabase.auth.getSession() reads from local storage first — fast even offline.
-  try {
-    const { data: { session }, error } = await supabase.auth.getSession();
-
-    if (error) {
-      console.error('Error getting session:', error);
-      return null;
-    }
-
-    if (session) {
-      // Cache it
-      sessionCache = {
-        ...sessionCache,
-        session,
-        timestamp: now
-      };
-
-      // If expiring soon, kick off background refresh (non-blocking)
-      const expiresAt = session.expires_at;
-      if (expiresAt) {
-        const expiryTime = expiresAt * 1000;
-        if (expiryTime - now < SESSION_EXPIRY_BUFFER) {
-          refreshSession();
+  //
+  // Concurrent apiGet calls share one in-flight getSession() — without this
+  // dedup, 3 parallel requests on resume each acquire Supabase's internal
+  // lock serially, compounding any iOS-resume stall.
+  if (!inflightGetSessionPromise) {
+    inflightGetSessionPromise = (async () => {
+      try {
+        // Race getSession() against a short timeout. On iOS PWA resume the
+        // call can stall for 5-30s on the navigator.locks lock; if that
+        // happens we fall back to reading the persisted session straight
+        // from localStorage and let the 401-retry path handle stale tokens.
+        const session = await Promise.race([
+          supabase.auth.getSession().then(({ data, error }) => {
+            if (error) {
+              console.error('Error getting session:', error);
+              return null;
+            }
+            return data?.session || null;
+          }),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('getSession timed out')), GET_SESSION_TIMEOUT)
+          )
+        ]);
+        return session;
+      } catch (err) {
+        // getSession hung or threw — fall back to reading localStorage directly.
+        // This bypasses the lock that's blocking us on iOS resume.
+        const fallback = readSessionFromLocalStorage();
+        if (fallback) {
+          console.warn('[api] getSession stalled, using localStorage fallback');
+          return fallback;
         }
+        console.error('Failed to get session:', err.message || err);
+        return null;
       }
-
-      return session.access_token;
-    }
-
-    return null;
-  } catch (error) {
-    console.error('Failed to get session:', error);
-    return null;
+    })().finally(() => {
+      // Release the in-flight slot after a brief grace window so any
+      // straggler callers still piggyback on the resolved value.
+      setTimeout(() => { inflightGetSessionPromise = null; }, 50);
+    });
   }
+
+  const session = await inflightGetSessionPromise;
+  if (!session) return null;
+
+  // Cache it
+  sessionCache = {
+    ...sessionCache,
+    session,
+    timestamp: now
+  };
+
+  // If expiring soon (or already expired — common after long background),
+  // kick off background refresh. Non-blocking: we still return the current
+  // token; the 401-retry path will pick up the new one if this token was
+  // already dead.
+  const expiresAt = session.expires_at;
+  if (expiresAt) {
+    const expiryTime = expiresAt * 1000;
+    if (expiryTime - now < SESSION_EXPIRY_BUFFER) {
+      refreshSession();
+    }
+  }
+
+  return session.access_token;
 }
 
 /**
@@ -201,6 +272,7 @@ async function refreshSession() {
  */
 export function clearSessionCache() {
   sessionCache = { session: null, timestamp: 0, refreshPromise: null };
+  inflightGetSessionPromise = null;
   lastEnsureFreshTimestamp = 0;
 }
 
