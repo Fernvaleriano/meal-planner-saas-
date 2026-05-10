@@ -2115,7 +2115,7 @@ function Diary() {
         ctx.fillStyle = '#9ca3af';
         ctx.font = '18px -apple-system, BlinkMacSystemFont, sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText('Powered by Zique Fitness', width / 2, height - 30);
+        ctx.fillText('Powered by Ziquecoach', width / 2, height - 30);
 
         // Convert and share
         canvas.toBlob(async (blob) => {
@@ -3166,7 +3166,7 @@ function Diary() {
                 <div className="share-card-overlay" />
                 <div className="share-card-content diary-share-content">
                   <div className="share-card-brand">
-                    <img src="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/Untitled%20design%20-%202026-02-10T171903.769.png" alt="Zique Fitness" className="share-card-logo" />
+                    <img src="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/Untitled%20design%20-%202026-02-10T171903.769.png" alt="Ziquecoach" className="share-card-logo" />
                   </div>
                   <div className="diary-share-date">{formatFullDate()}</div>
                   <div className="share-card-stats">
@@ -3239,7 +3239,7 @@ function Diary() {
                   {shareDiaryToggles.meals && entries.length > 0 && (
                     <div className="diary-share-meals">{entries.length} food{entries.length !== 1 ? 's' : ''} logged today</div>
                   )}
-                  <div className="share-card-footer">Powered by Zique Fitness</div>
+                  <div className="share-card-footer">Powered by Ziquecoach</div>
                 </div>
               </div>
             </div>

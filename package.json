@@ -1,7 +1,7 @@
 {
-  "name": "zique-fitness-nutrition",
+  "name": "ziquecoach",
   "version": "1.0.0",
-  "description": "Zique Fitness Nutrition - AI-powered meal planning platform",
+  "description": "Ziquecoach - AI-powered coaching platform",
   "scripts": {
     "dev": "netlify dev",
     "dev:spa": "vite",

@@ -186,8 +186,8 @@ exports.handler = async (event) => {
                 price: priceId,
                 quantity: 1
             }],
-            success_url: `${process.env.URL || 'https://ziquefitnessnutrition.com'}/dashboard.html?reactivated=true`,
-            cancel_url: `${process.env.URL || 'https://ziquefitnessnutrition.com'}/billing.html`,
+            success_url: `${process.env.URL || 'https://ziquecoach.com'}/dashboard.html?reactivated=true`,
+            cancel_url: `${process.env.URL || 'https://ziquecoach.com'}/billing.html`,
             subscription_data: {
                 metadata: {
                     coach_id: user.id,

@@ -375,7 +375,7 @@ function BrandingSettings() {
                 type="text"
                 value={form.brand_name}
                 onChange={(e) => updateForm('brand_name', e.target.value)}
-                placeholder="Zique Fitness Nutrition"
+                placeholder="Ziquecoach"
                 className="bs-text-input"
                 maxLength={100}
               />
@@ -388,7 +388,7 @@ function BrandingSettings() {
             <div className="bs-field">
               <label className="bs-label">Logo</label>
               <span className="bs-hint" style={{ display: 'block', marginBottom: '10px' }}>
-                Replaces the default Zique Fitness logo in the header. PNG, JPG, or SVG (max 1MB).
+                Replaces the default Ziquecoach logo in the header. PNG, JPG, or SVG (max 1MB).
               </span>
               <input
                 ref={logoInputRef}
@@ -585,7 +585,7 @@ function BrandingSettings() {
                 type="text"
                 value={form.brand_app_name}
                 onChange={(e) => updateForm('brand_app_name', e.target.value)}
-                placeholder="Zique Fitness Meal Planner"
+                placeholder="Ziquecoach Meal Planner"
                 className="bs-text-input"
                 maxLength={100}
               />
@@ -651,7 +651,7 @@ function BrandingSettings() {
                   {form.brand_name ? form.brand_name.charAt(0) : 'Z'}
                 </div>
                 <span style={{ color: previewText, fontWeight: 600, fontSize: '0.8rem' }}>
-                  {form.brand_name || 'Zique Fitness'}
+                  {form.brand_name || 'Ziquecoach'}
                 </span>
               </div>
 

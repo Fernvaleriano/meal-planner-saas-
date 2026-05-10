@@ -45,7 +45,7 @@ function Login() {
   useEffect(() => {
     const coachId = coachIdParam || localStorage.getItem('login_coach_id');
     if (!coachId) return;
-    if (brandingData?.brand_name && brandingData.brand_name !== 'Zique Fitness Nutrition') return;
+    if (brandingData?.brand_name && brandingData.brand_name !== 'Ziquecoach') return;
 
     fetch(`/.netlify/functions/get-coach-branding?coachId=${coachId}`)
       .then(r => r.json())
@@ -106,9 +106,9 @@ function Login() {
   // Resolve branding values
   const logoUrl = brandingData?.brand_logo_url || DEFAULT_LOGO;
   const primaryColor = brandingData?.brand_primary_color || DEFAULT_PRIMARY;
-  const brandName = brandingData?.brand_name || 'Zique Fitness';
+  const brandName = brandingData?.brand_name || 'Ziquecoach';
   const welcomeMessage = brandingData?.brand_welcome_message;
-  const hasCustomBranding = brandingData?.brand_logo_url || (brandingData?.brand_name && brandingData.brand_name !== 'Zique Fitness Nutrition');
+  const hasCustomBranding = brandingData?.brand_logo_url || (brandingData?.brand_name && brandingData.brand_name !== 'Ziquecoach');
 
   return (
     <div className="login-page">
@@ -188,7 +188,7 @@ function Login() {
 
         {/* Footer */}
         <div className="login-footer">
-          <p>{hasCustomBranding ? `Powered by ${brandName}` : 'Powered by Zique Fitness'}</p>
+          <p>{hasCustomBranding ? `Powered by ${brandName}` : 'Powered by Ziquecoach'}</p>
         </div>
       </div>
 

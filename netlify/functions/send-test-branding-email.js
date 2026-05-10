@@ -11,14 +11,14 @@ const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.s
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
 // Default branding
-const DEFAULT_BRAND_NAME = 'Zique Fitness Nutrition';
+const DEFAULT_BRAND_NAME = 'Ziquecoach';
 const DEFAULT_PRIMARY_COLOR = '#0d9488';
-const APP_URL = process.env.URL || 'https://ziquefitnessnutrition.com';
+const APP_URL = process.env.URL || 'https://ziquecoach.com';
 
 // Email providers
 async function sendEmail({ to, subject, text, html, fromEmail, fromName }) {
-    const emailFrom = fromEmail || process.env.EMAIL_FROM || 'noreply@ziquefitness.com';
-    const emailFromName = fromName || process.env.EMAIL_FROM_NAME || 'Zique Fitness Nutrition';
+    const emailFrom = fromEmail || process.env.EMAIL_FROM || 'noreply@ziquecoach.com';
+    const emailFromName = fromName || process.env.EMAIL_FROM_NAME || 'Ziquecoach';
 
     if (process.env.RESEND_API_KEY) {
         try {

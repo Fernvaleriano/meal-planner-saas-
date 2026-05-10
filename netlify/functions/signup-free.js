@@ -121,7 +121,7 @@ exports.handler = async (event) => {
 
         // Generate password reset link and send welcome email
         try {
-            const redirectUrl = `${process.env.URL || 'https://ziquefitnessnutrition.com'}/set-password.html`;
+            const redirectUrl = `${process.env.URL || 'https://ziquecoach.com'}/set-password.html`;
             const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
                 type: 'recovery',
                 email: email,

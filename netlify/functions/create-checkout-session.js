@@ -93,7 +93,7 @@ exports.handler = async (event) => {
         }
 
         // Get the base URL for redirects
-        const baseUrl = process.env.URL || 'https://ziquefitnessnutrition.com';
+        const baseUrl = process.env.URL || 'https://ziquecoach.com';
 
         // Build checkout session options
         const sessionOptions = {

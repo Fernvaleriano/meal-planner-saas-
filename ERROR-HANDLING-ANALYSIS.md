@@ -553,7 +553,7 @@ No Content-Security-Policy in `netlify.toml` or HTML meta tags. Any script from 
 
 **File:** `sw.js`
 
-Cache names hardcoded: `zique-fitness-v14`, `zique-data-v11`. Must manually increment on every deploy. If forgotten, users permanently serve stale code. iOS PWA may take days to detect SW update.
+Cache names hardcoded: `ziquecoach-v14`, `zique-data-v11`. Must manually increment on every deploy. If forgotten, users permanently serve stale code. iOS PWA may take days to detect SW update.
 
 ### HIGH-PWA-3: Static Asset Cache Too Aggressive
 

@@ -133,7 +133,7 @@ These reference the user's personal/business email which is being kept as-is. Le
 
 (Note: `appId`, `appName`, iOS Info.plist, Android strings.xml, deep link schemes are ALREADY correct as `ziquecoach`.)
 
-### Brand name "Zique Fitness Nutrition" → "Ziquecoach" (~163 occurrences)
+### Brand name "Ziquecoach" → "Ziquecoach" (~163 occurrences)
 
 - [ ] HTML page `<title>` tags across ~50 HTML files
 - [ ] `apple-mobile-web-app-title` meta tags (~15 files)
@@ -169,7 +169,7 @@ These reference the user's personal/business email which is being kept as-is. Le
 
 ## Phase 4 — Database update (CRITICAL — easy to forget)
 
-⚠️ **The user's branding is stored in their `coaches` table row, not just code.** Even after all code changes, clients will still see "Zique Fitness Nutrition" inside the app until this is updated.
+⚠️ **The user's branding is stored in their `coaches` table row, not just code.** Even after all code changes, clients will still see "Ziquecoach" inside the app until this is updated.
 
 - [ ] Open Branding Settings page in the app and update:
   - `brand_name` → "Ziquecoach"
@@ -204,7 +204,7 @@ These reference `contact@ziquefitness.com` which is being kept:
    - [ ] New domain loads
    - [ ] Old domain redirects correctly
    - [ ] Login works
-   - [ ] App shows "Ziquecoach" branding (not "Zique Fitness Nutrition")
+   - [ ] App shows "Ziquecoach" branding (not "Ziquecoach")
    - [ ] Coach invites client → email arrives from `noreply@ziquecoach.com` with correct links
    - [ ] Client signup → welcome email works
    - [ ] Password reset email link resolves

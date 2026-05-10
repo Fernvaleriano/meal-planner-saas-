@@ -1,5 +1,5 @@
 /**
- * Zique Fitness Nutrition - Dark Mode Theme Manager
+ * Ziquecoach - Dark Mode Theme Manager
  * Handles theme switching and persistence
  */
 

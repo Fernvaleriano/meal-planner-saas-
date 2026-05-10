@@ -14,9 +14,9 @@
 // Note: Using global fetch (available in Node 18+, which is set in netlify.toml)
 
 // Default email settings (fallback when coach doesn't have white-label)
-const DEFAULT_EMAIL_FROM = process.env.EMAIL_FROM || 'noreply@ziquefitness.com';
-const DEFAULT_EMAIL_FROM_NAME = process.env.EMAIL_FROM_NAME || 'Zique Fitness Nutrition';
-const APP_URL = process.env.URL || 'https://ziquefitnessnutrition.com';
+const DEFAULT_EMAIL_FROM = process.env.EMAIL_FROM || 'noreply@ziquecoach.com';
+const DEFAULT_EMAIL_FROM_NAME = process.env.EMAIL_FROM_NAME || 'Ziquecoach';
+const APP_URL = process.env.URL || 'https://ziquecoach.com';
 
 /**
  * Send an email using the configured provider
@@ -214,10 +214,10 @@ function generateReminderEmail({
     }
 
     // Footer text - different for white-label
-    const footerText = whiteLabel ? coachName : 'Zique Fitness Nutrition';
+    const footerText = whiteLabel ? coachName : 'Ziquecoach';
     const footerHtml = whiteLabel
         ? `<p>${coachName}</p>`
-        : `<p>Zique Fitness Nutrition</p><p><a href="${APP_URL}" style="color: #0d9488;">Visit Dashboard</a></p>`;
+        : `<p>Ziquecoach</p><p><a href="${APP_URL}" style="color: #0d9488;">Visit Dashboard</a></p>`;
 
     // Default message
     let textBody = `Hi ${clientName},
@@ -251,7 +251,7 @@ ${footerText}`;
 
     // Get branding colors with fallbacks
     const primaryColor = branding.brand_primary_color || '#0d9488';
-    const brandName = branding.brand_name || (whiteLabel ? coachName : 'Zique Fitness Nutrition');
+    const brandName = branding.brand_name || (whiteLabel ? coachName : 'Ziquecoach');
     const logoUrl = branding.brand_email_logo_url || branding.brand_logo_url;
 
     // Logo HTML for email header
@@ -386,15 +386,15 @@ function generateInvitationEmail({
 }) {
     // Get branding colors with fallbacks
     const primaryColor = branding.brand_primary_color || '#0d9488';
-    const brandName = branding.brand_name || (whiteLabel ? coachName : 'Zique Fitness Nutrition');
+    const brandName = branding.brand_name || (whiteLabel ? coachName : 'Ziquecoach');
     const logoUrl = branding.brand_email_logo_url || branding.brand_logo_url;
 
     const subject = whiteLabel || branding.brand_name
         ? `${coachName} has invited you to join ${brandName}`
-        : `${coachName} has invited you to Zique Fitness Nutrition`;
+        : `${coachName} has invited you to Ziquecoach`;
 
     const footerText = branding.brand_email_footer || brandName;
-    const welcomeTitle = branding.brand_name ? `Welcome to ${branding.brand_name}!` : (whiteLabel ? `Welcome!` : `Welcome to Zique Fitness`);
+    const welcomeTitle = branding.brand_name ? `Welcome to ${branding.brand_name}!` : (whiteLabel ? `Welcome!` : `Welcome to Ziquecoach`);
     const welcomeSubtitle = 'Your nutrition coaching journey starts here';
 
     // Logo HTML for email header
@@ -556,15 +556,15 @@ function generateIntakeInvitationEmail({
 
     const subject = whiteLabel
         ? `${coachName} has invited you to join`
-        : `${coachName} has invited you to Zique Fitness Nutrition`;
+        : `${coachName} has invited you to Ziquecoach`;
 
-    const footerText = whiteLabel ? coachName : 'Zique Fitness Nutrition';
-    const welcomeTitle = whiteLabel ? `Welcome!` : `Welcome to Zique Fitness`;
+    const footerText = whiteLabel ? coachName : 'Ziquecoach';
+    const welcomeTitle = whiteLabel ? `Welcome!` : `Welcome to Ziquecoach`;
     const welcomeSubtitle = 'Your nutrition coaching journey starts here';
 
     const textBody = `Hi ${displayName},
 
-Great news! ${coachName} has invited you to join ${whiteLabel ? 'their' : 'Zique Fitness Nutrition -'} your personal nutrition coaching portal.
+Great news! ${coachName} has invited you to join ${whiteLabel ? 'their' : 'Ziquecoach -'} your personal nutrition coaching portal.
 
 To get started, please complete your profile by clicking the link below. This will help your coach create a personalized meal plan just for you.
 
@@ -741,13 +741,13 @@ Ready to come back? You can reactivate your subscription anytime from your accou
 
 We're sorry to see you go! If there's anything we could have done better, we'd love to hear from you.
 
-Thank you for trying Zique Fitness Nutrition.
+Thank you for trying Ziquecoach.
 
 Best,
 The Zique Team
 
 ---
-Zique Fitness Nutrition
+Ziquecoach
 ${APP_URL}`;
 
         const htmlBody = `
@@ -790,14 +790,14 @@ ${APP_URL}`;
         <p style="margin-bottom: 20px; color: #64748b;">We're sorry to see you go! If there's anything we could have done better, we'd love to hear from you.</p>
 
         <p style="margin-top: 30px; color: #64748b;">
-            Thank you for trying Zique Fitness Nutrition.<br><br>
+            Thank you for trying Ziquecoach.<br><br>
             Best,<br>
             <strong>The Zique Team</strong>
         </p>
     </div>
 
     <div style="text-align: center; padding: 20px; color: #94a3b8; font-size: 12px;">
-        <p style="margin: 0;">Zique Fitness Nutrition</p>
+        <p style="margin: 0;">Ziquecoach</p>
         <p style="margin: 8px 0 0 0;"><a href="${APP_URL}" style="color: #64748b;">Visit Dashboard</a></p>
     </div>
 </body>
@@ -831,13 +831,13 @@ If you change your mind, you can reactivate your subscription anytime before ${f
 
 We're sorry to see you go! If there's anything we could have done better, we'd love to hear from you.
 
-Thank you for being a part of Zique Fitness Nutrition.
+Thank you for being a part of Ziquecoach.
 
 Best,
 The Zique Team
 
 ---
-Zique Fitness Nutrition
+Ziquecoach
 ${APP_URL}`;
 
     const htmlBody = `
@@ -879,14 +879,14 @@ ${APP_URL}`;
         <p style="margin-bottom: 20px; color: #64748b;">We're sorry to see you go! If there's anything we could have done better, we'd love to hear from you.</p>
 
         <p style="margin-top: 30px; color: #64748b;">
-            Thank you for being a part of Zique Fitness Nutrition.<br><br>
+            Thank you for being a part of Ziquecoach.<br><br>
             Best,<br>
             <strong>The Zique Team</strong>
         </p>
     </div>
 
     <div style="text-align: center; padding: 20px; color: #94a3b8; font-size: 12px;">
-        <p style="margin: 0;">Zique Fitness Nutrition</p>
+        <p style="margin: 0;">Ziquecoach</p>
         <p style="margin: 8px 0 0 0;"><a href="${APP_URL}" style="color: #64748b;">Visit Dashboard</a></p>
     </div>
 </body>
@@ -958,13 +958,13 @@ Everything is right where you left it. Your clients can continue accessing their
 Log in to your dashboard:
 ${APP_URL}/dashboard.html
 
-Thank you for continuing with Zique Fitness Nutrition!
+Thank you for continuing with Ziquecoach!
 
 Best,
 The Zique Team
 
 ---
-Zique Fitness Nutrition
+Ziquecoach
 ${APP_URL}`;
 
     const htmlBody = `
@@ -1003,14 +1003,14 @@ ${APP_URL}`;
         </div>
 
         <p style="margin-top: 30px; color: #64748b;">
-            Thank you for continuing with Zique Fitness Nutrition!<br><br>
+            Thank you for continuing with Ziquecoach!<br><br>
             Best,<br>
             <strong>The Zique Team</strong>
         </p>
     </div>
 
     <div style="text-align: center; padding: 20px; color: #94a3b8; font-size: 12px;">
-        <p style="margin: 0;">Zique Fitness Nutrition</p>
+        <p style="margin: 0;">Ziquecoach</p>
     </div>
 </body>
 </html>`;
@@ -1065,7 +1065,7 @@ Best,
 The Zique Team
 
 ---
-Zique Fitness Nutrition
+Ziquecoach
 ${APP_URL}`;
 
     const htmlBody = `
@@ -1111,7 +1111,7 @@ ${APP_URL}`;
     </div>
 
     <div style="text-align: center; padding: 20px; color: #94a3b8; font-size: 12px;">
-        <p style="margin: 0;">Zique Fitness Nutrition</p>
+        <p style="margin: 0;">Ziquecoach</p>
     </div>
 </body>
 </html>`;
@@ -1156,7 +1156,7 @@ function generateTrialEndingEmail({ coachName, daysLeft, trialEndDate }) {
 
 Just a heads up - your free trial ends in ${daysLeft} day${daysLeft === 1 ? '' : 's'} (${formattedDate}).
 
-To continue using Zique Fitness Nutrition without interruption, add your payment method now:
+To continue using Ziquecoach without interruption, add your payment method now:
 ${APP_URL}/billing.html
 
 After your trial ends, you'll need an active subscription to:
@@ -1172,7 +1172,7 @@ Best,
 The Zique Team
 
 ---
-Zique Fitness Nutrition
+Ziquecoach
 ${APP_URL}`;
 
     const htmlBody = `
@@ -1219,7 +1219,7 @@ ${APP_URL}`;
     </div>
 
     <div style="text-align: center; padding: 20px; color: #94a3b8; font-size: 12px;">
-        <p style="margin: 0;">Zique Fitness Nutrition</p>
+        <p style="margin: 0;">Ziquecoach</p>
     </div>
 </body>
 </html>`;
@@ -1390,7 +1390,7 @@ Date: ${new Date().toLocaleString()}
  * Generate welcome email for new coach signups
  */
 function generateWelcomeEmail({ coachName, plan = 'starter', resetLink }) {
-    const subject = 'Welcome to Zique Fitness Nutrition!';
+    const subject = 'Welcome to Ziquecoach!';
 
     const tierNames = {
         'starter': 'Starter',
@@ -1403,7 +1403,7 @@ function generateWelcomeEmail({ coachName, plan = 'starter', resetLink }) {
 
     const textBody = `Hi ${coachName},
 
-Welcome to Zique Fitness Nutrition! Your ${planName} subscription is now active with a 14-day free trial.
+Welcome to Ziquecoach! Your ${planName} subscription is now active with a 14-day free trial.
 
 To get started, set up your password using the link below:
 ${resetLink}
@@ -1423,7 +1423,7 @@ Best,
 The Zique Team
 
 ---
-Zique Fitness Nutrition
+Ziquecoach
 ${APP_URL}`;
 
     const htmlBody = `
@@ -1438,7 +1438,7 @@ ${APP_URL}`;
     <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width: 600px; margin: 0 auto;">
         <tr>
             <td style="background-color: #0d9488; padding: 40px 30px; border-radius: 12px 12px 0 0; text-align: center;">
-                <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: bold;">Welcome to Zique Fitness!</h1>
+                <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: bold;">Welcome to Ziquecoach!</h1>
                 <p style="color: #e0f2f1; margin: 10px 0 0 0; font-size: 16px;">Your ${planName} subscription is active</p>
             </td>
         </tr>
@@ -1482,7 +1482,7 @@ ${APP_URL}`;
         </tr>
         <tr>
             <td style="text-align: center; padding: 20px; color: #94a3b8; font-size: 12px;">
-                <p style="margin: 0;">Zique Fitness Nutrition</p>
+                <p style="margin: 0;">Ziquecoach</p>
             </td>
         </tr>
     </table>

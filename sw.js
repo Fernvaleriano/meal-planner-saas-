@@ -1,5 +1,5 @@
-// Zique Fitness PWA Service Worker
-const CACHE_NAME = 'zique-fitness-v14';
+// Ziquecoach PWA Service Worker
+const CACHE_NAME = 'ziquecoach-v14';
 const STATIC_CACHE = 'zique-static-v14';
 const DATA_CACHE = 'zique-data-v12';
 const CDN_CACHE = 'zique-cdn-v7';
@@ -371,7 +371,7 @@ self.addEventListener('push', (event) => {
   if (event.data) {
     const data = event.data.json();
     const options = {
-      body: data.body || 'New notification from Zique Fitness',
+      body: data.body || 'New notification from Ziquecoach',
       icon: '/icons/icon-192x192.png',
       badge: '/icons/icon-72x72.png',
       vibrate: [100, 50, 100],
@@ -380,7 +380,7 @@ self.addEventListener('push', (event) => {
       }
     };
     event.waitUntil(
-      self.registration.showNotification(data.title || 'Zique Fitness', options)
+      self.registration.showNotification(data.title || 'Ziquecoach', options)
     );
   }
 });

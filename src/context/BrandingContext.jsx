@@ -5,9 +5,9 @@ import { apiGet } from '../utils/api';
 
 const BrandingContext = createContext({});
 
-// Default branding — matches Zique Fitness defaults
+// Default branding — matches Ziquecoach defaults
 const DEFAULT_BRANDING = {
-  brand_name: 'Zique Fitness Nutrition',
+  brand_name: 'Ziquecoach',
   brand_primary_color: '#0d9488',
   brand_secondary_color: '#0284c7',
   brand_accent_color: '#10b981',
