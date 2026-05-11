@@ -244,17 +244,23 @@ export function useAppLifecycle() {
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
-    // ── HEARTBEAT: Detect app resume when visibilitychange doesn't fire ──
-    // On iOS PWAs, visibilitychange is unreliable. setInterval callbacks are
-    // paused during suspend and fire on resume. If the expected-vs-actual gap
-    // is >2.5s (interval fires every 1s), we resumed.
+    // ── HEARTBEAT: Detect app resume when visibilitychange:visible doesn't
+    //   fire. On iOS PWAs the *visible* side of visibilitychange is
+    //   unreliable, but the *hidden* side is dependable — so a heartbeat
+    //   gap is only evidence of resume when we've previously seen the
+    //   page go hidden (suspendTimeRef.current is set). Without this gate,
+    //   any main-thread stall (large JSON.parse, share-card canvas, slow
+    //   scroll animation) longer than the 2.5s threshold would be
+    //   misread as a backgrounding+resume cycle and fire a full refresh
+    //   that could clobber locally-set state (e.g., a workout exercise
+    //   the user just checked off).
     let lastHeartbeat = Date.now();
     const heartbeatInterval = setInterval(() => {
       const now = Date.now();
       const gap = now - lastHeartbeat;
       lastHeartbeat = now;
 
-      if (gap > 2500) {
+      if (gap > 2500 && suspendTimeRef.current !== null) {
         handleResume(gap);
       }
     }, 1000);
