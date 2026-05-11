@@ -23,10 +23,10 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --brand-primary: #2cb5a5;
-            --brand-secondary: #178072;
-            --brand-gradient: linear-gradient(135deg, #2cb5a5 0%, #178072 100%);
-            --purple-gradient: linear-gradient(135deg, #8b5cf6 0%, #22998a 100%);
+            --brand-primary: #2dd4bf;
+            --brand-secondary: #14b8a6;
+            --brand-gradient: linear-gradient(135deg, #2dd4bf 0%, #14b8a6 100%);
+            --purple-gradient: linear-gradient(135deg, #8b5cf6 0%, #0d9488 100%);
             --bg-primary: #0f172a;
             --bg-secondary: #1e293b;
             --bg-tertiary: #334155;
@@ -174,7 +174,7 @@
         }
 
         .btn-ai-generate {
-            background: linear-gradient(135deg, #8b5cf6 0%, #22998a 100%);
+            background: linear-gradient(135deg, #8b5cf6 0%, #0d9488 100%);
             color: white;
             display: inline-flex;
             align-items: center;
@@ -839,7 +839,7 @@
 
         .reference-link-item .link-icon.generic {
             background: rgba(59, 130, 246, 0.15);
-            color: #2cb5a5;
+            color: #2dd4bf;
         }
 
         .reference-link-item .ref-link-clickable {
@@ -861,7 +861,7 @@
         }
 
         .reference-link-item .ref-link-clickable:hover .link-title {
-            color: #2cb5a5;
+            color: #2dd4bf;
             text-decoration: underline;
         }
 
@@ -1816,7 +1816,7 @@
             align-items: center;
             justify-content: space-between;
             padding: 10px 16px;
-            background: var(--brand-primary, #2cb5a5);
+            background: var(--brand-primary, #2dd4bf);
             color: #fff;
             border-radius: 10px;
             margin: 8px 12px;
@@ -1933,7 +1933,7 @@
             position: relative;
         }
         .wb-ex-row.ss-A { border-left-color: #8b5cf6; background: linear-gradient(to right, rgba(139,92,246,0.10), var(--bg-secondary) 35%); }
-        .wb-ex-row.ss-B { border-left-color: #22998a; background: linear-gradient(to right, rgba(99,102,241,0.10), var(--bg-secondary) 35%); }
+        .wb-ex-row.ss-B { border-left-color: #0d9488; background: linear-gradient(to right, rgba(99,102,241,0.10), var(--bg-secondary) 35%); }
         .wb-ex-row.ss-C { border-left-color: #ec4899; background: linear-gradient(to right, rgba(236,72,153,0.10), var(--bg-secondary) 35%); }
         .wb-ex-row.ss-A:hover, .wb-ex-row.ss-B:hover, .wb-ex-row.ss-C:hover {
             background: var(--bg-tertiary);
@@ -1958,7 +1958,7 @@
             text-transform: uppercase;
         }
         .wb-ex-row.ss-A .ss-chain-label { background: #8b5cf6; }
-        .wb-ex-row.ss-B .ss-chain-label { background: #22998a; }
+        .wb-ex-row.ss-B .ss-chain-label { background: #0d9488; }
         .wb-ex-row.ss-C .ss-chain-label { background: #ec4899; }
 
         .wb-insert-divider {
@@ -2890,7 +2890,7 @@
         .tracking-toggle-btn.distance-active {
             background: rgba(59, 130, 246, 0.15);
             border-color: rgba(59, 130, 246, 0.4);
-            color: #2cb5a5;
+            color: #2dd4bf;
         }
 
         .distance-unit-select {
@@ -3721,11 +3721,11 @@
         }
 
         .exercise-label-select:hover {
-            border-color: var(--primary, #22998a);
+            border-color: var(--primary, #0d9488);
         }
 
         .exercise-label-select:focus {
-            border-color: var(--primary, #22998a);
+            border-color: var(--primary, #0d9488);
             box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
         }
 
@@ -4431,7 +4431,7 @@
         }
 
         .edit-custom-exercise-btn:hover {
-            background: #2cb5a5;
+            background: #2dd4bf;
             color: white;
         }
 
@@ -5823,7 +5823,7 @@
         }
 
         .mobile-quick-btn.my-workouts {
-            background: linear-gradient(135deg, #2cb5a5 0%, #178072 100%);
+            background: linear-gradient(135deg, #2dd4bf 0%, #14b8a6 100%);
             border: none;
             color: white;
         }
@@ -8706,7 +8706,7 @@
                 let badges = '';
                 if (exercise.isWarmup) badges += '<span class="wb-ex-row-badge" style="background:rgba(245,158,11,0.2);color:#f59e0b;">Warmup</span>';
                 if (exercise.isStretch) badges += '<span class="wb-ex-row-badge" style="background:rgba(16,185,129,0.2);color:#10b981;">Stretch</span>';
-                if (exercise.isSuperset) badges += '<span class="wb-ex-row-badge" style="background:rgba(99,102,241,0.2);color:#22998a;">SS ' + (exercise.supersetGroup || '') + '</span>';
+                if (exercise.isSuperset) badges += '<span class="wb-ex-row-badge" style="background:rgba(99,102,241,0.2);color:#0d9488;">SS ' + (exercise.supersetGroup || '') + '</span>';
 
                 // Superset grouping classes — color the row by group and stitch
                 // it to neighbors that share the same group.
@@ -13941,7 +13941,7 @@
                 const tagFor = (action) => {
                     if (action === 'swap_for_variety') return '<span style="color:#f59e0b; font-weight:600;">🔄 SWAP</span>';
                     if (action === 'progress_load') return '<span style="color:#10b981; font-weight:600;">📈 PROGRESS</span>';
-                    if (action === 'optional_swap') return '<span style="color:#22998a; font-weight:600;">🔁 ROTATE</span>';
+                    if (action === 'optional_swap') return '<span style="color:#0d9488; font-weight:600;">🔁 ROTATE</span>';
                     if (action === 'investigate_or_swap') return '<span style="color:#ef4444; font-weight:600;">⚠ REGRESSED</span>';
                     return '<span style="color:#6b7280; font-weight:600;">✓ PERSIST</span>';
                 };
@@ -13954,7 +13954,7 @@
                     </tr>`
                 ).join('');
                 briefingHtml = `
-                    <details style="margin-bottom:16px; padding:10px 12px; background:rgba(99,102,241,0.06); border-left:3px solid #22998a; border-radius:6px; font-size:13px;" open>
+                    <details style="margin-bottom:16px; padding:10px 12px; background:rgba(99,102,241,0.06); border-left:3px solid #0d9488; border-radius:6px; font-size:13px;" open>
                         <summary style="cursor:pointer; font-weight:600;">🧠 Coach's Intelligence Briefing — what the AI based decisions on</summary>
                         <div style="margin-top:8px;">
                             <div style="margin-bottom:6px;">${analysis.sessionsAnalyzed} sessions in last 60 days · ${analysis.sessionsPerWeek}/wk · ${analysis.avgRPE ? `avg RPE ${analysis.avgRPE}` : 'no RPE data'} · training age: ${analysis.trainingAge}</div>
@@ -14023,7 +14023,7 @@
                         <tbody>
                             ${(w.exercises || []).map(ex => {
                                 const phase = ex.phase || (ex.isWarmup ? 'warmup' : ex.isStretch ? 'cooldown' : 'main');
-                                const phaseColor = phase === 'warmup' ? '#2cb5a5' : phase === 'cooldown' ? '#a855f7' : phase === 'conditioning' ? '#f59e0b' : 'var(--text-primary)';
+                                const phaseColor = phase === 'warmup' ? '#2dd4bf' : phase === 'cooldown' ? '#a855f7' : phase === 'conditioning' ? '#f59e0b' : 'var(--text-primary)';
                                 const noVideo = !ex.matched;
                                 return `<tr style="border-top:1px solid var(--border);">
                                     <td style="padding:6px;">
@@ -14031,7 +14031,7 @@
                                         ${ex.isCustom ? '<span style="margin-left:6px; padding:1px 5px; font-size:10px; background:rgba(168,85,247,0.15); color:#a855f7; border-radius:3px;">CUSTOM</span>' : ''}
                                         ${noVideo ? '<span style="margin-left:6px; padding:1px 5px; font-size:10px; background:rgba(239,68,68,0.15); color:#ef4444; border-radius:3px;" title="No video demo">NO VIDEO</span>' : ''}
                                         ${ex.splitViolation ? `<span style="margin-left:6px; padding:1px 5px; font-size:10px; background:rgba(239,68,68,0.20); color:#ef4444; border-radius:3px; font-weight:600;" title="${ex.splitViolation}">⚠ WRONG SPLIT</span>` : ''}
-                                        ${ex.isSuperset && ex.supersetGroup ? `<span style="margin-left:6px; padding:1px 5px; font-size:10px; background:rgba(99,102,241,0.15); color:#22998a; border-radius:3px;">SS-${ex.supersetGroup}</span>` : ''}
+                                        ${ex.isSuperset && ex.supersetGroup ? `<span style="margin-left:6px; padding:1px 5px; font-size:10px; background:rgba(99,102,241,0.15); color:#0d9488; border-radius:3px;">SS-${ex.supersetGroup}</span>` : ''}
                                     </td>
                                     <td style="padding:6px;">${ex.sets || 1} × ${ex.reps || ''}</td>
                                     <td style="padding:6px;">${ex.restSeconds || 0}s</td>

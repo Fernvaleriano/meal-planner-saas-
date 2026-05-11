@@ -27,7 +27,7 @@
             justify-content: center;
             text-decoration: none;
             border: 2px solid var(--teal-400, #2dd4bf);
-            background: var(--teal-600, #2cb5a5);
+            background: var(--teal-600, #2dd4bf);
             color: white;
             font-size: 0.8rem;
             font-weight: 700;
@@ -48,8 +48,8 @@
         }
 
         [data-theme="dark"] .header-profile-avatar {
-            border-color: var(--teal-500, #4ec5b7);
-            background: var(--teal-700, #22998a);
+            border-color: var(--teal-500, #5eead4);
+            background: var(--teal-700, #0d9488);
         }
 
         [data-theme="dark"] .header-profile-avatar:hover {
@@ -57,9 +57,9 @@
         }
 
         :root {
-            --brand-primary: #2cb5a5;
-            --brand-secondary: #178072;
-            --brand-gradient: linear-gradient(135deg, #2cb5a5 0%, #178072 100%);
+            --brand-primary: #2dd4bf;
+            --brand-secondary: #14b8a6;
+            --brand-gradient: linear-gradient(135deg, #2dd4bf 0%, #14b8a6 100%);
             --gray-50: #f8fafc;
             --gray-100: #f1f5f9;
             --gray-200: #e2e8f0;
@@ -441,7 +441,7 @@
             width: 50px;
             height: 50px;
             min-width: 50px;
-            background: linear-gradient(135deg, #2cb5a5 0%, #178072 100%);
+            background: linear-gradient(135deg, #2dd4bf 0%, #14b8a6 100%);
             border-radius: 14px;
             display: flex;
             align-items: center;
@@ -1811,7 +1811,7 @@
         }
 
         .last-active.recent {
-            color: #2cb5a5;
+            color: #2dd4bf;
         }
 
         .last-active.inactive {
@@ -1904,7 +1904,7 @@
             border-radius: 50%;
         }
         .qe-switch input:checked + .qe-slider {
-            background-color: #2cb5a5;
+            background-color: #2dd4bf;
         }
         .qe-switch input:checked + .qe-slider:before {
             transform: translateX(20px);
@@ -1976,7 +1976,7 @@
         .qe-cq-required input[type="checkbox"] {
             width: 16px;
             height: 16px;
-            accent-color: #2cb5a5;
+            accent-color: #2dd4bf;
         }
 
         /* Dark mode for questionnaire editor */
@@ -2209,7 +2209,7 @@
             <p>Get started by adding your first client, or load sample data to explore the platform</p>
             <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
                 <button class="btn btn-primary" onclick="openAddClientModal()">+ Add Your First Client</button>
-                <button class="btn" id="loadSampleDataBtn" onclick="loadSampleData()" style="background: linear-gradient(135deg, #8b5cf6, #22998a); color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px;">&#x1F4CB; Load Sample Data</button>
+                <button class="btn" id="loadSampleDataBtn" onclick="loadSampleData()" style="background: linear-gradient(135deg, #8b5cf6, #0d9488); color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px;">&#x1F4CB; Load Sample Data</button>
                 <button class="btn" id="generateDemoBtnEmpty" onclick="generateDemoClient()" style="background: linear-gradient(135deg, #ec4899, #f97316); color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px;">&#x1F3AC; Generate Demo Client</button>
             </div>
         </div>
@@ -2289,7 +2289,7 @@
                 <input type="hidden" id="clientId">
 
                 <!-- Basic Information -->
-                <h3 style="margin-bottom: 15px; color: #2cb5a5; display: flex; align-items: center; gap: 6px;"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M9 12h6M9 16h6"/></svg>Basic Information</h3>
+                <h3 style="margin-bottom: 15px; color: #2dd4bf; display: flex; align-items: center; gap: 6px;"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M9 12h6M9 16h6"/></svg>Basic Information</h3>
 
                 <div class="form-group">
                     <label for="clientName">Client Name *</label>
@@ -2307,7 +2307,7 @@
                 </div>
 
                 <!-- Physical Stats -->
-                <h3 style="margin: 25px 0 15px 0; color: #2cb5a5; display: flex; align-items: center; gap: 6px;"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 3H3v7h18V3z"/><path d="M21 14H3v7h18v-7z"/><path d="M12 3v18"/></svg>Physical Stats</h3>
+                <h3 style="margin: 25px 0 15px 0; color: #2dd4bf; display: flex; align-items: center; gap: 6px;"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 3H3v7h18V3z"/><path d="M21 14H3v7h18v-7z"/><path d="M12 3v18"/></svg>Physical Stats</h3>
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                     <div class="form-group">
@@ -2351,7 +2351,7 @@
                 </div>
 
                 <!-- Goals & Preferences -->
-                <h3 style="margin: 25px 0 15px 0; color: #2cb5a5; display: flex; align-items: center; gap: 6px;"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>Goals & Nutrition</h3>
+                <h3 style="margin: 25px 0 15px 0; color: #2dd4bf; display: flex; align-items: center; gap: 6px;"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>Goals & Nutrition</h3>
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                     <div class="form-group">
@@ -2419,7 +2419,7 @@
                 </div>
 
                 <!-- Food Preferences -->
-                <h3 style="margin: 25px 0 15px 0; color: #2cb5a5; display: flex; align-items: center; gap: 6px;"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 2l1.578 17.824A2 2 0 0 0 6.556 21.5h10.888a2 2 0 0 0 1.978-1.676L21 2"/><path d="M8 2v3a4 4 0 0 0 8 0V2"/></svg>Food Preferences</h3>
+                <h3 style="margin: 25px 0 15px 0; color: #2dd4bf; display: flex; align-items: center; gap: 6px;"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 2l1.578 17.824A2 2 0 0 0 6.556 21.5h10.888a2 2 0 0 0 1.978-1.676L21 2"/><path d="M8 2v3a4 4 0 0 0 8 0V2"/></svg>Food Preferences</h3>
 
                 <div class="form-group">
                     <label for="allergies">Allergies</label>
@@ -2437,7 +2437,7 @@
                 </div>
 
                 <!-- Health & Limitations (for workout AI) -->
-                <h3 style="margin: 25px 0 15px 0; color: #2cb5a5; display: flex; align-items: center; gap: 6px;"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7Z"/></svg>Health &amp; Limitations <span style="font-weight: normal; font-size: 13px; color: #666;">(workout AI uses these every time)</span></h3>
+                <h3 style="margin: 25px 0 15px 0; color: #2dd4bf; display: flex; align-items: center; gap: 6px;"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7Z"/></svg>Health &amp; Limitations <span style="font-weight: normal; font-size: 13px; color: #666;">(workout AI uses these every time)</span></h3>
 
                 <div class="form-group">
                     <label for="healthConcerns">Free-text injuries / notes</label>
@@ -2479,7 +2479,7 @@
                 </div>
 
                 <!-- Cooking Equipment -->
-                <h3 style="margin: 25px 0 15px 0; color: #2cb5a5; display: flex; align-items: center; gap: 6px;"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 12c2-2.96 0-7-1-8 0 3.038-1.773 4.741-3 6-1.226 1.26-2 3.24-2 5a6 6 0 1 0 12 0c0-1.532-1.056-3.94-2-5-1.786 3-2.791 3-4 2z"/></svg>Cooking Equipment</h3>
+                <h3 style="margin: 25px 0 15px 0; color: #2dd4bf; display: flex; align-items: center; gap: 6px;"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 12c2-2.96 0-7-1-8 0 3.038-1.773 4.741-3 6-1.226 1.26-2 3.24-2 5a6 6 0 1 0 12 0c0-1.532-1.056-3.94-2-5-1.786 3-2.791 3-4 2z"/></svg>Cooking Equipment</h3>
 
                 <div class="checkbox-group">
                     <label class="checkbox-label">
@@ -2503,7 +2503,7 @@
                 </div>
 
                 <!-- Protein Powder -->
-                <h3 style="margin: 25px 0 15px 0; color: #2cb5a5; display: flex; align-items: center; gap: 6px;"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6.5 6.5l11 11"/><path d="M21 3l-6.5 6.5M14.5 3L21 9.5"/><path d="M3 21l6.5-6.5M3 14.5L9.5 21"/></svg>Protein Supplement</h3>
+                <h3 style="margin: 25px 0 15px 0; color: #2dd4bf; display: flex; align-items: center; gap: 6px;"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6.5 6.5l11 11"/><path d="M21 3l-6.5 6.5M14.5 3L21 9.5"/><path d="M3 21l6.5-6.5M3 14.5L9.5 21"/></svg>Protein Supplement</h3>
 
                 <div class="form-group">
                     <label class="checkbox-label">
@@ -2551,7 +2551,7 @@
                 </div>
 
                 <!-- Notes -->
-                <h3 style="margin: 25px 0 15px 0; color: #2cb5a5; display: flex; align-items: center; gap: 6px;"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Notes</h3>
+                <h3 style="margin: 25px 0 15px 0; color: #2dd4bf; display: flex; align-items: center; gap: 6px;"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Notes</h3>
 
                 <div class="form-group">
                     <textarea id="clientNotes" placeholder="Any important information about this client..."></textarea>
