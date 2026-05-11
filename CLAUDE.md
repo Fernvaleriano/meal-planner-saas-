@@ -1,5 +1,89 @@
 # Project Memory
 
+## HOLISTIC CODE MODIFICATION PROTOCOL (APPLIES TO EVERY CHANGE)
+
+Primary directive: **"First, do no harm to the existing system."**
+
+### 1. PRE-MODIFICATION ANALYSIS (MANDATORY)
+Before any change:
+- Identify ALL files, functions, and components that interact with the code being modified
+- Map the dependency graph (callers and callees)
+- List all data flows passing through this code
+- Check for side effects (global state, DB writes, API calls, event emissions)
+- Review existing tests covering affected areas
+
+### 2. IMPACT ASSESSMENT (MANDATORY)
+For every proposed fix, explicitly answer:
+- What EXACTLY am I changing? (line-level precision)
+- What ELSE does this change affect? (trace downstream effects)
+- Could this break existing functionality? (list specific risks)
+- Edge cases? (null values, boundaries, races, error states)
+- Does this cascade into other modules/services?
+
+### 3. THE "TWO-PROBLEM" CHECK
+Assume your fix might create TWO new problems:
+- One where the fixed code INTERFACES with other components
+- One where assumptions in OTHER code relied on the OLD behavior
+Hunt for these before finalizing.
+
+### 4. REGRESSION SAFETY CHECKLIST
+After implementing:
+- Existing tests still pass
+- No new warnings/errors
+- API contracts unchanged (unless intentional)
+- DB schemas/queries compatible
+- No breaking changes to function signatures, return types, exceptions
+- Performance not degraded
+- Error handling still correct in all paths
+- Logging/monitoring still functional
+
+### 5. THE "REVERT SCENARIO" TEST
+Ask: "If someone reverted ONLY my change, would the system break?"
+- YES → unhealthy coupling, refactor
+- NO → properly isolated
+
+### 6. MINIMUM VIABLE CHANGE PRINCIPLE
+- Smallest change that fixes the problem
+- No unrelated refactors/optimizations in the same change
+- Flag other issues separately
+- Every line changed must be justifiable for this specific problem
+
+### 7. BROADER SYSTEM VIEW
+- End-to-end UX impact?
+- Aligns with system architecture?
+- Backward compatible?
+- Works in dev/staging/production?
+- Handles concurrent users/requests?
+- Security implications considered?
+
+### 8. EXPLICIT OUTPUT FORMAT
+When proposing a fix:
+- **PROBLEM IDENTIFIED:** clear bug description
+- **AFFECTED COMPONENTS MAP:** files/functions/data flows
+- **PROPOSED FIX:** code change with explanation
+- **DOWNSTREAM IMPACT ANALYSIS:** direct effects, indirect effects, components at risk
+- **VERIFICATION THAT NO NEW PROBLEMS INTRODUCED:** walkthrough proving each rule satisfied
+- **TESTING RECOMMENDATIONS:** what to test, edge cases beyond the fixed scenario
+
+**REMEMBER:** A fix that breaks something else is NOT a fix — it's a trade-off. When in doubt, BE CONSERVATIVE. Flag uncertainty rather than assume.
+
+### CASE STUDY: Slow-success → fast-failure regressions
+**Rule:** When a fix changes a failure mode from slow-success to fast-failure, audit ALL downstream error handlers that might misinterpret the new failure as "no data" instead of "error."
+
+**The pattern (May 2026 workouts-disappearing bug):**
+- A `getSession()` call that used to hang for 10–30s on iOS resume (slow but eventually returning a valid session) was wrapped in a 2.5s timeout race with a localStorage fallback. Correct fix for the hang.
+- But the new failure path produced fast 401s — and downstream `.catch(() => null)` handlers in `Workouts.jsx` had been written assuming "null means no workouts," not "null means request failed." Result: state cleared, per-date cache poisoned with `[]`, workouts "disappeared" until cache was manually cleared.
+
+**What to check whenever timeouts/races/fallbacks are added:**
+1. Every `.catch(() => null)`, `.catch(() => [])`, `.catch(() => undefined)` downstream — does the caller distinguish error from empty?
+2. Cache writes that happen unconditionally after a fetch — do they need to be gated on "no calls failed"?
+3. UI state setters that fire `setX([])` or `setX(null)` on empty responses — same question.
+4. Any optimistic "show cached then refresh" flows — does a failed refresh nuke the cached display?
+
+**The mitigation pattern** (see `src/pages/Workouts.jsx` `refreshWorkoutData` / `fetchWorkout`): use a sentinel (`Symbol('fetch-failed')`) in the catch handler so callers can distinguish failure from empty. Bail out early on `allFailed`. Gate cache writes on `!anyFailed`.
+
+---
+
 ## Architecture: Standalone HTML Pages (NOT React SPA)
 
 ### CRITICAL — Read This First

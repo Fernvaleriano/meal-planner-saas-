@@ -1027,10 +1027,16 @@ function Workouts() {
       // it was adding 2-5s of delay on every pull-to-refresh by forcing a
       // full Supabase auth roundtrip before data fetching could start.
 
-      const [assignmentRes, adhocRes, logRes] = await Promise.all([
-        apiGet(`/.netlify/functions/workout-assignments?clientId=${clientData.id}&date=${dateStr}`).catch(() => null),
-        apiGet(`/.netlify/functions/adhoc-workouts?clientId=${clientData.id}&date=${dateStr}`).catch(() => null),
-        apiGet(`/.netlify/functions/workout-logs?clientId=${clientData.id}&date=${dateStr}`).catch(() => null)
+      // FAILED sentinel distinguishes "request failed" from "request returned
+      // no data." Without it, .catch(() => null) collapsed both into the same
+      // "user has no workouts" branch — clearing todayWorkouts and poisoning
+      // the per-date cache with []. The getSession() timeout fix surfaced
+      // this latent bug by converting iOS-resume hangs into fast 401s.
+      const FAILED = Symbol('fetch-failed');
+      let [assignmentRes, adhocRes, logRes] = await Promise.all([
+        apiGet(`/.netlify/functions/workout-assignments?clientId=${clientData.id}&date=${dateStr}`).catch(() => FAILED),
+        apiGet(`/.netlify/functions/adhoc-workouts?clientId=${clientData.id}&date=${dateStr}`).catch(() => FAILED),
+        apiGet(`/.netlify/functions/workout-logs?clientId=${clientData.id}&date=${dateStr}`).catch(() => FAILED)
       ]);
 
       // If the user navigated to a different day while this refresh was in
@@ -1041,6 +1047,21 @@ function Workouts() {
       if (formatDate(selectedDateRef.current) !== dateStr) {
         return;
       }
+
+      const anyFailed = assignmentRes === FAILED || adhocRes === FAILED || logRes === FAILED;
+      const allFailed = assignmentRes === FAILED && adhocRes === FAILED && logRes === FAILED;
+
+      if (allFailed) {
+        // All three calls failed (likely transient auth/network on resume).
+        // Don't clear state, don't write the cache — preserve last-good UI
+        // and surface an inline error.
+        setError('Could not refresh workouts. Check your connection.');
+        return;
+      }
+
+      if (assignmentRes === FAILED) assignmentRes = null;
+      if (adhocRes === FAILED) adhocRes = null;
+      if (logRes === FAILED) logRes = null;
 
       const allWorkouts = [];
 
@@ -1115,14 +1136,21 @@ function Workouts() {
       // shows the freshly-refreshed data instantly. Without this, after a
       // resume-refresh the cache stays stale until the next date-change
       // fetch overwrites it.
-      const cacheKey = `workouts_${clientData.id}_${dateStr}`;
-      const first = allWorkouts[0] || null;
-      const log = (first && !first.is_adhoc && logRes?.logs?.length > 0) ? logRes.logs[0] : null;
-      setCache(cacheKey, {
-        todayWorkout: first,
-        todayWorkouts: allWorkouts,
-        workoutLog: log
-      });
+      //
+      // Only write if every call succeeded. A partial response ([] from one
+      // failed call mixed with real data from others) isn't safe to cache as
+      // the truth — the next visit would render the partial snapshot before
+      // the network fetch corrects it.
+      if (!anyFailed) {
+        const cacheKey = `workouts_${clientData.id}_${dateStr}`;
+        const first = allWorkouts[0] || null;
+        const log = (first && !first.is_adhoc && logRes?.logs?.length > 0) ? logRes.logs[0] : null;
+        setCache(cacheKey, {
+          todayWorkout: first,
+          todayWorkouts: allWorkouts,
+          workoutLog: log
+        });
+      }
 
       // Refresh signed URLs in the background AFTER state is set. This way
       // the UI shows workout content immediately on resume, and video
@@ -1235,22 +1263,44 @@ function Workouts() {
         // it forced a full Supabase session refresh before data loading started.
 
         // Fetch all workout data in parallel — ALL with .catch() so one failure
-        // doesn't block everything (this was the main cause of infinite loading)
-        const [assignmentRes, adhocRes, logRes] = await Promise.all([
+        // doesn't block everything (this was the main cause of infinite loading).
+        //
+        // FAILED sentinel distinguishes "request failed" from "request returned
+        // no data," so a transient auth/network failure doesn't masquerade as
+        // "user has no workouts" and nuke state + cache. See refreshWorkoutData
+        // for the same pattern.
+        const FAILED = Symbol('fetch-failed');
+        let [assignmentRes, adhocRes, logRes] = await Promise.all([
           apiGet(`/.netlify/functions/workout-assignments?clientId=${clientData.id}&date=${dateStr}`).catch(err => {
             console.error('Error fetching workout assignments:', err);
-            return null;
+            return FAILED;
           }),
           apiGet(`/.netlify/functions/adhoc-workouts?clientId=${clientData.id}&date=${dateStr}`).catch(err => {
             console.error('Error fetching adhoc workouts:', err);
-            return null;
+            return FAILED;
           }),
           apiGet(`/.netlify/functions/workout-logs?clientId=${clientData.id}&date=${dateStr}`).catch(err => {
             console.error('Error fetching workout log:', err);
-            return null;
+            return FAILED;
           })
         ]);
         if (!mounted) return;
+
+        const anyFailed = assignmentRes === FAILED || adhocRes === FAILED || logRes === FAILED;
+        const allFailed = assignmentRes === FAILED && adhocRes === FAILED && logRes === FAILED;
+
+        if (allFailed) {
+          // All three calls failed. Don't clear state, don't write the cache.
+          // The stale-while-revalidate display from the cache check above (if
+          // any) stays visible; otherwise loading flips off and the inline
+          // error banner shows.
+          if (mounted) setError('Could not load workouts. Check your connection.');
+          return;
+        }
+
+        if (assignmentRes === FAILED) assignmentRes = null;
+        if (adhocRes === FAILED) adhocRes = null;
+        if (logRes === FAILED) logRes = null;
 
         const allWorkouts = [];
 
@@ -1288,6 +1338,11 @@ function Workouts() {
         // Cache workout data for instant display on next visit / resume
         const cacheKey = `workouts_${clientData.id}_${formatDate(selectedDate)}`;
 
+        // Only persist to the per-date cache when every call succeeded.
+        // A partial response could cache an incomplete snapshot that the
+        // next visit would render before the network fetch corrects it.
+        const persist = (value) => { if (!anyFailed) setCache(cacheKey, value); };
+
         if (allWorkouts.length > 0) {
           // Auto-select the first workout
           const first = allWorkouts[0];
@@ -1297,7 +1352,7 @@ function Workouts() {
           if (!first.is_adhoc && logRes?.logs?.length > 0) {
             const log = logRes.logs[0];
             setWorkoutLog(log);
-            setCache(cacheKey, { todayWorkout: first, todayWorkouts: allWorkouts, workoutLog: log });
+            persist({ todayWorkout: first, todayWorkouts: allWorkouts, workoutLog: log });
             setWorkoutStarted(log?.status === 'in_progress' || log?.status === 'completed');
             if (log?.energy_level || log?.soreness_level || log?.sleep_quality) {
               setReadinessData({
@@ -1309,11 +1364,11 @@ function Workouts() {
             setCompletedExercises(getEffectiveCompletedExercises(first, log));
           } else if (!first.is_adhoc) {
             setWorkoutLog(null);
-            setCache(cacheKey, { todayWorkout: first, todayWorkouts: allWorkouts, workoutLog: null });
+            persist({ todayWorkout: first, todayWorkouts: allWorkouts, workoutLog: null });
             setCompletedExercises(getEffectiveCompletedExercises(first, null));
           } else {
             setWorkoutLog(null);
-            setCache(cacheKey, { todayWorkout: first, todayWorkouts: allWorkouts, workoutLog: null });
+            persist({ todayWorkout: first, todayWorkouts: allWorkouts, workoutLog: null });
             setCompletedExercises(getEffectiveCompletedExercises(first, null));
           }
         } else {
@@ -1321,7 +1376,7 @@ function Workouts() {
           setTodayWorkouts([]);
           setWorkoutLog(null);
           setCompletedExercises(new Set());
-          setCache(cacheKey, { todayWorkout: null, todayWorkouts: [], workoutLog: null });
+          persist({ todayWorkout: null, todayWorkouts: [], workoutLog: null });
         }
 
         // Refresh signed URLs in the background AFTER state is set.
