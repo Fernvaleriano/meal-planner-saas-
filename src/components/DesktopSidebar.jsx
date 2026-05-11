@@ -5,11 +5,17 @@ import { useAuth } from '../context/AuthContext';
 import { useBranding } from '../context/BrandingContext';
 import { apiGet } from '../utils/api';
 
+const DEFAULT_LOGO_URL = 'https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/ziquecoach-logo-white.png';
+
 function DesktopSidebar() {
   const location = useLocation();
   const { user, clientData, logout } = useAuth();
   const { isModuleVisible, getLabel, branding } = useBranding();
   const [unreadMessages, setUnreadMessages] = useState(0);
+  const [logoFailed, setLogoFailed] = useState(false);
+  const logoUrl = branding?.brand_logo_url || DEFAULT_LOGO_URL;
+  const brandName = branding?.brand_name || 'Ziquecoach';
+  useEffect(() => { setLogoFailed(false); }, [logoUrl]);
 
   // Check if user is a coach (has entry in coaches table)
   const isCoach = clientData?.is_coach === true;
@@ -82,10 +88,15 @@ function DesktopSidebar() {
   return (
     <aside className="desktop-nav">
       <div className="desktop-nav-logo">
-        <img
-          src={branding?.brand_logo_url || 'https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/ziquecoach-logo-white.png'}
-          alt={branding?.brand_name || 'Ziquecoach'}
-        />
+        {!logoFailed ? (
+          <img
+            src={logoUrl}
+            alt={brandName}
+            onError={() => setLogoFailed(true)}
+          />
+        ) : (
+          <span>{brandName}</span>
+        )}
       </div>
 
       <div className="desktop-nav-items">
