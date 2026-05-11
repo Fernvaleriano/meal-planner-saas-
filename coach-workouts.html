@@ -7971,8 +7971,11 @@
                 renderProgramList();
             } catch (err) {
                 console.error('Error loading programs:', err);
-                programs = [];
-                renderProgramList();
+                // Do NOT reset `programs` to [] — selectProgram() and the
+                // URL ?programId= resolver both read from it. Wiping the
+                // array on a transient failure makes the coach's programs
+                // appear deleted. Leave prior value intact; toast for feedback.
+                showToast('Could not refresh workout programs. Check your connection.', 'error');
             }
         }
 
