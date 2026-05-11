@@ -113,7 +113,7 @@ function Layout() {
       <DesktopSidebar />
       <main className={`main-content ${hideTopNav ? 'no-top-nav' : ''} ${isMessagesPage ? 'messages-page' : ''}`}>
         <div className={`container ${hideTopNav ? 'full-width' : ''}`}>
-          <ErrorBoundary>
+          <ErrorBoundary resetKey={location.pathname}>
             <PullToRefreshWrapper>
               {/* Persistent tab pages — mounted once, shown/hidden with CSS.
                   This is what makes tab switching feel instant (like a native app).

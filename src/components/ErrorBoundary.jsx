@@ -14,6 +14,18 @@ class ErrorBoundary extends Component {
     console.error('Error caught by boundary:', error, errorInfo);
   }
 
+  componentDidUpdate(prevProps) {
+    // Reset error state when the consumer passes a fresh resetKey
+    // (typically location.pathname). Without this, a single render
+    // throw inside one tab persists across navigation because the
+    // boundary itself stays mounted — leaving the user stuck on the
+    // error screen until they manually reload. Gated on hasError so
+    // the happy path is a no-op and there is no setState loop.
+    if (this.state.hasError && prevProps.resetKey !== this.props.resetKey) {
+      this.setState({ hasError: false, error: null });
+    }
+  }
+
   handleRetry = () => {
     this.setState({ hasError: false, error: null });
   };
