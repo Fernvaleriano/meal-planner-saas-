@@ -135,7 +135,7 @@ exports.handler = async (event) => {
  * Send notification email for new form submission
  */
 async function sendFormNotificationEmail({ to, formName, responseData, metadata, responseId, isFirstResponder, isTrialReview }) {
-    const APP_URL = process.env.URL || 'https://ziquefitnessnutrition.com';
+    const APP_URL = process.env.URL || 'https://ziquecoach.com';
 
     // Extract key info from response
     const name = responseData.name || (responseData.first_name && responseData.last_name ?

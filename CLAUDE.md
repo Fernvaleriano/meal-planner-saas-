@@ -125,32 +125,26 @@ A partial React rebuild exists in `src/` but is **not the primary codebase**. So
 ### Decision
 - **New domain purchased:** `ziquecoach.com`
 - **App name:** "Ziquecoach"
-- **App ID:** `com.ziquecoach.app`
-- **Status:** NOT YET IMPLEMENTED — waiting until closer to App Store launch
+- **App ID:** `com.ziquecoach.app` (already updated in Capacitor/iOS/Android configs)
+- **Status:** NOT YET IMPLEMENTED — planning complete, waiting on user to start
+- **Strategy update (May 2026):** Only ~10 active clients, so doing a clean cutover (have clients re-save the homescreen icon) instead of dual-domain. Old domain stays as a 301 redirect for ~12 months as safety net.
 
-### Strategy (Dual Domain)
-- `www.ziquecoach.com` → marketing/signup site for **coaches** signing up
-- `ziquefitnessnutrition.com` → stays alive for **existing clients** so their homescreen saves keep working
-- Gradually transition clients to the native app (Capacitor), which eliminates the homescreen/domain dependency
-- Eventually sunset the old domain once clients are on the native app
+### Full audit & checklist
+**See `DOMAIN-CHANGE-CHECKLIST.md`** for the complete phase-by-phase plan: external services (Supabase/Stripe/DNS), all ~240 code references across 60+ files (with file paths and line numbers), cutover steps, and post-cutover monitoring.
 
-### What Needs to Happen (When Ready)
-1. Update codebase: all domain refs, app name, app ID, email addresses to ziquecoach.com
-2. Point ziquecoach.com DNS to Netlify
-3. Set up email DNS records (SPF/DKIM) for @ziquecoach.com
-4. Update Stripe webhook URL
-5. Update Supabase redirect URLs
-6. Keep ziquefitnessnutrition.com alive with redirects
-7. Submit to App Store as "Ziquecoach"
+### Decisions LOCKED IN (May 2026)
+- System email sender: `noreply@ziquecoach.com` (NEW)
+- Business contact email: `contact@ziquefitness.com` (KEEP — user's personal email)
+- Master/admin account email: `contact@ziquefitness.com` (KEEP — hardcoded in master-account-guard files, no change needed)
+- Capacitor hostname: change `app.ziquefitness.com` → `app.ziquecoach.com`
+- Old domain `ziquefitnessnutrition.com`: 301 redirect to new domain for ~12 months, then sunset
+- BOTH old domains (`ziquefitnessnutrition.com` AND `ziquefitness.com`) must stay on auto-renew
 
-### Known Issues to Fix During Domain Change
-- Inconsistent domain fallbacks in code (3 different variants: ziquefitnessnutrition.com, ziquefitness.com, ziquefitnutrition.com typo)
-- ~20 files need domain/URL updates
-- Email addresses across 6+ files need updating
-
-### Key Insight
-- Code changes can be done ahead of DNS flip (fallbacks don't affect live site since Netlify URL env var controls actual routing)
-- PWA homescreen saves WILL break for clients on the old domain — native app solves this long-term
+### Key insights
+- Code changes can be done ahead of DNS flip (fallbacks don't affect live site since Netlify `URL` env var controls actual routing)
+- Coach branding is stored in DATABASE (`coaches` table), not just code — needs updating via Branding Settings page after code changes, otherwise clients still see old brand
+- New Ziquecoach logo needs uploading to Supabase storage (current logo file has "zique fitness" in name)
+- Existing clients will be logged out during the 301 redirect (cookies don't cross domains) — heads-up message should include "Forgot Password?" reminder
 
 ## Default Workout Template Format
 

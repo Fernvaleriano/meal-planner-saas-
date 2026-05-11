@@ -1,6 +1,6 @@
 # Google Play Store Release Guide
 
-This guide walks you through publishing Zique Fitness Nutrition to the Google Play Store.
+This guide walks you through publishing Ziquecoach to the Google Play Store.
 
 ## Prerequisites
 
@@ -94,7 +94,7 @@ Verify:
 
 ### Required Information
 
-1. **App Title**: Zique Fitness Nutrition (max 30 chars)
+1. **App Title**: Ziquecoach (max 30 chars)
 2. **Short Description**: AI-powered meal planning for your fitness goals (max 80 chars)
 3. **Full Description**: Up to 4000 chars describing features
 4. **Privacy Policy URL**: Required (you collect user data)

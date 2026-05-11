@@ -7,7 +7,7 @@ const crypto = require('crypto');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
-const APP_URL = process.env.URL || 'https://ziquefitnessnutrition.com';
+const APP_URL = process.env.URL || 'https://ziquecoach.com';
 
 // Token expiry time (7 days)
 const TOKEN_EXPIRY_DAYS = 7;

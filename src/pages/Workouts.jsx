@@ -4151,7 +4151,7 @@ function Workouts() {
         ctx.fillStyle = '#cbd5e1';
         ctx.font = '18px -apple-system, BlinkMacSystemFont, sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText('Powered by Zique Fitness', width / 2, height - 30);
+        ctx.fillText('Powered by Ziquecoach', width / 2, height - 30);
         ctx.restore();
 
         // Convert and share
@@ -4212,7 +4212,7 @@ function Workouts() {
         img.src = src;
       });
 
-      const logoUrl = 'https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/Untitled%20design%20-%202026-02-10T171903.769.png';
+      const logoUrl = 'https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/ziquecoach-logo-teal.png';
       const logo = await loadImage(logoUrl, 'logo');
       renderCard(logo);
     } catch (err) {
@@ -5236,7 +5236,7 @@ function Workouts() {
                 <div className="share-card-scrim-bottom" />
                 <div className="share-card-content">
                   <div className="share-card-brand">
-                    <img src="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/Untitled%20design%20-%202026-02-10T171903.769.png" alt="Zique Fitness" className="share-card-logo" />
+                    <img src="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/ziquecoach-logo-teal.png" alt="Ziquecoach" className="share-card-logo" />
                   </div>
                   <div className="share-card-stats">
                     {shareToggles.duration && (

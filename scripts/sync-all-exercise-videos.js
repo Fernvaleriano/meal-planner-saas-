@@ -14,7 +14,7 @@ const https = require('https');
 const http = require('http');
 
 // Configuration
-const SITE_URL = process.env.SITE_URL || 'https://ziquefitnessnutrition.com';
+const SITE_URL = process.env.SITE_URL || 'https://ziquecoach.com';
 const DRY_RUN = process.argv.includes('--dry-run');
 const DELAY_BETWEEN_FOLDERS = 500; // 0.5 second between folders
 

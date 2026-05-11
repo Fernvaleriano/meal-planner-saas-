@@ -281,7 +281,7 @@ exports.handler = async (event, context) => {
                             plannedWorkouts,
                             isExpired,
                             primaryColor: coach.brand_primary_color || '#0d9488',
-                            brandName: coach.brand_name || 'Zique Fitness Nutrition',
+                            brandName: coach.brand_name || 'Ziquecoach',
                             logoUrl: coach.brand_email_logo_url || coach.brand_logo_url
                         });
 
@@ -360,10 +360,10 @@ function generateProgramEndEmail({
     plannedWorkouts,
     isExpired,
     primaryColor = '#0d9488',
-    brandName = 'Zique Fitness Nutrition',
+    brandName = 'Ziquecoach',
     logoUrl
 }) {
-    const APP_URL = process.env.URL || 'https://ziquefitnessnutrition.com';
+    const APP_URL = process.env.URL || 'https://ziquecoach.com';
     const logoHtml = logoUrl
         ? `<img src="${logoUrl}" alt="${brandName}" style="max-width: 150px; height: auto; margin-bottom: 12px;">`
         : '';

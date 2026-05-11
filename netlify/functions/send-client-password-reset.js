@@ -6,7 +6,7 @@ const { sendEmail } = require('./utils/email-service');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
-const APP_URL = process.env.URL || 'https://ziquefitnessnutrition.com';
+const APP_URL = process.env.URL || 'https://ziquecoach.com';
 
 // Common headers for all responses
 const headers = {
@@ -133,7 +133,7 @@ exports.handler = async (event, context) => {
     const coachName = coach?.full_name || coach?.name || coach?.email || 'Your Coach';
     const hasBranding = ['professional', 'branded'].includes(coach?.subscription_tier);
     const primaryColor = (hasBranding && coach?.brand_primary_color) || '#0d9488';
-    const brandName = (hasBranding && coach?.brand_name) || 'Zique Fitness Nutrition';
+    const brandName = (hasBranding && coach?.brand_name) || 'Ziquecoach';
     const footerText = (hasBranding && coach?.brand_email_footer) || brandName;
     const logoUrl = hasBranding ? (coach?.brand_email_logo_url || coach?.brand_logo_url) : null;
     const logoHtml = logoUrl

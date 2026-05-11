@@ -3,7 +3,7 @@
  *
  * Generates a coach-branded manifest.json for PWA homescreen saves.
  * When a client adds the app to their homescreen, the PWA name and icon
- * will reflect the coach's branding instead of the default "Zique Fitness".
+ * will reflect the coach's branding instead of the default "Ziquecoach".
  *
  * Usage: /manifest.json?coachId=<uuid>
  * Falls back to default manifest if no coachId or branding not available.
@@ -15,8 +15,8 @@ const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.s
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
 const DEFAULT_MANIFEST = {
-    name: 'Zique Fitness Meal Planner',
-    short_name: 'Zique Fitness',
+    name: 'Ziquecoach Meal Planner',
+    short_name: 'Ziquecoach',
     start_url: '/app',
     display: 'standalone',
     background_color: '#0f172a',

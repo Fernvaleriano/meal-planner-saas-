@@ -14,13 +14,13 @@ const { createClient } = require('@supabase/supabase-js');
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
-// Default branding values (Zique Fitness defaults)
+// Default branding values (Ziquecoach defaults)
 const DEFAULT_BRANDING = {
-    brand_name: 'Zique Fitness Nutrition',
+    brand_name: 'Ziquecoach',
     brand_primary_color: '#0d9488',
     brand_secondary_color: '#0284c7',
     brand_accent_color: '#10b981',
-    brand_logo_url: 'https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/zique%20fitness%20white%20logo.png',
+    brand_logo_url: 'https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/ziquecoach-logo-teal.png',
     brand_favicon_url: null,
     brand_email_logo_url: null,
     brand_email_footer: null,

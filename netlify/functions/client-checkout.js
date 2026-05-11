@@ -83,7 +83,7 @@ exports.handler = async (event) => {
       };
     }
 
-    const baseUrl = process.env.URL || 'https://ziquefitnessnutrition.com';
+    const baseUrl = process.env.URL || 'https://ziquecoach.com';
 
     // Check for existing subscription (upgrade/downgrade)
     if (action === 'change_plan') {

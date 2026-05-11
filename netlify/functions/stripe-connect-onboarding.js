@@ -32,7 +32,7 @@ exports.handler = async (event) => {
     if (authErr) return authErr;
 
     const { action } = JSON.parse(event.body || '{}');
-    const baseUrl = process.env.URL || 'https://ziquefitnessnutrition.com';
+    const baseUrl = process.env.URL || 'https://ziquecoach.com';
 
     // Get coach record
     const { data: coach, error: coachErr } = await supabase

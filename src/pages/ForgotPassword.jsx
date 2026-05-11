@@ -38,8 +38,8 @@ function ForgotPassword() {
         {/* Logo */}
         <div className="login-logo">
           <img
-            src="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/Untitled%20design%20(3).svg"
-            alt="Zique Fitness"
+            src="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/ziquecoach-logo-teal.png"
+            alt="Ziquecoach"
           />
         </div>
 
@@ -117,7 +117,7 @@ function ForgotPassword() {
 
         {/* Footer */}
         <div className="login-footer">
-          <p>Powered by Zique Fitness</p>
+          <p>Powered by Ziquecoach</p>
         </div>
       </div>
 

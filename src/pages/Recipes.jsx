@@ -505,7 +505,7 @@ function Recipes() {
 
         <div class="footer">
           ${selectedRecipe.source_url ? `Source: ${selectedRecipe.source_url}<br>` : ''}
-          Downloaded from Zique Fitness
+          Downloaded from Ziquecoach
         </div>
       </body>
       </html>

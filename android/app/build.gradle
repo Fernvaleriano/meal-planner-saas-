@@ -22,7 +22,7 @@ android {
             // To sign release builds, create a keystore and set these environment variables:
             // ZIQUE_KEYSTORE_FILE - path to your .keystore file
             // ZIQUE_KEYSTORE_PASSWORD - keystore password
-            // ZIQUE_KEY_ALIAS - key alias (e.g., 'ziquefitness')
+            // ZIQUE_KEY_ALIAS - key alias (e.g., 'ziquecoach')
             // ZIQUE_KEY_PASSWORD - key password
             if (System.getenv("ZIQUE_KEYSTORE_FILE")) {
                 storeFile file(System.getenv("ZIQUE_KEYSTORE_FILE"))

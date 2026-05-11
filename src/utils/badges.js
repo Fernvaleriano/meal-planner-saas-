@@ -115,7 +115,7 @@ export function generateBadgeShareCard({ tier, totalCount, earnedTiers }) {
       // Footer
       ctx.fillStyle = 'rgba(255,255,255,0.7)';
       ctx.font = '500 28px -apple-system, BlinkMacSystemFont, sans-serif';
-      ctx.fillText('Powered by Zique Fitness', width / 2, height - 40);
+      ctx.fillText('Powered by Ziquecoach', width / 2, height - 40);
 
       canvas.toBlob((blob) => {
         if (blob) resolve(blob);

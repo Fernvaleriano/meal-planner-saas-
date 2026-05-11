@@ -182,7 +182,7 @@ exports.handler = async (event) => {
           };
         }
 
-        const baseUrl = process.env.URL || 'https://ziquefitnessnutrition.com';
+        const baseUrl = process.env.URL || 'https://ziquecoach.com';
 
         const session = await stripe.billingPortal.sessions.create(
           {
