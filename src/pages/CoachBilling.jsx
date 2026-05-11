@@ -375,17 +375,24 @@ export default function CoachBilling() {
 
   const fetchAll = useCallback(async () => {
     try {
+      // Catch each call independently so one failure (e.g. Stripe briefly
+      // down) can't reject the whole Promise.all and leave every state
+      // value at its initial empty default. Gate each setter on a truthy
+      // response — a failed child preserves the previous state instead of
+      // clobbering it with [] / null, so the coach never sees an empty
+      // billing page on a transient blip and feels tempted to recreate
+      // plans (which would duplicate Stripe products).
       const [statusRes, plansRes, promoRes, revenueRes] = await Promise.all([
-        apiPost('/.netlify/functions/stripe-connect-onboarding', { action: 'status' }),
-        apiGet(`/.netlify/functions/coach-billing-plans?coachId=${clientData?.id || ''}`).catch(() => ({ plans: [] })),
-        apiGet('/.netlify/functions/coach-promo-codes').catch(() => ({ promo_codes: [] })),
+        apiPost('/.netlify/functions/stripe-connect-onboarding', { action: 'status' }).catch(() => null),
+        apiGet(`/.netlify/functions/coach-billing-plans?coachId=${clientData?.id || ''}`).catch(() => null),
+        apiGet('/.netlify/functions/coach-promo-codes').catch(() => null),
         apiGet('/.netlify/functions/coach-revenue').catch(() => null)
       ]);
 
-      setConnectStatus(statusRes);
-      setPlans(plansRes.plans || []);
-      setPromoCodes(promoRes.promo_codes || []);
-      setRevenue(revenueRes);
+      if (statusRes) setConnectStatus(statusRes);
+      if (plansRes) setPlans(plansRes.plans || []);
+      if (promoRes) setPromoCodes(promoRes.promo_codes || []);
+      if (revenueRes) setRevenue(revenueRes);
     } catch (err) {
       console.error('Error loading billing data:', err);
     } finally {
