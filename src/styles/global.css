@@ -1228,7 +1228,7 @@ a.nav-left {
 
 .notif-icon.comment {
     background: #eff6ff;
-    color: #3b82f6;
+    color: #2cb5a5;
 }
 
 [data-theme="dark"] .notif-icon.comment {
@@ -1755,7 +1755,7 @@ textarea,
 }
 
 .macro-ring.calories .progress { stroke: var(--brand-primary); }
-.macro-ring.protein .progress { stroke: #3b82f6; }
+.macro-ring.protein .progress { stroke: #2cb5a5; }
 .macro-ring.carbs .progress { stroke: #f59e0b; }
 .macro-ring.fat .progress { stroke: #ef4444; }
 
@@ -4219,7 +4219,7 @@ textarea,
     font-weight: 600;
 }
 
-.macro-bar-label.protein { color: #3b82f6; }
+.macro-bar-label.protein { color: #2cb5a5; }
 .macro-bar-label.carbs { color: #f59e0b; }
 .macro-bar-label.fat { color: #ef4444; }
 .macro-bar-label.fiber { color: #22c55e; }
@@ -4258,7 +4258,7 @@ textarea,
     transition: width 0.3s;
 }
 
-.macro-bar-fill.protein { background: #3b82f6; }
+.macro-bar-fill.protein { background: #2cb5a5; }
 .macro-bar-fill.carbs { background: #f59e0b; }
 .macro-bar-fill.fat { background: #ef4444; }
 .macro-bar-fill.fiber { background: #22c55e; }
@@ -5922,7 +5922,7 @@ textarea,
 }
 
 .ai-modal-pill.calories svg {
-    color: #3b82f6;
+    color: #2cb5a5;
 }
 
 .ai-modal-pill.hungry svg {
@@ -6264,7 +6264,7 @@ textarea,
 }
 
 .progress-fill.protein {
-    background: #3b82f6;
+    background: #2cb5a5;
 }
 
 .progress-fill.water {
@@ -6799,7 +6799,7 @@ textarea,
 .coach-avatar {
     width: 48px;
     height: 48px;
-    background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+    background: linear-gradient(135deg, #8b5cf6 0%, #22998a 100%);
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -7699,7 +7699,7 @@ textarea,
 
 .meal-macros .macro.protein {
     background: rgba(59, 130, 246, 0.1);
-    color: #3b82f6;
+    color: #2cb5a5;
 }
 
 .meal-macros .macro.carbs {
@@ -7847,7 +7847,7 @@ textarea,
     flex-shrink: 0;
 }
 
-.target-box.protein .target-dot { background: #3b82f6; }
+.target-box.protein .target-dot { background: #2cb5a5; }
 .target-box.carbs .target-dot { background: #f59e0b; }
 .target-box.fat .target-dot { background: #ef4444; }
 
@@ -7935,7 +7935,7 @@ textarea,
     transition: width 0.3s ease;
 }
 
-.target-box.protein .target-bar-fill { background: #3b82f6; }
+.target-box.protein .target-bar-fill { background: #2cb5a5; }
 .target-box.carbs   .target-bar-fill { background: #f59e0b; }
 .target-box.fat     .target-bar-fill { background: #ef4444; }
 
@@ -9337,7 +9337,7 @@ textarea,
 
 .nutrition-box .nutrition-value.calories { color: #f59e0b; }
 .nutrition-box .nutrition-value.protein { color: #10b981; }
-.nutrition-box .nutrition-value.carbs { color: #3b82f6; }
+.nutrition-box .nutrition-value.carbs { color: #2cb5a5; }
 .nutrition-box .nutrition-value.fat { color: #8b5cf6; }
 
 .nutrition-box .nutrition-label {
@@ -9588,7 +9588,7 @@ textarea,
 /* Spoonacular badge on recipe cards */
 .recipe-time-badge.spoonacular {
     background: rgba(59, 130, 246, 0.15);
-    color: #3b82f6;
+    color: #2cb5a5;
 }
 
 [data-theme="dark"] .recipe-time-badge.spoonacular {
@@ -9669,13 +9669,13 @@ textarea,
 }
 
 .recipe-action-btn.download svg {
-    color: #3b82f6;
+    color: #2cb5a5;
 }
 
 .recipe-action-btn.download:hover {
     background: rgba(59, 130, 246, 0.1);
-    border-color: #3b82f6;
-    color: #3b82f6;
+    border-color: #2cb5a5;
+    color: #2cb5a5;
 }
 
 [data-theme="dark"] .recipe-action-btn.download:hover {
@@ -9859,7 +9859,7 @@ textarea,
     transition: width 0.3s ease;
 }
 .macro-bar-segment.seg-protein { background: #10b981; }
-.macro-bar-segment.seg-carbs   { background: #3b82f6; }
+.macro-bar-segment.seg-carbs   { background: #2cb5a5; }
 .macro-bar-segment.seg-fat     { background: #8b5cf6; }
 
 /* Macro rows */
@@ -9880,7 +9880,7 @@ textarea,
     border-radius: 50%;
 }
 .macro-row.macro-protein .macro-row-dot { background: #10b981; }
-.macro-row.macro-carbs   .macro-row-dot { background: #3b82f6; }
+.macro-row.macro-carbs   .macro-row-dot { background: #2cb5a5; }
 .macro-row.macro-fat     .macro-row-dot { background: #8b5cf6; }
 .macro-row-label {
     font-size: 13px;
@@ -11434,7 +11434,7 @@ textarea,
     border: none;
     border-top: 1px solid var(--gray-100);
     background: none;
-    color: #3b82f6;
+    color: #2cb5a5;
     font-size: 15px;
     font-weight: 600;
     cursor: pointer;
@@ -11631,7 +11631,7 @@ textarea,
 }
 
 .quick-log-input:focus {
-    border-color: #3b82f6;
+    border-color: #2cb5a5;
 }
 
 [data-theme="dark"] .quick-log-input {
@@ -11641,7 +11641,7 @@ textarea,
 }
 
 [data-theme="dark"] .quick-log-input:focus {
-    border-color: #3b82f6;
+    border-color: #2cb5a5;
 }
 
 .quick-log-unit {
@@ -12961,7 +12961,7 @@ textarea,
 
 /* Revise Button */
 .meal-action-btn.revise {
-    background: #3b82f6;
+    background: #2cb5a5;
     color: white;
 }
 
@@ -13044,7 +13044,7 @@ textarea,
 
 /* Color coding for different macros */
 .meal-modal-macro.protein .macro-value {
-    color: #3b82f6;
+    color: #2cb5a5;
 }
 
 .meal-modal-macro.carbs .macro-value {
@@ -14112,7 +14112,7 @@ textarea,
     padding: 12px 20px;
     border: none;
     border-radius: 30px;
-    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    background: linear-gradient(135deg, #22998a 0%, #4f46e5 100%);
     color: white;
     font-size: 0.9rem;
     font-weight: 600;
@@ -16127,7 +16127,7 @@ textarea,
     width: 48px;
     height: 48px;
     border: 4px solid rgba(255, 255, 255, 0.2);
-    border-top-color: #3b82f6;
+    border-top-color: #2cb5a5;
     border-radius: 50%;
     animation: completing-spin 0.8s linear infinite;
 }
@@ -16198,7 +16198,7 @@ textarea,
 .summary-stat .stat-value {
     font-size: 28px;
     font-weight: 700;
-    color: #3b82f6;
+    color: #2cb5a5;
 }
 
 .summary-stat .stat-label {
@@ -16221,7 +16221,7 @@ textarea,
 .summary-done-btn {
     width: 100%;
     padding: 14px 24px;
-    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    background: linear-gradient(135deg, #2cb5a5, #2563eb);
     border: none;
     border-radius: 12px;
     color: white;
@@ -16273,7 +16273,7 @@ textarea,
 .confirm-mark-all-btn {
     width: 100%;
     padding: 16px;
-    background: #3b82f6;
+    background: #2cb5a5;
     border: none;
     border-radius: 30px;
     color: white;
@@ -16288,7 +16288,7 @@ textarea,
     padding: 14px;
     background: transparent;
     border: none;
-    color: #3b82f6;
+    color: #2cb5a5;
     font-size: 15px;
     font-weight: 500;
     cursor: pointer;
@@ -16508,7 +16508,7 @@ textarea,
 .share-results-btn {
     width: 100%;
     padding: 16px;
-    background: #3b82f6;
+    background: #2cb5a5;
     border: none;
     border-radius: 30px;
     color: white;
@@ -16781,7 +16781,7 @@ textarea,
 }
 
 .share-toggle-row .toggle-switch.active {
-    background: #3b82f6;
+    background: #2cb5a5;
 }
 
 .share-toggle-row .toggle-knob {
@@ -16855,7 +16855,7 @@ textarea,
 }
 
 .diary-share-progress-fill.calories {
-    background: #3b82f6;
+    background: #2cb5a5;
 }
 
 .diary-share-progress-fill.protein {
@@ -17233,7 +17233,7 @@ textarea,
     bottom: 40px;
     width: 64px;
     height: 64px;
-    background: #3b82f6;
+    background: #2cb5a5;
     border: none;
     border-radius: 50%;
     display: flex;
@@ -17952,7 +17952,7 @@ textarea,
 }
 
 .week-progress-title svg {
-    color: #6366f1;
+    color: #22998a;
 }
 
 .week-progress-count {
@@ -18045,7 +18045,7 @@ textarea,
 
 .week-progress-fill {
     height: 100%;
-    background: linear-gradient(90deg, #10b981, #6366f1);
+    background: linear-gradient(90deg, #10b981, #22998a);
     border-radius: 2px;
     transition: width 0.5s ease;
     min-width: 0;
@@ -18881,7 +18881,7 @@ textarea,
     justify-content: center;
     gap: 8px;
     padding: 14px 20px;
-    background: #3b82f6;
+    background: #2cb5a5;
     color: white;
     border: none;
     border-radius: 12px;
@@ -19001,9 +19001,9 @@ textarea,
     gap: 10px;
     padding: 12px 20px;
     background: transparent;
-    border: 2px solid #3b82f6;
+    border: 2px solid #2cb5a5;
     border-radius: 25px;
-    color: #3b82f6;
+    color: #2cb5a5;
     font-size: 14px;
     font-weight: 500;
     cursor: pointer;
@@ -19015,7 +19015,7 @@ textarea,
 }
 
 .track-heart-btn svg {
-    color: #3b82f6;
+    color: #2cb5a5;
 }
 
 /* Finish Training Section - scrolls with content */
@@ -20364,7 +20364,7 @@ textarea,
     padding: 14px;
     border-radius: 12px;
     border: none;
-    background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+    background: linear-gradient(135deg, #8b5cf6 0%, #22998a 100%);
     color: white;
     font-size: 16px;
     font-weight: 600;
@@ -20431,7 +20431,7 @@ textarea,
     padding: 10px 20px;
     border-radius: 10px;
     border: none;
-    background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+    background: linear-gradient(135deg, #8b5cf6 0%, #22998a 100%);
     color: white;
     font-size: 14px;
     font-weight: 600;
@@ -20536,7 +20536,7 @@ textarea,
 }
 
 .schedule-day-btn.active {
-    background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+    background: linear-gradient(135deg, #8b5cf6 0%, #22998a 100%);
     border-color: #8b5cf6;
     color: white;
     box-shadow: 0 2px 8px rgba(139, 92, 246, 0.35);
@@ -20606,7 +20606,7 @@ textarea,
 }
 
 .schedule-week-btn.active {
-    background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+    background: linear-gradient(135deg, #8b5cf6 0%, #22998a 100%);
     border-color: #8b5cf6;
     color: white;
     box-shadow: 0 2px 8px rgba(139, 92, 246, 0.35);
@@ -22080,7 +22080,7 @@ textarea,
 
 /* Rest Timer Active State */
 .exercise-card-v2 .rest-box.timer-active {
-    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    background: linear-gradient(135deg, #2cb5a5, #2563eb);
     color: white;
     animation: pulse-timer 1s infinite;
 }
@@ -22122,7 +22122,7 @@ textarea,
 .exercise-card-v2 .rest-timer-time {
     font-size: 48px;
     font-weight: 700;
-    color: #3b82f6;
+    color: #2cb5a5;
 }
 
 .exercise-card-v2 .skip-rest-btn {
@@ -22452,11 +22452,11 @@ textarea,
 [data-theme="light"] .week-dot.has-workout.today .week-dot-indicator {
     background: rgba(99, 102, 241, 0.1);
     border-color: rgba(99, 102, 241, 0.3);
-    color: #6366f1;
+    color: #22998a;
 }
 
 [data-theme="light"] .week-dot.has-workout.today .week-dot-label {
-    color: #6366f1;
+    color: #22998a;
 }
 
 [data-theme="light"] .week-dot.has-workout:not(.past):not(.today) .week-dot-indicator {
@@ -22502,7 +22502,7 @@ textarea,
 }
 
 [data-theme="light"] .upcoming-day-name {
-    color: #6366f1;
+    color: #22998a;
 }
 
 [data-theme="light"] .upcoming-day-num {
@@ -23626,7 +23626,7 @@ textarea,
 }
 
 .modal-header-v3 .info-btn {
-    color: #3b82f6;
+    color: #2cb5a5;
 }
 
 .modal-header-v3 .header-title {
@@ -23675,7 +23675,7 @@ textarea,
     right: 12px;
     width: 52px;
     height: 52px;
-    background: #3b82f6;
+    background: #2cb5a5;
     border: 2px solid rgba(255, 255, 255, 0.9);
     border-radius: 50%;
     display: flex;
@@ -23786,7 +23786,7 @@ textarea,
 .modal-time-boxes .time-box.clickable:hover,
 .modal-time-boxes .time-box.clickable:active {
     background: #3a3a3a;
-    border-color: #3b82f6;
+    border-color: #2cb5a5;
 }
 
 .modal-time-boxes .time-box.add-box {
@@ -23965,7 +23965,7 @@ textarea,
 }
 
 .coaching-rec-btn.accept {
-    background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
+    background: linear-gradient(135deg, #2cb5a5 0%, #60a5fa 100%);
     color: white;
     box-shadow: 0 3px 10px rgba(59, 130, 246, 0.25);
 }
@@ -24221,7 +24221,7 @@ textarea,
 [data-theme="light"] .modal-time-boxes .time-box.clickable:hover,
 [data-theme="light"] .modal-time-boxes .time-box.clickable:active {
     background: #e5e7eb;
-    border-color: #3b82f6;
+    border-color: #2cb5a5;
 }
 
 [data-theme="light"] .modal-time-boxes .time-box.add-box {
@@ -24509,7 +24509,7 @@ textarea,
 }
 
 [data-theme="light"] .exercise-history-toggle {
-    color: #3b82f6;
+    color: #2cb5a5;
 }
 
 [data-theme="light"] .exercise-history-section {
@@ -24920,7 +24920,7 @@ textarea,
     padding: 10px 16px;
     background: none;
     border: none;
-    color: #3b82f6;
+    color: #2cb5a5;
     font-size: 14px;
     font-weight: 500;
     cursor: pointer;
@@ -26146,7 +26146,7 @@ textarea,
 }
 
 .activity-thumb.active {
-    border-color: #3b82f6;
+    border-color: #2cb5a5;
 }
 
 .activity-thumb.completed {
@@ -26455,7 +26455,7 @@ textarea,
     gap: 6px;
     background: none;
     border: none;
-    color: #3b82f6;
+    color: #2cb5a5;
     font-size: 14px;
     cursor: pointer;
 }
@@ -26550,7 +26550,7 @@ textarea,
 .editor-save-btn {
     background: none;
     border: none;
-    color: #3b82f6;
+    color: #2cb5a5;
     font-size: 16px;
     font-weight: 600;
     cursor: pointer;
@@ -26864,7 +26864,7 @@ textarea,
 .workout-ready-icon {
     width: 80px;
     height: 80px;
-    background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
+    background: linear-gradient(135deg, #2cb5a5 0%, #60a5fa 100%);
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -26942,7 +26942,7 @@ textarea,
     justify-content: center;
     gap: 10px;
     padding: 16px 24px;
-    background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
+    background: linear-gradient(135deg, #2cb5a5 0%, #60a5fa 100%);
     border: none;
     border-radius: 14px;
     color: white;
@@ -27029,7 +27029,7 @@ textarea,
 }
 
 [data-theme="light"] .editor-set-item .set-value-input.active {
-    border-color: #3b82f6;
+    border-color: #2cb5a5;
     background: #eff6ff;
 }
 
@@ -27348,7 +27348,7 @@ textarea,
 }
 
 .ai-rec-btn.accept {
-    background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
+    background: linear-gradient(135deg, #2cb5a5 0%, #60a5fa 100%);
     color: white;
     box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
@@ -27486,7 +27486,7 @@ textarea,
 .ask-ai-avatar {
     width: 28px;
     height: 28px;
-    background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+    background: linear-gradient(135deg, #2cb5a5 0%, #8b5cf6 100%);
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -27509,7 +27509,7 @@ textarea,
 }
 
 .ask-ai-message.user .ask-ai-bubble {
-    background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
+    background: linear-gradient(135deg, #2cb5a5 0%, #60a5fa 100%);
     color: white;
     border-radius: 16px 16px 4px 16px;
 }
@@ -27593,7 +27593,7 @@ textarea,
 .ask-ai-send-btn {
     width: 44px;
     height: 44px;
-    background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
+    background: linear-gradient(135deg, #2cb5a5 0%, #60a5fa 100%);
     border: none;
     border-radius: 12px;
     color: white;
@@ -27702,7 +27702,7 @@ textarea,
 .voice-feedback-detail .voice-pulse {
     width: 10px;
     height: 10px;
-    background: #3b82f6;
+    background: #2cb5a5;
     border-radius: 50%;
     animation: voice-pulse 1s ease-in-out infinite;
 }
@@ -27720,7 +27720,7 @@ textarea,
 [data-theme="light"] .voice-input-btn-detail {
     background: rgba(59, 130, 246, 0.15);
     border-color: rgba(59, 130, 246, 0.4);
-    color: #3b82f6;
+    color: #2cb5a5;
     box-shadow: 0 0 8px rgba(59, 130, 246, 0.15);
 }
 
@@ -27735,7 +27735,7 @@ textarea,
 }
 
 [data-theme="light"] .voice-feedback-detail .voice-transcript {
-    color: #3b82f6;
+    color: #2cb5a5;
 }
 
 [data-theme="light"] .voice-feedback-detail .transcript-label {
@@ -27814,7 +27814,7 @@ textarea,
 .voice-pulse-small {
     width: 6px;
     height: 6px;
-    background: #3b82f6;
+    background: #2cb5a5;
     border-radius: 50%;
     animation: voice-pulse 1s ease-in-out infinite;
 }
@@ -27822,7 +27822,7 @@ textarea,
 [data-theme="light"] .voice-mic-btn-card {
     background: rgba(59, 130, 246, 0.15);
     border-color: rgba(59, 130, 246, 0.35);
-    color: #3b82f6;
+    color: #2cb5a5;
     box-shadow: 0 0 6px rgba(59, 130, 246, 0.15);
 }
 
@@ -27972,7 +27972,7 @@ textarea,
 }
 
 .editor-set-item .set-value-input.active {
-    border-color: #3b82f6;
+    border-color: #2cb5a5;
     background: #1e3a5f;
 }
 
@@ -28069,13 +28069,13 @@ textarea,
 }
 
 .editor-set-item .rest-pill.active {
-    border-color: #3b82f6;
+    border-color: #2cb5a5;
     background: #1e3a5f;
     color: #ffffff;
 }
 
 [data-theme="light"] .editor-set-item .rest-pill.active {
-    border-color: #3b82f6;
+    border-color: #2cb5a5;
     background: #eff6ff;
     color: #111827;
 }
@@ -28226,7 +28226,7 @@ textarea,
 .apply-all-btn {
     background: none;
     border: none;
-    color: #3b82f6;
+    color: #2cb5a5;
     font-size: 15px;
     font-weight: 500;
     cursor: pointer;
@@ -28235,7 +28235,7 @@ textarea,
 .next-btn {
     background: none;
     border: none;
-    color: #3b82f6;
+    color: #2cb5a5;
     font-size: 15px;
     font-weight: 600;
     cursor: pointer;
@@ -29617,7 +29617,7 @@ textarea,
 
 .feed-food-macros .macro.protein {
     background: rgba(59, 130, 246, 0.1);
-    color: #3b82f6;
+    color: #2cb5a5;
 }
 
 .feed-food-macros .macro.carbs {
@@ -32604,7 +32604,7 @@ textarea,
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #6366f1;
+    background: #22998a;
     border: none;
     color: white;
     cursor: pointer;
@@ -33475,7 +33475,7 @@ textarea,
 .tracking-type-toggle.reps-mode {
     background: rgba(99, 102, 241, 0.15);
     border-color: rgba(99, 102, 241, 0.3);
-    color: #6366f1;
+    color: #22998a;
 }
 
 [data-theme="light"] .tracking-type-toggle {
@@ -33874,7 +33874,7 @@ textarea,
 }
 
 .workout-history-stat {
-    --stat-accent: #6366f1;
+    --stat-accent: #22998a;
     background: rgba(255,255,255,0.04);
     border-radius: 14px;
     padding: 14px 8px 12px;
@@ -33988,7 +33988,7 @@ textarea,
 }
 
 .workout-history-card {
-    --card-accent: #6366f1;
+    --card-accent: #22998a;
     background: rgba(255,255,255,0.05);
     border-radius: 14px;
     padding: 14px 14px 14px 16px;
@@ -34091,7 +34091,7 @@ textarea,
     display: block;
     font-size: 16px;
     font-weight: 700;
-    color: #6366f1;
+    color: #22998a;
 }
 
 [data-theme="light"] .workout-history-card-volume span {
@@ -34210,7 +34210,7 @@ textarea,
 }
 
 .workout-history-detail-metric svg {
-    color: #6366f1;
+    color: #22998a;
 }
 
 /* Exercises List in Detail */
@@ -34435,7 +34435,7 @@ textarea,
 .workout-history-retry-btn {
     margin-top: 16px;
     padding: 10px 24px;
-    background: #6366f1;
+    background: #22998a;
     color: white;
     border: none;
     border-radius: 8px;
@@ -34527,7 +34527,7 @@ textarea,
 }
 
 .workout-history-chip {
-    --chip-accent: #6366f1;
+    --chip-accent: #22998a;
     background: rgba(255,255,255,0.05);
     border: 1px solid rgba(255,255,255,0.06);
     color: #d1d5db;
@@ -34940,7 +34940,7 @@ textarea,
 }
 
 .feed-tab.active {
-    background: #6366f1;
+    background: #22998a;
     color: white;
     font-weight: 600;
 }
@@ -34960,7 +34960,7 @@ textarea,
 }
 
 [data-theme="light"] .feed-tab.active {
-    background: #6366f1;
+    background: #22998a;
     color: white;
 }
 
@@ -35013,7 +35013,7 @@ textarea,
 }
 
 .workout-feed-stat svg {
-    color: #6366f1;
+    color: #22998a;
 }
 
 [data-theme="light"] .workout-feed-stat {
@@ -41723,7 +41723,7 @@ textarea,
 }
 
 .weekly-avg-protein {
-    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    background: linear-gradient(135deg, #2cb5a5 0%, #2563eb 100%);
 }
 
 .weekly-avg-value {
@@ -41952,7 +41952,7 @@ textarea,
 
 .weekly-breakdown-protein {
     text-align: right;
-    color: #3b82f6;
+    color: #2cb5a5;
     font-weight: 600;
     min-width: 56px;
 }

@@ -2088,7 +2088,7 @@ function Diary() {
           ctx.fill();
         };
 
-        if (shareDiaryToggles.calories) drawProgressBar('Calories', totals.calories, goals.calorie_goal, '#3b82f6', progressY);
+        if (shareDiaryToggles.calories) drawProgressBar('Calories', totals.calories, goals.calorie_goal, '#2cb5a5', progressY);
         if (shareDiaryToggles.protein) drawProgressBar('Protein', totals.protein, goals.protein_goal, '#10b981', progressY + 36);
         if (shareDiaryToggles.carbs) drawProgressBar('Carbs', totals.carbs, goals.carbs_goal, '#f59e0b', progressY + 72);
         if (shareDiaryToggles.fat) drawProgressBar('Fat', totals.fat, goals.fat_goal, '#ef4444', progressY + 108);
@@ -3532,7 +3532,7 @@ function Diary() {
                     <div style={{ fontSize: '0.8rem', color: 'var(--gray-400)' }}>Calories</div>
                   </div>
                   <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: '1.3rem', fontWeight: 600, color: '#3b82f6' }}>{editingEntry.protein || 0}g</div>
+                    <div style={{ fontSize: '1.3rem', fontWeight: 600, color: '#2cb5a5' }}>{editingEntry.protein || 0}g</div>
                     <div style={{ fontSize: '0.8rem', color: 'var(--gray-400)' }}>Protein</div>
                   </div>
                   <div style={{ textAlign: 'center' }}>
@@ -3570,7 +3570,7 @@ function Diary() {
                     padding: '14px',
                     borderRadius: '12px',
                     border: 'none',
-                    background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                    background: 'linear-gradient(135deg, #2cb5a5 0%, #2563eb 100%)',
                     color: 'white',
                     fontWeight: 600,
                     cursor: 'pointer'
@@ -4174,7 +4174,7 @@ function Diary() {
             <div className="modal-body" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px', maxHeight: '70vh', overflowY: 'auto' }}>
               {clientData?.can_edit_goals && [{
                   key: 'calorie_goal', label: 'Calories', unit: 'kcal', color: '#f97316', step: 50 },
-                { key: 'protein_goal', label: 'Protein', unit: 'g', color: '#3b82f6', step: 5 },
+                { key: 'protein_goal', label: 'Protein', unit: 'g', color: '#2cb5a5', step: 5 },
                 { key: 'carbs_goal', label: 'Carbs', unit: 'g', color: '#10b981', step: 5 },
                 { key: 'fat_goal', label: 'Fat', unit: 'g', color: '#f59e0b', step: 5 }
               ].map(({ key, label, unit, color, step }) => (
@@ -4242,7 +4242,7 @@ function Diary() {
                     { key: 'calcium_goal', label: 'Calcium', unit: 'mg', color: '#a8a29e', step: 50, placeholder: 1000 },
                     { key: 'iron_goal', label: 'Iron', unit: 'mg', color: '#b91c1c', step: 1, placeholder: 18 },
                     { key: 'vitamin_c_goal', label: 'Vitamin C', unit: 'mg', color: '#f59e0b', step: 5, placeholder: 90 },
-                    { key: 'cholesterol_goal', label: 'Cholesterol', unit: 'mg', color: '#6366f1', step: 10, placeholder: 300 }
+                    { key: 'cholesterol_goal', label: 'Cholesterol', unit: 'mg', color: '#22998a', step: 10, placeholder: 300 }
                   ].map(({ key, label, unit, color, step, placeholder }) => (
                     <div key={key} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                       <label style={{ fontSize: '0.85rem', fontWeight: 600, color }}>
@@ -4300,7 +4300,7 @@ function Diary() {
                 disabled={savingGoals}
                 style={{
                   marginTop: '8px', padding: '12px', borderRadius: '10px',
-                  border: 'none', background: '#3b82f6', color: '#fff',
+                  border: 'none', background: '#2cb5a5', color: '#fff',
                   fontSize: '1rem', fontWeight: 600, cursor: savingGoals ? 'not-allowed' : 'pointer',
                   opacity: savingGoals ? 0.6 : 1
                 }}

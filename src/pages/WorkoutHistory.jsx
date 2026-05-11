@@ -109,7 +109,7 @@ function formatTick(val) {
   return Math.round(val).toLocaleString();
 }
 
-function MiniLineChart({ data, height = 180, color = '#6366f1', unit = '', allowNegative = false }) {
+function MiniLineChart({ data, height = 180, color = '#22998a', unit = '', allowNegative = false }) {
   const svgRef = useRef(null);
   const containerRef = useRef(null);
   const [hoveredIndex, setHoveredIndex] = useState(null);
@@ -620,7 +620,7 @@ export default function WorkoutHistory() {
 
   const renderSummaryStats = () => (
     <div className="workout-history-stats-bar">
-      <div className="workout-history-stat" style={{ '--stat-accent': '#6366f1' }}>
+      <div className="workout-history-stat" style={{ '--stat-accent': '#22998a' }}>
         <div className="workout-history-stat-icon">
           <Calendar size={18} />
         </div>
@@ -704,7 +704,7 @@ export default function WorkoutHistory() {
             <MiniLineChart
               data={volumeChartData}
               height={200}
-              color="#6366f1"
+              color="#22998a"
               unit={weightUnit}
             />
           ) : (
@@ -1017,7 +1017,7 @@ export default function WorkoutHistory() {
       <div className="workout-history-chips" role="tablist" aria-label="Filter by type">
         {visible.map((key) => {
           const count = filterCounts[key] || 0;
-          const accent = PROGRAM_TYPE_COLORS[key] || '#6366f1';
+          const accent = PROGRAM_TYPE_COLORS[key] || '#22998a';
           const isActive = activeFilter === key;
           return (
             <button

@@ -435,7 +435,7 @@ function WorkoutFeedCard({ workout, coachId, onUpdate, weightUnit = 'lbs' }) {
             <div className="feed-meal-meta">
               <span
                 className="feed-meal-type-badge"
-                style={{ backgroundColor: '#6366f120', color: '#6366f1' }}
+                style={{ backgroundColor: '#22998a20', color: '#22998a' }}
               >
                 <Dumbbell size={14} />
                 Workout

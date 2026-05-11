@@ -1194,7 +1194,7 @@ ${APP_URL}`;
 
         <p style="margin-bottom: 20px;">Just a heads up - your free trial ends on <strong>${formattedDate}</strong>.</p>
 
-        <div style="background-color: #dbeafe; padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #3b82f6;">
+        <div style="background-color: #dbeafe; padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #2cb5a5;">
             <p style="margin: 0; font-weight: 600; color: #1e40af;">Add your payment method now to continue without interruption</p>
         </div>
 

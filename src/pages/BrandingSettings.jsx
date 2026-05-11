@@ -28,7 +28,7 @@ const TERMINOLOGY_OPTIONS = [
 
 const COLOR_PRESETS = [
   { name: 'Teal', primary: '#2cb5a5', secondary: '#178072', accent: '#10b981' },
-  { name: 'Blue', primary: '#2563eb', secondary: '#3b82f6', accent: '#06b6d4' },
+  { name: 'Blue', primary: '#2563eb', secondary: '#2cb5a5', accent: '#06b6d4' },
   { name: 'Purple', primary: '#7c3aed', secondary: '#8b5cf6', accent: '#a78bfa' },
   { name: 'Red', primary: '#dc2626', secondary: '#ef4444', accent: '#f97316' },
   { name: 'Green', primary: '#16a34a', secondary: '#22c55e', accent: '#10b981' },

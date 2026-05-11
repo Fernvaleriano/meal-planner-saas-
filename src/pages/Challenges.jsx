@@ -10,7 +10,7 @@ const CHALLENGE_TYPES = [
   { key: 'gym_checkin', label: 'Gym Check-in', icon: Dumbbell, color: '#f97316', description: 'Clients prove they went to the gym daily' },
   { key: 'weight_loss', label: 'Weight Loss', icon: TrendingUp, color: '#ef4444', description: 'Track weight loss toward a goal' },
   { key: 'consistency', label: 'Consistency Streak', icon: Flame, color: '#f59e0b', description: 'Log meals/workouts X days in a row' },
-  { key: 'water_intake', label: 'Water Intake', icon: Droplets, color: '#3b82f6', description: 'Hit daily water intake targets' },
+  { key: 'water_intake', label: 'Water Intake', icon: Droplets, color: '#2cb5a5', description: 'Hit daily water intake targets' },
   { key: 'steps', label: 'Daily Steps', icon: Footprints, color: '#10b981', description: 'Hit a daily step count goal' },
   { key: 'custom', label: 'Custom', icon: Target, color: '#8b5cf6', description: 'Define your own challenge rules' }
 ];

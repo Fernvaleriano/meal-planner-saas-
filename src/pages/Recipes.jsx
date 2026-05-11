@@ -651,7 +651,7 @@ function Recipes() {
                 onClick={openCreateForm}
                 style={{
                   display: 'flex', alignItems: 'center', gap: '8px',
-                  background: '#3b82f6', color: 'white', border: 'none',
+                  background: '#2cb5a5', color: 'white', border: 'none',
                   borderRadius: '10px', padding: '12px 20px', fontSize: '15px',
                   fontWeight: '600', cursor: 'pointer', flex: '1',
                   justifyContent: 'center'
@@ -1335,7 +1335,7 @@ function Recipes() {
                       transition: 'border-color 0.2s, background 0.2s',
                       background: 'var(--gray-50)'
                     }}
-                    onMouseOver={(e) => { e.currentTarget.style.borderColor = '#3b82f6'; e.currentTarget.style.background = 'var(--gray-100)'; }}
+                    onMouseOver={(e) => { e.currentTarget.style.borderColor = '#2cb5a5'; e.currentTarget.style.background = 'var(--gray-100)'; }}
                     onMouseOut={(e) => { e.currentTarget.style.borderColor = 'var(--gray-300)'; e.currentTarget.style.background = 'var(--gray-50)'; }}
                     >
                       <Camera size={32} color="#94a3b8" />
@@ -1380,8 +1380,8 @@ function Recipes() {
                   style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}
                   onClick={() => handleFormChange('is_public', !formData.is_public)}
                 >
-                  {formData.is_public ? <Eye size={18} color="#3b82f6" /> : <EyeOff size={18} color="#6b7280" />}
-                  <span style={{ fontSize: '14px', color: formData.is_public ? '#3b82f6' : '#6b7280' }}>
+                  {formData.is_public ? <Eye size={18} color="#2cb5a5" /> : <EyeOff size={18} color="#6b7280" />}
+                  <span style={{ fontSize: '14px', color: formData.is_public ? '#2cb5a5' : '#6b7280' }}>
                     {formData.is_public ? 'Visible to clients' : 'Hidden from clients'}
                   </span>
                 </div>
@@ -1393,7 +1393,7 @@ function Recipes() {
                   disabled={saving || !formData.name.trim()}
                   style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                    background: saving ? '#6b7280' : '#3b82f6', color: 'white', border: 'none',
+                    background: saving ? '#6b7280' : '#2cb5a5', color: 'white', border: 'none',
                     borderRadius: '10px', padding: '14px 24px', fontSize: '16px',
                     fontWeight: '600', cursor: saving ? 'not-allowed' : 'pointer',
                     width: '100%', marginTop: '8px',
@@ -1462,8 +1462,8 @@ function Recipes() {
                   marginBottom: '16px',
                   textAlign: 'center'
                 }}>
-                  <Loader size={24} color="#3b82f6" style={{ animation: 'spin 1s linear infinite' }} />
-                  <p style={{ color: '#3b82f6', fontSize: '14px', fontWeight: '500', marginTop: '8px' }}>
+                  <Loader size={24} color="#2cb5a5" style={{ animation: 'spin 1s linear infinite' }} />
+                  <p style={{ color: '#2cb5a5', fontSize: '14px', fontWeight: '500', marginTop: '8px' }}>
                     Extracting recipe from video...
                   </p>
                   <p style={{ color: '#64748b', fontSize: '12px', marginTop: '4px' }}>

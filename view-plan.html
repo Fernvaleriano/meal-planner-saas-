@@ -1269,7 +1269,7 @@
             border: 1px solid #e0e7ff;
             border-radius: 6px;
             background: white;
-            color: #6366f1;
+            color: #22998a;
             font-size: 1.1em;
             font-weight: bold;
             cursor: pointer;
@@ -1281,9 +1281,9 @@
         }
 
         .qty-step-btn:hover {
-            background: #6366f1;
+            background: #22998a;
             color: white;
-            border-color: #6366f1;
+            border-color: #22998a;
         }
 
         .qty-step-btn:active {
@@ -1312,7 +1312,7 @@
 
         .ingredient-unit-select:focus {
             outline: none;
-            border-color: #6366f1;
+            border-color: #22998a;
         }
 
         .ingredient-remove {
@@ -2241,7 +2241,7 @@
                 animation: slideIn 0.3s ease;
                 box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             `;
-            notification.style.background = type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6';
+            notification.style.background = type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#2cb5a5';
             notification.textContent = message;
             document.body.appendChild(notification);
 
@@ -4035,7 +4035,7 @@
                             <div>
                                 <p style="font-size: 0.75em; color: #888;">Fat</p>
                                 <span style="font-weight: 700; color: ${getVarianceColor(dayVariance.fat)}">${dayTotals.fat}g</span>
-                                <span style="font-size: 0.7em; font-weight: 500; color: #3b82f6; display: block;">${macroPercent.fat}%</span>
+                                <span style="font-size: 0.7em; font-weight: 500; color: #2cb5a5; display: block;">${macroPercent.fat}%</span>
                                 <p style="font-size: 0.7em; color: ${getVarianceColor(dayVariance.fat)}">${formatVariance(dayTotals.fat, targets.fat, dayVariance.fat)}</p>
                             </div>
                         </div>
@@ -4110,7 +4110,7 @@
                                 const linkType = vpDetectLinkType(link.url);
                                 return `
                                     <a href="${vpEscapeHtml(link.url)}" target="_blank" rel="noopener noreferrer" style="display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: white; border-radius: 6px; font-size: 0.85em; text-decoration: none; border: 1px solid #e2e8f0;">
-                                        <span style="width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; border-radius: 4px; flex-shrink: 0; ${linkType === 'youtube' ? 'background: rgba(255,0,0,0.15); color: #ff0000;' : linkType === 'instagram' ? 'background: rgba(225,48,108,0.15); color: #e1306c;' : 'background: rgba(59,130,246,0.15); color: #3b82f6;'}">${vpGetLinkTypeIcon(linkType)}</span>
+                                        <span style="width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; border-radius: 4px; flex-shrink: 0; ${linkType === 'youtube' ? 'background: rgba(255,0,0,0.15); color: #ff0000;' : linkType === 'instagram' ? 'background: rgba(225,48,108,0.15); color: #e1306c;' : 'background: rgba(59,130,246,0.15); color: #2cb5a5;'}">${vpGetLinkTypeIcon(linkType)}</span>
                                         <span style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #1f2937;">${vpEscapeHtml(link.title || link.url)}</span>
                                         <svg width="12" height="12" fill="none" stroke="#94a3b8" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg>
                                     </a>`;
@@ -4343,7 +4343,7 @@
                     <div>
                         <p style="font-size: 0.75em; color: #888;">Fat</p>
                         <span style="font-weight: 700; color: ${getVarianceColor(dayVariance.fat)}">${dayTotals.fat}g</span>
-                        <span style="font-size: 0.7em; font-weight: 500; color: #3b82f6; display: block;">${macroPercent.fat}%</span>
+                        <span style="font-size: 0.7em; font-weight: 500; color: #2cb5a5; display: block;">${macroPercent.fat}%</span>
                         <p style="font-size: 0.7em; color: ${getVarianceColor(dayVariance.fat)}">${formatVariance(dayTotals.fat, targets.fat, dayVariance.fat)}</p>
                     </div>
                 </div>
@@ -6635,7 +6635,7 @@ Be specific, practical, and actionable. Keep it concise but comprehensive.`;
             vegetables: '#22c55e',
             fruits: '#a855f7',
             fats: '#f97316',
-            dairy: '#3b82f6',
+            dairy: '#2cb5a5',
             condiments: '#6b7280',
             other: '#78716c'
         };
