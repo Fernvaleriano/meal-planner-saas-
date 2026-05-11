@@ -10156,17 +10156,13 @@
                 console.log(`Loaded ${exercises.length} exercises total`);
             } catch (err) {
                 console.error('Error loading exercises:', err);
-                // Fallback exercises
-                exercises = [
-                    { id: 1, name: 'Bench Press', muscle_group: 'chest', equipment: 'barbell' },
-                    { id: 2, name: 'Squat', muscle_group: 'legs', equipment: 'barbell' },
-                    { id: 3, name: 'Deadlift', muscle_group: 'back', equipment: 'barbell' },
-                    { id: 4, name: 'Overhead Press', muscle_group: 'shoulders', equipment: 'barbell' },
-                    { id: 5, name: 'Barbell Row', muscle_group: 'back', equipment: 'barbell' },
-                    { id: 6, name: 'Pull-ups', muscle_group: 'back', equipment: 'bodyweight' },
-                    { id: 7, name: 'Dips', muscle_group: 'chest', equipment: 'bodyweight' },
-                    { id: 8, name: 'Lunges', muscle_group: 'legs', equipment: 'bodyweight' },
-                ];
+                // Do NOT inject fake fallback exercises here. The previous fallback
+                // used IDs 1..8 which collide with real exercises table primary keys,
+                // so any program saved while the fallback was active wrote the wrong
+                // exercise_id to the database (wrong video/thumbnail/animation served
+                // to clients). On failure, leave `exercises` at its previous value
+                // and tell the coach to retry.
+                showToast('Could not load exercise library. Check your connection and refresh.', 'error');
             }
         }
 

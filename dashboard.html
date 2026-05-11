@@ -8582,8 +8582,20 @@
 
             } catch (error) {
                 console.error('Error loading dashboard:', error);
-                // Show modal instead of redirecting to avoid loops
-                showSubscriptionModal('no_subscription');
+                // Only show the subscription modal for the explicit "no coach record"
+                // case — that's a real account-setup issue. Transient Supabase/network
+                // failures (the retry loop already exhausted 2 retries) should NOT
+                // tell a paying coach their subscription is invalid.
+                const isAccountNotFound = error && error.message === 'Coach account not found. Please contact support.';
+                if (isAccountNotFound) {
+                    showSubscriptionModal('no_subscription');
+                } else {
+                    loadingDiv.innerHTML = '<div style="text-align:center;padding:60px 20px;max-width:480px;margin:0 auto;">'
+                        + '<h2 style="margin-bottom:12px;">Couldn\'t load your dashboard</h2>'
+                        + '<p style="color:#718096;margin-bottom:20px;">This is usually a temporary network issue. Your account and subscription are unaffected.</p>'
+                        + '<button onclick="window.location.reload()" style="padding:10px 20px;background:#2dd4bf;color:white;border:none;border-radius:6px;font-weight:600;cursor:pointer;">Reload</button>'
+                        + '</div>';
+                }
             } finally {
                 isLoading = false;
             }
