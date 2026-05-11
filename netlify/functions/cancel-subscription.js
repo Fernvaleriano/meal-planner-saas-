@@ -213,6 +213,86 @@ exports.handler = async (event) => {
                 .eq('coach_id', coach.id);
         }
 
+        // Cascade-cancel the coach's clients on Stripe Connect. Without this,
+        // the coach loses platform access but their client subscriptions on
+        // their connected account keep renewing — and the coach has no UI to
+        // stop them, so clients get charged indefinitely.
+        //
+        // Trial-immediate cancel → cancel client subs immediately.
+        // Period-end cancel → mark client subs cancel_at_period_end so clients
+        // finish the period they already paid for and then stop renewing.
+        // The stripe-connect-webhook handler reconciles DB state from the
+        // resulting subscription.updated/deleted events, so this inline write
+        // is best-effort.
+        if (coach.stripe_connect_account_id) {
+            const { data: clientSubs, error: subsError } = await supabase
+                .from('client_subscriptions')
+                .select('id, stripe_subscription_id')
+                .eq('coach_id', coach.id)
+                .in('status', ['active', 'trialing'])
+                .not('stripe_subscription_id', 'is', null);
+
+            if (subsError) {
+                console.error('Failed to load client_subscriptions for cascade:', subsError);
+            } else if (clientSubs?.length) {
+                const stripeAccount = coach.stripe_connect_account_id;
+                const cascadeAt = new Date().toISOString();
+
+                await Promise.allSettled(clientSubs.map(async (sub) => {
+                    try {
+                        if (immediatelyCanceled) {
+                            await stripe.subscriptions.cancel(
+                                sub.stripe_subscription_id,
+                                { stripeAccount }
+                            );
+                            await supabase
+                                .from('client_subscriptions')
+                                .update({
+                                    status: 'canceled',
+                                    cancel_at: null,
+                                    canceled_at: cascadeAt,
+                                    updated_at: cascadeAt
+                                })
+                                .eq('id', sub.id);
+                        } else {
+                            const updated = await stripe.subscriptions.update(
+                                sub.stripe_subscription_id,
+                                { cancel_at_period_end: true },
+                                { stripeAccount }
+                            );
+                            await supabase
+                                .from('client_subscriptions')
+                                .update({
+                                    status: 'canceling',
+                                    cancel_at: new Date(updated.current_period_end * 1000).toISOString(),
+                                    canceled_at: cascadeAt,
+                                    updated_at: cascadeAt
+                                })
+                                .eq('id', sub.id);
+                        }
+                    } catch (err) {
+                        if (err.code === 'resource_missing') {
+                            // Subscription already gone on Stripe — sync DB and move on.
+                            await supabase
+                                .from('client_subscriptions')
+                                .update({
+                                    status: 'canceled',
+                                    canceled_at: cascadeAt,
+                                    updated_at: cascadeAt
+                                })
+                                .eq('id', sub.id);
+                            return;
+                        }
+                        console.error(
+                            `Cascade-cancel failed for client_subscription ${sub.id} (stripe ${sub.stripe_subscription_id}):`,
+                            err.message || err
+                        );
+                        throw err;
+                    }
+                }));
+            }
+        }
+
         // Send cancellation confirmation email
         try {
             const { sendCancellationEmail, sendCancellationNotification } = require('./utils/email-service');
