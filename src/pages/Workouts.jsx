@@ -1283,6 +1283,15 @@ function Workouts() {
         // apiGet() handles auth internally — no ensureFreshSession() needed.
         // The old call was adding 2-5s of delay on every date change because
         // it forced a full Supabase session refresh before data loading started.
+        //
+        // Race-guard contract: after every await, we bail if
+        //   (a) the effect has been torn down (mounted === false), or
+        //   (b) the user has navigated to a different day since this
+        //       coroutine started (formatDate(selectedDateRef.current) !== dateStr).
+        // (b) is belt-and-suspenders against the microtask race where
+        // mounted is still true but React's date-change cleanup has not
+        // yet run. Mirrors the date-only guard in refreshWorkoutData at
+        // line ~1186.
 
         // Fetch all workout data in parallel — ALL with .catch() so one failure
         // doesn't block everything (this was the main cause of infinite loading).
@@ -1306,7 +1315,7 @@ function Workouts() {
             return FAILED;
           })
         ]);
-        if (!mounted) return;
+        if (!mounted || formatDate(selectedDateRef.current) !== dateStr) return;
 
         const anyFailed = assignmentRes === FAILED || adhocRes === FAILED || logRes === FAILED;
         const allFailed = assignmentRes === FAILED && adhocRes === FAILED && logRes === FAILED;
@@ -1357,7 +1366,7 @@ function Workouts() {
           if (historical) allWorkouts.push(historical);
         }
 
-        if (!mounted) return;
+        if (!mounted || formatDate(selectedDateRef.current) !== dateStr) return;
         setTodayWorkouts(allWorkouts);
 
         // Cache workout data for instant display on next visit / resume
@@ -1407,7 +1416,7 @@ function Workouts() {
         // Refresh signed URLs in the background AFTER state is set.
         // This way the UI shows workout content immediately, and video
         // thumbnails/URLs update non-blockingly once signed URLs arrive.
-        if (assignmentRes?.assignments?.length > 0 && mounted) {
+        if (assignmentRes?.assignments?.length > 0 && mounted && formatDate(selectedDateRef.current) === dateStr) {
           Promise.all(
             assignmentRes.assignments.map(async (assignment) => {
               if (assignment.workout_data) {
@@ -1416,7 +1425,7 @@ function Workouts() {
               return assignment;
             })
           ).then((refreshedAssignments) => {
-            if (!mounted) return;
+            if (!mounted || formatDate(selectedDateRef.current) !== dateStr) return;
             // Match by instance_id, not id: when one assignment renders multiple
             // cards on the same date (e.g. Day 1 added + Day 2 natural after a
             // reschedule), every card shares the assignment id, so an id-only
