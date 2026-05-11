@@ -947,21 +947,44 @@
 
         // ── Load All Data ──
         async function loadAll() {
+            // Sentinel so failed fetches don't masquerade as empty data.
+            // A coach with real plans/promos/revenue should never see them wiped
+            // by a transient 5xx/401 — they might recreate Stripe products and
+            // end up with duplicates / double-billed clients.
+            const FAILED = { _failed: true };
             try {
                 const [statusRes, plansRes, promoRes, revenueRes] = await Promise.all([
                     apiFetch('/.netlify/functions/stripe-connect-onboarding', {
                         method: 'POST',
                         body: JSON.stringify({ action: 'status' })
                     }),
-                    apiFetch(`/.netlify/functions/coach-billing-plans?coachId=${currentCoachId}`).catch(() => ({ plans: [] })),
-                    apiFetch('/.netlify/functions/coach-promo-codes').catch(() => ({ promo_codes: [] })),
-                    apiFetch('/.netlify/functions/coach-revenue').catch(() => null)
+                    apiFetch(`/.netlify/functions/coach-billing-plans?coachId=${currentCoachId}`).catch(() => FAILED),
+                    apiFetch('/.netlify/functions/coach-promo-codes').catch(() => FAILED),
+                    apiFetch('/.netlify/functions/coach-revenue').catch(() => FAILED)
                 ]);
 
                 connectStatus = statusRes;
-                allPlans = plansRes.plans || [];
-                allPromoCodes = promoRes.promo_codes || [];
-                revenueData = revenueRes;
+
+                let anyFailed = false;
+                if (plansRes === FAILED) {
+                    anyFailed = true;
+                } else {
+                    allPlans = plansRes.plans || [];
+                }
+                if (promoRes === FAILED) {
+                    anyFailed = true;
+                } else {
+                    allPromoCodes = promoRes.promo_codes || [];
+                }
+                if (revenueRes === FAILED) {
+                    anyFailed = true;
+                } else {
+                    revenueData = revenueRes;
+                }
+
+                if (anyFailed) {
+                    showToast('Could not refresh some billing data. Showing last known values.', 'error');
+                }
             } catch (err) {
                 console.error('Error loading billing data:', err);
             }
