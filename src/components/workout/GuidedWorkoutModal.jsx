@@ -434,6 +434,12 @@ function GuidedWorkoutModal({
   const completedSetsRef = useRef(completedSets);
   const setLogsRef = useRef(setLogs);
   const isPausedRef = useRef(isPaused);
+  // Exercises the user explicitly skipped (Skip / Skip for Good / Skip All).
+  // Distinguishes "user moved past this exercise" from "user completed every
+  // set of this exercise" — persistExerciseData filters these so the parent
+  // doesn't auto-check them, and the skip flows skip the onExerciseComplete
+  // callback so the parent can't be forced to check them either.
+  const skippedExercisesRef = useRef(new Set());
 
   // Client voice note recording refs
   const mediaRecorderRef = useRef(null);
@@ -2080,10 +2086,13 @@ function GuidedWorkoutModal({
     const logs = setLogsRef.current[exIdx];
     if (!logs) return;
 
+    const isSkipped = skippedExercisesRef.current.has(exIdx);
     const updatedSets = logs.map((log, i) => ({
       reps: log.reps,
       weight: log.weight,
-      completed: completedSetsRef.current[exIdx]?.has(i) || false,
+      // Force completed:false for skipped exercises so the parent's
+      // every-set-completed auto-check doesn't fire (skipped !== completed).
+      completed: !isSkipped && (completedSetsRef.current[exIdx]?.has(i) || false),
       duration: log.duration,
       restSeconds: log.restSeconds,
       effort: log.effort || null
@@ -2102,17 +2111,21 @@ function GuidedWorkoutModal({
       const ex = exercises[idx];
       if (!ex) return;
       const ns = typeof ex.sets === 'number' ? ex.sets : (Array.isArray(ex.sets) ? ex.sets.length : 3);
+      // Flag as skipped BEFORE setCompletedSets / persist so the persist
+      // call writes completed:false and the parent doesn't receive an
+      // every-set-completed payload. We still fill completedSets so the
+      // modal's internal advance/queue logic continues to work.
+      skippedExercisesRef.current.add(idx);
       setCompletedSets(prev => {
         const updated = { ...prev };
         updated[idx] = new Set(Array.from({ length: ns }, (_, i) => i));
         return updated;
       });
       persistExerciseData(idx);
-      if (onExerciseComplete && exercises[idx]?.id) {
-        onExerciseComplete(exercises[idx].id);
-      }
+      // Intentionally NOT calling onExerciseComplete(exercises[idx].id) —
+      // skip flows should not force the parent's green-check.
     });
-  }, [exercises, getSupersetGroup, persistExerciseData, onExerciseComplete]);
+  }, [exercises, getSupersetGroup, persistExerciseData]);
 
   // Handle "Skip for Good" from deferred review
   const handleDeferredSkipForGood = useCallback((exIdx) => {
@@ -2706,15 +2719,16 @@ function GuidedWorkoutModal({
           const e = exercises[idx];
           if (!e) return;
           const ns = typeof e.sets === 'number' ? e.sets : (Array.isArray(e.sets) ? e.sets.length : 3);
+          // See markExerciseFullyComplete for rationale — flag as skipped
+          // so persist writes completed:false and we do not force the
+          // parent's green-check via onExerciseComplete.
+          skippedExercisesRef.current.add(idx);
           setCompletedSets(prev => {
             const updated = { ...prev };
             updated[idx] = new Set(Array.from({ length: ns }, (_, i) => i));
             return updated;
           });
           persistExerciseData(idx);
-          if (onExerciseComplete && exercises[idx]?.id) {
-            onExerciseComplete(exercises[idx].id);
-          }
         });
         setSupersetState(null);
         const lastGroupIdx = ss.groupIndices[ss.groupIndices.length - 1];
@@ -2725,15 +2739,15 @@ function GuidedWorkoutModal({
         }
       } else {
         // Normal skip — persist whatever they logged
+        // Flag as skipped so persist writes completed:false and we do not
+        // force the parent's green-check via onExerciseComplete.
+        skippedExercisesRef.current.add(currentExIndex);
         setCompletedSets(prev => {
           const updated = { ...prev };
           updated[currentExIndex] = new Set(Array.from({ length: info.sets }, (_, i) => i));
           return updated;
         });
         persistExerciseData(currentExIndex);
-        if (onExerciseComplete && currentExercise?.id) {
-          onExerciseComplete(currentExercise.id);
-        }
 
         if (isPlayingDeferredRef.current) {
           returnFromDeferredExercise(currentExIndex);

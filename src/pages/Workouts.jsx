@@ -672,6 +672,11 @@ function Workouts() {
   const menuRef = useRef(null);
   const heroMenuRef = useRef(null);
   const todayWorkoutRef = useRef(null);
+  // Cached array of workout_log rows for the selected date. The fetch paths
+  // only set ONE workoutLog into state (the active workout's), but multi-workout
+  // days have multiple logs; storing the array here lets handleSelectWorkoutCard
+  // find the right log when the user switches cards without re-fetching.
+  const todayLogsRef = useRef([]);
   const selectedExerciseRef = useRef(null);
   const isRefreshingRef = useRef(false);
   const completedExercisesRef = useRef(new Set());
@@ -1077,6 +1082,11 @@ function Workouts() {
       if (adhocRes === FAILED) adhocRes = null;
       if (logRes === FAILED) logRes = null;
 
+      // Cache the full logs array so handleSelectWorkoutCard can find the
+      // right log when the user switches between cards on a multi-workout
+      // day.
+      todayLogsRef.current = Array.isArray(logRes?.logs) ? logRes.logs : [];
+
       const allWorkouts = [];
 
       // Add assignments immediately (without waiting for signed URL refresh) —
@@ -1259,6 +1269,10 @@ function Workouts() {
         setTodayWorkout(dateCache.todayWorkout || null);
         setTodayWorkouts(dateCache.todayWorkouts || []);
         setWorkoutLog(dateCache.workoutLog || null);
+        // Pre-seed the logs ref so a card switch during the cache-display
+        // window has at least the cached log to find; the fresh fetch
+        // below replaces it with the full array.
+        todayLogsRef.current = dateCache.workoutLog ? [dateCache.workoutLog] : [];
       } else {
         // No cache for this date — flip loading=true but DO NOT blank
         // todayWorkout/todayWorkouts/workoutLog. The render dims the cards
@@ -1315,6 +1329,9 @@ function Workouts() {
         if (assignmentRes === FAILED) assignmentRes = null;
         if (adhocRes === FAILED) adhocRes = null;
         if (logRes === FAILED) logRes = null;
+
+        // See refreshWorkoutData for why we cache the full logs array.
+        todayLogsRef.current = Array.isArray(logRes?.logs) ? logRes.logs : [];
 
         const allWorkouts = [];
 
@@ -2432,13 +2449,28 @@ function Workouts() {
     const currentKey = todayWorkout?.instance_id || `${todayWorkout?.id}-${todayWorkout?.day_index}`;
     const newKey = workout.instance_id || `${workout.id}-${workout.day_index}`;
     if (newKey !== currentKey) {
+      // Find the log associated with THIS card so log-derived state
+      // (workoutStarted, readiness, completed exercises merged from
+      // exercise_logs) survives the switch instead of being reset to
+      // defaults. Adhoc workouts have no log until the user starts them,
+      // matching refreshWorkoutData's behavior at line ~1122-1140.
+      const matchedLog = workout.is_adhoc
+        ? null
+        : (todayLogsRef.current.find(l => l?.assignment_id === workout.id) || null);
       setTodayWorkout(workout);
-      setWorkoutStarted(false);
-      setWorkoutLog(null);
-      setReadinessData(null);
+      setWorkoutLog(matchedLog);
+      setWorkoutStarted(matchedLog?.status === 'in_progress' || matchedLog?.status === 'completed');
+      if (matchedLog?.energy_level || matchedLog?.soreness_level || matchedLog?.sleep_quality) {
+        setReadinessData({
+          energy: matchedLog.energy_level || 2,
+          soreness: matchedLog.soreness_level || 2,
+          sleep: matchedLog.sleep_quality || 2
+        });
+      } else {
+        setReadinessData(null);
+      }
       setShowHeroMenu(false);
-      const fromData = getCompletedFromWorkoutData(workout.workout_data, workout.day_index || 0, workout.id);
-      setCompletedExercises(fromData);
+      setCompletedExercises(getEffectiveCompletedExercises(workout, matchedLog));
     }
     setExpandedWorkout(true);
   }, [loading, todayWorkout?.id, todayWorkout?.instance_id, todayWorkout?.day_index]);
