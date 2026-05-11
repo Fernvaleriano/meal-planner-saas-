@@ -3028,12 +3028,15 @@
                 clientsTableContainer.style.display = 'none';
                 viewControls.style.display = 'none';
 
-                // Load active clients (with authentication)
-                const activeData = await apiGet(`/.netlify/functions/get-clients?coachId=${currentCoachId}`);
-                clients = activeData.clients || [];
+                // Fetch active + archived concurrently so a partial failure can't
+                // leave the page with a fresh active list and a stale archived
+                // count (mismatched badge, possibly missing archived clients).
+                const [activeData, archivedData] = await Promise.all([
+                    apiGet(`/.netlify/functions/get-clients?coachId=${currentCoachId}`),
+                    apiGet(`/.netlify/functions/get-clients?coachId=${currentCoachId}&archivedOnly=true`)
+                ]);
 
-                // Load archived clients count (with authentication)
-                const archivedData = await apiGet(`/.netlify/functions/get-clients?coachId=${currentCoachId}&archivedOnly=true`);
+                clients = activeData.clients || [];
                 archivedClients = archivedData.clients || [];
 
                 // Update archived count badge
@@ -3063,8 +3066,17 @@
 
             } catch (error) {
                 console.error('Error loading clients:', error);
-                loadingDiv.style.display = 'none';
-                alert('Error loading clients: ' + error.message);
+                // Do NOT nuke `clients` / `archivedClients` — leave them at their
+                // prior values so a subsequent successful load (or reload) can
+                // recover. Do NOT fire alert() — it's modal, blocks the UI, and
+                // repeats annoyingly on flaky networks. Render a reload-able
+                // error inside the loading slot instead.
+                loadingDiv.innerHTML = '<div style="text-align:center;padding:60px 20px;max-width:480px;margin:0 auto;">'
+                    + '<h2 style="margin-bottom:12px;">Couldn\'t load your client list</h2>'
+                    + '<p style="color:#718096;margin-bottom:20px;">This is usually a temporary network issue. Your clients are still in your account.</p>'
+                    + '<button onclick="window.location.reload()" style="padding:10px 20px;background:#2dd4bf;color:white;border:none;border-radius:6px;font-weight:600;cursor:pointer;">Reload</button>'
+                    + '</div>';
+                loadingDiv.style.display = 'block';
             }
         }
 
