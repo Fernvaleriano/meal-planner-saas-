@@ -1473,12 +1473,28 @@ function Workouts() {
       if (getCache(cacheKey)) return;
 
       try {
+        // FAILED sentinel mirrors refreshWorkoutData (line 1049). Without
+        // it, a transient auth/network failure during prefetch silently
+        // wrote { todayWorkout: null, todayWorkouts: [], workoutLog: null }
+        // into the per-date cache, and the next user tap on that day
+        // rendered the empty snapshot as truth. The prefetcher has no
+        // React state to fall back on, so when any call fails we skip
+        // the cache write entirely and let the on-demand fetchWorkout
+        // retry when the user actually navigates there.
+        const FAILED = Symbol('fetch-failed');
         const [assignmentRes, adhocRes, logRes] = await Promise.all([
-          apiGet(`/.netlify/functions/workout-assignments?clientId=${clientData.id}&date=${dateStr}`).catch(() => null),
-          apiGet(`/.netlify/functions/adhoc-workouts?clientId=${clientData.id}&date=${dateStr}`).catch(() => null),
-          apiGet(`/.netlify/functions/workout-logs?clientId=${clientData.id}&date=${dateStr}`).catch(() => null)
+          apiGet(`/.netlify/functions/workout-assignments?clientId=${clientData.id}&date=${dateStr}`).catch(() => FAILED),
+          apiGet(`/.netlify/functions/adhoc-workouts?clientId=${clientData.id}&date=${dateStr}`).catch(() => FAILED),
+          apiGet(`/.netlify/functions/workout-logs?clientId=${clientData.id}&date=${dateStr}`).catch(() => FAILED)
         ]);
         if (cancelled) return;
+
+        // Any failure → don't poison the per-date cache. A partial response
+        // would otherwise render as the source of truth on the next tap
+        // before the on-demand fetch corrects it.
+        if (assignmentRes === FAILED || adhocRes === FAILED || logRes === FAILED) {
+          return;
+        }
 
         const allWorkouts = [];
         if (assignmentRes?.assignments?.length > 0) {
