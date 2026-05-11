@@ -5,6 +5,61 @@ import { clearPersistedState } from '../hooks/useStatePersistence';
 
 const AuthContext = createContext({});
 
+// Read the auth user.id directly from Supabase's persisted localStorage
+// session so cache lookups can be user-scoped BEFORE React state and the
+// async getSession() complete. Without this, a shared device would
+// hydrate the previous user's cached client row before the new user's
+// session validates — and every downstream localStorage key keyed on
+// `clientData.id` would point at the wrong account.
+function getCurrentAuthUserId() {
+  try {
+    const keys = Object.keys(localStorage);
+    const sbKey = keys.find(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+    if (!sbKey) return null;
+    const raw = localStorage.getItem(sbKey);
+    if (!raw) return null;
+    const session = JSON.parse(raw);
+    return session?.user?.id || session?.currentSession?.user?.id || null;
+  } catch {
+    return null;
+  }
+}
+
+// Sweep every user-scoped cache from localStorage and sessionStorage so a
+// shared device (gym iPad, family tablet) doesn't leak the previous user's
+// workouts, diary entries, messages, branding, resume state, etc., to the
+// next account that signs in. Theme + install-prompt prefs are device-
+// level, not user-level, and are deliberately preserved.
+function clearAllUserScopedCaches() {
+  // Any localStorage key whose name starts with one of these is user data.
+  // Prefixes WITHOUT a trailing separator (e.g. "cachedClientData",
+  // "coach_") match both the bare key and any suffixed variants
+  // (cachedClientData_<uid>, coach_branding_v4, coach_<id>).
+  const LOCAL_PATTERNS = [
+    'cachedClientData', 'workouts_', 'diary_', 'dashboard_',
+    'plans_full_', 'supplements_', 'week_schedule_', 'messages_',
+    'coach_', 'completedExercises_', 'workout-log-id-',
+    'zq_workout_draft_', 'grocery-checks-',
+    'guided_workout_resume', 'ai_chat_history', 'diary_collapsed_meals',
+    'mealImageCache', 'plannerUndoStates', 'dismissedEndingPrograms',
+    'trainer-support-chat-history'
+  ];
+  try {
+    Object.keys(localStorage).forEach(key => {
+      if (LOCAL_PATTERNS.some(p => key === p || key.startsWith(p))) {
+        localStorage.removeItem(key);
+      }
+    });
+  } catch { /* ignore */ }
+  try {
+    Object.keys(sessionStorage).forEach(key => {
+      if (key === 'pendingFoodLog' || key === 'zique_branding' || key.startsWith('favorites_')) {
+        sessionStorage.removeItem(key);
+      }
+    });
+  } catch { /* ignore */ }
+}
+
 // Track client activity - call the API to update last_activity_at
 const trackClientActivity = async (userId) => {
   if (!userId) return;
@@ -29,13 +84,17 @@ export function AuthProvider({ children }) {
   // Track last time we sent an activity ping (timestamp, not boolean)
   const lastActivityPingRef = useRef(0);
   const activityIntervalRef = useRef(null);
-  // Initialize clientData from localStorage cache if available
+  // Initialize clientData from a user-keyed localStorage cache so a shared
+  // device can never hydrate the previous user's row. If sb-*-auth-token
+  // is missing or doesn't match a stored cache, return null and let the
+  // normal fetch path run.
   const [clientData, setClientData] = useState(() => {
     try {
-      const cached = localStorage.getItem('cachedClientData');
+      const uid = getCurrentAuthUserId();
+      if (!uid) return null;
+      const cached = localStorage.getItem(`cachedClientData_${uid}`);
       if (cached) {
         const parsed = JSON.parse(cached);
-        // Only use cache if it's valid (has id and no error)
         if (parsed && parsed.id && !parsed.error) {
           return parsed;
         }
@@ -128,9 +187,11 @@ export function AuthProvider({ children }) {
       // Add isCoach flag to the client data
       const enrichedData = { ...data, is_coach: isCoach };
 
-      // Cache successful result to localStorage
+      // Cache successful result to localStorage keyed by the auth user.id
+      // so multi-user devices keep separate snapshots that can't be
+      // hydrated across accounts.
       try {
-        localStorage.setItem('cachedClientData', JSON.stringify(enrichedData));
+        localStorage.setItem(`cachedClientData_${userId}`, JSON.stringify(enrichedData));
       } catch (e) {
         console.error('SPA: Failed to cache client data:', e);
       }
@@ -146,9 +207,10 @@ export function AuthProvider({ children }) {
         return fetchClientData(userId, retryCount + 1);
       }
 
-      // All retries failed - try to use cached data
+      // All retries failed - try to use the user-keyed cached data
+      // (userId is the auth user.id passed into this fetch).
       try {
-        const cached = localStorage.getItem('cachedClientData');
+        const cached = localStorage.getItem(`cachedClientData_${userId}`);
         if (cached) {
           const parsed = JSON.parse(cached);
           if (parsed && parsed.id && !parsed.error) {
@@ -170,16 +232,21 @@ export function AuthProvider({ children }) {
 
     const initAuth = async () => {
 
-      // Check if we already have cached client data in localStorage
+      // Check if we already have user-keyed cached client data in
+      // localStorage. Same scoping as the useState initializer so a
+      // shared device can't surface the previous user's row.
       let hasCachedData = false;
       let cachedData = null;
       try {
-        const cached = localStorage.getItem('cachedClientData');
-        if (cached) {
-          const parsed = JSON.parse(cached);
-          if (parsed && parsed.id && !parsed.error) {
-            hasCachedData = true;
-            cachedData = parsed;
+        const uid = getCurrentAuthUserId();
+        if (uid) {
+          const cached = localStorage.getItem(`cachedClientData_${uid}`);
+          if (cached) {
+            const parsed = JSON.parse(cached);
+            if (parsed && parsed.id && !parsed.error) {
+              hasCachedData = true;
+              cachedData = parsed;
+            }
           }
         }
       } catch (e) {
@@ -218,7 +285,12 @@ export function AuthProvider({ children }) {
                 }
               });
             } else if (!session && mounted) {
-              // Session expired, clear cached data and redirect to login
+              // Session expired — clear cached data for whichever user we
+              // had hydrated (best-effort via sb-* if still present) and
+              // legacy unkeyed cache. Other users' caches on this device
+              // are independent and stay put.
+              const expiredUid = getCurrentAuthUserId();
+              if (expiredUid) localStorage.removeItem(`cachedClientData_${expiredUid}`);
               localStorage.removeItem('cachedClientData');
               setClientData(null);
               setUser(null);
@@ -355,17 +427,13 @@ export function AuthProvider({ children }) {
     // Always clear local state regardless of signOut result
     setUser(null);
     setClientData(null);
-    // Clear cached client data on logout
-    localStorage.removeItem('cachedClientData');
-    // Clear branding caches so next user doesn't see stale branding
+    // Sweep every user-scoped cache so the next account that signs in on
+    // this device can't see the previous user's data. Theme + install-
+    // prompt prefs are device-level and deliberately preserved.
+    clearAllUserScopedCaches();
+    // Pre-auth branding hint — separate explicit remove since it doesn't
+    // match the user-data patterns.
     localStorage.removeItem('login_coach_id');
-    sessionStorage.removeItem('zique_branding');
-    // Clear all coach_branding_v* localStorage entries
-    try {
-      Object.keys(localStorage).forEach(key => {
-        if (key.startsWith('coach_branding_v')) localStorage.removeItem(key);
-      });
-    } catch { /* ignore */ }
     // Clear API session cache
     clearSessionCache();
     // Clear persisted state snapshots (sessionStorage)
