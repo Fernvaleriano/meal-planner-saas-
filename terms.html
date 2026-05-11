@@ -21,55 +21,33 @@
             --gray-700: #334155;
             --gray-900: #0f172a;
         }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: var(--gray-50);
             color: var(--gray-700);
             line-height: 1.7;
         }
-
         .header {
             background: var(--brand-gradient);
             padding: 20px 40px;
         }
-
         .header a {
             display: inline-flex;
             align-items: center;
             color: white;
             text-decoration: none;
         }
-
         .brand-logo-img {
             height: 50px;
             width: auto;
             object-fit: contain;
         }
-
-        .brand-logo img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-        }
-
-        .brand-name {
-            font-size: 1.25rem;
-            font-weight: 800;
-        }
-
         .container {
             max-width: 800px;
             margin: 0 auto;
             padding: 60px 20px;
         }
-
         h1 {
             font-size: 2.5rem;
             font-weight: 800;
@@ -77,13 +55,6 @@
             margin-bottom: 8px;
             letter-spacing: -0.025em;
         }
-
-        .last-updated {
-            color: var(--gray-500);
-            margin-bottom: 40px;
-            font-size: 0.9rem;
-        }
-
         h2 {
             font-size: 1.5rem;
             font-weight: 700;
@@ -91,162 +62,118 @@
             margin-top: 40px;
             margin-bottom: 16px;
         }
-
         h3 {
-            font-size: 1.1rem;
-            font-weight: 600;
+            font-size: 1.125rem;
+            font-weight: 700;
             color: var(--gray-900);
             margin-top: 24px;
             margin-bottom: 12px;
         }
-
-        p {
-            margin-bottom: 16px;
+        p, li { margin-bottom: 12px; color: var(--gray-700); }
+        ul, ol { padding-left: 24px; margin-bottom: 16px; }
+        .last-updated {
+            color: var(--gray-500);
+            font-size: 0.9375rem;
+            margin-bottom: 40px;
         }
-
-        ul, ol {
-            margin-bottom: 16px;
-            padding-left: 24px;
-        }
-
-        li {
-            margin-bottom: 8px;
-        }
-
-        .highlight {
-            background: linear-gradient(135deg, rgba(13, 148, 136, 0.1) 0%, rgba(2, 132, 199, 0.1) 100%);
-            border-left: 4px solid var(--brand-primary);
+        .disclaimer-box {
+            background: #fef3c7;
+            border-left: 4px solid #f59e0b;
             padding: 16px 20px;
-            border-radius: 0 8px 8px 0;
-            margin: 24px 0;
+            border-radius: 8px;
+            margin-bottom: 32px;
+            font-size: 0.9375rem;
         }
-
-        .footer {
-            background: var(--gray-900);
-            color: var(--gray-400);
-            padding: 40px;
-            text-align: center;
-            margin-top: 60px;
-        }
-
-        .footer-links {
-            display: flex;
-            justify-content: center;
-            gap: 32px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-
-        .footer-links a {
-            color: var(--gray-400);
+        .disclaimer-box strong { color: #92400e; }
+        a { color: var(--brand-secondary); }
+        .back-link {
+            display: inline-block;
+            margin-top: 48px;
+            color: var(--brand-secondary);
             text-decoration: none;
-            font-size: 0.9rem;
-        }
-
-        .footer-links a:hover {
-            color: white;
+            font-weight: 600;
         }
     </style>
-    <script src="https://unpkg.com/lucide@0.312.0/dist/umd/lucide.min.js" onload="lucide.createIcons()"></script>
-    <style>body{-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;overscroll-behavior:none;-webkit-overflow-scrolling:touch;}</style>
-    <link rel="stylesheet" href="css/emoji-font.css">
 </head>
 <body>
     <header class="header">
-        <a href="/">
+        <a href="index.html">
             <img src="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/ziquecoach-logo-teal.png" alt="Ziquecoach" class="brand-logo-img">
         </a>
     </header>
 
-    <div class="container">
-        <h1>Terms of Service</h1>
-        <p class="last-updated">Last updated: December 2024</p>
+    <main class="container">
+        <h1>Client Terms of Service</h1>
+        <p class="last-updated">Last updated: [DATE]</p>
 
-        <p>Welcome to Ziquecoach. These Terms of Service ("Terms") govern your use of our platform and services. By accessing or using our services, you agree to be bound by these Terms.</p>
-
-        <h2>1. Acceptance of Terms</h2>
-        <p>By creating an account or using our services, you confirm that you have read, understood, and agree to be bound by these Terms and our Privacy Policy. If you do not agree, please do not use our services.</p>
-
-        <h2>2. Description of Service</h2>
-        <p>Ziquecoach provides a software platform for nutrition coaches to:</p>
-        <ul>
-            <li>Create and manage client profiles</li>
-            <li>Build customized meal plans</li>
-            <li>Track client nutrition and progress</li>
-            <li>Communicate with clients through the platform</li>
-            <li>Manage supplement protocols</li>
-        </ul>
-
-        <h2>3. Account Registration</h2>
-        <h3>3.1 Eligibility</h3>
-        <p>You must be at least 18 years old and capable of forming a binding contract to use our services. By registering, you represent that you meet these requirements.</p>
-
-        <h3>3.2 Account Security</h3>
-        <p>You are responsible for maintaining the confidentiality of your account credentials and for all activities under your account. You must notify us immediately of any unauthorized use.</p>
-
-        <h2>4. Subscription and Payment</h2>
-        <h3>4.1 Billing</h3>
-        <p>Subscriptions are billed monthly in advance. You authorize us to charge your payment method on a recurring basis until you cancel.</p>
-
-        <h3>4.2 Free Trial</h3>
-        <p>New accounts may be eligible for a 14-day free trial. You will not be charged until the trial period ends. Cancel before the trial ends to avoid charges.</p>
-
-        <h3>4.3 Cancellation</h3>
-        <p>You may cancel your subscription at any time from your account settings. Cancellation takes effect at the end of your current billing period. No refunds are provided for partial months.</p>
-
-        <div class="highlight">
-            <strong>Important:</strong> All fees are non-refundable except as required by law or as explicitly stated in these Terms.
+        <div class="disclaimer-box">
+            <strong>DISCLAIMER:</strong> Adapted from industry-standard patterns used by TrueCoach, Trainerize, Everfit, and similar fitness coaching platforms. Not reviewed by an attorney. Use at your own risk. Have a licensed attorney review before relying on this in any dispute.
         </div>
 
-        <h2>5. User Responsibilities</h2>
-        <p>As a user of our platform, you agree to:</p>
-        <ul>
-            <li>Provide accurate and complete information</li>
-            <li>Use the service only for lawful purposes</li>
-            <li>Not share your account credentials with others</li>
-            <li>Comply with all applicable laws and regulations</li>
-            <li>Obtain necessary consents from your clients before collecting their data</li>
-            <li>Not use the platform to provide medical advice (nutrition coaching only)</li>
-        </ul>
+        <p>Welcome to Ziquecoach. These Terms of Service ("Terms") govern your use of the Ziquecoach app and website. Please read carefully — by creating an account or using Ziquecoach, you agree to these Terms.</p>
 
-        <h2>6. Client Data and Privacy</h2>
-        <p>You are responsible for obtaining appropriate consent from your clients before entering their information into our platform. You must comply with all applicable data protection laws, including GDPR where applicable.</p>
+        <h2>1. Accepting These Terms</h2>
+        <p>By creating an account, accessing, or using Ziquecoach, you agree to these Terms. If you don't agree, don't use the service.</p>
+        <p>You must be at least 18 years old to create your own account. If you are between 13 and 17, only your parent or legal guardian may create the account on your behalf, and they remain responsible for everything that happens under it. We don't knowingly provide service to anyone under 13, and we'll delete any account we believe belongs to someone under 13.</p>
 
-        <h2>7. Intellectual Property</h2>
-        <p>All content, features, and functionality of our platform are owned by Ziquecoach and are protected by intellectual property laws. You retain ownership of any content you create using our platform.</p>
+        <h2>2. Your Account and Security</h2>
+        <p>You agree to provide accurate information and keep it current. Pick a strong password and don't share it. You are responsible for everything that happens under your account, whether or not you authorized it. Tell us right away at <a href="mailto:security@ziquecoach.com">security@ziquecoach.com</a> if you suspect any unauthorized access.</p>
+        <p>You can't share, sell, or transfer your account, and you can't create an account using someone else's identity. We may suspend or terminate any account we reasonably believe is being used in violation of these Terms.</p>
 
-        <h2>8. Disclaimer of Warranties</h2>
-        <p>Our services are provided "as is" and "as available" without warranties of any kind, either express or implied. We do not warrant that the service will be uninterrupted, error-free, or secure.</p>
+        <h2>3. What Ziquecoach Is</h2>
+        <p>Ziquecoach is a software tool that lets independent fitness professionals ("Coaches") deliver coaching to their clients ("Clients" — that's you). Ziquecoach provides the technology — workout plans, meal-plan tools, messaging, payment rails, and tracking — but Ziquecoach does NOT itself design your workouts, create your meal plans, give you coaching advice, or provide any fitness, medical, or nutritional service to you.</p>
+        <p>Your coaching relationship is with your Coach, not with Ziquecoach. Pricing, refund policy, results, scope of services, schedule, and every other aspect of your coaching are between you and your Coach.</p>
 
-        <h2>9. Limitation of Liability</h2>
-        <p>To the maximum extent permitted by law, Ziquecoach shall not be liable for any indirect, incidental, special, consequential, or punitive damages arising from your use of our services.</p>
+        <h2>4. Your Coach Is Independent</h2>
+        <p>Your Coach uses Ziquecoach to run their own independent business. Your Coach is NOT an employee, agent, partner, or representative of Ziquecoach. Ziquecoach does not review, approve, or supervise your Coach's programs, advice, or qualifications. Ziquecoach makes no representations about any Coach's certifications, training, judgment, or competence.</p>
+        <p>If you have a dispute with your Coach — about refunds, results, quality of service, scheduling, or anything else — that dispute is between you and your Coach. Ziquecoach is not a party to it.</p>
 
-        <h2>10. Indemnification</h2>
-        <p>You agree to indemnify and hold harmless Ziquecoach from any claims, damages, or expenses arising from your use of the service or violation of these Terms.</p>
+        <h2>5. Your Data and Content</h2>
+        <p>You own the data you enter into Ziquecoach: your workouts logged, food logs, body measurements, progress photos, messages, and any other content you create. You grant your Coach a license to access and use that data for the purpose of coaching you, and you grant Ziquecoach a license to host, store, transmit, and back up that data as needed to operate the service.</p>
+        <p>Your Coach owns the workouts, meal plans, written materials, photos, and videos they create or share with you. You receive a personal, non-transferable license to use that content as part of your coaching relationship — you can't redistribute, resell, or share your Coach's content with others.</p>
+        <p>Ziquecoach owns the software, design, exercise database, default templates, AI features, and everything related to the platform itself. You can use it for its intended purpose during your subscription.</p>
 
-        <h2>11. Modifications to Terms</h2>
-        <p>We reserve the right to modify these Terms at any time. We will notify you of significant changes via email or through the platform. Continued use after changes constitutes acceptance of the modified Terms.</p>
+        <h2>6. Medical Disclaimer and Assumption of Risk</h2>
+        <p>Ziquecoach is not a healthcare provider and does not provide medical advice. Your Coach is an independent fitness professional, not your doctor. Exercise and dietary changes carry inherent risks, and you voluntarily accept those risks when you use Ziquecoach.</p>
+        <p>The full Medical Disclaimer and Acknowledgement of Risk is incorporated into these Terms by reference. By using Ziquecoach you confirm you have read and agree to it. You can review it at any time at <a href="medical-disclaimer.html">medical-disclaimer.html</a>.</p>
+        <p><strong>IF YOU FEEL CHEST PAIN, DIZZINESS, SHORTNESS OF BREATH, OR SEVERE PAIN — STOP IMMEDIATELY AND CALL 911 (or your local emergency number). DO NOT MESSAGE YOUR COACH FIRST.</strong></p>
 
-        <h2>12. Termination</h2>
-        <p>We may terminate or suspend your account at any time for violations of these Terms or for any other reason at our discretion. Upon termination, your right to use the service ceases immediately.</p>
+        <h2>7. Limitation of Liability</h2>
+        <h3>AS IS</h3>
+        <p>Ziquecoach is provided "as is" and "as available." To the maximum extent permitted by law, we disclaim all warranties of any kind, whether express, implied, or statutory, including warranties of merchantability, fitness for a particular purpose, accuracy, non-infringement, and uninterrupted operation. We don't warrant that the service will be error-free or that any content (including calorie counts, exercise demonstrations, AI suggestions, or third-party data) is accurate, complete, or safe for you.</p>
 
-        <h2>13. Governing Law</h2>
-        <p>These Terms shall be governed by and construed in accordance with the laws of the United States, without regard to conflict of law principles.</p>
+        <h3>No liability for Coach or Client acts</h3>
+        <p>We are not liable for the conduct, content, services, advice, products, refunds, or omissions of any Coach or any other Client, or for any injury, illness, death, property damage, financial loss, defamation, harassment, or other harm arising from any coaching relationship facilitated through Ziquecoach.</p>
 
-        <h2>14. Contact Information</h2>
-        <p>If you have questions about these Terms, please contact us at:</p>
-        <p>Email: <a href="mailto:contact@ziquecoach.com">contact@ziquecoach.com</a></p>
-    </div>
+        <h3>Cap</h3>
+        <p>To the maximum extent permitted by law, our total cumulative liability arising out of or relating to these Terms or Ziquecoach — for any cause of action, whether contract, tort (including negligence), statutory, or otherwise — will not exceed the greater of (i) the amount of fees you actually paid to Ziquecoach (not your Coach) in the twelve months immediately preceding the event giving rise to the claim, or (ii) USD $100.</p>
 
-    <footer class="footer">
-        <div class="footer-links">
-            <a href="pricing.html">Pricing</a>
-            <a href="terms.html">Terms of Service</a>
-            <a href="privacy.html">Privacy Policy</a>
-            <a href="mailto:contact@ziquecoach.com">Contact</a>
-        </div>
-        <div>&copy; 2024 Ziquecoach. All rights reserved.</div>
-    </footer>
-    <script src="/js/twemoji-init.js"></script>
+        <h3>Excluded damages</h3>
+        <p>We will not be liable for any indirect, incidental, special, consequential, punitive, or exemplary damages; for lost profits, lost data, lost goodwill, or business interruption; or for any cost of substitute services — even if we have been advised of the possibility of such damages.</p>
+
+        <h3>Non-excludable rights</h3>
+        <p>Nothing in these Terms excludes or limits any liability for death or personal injury caused by our negligence, for fraud, or for any other liability that cannot be excluded by law (including rights under the Australian Consumer Law, UK Consumer Rights Act 2015, or analogous statutes where applicable). The limitations above apply only to the maximum extent permitted by law in your jurisdiction.</p>
+
+        <h2>8. Termination</h2>
+        <p>You may terminate your account at any time from your account settings. We may suspend or terminate your access to all or part of Ziquecoach at any time, with or without cause, including for: violation of these Terms, suspected fraud, payment failure, conduct that creates risk for Ziquecoach or its users, or extended inactivity.</p>
+        <p>On termination: (a) your license to use Ziquecoach ends; (b) we may delete your data after a reasonable retention period as described in our Privacy Policy; (c) you'll have the opportunity to export your own data before deletion; (d) sections of these Terms intended to survive (including IP, indemnification, limitation of liability, disclaimers, and dispute resolution) will survive.</p>
+        <p>If your Coach leaves Ziquecoach, we'll notify you and offer you the choice to export your own data, delete your account, or — at your option and subject to availability — transfer to another Coach on the platform.</p>
+
+        <h2>9. Dispute Resolution</h2>
+        <p><strong>(a) US users — arbitration.</strong> If you are in the United States, any dispute between you and Ziquecoach arising out of or relating to these Terms or Ziquecoach will be resolved by binding individual arbitration administered by [JAMS or AAA] under its then-current rules, except that either party may bring an individual action in small-claims court. The arbitration will take place in [your home venue], or remotely at the arbitrator's discretion.</p>
+        <p><strong>(b) Class action waiver.</strong> You and Ziquecoach each agree that any dispute will be brought only in an individual capacity, and not as a plaintiff or class member in any class, collective, consolidated, or representative action.</p>
+        <p><strong>(c) One-year window.</strong> Any claim must be brought within one year after the event giving rise to it, or it is permanently barred, to the extent permitted by law.</p>
+        <p><strong>(d) Governing law.</strong> These Terms are governed by the laws of [your chosen state/country]. Where arbitration doesn't apply, the courts located in [chosen venue] have exclusive jurisdiction.</p>
+        <p><strong>(e) EU / UK / consumer carve-outs.</strong> If you are a consumer resident in the EU, UK, or another jurisdiction whose mandatory consumer-protection laws override the above, then the mandatory law of your country of residence applies and you may bring claims in the courts of your country. Nothing in this section limits your statutory consumer rights.</p>
+        <p><strong>(f) Opt-out.</strong> You may opt out of arbitration within 30 days of first accepting these Terms by emailing <a href="mailto:legal@ziquecoach.com">legal@ziquecoach.com</a> with the subject "Arbitration Opt-Out."</p>
+
+        <h2>10. General</h2>
+        <p><strong>Changes to Terms.</strong> We may update these Terms from time to time. We'll notify you of material changes by email and in-app at least 30 days before they take effect. Continued use after the effective date means you accept the changes.</p>
+        <p><strong>Severability.</strong> If any clause is unenforceable, the rest survives.</p>
+        <p><strong>Entire Agreement.</strong> These Terms, together with the Privacy Policy, the Medical Disclaimer, and any other policy referenced here, form the entire agreement between you and Ziquecoach.</p>
+        <p><strong>Contact.</strong> Questions about these Terms? Email <a href="mailto:legal@ziquecoach.com">legal@ziquecoach.com</a>.</p>
+
+        <a href="index.html" class="back-link">← Back to Ziquecoach</a>
+    </main>
 </body>
 </html>
