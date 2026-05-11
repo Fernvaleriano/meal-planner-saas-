@@ -18,7 +18,7 @@ const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 const DEFAULT_BRANDING = {
     brand_name: 'Ziquecoach',
     brand_primary_color: '#2cb5a5',
-    brand_secondary_color: '#0284c7',
+    brand_secondary_color: '#178072',
     brand_accent_color: '#10b981',
     brand_logo_url: 'https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/ziquecoach-logo-teal.png',
     brand_favicon_url: null,

@@ -20,8 +20,8 @@
     <style>
         :root {
             --brand-primary: #2cb5a5;
-            --brand-secondary: #0284c7;
-            --brand-gradient: linear-gradient(135deg, #2cb5a5 0%, #0284c7 100%);
+            --brand-secondary: #178072;
+            --brand-gradient: linear-gradient(135deg, #2cb5a5 0%, #178072 100%);
         }
 
         * {
@@ -210,7 +210,7 @@
         }
 
         .btn-revise {
-            background: #0284c7;
+            background: #178072;
             color: white;
         }
 
@@ -590,7 +590,7 @@
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, #2cb5a5 0%, #0284c7 100%);
+            background: linear-gradient(135deg, #2cb5a5 0%, #178072 100%);
             color: white;
             padding: 15px 40px;
             font-size: 1.1em;
@@ -1669,7 +1669,7 @@
         }
 
         [data-theme="dark"] .day-header {
-            background: linear-gradient(135deg, #2cb5a5 0%, #0284c7 100%);
+            background: linear-gradient(135deg, #2cb5a5 0%, #178072 100%);
         }
 
         [data-theme="dark"] .day-totals {
@@ -1728,7 +1728,7 @@
         }
 
         [data-theme="dark"] .action-buttons .btn {
-            background: linear-gradient(135deg, #2cb5a5 0%, #0284c7 100%);
+            background: linear-gradient(135deg, #2cb5a5 0%, #178072 100%);
             color: white;
         }
 
@@ -2114,7 +2114,7 @@
                 }
 
                 // Inject a dynamic stylesheet to override all hardcoded brand colors
-                // This covers the 40+ places where #2cb5a5 and #0284c7 are used in the <style> block
+                // This covers the 40+ places where #2cb5a5 and #178072 are used in the <style> block
                 const overrideCSS = document.createElement('style');
                 overrideCSS.id = 'coach-brand-override';
                 overrideCSS.textContent = `
@@ -2130,8 +2130,8 @@
                     [style*="background:#2cb5a5"] {
                         background: var(--brand-primary) !important;
                     }
-                    .btn-secondary, [style*="background: #0284c7"],
-                    [style*="background:#0284c7"] {
+                    .btn-secondary, [style*="background: #178072"],
+                    [style*="background:#178072"] {
                         background: var(--brand-secondary) !important;
                     }
                     .share-btn, .action-btn-primary {
@@ -2294,7 +2294,7 @@
                 if (url.toLowerCase().startsWith('www.')) {
                     href = 'https://' + url;
                 }
-                return `<a href="${href}" target="_blank" rel="noopener noreferrer" style="color: #0284c7; text-decoration: underline;">${url}</a>`;
+                return `<a href="${href}" target="_blank" rel="noopener noreferrer" style="color: #178072; text-decoration: underline;">${url}</a>`;
             });
         }
 
@@ -3989,7 +3989,7 @@
                     // Day header with regenerate button
                     const dayHeader = document.createElement('div');
                     dayHeader.className = 'day-header';
-                    dayHeader.style.cssText = 'background: linear-gradient(135deg, #2cb5a5 0%, #0284c7 100%); color: white; padding: 15px 20px; border-radius: 12px; margin: 20px 0 15px 0; font-weight: 700; font-size: 1.3em; display: flex; justify-content: space-between; align-items: center;';
+                    dayHeader.style.cssText = 'background: linear-gradient(135deg, #2cb5a5 0%, #178072 100%); color: white; padding: 15px 20px; border-radius: 12px; margin: 20px 0 15px 0; font-weight: 700; font-size: 1.3em; display: flex; justify-content: space-between; align-items: center;';
 
                     // Check if client view - hide regenerate button for clients
                     const urlParams = new URLSearchParams(window.location.search);
@@ -4156,7 +4156,7 @@
                     <div class="meal-note-section" style="margin-top: 15px; background: #f0f9ff; padding: 12px; border-radius: 8px; border: 1px solid #bae6fd;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                             <span style="font-weight: 600; color: #0369a1; font-size: 0.85em;">📝 Note for Client:</span>
-                            <button class="btn" onclick="saveMealNote('${index}', ${dayIndex}, ${mealIndex})" style="background: #0284c7; color: white; padding: 4px 12px; font-size: 0.8em; border-radius: 4px;">Save Note</button>
+                            <button class="btn" onclick="saveMealNote('${index}', ${dayIndex}, ${mealIndex})" style="background: #178072; color: white; padding: 4px 12px; font-size: 0.8em; border-radius: 4px;">Save Note</button>
                         </div>
                         <textarea id="meal-note-${index}" style="width: 100%; min-height: 60px; padding: 8px; border: 1px solid #7dd3fc; border-radius: 6px; font-size: 0.9em; resize: vertical;" placeholder="Add a note for your client about this meal...">${mealNote}</textarea>
 
@@ -4656,7 +4656,7 @@
 
                 setTimeout(() => {
                     saveBtn.textContent = originalText;
-                    saveBtn.style.background = '#0284c7';
+                    saveBtn.style.background = '#178072';
                     saveBtn.disabled = false;
                 }, 2000);
 
@@ -4667,7 +4667,7 @@
 
                 setTimeout(() => {
                     saveBtn.textContent = originalText;
-                    saveBtn.style.background = '#0284c7';
+                    saveBtn.style.background = '#178072';
                     saveBtn.disabled = false;
                 }, 2000);
             }

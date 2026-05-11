@@ -5,10 +5,10 @@
 
 :root {
     --brand-primary: #2cb5a5;
-    --brand-secondary: #0284c7;
+    --brand-secondary: #178072;
     --brand-primary-light: #4ec5b7;
     --brand-primary-dark: #22998a;
-    --brand-gradient: linear-gradient(135deg, #2cb5a5 0%, #0284c7 100%);
+    --brand-gradient: linear-gradient(135deg, #2cb5a5 0%, #178072 100%);
     --gray-50: #f8fafc;
     --gray-100: #f1f5f9;
     --gray-200: #e2e8f0;
@@ -2414,7 +2414,7 @@ textarea,
 }
 
 .story-ring.unseen {
-    background: linear-gradient(135deg, var(--brand-primary) 0%, #0284c7 50%, #8b5cf6 100%);
+    background: linear-gradient(135deg, var(--brand-primary) 0%, #178072 50%, #8b5cf6 100%);
 }
 
 [data-theme="dark"] .story-ring {
@@ -2422,7 +2422,7 @@ textarea,
 }
 
 [data-theme="dark"] .story-ring.unseen {
-    background: linear-gradient(135deg, var(--brand-primary) 0%, #0284c7 50%, #8b5cf6 100%);
+    background: linear-gradient(135deg, var(--brand-primary) 0%, #178072 50%, #8b5cf6 100%);
 }
 
 .coach-story-avatar {
@@ -2672,7 +2672,7 @@ textarea,
 .ai-hero-icon {
     width: 36px;
     height: 36px;
-    background: linear-gradient(135deg, var(--brand-primary) 0%, #0284c7 100%);
+    background: linear-gradient(135deg, var(--brand-primary) 0%, #178072 100%);
     border-radius: 10px;
     display: flex;
     align-items: center;
@@ -4712,7 +4712,7 @@ textarea,
 
 /* Water Intake Card */
 .water-intake-card {
-    background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+    background: linear-gradient(135deg, #0ea5e9 0%, #178072 100%);
     border-radius: 20px;
     padding: 20px;
     margin-bottom: 16px;
@@ -4815,7 +4815,7 @@ textarea,
 .water-btn.complete {
     background: white;
     border: none;
-    color: #0284c7;
+    color: #178072;
 }
 
 .water-btn:hover {
@@ -7374,7 +7374,7 @@ textarea,
 
 [data-theme="dark"] .coach-notes-section {
     background: linear-gradient(135deg, #0c4a6e 0%, #075985 100%);
-    border-color: #0284c7;
+    border-color: #178072;
 }
 
 .coach-notes-header {
@@ -9067,7 +9067,7 @@ textarea,
 }
 
 .page-header-gradient {
-    background: linear-gradient(135deg, #2cb5a5 0%, #0284c7 100%);
+    background: linear-gradient(135deg, #2cb5a5 0%, #178072 100%);
     color: white;
     padding: 20px 24px;
     display: flex;
@@ -10741,7 +10741,7 @@ textarea,
 
 .next-badge-progress-fill {
     height: 100%;
-    background: linear-gradient(90deg, #2cb5a5 0%, #0284c7 100%);
+    background: linear-gradient(90deg, #2cb5a5 0%, #178072 100%);
     border-radius: 999px;
     transition: width 0.6s ease;
 }
@@ -10753,7 +10753,7 @@ textarea,
     justify-content: center;
     gap: 8px;
     padding: 14px 16px;
-    background: linear-gradient(135deg, #2cb5a5 0%, #0284c7 100%);
+    background: linear-gradient(135deg, #2cb5a5 0%, #178072 100%);
     color: white;
     border: none;
     border-radius: 12px;
@@ -10851,7 +10851,7 @@ textarea,
 
 .badge-card-progress-fill {
     height: 100%;
-    background: linear-gradient(90deg, #2cb5a5 0%, #0284c7 100%);
+    background: linear-gradient(90deg, #2cb5a5 0%, #178072 100%);
     border-radius: 999px;
     transition: width 0.6s ease;
 }
@@ -10952,7 +10952,7 @@ textarea,
     position: relative;
     width: 100%;
     max-width: 380px;
-    background: linear-gradient(145deg, #2cb5a5 0%, #0284c7 60%, #1e293b 100%);
+    background: linear-gradient(145deg, #2cb5a5 0%, #178072 60%, #1e293b 100%);
     color: #fff;
     border-radius: 24px;
     padding: 40px 28px 28px;
@@ -18476,7 +18476,7 @@ textarea,
     gap: 8px;
     width: 100%;
     padding: 16px;
-    background: linear-gradient(135deg, #2cb5a5, #0284c7);
+    background: linear-gradient(135deg, #2cb5a5, #178072);
     color: white;
     border: none;
     border-radius: 14px;
@@ -18532,7 +18532,7 @@ textarea,
     justify-content: center;
     gap: 6px;
     padding: 14px;
-    background: linear-gradient(135deg, #2cb5a5, #0284c7);
+    background: linear-gradient(135deg, #2cb5a5, #178072);
     color: white;
     border: none;
     border-radius: 12px;
@@ -18683,7 +18683,7 @@ textarea,
 }
 
 .weight-proof-banner-icon {
-    background: linear-gradient(135deg, #4ec5b7, #0284c7);
+    background: linear-gradient(135deg, #4ec5b7, #178072);
     box-shadow: 0 4px 12px rgba(20, 184, 166, 0.4);
 }
 
@@ -18711,7 +18711,7 @@ textarea,
 
 .weight-proof-capture-btn,
 .weight-proof-send-btn {
-    background: linear-gradient(135deg, #4ec5b7, #0284c7) !important;
+    background: linear-gradient(135deg, #4ec5b7, #178072) !important;
 }
 
 .weight-proof-today-value {
@@ -19165,7 +19165,7 @@ textarea,
 }
 
 .week-calendar-v2 .day-pill.selected {
-    background: linear-gradient(160deg, #2cb5a5 0%, #0284c7 100%);
+    background: linear-gradient(160deg, #2cb5a5 0%, #178072 100%);
     border-color: transparent;
     box-shadow: 0 4px 14px rgba(13, 148, 136, 0.3);
 }
@@ -19256,7 +19256,7 @@ textarea,
 
 .progress-card-v2 .progress-fill-v2 {
     height: 100%;
-    background: linear-gradient(90deg, #2cb5a5 0%, #0284c7 100%);
+    background: linear-gradient(90deg, #2cb5a5 0%, #178072 100%);
     border-radius: 4px;
     transition: width 0.5s ease;
     display: flex;
@@ -19290,7 +19290,7 @@ textarea,
     gap: 16px;
     margin: 16px;
     padding: 16px 20px;
-    background: linear-gradient(135deg, #2cb5a5 0%, #0284c7 100%);
+    background: linear-gradient(135deg, #2cb5a5 0%, #178072 100%);
     border: none;
     border-radius: 16px;
     cursor: pointer;
@@ -19509,7 +19509,7 @@ textarea,
     width: 100%;
     max-width: 340px;
     -webkit-tap-highlight-color: transparent;
-    background: linear-gradient(135deg, #2cb5a5 0%, #0891b2 50%, #0284c7 100%);
+    background: linear-gradient(135deg, #2cb5a5 0%, #0891b2 50%, #178072 100%);
     color: white;
     box-shadow: 0 4px 16px rgba(13, 148, 136, 0.35), inset 0 1px 0 rgba(255,255,255,0.1);
 }
@@ -21081,7 +21081,7 @@ textarea,
 .ai-workout-generate-btn {
     width: 100%;
     padding: 16px;
-    background: linear-gradient(135deg, #2cb5a5 0%, #0284c7 100%);
+    background: linear-gradient(135deg, #2cb5a5 0%, #178072 100%);
     color: white;
     border: none;
     border-radius: 12px;
@@ -30939,7 +30939,7 @@ textarea,
     display: flex;
     align-items: center;
     gap: 6px;
-    background: linear-gradient(135deg, #2cb5a5, #0284c7);
+    background: linear-gradient(135deg, #2cb5a5, #178072);
     border: none;
     padding: 8px 14px;
     border-radius: 20px;
@@ -31220,7 +31220,7 @@ textarea,
     width: 24px;
     height: 24px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #2cb5a5, #0284c7);
+    background: linear-gradient(135deg, #2cb5a5, #178072);
     color: white;
     font-size: 12px;
     font-weight: 700;
@@ -31346,7 +31346,7 @@ textarea,
     align-items: center;
     gap: 6px;
     padding: 8px 16px;
-    background: linear-gradient(135deg, #2cb5a5, #0284c7);
+    background: linear-gradient(135deg, #2cb5a5, #178072);
     border: none;
     border-radius: 20px;
     color: white;
@@ -35837,7 +35837,7 @@ textarea,
 
 .guided-progress-fill {
     height: 100%;
-    background: linear-gradient(90deg, #2cb5a5, #0284c7);
+    background: linear-gradient(90deg, #2cb5a5, #178072);
     border-radius: 2px;
     transition: width 0.3s ease;
 }
@@ -36273,7 +36273,7 @@ textarea,
 }
 
 .guided-timer-ring.rest {
-    stroke: #0284c7;
+    stroke: #178072;
 }
 
 .guided-timer-ring.get-ready {
@@ -36327,7 +36327,7 @@ textarea,
     font-size: 80px;
     font-weight: 800;
     line-height: 1;
-    background: linear-gradient(135deg, #2cb5a5, #0284c7);
+    background: linear-gradient(135deg, #2cb5a5, #178072);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -36629,7 +36629,7 @@ textarea,
 }
 
 .guided-finish-btn {
-    background: linear-gradient(135deg, #2cb5a5, #0284c7);
+    background: linear-gradient(135deg, #2cb5a5, #178072);
     border: none;
     color: white;
     padding: 16px 64px;
@@ -36747,7 +36747,7 @@ textarea,
     align-items: center;
     justify-content: center;
     gap: 6px;
-    background: linear-gradient(135deg, #2cb5a5, #0284c7);
+    background: linear-gradient(135deg, #2cb5a5, #178072);
     border: none;
     color: white;
     padding: 10px 16px;
@@ -37578,7 +37578,7 @@ textarea,
     width: 64px;
     height: 64px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #2cb5a5, #0284c7);
+    background: linear-gradient(135deg, #2cb5a5, #178072);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -37637,7 +37637,7 @@ textarea,
 }
 
 .guided-resume-btn.primary {
-    background: linear-gradient(135deg, #2cb5a5, #0284c7);
+    background: linear-gradient(135deg, #2cb5a5, #178072);
     color: white;
     box-shadow: 0 4px 16px rgba(13,148,136,0.35);
 }
