@@ -107,7 +107,6 @@ exports.handler = async (event) => {
 
         // Verify the session belongs to this user
         const coachIdFromSession = session.metadata?.coach_id;
-        const customerEmail = session.customer_email || session.customer_details?.email;
 
         // Get coach record
         const { data: coach, error: coachError } = await supabase
@@ -125,12 +124,11 @@ exports.handler = async (event) => {
             };
         }
 
-        // Verify the session matches the coach (by ID or email)
-        // Only check if coachIdFromSession is a non-empty string
-        const coachIdMatches = !coachIdFromSession || coachIdFromSession === '' || coachIdFromSession === coach.id;
-        const emailMatches = customerEmail && customerEmail.toLowerCase() === coach.email.toLowerCase();
-
-        if (!coachIdMatches && !emailMatches) {
+        // Verify the session matches the coach. Require an explicit, non-empty
+        // coach_id in metadata that matches the authenticated user. The old
+        // logic accepted an empty/missing coach_id as a match, which let any
+        // session that was never properly bound to a coach be claimed.
+        if (!coachIdFromSession || coachIdFromSession !== coach.id) {
             return {
                 statusCode: 403,
                 headers,
@@ -193,6 +191,24 @@ exports.handler = async (event) => {
 
         // Get plan from metadata
         const plan = session.metadata?.plan || 'starter';
+
+        // Don't grant active access until Stripe has actually collected payment.
+        // Sessions can be `status === 'complete'` while `payment_status` is
+        // 'unpaid' (async/delayed payment methods like SEPA) — marking the
+        // coach active before the charge clears would give free access. Trial
+        // subscriptions legitimately report `no_payment_required`, so we only
+        // gate the 'active' status here.
+        if (newStatus === 'active' && session.payment_status !== 'paid') {
+            return {
+                statusCode: 200,
+                headers,
+                body: JSON.stringify({
+                    subscription_status: coach.subscription_status,
+                    subscription_tier: coach.subscription_tier,
+                    message: 'Payment not yet confirmed'
+                })
+            };
+        }
 
         // Update the coach record (only essential fields - webhook handles the rest)
         const { error: updateError } = await supabase
