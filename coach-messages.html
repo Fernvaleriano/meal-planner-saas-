@@ -1153,13 +1153,31 @@
 
         // Load conversations
         async function loadConversations() {
-            const { data: { session } } = await supabaseClient.auth.getSession();
-            const res = await fetch(`/.netlify/functions/chat?action=conversations&coachId=${currentUser.id}`, {
-                headers: { 'Authorization': `Bearer ${session.access_token}` }
-            });
-            const data = await res.json();
-            conversations = data.conversations || [];
-            renderConversations();
+            try {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                const res = await fetch(`/.netlify/functions/chat?action=conversations&coachId=${currentUser.id}`, {
+                    headers: { 'Authorization': `Bearer ${session.access_token}` }
+                });
+                if (!res.ok) throw new Error('Failed to load conversations: ' + res.status);
+                const data = await res.json();
+                if (!data || !Array.isArray(data.conversations)) {
+                    throw new Error('Unexpected conversations response shape');
+                }
+                conversations = data.conversations;
+                renderConversations();
+            } catch (err) {
+                console.error('Error loading conversations:', err);
+                // Do NOT assign `conversations = []` here — a transient 401/5xx
+                // would otherwise silently wipe every conversation from the UI
+                // and make the coach think their clients deleted message history.
+                // Only render a retry message if there's nothing already shown.
+                if (conversations.length === 0) {
+                    const list = document.getElementById('convoList');
+                    if (list) {
+                        list.innerHTML = '<div class="convo-empty"><p>Could not load conversations.</p><button onclick="loadConversations()" style="margin-top:12px;padding:8px 16px;background:#2dd4bf;color:white;border:none;border-radius:6px;font-weight:600;cursor:pointer;">Retry</button></div>';
+                    }
+                }
+            }
         }
 
         function renderConversations(filter = '') {
@@ -1235,11 +1253,30 @@
 
             // Load messages
             const { data: { session } } = await supabaseClient.auth.getSession();
-            const res = await fetch(`/.netlify/functions/chat?action=messages&coachId=${currentUser.id}&clientId=${clientId}&limit=100`, {
-                headers: { 'Authorization': `Bearer ${session.access_token}` }
-            });
-            const data = await res.json();
-            renderMessages(data.messages || []);
+            try {
+                const res = await fetch(`/.netlify/functions/chat?action=messages&coachId=${currentUser.id}&clientId=${clientId}&limit=100`, {
+                    headers: { 'Authorization': `Bearer ${session.access_token}` }
+                });
+                if (!res.ok) throw new Error('Failed to load messages: ' + res.status);
+                const data = await res.json();
+                if (!data || !Array.isArray(data.messages)) {
+                    throw new Error('Unexpected messages response shape');
+                }
+                renderMessages(data.messages);
+            } catch (err) {
+                console.error('Error loading messages:', err);
+                // Do NOT call renderMessages([]) — that would wipe allMessages
+                // and clear the thread UI. Show an inline retry instead.
+                const area = document.getElementById('messagesArea');
+                if (area) {
+                    const safeName = (clientName || '').replace(/[\\'"<>]/g, '');
+                    area.innerHTML = '<div style="text-align:center;padding:60px 20px;color:#718096;">'
+                        + '<p style="margin-bottom:12px;">Couldn\'t load this conversation.</p>'
+                        + '<button onclick="openThread(' + clientId + ', \'' + safeName + '\')" style="padding:8px 16px;background:#2dd4bf;color:white;border:none;border-radius:6px;font-weight:600;cursor:pointer;">Retry</button>'
+                        + '</div>';
+                }
+                return;
+            }
 
             // Mark as read
             await fetch('/.netlify/functions/chat', {
