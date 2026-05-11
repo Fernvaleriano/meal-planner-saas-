@@ -47,6 +47,36 @@ const clearResumeState = () => {
   try { localStorage.removeItem(RESUME_STORAGE_KEY); } catch {}
 };
 
+// Identity fields baked into every resume payload. The mount-time check
+// requires all four to match exactly before offering a resume — name +
+// exerciseCount alone are too coarse and previously cross-contaminated
+// distinct workouts that happened to share those values (e.g. "Full Body"
+// on Monday vs Wednesday). dateStr stays '' when selectedDate is missing
+// so missing-date payloads naturally fail equality against valid ones.
+const buildResumeIdentity = (clientId, selectedDate, workoutLogId, exercises) => {
+  let dateStr = '';
+  try {
+    const d = (selectedDate && selectedDate instanceof Date && !isNaN(selectedDate.getTime())) ? selectedDate : null;
+    if (d) {
+      dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+  } catch { /* dateStr stays '' */ }
+  return {
+    clientId: clientId ?? null,
+    dateStr,
+    workoutLogId: workoutLogId ?? null,
+    exFingerprint: (exercises || []).map(e => e?.id ?? '').join('|')
+  };
+};
+
+const matchesResumeIdentity = (saved, identity) => (
+  !!saved &&
+  saved.clientId === identity.clientId &&
+  saved.dateStr === identity.dateStr &&
+  saved.workoutLogId === identity.workoutLogId &&
+  saved.exFingerprint === identity.exFingerprint
+);
+
 // EFFORT_OPTIONS, EFFORT_TO_RIR, estimate1RM, COMPOUND_PATTERNS now imported from workoutProgression.js
 
 // Default seconds per rep — used when coach hasn't set a per-exercise tempo
@@ -472,10 +502,14 @@ function GuidedWorkoutModal({
     return validGroups;
   }, [exercises]);
 
-  // Check for resume state on mount
+  // Check for resume state on mount. Strict identity match (clientId +
+  // dateStr + workoutLogId + exercise-id fingerprint) prevents resume state
+  // from one workout being applied to a different workout that happens to
+  // share name + exerciseCount.
   useEffect(() => {
     const saved = loadResumeState();
-    if (saved && saved.workoutName === workoutName && saved.exerciseCount === exercises.length) {
+    const identity = buildResumeIdentity(clientId, selectedDate, workoutLogId, exercises);
+    if (matchesResumeIdentity(saved, identity)) {
       setResumeData(saved);
       setShowResumePrompt(true);
       setIsPaused(true); // Pause until user decides
@@ -620,6 +654,7 @@ function GuidedWorkoutModal({
       });
 
       saveResumeState({
+        ...buildResumeIdentity(clientId, selectedDate, workoutLogId, exercises),
         workoutName,
         exerciseCount: exercises.length,
         currentExIndex,
@@ -2533,6 +2568,7 @@ function GuidedWorkoutModal({
       serializedCompleted[key] = Array.from(setObj);
     });
     return {
+      ...buildResumeIdentity(clientId, selectedDate, workoutLogId, exercises),
       workoutName,
       exerciseCount: exercises.length,
       currentExIndex: currentExIndexRef.current,
