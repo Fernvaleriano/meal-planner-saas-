@@ -81,7 +81,12 @@ const DATA_CACHE_MAX_AGE = 5 * 60 * 1000;
 const NETWORK_FIRST_API_PATTERNS = [
   /\/\.netlify\/functions\/workout-assignments/,
   /\/\.netlify\/functions\/workout-logs/,
-  /\/\.netlify\/functions\/adhoc-workouts/
+  /\/\.netlify\/functions\/adhoc-workouts/,
+  // Branding is edited from branding-settings.html and propagates to every
+  // coach/client page — SWR here meant a 30+ min delay before saved logo /
+  // color changes showed up. Network-first fixes that; cache still serves
+  // as the offline fallback.
+  /\/\.netlify\/functions\/get-coach-branding/
 ];
 
 // Install event - cache static files and CDN resources
