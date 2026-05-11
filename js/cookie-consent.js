@@ -73,7 +73,7 @@
                     <button id="cookie-accept" style="
                         padding: 10px 24px;
                         border: none;
-                        background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+                        background: linear-gradient(135deg, #2cb5a5, #8b5cf6);
                         color: #fff;
                         border-radius: 6px;
                         cursor: pointer;

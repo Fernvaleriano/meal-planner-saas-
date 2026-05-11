@@ -566,7 +566,7 @@
         }
         .meal-action-pop[open] > summary {
             background: #eef2ff;
-            border-color: #6366f1;
+            border-color: #22998a;
             color: #4338ca;
         }
         [data-theme="dark"] .meal-action-pop > summary {
@@ -579,7 +579,7 @@
         }
         [data-theme="dark"] .meal-action-pop[open] > summary {
             background: #312e81;
-            border-color: #6366f1;
+            border-color: #22998a;
             color: #c7d2fe;
         }
         .meal-action-options {
@@ -711,7 +711,7 @@
         }
         .day-macro-bar.cal > span { background: #f59e0b; }
         .day-macro-bar.pro > span { background: #10b981; }
-        .day-macro-bar.carb > span { background: #3b82f6; }
+        .day-macro-bar.carb > span { background: #2cb5a5; }
         .day-macro-bar.fat > span { background: #8b5cf6; }
         .day-macro-bar > span.over { background: #ef4444 !important; }
         .day-macro-delta {
@@ -1072,7 +1072,7 @@
         .macro-protein .macro-card-value { color: #047857; }
         .macro-protein .macro-card-label { color: #065f46; }
 
-        .macro-carbs { background: #dbeafe; border-left-color: #3b82f6; }
+        .macro-carbs { background: #dbeafe; border-left-color: #2cb5a5; }
         .macro-carbs .macro-card-value { color: #1d4ed8; }
         .macro-carbs .macro-card-label { color: #1e3a5f; }
 
@@ -2038,7 +2038,7 @@
             border: 1px solid #e0e7ff;
             border-radius: 6px;
             background: white;
-            color: #6366f1;
+            color: #22998a;
             font-size: 1.1em;
             font-weight: bold;
             cursor: pointer;
@@ -2050,9 +2050,9 @@
         }
 
         .qty-step-btn:hover {
-            background: #6366f1;
+            background: #22998a;
             color: white;
-            border-color: #6366f1;
+            border-color: #22998a;
         }
 
         .qty-step-btn:active {
@@ -2081,7 +2081,7 @@
 
         .ingredient-unit-select:focus {
             outline: none;
-            border-color: #6366f1;
+            border-color: #22998a;
         }
 
         .ingredient-remove {
@@ -3140,7 +3140,7 @@
 
         .meal-ref-link-item .link-icon.generic {
             background: rgba(59, 130, 246, 0.15);
-            color: #3b82f6;
+            color: #2cb5a5;
         }
 
         .meal-ref-link-item .ref-link-clickable {
@@ -3526,7 +3526,7 @@
                                     <span id="pct-status" class="text-sm font-bold"></span>
                                 </div>
                                 <div class="mt-2 h-3 bg-gray-200 rounded-full overflow-hidden">
-                                    <div id="pct-progress-bar" class="h-full transition-all duration-300" style="width: 0%; background: linear-gradient(to right, #3b82f6 0%, #3b82f6 33%, #22c55e 33%, #22c55e 66%, #eab308 66%, #eab308 100%);"></div>
+                                    <div id="pct-progress-bar" class="h-full transition-all duration-300" style="width: 0%; background: linear-gradient(to right, #2cb5a5 0%, #2cb5a5 33%, #22c55e 33%, #22c55e 66%, #eab308 66%, #eab308 100%);"></div>
                                 </div>
                             </div>
 
@@ -4107,7 +4107,7 @@
 
         <div style="display: flex; gap: 12px; padding: 0 20px 20px;">
             <button onclick="closeAdjustPortionsModal()" style="flex: 1; padding: 14px; border-radius: 12px; border: 1px solid #e2e8f0; background: white; color: #475569; font-weight: 600; cursor: pointer;">Cancel</button>
-            <button id="applyAdjustBtn" onclick="applyPortionAdjustment()" style="flex: 1; padding: 14px; border-radius: 12px; border: none; background: #6366f1; color: white; font-weight: 600; cursor: pointer;">Apply Changes</button>
+            <button id="applyAdjustBtn" onclick="applyPortionAdjustment()" style="flex: 1; padding: 14px; border-radius: 12px; border: none; background: #22998a; color: white; font-weight: 600; cursor: pointer;">Apply Changes</button>
         </div>
     </div>
 </div>
@@ -4125,12 +4125,12 @@
     transition: all 0.2s;
 }
 .portion-preset-btn:hover {
-    border-color: #6366f1;
-    color: #6366f1;
+    border-color: #22998a;
+    color: #22998a;
 }
 .portion-preset-btn.active {
-    background: #6366f1;
-    border-color: #6366f1;
+    background: #22998a;
+    border-color: #22998a;
     color: white;
 }
 .ingredient-row {
@@ -4165,7 +4165,7 @@
     border-radius: 50%;
     border: 1px solid #e2e8f0;
     background: white;
-    color: #6366f1;
+    color: #22998a;
     cursor: pointer;
     font-size: 14px;
     font-weight: 700;
@@ -4175,9 +4175,9 @@
     transition: all 0.15s;
 }
 .ingredient-gram-btn:hover {
-    background: #6366f1;
+    background: #22998a;
     color: white;
-    border-color: #6366f1;
+    border-color: #22998a;
 }
 .ingredient-gram-input {
     width: 60px;
@@ -4192,7 +4192,7 @@
     transition: border-color 0.15s;
 }
 .ingredient-gram-input:focus {
-    border-color: #6366f1;
+    border-color: #22998a;
 }
 .ingredient-gram-unit {
     font-size: 0.75rem;
@@ -4461,7 +4461,7 @@ function showToast(message, type = 'info') {
         box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         animation: slideIn 0.3s ease;
     `;
-    toast.style.background = type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6';
+    toast.style.background = type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#2cb5a5';
     toast.textContent = message;
     document.body.appendChild(toast);
     setTimeout(() => toast.remove(), 3000);
@@ -6980,7 +6980,7 @@ function showSaveRetryButton() {
         saveBtn = document.createElement('button');
         saveBtn.id = 'savePlanBtn';
         saveBtn.className = 'btn plan-status-btn';
-        saveBtn.style.cssText = 'background: #3b82f6;';
+        saveBtn.style.cssText = 'background: #2cb5a5;';
         saveBtn.innerHTML = '<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>Save Plan';
         saveBtn.onclick = retrySavePlan;
         const actionsContainer = banner.querySelector('.plan-status-actions') || (submitBtn && submitBtn.parentNode);
@@ -7366,7 +7366,7 @@ async function savePlanChanges() {
             // Reset button after 2 seconds
             setTimeout(() => {
                 saveBtn.innerHTML = '<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>Save Changes';
-                saveBtn.style.background = '#3b82f6';
+                saveBtn.style.background = '#2cb5a5';
                 saveBtn.disabled = false;
             }, 2000);
         } else {
@@ -7379,7 +7379,7 @@ async function savePlanChanges() {
 
         setTimeout(() => {
             saveBtn.innerHTML = originalText;
-            saveBtn.style.background = '#3b82f6';
+            saveBtn.style.background = '#2cb5a5';
             saveBtn.disabled = false;
         }, 2000);
     }
@@ -9216,25 +9216,25 @@ function updateAdjustMacroPreview() {
             <span style="flex: 1; font-size: 0.875rem; color: #475569;">Calories:</span>
             <span style="font-size: 0.875rem; color: #94a3b8; text-decoration: line-through;">${meal.calories}</span>
             <span style="color: #94a3b8;">→</span>
-            <span style="font-size: 0.875rem; font-weight: 600; color: #6366f1;">${newCals}</span>
+            <span style="font-size: 0.875rem; font-weight: 600; color: #22998a;">${newCals}</span>
         </div>
         <div style="display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid #f1f5f9;">
             <span style="flex: 1; font-size: 0.875rem; color: #475569;">Protein:</span>
             <span style="font-size: 0.875rem; color: #94a3b8; text-decoration: line-through;">${meal.protein}g</span>
             <span style="color: #94a3b8;">→</span>
-            <span style="font-size: 0.875rem; font-weight: 600; color: #6366f1;">${newProtein}g</span>
+            <span style="font-size: 0.875rem; font-weight: 600; color: #22998a;">${newProtein}g</span>
         </div>
         <div style="display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid #f1f5f9;">
             <span style="flex: 1; font-size: 0.875rem; color: #475569;">Carbs:</span>
             <span style="font-size: 0.875rem; color: #94a3b8; text-decoration: line-through;">${meal.carbs}g</span>
             <span style="color: #94a3b8;">→</span>
-            <span style="font-size: 0.875rem; font-weight: 600; color: #6366f1;">${newCarbs}g</span>
+            <span style="font-size: 0.875rem; font-weight: 600; color: #22998a;">${newCarbs}g</span>
         </div>
         <div style="display: flex; align-items: center; gap: 8px; padding: 6px 0;">
             <span style="flex: 1; font-size: 0.875rem; color: #475569;">Fat:</span>
             <span style="font-size: 0.875rem; color: #94a3b8; text-decoration: line-through;">${meal.fat}g</span>
             <span style="color: #94a3b8;">→</span>
-            <span style="font-size: 0.875rem; font-weight: 600; color: #6366f1;">${newFat}g</span>
+            <span style="font-size: 0.875rem; font-weight: 600; color: #22998a;">${newFat}g</span>
         </div>
     `;
 }
@@ -12116,7 +12116,7 @@ function updateMacroFromPercentages() {
     if (totalPct === 100) {
         pctStatus.textContent = '✅ Perfect! 100%';
         pctStatus.className = 'text-sm font-bold text-green-600';
-        progressBar.style.background = 'linear-gradient(to right, #3b82f6, #22c55e, #eab308)';
+        progressBar.style.background = 'linear-gradient(to right, #2cb5a5, #22c55e, #eab308)';
     } else if (totalPct > 100) {
         pctStatus.textContent = `⚠️ Over by ${totalPct - 100}%`;
         pctStatus.className = 'text-sm font-bold text-red-600';
@@ -12124,7 +12124,7 @@ function updateMacroFromPercentages() {
     } else if (totalPct > 0) {
         pctStatus.textContent = `${100 - totalPct}% remaining`;
         pctStatus.className = 'text-sm font-bold text-amber-600';
-        progressBar.style.background = 'linear-gradient(to right, #3b82f6, #22c55e, #eab308)';
+        progressBar.style.background = 'linear-gradient(to right, #2cb5a5, #22c55e, #eab308)';
     } else {
         pctStatus.textContent = 'Enter percentages';
         pctStatus.className = 'text-sm text-gray-500';
