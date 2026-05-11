@@ -35,7 +35,7 @@ export function generateBadgeShareCard({ tier, totalCount, earnedTiers }) {
 
       // Gradient background
       const grad = ctx.createLinearGradient(0, 0, width, height);
-      grad.addColorStop(0, '#0d9488');
+      grad.addColorStop(0, '#2cb5a5');
       grad.addColorStop(0.5, '#0284c7');
       grad.addColorStop(1, '#1e293b');
       ctx.fillStyle = grad;

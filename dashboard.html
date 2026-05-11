@@ -7,7 +7,7 @@
     <script src="/js/theme.js"></script>
     <link rel="stylesheet" href="/css/voice-commander.css">
     <script src="/js/gym-features.js"></script>
-    <meta name="theme-color" content="#0d9488">
+    <meta name="theme-color" content="#2cb5a5">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Ziquecoach">
@@ -24,10 +24,10 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --brand-primary: #0d9488;
-            --brand-primary-dark: #0f766e;
+            --brand-primary: #2cb5a5;
+            --brand-primary-dark: #22998a;
             --brand-secondary: #0284c7;
-            --brand-gradient: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
+            --brand-gradient: linear-gradient(135deg, #2cb5a5 0%, #0284c7 100%);
             --gray-50: #f8fafc;
             --gray-100: #f1f5f9;
             --gray-200: #e2e8f0;
@@ -1862,7 +1862,7 @@
         }
 
         .ai-hero-send-btn:hover {
-            background: #0f766e;
+            background: #22998a;
             transform: translateY(-1px);
             box-shadow: 0 4px 12px rgba(13, 148, 136, 0.3);
         }
@@ -2495,7 +2495,7 @@
             justify-content: center;
             text-decoration: none;
             border: 2px solid var(--teal-400, #2dd4bf);
-            background: var(--teal-600, #0d9488);
+            background: var(--teal-600, #2cb5a5);
             color: white;
             font-size: 0.8rem;
             font-weight: 700;
@@ -2516,8 +2516,8 @@
         }
 
         [data-theme="dark"] .header-profile-avatar {
-            border-color: var(--teal-500, #14b8a6);
-            background: var(--teal-700, #0f766e);
+            border-color: var(--teal-500, #4ec5b7);
+            background: var(--teal-700, #22998a);
         }
 
         [data-theme="dark"] .header-profile-avatar:hover {
@@ -3744,7 +3744,7 @@
         }
 
         .story-card-preview.quote-preview {
-            background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
+            background: linear-gradient(135deg, #2cb5a5 0%, #0284c7 100%);
             padding: 16px;
         }
 
@@ -4798,7 +4798,7 @@
             width: 28px;
             height: 28px;
             border: 3px solid #e2e8f0;
-            border-top-color: #14b8a6;
+            border-top-color: #4ec5b7;
             border-radius: 50%;
         }
         .ptr-indicator.refreshing .ptr-spinner {
@@ -5082,7 +5082,7 @@
             width: 36px;
             height: 36px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #14b8a6, #0d9488);
+            background: linear-gradient(135deg, #4ec5b7, #2cb5a5);
             color: #fff;
             display: flex;
             align-items: center;
@@ -5222,7 +5222,7 @@
         }
         .notif-overview-row.unread {
             background: #f0fdfa;
-            border-left: 3px solid #0d9488;
+            border-left: 3px solid #2cb5a5;
         }
         .notif-overview-icon {
             font-size: 20px;
@@ -5272,7 +5272,7 @@
         }
         [data-theme="dark"] .notif-overview-row { border-color: #1e293b; }
         [data-theme="dark"] .notif-overview-row:hover { background: #334155; }
-        [data-theme="dark"] .notif-overview-row.unread { background: #0f2a2a; border-left-color: #14b8a6; }
+        [data-theme="dark"] .notif-overview-row.unread { background: #0f2a2a; border-left-color: #4ec5b7; }
         [data-theme="dark"] .notif-overview-title { color: #f1f5f9; }
         [data-theme="dark"] .notif-overview-message { color: #94a3b8; }
 
@@ -9181,7 +9181,7 @@
                 if (programs.length === 0) {
                     responseArea.innerHTML = `
                         <div class="ai-response-section">
-                            <div class="ai-section-header" style="background: var(--primary-color, #0d9488); color: #fff;">
+                            <div class="ai-section-header" style="background: var(--primary-color, #2cb5a5); color: #fff;">
                                 <span class="ai-section-icon">✅</span>
                                 <span class="ai-section-title">All Good</span>
                             </div>
@@ -9272,7 +9272,7 @@
                 if (total === 0) {
                     responseArea.innerHTML = `
                         <div class="ai-response-section">
-                            <div class="ai-section-header" style="background: var(--primary-color, #0d9488); color: #fff;">
+                            <div class="ai-section-header" style="background: var(--primary-color, #2cb5a5); color: #fff;">
                                 <span class="ai-section-icon">✅</span>
                                 <span class="ai-section-title">All Good</span>
                             </div>
@@ -9372,7 +9372,7 @@
                 'Training & PRs': { icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="10" rx="2"/><line x1="12" y1="7" x2="12" y2="17"/><line x1="2" y1="12" x2="22" y2="12"/></svg>', color: '#8b5cf6' },
                 'Body Composition': { icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>', color: '#f59e0b' },
                 'Highlights': { icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>', color: '#f59e0b' },
-                'Your Info': { icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>', color: '#0d9488' },
+                'Your Info': { icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>', color: '#2cb5a5' },
                 'Summary': { icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>', color: '#64748b' }
             };
 

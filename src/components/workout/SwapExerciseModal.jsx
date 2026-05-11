@@ -382,7 +382,7 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
               onClick={forceClose}
               style={{
                 padding: '10px 20px',
-                background: '#0d9488',
+                background: '#2cb5a5',
                 color: 'white',
                 border: 'none',
                 borderRadius: '8px',

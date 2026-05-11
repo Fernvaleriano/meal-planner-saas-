@@ -50,7 +50,7 @@
         height: 52px;
         border-radius: 50%;
         border: none;
-        background: var(--brand-gradient, linear-gradient(135deg, #0d9488 0%, #0284c7 100%));
+        background: var(--brand-gradient, linear-gradient(135deg, #2cb5a5 0%, #0284c7 100%));
         color: #fff;
         display: flex;
         align-items: center;
@@ -78,7 +78,7 @@
         position: fixed;
         bottom: 24px;
         right: 24px;
-        background: var(--brand-gradient, linear-gradient(135deg, #0d9488 0%, #0284c7 100%));
+        background: var(--brand-gradient, linear-gradient(135deg, #2cb5a5 0%, #0284c7 100%));
         color: #fff;
         border-radius: 24px;
         padding: 8px 14px 8px 16px;
@@ -151,7 +151,7 @@
         align-items: center;
         justify-content: space-between;
         padding: 14px 14px 12px;
-        background: var(--brand-gradient, linear-gradient(135deg, #0d9488 0%, #0284c7 100%));
+        background: var(--brand-gradient, linear-gradient(135deg, #2cb5a5 0%, #0284c7 100%));
         color: #fff;
         flex-shrink: 0;
       }
@@ -214,7 +214,7 @@
         width: 56px;
         height: 56px;
         border-radius: 50%;
-        background: var(--brand-gradient, linear-gradient(135deg, #0d9488 0%, #0284c7 100%));
+        background: var(--brand-gradient, linear-gradient(135deg, #2cb5a5 0%, #0284c7 100%));
         color: #fff;
         display: flex;
         align-items: center;
@@ -255,7 +255,7 @@
       }
       .tsa-suggestion:hover {
         background: var(--gray-200, #e2e8f0);
-        border-color: var(--brand-primary, #0d9488);
+        border-color: var(--brand-primary, #2cb5a5);
       }
       [data-theme="dark"] .tsa-suggestion {
         background: var(--gray-800, #1e293b);
@@ -287,7 +287,7 @@
         word-break: break-word;
       }
       .tsa-message.user .tsa-message-content {
-        background: var(--brand-primary, #0d9488);
+        background: var(--brand-primary, #2cb5a5);
         color: #fff;
         border-bottom-right-radius: 4px;
       }
@@ -356,7 +356,7 @@
         color: var(--gray-100, #f1f5f9);
       }
       .tsa-input:focus {
-        border-color: var(--brand-primary, #0d9488);
+        border-color: var(--brand-primary, #2cb5a5);
       }
       .tsa-input::placeholder { color: var(--gray-400, #94a3b8); }
       .tsa-input:disabled { opacity: 0.6; }
@@ -365,7 +365,7 @@
         height: 38px;
         border-radius: 50%;
         border: none;
-        background: var(--brand-primary, #0d9488);
+        background: var(--brand-primary, #2cb5a5);
         color: #fff;
         display: flex;
         align-items: center;

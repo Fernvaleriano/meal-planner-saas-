@@ -97,7 +97,7 @@
             metaThemeColor.name = 'theme-color';
             document.head.appendChild(metaThemeColor);
         }
-        metaThemeColor.content = theme === DARK ? '#0f172a' : '#0d9488';
+        metaThemeColor.content = theme === DARK ? '#0f172a' : '#2cb5a5';
     }
 
     // Get current theme

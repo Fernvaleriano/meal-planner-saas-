@@ -4,7 +4,7 @@ import { supabase } from '../utils/supabase';
 import { useAuth } from '../context/AuthContext';
 
 const DEFAULT_LOGO = 'https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/ziquecoach-logo-teal.png';
-const DEFAULT_PRIMARY = '#0d9488';
+const DEFAULT_PRIMARY = '#2cb5a5';
 
 /**
  * Try to load coach branding for the login page.

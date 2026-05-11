@@ -73,7 +73,7 @@ const METRIC_CONFIGS = [
 ];
 
 // Mini line chart component (pure SVG)
-function MiniChart({ dataPoints, color = '#14b8a6' }) {
+function MiniChart({ dataPoints, color = '#4ec5b7' }) {
   if (!dataPoints || dataPoints.length < 2) return null;
 
   const width = 320;
@@ -1254,7 +1254,7 @@ function Progress() {
               </button>
               <button
                 onClick={confirmPhotoSelection}
-                style={{ flex: 1, padding: '12px 16px', background: '#14b8a6', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: 600, color: 'white', cursor: 'pointer' }}
+                style={{ flex: 1, padding: '12px 16px', background: '#4ec5b7', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: 600, color: 'white', cursor: 'pointer' }}
               >
                 {selectedPhotos.length === 0 ? 'Yes, Before' : 'Yes, After'}
               </button>

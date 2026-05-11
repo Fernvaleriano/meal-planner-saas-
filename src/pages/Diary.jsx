@@ -3082,7 +3082,7 @@ function Diary() {
               <button
                 className="btn-primary"
                 onClick={executeCopyDate}
-                style={{ width: '100%', padding: '12px', borderRadius: '8px', background: '#0d9488', color: 'white', border: 'none', fontWeight: 600 }}
+                style={{ width: '100%', padding: '12px', borderRadius: '8px', background: '#2cb5a5', color: 'white', border: 'none', fontWeight: 600 }}
               >
                 Copy Entries
               </button>
@@ -3706,7 +3706,7 @@ function Diary() {
               <button
                 className="btn-primary"
                 onClick={() => handleSaveMeal(document.getElementById('saveMealName').value)}
-                style={{ width: '100%', padding: '12px', borderRadius: '8px', background: '#0d9488', color: 'white', border: 'none', fontWeight: 600 }}
+                style={{ width: '100%', padding: '12px', borderRadius: '8px', background: '#2cb5a5', color: 'white', border: 'none', fontWeight: 600 }}
               >
                 Save to Favorites
               </button>
@@ -3933,7 +3933,7 @@ function Diary() {
                       setAiLogging(false);
                     }
                   }}
-                  style={{ flex: 1, padding: '14px', borderRadius: '8px', background: '#0d9488', color: 'white', border: 'none', fontWeight: 600, fontSize: '1rem' }}
+                  style={{ flex: 1, padding: '14px', borderRadius: '8px', background: '#2cb5a5', color: 'white', border: 'none', fontWeight: 600, fontSize: '1rem' }}
                   disabled={aiLogging || !aiInput.trim() || aiLogShowConfirmation}
                 >
                   {aiLogging ? 'Analyzing...' : 'Log Food'}
@@ -4238,7 +4238,7 @@ function Diary() {
                     { key: 'fiber_goal', label: 'Fiber', unit: 'g', color: '#8b5cf6', step: 1, placeholder: 28 },
                     { key: 'sugar_goal', label: 'Sugar', unit: 'g', color: '#ec4899', step: 5, placeholder: 50 },
                     { key: 'sodium_goal', label: 'Sodium', unit: 'mg', color: '#ef4444', step: 100, placeholder: 2300 },
-                    { key: 'potassium_goal', label: 'Potassium', unit: 'mg', color: '#14b8a6', step: 100, placeholder: 3500 },
+                    { key: 'potassium_goal', label: 'Potassium', unit: 'mg', color: '#4ec5b7', step: 100, placeholder: 3500 },
                     { key: 'calcium_goal', label: 'Calcium', unit: 'mg', color: '#a8a29e', step: 50, placeholder: 1000 },
                     { key: 'iron_goal', label: 'Iron', unit: 'mg', color: '#b91c1c', step: 1, placeholder: 18 },
                     { key: 'vitamin_c_goal', label: 'Vitamin C', unit: 'mg', color: '#f59e0b', step: 5, placeholder: 90 },

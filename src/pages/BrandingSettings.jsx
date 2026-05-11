@@ -27,7 +27,7 @@ const TERMINOLOGY_OPTIONS = [
 ];
 
 const COLOR_PRESETS = [
-  { name: 'Teal', primary: '#0d9488', secondary: '#0284c7', accent: '#10b981' },
+  { name: 'Teal', primary: '#2cb5a5', secondary: '#0284c7', accent: '#10b981' },
   { name: 'Blue', primary: '#2563eb', secondary: '#3b82f6', accent: '#06b6d4' },
   { name: 'Purple', primary: '#7c3aed', secondary: '#8b5cf6', accent: '#a78bfa' },
   { name: 'Red', primary: '#dc2626', secondary: '#ef4444', accent: '#f97316' },
@@ -44,7 +44,7 @@ function ColorInput({ label, value, onChange, placeholder }) {
       <div className="bs-color-input-row">
         <input
           type="color"
-          value={value || placeholder || '#0d9488'}
+          value={value || placeholder || '#2cb5a5'}
           onChange={(e) => onChange(e.target.value)}
           className="bs-color-swatch"
         />
@@ -313,7 +313,7 @@ function BrandingSettings() {
   };
 
   // Live preview values
-  const previewPrimary = form.brand_primary_color || '#0d9488';
+  const previewPrimary = form.brand_primary_color || '#2cb5a5';
   const previewSecondary = form.brand_secondary_color || '#0284c7';
   const previewAccent = form.brand_accent_color || '#10b981';
   const previewBg = form.brand_bg_color || '#0f172a';
@@ -337,7 +337,7 @@ function BrandingSettings() {
           <h1>Branding</h1>
         </div>
         <div className="bs-upgrade-card">
-          <Palette size={40} style={{ color: '#0d9488' }} />
+          <Palette size={40} style={{ color: '#2cb5a5' }} />
           <h2>White-Label Branding</h2>
           <p>Customize your brand colors, logo, fonts, and more. Your clients will see your brand instead of ours.</p>
           <p style={{ fontSize: '0.85rem', color: 'var(--gray-500)' }}>Available on the Professional plan.</p>
@@ -472,7 +472,7 @@ function BrandingSettings() {
             </div>
 
             <div className="bs-color-grid">
-              <ColorInput label="Primary" value={form.brand_primary_color} onChange={v => updateForm('brand_primary_color', v)} placeholder="#0d9488" />
+              <ColorInput label="Primary" value={form.brand_primary_color} onChange={v => updateForm('brand_primary_color', v)} placeholder="#2cb5a5" />
               <ColorInput label="Secondary" value={form.brand_secondary_color} onChange={v => updateForm('brand_secondary_color', v)} placeholder="#0284c7" />
               <ColorInput label="Accent" value={form.brand_accent_color} onChange={v => updateForm('brand_accent_color', v)} placeholder="#10b981" />
             </div>
@@ -760,8 +760,8 @@ function BrandingSettings() {
           align-items: center;
         }
         .bs-preview-toggle.active {
-          background: var(--brand-primary, #0d9488);
-          border-color: var(--brand-primary, #0d9488);
+          background: var(--brand-primary, #2cb5a5);
+          border-color: var(--brand-primary, #2cb5a5);
           color: white;
         }
         .bs-error {
@@ -792,7 +792,7 @@ function BrandingSettings() {
         .bs-upgrade-btn {
           display: inline-block;
           padding: 14px 32px;
-          background: var(--brand-primary, #0d9488);
+          background: var(--brand-primary, #2cb5a5);
           color: white;
           border-radius: 10px;
           text-decoration: none;
@@ -882,7 +882,7 @@ function BrandingSettings() {
           transition: border-color 0.2s;
         }
         .bs-text-input:focus, .bs-select:focus, .bs-textarea:focus {
-          border-color: var(--brand-primary, #0d9488);
+          border-color: var(--brand-primary, #2cb5a5);
         }
         .bs-textarea { resize: vertical; }
 
@@ -973,7 +973,7 @@ function BrandingSettings() {
           transition: all 0.15s;
         }
         .bs-btn-style-option.active {
-          border-color: var(--brand-primary, #0d9488);
+          border-color: var(--brand-primary, #2cb5a5);
           color: var(--text-primary, #f1f5f9);
         }
         .bs-btn-style-preview {
@@ -1055,7 +1055,7 @@ function BrandingSettings() {
           justify-content: center;
           gap: 8px;
           padding: 12px 24px;
-          background: var(--brand-primary, #0d9488);
+          background: var(--brand-primary, #2cb5a5);
           border: none;
           border-radius: 10px;
           color: white;
@@ -1166,8 +1166,8 @@ function BrandingSettings() {
           transition: all 0.2s;
         }
         .bs-logo-upload-btn:hover:not(:disabled) {
-          border-color: var(--brand-primary, #0d9488);
-          color: var(--brand-primary, #0d9488);
+          border-color: var(--brand-primary, #2cb5a5);
+          color: var(--brand-primary, #2cb5a5);
         }
         .bs-logo-upload-btn:disabled { opacity: 0.6; cursor: not-allowed; }
         .bs-logo-preview {

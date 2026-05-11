@@ -216,7 +216,7 @@ function ForgotPassword() {
 
         .login-field input:focus {
           outline: none;
-          border-color: #0d9488;
+          border-color: #2cb5a5;
           background: rgba(15, 23, 42, 0.8);
           box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.2);
         }
@@ -225,7 +225,7 @@ function ForgotPassword() {
           width: 100%;
           padding: 16px;
           margin-top: 8px;
-          background: linear-gradient(135deg, #0d9488 0%, #14b8a6 100%);
+          background: linear-gradient(135deg, #2cb5a5 0%, #4ec5b7 100%);
           border: none;
           border-radius: 12px;
           color: white;

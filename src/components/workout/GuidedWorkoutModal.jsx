@@ -2972,7 +2972,7 @@ function GuidedWorkoutModal({
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, color: '#94a3b8', padding: '40px 20px', textAlign: 'center' }}>
           <AlertTriangle size={48} style={{ marginBottom: 16, color: '#f59e0b' }} />
           <p style={{ marginBottom: 16, fontSize: '16px' }}>Unable to load exercise data.</p>
-          <button onClick={onClose} style={{ padding: '10px 24px', background: '#0d9488', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '15px' }}>
+          <button onClick={onClose} style={{ padding: '10px 24px', background: '#2cb5a5', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '15px' }}>
             Close Workout
           </button>
         </div>
@@ -3626,7 +3626,7 @@ function GuidedWorkoutModal({
                 <button
                   onClick={(e) => { e.stopPropagation(); setGuidedVideoError(false); setGuidedVideoLoading(true); if (guidedVideoBlobUrl) { URL.revokeObjectURL(guidedVideoBlobUrl); setGuidedVideoBlobUrl(null); } setGuidedVideoKey(k => k + 1); }}
                   type="button"
-                  style={{ padding: '6px 16px', background: '#0d9488', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}
+                  style={{ padding: '6px 16px', background: '#2cb5a5', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}
                 >
                   Retry
                 </button>

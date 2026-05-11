@@ -12,7 +12,7 @@ const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
 // Default branding
 const DEFAULT_BRAND_NAME = 'Ziquecoach';
-const DEFAULT_PRIMARY_COLOR = '#0d9488';
+const DEFAULT_PRIMARY_COLOR = '#2cb5a5';
 const APP_URL = process.env.URL || 'https://ziquecoach.com';
 
 // Email providers

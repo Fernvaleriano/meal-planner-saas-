@@ -282,8 +282,8 @@ body, .main-content, .main-container { background: #f7f7f8 !important; }
 :root,
 html[data-theme="light"],
 html[data-theme="dark"] {
-    --brand-gradient: var(--brand-primary, #0d9488) !important;
-    --purple-gradient: var(--brand-primary, #0d9488) !important;
+    --brand-gradient: var(--brand-primary, #2cb5a5) !important;
+    --purple-gradient: var(--brand-primary, #2cb5a5) !important;
 }
 
 /* === 2. Headings: max 600 weight, tighter tracking everywhere === */
@@ -405,15 +405,15 @@ h1, h2, h3,
 .btn-primary, .submit-btn,
 .add-day-btn, .send-btn, .bulk-send-btn, .assign-btn,
 .modal-btn-primary, .ai-btn--primary {
-    background: var(--brand-primary, #0d9488) !important;
+    background: var(--brand-primary, #2cb5a5) !important;
     color: #fff !important;
-    border: 1px solid var(--brand-primary, #0d9488) !important;
+    border: 1px solid var(--brand-primary, #2cb5a5) !important;
 }
 .btn-primary:hover, .submit-btn:hover,
 .add-day-btn:hover, .send-btn:hover, .bulk-send-btn:hover,
 .assign-btn:hover, .modal-btn-primary:hover {
-    background: var(--brand-primary-dark, #0f766e) !important;
-    border-color: var(--brand-primary-dark, #0f766e) !important;
+    background: var(--brand-primary-dark, #22998a) !important;
+    border-color: var(--brand-primary-dark, #22998a) !important;
 }
 
 /* === 6. Form inputs / selects / textareas === */
@@ -439,7 +439,7 @@ input:focus, textarea:focus, select:focus,
 .search-input:focus, .form-input:focus, .input:focus,
 .config-input:focus, .day-name-input:focus, .msg-input:focus {
     outline: none !important;
-    border-color: var(--brand-primary, #0d9488) !important;
+    border-color: var(--brand-primary, #2cb5a5) !important;
     box-shadow: 0 0 0 3px rgba(13,148,136,0.12) !important;
 }
 [data-theme="dark"] input[type="text"],
@@ -511,7 +511,7 @@ input:focus, textarea:focus, select:focus,
 
 /* Unread/notification badges keep their accent but lose glow */
 .convo-unread-badge, .notification-badge, .sidebar-msg-badge {
-    background: var(--brand-primary, #0d9488) !important;
+    background: var(--brand-primary, #2cb5a5) !important;
     color: #fff !important;
     box-shadow: none !important;
     font-weight: 600 !important;
@@ -538,9 +538,9 @@ input:focus, textarea:focus, select:focus,
 .chip.active, .filter-tab.active, .seg-btn.active,
 .view-toggle-btn.active,
 .preview-device-toggle .preview-device-btn.active {
-    background: var(--brand-primary, #0d9488) !important;
+    background: var(--brand-primary, #2cb5a5) !important;
     color: #fff !important;
-    border-color: var(--brand-primary, #0d9488) !important;
+    border-color: var(--brand-primary, #2cb5a5) !important;
 }
 
 /* === 9. Page headers: lighter weight and quieter borders === */
@@ -680,7 +680,7 @@ input:focus, textarea:focus, select:focus,
 }
 .alert-success { border-left: 3px solid #10b981 !important; }
 .alert-error   { border-left: 3px solid #ef4444 !important; }
-.alert-info    { border-left: 3px solid var(--brand-primary, #0d9488) !important; }
+.alert-info    { border-left: 3px solid var(--brand-primary, #2cb5a5) !important; }
 .alert-title   { font-weight: 600 !important; letter-spacing: -0.01em !important; }
 
 /* === 17. Progress bars: track + fill, no gradient === */
@@ -696,7 +696,7 @@ input:focus, textarea:focus, select:focus,
     background: rgba(255,255,255,0.06) !important;
 }
 .progress-fill {
-    background: var(--brand-primary, #0d9488) !important;
+    background: var(--brand-primary, #2cb5a5) !important;
     box-shadow: none !important;
     border-radius: 999px !important;
 }
@@ -723,8 +723,8 @@ input:focus, textarea:focus, select:focus,
 [data-theme="dark"] .tab-btn:hover,
 [data-theme="dark"] .chart-tab:hover { color: #f1f5f9 !important; }
 .tab-btn.active, .tab-navigation .tab.active, .chart-tab.active {
-    color: var(--brand-primary, #0d9488) !important;
-    border-bottom-color: var(--brand-primary, #0d9488) !important;
+    color: var(--brand-primary, #2cb5a5) !important;
+    border-bottom-color: var(--brand-primary, #2cb5a5) !important;
     background: transparent !important;
 }
 .tab-navigation, .chart-tabs {
@@ -829,15 +829,15 @@ table tbody td, .data-table tbody td {
    inverted "white text on teal" treatment).
    Secondary = hairline ghost button. */
 .btn-primary {
-    background: var(--brand-primary, #0d9488) !important;
+    background: var(--brand-primary, #2cb5a5) !important;
     color: #ffffff !important;
-    border: 1px solid var(--brand-primary, #0d9488) !important;
+    border: 1px solid var(--brand-primary, #2cb5a5) !important;
     box-shadow: none !important;
     font-weight: 500 !important;
 }
 .btn-primary:hover {
-    background: var(--brand-primary-dark, #0f766e) !important;
-    border-color: var(--brand-primary-dark, #0f766e) !important;
+    background: var(--brand-primary-dark, #22998a) !important;
+    border-color: var(--brand-primary-dark, #22998a) !important;
     transform: none !important;
     box-shadow: none !important;
 }
@@ -866,26 +866,26 @@ table tbody td, .data-table tbody td {
 
 /* === 24. AI / purple-themed buttons -> brand teal === */
 .btn-ai-generate, .ai-btn {
-    background: var(--brand-primary, #0d9488) !important;
+    background: var(--brand-primary, #2cb5a5) !important;
     color: #ffffff !important;
-    border: 1px solid var(--brand-primary, #0d9488) !important;
+    border: 1px solid var(--brand-primary, #2cb5a5) !important;
     box-shadow: none !important;
 }
 .btn-ai-generate:hover, .ai-btn:hover {
-    background: var(--brand-primary-dark, #0f766e) !important;
+    background: var(--brand-primary-dark, #22998a) !important;
     transform: none !important;
 }
 
 /* === 25. Save dropdown (workout builder) === */
 .save-dropdown { box-shadow: none !important; }
 .btn-save-main, .btn-save-toggle {
-    background: var(--brand-primary, #0d9488) !important;
+    background: var(--brand-primary, #2cb5a5) !important;
     color: #ffffff !important;
-    border: 1px solid var(--brand-primary, #0d9488) !important;
+    border: 1px solid var(--brand-primary, #2cb5a5) !important;
     box-shadow: none !important;
 }
 .btn-save-main:hover, .btn-save-toggle:hover {
-    background: var(--brand-primary-dark, #0f766e) !important;
+    background: var(--brand-primary-dark, #22998a) !important;
 }
 .save-dropdown-menu {
     border-radius: 12px !important;
@@ -927,8 +927,8 @@ table tbody td, .data-table tbody td {
     box-shadow: none !important;
 }
 .wb-panel-add-btn:hover {
-    background: var(--brand-primary, #0d9488) !important;
-    border-color: var(--brand-primary, #0d9488) !important;
+    background: var(--brand-primary, #2cb5a5) !important;
+    border-color: var(--brand-primary, #2cb5a5) !important;
     color: #ffffff !important;
 }
 
@@ -1073,19 +1073,19 @@ table tbody td, .data-table tbody td {
 }
 
 /* Titration phase dots — single accent */
-.titration-phase-dot.active { background: var(--brand-primary, #0d9488) !important; }
+.titration-phase-dot.active { background: var(--brand-primary, #2cb5a5) !important; }
 .titration-phase-dot.past   { background: rgba(13,148,136,0.45) !important; }
 
 /* .btn-teal helper class (slips through [class$="-btn"]) */
 .btn-teal {
-    background: var(--brand-primary, #0d9488) !important;
+    background: var(--brand-primary, #2cb5a5) !important;
     color: #ffffff !important;
-    border: 1px solid var(--brand-primary, #0d9488) !important;
+    border: 1px solid var(--brand-primary, #2cb5a5) !important;
     box-shadow: none !important;
 }
 .btn-teal:hover {
-    background: var(--brand-primary-dark, #0f766e) !important;
-    border-color: var(--brand-primary-dark, #0f766e) !important;
+    background: var(--brand-primary-dark, #22998a) !important;
+    border-color: var(--brand-primary-dark, #22998a) !important;
 }
 
 /* .btn-danger keeps semantic red but loses the heavy weight */

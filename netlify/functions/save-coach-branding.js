@@ -131,7 +131,7 @@ exports.handler = async (event, context) => {
                     statusCode: 400,
                     headers: { 'Access-Control-Allow-Origin': '*' },
                     body: JSON.stringify({
-                        error: `Invalid ${color.name} color format. Use hex format like #0d9488`
+                        error: `Invalid ${color.name} color format. Use hex format like #2cb5a5`
                     })
                 };
             }

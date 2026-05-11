@@ -52,7 +52,7 @@
       [data-theme="dark"] .csw-item { border-bottom-color: #2a3850; }
       .csw-item:last-child { border-bottom: 0; }
       .csw-item.active { background: linear-gradient(90deg, rgba(13,148,136,.10), rgba(2,132,199,.06)); }
-      .csw-avatar { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #0d9488, #0284c7); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 14px; flex-shrink: 0; overflow: hidden; }
+      .csw-avatar { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #2cb5a5, #0284c7); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 14px; flex-shrink: 0; overflow: hidden; }
       .csw-avatar img { width: 100%; height: 100%; object-fit: cover; }
       .csw-name { font-weight: 600; font-size: 15px; }
       .csw-meta { font-size: 12px; color: #64748b; }

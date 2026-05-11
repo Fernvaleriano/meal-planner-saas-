@@ -20,7 +20,7 @@ const DEFAULT_MANIFEST = {
     start_url: '/app',
     display: 'standalone',
     background_color: '#0f172a',
-    theme_color: '#0d9488',
+    theme_color: '#2cb5a5',
     categories: ['health', 'fitness', 'lifestyle'],
     icons: [
         {
