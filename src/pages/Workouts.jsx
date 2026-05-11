@@ -505,10 +505,17 @@ function getWorkoutCompletedCount(workout) {
 }
 
 // Source of truth for what the UI shows as checked: union of
-// (workout_data.completed flags) ∪ (localStorage taps) ∪ (logged exercises),
-// minus the user's explicit unchecked-overrides. The override subtraction is
-// what makes Reset all / individual uncheck survive an app close — without it,
-// the log entries auto-re-check anything the user had logged sets for.
+// (workout_data.completed flags) ∪ (localStorage taps) ∪ (logged exercises
+// whose every set is marked completed), minus the user's explicit
+// unchecked-overrides. The override subtraction is what makes Reset all /
+// individual uncheck survive an app close — without it, the log entries
+// auto-re-check anything the user had logged sets for.
+//
+// Requiring every set to have completed === true (mirroring the parent-side
+// autocompletion predicate at handleUpdateExercise) prevents a placeholder
+// exercise_logs row — written by ExerciseDetailModal's auto-save the moment
+// the user opens an exercise to view the video — from auto-checking the
+// exercise on the next fetch.
 function getEffectiveCompletedExercises(workout, log) {
   if (!workout) return new Set();
   const dayIndex = workout.day_index ?? 0;
@@ -520,7 +527,9 @@ function getEffectiveCompletedExercises(workout, log) {
     const activeIds = new Set(getWorkoutExercises(workout).map(e => e.id));
     logExercises.forEach(e => {
       const id = e?.exercise_id;
-      if (id && activeIds.has(id) && !overrides.has(id)) {
+      if (!id || !activeIds.has(id) || overrides.has(id)) return;
+      const sets = Array.isArray(e?.sets_data) ? e.sets_data : [];
+      if (sets.length > 0 && sets.every(s => s?.completed === true)) {
         combined.add(id);
       }
     });
@@ -540,13 +549,18 @@ function buildWorkoutFromLog(log) {
     .sort((a, b) => (a?.exercise_order || 0) - (b?.exercise_order || 0))
     .map((ex, i) => {
       const sets = Array.isArray(ex?.sets_data) ? ex.sets_data : [];
+      // Derive completed from per-set flags instead of hardcoding true.
+      // A log row can exist for an exercise the user merely opened (the
+      // detail modal's auto-save writes placeholder sets_data with
+      // completed:false) — those must not surface as checked on the
+      // historical card.
       return {
         id: ex?.exercise_id || `log-${log.id}-ex-${i}`,
         name: ex?.exercise_name || 'Exercise',
         sets: sets.length || 1,
         setsData: sets,
         notes: ex?.notes || '',
-        completed: true,
+        completed: sets.length > 0 && sets.every(s => s?.completed === true),
         ...(ex?.swapped_from_name ? { swappedFromName: ex.swapped_from_name } : {}),
         ...(ex?.client_notes ? { clientNotes: ex.client_notes } : {}),
         ...(ex?.client_voice_note_path ? { clientVoiceNotePath: ex.client_voice_note_path } : {})
