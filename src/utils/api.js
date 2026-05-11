@@ -560,11 +560,22 @@ export async function getOrCreateWorkoutLogId(clientId, dateStr, workoutName) {
   })();
 
   inflightLogLookup.set(lockKey, promise);
-  // Keep the entry until the promise settles; release after a short grace
-  // window so immediately-subsequent callers still share the result without
-  // re-hitting the network.
-  promise.finally(() => {
-    setTimeout(() => inflightLogLookup.delete(lockKey), 2000);
-  });
+  // Only cache *successful* lookups. The previous version held the lookup
+  // entry for 2s regardless of outcome — so a transient failure made every
+  // caller in that window short-circuit to null and silently skip its own
+  // save. ExerciseDetailModal's 300ms autosave was hitting this regularly.
+  // On null/failure, release immediately so the next caller retries fresh.
+  promise.then(
+    (id) => {
+      if (id) {
+        setTimeout(() => inflightLogLookup.delete(lockKey), 2000);
+      } else {
+        inflightLogLookup.delete(lockKey);
+      }
+    },
+    () => {
+      inflightLogLookup.delete(lockKey);
+    }
+  );
   return promise;
 }
