@@ -21,49 +21,17 @@
             --gray-700: #334155;
             --gray-900: #0f172a;
         }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: var(--gray-50);
             color: var(--gray-700);
             line-height: 1.7;
         }
-
-        .header {
-            background: var(--brand-gradient);
-            padding: 20px 40px;
-        }
-
-        .header a {
-            display: inline-flex;
-            align-items: center;
-            color: white;
-            text-decoration: none;
-        }
-
-        .brand-logo-img {
-            height: 50px;
-            width: auto;
-            object-fit: contain;
-        }
-
-        .brand-name {
-            font-size: 1.25rem;
-            font-weight: 800;
-        }
-
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 60px 20px;
-        }
-
+        .header { background: var(--brand-gradient); padding: 20px 40px; }
+        .header a { display: inline-flex; align-items: center; color: white; text-decoration: none; }
+        .brand-logo-img { height: 50px; width: auto; object-fit: contain; }
+        .container { max-width: 800px; margin: 0 auto; padding: 60px 20px; }
         h1 {
             font-size: 2.5rem;
             font-weight: 800;
@@ -71,13 +39,6 @@
             margin-bottom: 8px;
             letter-spacing: -0.025em;
         }
-
-        .last-updated {
-            color: var(--gray-500);
-            margin-bottom: 40px;
-            font-size: 0.9rem;
-        }
-
         h2 {
             font-size: 1.5rem;
             font-weight: 700;
@@ -85,233 +46,277 @@
             margin-top: 40px;
             margin-bottom: 16px;
         }
-
         h3 {
-            font-size: 1.1rem;
-            font-weight: 600;
+            font-size: 1.125rem;
+            font-weight: 700;
             color: var(--gray-900);
             margin-top: 24px;
             margin-bottom: 12px;
         }
-
-        p {
-            margin-bottom: 16px;
+        p, li { margin-bottom: 12px; color: var(--gray-700); }
+        ul, ol { padding-left: 24px; margin-bottom: 16px; }
+        .last-updated {
+            color: var(--gray-500);
+            font-size: 0.9375rem;
+            margin-bottom: 40px;
         }
-
-        ul, ol {
-            margin-bottom: 16px;
-            padding-left: 24px;
-        }
-
-        li {
-            margin-bottom: 8px;
-        }
-
-        .highlight {
-            background: linear-gradient(135deg, rgba(13, 148, 136, 0.1) 0%, rgba(2, 132, 199, 0.1) 100%);
-            border-left: 4px solid var(--brand-primary);
+        .disclaimer-box {
+            background: #fef3c7;
+            border-left: 4px solid #f59e0b;
             padding: 16px 20px;
-            border-radius: 0 8px 8px 0;
-            margin: 24px 0;
+            border-radius: 8px;
+            margin-bottom: 32px;
+            font-size: 0.9375rem;
         }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 20px 0;
-        }
-
-        th, td {
-            text-align: left;
-            padding: 12px 16px;
-            border-bottom: 1px solid var(--gray-200);
-        }
-
-        th {
-            background: var(--gray-100);
-            font-weight: 600;
-            color: var(--gray-900);
-        }
-
-        .footer {
-            background: var(--gray-900);
-            color: var(--gray-400);
-            padding: 40px;
-            text-align: center;
-            margin-top: 60px;
-        }
-
-        .footer-links {
-            display: flex;
-            justify-content: center;
-            gap: 32px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-
-        .footer-links a {
-            color: var(--gray-400);
+        .disclaimer-box strong { color: #92400e; }
+        a { color: var(--brand-secondary); }
+        .back-link {
+            display: inline-block;
+            margin-top: 48px;
+            color: var(--brand-secondary);
             text-decoration: none;
-            font-size: 0.9rem;
-        }
-
-        .footer-links a:hover {
-            color: white;
+            font-weight: 600;
         }
     </style>
-    <script src="https://unpkg.com/lucide@0.312.0/dist/umd/lucide.min.js" onload="lucide.createIcons()"></script>
-    <style>body{-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;overscroll-behavior:none;-webkit-overflow-scrolling:touch;}</style>
-    <link rel="stylesheet" href="css/emoji-font.css">
 </head>
 <body>
     <header class="header">
-        <a href="/">
+        <a href="index.html">
             <img src="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/ziquecoach-logo-teal.png" alt="Ziquecoach" class="brand-logo-img">
         </a>
     </header>
 
-    <div class="container">
+    <main class="container">
         <h1>Privacy Policy</h1>
-        <p class="last-updated">Last updated: December 2024</p>
+        <p class="last-updated">Last updated: [DATE]<br>Effective date: [DATE]</p>
 
-        <p>At Ziquecoach, we take your privacy seriously. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our platform.</p>
-
-        <div class="highlight">
-            <strong>Summary:</strong> We collect information to provide our services, we don't sell your data, and you have control over your information.
+        <div class="disclaimer-box">
+            <strong>DISCLAIMER:</strong> Adapted from industry-standard patterns used by TrueCoach, Trainerize, Everfit, and similar fitness coaching platforms. Not reviewed by an attorney. Use at your own risk. Have a licensed attorney (preferably with health-data experience) review before publishing.
         </div>
 
-        <h2>1. Information We Collect</h2>
+        <p>This Privacy Policy explains how Ziquecoach ("Ziquecoach", "we", "us", "our") collects, uses, shares, and protects your personal information when you use our app, website, and related services.</p>
+        <p>If you have any questions, email <a href="mailto:privacy@ziquecoach.com">privacy@ziquecoach.com</a>.</p>
 
-        <h3>1.1 Information You Provide</h3>
+        <h2>1. Who We Are and Our Role</h2>
+        <p>Ziquecoach is a software-as-a-service platform that lets independent fitness professionals ("Coaches") manage their own coaching businesses and serve their own clients ("Clients").</p>
+        <p><strong>Our role depends on the data:</strong></p>
         <ul>
-            <li><strong>Account Information:</strong> Name, email address, password, and business name</li>
-            <li><strong>Payment Information:</strong> Billing address and payment method (processed securely by Stripe)</li>
-            <li><strong>Client Data:</strong> Information you enter about your clients including names, contact info, health data, meal plans, and progress photos</li>
-            <li><strong>Communications:</strong> Messages you send through our platform or to our support team</li>
+            <li>For data you give us directly when you sign up, pay us, or contact us — we are the data <strong>CONTROLLER</strong> and decide how that data is used.</li>
+            <li>For data your Coach collects about you in the course of providing their coaching services — your Coach is the data <strong>CONTROLLER</strong> and we are their data <strong>PROCESSOR</strong>. Your Coach is responsible for how that data is collected and used. Ask your Coach for their privacy notice.</li>
+            <li>For analytics, fraud prevention, security, and platform improvement — we are an independent <strong>CONTROLLER</strong> acting in our own legitimate interests.</li>
         </ul>
 
-        <h3>1.2 Information Collected Automatically</h3>
+        <h2>2. What We Collect and Why</h2>
+        <p>We collect the following categories of personal information. For each category, we explain why we collect it and the lawful basis under GDPR.</p>
+
+        <h3>A. Identity Data</h3>
+        <p><strong>What:</strong> name, email address, phone number, date of birth, profile photo.<br>
+        <strong>Why:</strong> to create and secure your account, to identify you to your Coach, to comply with age requirements.<br>
+        <strong>Lawful basis:</strong> performance of contract; legitimate interests (security).</p>
+
+        <h3>B. Account Data</h3>
+        <p><strong>What:</strong> username, hashed password, security questions, login timestamps, IP address at login.<br>
+        <strong>Why:</strong> to authenticate you and protect your account.<br>
+        <strong>Lawful basis:</strong> performance of contract; legitimate interests (security).</p>
+
+        <h3>C. Billing Data</h3>
+        <p><strong>What:</strong> masked card information (tokenized by Stripe — we never see your full card number), billing address, billing history, subscription plan.<br>
+        <strong>Why:</strong> to process payments and maintain billing records required by tax law.<br>
+        <strong>Lawful basis:</strong> performance of contract; legal obligation (tax records).</p>
+
+        <h3>D. Coach/Client Linkage</h3>
+        <p><strong>What:</strong> which Coach you belong to, your plan or package, your status.<br>
+        <strong>Why:</strong> to route your data to the right Coach and provide the coaching service.<br>
+        <strong>Lawful basis:</strong> performance of contract.</p>
+
+        <h3>E. Health and Fitness Data (Sensitive — see Section 3)</h3>
+        <p><strong>What:</strong> height, weight, body measurements, body fat percentage, progress photos, gender, age, fitness goals, injury history, medical notes you choose to share.<br>
+        <strong>Why:</strong> to enable your Coach to design appropriate programs for you and to display your own data back to you.<br>
+        <strong>Lawful basis:</strong> your explicit consent; performance of contract.</p>
+
+        <h3>F. Activity Data</h3>
+        <p><strong>What:</strong> workouts logged, sets/reps/weights, cardio minutes, food logs, calorie and macro totals, sleep, mood, water intake, habit check-ins.<br>
+        <strong>Why:</strong> to provide the tracking features of the app and let your Coach see your progress.<br>
+        <strong>Lawful basis:</strong> performance of contract; consent (where required).</p>
+
+        <h3>G. Messaging Data</h3>
+        <p><strong>What:</strong> messages between you and your Coach, attachments, voice notes.<br>
+        <strong>Why:</strong> to deliver the in-app messaging feature.<br>
+        <strong>Lawful basis:</strong> performance of contract.</p>
+
+        <h3>H. Device and Usage Data</h3>
+        <p><strong>What:</strong> IP address, device type, operating system, browser, app version, crash logs, push notification tokens, session timestamps, feature usage analytics.<br>
+        <strong>Why:</strong> to operate the app, fix bugs, prevent fraud, and improve the service.<br>
+        <strong>Lawful basis:</strong> legitimate interests (service operation and improvement).</p>
+
+        <h3>I. Location Data</h3>
+        <p><strong>What:</strong> approximate location (derived from IP address). We do not collect precise GPS location unless you grant permission for a specific feature.<br>
+        <strong>Why:</strong> to detect fraud and apply region-appropriate features and law.<br>
+        <strong>Lawful basis:</strong> legitimate interests (fraud prevention).</p>
+
+        <h3>J. Third-Party Integration Data [CONFIRM IF USED]</h3>
+        <p><strong>What:</strong> data you authorize us to pull from Apple Health, Google Fit, Fitbit, MyFitnessPal, Strava, Garmin, or similar services.<br>
+        <strong>Why:</strong> to sync your fitness data with Ziquecoach.<br>
+        <strong>Lawful basis:</strong> your explicit consent (which you can withdraw any time).</p>
+
+        <h3>K. Cookies and SDK Identifiers</h3>
+        <p><strong>What:</strong> essential cookies (login, security), and analytics identifiers (only with consent in regions that require it).<br>
+        <strong>Why:</strong> to keep you logged in and to understand aggregate usage.<br>
+        <strong>Lawful basis:</strong> legitimate interests (essential cookies); consent (analytics cookies).</p>
+
+        <h3>What We Don't Collect</h3>
         <ul>
-            <li><strong>Usage Data:</strong> Pages visited, features used, and time spent on the platform</li>
-            <li><strong>Device Information:</strong> Browser type, operating system, and device identifiers</li>
-            <li><strong>Log Data:</strong> IP address, access times, and referring URLs</li>
+            <li>Full payment-card numbers (Stripe handles these).</li>
+            <li>Bank account numbers (Stripe handles these for Coaches).</li>
+            <li>Government IDs (Stripe handles these for Coach onboarding).</li>
+            <li>Anything we don't need.</li>
         </ul>
 
-        <h2>2. How We Use Your Information</h2>
-        <p>We use the collected information to:</p>
+        <h2>3. Health and Fitness Data — Special Handling</h2>
+        <p>Some of what you share with us — body measurements, weight, body-fat percentage, progress photos, food logs, injury notes, mood and energy ratings — is sensitive. We treat it carefully.</p>
         <ul>
-            <li>Provide and maintain our services</li>
-            <li>Process payments and manage subscriptions</li>
-            <li>Send transactional emails (account confirmations, password resets)</li>
-            <li>Provide customer support</li>
-            <li>Improve and optimize our platform</li>
-            <li>Detect and prevent fraud or abuse</li>
-            <li>Comply with legal obligations</li>
+            <li>Under the EU/UK GDPR, it is "data concerning health" and a special category of personal data under Article 9. We process it on the lawful basis of your <strong>EXPLICIT CONSENT</strong>, which you can withdraw at any time by emailing <a href="mailto:privacy@ziquecoach.com">privacy@ziquecoach.com</a> or deleting your account.</li>
+            <li>Under California's CPRA and similar US laws (Washington's My Health My Data Act, Connecticut, Nevada), it is "sensitive personal information" or "consumer health data," subject to enhanced rights and consent requirements.</li>
+        </ul>
+        <p><strong>Our commitments:</strong></p>
+        <ul>
+            <li>We process health data only for the purposes you'd expect: running the coaching service, showing you your own data, sharing it with your own Coach, and computing safety-relevant warnings.</li>
+            <li>We do NOT use your health data to train any AI model without separately asking you.</li>
+            <li>We do NOT sell your health data.</li>
+            <li>We do NOT share your health data with advertisers.</li>
+            <li>You can export, correct, or delete any health data from your account settings or by emailing <a href="mailto:privacy@ziquecoach.com">privacy@ziquecoach.com</a>.</li>
         </ul>
 
-        <h2>3. Data Sharing and Disclosure</h2>
-        <p>We do not sell your personal information. We may share data with:</p>
+        <h2>4. Who We Share Your Data With</h2>
+        <h3>A. Your Coach</h3>
+        <p>Your Coach can see the data you submit to them: workouts, food logs, measurements, messages, photos, and check-ins. Your Coach acts as a data controller for that data and has their own privacy obligations.</p>
 
-        <table>
-            <tr>
-                <th>Third Party</th>
-                <th>Purpose</th>
-            </tr>
-            <tr>
-                <td>Stripe</td>
-                <td>Payment processing</td>
-            </tr>
-            <tr>
-                <td>Supabase</td>
-                <td>Database hosting and authentication</td>
-            </tr>
-            <tr>
-                <td>Email Providers</td>
-                <td>Sending transactional emails</td>
-            </tr>
-            <tr>
-                <td>AI Services</td>
-                <td>Nutrition assistant features (anonymized)</td>
-            </tr>
-        </table>
-
-        <p>We may also disclose information when required by law or to protect our rights and safety.</p>
-
-        <h2>4. Data Security</h2>
-        <p>We implement appropriate security measures to protect your information:</p>
+        <h3>B. Our Sub-Processors (companies that help us run the service)</h3>
+        <p>We use the following vendors. Each is bound by a data-processing agreement and, for transfers outside the EU/UK, by the appropriate Standard Contractual Clauses.</p>
         <ul>
-            <li>Encryption of data in transit (HTTPS/TLS)</li>
-            <li>Encryption of data at rest</li>
-            <li>Regular security audits and updates</li>
-            <li>Access controls and authentication</li>
-            <li>Secure payment processing via Stripe (PCI compliant)</li>
+            <li><strong>Supabase</strong> — database, authentication, and file storage hosting (United States)</li>
+            <li><strong>Netlify</strong> — web hosting and serverless functions (United States)</li>
+            <li><strong>Stripe</strong> — payment processing and Stripe Connect for Coach payouts (United States)</li>
+            <li>[CONFIRM IF USED] <strong>Sentry</strong> — crash reporting and error monitoring (United States)</li>
+            <li>[CONFIRM IF USED] <strong>Resend / SendGrid / Postmark / Mailgun</strong> — transactional email (United States)</li>
+            <li>[CONFIRM IF USED] <strong>Twilio / OneSignal / Firebase Cloud Messaging</strong> — push notifications and SMS (United States)</li>
+            <li>[CONFIRM IF USED] <strong>Apple Push Notification Service</strong> — iOS push notifications (United States)</li>
+            <li>[CONFIRM IF USED] <strong>Mixpanel / Amplitude / PostHog / Google Analytics</strong> — product analytics (United States)</li>
+            <li>[CONFIRM IF USED] <strong>OpenAI / Anthropic</strong> — AI-generated suggestions (United States) — we do not train these models on your data</li>
+            <li>[CONFIRM IF USED] <strong>Cloudinary / Mux</strong> — image and video storage (United States)</li>
+            <li>[CONFIRM IF USED] <strong>Intercom / HelpScout / Zendesk</strong> — customer support (United States)</li>
         </ul>
-        <p>However, no method of transmission over the Internet is 100% secure. We cannot guarantee absolute security.</p>
+        <p>The current sub-processor list is published at <a href="/subprocessors">ziquecoach.com/subprocessors</a> and updated whenever we add or change a vendor.</p>
 
-        <h2>5. Data Retention</h2>
-        <p>We retain your information for as long as your account is active or as needed to provide services. After account deletion:</p>
+        <h3>C. Legal Requests</h3>
+        <p>We may share data with law enforcement, courts, or regulators where we are legally required to do so, or where we believe in good faith it is necessary to protect the rights, safety, or property of Ziquecoach, our users, or others.</p>
+
+        <h3>D. Business Transfers</h3>
+        <p>If Ziquecoach is involved in a merger, acquisition, or sale of assets, your data may be transferred — but the same protections in this Privacy Policy will continue to apply.</p>
+
+        <h3>What We Do Not Do</h3>
         <ul>
-            <li>Account data is deleted within 30 days</li>
-            <li>Backup copies may persist for up to 90 days</li>
-            <li>Some data may be retained for legal compliance</li>
+            <li>We do NOT sell your personal information.</li>
+            <li>We do NOT share your health data with advertisers.</li>
+            <li>We do NOT use your health data to train AI models without separately asking you.</li>
         </ul>
 
-        <h2>6. Your Rights and Choices</h2>
+        <h2>5. International Data Transfers</h2>
+        <p>Ziquecoach is operated from [country] and our sub-processors are based primarily in the United States. If you are located in the EU, UK, Switzerland, or another jurisdiction with data-transfer restrictions, your personal data will be transferred to and processed in countries that may not provide the same level of data protection as your home country.</p>
+        <p>For these transfers, we rely on:</p>
+        <ul>
+            <li>The European Commission's Standard Contractual Clauses (2021 module-based set).</li>
+            <li>The UK International Data Transfer Addendum (IDTA) for transfers out of the UK.</li>
+            <li>The EU-US Data Privacy Framework where the relevant sub-processor is certified.</li>
+        </ul>
+        <p>A copy of the relevant transfer safeguards is available on request — email <a href="mailto:privacy@ziquecoach.com">privacy@ziquecoach.com</a>.</p>
+
+        <h2>6. How Long We Keep Your Data</h2>
+        <ul>
+            <li><strong>Active account data:</strong> as long as your account is open.</li>
+            <li><strong>Deleted account data:</strong> hard-deleted within 30 days of deletion request, except where we are legally required to retain it.</li>
+            <li><strong>Backups:</strong> retained for 30 to 90 days, then overwritten.</li>
+            <li><strong>Billing and invoicing records:</strong> retained for up to 7 years (US tax law); EU/UK 5–10 years depending on jurisdiction.</li>
+            <li><strong>Messaging:</strong> retained for the life of the coach-client relationship plus a reasonable buffer.</li>
+            <li><strong>Anonymized and aggregated analytics:</strong> retained indefinitely (no longer identifies you).</li>
+            <li><strong>Security and abuse logs:</strong> 90 days to 1 year.</li>
+            <li><strong>Marketing-suppression data</strong> (so we don't email you again after unsubscribe): retained indefinitely, but minimal.</li>
+        </ul>
+
+        <h2>7. Your Rights</h2>
+        <p>Wherever you live, you can access, correct, export, and delete your data through your account settings or by emailing <a href="mailto:privacy@ziquecoach.com">privacy@ziquecoach.com</a>.</p>
+
+        <h3>A. GDPR / UK GDPR Rights (EU, UK, EEA, Switzerland)</h3>
         <p>You have the right to:</p>
         <ul>
-            <li><strong>Access:</strong> Request a copy of your personal data</li>
-            <li><strong>Correction:</strong> Update inaccurate information</li>
-            <li><strong>Deletion:</strong> Request deletion of your account and data</li>
-            <li><strong>Export:</strong> Download your data in a portable format</li>
-            <li><strong>Opt-out:</strong> Unsubscribe from marketing communications</li>
+            <li>Access your personal data (Art. 15)</li>
+            <li>Correct inaccurate data (Art. 16)</li>
+            <li>Delete your data — the "right to be forgotten" (Art. 17)</li>
+            <li>Restrict processing in some cases (Art. 18)</li>
+            <li>Receive your data in a portable, machine-readable format (Art. 20)</li>
+            <li>Object to processing in some cases (Art. 21)</li>
+            <li>Not be subject to solely automated decision-making with legal effects (Art. 22)</li>
+            <li>Withdraw consent at any time (for processing based on consent)</li>
+            <li>Lodge a complaint with your national supervisory authority</li>
         </ul>
-        <p>To exercise these rights, contact us at <a href="mailto:privacy@ziquecoach.com">privacy@ziquecoach.com</a>.</p>
+        <p>We will respond to requests within one calendar month, extensible to three months for complex requests (we'll tell you if we need more time).</p>
 
-        <h2>7. Cookies and Tracking</h2>
-        <p>We use essential cookies to:</p>
+        <h3>B. California Rights (CCPA / CPRA)</h3>
+        <p>If you are a California resident, you have the right to:</p>
         <ul>
-            <li>Maintain your login session</li>
-            <li>Remember your preferences (like dark mode)</li>
-            <li>Ensure platform security</li>
+            <li>Know what categories of personal information we collect, why, and who we share it with</li>
+            <li>Delete your personal information</li>
+            <li>Correct inaccurate personal information</li>
+            <li>Opt out of "sale" or "sharing" of personal information for cross-context behavioral advertising</li>
+            <li>Limit the use and disclosure of sensitive personal information (which includes health information)</li>
+            <li>Not be discriminated against for exercising your rights</li>
         </ul>
-        <p>We do not use tracking cookies for advertising purposes.</p>
+        <p>We honor Global Privacy Control (GPC) browser signals as a valid opt-out request.</p>
+        <p>To exercise California rights, email <a href="mailto:privacy@ziquecoach.com">privacy@ziquecoach.com</a> or use the in-app privacy form.</p>
+
+        <h3>C. Other US States</h3>
+        <p>If you live in Virginia, Colorado, Connecticut, Utah, Texas, Oregon, Montana, Iowa, Tennessee, Indiana, Florida, Delaware, New Jersey, New Hampshire, Kentucky, Rhode Island, Minnesota, Maryland, or Washington, you have similar rights under your state's privacy law. Email <a href="mailto:privacy@ziquecoach.com">privacy@ziquecoach.com</a> to exercise them.</p>
+
+        <h3>D. Washington My Health My Data Act</h3>
+        <p>If you are a Washington resident, your fitness and wellness data is "consumer health data" under state law. You have the right to confirm whether we collect, sell, or share it, to delete it, and to withdraw consent. Email <a href="mailto:privacy@ziquecoach.com">privacy@ziquecoach.com</a>.</p>
+
+        <h3>E. Australia, Canada, Other Jurisdictions</h3>
+        <p>You have rights under the Australian Privacy Act, PIPEDA (Canada), Quebec Law 25, and other applicable laws. Email <a href="mailto:privacy@ziquecoach.com">privacy@ziquecoach.com</a> to exercise them.</p>
+
+        <p>We will not charge you for exercising your rights, and we will not penalize you for doing so.</p>
 
         <h2>8. Children's Privacy</h2>
-        <p>Our services are not intended for children under 18. We do not knowingly collect information from children. If you believe a child has provided us with personal information, please contact us.</p>
+        <p>Ziquecoach is not intended for, and does not knowingly accept registrations from, users under 13 years old. Users between 13 and 17 may only use Ziquecoach if their parent or legal guardian creates and maintains the account on their behalf and accepts responsibility for everything that happens under it.</p>
+        <p>If you are a parent or guardian and believe your child has provided personal information to Ziquecoach without your consent, email <a href="mailto:privacy@ziquecoach.com">privacy@ziquecoach.com</a>. We will promptly disable the account and delete the child's personal data.</p>
+        <p>Coaches working with minors must obtain documented parental consent before adding the Client to Ziquecoach.</p>
 
-        <h2>9. International Data Transfers</h2>
-        <p>Your information may be transferred to and processed in countries other than your own. We ensure appropriate safeguards are in place for such transfers.</p>
+        <h2>9. Security</h2>
+        <p>We use industry-standard security measures to protect your data, including encryption in transit (TLS), encryption at rest, access controls, regular backups, and security monitoring. No system is perfectly secure, however, and we cannot guarantee absolute security.</p>
+        <p>If we become aware of a personal-data breach that affects you, we will notify you and the relevant supervisory authority as required by law — within 72 hours of becoming aware for incidents subject to GDPR.</p>
 
-        <h2>10. Changes to This Policy</h2>
-        <p>We may update this Privacy Policy periodically. We will notify you of significant changes via email or through the platform. Continued use after changes constitutes acceptance.</p>
-
-        <h2>11. Contact Us</h2>
-        <p>If you have questions about this Privacy Policy or our data practices, please contact us:</p>
+        <h2>10. Cookies and Tracking</h2>
+        <p>We use a small number of cookies and similar technologies:</p>
         <ul>
-            <li>Email: <a href="mailto:privacy@ziquecoach.com">privacy@ziquecoach.com</a></li>
-            <li>Support: <a href="mailto:contact@ziquecoach.com">contact@ziquecoach.com</a></li>
+            <li>Essential cookies for login and security.</li>
+            <li>Analytics cookies (only where you consent or where local law permits) to understand how the app is used.</li>
         </ul>
+        <p>You can manage cookie preferences via your browser or via the cookie banner shown to users in regions that require consent (EU, UK).</p>
+        <p>We honor Global Privacy Control (GPC) signals from your browser as an opt-out of "sharing" under CPRA.</p>
 
-        <h2>12. For European Users (GDPR)</h2>
-        <p>If you are in the European Economic Area, you have additional rights under GDPR including:</p>
-        <ul>
-            <li>Right to data portability</li>
-            <li>Right to restrict processing</li>
-            <li>Right to object to processing</li>
-            <li>Right to lodge a complaint with a supervisory authority</li>
-        </ul>
-        <p>Our legal basis for processing is: contract performance, legitimate interests, and consent where applicable.</p>
-    </div>
+        <h2>11. Automated Decisions and AI Features [CONFIRM IF USED]</h2>
+        <p>Ziquecoach may use AI features (for example, AI-suggested meal plans or workout suggestions) to help your Coach build programs. These suggestions are reviewed by your Coach before being shared with you. We do not make decisions with legal or similarly significant effect on you using only automated processing. We do not train our AI providers' models on your personal data without separately asking you.</p>
 
-    <footer class="footer">
-        <div class="footer-links">
-            <a href="pricing.html">Pricing</a>
-            <a href="terms.html">Terms of Service</a>
-            <a href="privacy.html">Privacy Policy</a>
-            <a href="mailto:contact@ziquecoach.com">Contact</a>
-        </div>
-        <div>&copy; 2024 Ziquecoach. All rights reserved.</div>
-    </footer>
-    <script src="/js/twemoji-init.js"></script>
+        <h2>12. Changes to This Policy</h2>
+        <p>We may update this Privacy Policy from time to time. If we make material changes, we'll notify you by email and in-app at least 30 days before the changes take effect.</p>
+
+        <h2>13. Contact Us</h2>
+        <p>Questions, complaints, or requests about your data? Contact:</p>
+        <p>Email: <a href="mailto:privacy@ziquecoach.com">privacy@ziquecoach.com</a><br>
+        Mailing address: [Your business address]<br>
+        Data Protection Officer / EU representative: [if appointed, list here]</p>
+        <p>If you are in the EU/UK and we don't resolve your concern, you may lodge a complaint with your national data protection authority. A list is at <a href="https://edpb.europa.eu">edpb.europa.eu</a> (EU) or <a href="https://ico.org.uk">ico.org.uk</a> (UK).</p>
+
+        <a href="index.html" class="back-link">← Back to Ziquecoach</a>
+    </main>
 </body>
 </html>

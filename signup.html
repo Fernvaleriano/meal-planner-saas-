@@ -354,6 +354,89 @@
             color: #0d9488;
         }
 
+        .coach-onboarding {
+            margin: 24px 0;
+            padding: 20px;
+            background: var(--gray-50);
+            border: 1px solid var(--gray-200);
+            border-radius: 12px;
+        }
+
+        .coach-onboarding h3 {
+            font-size: 0.9375rem;
+            font-weight: 700;
+            color: var(--gray-900);
+            margin-bottom: 6px;
+        }
+
+        .coach-onboarding > p {
+            font-size: 0.8125rem;
+            color: var(--gray-600);
+            margin-bottom: 14px;
+        }
+
+        .coach-onboarding ol {
+            font-size: 0.78rem;
+            line-height: 1.55;
+            color: var(--gray-700);
+            padding-left: 22px;
+            margin: 0 0 16px 0;
+        }
+
+        .coach-onboarding ol li {
+            margin-bottom: 8px;
+        }
+
+        .coach-onboarding ol li strong {
+            color: var(--gray-900);
+        }
+
+        .legal-checkbox {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 8px 0;
+            font-size: 0.8125rem;
+            color: var(--gray-700);
+            cursor: pointer;
+            line-height: 1.5;
+        }
+
+        .legal-checkbox input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            margin-top: 2px;
+            flex-shrink: 0;
+            cursor: pointer;
+            accent-color: var(--brand-primary);
+        }
+
+        .legal-checkbox a {
+            color: var(--brand-primary);
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .legal-checkbox a:hover {
+            text-decoration: underline;
+        }
+
+        [data-theme="dark"] .coach-onboarding {
+            background: #0f172a;
+            border-color: #334155;
+        }
+
+        [data-theme="dark"] .coach-onboarding h3,
+        [data-theme="dark"] .coach-onboarding ol,
+        [data-theme="dark"] .coach-onboarding > p,
+        [data-theme="dark"] .legal-checkbox {
+            color: #e2e8f0;
+        }
+
+        [data-theme="dark"] .coach-onboarding ol li strong {
+            color: #f1f5f9;
+        }
+
         .login-link {
             text-align: center;
             margin-top: 32px;
@@ -607,10 +690,42 @@
                     </div>
                 </div>
 
+                <div class="coach-onboarding">
+                    <h3>Coach Onboarding Checklist</h3>
+                    <p>Before you can take payments from Clients on Ziquecoach, please read and agree to the following. This is a plain-English summary of the full Coach Agreement. Take 2 minutes — these rules protect you, your Clients, and Ziquecoach.</p>
+                    <ol>
+                        <li><strong>You're an independent business — not an employee.</strong> Ziquecoach is software you use to run your own coaching business. You're not our employee, agent, or partner. Your taxes, business licensing, and any staff you hire are yours.</li>
+                        <li><strong>You're the merchant of record — you own the money flow.</strong> When a Client pays you through Stripe Connect, YOU are the seller of record. You set the price, refund policy, and handle chargebacks (including the Stripe $15 chargeback fee), sales tax, VAT, and invoicing.</li>
+                        <li><strong>Work within your certification scope.</strong> Don't diagnose, prescribe, provide therapy, or treat injuries beyond your training. Use the PAR-Q for new Clients. If a Client discloses a medical condition, pregnancy, or red flag — tell them to see their doctor first.</li>
+                        <li><strong>Carry your own professional insurance.</strong> Hold (or commit to obtain) professional indemnity insurance and keep your certifications current. We may ask for proof.</li>
+                        <li><strong>We can suspend or remove you for misconduct.</strong> Sexual misconduct, harassment, unsafe programming, fraud, off-platform solicitation, promoting performance-enhancing drugs, or misrepresenting credentials — instant suspension.</li>
+                        <li><strong>Your Clients can take their data if you leave.</strong> On termination you have 30 days to export programs and Client records. Clients are notified and offered the choice to export data or transfer to another Coach.</li>
+                        <li><strong>Platform fees are disclosed and non-refundable.</strong> Per-transaction fee + Stripe fee, deducted before payout. Subscription fees non-refundable except where law requires.</li>
+                        <li><strong>Don't solicit clients off-platform.</strong> While you have a paid account and for 12 months after, don't push Clients you met through Ziquecoach to pay outside the platform for the same services.</li>
+                        <li><strong>Eating-disorder and mental-health red flags.</strong> Don't design caloric restriction or weight-loss protocols for Clients with an active eating disorder or significant unintentional weight change unless they've been cleared by a clinician.</li>
+                        <li><strong>You indemnify Ziquecoach for your coaching work.</strong> If a Client sues over your programming, advice, results, injury, IP infringement, data breach, tax issue, or chargeback — you're on the hook, not Ziquecoach.</li>
+                    </ol>
+
+                    <label class="legal-checkbox">
+                        <input type="checkbox" id="agreeChecklist" required>
+                        <span>I have read and agree to the Coach Onboarding Checklist and the full <a href="coach-agreement.html" target="_blank">Coach Agreement</a>.</span>
+                    </label>
+
+                    <label class="legal-checkbox">
+                        <input type="checkbox" id="agreeTerms" required>
+                        <span>I have read and agree to the <a href="terms.html" target="_blank">Terms of Service</a> and <a href="privacy.html" target="_blank">Privacy Policy</a>.</span>
+                    </label>
+
+                    <label class="legal-checkbox">
+                        <input type="checkbox" id="agreeEligibility" required>
+                        <span>I confirm I am at least 18 years old, hold valid fitness or nutrition credentials (or operate lawfully under another licensure), and carry or will obtain professional indemnity insurance.</span>
+                    </label>
+                </div>
+
                 <button type="submit" id="signupBtn">Start Free Trial →</button>
 
                 <div class="terms-note">
-                    By signing up, you agree to our <a href="terms.html">Terms of Service</a> and <a href="privacy.html">Privacy Policy</a>.
+                    By signing up, you agree to our <a href="terms.html">Terms of Service</a>, <a href="privacy.html">Privacy Policy</a>, and <a href="coach-agreement.html">Coach Agreement</a>.
                 </div>
             </form>
 
@@ -684,9 +799,17 @@
             const name = document.getElementById('name').value.trim();
             const email = document.getElementById('email').value.trim();
             const plan = document.querySelector('input[name="plan"]:checked').value;
+            const agreeChecklist = document.getElementById('agreeChecklist').checked;
+            const agreeTerms = document.getElementById('agreeTerms').checked;
+            const agreeEligibility = document.getElementById('agreeEligibility').checked;
 
             if (!name || !email) {
                 showMessage('Please fill in all fields', 'error');
+                return;
+            }
+
+            if (!agreeChecklist || !agreeTerms || !agreeEligibility) {
+                showMessage('Please review and check all three boxes (Coach Agreement, Terms & Privacy, Eligibility) to continue.', 'error');
                 return;
             }
 
