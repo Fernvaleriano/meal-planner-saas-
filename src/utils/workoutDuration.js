@@ -160,20 +160,44 @@ export function clientWeightKg(clientData) {
   return isMetric ? raw : raw * LBS_TO_KG;
 }
 
-// MET values sourced from the 2011 Compendium of Physical Activities. The
-// published values already account for typical rest patterns within each
-// activity, so they're applied to the exercise's *total* elapsed time
-// (work + rest) rather than splitting work and rest separately.
+// MET values sourced from the 2011 Compendium of Physical Activities.
+//
+// IMPORTANT: these are applied to WORK seconds only — between-set rest gets
+// MET.rest and between-exercise transitions get MET.transition. Earlier
+// versions multiplied the activity MET by the entire elapsed time (work +
+// rest), which over-credited rest periods at the activity rate and produced
+// physiologically impossible totals (e.g. >20 kcal/min sustained) for any
+// workout with substantial inter-set rest. Splitting work and rest matches
+// how heart-rate-based trackers (Apple Watch, Fitbit) behave.
 const MET = {
-  warmup: 3.5,        // dynamic warm-up: jumping jacks, arm circles, light jog
-  cooldown: 2.3,      // static stretching, easy walking
-  flexibility: 2.5,   // yoga, mobility flows
-  cardio_high: 8.0,   // HIIT, vigorous intervals, calisthenics circuits
-  strength_mod: 5.0   // standard resistance training, multiple exercises
+  // Section-based defaults
+  warmup: 4.0,            // dynamic warm-up: jumping jacks, arm circles, light jog
+  cooldown: 2.3,          // static stretching, easy walking
+  flexibility: 2.5,       // yoga, mobility flows, foam rolling
+
+  // Cardio / conditioning (applied to work intervals)
+  cardio_moderate: 5.5,   // light bodyweight circuits, easy bag work
+  cardio_high: 8.0,       // HIIT, vigorous intervals, jump rope
+  cardio_vigorous: 10.0,  // sprints, burpees, kickboxing/martial-arts rounds
+
+  // Strength (applied to time under load)
+  strength_light: 3.5,    // resistance training, light effort, high reps
+  strength_mod: 5.0,      // standard resistance training, 8-12 reps
+  strength_heavy: 6.0,    // heavy compound lifts, ≤6 reps
+
+  // Non-active periods inside a workout
+  rest: 1.5,              // seated/standing recovery between sets
+  transition: 2.5         // walking between exercises / setting up
 };
 
+// Names that hint at vigorous sport-specific work even when only tagged as
+// generic "cardio" or "time"-tracked. Conservative list — false positives
+// just nudge a single exercise from MET 8 → 10.
+const VIGOROUS_NAME_RE = /\b(box|punch|kick|muay|sprint|jump\s*rope|burpee|battle\s*rope|sledgehammer|plyo)/i;
+
 /**
- * Pick a MET value for an exercise based on its section, type, and tracking.
+ * Pick a MET value for an exercise based on its section, type, tracking,
+ * and (as a tiebreaker) its name and rep target.
  */
 function getExerciseMET(ex) {
   const section = (ex.section || '').toLowerCase();
@@ -181,26 +205,43 @@ function getExerciseMET(ex) {
   if (section === 'cool-down' || section === 'cooldown') return MET.cooldown;
 
   const type = (ex.exercise_type || ex.type || '').toLowerCase();
-  if (type === 'cardio') return MET.cardio_high;
   if (type === 'flexibility' || type === 'stretching' || type === 'mobility') {
     return MET.flexibility;
   }
 
-  // Timed bodyweight moves (planks, mountain climbers, burpees, jumping jacks
-  // outside of an explicit warm-up section) are typically circuit-style.
-  if (ex.trackingType === 'time') return MET.cardio_high;
+  const name = ex.name || '';
+  const looksVigorous = VIGOROUS_NAME_RE.test(name);
 
-  // Default: moderate resistance training.
+  // Cardio / timed circuit work.
+  if (type === 'cardio' || type === 'interval' || ex.trackingType === 'time') {
+    if (looksVigorous) return MET.cardio_vigorous;
+    return MET.cardio_high;
+  }
+
+  // Strength: pick by rep target. Heavy (≤6 reps), light (≥15 reps or
+  // bodyweight high-rep), moderate otherwise.
+  const reps = parseRepsToNumber(ex.reps);
+  if (reps > 0) {
+    if (reps <= 6) return MET.strength_heavy;
+    if (reps >= 15) return MET.strength_light;
+  }
   return MET.strength_mod;
+}
+
+// Clamp body weight to a sane range so malformed profile data (e.g., a value
+// in pounds saved while unit_preference is "metric") can't blow up the result.
+function clampWeightKg(weightKg) {
+  const w = weightKg && weightKg > 0 && isFinite(weightKg) ? weightKg : DEFAULT_WEIGHT_KG;
+  return Math.max(30, Math.min(200, w));
 }
 
 /**
  * Estimate calories burned for a workout using the MET formula:
  *   kcal = MET × bodyWeightKg × hours
  *
- * Each exercise's MET is applied to its full elapsed time (work + rest) since
- * published MET values already account for typical rest cadence within an
- * activity.
+ * The activity MET is applied to work seconds only. Rest between sets gets
+ * MET.rest (~1.5, seated/standing recovery); transitions between exercises
+ * get MET.transition (~2.5, light walking).
  *
  * @param {Array} exercises – flat array of exercise objects
  * @param {Object} [options]
@@ -209,17 +250,27 @@ function getExerciseMET(ex) {
  */
 export function estimateWorkoutCalories(exercises, options = {}) {
   if (!exercises || exercises.length === 0) return 0;
-  const weight = options.weightKg && options.weightKg > 0 ? options.weightKg : DEFAULT_WEIGHT_KG;
+  const weight = clampWeightKg(options.weightKg);
 
   let metSeconds = 0;
+  let totalSeconds = 0;
   for (let i = 0; i < exercises.length; i++) {
     const ex = exercises[i];
     const { work, rest } = exerciseSeconds(ex, i === exercises.length - 1);
-    metSeconds += getExerciseMET(ex) * (work + rest);
+    metSeconds += getExerciseMET(ex) * work;
+    metSeconds += MET.rest * rest;
+    totalSeconds += work + rest;
   }
-  // Light walking between stations.
   if (exercises.length > 1) {
-    metSeconds += 2.5 * (exercises.length - 1) * TRANSITION_SECONDS;
+    const transitionSeconds = (exercises.length - 1) * TRANSITION_SECONDS;
+    metSeconds += MET.transition * transitionSeconds;
+    totalSeconds += transitionSeconds;
   }
-  return Math.round((metSeconds * weight) / 3600);
+
+  const kcal = (metSeconds * weight) / 3600;
+  // Final safety cap. Even elite athletes rarely sustain >18 kcal/min for a
+  // half-hour-plus workout. This guards against pathological exercise data
+  // (e.g., a single "exercise" with a thousand sets) producing a runaway total.
+  const cap = (totalSeconds / 60) * 18;
+  return Math.round(Math.min(kcal, cap));
 }

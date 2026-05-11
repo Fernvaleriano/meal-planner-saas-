@@ -5,18 +5,27 @@
 const DEFAULT_WEIGHT_KG = 75;
 const TRANSITION_SECONDS = 30;
 
-// MET values from the 2011 Compendium of Physical Activities. The published
-// values already account for typical rest patterns within each activity, so
-// they are applied to the exercise's *total* elapsed time (work + rest)
-// rather than splitting work and rest separately (which would double-count
-// the rest reduction).
+// MET values from the 2011 Compendium of Physical Activities.
+//
+// Applied to WORK seconds only — rest between sets gets MET.rest and
+// transitions between exercises get MET.transition. See the longer comment
+// in src/utils/workoutDuration.js for rationale (previous versions multiplied
+// the activity MET across work+rest and produced impossibly high totals).
 const MET = {
-  warmup: 3.5,
+  warmup: 4.0,
   cooldown: 2.3,
   flexibility: 2.5,
+  cardio_moderate: 5.5,
   cardio_high: 8.0,
-  strength_mod: 5.0
+  cardio_vigorous: 10.0,
+  strength_light: 3.5,
+  strength_mod: 5.0,
+  strength_heavy: 6.0,
+  rest: 1.5,
+  transition: 2.5
 };
+
+const VIGOROUS_NAME_RE = /\b(box|punch|kick|muay|sprint|jump\s*rope|burpee|battle\s*rope|sledgehammer|plyo)/i;
 
 function parseDurationSec(value) {
   if (typeof value === 'number' && value > 0) return value;
@@ -78,17 +87,42 @@ function exerciseSeconds(ex, isLast) {
   return { work: numSets * perSet, rest: restSets * restSeconds };
 }
 
+function parseRepsToNumber(reps) {
+  if (typeof reps === 'number' && reps > 0) return reps;
+  if (typeof reps === 'string') {
+    const range = reps.match(/(\d+)\s*[-–]\s*(\d+)/);
+    if (range) return parseInt(range[2], 10);
+    const n = parseInt(reps, 10);
+    if (!isNaN(n) && n > 0) return n;
+  }
+  return 0;
+}
+
 function getExerciseMET(ex) {
   const section = (ex.section || '').toLowerCase();
   if (section === 'warm-up' || section === 'warmup') return MET.warmup;
   if (section === 'cool-down' || section === 'cooldown') return MET.cooldown;
 
   const type = (ex.exercise_type || ex.type || '').toLowerCase();
-  if (type === 'cardio') return MET.cardio_high;
   if (type === 'flexibility' || type === 'stretching' || type === 'mobility') return MET.flexibility;
 
-  if (ex.trackingType === 'time') return MET.cardio_high;
+  const looksVigorous = VIGOROUS_NAME_RE.test(ex.name || '');
+
+  if (type === 'cardio' || type === 'interval' || ex.trackingType === 'time') {
+    return looksVigorous ? MET.cardio_vigorous : MET.cardio_high;
+  }
+
+  const reps = parseRepsToNumber(ex.reps);
+  if (reps > 0) {
+    if (reps <= 6) return MET.strength_heavy;
+    if (reps >= 15) return MET.strength_light;
+  }
   return MET.strength_mod;
+}
+
+function clampWeightKg(weightKg) {
+  const w = weightKg && weightKg > 0 && isFinite(weightKg) ? weightKg : DEFAULT_WEIGHT_KG;
+  return Math.max(30, Math.min(200, w));
 }
 
 function estimateWorkoutMinutes(exercises) {
@@ -104,21 +138,27 @@ function estimateWorkoutMinutes(exercises) {
 
 function estimateWorkoutCalories(exercises, weightKg = DEFAULT_WEIGHT_KG) {
   if (!exercises || exercises.length === 0) return 0;
+  const weight = clampWeightKg(weightKg);
 
-  // kcal = MET × kg × hours, applied per exercise across its whole time
-  // window (work + rest). Each exercise's MET reflects the published value
-  // for that activity, which already includes typical rest cadence.
+  // kcal = MET × kg × hours. Activity MET applies to work seconds only;
+  // rest between sets gets MET.rest and transitions get MET.transition.
   let metSeconds = 0;
+  let totalSeconds = 0;
   for (let i = 0; i < exercises.length; i++) {
     const ex = exercises[i];
     const { work, rest } = exerciseSeconds(ex, i === exercises.length - 1);
-    metSeconds += getExerciseMET(ex) * (work + rest);
+    metSeconds += getExerciseMET(ex) * work;
+    metSeconds += MET.rest * rest;
+    totalSeconds += work + rest;
   }
-  // Treat between-exercise transitions as light walking (~2.5 MET).
   if (exercises.length > 1) {
-    metSeconds += 2.5 * (exercises.length - 1) * TRANSITION_SECONDS;
+    const transitionSeconds = (exercises.length - 1) * TRANSITION_SECONDS;
+    metSeconds += MET.transition * transitionSeconds;
+    totalSeconds += transitionSeconds;
   }
-  return Math.round((metSeconds * weightKg) / 3600);
+  const kcal = (metSeconds * weight) / 3600;
+  const cap = (totalSeconds / 60) * 18;
+  return Math.round(Math.min(kcal, cap));
 }
 
 module.exports = {
