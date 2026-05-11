@@ -9882,9 +9882,24 @@
 
             } catch (error) {
                 console.error('Error loading client:', error);
-                console.warn('loadClient error - redirecting to manage-clients:', { clientId, error: error.message });
-                alert('Failed to load client');
-                window.location.href = 'manage-clients.html';
+                // Do NOT alert() + redirect on transient failures — a network
+                // blip or RLS hiccup would yank the coach out of the profile
+                // they're actively working on, making them think the client
+                // was deleted. Show an inline retry instead. The explicit
+                // !data "row not found" case above still redirects (that's
+                // a legitimate "this client doesn't exist" state).
+                const main = document.querySelector('.page-container');
+                if (main && !document.getElementById('loadClientError')) {
+                    const safeId = String(clientId).replace(/[^a-zA-Z0-9_-]/g, '');
+                    const errDiv = document.createElement('div');
+                    errDiv.id = 'loadClientError';
+                    errDiv.style.cssText = 'text-align:center;padding:60px 20px;max-width:480px;margin:60px auto;background:#fff;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,0.06);';
+                    errDiv.innerHTML = '<h2 style="margin-bottom:12px;">Couldn\'t load this client</h2>'
+                        + '<p style="color:#718096;margin-bottom:20px;">This is usually a temporary network issue. Your client is still in your account.</p>'
+                        + '<button onclick="document.getElementById(\'loadClientError\').remove(); loadClient(\'' + safeId + '\')" style="padding:10px 20px;background:#2dd4bf;color:white;border:none;border-radius:6px;font-weight:600;cursor:pointer;margin-right:8px;">Retry</button>'
+                        + '<button onclick="window.location.href=\'manage-clients.html\'" style="padding:10px 20px;background:#e2e8f0;color:#1a202c;border:none;border-radius:6px;font-weight:600;cursor:pointer;">Back to clients</button>';
+                    main.insertBefore(errDiv, main.firstChild);
+                }
             }
         }
 
