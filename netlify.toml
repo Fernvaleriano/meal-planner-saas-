@@ -2,6 +2,21 @@
   publish = "."
   command = "npm install && npm run build"
 
+# Old domain → new domain. Existing clients on PWA homescreen icons land on
+# ziquefitnessnutrition.com and need to be sent to ziquecoach.com so the
+# sender/link domain matches and the site URL stays consistent.
+[[redirects]]
+  from = "https://ziquefitnessnutrition.com/*"
+  to = "https://ziquecoach.com/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "https://www.ziquefitnessnutrition.com/*"
+  to = "https://ziquecoach.com/:splat"
+  status = 301
+  force = true
+
 # SPA routing - /app is the primary client portal
 [[redirects]]
   from = "/app"
