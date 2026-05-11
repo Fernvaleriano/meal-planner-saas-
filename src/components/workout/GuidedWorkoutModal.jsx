@@ -650,10 +650,37 @@ function GuidedWorkoutModal({
   // Save progress when closing mid-workout (not when completing)
   const handleCloseWithSave = useCallback(() => {
     if (phase !== 'complete') {
-      // Persist all exercise data so reps are visible in regular mode immediately
-      // Use ref to avoid temporal dead zone (persistExerciseData is declared later in the file)
+      // Persist only exercises the user actually touched. Untouched
+      // exercises would otherwise fire a keepalive POST/PUT each (12
+      // saves on a 12-exercise workout) that just rewrites the
+      // prescription defaults — racing each other and the current
+      // exercise's debounced flush.
+      //
+      // "Touched" = any of:
+      //   - at least one set marked done in this session
+      //   - exercise explicitly skipped (Bug 10's skip tracking)
+      //   - any set has weight / effort / rpe (cleanest signals of
+      //     user input — weight defaults to 0, effort/rpe to null)
+      //
+      // The typed-reps-only edge case (user changes rep count without
+      // marking complete) is covered by the resume payload saved
+      // below — those values are restored from localStorage on next
+      // open via the resume prompt.
+      const isTouched = (i) => {
+        if (completedSets[i]?.size > 0) return true;
+        if (skippedExercisesRef.current.has(i)) return true;
+        const logs = setLogs[i];
+        if (Array.isArray(logs)) {
+          if (logs.some(s => (s?.weight ?? 0) > 0 || s?.effort || s?.rpe)) return true;
+        }
+        return false;
+      };
       const persist = persistExerciseDataRef.current;
-      if (persist) exercises.forEach((_, i) => persist(i));
+      if (persist) {
+        exercises.forEach((_, i) => {
+          if (isTouched(i)) persist(i);
+        });
+      }
 
       // Serialize completedSets (Sets → arrays)
       const serializedCompleted = {};

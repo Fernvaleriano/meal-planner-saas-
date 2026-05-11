@@ -3,7 +3,7 @@ import { ChevronLeft, ChevronRight, Play, Clock, Flame, Check, CheckCircle, Dumb
 import { useNavigate, useLocation } from 'react-router-dom';
 import { warmUpTickSound, installGlobalAudioUnlock } from '../utils/audioTick';
 import { useAuth } from '../context/AuthContext';
-import { apiGet, apiPost, apiPut, apiDelete, enableSwCacheBypass } from '../utils/api';
+import { apiGet, apiPost, apiPut, apiDelete, enableSwCacheBypass, getCachedAccessToken } from '../utils/api';
 import { onAppResume } from '../hooks/useAppLifecycle';
 import ExerciseCard from '../components/workout/ExerciseCard';
 import ExerciseDetailModal from '../components/workout/ExerciseDetailModal';
@@ -930,24 +930,18 @@ function Workouts() {
       if (!workout?.id) return;
 
       try {
-        // Use fetch with keepalive to ensure request completes even if page is unloading
-        const token = document.cookie.match(/sb-.*-auth-token=([^;]+)/)?.[1];
-        const headers = { 'Content-Type': 'application/json' };
-
-        // Try to get auth token from supabase session in localStorage
-        let authToken = null;
-        try {
-          const keys = Object.keys(localStorage);
-          const sbKey = keys.find(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
-          if (sbKey) {
-            const session = JSON.parse(localStorage.getItem(sbKey));
-            authToken = session?.access_token || session?.currentSession?.access_token;
-          }
-        } catch (e) { /* ignore */ }
-
-        if (authToken) {
-          headers['Authorization'] = `Bearer ${authToken}`;
-        }
+        // Use fetch with keepalive to ensure request completes even if page
+        // is unloading. Read the access token from the in-memory session
+        // cache (kept hot by every API call + TOKEN_REFRESHED prime in Bug
+        // 15) and skip with a stale-token check baked in — firing a
+        // keepalive with an expired JWT just yields a silent 401 and loses
+        // the save. The normal apiPut path retains its own refresh/retry.
+        const authToken = getCachedAccessToken();
+        if (!authToken) return;
+        const headers = {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
+        };
 
         if (workout.is_adhoc) {
           const isRealId = workout.id && !String(workout.id).startsWith('adhoc-') && !String(workout.id).startsWith('custom-');
@@ -2750,15 +2744,10 @@ function Workouts() {
     // (PUT overwrites the same workout_data), so a second identical write
     // is a no-op on the server side.
     try {
-      let authToken = null;
-      try {
-        const keys = Object.keys(localStorage);
-        const sbKey = keys.find(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
-        if (sbKey) {
-          const session = JSON.parse(localStorage.getItem(sbKey));
-          authToken = session?.access_token || session?.currentSession?.access_token;
-        }
-      } catch { /* ignore */ }
+      // Skip the keepalive backup when no fresh token is in the cache —
+      // firing with a stale Authorization just yields a silent 401.
+      // The normal apiPut path running alongside has its own refresh.
+      const authToken = getCachedAccessToken();
       if (authToken) {
         const headers = {
           'Content-Type': 'application/json',
@@ -2868,15 +2857,7 @@ function Workouts() {
         // finish in the background even after the WebView is torn down.
         const fireKeepalivePut = (id) => {
           try {
-            let authToken = null;
-            try {
-              const keys = Object.keys(localStorage);
-              const sbKey = keys.find(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
-              if (sbKey) {
-                const session = JSON.parse(localStorage.getItem(sbKey));
-                authToken = session?.access_token || session?.currentSession?.access_token;
-              }
-            } catch { /* ignore */ }
+            const authToken = getCachedAccessToken();
             if (!authToken) return;
             fetch('/.netlify/functions/workout-logs', {
               method: 'PUT',
@@ -2914,15 +2895,7 @@ function Workouts() {
         // Bulletproof against app-kill even on first-of-day saves.
         const fireKeepalivePost = () => {
           try {
-            let authToken = null;
-            try {
-              const keys = Object.keys(localStorage);
-              const sbKey = keys.find(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
-              if (sbKey) {
-                const session = JSON.parse(localStorage.getItem(sbKey));
-                authToken = session?.access_token || session?.currentSession?.access_token;
-              }
-            } catch { /* ignore */ }
+            const authToken = getCachedAccessToken();
             if (!authToken) return;
             fetch('/.netlify/functions/workout-logs', {
               method: 'POST',

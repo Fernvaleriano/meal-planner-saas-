@@ -270,6 +270,34 @@ async function refreshSession() {
  * After clearing, the next getAuthToken() call will fetch a fresh session
  * from Supabase instead of using a potentially stale cached token.
  */
+/**
+ * Synchronously return the cached access_token if it is present, the cache
+ * is still fresh per SESSION_CACHE_TTL, and the JWT itself is not within
+ * 30 seconds of expiry. Otherwise null.
+ *
+ * Designed for the keepalive flush paths in Workouts.jsx, which must run
+ * during visibilitychange:hidden / page-unload windows where an async
+ * supabase.auth.getSession() round-trip may not complete before the page
+ * is suspended. The in-memory sessionCache is kept hot by every normal
+ * API call, refreshSession resolutions, and the TOKEN_REFRESHED prime
+ * added in Bug 15 — so reading it synchronously is safe and current.
+ * If this returns null the caller should SKIP the keepalive (rather than
+ * fire with a stale Authorization header and have the server 401 silently);
+ * the normal apiPut path has its own refresh/retry chain and will pick up
+ * the save when the app comes back.
+ */
+export function getCachedAccessToken() {
+  const now = Date.now();
+  if (!sessionCache.session) return null;
+  if ((now - sessionCache.timestamp) >= SESSION_CACHE_TTL) return null;
+  const expiresAt = sessionCache.session.expires_at;
+  if (typeof expiresAt === 'number') {
+    const expiryTime = expiresAt * 1000;
+    if (expiryTime - now < 30000) return null;
+  }
+  return sessionCache.session.access_token || null;
+}
+
 export function clearSessionCache() {
   sessionCache = { session: null, timestamp: 0, refreshPromise: null };
   inflightGetSessionPromise = null;
