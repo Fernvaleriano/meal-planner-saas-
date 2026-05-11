@@ -1,11 +1,12 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 const DEFAULT_LOGO = 'https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/ziquecoach-logo-white.png';
 const DEFAULT_PRIMARY = '#2cb5a5';
+const DEFAULT_BRAND_NAME = 'Ziquecoach';
 
 /**
  * Get coach branding from sessionStorage cache (set by branding.js or the SPA).
- * Returns { logoUrl, primaryColor } or defaults.
+ * Returns { logoUrl, primaryColor, brandName } or defaults.
  */
 function getCachedBranding() {
   try {
@@ -16,6 +17,7 @@ function getCachedBranding() {
     return {
       logoUrl: branding.brand_logo_url || null,
       primaryColor: branding.brand_primary_color || null,
+      brandName: branding.brand_name || null,
     };
   } catch {
     return null;
@@ -26,16 +28,24 @@ function LoadingScreen() {
   const branding = useMemo(() => getCachedBranding(), []);
   const logoUrl = branding?.logoUrl || DEFAULT_LOGO;
   const primaryColor = branding?.primaryColor || DEFAULT_PRIMARY;
+  const brandName = branding?.brandName || DEFAULT_BRAND_NAME;
   const spinnerBorderColor = primaryColor + '33'; // 20% opacity
+  const [logoFailed, setLogoFailed] = useState(false);
+  useEffect(() => { setLogoFailed(false); }, [logoUrl]);
 
   return (
     <div className="loading-screen">
       <div className="loading-content">
-        <img
-          src={logoUrl}
-          alt="Loading"
-          className="loading-logo"
-        />
+        {!logoFailed ? (
+          <img
+            src={logoUrl}
+            alt={brandName}
+            className="loading-logo"
+            onError={() => setLogoFailed(true)}
+          />
+        ) : (
+          <div className="loading-logo-fallback">{brandName}</div>
+        )}
         <div className="loading-spinner-container">
           <div
             className="loading-spinner-ring"
@@ -71,6 +81,16 @@ function LoadingScreen() {
         .loading-logo {
           width: 100px;
           height: auto;
+          animation: logoPulse 2s ease-in-out infinite;
+        }
+
+        .loading-logo-fallback {
+          color: #fff;
+          font-size: 1.5rem;
+          font-weight: 700;
+          letter-spacing: 0.5px;
+          text-align: center;
+          padding: 0 16px;
           animation: logoPulse 2s ease-in-out infinite;
         }
 

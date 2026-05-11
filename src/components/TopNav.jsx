@@ -32,6 +32,7 @@ function TopNav() {
   const [logoFailed, setLogoFailed] = useState(false);
   const logoUrl = branding?.brand_logo_url || DEFAULT_LOGO_URL;
   const logoAlt = branding?.brand_name || 'Ziquecoach';
+  useEffect(() => { setLogoFailed(false); }, [logoUrl]);
   const [unreadCount, setUnreadCount] = useState(() => {
     if (notificationCache.data &&
         notificationCache.clientId === clientData?.id &&
@@ -203,13 +204,15 @@ function TopNav() {
     <nav className="top-nav">
       {/* Brand logo — coach's custom logo if set, otherwise Ziquecoach default */}
       <Link to="/" className="nav-left" aria-label="Home">
-        {!logoFailed && (
+        {!logoFailed ? (
           <img
             src={logoUrl}
             alt={logoAlt}
             className="nav-logo-left"
             onError={() => setLogoFailed(true)}
           />
+        ) : (
+          <span className="nav-logo-fallback">{logoAlt}</span>
         )}
       </Link>
       <div className="nav-center"></div>
