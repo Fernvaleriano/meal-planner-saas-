@@ -228,7 +228,7 @@ ${APP_URL}/form-responses.html
         summaryLabel3 = 'Agency';
         summaryLabel4 = 'Type';
     } else {
-        headerGradient = 'linear-gradient(135deg, #2cb5a5 0%, #0284c7 100%)';
+        headerGradient = 'linear-gradient(135deg, #2cb5a5 0%, #178072 100%)';
         headerTitle = 'New Application!';
         summaryLabel3 = 'Goal';
         summaryLabel4 = 'Commitment';

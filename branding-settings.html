@@ -17,9 +17,9 @@
         :root {
             --brand-primary: #2cb5a5;
             --brand-primary-dark: #22998a;
-            --brand-secondary: #0284c7;
+            --brand-secondary: #178072;
             --brand-accent: #10b981;
-            --brand-gradient: linear-gradient(135deg, #2cb5a5 0%, #0284c7 100%);
+            --brand-gradient: linear-gradient(135deg, #2cb5a5 0%, #178072 100%);
             --gray-50: #f8fafc;
             --gray-100: #f1f5f9;
             --gray-200: #e2e8f0;
@@ -1459,8 +1459,8 @@
                         <div class="color-picker-item">
                             <label class="form-label">Secondary Color</label>
                             <div class="color-picker-wrapper">
-                                <div class="color-swatch" id="secondarySwatch" style="background: #0284c7;"></div>
-                                <input type="text" class="color-hex-input" id="secondaryColor" value="#0284c7" maxlength="7">
+                                <div class="color-swatch" id="secondarySwatch" style="background: #178072;"></div>
+                                <input type="text" class="color-hex-input" id="secondaryColor" value="#178072" maxlength="7">
                             </div>
                         </div>
 
@@ -1843,7 +1843,7 @@
         let currentBranding = {
             brand_name: '',
             brand_primary_color: '#2cb5a5',
-            brand_secondary_color: '#0284c7',
+            brand_secondary_color: '#178072',
             brand_accent_color: '#10b981',
             brand_logo_url: null,
             brand_favicon_url: null,
@@ -1857,7 +1857,7 @@
 
         // Color presets
         const COLOR_PRESETS = [
-            { name: 'Teal', primary: '#2cb5a5', secondary: '#0284c7', accent: '#10b981' },
+            { name: 'Teal', primary: '#2cb5a5', secondary: '#178072', accent: '#10b981' },
             { name: 'Blue', primary: '#3b82f6', secondary: '#6366f1', accent: '#8b5cf6' },
             { name: 'Purple', primary: '#8b5cf6', secondary: '#a855f7', accent: '#d946ef' },
             { name: 'Red', primary: '#ef4444', secondary: '#f97316', accent: '#eab308' },
@@ -1923,7 +1923,7 @@
                 currentBranding = {
                     brand_name: coach.brand_name || '',
                     brand_primary_color: coach.brand_primary_color || '#2cb5a5',
-                    brand_secondary_color: coach.brand_secondary_color || '#0284c7',
+                    brand_secondary_color: coach.brand_secondary_color || '#178072',
                     brand_accent_color: coach.brand_accent_color || '#10b981',
                     brand_logo_url: coach.brand_logo_url || null,
                     brand_favicon_url: coach.brand_favicon_url || null,
@@ -2353,7 +2353,7 @@
             currentBranding = {
                 brand_name: '',
                 brand_primary_color: '#2cb5a5',
-                brand_secondary_color: '#0284c7',
+                brand_secondary_color: '#178072',
                 brand_accent_color: '#10b981',
                 brand_logo_url: null,
                 brand_favicon_url: null,
@@ -2365,14 +2365,14 @@
             // Update form
             document.getElementById('brandName').value = '';
             document.getElementById('primaryColor').value = '#2cb5a5';
-            document.getElementById('secondaryColor').value = '#0284c7';
+            document.getElementById('secondaryColor').value = '#178072';
             document.getElementById('accentColor').value = '#10b981';
             document.getElementById('emailFooter').value = '';
             setClientThemeSelection('dark');
 
             // Update pickers (Pickr replaces original swatch elements, so use Pickr API)
             if (colorPickers.primary) colorPickers.primary.setColor('#2cb5a5');
-            if (colorPickers.secondary) colorPickers.secondary.setColor('#0284c7');
+            if (colorPickers.secondary) colorPickers.secondary.setColor('#178072');
             if (colorPickers.accent) colorPickers.accent.setColor('#10b981');
 
             // Update logo previews

@@ -27,7 +27,7 @@ const TERMINOLOGY_OPTIONS = [
 ];
 
 const COLOR_PRESETS = [
-  { name: 'Teal', primary: '#2cb5a5', secondary: '#0284c7', accent: '#10b981' },
+  { name: 'Teal', primary: '#2cb5a5', secondary: '#178072', accent: '#10b981' },
   { name: 'Blue', primary: '#2563eb', secondary: '#3b82f6', accent: '#06b6d4' },
   { name: 'Purple', primary: '#7c3aed', secondary: '#8b5cf6', accent: '#a78bfa' },
   { name: 'Red', primary: '#dc2626', secondary: '#ef4444', accent: '#f97316' },
@@ -314,7 +314,7 @@ function BrandingSettings() {
 
   // Live preview values
   const previewPrimary = form.brand_primary_color || '#2cb5a5';
-  const previewSecondary = form.brand_secondary_color || '#0284c7';
+  const previewSecondary = form.brand_secondary_color || '#178072';
   const previewAccent = form.brand_accent_color || '#10b981';
   const previewBg = form.brand_bg_color || '#0f172a';
   const previewCard = form.brand_card_color || '#1e293b';
@@ -473,7 +473,7 @@ function BrandingSettings() {
 
             <div className="bs-color-grid">
               <ColorInput label="Primary" value={form.brand_primary_color} onChange={v => updateForm('brand_primary_color', v)} placeholder="#2cb5a5" />
-              <ColorInput label="Secondary" value={form.brand_secondary_color} onChange={v => updateForm('brand_secondary_color', v)} placeholder="#0284c7" />
+              <ColorInput label="Secondary" value={form.brand_secondary_color} onChange={v => updateForm('brand_secondary_color', v)} placeholder="#178072" />
               <ColorInput label="Accent" value={form.brand_accent_color} onChange={v => updateForm('brand_accent_color', v)} placeholder="#10b981" />
             </div>
 

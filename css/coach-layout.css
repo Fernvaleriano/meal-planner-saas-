@@ -3,8 +3,8 @@
 :root {
     --brand-primary: #2cb5a5;
     --brand-primary-dark: #22998a;
-    --brand-secondary: #0284c7;
-    --brand-gradient: linear-gradient(135deg, #2cb5a5 0%, #0284c7 100%);
+    --brand-secondary: #178072;
+    --brand-gradient: linear-gradient(135deg, #2cb5a5 0%, #178072 100%);
     --sidebar-width: 260px;
     --sidebar-width-collapsed: 76px;
     --header-height: 64px;
