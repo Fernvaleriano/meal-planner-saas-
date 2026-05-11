@@ -475,6 +475,14 @@ function getCompletedFromWorkoutData(workoutData, dayIndex = 0, workoutId = null
       }
     } catch (e) { /* ignore */ }
   }
+  // Drop completion IDs for exercises that no longer exist in the workout
+  // (deleted or swapped), otherwise summary shows "5 of 3 completed".
+  const activeIds = new Set(exercises.filter(ex => ex?.id).map(ex => ex.id));
+  if (activeIds.size > 0) {
+    for (const id of [...fromData]) {
+      if (!activeIds.has(id)) fromData.delete(id);
+    }
+  }
   // Explicit unchecks beat auto-completion sources.
   const overrides = getUncheckedOverrides(workoutId, dayIndex);
   overrides.forEach(id => fromData.delete(id));
@@ -776,6 +784,10 @@ function Workouts() {
   // cardMenuWorkoutId in deps so the closure always sees the current value
   useEffect(() => {
     const handleClickOutside = (event) => {
+      // Bail when the Workouts tab isn't the active route — the listener
+      // is attached at the document level, so without this guard it would
+      // fire on /dashboard, /diary, etc. and toggle menus that aren't visible.
+      if (!isOnWorkoutsRef.current) return;
       if (menuRef.current && !menuRef.current.contains(event.target)) {
         setShowMenu(false);
       }
@@ -2606,6 +2618,12 @@ function Workouts() {
     const workout = todayWorkoutRef.current;
     if (!workout?.workout_data || !updatedExercise) return;
 
+    // Snapshot the operation date ONCE up front. Re-reading
+    // selectedDateRef / new Date() at each cache-write site can land
+    // today's data under yesterday's key when the user happens to be
+    // saving across midnight.
+    const operationDateStr = formatDate(selectedDateRef.current || new Date());
+
     // Auto-mark exercise as completed only when ALL sets have been explicitly completed
     // (i.e., each set has completed: true). This prevents false positives from default
     // reps/weight values when play mode persists exercise data on early exit.
@@ -2797,7 +2815,7 @@ function Workouts() {
     // Without this, a reopen re-reads the stale cache and waits for the
     // server fetch to catch up — that's the "I see my edit eventually" lag.
     try {
-      const cacheKey = `workouts_${workout.client_id || clientDataRef.current?.id}_${workout.workout_date || formatDate(selectedDateRef.current || new Date())}`;
+      const cacheKey = `workouts_${workout.client_id || clientDataRef.current?.id}_${workout.workout_date || operationDateStr}`;
       const existingCache = getCache(cacheKey) || {};
       setCache(cacheKey, {
         ...existingCache,
@@ -2835,7 +2853,7 @@ function Workouts() {
         const currentClientId = clientDataRef.current?.id || workout.client_id;
         if (!currentClientId || !updatedExercise?.id || !Array.isArray(updatedExercise.sets)) return;
 
-        const dateStr = formatDate(selectedDateRef.current || new Date());
+        const dateStr = operationDateStr;
         const LOG_ID_KEY = `workout-log-id-${currentClientId}-${dateStr}`;
 
         // Prefer in-memory state; fall back to localStorage cache from a
