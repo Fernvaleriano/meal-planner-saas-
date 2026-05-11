@@ -433,6 +433,7 @@ function GuidedWorkoutModal({
   const currentSetIndexRef = useRef(currentSetIndex);
   const completedSetsRef = useRef(completedSets);
   const setLogsRef = useRef(setLogs);
+  const isPausedRef = useRef(isPaused);
 
   // Client voice note recording refs
   const mediaRecorderRef = useRef(null);
@@ -468,6 +469,7 @@ function GuidedWorkoutModal({
   currentSetIndexRef.current = currentSetIndex;
   completedSetsRef.current = completedSets;
   setLogsRef.current = setLogs;
+  isPausedRef.current = isPaused;
   skippedQueueRef.current = skippedQueue;
   pendingNextExIdxRef.current = pendingNextExIdx;
   isPlayingDeferredRef.current = isPlayingDeferred;
@@ -2533,12 +2535,28 @@ function GuidedWorkoutModal({
           if (nextRep <= 0) {
             setRepCountdownActive(false);
             setTimeout(() => speak('Set complete. Log your set and rest up.', voiceEnabled), 300);
-            // Auto-advance to rest — client can log during rest
+            // Auto-advance to rest — client can log during rest. The 0ms
+            // setTimeout lets the setCurrentRep state update flush before
+            // doMarkSetDone fires its own state changes.
+            //
+            // Capture the indices at scheduling time and re-validate on
+            // fire: a pause / swap / navigation / unmount in the
+            // microseconds between scheduling and firing must NOT mark
+            // a set done on the wrong exercise (or at all). The
+            // cleanup of this effect intentionally does NOT clear this
+            // timeout — the cleanup also runs on the normal
+            // currentRep → 0 re-render, and clearing there would cancel
+            // the legitimate set-complete.
+            const expectedExIdx = currentExIndexRef.current;
+            const expectedSetIdx = currentSetIndexRef.current;
             setTimeout(() => {
-              const exIdx = currentExIndexRef.current;
-              const setIdx = currentSetIndexRef.current;
-              const exInfo = getExerciseInfo(exIdx);
-              doMarkSetDoneRef.current(exIdx, setIdx, exInfo);
+              if (!isMountedRef.current) return;
+              if (isPausedRef.current) return;
+              if (phaseRef.current !== 'exercise') return;
+              if (currentExIndexRef.current !== expectedExIdx) return;
+              if (currentSetIndexRef.current !== expectedSetIdx) return;
+              const exInfo = getExerciseInfo(expectedExIdx);
+              doMarkSetDoneRef.current(expectedExIdx, expectedSetIdx, exInfo);
             }, 0);
             return 0;
           }
