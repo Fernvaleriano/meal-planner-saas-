@@ -1173,8 +1173,24 @@ Ingredients: 6oz chicken breast, 2 cups mixed greens, 1/2 avocado, cherry tomato
 
             } catch (error) {
                 console.error('Error loading recipes:', error);
-                // Table might not exist yet
-                displayRecipes();
+                if (allRecipes.length === 0) {
+                    // First-load failure — calling displayRecipes() here would
+                    // render the "No recipes yet" empty state, misleading a
+                    // coach who actually has a recipe library that just
+                    // failed to load. Show an explicit error with retry.
+                    const container = document.getElementById('recipesContainer');
+                    if (container) {
+                        container.innerHTML = '<div class="empty-state">'
+                            + '<div class="empty-state-icon">⚠️</div>'
+                            + '<h3>Couldn\'t load recipes</h3>'
+                            + '<p>This is usually a temporary network issue. Your recipe library is still in your account.</p>'
+                            + '<button class="btn-primary" onclick="loadRecipes()">Retry</button>'
+                            + '</div>';
+                    }
+                } else {
+                    // Refresh failure with prior data in memory — keep showing it.
+                    displayRecipes();
+                }
             }
         }
 

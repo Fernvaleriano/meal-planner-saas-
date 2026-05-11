@@ -7971,8 +7971,11 @@
                 renderProgramList();
             } catch (err) {
                 console.error('Error loading programs:', err);
-                programs = [];
-                renderProgramList();
+                // Do NOT reset `programs` to [] — selectProgram() and the
+                // URL ?programId= resolver both read from it. Wiping the
+                // array on a transient failure makes the coach's programs
+                // appear deleted. Leave prior value intact; toast for feedback.
+                showToast('Could not refresh workout programs. Check your connection.', 'error');
             }
         }
 
@@ -9472,8 +9475,11 @@
                 console.log('Loaded global exercise references:', Object.keys(globalExerciseReferences).length);
             } catch (err) {
                 console.error('Error loading global exercise references:', err);
-                globalExerciseReferences = {};
-                globalRefsLoaded = true;
+                // Do NOT reset globalExerciseReferences to {} — that wipes any
+                // previously-loaded refs. Do NOT set globalRefsLoaded = true —
+                // downstream readers gate on this flag, so lying about success
+                // makes them silently return [] for every exercise and the
+                // coach's saved per-exercise reference videos/notes disappear.
             }
         }
 
