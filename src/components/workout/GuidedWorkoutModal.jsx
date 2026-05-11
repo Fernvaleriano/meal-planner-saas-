@@ -1933,7 +1933,14 @@ function GuidedWorkoutModal({
       // Belt-and-suspenders for Capacitor: `visibilitychange` isn't always
       // reliable on native wrappers. If we have an active timer deadline and
       // the interval was killed during suspend, resync and restart it here.
-      if (endTimeRef.current) {
+      //
+      // Skip when the user paused the timer — the visibilitychange handler
+      // at line ~1980 gates on !isPaused the same way; without this guard
+      // a paused cardio interval that hit its end time during background
+      // would auto-complete on resume even though the user had stopped it.
+      // Read isPausedRef.current (not closure) because this effect's deps
+      // are [] and the closure would be stale.
+      if (endTimeRef.current && !isPausedRef.current) {
         const remaining = Math.ceil((endTimeRef.current - Date.now()) / 1000);
         if (remaining <= 0) {
           if (intervalRef.current) {
