@@ -1,10 +1,10 @@
 /* Coach Dashboard Shared Styles - Sidebar Layout */
 
 :root {
-    --brand-primary: #0d9488;
-    --brand-primary-dark: #0f766e;
+    --brand-primary: #2cb5a5;
+    --brand-primary-dark: #22998a;
     --brand-secondary: #0284c7;
-    --brand-gradient: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
+    --brand-gradient: linear-gradient(135deg, #2cb5a5 0%, #0284c7 100%);
     --sidebar-width: 260px;
     --sidebar-width-collapsed: 76px;
     --header-height: 64px;

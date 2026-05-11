@@ -280,7 +280,7 @@ exports.handler = async (event, context) => {
                             completedWorkouts,
                             plannedWorkouts,
                             isExpired,
-                            primaryColor: coach.brand_primary_color || '#0d9488',
+                            primaryColor: coach.brand_primary_color || '#2cb5a5',
                             brandName: coach.brand_name || 'Ziquecoach',
                             logoUrl: coach.brand_email_logo_url || coach.brand_logo_url
                         });
@@ -359,7 +359,7 @@ function generateProgramEndEmail({
     completedWorkouts,
     plannedWorkouts,
     isExpired,
-    primaryColor = '#0d9488',
+    primaryColor = '#2cb5a5',
     brandName = 'Ziquecoach',
     logoUrl
 }) {

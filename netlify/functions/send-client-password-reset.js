@@ -132,7 +132,7 @@ exports.handler = async (event, context) => {
 
     const coachName = coach?.full_name || coach?.name || coach?.email || 'Your Coach';
     const hasBranding = ['professional', 'branded'].includes(coach?.subscription_tier);
-    const primaryColor = (hasBranding && coach?.brand_primary_color) || '#0d9488';
+    const primaryColor = (hasBranding && coach?.brand_primary_color) || '#2cb5a5';
     const brandName = (hasBranding && coach?.brand_name) || 'Ziquecoach';
     const footerText = (hasBranding && coach?.brand_email_footer) || brandName;
     const logoUrl = hasBranding ? (coach?.brand_email_logo_url || coach?.brand_logo_url) : null;

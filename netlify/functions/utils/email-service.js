@@ -217,7 +217,7 @@ function generateReminderEmail({
     const footerText = whiteLabel ? coachName : 'Ziquecoach';
     const footerHtml = whiteLabel
         ? `<p>${coachName}</p>`
-        : `<p>Ziquecoach</p><p><a href="${APP_URL}" style="color: #0d9488;">Visit Dashboard</a></p>`;
+        : `<p>Ziquecoach</p><p><a href="${APP_URL}" style="color: #2cb5a5;">Visit Dashboard</a></p>`;
 
     // Default message
     let textBody = `Hi ${clientName},
@@ -250,7 +250,7 @@ ${footerText}`;
     }
 
     // Get branding colors with fallbacks
-    const primaryColor = branding.brand_primary_color || '#0d9488';
+    const primaryColor = branding.brand_primary_color || '#2cb5a5';
     const brandName = branding.brand_name || (whiteLabel ? coachName : 'Ziquecoach');
     const logoUrl = branding.brand_email_logo_url || branding.brand_logo_url;
 
@@ -385,7 +385,7 @@ function generateInvitationEmail({
     branding = {}
 }) {
     // Get branding colors with fallbacks
-    const primaryColor = branding.brand_primary_color || '#0d9488';
+    const primaryColor = branding.brand_primary_color || '#2cb5a5';
     const brandName = branding.brand_name || (whiteLabel ? coachName : 'Ziquecoach');
     const logoUrl = branding.brand_email_logo_url || branding.brand_logo_url;
 
@@ -604,7 +604,7 @@ ${footerText}`;
     <title>${subject}</title>
 </head>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8fafc;">
-    <div style="background-color: #0d9488; padding: 40px 30px; border-radius: 12px 12px 0 0; text-align: center;">
+    <div style="background-color: #2cb5a5; padding: 40px 30px; border-radius: 12px 12px 0 0; text-align: center;">
         <h1 style="color: #ffffff; margin: 0; font-size: 28px;">${welcomeTitle}</h1>
         <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0; font-size: 16px;">${welcomeSubtitle}</p>
     </div>
@@ -617,11 +617,11 @@ ${footerText}`;
         <p style="margin-bottom: 20px;">To get started, please complete your profile. This will help your coach create a personalized meal plan just for you.</p>
 
         <div style="text-align: center; margin: 35px 0;">
-            <a href="${intakeFormUrl}" style="display: inline-block; background-color: #0d9488; color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-weight: 600; font-size: 18px; box-shadow: 0 4px 14px rgba(13, 148, 136, 0.4);">Complete Your Profile</a>
+            <a href="${intakeFormUrl}" style="display: inline-block; background-color: #2cb5a5; color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-weight: 600; font-size: 18px; box-shadow: 0 4px 14px rgba(13, 148, 136, 0.4);">Complete Your Profile</a>
         </div>
 
-        <div style="background-color: #f0fdfa; padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #0d9488;">
-            <p style="font-weight: 600; margin: 0 0 12px 0; color: #0f766e; font-size: 16px;">You'll be asked to provide:</p>
+        <div style="background-color: #f0fdfa; padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #2cb5a5;">
+            <p style="font-weight: 600; margin: 0 0 12px 0; color: #22998a; font-size: 16px;">You'll be asked to provide:</p>
             <ul style="margin: 0; padding-left: 20px; color: #334155;">
                 <li style="margin-bottom: 8px;">Basic information (name, contact details)</li>
                 <li style="margin-bottom: 8px;">Physical stats (weight, height, activity level)</li>
@@ -976,7 +976,7 @@ ${APP_URL}`;
     <title>${subject}</title>
 </head>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8fafc;">
-    <div style="background-color: #0d9488; padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
+    <div style="background-color: #2cb5a5; padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
         <h1 style="color: #ffffff; margin: 0; font-size: 24px;">Welcome Back!</h1>
         <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0;">Your subscription is active</p>
     </div>
@@ -999,7 +999,7 @@ ${APP_URL}`;
         <p style="margin-bottom: 25px;">Everything is right where you left it. Your clients can continue accessing their portals immediately.</p>
 
         <div style="text-align: center; margin: 30px 0;">
-            <a href="${APP_URL}/dashboard.html" style="display: inline-block; background-color: #0d9488; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 16px;">Go to Dashboard</a>
+            <a href="${APP_URL}/dashboard.html" style="display: inline-block; background-color: #2cb5a5; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 16px;">Go to Dashboard</a>
         </div>
 
         <p style="margin-top: 30px; color: #64748b;">
@@ -1184,7 +1184,7 @@ ${APP_URL}`;
     <title>${subject}</title>
 </head>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8fafc;">
-    <div style="background-color: #0d9488; padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
+    <div style="background-color: #2cb5a5; padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
         <h1 style="color: #ffffff; margin: 0; font-size: 24px;">Trial Ending Soon</h1>
         <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0;">${daysLeft} day${daysLeft === 1 ? '' : 's'} remaining</p>
     </div>
@@ -1199,7 +1199,7 @@ ${APP_URL}`;
         </div>
 
         <div style="text-align: center; margin: 30px 0;">
-            <a href="${APP_URL}/billing.html" style="display: inline-block; background-color: #0d9488; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 16px;">Add Payment Method</a>
+            <a href="${APP_URL}/billing.html" style="display: inline-block; background-color: #2cb5a5; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 16px;">Add Payment Method</a>
         </div>
 
         <p style="margin-bottom: 15px; color: #64748b;"><strong>After your trial ends, you'll need an active subscription to:</strong></p>
@@ -1282,7 +1282,7 @@ View in Stripe: https://dashboard.stripe.com/customers
 <html>
 <head><meta charset="utf-8"></head>
 <body style="font-family: -apple-system, sans-serif; padding: 20px;">
-    <div style="background-color: #0d9488; padding: 20px; border-radius: 8px 8px 0 0;">
+    <div style="background-color: #2cb5a5; padding: 20px; border-radius: 8px 8px 0 0;">
         <h2 style="color: #ffffff; margin: 0;">New Coach Signup!</h2>
     </div>
     <div style="background: #f8fafc; padding: 20px; border: 1px solid #e2e8f0; border-radius: 0 0 8px 8px;">
@@ -1331,7 +1331,7 @@ Date: ${new Date().toLocaleString()}
 <html>
 <head><meta charset="utf-8"></head>
 <body style="font-family: -apple-system, sans-serif; padding: 20px;">
-    <div style="background: ${isReactivation ? '#10b981' : '#0d9488'}; padding: 20px; border-radius: 8px 8px 0 0;">
+    <div style="background: ${isReactivation ? '#10b981' : '#2cb5a5'}; padding: 20px; border-radius: 8px 8px 0 0;">
         <h2 style="color: #ffffff; margin: 0;">${isReactivation ? 'Coach Reactivated!' : 'New Payment!'}</h2>
     </div>
     <div style="background: #f8fafc; padding: 20px; border: 1px solid #e2e8f0; border-radius: 0 0 8px 8px;">
@@ -1437,7 +1437,7 @@ ${APP_URL}`;
 <body style="font-family: Arial, Helvetica, sans-serif; line-height: 1.6; color: #333333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8fafc;">
     <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width: 600px; margin: 0 auto;">
         <tr>
-            <td style="background-color: #0d9488; padding: 40px 30px; border-radius: 12px 12px 0 0; text-align: center;">
+            <td style="background-color: #2cb5a5; padding: 40px 30px; border-radius: 12px 12px 0 0; text-align: center;">
                 <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: bold;">Welcome to Ziquecoach!</h1>
                 <p style="color: #e0f2f1; margin: 10px 0 0 0; font-size: 16px;">Your ${planName} subscription is active</p>
             </td>
@@ -1451,17 +1451,17 @@ ${APP_URL}`;
                 <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 35px 0;">
                     <tr>
                         <td align="center">
-                            <a href="${resetLink}" style="display: inline-block; background-color: #0d9488; color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-weight: bold; font-size: 18px;">Set Up Your Password</a>
+                            <a href="${resetLink}" style="display: inline-block; background-color: #2cb5a5; color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-weight: bold; font-size: 18px;">Set Up Your Password</a>
                         </td>
                     </tr>
                 </table>
 
                 <p style="text-align: center; color: #94a3b8; font-size: 14px; margin-bottom: 25px;">This link will expire in 24 hours</p>
 
-                <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f0fdfa; border-radius: 8px; margin: 25px 0; border-left: 4px solid #0d9488;">
+                <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f0fdfa; border-radius: 8px; margin: 25px 0; border-left: 4px solid #2cb5a5;">
                     <tr>
                         <td style="padding: 20px;">
-                            <p style="font-weight: bold; margin: 0 0 12px 0; color: #0f766e; font-size: 16px;">With your new account, you can:</p>
+                            <p style="font-weight: bold; margin: 0 0 12px 0; color: #22998a; font-size: 16px;">With your new account, you can:</p>
                             <ul style="margin: 0; padding-left: 20px; color: #334155;">
                                 <li style="margin-bottom: 8px;">Create personalized meal plans for your clients</li>
                                 <li style="margin-bottom: 8px;">Use our AI-powered meal planner</li>

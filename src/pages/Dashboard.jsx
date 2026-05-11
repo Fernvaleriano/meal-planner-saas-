@@ -1100,25 +1100,25 @@ function Dashboard() {
           <ProgressRing
             current={todayProgress.calories}
             target={targets.calories}
-            color="#14b8a6"
+            color="#4ec5b7"
             label="Calories"
           />
           <ProgressRing
             current={todayProgress.protein}
             target={targets.protein}
-            color="#14b8a6"
+            color="#4ec5b7"
             label="Protein"
           />
           <ProgressRing
             current={todayProgress.carbs}
             target={targets.carbs}
-            color="#14b8a6"
+            color="#4ec5b7"
             label="Carbs"
           />
           <ProgressRing
             current={todayProgress.fat}
             target={targets.fat}
-            color="#14b8a6"
+            color="#4ec5b7"
             label="Fat"
           />
         </div>

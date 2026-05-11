@@ -210,7 +210,7 @@ ${APP_URL}/form-responses.html
         <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #e2e8f0;">
             <h3 style="color: #334155; margin: 0 0 16px 0; font-size: 16px;">ID Badge Photo</h3>
             ${isImage ? `<img src="${responseData.id_photo_url}" style="max-width: 100%; max-height: 300px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" alt="ID Badge" />` : '<p style="color: #64748b;">PDF document attached</p>'}
-            <p style="margin-top: 8px;"><a href="${responseData.id_photo_url}" style="color: #0d9488;">View Full Image</a></p>
+            <p style="margin-top: 8px;"><a href="${responseData.id_photo_url}" style="color: #2cb5a5;">View Full Image</a></p>
         </div>`;
     }
 
@@ -228,7 +228,7 @@ ${APP_URL}/form-responses.html
         summaryLabel3 = 'Agency';
         summaryLabel4 = 'Type';
     } else {
-        headerGradient = 'linear-gradient(135deg, #0d9488 0%, #0284c7 100%)';
+        headerGradient = 'linear-gradient(135deg, #2cb5a5 0%, #0284c7 100%)';
         headerTitle = 'New Application!';
         summaryLabel3 = 'Goal';
         summaryLabel4 = 'Commitment';
@@ -250,11 +250,11 @@ ${APP_URL}/form-responses.html
 
     <div style="background: white; padding: 24px; border: 1px solid #e2e8f0; border-top: none;">
         <!-- Quick Summary -->
-        <div style="background: ${isFirstResponder ? '#fffbeb' : '#f0fdfa'}; padding: 16px; border-radius: 8px; margin-bottom: 24px; border-left: 4px solid ${isFirstResponder ? '#f59e0b' : '#0d9488'};">
-            <p style="margin: 0 0 8px 0; color: ${isFirstResponder ? '#92400e' : '#0f766e'};"><strong>Name:</strong> ${name}</p>
-            <p style="margin: 0 0 8px 0; color: ${isFirstResponder ? '#92400e' : '#0f766e'};"><strong>Email:</strong> <a href="mailto:${email}" style="color: ${isFirstResponder ? '#d97706' : '#0d9488'};">${email}</a></p>
-            <p style="margin: 0 0 8px 0; color: ${isFirstResponder ? '#92400e' : '#0f766e'};"><strong>${summaryLabel3}:</strong> ${goal}</p>
-            <p style="margin: 0; color: ${isFirstResponder ? '#92400e' : '#0f766e'};"><strong>${summaryLabel4}:</strong> ${commitment}</p>
+        <div style="background: ${isFirstResponder ? '#fffbeb' : '#f0fdfa'}; padding: 16px; border-radius: 8px; margin-bottom: 24px; border-left: 4px solid ${isFirstResponder ? '#f59e0b' : '#2cb5a5'};">
+            <p style="margin: 0 0 8px 0; color: ${isFirstResponder ? '#92400e' : '#22998a'};"><strong>Name:</strong> ${name}</p>
+            <p style="margin: 0 0 8px 0; color: ${isFirstResponder ? '#92400e' : '#22998a'};"><strong>Email:</strong> <a href="mailto:${email}" style="color: ${isFirstResponder ? '#d97706' : '#2cb5a5'};">${email}</a></p>
+            <p style="margin: 0 0 8px 0; color: ${isFirstResponder ? '#92400e' : '#22998a'};"><strong>${summaryLabel3}:</strong> ${goal}</p>
+            <p style="margin: 0; color: ${isFirstResponder ? '#92400e' : '#22998a'};"><strong>${summaryLabel4}:</strong> ${commitment}</p>
         </div>
 
         <h3 style="color: #334155; margin: 0 0 16px 0; font-size: 16px;">Full Response</h3>

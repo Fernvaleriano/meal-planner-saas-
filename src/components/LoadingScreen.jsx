@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 
 const DEFAULT_LOGO = 'https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/ziquecoach-logo-white.png';
-const DEFAULT_PRIMARY = '#0d9488';
+const DEFAULT_PRIMARY = '#2cb5a5';
 
 /**
  * Get coach branding from sessionStorage cache (set by branding.js or the SPA).
@@ -89,7 +89,7 @@ function LoadingScreen() {
           width: 40px;
           height: 40px;
           border: 3px solid rgba(13, 148, 136, 0.2);
-          border-top-color: #0d9488;
+          border-top-color: #2cb5a5;
           border-radius: 50%;
           animation: spin 1s linear infinite;
         }

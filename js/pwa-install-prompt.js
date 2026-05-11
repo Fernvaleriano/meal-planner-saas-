@@ -87,7 +87,7 @@
                 width: 48px;
                 height: 48px;
                 border-radius: 12px;
-                background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
+                background: linear-gradient(135deg, #2cb5a5 0%, #0284c7 100%);
                 display: flex;
                 align-items: center;
                 justify-content: center;
@@ -138,7 +138,7 @@
             }
 
             .pwa-install-btn-primary {
-                background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
+                background: linear-gradient(135deg, #2cb5a5 0%, #0284c7 100%);
                 color: white;
                 flex: 1;
             }
@@ -201,7 +201,7 @@
                 height: 20px;
                 border-radius: 50%;
                 background: rgba(13, 148, 136, 0.3);
-                color: #0d9488;
+                color: #2cb5a5;
                 font-size: 11px;
                 font-weight: 700;
                 display: flex;

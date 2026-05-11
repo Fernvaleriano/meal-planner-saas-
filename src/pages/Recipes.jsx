@@ -438,7 +438,7 @@ function Recipes() {
         <title>${selectedRecipe.name} - Recipe</title>
         <style>
           body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; }
-          h1 { color: #0d9488; margin-bottom: 8px; }
+          h1 { color: #2cb5a5; margin-bottom: 8px; }
           .subtitle { color: #64748b; margin-bottom: 24px; }
           .nutrition { display: flex; gap: 24px; background: #f1f5f9; padding: 16px; border-radius: 8px; margin-bottom: 24px; }
           .nutrition-item { text-align: center; }
@@ -451,7 +451,7 @@ function Recipes() {
           .instructions p { margin-bottom: 12px; }
           .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #e2e8f0; color: #94a3b8; font-size: 12px; }
           .back-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 20px; }
-          .back-bar a { display: inline-flex; align-items: center; gap: 6px; color: #0d9488; text-decoration: none; font-weight: 600; font-size: 15px; padding: 10px 16px; border-radius: 10px; background: #f0fdfa; border: 1px solid #ccfbf1; }
+          .back-bar a { display: inline-flex; align-items: center; gap: 6px; color: #2cb5a5; text-decoration: none; font-weight: 600; font-size: 15px; padding: 10px 16px; border-radius: 10px; background: #f0fdfa; border: 1px solid #ccfbf1; }
           .back-bar a:active { background: #ccfbf1; }
           @media print { body { padding: 20px; } .back-bar { display: none; } }
         </style>

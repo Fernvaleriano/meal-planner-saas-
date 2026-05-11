@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <script src="/js/theme.js"></script>
     <link rel="stylesheet" href="/css/voice-commander.css">
-    <meta name="theme-color" content="#0d9488">
+    <meta name="theme-color" content="#2cb5a5">
     <title>Brand Settings - Ziquecoach</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,11 +15,11 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@simonwep/pickr/dist/themes/nano.min.css">
     <style>
         :root {
-            --brand-primary: #0d9488;
-            --brand-primary-dark: #0f766e;
+            --brand-primary: #2cb5a5;
+            --brand-primary-dark: #22998a;
             --brand-secondary: #0284c7;
             --brand-accent: #10b981;
-            --brand-gradient: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
+            --brand-gradient: linear-gradient(135deg, #2cb5a5 0%, #0284c7 100%);
             --gray-50: #f8fafc;
             --gray-100: #f1f5f9;
             --gray-200: #e2e8f0;
@@ -1450,8 +1450,8 @@
                         <div class="color-picker-item">
                             <label class="form-label">Primary Color</label>
                             <div class="color-picker-wrapper">
-                                <div class="color-swatch" id="primarySwatch" style="background: #0d9488;"></div>
-                                <input type="text" class="color-hex-input" id="primaryColor" value="#0d9488" maxlength="7">
+                                <div class="color-swatch" id="primarySwatch" style="background: #2cb5a5;"></div>
+                                <input type="text" class="color-hex-input" id="primaryColor" value="#2cb5a5" maxlength="7">
                             </div>
                         </div>
 
@@ -1501,7 +1501,7 @@
                                 <div style="font-weight: 600; color: var(--gray-800); margin-bottom: 4px;">Dark</div>
                                 <div style="font-size: 0.75rem; color: var(--gray-500);">Dark background, light text</div>
                                 <div class="theme-preview-bar" style="margin-top: 12px; height: 40px; border-radius: 8px; background: #0f172a; border: 1px solid var(--gray-600); display: flex; align-items: center; padding: 0 10px; gap: 6px;">
-                                    <div style="width: 8px; height: 8px; border-radius: 50%; background: #0d9488;"></div>
+                                    <div style="width: 8px; height: 8px; border-radius: 50%; background: #2cb5a5;"></div>
                                     <div style="flex: 1; height: 4px; border-radius: 2px; background: #334155;"></div>
                                     <div style="width: 20px; height: 4px; border-radius: 2px; background: #94a3b8;"></div>
                                 </div>
@@ -1515,7 +1515,7 @@
                                 <div style="font-weight: 600; color: var(--gray-800); margin-bottom: 4px;">Light</div>
                                 <div style="font-size: 0.75rem; color: var(--gray-500);">Light background, dark text</div>
                                 <div class="theme-preview-bar" style="margin-top: 12px; height: 40px; border-radius: 8px; background: #f8fafc; border: 1px solid var(--gray-200); display: flex; align-items: center; padding: 0 10px; gap: 6px;">
-                                    <div style="width: 8px; height: 8px; border-radius: 50%; background: #0d9488;"></div>
+                                    <div style="width: 8px; height: 8px; border-radius: 50%; background: #2cb5a5;"></div>
                                     <div style="flex: 1; height: 4px; border-radius: 2px; background: #e2e8f0;"></div>
                                     <div style="width: 20px; height: 4px; border-radius: 2px; background: #64748b;"></div>
                                 </div>
@@ -1529,7 +1529,7 @@
                                 <div style="font-weight: 600; color: var(--gray-800); margin-bottom: 4px;">System</div>
                                 <div style="font-size: 0.75rem; color: var(--gray-500);">Match client's device setting</div>
                                 <div class="theme-preview-bar" style="margin-top: 12px; height: 40px; border-radius: 8px; background: linear-gradient(90deg, #0f172a 50%, #f8fafc 50%); border: 1px solid var(--gray-300); display: flex; align-items: center; padding: 0 10px; gap: 6px;">
-                                    <div style="width: 8px; height: 8px; border-radius: 50%; background: #0d9488;"></div>
+                                    <div style="width: 8px; height: 8px; border-radius: 50%; background: #2cb5a5;"></div>
                                     <div style="flex: 1; height: 4px; border-radius: 2px; background: rgba(148,163,184,0.5);"></div>
                                     <div style="width: 20px; height: 4px; border-radius: 2px; background: rgba(100,116,139,0.5);"></div>
                                 </div>
@@ -1842,7 +1842,7 @@
         // State
         let currentBranding = {
             brand_name: '',
-            brand_primary_color: '#0d9488',
+            brand_primary_color: '#2cb5a5',
             brand_secondary_color: '#0284c7',
             brand_accent_color: '#10b981',
             brand_logo_url: null,
@@ -1857,11 +1857,11 @@
 
         // Color presets
         const COLOR_PRESETS = [
-            { name: 'Teal', primary: '#0d9488', secondary: '#0284c7', accent: '#10b981' },
+            { name: 'Teal', primary: '#2cb5a5', secondary: '#0284c7', accent: '#10b981' },
             { name: 'Blue', primary: '#3b82f6', secondary: '#6366f1', accent: '#8b5cf6' },
             { name: 'Purple', primary: '#8b5cf6', secondary: '#a855f7', accent: '#d946ef' },
             { name: 'Red', primary: '#ef4444', secondary: '#f97316', accent: '#eab308' },
-            { name: 'Green', primary: '#22c55e', secondary: '#10b981', accent: '#14b8a6' },
+            { name: 'Green', primary: '#22c55e', secondary: '#10b981', accent: '#4ec5b7' },
             { name: 'Orange', primary: '#f97316', secondary: '#fb923c', accent: '#fbbf24' },
             { name: 'Pink', primary: '#ec4899', secondary: '#f472b6', accent: '#f9a8d4' },
             { name: 'Gray', primary: '#6b7280', secondary: '#4b5563', accent: '#9ca3af' }
@@ -1922,7 +1922,7 @@
                 // Update state from coach record directly
                 currentBranding = {
                     brand_name: coach.brand_name || '',
-                    brand_primary_color: coach.brand_primary_color || '#0d9488',
+                    brand_primary_color: coach.brand_primary_color || '#2cb5a5',
                     brand_secondary_color: coach.brand_secondary_color || '#0284c7',
                     brand_accent_color: coach.brand_accent_color || '#10b981',
                     brand_logo_url: coach.brand_logo_url || null,
@@ -2352,7 +2352,7 @@
 
             currentBranding = {
                 brand_name: '',
-                brand_primary_color: '#0d9488',
+                brand_primary_color: '#2cb5a5',
                 brand_secondary_color: '#0284c7',
                 brand_accent_color: '#10b981',
                 brand_logo_url: null,
@@ -2364,14 +2364,14 @@
 
             // Update form
             document.getElementById('brandName').value = '';
-            document.getElementById('primaryColor').value = '#0d9488';
+            document.getElementById('primaryColor').value = '#2cb5a5';
             document.getElementById('secondaryColor').value = '#0284c7';
             document.getElementById('accentColor').value = '#10b981';
             document.getElementById('emailFooter').value = '';
             setClientThemeSelection('dark');
 
             // Update pickers (Pickr replaces original swatch elements, so use Pickr API)
-            if (colorPickers.primary) colorPickers.primary.setColor('#0d9488');
+            if (colorPickers.primary) colorPickers.primary.setColor('#2cb5a5');
             if (colorPickers.secondary) colorPickers.secondary.setColor('#0284c7');
             if (colorPickers.accent) colorPickers.accent.setColor('#10b981');
 

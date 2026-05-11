@@ -2235,7 +2235,7 @@ function ExerciseDetailModal({
               onClick={forceClose}
               style={{
                 padding: '12px 24px',
-                background: '#0d9488',
+                background: '#2cb5a5',
                 color: 'white',
                 border: 'none',
                 borderRadius: '8px',
@@ -2307,7 +2307,7 @@ function ExerciseDetailModal({
                   <button
                     onClick={handleRetryVideo}
                     type="button"
-                    style={{ padding: '8px 20px', background: '#0d9488', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '14px' }}
+                    style={{ padding: '8px 20px', background: '#2cb5a5', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '14px' }}
                   >
                     Retry
                   </button>
