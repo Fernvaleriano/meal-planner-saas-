@@ -67,6 +67,21 @@ When proposing a fix:
 
 **REMEMBER:** A fix that breaks something else is NOT a fix — it's a trade-off. When in doubt, BE CONSERVATIVE. Flag uncertainty rather than assume.
 
+### CASE STUDY: Slow-success → fast-failure regressions
+**Rule:** When a fix changes a failure mode from slow-success to fast-failure, audit ALL downstream error handlers that might misinterpret the new failure as "no data" instead of "error."
+
+**The pattern (May 2026 workouts-disappearing bug):**
+- A `getSession()` call that used to hang for 10–30s on iOS resume (slow but eventually returning a valid session) was wrapped in a 2.5s timeout race with a localStorage fallback. Correct fix for the hang.
+- But the new failure path produced fast 401s — and downstream `.catch(() => null)` handlers in `Workouts.jsx` had been written assuming "null means no workouts," not "null means request failed." Result: state cleared, per-date cache poisoned with `[]`, workouts "disappeared" until cache was manually cleared.
+
+**What to check whenever timeouts/races/fallbacks are added:**
+1. Every `.catch(() => null)`, `.catch(() => [])`, `.catch(() => undefined)` downstream — does the caller distinguish error from empty?
+2. Cache writes that happen unconditionally after a fetch — do they need to be gated on "no calls failed"?
+3. UI state setters that fire `setX([])` or `setX(null)` on empty responses — same question.
+4. Any optimistic "show cached then refresh" flows — does a failed refresh nuke the cached display?
+
+**The mitigation pattern** (see `src/pages/Workouts.jsx` `refreshWorkoutData` / `fetchWorkout`): use a sentinel (`Symbol('fetch-failed')`) in the catch handler so callers can distinguish failure from empty. Bail out early on `allFailed`. Gate cache writes on `!anyFailed`.
+
 ---
 
 ## Architecture: Standalone HTML Pages (NOT React SPA)
