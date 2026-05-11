@@ -25,6 +25,18 @@ const storyCache = {
 };
 const STORY_CACHE_TTL = 60000; // 1 minute cache
 
+// Reset these module-level caches on logout. Without this, the first
+// render after User B signs in on a shared device would briefly show
+// User A's notification badge / story state until the next fetch lands.
+export function clearTopNavCaches() {
+  notificationCache.data = null;
+  notificationCache.timestamp = 0;
+  notificationCache.clientId = null;
+  storyCache.data = null;
+  storyCache.timestamp = 0;
+  storyCache.clientId = null;
+}
+
 function TopNav() {
   const { clientData } = useAuth();
   const { branding } = useBranding();

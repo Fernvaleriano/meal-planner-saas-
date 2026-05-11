@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, useCallback, useRef } f
 import { supabase } from '../utils/supabase';
 import { clearSessionCache, setSessionCache } from '../utils/api';
 import { clearPersistedState } from '../hooks/useStatePersistence';
+import { clearTopNavCaches } from '../components/TopNav';
 
 const AuthContext = createContext({});
 
@@ -436,6 +437,10 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('login_coach_id');
     // Clear API session cache
     clearSessionCache();
+    // Reset in-memory caches that live on module scope (not localStorage)
+    // so the next user's first render doesn't briefly show the previous
+    // user's notification count or story state.
+    clearTopNavCaches();
     // Clear persisted state snapshots (sessionStorage)
     clearPersistedState();
     // Tell Service Worker to clear data cache

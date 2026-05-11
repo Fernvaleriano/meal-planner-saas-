@@ -9,12 +9,15 @@ const DEFAULT_PRIMARY = '#2cb5a5';
 /**
  * Try to load coach branding for the login page.
  * Sources: URL ?coachId= param, or localStorage from previous session.
+ *
+ * NOTE: This intentionally does NOT persist coachIdParam to localStorage.
+ * Writing it here would let any unauthenticated visit to
+ * /app/login?coachId=X overwrite the stored login_coach_id, including
+ * with arbitrary / non-existent ids — which would then re-brand the
+ * login screen for the real user on next visit. Persistence happens
+ * only after a successful sign-in (see handleLogin below).
  */
 function getLoginBranding(coachIdParam) {
-  if (coachIdParam) {
-    localStorage.setItem('login_coach_id', coachIdParam);
-  }
-
   const coachId = coachIdParam || localStorage.getItem('login_coach_id');
   if (!coachId) return null;
 
@@ -93,6 +96,14 @@ function Login() {
       if (clientError || !client) {
         await supabase.auth.signOut();
         throw new Error('This account is not registered as a client');
+      }
+
+      // Now that auth + client lookup both succeeded, it's safe to remember
+      // the coachId from the URL for next time. Doing this earlier (at
+      // render time) let any unauthenticated visit overwrite the stored
+      // value with whatever was in the query string.
+      if (coachIdParam) {
+        try { localStorage.setItem('login_coach_id', coachIdParam); } catch { /* ignore */ }
       }
 
       navigate('/', { replace: true });

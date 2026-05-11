@@ -532,6 +532,20 @@ function GuidedWorkoutModal({
     const safeExIndex = Math.min(resumeData.currentExIndex, exercises.length - 1);
     if (safeExIndex < 0) { handleResumeDismiss(); return; }
 
+    // Clear resume storage BEFORE the restoring setStates. Otherwise a
+    // debounced scheduleResumeSave (200ms timer) that fires between the
+    // setStates flushing and the clearResumeState call below would re-save
+    // a snapshot built from refs whose sync was still in flight — which is
+    // exactly the "just-restored partial state" overwrite we're guarding
+    // against. Also cancel any in-flight resume-save timer for the same
+    // reason; the post-restore flow will re-arm it once the user actually
+    // interacts.
+    if (resumeSaveTimerRef.current) {
+      clearTimeout(resumeSaveTimerRef.current);
+      resumeSaveTimerRef.current = null;
+    }
+    clearResumeState();
+
     setCurrentExIndex(safeExIndex);
     setCurrentSetIndex(resumeData.currentSetIndex);
     setTotalElapsed(resumeData.totalElapsed || 0);
@@ -563,7 +577,6 @@ function GuidedWorkoutModal({
     setIsPaused(false);
     setShowResumePrompt(false);
     setResumeData(null);
-    clearResumeState();
   }, [resumeData, exercises.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Fetch live is_unilateral flags by exercise id. Workouts can carry stale
