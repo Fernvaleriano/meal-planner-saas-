@@ -151,8 +151,12 @@ function Recipes() {
       const data = await apiGet(`/.netlify/functions/get-recipes?clientId=${clientData?.id}&coachId=${coachId}`);
       setRecipes(data?.recipes || []);
     } catch (err) {
+      // Don't nuke the recipe list on transient failure — a network blip
+      // or 401 would otherwise leave a coach staring at "no recipes yet"
+      // exactly like a deletion. Surface a toast and let the existing
+      // list persist; pull-to-refresh retries when the user is ready.
       console.error('Error loading recipes:', err);
-      setRecipes([]);
+      showError('Failed to load recipes. Pull to refresh to try again.');
     } finally {
       setLoading(false);
     }
