@@ -88,6 +88,11 @@ function Dashboard() {
   const [servings, setServings] = useState(1);
   const [showConfirmation, setShowConfirmation] = useState(false);
 
+  // True when any of today's parallel fetches failed and the displayed
+  // numbers may not reflect server truth. Surfaces a subtle banner so
+  // we don't silently show zeroes / cached values as if they were live.
+  const [dataStale, setDataStale] = useState(false);
+
   // Refresh dashboard data
   const refreshData = useCallback(async () => {
     if (!clientData?.id) return;
@@ -95,12 +100,21 @@ function Dashboard() {
     const dateKey = getTodayKey();
 
     try {
+      // FAILED sentinel lets callers distinguish "fetch errored" from
+      // "fetch succeeded with empty payload" — without it, every error
+      // collapses to null and the UI silently keeps showing stale values.
+      const FAILED = Symbol('fetch-failed');
       // Fetch all data in parallel
-      const [diaryData, supplementsData, intakeData] = await Promise.all([
-        apiGet(`/.netlify/functions/food-diary?clientId=${clientData.id}&date=${dateKey}`).catch(() => null),
-        clientData.coach_id ? apiGet(`/.netlify/functions/client-protocols?clientId=${clientData.id}&coachId=${clientData.coach_id}`).catch(() => null) : null,
-        apiGet(`/.netlify/functions/supplement-intake?clientId=${clientData.id}&date=${dateKey}`).catch(() => null)
+      const [diaryRaw, supplementsRaw, intakeRaw] = await Promise.all([
+        apiGet(`/.netlify/functions/food-diary?clientId=${clientData.id}&date=${dateKey}`).catch(() => FAILED),
+        clientData.coach_id ? apiGet(`/.netlify/functions/client-protocols?clientId=${clientData.id}&coachId=${clientData.coach_id}`).catch(() => FAILED) : null,
+        apiGet(`/.netlify/functions/supplement-intake?clientId=${clientData.id}&date=${dateKey}`).catch(() => FAILED)
       ]);
+      const anyFailed = diaryRaw === FAILED || supplementsRaw === FAILED || intakeRaw === FAILED;
+      setDataStale(anyFailed);
+      const diaryData = diaryRaw === FAILED ? null : diaryRaw;
+      const supplementsData = supplementsRaw === FAILED ? null : supplementsRaw;
+      const intakeData = intakeRaw === FAILED ? null : intakeRaw;
 
       // Update diary progress
       if (diaryData?.entries) {
@@ -239,13 +253,25 @@ function Dashboard() {
 
     const dateKey = getTodayKey();
 
+    // FAILED sentinel — see refreshData for the rationale. We need to
+    // distinguish a real fetch failure from a successful empty response
+    // so the stale-data indicator shows up instead of zeroing the UI.
+    const FAILED = Symbol('fetch-failed');
     // Fetch all data in parallel for faster initial load
     Promise.all([
-      apiGet(`/.netlify/functions/food-diary?clientId=${clientData.id}&date=${dateKey}`).catch(() => null),
-      clientData.coach_id ? apiGet(`/.netlify/functions/client-protocols?clientId=${clientData.id}&coachId=${clientData.coach_id}`).catch(() => null) : Promise.resolve(null),
-      apiGet(`/.netlify/functions/supplement-intake?clientId=${clientData.id}&date=${dateKey}`).catch(() => null),
-      clientData.coach_id ? apiGet(`/.netlify/functions/get-coach-stories?clientId=${clientData.id}&coachId=${clientData.coach_id}`).catch(() => null) : Promise.resolve(null)
-    ]).then(([diaryData, supplementsData, intakeData, storiesData]) => {
+      apiGet(`/.netlify/functions/food-diary?clientId=${clientData.id}&date=${dateKey}`).catch(() => FAILED),
+      clientData.coach_id ? apiGet(`/.netlify/functions/client-protocols?clientId=${clientData.id}&coachId=${clientData.coach_id}`).catch(() => FAILED) : Promise.resolve(null),
+      apiGet(`/.netlify/functions/supplement-intake?clientId=${clientData.id}&date=${dateKey}`).catch(() => FAILED),
+      clientData.coach_id ? apiGet(`/.netlify/functions/get-coach-stories?clientId=${clientData.id}&coachId=${clientData.coach_id}`).catch(() => FAILED) : Promise.resolve(null)
+    ]).then(([diaryRaw, supplementsRaw, intakeRaw, storiesRaw]) => {
+      const anyFailed =
+        diaryRaw === FAILED || supplementsRaw === FAILED ||
+        intakeRaw === FAILED || storiesRaw === FAILED;
+      setDataStale(anyFailed);
+      const diaryData = diaryRaw === FAILED ? null : diaryRaw;
+      const supplementsData = supplementsRaw === FAILED ? null : supplementsRaw;
+      const intakeData = intakeRaw === FAILED ? null : intakeRaw;
+      const storiesData = storiesRaw === FAILED ? null : storiesRaw;
       // Process diary data
       if (diaryData?.entries) {
         const totals = diaryData.entries.reduce((acc, entry) => ({
@@ -909,6 +935,25 @@ function Dashboard() {
 
       {/* Install App Banner - prompts users to add to home screen */}
       <InstallAppBanner />
+
+      {dataStale && (
+        <div
+          role="status"
+          aria-live="polite"
+          style={{
+            margin: '8px 16px',
+            padding: '6px 10px',
+            fontSize: 12,
+            background: 'rgba(255, 152, 0, 0.12)',
+            color: '#9a5b00',
+            border: '1px solid rgba(255, 152, 0, 0.35)',
+            borderRadius: 6,
+            textAlign: 'center'
+          }}
+        >
+          Some data couldn't be refreshed — pull down to retry.
+        </div>
+      )}
 
       {/* AI Hero Input Section */}
       <div className="ai-hero-card">
