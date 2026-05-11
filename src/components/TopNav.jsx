@@ -2,9 +2,12 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Bell } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useBranding } from '../context/BrandingContext';
 import { apiGet } from '../utils/api';
 import { onAppResume, onAppSuspend } from '../hooks/useAppLifecycle';
 import StoryViewer from './StoryViewer';
+
+const DEFAULT_LOGO_URL = 'https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/ziquecoach-logo-white.png';
 
 // Cache notifications to avoid fetching on every mount
 const notificationCache = {
@@ -24,7 +27,11 @@ const STORY_CACHE_TTL = 60000; // 1 minute cache
 
 function TopNav() {
   const { clientData } = useAuth();
+  const { branding } = useBranding();
   const navigate = useNavigate();
+  const [logoFailed, setLogoFailed] = useState(false);
+  const logoUrl = branding?.brand_logo_url || DEFAULT_LOGO_URL;
+  const logoAlt = branding?.brand_name || 'Ziquecoach';
   const [unreadCount, setUnreadCount] = useState(() => {
     if (notificationCache.data &&
         notificationCache.clientId === clientData?.id &&
@@ -194,7 +201,17 @@ function TopNav() {
 
   return (
     <nav className="top-nav">
-      {/* Left spacer (logo removed) */}
+      {/* Brand logo — coach's custom logo if set, otherwise Ziquecoach default */}
+      <Link to="/" className="nav-left" aria-label="Home">
+        {!logoFailed && (
+          <img
+            src={logoUrl}
+            alt={logoAlt}
+            className="nav-logo-left"
+            onError={() => setLogoFailed(true)}
+          />
+        )}
+      </Link>
       <div className="nav-center"></div>
 
       {/* Right: Stories + Notifications */}
