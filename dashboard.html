@@ -8279,10 +8279,14 @@
 
             } catch (error) {
                 console.error('Error loading priority alerts:', error);
+                // Do NOT render a green success state on failure — that would
+                // actively hide high-stress check-ins, pending check-ins,
+                // plateaus, etc. behind a reassuring "you're all good!" banner.
+                // Surface a warning so the coach knows alerts may be missing.
                 alertsEl.innerHTML = `
                     <div class="priority-alert">
-                        <span class="priority-dot priority-dot--green"></span>
-                        <span>Dashboard ready. ${clientCount} active client${clientCount !== 1 ? 's' : ''}.</span>
+                        <span class="priority-dot priority-dot--amber"></span>
+                        <span>Some alerts couldn't be loaded — refresh to retry.</span>
                     </div>
                 `;
             } finally {
