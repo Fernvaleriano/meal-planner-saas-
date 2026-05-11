@@ -276,6 +276,27 @@ export function clearSessionCache() {
   lastEnsureFreshTimestamp = 0;
 }
 
+/**
+ * Prime the in-memory session cache with a freshly-issued session,
+ * typically from Supabase's onAuthStateChange TOKEN_REFRESHED callback.
+ * Without this, every TOKEN_REFRESHED would clear the cache and force
+ * the next API call to round-trip getSession() again — which is exactly
+ * the iOS-resume hang the cache was designed to avoid. Passing null
+ * collapses to the same behavior as clearSessionCache().
+ */
+export function setSessionCache(session) {
+  if (!session) {
+    sessionCache = { session: null, timestamp: 0, refreshPromise: null };
+    inflightGetSessionPromise = null;
+    lastEnsureFreshTimestamp = 0;
+    return;
+  }
+  sessionCache = { session, timestamp: Date.now(), refreshPromise: null };
+  // Drop any in-flight getSession promise — its result is no longer
+  // needed now that we have a fresh authoritative session.
+  inflightGetSessionPromise = null;
+}
+
 // Timestamp of the last successful session refresh via ensureFreshSession.
 let lastEnsureFreshTimestamp = 0;
 

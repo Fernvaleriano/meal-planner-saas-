@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { supabase } from '../utils/supabase';
-import { clearSessionCache } from '../utils/api';
+import { clearSessionCache, setSessionCache } from '../utils/api';
 import { clearPersistedState } from '../hooks/useStatePersistence';
 
 const AuthContext = createContext({});
@@ -284,11 +284,14 @@ export function AuthProvider({ children }) {
         const client = await fetchClientData(session.user.id);
         setClientData(client);
       } else if (event === 'TOKEN_REFRESHED') {
-        // Supabase auto-refreshes tokens in the background. When it does,
-        // immediately clear the API session cache so subsequent API calls
-        // use the new token instead of the old cached one (which could be
-        // stale for up to the 2-minute SESSION_CACHE_TTL).
-        clearSessionCache();
+        // Supabase auto-refreshes tokens in the background and passes the
+        // new session here. Prime the API session cache directly so the
+        // next API call uses the new token without a second getSession()
+        // round-trip — that round-trip is exactly the iOS-resume hang the
+        // 2.5s timeout fix in api.js is meant to dodge. If session is
+        // somehow absent, setSessionCache(null) falls back to clearing
+        // (same behavior as the previous clearSessionCache call).
+        setSessionCache(session);
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
         setClientData(null);
