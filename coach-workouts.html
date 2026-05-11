@@ -9475,8 +9475,11 @@
                 console.log('Loaded global exercise references:', Object.keys(globalExerciseReferences).length);
             } catch (err) {
                 console.error('Error loading global exercise references:', err);
-                globalExerciseReferences = {};
-                globalRefsLoaded = true;
+                // Do NOT reset globalExerciseReferences to {} — that wipes any
+                // previously-loaded refs. Do NOT set globalRefsLoaded = true —
+                // downstream readers gate on this flag, so lying about success
+                // makes them silently return [] for every exercise and the
+                // coach's saved per-exercise reference videos/notes disappear.
             }
         }
 
