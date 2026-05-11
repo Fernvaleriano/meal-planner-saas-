@@ -56,7 +56,10 @@ function WorkoutPlans() {
 
   // Fetch programs
   const fetchPrograms = useCallback(async () => {
-    if (!user?.id && !clientData?.coach_id) return;
+    if (!user?.id && !clientData?.coach_id) {
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
       const coachId = isCoach ? user.id : clientData.coach_id;

@@ -190,7 +190,10 @@ export default function ClientBilling() {
   const coachId = clientData?.coach_id;
 
   const fetchData = useCallback(async () => {
-    if (!coachId) return;
+    if (!coachId) {
+      setLoading(false);
+      return;
+    }
     try {
       const res = await apiGet(`/.netlify/functions/client-subscription-manage?coachId=${coachId}`);
       setSubscription(res.subscription || null);

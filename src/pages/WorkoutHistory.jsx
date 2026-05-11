@@ -423,7 +423,10 @@ export default function WorkoutHistory() {
   // Fetch workout list
   // -----------------------------------------------------------------------
   const fetchWorkouts = useCallback(async () => {
-    if (!resolvedClientId) return;
+    if (!resolvedClientId) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
