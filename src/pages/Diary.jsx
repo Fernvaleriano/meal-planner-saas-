@@ -332,53 +332,83 @@ function Diary() {
       });
 
     try {
-      const [diaryData, interactionsData] = await Promise.all([
-        apiGet(`/.netlify/functions/food-diary?clientId=${clientData.id}&date=${dateStr}`).catch(() => null),
-        apiGet(`/.netlify/functions/get-diary-interactions?clientId=${clientData.id}&date=${dateStr}`).catch(() => null)
+      // FAILED sentinel mirrors refreshWorkoutData in Workouts.jsx
+      // (line 1049). Without it, .catch(() => null) collapsed transient
+      // auth/network failures into "the user logged nothing today" —
+      // nuking entries/totals/goals to empty and writing that empty
+      // snapshot to the per-date cache, which then survived until the
+      // user manually changed dates.
+      const FAILED = Symbol('fetch-failed');
+      let [diaryData, interactionsData] = await Promise.all([
+        apiGet(`/.netlify/functions/food-diary?clientId=${clientData.id}&date=${dateStr}`).catch(() => FAILED),
+        apiGet(`/.netlify/functions/get-diary-interactions?clientId=${clientData.id}&date=${dateStr}`).catch(() => FAILED)
       ]);
 
-      const newEntries = diaryData?.entries || [];
-      const newGoals = diaryData?.goals || getGenderBasedDefaults(clientData?.gender);
+      const diaryFailed = diaryData === FAILED;
+      const interactionsFailed = interactionsData === FAILED;
+      const anyFailed = diaryFailed || interactionsFailed;
+      const allFailed = diaryFailed && interactionsFailed;
 
-      // Apply interactions data
+      if (allFailed) {
+        // Both calls failed — preserve last-good state and don't write
+        // the cache. The pull-to-refresh indicator hides as usual; the
+        // user can retry.
+        return;
+      }
+
+      if (diaryFailed) diaryData = null;
+      if (interactionsFailed) interactionsData = null;
+
+      // Apply interactions data only when the call succeeded — preserve
+      // the previous reactions/comments map on transient failure
+      // instead of blanking it.
       if (interactionsData) {
         setInteractions({
           reactions: interactionsData.reactions || {},
           comments: interactionsData.comments || {}
         });
-      } else {
-        setInteractions({ reactions: {}, comments: {} });
       }
 
-      // Calculate totals - use server-side totals if available (they handle DECIMAL types correctly)
-      // Fall back to client-side calculation with parseFloat for DECIMAL columns
-      const calculatedTotals = diaryData?.totals || newEntries.reduce((acc, entry) => ({
-        calories: acc.calories + (Number(entry.calories) || 0),
-        protein: acc.protein + (parseFloat(entry.protein) || 0),
-        carbs: acc.carbs + (parseFloat(entry.carbs) || 0),
-        fat: acc.fat + (parseFloat(entry.fat) || 0),
-        fiber: acc.fiber + (parseFloat(entry.fiber) || 0),
-        sugar: acc.sugar + (parseFloat(entry.sugar) || 0),
-        sodium: acc.sodium + (parseFloat(entry.sodium) || 0),
-        potassium: acc.potassium + (parseFloat(entry.potassium) || 0),
-        calcium: acc.calcium + (parseFloat(entry.calcium) || 0),
-        iron: acc.iron + (parseFloat(entry.iron) || 0),
-        vitaminC: acc.vitaminC + (parseFloat(entry.vitamin_c || entry.vitaminC) || 0),
-        cholesterol: acc.cholesterol + (parseFloat(entry.cholesterol) || 0)
-      }), { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, sugar: 0, sodium: 0, potassium: 0, calcium: 0, iron: 0, vitaminC: 0, cholesterol: 0 });
+      // Update entries/goals/totals only when the diary call succeeded.
+      // Calculate totals — use server-side totals if available (they
+      // handle DECIMAL types correctly); fall back to client-side
+      // calculation with parseFloat for DECIMAL columns.
+      if (diaryData) {
+        const newEntries = diaryData.entries || [];
+        const newGoals = diaryData.goals || getGenderBasedDefaults(clientData?.gender);
 
-      setEntries(newEntries);
-      setGoals(newGoals);
-      setTotals(calculatedTotals);
+        const calculatedTotals = diaryData.totals || newEntries.reduce((acc, entry) => ({
+          calories: acc.calories + (Number(entry.calories) || 0),
+          protein: acc.protein + (parseFloat(entry.protein) || 0),
+          carbs: acc.carbs + (parseFloat(entry.carbs) || 0),
+          fat: acc.fat + (parseFloat(entry.fat) || 0),
+          fiber: acc.fiber + (parseFloat(entry.fiber) || 0),
+          sugar: acc.sugar + (parseFloat(entry.sugar) || 0),
+          sodium: acc.sodium + (parseFloat(entry.sodium) || 0),
+          potassium: acc.potassium + (parseFloat(entry.potassium) || 0),
+          calcium: acc.calcium + (parseFloat(entry.calcium) || 0),
+          iron: acc.iron + (parseFloat(entry.iron) || 0),
+          vitaminC: acc.vitaminC + (parseFloat(entry.vitamin_c || entry.vitaminC) || 0),
+          cholesterol: acc.cholesterol + (parseFloat(entry.cholesterol) || 0)
+        }), { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, sugar: 0, sodium: 0, potassium: 0, calcium: 0, iron: 0, vitaminC: 0, cholesterol: 0 });
 
-      // Update cache (preserve water from its own load)
-      const existing = getCache(cacheKey) || {};
-      setCache(cacheKey, {
-        ...existing,
-        entries: newEntries,
-        totals: calculatedTotals,
-        goals: newGoals
-      });
+        setEntries(newEntries);
+        setGoals(newGoals);
+        setTotals(calculatedTotals);
+
+        // Only write cache when every call succeeded — a partial
+        // snapshot would otherwise render as truth on the next mount
+        // before the auto-refresh corrects it.
+        if (!anyFailed) {
+          const existing = getCache(cacheKey) || {};
+          setCache(cacheKey, {
+            ...existing,
+            entries: newEntries,
+            totals: calculatedTotals,
+            goals: newGoals
+          });
+        }
+      }
     } catch (err) {
       console.error('Error refreshing diary:', err);
     }
