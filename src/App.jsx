@@ -23,7 +23,7 @@ import ForgotPassword from './pages/ForgotPassword';
 import LoadingScreen from './components/LoadingScreen';
 
 function ProtectedRoute({ children }) {
-  const { user, loading, clientData } = useAuth();
+  const { user, loading, clientData, refreshClientData, logout } = useAuth();
 
   // Still loading auth state
   if (loading) {
@@ -38,6 +38,63 @@ function ProtectedRoute({ children }) {
   // Logged in but still fetching client data - show loading
   if (!clientData) {
     return <LoadingScreen />;
+  }
+
+  // fetchClientData exhausted retries and returned the
+  // { id: null, error: true } fallback. Without this branch the truthy
+  // error object passed straight through, Layout rendered, and every
+  // page's `if (!clientData?.id) return` produced a silent broken
+  // state (infinite spinner / blank chrome). Show an explicit recovery
+  // UI with retry and sign-out options instead.
+  if (clientData.error) {
+    return (
+      <div style={{
+        padding: '40px 20px',
+        textAlign: 'center',
+        background: '#1a1a1a',
+        minHeight: '100vh',
+        color: 'white',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: 'center'
+      }}>
+        <h2 style={{ marginBottom: '16px' }}>Couldn&apos;t load your account</h2>
+        <p style={{ color: '#9ca3af', marginBottom: '24px', maxWidth: '320px' }}>
+          {clientData.errorMessage || 'Something went wrong loading your data.'}
+        </p>
+        <div style={{ display: 'flex', gap: '12px' }}>
+          <button
+            onClick={() => { refreshClientData(); }}
+            style={{
+              padding: '12px 24px',
+              background: '#3b82f6',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontSize: '14px'
+            }}
+          >
+            Try again
+          </button>
+          <button
+            onClick={() => { logout(); }}
+            style={{
+              padding: '12px 24px',
+              background: 'transparent',
+              color: 'white',
+              border: '1px solid #374151',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontSize: '14px'
+            }}
+          >
+            Sign out
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return children;
