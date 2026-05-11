@@ -32,6 +32,31 @@ exports.handler = async (event) => {
         };
     }
 
+    // Idempotency: insert the event ID. Unique violation = duplicate redelivery → 200.
+    const { error: dedupeErr } = await supabase
+        .from('processed_webhook_events')
+        .insert({
+            stripe_event_id: stripeEvent.id,
+            event_type: stripeEvent.type,
+            source: 'platform'
+        });
+
+    if (dedupeErr) {
+        if (dedupeErr.code === '23505') {
+            // Already processed — return 200 so Stripe stops retrying.
+            return {
+                statusCode: 200,
+                body: JSON.stringify({ received: true, duplicate: true })
+            };
+        }
+        // DB unreachable — fail closed so Stripe retries.
+        console.error('Idempotency insert failed:', dedupeErr);
+        return {
+            statusCode: 500,
+            body: JSON.stringify({ error: 'idempotency check failed' })
+        };
+    }
+
     try {
         switch (stripeEvent.type) {
             case 'checkout.session.completed':
@@ -68,6 +93,11 @@ exports.handler = async (event) => {
 
     } catch (error) {
         console.error('Webhook handler error:', error);
+        // Roll back the idempotency record so Stripe's retry will be processed.
+        await supabase
+            .from('processed_webhook_events')
+            .delete()
+            .eq('stripe_event_id', stripeEvent.id);
         return {
             statusCode: 500,
             body: JSON.stringify({ error: error.message })
