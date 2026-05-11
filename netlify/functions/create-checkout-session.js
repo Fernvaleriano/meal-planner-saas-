@@ -50,6 +50,9 @@ exports.handler = async (event) => {
         let existingCustomerId = null;
         let coachId = null;
 
+        let existingSubscriptionId = null;
+        let existingSubscriptionStatus = null;
+
         if (authHeader && authHeader.startsWith('Bearer ')) {
             const token = authHeader.replace('Bearer ', '');
             const { data: { user }, error: authError } = await supabase.auth.getUser(token);
@@ -58,7 +61,7 @@ exports.handler = async (event) => {
                 // Get coach data
                 const { data: coach } = await supabase
                     .from('coaches')
-                    .select('id, email, name, stripe_customer_id, subscription_status')
+                    .select('id, email, name, stripe_customer_id, stripe_subscription_id, subscription_status')
                     .eq('id', user.id)
                     .single();
 
@@ -67,6 +70,8 @@ exports.handler = async (event) => {
                     name = coach.name || email;
                     coachId = coach.id;
                     existingCustomerId = coach.stripe_customer_id;
+                    existingSubscriptionId = coach.stripe_subscription_id;
+                    existingSubscriptionStatus = coach.subscription_status;
                     // If coach record exists and user is logged in, they're an existing user - no trial
                     // This covers: has stripe_customer_id, has any subscription_status (including canceled),
                     // or simply has an existing account
@@ -94,6 +99,54 @@ exports.handler = async (event) => {
 
         // Get the base URL for redirects
         const baseUrl = process.env.URL || 'https://ziquecoach.com';
+
+        // If the coach already has a billable subscription, swap the price on
+        // the existing one instead of creating a second subscription (which
+        // would double-bill). The customer.subscription.updated webhook will
+        // sync subscription_tier and current_period_end into the DB.
+        const updatableStatuses = new Set(['active', 'trialing', 'past_due', 'canceling']);
+        if (coachId && existingSubscriptionId && updatableStatuses.has(existingSubscriptionStatus)) {
+            try {
+                const existingSubscription = await stripe.subscriptions.retrieve(existingSubscriptionId);
+
+                if (existingSubscription.status !== 'canceled' && existingSubscription.items?.data?.length) {
+                    const currentItem = existingSubscription.items.data[0];
+
+                    // Same plan — no Stripe call, just bounce them back.
+                    if (currentItem.price?.id === priceId) {
+                        return {
+                            statusCode: 200,
+                            headers,
+                            body: JSON.stringify({
+                                url: `${baseUrl}/dashboard.html?plan_unchanged=true`,
+                                updated: false,
+                                samePlan: true
+                            })
+                        };
+                    }
+
+                    await stripe.subscriptions.update(existingSubscriptionId, {
+                        items: [{ id: currentItem.id, price: priceId }],
+                        proration_behavior: 'create_prorations',
+                        metadata: { plan, coach_id: coachId }
+                    });
+
+                    return {
+                        statusCode: 200,
+                        headers,
+                        body: JSON.stringify({
+                            url: `${baseUrl}/dashboard.html?plan_updated=true`,
+                            updated: true
+                        })
+                    };
+                }
+            } catch (stripeErr) {
+                // Subscription deleted upstream — fall through to new checkout.
+                if (stripeErr.code !== 'resource_missing') {
+                    throw stripeErr;
+                }
+            }
+        }
 
         // Build checkout session options
         const sessionOptions = {
