@@ -8674,14 +8674,18 @@
             currentUserId = userId;
             try {
                 const response = await fetch(`/.netlify/functions/notifications?userId=${userId}`);
+                if (!response.ok) throw new Error('Failed to load notifications: ' + response.status);
                 const data = await response.json();
+                if (!data || !Array.isArray(data.notifications)) {
+                    throw new Error('Unexpected notifications response shape');
+                }
 
                 if (data.warning) {
                     console.warn('Notifications warning:', data.warning);
                 }
 
                 // Filter out client_pr from badge count since PRs are shown in Today's Priority
-                const prUnreadCount = (data.notifications || []).filter(n => n.type === 'client_pr' && !n.is_read).length;
+                const prUnreadCount = data.notifications.filter(n => n.type === 'client_pr' && !n.is_read).length;
                 const adjustedUnreadCount = Math.max(0, (data.unreadCount || 0) - prUnreadCount);
 
                 if (adjustedUnreadCount > 0) {
@@ -8692,7 +8696,7 @@
                 }
 
                 // Filter out client_pr notifications — those are already shown in Today's Priority
-                allNotifications = (data.notifications || []).filter(n => n.type !== 'client_pr');
+                allNotifications = data.notifications.filter(n => n.type !== 'client_pr');
 
                 // Show/hide "View all messages" footer link
                 const msgFooter = document.getElementById('notificationFooterMessages');
@@ -8706,6 +8710,10 @@
                 renderOverviewNotifications(allNotifications.filter(n => n.type !== 'chat_message'));
             } catch (err) {
                 console.error('Error loading notifications:', err);
+                // Do NOT touch allNotifications or the badge on failure — a
+                // transient 401/5xx with a JSON body would otherwise silently
+                // wipe the coach's unread-count indicator and erase any
+                // notifications they hadn't yet opened.
             }
         }
 
