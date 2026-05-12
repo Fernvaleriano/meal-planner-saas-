@@ -1766,7 +1766,7 @@ textarea,
 }
 
 .macro-ring.calories .progress { stroke: var(--brand-primary); }
-.macro-ring.protein .progress { stroke: #2cb5a5; }
+.macro-ring.protein .progress { stroke: var(--brand-macro-protein, #2cb5a5); }
 .macro-ring.carbs .progress { stroke: #f59e0b; }
 .macro-ring.fat .progress { stroke: #ef4444; }
 
@@ -2795,8 +2795,8 @@ textarea,
 .meal-type-btn.active:nth-child(2),
 .meal-type-btn.active:nth-child(3),
 .meal-type-btn.active:nth-child(4) {
-    background: linear-gradient(135deg, rgba(20, 184, 166, 0.22) 0%, rgba(13, 148, 136, 0.38) 100%);
-    box-shadow: 0 8px 24px -8px rgba(13, 148, 136, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    background: linear-gradient(135deg, var(--brand-meal-active-start, rgba(20, 184, 166, 0.22)) 0%, var(--brand-meal-active-end, rgba(13, 148, 136, 0.38)) 100%);
+    box-shadow: 0 8px 24px -8px var(--brand-meal-active-shadow, rgba(13, 148, 136, 0.5)), inset 0 1px 0 rgba(255, 255, 255, 0.15);
 }
 
 /* Food Input */
@@ -3209,13 +3209,13 @@ textarea,
     justify-content: center;
     gap: 8px;
     transition: all 0.2s;
-    box-shadow: 0 4px 14px rgba(13, 148, 136, 0.25);
+    box-shadow: 0 4px 14px var(--brand-shadow-soft, rgba(13, 148, 136, 0.25));
     text-decoration: none;
 }
 
 .view-diary-btn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(13, 148, 136, 0.35);
+    box-shadow: 0 6px 20px var(--brand-shadow-soft-strong, rgba(13, 148, 136, 0.35));
 }
 
 /* ========================================
@@ -3281,15 +3281,15 @@ textarea,
     align-items: center;
     justify-content: center;
     margin-bottom: 12px;
-    background: rgba(20, 184, 166, 0.10);
-    color: #4ec5b7;
-    border: 1px solid rgba(20, 184, 166, 0.18);
+    background: var(--brand-tile-bg-dark, rgba(20, 184, 166, 0.10));
+    color: var(--brand-tile-icon-color, #4ec5b7);
+    border: 1px solid var(--brand-tile-border, rgba(20, 184, 166, 0.18));
 }
 
 [data-theme="light"] .quick-action-card-icon {
-    background: rgba(13, 148, 136, 0.08);
-    color: #2cb5a5;
-    border-color: rgba(13, 148, 136, 0.18);
+    background: var(--brand-tile-bg-light, rgba(13, 148, 136, 0.08));
+    color: var(--brand-tile-icon-color, #2cb5a5);
+    border-color: var(--brand-tile-border, rgba(13, 148, 136, 0.18));
 }
 
 /* Legacy color modifiers — kept as no-ops so any older JSX or third-party
@@ -3299,18 +3299,18 @@ textarea,
 .quick-action-card-icon.pink,
 .quick-action-card-icon.yellow,
 .quick-action-card-icon.red {
-    background: rgba(20, 184, 166, 0.10);
-    color: #4ec5b7;
-    border-color: rgba(20, 184, 166, 0.18);
+    background: var(--brand-tile-bg-dark, rgba(20, 184, 166, 0.10));
+    color: var(--brand-tile-icon-color, #4ec5b7);
+    border-color: var(--brand-tile-border, rgba(20, 184, 166, 0.18));
 }
 
 [data-theme="light"] .quick-action-card-icon.teal,
 [data-theme="light"] .quick-action-card-icon.pink,
 [data-theme="light"] .quick-action-card-icon.yellow,
 [data-theme="light"] .quick-action-card-icon.red {
-    background: rgba(13, 148, 136, 0.08);
-    color: #2cb5a5;
-    border-color: rgba(13, 148, 136, 0.18);
+    background: var(--brand-tile-bg-light, rgba(13, 148, 136, 0.08));
+    color: var(--brand-tile-icon-color, #2cb5a5);
+    border-color: var(--brand-tile-border, rgba(13, 148, 136, 0.18));
 }
 
 .quick-action-card span {
@@ -18237,11 +18237,11 @@ textarea,
     justify-content: center;
     width: 48px;
     height: 48px;
-    background: linear-gradient(135deg, #2cb5a5 0%, #4ec5b7 100%);
+    background: var(--brand-banner-gradient, linear-gradient(135deg, #2cb5a5 0%, #4ec5b7 100%));
     border-radius: 14px;
     color: white;
     flex-shrink: 0;
-    box-shadow: 0 4px 12px rgba(13, 148, 136, 0.4);
+    box-shadow: 0 4px 12px var(--brand-banner-shadow, rgba(13, 148, 136, 0.4));
 }
 
 .gym-proof-banner-text {
@@ -18694,8 +18694,8 @@ textarea,
 }
 
 .weight-proof-banner-icon {
-    background: linear-gradient(135deg, #4ec5b7, #178072);
-    box-shadow: 0 4px 12px rgba(20, 184, 166, 0.4);
+    background: var(--brand-banner-gradient, linear-gradient(135deg, #4ec5b7, #178072));
+    box-shadow: 0 4px 12px var(--brand-banner-shadow, rgba(20, 184, 166, 0.4));
 }
 
 .weight-proof-banner .gym-proof-banner-title {
@@ -19171,14 +19171,14 @@ textarea,
 }
 
 .week-calendar-v2 .day-pill.today {
-    border-color: rgba(13, 148, 136, 0.3);
-    background: rgba(13, 148, 136, 0.06);
+    border-color: var(--brand-tile-border, rgba(13, 148, 136, 0.3));
+    background: var(--brand-tile-bg-light, rgba(13, 148, 136, 0.06));
 }
 
 .week-calendar-v2 .day-pill.selected {
-    background: linear-gradient(160deg, #2cb5a5 0%, #178072 100%);
+    background: var(--brand-banner-gradient, linear-gradient(160deg, #2cb5a5 0%, #178072 100%));
     border-color: transparent;
-    box-shadow: 0 4px 14px rgba(13, 148, 136, 0.3);
+    box-shadow: 0 4px 14px var(--brand-shadow-soft-strong, rgba(13, 148, 136, 0.3));
 }
 
 .week-calendar-v2 .day-pill .day-name {
@@ -19204,7 +19204,7 @@ textarea,
     bottom: 5px;
     width: 4px;
     height: 4px;
-    background: #2cb5a5;
+    background: var(--brand-tile-icon-color, #2cb5a5);
     border-radius: 50%;
 }
 
@@ -19520,13 +19520,13 @@ textarea,
     width: 100%;
     max-width: 340px;
     -webkit-tap-highlight-color: transparent;
-    background: linear-gradient(135deg, #2cb5a5 0%, #0891b2 50%, #178072 100%);
+    background: var(--brand-banner-gradient, linear-gradient(135deg, #2cb5a5 0%, #0891b2 50%, #178072 100%));
     color: white;
-    box-shadow: 0 4px 16px rgba(13, 148, 136, 0.35), inset 0 1px 0 rgba(255,255,255,0.1);
+    box-shadow: 0 4px 16px var(--brand-shadow-soft-strong, rgba(13, 148, 136, 0.35)), inset 0 1px 0 rgba(255,255,255,0.1);
 }
 
 .rest-day-create-btn:hover {
-    box-shadow: 0 6px 20px rgba(13, 148, 136, 0.45), inset 0 1px 0 rgba(255,255,255,0.1);
+    box-shadow: 0 6px 20px var(--brand-banner-shadow, rgba(13, 148, 136, 0.45)), inset 0 1px 0 rgba(255,255,255,0.1);
 }
 
 .rest-day-create-btn:active {
