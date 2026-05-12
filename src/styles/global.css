@@ -18415,8 +18415,8 @@ textarea,
     width: 72px;
     height: 72px;
     border-radius: 50%;
-    background: linear-gradient(135deg, rgba(13, 148, 136, 0.2), rgba(59, 130, 246, 0.15));
-    color: #2cb5a5;
+    background: var(--brand-banner-card-bg-dark, linear-gradient(135deg, rgba(13, 148, 136, 0.2), rgba(59, 130, 246, 0.15)));
+    color: var(--brand-tile-icon-color, var(--brand-primary, #2cb5a5));
     margin-bottom: 4px;
 }
 
@@ -18471,7 +18471,7 @@ textarea,
     content: '•';
     position: absolute;
     left: 4px;
-    color: #2cb5a5;
+    color: var(--brand-tile-icon-color, var(--brand-primary, #2cb5a5));
     font-weight: bold;
 }
 
@@ -18491,7 +18491,7 @@ textarea,
     gap: 8px;
     width: 100%;
     padding: 16px;
-    background: linear-gradient(135deg, #2cb5a5, #178072);
+    background: var(--brand-gradient, linear-gradient(135deg, #2cb5a5, #178072));
     color: white;
     border: none;
     border-radius: 14px;
@@ -18547,7 +18547,7 @@ textarea,
     justify-content: center;
     gap: 6px;
     padding: 14px;
-    background: linear-gradient(135deg, #2cb5a5, #178072);
+    background: var(--brand-gradient, linear-gradient(135deg, #2cb5a5, #178072));
     color: white;
     border: none;
     border-radius: 12px;
@@ -18718,15 +18718,15 @@ textarea,
     color: rgba(255, 255, 255, 0.55);
 }
 
-/* Weigh-In modal — brand teal/blue */
+/* Weigh-In modal — brand teal/blue (now respects coach branding) */
 .weight-proof-icon-wrap {
-    background: linear-gradient(135deg, rgba(20, 184, 166, 0.2), rgba(2, 132, 199, 0.15)) !important;
-    color: #4ec5b7 !important;
+    background: var(--brand-banner-card-bg-dark, linear-gradient(135deg, rgba(20, 184, 166, 0.2), rgba(2, 132, 199, 0.15))) !important;
+    color: var(--brand-tile-icon-color, var(--brand-primary, #4ec5b7)) !important;
 }
 
 .weight-proof-capture-btn,
 .weight-proof-send-btn {
-    background: linear-gradient(135deg, #4ec5b7, #178072) !important;
+    background: var(--brand-gradient, linear-gradient(135deg, #4ec5b7, #178072)) !important;
 }
 
 .weight-proof-today-value {
