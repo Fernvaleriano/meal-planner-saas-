@@ -654,6 +654,33 @@
             position: relative;
         }
 
+        /* Theme-specific surface colors — scoped to the mockup container so they don't
+           leak to the surrounding coach page. JS sets data-preview-theme on the container;
+           advanced color picker overrides (brand_bg_color etc.) layer on top via JS as
+           inline style on the container. */
+        .mockup-container[data-preview-theme="dark"] {
+            --preview-bg:               #0f172a;
+            --preview-card:             #1e293b;
+            --preview-text:             #f1f5f9;
+            --preview-text-secondary:   #94a3b8;
+            --preview-meal-track-bg:    rgba(255, 255, 255, 0.04);
+            --preview-input-bg:         rgba(255, 255, 255, 0.06);
+            --preview-input-border:     rgba(255, 255, 255, 0.10);
+            --preview-card-border:      rgba(255, 255, 255, 0.06);
+            --preview-divider:          rgba(255, 255, 255, 0.08);
+        }
+        .mockup-container[data-preview-theme="light"] {
+            --preview-bg:               #f8fafc;
+            --preview-card:             #ffffff;
+            --preview-text:             #0f172a;
+            --preview-text-secondary:   #64748b;
+            --preview-meal-track-bg:    rgba(15, 23, 42, 0.04);
+            --preview-input-bg:         #f1f5f9;
+            --preview-input-border:     rgba(15, 23, 42, 0.08);
+            --preview-card-border:      rgba(15, 23, 42, 0.06);
+            --preview-divider:          rgba(15, 23, 42, 0.06);
+        }
+
         .mockup-container.desktop {
             max-width: 100%;
             border-radius: 14px;
@@ -708,7 +735,7 @@
 
         /* Scrollable phone "screen" */
         .mockup-content {
-            background: var(--preview-bg, #f8fafc);
+            background: var(--preview-bg);
             min-height: 560px;
             max-height: 600px;
             overflow-y: auto;
@@ -775,12 +802,12 @@
 
         /* AI Hero Card — replicates ai-hero-card from React Dashboard */
         .mockup-ai-card {
-            background: var(--preview-card, #ffffff);
+            background: var(--preview-card);
             border-radius: 14px;
             padding: 14px;
             margin-bottom: 12px;
             box-shadow: 0 2px 6px rgba(0,0,0,0.06);
-            border: 1px solid rgba(0,0,0,0.04);
+            border: 1px solid var(--preview-card-border);
         }
 
         .mockup-ai-header {
@@ -807,19 +834,19 @@
         .mockup-ai-title {
             font-weight: 800;
             font-size: 1rem;
-            color: var(--preview-text, #0f172a);
+            color: var(--preview-text);
             line-height: 1.1;
         }
         .mockup-ai-badge {
             font-size: 0.65rem;
-            color: var(--preview-text-secondary, #64748b);
+            color: var(--preview-text-secondary);
             font-weight: 500;
         }
 
         .mockup-coaching-message {
             font-size: 0.7rem;
             font-style: italic;
-            color: var(--preview-text-secondary, #475569);
+            color: var(--preview-text-secondary);
             margin-bottom: 12px;
             line-height: 1.35;
         }
@@ -830,7 +857,7 @@
             grid-template-columns: repeat(4, 1fr);
             gap: 6px;
             padding: 6px;
-            background: rgba(0,0,0,0.03);
+            background: var(--preview-meal-track-bg);
             border-radius: 10px;
             margin-bottom: 12px;
         }
@@ -843,7 +870,7 @@
             padding: 8px 4px;
             border-radius: 8px;
             background: transparent;
-            color: var(--preview-text-secondary, #64748b);
+            color: var(--preview-text-secondary);
             font-size: 0.6rem;
             font-weight: 500;
             cursor: default;
@@ -862,11 +889,11 @@
         .mockup-food-input {
             width: 100%;
             padding: 10px 12px;
-            border: 1px solid rgba(0,0,0,0.08);
+            border: 1px solid var(--preview-input-border);
             border-radius: 10px;
             font-size: 0.7rem;
-            color: var(--preview-text-secondary, #94a3b8);
-            background: var(--preview-bg, #f8fafc);
+            color: var(--preview-text-secondary);
+            background: var(--preview-input-bg);
             margin-bottom: 10px;
             min-height: 50px;
             display: flex;
@@ -884,12 +911,12 @@
             width: 38px;
             height: 38px;
             border-radius: 10px;
-            background: var(--preview-bg, #f1f5f9);
-            border: 1px solid rgba(0,0,0,0.08);
+            background: var(--preview-input-bg);
+            border: 1px solid var(--preview-input-border);
             display: flex;
             align-items: center;
             justify-content: center;
-            color: var(--preview-text-secondary, #64748b);
+            color: var(--preview-text-secondary);
             flex-shrink: 0;
         }
         .mockup-voice-btn svg { width: 16px; height: 16px; }
@@ -921,25 +948,25 @@
             align-items: center;
             gap: 6px;
             padding: 8px 10px;
-            background: var(--preview-card, #ffffff);
-            border: 1px solid rgba(0,0,0,0.08);
+            background: var(--preview-card);
+            border: 1px solid var(--preview-input-border);
             border-radius: 9999px;
             font-size: 0.7rem;
             font-weight: 500;
-            color: var(--preview-text-secondary, #475569);
+            color: var(--preview-text-secondary);
             cursor: default;
         }
         .mockup-quick-action svg {
             width: 14px;
             height: 14px;
-            color: var(--preview-text-secondary, #64748b);
+            color: var(--preview-text-secondary);
         }
 
         /* Quick Actions tile grid (Check-In / Recipes / Challenges / Progress) */
         .mockup-quick-grid-heading {
             font-size: 0.8rem;
             font-weight: 700;
-            color: var(--preview-text, #0f172a);
+            color: var(--preview-text);
             margin: 14px 2px 8px;
         }
         .mockup-quick-grid {
@@ -954,9 +981,9 @@
             align-items: flex-start;
             gap: 8px;
             padding: 10px;
-            background: var(--preview-card, #ffffff);
+            background: var(--preview-card);
             border-radius: 12px;
-            border: 1px solid rgba(0,0,0,0.04);
+            border: 1px solid var(--preview-card-border);
             box-shadow: 0 1px 3px rgba(0,0,0,0.04);
         }
         .mockup-quick-tile-icon {
@@ -975,7 +1002,7 @@
         .mockup-quick-tile span {
             font-size: 0.7rem;
             font-weight: 600;
-            color: var(--preview-text, #0f172a);
+            color: var(--preview-text);
         }
 
         /* Weigh-in banner */
@@ -985,8 +1012,8 @@
             gap: 10px;
             padding: 10px 12px;
             margin: 12px 0;
-            background: var(--preview-card, #ffffff);
-            border: 1px solid rgba(0,0,0,0.06);
+            background: var(--preview-card);
+            border: 1px solid var(--preview-card-border);
             border-radius: 12px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.04);
         }
@@ -1003,18 +1030,18 @@
         }
         .mockup-weigh-icon svg { width: 16px; height: 16px; }
         .mockup-weigh-text { flex: 1; display: flex; flex-direction: column; gap: 1px; }
-        .mockup-weigh-title { font-size: 0.75rem; font-weight: 700; color: var(--preview-text, #0f172a); }
-        .mockup-weigh-sub { font-size: 0.6rem; color: var(--preview-text-secondary, #64748b); }
-        .mockup-weigh-banner > svg { width: 14px; height: 14px; color: var(--preview-text-secondary, #94a3b8); }
+        .mockup-weigh-title { font-size: 0.75rem; font-weight: 700; color: var(--preview-text); }
+        .mockup-weigh-sub { font-size: 0.6rem; color: var(--preview-text-secondary); }
+        .mockup-weigh-banner > svg { width: 14px; height: 14px; color: var(--preview-text-secondary); }
 
         /* Progress Card */
         .mockup-progress-card {
-            background: var(--preview-card, #ffffff);
+            background: var(--preview-card);
             border-radius: 14px;
             padding: 14px;
             margin-bottom: 12px;
             box-shadow: 0 2px 6px rgba(0,0,0,0.06);
-            border: 1px solid rgba(0,0,0,0.04);
+            border: 1px solid var(--preview-card-border);
         }
         .mockup-progress-header {
             display: flex;
@@ -1025,13 +1052,13 @@
         .mockup-progress-title {
             font-weight: 700;
             font-size: 0.8rem;
-            color: var(--preview-text, #0f172a);
+            color: var(--preview-text);
             display: flex;
             align-items: center;
             gap: 6px;
         }
         .mockup-progress-title svg { width: 14px; height: 14px; color: var(--preview-primary, #2dd4bf); }
-        .mockup-progress-date { font-size: 0.65rem; color: var(--preview-text-secondary, #94a3b8); }
+        .mockup-progress-date { font-size: 0.65rem; color: var(--preview-text-secondary); }
 
         .mockup-macros {
             display: grid;
@@ -1042,7 +1069,7 @@
         .mockup-macro { display: flex; flex-direction: column; align-items: center; gap: 2px; }
         .mockup-macro-ring { width: 48px; height: 48px; }
         .mockup-macro-ring circle { fill: none; stroke-width: 5; }
-        .mockup-macro-ring .ring-bg { stroke: rgba(0,0,0,0.07); }
+        .mockup-macro-ring .ring-bg { stroke: var(--preview-divider); }
         .mockup-macro-ring .ring-fill {
             stroke: var(--preview-primary, #2dd4bf);
             stroke-linecap: round;
@@ -1050,10 +1077,10 @@
             transform-origin: center;
             transition: stroke 0.2s, stroke-dashoffset 0.5s ease;
         }
-        .mockup-macro-value { font-size: 0.75rem; font-weight: 700; color: var(--preview-text, #0f172a); }
+        .mockup-macro-value { font-size: 0.75rem; font-weight: 700; color: var(--preview-text); }
         .mockup-macro-label {
             font-size: 0.55rem;
-            color: var(--preview-text-secondary, #94a3b8);
+            color: var(--preview-text-secondary);
             text-transform: uppercase;
             letter-spacing: 0.5px;
             font-weight: 600;
@@ -1063,21 +1090,21 @@
         .mockup-daily-progress {
             margin-top: 14px;
             padding-top: 12px;
-            border-top: 1px dashed rgba(0,0,0,0.06);
+            border-top: 1px dashed var(--preview-divider);
         }
         .mockup-daily-header {
             display: flex;
             justify-content: space-between;
             font-size: 0.65rem;
             font-weight: 600;
-            color: var(--preview-text-secondary, #475569);
+            color: var(--preview-text-secondary);
             margin-bottom: 6px;
         }
         .mockup-daily-percent { color: var(--preview-primary, #2dd4bf); }
         .mockup-daily-track {
             height: 6px;
             border-radius: 3px;
-            background: rgba(0,0,0,0.06);
+            background: var(--preview-divider);
             overflow: hidden;
         }
         .mockup-daily-fill {
@@ -1108,8 +1135,8 @@
         .mockup-bottom-nav {
             display: grid;
             grid-template-columns: repeat(5, 1fr);
-            border-top: 1px solid rgba(0,0,0,0.06);
-            background: var(--preview-card, #ffffff);
+            border-top: 1px solid var(--preview-divider);
+            background: var(--preview-card);
             padding: 6px 0 4px;
             position: sticky;
             bottom: 0;
@@ -1122,7 +1149,7 @@
             text-align: center;
             font-size: 0.6rem;
             font-weight: 500;
-            color: var(--preview-text-secondary, #94a3b8);
+            color: var(--preview-text-secondary);
             padding: 4px 2px;
             cursor: default;
         }
@@ -1951,7 +1978,7 @@
             </div>
 
             <!-- Client Portal Mockup (mirrors real client mobile app) -->
-            <div class="mockup-container" id="mockupContainer">
+            <div class="mockup-container" id="mockupContainer" data-preview-theme="dark">
                 <!-- iOS status bar (mobile only) -->
                 <div class="mockup-status-bar">
                     <span>9:41</span>
@@ -2639,26 +2666,34 @@
             const brandName = currentBranding.brand_name || 'Ziquecoach';
             const theme = currentBranding.brand_client_theme || 'dark';
 
-            // Theme-aware surface colors (dark default — overridden by Light selection).
-            // System uses dark in preview for predictability; client device decides at runtime.
-            // Advanced color overrides win over theme defaults.
-            const isLight = theme === 'light';
-            const previewBg          = currentBranding.brand_bg_color            || (isLight ? '#f8fafc' : '#0f172a');
-            const previewCard        = currentBranding.brand_card_color          || (isLight ? '#ffffff' : '#1e293b');
-            const previewText        = currentBranding.brand_text_color          || (isLight ? '#0f172a' : '#f1f5f9');
-            const previewTextSecond  = currentBranding.brand_text_secondary_color || (isLight ? '#64748b' : '#94a3b8');
+            // Theme-aware surface colors are now driven by data-preview-theme on the container,
+            // which provides --preview-bg / --preview-card / --preview-text / etc. via static CSS.
+            // System defaults to dark in the preview; the device decides at runtime for real clients.
+            const previewTheme = theme === 'light' ? 'light' : 'dark';
+            const mockupContainer = document.getElementById('mockupContainer');
+            if (mockupContainer) mockupContainer.dataset.previewTheme = previewTheme;
 
-            // Set CSS variables — drives all .mockup-* elements via CSS
+            // Brand colors — applied at :root so all .mockup-* descendants pick them up.
             const root = document.documentElement.style;
             root.setProperty('--preview-primary', primary);
             root.setProperty('--preview-secondary', secondary);
             root.setProperty('--preview-accent', accent);
             root.setProperty('--preview-primary-soft', hexToRgba(primary, 0.25));
             root.setProperty('--preview-accent-soft', hexToRgba(primary, 0.15));
-            root.setProperty('--preview-bg', previewBg);
-            root.setProperty('--preview-card', previewCard);
-            root.setProperty('--preview-text', previewText);
-            root.setProperty('--preview-text-secondary', previewTextSecond);
+
+            // Advanced color overrides — applied as INLINE STYLE on the container so they
+            // override the data-preview-theme defaults, but only when the coach has explicitly
+            // picked them. Empty = remove the inline style so the theme default takes over.
+            if (mockupContainer) {
+                const setOrClear = (prop, val) => {
+                    if (val) mockupContainer.style.setProperty(prop, val);
+                    else     mockupContainer.style.removeProperty(prop);
+                };
+                setOrClear('--preview-bg',             currentBranding.brand_bg_color);
+                setOrClear('--preview-card',           currentBranding.brand_card_color);
+                setOrClear('--preview-text',           currentBranding.brand_text_color);
+                setOrClear('--preview-text-secondary', currentBranding.brand_text_secondary_color);
+            }
 
             // Brand name + initial
             const logoText = document.getElementById('mockupLogoText');
