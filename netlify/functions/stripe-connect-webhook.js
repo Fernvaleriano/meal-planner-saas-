@@ -153,19 +153,12 @@ async function handleCheckoutComplete(session, connectedAccountId) {
   const mode = session.mode;
 
   if (mode === 'subscription' && subscriptionId) {
-    // Get subscription details
     const subscription = await stripe.subscriptions.retrieve(
       subscriptionId,
       { stripeAccount: connectedAccountId }
     );
 
-    const status = subscription.status;
-    const trialEnd = subscription.trial_end
-      ? new Date(subscription.trial_end * 1000).toISOString()
-      : null;
-
-    // Upsert client subscription
-    await supabase
+    const { error } = await supabase
       .from('client_subscriptions')
       .upsert({
         client_id: clientId,
@@ -173,10 +166,12 @@ async function handleCheckoutComplete(session, connectedAccountId) {
         plan_id: planId,
         stripe_subscription_id: subscriptionId,
         stripe_customer_id: customerId,
-        status: status,
+        status: subscription.status,
         current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
         current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
-        trial_ends_at: trialEnd,
+        trial_ends_at: subscription.trial_end
+          ? new Date(subscription.trial_end * 1000).toISOString()
+          : null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       }, {
@@ -184,50 +179,111 @@ async function handleCheckoutComplete(session, connectedAccountId) {
         ignoreDuplicates: false
       });
 
-  } else if (mode === 'payment') {
-    // One-time payment
-    const paymentIntentId = session.payment_intent;
-    const amountTotal = session.amount_total;
+    if (error) {
+      console.error('Failed to upsert client_subscription:', error);
+      throw error;
+    }
 
-    await supabase
+  } else if (mode === 'payment') {
+    const { error } = await supabase
       .from('client_payments')
       .insert({
         client_id: clientId,
         coach_id: coachId,
         plan_id: planId,
-        stripe_payment_intent_id: paymentIntentId,
-        amount_cents: amountTotal,
+        stripe_payment_intent_id: session.payment_intent,
+        amount_cents: session.amount_total,
         currency: session.currency || 'usd',
         status: 'succeeded',
-        description: `One-time payment for plan`
+        description: 'One-time payment for plan'
       });
+
+    if (error) {
+      console.error('Failed to insert client_payment (one-time):', error);
+      throw error;
+    }
   }
+}
+
+// Look up the client_subscriptions row by Stripe subscription ID. If it does
+// not yet exist (out-of-order webhook delivery — invoice.paid can race ahead
+// of checkout.session.completed), retrieve the subscription from Stripe and
+// upsert the row from its metadata so the caller can proceed.
+async function findOrBackfillSubscriptionRow(subscriptionId, connectedAccountId) {
+  const { data: existing } = await supabase
+    .from('client_subscriptions')
+    .select('id, client_id, coach_id, plan_id')
+    .eq('stripe_subscription_id', subscriptionId)
+    .single();
+  if (existing) return existing;
+
+  let subscription;
+  try {
+    subscription = await stripe.subscriptions.retrieve(
+      subscriptionId,
+      { stripeAccount: connectedAccountId }
+    );
+  } catch (err) {
+    console.error('Failed to retrieve Stripe subscription', subscriptionId, err);
+    return null;
+  }
+
+  const meta = subscription.metadata || {};
+  if (!meta.client_id || !meta.coach_id || !meta.plan_id) {
+    console.error('Cannot backfill subscription — metadata missing on', subscriptionId);
+    return null;
+  }
+
+  const { data: created, error } = await supabase
+    .from('client_subscriptions')
+    .upsert({
+      client_id: meta.client_id,
+      coach_id: meta.coach_id,
+      plan_id: meta.plan_id,
+      stripe_subscription_id: subscriptionId,
+      stripe_customer_id: subscription.customer,
+      status: subscription.status,
+      current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
+      current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+      trial_ends_at: subscription.trial_end
+        ? new Date(subscription.trial_end * 1000).toISOString()
+        : null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }, {
+      onConflict: 'client_id,coach_id',
+      ignoreDuplicates: false
+    })
+    .select('id, client_id, coach_id, plan_id')
+    .single();
+
+  if (error) {
+    console.error('Failed to backfill client_subscription:', error);
+    return null;
+  }
+  return created;
 }
 
 async function handleInvoicePaid(invoice, connectedAccountId) {
   const subscriptionId = invoice.subscription;
   if (!subscriptionId) return;
 
-  // Find the client subscription
-  const { data: sub } = await supabase
-    .from('client_subscriptions')
-    .select('id, client_id, coach_id, plan_id')
-    .eq('stripe_subscription_id', subscriptionId)
-    .single();
-
+  const sub = await findOrBackfillSubscriptionRow(subscriptionId, connectedAccountId);
   if (!sub) return;
 
-  // Update subscription status
-  await supabase
+  const { error: updateErr } = await supabase
     .from('client_subscriptions')
     .update({
       status: 'active',
       updated_at: new Date().toISOString()
     })
     .eq('id', sub.id);
+  if (updateErr) {
+    console.error('Failed to update client_subscription status:', updateErr);
+    throw updateErr;
+  }
 
-  // Record payment
-  await supabase
+  const { error: insertErr } = await supabase
     .from('client_payments')
     .insert({
       client_id: sub.client_id,
@@ -239,32 +295,34 @@ async function handleInvoicePaid(invoice, connectedAccountId) {
       amount_cents: invoice.amount_paid,
       currency: invoice.currency || 'usd',
       status: 'succeeded',
-      description: `Recurring payment`
+      description: 'Recurring payment'
     });
+  if (insertErr) {
+    console.error('Failed to insert client_payment for invoice', invoice.id, insertErr);
+    throw insertErr;
+  }
 }
 
 async function handlePaymentFailed(invoice, connectedAccountId) {
   const subscriptionId = invoice.subscription;
   if (!subscriptionId) return;
 
-  const { data: sub } = await supabase
-    .from('client_subscriptions')
-    .select('id, client_id, coach_id, plan_id')
-    .eq('stripe_subscription_id', subscriptionId)
-    .single();
-
+  const sub = await findOrBackfillSubscriptionRow(subscriptionId, connectedAccountId);
   if (!sub) return;
 
-  await supabase
+  const { error: updateErr } = await supabase
     .from('client_subscriptions')
     .update({
       status: 'past_due',
       updated_at: new Date().toISOString()
     })
     .eq('id', sub.id);
+  if (updateErr) {
+    console.error('Failed to mark subscription past_due:', updateErr);
+    throw updateErr;
+  }
 
-  // Record failed payment
-  await supabase
+  const { error: insertErr } = await supabase
     .from('client_payments')
     .insert({
       client_id: sub.client_id,
@@ -277,6 +335,10 @@ async function handlePaymentFailed(invoice, connectedAccountId) {
       status: 'failed',
       description: 'Payment failed'
     });
+  if (insertErr) {
+    console.error('Failed to record failed payment for invoice', invoice.id, insertErr);
+    throw insertErr;
+  }
 }
 
 async function handleSubscriptionUpdated(subscription, connectedAccountId) {
