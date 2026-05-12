@@ -11169,7 +11169,11 @@ textarea,
 
 .time-frame-segment.active {
     background: white;
-    color: var(--brand-tile-icon-color, #2cb5a5);
+    /* Chain fallbacks: --brand-tile-icon-color (only set inside isCustomBranded)
+       → --brand-primary (always set for any coach) → original teal literal.
+       This keeps the segment pill in the coach's brand color even if the
+       --brand-tile-icon-color var hasn't propagated yet. */
+    color: var(--brand-tile-icon-color, var(--brand-primary, #2cb5a5));
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
@@ -11183,7 +11187,7 @@ textarea,
 
 [data-theme="dark"] .time-frame-segment.active {
     background: #1e293b;
-    color: var(--brand-tile-icon-color, #4ec5b7);
+    color: var(--brand-tile-icon-color, var(--brand-primary, #4ec5b7));
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
