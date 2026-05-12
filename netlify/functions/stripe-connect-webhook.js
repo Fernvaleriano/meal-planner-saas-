@@ -42,8 +42,18 @@ exports.handler = async (event) => {
     return { statusCode: 400, body: `Webhook Error: ${err.message}` };
   }
 
-  // Connect webhook events have an 'account' field indicating the connected account
+  // Connect webhook events have an 'account' field indicating the connected
+  // account. Platform-scoped events (e.g. coach signups on the main account)
+  // can also be delivered here if the endpoint is subscribed to the same event
+  // types; those must be ignored so they don't race the platform handler for
+  // the shared idempotency row and silently swallow the event.
   const connectedAccountId = stripeEvent.account;
+  if (!connectedAccountId) {
+    return {
+      statusCode: 200,
+      body: JSON.stringify({ received: true, ignored: 'platform-scoped event' })
+    };
+  }
 
   // Idempotency: insert the event ID. Unique violation = duplicate redelivery → 200.
   const { error: dedupeErr } = await supabase
