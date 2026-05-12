@@ -1599,7 +1599,7 @@ textarea,
 }
 
 .bottom-nav-item.active .nav-icon {
-    background: rgba(13, 148, 136, 0.1);
+    background: var(--brand-tile-bg-light, rgba(13, 148, 136, 0.1));
 }
 
 [data-theme="dark"] .bottom-nav-item {
@@ -1607,7 +1607,7 @@ textarea,
 }
 
 [data-theme="dark"] .bottom-nav-item.active {
-    color: #4ec5b7;
+    color: var(--brand-tile-icon-color, #4ec5b7);
 }
 
 .nav-icon {
@@ -3971,7 +3971,7 @@ textarea,
 }
 
 .add-food-icon {
-    color: #10b981;
+    color: var(--brand-tile-icon-color, #10b981);
 }
 
 .add-food-options {
@@ -8436,7 +8436,7 @@ textarea,
 }
 
 .btn-primary:hover {
-    background: #2cb5a5;
+    background: var(--brand-primary, #2cb5a5);
     transform: translateY(-1px);
 }
 
@@ -11169,7 +11169,7 @@ textarea,
 
 .time-frame-segment.active {
     background: white;
-    color: #2cb5a5;
+    color: var(--brand-tile-icon-color, #2cb5a5);
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
@@ -11183,7 +11183,7 @@ textarea,
 
 [data-theme="dark"] .time-frame-segment.active {
     background: #1e293b;
-    color: #4ec5b7;
+    color: var(--brand-tile-icon-color, #4ec5b7);
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
@@ -14043,22 +14043,22 @@ textarea,
 }
 
 .plan-action-btn.primary:hover {
-    background: #0b827a;
+    background: var(--brand-primary-dark, #0b827a);
 }
 
 .plan-action-btn.primary:active {
-    background: #0a7269;
+    background: var(--brand-primary-dark, #0a7269);
 }
 
 [data-theme="dark"] .plan-action-btn.primary {
-    background: rgba(20, 184, 166, 0.18);
-    color: #5eead4;
-    border-color: rgba(20, 184, 166, 0.35);
+    background: var(--brand-tile-bg-dark, rgba(20, 184, 166, 0.18));
+    color: var(--brand-tile-icon-color, #5eead4);
+    border-color: var(--brand-tile-border, rgba(20, 184, 166, 0.35));
 }
 
 [data-theme="dark"] .plan-action-btn.primary:hover {
-    background: rgba(20, 184, 166, 0.28);
-    border-color: rgba(20, 184, 166, 0.5);
+    background: var(--brand-tile-bg-dark, rgba(20, 184, 166, 0.28));
+    border-color: var(--brand-tile-border, rgba(20, 184, 166, 0.5));
 }
 
 /* Secondary actions — ghost / muted */
@@ -14767,7 +14767,7 @@ textarea,
     padding: 16px;
     border: none;
     border-radius: 14px;
-    background: linear-gradient(135deg, #2cb5a5 0%, #4ec5b7 100%);
+    background: var(--brand-gradient, linear-gradient(135deg, #2cb5a5 0%, #4ec5b7 100%));
     color: white;
     font-size: 1rem;
     font-weight: 600;
@@ -14793,7 +14793,7 @@ textarea,
 .modal-body .btn-primary:hover,
 .checkin-page .btn-primary:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(13, 148, 136, 0.4);
+    box-shadow: 0 8px 24px var(--brand-banner-shadow, rgba(13, 148, 136, 0.4));
 }
 
 .modal-body .btn-primary:disabled,
@@ -16866,11 +16866,11 @@ textarea,
 }
 
 .diary-share-progress-fill.calories {
-    background: #2cb5a5;
+    background: var(--brand-tile-icon-color, #2cb5a5);
 }
 
 .diary-share-progress-fill.protein {
-    background: #10b981;
+    background: var(--brand-macro-protein, #10b981);
 }
 
 .diary-share-progress-fill.carbs {
@@ -22216,12 +22216,12 @@ textarea,
 }
 
 [data-theme="light"] .day-pill.today {
-    border-color: #2cb5a5;
-    background: #f0fdfa;
+    border-color: var(--brand-tile-icon-color, #2cb5a5);
+    background: var(--brand-tile-bg-light, #f0fdfa);
 }
 
 [data-theme="light"] .day-pill.selected {
-    background: #2cb5a5;
+    background: var(--brand-banner-gradient, #2cb5a5);
     color: white;
     border-color: transparent;
 }
@@ -22231,7 +22231,7 @@ textarea,
 }
 
 [data-theme="light"] .day-pill.today .day-name {
-    color: #2cb5a5;
+    color: var(--brand-tile-icon-color, #2cb5a5);
 }
 
 [data-theme="light"] .day-pill .day-number {
@@ -22239,7 +22239,7 @@ textarea,
 }
 
 [data-theme="light"] .day-pill.today .day-number {
-    color: #2cb5a5;
+    color: var(--brand-tile-icon-color, #2cb5a5);
 }
 
 [data-theme="light"] .day-pill.selected .day-name {
@@ -41730,11 +41730,11 @@ textarea,
 }
 
 .weekly-avg-calories {
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    background: var(--brand-gradient, linear-gradient(135deg, #10b981 0%, #059669 100%));
 }
 
 .weekly-avg-protein {
-    background: linear-gradient(135deg, #2cb5a5 0%, #2563eb 100%);
+    background: var(--brand-gradient, linear-gradient(135deg, #2cb5a5 0%, #2563eb 100%));
 }
 
 .weekly-avg-value {
