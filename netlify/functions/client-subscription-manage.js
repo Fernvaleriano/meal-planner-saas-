@@ -47,10 +47,14 @@ exports.handler = async (event) => {
         };
       }
 
-      // Get active subscription
+      // Get active subscription. The !plan_id qualifier is required now
+      // that client_subscriptions has two foreign keys to coach_payment_plans
+      // (plan_id and pending_plan_id) — without it, PostgREST can't decide
+      // which one to follow and returns no data, which the frontend treats
+      // as "no subscription" and shows Choose-a-Plan.
       const { data: subscription } = await supabase
         .from('client_subscriptions')
-        .select('*, coach_payment_plans(*)')
+        .select('*, coach_payment_plans!plan_id(*)')
         .eq('client_id', client.id)
         .eq('coach_id', client.coach_id)
         .in('status', ['active', 'trialing', 'past_due', 'canceling'])

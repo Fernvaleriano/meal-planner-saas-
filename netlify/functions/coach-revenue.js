@@ -65,7 +65,7 @@ exports.handler = async (event) => {
       // Active subscribers
       supabase
         .from('client_subscriptions')
-        .select('id, client_id, status, plan_id, coach_payment_plans(name)')
+        .select('id, client_id, status, plan_id, coach_payment_plans!plan_id(name)')
         .eq('coach_id', coachId)
         .in('status', ['active', 'trialing']),
 
