@@ -83,7 +83,7 @@ function PricingCard({ plan, currentPlanId, pendingPlanId, onSubscribe, onChange
 }
 
 // ─── Current Subscription Info ───
-function SubscriptionInfo({ subscription, pendingPlan, onCancel, onReactivate, onPortal, loading }) {
+function SubscriptionInfo({ subscription, pendingPlan, onCancel, onReactivate, onPause, onResume, onPortal, loading }) {
   if (!subscription) return null;
 
   const plan = subscription.coach_payment_plans;
@@ -94,7 +94,8 @@ function SubscriptionInfo({ subscription, pendingPlan, onCancel, onReactivate, o
     trialing: { bg: '#dbeafe', color: '#1d4ed8' },
     past_due: { bg: '#fef3c7', color: '#92400e' },
     canceling: { bg: '#fecaca', color: '#991b1b' },
-    canceled: { bg: '#f1f5f9', color: '#475569' }
+    canceled: { bg: '#f1f5f9', color: '#475569' },
+    paused: { bg: '#e0e7ff', color: '#3730a3' }
   };
   const sColor = statusColors[status] || statusColors.active;
 
@@ -148,7 +149,7 @@ function SubscriptionInfo({ subscription, pendingPlan, onCancel, onReactivate, o
         <button style={styles.linkBtn} onClick={onPortal} disabled={loading}>
           <CreditCard size={14} /> Manage Payment Method
         </button>
-        {status === 'canceling' ? (
+        {status === 'canceling' && (
           <button
             style={{ ...styles.linkBtn, color: 'var(--brand-primary)' }}
             onClick={onReactivate}
@@ -156,14 +157,33 @@ function SubscriptionInfo({ subscription, pendingPlan, onCancel, onReactivate, o
           >
             Reactivate Subscription
           </button>
-        ) : status !== 'canceled' && (
+        )}
+        {status === 'paused' && (
           <button
-            style={{ ...styles.linkBtn, color: 'var(--error)' }}
-            onClick={onCancel}
+            style={{ ...styles.linkBtn, color: 'var(--brand-primary)' }}
+            onClick={onResume}
             disabled={loading}
           >
-            Cancel Subscription
+            Resume Subscription
           </button>
+        )}
+        {(status === 'active' || status === 'trialing') && (
+          <>
+            <button
+              style={styles.linkBtn}
+              onClick={onPause}
+              disabled={loading}
+            >
+              Pause
+            </button>
+            <button
+              style={{ ...styles.linkBtn, color: 'var(--error)' }}
+              onClick={onCancel}
+              disabled={loading}
+            >
+              Cancel
+            </button>
+          </>
         )}
       </div>
     </div>
@@ -302,6 +322,39 @@ export default function ClientBilling() {
     }
   };
 
+  const handlePause = async () => {
+    if (!window.confirm('Pause your subscription? You won\'t be billed until you resume.')) return;
+    setActionLoading(true);
+    try {
+      const res = await apiPost('/.netlify/functions/client-subscription-manage', {
+        action: 'pause',
+        coachId
+      });
+      showSuccess(res.message || 'Subscription paused');
+      fetchData();
+    } catch (err) {
+      showError(err.message);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleResume = async () => {
+    setActionLoading(true);
+    try {
+      const res = await apiPost('/.netlify/functions/client-subscription-manage', {
+        action: 'resume',
+        coachId
+      });
+      showSuccess(res.message || 'Subscription resumed');
+      fetchData();
+    } catch (err) {
+      showError(err.message);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handlePortal = async () => {
     setActionLoading(true);
     try {
@@ -348,6 +401,8 @@ export default function ClientBilling() {
             pendingPlan={pendingPlan}
             onCancel={handleCancel}
             onReactivate={handleReactivate}
+            onPause={handlePause}
+            onResume={handleResume}
             onPortal={handlePortal}
             loading={actionLoading}
           />

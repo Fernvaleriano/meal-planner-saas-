@@ -57,7 +57,7 @@ exports.handler = async (event) => {
         .select('*, coach_payment_plans!plan_id(*)')
         .eq('client_id', client.id)
         .eq('coach_id', client.coach_id)
-        .in('status', ['active', 'trialing', 'past_due', 'canceling'])
+        .in('status', ['active', 'trialing', 'past_due', 'canceling', 'paused'])
         .single();
 
       // Get payment history
@@ -190,6 +190,98 @@ exports.handler = async (event) => {
         };
       }
 
+      if (action === 'pause') {
+        // Pause billing without canceling. Stripe keeps the subscription
+        // "active" on its side but stops generating invoices until we
+        // resume. We use status='paused' in our DB so coach dashboards
+        // and access-gating logic can distinguish a paused client.
+        const { data: sub } = await supabase
+          .from('client_subscriptions')
+          .select('*')
+          .eq('client_id', client.id)
+          .eq('coach_id', client.coach_id)
+          .in('status', ['active', 'trialing'])
+          .single();
+
+        if (!sub?.stripe_subscription_id) {
+          return {
+            statusCode: 400, headers: corsHeaders,
+            body: JSON.stringify({ error: 'No active subscription to pause' })
+          };
+        }
+
+        await stripe.subscriptions.update(
+          sub.stripe_subscription_id,
+          { pause_collection: { behavior: 'mark_uncollectible' } },
+          { stripeAccount }
+        );
+
+        const { error: updErr } = await supabase
+          .from('client_subscriptions')
+          .update({
+            status: 'paused',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', sub.id);
+        if (updErr) {
+          console.error('Failed to mark subscription paused:', updErr);
+          throw updErr;
+        }
+
+        return {
+          statusCode: 200, headers: corsHeaders,
+          body: JSON.stringify({
+            success: true,
+            message: 'Subscription paused. Resume any time — no billing until then.'
+          })
+        };
+      }
+
+      if (action === 'resume') {
+        const { data: sub } = await supabase
+          .from('client_subscriptions')
+          .select('*')
+          .eq('client_id', client.id)
+          .eq('coach_id', client.coach_id)
+          .eq('status', 'paused')
+          .single();
+
+        if (!sub?.stripe_subscription_id) {
+          return {
+            statusCode: 400, headers: corsHeaders,
+            body: JSON.stringify({ error: 'No paused subscription to resume' })
+          };
+        }
+
+        const updated = await stripe.subscriptions.update(
+          sub.stripe_subscription_id,
+          { pause_collection: '' },
+          { stripeAccount }
+        );
+
+        const { error: updErr } = await supabase
+          .from('client_subscriptions')
+          .update({
+            status: updated.status || 'active',
+            current_period_start: new Date(updated.current_period_start * 1000).toISOString(),
+            current_period_end: new Date(updated.current_period_end * 1000).toISOString(),
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', sub.id);
+        if (updErr) {
+          console.error('Failed to resume subscription in DB:', updErr);
+          throw updErr;
+        }
+
+        return {
+          statusCode: 200, headers: corsHeaders,
+          body: JSON.stringify({
+            success: true,
+            message: 'Subscription resumed'
+          })
+        };
+      }
+
       if (action === 'reactivate') {
         // Undo a "canceling" subscription before it actually ends.
         // Once the subscription has fully ended (status: canceled), this
@@ -274,7 +366,7 @@ exports.handler = async (event) => {
 
       return {
         statusCode: 400, headers: corsHeaders,
-        body: JSON.stringify({ error: 'Invalid action. Use: cancel, reactivate, portal' })
+        body: JSON.stringify({ error: 'Invalid action. Use: cancel, reactivate, pause, resume, portal' })
       };
     }
 

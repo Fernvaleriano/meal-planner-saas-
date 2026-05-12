@@ -138,6 +138,36 @@ async function findCoachByConnectId(connectAccountId) {
   return data;
 }
 
+// Fire-and-forget billing notification to the coach's bell icon.
+// Wrapped in try/catch so a notification failure never causes the
+// webhook to 500 — the actual billing write is what matters.
+async function notifyCoach({ coachId, clientId, type, title, message }) {
+  try {
+    await supabase.from('notifications').insert([{
+      user_id: coachId,
+      type,
+      title,
+      message,
+      related_client_id: clientId
+    }]);
+  } catch (err) {
+    console.error('Failed to insert coach notification:', err);
+  }
+}
+
+async function lookupClientAndPlanNames(clientId, planId) {
+  const [{ data: client }, { data: plan }] = await Promise.all([
+    supabase.from('clients').select('client_name').eq('id', clientId).maybeSingle(),
+    planId
+      ? supabase.from('coach_payment_plans').select('name').eq('id', planId).maybeSingle()
+      : Promise.resolve({ data: null })
+  ]);
+  return {
+    clientName: client?.client_name || 'A client',
+    planName: plan?.name || 'a plan'
+  };
+}
+
 async function handleCheckoutComplete(session, connectedAccountId) {
   const clientId = session.metadata?.client_id;
   const coachId = session.metadata?.coach_id;
@@ -184,6 +214,15 @@ async function handleCheckoutComplete(session, connectedAccountId) {
       throw error;
     }
 
+    const { clientName, planName } = await lookupClientAndPlanNames(clientId, planId);
+    await notifyCoach({
+      coachId,
+      clientId,
+      type: 'client_subscribed',
+      title: `${clientName} subscribed`,
+      message: `Started ${planName}`
+    });
+
   } else if (mode === 'payment') {
     const { error } = await supabase
       .from('client_payments')
@@ -202,6 +241,16 @@ async function handleCheckoutComplete(session, connectedAccountId) {
       console.error('Failed to insert client_payment (one-time):', error);
       throw error;
     }
+
+    const { clientName, planName } = await lookupClientAndPlanNames(clientId, planId);
+    const amount = ((session.amount_total || 0) / 100).toFixed(2);
+    await notifyCoach({
+      coachId,
+      clientId,
+      type: 'client_payment',
+      title: `${clientName} paid $${amount}`,
+      message: `One-time payment for ${planName}`
+    });
   }
 }
 
@@ -339,6 +388,16 @@ async function handlePaymentFailed(invoice, connectedAccountId) {
     console.error('Failed to record failed payment for invoice', invoice.id, insertErr);
     throw insertErr;
   }
+
+  const { clientName } = await lookupClientAndPlanNames(sub.client_id, sub.plan_id);
+  const amount = ((invoice.amount_due || 0) / 100).toFixed(2);
+  await notifyCoach({
+    coachId: sub.coach_id,
+    clientId: sub.client_id,
+    type: 'client_payment_failed',
+    title: `${clientName}'s payment failed`,
+    message: `$${amount} could not be charged`
+  });
 }
 
 async function handleSubscriptionUpdated(subscription, connectedAccountId) {
@@ -356,6 +415,13 @@ async function handleSubscriptionUpdated(subscription, connectedAccountId) {
     current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
     updated_at: new Date().toISOString()
   };
+
+  // Stripe leaves subscription.status='active' when collection is paused,
+  // but we surface a distinct 'paused' status in our UI. Preserve it so
+  // subsequent update events don't silently flip the row back to 'active'.
+  if (subscription.pause_collection) {
+    updateData.status = 'paused';
+  }
 
   if (subscription.cancel_at_period_end) {
     updateData.status = 'canceling';
@@ -402,7 +468,7 @@ async function handleSubscriptionUpdated(subscription, connectedAccountId) {
 async function handleSubscriptionDeleted(subscription, connectedAccountId) {
   const { data: sub } = await supabase
     .from('client_subscriptions')
-    .select('id')
+    .select('id, client_id, coach_id, plan_id')
     .eq('stripe_subscription_id', subscription.id)
     .single();
 
@@ -416,6 +482,15 @@ async function handleSubscriptionDeleted(subscription, connectedAccountId) {
       updated_at: new Date().toISOString()
     })
     .eq('id', sub.id);
+
+  const { clientName } = await lookupClientAndPlanNames(sub.client_id, sub.plan_id);
+  await notifyCoach({
+    coachId: sub.coach_id,
+    clientId: sub.client_id,
+    type: 'client_canceled',
+    title: `${clientName} canceled`,
+    message: 'Subscription has ended'
+  });
 }
 
 async function handleAccountUpdated(account) {

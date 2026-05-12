@@ -82,6 +82,22 @@
         .failed-badge { background: #fef2f2; color: #ef4444; font-size: 11px; padding: 2px 6px; border-radius: 4px; margin-left: 6px; }
         .refunded-badge { background: #f1f5f9; color: #475569; font-size: 11px; padding: 2px 6px; border-radius: 4px; margin-left: 6px; }
 
+        /* Subscribers */
+        .subscriber-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; border-bottom: 1px solid var(--gray-100, #f1f5f9); gap: 12px; }
+        .subscriber-row:last-child { border-bottom: none; }
+        .subscriber-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+        .subscriber-name { font-weight: 600; font-size: 14px; color: var(--gray-800, #1e293b); }
+        .subscriber-meta { font-size: 12px; color: var(--gray-500, #64748b); }
+        .subscriber-meta-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .sub-status { font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: 600; }
+        .sub-status.active { background: #dcfce7; color: #166534; }
+        .sub-status.trialing { background: #dbeafe; color: #1d4ed8; }
+        .sub-status.past_due { background: #fef3c7; color: #92400e; }
+        .sub-status.canceling { background: #fecaca; color: #991b1b; }
+        .sub-status.canceled { background: #f1f5f9; color: #475569; }
+        .sub-status.paused { background: #e0e7ff; color: #3730a3; }
+        .subscriber-empty { padding: 20px; text-align: center; color: var(--gray-400, #94a3b8); font-size: 13px; }
+
         /* Plan Cards */
         .plan-card { background: white; border: 1px solid var(--gray-200, #e2e8f0); border-radius: 10px; padding: 20px; margin-bottom: 12px; }
         .plan-card.inactive { opacity: 0.6; }
@@ -268,6 +284,9 @@
             <!-- Revenue Overview (shown when connected) -->
             <div id="revenueSection" style="display: none;"></div>
 
+            <!-- Subscribers (shown when connected) -->
+            <div id="subscribersSection" style="display: none;"></div>
+
             <!-- Payment Plans (shown when connected) -->
             <div id="plansSection" style="display: none;"></div>
 
@@ -398,6 +417,7 @@
         let connectStatus = null;
         let allPlans = [];
         let allPromoCodes = [];
+        let allSubscribers = [];
         let revenueData = null;
         let editingPlanId = null;
 
@@ -575,6 +595,87 @@
             html += '</div>';
             el.innerHTML = html;
             lucide.createIcons();
+        }
+
+        // ── Render Subscribers Section ──
+        function renderSubscribersSection() {
+            const el = document.getElementById('subscribersSection');
+            if (!connectStatus?.charges_enabled) {
+                el.style.display = 'none';
+                return;
+            }
+            el.style.display = 'block';
+
+            // Sort: active first, then trialing, then paused/past_due, then canceling, then canceled.
+            const order = { active: 0, trialing: 1, past_due: 2, paused: 3, canceling: 4, canceled: 5 };
+            const sorted = [...(allSubscribers || [])].sort(
+                (a, b) => (order[a.status] ?? 99) - (order[b.status] ?? 99)
+            );
+
+            let html = `
+                <div class="billing-card">
+                    <h3 class="section-title"><i data-lucide="users" style="width:18px;height:18px;"></i> Subscribers (${sorted.length})</h3>`;
+
+            if (sorted.length === 0) {
+                html += '<p class="subscriber-empty">No subscribers yet. Share your client link to get started.</p>';
+            } else {
+                sorted.forEach(s => {
+                    const plan = s.coach_payment_plans || {};
+                    const pending = s.pending_plan || null;
+                    const priceCents = plan.price_cents || 0;
+                    const interval = plan.billing_interval === 'week' ? '/wk' : '/mo';
+                    const price = `$${(priceCents / 100).toFixed(2)}${interval}`;
+                    const nextLabel = (s.status === 'canceling')
+                        ? `Ends ${new Date(s.cancel_at || s.current_period_end).toLocaleDateString()}`
+                        : (s.status === 'canceled')
+                            ? `Canceled ${new Date(s.canceled_at || s.current_period_end).toLocaleDateString()}`
+                            : (s.status === 'paused')
+                                ? 'Paused — no billing'
+                                : s.current_period_end
+                                    ? `Renews ${new Date(s.current_period_end).toLocaleDateString()}`
+                                    : '';
+                    const pendingLabel = (pending && s.pending_change_effective_at)
+                        ? ` &middot; <span style="color:#1d4ed8;">Switching to ${escapeHtml(pending.name)} on ${new Date(s.pending_change_effective_at).toLocaleDateString()}</span>`
+                        : '';
+                    const canCancel = !['canceled', 'canceling'].includes(s.status);
+                    const actionsHtml = canCancel
+                        ? `<button class="btn btn-danger btn-small" onclick="cancelClientSub('${s.id}')">Cancel</button>`
+                        : '';
+
+                    html += `
+                        <div class="subscriber-row">
+                            <div class="subscriber-main">
+                                <div class="subscriber-name">${escapeHtml(s.client_name || 'Unknown')}</div>
+                                <div class="subscriber-meta-row">
+                                    <span class="sub-status ${s.status}">${s.status}</span>
+                                    <span class="subscriber-meta">${escapeHtml(plan.name || 'No plan')} &middot; ${price}</span>
+                                </div>
+                                <div class="subscriber-meta">${nextLabel}${pendingLabel}</div>
+                            </div>
+                            <div>${actionsHtml}</div>
+                        </div>`;
+                });
+            }
+
+            html += '</div>';
+            el.innerHTML = html;
+            lucide.createIcons();
+        }
+
+        async function cancelClientSub(subscriptionId) {
+            const sub = (allSubscribers || []).find(s => s.id === subscriptionId);
+            const name = sub?.client_name || 'this client';
+            if (!confirm(`Cancel ${name}'s subscription at the end of the current billing period?`)) return;
+            try {
+                await apiFetch('/.netlify/functions/coach-subscribers', {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'cancel', subscriptionId })
+                });
+                showToast('Subscription will cancel at end of period');
+                await loadAll();
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
         }
 
         // ── Render Plans Section ──
@@ -982,14 +1083,15 @@
             // end up with duplicates / double-billed clients.
             const FAILED = { _failed: true };
             try {
-                const [statusRes, plansRes, promoRes, revenueRes] = await Promise.all([
+                const [statusRes, plansRes, promoRes, revenueRes, subscribersRes] = await Promise.all([
                     apiFetch('/.netlify/functions/stripe-connect-onboarding', {
                         method: 'POST',
                         body: JSON.stringify({ action: 'status' })
                     }),
                     apiFetch(`/.netlify/functions/coach-billing-plans?coachId=${currentCoachId}`).catch(() => FAILED),
                     apiFetch('/.netlify/functions/coach-promo-codes').catch(() => FAILED),
-                    apiFetch('/.netlify/functions/coach-revenue').catch(() => FAILED)
+                    apiFetch('/.netlify/functions/coach-revenue').catch(() => FAILED),
+                    apiFetch('/.netlify/functions/coach-subscribers').catch(() => FAILED)
                 ]);
 
                 connectStatus = statusRes;
@@ -1010,6 +1112,11 @@
                 } else {
                     revenueData = revenueRes;
                 }
+                if (subscribersRes === FAILED) {
+                    anyFailed = true;
+                } else {
+                    allSubscribers = subscribersRes.subscribers || [];
+                }
 
                 if (anyFailed) {
                     showToast('Could not refresh some billing data. Showing last known values.', 'error');
@@ -1020,6 +1127,7 @@
 
             renderConnectSection();
             renderRevenueSection();
+            renderSubscribersSection();
             renderPlansSection();
             renderPromoSection();
             renderClientLink();
