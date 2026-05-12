@@ -935,6 +935,49 @@
             color: var(--preview-text-secondary, #64748b);
         }
 
+        /* Quick Actions tile grid (Check-In / Recipes / Challenges / Progress) */
+        .mockup-quick-grid-heading {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--preview-text, #0f172a);
+            margin: 14px 2px 8px;
+        }
+        .mockup-quick-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-bottom: 4px;
+        }
+        .mockup-quick-tile {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 8px;
+            padding: 10px;
+            background: var(--preview-card, #ffffff);
+            border-radius: 12px;
+            border: 1px solid rgba(0,0,0,0.04);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        }
+        .mockup-quick-tile-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 9px;
+            background: var(--preview-accent-soft, rgba(45, 212, 191, 0.15));
+            color: var(--preview-primary, #2dd4bf);
+            border: 1px solid var(--preview-primary-soft, rgba(45, 212, 191, 0.25));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .mockup-quick-tile-icon svg { width: 16px; height: 16px; }
+        .mockup-quick-tile span {
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: var(--preview-text, #0f172a);
+        }
+
         /* Weigh-in banner */
         .mockup-weigh-banner {
             display: flex;
@@ -2028,6 +2071,35 @@
                                 <span class="mockup-weigh-sub">Snap your scale — AI logs the number for you</span>
                             </div>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                        </div>
+
+                        <!-- Quick Actions tile grid — mirrors client Dashboard "Check-In / Recipes / Challenges / Progress / Favorites / Profile" -->
+                        <div class="mockup-quick-grid-heading">Quick Actions</div>
+                        <div class="mockup-quick-grid">
+                            <div class="mockup-quick-tile">
+                                <div class="mockup-quick-tile-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11H5a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2h-4"/><path d="M9 11V7a3 3 0 0 1 6 0v4"/><path d="M9 15l2 2 4-4"/></svg>
+                                </div>
+                                <span>Check-In</span>
+                            </div>
+                            <div class="mockup-quick-tile">
+                                <div class="mockup-quick-tile-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2l1 4h10l1-4"/><path d="M6 2v18a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V2"/></svg>
+                                </div>
+                                <span>Recipes</span>
+                            </div>
+                            <div class="mockup-quick-tile">
+                                <div class="mockup-quick-tile-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg>
+                                </div>
+                                <span>Challenges</span>
+                            </div>
+                            <div class="mockup-quick-tile">
+                                <div class="mockup-quick-tile-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+                                </div>
+                                <span>Progress</span>
+                            </div>
                         </div>
 
                         <!-- Today's Progress -->

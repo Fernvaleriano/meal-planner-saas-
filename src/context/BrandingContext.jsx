@@ -112,6 +112,18 @@ function darkenColor(hex, percent) {
 }
 
 /**
+ * Convert a #RRGGBB hex string to "rgba(r, g, b, a)". Returns the same teal fallback
+ * the hardcoded CSS uses if hex is missing — defensive only, not the normal path.
+ */
+function hexToRgba(hex, alpha) {
+  if (!hex || hex.length < 7) return `rgba(44, 181, 165, ${alpha})`;
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+/**
  * Apply the coach's chosen client theme.
  * Only overrides if the client hasn't manually set their own preference
  * and doesn't already have a saved theme.
@@ -169,6 +181,46 @@ function applyBrandingCSS(branding) {
       '--brand-gradient',
       `linear-gradient(135deg, ${branding.brand_primary_color} 0%, ${branding.brand_secondary_color} 100%)`
     );
+  }
+
+  // Derived rebrand variables for client UI areas that historically hardcoded the
+  // brand teal (meal-active button, quick-action tile icons, gym/weigh-in banner,
+  // macro rings, button shadows). These are ONLY set when the coach has chosen a
+  // custom primary color — when they leave the default teal, we don't set them
+  // and the CSS falls back to the original teal values byte-for-byte. The user's
+  // explicit constraint: "don't mess with the default app — only give coaches
+  // who customize more rebrand reach."
+  const defaultPrimary = '#2cb5a5';
+  const primaryLower = (branding.brand_primary_color || '').toLowerCase();
+  const isCustomBranded = primaryLower && primaryLower !== defaultPrimary;
+  if (isCustomBranded) {
+    const primary = branding.brand_primary_color;
+    const secondary = branding.brand_secondary_color || primary;
+
+    // Meal type active state (was hardcoded teal gradient)
+    root.style.setProperty('--brand-meal-active-start', hexToRgba(primary, 0.22));
+    root.style.setProperty('--brand-meal-active-end', hexToRgba(secondary, 0.38));
+    root.style.setProperty('--brand-meal-active-shadow', hexToRgba(primary, 0.5));
+
+    // Quick Action tile icons (Check-In, Recipes, Challenges, Progress, Favorites, Profile)
+    root.style.setProperty('--brand-tile-bg-dark', hexToRgba(primary, 0.10));
+    root.style.setProperty('--brand-tile-bg-light', hexToRgba(primary, 0.08));
+    root.style.setProperty('--brand-tile-border', hexToRgba(primary, 0.18));
+    root.style.setProperty('--brand-tile-icon-color', primary);
+
+    // Gym Check-In + Weigh-In banner icons (were teal gradient)
+    root.style.setProperty(
+      '--brand-banner-gradient',
+      `linear-gradient(135deg, ${primary} 0%, ${secondary} 100%)`
+    );
+    root.style.setProperty('--brand-banner-shadow', hexToRgba(primary, 0.4));
+
+    // Soft shadows used on the View Diary button etc.
+    root.style.setProperty('--brand-shadow-soft', hexToRgba(primary, 0.25));
+    root.style.setProperty('--brand-shadow-soft-strong', hexToRgba(primary, 0.35));
+
+    // Macro ring "protein" stroke (was hardcoded #2cb5a5)
+    root.style.setProperty('--brand-macro-protein', primary);
   }
 
   // Extended palette
@@ -251,6 +303,11 @@ function clearBrandingCSS() {
     '--brand-primary', '--brand-primary-dark', '--brand-secondary', '--brand-accent',
     '--brand-gradient', '--bg-primary', '--bg-secondary', '--bg-card',
     '--text-primary', '--text-secondary', '--btn-radius', '--font-family',
+    // Derived rebrand variables — clear so CSS fallbacks (default teal) reapply
+    '--brand-meal-active-start', '--brand-meal-active-end', '--brand-meal-active-shadow',
+    '--brand-tile-bg-dark', '--brand-tile-bg-light', '--brand-tile-border', '--brand-tile-icon-color',
+    '--brand-banner-gradient', '--brand-banner-shadow',
+    '--brand-shadow-soft', '--brand-shadow-soft-strong', '--brand-macro-protein',
   ];
   props.forEach(p => root.style.removeProperty(p));
   document.body.style.fontFamily = '';
