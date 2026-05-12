@@ -344,7 +344,7 @@ async function handlePaymentFailed(invoice, connectedAccountId) {
 async function handleSubscriptionUpdated(subscription, connectedAccountId) {
   const { data: sub } = await supabase
     .from('client_subscriptions')
-    .select('id')
+    .select('id, plan_id, pending_plan_id, stripe_schedule_id')
     .eq('stripe_subscription_id', subscription.id)
     .single();
 
@@ -366,10 +366,37 @@ async function handleSubscriptionUpdated(subscription, connectedAccountId) {
     updateData.canceled_at = new Date(subscription.canceled_at * 1000).toISOString();
   }
 
-  await supabase
+  // Scheduled plan change fired: when a Subscription Schedule transitions
+  // to its next phase, Stripe swaps the subscription's price and emits
+  // customer.subscription.updated. If we have a pending plan whose
+  // stripe_price_id now matches the subscription's current price, promote
+  // pending_plan_id → plan_id and clear the pending fields.
+  if (sub.pending_plan_id) {
+    const currentPriceId = subscription.items?.data?.[0]?.price?.id
+      || subscription.items?.data?.[0]?.price;
+    if (currentPriceId) {
+      const { data: pendingPlan } = await supabase
+        .from('coach_payment_plans')
+        .select('id, stripe_price_id')
+        .eq('id', sub.pending_plan_id)
+        .single();
+      if (pendingPlan && pendingPlan.stripe_price_id === currentPriceId) {
+        updateData.plan_id = sub.pending_plan_id;
+        updateData.pending_plan_id = null;
+        updateData.pending_change_effective_at = null;
+        updateData.stripe_schedule_id = null;
+      }
+    }
+  }
+
+  const { error } = await supabase
     .from('client_subscriptions')
     .update(updateData)
     .eq('id', sub.id);
+  if (error) {
+    console.error('Failed to update client_subscription on update event:', error);
+    throw error;
+  }
 }
 
 async function handleSubscriptionDeleted(subscription, connectedAccountId) {
