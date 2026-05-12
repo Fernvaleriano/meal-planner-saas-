@@ -110,7 +110,7 @@ exports.handler = async (event) => {
               id: subscription.items.data[0].id,
               price: plan.stripe_price_id
             }],
-            proration_behavior: 'create_prorations'
+            proration_behavior: 'always_invoice'
           },
           { stripeAccount }
         );
