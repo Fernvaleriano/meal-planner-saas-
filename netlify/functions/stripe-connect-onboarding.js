@@ -37,7 +37,7 @@ exports.handler = async (event) => {
     // Get coach record
     const { data: coach, error: coachErr } = await supabase
       .from('coaches')
-      .select('id, email, name, stripe_connect_account_id, stripe_connect_onboarding_complete, stripe_connect_charges_enabled')
+      .select('id, email, name, stripe_connect_account_id, stripe_connect_onboarding_complete, stripe_connect_charges_enabled, dispute_disclosure_acknowledged_at')
       .eq('id', user.id)
       .single();
 
@@ -103,7 +103,8 @@ exports.handler = async (event) => {
             connected: false,
             onboarding_complete: false,
             charges_enabled: false,
-            payouts_enabled: false
+            payouts_enabled: false,
+            dispute_disclosure_acknowledged_at: coach.dispute_disclosure_acknowledged_at || null
           })
         };
       }
@@ -133,7 +134,39 @@ exports.handler = async (event) => {
           onboarding_complete: isComplete,
           charges_enabled: chargesEnabled,
           payouts_enabled: payoutsEnabled,
-          account_id: coach.stripe_connect_account_id
+          account_id: coach.stripe_connect_account_id,
+          dispute_disclosure_acknowledged_at: coach.dispute_disclosure_acknowledged_at || null
+        })
+      };
+    }
+
+    // Records that the coach has read and acknowledged the dispute /
+    // chargeback / merchant-of-record disclosure. The coach-billing
+    // dashboard blocks paid features behind this acknowledgement so a
+    // coach can't later claim they didn't know how disputes work.
+    if (action === 'acknowledge_disclosure') {
+      const nowIso = new Date().toISOString();
+      const { error: ackErr } = await supabase
+        .from('coaches')
+        .update({
+          dispute_disclosure_acknowledged_at: nowIso,
+          updated_at: nowIso
+        })
+        .eq('id', coach.id);
+
+      if (ackErr) {
+        console.error('Failed to record dispute disclosure ack:', ackErr);
+        return {
+          statusCode: 500, headers: corsHeaders,
+          body: JSON.stringify({ error: ackErr.message })
+        };
+      }
+
+      return {
+        statusCode: 200, headers: corsHeaders,
+        body: JSON.stringify({
+          success: true,
+          dispute_disclosure_acknowledged_at: nowIso
         })
       };
     }
@@ -158,7 +191,7 @@ exports.handler = async (event) => {
 
     return {
       statusCode: 400, headers: corsHeaders,
-      body: JSON.stringify({ error: 'Invalid action. Use: create, status, dashboard' })
+      body: JSON.stringify({ error: 'Invalid action. Use: create, status, dashboard, acknowledge_disclosure' })
     };
 
   } catch (error) {
