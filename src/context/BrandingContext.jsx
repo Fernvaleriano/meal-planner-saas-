@@ -215,6 +215,18 @@ function applyBrandingCSS(branding) {
     );
     root.style.setProperty('--brand-banner-shadow', hexToRgba(primary, 0.4));
 
+    // Gym Check-In banner CARD background (was teal/blue/purple triple-gradient).
+    // We collapse it to a single brand-tinted gradient so the card adopts the coach's color.
+    root.style.setProperty(
+      '--brand-banner-card-bg-light',
+      `linear-gradient(135deg, ${hexToRgba(primary, 0.10)} 0%, ${hexToRgba(secondary, 0.08)} 50%, ${hexToRgba(primary, 0.06)} 100%)`
+    );
+    root.style.setProperty(
+      '--brand-banner-card-bg-dark',
+      `linear-gradient(135deg, ${hexToRgba(primary, 0.20)} 0%, ${hexToRgba(secondary, 0.18)} 50%, ${hexToRgba(primary, 0.14)} 100%)`
+    );
+    root.style.setProperty('--brand-banner-card-shadow', hexToRgba(primary, 0.08));
+
     // Soft shadows used on the View Diary button etc.
     root.style.setProperty('--brand-shadow-soft', hexToRgba(primary, 0.25));
     root.style.setProperty('--brand-shadow-soft-strong', hexToRgba(primary, 0.35));
@@ -307,6 +319,7 @@ function clearBrandingCSS() {
     '--brand-meal-active-start', '--brand-meal-active-end', '--brand-meal-active-shadow',
     '--brand-tile-bg-dark', '--brand-tile-bg-light', '--brand-tile-border', '--brand-tile-icon-color',
     '--brand-banner-gradient', '--brand-banner-shadow',
+    '--brand-banner-card-bg-light', '--brand-banner-card-bg-dark', '--brand-banner-card-shadow',
     '--brand-shadow-soft', '--brand-shadow-soft-strong', '--brand-macro-protein',
   ];
   props.forEach(p => root.style.removeProperty(p));
