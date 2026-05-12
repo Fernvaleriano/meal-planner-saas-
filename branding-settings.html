@@ -306,6 +306,103 @@
             letter-spacing: 0;
         }
 
+        /* Color reset button */
+        .color-reset-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            border: 1px solid var(--gray-200);
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            color: var(--gray-500);
+            transition: all 0.15s;
+            flex-shrink: 0;
+        }
+        .color-reset-btn:hover {
+            background: var(--gray-100);
+            color: var(--gray-700);
+            border-color: var(--gray-300);
+        }
+        [data-theme="dark"] .color-reset-btn {
+            background: var(--gray-800);
+            border-color: var(--gray-600);
+            color: var(--gray-400);
+        }
+        [data-theme="dark"] .color-reset-btn:hover {
+            background: var(--gray-700);
+            color: var(--gray-200);
+        }
+
+        /* Advanced Colors collapsible */
+        .advanced-colors-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            margin-top: 20px;
+            padding: 12px 14px;
+            background: var(--gray-50);
+            border: 1px solid var(--gray-200);
+            border-radius: 10px;
+            cursor: pointer;
+            color: var(--gray-800);
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+        .advanced-colors-toggle:hover {
+            background: var(--gray-100);
+            border-color: var(--gray-300);
+        }
+        [data-theme="dark"] .advanced-colors-toggle {
+            background: var(--gray-900);
+            border-color: var(--gray-700);
+            color: var(--gray-200);
+        }
+        [data-theme="dark"] .advanced-colors-toggle:hover {
+            background: var(--gray-800);
+        }
+        .advanced-colors-toggle-text {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            text-align: left;
+        }
+        .advanced-colors-toggle-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+        .advanced-colors-toggle-sub {
+            font-size: 0.75rem;
+            color: var(--gray-500);
+            font-weight: 400;
+        }
+        .advanced-colors-chevron {
+            color: var(--gray-500);
+            transition: transform 0.2s;
+            flex-shrink: 0;
+        }
+        .advanced-colors-toggle[aria-expanded="true"] .advanced-colors-chevron {
+            transform: rotate(180deg);
+        }
+        .advanced-colors-section {
+            display: none;
+            margin-top: 16px;
+            padding: 16px;
+            background: var(--gray-50);
+            border: 1px solid var(--gray-200);
+            border-radius: 10px;
+        }
+        [data-theme="dark"] .advanced-colors-section {
+            background: var(--gray-900);
+            border-color: var(--gray-700);
+        }
+        .advanced-colors-section.open {
+            display: block;
+        }
+
         .color-hex-input {
             flex: 1;
             padding: 8px 10px;
@@ -1601,6 +1698,79 @@
                             <!-- Presets will be added by JS -->
                         </div>
                     </div>
+
+                    <!-- Advanced Colors (collapsible) -->
+                    <button type="button" class="advanced-colors-toggle" id="advancedColorsToggle" onclick="toggleAdvancedColors()" aria-expanded="false" aria-controls="advancedColorsSection">
+                        <span class="advanced-colors-toggle-text">
+                            <span class="advanced-colors-toggle-title">Advanced colors</span>
+                            <span class="advanced-colors-toggle-sub">Background, cards, text — override the theme</span>
+                        </span>
+                        <svg class="advanced-colors-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                    </button>
+                    <div class="advanced-colors-section" id="advancedColorsSection">
+                        <p class="form-hint" style="margin-bottom: 16px;">Leave any color blank to use the theme (Dark/Light) default. Each color has a ↺ to reset it.</p>
+                        <div class="color-picker-group">
+                            <!-- Background -->
+                            <div class="color-picker-item">
+                                <label class="form-label" for="bgColor">App Background <span class="color-role-hint">Behind everything</span></label>
+                                <div class="color-picker-wrapper">
+                                    <input type="color" class="color-swatch-native" id="bgSwatch" value="#0f172a" aria-label="Pick background color">
+                                    <input type="text" class="color-hex-input" id="bgColor" placeholder="default" maxlength="7" spellcheck="false" autocomplete="off">
+                                    <button type="button" class="color-reset-btn" data-target="bg" title="Reset to default" aria-label="Reset background color">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><polyline points="3 3 3 8 8 8"/></svg>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Background Secondary -->
+                            <div class="color-picker-item">
+                                <label class="form-label" for="bgSecondaryColor">Surface <span class="color-role-hint">Inputs, subtle wells</span></label>
+                                <div class="color-picker-wrapper">
+                                    <input type="color" class="color-swatch-native" id="bgSecondarySwatch" value="#1e293b" aria-label="Pick surface color">
+                                    <input type="text" class="color-hex-input" id="bgSecondaryColor" placeholder="default" maxlength="7" spellcheck="false" autocomplete="off">
+                                    <button type="button" class="color-reset-btn" data-target="bgSecondary" title="Reset to default" aria-label="Reset surface color">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><polyline points="3 3 3 8 8 8"/></svg>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Card -->
+                            <div class="color-picker-item">
+                                <label class="form-label" for="cardColor">Cards <span class="color-role-hint">Hero card, progress card</span></label>
+                                <div class="color-picker-wrapper">
+                                    <input type="color" class="color-swatch-native" id="cardSwatch" value="#ffffff" aria-label="Pick card color">
+                                    <input type="text" class="color-hex-input" id="cardColor" placeholder="default" maxlength="7" spellcheck="false" autocomplete="off">
+                                    <button type="button" class="color-reset-btn" data-target="card" title="Reset to default" aria-label="Reset card color">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><polyline points="3 3 3 8 8 8"/></svg>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Text Primary -->
+                            <div class="color-picker-item">
+                                <label class="form-label" for="textColor">Text Primary <span class="color-role-hint">Headings, body</span></label>
+                                <div class="color-picker-wrapper">
+                                    <input type="color" class="color-swatch-native" id="textSwatch" value="#0f172a" aria-label="Pick primary text color">
+                                    <input type="text" class="color-hex-input" id="textColor" placeholder="default" maxlength="7" spellcheck="false" autocomplete="off">
+                                    <button type="button" class="color-reset-btn" data-target="text" title="Reset to default" aria-label="Reset text color">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><polyline points="3 3 3 8 8 8"/></svg>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Text Secondary -->
+                            <div class="color-picker-item">
+                                <label class="form-label" for="textSecondaryColor">Text Secondary <span class="color-role-hint">Hints, captions</span></label>
+                                <div class="color-picker-wrapper">
+                                    <input type="color" class="color-swatch-native" id="textSecondarySwatch" value="#64748b" aria-label="Pick secondary text color">
+                                    <input type="text" class="color-hex-input" id="textSecondaryColor" placeholder="default" maxlength="7" spellcheck="false" autocomplete="off">
+                                    <button type="button" class="color-reset-btn" data-target="textSecondary" title="Reset to default" aria-label="Reset secondary text color">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><polyline points="3 3 3 8 8 8"/></svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Client Theme Section -->
@@ -2039,11 +2209,28 @@
             brand_primary_color: '#2dd4bf',
             brand_secondary_color: '#14b8a6',
             brand_accent_color: '#10b981',
+            // Advanced (optional overrides — '' means "use theme default")
+            brand_bg_color: '',
+            brand_bg_secondary_color: '',
+            brand_card_color: '',
+            brand_text_color: '',
+            brand_text_secondary_color: '',
+            // Logos
             brand_logo_url: null,
             brand_favicon_url: null,
             brand_email_logo_url: null,
-            brand_email_footer: ''
+            brand_email_footer: '',
+            brand_client_theme: 'dark'
         };
+
+        // Map advanced color picker IDs → state fields + theme-aware fallback values
+        const ADVANCED_COLOR_FIELDS = [
+            { key: 'bg',            field: 'brand_bg_color',            darkFallback: '#0f172a', lightFallback: '#f8fafc' },
+            { key: 'bgSecondary',   field: 'brand_bg_secondary_color',  darkFallback: '#1e293b', lightFallback: '#f1f5f9' },
+            { key: 'card',          field: 'brand_card_color',          darkFallback: '#1e293b', lightFallback: '#ffffff' },
+            { key: 'text',          field: 'brand_text_color',          darkFallback: '#f1f5f9', lightFallback: '#0f172a' },
+            { key: 'textSecondary', field: 'brand_text_secondary_color', darkFallback: '#94a3b8', lightFallback: '#64748b' }
+        ];
         let originalBranding = {};
         let hasChanges = false;
         let currentCoach = null;
@@ -2096,6 +2283,7 @@
 
                 // Initialize color pickers
                 initColorPickers();
+                initAdvancedColorPickers();
 
                 // Render color presets
                 renderColorPresets();
@@ -2118,6 +2306,12 @@
                     brand_primary_color: coach.brand_primary_color || '#2dd4bf',
                     brand_secondary_color: coach.brand_secondary_color || '#14b8a6',
                     brand_accent_color: coach.brand_accent_color || '#10b981',
+                    // Advanced — preserve null/empty so theme defaults apply
+                    brand_bg_color: coach.brand_bg_color || '',
+                    brand_bg_secondary_color: coach.brand_bg_secondary_color || '',
+                    brand_card_color: coach.brand_card_color || '',
+                    brand_text_color: coach.brand_text_color || '',
+                    brand_text_secondary_color: coach.brand_text_secondary_color || '',
                     brand_logo_url: coach.brand_logo_url || null,
                     brand_favicon_url: coach.brand_favicon_url || null,
                     brand_email_logo_url: coach.brand_email_logo_url || null,
@@ -2141,6 +2335,13 @@
                 if (primarySwatch)   primarySwatch.value   = (currentBranding.brand_primary_color   || '#2dd4bf').toLowerCase();
                 if (secondarySwatch) secondarySwatch.value = (currentBranding.brand_secondary_color || '#14b8a6').toLowerCase();
                 if (accentSwatch)    accentSwatch.value    = (currentBranding.brand_accent_color    || '#10b981').toLowerCase();
+
+                // Seed advanced color picker UI from state
+                syncAdvancedColorUI();
+
+                // Auto-expand the Advanced section if any advanced color is set
+                const hasAdvanced = ADVANCED_COLOR_FIELDS.some(c => currentBranding[c.field]);
+                if (hasAdvanced) toggleAdvancedColors(true);
 
                 // Update logo previews
                 updateLogoPreview('logo', currentBranding.brand_logo_url);
@@ -2199,6 +2400,92 @@
                     }
                 });
             });
+        }
+
+        // Initialize advanced color pickers (background, card, text, etc.)
+        function initAdvancedColorPickers() {
+            ADVANCED_COLOR_FIELDS.forEach(({ key, field }) => {
+                const swatch = document.getElementById(`${key}Swatch`);
+                const input  = document.getElementById(`${key}Color`);
+                const reset  = document.querySelector(`.color-reset-btn[data-target="${key}"]`);
+                if (!swatch || !input) return;
+
+                // Native picker → state + hex text
+                swatch.addEventListener('input', (e) => {
+                    const hex = e.target.value.toLowerCase();
+                    input.value = hex.toUpperCase();
+                    currentBranding[field] = hex;
+                    updatePreview();
+                    markChanged();
+                });
+
+                // Hex text → state + picker
+                input.addEventListener('input', (e) => {
+                    let value = e.target.value.trim();
+                    if (value === '') {
+                        currentBranding[field] = '';
+                        updatePreview();
+                        markChanged();
+                        return;
+                    }
+                    if (!value.startsWith('#')) value = '#' + value;
+                    if (/^#[0-9A-Fa-f]{6}$/.test(value)) {
+                        const hex = value.toLowerCase();
+                        swatch.value = hex;
+                        currentBranding[field] = hex;
+                        updatePreview();
+                        markChanged();
+                    }
+                });
+
+                input.addEventListener('blur', (e) => {
+                    let value = e.target.value.trim();
+                    if (value === '') return;
+                    if (!value.startsWith('#')) value = '#' + value;
+                    if (/^#[0-9A-Fa-f]{6}$/.test(value)) {
+                        e.target.value = value.toUpperCase();
+                    } else {
+                        e.target.value = (currentBranding[field] || '').toUpperCase();
+                    }
+                });
+
+                // Reset button — clear override, fall back to theme default
+                if (reset) {
+                    reset.addEventListener('click', () => {
+                        currentBranding[field] = '';
+                        input.value = '';
+                        syncAdvancedColorUI();
+                        updatePreview();
+                        markChanged();
+                    });
+                }
+            });
+        }
+
+        // Sync the advanced color picker UI from state.
+        // For each field: if set, show the hex; if not, show theme-default in the swatch and blank in the text.
+        function syncAdvancedColorUI() {
+            const theme = currentBranding.brand_client_theme || 'dark';
+            const isLight = theme === 'light';
+            ADVANCED_COLOR_FIELDS.forEach(({ key, field, darkFallback, lightFallback }) => {
+                const swatch = document.getElementById(`${key}Swatch`);
+                const input  = document.getElementById(`${key}Color`);
+                if (!swatch || !input) return;
+                const current = currentBranding[field];
+                const fallback = isLight ? lightFallback : darkFallback;
+                swatch.value = (current || fallback).toLowerCase();
+                input.value = current ? current.toUpperCase() : '';
+            });
+        }
+
+        // Collapsible toggle for advanced colors
+        function toggleAdvancedColors(forceOpen) {
+            const toggle = document.getElementById('advancedColorsToggle');
+            const section = document.getElementById('advancedColorsSection');
+            if (!toggle || !section) return;
+            const shouldOpen = typeof forceOpen === 'boolean' ? forceOpen : !section.classList.contains('open');
+            section.classList.toggle('open', shouldOpen);
+            toggle.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
         }
 
         // Render color presets
@@ -2280,13 +2567,14 @@
             const brandName = currentBranding.brand_name || 'Ziquecoach';
             const theme = currentBranding.brand_client_theme || 'dark';
 
-            // Theme-aware surface colors (dark default — overridden by Light selection)
-            // System uses dark in preview for predictability; client device decides at runtime
+            // Theme-aware surface colors (dark default — overridden by Light selection).
+            // System uses dark in preview for predictability; client device decides at runtime.
+            // Advanced color overrides win over theme defaults.
             const isLight = theme === 'light';
-            const previewBg          = isLight ? '#f8fafc' : '#0f172a';
-            const previewCard        = isLight ? '#ffffff' : '#1e293b';
-            const previewText        = isLight ? '#0f172a' : '#f1f5f9';
-            const previewTextSecond  = isLight ? '#64748b' : '#94a3b8';
+            const previewBg          = currentBranding.brand_bg_color            || (isLight ? '#f8fafc' : '#0f172a');
+            const previewCard        = currentBranding.brand_card_color          || (isLight ? '#ffffff' : '#1e293b');
+            const previewText        = currentBranding.brand_text_color          || (isLight ? '#0f172a' : '#f1f5f9');
+            const previewTextSecond  = currentBranding.brand_text_secondary_color || (isLight ? '#64748b' : '#94a3b8');
 
             // Set CSS variables — drives all .mockup-* elements via CSS
             const root = document.documentElement.style;
@@ -2499,6 +2787,12 @@
                     brand_primary_color: currentBranding.brand_primary_color,
                     brand_secondary_color: currentBranding.brand_secondary_color,
                     brand_accent_color: currentBranding.brand_accent_color,
+                    // Advanced color overrides (null = use theme default)
+                    brand_bg_color:             currentBranding.brand_bg_color             || null,
+                    brand_bg_secondary_color:   currentBranding.brand_bg_secondary_color   || null,
+                    brand_card_color:           currentBranding.brand_card_color           || null,
+                    brand_text_color:           currentBranding.brand_text_color           || null,
+                    brand_text_secondary_color: currentBranding.brand_text_secondary_color || null,
                     brand_email_footer: currentBranding.brand_email_footer || null,
                     branding_updated_at: new Date().toISOString()
                 };
@@ -2544,6 +2838,11 @@
                 brand_primary_color: '#2dd4bf',
                 brand_secondary_color: '#14b8a6',
                 brand_accent_color: '#10b981',
+                brand_bg_color: '',
+                brand_bg_secondary_color: '',
+                brand_card_color: '',
+                brand_text_color: '',
+                brand_text_secondary_color: '',
                 brand_logo_url: null,
                 brand_favicon_url: null,
                 brand_email_logo_url: null,
@@ -2563,6 +2862,9 @@
             document.getElementById('primarySwatch').value   = '#2dd4bf';
             document.getElementById('secondarySwatch').value = '#14b8a6';
             document.getElementById('accentSwatch').value    = '#10b981';
+
+            // Reset advanced color UI back to theme defaults / blank text
+            syncAdvancedColorUI();
 
             // Update logo previews
             updateLogoPreview('logo', null);
@@ -2686,6 +2988,8 @@
         function updateClientTheme(theme) {
             currentBranding.brand_client_theme = theme;
             setClientThemeSelection(theme);
+            // Re-sync advanced picker fallbacks so empty fields show the new theme's default color
+            syncAdvancedColorUI();
             updatePreview();
             markChanged();
         }
