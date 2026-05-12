@@ -185,8 +185,8 @@ exports.handler = async (event) => {
       customer: stripeCustomerId,
       mode: isSubscription ? 'subscription' : 'payment',
       line_items: lineItems,
-      success_url: `${baseUrl}/?billing_success=true&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${baseUrl}/?billing_canceled=true`,
+      success_url: `${baseUrl}/my-billing?billing_success=true&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${baseUrl}/my-billing?billing_canceled=true`,
       metadata: {
         client_id: client.id,
         coach_id: plan.coach_id,
