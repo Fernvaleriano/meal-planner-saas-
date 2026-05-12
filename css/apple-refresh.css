@@ -301,13 +301,16 @@ h1, h2, h3,
 }
 
 /* === 3. Universal card surfaces ===
-   Hairline border, flat fill, no decorative shadows. */
+   Hairline border, flat fill, no decorative shadows.
+   NOTE: .mockup-* classes are intentionally excluded — those belong to the
+   Live Preview phone in branding-settings.html and are themed by that page's
+   own data-preview-theme rules, NOT by the coach page's data-theme. */
 .card,
 .client-card, .exercise-card, .plan-card, .recipe-card,
 .challenge-card, .template-card, .profile-card, .settings-card,
 .billing-card, .stat-card, .action-card, .builder-card,
 .detail-info-card, .leaderboard-card, .theme-option-card,
-.promo-card, .mockup-progress-card, .mockup-ai-card,
+.promo-card,
 .checkin-card, .ai-mode-card, .form-card,
 .convo-list-panel, .thread-panel, .preview-panel, .bulk-panel {
     border-radius: 14px !important;
@@ -332,8 +335,6 @@ h1, h2, h3,
 [data-theme="dark"] .leaderboard-card,
 [data-theme="dark"] .theme-option-card,
 [data-theme="dark"] .promo-card,
-[data-theme="dark"] .mockup-progress-card,
-[data-theme="dark"] .mockup-ai-card,
 [data-theme="dark"] .checkin-card,
 [data-theme="dark"] .ai-mode-card,
 [data-theme="dark"] .form-card,
@@ -423,7 +424,7 @@ input[type="url"], input[type="date"], input[type="time"],
 input[type="datetime-local"], textarea, select,
 .search-input, .form-input, .input,
 .config-input, .day-name-input, .msg-input, .bulk-input,
-.client-link-input, .color-hex-input, .mockup-food-input,
+.client-link-input, .color-hex-input,
 .custom-meal-input, .qe-cq-options-input,
 .client-select, .filter-select, .distance-unit-select,
 .exercise-label-select {
@@ -478,7 +479,7 @@ input:focus, textarea:focus, select:focus,
 .exercise-badge, .difficulty-badge, .challenge-badge,
 .challenge-type-badge, .club-badge, .archived-badge,
 .invite-badge, .goal-badge, .profile-badge, .pro-badge,
-.failed-badge, .mockup-ai-badge, .reaction-badge,
+.failed-badge, .reaction-badge,
 .subscription-status-badge, .custom-exercise-badge,
 .client-count-badge, .convo-total-badge {
     background: rgba(15,23,42,0.06) !important;
@@ -499,7 +500,6 @@ input:focus, textarea:focus, select:focus,
 [data-theme="dark"] .profile-badge,
 [data-theme="dark"] .pro-badge,
 [data-theme="dark"] .failed-badge,
-[data-theme="dark"] .mockup-ai-badge,
 [data-theme="dark"] .reaction-badge,
 [data-theme="dark"] .subscription-status-badge,
 [data-theme="dark"] .custom-exercise-badge,
@@ -548,8 +548,7 @@ input:focus, textarea:focus, select:focus,
 .client-header, .profile-header, .detail-header,
 .thread-header, .convo-list-header, .modal-header,
 .preview-header, .plan-header, .challenge-card-header,
-.email-mockup-header, .mockup-progress-header,
-.mockup-ai-header, .mockup-header,
+.email-mockup-header,
 .custom-meal-header, .convo-header {
     border-bottom: 1px solid rgba(0,0,0,0.06) !important;
     background: transparent !important;
