@@ -2330,6 +2330,13 @@
             { key: 'text',          field: 'brand_text_color',          darkFallback: '#f1f5f9', lightFallback: '#0f172a' },
             { key: 'textSecondary', field: 'brand_text_secondary_color', darkFallback: '#94a3b8', lightFallback: '#64748b' }
         ];
+
+        // Every hex that's a built-in theme default for surfaces — if a saved value matches
+        // one of these, treat as "no real override" so the preview honors the chosen theme
+        // and the value isn't persisted on save.
+        const THEME_DEFAULT_HEXES = new Set(
+            ADVANCED_COLOR_FIELDS.flatMap(c => [c.darkFallback.toLowerCase(), c.lightFallback.toLowerCase()])
+        );
         let originalBranding = {};
         let hasChanges = false;
         let currentCoach = null;
@@ -2684,10 +2691,21 @@
             // Advanced color overrides — applied as INLINE STYLE on the container so they
             // override the data-preview-theme defaults, but only when the coach has explicitly
             // picked them. Empty = remove the inline style so the theme default takes over.
+            //
+            // Defensive: if a saved value happens to equal one of our built-in theme defaults
+            // (which can happen if the picker was opened and a theme-default swatch was
+            // committed by accident), treat it as "no override" so it doesn't lock the
+            // preview to one theme across switches. The coach can still pick any color via
+            // the picker — these specific hexes are just the "this looks like the default,
+            // don't lock it" set.
             if (mockupContainer) {
+                const isThemeDefault = (val) => {
+                    if (!val) return false;
+                    return THEME_DEFAULT_HEXES.has(val.toLowerCase());
+                };
                 const setOrClear = (prop, val) => {
-                    if (val) mockupContainer.style.setProperty(prop, val);
-                    else     mockupContainer.style.removeProperty(prop);
+                    if (val && !isThemeDefault(val)) mockupContainer.style.setProperty(prop, val);
+                    else                              mockupContainer.style.removeProperty(prop);
                 };
                 setOrClear('--preview-bg',             currentBranding.brand_bg_color);
                 setOrClear('--preview-card',           currentBranding.brand_card_color);
@@ -2889,17 +2907,27 @@
                 const { data: { session } } = await supabaseClient.auth.getSession();
                 if (!session) throw new Error('Not authenticated');
 
+                // Advanced surface colors: if the saved value happens to equal a built-in
+                // theme default, persist null instead — that value was almost certainly
+                // committed by accident from the picker showing the default swatch, and
+                // saving it locks the preview to that theme even after the coach switches.
+                const surfaceOrNull = (val) => {
+                    if (!val) return null;
+                    if (THEME_DEFAULT_HEXES.has(val.toLowerCase())) return null;
+                    return val;
+                };
+
                 const updateData = {
                     brand_name: currentBranding.brand_name || null,
                     brand_primary_color: currentBranding.brand_primary_color,
                     brand_secondary_color: currentBranding.brand_secondary_color,
                     brand_accent_color: currentBranding.brand_accent_color,
                     // Advanced color overrides (null = use theme default)
-                    brand_bg_color:             currentBranding.brand_bg_color             || null,
-                    brand_bg_secondary_color:   currentBranding.brand_bg_secondary_color   || null,
-                    brand_card_color:           currentBranding.brand_card_color           || null,
-                    brand_text_color:           currentBranding.brand_text_color           || null,
-                    brand_text_secondary_color: currentBranding.brand_text_secondary_color || null,
+                    brand_bg_color:             surfaceOrNull(currentBranding.brand_bg_color),
+                    brand_bg_secondary_color:   surfaceOrNull(currentBranding.brand_bg_secondary_color),
+                    brand_card_color:           surfaceOrNull(currentBranding.brand_card_color),
+                    brand_text_color:           surfaceOrNull(currentBranding.brand_text_color),
+                    brand_text_secondary_color: surfaceOrNull(currentBranding.brand_text_secondary_color),
                     brand_email_footer: currentBranding.brand_email_footer || null,
                     branding_updated_at: new Date().toISOString()
                 };
