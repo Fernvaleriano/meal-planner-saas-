@@ -7,8 +7,14 @@ import ErrorBoundary from './ErrorBoundary';
 import PullToRefreshWrapper from './PullToRefreshWrapper';
 import SyncIndicator from './SyncIndicator';
 import TrainerSupportAgent from './TrainerSupportAgent';
+import SubscriptionEnded from './SubscriptionEnded';
 import { useAuth } from '../context/AuthContext';
 import { useBranding } from '../context/BrandingContext';
+import { useClientSubscription } from '../hooks/useClientSubscription';
+
+// Paths that stay accessible even when the subscription has lapsed —
+// so the client can resubscribe (/my-billing) and sign out (/settings).
+const SUBSCRIPTION_GATE_EXEMPT = new Set(['/my-billing', '/settings']);
 
 // Lazy-import tab pages — these stay mounted once visited (like native app tabs)
 import Dashboard from '../pages/Dashboard';
@@ -62,6 +68,17 @@ function Layout() {
   const { clientData } = useAuth();
   const { isModuleVisible } = useBranding();
   const isCoach = clientData?.is_coach === true;
+  const { hasActiveSub, loading: subLoading } = useClientSubscription();
+
+  // Soft-lock clients whose subscription has fully ended: hide every
+  // paid page and show the resubscribe screen instead. Coaches and the
+  // gate-exempt paths (billing, settings) pass through untouched. While
+  // the status is still loading we render normally to avoid a flash of
+  // the lock screen for paying clients on every navigation.
+  const showSubscriptionLock = !isCoach
+    && !subLoading
+    && !hasActiveSub
+    && !SUBSCRIPTION_GATE_EXEMPT.has(path);
 
   // Filter tab paths based on module visibility (coaches see all tabs)
   const tabPaths = useMemo(() => {
@@ -105,6 +122,10 @@ function Layout() {
   const isMessagesPage = path === '/messages';
   // Hide bottom nav on full-screen builder pages
   const hideBottomNav = path.startsWith('/workouts/builder');
+
+  if (showSubscriptionLock) {
+    return <SubscriptionEnded />;
+  }
 
   return (
     <div className="app-layout">
