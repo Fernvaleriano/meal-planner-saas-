@@ -227,6 +227,16 @@ function applyBrandingCSS(branding) {
     );
     root.style.setProperty('--brand-banner-card-shadow', hexToRgba(primary, 0.08));
 
+    // Rest Day dumbbell circle (Workouts empty state) — radial gradient
+    root.style.setProperty(
+      '--brand-rest-day-bg-dark',
+      `radial-gradient(circle at 40% 40%, ${hexToRgba(primary, 0.20)} 0%, ${hexToRgba(secondary, 0.08)} 70%)`
+    );
+    root.style.setProperty(
+      '--brand-rest-day-bg-light',
+      `radial-gradient(circle at 40% 40%, ${hexToRgba(primary, 0.12)} 0%, ${hexToRgba(secondary, 0.06)} 70%)`
+    );
+
     // Soft shadows used on the View Diary button etc.
     root.style.setProperty('--brand-shadow-soft', hexToRgba(primary, 0.25));
     root.style.setProperty('--brand-shadow-soft-strong', hexToRgba(primary, 0.35));
@@ -320,6 +330,7 @@ function clearBrandingCSS() {
     '--brand-tile-bg-dark', '--brand-tile-bg-light', '--brand-tile-border', '--brand-tile-icon-color',
     '--brand-banner-gradient', '--brand-banner-shadow',
     '--brand-banner-card-bg-light', '--brand-banner-card-bg-dark', '--brand-banner-card-shadow',
+    '--brand-rest-day-bg-light', '--brand-rest-day-bg-dark',
     '--brand-shadow-soft', '--brand-shadow-soft-strong', '--brand-macro-protein',
   ];
   props.forEach(p => root.style.removeProperty(p));
