@@ -78,7 +78,9 @@
         .payment-amount { font-weight: 600; font-size: 14px; }
         .payment-amount.succeeded { color: #22c55e; }
         .payment-amount.failed { color: #ef4444; }
+        .payment-amount.refunded { color: #64748b; text-decoration: line-through; }
         .failed-badge { background: #fef2f2; color: #ef4444; font-size: 11px; padding: 2px 6px; border-radius: 4px; margin-left: 6px; }
+        .refunded-badge { background: #f1f5f9; color: #475569; font-size: 11px; padding: 2px 6px; border-radius: 4px; margin-left: 6px; }
 
         /* Plan Cards */
         .plan-card { background: white; border: 1px solid var(--gray-200, #e2e8f0); border-radius: 10px; padding: 20px; margin-bottom: 12px; }
@@ -544,16 +546,27 @@
                 html += `<h4 class="payments-title">Recent Payments</h4>`;
                 payments.slice(0, 10).forEach(p => {
                     const amount = ((p.amount_cents || 0) / 100).toFixed(2);
-                    const statusClass = p.status === 'succeeded' ? 'succeeded' : 'failed';
+                    const statusClass = p.status === 'succeeded' ? 'succeeded'
+                        : p.status === 'refunded' ? 'refunded'
+                        : 'failed';
+                    const statusBadge = p.status === 'failed'
+                        ? '<span class="failed-badge">Failed</span>'
+                        : p.status === 'refunded'
+                        ? '<span class="refunded-badge">Refunded</span>'
+                        : '';
+                    const refundBtn = p.status === 'succeeded'
+                        ? `<button class="btn btn-secondary btn-small" onclick="handleRefund('${p.id}', ${p.amount_cents || 0})" style="margin-left:8px;">Refund</button>`
+                        : '';
                     html += `
                         <div class="payment-row">
                             <div>
                                 <span class="payment-name">${escapeHtml(p.client_name || 'Unknown')}</span>
                                 <span class="payment-date">${new Date(p.created_at).toLocaleDateString()}</span>
                             </div>
-                            <div>
+                            <div style="display:flex;align-items:center;gap:4px;">
                                 <span class="payment-amount ${statusClass}">$${amount}</span>
-                                ${p.status === 'failed' ? '<span class="failed-badge">Failed</span>' : ''}
+                                ${statusBadge}
+                                ${refundBtn}
                             </div>
                         </div>`;
                 });
@@ -939,6 +952,22 @@
                     method: 'DELETE'
                 });
                 showToast('Promo code deactivated');
+                await loadAll();
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        }
+
+        async function handleRefund(paymentId, amountCents) {
+            const amount = ((amountCents || 0) / 100).toFixed(2);
+            if (!confirm(`Refund $${amount} to the client? This cannot be undone.`)) return;
+
+            try {
+                await apiFetch('/.netlify/functions/coach-refund-payment', {
+                    method: 'POST',
+                    body: JSON.stringify({ paymentId })
+                });
+                showToast('Refund issued');
                 await loadAll();
             } catch (err) {
                 showToast(err.message, 'error');

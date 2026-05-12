@@ -83,7 +83,7 @@ function PricingCard({ plan, currentPlanId, pendingPlanId, onSubscribe, onChange
 }
 
 // ─── Current Subscription Info ───
-function SubscriptionInfo({ subscription, pendingPlan, onCancel, onPortal, loading }) {
+function SubscriptionInfo({ subscription, pendingPlan, onCancel, onReactivate, onPortal, loading }) {
   if (!subscription) return null;
 
   const plan = subscription.coach_payment_plans;
@@ -148,7 +148,15 @@ function SubscriptionInfo({ subscription, pendingPlan, onCancel, onPortal, loadi
         <button style={styles.linkBtn} onClick={onPortal} disabled={loading}>
           <CreditCard size={14} /> Manage Payment Method
         </button>
-        {status !== 'canceled' && status !== 'canceling' && (
+        {status === 'canceling' ? (
+          <button
+            style={{ ...styles.linkBtn, color: 'var(--brand-primary)' }}
+            onClick={onReactivate}
+            disabled={loading}
+          >
+            Reactivate Subscription
+          </button>
+        ) : status !== 'canceled' && (
           <button
             style={{ ...styles.linkBtn, color: 'var(--error)' }}
             onClick={onCancel}
@@ -197,6 +205,8 @@ export default function ClientBilling() {
   const [subscription, setSubscription] = useState(null);
   const [payments, setPayments] = useState([]);
   const [plans, setPlans] = useState([]);
+  const [promoCode, setPromoCode] = useState('');
+  const [showPromoInput, setShowPromoInput] = useState(false);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
 
@@ -227,10 +237,12 @@ export default function ClientBilling() {
     fetchData();
   }, [fetchData]);
 
-  const handleSubscribe = async (planId) => {
+  const handleSubscribe = async (planId, promoCode) => {
     setActionLoading(true);
     try {
-      const res = await apiPost('/.netlify/functions/client-checkout', { planId });
+      const body = { planId };
+      if (promoCode) body.promoCode = promoCode;
+      const res = await apiPost('/.netlify/functions/client-checkout', body);
       if (res.url) window.location.href = res.url;
     } catch (err) {
       showError(err.message);
@@ -246,7 +258,7 @@ export default function ClientBilling() {
       if (res.url) {
         window.location.href = res.url;
       } else if (res.success) {
-        showSuccess('Plan changed successfully!');
+        showSuccess(res.message || 'Plan changed successfully!');
         fetchData();
       }
     } catch (err) {
@@ -266,6 +278,22 @@ export default function ClientBilling() {
         coachId
       });
       showSuccess(res.message || 'Subscription canceled');
+      fetchData();
+    } catch (err) {
+      showError(err.message);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleReactivate = async () => {
+    setActionLoading(true);
+    try {
+      const res = await apiPost('/.netlify/functions/client-subscription-manage', {
+        action: 'reactivate',
+        coachId
+      });
+      showSuccess(res.message || 'Subscription reactivated');
       fetchData();
     } catch (err) {
       showError(err.message);
@@ -319,6 +347,7 @@ export default function ClientBilling() {
             subscription={subscription}
             pendingPlan={pendingPlan}
             onCancel={handleCancel}
+            onReactivate={handleReactivate}
             onPortal={handlePortal}
             loading={actionLoading}
           />
@@ -330,6 +359,34 @@ export default function ClientBilling() {
             <h3 style={styles.sectionTitle}>
               {subscription ? 'Available Plans' : 'Choose a Plan'}
             </h3>
+
+            {!subscription && (
+              showPromoInput ? (
+                <div style={styles.promoInputRow}>
+                  <input
+                    style={styles.promoInputField}
+                    placeholder="Promo code"
+                    value={promoCode}
+                    onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                    maxLength={20}
+                  />
+                  <button
+                    style={styles.promoCancelBtn}
+                    onClick={() => { setShowPromoInput(false); setPromoCode(''); }}
+                  >
+                    Remove
+                  </button>
+                </div>
+              ) : (
+                <button
+                  style={styles.promoToggleBtn}
+                  onClick={() => setShowPromoInput(true)}
+                >
+                  Have a promo code?
+                </button>
+              )
+            )}
+
             <div style={styles.plansGrid}>
               {plans.map(plan => (
                 <PricingCard
@@ -337,7 +394,7 @@ export default function ClientBilling() {
                   plan={plan}
                   currentPlanId={currentPlanId}
                   pendingPlanId={pendingPlanId}
-                  onSubscribe={handleSubscribe}
+                  onSubscribe={(planId) => handleSubscribe(planId, promoCode || undefined)}
                   onChangePlan={handleChangePlan}
                   loading={actionLoading}
                 />
@@ -612,6 +669,43 @@ const styles = {
     padding: '8px 10px',
     borderRadius: 8,
     marginTop: 4
+  },
+  promoToggleBtn: {
+    background: 'none',
+    border: 'none',
+    color: 'var(--brand-primary)',
+    fontSize: 13,
+    fontWeight: 600,
+    cursor: 'pointer',
+    padding: '8px 0',
+    marginBottom: 8,
+    textAlign: 'left'
+  },
+  promoInputRow: {
+    display: 'flex',
+    gap: 8,
+    marginBottom: 12,
+    alignItems: 'center'
+  },
+  promoInputField: {
+    flex: 1,
+    padding: '10px 12px',
+    fontSize: 14,
+    fontWeight: 600,
+    fontFamily: 'monospace',
+    letterSpacing: 1,
+    border: '1px solid var(--gray-300)',
+    borderRadius: 8,
+    textTransform: 'uppercase',
+    outline: 'none'
+  },
+  promoCancelBtn: {
+    background: 'none',
+    border: 'none',
+    color: 'var(--gray-500)',
+    fontSize: 13,
+    cursor: 'pointer',
+    padding: '8px 12px'
   },
   subActions: {
     display: 'flex',

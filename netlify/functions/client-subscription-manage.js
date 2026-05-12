@@ -190,6 +190,54 @@ exports.handler = async (event) => {
         };
       }
 
+      if (action === 'reactivate') {
+        // Undo a "canceling" subscription before it actually ends.
+        // Once the subscription has fully ended (status: canceled), this
+        // path isn't usable — the client needs to subscribe afresh.
+        const { data: sub } = await supabase
+          .from('client_subscriptions')
+          .select('*')
+          .eq('client_id', client.id)
+          .eq('coach_id', client.coach_id)
+          .eq('status', 'canceling')
+          .single();
+
+        if (!sub?.stripe_subscription_id) {
+          return {
+            statusCode: 400, headers: corsHeaders,
+            body: JSON.stringify({ error: 'No subscription to reactivate' })
+          };
+        }
+
+        await stripe.subscriptions.update(
+          sub.stripe_subscription_id,
+          { cancel_at_period_end: false },
+          { stripeAccount }
+        );
+
+        const { error: updErr } = await supabase
+          .from('client_subscriptions')
+          .update({
+            status: 'active',
+            cancel_at: null,
+            canceled_at: null,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', sub.id);
+        if (updErr) {
+          console.error('Failed to mark subscription reactivated:', updErr);
+          throw updErr;
+        }
+
+        return {
+          statusCode: 200, headers: corsHeaders,
+          body: JSON.stringify({
+            success: true,
+            message: 'Subscription reactivated'
+          })
+        };
+      }
+
       if (action === 'portal') {
         // Get client's Stripe customer ID on the connected account
         const { data: sub } = await supabase
@@ -226,7 +274,7 @@ exports.handler = async (event) => {
 
       return {
         statusCode: 400, headers: corsHeaders,
-        body: JSON.stringify({ error: 'Invalid action. Use: cancel, portal' })
+        body: JSON.stringify({ error: 'Invalid action. Use: cancel, reactivate, portal' })
       };
     }
 
