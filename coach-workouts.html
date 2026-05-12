@@ -9989,14 +9989,14 @@
                 if (data.suggestions && data.suggestions.length > 0) {
                     aiContainer.innerHTML = data.suggestions.map(ex => {
                         // PERFORMANCE: img only, no <video preload="metadata"> in swap list.
-                        const thumbHtml = `<img class="swap-exercise-thumb" src="${ex.thumbnail_url || '/img/exercise-placeholder.svg'}" alt="${ex.name}" loading="lazy" decoding="async" onerror="this.onerror=null; this.src='/img/exercise-placeholder.svg';">`;
+                        const thumbHtml = `<img class="swap-exercise-thumb" src="${encodeURI(ex.thumbnail_url || '/img/exercise-placeholder.svg')}" alt="${escapeHtml(ex.name || '')}" loading="lazy" decoding="async" onerror="this.onerror=null; this.src='/img/exercise-placeholder.svg';">`;
                         return `
-                            <div class="swap-exercise-item" onclick="selectSwapExercise('${ex.id}')" style="border-left: 3px solid #10b981;">
+                            <div class="swap-exercise-item" onclick="selectSwapExercise('${escapeHtml(ex.id)}')" style="border-left: 3px solid #10b981;">
                                 ${thumbHtml}
                                 <div class="swap-exercise-info">
-                                    <div class="swap-exercise-name">${ex.name}</div>
-                                    <div class="swap-exercise-meta">${ex.muscle_group || ''} ${ex.equipment ? '• ' + ex.equipment : ''}</div>
-                                    ${ex.ai_reason ? `<div style="font-size: 11px; color: #10b981; margin-top: 2px;">${ex.ai_reason}</div>` : ''}
+                                    <div class="swap-exercise-name">${escapeHtml(ex.name || '')}</div>
+                                    <div class="swap-exercise-meta">${escapeHtml(ex.muscle_group || '')} ${ex.equipment ? '• ' + escapeHtml(ex.equipment) : ''}</div>
+                                    ${ex.ai_reason ? `<div style="font-size: 11px; color: #10b981; margin-top: 2px;">${escapeHtml(ex.ai_reason)}</div>` : ''}
                                 </div>
                             </div>
                         `;
@@ -10077,13 +10077,13 @@
 
             container.innerHTML = exerciseList.slice(0, 50).map(ex => {
                 // PERFORMANCE: img only, no <video preload="metadata"> in swap list.
-                const thumbHtml = `<img class="swap-exercise-thumb" src="${ex.thumbnail_url || '/img/exercise-placeholder.svg'}" alt="${ex.name}" loading="lazy" decoding="async" onerror="this.onerror=null; this.src='/img/exercise-placeholder.svg';">`;
+                const thumbHtml = `<img class="swap-exercise-thumb" src="${encodeURI(ex.thumbnail_url || '/img/exercise-placeholder.svg')}" alt="${escapeHtml(ex.name || '')}" loading="lazy" decoding="async" onerror="this.onerror=null; this.src='/img/exercise-placeholder.svg';">`;
                 return `
-                    <div class="swap-exercise-item" onclick="selectSwapExercise('${ex.id}')">
+                    <div class="swap-exercise-item" onclick="selectSwapExercise('${escapeHtml(ex.id)}')">
                         ${thumbHtml}
                         <div class="swap-exercise-info">
-                            <div class="swap-exercise-name">${ex.name}</div>
-                            <div class="swap-exercise-meta">${ex.muscle_group || ''} ${ex.equipment ? '• ' + ex.equipment : ''}</div>
+                            <div class="swap-exercise-name">${escapeHtml(ex.name || '')}</div>
+                            <div class="swap-exercise-meta">${escapeHtml(ex.muscle_group || '')} ${ex.equipment ? '• ' + escapeHtml(ex.equipment) : ''}</div>
                         </div>
                     </div>
                 `;
@@ -11346,11 +11346,11 @@
             }
 
             container.innerHTML = filtered.map(client => `
-                <div class="client-select-item ${selectedClients.has(String(client.id)) ? 'selected' : ''}" data-client-id="${client.id}">
-                    <div class="client-select-avatar">${(client.client_name || 'C')[0].toUpperCase()}</div>
+                <div class="client-select-item ${selectedClients.has(String(client.id)) ? 'selected' : ''}" data-client-id="${escapeHtml(client.id)}">
+                    <div class="client-select-avatar">${escapeHtml((client.client_name || 'C')[0].toUpperCase())}</div>
                     <div class="client-select-info">
-                        <div class="client-select-name">${client.client_name || 'Unnamed'}</div>
-                        <div class="client-select-email">${client.email || 'No email'}</div>
+                        <div class="client-select-name">${escapeHtml(client.client_name || 'Unnamed')}</div>
+                        <div class="client-select-email">${escapeHtml(client.email || 'No email')}</div>
                     </div>
                     <div class="client-select-check">
                         <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -11408,8 +11408,8 @@
                 const client = clients.find(c => String(c.id) === String(clientId));
                 return `
                     <div class="selected-client-chip">
-                        <div class="chip-avatar">${(client?.client_name || 'C')[0].toUpperCase()}</div>
-                        <span>${client?.client_name || 'Client'}</span>
+                        <div class="chip-avatar">${escapeHtml((client?.client_name || 'C')[0].toUpperCase())}</div>
+                        <span>${escapeHtml(client?.client_name || 'Client')}</span>
                     </div>
                 `;
             }).join('');
@@ -11521,8 +11521,8 @@
 
             document.getElementById('swapOriginalInfo').innerHTML = `
                 <div style="font-size: 13px; color: var(--text-muted);">Replacing:</div>
-                <div style="font-weight: 600; font-size: 15px;">${originalName}</div>
-                <div style="font-size: 12px; color: var(--text-muted);">Restricted: ${restrictedEquip} | Muscle group: ${muscleGroup || 'unknown'}</div>
+                <div style="font-weight: 600; font-size: 15px;">${escapeHtml(originalName || '')}</div>
+                <div style="font-size: 12px; color: var(--text-muted);">Restricted: ${escapeHtml(restrictedEquip || '')} | Muscle group: ${escapeHtml(muscleGroup || 'unknown')}</div>
             `;
 
             document.getElementById('swapSearchInput').value = '';

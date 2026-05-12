@@ -7075,14 +7075,16 @@
                     const evKey = ev.itemType + ':' + ev.itemId;
                     const existingReaction = _activityReactionsMap[evKey] || '';
                     const itemUid = safeClientId + '-' + ev.itemType + '-' + ev.itemId;
-                    const escapedDetail = (ev.label + (ev.detail ? ' — ' + ev.detail : '')).replace(/'/g, "\\'");
+                    const detailText = ev.label + (ev.detail ? ' — ' + ev.detail : '');
+                    const escapedDetailForJs = detailText.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+                    const safeDetailHtml = escapeHtml(detailText);
                     return `
-                    <div class="activity-detail-item" data-item-uid="${itemUid}">
-                        <span class="activity-detail-icon">${ev.icon}</span>
+                    <div class="activity-detail-item" data-item-uid="${escapeHtml(itemUid)}">
+                        <span class="activity-detail-icon">${escapeHtml(ev.icon || '')}</span>
                         <div class="activity-detail-content">
                             <div class="activity-detail-top">
-                                <span class="activity-detail-text">${ev.label}${ev.detail ? ' — ' + ev.detail : ''}</span>
-                                <span class="activity-detail-time">${timeAgo(ev.time)}</span>
+                                <span class="activity-detail-text">${safeDetailHtml}</span>
+                                <span class="activity-detail-time">${escapeHtml(timeAgo(ev.time))}</span>
                             </div>
                             <div class="activity-item-actions" onclick="event.stopPropagation()">
                                 <button class="activity-react-btn ${existingReaction === '👏' ? 'reacted' : ''}" onclick="sendItemReaction('${ev.clientId}','${ev.itemType}','${ev.itemId}','👏',this)" title="Clap">👏</button>
@@ -7094,23 +7096,23 @@
                                     Comment
                                 </button>
                             </div>
-                            <div class="activity-item-reply-row" id="activity-item-reply-${itemUid}" onclick="event.stopPropagation()">
-                                <input type="text" placeholder="Comment on this..." maxlength="500" onkeydown="if(event.key==='Enter'){event.preventDefault();sendItemReply('${ev.clientId}','${escapedDetail}',this)}">
-                                <button onclick="sendItemReply('${ev.clientId}','${escapedDetail}',this.previousElementSibling)">Send</button>
+                            <div class="activity-item-reply-row" id="activity-item-reply-${escapeHtml(itemUid)}" onclick="event.stopPropagation()">
+                                <input type="text" placeholder="Comment on this..." maxlength="500" onkeydown="if(event.key==='Enter'){event.preventDefault();sendItemReply('${ev.clientId}','${escapedDetailForJs}',this)}">
+                                <button onclick="sendItemReply('${ev.clientId}','${escapedDetailForJs}',this.previousElementSibling)">Send</button>
                             </div>
                         </div>
                     </div>`;
                 }).join('');
 
                 html += `
-                    <div class="activity-client-card" id="activity-card-${safeClientId}">
+                    <div class="activity-client-card" id="activity-card-${escapeHtml(safeClientId)}">
                         <div class="activity-client-header" onclick="toggleActivityCard(this.parentElement)">
-                            <div class="activity-client-avatar">${photo ? `<img src="${photo}" alt="">` : initials}</div>
+                            <div class="activity-client-avatar">${photo ? `<img src="${encodeURI(photo)}" alt="">` : escapeHtml(initials)}</div>
                             <div class="activity-client-info">
-                                <div class="activity-client-name">${name}</div>
+                                <div class="activity-client-name">${escapeHtml(name)}</div>
                                 <div class="activity-client-summary">${badgesHtml}</div>
                             </div>
-                            <span class="activity-client-time">${timeAgo(latestTime)}</span>
+                            <span class="activity-client-time">${escapeHtml(timeAgo(latestTime))}</span>
                             <svg class="activity-client-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
                         </div>
                         <div class="activity-client-details">
@@ -8766,10 +8768,10 @@
 
             if (filtered.length > 0) {
                 notificationList.innerHTML = filtered.map(n => `
-                    <div class="notification-item ${n.is_read ? '' : 'unread'}" data-id="${n.id}" data-client-id="${n.related_client_id || ''}" data-type="${n.type || ''}" data-checkin-id="${n.related_checkin_id || ''}">
-                        <div class="notification-title">${notifIcons[n.type] || '🔔'} ${n.title}</div>
-                        <div class="notification-message">${n.message || ''}</div>
-                        <div class="notification-time">${formatTimeAgo(n.created_at)}</div>
+                    <div class="notification-item ${n.is_read ? '' : 'unread'}" data-id="${escapeHtml(n.id)}" data-client-id="${escapeHtml(n.related_client_id || '')}" data-type="${escapeHtml(n.type || '')}" data-checkin-id="${escapeHtml(n.related_checkin_id || '')}">
+                        <div class="notification-title">${notifIcons[n.type] || '🔔'} ${escapeHtml(n.title || '')}</div>
+                        <div class="notification-message">${escapeHtml(n.message || '')}</div>
+                        <div class="notification-time">${escapeHtml(formatTimeAgo(n.created_at))}</div>
                     </div>
                 `).join('');
 
@@ -10177,12 +10179,12 @@
                     if (d.measurements > 0) detail += ' · Logged measurements';
 
                     return `
-                        <div class="cag-row" onclick="window.location.href='client-profile.html?clientId=${cId}'">
+                        <div class="cag-row" onclick="window.location.href='client-profile.html?clientId=${encodeURIComponent(cId)}'">
                             <div class="cag-client-info">
-                                <div class="cag-avatar${isActive ? '' : ' inactive'}">${initials}</div>
+                                <div class="cag-avatar${isActive ? '' : ' inactive'}">${escapeHtml(initials)}</div>
                                 <div>
-                                    <div class="cag-name">${d.name}</div>
-                                    <div class="cag-detail">${detail}</div>
+                                    <div class="cag-name">${escapeHtml(d.name)}</div>
+                                    <div class="cag-detail">${escapeHtml(detail)}</div>
                                 </div>
                             </div>
                             <div class="cag-badges">${badges.join('')}</div>
