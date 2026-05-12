@@ -1341,3 +1341,132 @@ table tbody td, .data-table tbody td {
     background: rgba(255,255,255,0.02) !important;
     border-color: rgba(255,255,255,0.06) !important;
 }
+
+/* ============================================================
+   EIGHTH PASS — page-defined class text colors, dark-mode fix
+   The SIXTH PASS handles inline style="color: var(--gray-800)…"
+   attributes, but many pages declare CLASS rules like:
+       .plan-name { color: var(--gray-800); }
+   inside a per-page <style> block. Those don't match the
+   [style*="…"] attribute selector, so they stay dark-on-dark
+   inside the dark-themed card surfaces forced by the THIRD PASS.
+   This pass adds explicit class overrides for the most common
+   page-defined text classes seen across coach-billing.html,
+   coach-workouts.html, coach-workout-plans.html, coach-messages.html,
+   coach-challenges.html, coach-stats.html, manage-clients.html,
+   dashboard.html, planner.html, client-feed.html, and friends.
+   Light mode is intentionally untouched — those classes already
+   sit dark-on-white and pass contrast.
+   ============================================================ */
+
+/* --- Bright, high-contrast: titles, names, primary numeric values --- */
+[data-theme="dark"] .page-title,
+[data-theme="dark"] .plan-name,
+[data-theme="dark"] .price-amount,
+[data-theme="dark"] .payment-name,
+[data-theme="dark"] .promo-code,
+[data-theme="dark"] .connect-title,
+[data-theme="dark"] .modal-title,
+[data-theme="dark"] .stat-number,
+[data-theme="dark"] .convo-list-header,
+[data-theme="dark"] .thread-header,
+[data-theme="dark"] .challenge-card-title,
+[data-theme="dark"] .wpr-program-card,
+[data-theme="dark"] .wpr-ex-name,
+[data-theme="dark"] .wpr-search-result-name,
+[data-theme="dark"] .wc-day-num,
+[data-theme="dark"] .wc-detail-exercise,
+[data-theme="dark"] .ccc-modal-head,
+[data-theme="dark"] .ccc-card,
+[data-theme="dark"] .cag-header,
+[data-theme="dark"] .meal-feed-item-row,
+[data-theme="dark"] .convo-item {
+    color: #f1f5f9 !important;
+}
+
+/* --- Mid-tone: secondary headings, body text, list items --- */
+[data-theme="dark"] .payments-title,
+[data-theme="dark"] .client-link-title,
+[data-theme="dark"] .form-label,
+[data-theme="dark"] .feature-item,
+[data-theme="dark"] .wpr-form-label,
+[data-theme="dark"] .wpr-day-exercises,
+[data-theme="dark"] .wpr-exercise-row,
+[data-theme="dark"] .wpr-schedule-day,
+[data-theme="dark"] .wpr-day-chip,
+[data-theme="dark"] .wc-day-detail,
+[data-theme="dark"] .ccc-section,
+[data-theme="dark"] .ccc-row,
+[data-theme="dark"] .ccc-stat,
+[data-theme="dark"] .ccc-pill,
+[data-theme="dark"] .ccc-modal-foot,
+[data-theme="dark"] .cag-section,
+[data-theme="dark"] .cag-row,
+[data-theme="dark"] .convo-preview,
+[data-theme="dark"] .notif-overview-row,
+[data-theme="dark"] .meal-feed-actions,
+[data-theme="dark"] .reaction-badge,
+[data-theme="dark"] .reaction-picker,
+[data-theme="dark"] .reaction-trigger {
+    color: #cbd5e1 !important;
+}
+
+/* --- Quiet: labels, meta, dates, descriptions, empty states --- */
+[data-theme="dark"] .connect-desc,
+[data-theme="dark"] .plan-desc,
+[data-theme="dark"] .price-interval,
+[data-theme="dark"] .payment-date,
+[data-theme="dark"] .setup-fee,
+[data-theme="dark"] .promo-meta,
+[data-theme="dark"] .empty-text,
+[data-theme="dark"] .loading-text,
+[data-theme="dark"] .convo-time,
+[data-theme="dark"] .convo-empty,
+[data-theme="dark"] .msg-time,
+[data-theme="dark"] .thread-empty,
+[data-theme="dark"] .ccc-tiny,
+[data-theme="dark"] .ccc-draft-why,
+[data-theme="dark"] .ccc-empty,
+[data-theme="dark"] .ccc-loading,
+[data-theme="dark"] .ccc-stat-label,
+[data-theme="dark"] .ccc-stat-sub,
+[data-theme="dark"] .ccc-row-line2,
+[data-theme="dark"] .cag-detail,
+[data-theme="dark"] .activity-client-time,
+[data-theme="dark"] .activity-detail-time,
+[data-theme="dark"] .activity-tl-day-label,
+[data-theme="dark"] .wpr-program-meta,
+[data-theme="dark"] .wpr-ex-detail,
+[data-theme="dark"] .wpr-search-result-meta,
+[data-theme="dark"] .wc-day-header,
+[data-theme="dark"] .wc-detail-ex-info,
+[data-theme="dark"] .wc-legend-item,
+[data-theme="dark"] .wp-summary-label,
+[data-theme="dark"] .wp-exercise-comparison,
+[data-theme="dark"] .wp-compare-same,
+[data-theme="dark"] .notif-overview-message,
+[data-theme="dark"] .meal-comment-text,
+[data-theme="dark"] .meal-feed-items-toggle,
+[data-theme="dark"] .reaction-count,
+[data-theme="dark"] .thread-back-btn,
+[data-theme="dark"] .drawer-close {
+    color: #94a3b8 !important;
+}
+
+/* --- Inputs not already covered by the form-input pass --- */
+[data-theme="dark"] .client-link-input,
+[data-theme="dark"] .wpr-form-input {
+    background: #14171f !important;
+    border-color: rgba(255,255,255,0.10) !important;
+    color: #cbd5e1 !important;
+}
+
+/* --- Panels that share the card-surface treatment but render
+       their own text colors. Force readable contrast on inner
+       generic descendants without breaking semantic badges. --- */
+[data-theme="dark"] .convo-list-panel,
+[data-theme="dark"] .thread-panel,
+[data-theme="dark"] .preview-panel,
+[data-theme="dark"] .bulk-panel {
+    color: #cbd5e1 !important;
+}
