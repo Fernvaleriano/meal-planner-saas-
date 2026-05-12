@@ -85,7 +85,10 @@ exports.handler = async (event) => {
 
     const baseUrl = process.env.URL || 'https://ziquecoach.com';
 
-    // Check for existing subscription (upgrade/downgrade)
+    // Plan change: upgrade applies immediately + bills the prorated
+    // difference; downgrade (or same-price swap) is scheduled to take
+    // effect at the end of the current billing period so the client
+    // keeps the access they already paid for.
     if (action === 'change_plan') {
       const { data: existingSub } = await supabase
         .from('client_subscriptions')
@@ -96,45 +99,175 @@ exports.handler = async (event) => {
         .single();
 
       if (existingSub?.stripe_subscription_id) {
-        // Retrieve the existing subscription from Stripe
+        // Load the current plan's price so we can tell upgrade from downgrade.
+        const { data: currentPlan } = await supabase
+          .from('coach_payment_plans')
+          .select('price_cents, stripe_price_id')
+          .eq('id', existingSub.plan_id)
+          .single();
+
+        const oldPriceCents = currentPlan?.price_cents ?? 0;
+        const newPriceCents = plan.price_cents;
+        const isUpgrade = newPriceCents > oldPriceCents;
+        const isNoOp = plan.id === existingSub.plan_id;
+
+        if (isNoOp) {
+          return {
+            statusCode: 200, headers: corsHeaders,
+            body: JSON.stringify({
+              success: true,
+              message: 'Already on this plan',
+              subscription: { id: existingSub.id, plan_id: plan.id, status: existingSub.status }
+            })
+          };
+        }
+
         const subscription = await stripe.subscriptions.retrieve(
           existingSub.stripe_subscription_id,
           { stripeAccount }
         );
 
-        // Update the subscription to the new plan
-        const updatedSub = await stripe.subscriptions.update(
-          existingSub.stripe_subscription_id,
-          {
-            items: [{
-              id: subscription.items.data[0].id,
-              price: plan.stripe_price_id
-            }],
-            proration_behavior: 'always_invoice'
-          },
-          { stripeAccount }
-        );
+        if (isUpgrade) {
+          // Cancel any pending schedule so the upgrade applies cleanly.
+          if (existingSub.stripe_schedule_id) {
+            try {
+              await stripe.subscriptionSchedules.release(
+                existingSub.stripe_schedule_id,
+                {},
+                { stripeAccount }
+              );
+            } catch (err) {
+              // Schedule may already be released/canceled — keep going.
+              console.warn('Could not release schedule on upgrade:', err.message);
+            }
+          }
 
-        // Update in DB
-        await supabase
+          const updatedSub = await stripe.subscriptions.update(
+            existingSub.stripe_subscription_id,
+            {
+              items: [{
+                id: subscription.items.data[0].id,
+                price: plan.stripe_price_id
+              }],
+              proration_behavior: 'always_invoice'
+            },
+            { stripeAccount }
+          );
+
+          const { error: updErr } = await supabase
+            .from('client_subscriptions')
+            .update({
+              plan_id: plan.id,
+              status: updatedSub.status,
+              current_period_end: new Date(updatedSub.current_period_end * 1000).toISOString(),
+              pending_plan_id: null,
+              pending_change_effective_at: null,
+              stripe_schedule_id: null,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', existingSub.id);
+          if (updErr) {
+            console.error('Failed to update subscription after upgrade:', updErr);
+            throw updErr;
+          }
+
+          return {
+            statusCode: 200, headers: corsHeaders,
+            body: JSON.stringify({
+              success: true,
+              message: 'Plan upgraded',
+              subscription: {
+                id: existingSub.id,
+                plan_id: plan.id,
+                status: updatedSub.status,
+                pending_plan_id: null,
+                pending_change_effective_at: null
+              }
+            })
+          };
+        }
+
+        // Downgrade or same-price swap → schedule the change for period end.
+        const currentPeriodEnd = subscription.current_period_end;
+        const currentPriceId = subscription.items.data[0].price.id || subscription.items.data[0].price;
+
+        let schedule;
+        if (existingSub.stripe_schedule_id) {
+          // Update existing schedule to target the new (different) plan.
+          schedule = await stripe.subscriptionSchedules.update(
+            existingSub.stripe_schedule_id,
+            {
+              phases: [
+                {
+                  items: [{ price: currentPriceId, quantity: 1 }],
+                  start_date: subscription.current_period_start,
+                  end_date: currentPeriodEnd
+                },
+                {
+                  items: [{ price: plan.stripe_price_id, quantity: 1 }]
+                }
+              ],
+              end_behavior: 'release'
+            },
+            { stripeAccount }
+          );
+        } else {
+          // Create a new schedule from the subscription, then append the
+          // downgrade phase. Stripe's from_subscription auto-populates
+          // phase[0] with the current state — we re-send it explicitly so
+          // we can append phase[1] in the same update call.
+          const initial = await stripe.subscriptionSchedules.create(
+            { from_subscription: existingSub.stripe_subscription_id },
+            { stripeAccount }
+          );
+
+          schedule = await stripe.subscriptionSchedules.update(
+            initial.id,
+            {
+              phases: [
+                {
+                  items: initial.phases[0].items.map(item => ({
+                    price: item.price,
+                    quantity: item.quantity
+                  })),
+                  start_date: initial.phases[0].start_date,
+                  end_date: initial.phases[0].end_date
+                },
+                {
+                  items: [{ price: plan.stripe_price_id, quantity: 1 }]
+                }
+              ],
+              end_behavior: 'release'
+            },
+            { stripeAccount }
+          );
+        }
+
+        const { error: pendingErr } = await supabase
           .from('client_subscriptions')
           .update({
-            plan_id: plan.id,
-            status: updatedSub.status,
-            current_period_end: new Date(updatedSub.current_period_end * 1000).toISOString(),
+            pending_plan_id: plan.id,
+            pending_change_effective_at: new Date(currentPeriodEnd * 1000).toISOString(),
+            stripe_schedule_id: schedule.id,
             updated_at: new Date().toISOString()
           })
           .eq('id', existingSub.id);
+        if (pendingErr) {
+          console.error('Failed to record pending plan change:', pendingErr);
+          throw pendingErr;
+        }
 
         return {
           statusCode: 200, headers: corsHeaders,
           body: JSON.stringify({
             success: true,
-            message: 'Plan changed successfully',
+            message: 'Plan change scheduled for end of current billing period',
             subscription: {
               id: existingSub.id,
-              plan_id: plan.id,
-              status: updatedSub.status
+              plan_id: existingSub.plan_id,
+              status: existingSub.status,
+              pending_plan_id: plan.id,
+              pending_change_effective_at: new Date(currentPeriodEnd * 1000).toISOString()
             }
           })
         };

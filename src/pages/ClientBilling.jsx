@@ -9,8 +9,9 @@ import { apiGet, apiPost } from '../utils/api';
 import { useToast } from '../components/Toast';
 
 // ─── Pricing Card ───
-function PricingCard({ plan, currentPlanId, onSubscribe, onChangePlan, loading }) {
+function PricingCard({ plan, currentPlanId, pendingPlanId, onSubscribe, onChangePlan, loading }) {
   const isCurrent = currentPlanId === plan.id;
+  const isPending = pendingPlanId === plan.id;
   const price = (plan.price_cents / 100).toFixed(2);
   const interval = plan.billing_interval === 'week' ? '/week' : plan.billing_interval === 'month' ? '/mo' : '';
   const isSubscription = plan.type === 'subscription' || plan.type === 'tier';
@@ -57,6 +58,8 @@ function PricingCard({ plan, currentPlanId, onSubscribe, onChangePlan, loading }
       <div style={styles.cardFooter}>
         {isCurrent ? (
           <div style={styles.currentText}>Your active plan</div>
+        ) : isPending ? (
+          <div style={styles.currentText}>Scheduled — switches at period end</div>
         ) : currentPlanId && isSubscription ? (
           <button
             style={styles.secondaryBtn}
@@ -80,11 +83,12 @@ function PricingCard({ plan, currentPlanId, onSubscribe, onChangePlan, loading }
 }
 
 // ─── Current Subscription Info ───
-function SubscriptionInfo({ subscription, onCancel, onPortal, loading }) {
+function SubscriptionInfo({ subscription, pendingPlan, onCancel, onPortal, loading }) {
   if (!subscription) return null;
 
   const plan = subscription.coach_payment_plans;
   const status = subscription.status;
+  const pendingEffectiveAt = subscription.pending_change_effective_at;
   const statusColors = {
     active: { bg: '#dcfce7', color: '#166534' },
     trialing: { bg: '#dbeafe', color: '#1d4ed8' },
@@ -127,6 +131,15 @@ function SubscriptionInfo({ subscription, onCancel, onPortal, loading }) {
           <div style={styles.detailRow}>
             <AlertTriangle size={14} color="var(--warning)" />
             <span>Trial ends {new Date(subscription.trial_ends_at).toLocaleDateString()}</span>
+          </div>
+        )}
+        {pendingPlan && pendingEffectiveAt && (
+          <div style={styles.pendingBanner}>
+            <Calendar size={14} color="#1d4ed8" style={{ flexShrink: 0 }} />
+            <span>
+              Switching to <strong>{pendingPlan.name}</strong> on{' '}
+              {new Date(pendingEffectiveAt).toLocaleDateString()}
+            </span>
           </div>
         )}
       </div>
@@ -289,6 +302,8 @@ export default function ClientBilling() {
   }
 
   const currentPlanId = subscription?.plan_id;
+  const pendingPlanId = subscription?.pending_plan_id || null;
+  const pendingPlan = pendingPlanId ? plans.find(p => p.id === pendingPlanId) : null;
 
   return (
     <div style={styles.page}>
@@ -302,6 +317,7 @@ export default function ClientBilling() {
         {subscription && (
           <SubscriptionInfo
             subscription={subscription}
+            pendingPlan={pendingPlan}
             onCancel={handleCancel}
             onPortal={handlePortal}
             loading={actionLoading}
@@ -320,6 +336,7 @@ export default function ClientBilling() {
                   key={plan.id}
                   plan={plan}
                   currentPlanId={currentPlanId}
+                  pendingPlanId={pendingPlanId}
                   onSubscribe={handleSubscribe}
                   onChangePlan={handleChangePlan}
                   loading={actionLoading}
@@ -584,6 +601,17 @@ const styles = {
     gap: 8,
     fontSize: 13,
     color: 'var(--gray-600)'
+  },
+  pendingBanner: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    fontSize: 13,
+    color: '#1d4ed8',
+    background: '#dbeafe',
+    padding: '8px 10px',
+    borderRadius: 8,
+    marginTop: 4
   },
   subActions: {
     display: 'flex',

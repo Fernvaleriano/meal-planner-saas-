@@ -135,6 +135,21 @@ exports.handler = async (event) => {
           };
         }
 
+        // If a downgrade is scheduled, release the schedule first — Stripe
+        // disallows direct edits to subscriptions managed by an active
+        // schedule, and the pending downgrade is moot once we cancel.
+        if (sub.stripe_schedule_id) {
+          try {
+            await stripe.subscriptionSchedules.release(
+              sub.stripe_schedule_id,
+              {},
+              { stripeAccount }
+            );
+          } catch (err) {
+            console.warn('Could not release schedule on cancel:', err.message);
+          }
+        }
+
         // Cancel at period end
         const updated = await stripe.subscriptions.update(
           sub.stripe_subscription_id,
@@ -144,15 +159,22 @@ exports.handler = async (event) => {
 
         const cancelDate = new Date(updated.current_period_end * 1000);
 
-        await supabase
+        const { error: updErr } = await supabase
           .from('client_subscriptions')
           .update({
             status: 'canceling',
             cancel_at: cancelDate.toISOString(),
             canceled_at: new Date().toISOString(),
+            pending_plan_id: null,
+            pending_change_effective_at: null,
+            stripe_schedule_id: null,
             updated_at: new Date().toISOString()
           })
           .eq('id', sub.id);
+        if (updErr) {
+          console.error('Failed to mark subscription canceling:', updErr);
+          throw updErr;
+        }
 
         return {
           statusCode: 200, headers: corsHeaders,
