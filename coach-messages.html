@@ -1203,29 +1203,33 @@
 
             list.innerHTML = filtered.map(c => {
                 const displayMessage = (c.lastMessage && c.lastMessage.startsWith('__REACTION__:')) ? 'Reacted to a message' : c.lastMessage;
-                const preview = displayMessage
+                const previewText = displayMessage
                     ? (c.lastMessageSender === 'coach' ? 'You: ' : '') + displayMessage
                     : 'No messages yet';
-                const safeName = c.clientName.replace(/'/g, "\\'");
+                const safePreview = escapeHtml(previewText);
+                const safeClientName = escapeHtml(c.clientName);
+                const safeProfilePhoto = encodeURI(c.profilePhoto || '');
+                const safeNameForJs = (c.clientName || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+                const safePhotoForJs = (c.profilePhoto || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
                 const isSelected = selectedClientIds.has(c.clientId);
                 const clickAction = bulkMode
                     ? `toggleBulkClient(${c.clientId}, event)`
-                    : `openThread(${c.clientId}, '${safeName}', '${c.profilePhoto || ''}')`;
+                    : `openThread(${c.clientId}, '${safeNameForJs}', '${safePhotoForJs}')`;
                 return `
                     <button class="convo-item ${c.unreadCount > 0 ? 'unread' : ''} ${activeClientId === c.clientId ? 'active' : ''} ${isSelected ? 'selected' : ''}"
                             onclick="${clickAction}">
                         ${bulkMode ? `<input type="checkbox" class="bulk-checkbox" ${isSelected ? 'checked' : ''} onclick="event.stopPropagation(); toggleBulkClient(${c.clientId});">` : ''}
                         <div class="convo-avatar">
-                            ${c.profilePhoto ? `<img src="${c.profilePhoto}" alt="${c.clientName}">` : getInitials(c.clientName)}
+                            ${c.profilePhoto ? `<img src="${safeProfilePhoto}" alt="${safeClientName}">` : escapeHtml(getInitials(c.clientName))}
                         </div>
                         <div class="convo-content">
                             <div class="convo-top">
-                                <span class="convo-name">${c.clientName}</span>
+                                <span class="convo-name">${safeClientName}</span>
                                 <span class="convo-time">${formatTime(c.lastMessageAt)}</span>
                             </div>
                             <div class="convo-bottom">
-                                <span class="convo-preview">${preview}</span>
-                                ${c.unreadCount > 0 ? `<span class="convo-unread-badge">${c.unreadCount}</span>` : ''}
+                                <span class="convo-preview">${safePreview}</span>
+                                ${c.unreadCount > 0 ? `<span class="convo-unread-badge">${Number(c.unreadCount)}</span>` : ''}
                             </div>
                         </div>
                     </button>`;

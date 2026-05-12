@@ -27,6 +27,7 @@
  */
 const { createClient } = require('@supabase/supabase-js');
 const Anthropic = require('@anthropic-ai/sdk').default;
+const { authenticateRequest, checkRateLimit, rateLimitResponse } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -41,6 +42,13 @@ const corsHeaders = {
 
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers: corsHeaders, body: '' };
+
+  const { user, error: authError } = await authenticateRequest(event);
+  if (authError) return authError;
+
+  const rateLimit = checkRateLimit(user.id, 'ai-daily-briefing', 20, 60000);
+  if (!rateLimit.allowed) return rateLimitResponse(rateLimit.resetIn);
+
   if (!SUPABASE_SERVICE_KEY) {
     return { statusCode: 500, headers: corsHeaders, body: JSON.stringify({ error: 'Database not configured' }) };
   }

@@ -13,7 +13,7 @@
 // the canonical generator.
 const Anthropic = require('@anthropic-ai/sdk');
 const { createClient } = require('@supabase/supabase-js');
-const { corsHeaders, handleCors } = require('./utils/auth');
+const { corsHeaders, handleCors, authenticateRequest, checkRateLimit, rateLimitResponse } = require('./utils/auth');
 const { analyzeClientHistory, formatAnalysisForPrompt, applyMovementScreenExclusions } = require('./utils/client-analysis');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
@@ -447,6 +447,13 @@ exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method not allowed' }) };
   }
+
+  const { user, error: authError } = await authenticateRequest(event);
+  if (authError) return authError;
+
+  const rateLimit = checkRateLimit(user.id, 'generate-workout-claude-background', 5, 60000);
+  if (!rateLimit.allowed) return rateLimitResponse(rateLimit.resetIn);
+
   if (!ANTHROPIC_API_KEY || !SUPABASE_SERVICE_KEY) {
     return { statusCode: 500, headers, body: JSON.stringify({ error: 'Server not configured' }) };
   }

@@ -1069,6 +1069,12 @@ Ingredients: 6oz chicken breast, 2 cups mixed greens, 1/2 avocado, cherry tomato
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text == null ? '' : String(text);
+            return div.innerHTML;
+        }
+
         // Sidebar section collapse functionality
 
         function toggleSidebarSection(label) {
@@ -1222,18 +1228,21 @@ Ingredients: 6oz chicken breast, 2 cups mixed greens, 1/2 avocado, cherry tomato
         }
 
         function createRecipeCard(recipe) {
-            const categoryLabel = categoryLabels[recipe.time_category] || recipe.time_category;
+            const categoryLabel = escapeHtml(categoryLabels[recipe.time_category] || recipe.time_category || '');
+            const safeName = escapeHtml(recipe.name || '');
+            const safeDescription = recipe.description ? escapeHtml(recipe.description) : '';
+            const safeImageUrl = encodeURI(recipe.image_url || '');
 
             return `
                 <div class="recipe-card">
                     ${recipe.image_url
-                        ? `<img src="${recipe.image_url}" alt="${recipe.name}" class="recipe-card-image" loading="lazy" decoding="async" onerror="this.outerHTML='<div class=\\'recipe-card-image-placeholder\\'>🍳</div>'">`
+                        ? `<img src="${safeImageUrl}" alt="${safeName}" class="recipe-card-image" loading="lazy" decoding="async" onerror="this.outerHTML='<div class=\\'recipe-card-image-placeholder\\'>🍳</div>'">`
                         : `<div class="recipe-card-image-placeholder">🍳</div>`
                     }
                     <div class="recipe-card-header">
                         <div class="recipe-category-badge">${categoryLabel}</div>
-                        <div class="recipe-name">${recipe.name}</div>
-                        ${recipe.description ? `<div class="recipe-description">${recipe.description}</div>` : ''}
+                        <div class="recipe-name">${safeName}</div>
+                        ${safeDescription ? `<div class="recipe-description">${safeDescription}</div>` : ''}
                     </div>
                     <div class="recipe-card-body">
                         <div class="recipe-macros">
@@ -1587,14 +1596,14 @@ Ingredients: 6oz chicken breast, 2 cups mixed greens, 1/2 avocado, cherry tomato
                 const previewEl = document.getElementById('importRecipePreview');
                 previewEl.innerHTML = recipes.map((r, i) => `
                     <div style="padding:10px 0; ${i > 0 ? 'border-top:1px solid var(--gray-200);' : ''}">
-                        <div style="font-weight:600; color:var(--gray-800); font-size:14px;">${r.name || 'Unnamed Recipe'}</div>
+                        <div style="font-weight:600; color:var(--gray-800); font-size:14px;">${escapeHtml(r.name || 'Unnamed Recipe')}</div>
                         <div style="font-size:12px; color:var(--gray-500); margin-top:2px;">
-                            ${r.calories ? r.calories + ' cal' : ''}
-                            ${r.protein ? ' · ' + r.protein + 'g protein' : ''}
-                            ${r.time_category ? ' · ' + r.time_category.replace('_', ' ') : ''}
-                            ${r.servings ? ' · ' + r.servings + ' serving' + (r.servings > 1 ? 's' : '') : ''}
+                            ${r.calories ? Number(r.calories) + ' cal' : ''}
+                            ${r.protein ? ' · ' + Number(r.protein) + 'g protein' : ''}
+                            ${r.time_category ? ' · ' + escapeHtml(String(r.time_category).replace('_', ' ')) : ''}
+                            ${r.servings ? ' · ' + Number(r.servings) + ' serving' + (r.servings > 1 ? 's' : '') : ''}
                         </div>
-                        ${r.description ? '<div style="font-size:12px; color:var(--gray-400); margin-top:2px;">' + r.description + '</div>' : ''}
+                        ${r.description ? '<div style="font-size:12px; color:var(--gray-400); margin-top:2px;">' + escapeHtml(r.description) + '</div>' : ''}
                     </div>
                 `).join('');
 

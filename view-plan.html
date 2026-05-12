@@ -4227,7 +4227,7 @@
                 </div>
                 <div class="meal-card-content">
                     <div class="meal-header">
-                        <div class="meal-name">${meal.name}</div>
+                        <div class="meal-name">${escapeHtml(meal.name)}</div>
                         <div class="meal-actions">
                             ${actionButtons}
                         </div>
@@ -4235,24 +4235,24 @@
                     <div class="macro-grid">
                         <div class="macro-item">
                             <div class="macro-label">Calories</div>
-                            <div class="macro-value">${meal.calories}</div>
+                            <div class="macro-value">${Number(meal.calories) || 0}</div>
                         </div>
                         <div class="macro-item">
                             <div class="macro-label">Protein</div>
-                            <div class="macro-value">${meal.protein}g</div>
+                            <div class="macro-value">${Number(meal.protein) || 0}g</div>
                         </div>
                         <div class="macro-item">
                             <div class="macro-label">Carbs</div>
-                            <div class="macro-value">${meal.carbs}g</div>
+                            <div class="macro-value">${Number(meal.carbs) || 0}g</div>
                         </div>
                         <div class="macro-item">
                             <div class="macro-label">Fat</div>
-                            <div class="macro-value">${meal.fat}g</div>
+                            <div class="macro-value">${Number(meal.fat) || 0}g</div>
                         </div>
                     </div>
                     <div class="instructions">
                         <span class="instructions-label">📝 Instructions:</span>
-                        ${meal.instructions}
+                        ${escapeHtml(meal.instructions || '')}
                     </div>
                     ${notesSection}
                 </div>

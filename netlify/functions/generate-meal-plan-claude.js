@@ -2,6 +2,7 @@
 const AnthropicModule = require('@anthropic-ai/sdk');
 // Handle both CommonJS and ES module exports
 const Anthropic = AnthropicModule.default || AnthropicModule;
+const { authenticateRequest, checkRateLimit, rateLimitResponse } = require('./utils/auth');
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
@@ -57,6 +58,12 @@ exports.handler = async (event, context) => {
       body: JSON.stringify({ error: 'Method not allowed' })
     };
   }
+
+  const { user, error: authError } = await authenticateRequest(event);
+  if (authError) return authError;
+
+  const rateLimit = checkRateLimit(user.id, 'generate-meal-plan-claude', 10, 60000);
+  if (!rateLimit.allowed) return rateLimitResponse(rateLimit.resetIn);
 
   // Check if API key is configured
   if (!ANTHROPIC_API_KEY) {

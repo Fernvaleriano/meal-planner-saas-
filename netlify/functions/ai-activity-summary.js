@@ -1,6 +1,7 @@
 // Netlify Function for AI-powered coach assistant
 // Supports GET for client data and POST for asking questions about clients
 const { createClient } = require('@supabase/supabase-js');
+const { authenticateRequest, checkRateLimit, rateLimitResponse } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -18,6 +19,12 @@ exports.handler = async (event, context) => {
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers: corsHeaders, body: '' };
   }
+
+  const { user, error: authError } = await authenticateRequest(event);
+  if (authError) return authError;
+
+  const rateLimit = checkRateLimit(user.id, 'ai-activity-summary', 30, 60000);
+  if (!rateLimit.allowed) return rateLimitResponse(rateLimit.resetIn);
 
   // Handle POST requests for asking questions
   if (event.httpMethod === 'POST') {
