@@ -145,6 +145,44 @@
             .stats-grid { grid-template-columns: repeat(2, 1fr); }
             .form-row { grid-template-columns: 1fr; }
         }
+
+        /* ── Dark-mode overrides ──
+           The universal text-contrast pass in apple-refresh.css handles
+           .plan-name, .price-amount, .plan-desc, .form-label, etc.
+           These remaining rules fix surfaces unique to this page so
+           nested light-gray panels don't sit invisible on the dark
+           card background, and so per-class light borders gain enough
+           contrast to stay visible. */
+        [data-theme="dark"] .client-link-section {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.06);
+        }
+        [data-theme="dark"] .copy-btn {
+            background: rgba(255,255,255,0.06);
+            border-color: rgba(255,255,255,0.10);
+            color: #cbd5e1;
+        }
+        [data-theme="dark"] .copy-btn:hover {
+            background: rgba(255,255,255,0.10);
+        }
+        [data-theme="dark"] .promo-form {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.06);
+        }
+        [data-theme="dark"] .modal-header,
+        [data-theme="dark"] .payment-row,
+        [data-theme="dark"] .plan-actions {
+            border-color: rgba(255,255,255,0.08);
+        }
+        [data-theme="dark"] .alert-box {
+            background: rgba(245,158,11,0.08);
+            border-color: rgba(245,158,11,0.3);
+            color: #fbbf24;
+        }
+        [data-theme="dark"] .badge.inactive {
+            background: rgba(255,255,255,0.08);
+            color: #94a3b8;
+        }
     </style>
     <script src="https://unpkg.com/lucide@0.312.0/dist/umd/lucide.min.js" onload="if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',()=>lucide.createIcons())}else{lucide.createIcons()}"></script>
     <style>body{-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;overscroll-behavior:none;-webkit-overflow-scrolling:touch;}</style>
