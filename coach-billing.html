@@ -136,6 +136,7 @@
         .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 20px 24px; border-bottom: 1px solid var(--gray-100, #f1f5f9); }
         .modal-title { font-size: 18px; font-weight: 600; color: #1e293b; }
         .modal-body { padding: 24px; }
+        .modal-footer { display: flex; gap: 10px; justify-content: flex-end; padding: 16px 24px 20px; border-top: 1px solid var(--gray-100, #f1f5f9); }
 
         /* Form */
         .form-group { margin-bottom: 16px; }
@@ -297,6 +298,38 @@
             <div id="clientLinkSection" style="display: none;"></div>
         </div>
     </main>
+
+    <!-- Dispute / Chargeback Disclosure Modal -->
+    <div id="disclosureModal" class="modal-overlay" style="display: none;">
+        <div class="modal" style="max-width: 560px;">
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    <i data-lucide="alert-triangle" style="width:18px;height:18px;color:#f59e0b;"></i>
+                    How refunds &amp; disputes work
+                </h3>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom: 16px; line-height: 1.6;">
+                    Your Stripe account is <strong>your account</strong> — not Ziquecoach's. That means a few important things:
+                </p>
+                <ul style="line-height: 1.7; padding-left: 22px; margin-bottom: 18px;">
+                    <li>Money from clients goes directly to your Stripe balance and then to your bank.</li>
+                    <li>You are the <strong>merchant of record</strong> for every charge. You are responsible for delivering the coaching service.</li>
+                    <li><strong>If a client requests a refund</strong>, you can issue it in one click from this page. The refund amount comes out of your Stripe balance.</li>
+                    <li><strong>If a client disputes a charge with their bank</strong> (a "chargeback"), Stripe pulls the disputed amount <em>plus a $15 dispute fee</em> from your balance immediately.</li>
+                    <li>You have roughly <strong>10 days</strong> to submit evidence (signed intake forms, message logs, proof of plan delivered, etc.) through your Stripe Dashboard to fight the dispute.</li>
+                    <li>If you've already withdrawn the money, your Stripe balance goes <strong>negative</strong>. Stripe will recover it from future payouts, and if those don't cover it, debit your linked bank account directly.</li>
+                    <li><strong>Ziquecoach is a software platform — we cannot intervene in disputes or chargebacks.</strong> Stripe's terms and your client's bank decide the outcome.</li>
+                </ul>
+                <p style="margin-bottom: 18px; padding: 12px 14px; background: var(--gray-50, #f8fafc); border-radius: 8px; font-size: 13px; line-height: 1.6; color: var(--gray-600, #475569);">
+                    <strong>How to minimize disputes:</strong> use a clear billing descriptor in Stripe, respond quickly to client messages, offer a refund proactively when a client is unhappy (it's almost always cheaper than a chargeback), and keep records of the work you delivered.
+                </p>
+            </div>
+            <div class="modal-footer" id="disclosureModalFooter">
+                <!-- Buttons injected by JS depending on context (first-time ack vs. re-read) -->
+            </div>
+        </div>
+    </div>
 
     <!-- Plan Editor Modal -->
     <div id="planModal" class="modal-overlay" style="display: none;">
@@ -481,9 +514,14 @@
                             <div class="status-dot active"></div>
                             <span style="font-weight:600; color: var(--gray-800, #1e293b);">Stripe Connected &mdash; Payments Active</span>
                         </div>
-                        <button class="btn-link" onclick="openStripeDashboard()">
-                            <i data-lucide="external-link" style="width:14px;height:14px;"></i> View Stripe Dashboard
-                        </button>
+                        <div style="display:flex; gap:18px; flex-wrap:wrap;">
+                            <button class="btn-link" onclick="openStripeDashboard()">
+                                <i data-lucide="external-link" style="width:14px;height:14px;"></i> View Stripe Dashboard
+                            </button>
+                            <button class="btn-link" onclick="openDisclosureModal()">
+                                <i data-lucide="info" style="width:14px;height:14px;"></i> How refunds &amp; disputes work
+                            </button>
+                        </div>
                     </div>`;
             } else if (connectStatus?.connected && !connectStatus?.onboarding_complete) {
                 el.innerHTML = `
@@ -894,6 +932,58 @@
             }
         }
 
+        // ── Dispute / Chargeback Disclosure ──
+        // Re-read flow: coach clicks "How refunds & disputes work" link.
+        // Shows the modal with a single Close button, no acknowledgement required.
+        function openDisclosureModal() {
+            const footer = document.getElementById('disclosureModalFooter');
+            footer.innerHTML = `
+                <button type="button" class="btn btn-secondary" onclick="closeDisclosureModal()">Close</button>
+            `;
+            document.getElementById('disclosureModal').style.display = 'flex';
+            lucide.createIcons();
+        }
+
+        function closeDisclosureModal() {
+            document.getElementById('disclosureModal').style.display = 'none';
+        }
+
+        // First-time flow: coach has Stripe connected (charges_enabled) but has
+        // never acknowledged the disclosure. Show the modal with a blocking
+        // "I understand" button that records the acknowledgement to the server.
+        function showDisclosureForAcknowledgement() {
+            const footer = document.getElementById('disclosureModalFooter');
+            footer.innerHTML = `
+                <button type="button" class="btn btn-primary" id="ackDisclosureBtn" onclick="acknowledgeDisclosure()">I understand</button>
+            `;
+            document.getElementById('disclosureModal').style.display = 'flex';
+            lucide.createIcons();
+        }
+
+        async function acknowledgeDisclosure() {
+            const btn = document.getElementById('ackDisclosureBtn');
+            if (btn) {
+                btn.disabled = true;
+                btn.textContent = 'Saving...';
+            }
+            try {
+                const res = await apiFetch('/.netlify/functions/stripe-connect-onboarding', {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'acknowledge_disclosure' })
+                });
+                if (connectStatus) {
+                    connectStatus.dispute_disclosure_acknowledged_at = res.dispute_disclosure_acknowledged_at;
+                }
+                closeDisclosureModal();
+            } catch (err) {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.textContent = 'I understand';
+                }
+                showToast(err.message, 'error');
+            }
+        }
+
         // ── Plan Modal ──
         function openPlanModal(planId) {
             editingPlanId = planId || null;
@@ -1131,6 +1221,15 @@
             renderPlansSection();
             renderPromoSection();
             renderClientLink();
+
+            // First-time disclosure: if Stripe is live but the coach hasn't
+            // acknowledged how refunds/disputes work yet, force the modal up.
+            if (
+                connectStatus?.charges_enabled &&
+                !connectStatus?.dispute_disclosure_acknowledged_at
+            ) {
+                showDisclosureForAcknowledgement();
+            }
         }
 
         // ── Utility ──
