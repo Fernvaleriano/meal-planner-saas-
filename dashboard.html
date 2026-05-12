@@ -8858,6 +8858,31 @@
                 const clickableClass = url ? 'priority-alert--clickable' : '';
                 const linkHtml = url ? '<span class="priority-alert-link">View →</span>' : '';
 
+                // Gym check-in notifications get the same react+reply affordance as workout notes
+                let gymCheckinActionsHtml = '';
+                if (n.type === 'gym_proof' && isValidClientId) {
+                    gymCheckinActionsHtml = `
+                            <button class="priority-note-reply-btn" onclick="event.stopPropagation(); toggleNoteReply('${aid}')" title="Reply to this check-in">
+                                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                                Reply
+                            </button>
+                            <span class="priority-reaction-row" onclick="event.stopPropagation()">
+                                <button id="react-${aid}-clap" class="priority-reaction-btn" onclick="toggleReaction('${aid}','${clientId}','👏','gym_checkin','${n.id}')" title="Clap">👏</button>
+                                <button id="react-${aid}-fist" class="priority-reaction-btn" onclick="toggleReaction('${aid}','${clientId}','👊','gym_checkin','${n.id}')" title="Fist bump">👊</button>
+                                <button id="react-${aid}-muscle" class="priority-reaction-btn" onclick="toggleReaction('${aid}','${clientId}','💪','gym_checkin','${n.id}')" title="Muscle">💪</button>
+                                <button id="react-${aid}-fire" class="priority-reaction-btn" onclick="toggleReaction('${aid}','${clientId}','🔥','gym_checkin','${n.id}')" title="Fire">🔥</button>
+                                <span id="reaction-sent-${aid}" class="priority-reaction-sent">✓</span>
+                            </span>
+                            <div id="reply-row-${aid}" class="priority-note-reply-row" style="display:none;" onclick="event.stopPropagation()">
+                                <input type="text" id="reply-input-${aid}" placeholder="Type your reply..." onkeydown="if(event.key==='Enter'){sendNoteReply('${aid}','${clientId}','Gym Check-In','')}" />
+                                <button onclick="sendNoteReply('${aid}','${clientId}','Gym Check-In','')">Send</button>
+                            </div>
+                            <div id="reply-sent-${aid}" class="priority-note-reply-sent" style="display:none;">
+                                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
+                                Sent to messages
+                            </div>`;
+                }
+
                 const html = `
                     <div class="priority-alert ${clickableClass}" ${clickAction}>
                         __CHECKBOX__
@@ -8867,6 +8892,7 @@
                             ${n.message ? `<span class="priority-alert-detail">${n.message}</span>` : ''}
                             <span class="priority-alert-detail">· ${timeStr}</span>
                             ${linkHtml}
+                            ${gymCheckinActionsHtml}
                         </span>
                     </div>
                 `;
