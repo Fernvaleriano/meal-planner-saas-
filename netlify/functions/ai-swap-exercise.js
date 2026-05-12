@@ -1,5 +1,6 @@
 const { createClient } = require("@supabase/supabase-js");
 const Anthropic = require("@anthropic-ai/sdk");
+const { authenticateRequest, checkRateLimit, rateLimitResponse } = require('./utils/auth');
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
@@ -561,6 +562,12 @@ exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
     return { statusCode: 405, headers, body: JSON.stringify({ error: "Method not allowed" }) };
   }
+
+  const { user, error: authError } = await authenticateRequest(event);
+  if (authError) return authError;
+
+  const rateLimit = checkRateLimit(user.id, 'ai-swap-exercise', 30, 60000);
+  if (!rateLimit.allowed) return rateLimitResponse(rateLimit.resetIn);
 
   try {
     const { exercise, workoutExercises = [], equipment = "", coachId = null, previousSuggestionIds = [], equipmentFilter = "", muscleFilter = "" } = JSON.parse(event.body);

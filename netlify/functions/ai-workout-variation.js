@@ -20,6 +20,7 @@
  */
 const Anthropic = require('@anthropic-ai/sdk').default;
 const { createClient } = require('@supabase/supabase-js');
+const { authenticateRequest, checkRateLimit, rateLimitResponse } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -35,6 +36,13 @@ const corsHeaders = {
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers: corsHeaders, body: '' };
   if (event.httpMethod !== 'POST') return { statusCode: 405, headers: corsHeaders, body: JSON.stringify({ error: 'Method not allowed' }) };
+
+  const { user, error: authError } = await authenticateRequest(event);
+  if (authError) return authError;
+
+  const rateLimit = checkRateLimit(user.id, 'ai-workout-variation', 10, 60000);
+  if (!rateLimit.allowed) return rateLimitResponse(rateLimit.resetIn);
+
   if (!ANTHROPIC_API_KEY) return { statusCode: 500, headers: corsHeaders, body: JSON.stringify({ error: 'AI not configured (ANTHROPIC_API_KEY)' }) };
 
   let body;

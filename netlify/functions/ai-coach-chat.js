@@ -1,4 +1,5 @@
 const OpenAI = require('openai');
+const { authenticateRequest, checkRateLimit, rateLimitResponse } = require('./utils/auth');
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
@@ -21,6 +22,12 @@ exports.handler = async (event) => {
       body: JSON.stringify({ error: 'Method not allowed' })
     };
   }
+
+  const { user, error: authError } = await authenticateRequest(event);
+  if (authError) return authError;
+
+  const rateLimit = checkRateLimit(user.id, 'ai-coach-chat', 30, 60000);
+  if (!rateLimit.allowed) return rateLimitResponse(rateLimit.resetIn);
 
   try {
     const { message, context } = JSON.parse(event.body || '{}');
