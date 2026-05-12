@@ -208,7 +208,14 @@ function applyBrandingCSS(branding) {
   const isCustomBranded = primaryLower && primaryLower !== defaultPrimary;
   if (isCustomBranded) {
     const primary = branding.brand_primary_color;
-    const secondary = branding.brand_secondary_color || primary;
+    // Same defensive filter the --brand-gradient setter uses: when the coach
+    // customized primary but left secondary as null or as the stock-default
+    // '#178072' teal (which the API auto-fills), reuse primary so derived
+    // gradients (banner, banner-card, rest-day, meal-active-end, etc.) stay
+    // in the brand color family instead of bleeding into teal.
+    const secondaryRaw = branding.brand_secondary_color;
+    const secondaryLooksDefault = !secondaryRaw || secondaryRaw.toLowerCase() === '#178072';
+    const secondary = secondaryLooksDefault ? primary : secondaryRaw;
 
     // Meal type active state (was hardcoded teal gradient)
     root.style.setProperty('--brand-meal-active-start', hexToRgba(primary, 0.22));
