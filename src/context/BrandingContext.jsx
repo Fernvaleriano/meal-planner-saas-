@@ -175,11 +175,24 @@ function applyBrandingCSS(branding) {
     root.style.setProperty('--brand-accent', branding.brand_accent_color);
   }
 
-  // Gradient
-  if (branding.brand_primary_color && branding.brand_secondary_color) {
+  // Gradient — used by .btn-primary and ~25 other CTAs across the app.
+  // When the coach has customized primary but left secondary at the default teal
+  // '#178072', a pink→teal gradient ends up looking mostly teal on wide buttons
+  // (the 135° angle puts the secondary on the right/bottom-right). Fix: if the
+  // coach customized primary, mirror the brand-banner-gradient logic and reuse
+  // primary as the gradient end whenever secondary is missing OR is the stock
+  // default teal — so the gradient stays in the coach's brand color family.
+  if (branding.brand_primary_color) {
+    const defaultSecondary = '#178072';
+    const primary = branding.brand_primary_color;
+    const primaryLowerForGrad = primary.toLowerCase();
+    const isCustomPrimary = primaryLowerForGrad && primaryLowerForGrad !== '#2cb5a5';
+    const secondaryRaw = branding.brand_secondary_color;
+    const secondaryLooksDefault = !secondaryRaw || secondaryRaw.toLowerCase() === defaultSecondary;
+    const gradEnd = (isCustomPrimary && secondaryLooksDefault) ? primary : (secondaryRaw || primary);
     root.style.setProperty(
       '--brand-gradient',
-      `linear-gradient(135deg, ${branding.brand_primary_color} 0%, ${branding.brand_secondary_color} 100%)`
+      `linear-gradient(135deg, ${primary} 0%, ${gradEnd} 100%)`
     );
   }
 
