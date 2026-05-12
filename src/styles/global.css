@@ -1599,7 +1599,7 @@ textarea,
 }
 
 .bottom-nav-item.active .nav-icon {
-    background: rgba(13, 148, 136, 0.1);
+    background: var(--brand-tile-bg-light, rgba(13, 148, 136, 0.1));
 }
 
 [data-theme="dark"] .bottom-nav-item {
@@ -1607,7 +1607,7 @@ textarea,
 }
 
 [data-theme="dark"] .bottom-nav-item.active {
-    color: #4ec5b7;
+    color: var(--brand-tile-icon-color, #4ec5b7);
 }
 
 .nav-icon {
@@ -3971,7 +3971,7 @@ textarea,
 }
 
 .add-food-icon {
-    color: #10b981;
+    color: var(--brand-tile-icon-color, #10b981);
 }
 
 .add-food-options {
@@ -8436,7 +8436,7 @@ textarea,
 }
 
 .btn-primary:hover {
-    background: #2cb5a5;
+    background: var(--brand-primary, #2cb5a5);
     transform: translateY(-1px);
 }
 
@@ -14043,22 +14043,22 @@ textarea,
 }
 
 .plan-action-btn.primary:hover {
-    background: #0b827a;
+    background: var(--brand-primary-dark, #0b827a);
 }
 
 .plan-action-btn.primary:active {
-    background: #0a7269;
+    background: var(--brand-primary-dark, #0a7269);
 }
 
 [data-theme="dark"] .plan-action-btn.primary {
-    background: rgba(20, 184, 166, 0.18);
-    color: #5eead4;
-    border-color: rgba(20, 184, 166, 0.35);
+    background: var(--brand-tile-bg-dark, rgba(20, 184, 166, 0.18));
+    color: var(--brand-tile-icon-color, #5eead4);
+    border-color: var(--brand-tile-border, rgba(20, 184, 166, 0.35));
 }
 
 [data-theme="dark"] .plan-action-btn.primary:hover {
-    background: rgba(20, 184, 166, 0.28);
-    border-color: rgba(20, 184, 166, 0.5);
+    background: var(--brand-tile-bg-dark, rgba(20, 184, 166, 0.28));
+    border-color: var(--brand-tile-border, rgba(20, 184, 166, 0.5));
 }
 
 /* Secondary actions — ghost / muted */
@@ -16866,11 +16866,11 @@ textarea,
 }
 
 .diary-share-progress-fill.calories {
-    background: #2cb5a5;
+    background: var(--brand-tile-icon-color, #2cb5a5);
 }
 
 .diary-share-progress-fill.protein {
-    background: #10b981;
+    background: var(--brand-macro-protein, #10b981);
 }
 
 .diary-share-progress-fill.carbs {
@@ -41730,11 +41730,11 @@ textarea,
 }
 
 .weekly-avg-calories {
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    background: var(--brand-gradient, linear-gradient(135deg, #10b981 0%, #059669 100%));
 }
 
 .weekly-avg-protein {
-    background: linear-gradient(135deg, #2cb5a5 0%, #2563eb 100%);
+    background: var(--brand-gradient, linear-gradient(135deg, #2cb5a5 0%, #2563eb 100%));
 }
 
 .weekly-avg-value {
