@@ -652,33 +652,39 @@
             max-width: 300px;
             margin: 0 auto;
             position: relative;
+            /* Own stacking context — the live preview must reflect ONLY the Client
+               Default Theme selection, never the coach's own account dark/light. */
+            isolation: isolate;
         }
 
         /* Theme-specific surface colors — scoped to the mockup container so they don't
-           leak to the surrounding coach page. JS sets data-preview-theme on the container;
-           advanced color picker overrides (brand_bg_color etc.) layer on top via JS as
-           inline style on the container. */
+           leak to the surrounding coach page, AND so the coach page's own data-theme
+           (dark/light) doesn't bleed *into* the preview. The !important on each var
+           assignment guarantees the chosen client-default theme always wins even if
+           some external CSS later tries to inject a competing --preview-* value. */
         .mockup-container[data-preview-theme="dark"] {
-            --preview-bg:               #0f172a;
-            --preview-card:             #1e293b;
-            --preview-text:             #f1f5f9;
-            --preview-text-secondary:   #94a3b8;
-            --preview-meal-track-bg:    rgba(255, 255, 255, 0.04);
-            --preview-input-bg:         rgba(255, 255, 255, 0.06);
-            --preview-input-border:     rgba(255, 255, 255, 0.10);
-            --preview-card-border:      rgba(255, 255, 255, 0.06);
-            --preview-divider:          rgba(255, 255, 255, 0.08);
+            --preview-bg:               #0f172a !important;
+            --preview-card:             #1e293b !important;
+            --preview-text:             #f1f5f9 !important;
+            --preview-text-secondary:   #94a3b8 !important;
+            --preview-meal-track-bg:    rgba(255, 255, 255, 0.04) !important;
+            --preview-input-bg:         rgba(255, 255, 255, 0.06) !important;
+            --preview-input-border:     rgba(255, 255, 255, 0.10) !important;
+            --preview-card-border:      rgba(255, 255, 255, 0.06) !important;
+            --preview-divider:          rgba(255, 255, 255, 0.08) !important;
+            color-scheme: dark;
         }
         .mockup-container[data-preview-theme="light"] {
-            --preview-bg:               #f8fafc;
-            --preview-card:             #ffffff;
-            --preview-text:             #0f172a;
-            --preview-text-secondary:   #64748b;
-            --preview-meal-track-bg:    rgba(15, 23, 42, 0.04);
-            --preview-input-bg:         #f1f5f9;
-            --preview-input-border:     rgba(15, 23, 42, 0.08);
-            --preview-card-border:      rgba(15, 23, 42, 0.06);
-            --preview-divider:          rgba(15, 23, 42, 0.06);
+            --preview-bg:               #f8fafc !important;
+            --preview-card:             #ffffff !important;
+            --preview-text:             #0f172a !important;
+            --preview-text-secondary:   #64748b !important;
+            --preview-meal-track-bg:    rgba(15, 23, 42, 0.04) !important;
+            --preview-input-bg:         #f1f5f9 !important;
+            --preview-input-border:     rgba(15, 23, 42, 0.08) !important;
+            --preview-card-border:      rgba(15, 23, 42, 0.06) !important;
+            --preview-divider:          rgba(15, 23, 42, 0.06) !important;
+            color-scheme: light;
         }
 
         .mockup-container.desktop {
@@ -2685,18 +2691,13 @@
             const brandName = currentBranding.brand_name || 'Ziquecoach';
             const theme = currentBranding.brand_client_theme || 'dark';
 
-            // Theme-aware surface colors are now driven by data-preview-theme on the container,
-            // which provides --preview-bg / --preview-card / --preview-text / etc. via static CSS.
-            // For "system", mirror the coach's own browser preference so the preview matches
-            // what they're looking at on their device (and isn't misleadingly stuck on dark).
-            let previewTheme;
-            if (theme === 'light')      previewTheme = 'light';
-            else if (theme === 'dark')  previewTheme = 'dark';
-            else {
-                const prefersLight = typeof window.matchMedia === 'function'
-                    && window.matchMedia('(prefers-color-scheme: light)').matches;
-                previewTheme = prefersLight ? 'light' : 'dark';
-            }
+            // Theme-aware surface colors are driven by data-preview-theme on the container,
+            // which provides --preview-bg / --preview-card / --preview-text / etc. via static
+            // CSS. The preview is intentionally INDEPENDENT of the coach's own account theme
+            // and browser color-scheme — it must reflect only the Client Default Theme.
+            // "system" previews as dark (the real-client fallback when no preference is saved;
+            // see js/theme.js initTheme — savedTheme || DARK).
+            const previewTheme = theme === 'light' ? 'light' : 'dark';
             const mockupContainer = document.getElementById('mockupContainer');
             if (mockupContainer) mockupContainer.dataset.previewTheme = previewTheme;
 
