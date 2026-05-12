@@ -11,8 +11,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <!-- Pickr Color Picker -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@simonwep/pickr/dist/themes/nano.min.css">
+    <!-- Native HTML5 color pickers (no library needed) -->
     <style>
         :root {
             --brand-primary: #2dd4bf;
@@ -279,6 +278,34 @@
             transform: scale(1.05);
         }
 
+        /* Native HTML5 color picker styled as a swatch */
+        .color-swatch-native {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 56px;
+            height: 56px;
+            border-radius: 10px;
+            border: 2px solid rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+            padding: 0;
+            background: transparent;
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+        .color-swatch-native:hover { transform: scale(1.05); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        .color-swatch-native::-webkit-color-swatch-wrapper { padding: 0; border-radius: 8px; }
+        .color-swatch-native::-webkit-color-swatch { border: none; border-radius: 8px; }
+        .color-swatch-native::-moz-color-swatch { border: none; border-radius: 8px; }
+        [data-theme="dark"] .color-swatch-native { border-color: rgba(255,255,255,0.15); }
+
+        .color-role-hint {
+            display: block;
+            font-size: 0.7rem;
+            font-weight: 400;
+            color: var(--gray-500);
+            margin-top: 2px;
+            letter-spacing: 0;
+        }
+
         .color-hex-input {
             flex: 1;
             padding: 8px 10px;
@@ -518,366 +545,459 @@
             color: white;
         }
 
-        /* Dashboard Mockup */
+        /* === Phone-shell Mockup — mirrors the real client mobile app === */
         .mockup-container {
-            background: var(--gray-800);
-            border-radius: 16px;
+            background: #000;
+            border-radius: 36px;
             overflow: hidden;
-            border: 1px solid var(--gray-700);
+            border: 6px solid #111;
+            box-shadow: 0 30px 60px -20px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.04);
+            max-width: 300px;
+            margin: 0 auto;
+            position: relative;
         }
 
-        .mockup-browser-bar {
+        .mockup-container.desktop {
+            max-width: 100%;
+            border-radius: 14px;
+            border: 1px solid var(--gray-700);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+        }
+
+        /* iOS status bar */
+        .mockup-status-bar {
             display: flex;
             align-items: center;
+            justify-content: space-between;
+            padding: 8px 18px 4px;
+            background: #fff;
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: #111;
+        }
+        .mockup-container.desktop .mockup-status-bar { display: none; }
+        .mockup-status-icons {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.65rem;
+        }
+        .mockup-status-icons svg { width: 14px; height: 10px; }
+
+        /* Desktop-only browser chrome */
+        .mockup-browser-bar {
+            display: none;
+            align-items: center;
             gap: 8px;
-            padding: 12px 16px;
+            padding: 10px 14px;
             background: var(--gray-800);
             border-bottom: 1px solid var(--gray-700);
         }
-
-        .mockup-browser-dots {
-            display: flex;
-            gap: 6px;
-        }
-
-        .mockup-browser-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-        }
-
+        .mockup-container.desktop .mockup-browser-bar { display: flex; }
+        .mockup-browser-dots { display: flex; gap: 6px; }
+        .mockup-browser-dot { width: 10px; height: 10px; border-radius: 50%; }
         .mockup-browser-dot.red { background: #ff5f57; }
         .mockup-browser-dot.yellow { background: #ffbd2e; }
         .mockup-browser-dot.green { background: #28c940; }
-
         .mockup-browser-url {
             flex: 1;
             background: var(--gray-900);
-            padding: 6px 12px;
+            padding: 5px 10px;
             border-radius: 6px;
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             color: var(--gray-500);
             text-align: center;
         }
 
+        /* Scrollable phone "screen" */
         .mockup-content {
-            padding: 0;
-            background: #f8fafc;
-            min-height: 400px;
+            background: var(--preview-bg, #f8fafc);
+            min-height: 560px;
+            max-height: 600px;
+            overflow-y: auto;
             display: flex;
             flex-direction: column;
+            position: relative;
         }
+        .mockup-content::-webkit-scrollbar { width: 0; }
 
-        /* Mockup Header */
+        /* Branded gradient header */
         .mockup-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 14px 16px;
-            background: var(--preview-primary, var(--brand-primary));
+            padding: 12px 16px;
+            background: linear-gradient(135deg, var(--preview-primary, #2dd4bf) 0%, var(--preview-secondary, #14b8a6) 100%);
             color: white;
+            position: sticky;
+            top: 0;
+            z-index: 2;
         }
-
-        .mockup-logo {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
+        .mockup-logo { display: flex; align-items: center; gap: 8px; }
         .mockup-logo-img {
-            width: 28px;
-            height: 28px;
-            border-radius: 6px;
-            background: rgba(255, 255, 255, 0.2);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: 0.8rem;
-            overflow: hidden;
-        }
-
-        .mockup-logo-img img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-        }
-
-        .mockup-logo-text {
-            font-weight: 600;
-            font-size: 0.875rem;
-        }
-
-        .mockup-user {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .mockup-user-avatar {
-            width: 28px;
-            height: 28px;
-            background: rgba(255, 255, 255, 0.2);
+            width: 32px;
+            height: 32px;
             border-radius: 50%;
+            background: rgba(255,255,255,0.95);
+            color: var(--preview-primary, #2dd4bf);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.7rem;
-            font-weight: 600;
+            font-weight: 800;
+            font-size: 0.95rem;
+            overflow: hidden;
+            border: 2px solid rgba(255,255,255,0.6);
         }
+        .mockup-logo-img img { width: 100%; height: 100%; object-fit: contain; padding: 2px; }
+        .mockup-logo-text {
+            font-weight: 700;
+            font-size: 0.95rem;
+            letter-spacing: 0.2px;
+        }
+        .mockup-header-actions { display: flex; align-items: center; gap: 6px; }
+        .mockup-header-pill {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.18);
+            border: 1px solid rgba(255,255,255,0.35);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.7rem;
+            font-weight: 700;
+        }
+        .mockup-header-pill svg { width: 14px; height: 14px; }
 
-        /* Mockup Body */
+        /* Body */
         .mockup-body {
-            padding: 14px;
-            background: #f8fafc;
+            padding: 14px 12px 16px;
             flex: 1;
         }
 
-        /* AI Food Logger Card */
+        /* AI Hero Card — replicates ai-hero-card from React Dashboard */
         .mockup-ai-card {
-            background: white;
-            border-radius: 12px;
+            background: var(--preview-card, #ffffff);
+            border-radius: 14px;
             padding: 14px;
             margin-bottom: 12px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+            border: 1px solid rgba(0,0,0,0.04);
         }
 
         .mockup-ai-header {
             display: flex;
-            align-items: center;
-            gap: 8px;
+            align-items: flex-start;
+            gap: 10px;
             margin-bottom: 10px;
         }
 
-        .mockup-ai-icon {
-            font-size: 1rem;
+        .mockup-ai-icon-wrap {
+            width: 36px;
+            height: 36px;
+            border-radius: 9px;
+            background: linear-gradient(135deg, var(--preview-primary, #2dd4bf), var(--preview-accent, #10b981));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #facc15;
+            font-size: 1.1rem;
+            flex-shrink: 0;
         }
 
+        .mockup-ai-title-wrap { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
         .mockup-ai-title {
-            font-weight: 700;
-            font-size: 0.875rem;
-            color: var(--gray-900);
+            font-weight: 800;
+            font-size: 1rem;
+            color: var(--preview-text, #0f172a);
+            line-height: 1.1;
         }
-
         .mockup-ai-badge {
-            font-size: 0.6rem;
-            color: var(--preview-primary, var(--brand-primary));
-            background: rgba(13, 148, 136, 0.08);
-            padding: 2px 6px;
-            border-radius: 4px;
+            font-size: 0.65rem;
+            color: var(--preview-text-secondary, #64748b);
             font-weight: 500;
         }
 
+        .mockup-coaching-message {
+            font-size: 0.7rem;
+            font-style: italic;
+            color: var(--preview-text-secondary, #475569);
+            margin-bottom: 12px;
+            line-height: 1.35;
+        }
+
+        /* Meal type selector */
         .mockup-meal-types {
-            display: flex;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
             gap: 6px;
-            margin-bottom: 10px;
+            padding: 6px;
+            background: rgba(0,0,0,0.03);
+            border-radius: 10px;
+            margin-bottom: 12px;
         }
 
         .mockup-meal-type {
-            flex: 1;
-            padding: 6px 4px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            padding: 8px 4px;
             border-radius: 8px;
-            border: 1px solid var(--gray-200);
-            background: white;
-            text-align: center;
+            background: transparent;
+            color: var(--preview-text-secondary, #64748b);
             font-size: 0.6rem;
-            color: var(--gray-600);
+            font-weight: 500;
             cursor: default;
+            transition: all 0.2s;
         }
+
+        .mockup-meal-type svg { width: 16px; height: 16px; }
 
         .mockup-meal-type.active {
-            background: var(--preview-primary, var(--brand-primary));
-            color: white;
-            border-color: var(--preview-primary, var(--brand-primary));
+            background: var(--preview-accent-soft, rgba(45, 212, 191, 0.18));
+            color: var(--preview-accent, #10b981);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
         }
 
-        .mockup-meal-type-icon {
-            display: block;
-            font-size: 0.8rem;
-            margin-bottom: 2px;
-        }
-
+        /* Food input */
         .mockup-food-input {
             width: 100%;
-            padding: 8px 10px;
-            border: 1px solid var(--gray-200);
-            border-radius: 8px;
+            padding: 10px 12px;
+            border: 1px solid rgba(0,0,0,0.08);
+            border-radius: 10px;
             font-size: 0.7rem;
-            color: var(--gray-400);
-            background: var(--gray-50);
-            margin-bottom: 8px;
+            color: var(--preview-text-secondary, #94a3b8);
+            background: var(--preview-bg, #f8fafc);
+            margin-bottom: 10px;
+            min-height: 50px;
+            display: flex;
+            align-items: flex-start;
+            line-height: 1.35;
         }
 
+        /* Voice + Log Food row */
+        .mockup-ai-actions {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .mockup-voice-btn {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            background: var(--preview-bg, #f1f5f9);
+            border: 1px solid rgba(0,0,0,0.08);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--preview-text-secondary, #64748b);
+            flex-shrink: 0;
+        }
+        .mockup-voice-btn svg { width: 16px; height: 16px; }
         .mockup-log-btn {
-            width: 100%;
-            padding: 8px;
-            background: var(--preview-primary, var(--brand-primary));
+            flex: 1;
+            padding: 10px;
+            background: linear-gradient(135deg, var(--preview-primary, #2dd4bf), var(--preview-secondary, #14b8a6));
             color: white;
             border: none;
-            border-radius: 8px;
-            font-size: 0.75rem;
-            font-weight: 600;
+            border-radius: 10px;
+            font-size: 0.8rem;
+            font-weight: 700;
             cursor: default;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 4px;
         }
+        .mockup-log-btn svg { width: 14px; height: 14px; }
+
+        /* Quick action pills (2x2) */
+        .mockup-quick-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        .mockup-quick-action {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 10px;
+            background: var(--preview-card, #ffffff);
+            border: 1px solid rgba(0,0,0,0.08);
+            border-radius: 9999px;
+            font-size: 0.7rem;
+            font-weight: 500;
+            color: var(--preview-text-secondary, #475569);
+            cursor: default;
+        }
+        .mockup-quick-action svg {
+            width: 14px;
+            height: 14px;
+            color: var(--preview-text-secondary, #64748b);
+        }
+
+        /* Weigh-in banner */
+        .mockup-weigh-banner {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            margin: 12px 0;
+            background: var(--preview-card, #ffffff);
+            border: 1px solid rgba(0,0,0,0.06);
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        }
+        .mockup-weigh-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 9px;
+            background: var(--preview-accent-soft, rgba(45, 212, 191, 0.15));
+            color: var(--preview-accent, #10b981);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .mockup-weigh-icon svg { width: 16px; height: 16px; }
+        .mockup-weigh-text { flex: 1; display: flex; flex-direction: column; gap: 1px; }
+        .mockup-weigh-title { font-size: 0.75rem; font-weight: 700; color: var(--preview-text, #0f172a); }
+        .mockup-weigh-sub { font-size: 0.6rem; color: var(--preview-text-secondary, #64748b); }
+        .mockup-weigh-banner > svg { width: 14px; height: 14px; color: var(--preview-text-secondary, #94a3b8); }
 
         /* Progress Card */
         .mockup-progress-card {
-            background: white;
-            border-radius: 12px;
+            background: var(--preview-card, #ffffff);
+            border-radius: 14px;
             padding: 14px;
             margin-bottom: 12px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+            border: 1px solid rgba(0,0,0,0.04);
         }
-
         .mockup-progress-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
             margin-bottom: 12px;
         }
-
         .mockup-progress-title {
             font-weight: 700;
             font-size: 0.8rem;
-            color: var(--gray-900);
+            color: var(--preview-text, #0f172a);
             display: flex;
             align-items: center;
             gap: 6px;
         }
-
-        .mockup-progress-date {
-            font-size: 0.65rem;
-            color: var(--gray-400);
-        }
+        .mockup-progress-title svg { width: 14px; height: 14px; color: var(--preview-primary, #2dd4bf); }
+        .mockup-progress-date { font-size: 0.65rem; color: var(--preview-text-secondary, #94a3b8); }
 
         .mockup-macros {
-            display: flex;
-            justify-content: space-around;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
             text-align: center;
         }
-
-        .mockup-macro {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        .mockup-macro-ring {
-            width: 48px;
-            height: 48px;
-            margin-bottom: 4px;
-        }
-
-        .mockup-macro-ring circle {
-            fill: none;
-            stroke-width: 4;
-        }
-
-        .mockup-macro-ring .ring-bg {
-            stroke: var(--gray-200);
-        }
-
+        .mockup-macro { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+        .mockup-macro-ring { width: 48px; height: 48px; }
+        .mockup-macro-ring circle { fill: none; stroke-width: 5; }
+        .mockup-macro-ring .ring-bg { stroke: rgba(0,0,0,0.07); }
         .mockup-macro-ring .ring-fill {
-            stroke: var(--preview-primary, var(--brand-primary));
+            stroke: var(--preview-primary, #2dd4bf);
             stroke-linecap: round;
             transform: rotate(-90deg);
             transform-origin: center;
+            transition: stroke 0.2s, stroke-dashoffset 0.5s ease;
         }
-
-        .mockup-macro-ring .ring-fill.protein {
-            stroke: var(--preview-secondary, #2dd4bf);
-        }
-
-        .mockup-macro-ring .ring-fill.carbs {
-            stroke: var(--preview-accent, #f59e0b);
-        }
-
-        .mockup-macro-ring .ring-fill.fat {
-            stroke: var(--preview-secondary, #ef4444);
-        }
-
-        .mockup-macro-value {
-            font-size: 0.7rem;
-            font-weight: 700;
-            color: var(--gray-900);
-        }
-
+        .mockup-macro-value { font-size: 0.75rem; font-weight: 700; color: var(--preview-text, #0f172a); }
         .mockup-macro-label {
             font-size: 0.55rem;
-            color: var(--gray-500);
+            color: var(--preview-text-secondary, #94a3b8);
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            font-weight: 600;
         }
 
-        /* Quick Actions */
-        .mockup-quick-actions {
+        /* Daily goal progress bar */
+        .mockup-daily-progress {
+            margin-top: 14px;
+            padding-top: 12px;
+            border-top: 1px dashed rgba(0,0,0,0.06);
+        }
+        .mockup-daily-header {
             display: flex;
+            justify-content: space-between;
+            font-size: 0.65rem;
+            font-weight: 600;
+            color: var(--preview-text-secondary, #475569);
+            margin-bottom: 6px;
+        }
+        .mockup-daily-percent { color: var(--preview-primary, #2dd4bf); }
+        .mockup-daily-track {
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(0,0,0,0.06);
+            overflow: hidden;
+        }
+        .mockup-daily-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--preview-primary, #2dd4bf), var(--preview-secondary, #14b8a6));
+            transition: background 0.2s;
+        }
+
+        .mockup-view-diary-btn {
+            margin-top: 12px;
+            width: 100%;
+            padding: 8px;
+            background: var(--preview-accent-soft, rgba(45, 212, 191, 0.12));
+            color: var(--preview-primary, #2dd4bf);
+            border: 1px solid var(--preview-primary-soft, rgba(45, 212, 191, 0.25));
+            border-radius: 9px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             gap: 6px;
-            margin-bottom: 12px;
-        }
-
-        .mockup-quick-action {
-            flex: 1;
-            padding: 6px 4px;
-            background: white;
-            border: 1px solid var(--gray-200);
-            border-radius: 8px;
-            font-size: 0.55rem;
-            color: var(--gray-600);
-            text-align: center;
             cursor: default;
         }
+        .mockup-view-diary-btn svg { width: 13px; height: 13px; }
 
-        .mockup-quick-action-icon {
-            display: block;
-            font-size: 0.75rem;
-            margin-bottom: 2px;
-        }
-
-        /* Bottom Nav */
+        /* Bottom Nav — 5 items: Home / Diary / Messages / Workouts / Meals */
         .mockup-bottom-nav {
-            display: flex;
-            border-top: 1px solid var(--gray-200);
-            background: white;
-            padding: 8px 0 6px;
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            border-top: 1px solid rgba(0,0,0,0.06);
+            background: var(--preview-card, #ffffff);
+            padding: 6px 0 4px;
+            position: sticky;
+            bottom: 0;
         }
-
         .mockup-nav-item {
-            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
             text-align: center;
-            font-size: 0.55rem;
-            color: var(--gray-400);
+            font-size: 0.6rem;
+            font-weight: 500;
+            color: var(--preview-text-secondary, #94a3b8);
+            padding: 4px 2px;
             cursor: default;
         }
-
-        .mockup-nav-item.active {
-            color: var(--preview-primary, var(--brand-primary));
+        .mockup-nav-icon-wrap {
+            width: 30px;
+            height: 22px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
-
-        .mockup-nav-icon {
-            display: block;
-            font-size: 0.9rem;
-            margin-bottom: 2px;
-        }
-
-        /* Mobile Mockup */
-        .mockup-container.mobile {
-            max-width: 280px;
-            margin: 0 auto;
-            border-radius: 24px;
-        }
-
-        .mockup-container.mobile .mockup-browser-bar {
-            display: none;
-        }
-
-        .mockup-container.mobile .mockup-content {
-            border-radius: 24px;
+        .mockup-nav-icon-wrap svg { width: 16px; height: 16px; }
+        .mockup-nav-item.active { color: var(--preview-primary, #2dd4bf); font-weight: 600; }
+        .mockup-nav-item.active .mockup-nav-icon-wrap {
+            background: var(--preview-accent-soft, rgba(45, 212, 191, 0.15));
         }
 
         /* Email Preview Section */
@@ -1448,28 +1568,28 @@
                     <div class="color-picker-group">
                         <!-- Primary Color -->
                         <div class="color-picker-item">
-                            <label class="form-label">Primary Color</label>
+                            <label class="form-label" for="primaryColor">Primary <span class="color-role-hint">Buttons, links, header</span></label>
                             <div class="color-picker-wrapper">
-                                <div class="color-swatch" id="primarySwatch" style="background: #2dd4bf;"></div>
-                                <input type="text" class="color-hex-input" id="primaryColor" value="#2dd4bf" maxlength="7">
+                                <input type="color" class="color-swatch-native" id="primarySwatch" value="#2dd4bf" aria-label="Pick primary color">
+                                <input type="text" class="color-hex-input" id="primaryColor" value="#2dd4bf" maxlength="7" spellcheck="false" autocomplete="off">
                             </div>
                         </div>
 
                         <!-- Secondary Color -->
                         <div class="color-picker-item">
-                            <label class="form-label">Secondary Color</label>
+                            <label class="form-label" for="secondaryColor">Secondary <span class="color-role-hint">Gradient pair, highlights</span></label>
                             <div class="color-picker-wrapper">
-                                <div class="color-swatch" id="secondarySwatch" style="background: #14b8a6;"></div>
-                                <input type="text" class="color-hex-input" id="secondaryColor" value="#14b8a6" maxlength="7">
+                                <input type="color" class="color-swatch-native" id="secondarySwatch" value="#14b8a6" aria-label="Pick secondary color">
+                                <input type="text" class="color-hex-input" id="secondaryColor" value="#14b8a6" maxlength="7" spellcheck="false" autocomplete="off">
                             </div>
                         </div>
 
                         <!-- Accent Color -->
                         <div class="color-picker-item">
-                            <label class="form-label">Accent Color</label>
+                            <label class="form-label" for="accentColor">Accent <span class="color-role-hint">Badges, secondary stats</span></label>
                             <div class="color-picker-wrapper">
-                                <div class="color-swatch" id="accentSwatch" style="background: #10b981;"></div>
-                                <input type="text" class="color-hex-input" id="accentColor" value="#10b981" maxlength="7">
+                                <input type="color" class="color-swatch-native" id="accentSwatch" value="#10b981" aria-label="Pick accent color">
+                                <input type="text" class="color-hex-input" id="accentColor" value="#10b981" maxlength="7" spellcheck="false" autocomplete="off">
                             </div>
                         </div>
                     </div>
@@ -1491,7 +1611,7 @@
                             Client Default Theme
                         </h2>
                     </div>
-                    <p class="section-description">Choose the default theme your clients see when they open the app.</p>
+                    <p class="section-description">Choose the default theme your clients see when they open the app. If you don't pick, clients default to <strong>Dark mode</strong>.</p>
 
                     <div class="theme-selector" style="display: flex; gap: 12px; flex-wrap: wrap;">
                         <label class="theme-option" id="themeOptionDark" style="flex: 1; min-width: 120px; cursor: pointer;">
@@ -1612,13 +1732,24 @@
             <div class="preview-header">
                 <h3 class="preview-title">Live Preview</h3>
                 <div class="preview-device-toggle">
-                    <button class="preview-device-btn active" onclick="setPreviewDevice('desktop')">Desktop</button>
-                    <button class="preview-device-btn" onclick="setPreviewDevice('mobile')">Mobile</button>
+                    <button class="preview-device-btn active" data-device="mobile" onclick="setPreviewDevice('mobile')">Mobile</button>
+                    <button class="preview-device-btn" data-device="desktop" onclick="setPreviewDevice('desktop')">Desktop</button>
                 </div>
             </div>
 
-            <!-- Client Portal Mockup (mirrors real app) -->
+            <!-- Client Portal Mockup (mirrors real client mobile app) -->
             <div class="mockup-container" id="mockupContainer">
+                <!-- iOS status bar (mobile only) -->
+                <div class="mockup-status-bar">
+                    <span>9:41</span>
+                    <div class="mockup-status-icons">
+                        <svg viewBox="0 0 18 12" fill="currentColor"><rect x="0" y="6" width="3" height="6" rx="0.5"/><rect x="4" y="4" width="3" height="8" rx="0.5"/><rect x="8" y="2" width="3" height="10" rx="0.5"/><rect x="12" y="0" width="3" height="12" rx="0.5"/></svg>
+                        <svg viewBox="0 0 16 12" fill="currentColor"><path d="M8 2.5c2.2 0 4.2.8 5.7 2.2l1.4-1.4C13.3 1.5 10.8.5 8 .5S2.7 1.5.9 3.3l1.4 1.4C3.8 3.3 5.8 2.5 8 2.5zm0 4c1.1 0 2.1.4 2.8 1.1l1.4-1.4C11.1 5.2 9.6 4.5 8 4.5s-3.1.7-4.2 1.7l1.4 1.4C5.9 6.9 6.9 6.5 8 6.5zm0 4l2-2c-.5-.5-1.2-.8-2-.8s-1.5.3-2 .8l2 2z"/></svg>
+                        <svg viewBox="0 0 25 12" fill="none" stroke="currentColor" stroke-width="1"><rect x="0.5" y="0.5" width="21" height="11" rx="2.5"/><rect x="2.5" y="2.5" width="15" height="7" rx="1" fill="currentColor"/><rect x="22.5" y="4" width="1.5" height="4" rx="0.5" fill="currentColor"/></svg>
+                    </div>
+                </div>
+
+                <!-- Browser chrome (desktop only) -->
                 <div class="mockup-browser-bar">
                     <div class="mockup-browser-dots">
                         <div class="mockup-browser-dot red"></div>
@@ -1627,57 +1758,114 @@
                     </div>
                     <div class="mockup-browser-url" id="mockupUrl">ziquecoach.com/app</div>
                 </div>
+
                 <div class="mockup-content">
-                    <!-- Header -->
+                    <!-- Branded gradient header -->
                     <div class="mockup-header" id="mockupHeader">
                         <div class="mockup-logo">
                             <div class="mockup-logo-img" id="mockupLogoImg">
                                 <span id="mockupLogoInitial">Z</span>
-                                <img id="mockupLogoImage" style="display: none;">
+                                <img id="mockupLogoImage" style="display: none;" alt="">
                             </div>
                             <span class="mockup-logo-text" id="mockupLogoText">Ziquecoach</span>
                         </div>
-                        <div class="mockup-user">
-                            <div class="mockup-user-avatar">SC</div>
+                        <div class="mockup-header-actions">
+                            <div class="mockup-header-pill" title="Notifications">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+                            </div>
+                            <div class="mockup-header-pill">SC</div>
                         </div>
                     </div>
 
                     <!-- Body -->
                     <div class="mockup-body">
-                        <!-- AI Food Logger -->
+                        <!-- AI Hero Card -->
                         <div class="mockup-ai-card">
                             <div class="mockup-ai-header">
-                                <span class="mockup-ai-icon">&#11088;</span>
-                                <span class="mockup-ai-title">What did you eat?</span>
-                                <span class="mockup-ai-badge">AI-powered</span>
+                                <div class="mockup-ai-icon-wrap">
+                                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.39 6.96L22 9.27l-5.5 4.73L18.18 22 12 18.27 5.82 22l1.68-7.99L2 9.27l7.61-.31z"/></svg>
+                                </div>
+                                <div class="mockup-ai-title-wrap">
+                                    <span class="mockup-ai-title">What did you eat?</span>
+                                    <span class="mockup-ai-badge">AI-powered logging</span>
+                                </div>
                             </div>
+
+                            <p class="mockup-coaching-message" id="mockupCoachingMessage">Afternoon check — 150g protein left. Dinner can close that gap.</p>
+
+                            <!-- Meal type selector -->
                             <div class="mockup-meal-types">
-                                <div class="mockup-meal-type">
-                                    <span class="mockup-meal-type-icon">&#127749;</span>
-                                    Breakfast
+                                <div class="mockup-meal-type" data-meal="breakfast">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 18a5 5 0 0 0-10 0"/><line x1="12" y1="2" x2="12" y2="9"/><line x1="4.22" y1="10.22" x2="5.64" y2="11.64"/><line x1="1" y1="18" x2="3" y2="18"/><line x1="21" y1="18" x2="23" y2="18"/><line x1="18.36" y1="11.64" x2="19.78" y2="10.22"/><line x1="23" y1="22" x2="1" y2="22"/><polyline points="8 6 12 2 16 6"/></svg>
+                                    <span>Breakfast</span>
                                 </div>
-                                <div class="mockup-meal-type active" id="mockupMealActive">
-                                    <span class="mockup-meal-type-icon">&#9728;&#65039;</span>
-                                    Lunch
+                                <div class="mockup-meal-type" data-meal="lunch">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+                                    <span>Lunch</span>
                                 </div>
-                                <div class="mockup-meal-type">
-                                    <span class="mockup-meal-type-icon">&#127769;</span>
-                                    Dinner
+                                <div class="mockup-meal-type active" data-meal="dinner" id="mockupMealActive">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                                    <span>Dinner</span>
                                 </div>
-                                <div class="mockup-meal-type">
-                                    <span class="mockup-meal-type-icon">&#9749;</span>
-                                    Snack
+                                <div class="mockup-meal-type" data-meal="snack">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
+                                    <span>Snack</span>
                                 </div>
                             </div>
-                            <div class="mockup-food-input">Grilled chicken with rice and vegetables...</div>
-                            <button class="mockup-log-btn" id="mockupLogBtn">Log Food &#8250;</button>
+
+                            <!-- Food input -->
+                            <div class="mockup-food-input">Describe what you ate... e.g., 'Grilled chicken with rice and vegetables'</div>
+
+                            <!-- Voice + Log Food row -->
+                            <div class="mockup-ai-actions">
+                                <div class="mockup-voice-btn" title="Voice input">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                                </div>
+                                <button class="mockup-log-btn" id="mockupLogBtn">
+                                    Log Food
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                                </button>
+                            </div>
+
+                            <!-- Quick action pills -->
+                            <div class="mockup-quick-actions">
+                                <div class="mockup-quick-action">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                                    Log by Photo
+                                </div>
+                                <div class="mockup-quick-action">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                                    Search Foods
+                                </div>
+                                <div class="mockup-quick-action">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                                    Favorites
+                                </div>
+                                <div class="mockup-quick-action">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><line x1="7" y1="12" x2="17" y2="12"/></svg>
+                                    Scan Nutrition Label
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Weigh-In banner -->
+                        <div class="mockup-weigh-banner">
+                            <div class="mockup-weigh-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18l-1 14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2L3 6z"/><path d="M3 6l3-3h12l3 3"/><path d="M12 11v3"/><circle cx="12" cy="11" r="0.5" fill="currentColor"/></svg>
+                            </div>
+                            <div class="mockup-weigh-text">
+                                <span class="mockup-weigh-title">Weigh-In</span>
+                                <span class="mockup-weigh-sub">Snap your scale — AI logs the number for you</span>
+                            </div>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
                         </div>
 
                         <!-- Today's Progress -->
                         <div class="mockup-progress-card">
                             <div class="mockup-progress-header">
                                 <div class="mockup-progress-title">
-                                    &#128202; Today's Progress
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>
+                                    Today's Progress
                                 </div>
                                 <div class="mockup-progress-date">Today</div>
                             </div>
@@ -1693,7 +1881,7 @@
                                 <div class="mockup-macro">
                                     <svg class="mockup-macro-ring" viewBox="0 0 48 48">
                                         <circle class="ring-bg" cx="24" cy="24" r="20"/>
-                                        <circle class="ring-fill protein" cx="24" cy="24" r="20" stroke-dasharray="125.6" stroke-dashoffset="37.7"/>
+                                        <circle class="ring-fill" id="mockupProteinRing" cx="24" cy="24" r="20" stroke-dasharray="125.6" stroke-dashoffset="37.7"/>
                                     </svg>
                                     <div class="mockup-macro-value">145g</div>
                                     <div class="mockup-macro-label">Protein</div>
@@ -1701,7 +1889,7 @@
                                 <div class="mockup-macro">
                                     <svg class="mockup-macro-ring" viewBox="0 0 48 48">
                                         <circle class="ring-bg" cx="24" cy="24" r="20"/>
-                                        <circle class="ring-fill carbs" cx="24" cy="24" r="20" stroke-dasharray="125.6" stroke-dashoffset="62.8"/>
+                                        <circle class="ring-fill" id="mockupCarbsRing" cx="24" cy="24" r="20" stroke-dasharray="125.6" stroke-dashoffset="62.8"/>
                                     </svg>
                                     <div class="mockup-macro-value">180g</div>
                                     <div class="mockup-macro-label">Carbs</div>
@@ -1709,52 +1897,61 @@
                                 <div class="mockup-macro">
                                     <svg class="mockup-macro-ring" viewBox="0 0 48 48">
                                         <circle class="ring-bg" cx="24" cy="24" r="20"/>
-                                        <circle class="ring-fill fat" cx="24" cy="24" r="20" stroke-dasharray="125.6" stroke-dashoffset="50.2"/>
+                                        <circle class="ring-fill" id="mockupFatRing" cx="24" cy="24" r="20" stroke-dasharray="125.6" stroke-dashoffset="50.2"/>
                                     </svg>
                                     <div class="mockup-macro-value">52g</div>
                                     <div class="mockup-macro-label">Fat</div>
                                 </div>
                             </div>
-                        </div>
 
-                        <!-- Quick Actions -->
-                        <div class="mockup-quick-actions">
-                            <div class="mockup-quick-action">
-                                <span class="mockup-quick-action-icon">&#128247;</span>
-                                Photo
+                            <div class="mockup-daily-progress">
+                                <div class="mockup-daily-header">
+                                    <span>Daily Goal Progress</span>
+                                    <span class="mockup-daily-percent">65%</span>
+                                </div>
+                                <div class="mockup-daily-track">
+                                    <div class="mockup-daily-fill" id="mockupDailyFill" style="width: 65%;"></div>
+                                </div>
                             </div>
-                            <div class="mockup-quick-action">
-                                <span class="mockup-quick-action-icon">&#128269;</span>
-                                Search
-                            </div>
-                            <div class="mockup-quick-action">
-                                <span class="mockup-quick-action-icon">&#10084;&#65039;</span>
-                                Favorites
-                            </div>
-                            <div class="mockup-quick-action">
-                                <span class="mockup-quick-action-icon">&#128722;</span>
-                                Scan Label
+
+                            <div class="mockup-view-diary-btn">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                                View Diary
                             </div>
                         </div>
                     </div>
 
-                    <!-- Bottom Navigation -->
+                    <!-- Bottom Navigation — 5 items matching real app -->
                     <div class="mockup-bottom-nav">
                         <div class="mockup-nav-item active">
-                            <span class="mockup-nav-icon">&#127968;</span>
+                            <div class="mockup-nav-icon-wrap">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                            </div>
                             Home
                         </div>
                         <div class="mockup-nav-item">
-                            <span class="mockup-nav-icon">&#128214;</span>
+                            <div class="mockup-nav-icon-wrap">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21V5a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v16l3-2 3 2 3-2 3 2 3-2"/><path d="M9 7h6"/><path d="M9 11h6"/></svg>
+                            </div>
                             Diary
                         </div>
                         <div class="mockup-nav-item">
-                            <span class="mockup-nav-icon">&#127860;</span>
-                            Plans
+                            <div class="mockup-nav-icon-wrap">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+                            </div>
+                            Messages
                         </div>
                         <div class="mockup-nav-item">
-                            <span class="mockup-nav-icon">&#128100;</span>
-                            Profile
+                            <div class="mockup-nav-icon-wrap">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.4 14.4L9.6 9.6"/><path d="M18.66 19.66l-1.41-1.41"/><path d="M6.34 6.34L4.93 4.93"/><path d="M19.07 4.93l-1.41 1.41"/><path d="M4.93 19.07l1.41-1.41"/><path d="M21.41 21.41L19.66 19.66"/><path d="M2.59 2.59l1.75 1.75"/><path d="M21.41 2.59L19.66 4.34"/><path d="M2.59 21.41l1.75-1.75"/></svg>
+                            </div>
+                            Workouts
+                        </div>
+                        <div class="mockup-nav-item">
+                            <div class="mockup-nav-icon-wrap">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3zm0 0v7"/></svg>
+                            </div>
+                            Meals
                         </div>
                     </div>
                 </div>
@@ -1804,9 +2001,6 @@
         <div class="loading-spinner"></div>
     </div>
 
-    <!-- Pickr Color Picker Library -->
-    <script src="https://cdn.jsdelivr.net/npm/@simonwep/pickr/dist/pickr.min.js"></script>
-
     <!-- Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -1852,7 +2046,6 @@
         };
         let originalBranding = {};
         let hasChanges = false;
-        let colorPickers = {};
         let currentCoach = null;
 
         // Color presets
@@ -1934,25 +2127,20 @@
 
                 originalBranding = { ...currentBranding };
 
-                // Update form
+                // Update form (hex text inputs)
                 document.getElementById('brandName').value = currentBranding.brand_name;
-                document.getElementById('primaryColor').value = currentBranding.brand_primary_color;
-                document.getElementById('secondaryColor').value = currentBranding.brand_secondary_color;
-                document.getElementById('accentColor').value = currentBranding.brand_accent_color;
+                document.getElementById('primaryColor').value   = (currentBranding.brand_primary_color   || '').toUpperCase();
+                document.getElementById('secondaryColor').value = (currentBranding.brand_secondary_color || '').toUpperCase();
+                document.getElementById('accentColor').value    = (currentBranding.brand_accent_color    || '').toUpperCase();
                 document.getElementById('emailFooter').value = currentBranding.brand_email_footer;
 
-                // Update color swatches (may be null if Pickr has replaced them)
-                var primarySwatch = document.getElementById('primarySwatch');
-                var secondarySwatch = document.getElementById('secondarySwatch');
-                var accentSwatch = document.getElementById('accentSwatch');
-                if (primarySwatch) primarySwatch.style.background = currentBranding.brand_primary_color;
-                if (secondarySwatch) secondarySwatch.style.background = currentBranding.brand_secondary_color;
-                if (accentSwatch) accentSwatch.style.background = currentBranding.brand_accent_color;
-
-                // Also update Pickr instances if they exist
-                if (colorPickers.primary) colorPickers.primary.setColor(currentBranding.brand_primary_color);
-                if (colorPickers.secondary) colorPickers.secondary.setColor(currentBranding.brand_secondary_color);
-                if (colorPickers.accent) colorPickers.accent.setColor(currentBranding.brand_accent_color);
+                // Native color picker swatches
+                const primarySwatch   = document.getElementById('primarySwatch');
+                const secondarySwatch = document.getElementById('secondarySwatch');
+                const accentSwatch    = document.getElementById('accentSwatch');
+                if (primarySwatch)   primarySwatch.value   = (currentBranding.brand_primary_color   || '#2dd4bf').toLowerCase();
+                if (secondarySwatch) secondarySwatch.value = (currentBranding.brand_secondary_color || '#14b8a6').toLowerCase();
+                if (accentSwatch)    accentSwatch.value    = (currentBranding.brand_accent_color    || '#10b981').toLowerCase();
 
                 // Update logo previews
                 updateLogoPreview('logo', currentBranding.brand_logo_url);
@@ -1970,55 +2158,44 @@
             }
         }
 
-        // Initialize Pickr color pickers
+        // Initialize native HTML5 color pickers — no library, works on mobile
         function initColorPickers() {
-            const colors = ['primary', 'secondary', 'accent'];
+            ['primary', 'secondary', 'accent'].forEach(color => {
+                const swatch = document.getElementById(`${color}Swatch`);   // <input type="color">
+                const input  = document.getElementById(`${color}Color`);    // hex text input
+                if (!swatch || !input) return;
 
-            colors.forEach(color => {
-                const swatch = document.getElementById(`${color}Swatch`);
-                const input = document.getElementById(`${color}Color`);
-
-                const pickr = Pickr.create({
-                    el: swatch,
-                    theme: 'nano',
-                    default: input.value,
-                    swatches: COLOR_PRESETS.map(p => p[color === 'primary' ? 'primary' : color === 'secondary' ? 'secondary' : 'accent']),
-                    components: {
-                        preview: true,
-                        opacity: false,
-                        hue: true,
-                        interaction: {
-                            hex: true,
-                            input: true,
-                            save: true
-                        }
-                    }
-                });
-
-                pickr.on('save', (colorObj) => {
-                    const hex = colorObj.toHEXA().toString();
+                // Native picker → hex text + preview
+                swatch.addEventListener('input', (e) => {
+                    const hex = e.target.value.toLowerCase();
                     input.value = hex;
                     currentBranding[`brand_${color}_color`] = hex;
-                    swatch.style.background = hex;
                     updatePreview();
                     markChanged();
-                    pickr.hide();
                 });
 
-                colorPickers[color] = pickr;
-
-                // Sync hex input
+                // Hex text → native picker + preview (only if valid 6-digit hex)
                 input.addEventListener('input', (e) => {
-                    let value = e.target.value;
-                    if (!value.startsWith('#')) {
-                        value = '#' + value;
-                    }
+                    let value = e.target.value.trim();
+                    if (!value.startsWith('#')) value = '#' + value;
                     if (/^#[0-9A-Fa-f]{6}$/.test(value)) {
-                        swatch.style.background = value;
-                        currentBranding[`brand_${color}_color`] = value;
-                        pickr.setColor(value);
+                        const hex = value.toLowerCase();
+                        swatch.value = hex;
+                        currentBranding[`brand_${color}_color`] = hex;
                         updatePreview();
                         markChanged();
+                    }
+                });
+
+                // Normalize on blur (uppercase + leading #)
+                input.addEventListener('blur', (e) => {
+                    let value = e.target.value.trim();
+                    if (!value.startsWith('#')) value = '#' + value;
+                    if (/^#[0-9A-Fa-f]{6}$/.test(value)) {
+                        e.target.value = value.toUpperCase();
+                    } else {
+                        // Revert to last good value
+                        e.target.value = (currentBranding[`brand_${color}_color`] || '').toUpperCase();
                     }
                 });
             });
@@ -2041,19 +2218,19 @@
 
         // Apply color preset
         function applyPreset(preset) {
-            currentBranding.brand_primary_color = preset.primary;
+            currentBranding.brand_primary_color   = preset.primary;
             currentBranding.brand_secondary_color = preset.secondary;
-            currentBranding.brand_accent_color = preset.accent;
+            currentBranding.brand_accent_color    = preset.accent;
 
-            // Update inputs
-            document.getElementById('primaryColor').value = preset.primary;
-            document.getElementById('secondaryColor').value = preset.secondary;
-            document.getElementById('accentColor').value = preset.accent;
+            // Update hex text inputs
+            document.getElementById('primaryColor').value   = preset.primary.toUpperCase();
+            document.getElementById('secondaryColor').value = preset.secondary.toUpperCase();
+            document.getElementById('accentColor').value    = preset.accent.toUpperCase();
 
-            // Update pickers (Pickr replaces original swatch elements, so use Pickr API)
-            if (colorPickers.primary) colorPickers.primary.setColor(preset.primary);
-            if (colorPickers.secondary) colorPickers.secondary.setColor(preset.secondary);
-            if (colorPickers.accent) colorPickers.accent.setColor(preset.accent);
+            // Update native color picker swatches
+            document.getElementById('primarySwatch').value   = preset.primary.toLowerCase();
+            document.getElementById('secondarySwatch').value = preset.secondary.toLowerCase();
+            document.getElementById('accentSwatch').value    = preset.accent.toLowerCase();
 
             updatePreview();
             markChanged();
@@ -2086,63 +2263,75 @@
             });
         }
 
-        // Update live preview
+        // Helper: convert hex to "rgba(r,g,b,a)" for tinted backgrounds
+        function hexToRgba(hex, alpha) {
+            if (!hex || hex.length < 7) return 'rgba(45,212,191,' + alpha + ')';
+            var r = parseInt(hex.slice(1, 3), 16);
+            var g = parseInt(hex.slice(3, 5), 16);
+            var b = parseInt(hex.slice(5, 7), 16);
+            return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
+        }
+
+        // Update live preview — mirrors React client Dashboard
         function updatePreview() {
-            const primary = currentBranding.brand_primary_color;
-            const secondary = currentBranding.brand_secondary_color;
-            const accent = currentBranding.brand_accent_color;
+            const primary = currentBranding.brand_primary_color || '#2dd4bf';
+            const secondary = currentBranding.brand_secondary_color || '#14b8a6';
+            const accent = currentBranding.brand_accent_color || '#10b981';
             const brandName = currentBranding.brand_name || 'Ziquecoach';
+            const theme = currentBranding.brand_client_theme || 'dark';
 
-            // Update CSS variables for preview
-            document.documentElement.style.setProperty('--preview-primary', primary);
-            document.documentElement.style.setProperty('--preview-secondary', secondary);
-            document.documentElement.style.setProperty('--preview-accent', accent);
+            // Theme-aware surface colors (dark default — overridden by Light selection)
+            // System uses dark in preview for predictability; client device decides at runtime
+            const isLight = theme === 'light';
+            const previewBg          = isLight ? '#f8fafc' : '#0f172a';
+            const previewCard        = isLight ? '#ffffff' : '#1e293b';
+            const previewText        = isLight ? '#0f172a' : '#f1f5f9';
+            const previewTextSecond  = isLight ? '#64748b' : '#94a3b8';
 
-            // Update mockup header
-            document.getElementById('mockupHeader').style.background = primary;
+            // Set CSS variables — drives all .mockup-* elements via CSS
+            const root = document.documentElement.style;
+            root.setProperty('--preview-primary', primary);
+            root.setProperty('--preview-secondary', secondary);
+            root.setProperty('--preview-accent', accent);
+            root.setProperty('--preview-primary-soft', hexToRgba(primary, 0.25));
+            root.setProperty('--preview-accent-soft', hexToRgba(primary, 0.15));
+            root.setProperty('--preview-bg', previewBg);
+            root.setProperty('--preview-card', previewCard);
+            root.setProperty('--preview-text', previewText);
+            root.setProperty('--preview-text-secondary', previewTextSecond);
 
-            // Update mockup elements
-            document.getElementById('mockupLogoText').textContent = brandName.length > 20 ? brandName.substring(0, 20) + '...' : brandName;
-            document.getElementById('mockupLogoInitial').textContent = brandName.charAt(0).toUpperCase();
+            // Brand name + initial
+            const logoText = document.getElementById('mockupLogoText');
+            const logoInitial = document.getElementById('mockupLogoInitial');
+            if (logoText) logoText.textContent = brandName.length > 20 ? brandName.substring(0, 20) + '…' : brandName;
+            if (logoInitial) logoInitial.textContent = brandName.charAt(0).toUpperCase() || 'Z';
 
-            // Update logo in mockup
-            if (currentBranding.brand_logo_url) {
-                document.getElementById('mockupLogoImage').src = currentBranding.brand_logo_url;
-                document.getElementById('mockupLogoImage').style.display = 'block';
-                document.getElementById('mockupLogoInitial').style.display = 'none';
-            } else {
-                document.getElementById('mockupLogoImage').style.display = 'none';
-                document.getElementById('mockupLogoInitial').style.display = 'block';
+            // Logo image
+            const logoImg = document.getElementById('mockupLogoImage');
+            if (logoImg && logoInitial) {
+                if (currentBranding.brand_logo_url) {
+                    logoImg.src = currentBranding.brand_logo_url;
+                    logoImg.style.display = 'block';
+                    logoInitial.style.display = 'none';
+                } else {
+                    logoImg.style.display = 'none';
+                    logoInitial.style.display = 'block';
+                }
             }
 
-            // Update Log Food button
-            var logBtn = document.getElementById('mockupLogBtn');
-            if (logBtn) logBtn.style.background = primary;
-
-            // Update active meal type
-            var mealActive = document.getElementById('mockupMealActive');
-            if (mealActive) {
-                mealActive.style.background = primary;
-                mealActive.style.borderColor = primary;
-            }
-
-            // Update calorie ring color
-            var calRing = document.getElementById('mockupCalRing');
-            if (calRing) calRing.style.stroke = primary;
-
-            // Update active nav item color
-            document.querySelectorAll('.mockup-nav-item.active').forEach(function(item) {
-                item.style.color = primary;
+            // Macro rings — primary, secondary, accent, then a derived 4th
+            const rings = [
+                { id: 'mockupCalRing',     color: primary },
+                { id: 'mockupProteinRing', color: secondary },
+                { id: 'mockupCarbsRing',   color: accent },
+                { id: 'mockupFatRing',     color: primary }
+            ];
+            rings.forEach(r => {
+                const el = document.getElementById(r.id);
+                if (el) el.style.stroke = r.color;
             });
 
-            // Update AI badge with accent color
-            var aiBadge = document.querySelector('.mockup-ai-badge');
-            if (aiBadge) {
-                aiBadge.style.color = accent;
-                aiBadge.style.background = accent + '14';
-            }
-
-            // Update email preview buttons with secondary color
+            // Email preview buttons keep their branded look (secondary)
             document.querySelectorAll('.email-preview-btn').forEach(function(btn) {
                 btn.style.background = secondary;
                 btn.style.borderColor = secondary;
@@ -2364,16 +2553,16 @@
 
             // Update form
             document.getElementById('brandName').value = '';
-            document.getElementById('primaryColor').value = '#2dd4bf';
-            document.getElementById('secondaryColor').value = '#14b8a6';
-            document.getElementById('accentColor').value = '#10b981';
+            document.getElementById('primaryColor').value   = '#2DD4BF';
+            document.getElementById('secondaryColor').value = '#14B8A6';
+            document.getElementById('accentColor').value    = '#10B981';
             document.getElementById('emailFooter').value = '';
             setClientThemeSelection('dark');
 
-            // Update pickers (Pickr replaces original swatch elements, so use Pickr API)
-            if (colorPickers.primary) colorPickers.primary.setColor('#2dd4bf');
-            if (colorPickers.secondary) colorPickers.secondary.setColor('#14b8a6');
-            if (colorPickers.accent) colorPickers.accent.setColor('#10b981');
+            // Native color picker swatches
+            document.getElementById('primarySwatch').value   = '#2dd4bf';
+            document.getElementById('secondarySwatch').value = '#14b8a6';
+            document.getElementById('accentSwatch').value    = '#10b981';
 
             // Update logo previews
             updateLogoPreview('logo', null);
@@ -2471,19 +2660,16 @@
             }
         }
 
-        // Preview device toggle
+        // Preview device toggle — phone is the default; desktop adds browser chrome
         function setPreviewDevice(device) {
             const container = document.getElementById('mockupContainer');
             const buttons = document.querySelectorAll('.preview-device-btn');
 
-            buttons.forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
+            buttons.forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.device === device);
+            });
 
-            if (device === 'mobile') {
-                container.classList.add('mobile');
-            } else {
-                container.classList.remove('mobile');
-            }
+            container.classList.toggle('desktop', device === 'desktop');
         }
 
         // Toggle preview panel (mobile)
@@ -2500,6 +2686,7 @@
         function updateClientTheme(theme) {
             currentBranding.brand_client_theme = theme;
             setClientThemeSelection(theme);
+            updatePreview();
             markChanged();
         }
 
