@@ -54,7 +54,10 @@
             justify-content: center;
             align-items: center;
             padding: 60px;
-            position: relative;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            align-self: flex-start;
             overflow: hidden;
         }
 
@@ -244,7 +247,8 @@
 
         .plan-card.selected {
             border-color: var(--brand-primary);
-            background: linear-gradient(135deg, rgba(13, 148, 136, 0.05) 0%, rgba(2, 132, 199, 0.05) 100%);
+            background: linear-gradient(135deg, rgba(45, 212, 191, 0.12) 0%, rgba(20, 184, 166, 0.12) 100%);
+            box-shadow: 0 0 0 1px var(--brand-primary), 0 4px 14px rgba(45, 212, 191, 0.25);
         }
 
         .plan-card input {
@@ -560,7 +564,8 @@
 
         [data-theme="dark"] .plan-card.selected {
             border-color: var(--brand-primary);
-            background: linear-gradient(135deg, rgba(13, 148, 136, 0.1) 0%, rgba(2, 132, 199, 0.1) 100%);
+            background: linear-gradient(135deg, rgba(45, 212, 191, 0.18) 0%, rgba(20, 184, 166, 0.18) 100%);
+            box-shadow: 0 0 0 1px var(--brand-primary), 0 4px 14px rgba(45, 212, 191, 0.3);
         }
 
         [data-theme="dark"] .plan-name {
