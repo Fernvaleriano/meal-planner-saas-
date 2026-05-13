@@ -579,6 +579,39 @@
             background: rgba(239, 68, 68, 0.06);
         }
 
+        .client-card-footer .card-action-btn.action-pause {
+            color: #b45309;
+        }
+
+        .client-card-footer .card-action-btn.action-pause:hover {
+            background: rgba(180, 83, 9, 0.06);
+        }
+
+        .client-card-footer .card-action-btn.action-resume {
+            color: #0d9488;
+        }
+
+        .client-card-footer .card-action-btn.action-resume:hover {
+            background: rgba(13, 148, 136, 0.06);
+        }
+
+        .paused-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            background: #fef3c7;
+            color: #92400e;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        [data-theme="dark"] .paused-badge {
+            background: rgba(180, 83, 9, 0.18);
+            color: #fbbf24;
+        }
+
         .client-detail-row {
             display: flex;
             align-items: center;
@@ -3313,6 +3346,16 @@
                         </button>
                     `;
                 } else {
+                    const isPaused = client.access_status === 'paused';
+                    const pauseOrResumeBtn = isPaused
+                        ? `<button class="card-action-btn action-resume" onclick="event.stopPropagation(); resumeClientAccess(${client.id}, '${escapeHtml(client.client_name)}')">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                            Resume
+                        </button>`
+                        : `<button class="card-action-btn action-pause" onclick="event.stopPropagation(); pauseClientAccess(${client.id}, '${escapeHtml(client.client_name)}')">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+                            Pause
+                        </button>`;
                     footerButtons = `
                         ${needsInvite ? `<button class="card-action-btn action-invite" onclick="event.stopPropagation(); inviteClient(${client.id}, '${escapeHtml(client.client_name)}')">
                             <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
@@ -3326,6 +3369,7 @@
                             <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                             Edit
                         </button>
+                        ${pauseOrResumeBtn}
                         <button class="card-action-btn action-archive" onclick="event.stopPropagation(); archiveClient(${client.id}, '${escapeHtml(client.client_name)}')">
                             <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><path d="M10 12h4"/></svg>
                             Archive
@@ -3342,6 +3386,7 @@
                                     <div class="client-name">${escapeHtml(client.client_name)}</div>
                                     <div class="client-meta-row">
                                         ${client.is_archived ? '<span class="archived-badge">Archived</span>' : ''}
+                                        ${!client.is_archived && client.access_status === 'paused' ? '<span class="paused-badge">Paused</span>' : ''}
                                         ${client.default_goal ? `<span class="goal-badge ${goalClass}">${goalDisplay}</span>` : ''}
                                     </div>
                                 </div>
@@ -3408,9 +3453,13 @@
                         <button class="btn btn-danger btn-small" onclick="event.stopPropagation(); permanentlyDeleteClient(${client.id}, '${escapeHtml(client.client_name)}')">Delete</button>
                     `;
                 } else {
+                    const pauseOrResumeRow = client.access_status === 'paused'
+                        ? `<button class="btn btn-success btn-small" onclick="event.stopPropagation(); resumeClientAccess(${client.id}, '${escapeHtml(client.client_name)}')">Resume</button>`
+                        : `<button class="btn btn-secondary btn-small" onclick="event.stopPropagation(); pauseClientAccess(${client.id}, '${escapeHtml(client.client_name)}')">Pause</button>`;
                     actionButtons = `
                         ${!client.user_id ? `<button class="btn btn-secondary btn-small" onclick="event.stopPropagation(); inviteClient(${client.id}, '${escapeHtml(client.client_name)}')">Invite</button>` : ''}
                         <button class="btn btn-primary btn-small" onclick="event.stopPropagation(); editClient(${client.id})">Edit</button>
+                        ${pauseOrResumeRow}
                         <button class="btn btn-warning btn-small" onclick="event.stopPropagation(); archiveClient(${client.id}, '${escapeHtml(client.client_name)}')">Archive</button>
                     `;
                 }
@@ -3428,6 +3477,7 @@
                             <span>
                                 ${escapeHtml(client.client_name)}
                                 ${client.is_archived ? '<span class="archived-badge" style="margin-left: 8px;">Archived</span>' : ''}
+                                ${!client.is_archived && client.access_status === 'paused' ? '<span class="paused-badge" style="margin-left: 8px;">Paused</span>' : ''}
                             </span>
                         </div>
                     </td>
@@ -3744,6 +3794,43 @@
             } catch (error) {
                 console.error('Error archiving client:', error);
                 alert('Error archiving client: ' + error.message);
+            }
+        }
+
+        // Pause a client's app access (non-destructive — coach can resume any time).
+        // Shows the lock screen to the client until they're resumed.
+        async function pauseClientAccess(clientId, clientName) {
+            if (!confirm(`Pause access for ${clientName}?\n\nThey'll see a "billing on hold" screen and can't open their workouts, meals, messages, or check-ins until you resume them.\n\nTheir data is preserved — this is reversible.`)) {
+                return;
+            }
+
+            try {
+                await apiPost('/.netlify/functions/update-client-access', {
+                    clientId,
+                    coachId: currentCoachId,
+                    accessStatus: 'paused'
+                });
+
+                await loadClients();
+            } catch (error) {
+                console.error('Error pausing client access:', error);
+                alert('Error pausing client: ' + error.message);
+            }
+        }
+
+        // Resume a paused client's app access.
+        async function resumeClientAccess(clientId, clientName) {
+            try {
+                await apiPost('/.netlify/functions/update-client-access', {
+                    clientId,
+                    coachId: currentCoachId,
+                    accessStatus: 'active'
+                });
+
+                await loadClients();
+            } catch (error) {
+                console.error('Error resuming client access:', error);
+                alert('Error resuming client: ' + error.message);
             }
         }
 

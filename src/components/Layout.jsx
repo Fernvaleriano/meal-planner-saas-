@@ -10,7 +10,6 @@ import TrainerSupportAgent from './TrainerSupportAgent';
 import SubscriptionEnded from './SubscriptionEnded';
 import { useAuth } from '../context/AuthContext';
 import { useBranding } from '../context/BrandingContext';
-import { useClientSubscription } from '../hooks/useClientSubscription';
 
 // Paths that stay accessible even when the subscription has lapsed —
 // so the client can resubscribe (/my-billing) and sign out (/settings).
@@ -69,11 +68,16 @@ function Layout() {
   const { isModuleVisible } = useBranding();
   const isCoach = clientData?.is_coach === true;
 
-  // Subscription-based client lockout is disabled. Many coaches collect
-  // payment externally (cash, Venmo, bank transfer, etc.) so we cannot
-  // assume "no Stripe subscription row" means the client has stopped
-  // paying. Re-enable per-coach once that policy is configurable.
-  const showSubscriptionLock = false;
+  // Client lockout is coach-controlled, not payment-system-controlled.
+  // Coaches with external payment methods (cash, Venmo, etc.) simply leave
+  // access_status = 'active'; coaches who want to enforce payment flip a
+  // client to 'paused' from manage-clients. The lock screen is shown until
+  // they're resumed. Anything other than 'paused' (including missing/null)
+  // grants access — coaches must opt in explicitly per client.
+  const isPausedByCoach = clientData?.access_status === 'paused';
+  const showSubscriptionLock = !isCoach
+    && isPausedByCoach
+    && !SUBSCRIPTION_GATE_EXEMPT.has(path);
 
   // Filter tab paths based on module visibility (coaches see all tabs)
   const tabPaths = useMemo(() => {
