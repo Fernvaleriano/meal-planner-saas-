@@ -3,10 +3,12 @@ import { Lock, LogOut } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 /**
- * Soft lock screen shown to clients whose subscription has fully ended
- * (no row, or row in 'canceled' status). They can resubscribe from
- * /my-billing, or sign out. Everything else in the app is hidden until
- * billing is restored.
+ * Soft lock screen shown when the coach has set the client's
+ * access_status to 'paused' (usually because a payment didn't go
+ * through). Wording is payment-flavored and intentionally avoids
+ * implying the coach personally cut the client off. Client can reach
+ * /my-billing and /settings; everything else is hidden until the coach
+ * resumes them.
  */
 export default function SubscriptionEnded() {
   const navigate = useNavigate();
@@ -18,16 +20,17 @@ export default function SubscriptionEnded() {
         <div style={styles.iconWrap}>
           <Lock size={28} color="#3730a3" />
         </div>
-        <h2 style={styles.title}>Your subscription has ended</h2>
+        <h2 style={styles.title}>Your account is on hold</h2>
         <p style={styles.body}>
-          Your coaching plan is no longer active. Resubscribe to keep
-          accessing workouts, meals, messages, and check-ins with your coach.
+          We weren't able to confirm your latest payment, so access to
+          your workouts, meals, messages, and check-ins is paused.
+          Please reach out to your coach to get reconnected.
         </p>
         <button
           style={styles.primaryBtn}
           onClick={() => navigate('/my-billing')}
         >
-          Choose a Plan
+          View Billing
         </button>
         <button style={styles.secondaryBtn} onClick={logout}>
           <LogOut size={14} /> Sign out
