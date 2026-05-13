@@ -202,6 +202,28 @@
             background: rgba(255,255,255,0.08);
             color: #94a3b8;
         }
+        /* Disclosure-modal "How to minimize disputes" tip box.
+           Inline gray-50 bg + gray-600 text rendered as light-on-white
+           in dark mode (gray-50 isn't redefined, but the global text
+           override flips gray-600 to #cbd5e1). Style explicitly. */
+        .dispute-tip {
+            margin-bottom: 18px;
+            padding: 12px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            line-height: 1.6;
+            background: #f1f5f9;
+            color: #334155;
+            border: 1px solid #e2e8f0;
+        }
+        [data-theme="dark"] .dispute-tip {
+            background: rgba(255,255,255,0.06) !important;
+            color: #e2e8f0 !important;
+            border: 1px solid rgba(255,255,255,0.10) !important;
+        }
+        [data-theme="dark"] .dispute-tip strong {
+            color: #f1f5f9 !important;
+        }
     </style>
     <script src="https://unpkg.com/lucide@0.312.0/dist/umd/lucide.min.js" onload="if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',()=>lucide.createIcons())}else{lucide.createIcons()}"></script>
     <style>body{-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;overscroll-behavior:none;-webkit-overflow-scrolling:touch;}</style>
@@ -359,7 +381,7 @@
                     <li>If you've already withdrawn the money, your Stripe balance goes <strong>negative</strong>. Stripe will recover it from future payouts, and if those don't cover it, debit your linked bank account directly.</li>
                     <li><strong>Ziquecoach is a software platform — we cannot intervene in disputes or chargebacks.</strong> Stripe's terms and your client's bank decide the outcome.</li>
                 </ul>
-                <p style="margin-bottom: 18px; padding: 12px 14px; background: var(--gray-50, #f8fafc); border-radius: 8px; font-size: 13px; line-height: 1.6; color: var(--gray-600, #475569);">
+                <p class="dispute-tip">
                     <strong>How to minimize disputes:</strong> use a clear billing descriptor in Stripe, respond quickly to client messages, offer a refund proactively when a client is unhappy (it's almost always cheaper than a chargeback), and keep records of the work you delivered.
                 </p>
             </div>
