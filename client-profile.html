@@ -8379,6 +8379,31 @@
                 <h2 class="goals-title">🎯 Daily Nutrition Goals</h2>
             </div>
 
+            <!-- Current Goals (saved on client's account) -->
+            <div class="calculate-result-card" id="currentGoalsCard" style="background: linear-gradient(135deg, #064e3b 0%, #065f46 100%); border: 1px solid rgba(52, 211, 153, 0.3);">
+                <div class="calculate-result-header">
+                    <div class="calculate-result-title" style="color: #6ee7b7;">✅ Current Goals (on client's account)</div>
+                </div>
+                <div class="calculated-values-grid">
+                    <div class="calculated-value-item">
+                        <div class="calculated-value-number calories" id="currentCalories">--</div>
+                        <div class="calculated-value-label">Calories</div>
+                    </div>
+                    <div class="calculated-value-item">
+                        <div class="calculated-value-number protein" id="currentProtein">--</div>
+                        <div class="calculated-value-label">Protein (g)</div>
+                    </div>
+                    <div class="calculated-value-item">
+                        <div class="calculated-value-number carbs" id="currentCarbs">--</div>
+                        <div class="calculated-value-label">Carbs (g)</div>
+                    </div>
+                    <div class="calculated-value-item">
+                        <div class="calculated-value-number fat" id="currentFat">--</div>
+                        <div class="calculated-value-label">Fat (g)</div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Mode Tabs -->
             <div class="goals-mode-tabs">
                 <button class="goals-mode-tab active" onclick="setGoalsMode('calculate')" id="tabCalculate">
@@ -10336,6 +10361,13 @@
                     const carbs = data.goals.carbs_goal || 200;
                     const fat = data.goals.fat_goal || 65;
 
+                    // Display the client's actual saved goals (read-only summary at top of drawer)
+                    const hasSaved = data.goals.calorie_goal != null;
+                    document.getElementById('currentCalories').textContent = hasSaved ? calories : '--';
+                    document.getElementById('currentProtein').textContent = hasSaved ? protein : '--';
+                    document.getElementById('currentCarbs').textContent = hasSaved ? carbs : '--';
+                    document.getElementById('currentFat').textContent = hasSaved ? fat : '--';
+
                     // Set values in both modes
                     document.getElementById('goalCalories').value = calories;
                     document.getElementById('goalCaloriesCustom').value = calories;
@@ -10417,6 +10449,12 @@
                 });
 
                 if (!response.ok) throw new Error('Failed to save goals');
+
+                // Update the "Current Goals" summary card so it reflects the newly-saved values
+                document.getElementById('currentCalories').textContent = calories;
+                document.getElementById('currentProtein').textContent = protein;
+                document.getElementById('currentCarbs').textContent = carbs;
+                document.getElementById('currentFat').textContent = fat;
 
                 btn.textContent = 'Saved!';
                 setTimeout(() => {
