@@ -32,6 +32,14 @@
     }
 
     function injectToggleButton() {
+        // Prefer the sidebar header (VS Code / Notion / Linear pattern). Button
+        // lives next to the logo and remains visible — centered — when collapsed.
+        const sidebarHeader = document.querySelector('.sidebar-header');
+        if (sidebarHeader && !sidebarHeader.querySelector('.sidebar-collapse-btn')) {
+            sidebarHeader.appendChild(buildButton());
+            return;
+        }
+        // Fallback for pages without a sidebar header.
         const header = document.querySelector('.main-header, .top-nav');
         if (!header || header.querySelector('.sidebar-collapse-btn')) return;
         header.insertBefore(buildButton(), header.firstChild);

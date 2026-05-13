@@ -775,22 +775,31 @@ body.sidebar-is-collapsed .top-nav {
     gap: 8px;
 }
 
-/* Toggle button lives in the page header (main-header), left side */
+/* Toggle button lives inside the sidebar header (right of the logo).
+   Falls back to .main-header / .top-nav on pages without a sidebar. */
 .sidebar-collapse-btn {
     display: none;
     align-items: center;
     justify-content: center;
-    width: 40px;
-    height: 40px;
-    border-radius: 10px;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
     border: none;
     background: transparent;
     color: var(--gray-500);
     cursor: pointer;
     flex-shrink: 0;
-    margin-right: 12px;
     padding: 0;
     transition: background 0.15s, color 0.15s;
+}
+
+/* Extra spacing only when the button is in a page header (fallback path) */
+.main-header > .sidebar-collapse-btn,
+.top-nav > .sidebar-collapse-btn {
+    margin-right: 12px;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
 }
 
 .sidebar-collapse-btn:hover {
