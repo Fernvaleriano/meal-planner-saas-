@@ -17430,197 +17430,160 @@
                 let html = '';
 
                 // ---- Section 1: Intake Questionnaire Data from clients table ----
-                const hasIntakeData = currentClient.age || currentClient.gender || currentClient.weight ||
-                    currentClient.diet_type || currentClient.allergies || currentClient.disliked_foods ||
-                    currentClient.preferred_foods || currentClient.cooking_equipment || currentClient.budget ||
-                    currentClient.fitness_level || currentClient.exercise_frequency || currentClient.health_concerns;
+                // Every intake field is always rendered; blanks show "Not provided".
 
-                if (hasIntakeData) {
-                    // Personal Info
+                // Personal Information
+                html += '<div class="qa-category">';
+                html += '<div class="qa-category-title">Personal Information</div>';
+
+                html += qaRow('Phone', currentClient.phone || '');
+                html += qaRow('Age', currentClient.age ? currentClient.age + ' years' : '');
+                html += qaRow('Gender', currentClient.gender ? capitalize(currentClient.gender) : '');
+
+                const weightDisplay = currentClient.weight
+                    ? (coachDisplayUnit === 'metric' ? lbsToKg(currentClient.weight) + ' kg' : currentClient.weight + ' lbs')
+                    : '';
+                html += qaRow('Weight', weightDisplay);
+
+                const heightDisplay = (currentClient.height_ft || currentClient.height_in)
+                    ? (coachDisplayUnit === 'metric'
+                        ? ftInToCm(currentClient.height_ft || 0, currentClient.height_in || 0) + ' cm'
+                        : (currentClient.height_ft || 0) + "'" + (currentClient.height_in || 0) + '"')
+                    : '';
+                html += qaRow('Height', heightDisplay);
+
+                const activityLabels = {
+                    1.2: 'Sedentary',
+                    1.375: 'Lightly Active',
+                    1.55: 'Moderately Active',
+                    1.725: 'Very Active',
+                    1.9: 'Extra Active'
+                };
+                html += qaRow('Activity Level', currentClient.activity_level
+                    ? (activityLabels[currentClient.activity_level] || currentClient.activity_level)
+                    : '');
+
+                const goalLabels = {
+                    'lose_weight': 'Lose Weight',
+                    'lose': 'Lose Weight',
+                    'maintain': 'Maintain Weight',
+                    'gain_muscle': 'Gain Muscle',
+                    'gain': 'Gain Muscle'
+                };
+                html += qaRow('Goal', currentClient.default_goal
+                    ? (goalLabels[currentClient.default_goal] || capitalize(currentClient.default_goal))
+                    : '');
+
+                html += qaRow('Budget', currentClient.budget ? capitalize(currentClient.budget) : '');
+
+                html += '</div>';
+
+                // Fitness & Exercise — always rendered
+                html += '<div class="qa-category">';
+                html += '<div class="qa-category-title">Fitness & Exercise</div>';
+
+                const fitnessLabels = {
+                    'beginner': 'Beginner',
+                    'intermediate': 'Intermediate',
+                    'advanced': 'Advanced',
+                    'athlete': 'Athlete'
+                };
+                html += qaRow('Fitness Level', currentClient.fitness_level
+                    ? (fitnessLabels[currentClient.fitness_level] || capitalize(currentClient.fitness_level))
+                    : '');
+
+                const freqLabels = {
+                    '0-1': '0-1 days/week',
+                    '2-3': '2-3 days/week',
+                    '4-5': '4-5 days/week',
+                    '6-7': '6-7 days/week'
+                };
+                html += qaRow('Exercise Frequency', currentClient.exercise_frequency
+                    ? (freqLabels[currentClient.exercise_frequency] || currentClient.exercise_frequency)
+                    : '');
+
+                const durLabels = {
+                    '15-30': '15-30 minutes',
+                    '30-45': '30-45 minutes',
+                    '45-60': '45-60 minutes',
+                    '60-90': '60-90 minutes',
+                    '90+': '90+ minutes'
+                };
+                html += qaRow('Workout Duration', currentClient.workout_duration
+                    ? (durLabels[currentClient.workout_duration] || currentClient.workout_duration)
+                    : '');
+
+                const equipLabels = {
+                    'full_gym': 'Full Gym',
+                    'home_gym': 'Home Gym',
+                    'minimal': 'Minimal Equipment',
+                    'none': 'No Equipment (Bodyweight Only)'
+                };
+                html += qaRow('Equipment Access', currentClient.equipment_access
+                    ? (equipLabels[currentClient.equipment_access] || capitalize(currentClient.equipment_access))
+                    : '');
+
+                const exerciseTypeLabels = {
+                    'weight_training': 'Weight Training',
+                    'cardio': 'Cardio',
+                    'hiit': 'HIIT',
+                    'yoga_pilates': 'Yoga/Pilates',
+                    'group_classes': 'Group Classes',
+                    'sports': 'Sports',
+                    'walking_hiking': 'Walking/Hiking',
+                    'swimming': 'Swimming'
+                };
+                html += qaTagRow('Exercise Types', currentClient.exercise_types, exerciseTypeLabels);
+
+                html += qaRow('Health Concerns', currentClient.health_concerns || '');
+                html += qaRow('Fitness Goals', currentClient.fitness_goal_details || '');
+
+                html += '</div>';
+
+                // Dietary Preferences — always rendered
+                html += '<div class="qa-category">';
+                html += '<div class="qa-category-title">Dietary Preferences</div>';
+
+                html += qaRow('Diet Type', currentClient.diet_type ? formatDietType(currentClient.diet_type) : '');
+                html += qaRow('Macro Preference', currentClient.macro_preference ? capitalize(currentClient.macro_preference) : '');
+                html += qaRow('Meal Count', currentClient.meal_count || '');
+                html += qaRow('Allergies', currentClient.allergies || '');
+                html += qaRow('Disliked Foods', currentClient.disliked_foods || '');
+                html += qaRow('Preferred Foods', currentClient.preferred_foods || '');
+
+                html += '</div>';
+
+                // Cooking Equipment — always rendered
+                html += '<div class="qa-category">';
+                html += '<div class="qa-category-title">Cooking Equipment</div>';
+                html += qaTagRow('Cooking Equipment', currentClient.cooking_equipment, null, formatEquipment);
+                html += '</div>';
+
+                // Preferences — always rendered
+                html += '<div class="qa-category">';
+                html += '<div class="qa-category-title">Preferences</div>';
+                html += qaRow('Unit System', currentClient.unit_preference
+                    ? (currentClient.unit_preference === 'metric' ? 'Metric (kg/cm)' : 'Imperial (lbs/ft)')
+                    : '');
+                html += qaRow('Exercise Demo Preference', currentClient.preferred_exercise_gender
+                    ? capitalize(currentClient.preferred_exercise_gender)
+                    : '');
+                html += '</div>';
+
+                // Custom Questions (configured per-coach in the intake form config)
+                let customAnswers = currentClient.custom_intake_answers;
+                if (typeof customAnswers === 'string') {
+                    try { customAnswers = JSON.parse(customAnswers); } catch (e) { customAnswers = null; }
+                }
+                if (customAnswers && typeof customAnswers === 'object' && Object.keys(customAnswers).length > 0) {
                     html += '<div class="qa-category">';
-                    html += '<div class="qa-category-title">Personal Information</div>';
-
-                    if (currentClient.age) {
-                        html += qaRow('Age', currentClient.age + ' years');
-                    }
-                    if (currentClient.gender) {
-                        html += qaRow('Gender', capitalize(currentClient.gender));
-                    }
-                    if (currentClient.weight) {
-                        const weightDisplay = coachDisplayUnit === 'metric'
-                            ? lbsToKg(currentClient.weight) + ' kg'
-                            : currentClient.weight + ' lbs';
-                        html += qaRow('Weight', weightDisplay);
-                    }
-                    if (currentClient.height_ft || currentClient.height_in) {
-                        const ft = currentClient.height_ft || 0;
-                        const inches = currentClient.height_in || 0;
-                        const heightDisplay = coachDisplayUnit === 'metric'
-                            ? ftInToCm(ft, inches) + ' cm'
-                            : ft + "'" + inches + '"';
-                        html += qaRow('Height', heightDisplay);
-                    }
-                    if (currentClient.activity_level) {
-                        const activityLabels = {
-                            1.2: 'Sedentary',
-                            1.375: 'Lightly Active',
-                            1.55: 'Moderately Active',
-                            1.725: 'Very Active',
-                            1.9: 'Extra Active'
-                        };
-                        html += qaRow('Activity Level', activityLabels[currentClient.activity_level] || currentClient.activity_level);
-                    }
-                    if (currentClient.default_goal) {
-                        const goalLabels = {
-                            'lose_weight': 'Lose Weight',
-                            'lose': 'Lose Weight',
-                            'maintain': 'Maintain Weight',
-                            'gain_muscle': 'Gain Muscle',
-                            'gain': 'Gain Muscle'
-                        };
-                        html += qaRow('Goal', goalLabels[currentClient.default_goal] || capitalize(currentClient.default_goal));
-                    }
-                    if (currentClient.budget) {
-                        html += qaRow('Budget', capitalize(currentClient.budget));
-                    }
-
+                    html += '<div class="qa-category-title">Custom Questions</div>';
+                    Object.entries(customAnswers).forEach(([key, value]) => {
+                        const label = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                        const displayValue = Array.isArray(value) ? value.join(', ') : value;
+                        html += qaRow(label, displayValue || '');
+                    });
                     html += '</div>';
-
-                    // Fitness & Exercise
-                    const hasFitness = currentClient.fitness_level || currentClient.exercise_frequency ||
-                        currentClient.workout_duration || currentClient.equipment_access ||
-                        currentClient.exercise_types || currentClient.health_concerns ||
-                        currentClient.fitness_goal_details;
-
-                    if (hasFitness) {
-                        html += '<div class="qa-category">';
-                        html += '<div class="qa-category-title">Fitness & Exercise</div>';
-
-                        if (currentClient.fitness_level) {
-                            const fitnessLabels = {
-                                'beginner': 'Beginner',
-                                'intermediate': 'Intermediate',
-                                'advanced': 'Advanced',
-                                'athlete': 'Athlete'
-                            };
-                            html += qaRow('Fitness Level', fitnessLabels[currentClient.fitness_level] || capitalize(currentClient.fitness_level));
-                        }
-                        if (currentClient.exercise_frequency) {
-                            const freqLabels = {
-                                '0-1': '0-1 days/week',
-                                '2-3': '2-3 days/week',
-                                '4-5': '4-5 days/week',
-                                '6-7': '6-7 days/week'
-                            };
-                            html += qaRow('Exercise Frequency', freqLabels[currentClient.exercise_frequency] || currentClient.exercise_frequency);
-                        }
-                        if (currentClient.workout_duration) {
-                            const durLabels = {
-                                '15-30': '15-30 minutes',
-                                '30-45': '30-45 minutes',
-                                '45-60': '45-60 minutes',
-                                '60-90': '60-90 minutes',
-                                '90+': '90+ minutes'
-                            };
-                            html += qaRow('Workout Duration', durLabels[currentClient.workout_duration] || currentClient.workout_duration);
-                        }
-                        if (currentClient.equipment_access) {
-                            const equipLabels = {
-                                'full_gym': 'Full Gym',
-                                'home_gym': 'Home Gym',
-                                'minimal': 'Minimal Equipment',
-                                'none': 'No Equipment (Bodyweight Only)'
-                            };
-                            html += qaRow('Equipment Access', equipLabels[currentClient.equipment_access] || capitalize(currentClient.equipment_access));
-                        }
-                        if (currentClient.exercise_types) {
-                            let types = currentClient.exercise_types;
-                            if (typeof types === 'string') {
-                                try { types = JSON.parse(types); } catch(e) { types = []; }
-                            }
-                            if (Array.isArray(types) && types.length > 0) {
-                                const typeLabels = {
-                                    'weight_training': 'Weight Training',
-                                    'cardio': 'Cardio',
-                                    'hiit': 'HIIT',
-                                    'yoga_pilates': 'Yoga/Pilates',
-                                    'group_classes': 'Group Classes',
-                                    'sports': 'Sports',
-                                    'walking_hiking': 'Walking/Hiking',
-                                    'swimming': 'Swimming'
-                                };
-                                const formatted = types.map(t => '<span class="qa-tag">' + (typeLabels[t] || capitalize(t)) + '</span>').join('');
-                                html += '<div class="qa-row"><div class="qa-label">Exercise Types</div><div class="qa-value">' + formatted + '</div></div>';
-                            }
-                        }
-                        if (currentClient.health_concerns) {
-                            html += qaRow('Health Concerns', currentClient.health_concerns);
-                        }
-                        if (currentClient.fitness_goal_details) {
-                            html += qaRow('Fitness Goals', currentClient.fitness_goal_details);
-                        }
-
-                        html += '</div>';
-                    }
-
-                    // Dietary Preferences
-                    const hasDiet = currentClient.diet_type || currentClient.macro_preference ||
-                        currentClient.meal_count || currentClient.allergies ||
-                        currentClient.disliked_foods || currentClient.preferred_foods;
-
-                    if (hasDiet) {
-                        html += '<div class="qa-category">';
-                        html += '<div class="qa-category-title">Dietary Preferences</div>';
-
-                        if (currentClient.diet_type) {
-                            html += qaRow('Diet Type', formatDietType(currentClient.diet_type));
-                        }
-                        if (currentClient.macro_preference) {
-                            html += qaRow('Macro Preference', capitalize(currentClient.macro_preference));
-                        }
-                        if (currentClient.meal_count) {
-                            html += qaRow('Meal Count', currentClient.meal_count);
-                        }
-                        if (currentClient.allergies) {
-                            html += qaRow('Allergies', currentClient.allergies);
-                        }
-                        if (currentClient.disliked_foods) {
-                            html += qaRow('Disliked Foods', currentClient.disliked_foods);
-                        }
-                        if (currentClient.preferred_foods) {
-                            html += qaRow('Preferred Foods', currentClient.preferred_foods);
-                        }
-
-                        html += '</div>';
-                    }
-
-                    // Cooking Equipment
-                    if (currentClient.cooking_equipment) {
-                        let equipment = currentClient.cooking_equipment;
-                        if (typeof equipment === 'string') {
-                            try { equipment = JSON.parse(equipment); } catch(e) { equipment = []; }
-                        }
-                        if (Array.isArray(equipment) && equipment.length > 0) {
-                            html += '<div class="qa-category">';
-                            html += '<div class="qa-category-title">Cooking Equipment</div>';
-                            html += '<div style="padding: 8px 0;">';
-                            equipment.forEach(item => {
-                                html += '<span class="qa-tag">' + formatEquipment(item) + '</span>';
-                            });
-                            html += '</div></div>';
-                        }
-                    }
-
-                    // Additional fields from client record
-                    if (currentClient.unit_preference) {
-                        html += '<div class="qa-category">';
-                        html += '<div class="qa-category-title">Preferences</div>';
-                        html += qaRow('Unit System', currentClient.unit_preference === 'metric' ? 'Metric (kg/cm)' : 'Imperial (lbs/ft)');
-                        if (currentClient.preferred_exercise_gender) {
-                            html += qaRow('Exercise Demo Preference', capitalize(currentClient.preferred_exercise_gender));
-                        }
-                        html += '</div>';
-                    }
                 }
 
                 // ---- Section 2: Apply Form Responses (from form_responses table) ----
@@ -17691,8 +17654,26 @@
 
         // Helper: render a question/answer row
         function qaRow(label, value) {
-            const displayVal = value ? value : '<span class="not-provided">Not provided</span>';
-            return '<div class="qa-row"><div class="qa-label">' + label + '</div><div class="qa-value">' + displayVal + '</div></div>';
+            const isEmpty = value === null || value === undefined || value === '';
+            const valueClass = isEmpty ? 'qa-value not-provided' : 'qa-value';
+            const displayVal = isEmpty ? 'Not provided' : value;
+            return '<div class="qa-row"><div class="qa-label">' + label + '</div><div class="' + valueClass + '">' + displayVal + '</div></div>';
+        }
+
+        // Helper: render a tag-list row (always shown, even when empty)
+        function qaTagRow(label, items, labelMap, formatter) {
+            let parsed = items;
+            if (typeof parsed === 'string') {
+                try { parsed = JSON.parse(parsed); } catch (e) { parsed = []; }
+            }
+            if (!Array.isArray(parsed) || parsed.length === 0) {
+                return '<div class="qa-row"><div class="qa-label">' + label + '</div><div class="qa-value not-provided">Not provided</div></div>';
+            }
+            const tags = parsed.map(t => {
+                const display = (labelMap && labelMap[t]) || (formatter ? formatter(t) : capitalize(t));
+                return '<span class="qa-tag">' + display + '</span>';
+            }).join('');
+            return '<div class="qa-row"><div class="qa-label">' + label + '</div><div class="qa-value">' + tags + '</div></div>';
         }
 
         // Helper: capitalize first letter
