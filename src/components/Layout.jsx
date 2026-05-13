@@ -68,17 +68,12 @@ function Layout() {
   const { clientData } = useAuth();
   const { isModuleVisible } = useBranding();
   const isCoach = clientData?.is_coach === true;
-  const { hasActiveSub, loading: subLoading } = useClientSubscription();
 
-  // Soft-lock clients whose subscription has fully ended: hide every
-  // paid page and show the resubscribe screen instead. Coaches and the
-  // gate-exempt paths (billing, settings) pass through untouched. While
-  // the status is still loading we render normally to avoid a flash of
-  // the lock screen for paying clients on every navigation.
-  const showSubscriptionLock = !isCoach
-    && !subLoading
-    && !hasActiveSub
-    && !SUBSCRIPTION_GATE_EXEMPT.has(path);
+  // Subscription-based client lockout is disabled. Many coaches collect
+  // payment externally (cash, Venmo, bank transfer, etc.) so we cannot
+  // assume "no Stripe subscription row" means the client has stopped
+  // paying. Re-enable per-coach once that policy is configurable.
+  const showSubscriptionLock = false;
 
   // Filter tab paths based on module visibility (coaches see all tabs)
   const tabPaths = useMemo(() => {
