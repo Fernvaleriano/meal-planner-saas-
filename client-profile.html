@@ -447,7 +447,7 @@
             right: 0;
             bottom: 0;
             background: rgba(0,0,0,0.5);
-            z-index: 1000;
+            z-index: 1100;
             justify-content: center;
             align-items: center;
             padding: 20px;
@@ -8044,6 +8044,11 @@
         [data-drawer].drawer-open .collapsible-header {
             cursor: default;
             pointer-events: none;
+        }
+        /* But keep action buttons in the header clickable */
+        [data-drawer].drawer-open .collapsible-header .btn {
+            pointer-events: auto;
+            cursor: pointer;
         }
         [data-drawer].drawer-open .section-toggle-btn,
         [data-drawer].drawer-open .toggle-icon {
