@@ -5795,6 +5795,82 @@
                 </div>
             </div>
 
+            <!-- Pep Talks - Compact inline row (mirrors stories) -->
+            <div class="stories-compact pep-talks-compact" id="pepTalksCreator">
+                <div class="stories-compact-left">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+                    <span class="stories-compact-label">Pep Talks</span>
+                    <span class="stories-compact-count" id="activePepTalksPreview"></span>
+                </div>
+                <div class="stories-compact-actions">
+                    <button class="stories-compact-btn" onclick="openPepTalkCreator()" title="Send a pep talk">
+                        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Pep Talk Creator Modal -->
+            <div class="story-creator-modal" id="pepTalkCreatorModal" style="display: none;">
+                <div class="story-creator-dialog">
+                    <div class="story-creator-header-modal">
+                        <h3>Send a Pep Talk</h3>
+                        <button class="close-modal-btn" onclick="closePepTalkCreator()">&times;</button>
+                    </div>
+                    <div class="story-creator-body">
+                        <div class="story-form" style="display: block;">
+                            <input type="text" class="story-input" id="pepTalkTitle" placeholder="Title (e.g. Mid-week motivation)" maxlength="120">
+                            <textarea class="story-textarea" id="pepTalkBody" placeholder="Your message (optional if you upload a video)" rows="4"></textarea>
+
+                            <div class="pep-talk-video-section">
+                                <div class="image-upload-area" id="pepTalkVideoUpload" onclick="document.getElementById('pepTalkVideoInput').click()">
+                                    <span class="upload-icon"><svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg></span>
+                                    <span class="upload-text">Optional: tap to upload a video</span>
+                                </div>
+                                <input type="file" id="pepTalkVideoInput" accept="video/mp4,video/quicktime,video/webm" style="display: none;" onchange="onPepTalkVideoPicked(event)">
+                                <div id="pepTalkVideoStatus" style="display:none; margin-top: 10px; font-size: 0.875rem; color: var(--gray-600);"></div>
+                                <video id="pepTalkVideoPreview" style="display:none; max-width: 100%; border-radius: 12px; margin-top: 10px;" controls></video>
+                            </div>
+
+                            <div class="form-group" style="margin-top: 16px;">
+                                <label style="display:block; font-size: 0.875rem; color: var(--gray-700); margin-bottom: 6px;">Send To</label>
+                                <select id="pepTalkRecipientType" class="story-input" onchange="togglePepTalkRecipientList()">
+                                    <option value="all">All Clients</option>
+                                    <option value="specific">Select Specific Clients</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group" id="pepTalkRecipientGroup" style="display:none; margin-top: 12px;">
+                                <label style="display:block; font-size: 0.875rem; color: var(--gray-700); margin-bottom: 6px;">Pick Clients</label>
+                                <div class="client-select-list" id="pepTalkClientList" style="max-height: 200px; overflow-y: auto; border: 1px solid var(--gray-200); border-radius: 8px; padding: 8px;">
+                                    <div style="color:var(--gray-400);padding:12px;text-align:center;">Loading clients...</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="story-creator-footer">
+                        <button class="cancel-btn" onclick="closePepTalkCreator()">Cancel</button>
+                        <button class="publish-btn" id="publishPepTalkBtn" onclick="publishPepTalk()">Send Pep Talk</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- My Pep Talks - collapsible list (mirrors My Stories) -->
+            <div class="my-stories-section my-stories-collapsed" id="myPepTalksSection">
+                <div class="my-stories-toggle" onclick="toggleMyPepTalks()">
+                    <span class="my-stories-toggle-label">My Active Pep Talks</span>
+                    <span class="my-stories-toggle-count" id="myPepTalksCount"></span>
+                    <svg class="my-stories-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                </div>
+                <div class="my-stories-collapsible" id="myPepTalksCollapsible" style="display: none;">
+                    <div class="my-stories-grid" id="myPepTalksGrid">
+                        <div class="stories-loading">Loading your pep talks...</div>
+                    </div>
+                    <div class="my-stories-empty" id="myPepTalksEmpty" style="display: none;">
+                        <p style="color: var(--gray-400); font-size: 0.875rem; text-align: center; padding: 12px 0;">No active pep talks</p>
+                    </div>
+                </div>
+            </div>
+
             <!-- Delete Story Confirmation Modal -->
             <div class="story-creator-modal" id="deleteStoryModal" style="display: none;">
                 <div class="story-creator-dialog" style="max-width: 400px;">
@@ -9909,6 +9985,287 @@
                 loadMyStories();
             }
         }, 2000);
+
+        // ============================================================
+        // Pep Talks - popup announcement messages (video or text)
+        // ============================================================
+
+        let pepTalkClients = [];                  // coach's clients, loaded on demand
+        let pepTalkUploadedVideo = null;          // { url, durationSeconds, file } once uploaded
+        let myPepTalksData = [];
+
+        function openPepTalkCreator() {
+            document.getElementById('pepTalkTitle').value = '';
+            document.getElementById('pepTalkBody').value = '';
+            document.getElementById('pepTalkRecipientType').value = 'all';
+            document.getElementById('pepTalkRecipientGroup').style.display = 'none';
+            document.getElementById('pepTalkVideoStatus').style.display = 'none';
+            document.getElementById('pepTalkVideoStatus').textContent = '';
+            document.getElementById('pepTalkVideoPreview').style.display = 'none';
+            document.getElementById('pepTalkVideoPreview').src = '';
+            document.getElementById('pepTalkVideoInput').value = '';
+            pepTalkUploadedVideo = null;
+            const btn = document.getElementById('publishPepTalkBtn');
+            btn.disabled = false;
+            btn.textContent = 'Send Pep Talk';
+            document.getElementById('pepTalkCreatorModal').style.display = 'flex';
+        }
+
+        function closePepTalkCreator() {
+            document.getElementById('pepTalkCreatorModal').style.display = 'none';
+        }
+
+        function togglePepTalkRecipientList() {
+            const show = document.getElementById('pepTalkRecipientType').value === 'specific';
+            const group = document.getElementById('pepTalkRecipientGroup');
+            group.style.display = show ? 'block' : 'none';
+            if (show) renderPepTalkClientList();
+        }
+
+        async function renderPepTalkClientList() {
+            const list = document.getElementById('pepTalkClientList');
+            if (pepTalkClients.length === 0) {
+                try {
+                    const { data } = await supabaseClient
+                        .from('clients')
+                        .select('id, client_name, email')
+                        .eq('coach_id', currentUserId)
+                        .order('client_name', { ascending: true });
+                    pepTalkClients = data || [];
+                } catch (err) {
+                    list.innerHTML = '<div style="color:var(--gray-400);padding:12px;text-align:center;">Failed to load clients</div>';
+                    return;
+                }
+            }
+            if (pepTalkClients.length === 0) {
+                list.innerHTML = '<div style="color:var(--gray-400);padding:12px;text-align:center;">No clients yet</div>';
+                return;
+            }
+            list.innerHTML = pepTalkClients.map(c => `
+                <label class="client-select-item" style="display:flex;align-items:center;gap:8px;padding:8px;border-radius:6px;cursor:pointer;">
+                    <input type="checkbox" value="${c.id}" name="pepTalkSelectedClients">
+                    <span>${escapeHtml(c.client_name || c.email || 'Client #' + c.id)}</span>
+                </label>
+            `).join('');
+        }
+
+        async function onPepTalkVideoPicked(event) {
+            const file = event.target.files && event.target.files[0];
+            if (!file) return;
+
+            const MAX_BYTES = 100 * 1024 * 1024;                      // 100 MB - matches bucket limit
+            if (file.size > MAX_BYTES) {
+                alert('Video is too large. Please pick a file under 100 MB.');
+                event.target.value = '';
+                return;
+            }
+
+            const statusEl = document.getElementById('pepTalkVideoStatus');
+            const previewEl = document.getElementById('pepTalkVideoPreview');
+            statusEl.style.display = 'block';
+            statusEl.textContent = 'Uploading video...';
+            pepTalkUploadedVideo = null;
+
+            try {
+                // Measure the video duration locally so we can store it on the
+                // pep_talks row and compute the 90% watched threshold later.
+                const durationSeconds = await new Promise((resolve, reject) => {
+                    const tmpVideo = document.createElement('video');
+                    tmpVideo.preload = 'metadata';
+                    tmpVideo.onloadedmetadata = () => resolve(isFinite(tmpVideo.duration) ? tmpVideo.duration : null);
+                    tmpVideo.onerror = () => reject(new Error('Could not read video metadata'));
+                    tmpVideo.src = URL.createObjectURL(file);
+                });
+
+                // Build a unique storage path and upload using the coach's
+                // authenticated supabase client (RLS lets authenticated users insert
+                // into the pep-talk-videos bucket).
+                const ext = (file.name.split('.').pop() || 'mp4').toLowerCase();
+                const safeExt = ['mp4','mov','webm','m4v','quicktime'].includes(ext) ? ext : 'mp4';
+                const path = `${currentUserId}/${Date.now()}.${safeExt}`;
+
+                const { error: uploadError } = await supabaseClient.storage
+                    .from('pep-talk-videos')
+                    .upload(path, file, {
+                        contentType: file.type || 'video/mp4',
+                        upsert: false
+                    });
+
+                if (uploadError) throw uploadError;
+
+                const { data: urlData } = supabaseClient.storage
+                    .from('pep-talk-videos')
+                    .getPublicUrl(path);
+
+                pepTalkUploadedVideo = {
+                    url: urlData.publicUrl,
+                    durationSeconds: durationSeconds
+                };
+
+                statusEl.textContent = 'Video ready';
+                previewEl.src = urlData.publicUrl;
+                previewEl.style.display = 'block';
+            } catch (err) {
+                console.error('Pep talk video upload failed:', err);
+                statusEl.textContent = 'Upload failed — try again';
+                pepTalkUploadedVideo = null;
+            }
+        }
+
+        async function publishPepTalk() {
+            const btn = document.getElementById('publishPepTalkBtn');
+            const title = document.getElementById('pepTalkTitle').value.trim();
+            const body = document.getElementById('pepTalkBody').value.trim();
+            const recipientType = document.getElementById('pepTalkRecipientType').value;
+
+            if (!title) {
+                alert('Please add a title.');
+                return;
+            }
+            if (!body && !pepTalkUploadedVideo) {
+                alert('Add a message, a video, or both.');
+                return;
+            }
+
+            let clientIds = [];
+            if (recipientType === 'specific') {
+                clientIds = Array.from(document.querySelectorAll('input[name="pepTalkSelectedClients"]:checked'))
+                    .map(el => parseInt(el.value, 10));
+                if (clientIds.length === 0) {
+                    alert('Pick at least one client.');
+                    return;
+                }
+            }
+
+            btn.disabled = true;
+            btn.textContent = 'Sending...';
+
+            try {
+                const response = await fetch('/.netlify/functions/create-pep-talk', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        coachId: currentUserId,
+                        title,
+                        body: body || null,
+                        videoUrl: pepTalkUploadedVideo?.url || null,
+                        videoDurationSeconds: pepTalkUploadedVideo?.durationSeconds || null,
+                        recipientType,
+                        clientIds
+                    })
+                });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.error || 'Failed to send pep talk');
+
+                closePepTalkCreator();
+                loadMyPepTalks();
+                updateActivePepTalksCount();
+            } catch (err) {
+                console.error('Error sending pep talk:', err);
+                alert('Failed to send pep talk: ' + err.message);
+                btn.disabled = false;
+                btn.textContent = 'Send Pep Talk';
+            }
+        }
+
+        function toggleMyPepTalks() {
+            const section = document.getElementById('myPepTalksSection');
+            const collapsible = document.getElementById('myPepTalksCollapsible');
+            section.classList.toggle('my-stories-collapsed');
+            const isCollapsed = section.classList.contains('my-stories-collapsed');
+            collapsible.style.display = isCollapsed ? 'none' : '';
+            if (!isCollapsed) loadMyPepTalks();
+        }
+
+        async function loadMyPepTalks() {
+            if (!currentUserId) return;
+            const grid = document.getElementById('myPepTalksGrid');
+            const emptyState = document.getElementById('myPepTalksEmpty');
+            grid.innerHTML = '<div class="stories-loading">Loading your pep talks...</div>';
+            emptyState.style.display = 'none';
+
+            try {
+                const response = await fetch(`/.netlify/functions/coach-pep-talks-list?coachId=${currentUserId}`);
+                const data = await response.json();
+                myPepTalksData = data.pepTalks || [];
+
+                if (myPepTalksData.length === 0) {
+                    grid.innerHTML = '';
+                    emptyState.style.display = 'block';
+                    return;
+                }
+                emptyState.style.display = 'none';
+                grid.innerHTML = myPepTalksData.map(renderPepTalkCard).join('');
+            } catch (err) {
+                console.error('Error loading pep talks:', err);
+                grid.innerHTML = '<div class="stories-loading">Failed to load. <a href="javascript:loadMyPepTalks()">Try again</a></div>';
+            }
+        }
+
+        function renderPepTalkCard(pt) {
+            const previewInner = pt.videoUrl
+                ? `<div class="story-card-preview" style="background:#0f172a;color:white;flex-direction:column;gap:6px;">
+                       <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+                       <span style="font-size:0.75rem;">Video pep talk</span>
+                   </div>`
+                : `<div class="story-card-preview quote-preview"><p>${escapeHtml(pt.body || pt.title)}</p></div>`;
+
+            const recipientLabel = pt.recipientType === 'all' ? 'All clients' : 'Specific';
+            const viewStats = `${pt.viewedCount} / ${pt.totalRecipients} viewed`;
+
+            return `
+                <div class="story-card" data-pep-talk-id="${pt.id}">
+                    ${previewInner}
+                    <div class="story-card-info">
+                        <div class="story-card-meta">
+                            <span class="story-type-badge">${recipientLabel}</span>
+                        </div>
+                        <div style="font-weight:600;font-size:0.875rem;margin-top:6px;color:var(--gray-800);">${escapeHtml(pt.title)}</div>
+                        <div style="font-size:0.75rem;color:var(--gray-500);margin-top:2px;">${viewStats}</div>
+                        <div class="story-card-actions">
+                            <button class="story-delete-btn" onclick="archivePepTalk(${pt.id})">Archive</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function archivePepTalk(pepTalkId) {
+            if (!confirm('Archive this pep talk? It will stop appearing for clients who haven\'t viewed it yet.')) return;
+            try {
+                const response = await fetch('/.netlify/functions/archive-pep-talk', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ coachId: currentUserId, pepTalkId, archived: true })
+                });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.error || 'Failed to archive');
+                loadMyPepTalks();
+                updateActivePepTalksCount();
+            } catch (err) {
+                alert('Failed to archive: ' + err.message);
+            }
+        }
+
+        async function updateActivePepTalksCount() {
+            if (!currentUserId) return;
+            try {
+                const response = await fetch(`/.netlify/functions/coach-pep-talks-list?coachId=${currentUserId}`);
+                const data = await response.json();
+                const count = (data.pepTalks || []).length;
+                const previewEl = document.getElementById('activePepTalksPreview');
+                const countEl = document.getElementById('myPepTalksCount');
+                if (previewEl) previewEl.textContent = count > 0 ? `${count} active` : '';
+                if (countEl) countEl.textContent = count > 0 ? `(${count})` : '';
+            } catch (err) {
+                // Silent — non-critical UI count
+            }
+        }
+
+        // Initial load (piggybacks on the same 2s delay as stories)
+        setTimeout(() => {
+            if (currentUserId) updateActivePepTalksCount();
+        }, 2200);
 
         // --- Client Activity Grid ---
         async function loadClientActivityGrid(coachId) {
