@@ -1,6 +1,6 @@
 // Ziquecoach PWA Service Worker
-const CACHE_NAME = 'ziquecoach-v14';
-const STATIC_CACHE = 'zique-static-v14';
+const CACHE_NAME = 'ziquecoach-v15';
+const STATIC_CACHE = 'zique-static-v15';
 const DATA_CACHE = 'zique-data-v12';
 const CDN_CACHE = 'zique-cdn-v7';
 
