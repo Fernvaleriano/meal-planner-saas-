@@ -1193,7 +1193,7 @@ function Dashboard() {
           <div className="supplements-header">
             <div className="supplements-title">
               <Pill size={20} className="supplements-icon" />
-              <span>Today's Supplements</span>
+              <span>Recommended Supplement Protocol</span>
             </div>
             <span className="supplements-counter">{takenSupplementsCount}/{supplements.length}</span>
           </div>
