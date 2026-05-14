@@ -8,6 +8,7 @@ import PullToRefreshWrapper from './PullToRefreshWrapper';
 import SyncIndicator from './SyncIndicator';
 import TrainerSupportAgent from './TrainerSupportAgent';
 import SubscriptionEnded from './SubscriptionEnded';
+import PepTalkModal from './PepTalkModal';
 import { useAuth } from '../context/AuthContext';
 import { useBranding } from '../context/BrandingContext';
 
@@ -166,6 +167,7 @@ function Layout() {
       </main>
       {!hideBottomNav && <BottomNav currentPath={path} />}
       {isCoach && <TrainerSupportAgent />}
+      {!isCoach && <PepTalkModal />}
     </div>
   );
 }
