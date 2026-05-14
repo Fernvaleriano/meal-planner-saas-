@@ -162,16 +162,15 @@ VALUES (
 ON CONFLICT (id) DO NOTHING;
 
 -- Authenticated coaches can upload to the bucket (RLS object policies).
+-- Public SELECT is already granted by the project-wide
+-- "Allow public access n3qp65_0" policy that covers every public bucket, so
+-- we don't add a redundant bucket-scoped read policy here.
 CREATE POLICY "Authenticated coaches can upload pep talk videos"
     ON storage.objects FOR INSERT
     WITH CHECK (
         bucket_id = 'pep-talk-videos'
         AND auth.role() = 'authenticated'
     );
-
-CREATE POLICY "Public read pep talk videos"
-    ON storage.objects FOR SELECT
-    USING (bucket_id = 'pep-talk-videos');
 
 CREATE POLICY "Coaches can delete own pep talk videos"
     ON storage.objects FOR DELETE
