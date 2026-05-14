@@ -21,16 +21,13 @@ export function useUnviewedPepTalks(clientId) {
   const refresh = useCallback(async () => {
     if (!clientId) return;
     try {
-      const response = await apiGet(`/.netlify/functions/list-pep-talks-for-client?clientId=${clientId}`);
-      if (!response.ok) {
-        // Don't clear state on failure — last good list keeps showing until next success.
-        return;
-      }
-      const data = await response.json();
-      setPepTalks(Array.isArray(data.pepTalks) ? data.pepTalks : []);
+      // apiGet returns the parsed JSON body directly and throws on non-2xx;
+      // it does NOT return a fetch Response object.
+      const data = await apiGet(`/.netlify/functions/list-pep-talks-for-client?clientId=${clientId}`);
+      setPepTalks(Array.isArray(data?.pepTalks) ? data.pepTalks : []);
       fetchedOnceRef.current = true;
     } catch (err) {
-      // Network failure — keep showing whatever we had last (per CLAUDE.md
+      // Network/auth failure — keep showing whatever we had last (per CLAUDE.md
       // case study on slow-failure regressions: don't clear on error).
       console.error('Failed to fetch pep talks:', err);
     }
