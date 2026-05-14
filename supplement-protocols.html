@@ -185,6 +185,20 @@
             background: white;
         }
 
+        .search-input {
+            padding: 8px 14px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            background: white;
+            min-width: 220px;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #2dd4bf;
+        }
+
         .library-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -902,6 +916,16 @@
             color: #f1f5f9;
         }
 
+        [data-theme="dark"] .search-input {
+            background: #0f172a;
+            border-color: #475569;
+            color: #f1f5f9;
+        }
+
+        [data-theme="dark"] .search-input::placeholder {
+            color: #94a3b8;
+        }
+
         [data-theme="dark"] .library-card {
             background: #0f3b3b;
             border-color: #2dd4bf;
@@ -1281,6 +1305,7 @@
                     <div class="library-header">
                         <h2>My Supplement Library</h2>
                         <div class="library-filters">
+                            <input type="search" id="librarySearchInput" class="search-input" placeholder="🔍 Search supplements..." oninput="filterLibrarySearch()" autocomplete="off">
                             <select id="categoryFilter" class="filter-select" onchange="filterLibrary()">
                                 <option value="">All Categories</option>
                                 <option value="Vitamins">Vitamins</option>
@@ -2557,12 +2582,38 @@
             loadSupplementLibrary();
         }
 
+        function filterLibrarySearch() {
+            renderLibraryGrid();
+        }
+
         function renderLibraryGrid() {
             const grid = document.getElementById('libraryGrid');
             const emptyState = document.getElementById('libraryEmptyState');
+            const searchInput = document.getElementById('librarySearchInput');
+            const searchQuery = (searchInput?.value || '').trim().toLowerCase();
 
             if (supplementLibrary.length === 0) {
                 grid.innerHTML = '';
+                emptyState.querySelector('h3').textContent = 'Your Library is Empty';
+                emptyState.querySelector('p').textContent = 'Add supplements to your library to easily reuse them across clients.';
+                emptyState.style.display = 'block';
+                return;
+            }
+
+            const filteredLibrary = searchQuery
+                ? supplementLibrary.filter(s => {
+                    const haystack = [s.name, s.category, s.notes, s.dose, s.timing_custom]
+                        .filter(Boolean)
+                        .join(' ')
+                        .toLowerCase();
+                    return haystack.includes(searchQuery);
+                })
+                : supplementLibrary;
+
+            if (filteredLibrary.length === 0) {
+                grid.innerHTML = '';
+                emptyState.querySelector('h3').textContent = 'No supplements match your search';
+                emptyState.querySelector('p').textContent = `No results for "${searchQuery}". Try a different keyword or clear the search.`;
                 emptyState.style.display = 'block';
                 return;
             }
@@ -2578,7 +2629,7 @@
                 'custom': 'Custom'
             };
 
-            grid.innerHTML = supplementLibrary.map(s => {
+            grid.innerHTML = filteredLibrary.map(s => {
                 const timingText = s.timing === 'custom' ? s.timing_custom : timingLabels[s.timing] || s.timing;
                 const doseText = s.has_schedule ? 'Scheduled' : (s.dose || 'No dose');
 
