@@ -9074,9 +9074,12 @@
         <div class="protocols-section" id="protocolsSection" data-drawer="supplements">
             <div class="section-header collapsible-header" onclick="toggleSection('protocols')" style="cursor: pointer;">
                 <h2 class="section-title">💊 Supplement Protocol</h2>
-                <button class="section-toggle-btn" type="button">
-                    <span class="toggle-icon collapsed" id="protocolsToggleIcon">▼</span>
-                </button>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <button class="btn btn-primary" onclick="event.stopPropagation(); openAddProtocolModal()">+ Add Supplement</button>
+                    <button class="section-toggle-btn" type="button">
+                        <span class="toggle-icon collapsed" id="protocolsToggleIcon">▼</span>
+                    </button>
+                </div>
             </div>
             <div id="protocolsContent" class="collapsible-content collapsed">
                 <div id="protocolsContainer">
@@ -9396,11 +9399,11 @@
         </div>
     </div>
 
-    <!-- Protocol Edit Modal -->
+    <!-- Protocol Edit/Add Modal -->
     <div id="protocolEditModal" class="protocol-modal">
         <div class="protocol-modal-content">
             <div class="protocol-modal-header">
-                <h2>Edit Supplement</h2>
+                <h2 id="protocolModalTitle">Edit Supplement</h2>
                 <button class="close-btn" onclick="closeEditProtocolModal()">&times;</button>
             </div>
             <div class="protocol-modal-body">
@@ -9440,7 +9443,7 @@
             </div>
             <div class="protocol-modal-footer">
                 <button class="btn btn-secondary" onclick="closeEditProtocolModal()">Cancel</button>
-                <button class="btn btn-primary" onclick="saveProtocolEdit()">Save Changes</button>
+                <button class="btn btn-primary" id="protocolModalSaveBtn" onclick="saveProtocolEdit()">Save Changes</button>
             </div>
         </div>
     </div>
@@ -17220,6 +17223,10 @@
 
             editingProtocolId = protocolId;
 
+            // Set modal labels for edit mode
+            document.getElementById('protocolModalTitle').textContent = 'Edit Supplement';
+            document.getElementById('protocolModalSaveBtn').textContent = 'Save Changes';
+
             // Fill form with current values
             document.getElementById('editProtocolId').value = protocolId;
             document.getElementById('editProtocolName').value = protocol.name || '';
@@ -17235,6 +17242,31 @@
             document.getElementById('protocolEditModal').classList.add('active');
         }
 
+        function openAddProtocolModal() {
+            if (!currentUser || !clientId) {
+                alert('Unable to add supplement: client not loaded yet.');
+                return;
+            }
+
+            editingProtocolId = null;
+
+            // Set modal labels for add mode
+            document.getElementById('protocolModalTitle').textContent = 'Add Supplement';
+            document.getElementById('protocolModalSaveBtn').textContent = 'Add Supplement';
+
+            // Clear form
+            document.getElementById('editProtocolId').value = '';
+            document.getElementById('editProtocolName').value = '';
+            document.getElementById('editProtocolTiming').value = 'morning';
+            document.getElementById('editProtocolTimingCustom').value = '';
+            document.getElementById('editProtocolDose').value = '';
+            document.getElementById('editProtocolNotes').value = '';
+
+            toggleEditCustomTiming();
+
+            document.getElementById('protocolEditModal').classList.add('active');
+        }
+
         function closeEditProtocolModal() {
             document.getElementById('protocolEditModal').classList.remove('active');
             editingProtocolId = null;
@@ -17247,8 +17279,8 @@
         }
 
         async function saveProtocolEdit() {
-            if (!editingProtocolId || !currentUser) {
-                alert('Error: No protocol selected');
+            if (!currentUser) {
+                alert('Error: not signed in');
                 return;
             }
 
@@ -17258,35 +17290,56 @@
                 return;
             }
 
-            const protocol = clientProtocols.find(p => p.id === editingProtocolId);
-            if (!protocol) {
-                alert('Protocol not found.');
-                return;
-            }
-
             const timing = document.getElementById('editProtocolTiming').value;
             const timingCustom = document.getElementById('editProtocolTimingCustom').value.trim();
             const dose = document.getElementById('editProtocolDose').value.trim();
             const notes = document.getElementById('editProtocolNotes').value.trim();
 
-            const payload = {
-                protocolId: editingProtocolId,
-                coachId: currentUser.id,
-                clientId: parseInt(clientId),
-                name,
-                timing,
-                timingCustom: timing === 'custom' ? timingCustom : null,
-                dose: protocol.has_schedule ? null : dose,
-                hasSchedule: protocol.has_schedule,
-                schedule: protocol.schedule,
-                startDate: protocol.start_date,
-                notes,
-                privateNotes: protocol.private_notes // Preserve coach's private notes
-            };
+            const isEdit = editingProtocolId !== null && editingProtocolId !== undefined;
+
+            let payload;
+            let method;
+            if (isEdit) {
+                const protocol = clientProtocols.find(p => p.id === editingProtocolId);
+                if (!protocol) {
+                    alert('Protocol not found.');
+                    return;
+                }
+                method = 'PUT';
+                payload = {
+                    protocolId: editingProtocolId,
+                    coachId: currentUser.id,
+                    clientId: parseInt(clientId),
+                    name,
+                    timing,
+                    timingCustom: timing === 'custom' ? timingCustom : null,
+                    dose: protocol.has_schedule ? null : dose,
+                    hasSchedule: protocol.has_schedule,
+                    schedule: protocol.schedule,
+                    startDate: protocol.start_date,
+                    notes,
+                    privateNotes: protocol.private_notes // Preserve coach's private notes
+                };
+            } else {
+                method = 'POST';
+                payload = {
+                    coachId: currentUser.id,
+                    clientId: parseInt(clientId),
+                    name,
+                    timing,
+                    timingCustom: timing === 'custom' ? timingCustom : null,
+                    dose,
+                    hasSchedule: false,
+                    schedule: null,
+                    startDate: null,
+                    notes,
+                    privateNotes: null
+                };
+            }
 
             try {
                 const response = await fetch(CLIENT_PROTOCOLS_ENDPOINT, {
-                    method: 'PUT',
+                    method,
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
@@ -17296,11 +17349,11 @@
 
                 closeEditProtocolModal();
                 await loadProtocols(clientId);
-                alert('Supplement updated!');
+                alert(isEdit ? 'Supplement updated!' : 'Supplement added!');
 
             } catch (error) {
-                console.error('Error updating protocol:', error);
-                alert('Failed to update supplement: ' + error.message);
+                console.error(isEdit ? 'Error updating protocol:' : 'Error adding protocol:', error);
+                alert((isEdit ? 'Failed to update supplement: ' : 'Failed to add supplement: ') + error.message);
             }
         }
 
