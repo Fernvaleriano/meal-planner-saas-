@@ -14,7 +14,7 @@ function PepTalkModal() {
   const clientId = clientData?.id;
   const isCoach = clientData?.is_coach === true;
 
-  const { pepTalks, refresh } = useUnviewedPepTalks(isCoach ? null : clientId);
+  const { pepTalks, refresh, dismissLocal } = useUnviewedPepTalks(isCoach ? null : clientId);
 
   const current = pepTalks[0] || null;
   const [videoWatched, setVideoWatched] = useState(false);
@@ -71,20 +71,20 @@ function PepTalkModal() {
     refresh();
   }, [current, clientId, refresh]);
 
-  const handleDismiss = useCallback(async () => {
+  const handleDismiss = useCallback(() => {
     if (!current || !clientId) return;
-    // Soft dismiss: tell the server we closed without finishing so dismiss_count
-    // climbs, then refresh. If this is the only pep talk it'll come back next
-    // app open / resume because viewed_at stayed null.
-    try {
-      await apiPost('/.netlify/functions/mark-pep-talk-viewed', {
-        clientId,
-        pepTalkId: current.id,
-        action: 'dismissed'
-      });
-    } catch (err) { /* swallow */ }
-    refresh();
-  }, [current, clientId, refresh]);
+    // Soft dismiss: hide it locally for this session so the user can use the
+    // app. It still comes back on the next app resume / page reload because
+    // viewed_at stays null on the server. Fire-and-forget the analytics call
+    // so dismiss_count climbs.
+    const dismissedId = current.id;
+    dismissLocal(dismissedId);
+    apiPost('/.netlify/functions/mark-pep-talk-viewed', {
+      clientId,
+      pepTalkId: dismissedId,
+      action: 'dismissed'
+    }).catch(() => { /* swallow — local hide is what matters */ });
+  }, [current, clientId, dismissLocal]);
 
   if (!current) return null;
 

@@ -1,21 +1,25 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { apiGet } from '../utils/api';
 import { onAppResume } from './useAppLifecycle';
 
 /**
  * Fetches unviewed Pep Talks for the current client.
  *
- * Why a dedicated hook (not inline in the component): we want to refetch on
- * app resume (iOS users keep the app in the background for hours), and on
- * manual refresh after a viewed/dismissed action. Centralising the lifecycle
- * here keeps the modal component pure.
+ * Dismiss model: tapping X soft-dismisses for the current session — the pep
+ * talk is hidden from the visible list until the next app resume / page reload.
+ * The server-side dismiss_count still increments so we have analytics, but the
+ * "viewed" flag stays null. On app resume we clear the local dismissed set
+ * and refetch, so the pep talk reappears next session — which is the
+ * "keeps popping up until they watch it" requirement.
  *
  * Returns:
- *   pepTalks    – array of { id, title, body, videoUrl, videoDurationSeconds }
- *   refresh     – call after dismiss/view to repull the list
+ *   pepTalks    – visible pep talks (server list minus locally-dismissed IDs)
+ *   refresh     – repull the list (call after view/dismiss)
+ *   dismissLocal(id) – hide a pep talk for this session only
  */
 export function useUnviewedPepTalks(clientId) {
   const [pepTalks, setPepTalks] = useState([]);
+  const [dismissedIds, setDismissedIds] = useState(() => new Set());
   const fetchedOnceRef = useRef(false);
 
   const refresh = useCallback(async () => {
@@ -33,19 +37,35 @@ export function useUnviewedPepTalks(clientId) {
     }
   }, [clientId]);
 
+  const dismissLocal = useCallback((id) => {
+    setDismissedIds(prev => {
+      const next = new Set(prev);
+      next.add(id);
+      return next;
+    });
+  }, []);
+
   // Initial load when clientId becomes available.
   useEffect(() => {
     if (!clientId) return;
     refresh();
   }, [clientId, refresh]);
 
-  // Refresh on app resume so a pep talk sent while the user was backgrounded
-  // pops up when they return.
+  // On app resume: clear the local session-dismissed set so previously-soft-
+  // dismissed pep talks come back, then refetch.
   useEffect(() => {
     if (!clientId) return;
-    const unsubscribe = onAppResume(() => { refresh(); });
+    const unsubscribe = onAppResume(() => {
+      setDismissedIds(new Set());
+      refresh();
+    });
     return unsubscribe;
   }, [clientId, refresh]);
 
-  return { pepTalks, refresh };
+  const visiblePepTalks = useMemo(
+    () => pepTalks.filter(p => !dismissedIds.has(p.id)),
+    [pepTalks, dismissedIds]
+  );
+
+  return { pepTalks: visiblePepTalks, refresh, dismissLocal };
 }
