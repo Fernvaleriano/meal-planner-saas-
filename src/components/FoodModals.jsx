@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { X, Camera, Upload, Search, Heart, Loader, Plus, Minus, Check, Trash2 } from 'lucide-react';
-import { apiGet, apiPost, apiDelete, ensureFreshSession } from '../utils/api';
+import { apiGet, apiPost, apiPut, apiDelete, ensureFreshSession } from '../utils/api';
 import { useToast } from './Toast';
 
 // Get today's date in local timezone (NOT UTC)
@@ -750,6 +750,19 @@ export function FavoritesModal({ isOpen, onClose, mealType, clientData, onFoodLo
         foodSource: 'favorite'
       });
 
+      // Bump this favorite to the top ("most recently used"). Non-critical:
+      // the diary entry is already saved, so failure here just means the
+      // order won't update — never surface an error for it.
+      apiPut('/.netlify/functions/toggle-favorite', { favoriteId: favorite.id }).catch(() => {});
+      const reordered = [
+        { ...favorite, last_used_at: new Date().toISOString() },
+        ...favorites.filter(f => f.id !== favorite.id)
+      ];
+      setFavorites(reordered);
+      if (clientData?.id) {
+        sessionStorage.setItem(`favorites_${clientData.id}`, JSON.stringify(reordered));
+      }
+
       onFoodLogged?.({
         calories: favorite.calories,
         protein: favorite.protein,
@@ -766,7 +779,7 @@ export function FavoritesModal({ isOpen, onClose, mealType, clientData, onFoodLo
     } finally {
       setAddingId(null);
     }
-  }, [clientData, selectedMealType, onFoodLogged, onClose, showError, showSuccess, selectedDate]);
+  }, [clientData, selectedMealType, onFoodLogged, onClose, showError, showSuccess, selectedDate, favorites]);
 
   const deleteFavorite = async (favoriteId, e) => {
     e.stopPropagation();
