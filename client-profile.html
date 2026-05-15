@@ -8632,7 +8632,7 @@
                 <h2 class="ai-assistant-title">🤖 AI Coach Assistant</h2>
             </div>
             <p class="ai-assistant-description">
-                Ask questions about your client's nutrition data and get instant AI-powered insights.
+                Ask anything about your client — nutrition, weigh-ins, workouts, sets &amp; reps, plateaus, injuries, check-ins, their questionnaire and goals. It's all connected.
             </p>
 
             <!-- Time Period Selector -->
@@ -8649,16 +8649,20 @@
 
             <!-- Quick Question Buttons -->
             <div class="ai-quick-questions">
-                <button class="ai-quick-btn" onclick="askQuickQuestion('How is my client doing with their calorie goals?')">Calorie Progress</button>
-                <button class="ai-quick-btn" onclick="askQuickQuestion('Is my client getting enough protein?')">Protein Check</button>
-                <button class="ai-quick-btn" onclick="askQuickQuestion('What patterns do you see in their eating habits?')">Eating Patterns</button>
-                <button class="ai-quick-btn" onclick="askQuickQuestion('What recommendations do you have for this client?')">Recommendations</button>
+                <button class="ai-quick-btn" onclick="askQuickQuestion('Give me a full progress overview for this client across nutrition, training, weight and check-ins.')">Full Progress Review</button>
+                <button class="ai-quick-btn" onclick="askQuickQuestion('How is their weight and body composition trending? Are they on track for their goal?')">Weigh-In Trend</button>
+                <button class="ai-quick-btn" onclick="askQuickQuestion('How is their training going? Look at workouts, sets, reps and strength progression.')">Training &amp; Strength</button>
+                <button class="ai-quick-btn" onclick="askQuickQuestion('Are there any plateaus or stalled lifts? Connect it to their nutrition and training volume.')">Plateau Check</button>
+                <button class="ai-quick-btn" onclick="askQuickQuestion('How is my client doing with their calorie and macro goals?')">Nutrition</button>
+                <button class="ai-quick-btn" onclick="askQuickQuestion('Summarize their recent check-ins — energy, sleep, stress, adherence, wins and challenges.')">Check-In &amp; Wellness</button>
+                <button class="ai-quick-btn" onclick="askQuickQuestion('Any injuries, health concerns or limitations I should account for, and how should I adjust their plan?')">Injuries &amp; Concerns</button>
+                <button class="ai-quick-btn" onclick="askQuickQuestion('Based on everything, what should I focus on with this client and what action do they need from me?')">What Should I Do?</button>
             </div>
 
             <!-- Custom Question Input -->
             <div class="ai-input-container">
                 <textarea id="aiCoachQuestion"
-                    placeholder="Ask anything about your client's diet... e.g., 'Are they eating enough vegetables?' or 'How can they increase protein?'"
+                    placeholder="Ask anything about your client... e.g., 'Why has their bench press stalled?', 'Is their weight loss on track?', or 'Should I adjust their plan around their knee injury?'"
                     rows="2"></textarea>
                 <button type="button" class="vtt-mic-btn" title="Voice input" onclick="VoiceToText.toggle(document.getElementById('aiCoachQuestion'), this)">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
