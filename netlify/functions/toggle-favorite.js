@@ -11,7 +11,7 @@ exports.handler = async (event, context) => {
             headers: {
                 'Access-Control-Allow-Origin': '*',
                 'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-                'Access-Control-Allow-Methods': 'POST, GET, DELETE, OPTIONS'
+                'Access-Control-Allow-Methods': 'POST, GET, PUT, DELETE, OPTIONS'
             },
             body: ''
         };
@@ -35,10 +35,17 @@ exports.handler = async (event, context) => {
             const { data: favorites, error } = await supabase
                 .from('meal_favorites')
                 .select('*')
-                .eq('client_id', clientId)
-                .order('created_at', { ascending: false });
+                .eq('client_id', clientId);
 
             if (error) throw error;
+
+            // Most recently used first; fall back to creation time for
+            // favorites that have never been logged to the diary yet.
+            const sorted = (favorites || []).slice().sort((a, b) => {
+                const aTime = new Date(a.last_used_at || a.created_at).getTime();
+                const bTime = new Date(b.last_used_at || b.created_at).getTime();
+                return bTime - aTime;
+            });
 
             return {
                 statusCode: 200,
@@ -46,7 +53,7 @@ exports.handler = async (event, context) => {
                     'Access-Control-Allow-Origin': '*',
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ favorites: favorites || [] })
+                body: JSON.stringify({ favorites: sorted })
             };
 
         } catch (error) {
@@ -156,6 +163,51 @@ exports.handler = async (event, context) => {
                 statusCode: 500,
                 headers: { 'Access-Control-Allow-Origin': '*' },
                 body: JSON.stringify({ error: 'Failed to toggle favorite' })
+            };
+        }
+    }
+
+    // PUT - Mark a favorite as just used (bumps it to the top of the list)
+    if (event.httpMethod === 'PUT') {
+        try {
+            const body = JSON.parse(event.body || '{}');
+            const favoriteId = body.favoriteId;
+
+            if (!favoriteId) {
+                return {
+                    statusCode: 400,
+                    headers: { 'Access-Control-Allow-Origin': '*' },
+                    body: JSON.stringify({ error: 'Favorite ID is required' })
+                };
+            }
+
+            const { error } = await supabase
+                .from('meal_favorites')
+                .update({ last_used_at: new Date().toISOString() })
+                .eq('id', favoriteId);
+
+            // Ordering is a non-critical enhancement: if the column is missing
+            // on an older deployment, succeed silently rather than break the
+            // diary-logging flow that triggered this call.
+            if (error && !/column .* (does not exist|could not be found)/i.test(error.message || '')) {
+                throw error;
+            }
+
+            return {
+                statusCode: 200,
+                headers: {
+                    'Access-Control-Allow-Origin': '*',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ message: 'Favorite usage updated' })
+            };
+
+        } catch (error) {
+            console.error('Error updating favorite usage:', error);
+            return {
+                statusCode: 500,
+                headers: { 'Access-Control-Allow-Origin': '*' },
+                body: JSON.stringify({ error: 'Failed to update favorite usage' })
             };
         }
     }
