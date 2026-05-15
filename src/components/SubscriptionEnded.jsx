@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { Lock, LogOut } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useBranding } from '../context/BrandingContext';
 
 /**
  * Soft lock screen shown when the coach has set the client's
@@ -9,16 +10,37 @@ import { useAuth } from '../context/AuthContext';
  * implying the coach personally cut the client off. Client can reach
  * /my-billing and /settings; everything else is hidden until the coach
  * resumes them.
+ *
+ * Colors: the card is always white (so the lock screen reads clearly
+ * regardless of the client's light/dark theme), and the lock icon +
+ * primary button pick up the coach's brand_primary_color so a branded
+ * coach's lock screen still looks like their app. Title/body/secondary
+ * colors are hard-coded dark so they don't follow `--gray-*` vars that
+ * flip to white in dark mode — that's the white-on-white bug we hit.
  */
+function hexToRgba(hex, alpha) {
+  if (!hex || typeof hex !== 'string' || !hex.startsWith('#')) return `rgba(44, 181, 165, ${alpha})`;
+  let h = hex.slice(1);
+  if (h.length === 3) h = h.split('').map(c => c + c).join('');
+  if (h.length !== 6) return `rgba(44, 181, 165, ${alpha})`;
+  const r = parseInt(h.substring(0, 2), 16);
+  const g = parseInt(h.substring(2, 4), 16);
+  const b = parseInt(h.substring(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
 export default function SubscriptionEnded() {
   const navigate = useNavigate();
   const { logout } = useAuth();
+  const { branding } = useBranding();
+  const brandColor = branding?.brand_primary_color || '#2cb5a5';
+  const iconBg = hexToRgba(brandColor, 0.15);
 
   return (
     <div style={styles.page}>
       <div style={styles.card}>
-        <div style={styles.iconWrap}>
-          <Lock size={28} color="#3730a3" />
+        <div style={{ ...styles.iconWrap, background: iconBg }}>
+          <Lock size={28} color={brandColor} />
         </div>
         <h2 style={styles.title}>Your account is on hold</h2>
         <p style={styles.body}>
@@ -27,7 +49,7 @@ export default function SubscriptionEnded() {
           Please reach out to your coach to get reconnected.
         </p>
         <button
-          style={styles.primaryBtn}
+          style={{ ...styles.primaryBtn, background: brandColor }}
           onClick={() => navigate('/my-billing')}
         >
           View Billing
@@ -61,7 +83,6 @@ const styles = {
   iconWrap: {
     width: 64,
     height: 64,
-    background: '#e0e7ff',
     borderRadius: '50%',
     display: 'flex',
     alignItems: 'center',
@@ -71,13 +92,13 @@ const styles = {
   title: {
     fontSize: 22,
     fontWeight: 700,
-    color: 'var(--gray-900, #0f172a)',
+    color: '#0f172a',
     margin: '0 0 12px'
   },
   body: {
     fontSize: 15,
     lineHeight: 1.5,
-    color: 'var(--gray-600, #475569)',
+    color: '#475569',
     margin: '0 0 28px'
   },
   primaryBtn: {
@@ -87,7 +108,6 @@ const styles = {
     fontSize: 15,
     fontWeight: 600,
     color: 'white',
-    background: 'var(--brand-primary, #ec4899)',
     border: 'none',
     borderRadius: 10,
     cursor: 'pointer',
@@ -100,7 +120,7 @@ const styles = {
     gap: 6,
     background: 'none',
     border: 'none',
-    color: 'var(--gray-500, #64748b)',
+    color: '#64748b',
     fontSize: 13,
     cursor: 'pointer',
     padding: 8
