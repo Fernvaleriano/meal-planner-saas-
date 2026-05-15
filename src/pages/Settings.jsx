@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { useBranding } from '../context/BrandingContext';
-import { Moon, Camera, Lock, LogOut, ChevronRight, Loader, Users, Scale, User, Utensils, Edit3, X, Palette, Droplets, CreditCard } from 'lucide-react';
+import { useBranding, DEFAULT_TUTORIAL_VIDEO_URL } from '../context/BrandingContext';
+import { Moon, Camera, Lock, LogOut, ChevronRight, Loader, Users, Scale, User, Utensils, Edit3, X, Palette, Droplets, CreditCard, PlayCircle } from 'lucide-react';
 import { apiGet, apiPost, apiPut } from '../utils/api';
 import { supabase } from '../utils/supabase';
 import { usePullToRefreshEvent } from '../hooks/usePullToRefreshEvent';
@@ -28,6 +28,13 @@ function Settings() {
   const { branding } = useBranding();
   const { showError, showSuccess } = useToast();
   const isCoach = clientData?.is_coach === true;
+
+  // Coach-controlled app tutorial video: built-in default, the coach's own
+  // upload, or nothing — depending on their Branding Settings.
+  const tutorialVideoUrl = branding?.use_default_tutorial_video
+    ? DEFAULT_TUTORIAL_VIDEO_URL
+    : (branding?.custom_tutorial_video_url || null);
+  const [showTutorialModal, setShowTutorialModal] = useState(false);
 
   // Load from cache for instant display
   const cachedCoach = clientData?.coach_id ? getCache(`coach_branding_${clientData.coach_id}`) : null;
@@ -828,6 +835,25 @@ function Settings() {
         </div>
       )}
 
+      {/* Help & Support Section */}
+      {tutorialVideoUrl && (
+        <div className="settings-card">
+          <div className="settings-card-title">HELP &amp; SUPPORT</div>
+          <div className="settings-item clickable" onClick={() => setShowTutorialModal(true)}>
+            <div className="settings-item-left">
+              <div className="settings-icon-box neutral">
+                <PlayCircle size={18} />
+              </div>
+              <div className="settings-item-text">
+                <div className="settings-item-title">App Tutorial</div>
+                <div className="settings-item-subtitle">Watch a quick walkthrough of the app</div>
+              </div>
+            </div>
+            <ChevronRight size={20} className="settings-chevron" />
+          </div>
+        </div>
+      )}
+
       {/* Account Section */}
       <div className="settings-card">
         <div className="settings-card-title">ACCOUNT</div>
@@ -863,6 +889,27 @@ function Settings() {
         {branding?.brand_name || 'Ziquecoach'} &middot; v1.0
       </div>
 
+
+      {/* App Tutorial Modal */}
+      {showTutorialModal && tutorialVideoUrl && (
+        <div className="modal-overlay active" onClick={() => setShowTutorialModal(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 560, width: '100%' }}>
+            <div className="modal-header">
+              <button className="modal-close" onClick={() => setShowTutorialModal(false)}><X size={20} /></button>
+              <span style={{ fontWeight: 600 }}>App Tutorial</span>
+            </div>
+            <div className="modal-body" style={{ padding: '16px' }}>
+              <video
+                src={tutorialVideoUrl}
+                controls
+                playsInline
+                preload="metadata"
+                style={{ width: '100%', borderRadius: 12, background: '#000' }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Password Reset Modal */}
       {showPasswordModal && (

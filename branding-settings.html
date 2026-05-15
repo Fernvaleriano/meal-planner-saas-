@@ -1905,6 +1905,39 @@
                     <p class="form-hint" style="margin-top: 12px;">Clients can still toggle their own preference. This sets what they see by default.</p>
                 </div>
 
+                <!-- Client Onboarding Section -->
+                <div class="settings-section">
+                    <div class="section-header">
+                        <h2 class="section-title">
+                            <span class="section-title-icon">🎬</span>
+                            Client Onboarding
+                        </h2>
+                    </div>
+                    <p class="section-description">Show your clients a tutorial video on how to use the app. Clients find it under <strong>Settings</strong> in their app.</p>
+
+                    <label style="display:flex; align-items:flex-start; gap:12px; cursor:pointer; padding:14px; border:2px solid var(--gray-200); border-radius:12px;">
+                        <input type="checkbox" id="useDefaultTutorialVideo" onchange="onTutorialToggleChange()" style="margin-top:3px; width:18px; height:18px; flex-shrink:0;">
+                        <span>
+                            <span style="display:block; font-weight:600; color:var(--gray-800);">Use the built-in app tutorial video</span>
+                            <span style="display:block; font-size:0.8rem; color:var(--gray-500); margin-top:2px;">A ready-made walkthrough of the app for your clients.</span>
+                        </span>
+                    </label>
+
+                    <div id="customTutorialBlock" style="margin-top:16px;">
+                        <label class="form-label">Or upload your own tutorial video</label>
+                        <p class="form-hint" style="margin-bottom:10px;">MP4 or WebM. Shown to clients instead of the built-in video.</p>
+                        <input type="file" id="tutorialVideoInput" accept="video/mp4,video/webm,video/quicktime" style="display:none;" onchange="handleTutorialVideoUpload(event)">
+                        <div id="tutorialVideoPreview" style="display:none; margin-bottom:12px;">
+                            <video id="tutorialVideoPlayer" controls playsinline preload="metadata" style="width:100%; max-width:360px; border-radius:10px; background:#000;"></video>
+                        </div>
+                        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                            <button type="button" class="btn btn-secondary" onclick="document.getElementById('tutorialVideoInput').click()">Upload video</button>
+                            <button type="button" class="btn btn-secondary" id="removeTutorialVideoBtn" style="display:none;" onclick="removeTutorialVideo()">Remove</button>
+                        </div>
+                    </div>
+                    <p class="form-hint" style="margin-top:12px;" id="tutorialDisabledHint">Tutorial is currently <strong>off</strong> — clients won't see a tutorial until you enable the built-in video or upload your own.</p>
+                </div>
+
                 <!-- Email Branding Section -->
                 <div class="settings-section">
                     <div class="section-header">
@@ -2325,7 +2358,9 @@
             brand_favicon_url: null,
             brand_email_logo_url: null,
             brand_email_footer: '',
-            brand_client_theme: 'dark'
+            brand_client_theme: 'dark',
+            use_default_tutorial_video: false,
+            custom_tutorial_video_url: null
         };
 
         // Map advanced color picker IDs → state fields + theme-aware fallback values
@@ -2428,7 +2463,9 @@
                     brand_favicon_url: coach.brand_favicon_url || null,
                     brand_email_logo_url: coach.brand_email_logo_url || null,
                     brand_email_footer: coach.brand_email_footer || '',
-                    brand_client_theme: coach.brand_client_theme || 'dark'
+                    brand_client_theme: coach.brand_client_theme || 'dark',
+                    use_default_tutorial_video: coach.use_default_tutorial_video === true,
+                    custom_tutorial_video_url: coach.custom_tutorial_video_url || null
                 };
 
                 originalBranding = { ...currentBranding };
@@ -2462,6 +2499,9 @@
 
                 // Update client theme selector
                 setClientThemeSelection(currentBranding.brand_client_theme);
+
+                // Update tutorial video controls
+                syncTutorialUI();
 
                 // Update preview
                 updatePreview();
@@ -2968,6 +3008,8 @@
                     brand_text_color:           surfaceOrNull(currentBranding.brand_text_color),
                     brand_text_secondary_color: surfaceOrNull(currentBranding.brand_text_secondary_color),
                     brand_email_footer: currentBranding.brand_email_footer || null,
+                    use_default_tutorial_video: !!currentBranding.use_default_tutorial_video,
+                    custom_tutorial_video_url: currentBranding.custom_tutorial_video_url || null,
                     branding_updated_at: new Date().toISOString()
                 };
 
@@ -3021,7 +3063,9 @@
                 brand_favicon_url: null,
                 brand_email_logo_url: null,
                 brand_email_footer: '',
-                brand_client_theme: 'dark'
+                brand_client_theme: 'dark',
+                use_default_tutorial_video: false,
+                custom_tutorial_video_url: null
             };
 
             // Update form
@@ -3044,9 +3088,119 @@
             updateLogoPreview('logo', null);
             updateLogoPreview('favicon', null);
             updateLogoPreview('email_logo', null);
+            syncTutorialUI();
 
             updatePreview();
             markChanged();
+        }
+
+        // Tutorial video (client onboarding)
+        function syncTutorialUI() {
+            const useDefault = !!currentBranding.use_default_tutorial_video;
+            const customUrl = currentBranding.custom_tutorial_video_url || null;
+
+            const cb = document.getElementById('useDefaultTutorialVideo');
+            if (cb) cb.checked = useDefault;
+
+            const block = document.getElementById('customTutorialBlock');
+            if (block) block.style.display = useDefault ? 'none' : 'block';
+
+            const preview = document.getElementById('tutorialVideoPreview');
+            const player = document.getElementById('tutorialVideoPlayer');
+            const removeBtn = document.getElementById('removeTutorialVideoBtn');
+            if (customUrl) {
+                if (player && player.src !== customUrl) player.src = customUrl;
+                if (preview) preview.style.display = 'block';
+                if (removeBtn) removeBtn.style.display = 'inline-flex';
+            } else {
+                if (player) player.removeAttribute('src');
+                if (preview) preview.style.display = 'none';
+                if (removeBtn) removeBtn.style.display = 'none';
+            }
+
+            const hint = document.getElementById('tutorialDisabledHint');
+            if (hint) hint.style.display = (!useDefault && !customUrl) ? 'block' : 'none';
+        }
+
+        function onTutorialToggleChange() {
+            const cb = document.getElementById('useDefaultTutorialVideo');
+            currentBranding.use_default_tutorial_video = !!(cb && cb.checked);
+            syncTutorialUI();
+            markChanged();
+        }
+
+        async function handleTutorialVideoUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            showLoading(true);
+
+            try {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                if (!session) throw new Error('Not authenticated');
+
+                const coachId = session.user.id;
+                const ext = (file.name.split('.').pop() || 'mp4').toLowerCase();
+                const filePath = `tutorial-videos/${coachId}/tutorial.${ext}`;
+
+                const { error: uploadError } = await supabaseClient.storage
+                    .from('assets')
+                    .upload(filePath, file, { upsert: true, contentType: file.type });
+
+                if (uploadError) throw uploadError;
+
+                const { data: urlData } = supabaseClient.storage
+                    .from('assets')
+                    .getPublicUrl(filePath);
+
+                const videoUrl = urlData.publicUrl + '?t=' + Date.now();
+
+                const { error: dbError } = await supabaseClient
+                    .from('coaches')
+                    .update({ custom_tutorial_video_url: videoUrl, branding_updated_at: new Date().toISOString() })
+                    .eq('id', coachId);
+
+                if (dbError) throw dbError;
+
+                currentBranding.custom_tutorial_video_url = videoUrl;
+                syncTutorialUI();
+                showToast('Tutorial video uploaded', 'success');
+
+            } catch (error) {
+                console.error('Error uploading tutorial video:', error);
+                showToast(error.message, 'error');
+            } finally {
+                showLoading(false);
+                event.target.value = '';
+            }
+        }
+
+        async function removeTutorialVideo() {
+            if (!confirm('Remove your custom tutorial video?')) return;
+
+            showLoading(true);
+
+            try {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                if (!session) throw new Error('Not authenticated');
+
+                const { error } = await supabaseClient
+                    .from('coaches')
+                    .update({ custom_tutorial_video_url: null, branding_updated_at: new Date().toISOString() })
+                    .eq('id', session.user.id);
+
+                if (error) throw error;
+
+                currentBranding.custom_tutorial_video_url = null;
+                syncTutorialUI();
+                showToast('Tutorial video removed', 'success');
+
+            } catch (error) {
+                console.error('Error removing tutorial video:', error);
+                showToast(error.message, 'error');
+            } finally {
+                showLoading(false);
+            }
         }
 
         // Email preview
