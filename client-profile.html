@@ -12490,6 +12490,11 @@
 
                 displayGymProofs(data.streak || 0);
                 displayBadges();
+                // Gym check-ins count as effort on the calendar — re-render so
+                // their green dots appear once this data lands (load order race).
+                if (typeof acRenderCalendar === 'function' && document.getElementById('acCalendarGrid')) {
+                    acRenderCalendar();
+                }
             } catch (error) {
                 console.error('Error loading gym proofs:', error);
                 document.getElementById('gymProofsContainer').innerHTML = `
@@ -13273,7 +13278,7 @@
         let acCurrentYear = new Date().getFullYear();
         let acSelectedDate = null;
         let acAssignmentCache = {}; // { 'YYYY-MM-DD': [{ dayName, exerciseCount }] }
-        let acWorkoutLogsCache = {}; // { 'YYYY-MM-DD': 'completed' | 'in_progress' | 'skipped' }
+        let acWorkoutLogsCache = {}; // { 'YYYY-MM-DD': { status, hasLogs, logId, setCount, completedSets, completedExercises } }
         let acCurrentAssignment = null;
         let acExercisesCache = [];
         let acExerciseMetaById = {}; // id -> { thumbnail_url, animation_url, video_url, muscle_group, equipment }
@@ -13581,15 +13586,95 @@
             acSelectDay(today);
         }
 
+        // Sum logged set entries across a feed workout's exercises, counting how
+        // many sets were completed and how many exercises had >=1 completed set.
+        // setsData may arrive as a JSON string.
+        function acComputeSetQuality(w) {
+            let total = 0, completed = 0, completedExercises = 0;
+            const exs = (w && Array.isArray(w.exercises)) ? w.exercises : [];
+            exs.forEach(ex => {
+                let sd = ex && ex.setsData;
+                if (typeof sd === 'string') { try { sd = JSON.parse(sd); } catch (e) { sd = []; } }
+                if (!Array.isArray(sd)) sd = [];
+                let exHasCompleted = false;
+                sd.forEach(s => {
+                    total++;
+                    if (s && (s.completed || s._completed)) { completed++; exHasCompleted = true; }
+                });
+                if (exHasCompleted) completedExercises++;
+            });
+            return { total, completed, completedExercises };
+        }
+
+        // True when the client has a gym check-in photo on this date.
+        function acHasGymCheckin(dateStr) {
+            return Array.isArray(gymProofs) && gymProofs.some(p => p && p.proof_date === dateStr);
+        }
+
+        // Shared effort test for a single feed workout (used by weekly summary
+        // and history). A log shows effort when it is NOT skipped AND has at
+        // least one recorded set OR at least one checked-off exercise.
+        function cpWorkoutHasEffort(w) {
+            if (!w || w.status === 'skipped') return false;
+            const q = acComputeSetQuality(w);
+            return q.total > 0 || q.completedExercises > 0;
+        }
+
+        // Coaching philosophy: ANY evidence of effort = worked out. A day counts
+        // when a gym check-in exists, OR a non-skipped log has >=1 set, OR a
+        // non-skipped log has >=1 checked-off exercise. Only excluded: skipped,
+        // no log at all, or a log with 0 sets AND 0 completed exercises.
+        function acIsWorkedOut(entry, checkinExists) {
+            if (checkinExists) return true;
+            if (!entry || !entry.hasLogs || entry.status === 'skipped') return false;
+            return (entry.setCount > 0) || (entry.completedExercises > 0);
+        }
+
+        // Hover/tooltip text describing the evidence behind a calendar day.
+        function acWorkoutQualityLabel(entry, checkinExists) {
+            const hasLog = !!(entry && entry.hasLogs);
+            if (!hasLog && !checkinExists) return '';
+            if (hasLog && entry.status === 'skipped' && !checkinExists) return 'Workout skipped';
+
+            let logMsg = '';
+            if (hasLog && entry.status !== 'skipped') {
+                if (entry.setCount > 0) {
+                    const pct = Math.round((entry.completedSets / entry.setCount) * 100);
+                    logMsg = `${pct}% of sets completed (${entry.completedSets}/${entry.setCount} sets)`;
+                } else if (entry.completedExercises > 0) {
+                    logMsg = `${entry.completedExercises} exercise${entry.completedExercises === 1 ? '' : 's'} checked off`;
+                }
+            }
+
+            if (checkinExists && logMsg) return `Gym check-in + ${logMsg}`;
+            if (checkinExists) return 'Gym check-in recorded';
+            if (logMsg) return logMsg;
+            return 'Logged but no sets recorded';
+        }
+
         function acRenderCellLabels(dateStr) {
             const entries = acAssignmentCache[dateStr];
-            if (!entries || entries.length === 0) return '';
-            const isDone = !!acWorkoutLogsCache[dateStr];
+            const logEntry = acWorkoutLogsCache[dateStr];
+            const checkinExists = acHasGymCheckin(dateStr);
+            const hasEntries = entries && entries.length > 0;
+
+            // No assigned/adhoc workout, but a gym check-in still counts as effort.
+            if (!hasEntries) {
+                if (checkinExists) {
+                    const tip = acWorkoutQualityLabel(logEntry, true);
+                    return `<div class="ac-cell-workouts"><div class="ac-cell-label" title="${escapeHtml(tip)}"><span class="ac-cell-dot done"></span><span class="ac-cell-label-text">Gym check-in</span></div></div>`;
+                }
+                return '';
+            }
+
+            const isDone = acIsWorkedOut(logEntry, checkinExists);
             const dotClass = isDone ? 'done' : 'pending';
+            const tip = acWorkoutQualityLabel(logEntry, checkinExists);
+            const titleAttr = tip ? ` title="${escapeHtml(tip)}"` : '';
             let html = '<div class="ac-cell-workouts">';
             for (const entry of entries) {
                 const label = entry.dayName || 'Workout';
-                html += `<div class="ac-cell-label"><span class="ac-cell-dot ${dotClass}"></span><span class="ac-cell-label-text">${escapeHtml(label)}</span></div>`;
+                html += `<div class="ac-cell-label"${titleAttr}><span class="ac-cell-dot ${dotClass}"></span><span class="ac-cell-label-text">${escapeHtml(label)}</span></div>`;
             }
             html += '</div>';
             return html;
@@ -13750,7 +13835,28 @@
                 const feed = feedCache.feed || [];
                 acWorkoutLogsCache = {};
                 feed.forEach(w => {
-                    if (w.workoutDate) acWorkoutLogsCache[w.workoutDate] = w.status || 'completed';
+                    if (!w.workoutDate) return;
+                    const q = acComputeSetQuality(w);
+                    const prev = acWorkoutLogsCache[w.workoutDate];
+                    const entry = {
+                        status: w.status || 'completed',
+                        hasLogs: true,
+                        logId: w.id,
+                        setCount: q.total,
+                        completedSets: q.completed,
+                        completedExercises: q.completedExercises
+                    };
+                    // Multiple logs on one date: merge set totals and keep the
+                    // "best" status so a single skipped log can't mask real effort.
+                    if (prev) {
+                        entry.setCount += prev.setCount;
+                        entry.completedSets += prev.completedSets;
+                        entry.completedExercises += prev.completedExercises;
+                        if (prev.status !== 'skipped' && entry.status === 'skipped') {
+                            entry.status = prev.status;
+                        }
+                    }
+                    acWorkoutLogsCache[w.workoutDate] = entry;
                 });
 
                 try {
@@ -16148,8 +16254,9 @@
             }
 
             // Workout streak (consecutive days from today backwards with a logged workout)
-            const workoutDates = new Set(workouts.map(w => w.workoutDate));
-            const allDates = new Set(allFeedWorkouts.map(w => w.workoutDate));
+            const cpCheckinDates = (Array.isArray(gymProofs) ? gymProofs : []).map(p => p && p.proof_date).filter(Boolean);
+            const workoutDates = new Set([...workouts.filter(cpWorkoutHasEffort).map(w => w.workoutDate), ...cpCheckinDates]);
+            const allDates = new Set([...allFeedWorkouts.filter(cpWorkoutHasEffort).map(w => w.workoutDate), ...cpCheckinDates]);
             let streak = 0;
             const checkDate = new Date();
             for (let i = 0; i < 30; i++) {
@@ -16260,7 +16367,8 @@
                 const dayMap = { sun: 0, sunday: 0, mon: 1, monday: 1, tue: 2, tuesday: 2, wed: 3, wednesday: 3, thu: 4, thursday: 4, fri: 5, friday: 5, sat: 6, saturday: 6 };
                 const scheduledDayNums = scheduledDays.map(d => dayMap[d.toLowerCase()] ?? -1).filter(n => n >= 0);
 
-                const workoutDates = new Set(workouts.map(w => w.workoutDate));
+                const cpCheckinDates = (Array.isArray(gymProofs) ? gymProofs : []).map(p => p && p.proof_date).filter(Boolean);
+                const workoutDates = new Set([...workouts.filter(cpWorkoutHasEffort).map(w => w.workoutDate), ...cpCheckinDates]);
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
                 const missed = [];
@@ -18647,18 +18755,26 @@
                         ));
                     }
 
-                    // --- Workouts completed (last 7 days) ---
+                    // --- Workouts (last 7 days) — ANY evidence of effort counts ---
                     const fw = (typeof allFeedWorkouts !== 'undefined' && Array.isArray(allFeedWorkouts)) ? allFeedWorkouts : [];
-                    if (fw.length) {
+                    const gp = (typeof gymProofs !== 'undefined' && Array.isArray(gymProofs)) ? gymProofs : [];
+                    if (fw.length || gp.length) {
                         const today = new Date();
                         const recent = new Set();
                         for (let i = 0; i < 7; i++) recent.add(dayKey(new Date(today.getTime() - i * DAY_MS)));
                         const done = new Set();
                         fw.forEach(w => {
+                            if (!cpWorkoutHasEffort(w)) return;
                             const k = toDayString(w.workoutDate);
                             if (k && recent.has(k)) done.add(k);
                         });
-                        tiles.push(tile('Workouts', `${done.size} this week`, 'Completed · last 7 days'));
+                        gp.forEach(p => {
+                            const k = toDayString(p && p.proof_date);
+                            if (k && recent.has(k)) done.add(k);
+                        });
+                        if (done.size > 0) {
+                            tiles.push(tile('Workouts', `${done.size} this week`, 'Any effort · last 7 days'));
+                        }
                     }
 
                     if (!tiles.length) { el.style.display = 'none'; return; }

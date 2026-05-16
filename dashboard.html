@@ -6883,11 +6883,14 @@
                 const isoWeekAgo = weekAgo.toISOString();
 
                 // Fetch all activity types in parallel
-                const [workoutsRes, prsRes, checkinsRes, photosRes, measurementsRes] = await Promise.all([
+                const [workoutsRes, prsRes, checkinsRes, photosRes, measurementsRes, gymProofsRes] = await Promise.all([
+                    // ANY evidence of effort = win: count non-skipped logs that
+                    // have at least one recorded set (do NOT require 'completed').
                     supabaseClient.from('workout_logs')
-                        .select('id, client_id, total_volume, created_at, status, workout_date')
+                        .select('id, client_id, total_volume, total_sets, created_at, status, workout_date')
                         .in('client_id', clientIds)
-                        .eq('status', 'completed')
+                        .neq('status', 'skipped')
+                        .gt('total_sets', 0)
                         .gte('created_at', isoWeekAgo)
                         .order('created_at', { ascending: false })
                         .limit(50),
@@ -6913,6 +6916,13 @@
                         .limit(30),
                     supabaseClient.from('client_measurements')
                         .select('id, client_id, weight, weight_unit, created_at')
+                        .in('client_id', clientIds)
+                        .gte('created_at', isoWeekAgo)
+                        .order('created_at', { ascending: false })
+                        .limit(30),
+                    // Gym check-in photos are independent evidence of effort.
+                    supabaseClient.from('gym_proofs')
+                        .select('id, client_id, proof_date, created_at')
                         .in('client_id', clientIds)
                         .gte('created_at', isoWeekAgo)
                         .order('created_at', { ascending: false })
@@ -6959,6 +6969,12 @@
                         ? `${convertWeight(m.weight, m.weight_unit || 'lbs')} ${getCoachDisplayUnit()}`
                         : '';
                     events.push({ type: 'measurement', icon: '📏', label: 'Logged measurements', clientId: m.client_id, detail: wt, time: m.created_at, ts: new Date(m.created_at).getTime(), itemId: String(m.id), itemType: 'measurement' });
+                });
+
+                ((gymProofsRes && gymProofsRes.data) || []).forEach(g => {
+                    const c = _activityClientMap[g.client_id];
+                    if (!c) return;
+                    events.push({ type: 'gym_checkin', icon: '🏋️', label: 'Checked in at the gym', clientId: g.client_id, detail: '', time: g.created_at, ts: new Date(g.created_at).getTime(), itemId: String(g.id), itemType: 'gym_checkin' });
                 });
 
                 events.sort((a, b) => b.ts - a.ts);
@@ -7143,6 +7159,7 @@
                 if (counts.workout) badgesHtml += `<span class="activity-summary-badge workout">💪 ${counts.workout} workout${counts.workout > 1 ? 's' : ''}</span>`;
                 if (counts.pr) badgesHtml += `<span class="activity-summary-badge pr">🏆 ${counts.pr} PR${counts.pr > 1 ? 's' : ''}</span>`;
                 if (counts.checkin) badgesHtml += `<span class="activity-summary-badge checkin">✅ ${counts.checkin} check-in${counts.checkin > 1 ? 's' : ''}</span>`;
+                if (counts.gym_checkin) badgesHtml += `<span class="activity-summary-badge workout">🏋️ ${counts.gym_checkin} gym check-in${counts.gym_checkin > 1 ? 's' : ''}</span>`;
                 if (counts.photo) badgesHtml += `<span class="activity-summary-badge photo">📸 ${counts.photo} photo${counts.photo > 1 ? 's' : ''}</span>`;
                 if (counts.measurement) badgesHtml += `<span class="activity-summary-badge measurement">📏 measurements</span>`;
 
