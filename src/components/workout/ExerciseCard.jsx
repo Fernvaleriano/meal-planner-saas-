@@ -1144,16 +1144,25 @@ const arePropsEqual = (prev, next) => {
   if (prev.exercise?.video_url !== next.exercise?.video_url) return false;
   if (prev.exercise?.reference_links !== next.exercise?.reference_links) return false;
 
-  // Sets: compare by value for numbers, by length+reference for arrays
-  const pSets = prev.exercise?.sets;
-  const nSets = next.exercise?.sets;
-  if (Array.isArray(pSets) !== Array.isArray(nSets)) return false;
-  if (Array.isArray(pSets) && Array.isArray(nSets)) {
-    if (pSets.length !== nSets.length) return false;
-    if (pSets !== nSets) return false; // different array reference = data changed
-  } else if (pSets !== nSets) {
-    return false;
-  }
+  // Sets & setsData: compare by VALUE, not reference. ExerciseCard reads
+  // exercise.setsData as its PRIMARY display source (see initializeSets and
+  // the sync effect at the top of the component), so a comparator that ignores
+  // setsData lets a detail-modal-only edit slip through memo(): the modal's
+  // save flows back through Workouts.jsx's exercises useMemo as a new
+  // setsData, but if the .sets array reference is unchanged (the merge can
+  // return the same nested ref) memo() sees "equal", the card never
+  // re-renders, the sync effect never runs, and the outer card stays stale
+  // until a full page refresh. Card-originated edits always pass a fresh
+  // sets array so they tripped the old reference check — which is exactly
+  // why outer-card logging worked but detail-modal logging didn't.
+  // Serializing matches the JSON-compare pattern already used by the sync
+  // effect; because it returns false only on real value changes it does NOT
+  // reintroduce the render-storm this comparator was written to prevent.
+  const serializeSets = (v) => {
+    try { return JSON.stringify(v ?? null); } catch { return String(v); }
+  };
+  if (serializeSets(prev.exercise?.sets) !== serializeSets(next.exercise?.sets)) return false;
+  if (serializeSets(prev.exercise?.setsData) !== serializeSets(next.exercise?.setsData)) return false;
 
   // Non-exercise props
   if (prev.index !== next.index) return false;
