@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiGet } from '../utils/api';
+import { convertWeight } from '../utils/workoutProgression';
 import { usePullToRefreshEvent } from '../hooks/usePullToRefreshEvent';
 import CoachReactionBadge from '../components/CoachReactionBadge';
 import { useClientReactions } from '../hooks/useClientReactions';
@@ -376,6 +377,46 @@ function MiniLineChart({ data, height = 180, color = '#22998a', unit = '', allow
       </svg>
     </div>
   );
+}
+
+// Convert a fetched workout's per-set weights to the viewer's unit using each
+// set's own stored unit stamp (data is stored as-entered), then recompute the
+// per-exercise max/volume and the workout volume from the converted sets so
+// every number on the detail card is consistent and matches the editor.
+function normalizeWorkoutToViewerUnit(workout, viewerUnit) {
+  if (!workout || !Array.isArray(workout.exercises)) return workout;
+  let workoutVol = 0;
+  let anyConverted = false;
+  const exercises = workout.exercises.map((ex) => {
+    let sd = ex.sets_data;
+    if (typeof sd === 'string') {
+      try { sd = JSON.parse(sd); } catch { sd = []; }
+    }
+    if (!Array.isArray(sd) || sd.length === 0) return ex;
+    anyConverted = true;
+    let exMax = 0;
+    let exVol = 0;
+    const sets = sd.map((s) => {
+      const fromUnit = s.weightUnit || viewerUnit;
+      const w = convertWeight(Number(s.weight ?? s.actualWeight) || 0, fromUnit, viewerUnit);
+      const reps = Number(s.reps ?? s.actualReps) || 0;
+      if (w > exMax) exMax = w;
+      exVol += reps * w;
+      return { ...s, weight: w, weightUnit: viewerUnit };
+    });
+    workoutVol += exVol;
+    return {
+      ...ex,
+      sets_data: sets,
+      max_weight: Math.round(exMax * 10) / 10,
+      total_volume: Math.round(exVol * 10) / 10,
+    };
+  });
+  return {
+    ...workout,
+    exercises,
+    ...(anyConverted ? { total_volume: Math.round(workoutVol) } : {}),
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -893,17 +934,18 @@ export default function WorkoutHistory() {
 
     if (!workoutDetail) return null;
 
-    const exercises = workoutDetail.exercises || [];
+    const wd = normalizeWorkoutToViewerUnit(workoutDetail, weightUnit);
+    const exercises = wd.exercises || [];
 
     return (
       <div className="workout-history-detail-card">
         <div className="workout-history-detail-header">
           <div>
             <h3 className="workout-history-detail-title">
-              {workoutDetail.workout_name || 'Workout'}
+              {wd.workout_name || 'Workout'}
             </h3>
             <div className="workout-history-detail-date">
-              {formatFullDate(workoutDetail.workout_date)}
+              {formatFullDate(wd.workout_date)}
             </div>
           </div>
           <button
@@ -923,34 +965,34 @@ export default function WorkoutHistory() {
 
         {/* Workout metrics row */}
         <div className="workout-history-detail-metrics">
-          {workoutDetail.duration_minutes && (
+          {wd.duration_minutes && (
             <div className="workout-history-detail-metric">
               <Clock size={14} />
-              {formatDuration(workoutDetail.duration_minutes)}
+              {formatDuration(wd.duration_minutes)}
             </div>
           )}
-          {workoutDetail.total_volume > 0 && (
+          {wd.total_volume > 0 && (
             <div className="workout-history-detail-metric">
               <Dumbbell size={14} />
-              {workoutDetail.total_volume.toLocaleString()} {weightUnit}
+              {wd.total_volume.toLocaleString()} {weightUnit}
             </div>
           )}
-          {workoutDetail.total_sets > 0 && (
+          {wd.total_sets > 0 && (
             <div className="workout-history-detail-metric">
               <Target size={14} />
-              {workoutDetail.total_sets} sets
+              {wd.total_sets} sets
             </div>
           )}
-          {workoutDetail.estimated_calories > 0 && (
+          {wd.estimated_calories > 0 && (
             <div className="workout-history-detail-metric">
               <Flame size={14} />
-              {workoutDetail.estimated_calories} cal
+              {wd.estimated_calories} cal
             </div>
           )}
-          {workoutDetail.workout_rating && (
+          {wd.workout_rating && (
             <div className="workout-history-detail-metric">
               <Activity size={14} />
-              {workoutDetail.workout_rating}/10
+              {wd.workout_rating}/10
             </div>
           )}
         </div>
