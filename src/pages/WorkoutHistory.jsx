@@ -17,6 +17,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { apiGet } from '../utils/api';
 import { convertWeight } from '../utils/workoutProgression';
+import { logHasEffort } from '../utils/workoutEvidence';
 import { usePullToRefreshEvent } from '../hooks/usePullToRefreshEvent';
 import CoachReactionBadge from '../components/CoachReactionBadge';
 import { useClientReactions } from '../hooks/useClientReactions';
@@ -1044,6 +1045,7 @@ export default function WorkoutHistory() {
     const isSelected = selectedWorkoutId === workout.id;
     const category = categorizeWorkout(workout);
     const accent = PROGRAM_TYPE_COLORS[category];
+    const workedOut = logHasEffort(workout);
     return (
       <div key={workout.id}>
         <button
@@ -1057,6 +1059,13 @@ export default function WorkoutHistory() {
             </div>
             <div className="workout-history-card-name">
               {workout.workout_name || 'Workout'}
+              <span className={`workout-history-status ${workedOut ? 'worked-out' : 'missed'}`}>
+                {workedOut ? (
+                  <><Activity size={11} /> Worked out</>
+                ) : (
+                  <><X size={11} /> Missed</>
+                )}
+              </span>
             </div>
             <div className="workout-history-card-meta">
               <span>

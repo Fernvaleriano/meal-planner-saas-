@@ -18044,6 +18044,28 @@ textarea,
     border-color: rgba(255, 255, 255, 0.04);
 }
 
+/* Actual evidence of effort (logged set / checked exercise / gym check-in). */
+.week-dot.worked-out .week-dot-indicator {
+    background: rgba(16, 185, 129, 0.15);
+    border-color: rgba(16, 185, 129, 0.3);
+    color: #10b981;
+}
+
+.week-dot.worked-out .week-dot-label {
+    color: #10b981;
+}
+
+/* Past scheduled day with no evidence — clearly NOT worked out. */
+.week-dot.missed .week-dot-indicator {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: rgba(239, 68, 68, 0.25);
+    color: rgba(239, 68, 68, 0.7);
+}
+
+.week-dot.missed .week-dot-label {
+    color: rgba(239, 68, 68, 0.7);
+}
+
 .dot-rest {
     width: 6px;
     height: 6px;
@@ -34063,6 +34085,28 @@ textarea,
 
 [data-theme="light"] .workout-history-card-name {
     color: #0f172a;
+}
+
+.workout-history-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: 8px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    vertical-align: middle;
+}
+
+.workout-history-status.worked-out {
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+}
+
+.workout-history-status.missed {
+    background: rgba(239, 68, 68, 0.12);
+    color: rgba(239, 68, 68, 0.85);
 }
 
 .workout-history-card-meta {

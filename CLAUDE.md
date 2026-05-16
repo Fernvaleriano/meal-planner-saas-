@@ -86,8 +86,21 @@ When proposing a fix:
 
 ## Architecture: Standalone HTML Pages (NOT React SPA)
 
-### CRITICAL — Read This First
-The live production app is built with **standalone HTML pages**, NOT the React SPA. When making changes, **always edit the `.html` files in the project root**. Do NOT edit React components in `src/pages/` or `src/components/` unless explicitly asked.
+### POLICY UPDATE (May 2026) — CLIENT WEB APP IS NOW REACT
+**The CLIENT-facing web app has moved to the React SPA under `src/`. Do NOT
+edit the client-facing root `.html` pages anymore** (e.g. `client-profile.html`,
+`dashboard.html`, `planner.html`, `client-feed.html`, `client-intake.html`,
+`billing.html`, `view-plan.html`). Client-facing changes go in `src/` React
+code only. The frozen HTML client pages stay as-is for reference/history.
+- Client-facing change? → edit React under `src/` (e.g. `src/pages/Workouts.jsx`,
+  `src/pages/WorkoutHistory.jsx`, `src/pages/Progress.jsx`).
+- Shared "evidence of effort" logic lives in `src/utils/workoutEvidence.js`.
+- Coach-facing pages: see the rule below — unchanged for now unless stated.
+
+### CRITICAL — Read This First (COACH pages)
+The coach-facing tooling is still built with **standalone HTML pages**. For
+COACH-facing changes, **edit the coach `.html` files in the project root**. Do
+NOT edit React components for coach features unless explicitly asked.
 
 ### Live Coach-Facing Pages (root `.html` files)
 These are what coaches and clients actually use at `ziquefitnessnutrition.com`:
