@@ -13277,7 +13277,7 @@
             if (!el) {
                 el = document.createElement('div');
                 el.id = 'acToast';
-                el.style.cssText = 'position:fixed;left:50%;bottom:24px;'
+                el.style.cssText = 'position:fixed;left:50%;top:24px;'
                   + 'transform:translateX(-50%);z-index:99999;padding:10px 18px;'
                   + 'border-radius:10px;font:600 13px/1 system-ui;color:#fff;'
                   + 'box-shadow:0 6px 20px rgba(0,0,0,.25);opacity:0;'
@@ -14522,7 +14522,27 @@
                         }
                     } catch (_) { /* fall through to authoritative refetch */ }
                     acToast('Saved');
-                    acSelectDay(dateStr); // authoritative reconcile (now parallelized)
+                    // Authoritative reconcile WITHOUT moving the page. The
+                    // detail panel was just re-rendered with correct data;
+                    // acSelectDay() swaps in a loading spinner which would
+                    // collapse the (often tall) panel and make the page
+                    // appear to jump down to the sections below the calendar
+                    // (e.g. "Gym Check-ins"). Freeze the panel height across
+                    // the reconcile and pin the scroll position so nothing
+                    // moves; release once the fresh content has rendered.
+                    const acReconcileBody = document.getElementById('acDetailBody');
+                    const acLockedH = acReconcileBody ? acReconcileBody.offsetHeight : 0;
+                    const acPrevMinH = acReconcileBody ? acReconcileBody.style.minHeight : '';
+                    if (acReconcileBody && acLockedH > 0) {
+                        acReconcileBody.style.minHeight = acLockedH + 'px';
+                    }
+                    const acPrevScrollY = window.scrollY;
+                    Promise.resolve(acSelectDay(dateStr)).finally(() => {
+                        if (acReconcileBody) acReconcileBody.style.minHeight = acPrevMinH;
+                        if (window.scrollY !== acPrevScrollY) {
+                            window.scrollTo(0, acPrevScrollY);
+                        }
+                    });
                 }
             } catch (err) {
                 console.error('[acSave] FAILED:', err);
