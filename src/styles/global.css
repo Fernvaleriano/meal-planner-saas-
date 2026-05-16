@@ -26117,7 +26117,8 @@ textarea,
 /* Activity Progress Bar at Bottom */
 .activity-progress-bar {
     background: #1a1a1a;
-    padding: 12px 16px;
+    padding: 14px 16px;
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 14px);
     display: flex;
     align-items: center;
     gap: 12px;
@@ -26132,7 +26133,7 @@ textarea,
 
 .activity-thumbnails {
     display: flex;
-    gap: 6px;
+    gap: 8px;
     flex: 1;
     overflow-x: auto;
     scrollbar-width: none;
@@ -26143,9 +26144,9 @@ textarea,
 }
 
 .activity-thumb {
-    width: 40px;
-    height: 40px;
-    border-radius: 6px;
+    width: 64px;
+    height: 64px;
+    border-radius: 8px;
     overflow: hidden;
     flex-shrink: 0;
     background: #2a2a2a;
