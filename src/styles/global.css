@@ -36046,19 +36046,34 @@ textarea,
 [data-theme="light"] .coach-metric.pace { color: #0891b2; background: rgba(8, 145, 178, 0.12); }
 [data-theme="light"] .coach-metric.incline { color: #059669; background: rgba(5, 150, 105, 0.12); }
 
-/* Exercise thumbnail */
+/* Immersive workout stage — the video is the large base layer; the timer
+   ring is overlaid on top of it (see .guided-timer-area:has rule below).
+   No fixed height: height follows the square video, and any in-flow input
+   (reps/weight, rest logging) grows the stage naturally below the video.
+   Mobile-first fluid sizing, capped so it doesn't get huge on desktop. */
+.guided-stage {
+    position: relative;
+    width: min(88vw, 70vh, 460px);
+    margin: 12px auto 4px;
+    flex-shrink: 0;
+}
+
+/* Exercise thumbnail / immersive video */
 .guided-exercise-visual {
     display: flex;
     justify-content: center;
-    padding: 12px 24px;
+    align-items: center;
+    padding: 0;
+    width: 100%;
+    aspect-ratio: 1 / 1;
     flex-shrink: 0;
 }
 
 .guided-exercise-visual .smart-thumbnail,
 .guided-exercise-visual .guided-thumbnail {
-    width: 140px;
-    height: 140px;
-    border-radius: 20px;
+    width: 100%;
+    height: 100%;
+    border-radius: 24px;
     overflow: hidden;
     background: rgba(255,255,255,0.05);
 }
@@ -36072,10 +36087,10 @@ textarea,
 /* Thumbnail wrapper with play hint */
 .guided-thumbnail-wrapper {
     position: relative;
-    width: 140px;
-    height: 140px;
+    width: 100%;
+    height: 100%;
     cursor: pointer;
-    border-radius: 20px;
+    border-radius: 24px;
     overflow: hidden;
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.06);
 }
@@ -36115,12 +36130,13 @@ textarea,
     background: rgba(59, 130, 246, 0.8);
 }
 
-/* Inline video player */
+/* Immersive inline video player — fills the stage; object-fit:contain so the
+   trainer is always fully visible (never cropped). */
 .guided-video-container {
     position: relative;
-    width: 220px;
-    height: 220px;
-    border-radius: 20px;
+    width: 100%;
+    height: 100%;
+    border-radius: 24px;
     overflow: hidden;
     background: #000;
     cursor: pointer;
@@ -36130,6 +36146,19 @@ textarea,
     width: 100%;
     height: 100%;
     object-fit: contain;
+}
+
+/* Soft vignette so the overlaid ring + countdown stay legible over a busy
+   video without hiding the trainer (cheap gradient — no backdrop-filter, so
+   no per-frame compositing cost over the playing <video>). */
+.guided-video-container::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(ellipse at center,
+        rgba(0,0,0,0) 45%, rgba(0,0,0,0.28) 100%);
+    z-index: 1;
 }
 
 .guided-video-close {
@@ -36185,6 +36214,52 @@ textarea,
     min-height: 200px;
 }
 
+/* When the timer area holds a RING (get-ready / timed / rep-countdown), lift
+   it out of flow and lay it directly over the immersive video, dead-centre.
+   pointer-events:none means taps fall through to the video (toggle) and to
+   the video's close + unmute buttons underneath, so no control is blocked.
+   min-height:0 + inset:0 means it contributes ZERO extra height, keeping the
+   video large and the controls/footer exactly where they were.
+   When the slot instead holds .guided-input-area (reps/weight) or the
+   rest-logging form it is NOT matched here, so it stays in normal flow
+   below the video — existing behaviour, no regression. */
+.guided-stage .guided-timer-area:has(.guided-timer-circle) {
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    padding: 0;
+    min-height: 0;
+    pointer-events: none;
+    z-index: 3;
+}
+
+/* Scale the ring relative to the immersive card and keep the countdown
+   readable over video with a cheap radial scrim + text-shadow. */
+.guided-stage .guided-timer-area:has(.guided-timer-circle) .guided-timer-circle {
+    width: min(64%, 260px);
+    height: min(64%, 260px);
+}
+
+.guided-stage .guided-timer-area:has(.guided-timer-circle) .guided-timer-track {
+    stroke: rgba(255, 255, 255, 0.22);
+}
+
+.guided-stage .guided-timer-area:has(.guided-timer-circle) .guided-timer-text {
+    text-shadow: 0 1px 6px rgba(0, 0, 0, 0.65);
+    z-index: 0; /* scope the ::before scrim (z-index:-1) above the video/ring but behind the text */
+}
+
+.guided-stage .guided-timer-area:has(.guided-timer-circle) .guided-timer-text::before {
+    content: '';
+    position: absolute;
+    inset: -22px -34px;
+    border-radius: 50%;
+    background: radial-gradient(circle,
+        rgba(0,0,0,0.5) 0%, rgba(0,0,0,0) 70%);
+    z-index: -1;
+    pointer-events: none;
+}
+
 .guided-rest-timer-bg {
     display: flex;
     align-items: center;
@@ -36200,12 +36275,13 @@ textarea,
     background: linear-gradient(135deg, #f0fdf4 0%, #e0f2fe 100%);
 }
 
-/* Transition rest: next exercise video preview behind timer */
+/* Transition rest: next exercise video preview behind timer — fills the
+   immersive stage like the active-exercise video for visual consistency. */
 .guided-rest-video-preview {
     position: relative;
-    width: 220px;
-    height: 220px;
-    border-radius: 20px;
+    width: 100%;
+    height: 100%;
+    border-radius: 24px;
     overflow: hidden;
     background: #000;
 }

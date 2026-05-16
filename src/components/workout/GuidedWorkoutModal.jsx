@@ -3634,6 +3634,15 @@ function GuidedWorkoutModal({
 
       </div>
 
+      {/* Immersive workout stage: the large video sits as the base layer and
+          the timer ring is overlaid on top of it. The ring slot is pulled out
+          of normal flow (absolute, pointer-events:none) ONLY when it holds a
+          ring, so the video stays large and taps still reach the video / its
+          close+unmute buttons. When the slot holds the reps/weight or
+          rest-logging input it stays in normal flow below the video. The
+          controls row and the ACTIVITY footer are siblings AFTER this wrapper,
+          so they are never overlapped and keep their own touch targets. */}
+      <div className="guided-stage">
       {/* Exercise thumbnail / video player — during rest, show timer here instead */}
       <div className="guided-exercise-visual" onClick={() => {
         if (phase === 'rest') return; // Don't toggle video during rest
@@ -4007,6 +4016,8 @@ function GuidedWorkoutModal({
           </div>
         )}
       </div>
+      </div>{/* End guided-stage — controls + set dots + ACTIVITY footer stay
+              full-width siblings AFTER this, never overlapped by the video. */}
 
       {/* Set dots (round dots in superset mode) */}
       <div className="guided-set-dots">
