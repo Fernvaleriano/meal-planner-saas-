@@ -194,6 +194,93 @@
             border: none;
         }
 
+        /* At-a-glance coach summary (weight trend, check-in streak, last check-in, workouts) */
+        .client-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+            gap: 14px;
+            margin-bottom: 20px;
+        }
+
+        .cs-tile {
+            position: relative;
+            padding: 16px 16px 14px 20px;
+            background: linear-gradient(135deg, #ffffff 0%, var(--gray-50, #f8fafc) 100%);
+            border: 1px solid var(--gray-100, #f1f5f9);
+            border-radius: 14px;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+        }
+
+        .cs-tile::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            border-radius: 14px 0 0 14px;
+            background: linear-gradient(180deg, var(--brand-primary, #2dd4bf), var(--brand-secondary, #14b8a6));
+        }
+
+        .cs-tile.cs-warn::before {
+            background: linear-gradient(180deg, #f59e0b, #ef4444);
+        }
+
+        .cs-label {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--gray-500, #64748b);
+            margin-bottom: 6px;
+        }
+
+        .cs-value {
+            font-size: 22px;
+            font-weight: 800;
+            color: var(--gray-900, #0f172a);
+            line-height: 1.15;
+        }
+
+        .cs-sub {
+            margin-top: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--gray-500, #64748b);
+        }
+
+        .cs-trend.down,
+        .cs-trend.good { color: #22c55e; }
+        .cs-trend.up,
+        .cs-trend.bad { color: #ef4444; }
+        .cs-trend.flat { color: var(--gray-500, #64748b); }
+
+        .cs-flag {
+            display: inline-block;
+            margin-top: 6px;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 700;
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .cs-flag.cs-flag-danger {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        [data-theme="dark"] .cs-tile {
+            background: var(--card-bg, #1e293b);
+            border-color: var(--border-color, #334155);
+        }
+
+        [data-theme="dark"] .cs-value { color: var(--text-primary, #f1f5f9); }
+
+        [data-theme="dark"] .cs-label,
+        [data-theme="dark"] .cs-sub { color: var(--text-secondary, #94a3b8); }
+
         .stat-item {
             position: relative;
             text-align: left;
@@ -8349,6 +8436,7 @@
                 </div>
             </div>
             <div class="client-stats" id="clientStats"></div>
+            <div class="client-summary" id="clientSummaryCard" style="display:none;"></div>
 
             <!-- Reminder Status Section -->
             <div class="reminder-status-section" id="reminderStatusSection" style="display: none;">
@@ -9300,10 +9388,10 @@
             <div class="checkins-header collapsible-header" onclick="toggleSection('checkins')" style="cursor: pointer;">
                 <h2 class="checkins-title">📝 Check-ins</h2>
                 <button class="section-toggle-btn" type="button">
-                    <span class="toggle-icon collapsed" id="checkinsToggleIcon">▼</span>
+                    <span class="toggle-icon" id="checkinsToggleIcon">▼</span>
                 </button>
             </div>
-            <div id="checkinsContent" class="collapsible-content collapsed">
+            <div id="checkinsContent" class="collapsible-content">
                 <div id="checkinsContainer">
                     <div class="loading skeleton-loading">
                         <div class="skeleton-checkin">
@@ -9324,10 +9412,10 @@
             <div class="achievements-header collapsible-header" onclick="toggleSection('achievements')" style="cursor: pointer;">
                 <h2 class="achievements-title">🏅 Achievements</h2>
                 <button class="section-toggle-btn" type="button">
-                    <span class="toggle-icon" id="achievementsToggleIcon">▼</span>
+                    <span class="toggle-icon collapsed" id="achievementsToggleIcon">▼</span>
                 </button>
             </div>
-            <div id="achievementsContent" class="collapsible-content">
+            <div id="achievementsContent" class="collapsible-content collapsed">
                 <div id="achievementsContainer">
                     <div class="achievements-empty">Loading achievements…</div>
                 </div>
@@ -12510,7 +12598,15 @@
                     ${gymProofs.map(p => {
                         const date = new Date(p.proof_date + 'T00:00:00');
                         const dateStr = date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-                        const timeStr = p.proof_time ? new Date(p.proof_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : '';
+                        // Show the clock time only when it shares the logged calendar day — otherwise
+                        // proof_time (the upload moment) prints a second, conflicting date for one log.
+                        let timeStr = '';
+                        if (p.proof_time) {
+                            const pt = new Date(p.proof_time);
+                            if (!isNaN(pt.getTime()) && pt.getFullYear() === date.getFullYear() && pt.getMonth() === date.getMonth() && pt.getDate() === date.getDate()) {
+                                timeStr = pt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+                            }
+                        }
                         const existingReaction = gymProofReactions[String(p.id)];
                         const replaceBtn = isDemo
                             ? `<button type="button" onclick="event.stopPropagation(); triggerReplaceDemoPhoto('gym_proof', ${p.id})" style="position: absolute; top: 6px; right: 6px; background: rgba(0,0,0,0.6); color: white; border: none; border-radius: 50%; width: 28px; height: 28px; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="Replace demo photo">📷</button>`
@@ -12655,7 +12751,15 @@
                     ${weightProofs.map(p => {
                         const date = new Date(p.proof_date + 'T00:00:00');
                         const dateStr = date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-                        const timeStr = p.proof_time ? new Date(p.proof_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : '';
+                        // Show the clock time only when it shares the logged calendar day — otherwise
+                        // proof_time (the upload moment) prints a second, conflicting date for one log.
+                        let timeStr = '';
+                        if (p.proof_time) {
+                            const pt = new Date(p.proof_time);
+                            if (!isNaN(pt.getTime()) && pt.getFullYear() === date.getFullYear() && pt.getMonth() === date.getMonth() && pt.getDate() === date.getDate()) {
+                                timeStr = pt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+                            }
+                        }
                         const displayWeight = weightForCoach(p.weight, p.weight_unit);
                         const weightStr = (displayWeight != null && displayWeight !== '')
                             ? `${displayWeight} ${coachUnitLabel()}`
@@ -18442,6 +18546,147 @@
             document.querySelector('.sidebar').classList.remove('open');
             document.getElementById('sidebarOverlay').classList.remove('active');
         });
+
+        // ===== At-a-glance client summary card =====
+        // Read-only: derives metrics from data other code already loaded
+        // (weightProofs / clientCheckins / allFeedWorkouts). It mutates no
+        // existing state and no existing function, so removing this block
+        // leaves the rest of the page behaviour unchanged.
+        (function clientSummaryCardModule() {
+            const DAY_MS = 86400000;
+
+            function dayKey(dt) {
+                const y = dt.getFullYear();
+                const m = String(dt.getMonth() + 1).padStart(2, '0');
+                const d = String(dt.getDate()).padStart(2, '0');
+                return `${y}-${m}-${d}`;
+            }
+            function toDayString(v) {
+                if (!v) return null;
+                const s = String(v);
+                const m = s.match(/^\d{4}-\d{2}-\d{2}/);
+                if (m) return m[0];
+                const dt = new Date(s);
+                return isNaN(dt.getTime()) ? null : dayKey(dt);
+            }
+            function fmtNum(n) {
+                return (Math.round(n * 10) / 10).toString();
+            }
+            function tile(label, value, sub, opts) {
+                opts = opts || {};
+                return `<div class="cs-tile ${opts.warn ? 'cs-warn' : ''}">
+                    <div class="cs-label">${label}</div>
+                    <div class="cs-value">${value}</div>
+                    ${sub ? `<div class="cs-sub">${sub}</div>` : ''}
+                    ${opts.flag ? `<span class="cs-flag ${opts.flagDanger ? 'cs-flag-danger' : ''}">${opts.flag}</span>` : ''}
+                </div>`;
+            }
+
+            function render() {
+                const el = document.getElementById('clientSummaryCard');
+                if (!el) return;
+                try {
+                    const tiles = [];
+
+                    // --- Weight + trend ---
+                    const wp = (typeof weightProofs !== 'undefined' && Array.isArray(weightProofs)) ? weightProofs : [];
+                    const pts = wp.map(p => {
+                        const ds = toDayString(p.proof_date);
+                        const w = (typeof weightForCoach === 'function') ? Number(weightForCoach(p.weight, p.weight_unit)) : Number(p.weight);
+                        return ds && !isNaN(w) ? { d: new Date(ds + 'T00:00:00'), w } : null;
+                    }).filter(Boolean).sort((a, b) => a.d - b.d);
+
+                    if (pts.length) {
+                        const unit = (typeof coachUnitLabel === 'function') ? coachUnitLabel() : '';
+                        const latest = pts[pts.length - 1];
+                        let sub = '';
+                        if (pts.length >= 2) {
+                            const cutoff = latest.d.getTime() - 7 * DAY_MS;
+                            let base = pts.filter(p => p.d.getTime() <= cutoff).pop() || pts[0];
+                            const delta = latest.w - base.w;
+                            const spanDays = Math.max(1, Math.round((latest.d - base.d) / DAY_MS));
+                            const goal = (typeof currentClient !== 'undefined' && currentClient) ? currentClient.default_goal : '';
+                            let cls = 'flat', arrow = '→';
+                            if (delta <= -0.05) arrow = '▼';
+                            else if (delta >= 0.05) arrow = '▲';
+                            if (Math.abs(delta) >= 0.05) {
+                                if ((delta < 0 && goal === 'lose_weight') || (delta > 0 && goal === 'gain_muscle')) cls = 'good';
+                                else if ((delta > 0 && goal === 'lose_weight') || (delta < 0 && goal === 'gain_muscle')) cls = 'bad';
+                            }
+                            const spanTxt = spanDays <= 10 ? 'this week' : `over ${spanDays}d`;
+                            sub = `<span class="cs-trend ${cls}">${arrow} ${fmtNum(Math.abs(delta))} ${unit}</span> ${spanTxt}`;
+                        }
+                        tiles.push(tile('Current Weight', `${fmtNum(latest.w)} ${unit}`, sub));
+                    }
+
+                    // --- Check-in streak + last check-in ---
+                    const ci = (typeof clientCheckins !== 'undefined' && Array.isArray(clientCheckins)) ? clientCheckins : [];
+                    const ciKeys = Array.from(new Set(ci.map(c => toDayString(c.checkin_date)).filter(Boolean)))
+                        .sort((a, b) => (a < b ? 1 : -1));
+                    if (ciKeys.length) {
+                        let streak = 1;
+                        let cursor = new Date(ciKeys[0] + 'T00:00:00');
+                        const keySet = new Set(ciKeys);
+                        while (true) {
+                            const prev = new Date(cursor.getTime() - DAY_MS);
+                            if (keySet.has(dayKey(prev))) { streak++; cursor = prev; } else break;
+                        }
+                        const today = new Date();
+                        const todayMid = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+                        const last = new Date(ciKeys[0] + 'T00:00:00');
+                        const daysSince = Math.round((todayMid - last) / DAY_MS);
+                        const lastTxt = daysSince <= 0 ? 'Today'
+                            : daysSince === 1 ? 'Yesterday'
+                            : `${daysSince} days ago`;
+                        const warn = daysSince >= 3;
+                        tiles.push(tile(
+                            'Check-in Streak',
+                            `${streak} day${streak === 1 ? '' : 's'}`,
+                            `Last check-in: ${lastTxt}`,
+                            warn ? { warn: true, flag: `⚠ No check-in for ${daysSince} days`, flagDanger: daysSince >= 7 } : {}
+                        ));
+                    }
+
+                    // --- Workouts completed (last 7 days) ---
+                    const fw = (typeof allFeedWorkouts !== 'undefined' && Array.isArray(allFeedWorkouts)) ? allFeedWorkouts : [];
+                    if (fw.length) {
+                        const today = new Date();
+                        const recent = new Set();
+                        for (let i = 0; i < 7; i++) recent.add(dayKey(new Date(today.getTime() - i * DAY_MS)));
+                        const done = new Set();
+                        fw.forEach(w => {
+                            const k = toDayString(w.workoutDate);
+                            if (k && recent.has(k)) done.add(k);
+                        });
+                        tiles.push(tile('Workouts', `${done.size} this week`, 'Completed · last 7 days'));
+                    }
+
+                    if (!tiles.length) { el.style.display = 'none'; return; }
+                    el.innerHTML = tiles.join('');
+                    el.style.display = '';
+                } catch (e) {
+                    /* never break the page over a summary widget */
+                    console.warn('client summary card skipped:', e);
+                }
+            }
+
+            function start() {
+                render();
+                let ticks = 0;
+                const iv = setInterval(() => {
+                    ticks++;
+                    render();
+                    if (ticks >= 24) clearInterval(iv);
+                }, 1500);
+                window.addEventListener('focus', render);
+            }
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', start);
+            } else {
+                start();
+            }
+        })();
     </script>
         </div>
     </main>
