@@ -2075,8 +2075,6 @@ function ExerciseDetailModal({
     }
   }, []);
 
-  // Calculate values
-  const completedSets = sets.filter(s => s?.completed).length;
   // Prioritize custom video from coach over default video
   const hasCustomVideo = !!exercise?.customVideoUrl;
   const videoUrl = exercise?.customVideoUrl || exercise?.video_url || exercise?.animation_url;
@@ -3250,8 +3248,8 @@ function ExerciseDetailModal({
                     <img
                       src={exThumb}
                       alt={ex?.name || 'Exercise'}
-                      width={40}
-                      height={40}
+                      width={64}
+                      height={64}
                       loading={hasRealThumb ? 'eager' : 'lazy'}
                       decoding="async"
                       onError={(e) => { e.target.src = '/img/exercise-placeholder.svg'; }}
@@ -3269,16 +3267,6 @@ function ExerciseDetailModal({
             </button>
           </div>
         )}
-
-        {/* Progress Dots */}
-        <div className="sets-progress-simple">
-          <div className="progress-dots">
-            {sets.map((set, idx) => (
-              <div key={idx} className={`progress-dot ${set?.completed ? 'completed' : ''}`} />
-            ))}
-          </div>
-          <span className="progress-text">{completedSets}/{sets.length} sets</span>
-        </div>
       </div>
 
       {/* Set Editor Modal — fallback only; the shared instance in Workouts.jsx
