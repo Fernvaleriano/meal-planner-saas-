@@ -488,14 +488,17 @@ function ExerciseDetailModal({
     return 12;
   };
 
-  // Initialize sets once
-  const initialSets = useMemo(() => {
+  // Pure derivation of the modal's per-set state from an exercise object.
+  // Extracted so both the initial-mount memo AND the value-based resync
+  // effect produce IDENTICAL set shapes — any drift between the two would
+  // itself be a sync bug.
+  const deriveSetsFromExercise = useCallback((ex) => {
     try {
-      if (!exercise) return [{ reps: 12, weight: 0, completed: false, restSeconds: 60 }];
+      if (!ex) return [{ reps: 12, weight: 0, completed: false, restSeconds: 60 }];
 
       // Check setsData first (saved by the 3-panel workout builder detail editor)
-      if (Array.isArray(exercise.setsData) && exercise.setsData.length > 0) {
-        return exercise.setsData.filter(Boolean).map(set => {
+      if (Array.isArray(ex.setsData) && ex.setsData.length > 0) {
+        return ex.setsData.filter(Boolean).map(set => {
           // Coach builder defaults to 'lb' in its unit dropdown. If the per-set weightUnit
           // wasn't stamped (older prescriptions, or coach never touched the dropdown),
           // assume 'lbs' rather than the client's profile unit — falling back to the
@@ -509,14 +512,14 @@ function ExerciseDetailModal({
           const rawPrescribed = set?.prescribedWeight ?? 0;
           const fromUnit = set?.weightUnit || (rawPrescribed > 0 || rawWeight > 0 ? 'lbs' : weightUnit);
           return {
-          reps: safeParseReps(set?.reps || exercise.reps),
+          reps: safeParseReps(set?.reps || ex.reps),
           weight: convertWeight(rawWeight, fromUnit, weightUnit),
           prescribedWeight: convertWeight(rawPrescribed, fromUnit, weightUnit),
           prescribedReps: set?.prescribedReps != null ? safeParseReps(set.prescribedReps) : 0,
           completed: set?.completed || false,
-          duration: set?.duration || exercise.duration || null,
-          distance: set?.distance || exercise.distance || null,
-          restSeconds: set?.restSeconds ?? exercise.restSeconds ?? 60,
+          duration: set?.duration || ex.duration || null,
+          distance: set?.distance || ex.distance || null,
+          restSeconds: set?.restSeconds ?? ex.restSeconds ?? 60,
           rpe: set?.rpe || null,
           effort: set?.effort || null,
           percent1RM: set?.percent1RM || null,
@@ -529,36 +532,49 @@ function ExerciseDetailModal({
         });
       }
 
-      if (Array.isArray(exercise.sets) && exercise.sets.length > 0) {
-        return exercise.sets.filter(Boolean).map(set => ({
-          reps: safeParseReps(set?.reps || exercise.reps),
+      if (Array.isArray(ex.sets) && ex.sets.length > 0) {
+        return ex.sets.filter(Boolean).map(set => ({
+          reps: safeParseReps(set?.reps || ex.reps),
           weight: set?.weight || 0,
           completed: set?.completed || false,
-          duration: set?.duration || exercise.duration || null,
-          distance: set?.distance || exercise.distance || null,
-          restSeconds: set?.restSeconds ?? exercise.restSeconds ?? 60,
+          duration: set?.duration || ex.duration || null,
+          distance: set?.distance || ex.distance || null,
+          restSeconds: set?.restSeconds ?? ex.restSeconds ?? 60,
           effort: set?.effort || null,
           ...(set?.isTimeBased ? { isTimeBased: true } : {}),
           ...(set?.isDistanceBased ? { isDistanceBased: true } : {}),
         }));
       }
 
-      const numSets = typeof exercise.sets === 'number' && exercise.sets > 0 ? exercise.sets : 3;
+      const numSets = typeof ex.sets === 'number' && ex.sets > 0 ? ex.sets : 3;
       return Array.from({ length: numSets }, () => ({
-        reps: safeParseReps(exercise.reps),
+        reps: safeParseReps(ex.reps),
         weight: 0,
         completed: false,
-        duration: exercise.duration || null,
-        distance: exercise.distance || null,
-        restSeconds: exercise.restSeconds ?? 60
+        duration: ex.duration || null,
+        distance: ex.distance || null,
+        restSeconds: ex.restSeconds ?? 60
       }));
     } catch (e) {
       console.error('Error initializing sets:', e);
       return [{ reps: 12, weight: 0, completed: false, restSeconds: 60 }];
     }
-  }, [exercise?.id]); // Only recompute when exercise ID changes
+  }, [weightUnit]);
+
+  // Initialize sets once per exercise id (first mount / exercise switch).
+  const initialSets = useMemo(
+    () => deriveSetsFromExercise(exercise),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [exercise?.id]
+  ); // Only recompute when exercise ID changes
 
   const [sets, setSets] = useState(initialSets);
+
+  // Tracks the last value-synced setsData so the resync effect can compare by
+  // value (the parent recreates exercise objects with new array references but
+  // identical data on every merge) and avoid pointless re-renders / loops.
+  const lastSyncedSetsJsonRef = useRef('');
+  const syncCountRef = useRef(0);
 
   // Reset sets when exercise changes
   useEffect(() => {
@@ -571,8 +587,64 @@ function ExerciseDetailModal({
     nudgeFiredRef.current = false;
     // Reset auto-save flag so switching exercises doesn't trigger a stale save
     setsChangedRef.current = false;
+    // Reset the value-based resync guards so the next exercise starts clean
+    lastSyncedSetsJsonRef.current = '';
+    syncCountRef.current = 0;
   // NOTE: initialSets is memoized with [exercise?.id], so we only need exercise?.id here
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [exercise?.id]);
+
+  // Value-based resync (mirrors ExerciseCard's sync effect). Workouts.jsx's
+  // `exercises` useMemo merges the coach plan with the client's logged sets
+  // asynchronously — the merged log can arrive AFTER this modal mounted.
+  // Memoizing initialSets on [exercise?.id] alone freezes the modal on the
+  // stale planned snapshot, so the modal shows e.g. 2,2,2 while the card
+  // (which has this same effect) correctly shows the logged 1,1,1. Re-derive
+  // `sets` whenever the prop's set data changes by VALUE — but never clobber
+  // an in-progress edit or a pending save.
+  useEffect(() => {
+    // Don't overwrite the user's in-progress logging — setsChangedRef is true
+    // only after a real user edit and is cleared once the debounced save
+    // round-trips back through the merged prop.
+    if (setsChangedRef.current) return;
+    // A save is pending; let it settle and round-trip before re-deriving.
+    if (saveTimerRef.current) return;
+
+    const setsSource = (Array.isArray(exercise?.setsData) && exercise.setsData.length > 0)
+      ? exercise.setsData
+      : (Array.isArray(exercise?.sets) && exercise.sets.length > 0) ? exercise.sets : null;
+    if (!setsSource) return;
+
+    // Safety: cap syncs to prevent infinite re-render loops from malformed data.
+    syncCountRef.current += 1;
+    if (syncCountRef.current > 10) {
+      console.warn('[ExerciseDetailModal] Sync loop detected for exercise:', exercise?.name, exercise?.id, '— skipping');
+      return;
+    }
+    const resetTimer = setTimeout(() => { syncCountRef.current = 0; }, 100);
+
+    // Compare by value, not reference — parent creates new arrays with same data.
+    let incoming;
+    try {
+      incoming = JSON.stringify(setsSource);
+    } catch (err) {
+      console.error('[ExerciseDetailModal] Failed to serialize sets for', exercise?.name, ':', err);
+      clearTimeout(resetTimer);
+      return;
+    }
+    if (incoming === lastSyncedSetsJsonRef.current) {
+      clearTimeout(resetTimer);
+      return;
+    }
+    lastSyncedSetsJsonRef.current = incoming;
+
+    const next = deriveSetsFromExercise(exercise);
+    if (Array.isArray(next) && next.length > 0) {
+      setSets(next);
+    }
+
+    return () => clearTimeout(resetTimer);
+  }, [exercise?.id, exercise?.setsData, exercise?.sets, exercise?.reps, exercise?.duration, exercise?.restSeconds, deriveSetsFromExercise]);
 
   // Fetch exercise history for real-time PR detection
   useEffect(() => {
