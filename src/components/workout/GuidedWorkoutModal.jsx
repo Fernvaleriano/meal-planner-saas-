@@ -1813,6 +1813,23 @@ function GuidedWorkoutModal({
     }
   }, [currentExIndex]);
 
+  // Auto-play the exercise video whenever an exercise screen appears.
+  // Reps-based exercises set showVideo inline when the rep countdown arms,
+  // but timed exercises (warm-ups, planks, stretches, cardio) had no such
+  // call, so their video stayed hidden behind the thumbnail. Centralizing it
+  // here covers every entry path (first exercise, next set, next exercise,
+  // swap, skip, return-from-rest, deferred return) and is regression-proof.
+  // Deps are [phase, currentExIndex] only, so a manual close (toggle / X
+  // button) is respected — the effect won't re-fire until the next exercise
+  // screen transition.
+  useEffect(() => {
+    if (phase !== 'exercise') return;
+    const hasVideo = currentExercise?.customVideoUrl
+      || currentExercise?.video_url
+      || currentExercise?.animation_url;
+    if (hasVideo) setShowVideo(true);
+  }, [phase, currentExIndex]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Fallback: when video fails, re-fetch a fresh signed URL if this is a custom video
   const handleGuidedVideoError = useCallback(async (e) => {
     const guidedVideoUrl = currentExercise?.customVideoUrl || currentExercise?.video_url || currentExercise?.animation_url;
