@@ -729,10 +729,7 @@ function Diary() {
     setCurrentDate(newDate);
   };
 
-  // Scroll to top on mount
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
+  // Scroll position is managed centrally by Layout (per-path restoration).
 
   // Load diary entries and water intake - with caching
   useEffect(() => {

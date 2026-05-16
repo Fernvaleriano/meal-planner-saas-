@@ -163,10 +163,7 @@ function Settings() {
     return activityLevelLabels[String(nearest)];
   };
 
-  // Scroll to top on mount
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
+  // Scroll position is managed centrally by Layout (per-path restoration).
 
   // Respond to global pull-to-refresh gesture
   usePullToRefreshEvent(refreshClientData);

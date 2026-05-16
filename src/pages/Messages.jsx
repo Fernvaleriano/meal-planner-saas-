@@ -497,10 +497,8 @@ function Messages() {
     }
   }, [isCoach, conversations, activeConvo]);
 
-  // Scroll to top on mount
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
+  // Page scroll position is managed centrally by Layout (per-path
+  // restoration). The chat list has its own scroll-to-bottom logic below.
 
   // Re-fetch data when app resumes from background.
   // Without this, users see stale conversation data on re-entry and have to pull-to-refresh.

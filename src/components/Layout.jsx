@@ -1,4 +1,4 @@
-import { useState, useEffect, memo, useMemo } from 'react';
+import { useState, useEffect, useRef, memo, useMemo } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import TopNav from './TopNav';
 import BottomNav from './BottomNav';
@@ -105,16 +105,68 @@ function Layout() {
     }
   }, [activeTab]);
 
-  // Scroll to top when navigating between pages or switching tabs.
-  // Without this, the persistent display:none/block toggling preserves
-  // the previous scroll position, landing users mid-page or at the bottom.
-  // Uses requestAnimationFrame to fire after the browser paints the new layout.
+  // Scroll position restoration. Because tab pages stay mounted (display
+  // none/block) and non-tab pages mount/unmount via Outlet — all sharing the
+  // window scroll — we keep a per-path scroll memory and restore it on
+  // navigation instead of always slamming to the top. First visit to a path
+  // (no saved position) defaults to the top, which is the expected behavior.
+  // Survives SPA navigation; resets on full reload (history.scrollRestoration
+  // is 'manual', so a reload legitimately starts fresh).
+  const scrollPositions = useRef(new Map());
+  const activePathRef = useRef(path);
+
+  // Continuously record the scroll position of whatever path is active. Saving
+  // on every scroll (rather than at navigation time) avoids capturing a value
+  // the browser has already clamped after the outgoing page's content shrank.
   useEffect(() => {
-    window.scrollTo(0, 0);
-    // Also fire after paint to beat any late browser scroll restoration
-    requestAnimationFrame(() => {
-      window.scrollTo(0, 0);
-    });
+    const positions = scrollPositions.current;
+    let rafId = null;
+    const recordScroll = () => {
+      if (rafId) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        positions.set(activePathRef.current, window.scrollY || 0);
+      });
+    };
+    window.addEventListener('scroll', recordScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', recordScroll);
+      if (rafId) cancelAnimationFrame(rafId);
+    };
+  }, []);
+
+  useEffect(() => {
+    activePathRef.current = path;
+    const savedY = scrollPositions.current.get(path) ?? 0;
+
+    let cancelled = false;
+    let attempt = 0;
+    const restore = () => {
+      if (cancelled) return;
+      if (savedY <= 0) {
+        window.scrollTo(0, 0);
+        return;
+      }
+      // Pages load data async — the document may not be tall enough yet to
+      // reach savedY. Retry until it is (or give up after ~3s) so the restore
+      // doesn't get clamped to a short page's max scroll.
+      const maxScroll = Math.max(
+        0,
+        document.documentElement.scrollHeight - window.innerHeight
+      );
+      if (maxScroll >= savedY - 5 || attempt > 30) {
+        window.scrollTo(0, savedY);
+      } else {
+        attempt += 1;
+        setTimeout(restore, 100);
+      }
+    };
+    // Run after paint so the new page's layout exists.
+    const rafId = requestAnimationFrame(restore);
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(rafId);
+    };
   }, [path]);
 
   // Hide top nav on pages that have their own navigation

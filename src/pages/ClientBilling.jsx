@@ -249,9 +249,7 @@ export default function ClientBilling() {
     }
   }, [coachId]);
 
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
+  // Scroll position is managed centrally by Layout (per-path restoration).
 
   useEffect(() => {
     fetchData();

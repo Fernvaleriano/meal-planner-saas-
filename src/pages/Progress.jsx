@@ -231,10 +231,7 @@ function Progress() {
   const [expandedHistory, setExpandedHistory] = useState({});
   const [confirmDelete, setConfirmDelete] = useState(null);
 
-  // Scroll to top on mount
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
+  // Scroll position is managed centrally by Layout (per-path restoration).
 
   // Pull-to-refresh
   const refreshProgressData = useCallback(async () => {

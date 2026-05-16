@@ -183,10 +183,7 @@ function Plans() {
   const [mealPrepGuide, setMealPrepGuide] = useState(null);
   const [mealPrepLoading, setMealPrepLoading] = useState(false);
 
-  // Scroll to top on mount
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
+  // Scroll position is managed centrally by Layout (per-path restoration).
 
   // Pull-to-refresh: Refresh plans data
   const refreshPlansData = useCallback(async () => {
