@@ -13633,6 +13633,32 @@
             return `${reps} reps`;
         }
 
+        // Single source of truth for an editable set row in the coach
+        // exercise-detail modal. Time-based exercises edit `duration`
+        // (stored in SECONDS, matching the seed/data model and the
+        // "Duration (s)" header); rep-based exercises edit `reps`.
+        // Used by acOpenExerciseDetail, acUpdateTrackingType and
+        // acExdAddSetRow so every entry point stays consistent.
+        function acExdSetRowHtml(s, i, isTime, completed) {
+            const done = completed != null ? completed : !!(s && (s.completed || s._completed));
+            let primary;
+            if (isTime) {
+                const secs = acParseTimeSeconds(
+                    (s && s.duration != null && s.duration !== '') ? s.duration : null
+                );
+                primary = `<input class="ac-exd-set-input" type="number" value="${secs != null ? secs : ''}" data-set="${i}" data-field="duration" min="0" inputmode="numeric" placeholder="sec">`;
+            } else {
+                primary = `<input class="ac-exd-set-input" type="number" value="${s && s.reps != null ? s.reps : 0}" data-set="${i}" data-field="reps" min="0" inputmode="numeric">`;
+            }
+            const weightVal = (s && s.weight != null && s.weight !== '') ? s.weight : '';
+            return `<div class="ac-exd-set-row${done ? ' completed' : ''}" data-set-row="${i}">
+                    <span class="ac-exd-set-num">${i + 1}</span>
+                    ${primary}
+                    <input class="ac-exd-set-input" type="number" value="${weightVal}" data-set="${i}" data-field="weight" min="0" step="0.5" inputmode="decimal" placeholder="">
+                    <button type="button" class="ac-exd-set-done${done ? ' done' : ''}" title="Save this set" onclick="acExdSaveSet(${i})" aria-label="Save set ${i + 1}">&#10003;</button>
+                </div>`;
+        }
+
         function acRenderDayDetail(workouts, dateStr) {
             const bodyEl = document.getElementById('acDetailBody');
             let html = '';
@@ -14207,9 +14233,19 @@
 
             const editorEl = document.getElementById(`acSetEditor_${exIndex}`);
 
+            const isTime = acIsTimeBasedEx(exercise);
+
             let setsData = [];
             if (exercise.setsData && Array.isArray(exercise.setsData)) {
-                setsData = exercise.setsData.map(s => ({ reps: s.reps || 0, weight: s.weight || 0, weightUnit: s.weightUnit || 'lbs' }));
+                setsData = exercise.setsData.map(s => ({
+                    reps: s.reps || 0,
+                    weight: s.weight || 0,
+                    weightUnit: s.weightUnit || 'lbs',
+                    duration: (s.duration != null && s.duration !== '')
+                        ? s.duration
+                        : (isTime && exercise.duration != null ? exercise.duration : null),
+                    isTimeBased: s.isTimeBased
+                }));
             } else {
                 const numSets = exercise.sets || 3;
                 // Handle range strings like "8-12" by averaging instead of truncating
@@ -14222,18 +14258,23 @@
                         reps = parseFloat(exercise.reps) || 10;
                     }
                 }
+                const dur = acParseTimeSeconds(exercise.duration) || 30;
                 for (let i = 0; i < numSets; i++) {
-                    setsData.push({ reps, weight: 0, weightUnit: 'lbs' });
+                    setsData.push({ reps, weight: 0, weightUnit: 'lbs', duration: isTime ? dur : null });
                 }
             }
 
+            const primaryLabel = isTime ? 'Duration (s)' : 'Reps';
             let html = '<div class="ac-set-editor">';
-            html += '<div class="ac-set-row"><span class="ac-set-label">Set</span><span class="ac-set-label">Reps</span><span class="ac-set-label">Weight</span><span></span></div>';
+            html += `<div class="ac-set-row"><span class="ac-set-label">Set</span><span class="ac-set-label">${primaryLabel}</span><span class="ac-set-label">Weight</span><span></span></div>`;
 
             setsData.forEach((s, i) => {
+                const primary = isTime
+                    ? `<input class="ac-set-input" type="number" value="${acParseTimeSeconds(s.duration) != null ? acParseTimeSeconds(s.duration) : ''}" data-field="duration" min="0">`
+                    : `<input class="ac-set-input" type="number" value="${s.reps}" data-field="reps" min="0">`;
                 html += `<div class="ac-set-row">
                     <span class="ac-set-label">${i + 1}</span>
-                    <input class="ac-set-input" type="number" value="${s.reps}" data-field="reps" min="0">
+                    ${primary}
                     <input class="ac-set-input" type="number" value="${s.weight}" data-field="weight" min="0" step="0.5" inputmode="decimal">
                     <button class="ac-set-remove" onclick="this.closest('.ac-set-row').remove()">&times;</button>
                 </div>`;
@@ -14250,11 +14291,15 @@
             const editor = btn.closest('.ac-set-editor');
             const rows = editor.querySelectorAll('.ac-set-row');
             const num = rows.length;
+            const isTime = !!editor.querySelector('[data-field="duration"]');
+            const primary = isTime
+                ? `<input class="ac-set-input" type="number" value="30" data-field="duration" min="0">`
+                : `<input class="ac-set-input" type="number" value="10" data-field="reps" min="0">`;
             const row = document.createElement('div');
             row.className = 'ac-set-row';
             row.innerHTML = `
                 <span class="ac-set-label">${num}</span>
-                <input class="ac-set-input" type="number" value="10" data-field="reps" min="0">
+                ${primary}
                 <input class="ac-set-input" type="number" value="0" data-field="weight" min="0" step="0.5" inputmode="decimal">
                 <button class="ac-set-remove" onclick="this.closest('.ac-set-row').remove()">&times;</button>
             `;
@@ -14266,17 +14311,31 @@
             const rows = editorEl.querySelectorAll('.ac-set-row');
             const newSetsData = [];
 
+            const isTime = !!editorEl.querySelector('[data-field="duration"]');
             rows.forEach((row, i) => {
                 if (i === 0) return;
-                const repsInput = row.querySelector('[data-field="reps"]');
                 const weightInput = row.querySelector('[data-field="weight"]');
-                if (repsInput && weightInput) {
-                    newSetsData.push({
-                        setNumber: newSetsData.length + 1,
-                        reps: parseFloat(repsInput.value) || 0,
-                        weight: parseFloat(weightInput.value) || 0,
-                        weightUnit: 'lbs'
-                    });
+                if (isTime) {
+                    const durInput = row.querySelector('[data-field="duration"]');
+                    if (durInput && weightInput) {
+                        newSetsData.push({
+                            setNumber: newSetsData.length + 1,
+                            duration: parseInt(durInput.value) || 0,
+                            isTimeBased: true,
+                            weight: parseFloat(weightInput.value) || 0,
+                            weightUnit: 'lbs'
+                        });
+                    }
+                } else {
+                    const repsInput = row.querySelector('[data-field="reps"]');
+                    if (repsInput && weightInput) {
+                        newSetsData.push({
+                            setNumber: newSetsData.length + 1,
+                            reps: parseFloat(repsInput.value) || 0,
+                            weight: parseFloat(weightInput.value) || 0,
+                            weightUnit: 'lbs'
+                        });
+                    }
                 }
             });
 
@@ -14286,8 +14345,13 @@
 
             if (exercises[exIndex]) {
                 exercises[exIndex].sets = newSetsData.length;
-                exercises[exIndex].reps = newSetsData[0]?.reps?.toString() || '0';
                 exercises[exIndex].setsData = newSetsData;
+                if (isTime) {
+                    exercises[exIndex].trackingType = 'time';
+                    exercises[exIndex].duration = newSetsData[0]?.duration || exercises[exIndex].duration || 0;
+                } else {
+                    exercises[exIndex].reps = newSetsData[0]?.reps?.toString() || '0';
+                }
             }
 
             const saveBtn = editorEl.querySelector('.ac-set-save-btn');
@@ -14761,16 +14825,17 @@
                 <span></span>
             </div>`;
             html += `<div id="acExdSetRows">`;
+            const isTime = trackingType === 'time';
             const numSets = Math.max(setsData.length, 1);
             for (let i = 0; i < numSets; i++) {
-                const s = setsData[i] || { reps: 0, weight: '' };
-                const completed = !!(s.completed || s._completed);
-                html += `<div class="ac-exd-set-row${completed ? ' completed' : ''}" data-set-row="${i}">
-                    <span class="ac-exd-set-num">${i + 1}</span>
-                    <input class="ac-exd-set-input" type="number" value="${s.reps || 0}" data-set="${i}" data-field="reps" min="0" inputmode="numeric">
-                    <input class="ac-exd-set-input" type="number" value="${s.weight || ''}" data-set="${i}" data-field="weight" min="0" step="0.5" inputmode="decimal" placeholder="">
-                    <button type="button" class="ac-exd-set-done${completed ? ' done' : ''}" title="Save this set" onclick="acExdSaveSet(${i})" aria-label="Save set ${i + 1}">&#10003;</button>
-                </div>`;
+                let s = setsData[i] || { reps: 0, weight: '' };
+                // Fall back to the exercise-level prescribed duration so a
+                // freshly-prescribed time exercise (no per-set duration yet)
+                // still shows its target instead of a blank/0.
+                if (isTime && (s.duration == null || s.duration === '') && ex.duration != null) {
+                    s = { ...s, duration: ex.duration };
+                }
+                html += acExdSetRowHtml(s, i, isTime);
             }
             html += `</div>`;
             html += `<button type="button" class="ac-exd-add-set" onclick="acExdAddSetRow()">+ Add Set</button>`;
@@ -14823,12 +14888,31 @@
         }
 
         function acUpdateTrackingType(type) {
-            const label = type === 'time' ? 'Duration (s)' : 'Reps';
+            const isTime = type === 'time';
+            const label = isTime ? 'Duration (s)' : 'Reps';
             const header = document.querySelector('#acExdSetsArea .ac-exd-set-header');
             if (header) {
                 const spans = header.querySelectorAll('span');
                 if (spans[1]) spans[1].textContent = label;
             }
+            // Rebuild the rows so the editable column matches the new type,
+            // carrying over whatever the coach already entered.
+            const rowsContainer = document.getElementById('acExdSetRows');
+            if (!rowsContainer) return;
+            const rows = rowsContainer.querySelectorAll('.ac-exd-set-row');
+            let html = '';
+            rows.forEach((row, i) => {
+                const primary = row.querySelector('input[data-field="reps"], input[data-field="duration"]');
+                const weightInput = row.querySelector('input[data-field="weight"]');
+                const val = primary ? (parseFloat(primary.value) || 0) : 0;
+                const weight = weightInput ? weightInput.value : '';
+                const completed = row.classList.contains('completed');
+                const s = isTime
+                    ? { duration: val, weight, completed }
+                    : { reps: val, weight, completed };
+                html += acExdSetRowHtml(s, i, isTime, completed);
+            });
+            rowsContainer.innerHTML = html;
         }
 
         function acExdAddSetRow() {
@@ -14836,19 +14920,18 @@
             if (!rowsContainer) return;
             const existing = rowsContainer.querySelectorAll('.ac-exd-set-row');
             const i = existing.length;
+            const isTime = (document.querySelector('input[name="acExdTracking"]:checked')?.value) === 'time';
             const last = existing[existing.length - 1];
-            const lastReps = last ? (last.querySelector('input[data-field="reps"]')?.value || 0) : 10;
             const lastWeight = last ? (last.querySelector('input[data-field="weight"]')?.value || '') : '';
-            const row = document.createElement('div');
-            row.className = 'ac-exd-set-row';
-            row.dataset.setRow = i;
-            row.innerHTML = `
-                <span class="ac-exd-set-num">${i + 1}</span>
-                <input class="ac-exd-set-input" type="number" value="${lastReps}" data-set="${i}" data-field="reps" min="0" inputmode="numeric">
-                <input class="ac-exd-set-input" type="number" value="${lastWeight}" data-set="${i}" data-field="weight" min="0" step="0.5" inputmode="decimal">
-                <button type="button" class="ac-exd-set-done" title="Save this set" onclick="acExdSaveSet(${i})" aria-label="Save set ${i + 1}">&#10003;</button>
-            `;
-            rowsContainer.appendChild(row);
+            const s = { weight: lastWeight };
+            if (isTime) {
+                s.duration = last ? (parseFloat(last.querySelector('input[data-field="duration"]')?.value) || 0) : 30;
+            } else {
+                s.reps = last ? (parseInt(last.querySelector('input[data-field="reps"]')?.value) || 0) : 10;
+            }
+            const tmp = document.createElement('div');
+            tmp.innerHTML = acExdSetRowHtml(s, i, isTime, false).trim();
+            rowsContainer.appendChild(tmp.firstElementChild);
         }
 
         async function acExdSaveSet(setIdx) {
@@ -14866,27 +14949,47 @@
             const ex = exercises[exIndex];
             if (!ex) return;
 
+            const isTime = (document.querySelector('input[name="acExdTracking"]:checked')?.value) === 'time';
             const setRows = document.querySelectorAll('#acExdSetRows .ac-exd-set-row');
             const newSetsData = [];
             setRows.forEach((row, i) => {
-                const repsInput = row.querySelector('input[data-field="reps"]');
                 const weightInput = row.querySelector('input[data-field="weight"]');
-                const reps = parseInt(repsInput?.value) || 0;
                 const weight = parseFloat(weightInput?.value) || 0;
                 let completed = row.classList.contains('completed');
                 if (i === setIdx) completed = true;
-                newSetsData.push({
-                    setNumber: i + 1,
-                    reps,
-                    weight,
-                    weightUnit: 'lbs',
-                    completed
-                });
+                if (isTime) {
+                    const durInput = row.querySelector('input[data-field="duration"]');
+                    const duration = parseInt(durInput?.value) || 0;
+                    newSetsData.push({
+                        setNumber: i + 1,
+                        duration,
+                        isTimeBased: true,
+                        weight,
+                        weightUnit: 'lbs',
+                        completed
+                    });
+                } else {
+                    const repsInput = row.querySelector('input[data-field="reps"]');
+                    const reps = parseInt(repsInput?.value) || 0;
+                    newSetsData.push({
+                        setNumber: i + 1,
+                        reps,
+                        weight,
+                        weightUnit: 'lbs',
+                        completed
+                    });
+                }
             });
 
             ex.setsData = newSetsData;
             ex.sets = newSetsData.length;
-            ex.reps = (newSetsData[0]?.reps || ex.reps || 0).toString();
+            if (isTime) {
+                ex.trackingType = 'time';
+                ex.duration = newSetsData[0]?.duration || ex.duration || 0;
+            } else {
+                if (ex.trackingType === 'time') ex.trackingType = 'reps';
+                ex.reps = (newSetsData[0]?.reps || ex.reps || 0).toString();
+            }
             exercises[exIndex] = ex;
 
             // Persist updated exercises and stash back so the modal stays open
@@ -15002,7 +15105,15 @@
                     const dateStr = d && !isNaN(d.getTime())
                         ? d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
                         : '—';
-                    const setsStr = (h.sets || []).map(s => `${s.reps || 0}x${s.weight || 0}`).join(', ');
+                    const setsStr = (h.sets || []).map(s => {
+                        if (s && (s.isTimeBased === true || (s.duration != null && s.duration !== ''))) {
+                            return acFormatDuration(acParseTimeSeconds(s.duration)) || '0s';
+                        }
+                        if (s && (s.isDistanceBased === true || (s.distance != null && s.distance !== ''))) {
+                            return `${s.distance} ${s.distanceUnit || 'mi'}`;
+                        }
+                        return `${s.reps || 0}x${s.weight || 0}`;
+                    }).join(', ');
                     html += `<div class="ac-exd-history-item">
                         <span style="font-weight:600; color:#334155;">${dateStr}</span>
                         <span style="color:#64748b;">${setsStr || 'No data'}</span>
@@ -15032,31 +15143,53 @@
             const ex = exercises[exIndex];
             if (!ex) return;
 
+            const trackingRadio = document.querySelector('input[name="acExdTracking"]:checked');
+            const newTrackingType = trackingRadio ? trackingRadio.value : 'reps';
+            const isTime = newTrackingType === 'time';
+
             const setRows = document.querySelectorAll('#acExdSetRows .ac-exd-set-row');
             const newSetsData = [];
 
             setRows.forEach(row => {
-                const repsInput = row.querySelector('input[data-field="reps"]');
                 const weightInput = row.querySelector('input[data-field="weight"]');
-                const reps = parseInt(repsInput?.value) || 0;
                 const weight = parseFloat(weightInput?.value) || 0;
                 const completed = row.classList.contains('completed');
-                if (reps > 0 || weight > 0 || completed) {
-                    newSetsData.push({
-                        setNumber: newSetsData.length + 1,
-                        reps,
-                        weight,
-                        weightUnit: 'lbs',
-                        completed
-                    });
+                if (isTime) {
+                    const durInput = row.querySelector('input[data-field="duration"]');
+                    const duration = parseInt(durInput?.value) || 0;
+                    if (duration > 0 || weight > 0 || completed) {
+                        newSetsData.push({
+                            setNumber: newSetsData.length + 1,
+                            duration,
+                            isTimeBased: true,
+                            weight,
+                            weightUnit: 'lbs',
+                            completed
+                        });
+                    }
+                } else {
+                    const repsInput = row.querySelector('input[data-field="reps"]');
+                    const reps = parseInt(repsInput?.value) || 0;
+                    if (reps > 0 || weight > 0 || completed) {
+                        newSetsData.push({
+                            setNumber: newSetsData.length + 1,
+                            reps,
+                            weight,
+                            weightUnit: 'lbs',
+                            completed
+                        });
+                    }
                 }
             });
 
-            const trackingRadio = document.querySelector('input[name="acExdTracking"]:checked');
-            ex.trackingType = trackingRadio ? trackingRadio.value : 'reps';
+            ex.trackingType = newTrackingType;
 
             ex.sets = newSetsData.length || ex.sets;
-            ex.reps = (newSetsData[0]?.reps || ex.reps || 0).toString();
+            if (isTime) {
+                ex.duration = newSetsData[0]?.duration || ex.duration || 0;
+            } else {
+                ex.reps = (newSetsData[0]?.reps || ex.reps || 0).toString();
+            }
             ex.setsData = newSetsData.length > 0 ? newSetsData : ex.setsData;
 
             const caloriesInput = document.getElementById('acExdCalories');
