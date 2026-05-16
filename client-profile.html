@@ -13127,6 +13127,28 @@
         let acProgramsCache = []; // coach programs
         let acDatePickerCallback = null; // for move/copy date picker
         let acOpenMenuIndex = -1; // track which 3-dot menu is open
+        let acHistoryCache = null; // { ts, logs } — short-lived exercise-history cache
+        const AC_HISTORY_TTL = 60000; // 1 min
+
+        let acToastTimer = null;
+        function acToast(msg, isErr) {
+            let el = document.getElementById('acToast');
+            if (!el) {
+                el = document.createElement('div');
+                el.id = 'acToast';
+                el.style.cssText = 'position:fixed;left:50%;bottom:24px;'
+                  + 'transform:translateX(-50%);z-index:99999;padding:10px 18px;'
+                  + 'border-radius:10px;font:600 13px/1 system-ui;color:#fff;'
+                  + 'box-shadow:0 6px 20px rgba(0,0,0,.25);opacity:0;'
+                  + 'transition:opacity .18s;pointer-events:none';
+                document.body.appendChild(el);
+            }
+            el.textContent = msg;
+            el.style.background = isErr ? '#dc2626' : '#10b981';
+            el.style.opacity = '1';
+            clearTimeout(acToastTimer);
+            acToastTimer = setTimeout(() => { el.style.opacity = '0'; }, 1800);
+        }
 
         function acFormatDate(date) {
             const y = date.getFullYear();
@@ -13446,14 +13468,23 @@
                 // Make sure exercise metadata is loaded so we can enrich thumbnails
                 if (!acExerciseMetaLoaded) await acLoadExerciseMeta();
 
+                // Fire the three independent day fetches in parallel instead of
+                // serially — ~3x faster day load / post-save reconcile. A
+                // network failure resolves to null and is treated as empty,
+                // preserving the original per-fetch try/catch behaviour.
+                const [acLogResP, acAsgResP, acAdhocResP] = await Promise.all([
+                    fetch(`/.netlify/functions/workout-logs?clientId=${clientId}&date=${dateStr}`).catch(() => null),
+                    fetch(`/.netlify/functions/workout-assignments?clientId=${clientId}&date=${dateStr}`).catch(() => null),
+                    fetch(`/.netlify/functions/adhoc-workouts?clientId=${clientId}&date=${dateStr}`).catch(() => null)
+                ]);
+
                 // Build a map of all workout logs for this date keyed by assignment_id,
                 // so we can overlay logged sets/reps onto the right assignment instead of
                 // collapsing everything into a single "logged workout" entry.
                 const logsByAssignment = {};
                 let orphanLogs = [];
                 try {
-                    const logRes = await fetch(`/.netlify/functions/workout-logs?clientId=${clientId}&date=${dateStr}`);
-                    const logData = await logRes.json();
+                    const logData = acLogResP ? await acLogResP.json() : {};
                     (logData.workouts || []).forEach(log => {
                         const mappedExercises = (log.exercises || []).map(ex => ({
                             // Prefer the actual exercise_id (FK to exercises table) over
@@ -13488,9 +13519,8 @@
                     // No workout log yet, will use templates below
                 }
 
-                // Fetch assignments (templates with full exercise data: notes, refs, sections)
-                const res = await fetch(`/.netlify/functions/workout-assignments?clientId=${clientId}&date=${dateStr}`);
-                const data = await res.json();
+                // Assignments (templates with full exercise data: notes, refs, sections)
+                const data = acAsgResP ? await acAsgResP.json() : {};
                 let allWorkouts = (data.assignments || []).map(assignment => {
                     const log = logsByAssignment[assignment.id];
                     if (!log) return assignment; // template only — no log yet
@@ -13531,8 +13561,7 @@
 
                 // Also check for adhoc workouts
                 try {
-                    const adhocRes = await fetch(`/.netlify/functions/adhoc-workouts?clientId=${clientId}&date=${dateStr}`);
-                    const adhocData = await adhocRes.json();
+                    const adhocData = acAdhocResP ? await acAdhocResP.json() : {};
                     (adhocData.workouts || []).forEach(aw => {
                         allWorkouts.push({
                             id: aw.id,
@@ -14160,6 +14189,7 @@
         // opts: { silent: true } skips the day re-render so an open modal stays put
         async function acSaveExercises(exercises, assignmentId, dayIndex, isAdhoc, dateStr, opts) {
             const silent = !!(opts && opts.silent);
+            acHistoryCache = null; // any write invalidates the cached history
             try {
                 if (isAdhoc) {
                     await fetch('/.netlify/functions/adhoc-workouts', {
@@ -14189,13 +14219,23 @@
                     if (workoutId) {
                         // Now save the exercises to the workout log
                         const mappedExercises = exercises.map((ex, idx) => ({
-                            id: ex.id,
+                            // exerciseLogId is the real exercise_logs PK (set by
+                            // acSelectDay's merge). Sending the catalog id here made
+                            // the backend UPDATE match no row -> edits were silently
+                            // dropped. Falls back to exerciseId map when absent.
+                            id: ex.exerciseLogId || undefined,
                             exerciseId: ex.id,
                             exerciseName: ex.name,
                             order: idx + 1,
-                            sets: (ex.setsData || []).map(s => ({
-                                reps: s.reps || 0,
-                                weight: s.weight || 0,
+                            // Preserve the WHOLE set object. Backend stores sets_data
+                            // as JSONB verbatim, so duration/isTimeBased/completed/
+                            // setNumber/rpe/etc. survive and time exercises stop
+                            // round-tripping to "0".
+                            sets: (ex.setsData || []).map((s, i) => ({
+                                ...s,
+                                setNumber: s.setNumber != null ? s.setNumber : i + 1,
+                                reps: s.reps != null ? s.reps : 0,
+                                weight: s.weight != null ? s.weight : 0,
                                 weightUnit: s.weightUnit || 'lbs'
                             })),
                             notes: ex.notes
@@ -14212,12 +14252,25 @@
                     }
                 }
                 if (!silent) {
-                    // Cache is refreshed via acSelectDay below
-                    acSelectDay(dateStr);
+                    // Instant feedback: re-render from the in-memory array we
+                    // just saved (single source of truth), then reconcile with
+                    // the server in the background so dot-counts / PR flags /
+                    // "logged" badges stay accurate.
+                    try {
+                        const w = (acDayWorkouts || []).find(
+                            x => String(x.id) === String(assignmentId));
+                        if (w) {
+                            w.workout_data = w.workout_data || {};
+                            w.workout_data.exercises = exercises;
+                            acRenderDayDetail(acDayWorkouts, dateStr);
+                        }
+                    } catch (_) { /* fall through to authoritative refetch */ }
+                    acToast('Saved');
+                    acSelectDay(dateStr); // authoritative reconcile (now parallelized)
                 }
             } catch (err) {
                 console.error('Error saving exercises:', err);
-                if (!silent) alert('Failed to save changes');
+                if (!silent) acToast('Save failed — retrying view', true);
                 throw err;
             }
         }
@@ -15068,14 +15121,23 @@
             }
 
             try {
-                const res = await fetch(`/.netlify/functions/workout-logs?clientId=${encodeURIComponent(clientId)}&limit=30`);
-                if (!res.ok) {
-                    throw new Error(`workout-logs request failed: ${res.status}`);
+                // Short-lived cache: avoids the duplicate fetch on every
+                // Progress/History tab toggle and repeat modal opens.
+                // Invalidated on any save (acHistoryCache = null there).
+                let logs;
+                if (acHistoryCache && Date.now() - acHistoryCache.ts < AC_HISTORY_TTL) {
+                    logs = acHistoryCache.logs;
+                } else {
+                    const res = await fetch(`/.netlify/functions/workout-logs?clientId=${encodeURIComponent(clientId)}&limit=30`);
+                    if (!res.ok) {
+                        throw new Error(`workout-logs request failed: ${res.status}`);
+                    }
+                    const data = await res.json();
+                    logs = Array.isArray(data?.workouts) ? data.workouts
+                        : Array.isArray(data?.logs) ? data.logs
+                        : [];
+                    acHistoryCache = { ts: Date.now(), logs };
                 }
-                const data = await res.json();
-                const logs = Array.isArray(data?.workouts) ? data.workouts
-                    : Array.isArray(data?.logs) ? data.logs
-                    : [];
 
                 const target = (exerciseIdOrName || '').toString().toLowerCase();
                 const history = [];
