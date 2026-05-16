@@ -2645,6 +2645,23 @@ function Workouts() {
       }
     }
 
+    // Store EXACTLY what the user entered (no save-time conversion). Stamp
+    // each set with the unit it was entered in (the viewer's current unit)
+    // so display can convert later only if the viewer's unit differs. Without
+    // the stamp, a stored value would be re-interpreted in the wrong unit
+    // (e.g. a 10 lbs entry read as 10 kg -> displayed ~22 lbs).
+    if (Array.isArray(updatedExercise.sets) && updatedExercise.sets.length > 0) {
+      const viewerUnit = weightUnitRef.current || 'lbs';
+      updatedExercise = {
+        ...updatedExercise,
+        sets: updatedExercise.sets.map(s => ({
+          ...s,
+          weight: s?.weight || 0,
+          weightUnit: s?.weightUnit || viewerUnit
+        }))
+      };
+    }
+
     // Get exercises from either direct array or days structure
     let currentExercises = [];
     let isUsingDays = false;

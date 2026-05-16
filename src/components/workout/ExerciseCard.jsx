@@ -161,10 +161,10 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
     // Check setsData first (saved by the 3-panel workout builder detail editor)
     if (Array.isArray(exercise.setsData) && exercise.setsData.length > 0) {
       return exercise.setsData.slice(0, 20).filter(Boolean).map(set => {
-        // Storage is canonical kg (normalize_workout_weights_to_kg). Convert
-        // once, kg -> the viewer's unit, for display.
+        // Trust the per-set stored unit stamp; if absent assume it's already
+        // in the viewer's unit (no-op). Convert for display only if differs.
         const rawWeight = set?.weight || 0;
-        const fromUnit = 'kg';
+        const fromUnit = set?.weightUnit || weightUnit;
         return {
         reps: set?.reps ?? parseReps(exercise.reps) ?? 12,
         weight: convertWeight(rawWeight, fromUnit, weightUnit),
@@ -331,7 +331,7 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
 
     const newSets = setsSource.slice(0, 20).filter(Boolean).map(set => {
       const rawWeight = set?.weight || 0;
-      const fromUnit = 'kg'; // canonical storage; see normalize_workout_weights_to_kg
+      const fromUnit = set?.weightUnit || weightUnit; // trust stamp; else no-op
       return {
       reps: set?.reps ?? parseReps(exercise.reps) ?? 12,
       weight: convertWeight(rawWeight, fromUnit, weightUnit),
