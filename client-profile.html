@@ -13571,6 +13571,68 @@
             }
         }
 
+        // Coach-side set label formatting. Mirrors the client's ExerciseCard
+        // semantics so the coach sees EXACTLY what the client logged:
+        // duration exercises -> "9 min", rep+weight -> "9 × 0.1 kg",
+        // rep-only -> "9 reps", distance -> "1.5 mi". The previous code only
+        // ever rendered s.reps with an optional "x"+weight, so time exercises
+        // showed a bare/stale number with no unit and rep-only sets had no
+        // "reps"/"x" label.
+        function acParseTimeSeconds(val) {
+            if (val == null || val === '') return null;
+            if (typeof val === 'number') return val > 0 ? val : null;
+            const str = String(val).trim().toLowerCase();
+            const num = parseFloat(str);
+            if (isNaN(num)) return null;
+            if (str.includes('min')) return Math.round(num * 60);
+            if (str.includes('hr') || str.includes('hour')) return Math.round(num * 3600);
+            return Math.round(num); // bare number or "30s" => seconds
+        }
+        function acFormatDuration(seconds) {
+            if (!seconds || seconds <= 0) return null;
+            if (seconds >= 3600) {
+                const h = Math.floor(seconds / 3600);
+                const m = Math.floor((seconds % 3600) / 60);
+                return m > 0 ? `${h}h ${m}m` : `${h}h`;
+            }
+            if (seconds >= 60) {
+                const m = Math.floor(seconds / 60);
+                const sx = seconds % 60;
+                return sx > 0 ? `${m} min ${sx}s` : `${m} min`;
+            }
+            return `${seconds}s`;
+        }
+        function acIsTimeBasedEx(ex, s) {
+            if (s && (s.isTimeBased === true || (s.duration != null && s.duration !== ''))) return true;
+            const tt = String(ex && ex.trackingType || '').toLowerCase();
+            if (tt === 'time') return true;
+            const et = String(ex && ex.exercise_type || '').toLowerCase();
+            if (!(ex && ex.trackingType) && ( (ex && ex.duration) || et === 'cardio' || et === 'interval' || et === 'timed')) return true;
+            return false;
+        }
+        function acFmtSetLabel(s, ex) {
+            // Distance-based
+            if (s && (s.isDistanceBased === true || (s.distance != null && s.distance !== ''))) {
+                const u = (s.distanceUnit || (ex && ex.distanceUnit) || 'mi');
+                return `${s.distance} ${u}`;
+            }
+            // Time-based -> duration with unit
+            if (acIsTimeBasedEx(ex, s)) {
+                const raw = (s && s.duration != null && s.duration !== '')
+                    ? s.duration
+                    : ((ex && ex.duration != null) ? ex.duration : (ex && ex.reps));
+                return acFormatDuration(acParseTimeSeconds(raw)) || '0s';
+            }
+            // Reps-based
+            const reps = (s && s.reps != null) ? s.reps : 0;
+            const w = s ? (Number(s.weight) || 0) : 0;
+            if (w > 0) {
+                const u = (s && s.weightUnit) ? s.weightUnit : 'lbs';
+                return `${reps} × ${w} ${u}`;
+            }
+            return `${reps} reps`;
+        }
+
         function acRenderDayDetail(workouts, dateStr) {
             const bodyEl = document.getElementById('acDetailBody');
             let html = '';
@@ -13668,9 +13730,9 @@
                             const isDone = ex._done;
 
                             let setsHtml = '';
-                            if (ex.setsData && Array.isArray(ex.setsData)) {
+                            if (ex.setsData && Array.isArray(ex.setsData) && ex.setsData.length > 0) {
                                 setsHtml = ex.setsData.map(s => {
-                                    let label = `${s.reps || 0}${s.weight ? 'x' + s.weight + (s.weightUnit || 'lbs') : ''}`;
+                                    let label = acFmtSetLabel(s, ex);
                                     let extras = '';
                                     if (ex.showRPE && s.rpe) extras += `<span class="ac-set-metric rpe">RPE ${s.rpe}</span>`;
                                     if (ex.showPercent1RM && s.percent1RM) extras += `<span class="ac-set-metric percent1rm">${s.percent1RM}%</span>`;
@@ -13680,7 +13742,10 @@
                                     return `<span class="ac-set-pill${s._completed || s.completed ? ' completed' : ''}">${label}${extras}</span>`;
                                 }).join('');
                             } else if (sets > 0) {
-                                setsHtml = `<span class="ac-set-pill">${sets} sets x ${reps} ${trackingType === 'time' ? 'sec' : 'reps'}</span>`;
+                                const fallback = trackingType === 'time'
+                                    ? (acFormatDuration(acParseTimeSeconds(ex.duration != null ? ex.duration : reps)) || (reps + 's'))
+                                    : (reps + ' reps');
+                                setsHtml = `<span class="ac-set-pill">${sets} × ${fallback}</span>`;
                             }
                             if (restSec > 0) {
                                 setsHtml += `<span class="ac-set-pill">Rest: ${restSec}s</span>`;
