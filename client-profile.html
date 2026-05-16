@@ -1331,6 +1331,46 @@
             opacity: 0.35;
         }
 
+        /* ===== Calendar performance: reserve space so layout never reflows
+           as async data arrives (fixes mobile page-jump). Heights are fixed
+           (not min-height) so cell labels appearing after the feed loads can
+           never grow the grid. ===== */
+        .ac-calendar-container { min-height: 496px; }
+        .ac-grid { min-height: 470px; }              /* header row + 6 week rows */
+        .ac-detail-body { min-height: 340px; }
+        #workoutLogsContainer { min-height: 240px; }
+        .ac-day-cell { height: 72px; }               /* fixed -> no reflow */
+        .ac-cell-workouts { max-height: 42px; }
+        /* Cheap "virtual scrolling": skip rendering offscreen workout cards
+           without removing them from the DOM. No layout shift, touch-safe. */
+        .wp-card { content-visibility: auto; contain-intrinsic-size: auto 200px; }
+        .ac-detail-exercise { content-visibility: auto; contain-intrinsic-size: auto 56px; }
+        /* Skeleton loaders */
+        .cp-skel {
+            background: linear-gradient(90deg,#eef2f7 25%,#e2e8f0 37%,#eef2f7 63%);
+            background-size: 400% 100%;
+            animation: cpShimmer 1.4s ease infinite;
+            border-radius: 8px;
+        }
+        @keyframes cpShimmer { 0% { background-position: 100% 0 } 100% { background-position: 0 0 } }
+        .cp-skel-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 2px; }
+        .cp-skel-grid > div { height: 72px; border-radius: 8px; }
+        .cp-load-more-btn {
+            display: block; width: 100%; margin: 14px 0 4px;
+            padding: 11px 16px; border: 1px solid #e2e8f0; border-radius: 10px;
+            background: #f8fafc; color: #0369a1; font-weight: 600; font-size: 13px;
+            cursor: pointer; transition: background .15s;
+        }
+        .cp-load-more-btn:hover { background: #f0f9ff; border-color: #0369a1; }
+        .cp-load-more-btn:disabled { opacity: .6; cursor: default; }
+        [data-theme="dark"] .cp-skel {
+            background: linear-gradient(90deg,#1e293b 25%,#334155 37%,#1e293b 63%);
+            background-size: 400% 100%;
+        }
+        [data-theme="dark"] .cp-load-more-btn {
+            background: var(--bg-tertiary,#334155); border-color: var(--border-color,#475569); color: #60a5fa;
+        }
+
         /* Workout labels in calendar cells */
         .ac-cell-workouts {
             display: flex;
@@ -2548,7 +2588,11 @@
 
             .ac-day-cell {
                 min-height: 50px;
+                height: 50px;
             }
+            .ac-calendar-container { min-height: 360px; }
+            .ac-grid { min-height: 334px; }
+            .ac-detail-body { min-height: 240px; }
         }
 
         .workout-progress-section {
@@ -9863,6 +9907,8 @@
         function acManualRefresh() {
             if (!acSelectedDate) return;
             acHistoryCache = null;
+            cpInvalidateFeed(); // force a true server refetch of calendar/history
+            acLoadMonthData();  // refresh calendar dots
             acSelectDay(acSelectedDate);
         }
         // (focus / visibilitychange listeners intentionally NOT registered)
@@ -13141,6 +13187,90 @@
         let acHistoryCache = null; // { ts, logs } — short-lived exercise-history cache
         const AC_HISTORY_TTL = 60000; // 1 min
 
+        // ============ CALENDAR PERFORMANCE CACHE (5-min TTL) ============
+        // The heavy coach-workout-feed (server runs N parallel sub-queries)
+        // was previously fetched 3+ times on page load (calendar + history +
+        // every month nav) with no caching — the cause of the 30s+ load for
+        // clients with lots of history. These helpers fetch each dataset at
+        // most once per 5 minutes, dedupe concurrent callers via an in-flight
+        // promise, and grow the feed page on demand for "Load more" history.
+        // cpInvalidateFeed() is called from every write path so edits show
+        // immediately (cache is only stale for unchanged data).
+        const CP_CACHE_TTL = 5 * 60 * 1000;
+        const CP_FEED_MIN = 60;          // covers calendar dots + ~2 weeks history
+        let cpFeedCache = null;          // { ts, limit, feed:[], hasMore }
+        let cpFeedInflight = null;       // { limit, promise }
+        let cpAssignmentsCache = null;   // { ts, assignments:[] }
+        let cpAssignInflight = null;
+        let cpAdhocCache = null;         // { ts, workouts:[] }
+        let cpAdhocInflight = null;
+        let cpHistoryLimit = CP_FEED_MIN; // grows via "Load more"
+        let cpHistoryHasMore = false;
+
+        function cpInvalidateFeed() {
+            cpFeedCache = null;  cpFeedInflight = null;
+            cpAssignmentsCache = null; cpAssignInflight = null;
+            cpAdhocCache = null; cpAdhocInflight = null;
+            acHistoryCache = null;
+        }
+
+        async function cpGetWorkoutFeed(desiredLimit) {
+            const limit = Math.max(desiredLimit || CP_FEED_MIN, CP_FEED_MIN);
+            const fresh = cpFeedCache && (Date.now() - cpFeedCache.ts) < CP_CACHE_TTL;
+            if (fresh && cpFeedCache.limit >= limit) return cpFeedCache;
+            if (cpFeedInflight && cpFeedInflight.limit >= limit) return cpFeedInflight.promise;
+            const coachId = window.coachUserId || (currentUser && currentUser.id) || '';
+            const promise = (async () => {
+                try {
+                    const res = await fetch(`/.netlify/functions/coach-workout-feed?coachId=${coachId}&clientId=${clientId}&limit=${limit}`);
+                    const data = await res.json();
+                    cpFeedCache = {
+                        ts: Date.now(),
+                        limit,
+                        feed: data.feed || data.workouts || [],
+                        hasMore: !!data.hasMore
+                    };
+                    return cpFeedCache;
+                } finally {
+                    cpFeedInflight = null;
+                }
+            })();
+            cpFeedInflight = { limit, promise };
+            return promise;
+        }
+
+        async function cpGetAssignments() {
+            if (cpAssignmentsCache && (Date.now() - cpAssignmentsCache.ts) < CP_CACHE_TTL) {
+                return cpAssignmentsCache.assignments;
+            }
+            if (cpAssignInflight) return cpAssignInflight;
+            cpAssignInflight = (async () => {
+                try {
+                    const res = await fetch(`/.netlify/functions/workout-assignments?clientId=${clientId}&activeOnly=true`);
+                    const data = await res.json();
+                    cpAssignmentsCache = { ts: Date.now(), assignments: data.assignments || [] };
+                    return cpAssignmentsCache.assignments;
+                } finally { cpAssignInflight = null; }
+            })();
+            return cpAssignInflight;
+        }
+
+        async function cpGetAdhoc() {
+            if (cpAdhocCache && (Date.now() - cpAdhocCache.ts) < CP_CACHE_TTL) {
+                return cpAdhocCache.workouts;
+            }
+            if (cpAdhocInflight) return cpAdhocInflight;
+            cpAdhocInflight = (async () => {
+                try {
+                    const res = await fetch(`/.netlify/functions/adhoc-workouts?clientId=${clientId}`);
+                    const data = await res.json();
+                    cpAdhocCache = { ts: Date.now(), workouts: data.workouts || [] };
+                    return cpAdhocCache.workouts;
+                } finally { cpAdhocInflight = null; }
+            })();
+            return cpAdhocInflight;
+        }
+
         let acToastTimer = null;
         function acToast(msg, isErr) {
             let el = document.getElementById('acToast');
@@ -13423,9 +13553,9 @@
 
         async function acLoadMonthData() {
             try {
-                const res = await fetch(`/.netlify/functions/workout-assignments?clientId=${clientId}&activeOnly=true`);
-                const data = await res.json();
-                const allAssignments = data.assignments || [];
+                // Cached (5-min TTL). Month navigation now recomputes the
+                // projection from cached data with zero network requests.
+                const allAssignments = await cpGetAssignments();
                 acCurrentAssignment = allAssignments.find(a => a.is_active) || allAssignments[0] || null;
 
                 acAssignmentCache = {}; // { 'YYYY-MM-DD': [{ dayName, exerciseCount }] }
@@ -13509,18 +13639,19 @@
                     }
                 }
 
-                const feedRes = await fetch(`/.netlify/functions/coach-workout-feed?coachId=${window.coachUserId || ''}&clientId=${clientId}&limit=100`);
-                const feedData = await feedRes.json();
-                const feed = feedData.feed || feedData.workouts || [];
+                // Shared cached feed (also used by the history panel) — one
+                // fetch per 5 min instead of one per calendar load + history
+                // load + every month nav.
+                const feedCache = await cpGetWorkoutFeed(CP_FEED_MIN);
+                const feed = feedCache.feed || [];
                 acWorkoutLogsCache = {};
                 feed.forEach(w => {
                     if (w.workoutDate) acWorkoutLogsCache[w.workoutDate] = w.status || 'completed';
                 });
 
                 try {
-                    const adhocRes = await fetch(`/.netlify/functions/adhoc-workouts?clientId=${clientId}`);
-                    const adhocData = await adhocRes.json();
-                    (adhocData.workouts || []).forEach(w => {
+                    const adhocWorkouts = await cpGetAdhoc();
+                    (adhocWorkouts || []).forEach(w => {
                         if (w.workout_date) {
                             const entry = {
                                 dayName: w.name || 'Custom Workout',
@@ -14299,6 +14430,7 @@
                 isAdhoc, dateStr, silent
             });
             acHistoryCache = null; // any write invalidates the cached history
+            cpInvalidateFeed();    // calendar dots + history must refetch
             try {
                 if (isAdhoc) {
                     console.log('[acSave] → PUT /adhoc-workouts');
@@ -14805,6 +14937,7 @@
                 });
                 const data = await res.json();
 
+                cpInvalidateFeed();
                 if (!acAssignmentCache[dateStr]) acAssignmentCache[dateStr] = [];
                 acAssignmentCache[dateStr].push({ dayName: 'Custom Workout', exerciseCount: 0 });
                 acRenderCalendar();
@@ -14937,6 +15070,7 @@
                     })
                 });
 
+                cpInvalidateFeed();
                 if (!acAssignmentCache[dateStr]) acAssignmentCache[dateStr] = [];
                 acAssignmentCache[dateStr].push({ dayName: name || 'Workout', exerciseCount: (exercises || []).length });
                 acRenderCalendar();
@@ -15427,6 +15561,7 @@
                     });
                 }
 
+                cpInvalidateFeed();
                 delete acAssignmentCache[dateStr];
                 acRenderCalendar();
                 acSelectDay(dateStr);
@@ -15492,6 +15627,7 @@
                     // Both source and target dots are stale — reload the month so
                     // the calendar reflects the new schedule, then jump to the
                     // target so the coach sees what they just did.
+                    cpInvalidateFeed();
                     await acLoadMonthData();
                     acRenderCalendar();
                     acSelectDay(targetDate);
@@ -15541,6 +15677,7 @@
                         }
                     }
 
+                    cpInvalidateFeed();
                     await acLoadMonthData();
                     acRenderCalendar();
                     acSelectDay(targetDate);
@@ -15727,6 +15864,21 @@
             loadWorkoutLogs(clientId);
         }
 
+        // "Load older history" — only rendered when the server reported more
+        // rows beyond the currently loaded page.
+        function cpHistoryFooterHtml() {
+            if (!cpHistoryHasMore) return '';
+            return '<button type="button" class="cp-load-more-btn" id="cpLoadMoreBtn" '
+                + 'onclick="cpLoadMoreHistory()">↓ Load older workouts</button>';
+        }
+
+        async function cpLoadMoreHistory() {
+            const btn = document.getElementById('cpLoadMoreBtn');
+            if (btn) { btn.disabled = true; btn.textContent = 'Loading…'; }
+            cpHistoryLimit += 30;
+            await loadWorkoutLogs(clientId);
+        }
+
         async function loadWorkoutLogs(clientId) {
             if (!clientId) return;
             const container = document.getElementById('workoutLogsContainer');
@@ -15747,17 +15899,22 @@
 
             dateLabel.textContent = `${startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
 
-            container.innerHTML = '<div class="loading skeleton-loading"><div class="skeleton" style="height: 80px; margin-bottom: 12px; border-radius: 10px;"></div></div>';
+            // Fixed-height skeleton stack — reserves space so the panel never
+            // collapses/expands when cards arrive (no mobile page-jump).
+            container.innerHTML = '<div class="cp-skel" style="height:200px;margin-bottom:12px;"></div>'
+                + '<div class="cp-skel" style="height:200px;margin-bottom:12px;"></div>'
+                + '<div class="cp-skel" style="height:120px;"></div>';
             emptyState.style.display = 'none';
             summaryEl.innerHTML = '';
             fatigueEl.innerHTML = '';
             missedEl.innerHTML = '';
 
             try {
-                const res = await fetch(`/.netlify/functions/coach-workout-feed?coachId=${window.coachUserId || ''}&clientId=${clientId}&limit=50`);
-                const data = await res.json();
-
-                allFeedWorkouts = data.feed || data.workouts || [];
+                // Shared cached, paginated feed. Initial page = last
+                // CP_FEED_MIN workouts; "Load older history" grows cpHistoryLimit.
+                const feedCache = await cpGetWorkoutFeed(cpHistoryLimit);
+                allFeedWorkouts = feedCache.feed || [];
+                cpHistoryHasMore = !!feedCache.hasMore;
                 if (allFeedWorkouts.length === 0) {
                     container.innerHTML = '';
                     emptyState.style.display = 'flex';
@@ -15806,7 +15963,8 @@
 
                 emptyState.style.display = 'none';
 
-                container.innerHTML = workouts.map(w => renderWorkoutCard(w, prevExerciseMap)).join('');
+                container.innerHTML = workouts.map(w => renderWorkoutCard(w, prevExerciseMap)).join('')
+                    + cpHistoryFooterHtml();
 
             } catch (err) {
                 console.error('Error loading workout logs:', err);
@@ -17060,7 +17218,8 @@
                 closeWorkoutModal();
                 cpExerciseSwaps = {};
                 await loadWorkoutPrograms(clientId);
-                await loadWorkoutCalendar(clientId);
+                cpInvalidateFeed();
+                await acLoadMonthData(); // refresh the live (activity) calendar
             } catch (err) {
                 console.error('Error assigning program:', err);
                 alert('Failed to assign program. Please try again.');
@@ -17080,7 +17239,8 @@
 
                 if (!res.ok) throw new Error('Failed to unassign');
                 await loadWorkoutPrograms(clientId);
-                await loadWorkoutCalendar(clientId);
+                cpInvalidateFeed();
+                await acLoadMonthData(); // refresh the live (activity) calendar
             } catch (err) {
                 console.error('Error unassigning program:', err);
                 alert('Failed to unassign program.');
@@ -17137,6 +17297,7 @@
                 clientActiveAssignment = null;
                 alert('Program removed. Completed workouts have been preserved.');
                 await loadWorkoutPrograms(clientId);
+                cpInvalidateFeed();
                 await acLoadMonthData();
             } catch (err) {
                 console.error('Error removing program:', err);
@@ -17496,7 +17657,8 @@
                 if (!res.ok) throw new Error('Failed to update');
                 closeWorkoutModal();
                 await loadWorkoutPrograms(clientId);
-                await loadWorkoutCalendar(clientId);
+                cpInvalidateFeed();
+                await acLoadMonthData(); // refresh the live (activity) calendar
             } catch (err) {
                 console.error('Error saving schedule:', err);
                 alert('Failed to save schedule.');
