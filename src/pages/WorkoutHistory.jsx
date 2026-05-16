@@ -419,6 +419,45 @@ function normalizeWorkoutToViewerUnit(workout, viewerUnit) {
   };
 }
 
+// Same idea for the exercise drill-down: the exercise-history endpoint sends
+// each session's setsData (with per-set unit stamps). Recompute every
+// session's max/volume and the all-time/recent stats from the converted
+// sets so the drill-down agrees with the detail card and the editor.
+function normalizeExerciseHistoryToViewerUnit(history, stats, viewerUnit) {
+  if (!Array.isArray(history)) return { history: [], stats };
+  const norm = history.map((h) => {
+    let sd = h.setsData;
+    if (typeof sd === 'string') {
+      try { sd = JSON.parse(sd); } catch { sd = []; }
+    }
+    if (!Array.isArray(sd) || sd.length === 0) return h;
+    let mx = 0;
+    let vol = 0;
+    sd.forEach((s) => {
+      const w = convertWeight(
+        Number(s.weight ?? s.actualWeight) || 0,
+        s.weightUnit || viewerUnit,
+        viewerUnit
+      );
+      const reps = Number(s.reps ?? s.actualReps) || 0;
+      if (w > mx) mx = w;
+      vol += reps * w;
+    });
+    return { ...h, maxWeight: Math.round(mx * 10) / 10, totalVolume: Math.round(vol) };
+  });
+  const maxes = norm.map((h) => h.maxWeight).filter((w) => w > 0);
+  const vols = norm.map((h) => h.totalVolume).filter((v) => v > 0);
+  const newStats = stats
+    ? {
+        ...stats,
+        allTimeMaxWeight: maxes.length ? Math.round(Math.max(...maxes) * 10) / 10 : 0,
+        recentMaxWeight: maxes.length ? maxes[0] : 0,
+        totalVolume: vols.reduce((a, b) => a + b, 0),
+      }
+    : stats;
+  return { history: norm, stats: newStats };
+}
+
 // ---------------------------------------------------------------------------
 // WorkoutHistory Page
 // ---------------------------------------------------------------------------
@@ -545,15 +584,22 @@ export default function WorkoutHistory() {
         const res = await apiGet(
           `/.netlify/functions/exercise-history?clientId=${resolvedClientId}&exerciseId=${exId}&limit=30`
         );
-        setExerciseHistory(res.history || []);
-        setExerciseStats(res.stats || null);
+        {
+          const normalized = normalizeExerciseHistoryToViewerUnit(
+            res.history || [],
+            res.stats || null,
+            weightUnit
+          );
+          setExerciseHistory(normalized.history);
+          setExerciseStats(normalized.stats);
+        }
       } catch (err) {
         console.error('Failed to fetch exercise history:', err);
       } finally {
         setLoadingExerciseHistory(false);
       }
     },
-    [expandedExerciseId, resolvedClientId]
+    [expandedExerciseId, resolvedClientId, weightUnit]
   );
 
   // -----------------------------------------------------------------------
