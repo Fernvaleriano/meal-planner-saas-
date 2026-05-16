@@ -3,6 +3,7 @@ import { X, Check, Plus, ChevronLeft, Play, Timer, BarChart3, ArrowLeftRight, Tr
 import { apiGet, apiPost, apiPut, apiDelete, getOrCreateWorkoutLogId } from '../../utils/api';
 import { supabase } from '../../utils/supabase';
 import { generateProgression, generateSetNudge, EFFORT_OPTIONS, parseSetsData, getMaxWeight, convertWeight } from '../../utils/workoutProgression';
+import { toKg } from '../../utils/weight';
 import { onAppSuspend, onAppResume } from '../../hooks/useAppLifecycle';
 import Portal from '../Portal';
 import SetEditorModal from './SetEditorModal';
@@ -35,7 +36,7 @@ const convertNumberWords = (text) => {
 
 // Parse a single segment for reps/weight
 const parseSegment = (segment) => {
-  const result = { reps: null, weight: null, setNumber: null };
+  const result = { reps: null, weight: null, weightUnit: null, setNumber: null };
 
   // Check for set number in this segment
   // Patterns: "set 2", "set number 2", "2nd set", "2 set", "the 2 set", "first I did"
@@ -49,11 +50,11 @@ const parseSegment = (segment) => {
   // Check for explicit weight (kg, lbs)
   const weightMatch = segment.match(/(\d+(?:\.\d+)?)\s*(?:kg|kgs|kilo|kilos|pound|pounds|lb|lbs)/i);
   if (weightMatch) {
-    let weight = parseFloat(weightMatch[1]);
-    if (/pound|lb/i.test(weightMatch[0])) {
-      weight = Math.round(weight * 0.453592 * 2) / 2;
-    }
-    result.weight = weight;
+    result.weight = parseFloat(weightMatch[1]);
+    // Record the spoken unit only; conversion to the viewer's unit happens
+    // at the apply site via the single shared convertWeight helper. No lossy
+    // pre-conversion / 0.5-rounding here.
+    result.weightUnit = /pound|lb/i.test(weightMatch[0]) ? 'lbs' : 'kg';
   }
 
   // Check for explicit reps
@@ -140,6 +141,7 @@ const parseVoiceInput = (transcript, currentSets) => {
           setNumber: parsed.setNumber || idx + 1, // Default to sequential if no set specified
           reps: parsed.reps,
           weight: parsed.weight,
+          weightUnit: parsed.weightUnit,
           markComplete: /done|complete|finished/i.test(segment)
         });
       }
@@ -169,6 +171,7 @@ const parseVoiceInput = (transcript, currentSets) => {
       setNumber: targetSet || 1,
       reps: parsed.reps,
       weight: parsed.weight,
+      weightUnit: parsed.weightUnit,
       markComplete: /done|complete|finished/i.test(text)
     }],
     understood
@@ -499,22 +502,19 @@ function ExerciseDetailModal({
       // Check setsData first (saved by the 3-panel workout builder detail editor)
       if (Array.isArray(ex.setsData) && ex.setsData.length > 0) {
         return ex.setsData.filter(Boolean).map(set => {
-          // Coach builder defaults to 'lb' in its unit dropdown. If the per-set weightUnit
-          // wasn't stamped (older prescriptions, or coach never touched the dropdown),
-          // assume 'lbs' rather than the client's profile unit — falling back to the
-          // client's unit makes the conversion a no-op and renders the raw number with
-          // the wrong label.
+          // Storage is canonical kg (normalize_workout_weights_to_kg
+          // migration). Convert once, kg -> the viewer's preferred unit, for
+          // display/edit. The save path converts back to kg, so this is a
+          // stable round-trip — no convert-on-load drift.
           const rawWeight = set?.weight || 0;
-          // Only treat the coach's prescription as set when the field is explicitly
-          // present on the saved data. Falling back to rawWeight here surfaces any
-          // logged weight as a "Coach Prescribed" target on the next reload — and the
-          // save path then persists that bogus value, baking it in.
+          // Only treat the coach's prescription as set when the field is
+          // explicitly present — falling back to rawWeight would surface a
+          // logged weight as a "Coach Prescribed" target on the next reload.
           const rawPrescribed = set?.prescribedWeight ?? 0;
-          const fromUnit = set?.weightUnit || (rawPrescribed > 0 || rawWeight > 0 ? 'lbs' : weightUnit);
           return {
           reps: safeParseReps(set?.reps || ex.reps),
-          weight: convertWeight(rawWeight, fromUnit, weightUnit),
-          prescribedWeight: convertWeight(rawPrescribed, fromUnit, weightUnit),
+          weight: convertWeight(rawWeight, 'kg', weightUnit),
+          prescribedWeight: convertWeight(rawPrescribed, 'kg', weightUnit),
           prescribedReps: set?.prescribedReps != null ? safeParseReps(set.prescribedReps) : 0,
           completed: set?.completed || false,
           duration: set?.duration || ex.duration || null,
@@ -789,9 +789,9 @@ function ExerciseDetailModal({
       const setsData = currentSets.map((s, i) => ({
         setNumber: i + 1,
         reps: s.reps || 0,
-        weight: s.weight || 0,
-        weightUnit: s.weightUnit || currentWeightUnit,
-        ...(s.prescribedWeight > 0 && { prescribedWeight: s.prescribedWeight }),
+        weight: toKg(s.weight || 0, currentWeightUnit),
+        weightUnit: 'kg',
+        ...(s.prescribedWeight > 0 && { prescribedWeight: toKg(s.prescribedWeight, currentWeightUnit) }),
         ...(s.prescribedReps > 0 && { prescribedReps: s.prescribedReps }),
         rpe: s.rpe || null,
         effort: s.effort || null,
@@ -1052,9 +1052,9 @@ function ExerciseDetailModal({
       const setsData = sets.map((s, i) => ({
         setNumber: i + 1,
         reps: s.reps || 0,
-        weight: s.weight || 0,
-        weightUnit: s.weightUnit || 'kg',
-        ...(s.prescribedWeight > 0 && { prescribedWeight: s.prescribedWeight }),
+        weight: toKg(s.weight || 0, weightUnit),
+        weightUnit: 'kg',
+        ...(s.prescribedWeight > 0 && { prescribedWeight: toKg(s.prescribedWeight, weightUnit) }),
         ...(s.prescribedReps > 0 && { prescribedReps: s.prescribedReps }),
         rpe: s.rpe || null,
         restSeconds: s.restSeconds ?? null,
@@ -1424,9 +1424,9 @@ function ExerciseDetailModal({
           const setsData = sets.map((s, i) => ({
             setNumber: i + 1,
             reps: s.reps || 0,
-            weight: s.weight || 0,
-            weightUnit: s.weightUnit || weightUnit,
-            ...(s.prescribedWeight > 0 && { prescribedWeight: s.prescribedWeight }),
+            weight: toKg(s.weight || 0, weightUnit),
+            weightUnit: 'kg',
+            ...(s.prescribedWeight > 0 && { prescribedWeight: toKg(s.prescribedWeight, weightUnit) }),
             ...(s.prescribedReps > 0 && { prescribedReps: s.prescribedReps }),
             rpe: s.rpe || null,
             restSeconds: s.restSeconds ?? null,
@@ -1490,9 +1490,9 @@ function ExerciseDetailModal({
         const setsData = sets.map((s, i) => ({
           setNumber: i + 1,
           reps: s.reps || 0,
-          weight: s.weight || 0,
-          weightUnit: s.weightUnit || weightUnit,
-          ...(s.prescribedWeight > 0 && { prescribedWeight: s.prescribedWeight }),
+          weight: toKg(s.weight || 0, weightUnit),
+          weightUnit: 'kg',
+          ...(s.prescribedWeight > 0 && { prescribedWeight: toKg(s.prescribedWeight, weightUnit) }),
           ...(s.prescribedReps > 0 && { prescribedReps: s.prescribedReps }),
           rpe: s.rpe || null,
           restSeconds: s.restSeconds ?? null,
@@ -1613,7 +1613,13 @@ function ExerciseDetailModal({
             }
             // Update weight if provided
             if (setData.weight !== null) {
-              newSets[targetIndex] = { ...newSets[targetIndex], weight: setData.weight };
+              // Convert the spoken unit to the viewer's unit via the single
+              // shared helper. A bare number (no unit spoken) is taken as
+              // already being in the viewer's unit.
+              const w = setData.weightUnit
+                ? convertWeight(setData.weight, setData.weightUnit, weightUnit)
+                : setData.weight;
+              newSets[targetIndex] = { ...newSets[targetIndex], weight: w };
             }
             // Mark as complete if requested
             if (setData.markComplete) {
@@ -2015,8 +2021,8 @@ function ExerciseDetailModal({
         const setsData = acceptedSets.map((s, i) => ({
           setNumber: i + 1,
           reps: s.reps || 0,
-          weight: s.weight || 0,
-          weightUnit: s.weightUnit || weightUnit,
+          weight: toKg(s.weight || 0, weightUnit),
+          weightUnit: 'kg',
           restSeconds: s.restSeconds || null,
           effort: s.effort || null,
           ...(s.duration != null && { duration: s.duration }),

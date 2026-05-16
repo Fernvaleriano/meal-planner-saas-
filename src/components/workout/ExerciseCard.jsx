@@ -53,7 +53,7 @@ const convertNumberWords = (text) => {
 
 // Parse a single set segment to extract reps and weight
 const parseSetSegment = (segment) => {
-  const result = { reps: null, weight: null, rest: null };
+  const result = { reps: null, weight: null, weightUnit: null, rest: null };
   const text = convertNumberWords(segment);
 
   const repsPatterns = [
@@ -76,11 +76,10 @@ const parseSetSegment = (segment) => {
   for (const pattern of weightPatterns) {
     const match = text.match(pattern);
     if (match) {
-      let weight = parseFloat(match[1]);
-      if (/lb|pound/i.test(segment)) {
-        weight = Math.round(weight * 0.453592 * 2) / 2;
-      }
-      result.weight = weight;
+      result.weight = parseFloat(match[1]);
+      // Record the spoken unit only; conversion to the viewer's unit happens
+      // at the apply site via the single shared convertWeight helper.
+      result.weightUnit = /lb|pound/i.test(match[0]) ? 'lbs' : 'kg';
       break;
     }
   }
@@ -130,7 +129,7 @@ const parseVoiceInputForSets = (transcript) => {
     }
     return { multiple: true, sets: results };
   } else {
-    const result = { multiple: false, reps: null, weight: null, setNumber: null };
+    const result = { multiple: false, reps: null, weight: null, weightUnit: null, setNumber: null };
     // Try all patterns for set number
     let setMatch = text.match(/set\s*(?:number\s*)?(\d+)/i) ||
                    text.match(/(\d+)(?:st|nd|rd|th)?\s*set/i) ||
@@ -141,6 +140,7 @@ const parseVoiceInputForSets = (transcript) => {
     const parsed = parseSetSegment(text);
     result.reps = parsed.reps;
     result.weight = parsed.weight;
+    result.weightUnit = parsed.weightUnit;
     return result;
   }
 };
@@ -161,10 +161,10 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
     // Check setsData first (saved by the 3-panel workout builder detail editor)
     if (Array.isArray(exercise.setsData) && exercise.setsData.length > 0) {
       return exercise.setsData.slice(0, 20).filter(Boolean).map(set => {
-        // Convert coach's per-set unit to the client's profile unit. Builder defaults to
-        // 'lb'; if weightUnit was never stamped (older prescriptions), assume 'lbs' too.
+        // Storage is canonical kg (normalize_workout_weights_to_kg). Convert
+        // once, kg -> the viewer's unit, for display.
         const rawWeight = set?.weight || 0;
-        const fromUnit = set?.weightUnit || (rawWeight > 0 ? 'lbs' : weightUnit);
+        const fromUnit = 'kg';
         return {
         reps: set?.reps ?? parseReps(exercise.reps) ?? 12,
         weight: convertWeight(rawWeight, fromUnit, weightUnit),
@@ -331,7 +331,7 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
 
     const newSets = setsSource.slice(0, 20).filter(Boolean).map(set => {
       const rawWeight = set?.weight || 0;
-      const fromUnit = set?.weightUnit || (rawWeight > 0 ? 'lbs' : weightUnit);
+      const fromUnit = 'kg'; // canonical storage; see normalize_workout_weights_to_kg
       return {
       reps: set?.reps ?? parseReps(exercise.reps) ?? 12,
       weight: convertWeight(rawWeight, fromUnit, weightUnit),
@@ -708,7 +708,10 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
               newSets[targetIndex] = { ...newSets[targetIndex], reps: setData.reps };
             }
             if (setData.weight !== null) {
-              newSets[targetIndex] = { ...newSets[targetIndex], weight: setData.weight };
+              const w = setData.weightUnit
+                ? convertWeight(setData.weight, setData.weightUnit, weightUnit)
+                : setData.weight;
+              newSets[targetIndex] = { ...newSets[targetIndex], weight: w };
             }
           }
         }
@@ -719,7 +722,10 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
             newSets[targetIndex] = { ...newSets[targetIndex], reps: parsed.reps };
           }
           if (parsed.weight !== null) {
-            newSets[targetIndex] = { ...newSets[targetIndex], weight: parsed.weight };
+            const w = parsed.weightUnit
+              ? convertWeight(parsed.weight, parsed.weightUnit, weightUnit)
+              : parsed.weight;
+            newSets[targetIndex] = { ...newSets[targetIndex], weight: w };
           }
         }
       }

@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { X, Clock, ChevronDown, Mic, MicOff } from 'lucide-react';
 import Portal from '../Portal';
+import { convertWeight } from '../../utils/workoutProgression';
 
 // Parse reps - if it's a range like "8-12", return just the first number
 // Supports decimals like "1.5" (e.g. 1.5 miles)
@@ -53,7 +54,7 @@ const convertNumberWords = (text) => {
 
 // Parse a single set segment to extract reps and weight
 const parseSetSegment = (segment) => {
-  const result = { reps: null, weight: null, rest: null };
+  const result = { reps: null, weight: null, weightUnit: null, rest: null };
 
   // Convert number words to digits
   const text = convertNumberWords(segment);
@@ -80,12 +81,10 @@ const parseSetSegment = (segment) => {
   for (const pattern of weightPatterns) {
     const match = text.match(pattern);
     if (match) {
-      let weight = parseFloat(match[1]);
-      // Convert pounds to kg if needed
-      if (/lb|pound/i.test(segment)) {
-        weight = Math.round(weight * 0.453592 * 2) / 2;
-      }
-      result.weight = weight;
+      result.weight = parseFloat(match[1]);
+      // Record the spoken unit only; conversion to the viewer's unit happens
+      // at the apply site via the single shared convertWeight helper.
+      result.weightUnit = /lb|pound/i.test(match[0]) ? 'lbs' : 'kg';
       break;
     }
   }
@@ -143,7 +142,7 @@ const parseVoiceInput = (transcript) => {
     return { multiple: true, sets: results };
   } else {
     // Single set - use original logic
-    const result = { multiple: false, reps: null, weight: null, rest: null, setNumber: null };
+    const result = { multiple: false, reps: null, weight: null, weightUnit: null, rest: null, setNumber: null };
 
     // Extract set number if mentioned
     const setMatch = text.match(/set\s*(?:number\s*)?(\d+)/i);
@@ -155,6 +154,7 @@ const parseVoiceInput = (transcript) => {
     const parsed = parseSetSegment(text);
     result.reps = parsed.reps;
     result.weight = parsed.weight;
+    result.weightUnit = parsed.weightUnit;
     result.rest = parsed.rest;
 
     return result;
@@ -280,7 +280,10 @@ function SetEditorModal({
               newSets[targetIndex] = { ...newSets[targetIndex], reps: setData.reps };
             }
             if (setData.weight !== null) {
-              newSets[targetIndex] = { ...newSets[targetIndex], weight: setData.weight };
+              const w = setData.weightUnit
+                ? convertWeight(setData.weight, setData.weightUnit, weightUnit)
+                : setData.weight;
+              newSets[targetIndex] = { ...newSets[targetIndex], weight: w };
             }
             if (setData.rest !== null) {
               newSets[targetIndex] = { ...newSets[targetIndex], restSeconds: setData.rest };
@@ -307,7 +310,10 @@ function SetEditorModal({
           newSets[targetSetIndex] = { ...newSets[targetSetIndex], reps: parsed.reps };
         }
         if (parsed.weight !== null) {
-          newSets[targetSetIndex] = { ...newSets[targetSetIndex], weight: parsed.weight };
+          const w = parsed.weightUnit
+            ? convertWeight(parsed.weight, parsed.weightUnit, weightUnit)
+            : parsed.weight;
+          newSets[targetSetIndex] = { ...newSets[targetSetIndex], weight: w };
         }
         if (parsed.rest !== null) {
           newSets[targetSetIndex] = { ...newSets[targetSetIndex], restSeconds: parsed.rest };
