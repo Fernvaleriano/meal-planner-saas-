@@ -207,6 +207,49 @@ exports.handler = async (event) => {
         } else {
           totalActiveAssignments = activeAssignments ? activeAssignments.length : 0;
 
+          // Per-assignment set of exercise ids the client has ALREADY logged
+          // (any non-empty sets_data). A coach program/bulk/"Save & Update"
+          // push must NOT clobber an exercise the client has already worked —
+          // those keep the client's existing version; only exercises with no
+          // client log get the new coach plan. Two batched queries total
+          // (NOT one-per-assignment), so propagation stays O(1) in round-trips.
+          const loggedByAssignment = new Map(); // assignmentId -> Set(String(exercise_id))
+          if (updateFields.program_data !== undefined && activeAssignments && activeAssignments.length > 0) {
+            const ids = activeAssignments.map(a => a.id);
+            const { data: wls, error: wlErr } = await supabase
+              .from('workout_logs')
+              .select('id, assignment_id')
+              .in('assignment_id', ids);
+            if (wlErr) {
+              // Fail safe: if we can't tell what's logged, do NOT overwrite
+              // anyone — skip propagation rather than risk erasing client work.
+              console.error('client-log lookup failed; skipping workout_data propagation:', wlErr);
+              updateFields.program_data = undefined;
+            } else {
+              const logToAssignment = new Map((wls || []).map(l => [l.id, l.assignment_id]));
+              const logIds = (wls || []).map(l => l.id);
+              if (logIds.length > 0) {
+                const { data: exLogs, error: elErr } = await supabase
+                  .from('exercise_logs')
+                  .select('workout_log_id, exercise_id, sets_data')
+                  .in('workout_log_id', logIds);
+                if (elErr) {
+                  console.error('client-log lookup failed; skipping workout_data propagation:', elErr);
+                  updateFields.program_data = undefined;
+                } else {
+                  for (const el of exLogs || []) {
+                    const hasClientSets = Array.isArray(el.sets_data) && el.sets_data.length > 0;
+                    if (!hasClientSets || el.exercise_id == null) continue;
+                    const aId = logToAssignment.get(el.workout_log_id);
+                    if (aId == null) continue;
+                    if (!loggedByAssignment.has(aId)) loggedByAssignment.set(aId, new Set());
+                    loggedByAssignment.get(aId).add(String(el.exercise_id));
+                  }
+                }
+              }
+            }
+          }
+
           if (activeAssignments && activeAssignments.length > 0) {
             for (const assignment of activeAssignments) {
               const assignmentUpdate = {};
@@ -219,8 +262,60 @@ exports.handler = async (event) => {
               // Update workout_data (program_data) while preserving assignment-specific fields like schedule and date_overrides
               if (updateFields.program_data !== undefined) {
                 const existingData = assignment.workout_data || {};
+                const loggedIds = loggedByAssignment.get(assignment.id) || new Set();
+
+                // Index the client's CURRENT exercises by id so a logged
+                // exercise keeps exactly what the client has been doing, even
+                // if the coach reordered/moved days in the new plan.
+                const preservedById = new Map();
+                const collect = (data) => {
+                  const days = Array.isArray(data?.days)
+                    ? data.days
+                    : (Array.isArray(data?.exercises) ? [{ exercises: data.exercises }] : []);
+                  for (const d of days) {
+                    for (const ex of (d && d.exercises) || []) {
+                      if (ex && ex.id != null && !preservedById.has(String(ex.id))) {
+                        preservedById.set(String(ex.id), ex);
+                      }
+                    }
+                  }
+                };
+                collect(existingData);
+
+                const mergeExercise = (newEx) => {
+                  if (
+                    newEx && newEx.id != null &&
+                    loggedIds.has(String(newEx.id)) &&
+                    preservedById.has(String(newEx.id))
+                  ) {
+                    // Client already logged this exercise -> keep their version,
+                    // do not overwrite with the coach's new plan.
+                    return preservedById.get(String(newEx.id));
+                  }
+                  return newEx;
+                };
+
+                const newProgram = updateFields.program_data || {};
+                let mergedProgram;
+                if (Array.isArray(newProgram.days)) {
+                  mergedProgram = {
+                    ...newProgram,
+                    days: newProgram.days.map(d => ({
+                      ...d,
+                      exercises: ((d && d.exercises) || []).map(mergeExercise)
+                    }))
+                  };
+                } else if (Array.isArray(newProgram.exercises)) {
+                  mergedProgram = {
+                    ...newProgram,
+                    exercises: newProgram.exercises.map(mergeExercise)
+                  };
+                } else {
+                  mergedProgram = newProgram;
+                }
+
                 assignmentUpdate.workout_data = {
-                  ...updateFields.program_data,
+                  ...mergedProgram,
                   // Preserve client-specific schedule and date overrides
                   schedule: existingData.schedule,
                   date_overrides: existingData.date_overrides
