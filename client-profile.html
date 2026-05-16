@@ -9853,27 +9853,19 @@
         function acEditorIsOpen() {
             return !!document.querySelector('#acExerciseDetailModal.active, #acExerciseModal.active, .ac-set-editor');
         }
+        // Auto-refresh on window focus / tab visibility is DISABLED by
+        // request — it caused the "Window focused, refreshing data..."
+        // storm and tore down the editor mid-edit. Coaches refresh
+        // explicitly via the ↻ Refresh button in the day view.
         async function maybeRefreshOnReturn(reason) {
-            if (!(currentUser && clientId)) return;
-            if (acEditorIsOpen()) {
-                console.log('[refresh] skipped (' + reason + ') — workout editor/modal open');
-                return;
-            }
-            const now = Date.now();
-            if (now - acLastRefreshAt < 30000) {
-                console.log('[refresh] skipped (' + reason + ') — throttled (<30s)');
-                return;
-            }
-            acLastRefreshAt = now;
-            console.log('[refresh] running (' + reason + ')');
-            await refreshAllData();
+            console.log('[refresh] auto-refresh disabled (' + reason + ') — use ↻ Refresh button');
         }
-        document.addEventListener('visibilitychange', function() {
-            if (!document.hidden) maybeRefreshOnReturn('visibilitychange');
-        });
-        window.addEventListener('focus', function() {
-            maybeRefreshOnReturn('window-focus');
-        });
+        function acManualRefresh() {
+            if (!acSelectedDate) return;
+            acHistoryCache = null;
+            acSelectDay(acSelectedDate);
+        }
+        // (focus / visibilitychange listeners intentionally NOT registered)
 
         // Refresh all data function
         async function refreshAllData() {
@@ -13169,6 +13161,86 @@
             acToastTimer = setTimeout(() => { el.style.opacity = '0'; }, 1800);
         }
 
+        // ============ INLINE EDIT ENGINE (no modal for basic edits) ============
+        // Coaches edit reps/weight/duration directly on the card. Each commit
+        // updates the in-memory acDayWorkouts (optimistic), shows a per-exercise
+        // sync chip (Saving… / ✓ Saved / Save failed), and debounce-saves via
+        // the proven acSaveExercises({silent:true}) so focus is never lost and
+        // there is no full re-render mid-typing.
+        const acSaveTimers = {}; // "wi:ei" -> timeout id
+
+        function acSetSync(wi, ei, state) {
+            const el = document.getElementById('acSync_w' + wi + '_e' + ei);
+            if (!el) return;
+            if (state === 'saving') { el.textContent = 'Saving…'; el.style.color = '#64748b'; }
+            else if (state === 'saved') {
+                el.textContent = '✓ Saved'; el.style.color = '#10b981';
+                setTimeout(() => {
+                    const e2 = document.getElementById('acSync_w' + wi + '_e' + ei);
+                    if (e2 && e2.textContent === '✓ Saved') e2.textContent = '';
+                }, 1500);
+            }
+            else if (state === 'error') { el.textContent = '⚠ Save failed'; el.style.color = '#dc2626'; }
+            else { el.textContent = ''; }
+        }
+
+        function acInlineCommit(input) {
+            const wi = parseInt(input.dataset.wi, 10);
+            const ei = parseInt(input.dataset.ei, 10);
+            const si = parseInt(input.dataset.si, 10);
+            const field = input.dataset.field;
+            const w = (acDayWorkouts || [])[wi];
+            if (!w) { console.warn('[inline] no workout at idx', wi); return; }
+            w.workout_data = w.workout_data || {};
+            const exs = w.workout_data.exercises || (w.workout_data.exercises = []);
+            const ex = exs[ei];
+            if (!ex) { console.warn('[inline] no exercise at idx', ei); return; }
+            if (!Array.isArray(ex.setsData)) ex.setsData = [];
+            while (ex.setsData.length <= si) ex.setsData.push({ reps: 0, weight: 0, weightUnit: 'lbs' });
+            const n = parseFloat(input.value);
+            const val = isNaN(n) ? 0 : n;
+            const s = ex.setsData[si];
+            if (field === 'duration') {
+                s.duration = val; s.isTimeBased = true;
+                ex.trackingType = 'time';
+                if (si === 0) ex.duration = val;
+            } else if (field === 'weight') {
+                s.weight = val; s.weightUnit = s.weightUnit || 'lbs';
+            } else {
+                s.reps = val;
+                if (si === 0) ex.reps = String(val);
+            }
+            s.setNumber = si + 1;
+            ex.sets = ex.setsData.length;
+
+            acSetSync(wi, ei, 'saving');
+            const key = wi + ':' + ei;
+            clearTimeout(acSaveTimers[key]);
+            acSaveTimers[key] = setTimeout(async () => {
+                try {
+                    await acSaveExercises(
+                        exs, w.id,
+                        (w.day_index != null ? w.day_index : 0),
+                        !!w.is_adhoc,
+                        acSelectedDate,
+                        { silent: true }
+                    );
+                    acSetSync(wi, ei, 'saved');
+                } catch (e) {
+                    console.error('[inline] save failed', e);
+                    acSetSync(wi, ei, 'error');
+                    acToast('Save failed — check connection', true);
+                }
+            }, 700);
+        }
+
+        document.addEventListener('change', function(e) {
+            const t = e.target;
+            if (t && t.classList && t.classList.contains('ac-inline-set-input')) {
+                acInlineCommit(t);
+            }
+        });
+
         function acFormatDate(date) {
             const y = date.getFullYear();
             const m = String(date.getMonth() + 1).padStart(2, '0');
@@ -13750,6 +13822,7 @@
                 // cards (same assignmentId, different instance_id) so move/copy/
                 // delete target the right one when a day has multiple workouts.
                 html += `<div class="ac-detail-actions">
+                    <button class="ac-action-btn" onclick="acManualRefresh()" title="Reload this day from the server" style="font-weight:600;">&#8635; Refresh</button>
                     <button class="ac-action-btn" onclick="acOpenAddExercise('${assignmentId}', ${dayIndex}, ${isAdhoc}, '${dateStr}')">+ Add Exercise</button>
                     <button class="ac-action-btn" onclick="acMoveWorkout(${wIdx}, '${dateStr}')">&#9999; Move Workout</button>
                     <button class="ac-action-btn" onclick="acCopyWorkout(${wIdx}, '${dateStr}')">&#128203; Copy Workout</button>
@@ -13805,15 +13878,28 @@
 
                             let setsHtml = '';
                             if (ex.setsData && Array.isArray(ex.setsData) && ex.setsData.length > 0) {
-                                setsHtml = ex.setsData.map(s => {
-                                    let label = acFmtSetLabel(s, ex);
+                                const acIsTimeEx = acIsTimeBasedEx(ex);
+                                setsHtml = ex.setsData.map((s, si) => {
+                                    const done = s._completed || s.completed;
                                     let extras = '';
                                     if (ex.showRPE && s.rpe) extras += `<span class="ac-set-metric rpe">RPE ${s.rpe}</span>`;
                                     if (ex.showPercent1RM && s.percent1RM) extras += `<span class="ac-set-metric percent1rm">${s.percent1RM}%</span>`;
                                     if (ex.showHRZone && s.hrZone) extras += `<span class="ac-set-metric hrzone">Z${s.hrZone}</span>`;
                                     if (ex.showPace && s.pace) extras += `<span class="ac-set-metric pace">${s.pace}</span>`;
                                     if (ex.showIncline && s.incline) extras += `<span class="ac-set-metric incline">${s.incline}%incl</span>`;
-                                    return `<span class="ac-set-pill${s._completed || s.completed ? ' completed' : ''}">${label}${extras}</span>`;
+                                    const ip = 'width:50px;min-height:36px;padding:5px;text-align:center;border:1px solid #cbd5e1;border-radius:8px;font:600 13px system-ui;background:#fff;';
+                                    const da = `data-wi="${wIdx}" data-ei="${idx}" data-si="${si}"`;
+                                    const guard = `onclick="event.stopPropagation()" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}"`;
+                                    let bodyHtml;
+                                    if (acIsTimeEx) {
+                                        const secs = acParseTimeSeconds((s.duration != null && s.duration !== '') ? s.duration : (ex.duration != null ? ex.duration : null)) || 0;
+                                        bodyHtml = `<input class="ac-inline-set-input" ${da} data-field="duration" type="number" min="0" inputmode="numeric" value="${secs}" style="${ip}" ${guard}><span style="margin:0 5px;color:#64748b;font-size:12px;">sec</span>`;
+                                    } else {
+                                        const rv = (s.reps != null ? s.reps : 0);
+                                        const wv = (s.weight != null && s.weight !== '') ? s.weight : 0;
+                                        bodyHtml = `<input class="ac-inline-set-input" ${da} data-field="reps" type="number" min="0" inputmode="numeric" value="${rv}" style="${ip}" ${guard}><span style="margin:0 4px;color:#64748b;">×</span><input class="ac-inline-set-input" ${da} data-field="weight" type="number" min="0" step="0.5" inputmode="decimal" value="${wv}" style="${ip}" ${guard}><span style="margin-left:4px;color:#64748b;font-size:12px;">lbs</span>`;
+                                    }
+                                    return `<span class="ac-set-pill${done ? ' completed' : ''}" style="display:inline-flex;align-items:center;gap:2px;padding:4px 8px;">${bodyHtml}${extras}</span>`;
                                 }).join('');
                             } else if (sets > 0) {
                                 const fallback = trackingType === 'time'
@@ -13845,7 +13931,7 @@
                                         <input type="checkbox" class="ac-exercise-checkbox" ${isChecked ? 'checked' : ''} onchange="acToggleExerciseSelect(${globalExIdx}, this.checked)">
                                         ${thumb ? `<img class="ac-exercise-thumb" src="${thumb}" alt="" onerror="this.style.display='none'" onclick="acOpenExerciseDetail(${idx}, '${assignmentId}', ${dayIndex}, ${isAdhoc}, '${dateStr}')" style="cursor:pointer">` : `<div class="ac-exercise-thumb" style="display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer" onclick="acOpenExerciseDetail(${idx}, '${assignmentId}', ${dayIndex}, ${isAdhoc}, '${dateStr}')">&#127947;&#65039;</div>`}
                                         <div class="ac-exercise-info" onclick="acOpenExerciseDetail(${idx}, '${assignmentId}', ${dayIndex}, ${isAdhoc}, '${dateStr}')" style="cursor:pointer">
-                                            <div class="ac-exercise-name">${escapeHtml(ex.name || '')}${isDone ? ' &#9989;' : ''}</div>
+                                            <div class="ac-exercise-name">${escapeHtml(ex.name || '')}${isDone ? ' &#9989;' : ''}<span class="ac-sync-chip" id="acSync_w${wIdx}_e${idx}" style="margin-left:8px;font:600 11px system-ui;"></span></div>
                                             <div class="ac-exercise-meta">${ex.muscle_group || ''} ${ex.equipment ? '&middot; ' + ex.equipment : ''}</div>
                                         </div>
                                         <button class="ac-dot-menu-btn" onclick="acToggleDotMenu(event, ${globalExIdx}, '${assignmentId}', ${dayIndex}, ${isAdhoc}, '${dateStr}')">&#8942;</button>
