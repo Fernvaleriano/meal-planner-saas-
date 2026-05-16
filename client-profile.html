@@ -13444,7 +13444,10 @@
                 ex.trackingType = 'time';
                 if (si === 0) ex.duration = val;
             } else if (field === 'weight') {
-                s.weight = val; s.weightUnit = s.weightUnit || 'lbs';
+                // The coach types in their own display unit, so tag the set
+                // with that unit. Consumers (client app, coach views) convert
+                // from weightUnit, so value + unit stay self-consistent.
+                s.weight = val; s.weightUnit = coachDisplayUnit === 'metric' ? 'kg' : 'lbs';
             } else {
                 s.reps = val;
                 if (si === 0) ex.reps = String(val);
@@ -14237,8 +14240,8 @@
                                         bodyHtml = `<input class="ac-inline-set-input" ${da} data-field="duration" type="number" min="0" inputmode="numeric" value="${secs}" style="${ip}" ${guard}><span style="margin:0 5px;color:#64748b;font-size:12px;">sec</span>`;
                                     } else {
                                         const rv = (s.reps != null ? s.reps : 0);
-                                        const wv = (s.weight != null && s.weight !== '') ? s.weight : 0;
-                                        bodyHtml = `<input class="ac-inline-set-input" ${da} data-field="reps" type="number" min="0" inputmode="numeric" value="${rv}" style="${ip}" ${guard}><span style="margin:0 4px;color:#64748b;">×</span><input class="ac-inline-set-input" ${da} data-field="weight" type="number" min="0" step="0.5" inputmode="decimal" value="${wv}" style="${ip}" ${guard}><span style="margin-left:4px;color:#64748b;font-size:12px;">lbs</span>`;
+                                        const wv = (s.weight != null && s.weight !== '') ? weightForCoach(s.weight, s.weightUnit) : 0;
+                                        bodyHtml = `<input class="ac-inline-set-input" ${da} data-field="reps" type="number" min="0" inputmode="numeric" value="${rv}" style="${ip}" ${guard}><span style="margin:0 4px;color:#64748b;">×</span><input class="ac-inline-set-input" ${da} data-field="weight" type="number" min="0" step="0.5" inputmode="decimal" value="${wv}" style="${ip}" ${guard}><span style="margin-left:4px;color:#64748b;font-size:12px;">${coachUnitLabel()}</span>`;
                                     }
                                     return `<span class="ac-set-pill${done ? ' completed' : ''}" style="display:inline-flex;align-items:center;gap:2px;padding:4px 8px;">${bodyHtml}${extras}</span>`;
                                 }).join('');
@@ -15376,7 +15379,7 @@
             html += `<div class="ac-exd-set-header">
                 <span>Set</span>
                 <span>${repsLabel}</span>
-                <span>Weight (lbs)</span>
+                <span>Weight (${coachUnitLabel()})</span>
                 <span></span>
             </div>`;
             html += `<div id="acExdSetRows">`;
@@ -15390,7 +15393,14 @@
                 if (isTime && (s.duration == null || s.duration === '') && ex.duration != null) {
                     s = { ...s, duration: ex.duration };
                 }
-                html += acExdSetRowHtml(s, i, isTime);
+                // Convert the stored weight into the coach's display unit for
+                // editing. acExdSetRowHtml renders the value as-is, so the
+                // tracking-toggle / add-set rebuild paths (which carry DOM
+                // values straight back in) stay in display space and never
+                // double-convert. Write-back tags weightUnit with the coach
+                // unit to match.
+                const ds = { ...s, weight: (s.weight != null && s.weight !== '') ? weightForCoach(s.weight, s.weightUnit) : s.weight };
+                html += acExdSetRowHtml(ds, i, isTime);
             }
             html += `</div>`;
             html += `<button type="button" class="ac-exd-add-set" onclick="acExdAddSetRow()">+ Add Set</button>`;
@@ -15508,6 +15518,9 @@
             const isTime = (document.querySelector('input[name="acExdTracking"]:checked')?.value) === 'time';
             const setRows = document.querySelectorAll('#acExdSetRows .ac-exd-set-row');
             const newSetsData = [];
+            // Inputs are shown/edited in the coach's display unit, so persist
+            // that unit alongside the value (consumers convert from it).
+            const wUnit = coachDisplayUnit === 'metric' ? 'kg' : 'lbs';
             setRows.forEach((row, i) => {
                 const weightInput = row.querySelector('input[data-field="weight"]');
                 const weight = parseFloat(weightInput?.value) || 0;
@@ -15521,7 +15534,7 @@
                         duration,
                         isTimeBased: true,
                         weight,
-                        weightUnit: 'lbs',
+                        weightUnit: wUnit,
                         completed
                     });
                 } else {
@@ -15531,7 +15544,7 @@
                         setNumber: i + 1,
                         reps,
                         weight,
-                        weightUnit: 'lbs',
+                        weightUnit: wUnit,
                         completed
                     });
                 }
@@ -15677,7 +15690,7 @@
                         if (s && (s.isDistanceBased === true || (s.distance != null && s.distance !== ''))) {
                             return `${s.distance} ${s.distanceUnit || 'mi'}`;
                         }
-                        return `${s.reps || 0}x${s.weight || 0}`;
+                        return `${s.reps || 0}x${weightForCoach(s.weight || 0, s.weightUnit)}`;
                     }).join(', ');
                     html += `<div class="ac-exd-history-item">
                         <span style="font-weight:600; color:#334155;">${dateStr}</span>
@@ -15716,6 +15729,9 @@
             const setRows = document.querySelectorAll('#acExdSetRows .ac-exd-set-row');
             const newSetsData = [];
 
+            // Inputs are shown/edited in the coach's display unit, so persist
+            // that unit alongside the value (consumers convert from it).
+            const wUnit = coachDisplayUnit === 'metric' ? 'kg' : 'lbs';
             setRows.forEach(row => {
                 const weightInput = row.querySelector('input[data-field="weight"]');
                 const weight = parseFloat(weightInput?.value) || 0;
@@ -15729,7 +15745,7 @@
                             duration,
                             isTimeBased: true,
                             weight,
-                            weightUnit: 'lbs',
+                            weightUnit: wUnit,
                             completed
                         });
                     }
@@ -15741,7 +15757,7 @@
                             setNumber: newSetsData.length + 1,
                             reps,
                             weight,
-                            weightUnit: 'lbs',
+                            weightUnit: wUnit,
                             completed
                         });
                     }
@@ -16431,7 +16447,7 @@
                     setsHtml = '<div class="wp-sets">' + setsData.map(s => {
                         const label = s.isTimeBased
                             ? `${s.reps || 0}s`
-                            : `${s.reps || 0}×${s.weight || 0}${s.weightUnit || 'kg'}`;
+                            : `${s.reps || 0}×${weightForCoach(s.weight || 0, s.weightUnit)}${coachUnitLabel()}`;
                         let extras = '';
                         if (s.rpe) extras += `<span class="wp-rpe">RPE ${s.rpe}</span>`;
                         if (s.percent1RM) extras += `<span class="wp-metric percent1rm">${s.percent1RM}%1RM</span>`;
@@ -16447,11 +16463,16 @@
                 const name = (ex.exerciseName || '').toLowerCase();
                 const prev = prevExerciseMap[name];
                 if (prev && prev.maxWeight > 0) {
-                    const diff = (ex.maxWeight || 0) - prev.maxWeight;
+                    // Convert both maxes the same way the adjacent "max" badge
+                    // does, then diff, so the delta and its unit are coherent.
+                    const curMax = Number(weightForCoach(ex.maxWeight || 0)) || 0;
+                    const prevMax = Number(weightForCoach(prev.maxWeight)) || 0;
+                    const diff = Math.round((curMax - prevMax) * 10) / 10;
+                    const u = coachUnitLabel();
                     if (diff > 0) {
-                        comparisonHtml = `<div class="wp-exercise-comparison"><span class="wp-compare-up">▲ +${diff} kg vs last week</span></div>`;
+                        comparisonHtml = `<div class="wp-exercise-comparison"><span class="wp-compare-up">▲ +${diff} ${u} vs last week</span></div>`;
                     } else if (diff < 0) {
-                        comparisonHtml = `<div class="wp-exercise-comparison"><span class="wp-compare-down">▼ ${diff} kg vs last week</span></div>`;
+                        comparisonHtml = `<div class="wp-exercise-comparison"><span class="wp-compare-down">▼ ${diff} ${u} vs last week</span></div>`;
                     } else {
                         comparisonHtml = `<div class="wp-exercise-comparison"><span class="wp-compare-same">— Same weight as last week</span></div>`;
                     }
@@ -16747,7 +16768,7 @@
                     const setsData = typeof ex.setsData === 'string' ? JSON.parse(ex.setsData) : (ex.sets_data ? (typeof ex.sets_data === 'string' ? JSON.parse(ex.sets_data) : ex.sets_data) : (ex.setsData || []));
                     const setCount = setsData.length || ex.totalSets || ex.total_sets || 0;
                     const maxW = ex.maxWeight || ex.max_weight || 0;
-                    const info = maxW > 0 ? `${setCount} sets - ${maxW} kg max` : `${setCount} sets`;
+                    const info = maxW > 0 ? `${setCount} sets - ${weightForCoach(maxW)} ${coachUnitLabel()} max` : `${setCount} sets`;
                     let metricsHtml = '';
                     const hasMetrics = setsData.some(s => s.rpe || s.percent1RM || s.hrZone || s.pace || s.incline);
                     if (hasMetrics) {
