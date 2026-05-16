@@ -17,6 +17,7 @@ import Portal from '../components/Portal';
 import ErrorBoundary from '../components/ErrorBoundary';
 import { useToast } from '../components/Toast';
 import { parseDurationToSeconds, estimateWorkoutMinutes, estimateWorkoutCalories, clientWeightKg } from '../utils/workoutDuration';
+import { buildWorkedOutDates } from '../utils/workoutEvidence';
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
 
 const GymProofModal = React.lazy(() => import('../components/GymProofModal'));
@@ -677,6 +678,11 @@ function Workouts() {
     if (!clientData?.id) return null;
     return getCache(`week_schedule_${clientData.id}`) || null;
   });
+  // Set of 'YYYY-MM-DD' strings the client has actual evidence of effort on
+  // (a non-skipped log with >=1 set / >=1 completed exercise, or a gym
+  // check-in). Drives green calendar dots + the weekly summary so a merely
+  // *scheduled* day no longer counts as worked out.
+  const [evidenceDates, setEvidenceDates] = useState(() => new Set());
   const menuRef = useRef(null);
   const heroMenuRef = useRef(null);
   const todayWorkoutRef = useRef(null);
@@ -1035,6 +1041,29 @@ function Workouts() {
   useEffect(() => {
     refreshWeekSchedule();
   }, [refreshWeekSchedule]);
+
+  // Build the "evidence of effort" date set for the visible week: actual
+  // workout logs (with their exercise sets) + gym check-ins. This is what makes
+  // a day count as worked out — a scheduled-but-empty day no longer does.
+  const refreshEvidenceDates = useCallback(async () => {
+    if (!clientData?.id || !weekDates || weekDates.length === 0) return;
+    const startDate = formatDate(weekDates[0]);
+    const endDate = formatDate(weekDates[weekDates.length - 1]);
+    const [logsRes, proofsRes] = await Promise.all([
+      apiGet(`/.netlify/functions/workout-logs?clientId=${clientData.id}&startDate=${startDate}&endDate=${endDate}&limit=60`).catch(() => null),
+      apiGet(`/.netlify/functions/save-gym-proof?clientId=${clientData.id}&limit=60`).catch(() => null),
+    ]);
+    // Bail if BOTH requests failed — don't poison the dots with an empty set
+    // on a transient network error (slow-success → fast-failure guard).
+    if (!logsRes && !proofsRes) return;
+    const logs = (logsRes && (logsRes.workouts || logsRes.logs)) || [];
+    const proofs = (proofsRes && proofsRes.proofs) || [];
+    setEvidenceDates(buildWorkedOutDates(logs, proofs));
+  }, [clientData?.id, weekDates]);
+
+  useEffect(() => {
+    refreshEvidenceDates();
+  }, [refreshEvidenceDates]);
 
   // Pull-to-refresh: Refresh workout data
   // Optimized to run API calls in parallel where possible
@@ -1751,12 +1780,14 @@ function Workouts() {
         isPast,
         isToday: isTodayDate,
         isFuture,
-        hasWorkout
+        hasWorkout,
+        // Evidence of effort — independent of whether anything was scheduled.
+        workedOut: evidenceDates.has(dateStr)
       };
     });
 
     return schedule.filter(Boolean);
-  }, [weekScheduleData, weekDates]);
+  }, [weekScheduleData, weekDates, evidenceDates]);
 
   // Upcoming workouts (future days this week that have workouts)
   const upcomingWorkouts = useMemo(() => {
@@ -1849,7 +1880,10 @@ function Workouts() {
   const weeklyStats = useMemo(() => {
     if (!weekSchedule) return null;
     const totalWorkouts = weekSchedule.filter(d => d.hasWorkout).length;
-    const completedWorkouts = weekSchedule.filter(d => d.isPast && d.hasWorkout).length;
+    // Count days with actual evidence of effort — NOT merely scheduled past
+    // days. (Gym-only / ad-hoc effort can push this above totalWorkouts; the
+    // progress bar is clamped to 100% at the render site.)
+    const completedWorkouts = weekSchedule.filter(d => d.workedOut).length;
     const todayHasWorkout = weekSchedule.find(d => d.isToday)?.hasWorkout || false;
     return { totalWorkouts, completedWorkouts, todayHasWorkout };
   }, [weekSchedule]);
@@ -4728,15 +4762,17 @@ function Workouts() {
                       {weekSchedule.map((day) => (
                         <div
                           key={day.dateStr}
-                          className={`week-dot ${day.hasWorkout ? 'has-workout' : 'rest'} ${day.isToday ? 'today' : ''} ${day.isPast ? 'past' : ''}`}
-                          title={`${day.dayLabel}${day.hasWorkout ? ' - Workout' : ' - Rest'}`}
+                          className={`week-dot ${day.hasWorkout ? 'has-workout' : 'rest'} ${day.isToday ? 'today' : ''} ${day.workedOut ? 'worked-out' : ''} ${day.isPast && day.hasWorkout && !day.workedOut ? 'missed' : ''}`}
+                          title={`${day.dayLabel}${day.workedOut ? ' - Worked out' : day.isPast && day.hasWorkout ? ' - Missed' : day.hasWorkout ? ' - Workout' : ' - Rest'}`}
                         >
                           <span className="week-dot-label">{day.dayLabel}</span>
                           <div className="week-dot-indicator">
-                            {day.isPast && day.hasWorkout ? (
+                            {day.workedOut ? (
                               <CheckCircle size={16} />
                             ) : day.isToday && day.hasWorkout ? (
                               <Zap size={16} />
+                            ) : day.isPast && day.hasWorkout ? (
+                              <X size={16} />
                             ) : day.hasWorkout ? (
                               <Dumbbell size={14} />
                             ) : (
@@ -4750,7 +4786,7 @@ function Workouts() {
                     <div className="week-progress-bar">
                       <div
                         className="week-progress-fill"
-                        style={{ width: `${(weeklyStats.completedWorkouts / weeklyStats.totalWorkouts) * 100}%` }}
+                        style={{ width: `${Math.min(100, (weeklyStats.completedWorkouts / weeklyStats.totalWorkouts) * 100)}%` }}
                       ></div>
                     </div>
                   </div>
