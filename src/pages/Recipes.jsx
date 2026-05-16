@@ -181,10 +181,7 @@ function Recipes() {
   // Respond to global pull-to-refresh gesture
   usePullToRefreshEvent(loadRecipes);
 
-  // Scroll to top when page loads
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
+  // Scroll position is managed centrally by Layout (per-path restoration).
 
   // Load random recipes when discover tab is first opened
   useEffect(() => {
