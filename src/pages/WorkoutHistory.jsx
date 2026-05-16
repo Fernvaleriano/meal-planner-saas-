@@ -493,9 +493,6 @@ export default function WorkoutHistory() {
   const [exerciseStats, setExerciseStats] = useState(null);
   const [loadingExerciseHistory, setLoadingExerciseHistory] = useState(false);
 
-  // Chart time range (days, or 'all')
-  const [chartRange, setChartRange] = useState('all');
-
   // Active program-type filter
   const [activeFilter, setActiveFilter] = useState('all');
 
@@ -616,30 +613,6 @@ export default function WorkoutHistory() {
     return { total, volume, avgDuration, calories, totalSets };
   }, [workouts]);
 
-  // Chart data: total volume per workout, chronological, filtered by range
-  const volumeChartData = useMemo(() => {
-    const sorted = [...workouts]
-      .filter((w) => w.total_volume > 0)
-      .sort((a, b) => new Date(a.workout_date) - new Date(b.workout_date));
-
-    if (chartRange === 'all') {
-      return sorted.slice(-30).map((w) => ({
-        label: formatDate(w.workout_date),
-        value: w.total_volume || 0
-      }));
-    }
-
-    const days = Number(chartRange);
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - days);
-    return sorted
-      .filter((w) => new Date(w.workout_date + 'T00:00:00') >= cutoff)
-      .map((w) => ({
-        label: formatDate(w.workout_date),
-        value: w.total_volume || 0
-      }));
-  }, [workouts, chartRange]);
-
   // Infer a coarse program type for accent color + filter chips.
   // Uses workout_name keywords since the API doesn't return program_type on logs.
   const categorizeWorkout = useCallback((workout) => {
@@ -717,16 +690,6 @@ export default function WorkoutHistory() {
         <div className="workout-history-stat-value">{summaryStats.total}</div>
         <div className="workout-history-stat-label">Workouts</div>
       </div>
-      <div className="workout-history-stat" style={{ '--stat-accent': '#a855f7' }}>
-        <div className="workout-history-stat-icon">
-          <Dumbbell size={18} />
-        </div>
-        <div className="workout-history-stat-value">
-          {formatVolume(summaryStats.volume)}
-          <span className="workout-history-stat-unit">{weightUnit}</span>
-        </div>
-        <div className="workout-history-stat-label">Total Volume</div>
-      </div>
       <div className="workout-history-stat" style={{ '--stat-accent': '#10b981' }}>
         <div className="workout-history-stat-icon">
           <Clock size={18} />
@@ -755,57 +718,6 @@ export default function WorkoutHistory() {
       )}
     </div>
   );
-
-  const CHART_RANGES = [
-    { key: '30', label: '1M' },
-    { key: '90', label: '3M' },
-    { key: '365', label: '1Y' },
-    { key: 'all', label: 'All' }
-  ];
-
-  const renderVolumeChart = () => {
-    // Need at least 2 workouts overall (across any range) to show the chart at all.
-    const hasAnyVolume = workouts.some((w) => w.total_volume > 0);
-    if (!hasAnyVolume) return null;
-
-    return (
-      <div className="workout-history-chart-section">
-        <div className="workout-history-chart-header">
-          <h3 className="workout-history-section-title">
-            <TrendingUp size={18} />
-            Volume Progress
-          </h3>
-          <div className="workout-history-range-toggle" role="tablist" aria-label="Chart time range">
-            {CHART_RANGES.map((r) => (
-              <button
-                key={r.key}
-                role="tab"
-                aria-selected={chartRange === r.key}
-                className={`workout-history-range-btn ${chartRange === r.key ? 'is-active' : ''}`}
-                onClick={() => setChartRange(r.key)}
-              >
-                {r.label}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div className="workout-history-chart-container">
-          {volumeChartData.length >= 2 ? (
-            <MiniLineChart
-              data={volumeChartData}
-              height={200}
-              color="#22998a"
-              unit={weightUnit}
-            />
-          ) : (
-            <div className="workout-history-chart-empty">
-              Not enough data in this range. Try a longer window.
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  };
 
   const renderExerciseSetsTable = (exercise) => {
     let setsData = exercise.sets_data;
@@ -1153,12 +1065,6 @@ export default function WorkoutHistory() {
               <span>
                 <Clock size={12} /> {workout.duration_minutes ? formatDuration(workout.duration_minutes) : '—'}
               </span>
-              <span>
-                <Dumbbell size={12} />{' '}
-                {workout.total_volume > 0
-                  ? `${formatVolume(workout.total_volume)} ${weightUnit}`
-                  : '—'}
-              </span>
             </div>
           </div>
           <div className="workout-history-card-right">
@@ -1267,7 +1173,6 @@ export default function WorkoutHistory() {
       {!loading && !error && (
         <>
           {renderSummaryStats()}
-          {renderVolumeChart()}
           <div className="workout-history-list-section">
             <h3 className="workout-history-section-title">
               <Calendar size={18} />
