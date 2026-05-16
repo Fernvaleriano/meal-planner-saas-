@@ -13273,7 +13273,7 @@
         let acCurrentYear = new Date().getFullYear();
         let acSelectedDate = null;
         let acAssignmentCache = {}; // { 'YYYY-MM-DD': [{ dayName, exerciseCount }] }
-        let acWorkoutLogsCache = {}; // { 'YYYY-MM-DD': 'completed' | 'in_progress' | 'skipped' }
+        let acWorkoutLogsCache = {}; // { 'YYYY-MM-DD': { status, hasLogs, logId, setCount, completedSets } }
         let acCurrentAssignment = null;
         let acExercisesCache = [];
         let acExerciseMetaById = {}; // id -> { thumbnail_url, animation_url, video_url, muscle_group, equipment }
@@ -13581,15 +13581,52 @@
             acSelectDay(today);
         }
 
+        // Sum logged set entries across a feed workout's exercises, counting how
+        // many were actually completed. setsData may arrive as a JSON string.
+        function acComputeSetQuality(w) {
+            let total = 0, completed = 0;
+            const exs = (w && Array.isArray(w.exercises)) ? w.exercises : [];
+            exs.forEach(ex => {
+                let sd = ex && ex.setsData;
+                if (typeof sd === 'string') { try { sd = JSON.parse(sd); } catch (e) { sd = []; } }
+                if (!Array.isArray(sd)) sd = [];
+                sd.forEach(s => {
+                    total++;
+                    if (s && (s.completed || s._completed)) completed++;
+                });
+            });
+            return { total, completed };
+        }
+
+        // Coaching philosophy: any genuine effort counts. A day is "worked out"
+        // when a log exists and it was NOT explicitly skipped. Imperfect logging
+        // (a log with zero recorded sets) still counts — it is surfaced via the
+        // completion-quality tooltip, not hidden.
+        function acIsWorkedOut(entry) {
+            return !!(entry && entry.hasLogs && entry.status !== 'skipped');
+        }
+
+        // Hover/tooltip text describing completion quality for a calendar day.
+        function acWorkoutQualityLabel(entry) {
+            if (!entry || !entry.hasLogs) return '';
+            if (entry.status === 'skipped') return 'Workout skipped';
+            if (!entry.setCount) return 'Logged but no sets recorded';
+            const pct = Math.round((entry.completedSets / entry.setCount) * 100);
+            return `Workout completed: ${pct}% of sets (${entry.completedSets}/${entry.setCount})`;
+        }
+
         function acRenderCellLabels(dateStr) {
             const entries = acAssignmentCache[dateStr];
             if (!entries || entries.length === 0) return '';
-            const isDone = !!acWorkoutLogsCache[dateStr];
+            const logEntry = acWorkoutLogsCache[dateStr];
+            const isDone = acIsWorkedOut(logEntry);
             const dotClass = isDone ? 'done' : 'pending';
+            const tip = acWorkoutQualityLabel(logEntry);
+            const titleAttr = tip ? ` title="${escapeHtml(tip)}"` : '';
             let html = '<div class="ac-cell-workouts">';
             for (const entry of entries) {
                 const label = entry.dayName || 'Workout';
-                html += `<div class="ac-cell-label"><span class="ac-cell-dot ${dotClass}"></span><span class="ac-cell-label-text">${escapeHtml(label)}</span></div>`;
+                html += `<div class="ac-cell-label"${titleAttr}><span class="ac-cell-dot ${dotClass}"></span><span class="ac-cell-label-text">${escapeHtml(label)}</span></div>`;
             }
             html += '</div>';
             return html;
@@ -13750,7 +13787,26 @@
                 const feed = feedCache.feed || [];
                 acWorkoutLogsCache = {};
                 feed.forEach(w => {
-                    if (w.workoutDate) acWorkoutLogsCache[w.workoutDate] = w.status || 'completed';
+                    if (!w.workoutDate) return;
+                    const q = acComputeSetQuality(w);
+                    const prev = acWorkoutLogsCache[w.workoutDate];
+                    const entry = {
+                        status: w.status || 'completed',
+                        hasLogs: true,
+                        logId: w.id,
+                        setCount: q.total,
+                        completedSets: q.completed
+                    };
+                    // Multiple logs on one date: merge set totals and keep the
+                    // "best" status so a single skipped log can't mask real effort.
+                    if (prev) {
+                        entry.setCount += prev.setCount;
+                        entry.completedSets += prev.completedSets;
+                        if (prev.status !== 'skipped' && entry.status === 'skipped') {
+                            entry.status = prev.status;
+                        }
+                    }
+                    acWorkoutLogsCache[w.workoutDate] = entry;
                 });
 
                 try {
@@ -16148,8 +16204,8 @@
             }
 
             // Workout streak (consecutive days from today backwards with a logged workout)
-            const workoutDates = new Set(workouts.map(w => w.workoutDate));
-            const allDates = new Set(allFeedWorkouts.map(w => w.workoutDate));
+            const workoutDates = new Set(workouts.filter(w => w.status !== 'skipped').map(w => w.workoutDate));
+            const allDates = new Set(allFeedWorkouts.filter(w => w.status !== 'skipped').map(w => w.workoutDate));
             let streak = 0;
             const checkDate = new Date();
             for (let i = 0; i < 30; i++) {
@@ -16260,7 +16316,7 @@
                 const dayMap = { sun: 0, sunday: 0, mon: 1, monday: 1, tue: 2, tuesday: 2, wed: 3, wednesday: 3, thu: 4, thursday: 4, fri: 5, friday: 5, sat: 6, saturday: 6 };
                 const scheduledDayNums = scheduledDays.map(d => dayMap[d.toLowerCase()] ?? -1).filter(n => n >= 0);
 
-                const workoutDates = new Set(workouts.map(w => w.workoutDate));
+                const workoutDates = new Set(workouts.filter(w => w.status !== 'skipped').map(w => w.workoutDate));
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
                 const missed = [];
@@ -18655,6 +18711,7 @@
                         for (let i = 0; i < 7; i++) recent.add(dayKey(new Date(today.getTime() - i * DAY_MS)));
                         const done = new Set();
                         fw.forEach(w => {
+                            if (w.status === 'skipped') return;
                             const k = toDayString(w.workoutDate);
                             if (k && recent.has(k)) done.add(k);
                         });
