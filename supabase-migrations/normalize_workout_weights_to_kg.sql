@@ -160,13 +160,17 @@ $$;
 --        total_volume = agg.tv
 --   FROM (
 --     SELECT e.id,
---            max((s->>'weight')::numeric) AS mw,
---            sum(coalesce((s->>'reps')::numeric,0)
---              * coalesce((s->>'weight')::numeric,0)) AS tv
+--            max(CASE WHEN (s->>'weight') ~ '^-?[0-9]+(\.[0-9]+)?$'
+--                     THEN (s->>'weight')::numeric END) AS mw,
+--            -- reps may be a range string (e.g. "8-12"); guard like the app's
+--            -- Number(x)||0 so non-numeric reps contribute 0 volume.
+--            sum(CASE WHEN (s->>'reps')   ~ '^-?[0-9]+(\.[0-9]+)?$'
+--                      AND (s->>'weight') ~ '^-?[0-9]+(\.[0-9]+)?$'
+--                     THEN (s->>'reps')::numeric * (s->>'weight')::numeric
+--                     ELSE 0 END) AS tv
 --       FROM exercise_logs e,
 --            jsonb_array_elements(e.sets_data) s
 --      WHERE e.units_normalized = true
---        AND (s->>'weight') ~ '^-?[0-9]+(\.[0-9]+)?$'
 --      GROUP BY e.id
 --   ) agg
 --  WHERE el.id = agg.id;
