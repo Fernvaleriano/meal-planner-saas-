@@ -14356,6 +14356,21 @@
             acRenderDpCalendar();
         }
 
+        // Build a YYYY-MM-DD string from LOCAL date parts. new Date(y,m,d)
+        // normalises month/day overflow (e.g. m=-1 or d=0), and reading the
+        // local getFullYear/Month/Date avoids the UTC shift that
+        // toISOString() introduces — in a UTC+ timezone the old code turned
+        // local midnight into the *previous* day, so the picker handed
+        // acMoveWorkout/acCopyWorkout a date that was off by one (and could
+        // silently equal the source date, making "Move Workout" do nothing).
+        function acLocalDateStr(y, m, d) {
+            const dt = new Date(y, m, d);
+            const yy = dt.getFullYear();
+            const mm = String(dt.getMonth() + 1).padStart(2, '0');
+            const dd = String(dt.getDate()).padStart(2, '0');
+            return `${yy}-${mm}-${dd}`;
+        }
+
         function acRenderDpCalendar() {
             const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
             document.getElementById('acDpMonthLabel').textContent = `${months[acDpMonth]} ${acDpYear}`;
@@ -14366,21 +14381,20 @@
             const daysInMonth = lastDay.getDate();
             const prevLast = new Date(acDpYear, acDpMonth, 0).getDate();
 
-            const todayStr = new Date().toISOString().split('T')[0];
+            const now = new Date();
+            const todayStr = acLocalDateStr(now.getFullYear(), now.getMonth(), now.getDate());
             let html = '';
 
             // Previous month's trailing days
             for (let i = startDow - 1; i >= 1; i--) {
                 const d = prevLast - i + 1;
-                const dt = new Date(acDpYear, acDpMonth - 1, d);
-                const ds = dt.toISOString().split('T')[0];
+                const ds = acLocalDateStr(acDpYear, acDpMonth - 1, d);
                 html += `<div class="ac-dp-day other-month" data-date="${ds}" onclick="acDpSelectDay(this, '${ds}')">${d}</div>`;
             }
 
             // Current month days
             for (let d = 1; d <= daysInMonth; d++) {
-                const dt = new Date(acDpYear, acDpMonth, d);
-                const ds = dt.toISOString().split('T')[0];
+                const ds = acLocalDateStr(acDpYear, acDpMonth, d);
                 let cls = 'ac-dp-day';
                 if (ds === todayStr) cls += ' today';
                 if (ds === acDpSelectedDate) cls += ' selected';
@@ -14391,8 +14405,7 @@
             const totalCells = Math.ceil((startDow - 1 + daysInMonth) / 7) * 7;
             const remaining = totalCells - (startDow - 1 + daysInMonth);
             for (let d = 1; d <= remaining; d++) {
-                const dt = new Date(acDpYear, acDpMonth + 1, d);
-                const ds = dt.toISOString().split('T')[0];
+                const ds = acLocalDateStr(acDpYear, acDpMonth + 1, d);
                 html += `<div class="ac-dp-day other-month" data-date="${ds}" onclick="acDpSelectDay(this, '${ds}')">${d}</div>`;
             }
 
@@ -15560,12 +15573,13 @@
             const isAdhoc = !!workout.is_adhoc;
 
             try {
+                let delRes;
                 if (isAdhoc) {
-                    await fetch(`/.netlify/functions/adhoc-workouts?workoutId=${assignmentId}`, {
+                    delRes = await fetch(`/.netlify/functions/adhoc-workouts?workoutId=${assignmentId}`, {
                         method: 'DELETE'
                     });
                 } else {
-                    await fetch('/.netlify/functions/client-workout-log', {
+                    delRes = await fetch('/.netlify/functions/client-workout-log', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -15580,14 +15594,19 @@
                         })
                     });
                 }
+                if (delRes && !delRes.ok) {
+                    const errBody = await delRes.json().catch(() => ({}));
+                    throw new Error(errBody.error || 'Server rejected the delete');
+                }
 
                 cpInvalidateFeed();
                 delete acAssignmentCache[dateStr];
                 acRenderCalendar();
                 acSelectDay(dateStr);
+                acToast('Workout deleted');
             } catch (err) {
                 console.error('Error deleting workout:', err);
-                alert('Failed to delete workout');
+                acToast('Failed to delete workout: ' + (err.message || 'unknown error'), true);
             }
         }
 
@@ -15606,7 +15625,9 @@
             const isAdhoc = !!workout.is_adhoc;
 
             acOpenDatePicker('Move workout to date', async function(targetDate) {
-                if (!targetDate || targetDate === dateStr) return;
+                if (!targetDate) return;
+                if (targetDate === dateStr) { acToast('Workout is already on that date', true); return; }
+                acToast('Moving workout…');
                 try {
                     if (isAdhoc) {
                         // Recreate on target, delete original. Mirrors the client
@@ -15651,9 +15672,10 @@
                     await acLoadMonthData();
                     acRenderCalendar();
                     acSelectDay(targetDate);
+                    acToast('Workout moved');
                 } catch (err) {
                     console.error('Error moving workout:', err);
-                    alert('Failed to move workout: ' + (err.message || 'unknown error'));
+                    acToast('Failed to move workout: ' + (err.message || 'unknown error'), true);
                 }
             });
         }
@@ -15666,6 +15688,7 @@
 
             acOpenDatePicker('Copy workout to date', async function(targetDate) {
                 if (!targetDate) return;
+                acToast('Copying workout…');
                 try {
                     if (isAdhoc) {
                         await fetch('/.netlify/functions/adhoc-workouts', {
@@ -15701,9 +15724,10 @@
                     await acLoadMonthData();
                     acRenderCalendar();
                     acSelectDay(targetDate);
+                    acToast('Workout copied to ' + targetDate);
                 } catch (err) {
                     console.error('Error copying workout:', err);
-                    alert('Failed to copy workout: ' + (err.message || 'unknown error'));
+                    acToast('Failed to copy workout: ' + (err.message || 'unknown error'), true);
                 }
             });
         }
@@ -17268,9 +17292,25 @@
         }
 
         async function removeEntireProgram() {
-            if (!clientActiveAssignment) return;
+            // clientActiveAssignment is populated by loadWorkoutPrograms() (the
+            // Workout Progress section), which is a different code path from the
+            // calendar that renders this button. If it's null (section not yet
+            // loaded, or activeOnly query returned nothing) fall back to the
+            // program workout currently shown on the open calendar day — that's
+            // exactly the assignment whose "Remove Program" button was clicked.
+            // Never return silently: the coach must always get feedback.
+            let a = clientActiveAssignment;
+            if (!a) {
+                const dayProgram = (acDayWorkouts || []).find(w => !w.is_adhoc && w.id);
+                if (dayProgram) {
+                    a = { id: dayProgram.id, name: dayProgram.name || 'Workout Program' };
+                }
+            }
+            if (!a) {
+                acToast('No active program found to remove', true);
+                return;
+            }
 
-            const a = clientActiveAssignment;
             const programName = a.name || 'Workout Program';
 
             // Count completed workout days from the feed cache
@@ -17315,13 +17355,17 @@
                 if (!res.ok) throw new Error('Failed to remove program');
 
                 clientActiveAssignment = null;
-                alert('Program removed. Completed workouts have been preserved.');
                 await loadWorkoutPrograms(clientId);
                 cpInvalidateFeed();
                 await acLoadMonthData();
+                acRenderCalendar();
+                // Re-render the open day so the removed program disappears from
+                // view instead of leaving a stale card with a dead button.
+                if (acSelectedDate) acSelectDay(acSelectedDate);
+                acToast('Program removed — completed workouts preserved');
             } catch (err) {
                 console.error('Error removing program:', err);
-                alert('Failed to remove program. Please try again.');
+                acToast('Failed to remove program. Please try again.', true);
             }
         }
 
