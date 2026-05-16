@@ -6937,9 +6937,7 @@
                 (workoutsRes.data || []).forEach(w => {
                     const c = _activityClientMap[w.client_id];
                     if (!c) return;
-                    // Workout volume is canonical kg post normalize_workout_weights_to_kg
-                    // migration (no longer the client's logging unit).
-                    const srcUnit = 'kg';
+                    const srcUnit = c.unit_preference === 'metric' ? 'kg' : 'lbs';
                     const vol = w.total_volume
                         ? `${Math.round(convertWeight(w.total_volume, srcUnit)).toLocaleString()} ${getCoachDisplayUnit()} volume`
                         : '';
@@ -8197,8 +8195,7 @@
                                     if (last3.every(w => w === last3[0])) {
                                         if (plateauCount < MAX_SHOWN) {
                                             const name = clientMap[g.clientId] || 'Unknown Client';
-                                            // max_weight is canonical kg post-migration.
-                                            const srcUnit = 'kg';
+                                            const srcUnit = clientUnitMap[g.clientId] || 'lbs';
                                             const displayWeight = convertWeight(last3[0], srcUnit);
                                             const displayUnit = getCoachDisplayUnit();
                                             const aid = `plateau-${g.clientId}-${g.exercise.replace(/\s/g,'-')}`;

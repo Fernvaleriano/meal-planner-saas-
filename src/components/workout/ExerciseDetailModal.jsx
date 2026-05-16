@@ -3,7 +3,6 @@ import { X, Check, Plus, ChevronLeft, Play, Timer, BarChart3, ArrowLeftRight, Tr
 import { apiGet, apiPost, apiPut, apiDelete, getOrCreateWorkoutLogId } from '../../utils/api';
 import { supabase } from '../../utils/supabase';
 import { generateProgression, generateSetNudge, EFFORT_OPTIONS, parseSetsData, getMaxWeight, convertWeight } from '../../utils/workoutProgression';
-import { toKg } from '../../utils/weight';
 import { onAppSuspend, onAppResume } from '../../hooks/useAppLifecycle';
 import Portal from '../Portal';
 import SetEditorModal from './SetEditorModal';
@@ -511,10 +510,13 @@ function ExerciseDetailModal({
           // explicitly present — falling back to rawWeight would surface a
           // logged weight as a "Coach Prescribed" target on the next reload.
           const rawPrescribed = set?.prescribedWeight ?? 0;
+          // Trust the per-set stored unit stamp. If absent, assume the value
+          // is already in the viewer's unit (no-op) — NEVER force a unit.
+          const fromUnit = set?.weightUnit || weightUnit;
           return {
           reps: safeParseReps(set?.reps || ex.reps),
-          weight: convertWeight(rawWeight, 'kg', weightUnit),
-          prescribedWeight: convertWeight(rawPrescribed, 'kg', weightUnit),
+          weight: convertWeight(rawWeight, fromUnit, weightUnit),
+          prescribedWeight: convertWeight(rawPrescribed, fromUnit, weightUnit),
           prescribedReps: set?.prescribedReps != null ? safeParseReps(set.prescribedReps) : 0,
           completed: set?.completed || false,
           duration: set?.duration || ex.duration || null,
@@ -789,9 +791,9 @@ function ExerciseDetailModal({
       const setsData = currentSets.map((s, i) => ({
         setNumber: i + 1,
         reps: s.reps || 0,
-        weight: toKg(s.weight || 0, currentWeightUnit),
-        weightUnit: 'kg',
-        ...(s.prescribedWeight > 0 && { prescribedWeight: toKg(s.prescribedWeight, currentWeightUnit) }),
+        weight: s.weight || 0,
+        weightUnit: currentWeightUnit,
+        ...(s.prescribedWeight > 0 && { prescribedWeight: s.prescribedWeight }),
         ...(s.prescribedReps > 0 && { prescribedReps: s.prescribedReps }),
         rpe: s.rpe || null,
         effort: s.effort || null,
@@ -1052,9 +1054,9 @@ function ExerciseDetailModal({
       const setsData = sets.map((s, i) => ({
         setNumber: i + 1,
         reps: s.reps || 0,
-        weight: toKg(s.weight || 0, weightUnit),
-        weightUnit: 'kg',
-        ...(s.prescribedWeight > 0 && { prescribedWeight: toKg(s.prescribedWeight, weightUnit) }),
+        weight: s.weight || 0,
+        weightUnit: weightUnit,
+        ...(s.prescribedWeight > 0 && { prescribedWeight: s.prescribedWeight }),
         ...(s.prescribedReps > 0 && { prescribedReps: s.prescribedReps }),
         rpe: s.rpe || null,
         restSeconds: s.restSeconds ?? null,
@@ -1424,9 +1426,9 @@ function ExerciseDetailModal({
           const setsData = sets.map((s, i) => ({
             setNumber: i + 1,
             reps: s.reps || 0,
-            weight: toKg(s.weight || 0, weightUnit),
-            weightUnit: 'kg',
-            ...(s.prescribedWeight > 0 && { prescribedWeight: toKg(s.prescribedWeight, weightUnit) }),
+            weight: s.weight || 0,
+            weightUnit: weightUnit,
+            ...(s.prescribedWeight > 0 && { prescribedWeight: s.prescribedWeight }),
             ...(s.prescribedReps > 0 && { prescribedReps: s.prescribedReps }),
             rpe: s.rpe || null,
             restSeconds: s.restSeconds ?? null,
@@ -1490,9 +1492,9 @@ function ExerciseDetailModal({
         const setsData = sets.map((s, i) => ({
           setNumber: i + 1,
           reps: s.reps || 0,
-          weight: toKg(s.weight || 0, weightUnit),
-          weightUnit: 'kg',
-          ...(s.prescribedWeight > 0 && { prescribedWeight: toKg(s.prescribedWeight, weightUnit) }),
+          weight: s.weight || 0,
+          weightUnit: weightUnit,
+          ...(s.prescribedWeight > 0 && { prescribedWeight: s.prescribedWeight }),
           ...(s.prescribedReps > 0 && { prescribedReps: s.prescribedReps }),
           rpe: s.rpe || null,
           restSeconds: s.restSeconds ?? null,
@@ -2021,8 +2023,8 @@ function ExerciseDetailModal({
         const setsData = acceptedSets.map((s, i) => ({
           setNumber: i + 1,
           reps: s.reps || 0,
-          weight: toKg(s.weight || 0, weightUnit),
-          weightUnit: 'kg',
+          weight: s.weight || 0,
+          weightUnit: weightUnit,
           restSeconds: s.restSeconds || null,
           effort: s.effort || null,
           ...(s.duration != null && { duration: s.duration }),

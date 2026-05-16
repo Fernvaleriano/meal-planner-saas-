@@ -17,7 +17,6 @@ import Portal from '../components/Portal';
 import ErrorBoundary from '../components/ErrorBoundary';
 import { useToast } from '../components/Toast';
 import { parseDurationToSeconds, estimateWorkoutMinutes, estimateWorkoutCalories, clientWeightKg } from '../utils/workoutDuration';
-import { toKg } from '../utils/weight';
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
 
 const GymProofModal = React.lazy(() => import('../components/GymProofModal'));
@@ -2646,21 +2645,19 @@ function Workouts() {
       }
     }
 
-    // Persisted storage is canonical kg (normalize_workout_weights_to_kg).
-    // Sets arrive here in the viewer's unit (deriveSets converts kg->viewer
-    // for display). Convert back to kg ONCE here so every downstream writer
-    // (workout_data setsData, workout-logs payloads, draft, cache, keepalive)
-    // stores kg. Without this a 10 lbs entry persists as 10 and is re-read
-    // as 10 kg -> displayed ~22 lbs (the double-conversion bug).
+    // Store EXACTLY what the user entered (no save-time conversion). Stamp
+    // each set with the unit it was entered in (the viewer's current unit)
+    // so display can convert later only if the viewer's unit differs. Without
+    // the stamp, a stored value would be re-interpreted in the wrong unit
+    // (e.g. a 10 lbs entry read as 10 kg -> displayed ~22 lbs).
     if (Array.isArray(updatedExercise.sets) && updatedExercise.sets.length > 0) {
       const viewerUnit = weightUnitRef.current || 'lbs';
       updatedExercise = {
         ...updatedExercise,
         sets: updatedExercise.sets.map(s => ({
           ...s,
-          weight: toKg(s?.weight || 0, viewerUnit),
-          ...(Number(s?.prescribedWeight) > 0 && { prescribedWeight: toKg(s.prescribedWeight, viewerUnit) }),
-          weightUnit: 'kg'
+          weight: s?.weight || 0,
+          weightUnit: s?.weightUnit || viewerUnit
         }))
       };
     }
