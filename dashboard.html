@@ -5862,6 +5862,9 @@
                     <svg class="my-stories-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
                 </div>
                 <div class="my-stories-collapsible" id="myPepTalksCollapsible" style="display: none;">
+                    <div style="text-align: right; padding: 0 0 8px;">
+                        <button type="button" id="pepTalksArchivedToggle" onclick="togglePepTalksArchived()" style="background: none; border: none; color: var(--gray-500); font-size: 0.75rem; cursor: pointer; text-decoration: underline;">Show archived</button>
+                    </div>
                     <div class="my-stories-grid" id="myPepTalksGrid">
                         <div class="stories-loading">Loading your pep talks...</div>
                     </div>
@@ -10010,6 +10013,7 @@
         let pepTalkClients = [];                  // coach's clients, loaded on demand
         let pepTalkUploadedVideo = null;          // { url, durationSeconds, file } once uploaded
         let myPepTalksData = [];
+        let pepTalksShowArchived = false;         // toggles the archived view in the manage list
 
         function openPepTalkCreator() {
             document.getElementById('pepTalkTitle').value = '';
@@ -10202,12 +10206,14 @@
             emptyState.style.display = 'none';
 
             try {
-                const response = await fetch(`/.netlify/functions/coach-pep-talks-list?coachId=${currentUserId}`);
+                const archivedParam = pepTalksShowArchived ? '&includeArchived=true' : '';
+                const response = await fetch(`/.netlify/functions/coach-pep-talks-list?coachId=${currentUserId}${archivedParam}`);
                 const data = await response.json();
                 myPepTalksData = data.pepTalks || [];
 
                 if (myPepTalksData.length === 0) {
                     grid.innerHTML = '';
+                    emptyState.querySelector('p').textContent = pepTalksShowArchived ? 'No pep talks yet' : 'No active pep talks';
                     emptyState.style.display = 'block';
                     return;
                 }
@@ -10229,22 +10235,55 @@
 
             const recipientLabel = pt.recipientType === 'all' ? 'All clients' : 'Specific';
             const viewStats = `${pt.viewedCount} / ${pt.totalRecipients} viewed`;
+            const isArchived = pt.archived === true;
+
+            const actionBtn = isArchived
+                ? `<button class="story-delete-btn" style="background: var(--gray-100); color: var(--gray-700);" onclick="unarchivePepTalk(${pt.id})">Restore</button>`
+                : `<button class="story-delete-btn" onclick="archivePepTalk(${pt.id})">Archive</button>`;
+            const archivedBadge = isArchived
+                ? `<span class="story-type-badge" style="background: var(--gray-200); color: var(--gray-600);">Archived</span>`
+                : '';
 
             return `
-                <div class="story-card" data-pep-talk-id="${pt.id}">
+                <div class="story-card" data-pep-talk-id="${pt.id}" style="${isArchived ? 'opacity: 0.65;' : ''}">
                     ${previewInner}
                     <div class="story-card-info">
                         <div class="story-card-meta">
                             <span class="story-type-badge">${recipientLabel}</span>
+                            ${archivedBadge}
                         </div>
                         <div style="font-weight:600;font-size:0.875rem;margin-top:6px;color:var(--gray-800);">${escapeHtml(pt.title)}</div>
                         <div style="font-size:0.75rem;color:var(--gray-500);margin-top:2px;">${viewStats}</div>
                         <div class="story-card-actions">
-                            <button class="story-delete-btn" onclick="archivePepTalk(${pt.id})">Archive</button>
+                            ${actionBtn}
                         </div>
                     </div>
                 </div>
             `;
+        }
+
+        function togglePepTalksArchived() {
+            pepTalksShowArchived = !pepTalksShowArchived;
+            const toggle = document.getElementById('pepTalksArchivedToggle');
+            if (toggle) toggle.textContent = pepTalksShowArchived ? 'Hide archived' : 'Show archived';
+            loadMyPepTalks();
+        }
+
+        async function unarchivePepTalk(pepTalkId) {
+            if (!confirm('Restore this pep talk? It will start appearing again for clients who haven\'t viewed it yet.')) return;
+            try {
+                const response = await fetch('/.netlify/functions/archive-pep-talk', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ coachId: currentUserId, pepTalkId, archived: false })
+                });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.error || 'Failed to restore');
+                loadMyPepTalks();
+                updateActivePepTalksCount();
+            } catch (err) {
+                alert('Failed to restore: ' + err.message);
+            }
         }
 
         async function archivePepTalk(pepTalkId) {
