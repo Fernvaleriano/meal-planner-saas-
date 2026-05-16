@@ -9840,20 +9840,39 @@
             }
         });
 
-        // Reload data when page becomes visible (e.g., when coming back from editing)
-        document.addEventListener('visibilitychange', async function() {
-            if (!document.hidden && currentUser && clientId) {
-                console.log('Page became visible, refreshing data...');
-                await refreshAllData();
+        // Reload data when the coach returns to the page — but GUARDED.
+        // Previously both visibilitychange and window.focus called
+        // refreshAllData() unconditionally and unthrottled, so every
+        // alt-tab / DevTools click / modal interaction triggered a
+        // 15-endpoint reload that tore down the workout editor and its
+        // modal mid-edit (the click that should have saved instead just
+        // refocused the window and rebuilt the DOM -> "save does nothing,
+        // no request, no toast"). Now: never refresh while a workout
+        // modal/editor is open, and throttle to once per 30s.
+        let acLastRefreshAt = 0;
+        function acEditorIsOpen() {
+            return !!document.querySelector('#acExerciseDetailModal.active, #acExerciseModal.active, .ac-set-editor');
+        }
+        async function maybeRefreshOnReturn(reason) {
+            if (!(currentUser && clientId)) return;
+            if (acEditorIsOpen()) {
+                console.log('[refresh] skipped (' + reason + ') — workout editor/modal open');
+                return;
             }
+            const now = Date.now();
+            if (now - acLastRefreshAt < 30000) {
+                console.log('[refresh] skipped (' + reason + ') — throttled (<30s)');
+                return;
+            }
+            acLastRefreshAt = now;
+            console.log('[refresh] running (' + reason + ')');
+            await refreshAllData();
+        }
+        document.addEventListener('visibilitychange', function() {
+            if (!document.hidden) maybeRefreshOnReturn('visibilitychange');
         });
-
-        // Also reload when window regains focus
-        window.addEventListener('focus', async function() {
-            if (currentUser && clientId) {
-                console.log('Window focused, refreshing data...');
-                await refreshAllData();
-            }
+        window.addEventListener('focus', function() {
+            maybeRefreshOnReturn('window-focus');
         });
 
         // Refresh all data function
@@ -14189,15 +14208,21 @@
         // opts: { silent: true } skips the day re-render so an open modal stays put
         async function acSaveExercises(exercises, assignmentId, dayIndex, isAdhoc, dateStr, opts) {
             const silent = !!(opts && opts.silent);
+            console.log('[acSave] acSaveExercises() ENTERED', {
+                count: (exercises || []).length, assignmentId, dayIndex,
+                isAdhoc, dateStr, silent
+            });
             acHistoryCache = null; // any write invalidates the cached history
             try {
                 if (isAdhoc) {
+                    console.log('[acSave] → PUT /adhoc-workouts');
                     await fetch('/.netlify/functions/adhoc-workouts', {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ workoutId: assignmentId, workoutData: { exercises } })
                     });
                 } else {
+                    console.log('[acSave] → POST /workout-logs (create/get log)');
                     // First, create or get the workout log for this date
                     const workoutLogRes = await fetch('/.netlify/functions/workout-logs', {
                         method: 'POST',
@@ -14212,9 +14237,11 @@
                         })
                     });
 
+                    console.log('[acSave] POST /workout-logs status =', workoutLogRes.status);
                     if (!workoutLogRes.ok) throw new Error('Failed to create workout log');
                     const workoutLogData = await workoutLogRes.json();
                     const workoutId = workoutLogData.workout?.id;
+                    console.log('[acSave] workoutId =', workoutId);
 
                     if (workoutId) {
                         // Now save the exercises to the workout log
@@ -14241,7 +14268,7 @@
                             notes: ex.notes
                         }));
 
-                        await fetch('/.netlify/functions/workout-logs', {
+                        const putRes = await fetch('/.netlify/functions/workout-logs', {
                             method: 'PUT',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
@@ -14249,8 +14276,11 @@
                                 exercises: mappedExercises
                             })
                         });
+                        console.log('[acSave] PUT /workout-logs status =', putRes.status,
+                            '— exercises sent:', mappedExercises.length);
                     }
                 }
+                console.log('[acSave] persisted OK; silent =', silent);
                 if (!silent) {
                     // Instant feedback: re-render from the in-memory array we
                     // just saved (single source of truth), then reconcile with
@@ -14269,7 +14299,7 @@
                     acSelectDay(dateStr); // authoritative reconcile (now parallelized)
                 }
             } catch (err) {
-                console.error('Error saving exercises:', err);
+                console.error('[acSave] FAILED:', err);
                 if (!silent) acToast('Save failed — retrying view', true);
                 throw err;
             }
@@ -14360,6 +14390,7 @@
         }
 
         async function acSaveSets(exIndex, assignmentId, dayIndex, isAdhoc, dateStr) {
+            console.log('[acSave] acSaveSets() ENTERED, exIndex=', exIndex, 'assignmentId=', assignmentId);
             const editorEl = document.getElementById(`acSetEditor_${exIndex}`);
             const rows = editorEl.querySelectorAll('.ac-set-row');
             const newSetsData = [];
@@ -14988,6 +15019,7 @@
         }
 
         async function acExdSaveSet(setIdx) {
+            console.log('[acSave] acExdSaveSet() ENTERED, setIdx=', setIdx);
             const modal = document.getElementById('acExerciseDetailModal');
             const exIndex = parseInt(modal.dataset.exIndex);
             const assignmentId = modal.dataset.assignmentId;
@@ -15191,6 +15223,7 @@
         }
 
         async function acSaveExerciseDetail() {
+            console.log('[acSave] acSaveExerciseDetail() ENTERED');
             const modal = document.getElementById('acExerciseDetailModal');
             const exIndex = parseInt(modal.dataset.exIndex);
             const assignmentId = modal.dataset.assignmentId;
