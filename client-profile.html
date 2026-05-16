@@ -14236,7 +14236,15 @@
                                 setNumber: s.setNumber != null ? s.setNumber : i + 1,
                                 reps: s.reps != null ? s.reps : 0,
                                 weight: s.weight != null ? s.weight : 0,
-                                weightUnit: s.weightUnit || 'lbs'
+                                weightUnit: s.weightUnit || 'lbs',
+                                // Stamp every set the coach saves through this editor.
+                                // The client merge (Workouts.jsx `exercises` memo) keys
+                                // off this to know the log row holds a coach
+                                // prescription override, not just client-logged actuals,
+                                // and must win over the older assignment template.
+                                // Client logging never routes through here, so client
+                                // logs stay unmarked and behave exactly as before.
+                                coachEditedAt: new Date().toISOString()
                             })),
                             notes: ex.notes
                         }));

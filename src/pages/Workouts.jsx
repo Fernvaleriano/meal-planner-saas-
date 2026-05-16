@@ -3957,6 +3957,30 @@ function Workouts() {
               // re-assert the coach's prescription for fields where the log
               // also stored a value — otherwise a coach update via "Save &
               // Update Clients" is silently undone by the older log.
+              // A set carrying `coachEditedAt` was written by the coach through
+              // the client-profile workout editor (acSaveExercises). That makes
+              // the LOG the newest prescription — it must win over the older
+              // assignment template, otherwise a coach changing 10→11 reps is
+              // masked by the stale plan (the "coach edits don't reach client"
+              // bug). Client logging never stamps this field, so unmarked sets
+              // fall through to the original assignment-wins behaviour and
+              // existing client logging is completely untouched.
+              if (loggedSet && loggedSet.coachEditedAt) {
+                return {
+                  ...assignmentSet,
+                  ...loggedSet,
+                  reps: loggedSet.reps ?? assignmentSet.reps,
+                  restSeconds: loggedSet.restSeconds ?? assignmentSet.restSeconds,
+                  duration: loggedSet.duration ?? assignmentSet.duration,
+                  distance: loggedSet.distance ?? assignmentSet.distance,
+                  prescribedWeight: loggedSet.prescribedWeight
+                    ?? (Number(loggedSet.weight) || 0)
+                    ?? assignmentSet.prescribedWeight ?? assignmentWeight ?? 0,
+                  prescribedReps: loggedSet.prescribedReps ?? loggedSet.reps
+                    ?? assignmentSet.prescribedReps ?? assignmentSet.reps ?? 0,
+                  weightUnit: loggedSet.weightUnit || assignmentSet.weightUnit
+                };
+              }
               return {
                 ...assignmentSet,
                 ...loggedSet,
