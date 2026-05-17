@@ -1,5 +1,30 @@
 # Project Memory
 
+## PROJECT INTENT & STRATEGY — SETTLED, DO NOT RELITIGATE
+
+**Origin:** Built because a white-label provider tried to charge ~$699 for a
+minor change. Owner built a nutrition planner instead → then added the workout
+side → then realized it could also be sold to coaches. Hence the original name
+`ziquefitnessnutrition`.
+
+**Priority order (LOCKED):**
+1. **Primary: the owner's own coaching clients.** The app is actively being
+   used to run the owner's book of clients. Feature work that serves these
+   clients is intentional and correct.
+2. **Secondary: selling to other coaches.** This comes *after* the owner's
+   clients are well served. Not the current focus.
+
+**Directive for assistants:**
+- Do NOT frame feature work as "hiding behind features," avoidance, or
+  procrastination. Features are deliberate, client-driven decisions by the
+  owner. Respect that.
+- Do NOT reopen "is this a SaaS / should you pivot / effort-vs-traction"
+  strategic debates. That decision is made: client-tool first, coach-SaaS
+  later. Only revisit if the owner explicitly asks for a strategy review.
+- Default mode: help build/improve the features the owner identifies for
+  their clients. Flag genuine technical risks (security, data loss,
+  regressions) per the protocol below — that is still in scope.
+
 ## HOLISTIC CODE MODIFICATION PROTOCOL (APPLIES TO EVERY CHANGE)
 
 Primary directive: **"First, do no harm to the existing system."**
