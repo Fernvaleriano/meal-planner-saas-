@@ -111,22 +111,11 @@ const getRepPace = (exercise) => {
 // Parse reps helper - supports decimals like "1.5" (e.g. 1.5 miles)
 // parseReps now imported from workoutProgression.js
 
-// Format seconds to mm:ss (for elapsed-time stopwatch readouts)
+// Format seconds to mm:ss (for timer display)
 const formatTime = (seconds) => {
   const mins = Math.floor(seconds / 60);
   const secs = seconds % 60;
   return `${mins}:${secs.toString().padStart(2, '0')}`;
-};
-
-// Human-readable countdown for the guided-mode timer.
-// < 60s  -> "30s"
-// >= 60s -> "1m 30s" (or "2m" when it lands exactly on the minute)
-const formatTimerDisplay = (seconds) => {
-  const s = Math.max(0, Math.floor(seconds || 0));
-  if (s < 60) return `${s}s`;
-  const mins = Math.floor(s / 60);
-  const secs = s % 60;
-  return secs > 0 ? `${mins}m ${secs}s` : `${mins}m`;
 };
 
 // parseDurationToSeconds imported from ../../utils/workoutDuration
@@ -2562,7 +2551,7 @@ function GuidedWorkoutModal({
     if (phase !== 'exercise' || !info.isTimed || isPaused) return;
     if (timer > 0 && timer <= 5) {
       playTickSound();
-      speak(timer === 5 ? '5 seconds left' : String(timer), voiceEnabled);
+      speak(String(timer), voiceEnabled);
     }
   }, [timer, phase, info.isTimed, isPaused, voiceEnabled]);
 
@@ -2994,8 +2983,8 @@ function GuidedWorkoutModal({
   const timerProgress = Math.min(timer / maxTime, 1);
   const strokeDashoffset = circumference * (1 - timerProgress);
 
-  // Timed-hold countdown display state. The timer reads "30s" under a
-  // minute and "1m 30s" at/above one minute; the final 5 seconds turn
+  // Timed-hold countdown display state. A timed set shows a large bare
+  // seconds number (mm:ss only for holds ≥ 60s); the final 5 seconds turn
   // red, grow, and pulse for urgency.
   const isTimedCountdown = phase === 'exercise' && info.isTimed;
   const isFinalCountdown = isTimedCountdown && timer > 0 && timer <= 5;
@@ -3721,7 +3710,7 @@ function GuidedWorkoutModal({
                   </svg>
                   <div className="guided-timer-text">
                     <span className="guided-timer-label">Rest</span>
-                    <span className="guided-timer-value">{formatTimerDisplay(timer)}</span>
+                    <span className="guided-timer-value">{formatTime(timer)}</span>
                     {nextExercise && (
                       <span className="guided-rest-upnext-label">
                         Up Next: {nextExercise.name || nextExercise.exercise_name}
@@ -3745,7 +3734,7 @@ function GuidedWorkoutModal({
                 </svg>
                 <div className="guided-timer-text">
                   <span className="guided-timer-label">Rest</span>
-                  <span className="guided-timer-value">{formatTimerDisplay(timer)}</span>
+                  <span className="guided-timer-value">{formatTime(timer)}</span>
                   {nextExercise && (
                     <span className="guided-rest-upnext-label">
                       Up Next: {nextExercise.name || nextExercise.exercise_name}
@@ -3946,7 +3935,7 @@ function GuidedWorkoutModal({
                 {phase === 'get-ready' ? 'Get Ready' : 'Go!'}
               </span>
               <span className="guided-timer-value">
-                {formatTimerDisplay(timer)}
+                {isTimedCountdown && timer < 60 ? timer : formatTime(timer)}
               </span>
             </div>
           </div>
@@ -4322,7 +4311,7 @@ function GuidedWorkoutModal({
                 {currentExercise?.name || 'Workout'}
               </div>
               <div className="guided-mini-timer">
-                {phase === 'rest' ? `Rest ${formatTimerDisplay(timer)}` : formatTime(totalElapsed)}
+                {phase === 'rest' ? `Rest ${formatTime(timer)}` : formatTime(totalElapsed)}
               </div>
             </div>
             <div className="guided-mini-actions">
