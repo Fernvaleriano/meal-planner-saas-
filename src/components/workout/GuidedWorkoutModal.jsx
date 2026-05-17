@@ -2561,6 +2561,8 @@ function GuidedWorkoutModal({
     if (phase !== 'exercise' || !voiceEnabled) return;
     const exInfo = getExerciseInfo(currentExIndex);
     const completedCount = completedSets[currentExIndex]?.size || 0;
+    // Only meaningful when there's more than one set — "last set" is
+    // redundant for a single-set exercise (it's the only set).
     const isLastSet = exInfo.sets > 1 && completedCount === exInfo.sets - 1;
     const key = `${currentExIndex}-${currentSetIndex}`;
 
