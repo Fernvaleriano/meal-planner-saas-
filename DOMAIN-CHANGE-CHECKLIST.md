@@ -219,6 +219,18 @@ These reference `contact@ziquefitness.com` which is being kept:
 - [ ] Watch Supabase auth logs for failed redirects
 - [ ] Update social media bios, business cards, email signatures
 - [ ] Begin native app launch prep (Capacitor → App Store as Ziquecoach)
+- [ ] Once new-sender deliverability is confirmed stable: delete the old
+      `ziquefitnessnutrition.com` domain in Resend, then downgrade the Resend
+      plan to free. The paid tier was needed ONLY to hold both the old and
+      new sending domains verified at once during the cutover. After deleting
+      the old domain there is one verified domain (`ziquecoach.com`) and
+      volume (~10 clients) is far under free-tier limits (3,000/mo, 100/day).
+      PRECONDITION: verify in the Resend dashboard that no coach white-label
+      custom sending domains exist (`white_label_enabled` +
+      `email_from_verified` in the `coaches` table) — each such domain is a
+      separate verified domain and, if present, requires keeping the paid
+      tier permanently. As of 2026-05-17 only the old + new domains existed,
+      no white-label domains.
 - [ ] In ~6 months: evaluate sunsetting old domain redirect
 
 ---
