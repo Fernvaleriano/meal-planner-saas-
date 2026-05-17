@@ -36427,6 +36427,30 @@ textarea,
     font-variant-numeric: tabular-nums;
 }
 
+/* Timed-hold countdown: large prominent seconds number */
+.guided-timer-circle.timed-countdown .guided-timer-value {
+    font-size: 4.5rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    transition: color 0.2s ease;
+}
+
+/* Final 5 seconds: red, larger, pulsing for urgency */
+.guided-timer-circle.final-countdown .guided-timer-value {
+    color: #ef4444;
+    font-size: 5.75rem;
+    animation: guided-final-countdown-pulse 1s ease-in-out infinite;
+}
+
+.guided-timer-circle.final-countdown .guided-timer-ring.active {
+    stroke: #ef4444;
+}
+
+@keyframes guided-final-countdown-pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.15); }
+}
+
 .guided-timer-text {
     position: absolute;
     top: 50%;

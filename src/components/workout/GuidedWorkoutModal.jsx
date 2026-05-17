@@ -7,7 +7,7 @@ import { apiGet, apiPost, apiPut, apiDelete, getOrCreateWorkoutLogId } from '../
 import { onAppResume } from '../../hooks/useAppLifecycle';
 import { parseDurationToSeconds } from '../../utils/workoutDuration';
 import { generateProgression, EFFORT_OPTIONS, EFFORT_TO_RIR, estimate1RM, parseSetsData, getMaxWeight, parseReps, isCompoundExercise, getWeightIncrement, convertWeight } from '../../utils/workoutProgression';
-import { playTickSound, warmUpTickSound, resumeAudio, startTickKeepAlive, stopTickKeepAlive } from '../../utils/audioTick';
+import { playTickSound, playCompleteChime, warmUpTickSound, resumeAudio, startTickKeepAlive, stopTickKeepAlive } from '../../utils/audioTick';
 
 // --- Resume helpers ---
 const RESUME_STORAGE_KEY = 'guided_workout_resume';
@@ -2260,6 +2260,9 @@ function GuidedWorkoutModal({
         }
       }
     } else if (p === 'exercise' && exInfo.isTimed) {
+      // Timed hold finished — chime, then auto-complete the set (which
+      // auto-advances into the rest/log phase via doMarkSetDone).
+      playCompleteChime();
       doMarkSetDone(exIdx, setIdx, exInfo);
     } else if (p === 'rest') {
       doAdvanceAfterRest(exIdx, setIdx, exInfo);
@@ -2538,6 +2541,19 @@ function GuidedWorkoutModal({
       speak('1', voiceEnabled);
     }
   }, [timer, phase, isPaused, voiceEnabled]);
+
+  // --- Timed-exercise final 5-second countdown (tick + spoken 5..1) ---
+  // Fires once per distinct `timer` value during a timed hold. The tick
+  // always plays (independent of the voice setting, matching the rep
+  // countdown); the spoken number is gated by voiceEnabled. The isPaused
+  // guard means a paused hold goes silent and resumes cleanly.
+  useEffect(() => {
+    if (phase !== 'exercise' || !info.isTimed || isPaused) return;
+    if (timer > 0 && timer <= 5) {
+      playTickSound();
+      speak(String(timer), voiceEnabled);
+    }
+  }, [timer, phase, info.isTimed, isPaused, voiceEnabled]);
 
   // --- Last set announcement: tell client what's next ---
   const lastSetAnnouncedRef = useRef(null); // track "exIndex-setIndex" to avoid repeat
@@ -2964,6 +2980,12 @@ function GuidedWorkoutModal({
   const maxTime = phaseMaxTimeRef.current || 5;
   const timerProgress = Math.min(timer / maxTime, 1);
   const strokeDashoffset = circumference * (1 - timerProgress);
+
+  // Timed-hold countdown display state. A timed set shows a large bare
+  // seconds number (mm:ss only for holds ≥ 60s); the final 5 seconds turn
+  // red, grow, and pulse for urgency.
+  const isTimedCountdown = phase === 'exercise' && info.isTimed;
+  const isFinalCountdown = isTimedCountdown && timer > 0 && timer <= 5;
 
   if (!currentExercise) return null;
 
@@ -3896,7 +3918,7 @@ function GuidedWorkoutModal({
             )}
           </div>
         ) : (phase === 'get-ready' || (phase === 'exercise' && info.isTimed)) ? (
-          <div className="guided-timer-circle">
+          <div className={`guided-timer-circle${isTimedCountdown ? ' timed-countdown' : ''}${isFinalCountdown ? ' final-countdown' : ''}`}>
             <svg viewBox="0 0 200 200" className="guided-timer-svg">
               <circle cx="100" cy="100" r={radius} className="guided-timer-track" />
               <circle
@@ -3910,7 +3932,9 @@ function GuidedWorkoutModal({
               <span className="guided-timer-label">
                 {phase === 'get-ready' ? 'Get Ready' : 'Go!'}
               </span>
-              <span className="guided-timer-value">{formatTime(timer)}</span>
+              <span className="guided-timer-value">
+                {isTimedCountdown && timer < 60 ? timer : formatTime(timer)}
+              </span>
             </div>
           </div>
         ) : (phase === 'exercise' && !info.isTimed && repCountdownActive) ? (
