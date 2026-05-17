@@ -139,6 +139,21 @@ const formatDuration = (seconds) => {
   return `${seconds}s`;
 };
 
+// Spoken form of a duration for the voiceover, so TTS says
+// "3 minutes and 30 seconds" instead of reading "30s" as the letter s.
+const formatDurationSpoken = (seconds) => {
+  const s = Math.max(0, Math.floor(seconds || 0));
+  const hrs = Math.floor(s / 3600);
+  const mins = Math.floor((s % 3600) / 60);
+  const secs = s % 60;
+  const parts = [];
+  if (hrs > 0) parts.push(`${hrs} hour${hrs !== 1 ? 's' : ''}`);
+  if (mins > 0) parts.push(`${mins} minute${mins !== 1 ? 's' : ''}`);
+  if (secs > 0) parts.push(`${secs} second${secs !== 1 ? 's' : ''}`);
+  if (parts.length === 0) return '0 seconds';
+  return parts.join(' and ');
+};
+
 // Text-to-speech helper — returns a promise that resolves when speech ends.
 // On iOS, speechSynthesis.speak() flips the AVAudioSession category and
 // puts our tick AudioContext into 'interrupted'. Pinging resumeAudio() on
@@ -1702,7 +1717,7 @@ function GuidedWorkoutModal({
           await speak(memberLabel, voiceEnabled);
         } else {
           const desc = exInfo.isTimed
-            ? `${exInfo.sets} sets, ${formatDuration(exInfo.duration)} each`
+            ? `${exInfo.sets} sets, ${formatDurationSpoken(exInfo.duration)} each`
             : exInfo.isTillFailure
             ? `${exInfo.sets} sets, till failure`
             : `${exInfo.sets} sets of ${exInfo.reps} reps`;
