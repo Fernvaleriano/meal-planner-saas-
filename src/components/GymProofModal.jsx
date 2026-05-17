@@ -1,14 +1,14 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { X, Camera, RotateCcw, Send, Flame, ChevronDown, Clock, Share2 } from 'lucide-react';
+import { X, Camera, RotateCcw, Send, Flame, ChevronDown, Clock } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiPost, apiGet } from '../utils/api';
+import BadgeCelebrationModal from './BadgeCelebrationModal';
 import {
-  BADGE_TIERS,
   getEarnedTiers,
-  getTierCrossed,
   generateBadgeShareCard,
   shareOrDownloadBadge
 } from '../utils/badges';
+import { getNewlyEarnedMilestone } from '../utils/badgeMilestones';
 
 const STEPS = {
   INSTRUCTIONS: 'instructions',
@@ -202,7 +202,7 @@ function GymProofModal({ isOpen, onClose }) {
 
       // Detect if this submission crossed a badge threshold
       const newCount = countBeforeSubmit + 1;
-      const crossedTier = getTierCrossed(newCount);
+      const crossedTier = getNewlyEarnedMilestone(countBeforeSubmit, newCount);
       if (crossedTier) {
         // Delay slightly so the badge unlock feels like a reward on top of success
         setTimeout(() => {
@@ -441,58 +441,12 @@ function GymProofModal({ isOpen, onClose }) {
     </div>
 
     {/* Badge unlock celebration modal */}
-    {unlockedBadge && (
-      <div
-        className="badge-unlock-overlay"
-        onClick={() => setUnlockedBadge(null)}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Badge unlocked"
-      >
-        <div className="badge-unlock-modal" onClick={(e) => e.stopPropagation()}>
-          <button
-            type="button"
-            className="badge-unlock-close"
-            onClick={() => setUnlockedBadge(null)}
-            aria-label="Close"
-          >
-            <X size={20} />
-          </button>
-
-          <div className="badge-unlock-confetti" aria-hidden="true">
-            <span>✨</span><span>🎉</span><span>⭐</span><span>🎊</span>
-            <span>✨</span><span>🎉</span><span>⭐</span><span>🎊</span>
-          </div>
-
-          <div className="badge-unlock-header">BADGE UNLOCKED</div>
-          <div className="badge-unlock-icon">{unlockedBadge.tier.icon}</div>
-          <div className="badge-unlock-name">{unlockedBadge.tier.name}</div>
-          <div className="badge-unlock-desc">{unlockedBadge.tier.desc}</div>
-
-          <div className="badge-unlock-stats">
-            🏅 {unlockedBadge.earnedTiers.length} / {BADGE_TIERS.length} badges earned
-          </div>
-
-          <button
-            type="button"
-            className="badge-unlock-share-btn"
-            onClick={handleShareUnlockedBadge}
-            disabled={sharingBadge}
-          >
-            <Share2 size={18} />
-            <span>{sharingBadge ? 'Generating…' : 'Save / Share image'}</span>
-          </button>
-
-          <button
-            type="button"
-            className="badge-unlock-done-btn"
-            onClick={() => setUnlockedBadge(null)}
-          >
-            Awesome!
-          </button>
-        </div>
-      </div>
-    )}
+    <BadgeCelebrationModal
+      badge={unlockedBadge}
+      onClose={() => setUnlockedBadge(null)}
+      onShare={handleShareUnlockedBadge}
+      sharing={sharingBadge}
+    />
     </>
   );
 }
