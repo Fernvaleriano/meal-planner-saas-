@@ -2545,7 +2545,7 @@ function GuidedWorkoutModal({
     if (phase !== 'exercise' || !voiceEnabled) return;
     const exInfo = getExerciseInfo(currentExIndex);
     const completedCount = completedSets[currentExIndex]?.size || 0;
-    const isLastSet = completedCount === exInfo.sets - 1;
+    const isLastSet = exInfo.sets > 1 && completedCount === exInfo.sets - 1;
     const key = `${currentExIndex}-${currentSetIndex}`;
 
     if (isLastSet && lastSetAnnouncedRef.current !== key) {
