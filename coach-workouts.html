@@ -12199,23 +12199,33 @@
                     throw new Error('Failed to upload voice note to storage');
                 }
 
-                // Step 3: Get a signed view URL
-                const signedUrlResult = await apiCall('/.netlify/functions/get-signed-video-url', {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        filePath: uploadUrlResult.filePath
-                    })
-                });
+                // The upload to storage succeeded (uploadResponse.ok above).
+                // The file path alone is enough for playback everywhere:
+                // buildVoiceNoteSrc (and the client app) route through the
+                // serve-voice-note proxy, which mints a fresh signed URL on
+                // every request. Persist the path unconditionally so a
+                // successfully uploaded note is never discarded.
+                workoutDays[dayIndex].exercises[exIndex].voiceNotePath = uploadUrlResult.filePath;
 
-                if (signedUrlResult.success) {
-                    // Store both URL and file path (path used to refresh signed URLs)
-                    workoutDays[dayIndex].exercises[exIndex].voiceNoteUrl = signedUrlResult.url;
-                    workoutDays[dayIndex].exercises[exIndex].voiceNotePath = uploadUrlResult.filePath;
-                    renderExerciseDetail();
-                    showToast('Voice note saved!', 'success');
-                } else {
-                    throw new Error('Failed to get voice note URL');
+                // Step 3: best-effort signed view URL for legacy consumers.
+                // get-signed-video-url verifies existence via storage.list(),
+                // which can lag right after an upload (eventual consistency)
+                // and return success:false even though the file is there — a
+                // missing URL must NOT fail an already-successful upload.
+                try {
+                    const signedUrlResult = await apiCall('/.netlify/functions/get-signed-video-url', {
+                        method: 'POST',
+                        body: JSON.stringify({ filePath: uploadUrlResult.filePath })
+                    });
+                    if (signedUrlResult.success && signedUrlResult.url) {
+                        workoutDays[dayIndex].exercises[exIndex].voiceNoteUrl = signedUrlResult.url;
+                    }
+                } catch (signErr) {
+                    console.warn('[voice-note] signed URL fetch failed; playback still works via serve-voice-note proxy:', signErr.message);
                 }
+
+                renderExerciseDetail();
+                showToast('Voice note saved!', 'success');
             } catch (err) {
                 console.error('Error uploading voice note:', err);
                 showToast(err.message || 'Error saving voice note', 'error');
