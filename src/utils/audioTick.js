@@ -241,6 +241,42 @@ export const warmUpTickSound = () => {
   } catch { /* ignore */ }
 };
 
+// Two-tone completion chime (rising 660Hz → 990Hz) played when a timed set
+// counts down to zero. Uses the same scheduled-oscillator path as the rep
+// tick so it mixes on top of background music and survives the iOS audio
+// session quirks documented above. Falls back silently if the context can't
+// be created.
+export const playCompleteChime = () => {
+  if (isCoachVideoAudioActive()) return;
+  const ctx = ensureCtx();
+  if (!ctx) return;
+  resumeCtxSync(ctx);
+  try {
+    const now = ctx.currentTime;
+    const tones = [
+      { freq: 660, at: 0.0, dur: 0.12 },
+      { freq: 990, at: 0.12, dur: 0.22 },
+    ];
+    tones.forEach(({ freq, at, dur }) => {
+      const osc = ctx.createOscillator();
+      const env = ctx.createGain();
+      osc.type = 'sine';
+      const startAt = now + 0.01 + at;
+      osc.frequency.setValueAtTime(freq, startAt);
+      env.gain.setValueAtTime(0, startAt);
+      env.gain.linearRampToValueAtTime(PEAK_GAIN, startAt + 0.01);
+      env.gain.linearRampToValueAtTime(0, startAt + dur);
+      osc.connect(env);
+      env.connect(ctx.destination);
+      osc.start(startAt);
+      osc.stop(startAt + dur);
+      osc.onended = () => {
+        try { osc.disconnect(); env.disconnect(); } catch { /* ignore */ }
+      };
+    });
+  } catch { /* ignore */ }
+};
+
 // External hook the modal calls after speechSynthesis utterances end and on
 // app foreground. iOS flips the AVAudioSession category during TTS, which
 // puts our context into 'interrupted' — the first tick after speech then
