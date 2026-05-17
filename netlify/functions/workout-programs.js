@@ -60,7 +60,7 @@ exports.handler = async (event) => {
         .from('workout_programs')
         .select('*')
         .eq('coach_id', coachId)
-        .order('updated_at', { ascending: false });
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
 

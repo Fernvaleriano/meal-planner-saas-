@@ -1276,7 +1276,7 @@
             } else if (order === 'oldest') {
                 filtered.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
             } else {
-                filtered.sort((a, b) => new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at));
+                filtered.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
             }
 
             renderPlans(filtered);
