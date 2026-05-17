@@ -55,9 +55,13 @@ exports.handler = async (event) => {
     let fileExists = null;
 
     try {
+      // Search by exact filename instead of paginating the whole folder.
+      // A capped list (limit:500) misses files once a folder grows large —
+      // timestamp-named voice notes sort past the window and falsely read
+      // as "missing", breaking every new note after ~500 exist.
       const { data: files, error: listError } = await supabase.storage
         .from('workout-assets')
-        .list(folder, { limit: 500 });
+        .list(folder, { limit: 100, search: fileName });
       if (listError) {
         console.error('[get-signed-video-url] list error:', listError.message);
       } else {
