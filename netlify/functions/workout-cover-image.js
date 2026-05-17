@@ -1,9 +1,14 @@
 // Netlify Function to generate workout cover images using Replicate
 const { createClient } = require('@supabase/supabase-js');
+const Anthropic = require('@anthropic-ai/sdk');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN;
+const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
+
+// How many times to (re)generate until the image passes verification.
+const MAX_GENERATION_ATTEMPTS = 3;
 
 const BUCKET_NAME = 'exercise-thumbnails';
 
@@ -47,24 +52,54 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-// Generate image with Replicate
-async function generateCoverImage(programName, programType, description, customPrompt) {
-  // If the coach provided a custom description, lead with it. Otherwise fall back
-  // to the program-type description.
-  const sceneLine = customPrompt && customPrompt.trim()
-    ? `Scene (coach's description): ${customPrompt.trim()}.`
-    : `Scene: ${description}.`;
+// Detect whether the coach explicitly wants no people in the image
+// (e.g. "no people", "without humans", "just equipment", "empty gym").
+function coachWantsNoPeople(coachPrompt) {
+  return /\b(no|without|zero)\s+(people|persons?|humans?)\b|just\s+(the\s+)?equipment|only\s+equipment|empty\s+(gym|room|studio)|no\s+(humans?|figures?|persons?)\b/i.test(coachPrompt);
+}
 
-  const prompt = `Professional fitness photography for a workout program called "${programName}".
-${sceneLine}
-Style: Modern fitness aesthetic, motivational, professional gym or training environment.
-Mood: Energetic, inspiring, powerful.
-Composition: Wide aspect ratio suitable for a cover image.
-Technical: High quality, sharp focus, dramatic lighting, shot on 35mm, shallow depth of field.
-No text, words, logos, or watermarks.`;
+// Build the positive + negative prompt pair. `correction` is extra guidance
+// appended on a retry after a verification failure.
+function buildPrompts(description, coachPrompt, hasCoachPrompt, requireNoPeople, correction) {
+  // IMPORTANT: never put the program name into the image prompt — Imagen renders
+  // it as literal title text on the image (the "FRESH START PROGRAM" overlay bug).
+  // When the coach gives a description, that IS the brief: lead with it and drop
+  // the canned "professional gym / energetic / powerful" style+mood lines, which
+  // otherwise force a person in a commercial gym and contradict requests like
+  // "home gym, no people, just equipment".
+  let prompt = hasCoachPrompt
+    ? `Professional fitness photography. ${coachPrompt}.
+Follow the description above exactly — it takes priority over any default styling.
+Composition: wide 16:9 cover image.
+Technical: high quality, sharp focus, natural lighting, shot on 35mm, shallow depth of field.
+Absolutely no text, words, letters, titles, captions, logos, or watermarks anywhere in the image.`
+    : `Professional fitness photography. Scene: ${description}.
+Style: modern fitness aesthetic, motivational, professional training environment.
+Mood: energetic, inspiring, powerful.
+Composition: wide 16:9 cover image.
+Technical: high quality, sharp focus, dramatic lighting, shot on 35mm, shallow depth of field.
+Absolutely no text, words, letters, titles, captions, logos, or watermarks anywhere in the image.`;
 
-  // Use Google Imagen 4 Fast (same as meal-image.js)
-  const response = await fetch('https://api.replicate.com/v1/models/google/imagen-4-fast/predictions', {
+  if (requireNoPeople) {
+    prompt += `\nThe image must contain NO people, no humans, no body parts — equipment and environment only.`;
+  }
+  if (correction) {
+    prompt += `\nCRITICAL CORRECTION (a previous attempt was rejected): ${correction}`;
+  }
+
+  // Always strongly suppress rendered text. Additionally suppress people when the
+  // coach explicitly asked for none.
+  let negativePrompt = 'text, words, letters, numbers, title, caption, subtitle, typography, font, signage, logo, watermark, blurry, low quality, cartoon, illustration, deformed, ugly';
+  if (requireNoPeople) {
+    negativePrompt += ', person, people, human, man, woman, athlete, model, bodybuilder, crowd, figure, silhouette, body part';
+  }
+
+  return { prompt, negativePrompt };
+}
+
+// Call Imagen 4 (full quality) on Replicate and return the image URL.
+async function requestImagenImage(prompt, negativePrompt) {
+  const response = await fetch('https://api.replicate.com/v1/models/google/imagen-4/predictions', {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${REPLICATE_API_TOKEN}`,
@@ -75,7 +110,7 @@ No text, words, logos, or watermarks.`;
       input: {
         prompt: prompt,
         aspect_ratio: '16:9', // Wide format for cover images
-        negative_prompt: 'text, words, labels, watermark, blurry, low quality, cartoon, illustration, deformed, ugly'
+        negative_prompt: negativePrompt
       }
     })
   });
@@ -89,8 +124,7 @@ No text, words, logos, or watermarks.`;
   const prediction = await response.json();
 
   if (prediction.status === 'succeeded' && prediction.output) {
-    const imageUrl = Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
-    return imageUrl;
+    return Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
   }
 
   // Poll if not ready
@@ -115,8 +149,7 @@ No text, words, logos, or watermarks.`;
     }
 
     if (result.status === 'succeeded' && result.output) {
-      const imageUrl = Array.isArray(result.output) ? result.output[0] : result.output;
-      return imageUrl;
+      return Array.isArray(result.output) ? result.output[0] : result.output;
     }
 
     if (result.status === 'failed') {
@@ -129,14 +162,114 @@ No text, words, logos, or watermarks.`;
   throw new Error(`Unexpected prediction status: ${prediction.status}`);
 }
 
-// Download image from URL and return as buffer
+// Download image from URL and return buffer + mime type.
 async function downloadImage(imageUrl) {
   const response = await fetch(imageUrl);
   if (!response.ok) {
     throw new Error('Failed to download generated image');
   }
+  const contentType = response.headers.get('content-type') || 'image/png';
   const arrayBuffer = await response.arrayBuffer();
-  return Buffer.from(arrayBuffer);
+  return { buffer: Buffer.from(arrayBuffer), mimeType: contentType.split(';')[0].trim() };
+}
+
+// Use Claude vision to verify the generated image actually obeys the brief:
+// (1) no rendered text/letters anywhere, (2) no people when the coach asked for
+// none, (3) the scene matches the coach's description. Returns a pass/fail plus
+// a short reason used to steer the retry. Verification is best-effort: if the
+// API key is missing or the check errors, we don't block the image.
+async function verifyCover(imageBuffer, mimeType, coachPrompt, hasCoachPrompt, requireNoPeople) {
+  if (!ANTHROPIC_API_KEY) {
+    return { pass: true, skipped: true, reason: 'verification skipped (no ANTHROPIC_API_KEY)' };
+  }
+
+  const supportedMime = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'].includes(mimeType)
+    ? mimeType : 'image/png';
+
+  const briefLine = hasCoachPrompt
+    ? `The coach asked for: "${coachPrompt}".`
+    : `This is a generic motivational fitness program cover.`;
+
+  const instruction = `You are a strict QA reviewer for fitness program COVER images. Inspect the attached image and answer about THIS image only.
+${briefLine}
+
+Evaluate three things:
+1. hasText: true if ANY readable text, letters, words, numbers, titles, captions, logos, or watermarks appear ANYWHERE in the image (even small or stylized). A cover must be completely text-free.
+2. hasPeople: true if any person, human, face, or body part is visible.
+3. matchesBrief: true if the image is a reasonable visual match for what the coach asked for (composition, subject, setting). If no specific brief, judge whether it is a sensible, professional fitness cover.
+
+Return ONLY a JSON object, no markdown, no prose:
+{"hasText": boolean, "hasPeople": boolean, "matchesBrief": boolean, "reason": "one short sentence explaining the most important problem, or 'ok' if none"}`;
+
+  try {
+    const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
+    const message = await anthropic.messages.create({
+      model: 'claude-sonnet-4-5',
+      max_tokens: 300,
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'image', source: { type: 'base64', media_type: supportedMime, data: imageBuffer.toString('base64') } },
+          { type: 'text', text: instruction }
+        ]
+      }]
+    });
+
+    const raw = (message.content[0]?.text || '').trim();
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      return { pass: true, skipped: true, reason: 'verification skipped (unparseable response)' };
+    }
+    const verdict = JSON.parse(jsonMatch[0]);
+
+    const problems = [];
+    if (verdict.hasText) problems.push('the image contains rendered text/letters — it must be completely text-free, no words anywhere');
+    if (requireNoPeople && verdict.hasPeople) problems.push('the image contains a person — there must be no people, equipment and environment only');
+    if (hasCoachPrompt && verdict.matchesBrief === false) problems.push(`the image does not match the request: ${verdict.reason || 'mismatch'}`);
+
+    return {
+      pass: problems.length === 0,
+      skipped: false,
+      reason: problems.length ? problems.join('; ') : (verdict.reason || 'ok')
+    };
+  } catch (err) {
+    console.error('Cover verification error (non-blocking):', err.message);
+    return { pass: true, skipped: true, reason: 'verification skipped (error)' };
+  }
+}
+
+// Generate a cover image, verifying it and regenerating up to
+// MAX_GENERATION_ATTEMPTS times until it passes the brief.
+async function generateCoverImage(programName, programType, description, customPrompt) {
+  const coachPrompt = (customPrompt || '').trim();
+  const hasCoachPrompt = coachPrompt.length > 0;
+  const requireNoPeople = hasCoachPrompt && coachWantsNoPeople(coachPrompt);
+
+  let correction = '';
+  let last = null;
+
+  for (let attempt = 1; attempt <= MAX_GENERATION_ATTEMPTS; attempt++) {
+    const { prompt, negativePrompt } = buildPrompts(
+      description, coachPrompt, hasCoachPrompt, requireNoPeople, correction
+    );
+
+    const imageUrl = await requestImagenImage(prompt, negativePrompt);
+    const { buffer, mimeType } = await downloadImage(imageUrl);
+
+    const verdict = await verifyCover(buffer, mimeType, coachPrompt, hasCoachPrompt, requireNoPeople);
+    last = { imageUrl, buffer, mimeType, verified: verdict.pass && !verdict.skipped };
+
+    if (verdict.pass) {
+      return last;
+    }
+
+    console.warn(`Cover attempt ${attempt}/${MAX_GENERATION_ATTEMPTS} rejected: ${verdict.reason}`);
+    correction = verdict.reason;
+  }
+
+  // All attempts failed verification — return the last image anyway so the coach
+  // still gets something they can manually replace, but flag it as unverified.
+  return last;
 }
 
 exports.handler = async (event) => {
@@ -182,19 +315,21 @@ exports.handler = async (event) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
-    // Generate the image
-    const generatedImageUrl = await generateCoverImage(programName, programType, description, customPrompt);
-
-    // Download the generated image
-    const imageBuffer = await downloadImage(generatedImageUrl);
+    // Generate, verify and (if needed) regenerate the image
+    const { buffer: imageBuffer, mimeType, verified } = await generateCoverImage(
+      programName, programType, description, customPrompt
+    );
 
     // Upload to Supabase Storage
-    const filename = `workout-covers/cover_${Date.now()}_${Math.random().toString(36).substring(7)}.png`;
+    const ext = mimeType === 'image/jpeg' ? 'jpg'
+      : mimeType === 'image/webp' ? 'webp'
+      : 'png';
+    const filename = `workout-covers/cover_${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
 
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from(BUCKET_NAME)
       .upload(filename, imageBuffer, {
-        contentType: 'image/png',
+        contentType: mimeType || 'image/png',
         upsert: false
       });
 
@@ -219,7 +354,8 @@ exports.handler = async (event) => {
       headers,
       body: JSON.stringify({
         success: true,
-        imageUrl: permanentImageUrl
+        imageUrl: permanentImageUrl,
+        verified: verified === true
       })
     };
 

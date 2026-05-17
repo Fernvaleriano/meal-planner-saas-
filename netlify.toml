@@ -156,6 +156,12 @@
 [functions."seed-demo-client"]
   timeout = 60
 
+# Workout cover generator runs full Imagen-4 + a Claude vision QA check, and
+# regenerates up to 3x until the image passes (text-free / no-people / on-brief).
+# Worst case is ~3 image gens + 3 vision calls, so bump above the default.
+[functions."workout-cover-image"]
+  timeout = 120
+
 # HTTP Caching Headers for optimal performance
 [[headers]]
   for = "/*.js"
