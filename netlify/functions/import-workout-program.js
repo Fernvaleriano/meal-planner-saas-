@@ -189,16 +189,28 @@ function isMuscleCompatible(pdfMuscleGroup, exercise) {
   return false;
 }
 
-function extractRestSecondsFromNote(noteText) {
-  if (!noteText) return null;
-  const lower = noteText.toLowerCase();
-  const matches = [...lower.matchAll(/(\d+)\s*(?:sec|seconds?)\b/g)];
-  if (matches.length > 0) {
-    // Prefer the final explicit rest cue (e.g. "No rest ...; 90 sec after each round")
-    return parseInt(matches[matches.length - 1][1], 10);
+// Pull qualifier text like "(each side)", "each arm", "per leg", "alternating"
+// out of a reps string and into a separate note so reps stays a clean
+// number/range/scheme (e.g. "12 (each side)" -> reps "12", qualifier "each side").
+function extractRepQualifier(reps) {
+  if (!reps || typeof reps !== 'string') return { reps, qualifier: '' };
+  let r = reps.trim();
+  const parts = [];
+
+  const paren = r.match(/\(([^)]*)\)/);
+  if (paren) {
+    if (paren[1].trim()) parts.push(paren[1].trim());
+    r = r.replace(paren[0], '').trim();
   }
-  if (/\bno\s+rest\b/.test(lower)) return 0;
-  return null;
+
+  const eachMatch = r.match(/\b((?:each|per)\s+(?:side|arm|leg|hand|foot|way)|alternating)\b.*$/i);
+  if (eachMatch) {
+    parts.push(eachMatch[0].trim());
+    r = r.slice(0, eachMatch.index).trim();
+  }
+
+  r = r.replace(/[\s,;]+$/, '').trim();
+  return { reps: r || reps.trim(), qualifier: parts.join(' ').trim() };
 }
 
 // Extract rest cue from a prescription string and return { restSeconds, cleaned }.
@@ -233,13 +245,42 @@ function extractRestFromPrescription(prescription) {
 }
 
 function findBestExerciseMatch(pdfName, pdfMuscleGroup, exercises) {
+  // 1. Exact match (case-insensitive)
   const rawName = String(pdfName || '').toLowerCase().trim();
   const exactRawMatch = exercises.find(e => String(e.name || '').toLowerCase().trim() === rawName);
   if (exactRawMatch) return exactRawMatch;
 
+  // 2. Exact match with underscore/space/hyphen variations collapsed
+  const spacey = (s) => String(s || '').toLowerCase().replace(/[_\-]+/g, ' ').replace(/\s+/g, ' ').trim();
+  const pdfSpacey = spacey(pdfName);
+  const spaceyMatch = exercises.find(e => spacey(e.name) === pdfSpacey);
+  if (spaceyMatch) return spaceyMatch;
+
+  // 2b. Common phrasing equivalences (try the canonical name on either side)
+  const ALIASES = [
+    ['push ups', 'push ups bodyweight'],
+    ['push up', 'push ups bodyweight'],
+    ['barbell squat', 'barbell full squat'],
+    ['seated row', 'cable seated row'],
+    ['seated cable row', 'cable seated row']
+  ];
+  for (const [a, b] of ALIASES) {
+    if (pdfSpacey === spacey(a)) {
+      const m = exercises.find(e => spacey(e.name) === spacey(b));
+      if (m) return m;
+    }
+    if (pdfSpacey === spacey(b)) {
+      const m = exercises.find(e => spacey(e.name) === spacey(a));
+      if (m) return m;
+    }
+  }
+
+  // 2c. Normalized exact match (handles abbreviations + _Female/variation suffixes)
   const normalizedName = normalizeExerciseName(pdfName);
   const exactNormalizedMatch = exercises.find(e => normalizeExerciseName(e.name) === normalizedName);
   if (exactNormalizedMatch) return exactNormalizedMatch;
+
+  // 3. Fuzzy match (only reached when no exact match above)
 
   const pdfMovementTokens = extractCriticalTokens(pdfName, CRITICAL_MOVEMENT_TOKENS);
   const pdfEquipmentTokens = extractCriticalTokens(pdfName, CRITICAL_EQUIPMENT_TOKENS);
@@ -512,11 +553,11 @@ function parseStructuredDay(chunk) {
   let currentSection = 'working';
   let activeSupersetGroup = null;
   let supersetRemaining = 0;
+  let supersetBlockCount = 0;
   let lastExerciseIndices = [];
   // Buffer notes that appear before any exercise (e.g. right after a section header)
   // so they get attached to the next exercise instead of being silently dropped.
   let pendingNote = '';
-  let pendingRestFromNote = null;
 
   const isSkippableLine = (line) => {
     if (/^(?:CLIENT PROFILE|PROGRESSION FROM PART|INTENSITY TECHNIQUES SUMMARY|VOLUME INCREASE|INTENSITY INCREASE|LOADING|\d+-WEEK PROGRESSION CYCLE)$/i.test(line)) return true;
@@ -527,33 +568,59 @@ function parseStructuredDay(chunk) {
     return false;
   };
 
+  // Section headers are stand-alone lines (never contain a comma, which marks an
+  // "Exercise, prescription" line). "[^,]*$" lets headers carry trailing text
+  // like "WARM-UP (5 min):" or "WORKING SETS (Legs):" without false matches.
+  const WARMUP_HEADER = /^warm[\s-]?up\b[^,]*$/i;
+  const WORKING_HEADER = /^(?:working sets?|main sets?|working block|cardio block|finisher|conditioning)\b[^,]*$/i;
+  const COOLDOWN_HEADER = /^(?:cool[\s-]?down|stretch(?:ing|es)?|mobility)\b[^,]*$/i;
+
   for (const line of lines.slice(1)) {
-    if (/^warm[- ]?up:?$/i.test(line)) {
+    if (WARMUP_HEADER.test(line)) {
       currentSection = 'warmup';
       activeSupersetGroup = null;
       supersetRemaining = 0;
       continue;
     }
 
-    if (/^(?:working sets|main sets?|working block):?$/i.test(line)) {
+    if (WORKING_HEADER.test(line)) {
       currentSection = 'working';
       activeSupersetGroup = null;
       supersetRemaining = 0;
       continue;
     }
 
-    if (/^(?:cool[- ]?down|stretch|mobility):?$/i.test(line)) {
+    if (COOLDOWN_HEADER.test(line)) {
       currentSection = 'cooldown';
       activeSupersetGroup = null;
       supersetRemaining = 0;
       continue;
     }
 
-    const supersetHeader = line.match(/^([A-Z])1\s*\/\s*\1?2\s+SUPERSET:?$/i) || line.match(/^([A-Z])1\s*\/\s*([A-Z])2\s+SUPERSET:?$/i);
-    if (supersetHeader) {
-      activeSupersetGroup = (supersetHeader[1] || 'A').toUpperCase();
-      supersetRemaining = 2;
+    // "A1/A2/A3 TRI-SET:" or bare "TRI-SET:" → next 3 exercises linked
+    const triSetHeader = /^(?:([A-Z])1\s*\/\s*\1?2\s*\/\s*\1?3\s+)?tri[\s-]?set\b[^,]*$/i.exec(line);
+    // "A1/A2 SUPERSET:" / "B1/B2 SUPERSET:" → next 2 exercises linked
+    const supersetHeader = line.match(/^([A-Z])1\s*\/\s*\1?2\s+SUPERSET\b[^,]*$/i)
+      || line.match(/^([A-Z])1\s*\/\s*([A-Z])2\s+SUPERSET\b[^,]*$/i);
+    const plainSuperset = !supersetHeader && !triSetHeader && /^super[\s-]?set\b[^,]*$/i.test(line);
+
+    if (triSetHeader || supersetHeader || plainSuperset) {
+      // A superset/tri-set block always starts working sets — clear any
+      // lingering warm-up section so working sets don't inherit the [W] tag.
+      if (currentSection === 'warmup') currentSection = 'working';
+      supersetBlockCount += 1;
+      const letter = (triSetHeader && triSetHeader[1]) || (supersetHeader && supersetHeader[1]);
+      activeSupersetGroup = (letter || String.fromCharCode(64 + supersetBlockCount)).toUpperCase();
+      supersetRemaining = triSetHeader ? 3 : 2;
       lastExerciseIndices = [];
+      continue;
+    }
+
+    // "CIRCUIT" / "CIRCUIT 1" header → working sets (cardio/circuit, not warm-up)
+    if (/^circuit\b[^,]*$/i.test(line)) {
+      if (currentSection === 'warmup') currentSection = 'working';
+      activeSupersetGroup = null;
+      supersetRemaining = 0;
       continue;
     }
 
@@ -562,19 +629,17 @@ function parseStructuredDay(chunk) {
     if (/^Coach note:/i.test(line)) {
       const noteText = line.replace(/^Coach note:\s*/i, '').trim();
       if (!noteText) continue;
-      const detectedRestSeconds = extractRestSecondsFromNote(noteText);
+      // Coach notes are free-text cues only. Never derive rest time from them —
+      // rest comes solely from the prescription/rest field (e.g. "@ 90s rest").
+      // A cue like "Squeeze at top for 2 sec" must NOT become a 2s rest.
       if (lastExerciseIndices.length > 0) {
         for (const idx of lastExerciseIndices) {
           const prior = exercises[idx].notes;
           exercises[idx].notes = prior ? `${prior} ${noteText}` : noteText;
-          if (detectedRestSeconds != null) {
-            exercises[idx].restSeconds = detectedRestSeconds;
-          }
         }
       } else {
         // Orphan note at the top of a section — attach to the next exercise.
         pendingNote = pendingNote ? `${pendingNote} ${noteText}` : noteText;
-        if (detectedRestSeconds != null) pendingRestFromNote = detectedRestSeconds;
       }
       continue;
     }
@@ -621,13 +686,18 @@ function parseStructuredDay(chunk) {
 
     if (!sets || !reps) continue;
 
+    // Keep "each side" / "each arm" / "(each leg)" out of the reps value and
+    // preserve it as a note so reps stays a clean number/range/scheme.
+    const { reps: cleanedReps, qualifier } = extractRepQualifier(reps);
+    reps = cleanedReps;
+    const noteForExercise = [pendingNote, qualifier].filter(Boolean).join(' ').trim();
+
     const isWarmup = currentSection === 'warmup' || isWarmupExercise(originalName);
     const isStretch = currentSection === 'cooldown' || isStretchExercise(originalName);
     const isSuperset = Boolean(activeSupersetGroup && supersetRemaining > 0);
 
     let resolvedRest;
     if (prescriptionRest != null) resolvedRest = prescriptionRest;
-    else if (pendingRestFromNote != null) resolvedRest = pendingRestFromNote;
     else resolvedRest = isWarmup || isStretch ? 0 : 60;
 
     const exercise = {
@@ -636,7 +706,7 @@ function parseStructuredDay(chunk) {
       sets,
       reps,
       restSeconds: resolvedRest,
-      notes: pendingNote,
+      notes: noteForExercise,
       isWarmup,
       isStretch,
       isSuperset,
@@ -644,7 +714,6 @@ function parseStructuredDay(chunk) {
     };
 
     pendingNote = '';
-    pendingRestFromNote = null;
 
     exercises.push(exercise);
 
@@ -680,8 +749,9 @@ Rules:
 - Mark warm-up exercises with isWarmup=true
 - Mark cool-down/stretch/mobility exercises with isStretch=true
 - Include coaching notes from "Coach note:" lines in the notes field. Escape any double quotes in notes.
-- Detect supersets (A1/A2, B1/B2 patterns or explicit "Superset" labels): isSuperset=true, supersetGroup="A"/"B"/"C"
-- Rest: convert to seconds. Extract rest cues from anywhere on the exercise line ("@ 90s rest", "rest 60s", "no rest" → 0) and from coach notes. Do NOT include the rest cue in the reps string. If not specified, use 0 for warmups/stretches, 90 for compounds, 60 for isolation.
+- Detect supersets (A1/A2, B1/B2 patterns or explicit "Superset" labels): isSuperset=true, supersetGroup="A"/"B"/"C". A "TRI-SET:" links the next 3 exercises under the same supersetGroup.
+- Keep "each side"/"each arm"/"each leg"/"per leg" qualifiers in the notes field, not in the reps value (reps stays a clean number/range like "12" or "25-20-15-10").
+- Rest: convert to seconds. Extract rest ONLY from an explicit rest field/cue on the exercise line ("@ 90s rest", "rest 60s", "no rest" → 0). NEVER derive rest from coaching notes or tempo cues — e.g. "Squeeze at top for 2 sec", "hold for 3 seconds", "2 sec pause" are tempo/coaching cues, NOT rest. Do NOT include the rest cue in the reps string. If rest is not explicitly specified, use 0 for warmups/stretches, 90 for compounds, 60 for isolation.
 - For HIIT/interval/circuit workouts with rounds: group repeated exercises across rounds. E.g. "Box jump, 30 sec" in Rounds 1-3 = one exercise with sets=3, reps="30 sec"
 - Ignore section headers like "Block A:", "WORKING SETS:", "WARM-UP:", week progressions ("Week 1-4: 30 min"), and other non-exercise text
 
