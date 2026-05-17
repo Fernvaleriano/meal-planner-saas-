@@ -3213,7 +3213,11 @@ function GuidedWorkoutModal({
           </div>
         ) : (
           <div className="guided-set-indicator">
-            {info.sets === 1 ? '1 Set' : `Set ${Math.min(currentSetIndex + 1, info.sets)} of ${info.sets}`}
+            {(() => {
+              if (info.sets <= 1) return 'Set 1';
+              const setNum = Math.min(currentSetIndex + 1, info.sets);
+              return setNum === info.sets ? 'Last set' : `Set ${setNum} of ${info.sets}`;
+            })()}
           </div>
         )}
 
