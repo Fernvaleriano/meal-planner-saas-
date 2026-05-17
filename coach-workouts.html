@@ -8220,7 +8220,11 @@
             try {
                 const res = await apiCall('/.netlify/functions/workout-cover-image', {
                     method: 'POST',
-                    body: JSON.stringify({ programName: name, customPrompt })
+                    body: JSON.stringify({
+                        programName: name,
+                        description: 'a clean modern gym with fitness and strength training equipment',
+                        customPrompt
+                    })
                 });
                 if (res.imageUrl) {
                     document.getElementById('modalHeroPreviewImg').src = res.imageUrl;

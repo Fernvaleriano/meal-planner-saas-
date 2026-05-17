@@ -67,17 +67,29 @@ function buildPrompts(description, coachPrompt, hasCoachPrompt, requireNoPeople,
   // the canned "professional gym / energetic / powerful" style+mood lines, which
   // otherwise force a person in a commercial gym and contradict requests like
   // "home gym, no people, just equipment".
+  //
+  // IMPORTANT: do NOT lead with "Professional fitness photography." or use
+  // camera-hardware jargon ("shot on 35mm", "shallow depth of field"). When the
+  // subject is weak/empty, Imagen treats those nouns as the subject and renders
+  // a flat-lay of cameras, lenses and flashes instead of a gym scene (the
+  // "photography gear cover" bug). Lead with the fitness SUBJECT, and express
+  // photographic quality with non-hardware style words only.
+  const subject = (description && String(description).trim())
+    ? String(description).trim()
+    : 'a modern gym training environment with fitness equipment';
+
   let prompt = hasCoachPrompt
-    ? `Professional fitness photography. ${coachPrompt}.
-Follow the description above exactly — it takes priority over any default styling.
+    ? `A fitness program cover image. Subject: ${coachPrompt}.
+Follow the subject above exactly — it takes priority over any default styling.
+Style: photorealistic, modern fitness aesthetic, clean and professional.
 Composition: wide 16:9 cover image.
-Technical: high quality, sharp focus, natural lighting, shot on 35mm, shallow depth of field.
+Technical: high quality, sharp focus, natural lighting, cinematic color grading.
 Absolutely no text, words, letters, titles, captions, logos, or watermarks anywhere in the image.`
-    : `Professional fitness photography. Scene: ${description}.
-Style: modern fitness aesthetic, motivational, professional training environment.
+    : `A fitness program cover image. Subject: ${subject}.
+Style: photorealistic, modern fitness aesthetic, motivational, professional training environment.
 Mood: energetic, inspiring, powerful.
 Composition: wide 16:9 cover image.
-Technical: high quality, sharp focus, dramatic lighting, shot on 35mm, shallow depth of field.
+Technical: high quality, sharp focus, dramatic lighting, cinematic color grading.
 Absolutely no text, words, letters, titles, captions, logos, or watermarks anywhere in the image.`;
 
   if (requireNoPeople) {
@@ -89,7 +101,7 @@ Absolutely no text, words, letters, titles, captions, logos, or watermarks anywh
 
   // Always strongly suppress rendered text. Additionally suppress people when the
   // coach explicitly asked for none.
-  let negativePrompt = 'text, words, letters, numbers, title, caption, subtitle, typography, font, signage, logo, watermark, blurry, low quality, cartoon, illustration, deformed, ugly';
+  let negativePrompt = 'text, words, letters, numbers, title, caption, subtitle, typography, font, signage, logo, watermark, blurry, low quality, cartoon, illustration, deformed, ugly, camera, dslr, camera lens, photography equipment, flash, tripod, memory card, photo studio gear, flat lay of gadgets';
   if (requireNoPeople) {
     negativePrompt += ', person, people, human, man, woman, athlete, model, bodybuilder, crowd, figure, silhouette, body part';
   }
