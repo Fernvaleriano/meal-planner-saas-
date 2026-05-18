@@ -1,5 +1,18 @@
 # Project Memory
 
+## ⚠️ OPERATIONAL REMINDERS — ACTION REQUIRED (read me)
+
+- **PENDING: enable permanent account purge.** The GDPR Phase 2
+  permanent-erase job (`netlify/functions/purge-deleted-accounts.js`,
+  scheduled daily in `netlify.toml`) ships in **DRY-RUN mode** — it
+  deletes nothing until the Netlify env var **`PURGE_LIVE=true`** is set.
+  Soft-delete + 30-day grace works without it, but data is never
+  actually erased until this switch is flipped. Founder intends to
+  enable it after watching the dry-run logs for a few days. **If you are
+  reviewing GDPR/data-retention compliance and `PURGE_LIVE` is still
+  unset, surface this to the founder.** (Recorded May 2026 at founder's
+  request — he expects to forget.)
+
 ## HOLISTIC CODE MODIFICATION PROTOCOL (APPLIES TO EVERY CHANGE)
 
 Primary directive: **"First, do no harm to the existing system."**
