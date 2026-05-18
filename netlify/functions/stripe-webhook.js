@@ -378,6 +378,8 @@ async function handleSubscriptionUpdated(subscription) {
             tier = 'starter';
         } else if (priceId === process.env.STRIPE_PRICE_GROWTH) {
             tier = 'growth';
+        } else if (priceId === (process.env.STRIPE_PRICE_SCALE || 'price_1TYPvZGpZpurD75IWAhjVNVH')) {
+            tier = 'scale';
         } else if (priceId === process.env.STRIPE_PRICE_PROFESSIONAL || priceId === process.env.STRIPE_PRICE_BRANDED) {
             tier = 'professional';
         }

@@ -1,5 +1,58 @@
 # Project Memory
 
+## ⚠️ OPERATIONAL REMINDERS — ACTION REQUIRED (read me)
+
+- **PENDING: enable permanent account purge.** The GDPR Phase 2
+  permanent-erase job (`netlify/functions/purge-deleted-accounts.js`,
+  scheduled daily in `netlify.toml`) ships in **DRY-RUN mode** — it
+  deletes nothing until the Netlify env var **`PURGE_LIVE=true`** is set.
+  Soft-delete + 30-day grace works without it, but data is never
+  actually erased until this switch is flipped. Founder intends to
+  enable it after watching the dry-run logs for a few days. **If you are
+  reviewing GDPR/data-retention compliance and `PURGE_LIVE` is still
+  unset, surface this to the founder.** (Recorded May 2026 at founder's
+  request — he expects to forget.)
+
+- **DECISION (May 2026): WEB-ONLY. Native / App Store is intentionally
+  DROPPED.** Ziquecoach is a web app (PWA) only. Submitting to the
+  Apple App Store / Google Play and shipping a native Capacitor build
+  is **deliberately abandoned** — chosen by the founder for instant
+  bug-fix deploys (no app-store review latency), lower maintenance, and
+  because distribution is coach-invite based (no app-store discovery
+  needed). **Implications for anyone (human or AI) working here:**
+  - The "broken Capacitor mobile build" in LAUNCH-CHECKLIST.md is NOT a
+    bug to fix. Do not repair/resurrect the Capacitor build, Android
+    keystore, App ID, FCM/APNs, or App Store compliance tasks. Treat
+    `android/`, `ios/`, `capacitor.config.json`, `vite.config.mobile.js`
+    as parked/legacy.
+  - Push notifications, if ever wanted, go via PWA web push — not
+    native. Optional, not a launch blocker.
+  - The web app IS the product: prioritize PWA reliability (service
+    worker / install / offline / no stale cache) over anything native.
+  - GDPR export/deletion work was still correct — privacy law is
+    platform-independent.
+
+- **PENDING: capture a DB schema baseline.** The migration files do NOT
+  create the base schema (no migration creates `clients`/`coaches`;
+  prod has 74 tables / 10 funcs / 199 policies, version control creates
+  almost none). A fresh DB cannot be rebuilt — DR / staging / RLS-audit
+  risk (prod itself is fine). Fix = capture a `pg_dump` baseline per
+  **`/DB-RECOVERY-RUNBOOK.md`**. Must be a real dump (not hand-rolled).
+  Two migration dirs reconciled: `supabase/migrations/` = canonical,
+  `supabase-migrations/` = archived (see their READMEs). Diagnosis done
+  May 2026; baseline capture needs local DB/CLI access — not yet done.
+
+- **DECIDED (May 2026): new "premium all-inclusive" pricing** — Free 3 /
+  Starter 15·$59 / Growth 50·$129 / Scale 100·$179 / Pro-Agency
+  200·$239 / 200+ contact sales. Full rationale + implementation
+  checklist in **`COACH-LIMITS-AND-PRICING.md`** (now on the main
+  working branch). STRATEGY ONLY — NOT implemented (no code/Stripe
+  changes). Stripe prices must be created manually first; live-billing
+  changes need a grandfathering decision for existing subscribers.
+  (Was originally saved only on branch
+  `claude/document-coach-limits-k8BxD` and nearly lost — consolidated
+  here so it persists.)
+
 ## HOLISTIC CODE MODIFICATION PROTOCOL (APPLIES TO EVERY CHANGE)
 
 Primary directive: **"First, do no harm to the existing system."**
@@ -91,7 +144,10 @@ When proposing a fix:
 edit the client-facing root `.html` pages anymore** (e.g. `client-profile.html`,
 `dashboard.html`, `planner.html`, `client-feed.html`, `client-intake.html`,
 `billing.html`, `view-plan.html`). Client-facing changes go in `src/` React
-code only. The frozen HTML client pages stay as-is for reference/history.
+code only. The legacy root HTML pages are NOT "frozen/untouched" (git
+history shows ongoing edits) — the rule is NO NEW EXPANSION: do not add
+new features, vanilla-JS state, or DOM to them. Surgical bug fixes to
+existing behavior only; anything bigger → build it as a React route.
 - Client-facing change? → edit React under `src/` (e.g. `src/pages/Workouts.jsx`,
   `src/pages/WorkoutHistory.jsx`, `src/pages/Progress.jsx`).
 - Shared "evidence of effort" logic lives in `src/utils/workoutEvidence.js`.
@@ -128,6 +184,16 @@ These are what coaches and clients actually use at `ziquefitnessnutrition.com`:
 ### React SPA (`src/` folder)
 A partial React rebuild exists in `src/` but is **not the primary codebase**. Some React components duplicate functionality from the HTML pages. Do not assume React components are what's live.
 
+### Build pipeline (verified May 2026)
+- Vite has a SINGLE entry: `app-test.html` → `app-test-dist/`, served at
+  `/app` (SPA fallback `/app/*`). Root `.html` files are served
+  STATICALLY (`publish="."`) and are NOT in the Vite/Rollup build graph.
+- Consequence: in-page React "islands" are NOT cheap (no per-component
+  build output). Do not introduce island/microfrontend build infra.
+- Migration pattern = PAGE-LEVEL strangler: rebuild a legacy page as a
+  route in the `/app` SPA, then 301 the old `.html` in `netlify.toml`
+  (already proven: portal.html, client-login.html, client-dashboard.html).
+
 ### Rule
 - **Coach/client-facing change?** → Edit the `.html` file
 - **If unsure which file is live** → Ask the user
@@ -139,7 +205,12 @@ A partial React rebuild exists in `src/` but is **not the primary codebase**. So
 - **New domain purchased:** `ziquecoach.com`
 - **App name:** "Ziquecoach"
 - **App ID:** `com.ziquecoach.app` (already updated in Capacitor/iOS/Android configs)
-- **Status:** NOT YET IMPLEMENTED — planning complete, waiting on user to start
+- **Status:** CODE-SIDE COMPLETE — `capacitor.config.json` on ziquecoach,
+  `netlify.toml` 301 redirects live, zero `ziquefitnessnutrition` refs in
+  `.html/.js/.jsx` (only docs + intentional redirect rules). EXTERNAL
+  CUTOVER PENDING — Supabase auth URLs, Stripe, production DNS flip, and
+  the `noreply@ziquecoach.com` sender are not yet verified. See
+  DOMAIN-CHANGE-CHECKLIST.md for remaining external steps.
 - **Strategy update (May 2026):** Only ~10 active clients, so doing a clean cutover (have clients re-save the homescreen icon) instead of dual-domain. Old domain stays as a 301 redirect for ~12 months as safety net.
 
 ### Full audit & checklist
