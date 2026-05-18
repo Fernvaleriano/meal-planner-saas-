@@ -42,6 +42,17 @@
   `supabase-migrations/` = archived (see their READMEs). Diagnosis done
   May 2026; baseline capture needs local DB/CLI access — not yet done.
 
+- **DECIDED (May 2026): new "premium all-inclusive" pricing** — Free 3 /
+  Starter 15·$59 / Growth 50·$129 / Scale 100·$179 / Pro-Agency
+  200·$239 / 200+ contact sales. Full rationale + implementation
+  checklist in **`COACH-LIMITS-AND-PRICING.md`** (now on the main
+  working branch). STRATEGY ONLY — NOT implemented (no code/Stripe
+  changes). Stripe prices must be created manually first; live-billing
+  changes need a grandfathering decision for existing subscribers.
+  (Was originally saved only on branch
+  `claude/document-coach-limits-k8BxD` and nearly lost — consolidated
+  here so it persists.)
+
 ## HOLISTIC CODE MODIFICATION PROTOCOL (APPLIES TO EVERY CHANGE)
 
 Primary directive: **"First, do no harm to the existing system."**
