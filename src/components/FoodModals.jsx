@@ -680,6 +680,7 @@ export function FavoritesModal({ isOpen, onClose, mealType, clientData, onFoodLo
   const [selectedMealType, setSelectedMealType] = useState(mealType);
   const [addingId, setAddingId] = useState(null);
   const [confirmFavorite, setConfirmFavorite] = useState(null);
+  const [search, setSearch] = useState('');
   const addingRef = useRef(false); // Ref to prevent duplicate submissions
   const { showError, showSuccess } = useToast();
 
@@ -689,6 +690,7 @@ export function FavoritesModal({ isOpen, onClose, mealType, clientData, onFoodLo
 
   useEffect(() => {
     if (isOpen && clientData?.id) {
+      setSearch('');
       // Load from cache first for instant display
       const cached = getCachedFavorites();
       if (cached.length > 0) {
@@ -809,6 +811,11 @@ export function FavoritesModal({ isOpen, onClose, mealType, clientData, onFoodLo
 
   if (!isOpen) return null;
 
+  const query = search.trim().toLowerCase();
+  const filteredFavorites = query
+    ? favorites.filter(f => (f.meal_name || '').toLowerCase().includes(query))
+    : favorites;
+
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content favorites-modal" onClick={e => e.stopPropagation()}>
@@ -832,8 +839,26 @@ export function FavoritesModal({ isOpen, onClose, mealType, clientData, onFoodLo
               <p>Save meals from your diary to quickly add them later</p>
             </div>
           ) : (
-            <div className="favorites-list">
-              {favorites.map((fav) => {
+            <>
+              <div className="search-input-wrapper">
+                <Search size={20} className="search-icon" />
+                <input
+                  type="text"
+                  className="search-input"
+                  placeholder="Search favorites..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+              </div>
+              {filteredFavorites.length === 0 ? (
+                <div className="favorites-empty">
+                  <Heart size={48} className="empty-icon" />
+                  <h3>No matches</h3>
+                  <p>No favorites match &ldquo;{search.trim()}&rdquo;</p>
+                </div>
+              ) : (
+                <div className="favorites-list">
+                  {filteredFavorites.map((fav) => {
                 const cal = Math.round(fav.calories || 0);
                 const p = Math.round(fav.protein || 0);
                 const c = Math.round(fav.carbs || 0);
@@ -876,7 +901,9 @@ export function FavoritesModal({ isOpen, onClose, mealType, clientData, onFoodLo
                   </div>
                 );
               })}
-            </div>
+                </div>
+              )}
+            </>
           )}
         </div>
 
