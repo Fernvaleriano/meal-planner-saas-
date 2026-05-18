@@ -97,12 +97,27 @@ const extractPathFromSignedUrl = (url) => {
   return match ? decodeURIComponent(match[1]) : null;
 };
 
-// Helper to backfill customVideoPath from stale customVideoUrl (legacy data)
+// Helper to backfill customVideoPath from a stale signed URL.
+// Coach demo videos are sometimes stored as a signed workout-assets URL in
+// customVideoUrl, animation_url, or video_url (not always customVideoPath).
+// Those signed URLs expire (~7 days) and were never re-signed because the
+// refresh pipeline only looked at customVideoPath — so the video 404s and
+// shows iOS's broken-media glyph. Extracting the storage path here routes
+// them through the same re-sign pipeline so customVideoUrl stays fresh.
+const isVideoFilePath = (p) => !!p && /\.(mp4|webm|mov|avi|m4v)$/i.test(p.split('?')[0]);
 const ensureCustomVideoPath = (ex) => {
-  if (!ex.customVideoPath && ex.customVideoUrl) {
-    const path = extractPathFromSignedUrl(ex.customVideoUrl);
-    if (path) ex.customVideoPath = path;
+  if (ex.customVideoPath) return;
+  // Legacy: customVideoUrl is always a coach video — preserve prior behavior.
+  let path = extractPathFromSignedUrl(ex.customVideoUrl);
+  // Coach videos also get stored as signed URLs in animation_url/video_url;
+  // only promote those when the file is actually a video (not a signed image).
+  if (!path) {
+    const candidate =
+      extractPathFromSignedUrl(ex.animation_url) ||
+      extractPathFromSignedUrl(ex.video_url);
+    if (isVideoFilePath(candidate)) path = candidate;
   }
+  if (path) ex.customVideoPath = path;
 };
 
 // Helper to apply signed URL mappings to an exercises array
