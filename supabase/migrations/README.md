@@ -2,18 +2,20 @@
 
 This is the **single source of truth** for schema migrations going forward.
 
-## ⚠️ KNOWN ISSUE: no baseline (DB is not reproducible from zero)
+## ✅ BASELINE CAPTURED (May 2026)
 
-These files are **incremental patches only**. None of them create the
-foundational tables (`clients`, `coaches`, and ~70 others). Production
-has **74 tables, 10 functions, 199 RLS policies**; the migration files
-create almost none of that base — it was created by hand in the Supabase
-dashboard early on and never captured in version control.
+`000_baseline.sql` is a faithful snapshot of the **entire production
+schema**, generated directly from prod using Postgres's own definition
+functions (`pg_get_constraintdef`, `pg_get_indexdef`,
+`pg_get_functiondef`, `pg_get_triggerdef`, `pg_get_viewdef`,
+`pg_get_expr`, `format_type`). Structurally verified to match prod
+object-for-object: 74 tables, 57 sequences, 233 constraints, 156
+explicit indexes, 10 functions, 1 view, 15 triggers, 199 RLS policies.
 
-Consequence: a fresh database replaying these migrations FAILS (verified
-May 2026 — a fresh Supabase branch came up with ~1 table and
-`MIGRATIONS_FAILED`). This is a disaster-recovery / staging / security-
-audit risk, NOT a production problem (prod is healthy).
+This solves the previous "no baseline / not reproducible from zero"
+problem (the historical migration files are only incremental patches and
+never created the base tables — verified May 2026 when a fresh Supabase
+branch came up with ~1 table / `MIGRATIONS_FAILED`).
 
 ## The fix (see /DB-RECOVERY-RUNBOOK.md)
 
