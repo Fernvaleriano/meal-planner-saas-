@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useBranding, DEFAULT_TUTORIAL_VIDEO_URL } from '../context/BrandingContext';
-import { Moon, Camera, Lock, LogOut, ChevronRight, Loader, Users, Scale, User, Utensils, Edit3, X, Palette, Droplets, CreditCard, PlayCircle } from 'lucide-react';
+import { Moon, Camera, Lock, LogOut, ChevronRight, Loader, Users, Scale, User, Utensils, Edit3, X, Palette, Droplets, CreditCard, PlayCircle, Download } from 'lucide-react';
 import { apiGet, apiPost, apiPut } from '../utils/api';
 import { supabase } from '../utils/supabase';
 import { usePullToRefreshEvent } from '../hooks/usePullToRefreshEvent';
@@ -48,6 +48,7 @@ function Settings() {
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [passwordMessage, setPasswordMessage] = useState(null);
+  const [exportingData, setExportingData] = useState(false);
 
   // Exercise gender preference states
   const [exerciseGenderPref, setExerciseGenderPref] = useState(
@@ -335,6 +336,25 @@ function Settings() {
   const handleLogout = async () => {
     if (window.confirm('Are you sure you want to log out?')) {
       await logout();
+    }
+  };
+
+  // Request a copy of all my data (GDPR export). The endpoint derives
+  // identity from the auth token only and emails a short-lived link.
+  const handleExportData = async () => {
+    if (exportingData) return;
+    setExportingData(true);
+    try {
+      const res = await apiPost('/.netlify/functions/export-my-data', {});
+      showSuccess(res?.message || 'Your data export has been emailed to you.');
+    } catch (err) {
+      if (err?.status === 429) {
+        showError(err.message || 'You can request one data export every 24 hours.');
+      } else {
+        showError('Could not start your data export. Please try again later.');
+      }
+    } finally {
+      setExportingData(false);
     }
   };
 
@@ -865,6 +885,29 @@ function Settings() {
             </div>
           </div>
           <ChevronRight size={20} className="settings-chevron" />
+        </div>
+
+        <div className="settings-divider"></div>
+
+        <div
+          className="settings-item clickable"
+          onClick={handleExportData}
+          style={exportingData ? { opacity: 0.6, pointerEvents: 'none' } : undefined}
+        >
+          <div className="settings-item-left">
+            <div className="settings-icon-box neutral">
+              <Download size={18} />
+            </div>
+            <div className="settings-item-text">
+              <div className="settings-item-title">Export My Data</div>
+              <div className="settings-item-subtitle">
+                Email me a copy of my data (link expires in 1 hour)
+              </div>
+            </div>
+          </div>
+          {exportingData
+            ? <Loader size={20} className="settings-chevron spin" />
+            : <ChevronRight size={20} className="settings-chevron" />}
         </div>
 
         <div className="settings-divider"></div>
