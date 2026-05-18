@@ -150,6 +150,11 @@
 [functions."send-workout-end-notifications"]
   schedule = "0 8 * * *"
 
+# Scheduled function - runs daily at 4 AM UTC. Permanently purges accounts
+# whose 30-day deletion grace has passed. DRY-RUN unless env PURGE_LIVE=true.
+[functions."purge-deleted-accounts"]
+  schedule = "0 4 * * *"
+
 # Demo client seeder generates 10 photorealistic images via Replicate Flux 1.1
 # Pro Ultra (~10-15s each, run in parallel ~15-25s total) plus uploads — bump
 # its timeout above the default so the call doesn't get cut off.
