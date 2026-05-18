@@ -123,7 +123,10 @@ When proposing a fix:
 edit the client-facing root `.html` pages anymore** (e.g. `client-profile.html`,
 `dashboard.html`, `planner.html`, `client-feed.html`, `client-intake.html`,
 `billing.html`, `view-plan.html`). Client-facing changes go in `src/` React
-code only. The frozen HTML client pages stay as-is for reference/history.
+code only. The legacy root HTML pages are NOT "frozen/untouched" (git
+history shows ongoing edits) — the rule is NO NEW EXPANSION: do not add
+new features, vanilla-JS state, or DOM to them. Surgical bug fixes to
+existing behavior only; anything bigger → build it as a React route.
 - Client-facing change? → edit React under `src/` (e.g. `src/pages/Workouts.jsx`,
   `src/pages/WorkoutHistory.jsx`, `src/pages/Progress.jsx`).
 - Shared "evidence of effort" logic lives in `src/utils/workoutEvidence.js`.
@@ -160,6 +163,16 @@ These are what coaches and clients actually use at `ziquefitnessnutrition.com`:
 ### React SPA (`src/` folder)
 A partial React rebuild exists in `src/` but is **not the primary codebase**. Some React components duplicate functionality from the HTML pages. Do not assume React components are what's live.
 
+### Build pipeline (verified May 2026)
+- Vite has a SINGLE entry: `app-test.html` → `app-test-dist/`, served at
+  `/app` (SPA fallback `/app/*`). Root `.html` files are served
+  STATICALLY (`publish="."`) and are NOT in the Vite/Rollup build graph.
+- Consequence: in-page React "islands" are NOT cheap (no per-component
+  build output). Do not introduce island/microfrontend build infra.
+- Migration pattern = PAGE-LEVEL strangler: rebuild a legacy page as a
+  route in the `/app` SPA, then 301 the old `.html` in `netlify.toml`
+  (already proven: portal.html, client-login.html, client-dashboard.html).
+
 ### Rule
 - **Coach/client-facing change?** → Edit the `.html` file
 - **If unsure which file is live** → Ask the user
@@ -171,7 +184,12 @@ A partial React rebuild exists in `src/` but is **not the primary codebase**. So
 - **New domain purchased:** `ziquecoach.com`
 - **App name:** "Ziquecoach"
 - **App ID:** `com.ziquecoach.app` (already updated in Capacitor/iOS/Android configs)
-- **Status:** NOT YET IMPLEMENTED — planning complete, waiting on user to start
+- **Status:** CODE-SIDE COMPLETE — `capacitor.config.json` on ziquecoach,
+  `netlify.toml` 301 redirects live, zero `ziquefitnessnutrition` refs in
+  `.html/.js/.jsx` (only docs + intentional redirect rules). EXTERNAL
+  CUTOVER PENDING — Supabase auth URLs, Stripe, production DNS flip, and
+  the `noreply@ziquecoach.com` sender are not yet verified. See
+  DOMAIN-CHANGE-CHECKLIST.md for remaining external steps.
 - **Strategy update (May 2026):** Only ~10 active clients, so doing a clean cutover (have clients re-save the homescreen icon) instead of dual-domain. Old domain stays as a 301 redirect for ~12 months as safety net.
 
 ### Full audit & checklist
