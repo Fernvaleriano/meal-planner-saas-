@@ -370,7 +370,7 @@ function ExerciseDetailModal({
   // Coach custom videos open straight into the loaded player (first frame +
   // native controls) instead of a thumbnail + play button. Stock library
   // animations still show the thumbnail first.
-  const [showVideo, setShowVideo] = useState(() => !!exercise?.customVideoUrl);
+  const [showVideo, setShowVideo] = useState(() => !!(exercise?.customVideoPath || exercise?.customVideoUrl));
   const [videoLoading, setVideoLoading] = useState(true);
   const [videoError, setVideoError] = useState(false);
   const [videoKey, setVideoKey] = useState(0);
@@ -589,7 +589,7 @@ function ExerciseDetailModal({
   // Reset sets when exercise changes
   useEffect(() => {
     setSets(initialSets);
-    setShowVideo(!!exercise?.customVideoUrl);
+    setShowVideo(!!(exercise?.customVideoPath || exercise?.customVideoUrl));
     playRequestedRef.current = false;
     setShowSetEditor(false);
     setShowSwapModal(false);
@@ -2092,8 +2092,10 @@ function ExerciseDetailModal({
     }
   }, []);
 
-  // Prioritize custom video from coach over default video
-  const hasCustomVideo = !!exercise?.customVideoUrl;
+  // Prioritize custom video from coach over default video.
+  // customVideoPath is the stable stored field (present synchronously);
+  // customVideoUrl is a signed URL resolved asynchronously after mount.
+  const hasCustomVideo = !!(exercise?.customVideoUrl || exercise?.customVideoPath);
   const videoUrl = exercise?.customVideoUrl || exercise?.video_url || exercise?.animation_url;
   const isDistanceExercise = exercise?.trackingType === 'distance';
   const distanceUnit = exercise?.distanceUnit || 'miles';
@@ -2142,6 +2144,20 @@ function ExerciseDetailModal({
   // animations).
   const videoHasAudio = hasCustomVideo || isCustomExercise;
 
+  // Only ever hand the <video> element a real video URL. customVideoUrl is a
+  // signed URL resolved asynchronously; until it arrives, videoUrl falls back
+  // to an animation image and the <video> renders iOS's broken-media glyph.
+  const playableVideoSrc =
+    videoBlobUrl ||
+    exercise?.customVideoUrl ||
+    (isVideoUrl(exercise?.video_url) ? exercise?.video_url : null) ||
+    (isVideoUrl(exercise?.animation_url) ? exercise?.animation_url : null);
+  // A known coach video whose signed URL hasn't been resolved yet — show a
+  // spinner instead of a broken <video>.
+  const customVideoResolving =
+    !!exercise?.customVideoPath && !exercise?.customVideoUrl && !videoBlobUrl;
+  const videoPosterUrl = exercise?.customVideoThumbnail || thumbnailUrl;
+
   // Debug: Log video URL when playing (helps identify mismatched videos in database)
   const handlePlayVideo = useCallback(() => {
     playRequestedRef.current = true;
@@ -2182,7 +2198,7 @@ function ExerciseDetailModal({
   // user-gesture token. If the browser still blocks it, the native controls
   // remain as the fallback.
   useLayoutEffect(() => {
-    if (!showVideo || !videoUrl) return;
+    if (!showVideo || !playableVideoSrc) return;
     // Auto-opened custom videos stay paused on their first frame until the
     // user taps play — only force playback for an explicit play-button tap.
     if (!playRequestedRef.current) return;
@@ -2192,7 +2208,7 @@ function ExerciseDetailModal({
     if (p && typeof p.catch === 'function') {
       p.catch(() => { /* native controls remain as the fallback */ });
     }
-  }, [showVideo, videoKey, videoBlobUrl, videoUrl]);
+  }, [showVideo, videoKey, videoBlobUrl, playableVideoSrc]);
 
   // Fallback: when video fails, re-fetch a fresh signed URL if this is a custom video
   const handleVideoError = useCallback(async (e) => {
@@ -2386,28 +2402,30 @@ function ExerciseDetailModal({
 
         {/* Images Section - Single image */}
         <div className="exercise-images-v3 single-image">
-          {showVideo && videoUrl ? (
+          {showVideo && (playableVideoSrc || customVideoResolving) ? (
             <div
               className="video-container-full"
               onClick={videoHasAudio ? (e) => e.stopPropagation() : undefined}
             >
-              <video
-                key={videoKey}
-                ref={videoElRef}
-                src={videoBlobUrl || videoUrl}
-                poster={thumbnailUrl}
-                loop={!videoHasAudio}
-                muted={!videoHasAudio}
-                controls={videoHasAudio}
-                playsInline
-                autoPlay={!videoHasAudio}
-                preload={videoHasAudio ? 'auto' : 'metadata'}
-                onCanPlay={() => { setVideoLoading(false); setVideoError(false); }}
-                onPlaying={() => setVideoLoading(false)}
-                onWaiting={() => { if (!videoHasAudio) setVideoLoading(true); }}
-                onError={handleVideoError}
-              />
-              {videoLoading && !videoError && !videoHasAudio && (
+              {playableVideoSrc && (
+                <video
+                  key={videoKey}
+                  ref={videoElRef}
+                  src={playableVideoSrc}
+                  poster={videoPosterUrl}
+                  loop={!videoHasAudio}
+                  muted={!videoHasAudio}
+                  controls={videoHasAudio}
+                  playsInline
+                  autoPlay={!videoHasAudio}
+                  preload={videoHasAudio ? 'auto' : 'metadata'}
+                  onCanPlay={() => { setVideoLoading(false); setVideoError(false); }}
+                  onPlaying={() => setVideoLoading(false)}
+                  onWaiting={() => { if (!videoHasAudio) setVideoLoading(true); }}
+                  onError={handleVideoError}
+                />
+              )}
+              {!videoError && (customVideoResolving || (videoLoading && !!playableVideoSrc)) && (
                 <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.6)', zIndex: 2, pointerEvents: 'none' }}>
                   <Loader2 size={36} style={{ color: 'white', animation: 'spin 1s linear infinite' }} />
                 </div>
@@ -2455,7 +2473,7 @@ function ExerciseDetailModal({
                   />
                 )}
               </div>
-              {videoUrl && (
+              {(playableVideoSrc || hasCustomVideo) && (
                 <button className="center-play-btn" onClick={handlePlayVideo} type="button">
                   <Play size={32} fill="white" />
                 </button>
