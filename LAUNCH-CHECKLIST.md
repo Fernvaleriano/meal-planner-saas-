@@ -246,6 +246,22 @@ Without this, the app can't handle `ziquecoach://` style links or respond to web
 
 ---
 
+## 19. HIGH — GDPR Data Rights (LAUNCH-GATING for external coaches)
+
+Before onboarding any coach outside your own clients, users must be able to
+exercise basic data rights. Status:
+
+- [x] **Data export** — `netlify/functions/export-my-data.js` (self-scoped, RLS-bound, emailed expiring link, 1/24h rate limit)
+- [x] **Audit log** — `supabase/migrations/009_audit_log.sql` (append-only, RLS; **migration not yet applied to production**)
+- [ ] **User-initiated account deletion** — Phase 2 (soft-delete + 30-day grace; coaches blocked while they have active clients — decision locked)
+- [ ] Wire an "Export my data" / "Delete my account" entry point into account settings UI (React `src/`)
+- [ ] `privacy.html` Section 7F wording reviewed by a human / counsel before publish
+- [ ] Apply migration 009 to production (additive; new table only)
+
+**Gate:** export + audit log must be live before external-coach onboarding.
+
+---
+
 ## Summary — Priority Order for This Weekend
 
 ### Must Fix Before Submitting to Stores
