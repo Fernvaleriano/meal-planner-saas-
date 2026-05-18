@@ -1138,6 +1138,26 @@
                         </div>
                         <span class="settings-arrow">›</span>
                     </div>
+                    <div class="settings-item" onclick="requestDataExport()" id="exportDataItem">
+                        <div class="settings-item-left">
+                            <div class="settings-icon"><i data-lucide="download"></i></div>
+                            <div>
+                                <div class="settings-label">Export My Data</div>
+                                <div class="settings-sublabel">Email me a copy of my data (link expires in 1 hour)</div>
+                            </div>
+                        </div>
+                        <span class="settings-arrow">›</span>
+                    </div>
+                    <div class="settings-item" onclick="openDeleteAccountModal()">
+                        <div class="settings-item-left">
+                            <div class="settings-icon"><i data-lucide="trash-2"></i></div>
+                            <div>
+                                <div class="settings-label">Delete My Account</div>
+                                <div class="settings-sublabel">Deactivates now; permanently deleted after 30 days</div>
+                            </div>
+                        </div>
+                        <span class="settings-arrow">›</span>
+                    </div>
                 </div>
 
                 <!-- Subscription Settings -->
@@ -1336,6 +1356,27 @@
         </div>
     </div>
 
+    <!-- Delete Account Modal — requires typing DELETE -->
+    <div class="modal-overlay" id="deleteAccountModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Delete My Account</h2>
+                <button class="modal-close" onclick="closeDeleteAccountModal()">&times;</button>
+            </div>
+            <div class="cancel-warning">
+                <p>This will <strong>deactivate your account immediately</strong>, sign you out, cancel billing, and permanently delete your data in <strong>30 days</strong>. To cancel within 30 days, email contact@ziquecoach.com.</p>
+                <p style="margin-top:8px;">If you still have active clients, you'll be asked to offboard them first.</p>
+            </div>
+            <div class="form-group">
+                <label for="deleteConfirmInput">Type <strong>DELETE</strong> to confirm</label>
+                <input type="text" id="deleteConfirmInput" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="DELETE">
+            </div>
+            <div id="deleteAccountMessage" class="message"></div>
+            <button type="button" class="cancel-btn" id="confirmDeleteAccountBtn" onclick="confirmDeleteAccount()" disabled>Permanently Delete My Account</button>
+            <button type="button" class="keep-btn" onclick="closeDeleteAccountModal()">Cancel</button>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
         // Sidebar section collapse functionality
@@ -1531,6 +1572,100 @@
             e.preventDefault();
             handleLogout();
         });
+
+        // ── GDPR: Export My Data + Delete My Account ──
+        let exportInFlight = false;
+        async function requestDataExport() {
+            if (exportInFlight) return;
+            exportInFlight = true;
+            try {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                if (!session) { alert('Please log in again.'); return; }
+                const res = await fetch('/.netlify/functions/export-my-data', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${session.access_token}`
+                    }
+                });
+                const result = await res.json().catch(() => ({}));
+                if (res.ok) {
+                    alert(result.message || 'Your data export has been emailed to you.');
+                } else if (res.status === 429) {
+                    alert(result.error || 'You can request one data export every 24 hours.');
+                } else {
+                    alert(result.error || 'Could not start your data export. Please try again later.');
+                }
+            } catch (err) {
+                console.error('Data export error:', err);
+                alert('Could not start your data export. Please try again later.');
+            } finally {
+                exportInFlight = false;
+            }
+        }
+
+        const deleteAccountModal = document.getElementById('deleteAccountModal');
+        const deleteConfirmInput = document.getElementById('deleteConfirmInput');
+        const confirmDeleteAccountBtn = document.getElementById('confirmDeleteAccountBtn');
+        const deleteAccountMessage = document.getElementById('deleteAccountMessage');
+        let deleteInFlight = false;
+
+        function openDeleteAccountModal() {
+            deleteConfirmInput.value = '';
+            confirmDeleteAccountBtn.disabled = true;
+            deleteAccountMessage.className = 'message';
+            deleteAccountMessage.textContent = '';
+            deleteAccountModal.classList.add('show');
+            document.body.style.overflow = 'hidden';
+        }
+        function closeDeleteAccountModal() {
+            if (deleteInFlight) return;
+            deleteAccountModal.classList.remove('show');
+            document.body.style.overflow = '';
+        }
+        deleteConfirmInput.addEventListener('input', () => {
+            confirmDeleteAccountBtn.disabled = (deleteConfirmInput.value !== 'DELETE');
+        });
+        deleteAccountModal.addEventListener('click', (e) => {
+            if (e.target === deleteAccountModal) closeDeleteAccountModal();
+        });
+
+        async function confirmDeleteAccount() {
+            if (deleteInFlight || deleteConfirmInput.value !== 'DELETE') return;
+            deleteInFlight = true;
+            confirmDeleteAccountBtn.disabled = true;
+            confirmDeleteAccountBtn.textContent = 'Deleting...';
+            try {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                if (!session) { alert('Please log in again.'); return; }
+                const res = await fetch('/.netlify/functions/request-account-deletion', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${session.access_token}`
+                    }
+                });
+                const result = await res.json().catch(() => ({}));
+                if (res.ok) {
+                    alert(result.message || 'Your account is scheduled for deletion.');
+                    await supabaseClient.auth.signOut({ scope: 'local' }).catch(() => {});
+                    sessionStorage.clear();
+                    window.location.href = 'login.html';
+                    return;
+                }
+                deleteAccountMessage.className = 'message error';
+                deleteAccountMessage.textContent = result.error ||
+                    'Could not process the deletion request. Please try again.';
+            } catch (err) {
+                console.error('Account deletion error:', err);
+                deleteAccountMessage.className = 'message error';
+                deleteAccountMessage.textContent = 'Could not process the deletion request. Please try again.';
+            } finally {
+                deleteInFlight = false;
+                confirmDeleteAccountBtn.textContent = 'Permanently Delete My Account';
+                confirmDeleteAccountBtn.disabled = (deleteConfirmInput.value !== 'DELETE');
+            }
+        }
 
         // Password change modal functions
         const passwordModal = document.getElementById('passwordModal');
