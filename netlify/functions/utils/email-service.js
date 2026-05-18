@@ -937,9 +937,10 @@ function generateReactivationEmail({ coachName, plan = 'starter' }) {
     const tierNames = {
         'starter': 'Starter',
         'growth': 'Growth',
-        'professional': 'Professional',
+        'scale': 'Scale',
+        'professional': 'Agency',
         'basic': 'Starter',
-        'branded': 'Professional'
+        'branded': 'Agency'
     };
     const planName = tierNames[plan] || 'Starter';
 
@@ -1258,9 +1259,10 @@ async function sendNewCoachNotification({ coach, plan }) {
     const tierNames = {
         'starter': 'Starter ($49/mo)',
         'growth': 'Growth ($99/mo)',
-        'professional': 'Professional ($199/mo)',
+        'scale': 'Scale ($179/mo)',
+        'professional': 'Agency ($199/mo)',
         'basic': 'Starter ($49/mo)',
-        'branded': 'Professional ($199/mo)'
+        'branded': 'Agency ($199/mo)'
     };
     const planName = tierNames[plan] || plan;
 
@@ -1308,9 +1310,10 @@ async function sendNewPaymentNotification({ coach, plan, amount, isReactivation 
     const tierNames = {
         'starter': 'Starter',
         'growth': 'Growth',
-        'professional': 'Professional',
+        'scale': 'Scale',
+        'professional': 'Agency',
         'basic': 'Starter',
-        'branded': 'Professional'
+        'branded': 'Agency'
     };
     const planName = tierNames[plan] || plan;
 
@@ -1395,9 +1398,10 @@ function generateWelcomeEmail({ coachName, plan = 'starter', resetLink }) {
     const tierNames = {
         'starter': 'Starter',
         'growth': 'Growth',
-        'professional': 'Professional',
+        'scale': 'Scale',
+        'professional': 'Agency',
         'basic': 'Starter',
-        'branded': 'Professional'
+        'branded': 'Agency'
     };
     const planName = tierNames[plan] || 'Starter';
 
