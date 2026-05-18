@@ -53,14 +53,18 @@ exports.handler = async (event, context) => {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
     // Client limits by subscription tier
+    // Pricing "Option 1" (May 2026): same prices, more clients per tier.
+    // Internal keys unchanged (existing coaches keep their tier value);
+    // 'professional' is displayed as "Agency" on the pricing page.
     const CLIENT_LIMITS = {
-      free: 2,
+      free: 3,
       starter: 10,
       growth: 50,
-      professional: 300,
+      scale: 100,
+      professional: 200,
       // Legacy tier support
       basic: 10,
-      branded: 300
+      branded: 200
     };
 
     // Check coach's subscription tier and client count

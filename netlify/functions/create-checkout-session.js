@@ -19,6 +19,10 @@ const headers = {
 const PRICE_IDS = {
     starter: process.env.STRIPE_PRICE_STARTER || 'price_starter_monthly',
     growth: process.env.STRIPE_PRICE_GROWTH || 'price_growth_monthly',
+    // Scale ($179) — new tier (May 2026). Real live price ID is the
+    // fallback so it works without an extra Netlify env var; set
+    // STRIPE_PRICE_SCALE to override.
+    scale: process.env.STRIPE_PRICE_SCALE || 'price_1TYPvZGpZpurD75IWAhjVNVH',
     professional: process.env.STRIPE_PRICE_PROFESSIONAL || 'price_professional_monthly',
     // Legacy support for existing subscribers
     basic: process.env.STRIPE_PRICE_BASIC || process.env.STRIPE_PRICE_STARTER || 'price_starter_monthly',

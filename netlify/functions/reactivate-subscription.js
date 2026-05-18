@@ -21,6 +21,7 @@ const PRICE_IDS = {
     starter: process.env.STRIPE_PRICE_STARTER,
     basic: process.env.STRIPE_PRICE_STARTER,  // alias for starter
     growth: process.env.STRIPE_PRICE_GROWTH,
+    scale: process.env.STRIPE_PRICE_SCALE || 'price_1TYPvZGpZpurD75IWAhjVNVH',
     professional: process.env.STRIPE_PRICE_PROFESSIONAL,
     branded: process.env.STRIPE_PRICE_PROFESSIONAL  // alias for professional
 };
