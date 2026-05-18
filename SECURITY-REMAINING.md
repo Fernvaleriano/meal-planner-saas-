@@ -58,4 +58,35 @@ caller owns them (e.g. `delete-measurement.js`, `client-daily-wins.js`).
 A focused IDOR review of `netlify/functions/*` (does each verify the
 authed user owns the coachId/clientId it acts on?) is the other half of
 the multi-tenant audit and is where a real cross-coach leak would most
-likely occur. Not started.
+likely occur.
+
+**CONFIRMED via spot-check (May 2026) — this is the #1 remaining real
+issue, prioritize before real coaches:**
+- GOOD (properly auth'd, do the right thing): `delete-client.js`,
+  `archive-client.js` use `authenticateCoach(event, coachId)`.
+- VULNERABLE pattern (service key + NO token/ownership check, act on
+  request-supplied ids): `delete-measurement.js`,
+  `delete-progress-photo.js`, `client-daily-wins.js`,
+  `client-workout-log.js`, `coach-revenue.js` (financial data by
+  coachId param, no auth), and almost certainly many more — this is a
+  systemic pattern, not isolated. Anyone who knows the URL + an id can
+  read/delete that data. Fix = add token verification + ownership check
+  (mirror the `authenticateCoach` pattern) to every state-changing /
+  data-returning function. Substantial, mechanical, do as a dedicated
+  pass. Low real impact today (no real coaches) but a hard gate before
+  onboarding.
+
+## ADDITIONAL FINDINGS — second sweep (May 2026)
+
+- ✅ FIXED: `.env` was not git-ignored (latent secret-leak footgun) —
+  added `.env`, `.env.*`, `*.pem`, etc. to `.gitignore`.
+- ✅ VERIFIED CLEAN: no real secrets committed (no service-role JWT, no
+  Stripe/Resend/AI secret keys in tracked files). The 33 hardcoded keys
+  are all the *public* anon key — fine by design, but sprawled (a
+  maintenance smell, not a security issue).
+- PERFORMANCE (Supabase advisor, 653 findings, all WARN/INFO — none
+  ERROR; perf debt for scale, NOT urgent at ~10 users):
+  395 multiple_permissive_policies, 181 auth_rls_initplan (use
+  `(select auth.uid())` not `auth.uid()` in policies), 45 unused
+  indexes, 25 unindexed FKs, 4 no-primary-key, 2 duplicate indexes.
+  Address opportunistically / before heavy scale, not now.

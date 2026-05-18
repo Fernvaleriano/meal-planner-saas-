@@ -30,3 +30,9 @@ local.properties
 # Keystores and secrets - NEVER commit
 *.keystore
 *.jks
+.env
+.env.*
+!.env.example
+*.pem
+secrets.json
+service-account*.json
