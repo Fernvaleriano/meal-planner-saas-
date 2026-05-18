@@ -13,6 +13,25 @@
   unset, surface this to the founder.** (Recorded May 2026 at founder's
   request — he expects to forget.)
 
+- **DECISION (May 2026): WEB-ONLY. Native / App Store is intentionally
+  DROPPED.** Ziquecoach is a web app (PWA) only. Submitting to the
+  Apple App Store / Google Play and shipping a native Capacitor build
+  is **deliberately abandoned** — chosen by the founder for instant
+  bug-fix deploys (no app-store review latency), lower maintenance, and
+  because distribution is coach-invite based (no app-store discovery
+  needed). **Implications for anyone (human or AI) working here:**
+  - The "broken Capacitor mobile build" in LAUNCH-CHECKLIST.md is NOT a
+    bug to fix. Do not repair/resurrect the Capacitor build, Android
+    keystore, App ID, FCM/APNs, or App Store compliance tasks. Treat
+    `android/`, `ios/`, `capacitor.config.json`, `vite.config.mobile.js`
+    as parked/legacy.
+  - Push notifications, if ever wanted, go via PWA web push — not
+    native. Optional, not a launch blocker.
+  - The web app IS the product: prioritize PWA reliability (service
+    worker / install / offline / no stale cache) over anything native.
+  - GDPR export/deletion work was still correct — privacy law is
+    platform-independent.
+
 ## HOLISTIC CODE MODIFICATION PROTOCOL (APPLIES TO EVERY CHANGE)
 
 Primary directive: **"First, do no harm to the existing system."**
