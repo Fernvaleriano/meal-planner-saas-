@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo, memo } from 'react';
 import { X, Check, Plus, ChevronLeft, Play, Timer, BarChart3, ArrowLeftRight, Trash2, Mic, MicOff, MessageCircle, Loader2, AlertCircle, History, TrendingUp, Award, ChevronDown, ChevronUp, Send, Square, Sparkles, ExternalLink, Bot, Flame, Leaf, Zap, User, Lock, NotebookPen } from 'lucide-react';
 import { apiGet, apiPost, apiPut, apiDelete, getOrCreateWorkoutLogId } from '../../utils/api';
 import { supabase } from '../../utils/supabase';
@@ -372,6 +372,7 @@ function ExerciseDetailModal({
   const [videoError, setVideoError] = useState(false);
   const [videoKey, setVideoKey] = useState(0);
   const [videoBlobUrl, setVideoBlobUrl] = useState(null);
+  const videoElRef = useRef(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showAskCoach, setShowAskCoach] = useState(false);
   const [showAskAI, setShowAskAI] = useState(false);
@@ -2162,6 +2163,23 @@ function ExerciseDetailModal({
     setVideoKey(k => k + 1);
   }, [videoBlobUrl]);
 
+  // Start playback as soon as the <video> is mounted. Coach videos have audio
+  // so they can't use the autoPlay attribute (iOS only honours it when muted),
+  // and the element is rendered only AFTER the play-button tap — so there's no
+  // element to call .play() on inside the click handler itself. A layout effect
+  // keyed on showVideo runs synchronously within the same discrete-event task
+  // React flushed the tap in, which preserves the iOS user-gesture token. If
+  // the browser still blocks it, the native controls remain as the fallback.
+  useLayoutEffect(() => {
+    if (!showVideo || !videoUrl) return;
+    const v = videoElRef.current;
+    if (!v) return;
+    const p = v.play();
+    if (p && typeof p.catch === 'function') {
+      p.catch(() => { /* native controls remain as the fallback */ });
+    }
+  }, [showVideo, videoKey, videoBlobUrl, videoUrl]);
+
   // Fallback: when video fails, re-fetch a fresh signed URL if this is a custom video
   const handleVideoError = useCallback(async (e) => {
     const mediaError = e?.target?.error;
@@ -2361,7 +2379,9 @@ function ExerciseDetailModal({
             >
               <video
                 key={videoKey}
+                ref={videoElRef}
                 src={videoBlobUrl || videoUrl}
+                poster={thumbnailUrl}
                 loop={!videoHasAudio}
                 muted={!videoHasAudio}
                 controls={videoHasAudio}
