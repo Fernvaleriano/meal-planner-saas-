@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useBranding, DEFAULT_TUTORIAL_VIDEO_URL } from '../context/BrandingContext';
-import { Moon, Camera, Lock, LogOut, ChevronRight, Loader, Users, Scale, User, Utensils, Edit3, X, Palette, Droplets, CreditCard, PlayCircle, Download } from 'lucide-react';
+import { Moon, Camera, Lock, LogOut, ChevronRight, Loader, Users, Scale, User, Utensils, Edit3, X, Palette, Droplets, CreditCard, PlayCircle, Download, Trash2 } from 'lucide-react';
 import { apiGet, apiPost, apiPut } from '../utils/api';
 import { supabase } from '../utils/supabase';
 import { usePullToRefreshEvent } from '../hooks/usePullToRefreshEvent';
@@ -49,6 +49,7 @@ function Settings() {
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [passwordMessage, setPasswordMessage] = useState(null);
   const [exportingData, setExportingData] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
 
   // Exercise gender preference states
   const [exerciseGenderPref, setExerciseGenderPref] = useState(
@@ -355,6 +356,33 @@ function Settings() {
       }
     } finally {
       setExportingData(false);
+    }
+  };
+
+  // Request account deletion (GDPR). Soft-delete + 30-day grace; the
+  // server revokes the session, so we log out locally afterwards.
+  const handleDeleteAccount = async () => {
+    if (deletingAccount) return;
+    const ok = window.confirm(
+      'Delete your account?\n\n' +
+      'Your account will be deactivated immediately and permanently ' +
+      'deleted in 30 days. You can cancel within 30 days by emailing ' +
+      'contact@ziquecoach.com. This will sign you out.'
+    );
+    if (!ok) return;
+    setDeletingAccount(true);
+    try {
+      const res = await apiPost('/.netlify/functions/request-account-deletion', {});
+      showSuccess(res?.message || 'Your account is scheduled for deletion.');
+      setTimeout(() => { logout(); }, 2500);
+    } catch (err) {
+      if (err?.status === 409) {
+        showError(err.message || 'This account cannot be deleted yet.');
+      } else {
+        showError('Could not process the deletion request. Please try again.');
+      }
+    } finally {
+      setDeletingAccount(false);
     }
   };
 
@@ -906,6 +934,29 @@ function Settings() {
             </div>
           </div>
           {exportingData
+            ? <Loader size={20} className="settings-chevron spin" />
+            : <ChevronRight size={20} className="settings-chevron" />}
+        </div>
+
+        <div className="settings-divider"></div>
+
+        <div
+          className="settings-item clickable"
+          onClick={handleDeleteAccount}
+          style={deletingAccount ? { opacity: 0.6, pointerEvents: 'none' } : undefined}
+        >
+          <div className="settings-item-left">
+            <div className="settings-icon-box danger">
+              <Trash2 size={18} />
+            </div>
+            <div className="settings-item-text">
+              <div className="settings-item-title">Delete My Account</div>
+              <div className="settings-item-subtitle">
+                Deactivates now; permanently deleted after 30 days
+              </div>
+            </div>
+          </div>
+          {deletingAccount
             ? <Loader size={20} className="settings-chevron spin" />
             : <ChevronRight size={20} className="settings-chevron" />}
         </div>
