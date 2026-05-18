@@ -367,12 +367,19 @@ function ExerciseDetailModal({
   // Simple state - minimize state variables
   const [showSwapModal, setShowSwapModal] = useState(false);
   const [showSetEditor, setShowSetEditor] = useState(false);
-  const [showVideo, setShowVideo] = useState(false);
+  // Coach custom videos open straight into the loaded player (first frame +
+  // native controls) instead of a thumbnail + play button. Stock library
+  // animations still show the thumbnail first.
+  const [showVideo, setShowVideo] = useState(() => !!exercise?.customVideoUrl);
   const [videoLoading, setVideoLoading] = useState(true);
   const [videoError, setVideoError] = useState(false);
   const [videoKey, setVideoKey] = useState(0);
   const [videoBlobUrl, setVideoBlobUrl] = useState(null);
   const videoElRef = useRef(null);
+  // True only when the user explicitly tapped a play button — gates the
+  // programmatic .play() so an auto-opened custom video preloads and sits
+  // paused on its first frame (no surprise audio just from opening the modal).
+  const playRequestedRef = useRef(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showAskCoach, setShowAskCoach] = useState(false);
   const [showAskAI, setShowAskAI] = useState(false);
@@ -582,7 +589,8 @@ function ExerciseDetailModal({
   // Reset sets when exercise changes
   useEffect(() => {
     setSets(initialSets);
-    setShowVideo(false);
+    setShowVideo(!!exercise?.customVideoUrl);
+    playRequestedRef.current = false;
     setShowSetEditor(false);
     setShowSwapModal(false);
     setProgressTip(null);
@@ -2136,6 +2144,7 @@ function ExerciseDetailModal({
 
   // Debug: Log video URL when playing (helps identify mismatched videos in database)
   const handlePlayVideo = useCallback(() => {
+    playRequestedRef.current = true;
     setVideoLoading(true);
     setVideoError(false);
     setVideoKey(0);
@@ -2144,6 +2153,7 @@ function ExerciseDetailModal({
   }, [exercise?.name, exercise?.video_url, exercise?.animation_url, videoUrl]);
 
   const handleCloseVideo = useCallback(() => {
+    playRequestedRef.current = false;
     setShowVideo(false);
     setVideoLoading(true);
     setVideoError(false);
@@ -2163,15 +2173,19 @@ function ExerciseDetailModal({
     setVideoKey(k => k + 1);
   }, [videoBlobUrl]);
 
-  // Start playback as soon as the <video> is mounted. Coach videos have audio
-  // so they can't use the autoPlay attribute (iOS only honours it when muted),
-  // and the element is rendered only AFTER the play-button tap — so there's no
-  // element to call .play() on inside the click handler itself. A layout effect
-  // keyed on showVideo runs synchronously within the same discrete-event task
-  // React flushed the tap in, which preserves the iOS user-gesture token. If
-  // the browser still blocks it, the native controls remain as the fallback.
+  // Start playback once the <video> is mounted after an explicit play-button
+  // tap. Coach videos have audio so they can't use the autoPlay attribute (iOS
+  // only honours it when muted), and the element mounts after the tap — so
+  // there's no element to call .play() on inside the click handler itself. A
+  // layout effect keyed on showVideo runs synchronously within the same
+  // discrete-event task React flushed the tap in, which preserves the iOS
+  // user-gesture token. If the browser still blocks it, the native controls
+  // remain as the fallback.
   useLayoutEffect(() => {
     if (!showVideo || !videoUrl) return;
+    // Auto-opened custom videos stay paused on their first frame until the
+    // user taps play — only force playback for an explicit play-button tap.
+    if (!playRequestedRef.current) return;
     const v = videoElRef.current;
     if (!v) return;
     const p = v.play();
