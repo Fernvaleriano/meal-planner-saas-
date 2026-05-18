@@ -14,6 +14,10 @@ real coaches**. Each needs per-item care — they are NOT safe to blanket
   coach-scoped policies remain. (013)
 - ✅ `contact_submissions`: dropped "any authenticated can read all"
   (PII); anonymous-insert (contact form) kept. (013)
+- ✅ `shared_workout_programs`: dropped "Anyone can update" (UPDATE
+  USING true). SELECT/INSERT intact. (014)
+- ✅ `check_workout_log_constraints()`: revoked public/anon/auth
+  execute; service role (its only caller) unaffected. (014)
 - Master account (`contact@ziquefitness.com`) unaffected — required.
 
 ## REMAINING — needs a focused session
