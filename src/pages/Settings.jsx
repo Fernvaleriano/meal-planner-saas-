@@ -50,6 +50,8 @@ function Settings() {
   const [passwordMessage, setPasswordMessage] = useState(null);
   const [exportingData, setExportingData] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
 
   // Exercise gender preference states
   const [exerciseGenderPref, setExerciseGenderPref] = useState(
@@ -361,18 +363,22 @@ function Settings() {
 
   // Request account deletion (GDPR). Soft-delete + 30-day grace; the
   // server revokes the session, so we log out locally afterwards.
-  const handleDeleteAccount = async () => {
+  // Open the delete confirmation modal (requires typing DELETE).
+  const handleDeleteAccount = () => {
     if (deletingAccount) return;
-    const ok = window.confirm(
-      'Delete your account?\n\n' +
-      'Your account will be deactivated immediately and permanently ' +
-      'deleted in 30 days. You can cancel within 30 days by emailing ' +
-      'contact@ziquecoach.com. This will sign you out.'
-    );
-    if (!ok) return;
+    setDeleteConfirmText('');
+    setShowDeleteModal(true);
+  };
+
+  // Actually request deletion — only callable from the modal once the
+  // user has typed DELETE. Soft-delete + 30-day grace; the server revokes
+  // the session, so we log out locally afterwards.
+  const confirmDeleteAccount = async () => {
+    if (deletingAccount || deleteConfirmText !== 'DELETE') return;
     setDeletingAccount(true);
     try {
       const res = await apiPost('/.netlify/functions/request-account-deletion', {});
+      setShowDeleteModal(false);
       showSuccess(res?.message || 'Your account is scheduled for deletion.');
       setTimeout(() => { logout(); }, 2500);
     } catch (err) {
@@ -1051,6 +1057,88 @@ function Settings() {
               >
                 {passwordLoading && <Loader size={18} className="spin" />}
                 {passwordLoading ? 'Sending...' : 'Send Reset Email'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Account Confirmation Modal — requires typing DELETE */}
+      {showDeleteModal && (
+        <div className="modal-overlay active" onClick={() => !deletingAccount && setShowDeleteModal(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 460, width: '100%' }}>
+            <div className="modal-header">
+              <button className="modal-close" onClick={() => !deletingAccount && setShowDeleteModal(false)}>&times;</button>
+              <span style={{ fontWeight: 600 }}>Delete My Account</span>
+            </div>
+            <div className="modal-body" style={{ padding: '20px' }}>
+              <p style={{ marginBottom: '12px', color: 'var(--gray-700, #374151)' }}>
+                This will <strong>deactivate your account immediately</strong>, sign
+                you out, cancel billing, and permanently delete your data in
+                <strong> 30 days</strong>. To cancel within 30 days, email
+                contact@ziquecoach.com.
+              </p>
+              <p style={{ marginBottom: '8px', color: 'var(--gray-700, #374151)' }}>
+                Type <strong>DELETE</strong> to confirm:
+              </p>
+              <input
+                type="text"
+                value={deleteConfirmText}
+                onChange={e => setDeleteConfirmText(e.target.value)}
+                autoCapitalize="characters"
+                autoCorrect="off"
+                spellCheck={false}
+                placeholder="DELETE"
+                disabled={deletingAccount}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  borderRadius: '8px',
+                  border: '1px solid var(--gray-300, #d1d5db)',
+                  fontSize: '1rem',
+                  marginBottom: '20px',
+                  boxSizing: 'border-box'
+                }}
+              />
+              <button
+                onClick={confirmDeleteAccount}
+                disabled={deleteConfirmText !== 'DELETE' || deletingAccount}
+                style={{
+                  width: '100%',
+                  padding: '14px',
+                  borderRadius: '8px',
+                  background: (deleteConfirmText !== 'DELETE' || deletingAccount) ? '#94a3b8' : '#dc2626',
+                  color: 'white',
+                  border: 'none',
+                  fontWeight: 600,
+                  fontSize: '1rem',
+                  cursor: (deleteConfirmText !== 'DELETE' || deletingAccount) ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px'
+                }}
+              >
+                {deletingAccount && <Loader size={18} className="spin" />}
+                {deletingAccount ? 'Deleting...' : 'Permanently Delete My Account'}
+              </button>
+              <button
+                onClick={() => !deletingAccount && setShowDeleteModal(false)}
+                disabled={deletingAccount}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  marginTop: '10px',
+                  borderRadius: '8px',
+                  background: 'transparent',
+                  color: 'var(--gray-600, #4b5563)',
+                  border: 'none',
+                  fontWeight: 600,
+                  fontSize: '0.95rem',
+                  cursor: deletingAccount ? 'not-allowed' : 'pointer'
+                }}
+              >
+                Cancel
               </button>
             </div>
           </div>
