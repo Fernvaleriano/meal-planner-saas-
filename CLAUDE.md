@@ -32,15 +32,15 @@
   - GDPR export/deletion work was still correct — privacy law is
     platform-independent.
 
-- **PENDING: capture a DB schema baseline.** The migration files do NOT
-  create the base schema (no migration creates `clients`/`coaches`;
-  prod has 74 tables / 10 funcs / 199 policies, version control creates
-  almost none). A fresh DB cannot be rebuilt — DR / staging / RLS-audit
-  risk (prod itself is fine). Fix = capture a `pg_dump` baseline per
-  **`/DB-RECOVERY-RUNBOOK.md`**. Must be a real dump (not hand-rolled).
-  Two migration dirs reconciled: `supabase/migrations/` = canonical,
-  `supabase-migrations/` = archived (see their READMEs). Diagnosis done
-  May 2026; baseline capture needs local DB/CLI access — not yet done.
+- **RESOLVED (May 2026): DB schema baseline captured & validated.**
+  `supabase/migrations/000_baseline.sql` is a faithful full-schema
+  snapshot (Postgres-generated). It was rebuilt on a throwaway branch
+  and diffs EXACTLY against production on all 10 structural metrics
+  (74 tables / 933 cols / 233 constraints / 254 indexes / 10 funcs /
+  15 triggers / 199 policies / 1 view). The DB is now reproducible
+  from zero. `supabase/migrations/` = canonical, `supabase-migrations/`
+  = archived (see their READMEs). Future changes: new numbered files
+  on top of 000_baseline.
 
 - **DECIDED (May 2026): new "premium all-inclusive" pricing** — Free 3 /
   Starter 15·$59 / Growth 50·$129 / Scale 100·$179 / Pro-Agency

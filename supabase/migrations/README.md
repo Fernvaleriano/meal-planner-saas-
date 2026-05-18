@@ -17,6 +17,13 @@ problem (the historical migration files are only incremental patches and
 never created the base tables — verified May 2026 when a fresh Supabase
 branch came up with ~1 table / `MIGRATIONS_FAILED`).
 
+**VALIDATED (May 2026):** `000_baseline.sql` was rebuilt on a fresh
+throwaway Supabase branch and diffed against production — an EXACT
+match on all 10 structural metrics (tables 74, columns 933, sequences
+58, constraints 233, indexes 254, functions 10, triggers 15, policies
+199, views 1, enums 0). `clients`/`coaches` confirmed present; clean
+apply, zero errors. The DB is now provably reproducible from zero.
+
 ## The fix (see /DB-RECOVERY-RUNBOOK.md)
 
 1. Capture production's current schema as `000_baseline.sql` using
