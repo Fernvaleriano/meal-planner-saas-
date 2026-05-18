@@ -255,7 +255,7 @@ exercise basic data rights. Status:
 - [x] **Audit log** — `supabase/migrations/009_audit_log.sql` (append-only, RLS; **migration not yet applied to production**)
 - [ ] **User-initiated account deletion** — Phase 2 (soft-delete + 30-day grace; coaches blocked while they have active clients — decision locked)
 - [ ] Wire an "Export my data" / "Delete my account" entry point into account settings UI (React `src/`)
-- [ ] `privacy.html` Section 7F wording reviewed by a human / counsel before publish
+- [x] `privacy.html` Section 7F wording reviewed & approved by founder (May 2026)
 - [ ] Apply migration 009 to production (additive; new table only)
 
 **Gate:** export + audit log must be live before external-coach onboarding.
