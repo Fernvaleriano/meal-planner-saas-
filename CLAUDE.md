@@ -32,6 +32,16 @@
   - GDPR export/deletion work was still correct — privacy law is
     platform-independent.
 
+- **PENDING: capture a DB schema baseline.** The migration files do NOT
+  create the base schema (no migration creates `clients`/`coaches`;
+  prod has 74 tables / 10 funcs / 199 policies, version control creates
+  almost none). A fresh DB cannot be rebuilt — DR / staging / RLS-audit
+  risk (prod itself is fine). Fix = capture a `pg_dump` baseline per
+  **`/DB-RECOVERY-RUNBOOK.md`**. Must be a real dump (not hand-rolled).
+  Two migration dirs reconciled: `supabase/migrations/` = canonical,
+  `supabase-migrations/` = archived (see their READMEs). Diagnosis done
+  May 2026; baseline capture needs local DB/CLI access — not yet done.
+
 ## HOLISTIC CODE MODIFICATION PROTOCOL (APPLIES TO EVERY CHANGE)
 
 Primary directive: **"First, do no harm to the existing system."**
