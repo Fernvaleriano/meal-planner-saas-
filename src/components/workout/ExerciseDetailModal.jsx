@@ -2137,7 +2137,7 @@ function ExerciseDetailModal({
   const thumbnailUrl = safeThumbnailUrl ||
     (isImageUrl(exercise?.animation_url) ? exercise?.animation_url : null) ||
     '/img/exercise-placeholder.svg';
-  const isCustomExercise = exercise?.is_custom === true;
+  const isCustomExercise = exercise?.is_custom === true || exercise?.is_custom === 'true';
   // Both per-day Custom Demos and custom-exercise library videos are coach
   // recordings with voice cues — play them unmuted with controls instead of as
   // silent autoplaying demo loops (which is correct only for stock library
