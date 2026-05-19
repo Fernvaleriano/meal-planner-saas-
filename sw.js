@@ -1,6 +1,6 @@
 // Ziquecoach PWA Service Worker
-const CACHE_NAME = 'ziquecoach-v18';
-const STATIC_CACHE = 'zique-static-v18';
+const CACHE_NAME = 'ziquecoach-v17';
+const STATIC_CACHE = 'zique-static-v17';
 const DATA_CACHE = 'zique-data-v12';
 const CDN_CACHE = 'zique-cdn-v7';
 
@@ -306,23 +306,30 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // For other assets (JS/CSS bundles, etc.) - NETWORK FIRST so a new
-  // deploy's code is picked up on the next launch instead of being pinned
-  // to the old cached bundle forever (the "installed app never updates"
-  // bug). Falls back to cache only when the network is unavailable, so
-  // offline still works.
+  // For other assets - cache first, fallback to network
   event.respondWith(
-    fetch(request)
-      .then((response) => {
-        if (response && response.ok) {
+    caches.match(request)
+      .then((cachedResponse) => {
+        if (cachedResponse) {
+          // Return cached version and update cache in background
+          fetch(request).then((response) => {
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(request, response);
+            });
+          }).catch(() => {});
+          return cachedResponse;
+        }
+
+        // Not in cache - fetch from network
+        return fetch(request).then((response) => {
+          // Cache the response for next time
           const responseClone = response.clone();
           caches.open(CACHE_NAME).then((cache) => {
             cache.put(request, responseClone);
           });
-        }
-        return response;
+          return response;
+        });
       })
-      .catch(() => caches.match(request))
   );
 });
 
