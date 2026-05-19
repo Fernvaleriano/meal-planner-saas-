@@ -9,19 +9,19 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/icons/logo.png",
+      "src": "/icons/logo.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/icons/logo.png",
+      "src": "/icons/logo.png",
       "sizes": "500x500",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/icons/logo.png",
+      "src": "/icons/logo.png",
       "sizes": "500x500",
       "type": "image/png",
       "purpose": "maskable"
