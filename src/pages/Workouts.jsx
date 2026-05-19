@@ -1128,6 +1128,7 @@ function Workouts() {
         return;
       }
 
+      const assignmentFailed = assignmentRes === FAILED;
       if (assignmentRes === FAILED) assignmentRes = null;
       if (adhocRes === FAILED) adhocRes = null;
       if (logRes === FAILED) logRes = null;
@@ -1165,9 +1166,17 @@ function Workouts() {
 
       // Past workouts must persist even when their assignment is deactivated
       // or the ad-hoc row is removed — reconstruct the card from the log.
-      if (allWorkouts.length === 0 && logRes?.logs?.length > 0) {
+      // But ONLY when the assignment fetch genuinely succeeded-and-empty. If
+      // it FAILED transiently, a log-only card is missing warm-up/stretch
+      // (they have no log rows) — that is the "exercises vanished" bug.
+      // Preserve last-good UI instead of rendering a truncated card.
+      if (allWorkouts.length === 0 && !assignmentFailed && logRes?.logs?.length > 0) {
         const historical = buildWorkoutFromLog(logRes.logs[0]);
         if (historical) allWorkouts.push(historical);
+      }
+      if (allWorkouts.length === 0 && assignmentFailed) {
+        setError('Could not refresh workouts. Check your connection.');
+        return;
       }
 
       setTodayWorkouts(allWorkouts);
@@ -1385,6 +1394,7 @@ function Workouts() {
           return;
         }
 
+        const assignmentFailed = assignmentRes === FAILED;
         if (assignmentRes === FAILED) assignmentRes = null;
         if (adhocRes === FAILED) adhocRes = null;
         if (logRes === FAILED) logRes = null;
@@ -1415,11 +1425,17 @@ function Workouts() {
           });
         }
 
-        // Past workouts must persist even when their assignment is deactivated
-        // or the ad-hoc row is removed — reconstruct the card from the log.
-        if (allWorkouts.length === 0 && logRes?.logs?.length > 0) {
+        // See refreshWorkoutData: only rebuild a log-only card when the
+        // assignment fetch truly succeeded-and-empty. On a transient
+        // assignment-fetch failure a log-only card drops warm-up/stretch
+        // ("exercises vanished") — preserve last-good UI instead.
+        if (allWorkouts.length === 0 && !assignmentFailed && logRes?.logs?.length > 0) {
           const historical = buildWorkoutFromLog(logRes.logs[0]);
           if (historical) allWorkouts.push(historical);
+        }
+        if (allWorkouts.length === 0 && assignmentFailed) {
+          if (mounted) setError('Could not load workouts. Check your connection.');
+          return;
         }
 
         if (!mounted || formatDate(selectedDateRef.current) !== dateStr) return;
