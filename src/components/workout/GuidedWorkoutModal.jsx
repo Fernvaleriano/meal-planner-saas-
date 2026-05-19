@@ -347,6 +347,7 @@ function GuidedWorkoutModal({
   const [guidedVideoError, setGuidedVideoError] = useState(false);
   const [guidedVideoKey, setGuidedVideoKey] = useState(0);
   const [guidedVideoBlobUrl, setGuidedVideoBlobUrl] = useState(null);
+  const guidedVideoElRef = useRef(null);
   const [playingVoiceNote, setPlayingVoiceNote] = useState(false);
   const [showCoachNote, setShowCoachNote] = useState(false); // For text notes popup
   const [showReferenceLinks, setShowReferenceLinks] = useState(false);
@@ -3808,14 +3809,22 @@ function GuidedWorkoutModal({
           >
             <video
               key={guidedVideoKey}
+              ref={(el) => {
+                guidedVideoElRef.current = el;
+                // React does NOT reliably apply the `muted` attribute to a
+                // <video>; it must be set on the element. Without this the
+                // iOS autoplay still has sound and grabs the audio session.
+                if (el) el.muted = IS_IOS ? videoMuted : (!videoHasAudio || videoMuted);
+              }}
               src={guidedVideoBlobUrl || currentExercise.customVideoUrl || currentExercise.video_url || currentExercise.animation_url}
               autoPlay
               loop
               muted={IS_IOS ? videoMuted : (!videoHasAudio || videoMuted)}
               playsInline
               preload={videoHasAudio ? 'auto' : 'metadata'}
+              onLoadedMetadata={(e) => { e.currentTarget.muted = IS_IOS ? videoMuted : (!videoHasAudio || videoMuted); }}
               onCanPlay={() => { setGuidedVideoLoading(false); setGuidedVideoError(false); }}
-              onPlaying={() => setGuidedVideoLoading(false)}
+              onPlaying={(e) => { e.currentTarget.muted = IS_IOS ? videoMuted : (!videoHasAudio || videoMuted); setGuidedVideoLoading(false); }}
               onWaiting={() => setGuidedVideoLoading(true)}
               onError={handleGuidedVideoError}
             />
@@ -3823,7 +3832,14 @@ function GuidedWorkoutModal({
               <button
                 type="button"
                 className="guided-video-unmute"
-                onClick={(e) => { e.stopPropagation(); setVideoMuted(m => !m); }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const next = !videoMuted;
+                  if (guidedVideoElRef.current) {
+                    guidedVideoElRef.current.muted = IS_IOS ? next : (!videoHasAudio || next);
+                  }
+                  setVideoMuted(next);
+                }}
                 aria-label={videoMuted ? 'Unmute coach voice' : 'Mute coach voice'}
                 title={videoMuted ? 'Unmute (will pause your music)' : 'Mute'}
               >
