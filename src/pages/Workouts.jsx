@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { ChevronLeft, ChevronRight, Play, Clock, Flame, Check, CheckCircle, Dumbbell, Target, Calendar, TrendingUp, Award, Heart, MoreVertical, X, History, Settings, LogOut, Plus, Copy, ArrowRightLeft, SkipForward, PenSquare, Trash2, MoveRight, Share2, Star, Weight, Users, RotateCcw, Zap } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { warmUpTickSound, installGlobalAudioUnlock } from '../utils/audioTick';
+import { warmUpTickSound } from '../utils/audioTick';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, apiPut, apiDelete, enableSwCacheBypass, getCachedAccessToken } from '../utils/api';
 import { onAppResume } from '../hooks/useAppLifecycle';
@@ -902,10 +902,12 @@ function Workouts() {
     };
   }, [location.pathname]);
 
-  // Install a one-shot global audio unlock on first tap anywhere in the app.
-  // Belt-and-suspenders for the "Start Workout" unlock — if the user happens
-  // to have tapped anything else first, the tick context is already primed.
-  useEffect(() => installGlobalAudioUnlock(), []);
+  // NOTE: no eager global audio unlock here. Creating the tick AudioContext
+  // on the first tap anywhere (just browsing/opening a workout) made iOS grab
+  // the exclusive audio session and kill the user's background music. The
+  // context is unlocked later inside a real user gesture — the "Start
+  // Workout" handler and taps within play mode — so timer ticks still work
+  // and music keeps playing until a workout is actually started.
 
   // Hydrate any pending localStorage draft whenever workout_data changes.
   // Covers "user edited a set, then force-killed the app" AND subsequent
