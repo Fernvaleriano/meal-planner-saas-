@@ -277,6 +277,35 @@ exports.handler = async (event) => {
       const currentWorkoutData = assignment.workout_data || {};
       let updatedWorkoutData;
 
+      // DATA-LOSS GUARD: a CLIENT-side workout save must NEVER delete an
+      // exercise from the plan. Coach plan edits go through the coach
+      // builder, not this endpoint. Play mode / a memory-loss reload can
+      // send a SHORTENED exercise list (e.g. missing warm-up/stretch);
+      // replacing the day's array with it permanently strips those
+      // exercises from the plan. Merge instead: update/add what was sent,
+      // but preserve any existing plan exercise the client omitted.
+      const mergeDayExercises = (existingArr, incomingArr) => {
+        const existing = Array.isArray(existingArr) ? existingArr : [];
+        const incoming = Array.isArray(incomingArr) ? incomingArr : [];
+        if (incoming.length === 0) return existing; // never wipe
+        const keyOf = (e) =>
+          e && (e.id != null ? `id:${e.id}` : `nm:${String(e.name || '').toLowerCase()}`);
+        const incomingByKey = new Map();
+        for (const e of incoming) incomingByKey.set(keyOf(e), e);
+        const existingKeys = new Set(existing.map(keyOf));
+        // Walk existing in order: replace with incoming when present,
+        // otherwise KEEP the existing exercise (never drop on a client save).
+        const merged = existing.map((e) => {
+          const k = keyOf(e);
+          return incomingByKey.has(k) ? incomingByKey.get(k) : e;
+        });
+        // Append genuinely new incoming exercises (e.g. a swap/add).
+        for (const e of incoming) {
+          if (!existingKeys.has(keyOf(e))) merged.push(e);
+        }
+        return merged;
+      };
+
       // Handle days array structure
       if (currentWorkoutData.days && Array.isArray(currentWorkoutData.days) && dayIndex !== undefined) {
         // Update specific day in the days array
@@ -287,10 +316,13 @@ exports.handler = async (event) => {
         // and fall back to existing day exercises
         const incomingExercises = workout_data?.exercises || workout_data?.days?.[safeDayIndex]?.exercises;
 
-        // Merge the new workout_data into the specific day
+        // Merge the new workout_data into the specific day (never drop
+        // plan exercises the client omitted — see DATA-LOSS GUARD above).
         updatedDays[safeDayIndex] = {
           ...updatedDays[safeDayIndex],
-          exercises: incomingExercises || updatedDays[safeDayIndex].exercises
+          exercises: incomingExercises
+            ? mergeDayExercises(updatedDays[safeDayIndex].exercises, incomingExercises)
+            : updatedDays[safeDayIndex].exercises
         };
 
         updatedWorkoutData = {
@@ -299,10 +331,12 @@ exports.handler = async (event) => {
         };
 
       } else {
-        // Flat structure - update exercises directly
+        // Flat structure - update exercises directly (merge, never drop)
         updatedWorkoutData = {
           ...currentWorkoutData,
-          exercises: workout_data.exercises || currentWorkoutData.exercises
+          exercises: workout_data.exercises
+            ? mergeDayExercises(currentWorkoutData.exercises, workout_data.exercises)
+            : currentWorkoutData.exercises
         };
       }
 
