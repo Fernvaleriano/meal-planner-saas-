@@ -1735,11 +1735,8 @@ function GuidedWorkoutModal({
         }
       } else if (phase === 'exercise') {
         speak('Go!', voiceEnabled);
-      // Deliberately no spoken cue during 'rest'. On iOS each
-      // speechSynthesis call seizes the audio session and the dense
-      // rest-period speech ("Rest." + the 30s/10s/3-2-1 callouts) was
-      // permanently killing the user's background music. Rest stays
-      // silent so nothing touches the audio session between sets.
+      } else if (phase === 'rest') {
+        speak('Rest.', voiceEnabled);
       } else if (phase === 'deferred-review') {
         const count = skippedQueue.length;
         speak(`You skipped ${count} exercise${count !== 1 ? 's' : ''}. Would you like to go back?`, voiceEnabled);
@@ -2573,12 +2570,24 @@ function GuidedWorkoutModal({
     };
   }, [phase, isPaused]);
 
-  // Rest-timer voice callouts were intentionally removed: on iOS each
-  // speechSynthesis call seizes the audio session, and the dense
-  // rest-period speech ("30 seconds left" / "10 seconds" / 3-2-1) was
-  // permanently killing the user's background music. Rest now stays
-  // silent so background music keeps playing between sets. The visual
-  // rest countdown timer is unaffected.
+  // --- Rest timer voice callouts ---
+  useEffect(() => {
+    if (phase !== 'rest' || isPaused) return;
+    const maxTime = phaseMaxTimeRef.current;
+
+    // Announce at 30s, 10s, and final 3-2-1
+    if (timer === 30 && maxTime > 40) {
+      speak('30 seconds left', voiceEnabled);
+    } else if (timer === 10 && maxTime > 15) {
+      speak('10 seconds', voiceEnabled);
+    } else if (timer === 3) {
+      speak('3', voiceEnabled);
+    } else if (timer === 2) {
+      speak('2', voiceEnabled);
+    } else if (timer === 1) {
+      speak('1', voiceEnabled);
+    }
+  }, [timer, phase, isPaused, voiceEnabled]);
 
   // --- Timed-exercise final 5-second countdown (tick + spoken 5..1) ---
   // Fires once per distinct `timer` value during a timed hold. The tick
