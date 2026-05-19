@@ -135,6 +135,23 @@ When proposing a fix:
 
 **The mitigation pattern** (see `src/pages/Workouts.jsx` `refreshWorkoutData` / `fetchWorkout`): use a sentinel (`Symbol('fetch-failed')`) in the catch handler so callers can distinguish failure from empty. Bail out early on `allFailed`. Gate cache writes on `!anyFailed`.
 
+**Server-side last line of defense (May 2026, root fix — DO NOT REMOVE):**
+the client patches above are all symptom-level. The invariant that
+actually makes workouts un-loseable lives in
+`netlify/functions/workout-logs.js`: in BOTH the PUT and POST
+exercise-upsert loops, a save whose incoming `sets` is empty must
+NEVER overwrite an `exercise_logs` row that already has real logged
+sets (`preserveExisting` / the `setsData.length === 0 && existing
+setCount > 0` guard). When it triggers, only safe metadata
+(name/order/notes) is updated and the stored sets + their workout-level
+totals are kept. This is never a legitimate "user cleared an exercise"
+action — clearing/skip goes through status, not an empty-sets write.
+Diagnosed via Edward Moreno's 2026-05-18 logs (a ~10h iOS resume gap
+between two halves of one session fed plan-default empty exercises into
+the finish-save, blanking earlier logged sets). If you ever see this
+guard removed or an empty-sets path that bypasses it, that is the
+regression — restore the guard.
+
 ---
 
 ## Architecture: Standalone HTML Pages (NOT React SPA)
