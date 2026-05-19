@@ -1758,6 +1758,26 @@ function GuidedWorkoutModal({
     runVoice().catch(() => {});
   }, [phase, currentExIndex, voiceEnabled, skippedQueue.length]);
 
+  // In play mode, "completed" means the guided flow took the user through the
+  // exercise — NOT that they logged sets or sat through the rest timer. So the
+  // moment we land on an exercise (its get-ready / exercise screen), mark it
+  // (and any superset partners) checked. Deduped per index so going Back and
+  // re-landing is harmless; the explicit Skip-for-Good flows still suppress
+  // their own onExerciseComplete and run before any landing for those.
+  const autoLandedRef = useRef(new Set());
+  useEffect(() => {
+    if (phase !== 'get-ready' && phase !== 'exercise') return;
+    const group = (typeof getSupersetGroup === 'function' && getSupersetGroup(currentExIndex)) || [currentExIndex];
+    group.forEach(idx => {
+      const ex = exercises[idx];
+      if (!ex?.id || autoLandedRef.current.has(idx)) return;
+      autoLandedRef.current.add(idx);
+      if (onExerciseComplete) onExerciseComplete(ex.id);
+      const persist = persistExerciseDataRef.current;
+      if (persist) persist(idx);
+    });
+  }, [phase, currentExIndex, exercises, onExerciseComplete]);
+
   // Auto-advance if deferred review has no active exercises (edge case: user went back and completed them)
   useEffect(() => {
     if (phase !== 'deferred-review') return;
