@@ -12,6 +12,16 @@ import { playTickSound, playCompleteChime, warmUpTickSound, resumeAudio, startTi
 // --- Resume helpers ---
 const RESUME_STORAGE_KEY = 'guided_workout_resume';
 
+// iPhone/iPad only. iOS hands the exclusive audio session to an autoplaying
+// video the instant play mode opens, killing the user's background music.
+// Android/desktop don't have this problem, so the muting below is gated to
+// iOS only — Android keeps the existing behavior untouched.
+const IS_IOS = typeof navigator !== 'undefined' && (
+  /iP(hone|ad|od)/.test(navigator.userAgent) ||
+  (navigator.platform === 'MacIntel' && (navigator.maxTouchPoints || 0) > 1)
+);
+
+
 const saveResumeState = (state) => {
   const payload = JSON.stringify({ ...state, savedAt: Date.now() });
   try {
@@ -3801,7 +3811,7 @@ function GuidedWorkoutModal({
               src={guidedVideoBlobUrl || currentExercise.customVideoUrl || currentExercise.video_url || currentExercise.animation_url}
               autoPlay
               loop
-              muted={!videoHasAudio || videoMuted}
+              muted={IS_IOS ? videoMuted : (!videoHasAudio || videoMuted)}
               playsInline
               preload={videoHasAudio ? 'auto' : 'metadata'}
               onCanPlay={() => { setGuidedVideoLoading(false); setGuidedVideoError(false); }}
