@@ -351,6 +351,49 @@ function GuidedWorkoutModal({
     setAudioEnabled(voiceEnabled);
   }, [voiceEnabled]);
   useEffect(() => () => setAudioEnabled(true), []);
+
+  // Screen Wake Lock — keep the phone screen awake during play mode so it
+  // doesn't auto-sleep mid-exercise (which also kills audio). Scoped to this
+  // component: acquired on mount (play mode active), released on unmount
+  // (play mode ended). The lock auto-drops when the page is backgrounded, so
+  // re-acquire on visibilitychange or it silently stops working after the
+  // first app switch. Feature-detected and fails silently if unsupported.
+  useEffect(() => {
+    if (!('wakeLock' in navigator)) return;
+    let wakeLock = null;
+    let cancelled = false;
+
+    const requestWakeLock = async () => {
+      try {
+        wakeLock = await navigator.wakeLock.request('screen');
+        // Clear our ref when the system releases it (e.g. tab hidden) so the
+        // visibilitychange handler knows to re-acquire.
+        wakeLock.addEventListener('release', () => { wakeLock = null; });
+      } catch {
+        // Unsupported / blocked (page not visible, low battery, etc.) —
+        // never throw, just go without it.
+        wakeLock = null;
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && !wakeLock && !cancelled) {
+        requestWakeLock();
+      }
+    };
+
+    requestWakeLock();
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      cancelled = true;
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (wakeLock) {
+        wakeLock.release().catch(() => {});
+        wakeLock = null;
+      }
+    };
+  }, []);
   const [showVideo, setShowVideo] = useState(false);
   const [guidedVideoLoading, setGuidedVideoLoading] = useState(true);
   const [guidedVideoError, setGuidedVideoError] = useState(false);
