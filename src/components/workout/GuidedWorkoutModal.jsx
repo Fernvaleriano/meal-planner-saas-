@@ -7,7 +7,7 @@ import { apiGet, apiPost, apiPut, apiDelete, getOrCreateWorkoutLogId } from '../
 import { onAppResume } from '../../hooks/useAppLifecycle';
 import { parseDurationToSeconds } from '../../utils/workoutDuration';
 import { generateProgression, EFFORT_OPTIONS, EFFORT_TO_RIR, estimate1RM, parseSetsData, getMaxWeight, parseReps, isCompoundExercise, getWeightIncrement, convertWeight } from '../../utils/workoutProgression';
-import { playTickSound, playCompleteChime, warmUpTickSound, resumeAudio, startTickKeepAlive, stopTickKeepAlive, setAudioMuted } from '../../utils/audioTick';
+import { playTickSound, playCompleteChime, warmUpTickSound, resumeAudio, startTickKeepAlive, stopTickKeepAlive } from '../../utils/audioTick';
 
 // --- Resume helpers ---
 const RESUME_STORAGE_KEY = 'guided_workout_resume';
@@ -1702,16 +1702,6 @@ function GuidedWorkoutModal({
     warmUpTickSound();
   }, []);
 
-  // The sound toggle controls the WHOLE in-app audio subsystem, not just the
-  // spoken cues. Muting it suspends our AudioContext and stops the keep-alive
-  // so iOS releases the exclusive audio session and the user's background
-  // music (YouTube/Spotify) keeps playing during play mode. Reset to unmuted
-  // on unmount so audio works normally outside play mode.
-  useEffect(() => {
-    setAudioMuted(!voiceEnabled);
-    return () => setAudioMuted(false);
-  }, [voiceEnabled]);
-
   // --- Voice announcements (TTS only, no auto-play of coach voice notes) ---
   useEffect(() => {
     const runVoice = async () => {
@@ -3204,8 +3194,8 @@ function GuidedWorkoutModal({
           <button
             className={`guided-voice-toggle ${voiceEnabled ? 'on' : 'off'}`}
             onClick={() => setVoiceEnabled(!voiceEnabled)}
-            aria-label={voiceEnabled ? 'Mute all sounds (lets your music keep playing)' : 'Unmute voice and timer sounds'}
-            title={voiceEnabled ? 'Sound on — tap to mute & keep your music playing' : 'Sound off — your music can play'}
+            aria-label={voiceEnabled ? 'Mute voice cues' : 'Unmute voice cues'}
+            title={voiceEnabled ? 'Voice cues on' : 'Voice cues off'}
           >
             {voiceEnabled ? <Volume2 size={18} /> : <VolumeX size={18} />}
           </button>
