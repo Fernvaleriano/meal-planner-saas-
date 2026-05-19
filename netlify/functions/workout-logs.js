@@ -242,11 +242,14 @@ exports.handler = async (event) => {
           try {
             const { data: existingExerciseLogs } = await supabase
               .from('exercise_logs')
-              .select('id, exercise_id')
+              .select('id, exercise_id, sets_data')
               .eq('workout_log_id', existingLogs[0].id);
             const existingExMap = {};
+            const existingExSetCount = {}; // log id -> existing set count
             for (const log of (existingExerciseLogs || [])) {
               if (log.exercise_id) existingExMap[log.exercise_id] = log.id;
+              existingExSetCount[log.id] =
+                Array.isArray(log.sets_data) ? log.sets_data.length : 0;
             }
             for (const ex of exercises) {
               const setsData = ex.sets || [];
@@ -268,6 +271,15 @@ exports.handler = async (event) => {
 
               const existingId = existingExMap[ex.exerciseId];
               if (existingId) {
+                // DATA-LOSS GUARD: a zero-set save must not blank an exercise
+                // that already has real logged sets (see PUT for rationale).
+                if (setsData.length === 0 && (existingExSetCount[existingId] || 0) > 0) {
+                  delete fields.sets_data;
+                  delete fields.total_sets;
+                  delete fields.total_reps;
+                  delete fields.total_volume;
+                  delete fields.max_weight;
+                }
                 await supabase.from('exercise_logs').update(fields).eq('id', existingId);
               } else {
                 await supabase.from('exercise_logs').insert([fields]);
@@ -441,14 +453,22 @@ exports.handler = async (event) => {
 
         // Pre-fetch existing exercise logs for this workout in batch
         let existingLogMap = {}; // exerciseId -> log id
+        const existingById = {}; // log id -> { setCount, total_sets, total_reps, total_volume }
         try {
           const { data: existingLogs } = await supabase
             .from('exercise_logs')
-            .select('id, exercise_id')
+            .select('id, exercise_id, sets_data, total_sets, total_reps, total_volume')
             .eq('workout_log_id', workoutId);
 
           for (const log of (existingLogs || [])) {
             if (log.exercise_id) existingLogMap[log.exercise_id] = log.id;
+            const sd = Array.isArray(log.sets_data) ? log.sets_data : [];
+            existingById[log.id] = {
+              setCount: sd.length,
+              total_sets: Number(log.total_sets) || 0,
+              total_reps: Number(log.total_reps) || 0,
+              total_volume: Number(log.total_volume) || 0
+            };
           }
         } catch (e) {
           // Continue - will insert new logs
@@ -462,9 +482,29 @@ exports.handler = async (event) => {
           const exTotalVolume = setsData.reduce((sum, s) => sum + ((Number(s.reps) || 0) * (Number(s.weight) || 0)), 0);
           const exMaxWeight = Math.max(...setsData.map(s => Number(s.weight) || 0), 0);
 
-          totalVolume += exTotalVolume;
-          totalSets += exTotalSets;
-          totalReps += exTotalReps;
+          // Resolve the existing exercise_log row (if any) up front.
+          const existingId = ex.id || (ex.exerciseId ? existingLogMap[ex.exerciseId] : null);
+          const existingRow = existingId ? existingById[existingId] : null;
+
+          // DATA-LOSS GUARD (root fix for the "workout vanished" bug): an
+          // incoming save carrying zero sets must NEVER overwrite an exercise
+          // that already has real logged sets. This is the failure mode where a
+          // finish/sync save rebuilds exercises from the plan (no sets) after
+          // the app lost in-memory progress (e.g. a long iOS resume gap), and
+          // it is never a legitimate "user cleared this exercise" action.
+          const preserveExisting =
+            setsData.length === 0 && existingRow && existingRow.setCount > 0;
+
+          if (preserveExisting) {
+            // Keep the stored sets represented in the workout-level totals.
+            totalVolume += existingRow.total_volume;
+            totalSets += existingRow.total_sets;
+            totalReps += existingRow.total_reps;
+          } else {
+            totalVolume += exTotalVolume;
+            totalSets += exTotalSets;
+            totalReps += exTotalReps;
+          }
 
           // PR Detection using pre-fetched data (weight PR + rep PR)
           // A PR requires previous history — first-time exercises don't count as PRs
@@ -525,29 +565,44 @@ exports.handler = async (event) => {
             }
           }
 
-          // Check if exercise_log already exists using pre-fetched map
-          const existingId = ex.id || (ex.exerciseId ? existingLogMap[ex.exerciseId] : null);
-
+          // Persist sets — but never wipe a logged exercise (guard above).
           if (existingId) {
-            // Update existing exercise log
-            const updateObj = {
-              sets_data: setsData,
-              total_sets: exTotalSets,
-              total_reps: exTotalReps,
-              total_volume: exTotalVolume,
-              max_weight: exMaxWeight,
-              exercise_name: ex.exerciseName || undefined,
-              exercise_order: ex.order || undefined,
-              notes: ex.notes,
-              is_pr: isPr
-            };
-            if (ex.clientNotes !== undefined) updateObj.client_notes = ex.clientNotes;
-            if (ex.clientVoiceNotePath !== undefined) updateObj.client_voice_note_path = ex.clientVoiceNotePath;
-            if (ex.swappedFromName) updateObj.swapped_from_name = ex.swappedFromName;
-            await supabase
-              .from('exercise_logs')
-              .update(updateObj)
-              .eq('id', existingId);
+            if (preserveExisting) {
+              // Sets are preserved; only apply safe, non-destructive metadata.
+              const safeUpdate = {};
+              if (ex.exerciseName) safeUpdate.exercise_name = ex.exerciseName;
+              if (ex.order) safeUpdate.exercise_order = ex.order;
+              if (ex.notes !== undefined) safeUpdate.notes = ex.notes;
+              if (ex.clientNotes !== undefined) safeUpdate.client_notes = ex.clientNotes;
+              if (ex.clientVoiceNotePath !== undefined) safeUpdate.client_voice_note_path = ex.clientVoiceNotePath;
+              if (ex.swappedFromName) safeUpdate.swapped_from_name = ex.swappedFromName;
+              if (Object.keys(safeUpdate).length > 0) {
+                await supabase
+                  .from('exercise_logs')
+                  .update(safeUpdate)
+                  .eq('id', existingId);
+              }
+            } else {
+              // Update existing exercise log
+              const updateObj = {
+                sets_data: setsData,
+                total_sets: exTotalSets,
+                total_reps: exTotalReps,
+                total_volume: exTotalVolume,
+                max_weight: exMaxWeight,
+                exercise_name: ex.exerciseName || undefined,
+                exercise_order: ex.order || undefined,
+                notes: ex.notes,
+                is_pr: isPr
+              };
+              if (ex.clientNotes !== undefined) updateObj.client_notes = ex.clientNotes;
+              if (ex.clientVoiceNotePath !== undefined) updateObj.client_voice_note_path = ex.clientVoiceNotePath;
+              if (ex.swappedFromName) updateObj.swapped_from_name = ex.swappedFromName;
+              await supabase
+                .from('exercise_logs')
+                .update(updateObj)
+                .eq('id', existingId);
+            }
           } else {
             // Insert new exercise log
             const insertObj = {
