@@ -2155,10 +2155,32 @@ function GuidedWorkoutModal({
     if (!onUpdateExercise) return;
     const ex = exercises[exIdx];
     if (!ex) return;
-    const logs = setLogsRef.current[exIdx];
-    if (!logs) return;
-
     const isSkipped = skippedExercisesRef.current.has(exIdx);
+    const logs = setLogsRef.current[exIdx];
+    if (!logs) {
+      // No per-set numeric logs — typical for timed warm-up/stretch the
+      // user just runs the timer on. Previously this returned early, so
+      // those exercises were NEVER recorded as done (client + coach both
+      // saw them as not completed). Still persist when the user actually
+      // completed or skipped it; only bail if genuinely untouched.
+      const completedSet = completedSetsRef.current[exIdx];
+      const wasCompleted = completedSet && completedSet.size > 0;
+      if (!wasCompleted && !isSkipped) return;
+      const baseSets = (Array.isArray(ex.setsData) && ex.setsData.length)
+        ? ex.setsData
+        : (Array.isArray(ex.sets) && ex.sets.length ? ex.sets : [{}]);
+      const doneSets = baseSets.map((s, i) => ({
+        reps: s?.reps ?? null,
+        weight: s?.weight ?? 0,
+        duration: s?.duration ?? null,
+        restSeconds: s?.restSeconds ?? null,
+        effort: null,
+        completed: !isSkipped && (completedSet ? completedSet.has(i) : true)
+      }));
+      onUpdateExercise({ ...ex, sets: doneSets });
+      return;
+    }
+
     const updatedSets = logs.map((log, i) => ({
       reps: log.reps,
       weight: log.weight,
