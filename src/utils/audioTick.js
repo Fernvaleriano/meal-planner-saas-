@@ -357,14 +357,11 @@ export const stopTickKeepAlive = () => {
 };
 
 // Mute/unmute the entire in-app sound subsystem (rep ticks, completion chime,
-// keep-alive, audio-context warmups). When muted we stop the keep-alive and
-// fully CLOSE the AudioContext. iOS Safari/WebKit will not relinquish the
-// exclusive AVAudioSession on suspend() alone — the user's background music
-// (YouTube/Spotify) only resumes once the context is closed. Android releases
-// on suspend, but close works there too. The next real user gesture
-// (overlay tap, get-ready warmup, or the unmute tap itself) calls
-// warmUpTickSound() → ensureCtx() which transparently builds a fresh context,
-// so unmuting just clears the flag and the tick path re-arms as before.
+// keep-alive, audio-context warmups). When muted we also stop the keep-alive
+// and suspend the AudioContext so iOS releases the exclusive audio session and
+// the user's background music (YouTube/Spotify) resumes. Wired to the play-mode
+// sound toggle. Unmuting just clears the flag — the next user gesture
+// (warmUpTickSound from a tap / "Start") re-arms the context as before.
 export const setAudioMuted = (muted) => {
   const next = !!muted;
   if (next === audioMuted) return;
@@ -372,16 +369,9 @@ export const setAudioMuted = (muted) => {
   if (!audioMuted) return;
   stopTickKeepAlive();
   unlocked = false;
-  const ctx = audioCtx;
-  // Drop all references so ensureCtx() rebuilds cleanly on the next gesture.
-  audioCtx = null;
-  tickBuffer = null;
-  tickBufferCtx = null;
-  lastScheduledTime = 0;
-  stateListenerAttached = false;
-  if (ctx && ctx.state !== 'closed' && typeof ctx.close === 'function') {
+  if (audioCtx && audioCtx.state === 'running') {
     try {
-      const p = ctx.close();
+      const p = audioCtx.suspend();
       if (p && typeof p.catch === 'function') p.catch(() => {});
     } catch { /* ignore */ }
   }
