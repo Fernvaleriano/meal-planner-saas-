@@ -2978,6 +2978,9 @@ function GuidedWorkoutModal({
     return done >= numSets;
   };
 
+  // Detect "transition rest" — resting after last set before moving to next exercise
+  const isTransitionRest = phase === 'rest' && isExerciseCompleted(currentExIndex) && nextExercise;
+  const nextExerciseVideoUrl = nextExercise?.customVideoUrl || nextExercise?.video_url || nextExercise?.animation_url;
 
   // Helper to check if URL is a video format (avoid loading .mp4 as <img>)
   const isVideoUrl = (url) => {
@@ -3720,13 +3723,42 @@ function GuidedWorkoutModal({
         }
       }}>
         {phase === 'rest' ? (
-          /* Always the non-video rest timer. A freshly-mounted autoplaying
-             <video> here (the next-exercise preview) interrupted the user's
-             background music on iOS even when muted — and a Safari-tab
-             YouTube does not auto-resume after that interruption. The "Up
-             Next" label still tells the client what's coming, and nothing
-             on the rest screen touches the audio session now. */
-          (
+          /* Rest timer displayed in the visual area — show next exercise video behind timer on transition rest */
+          isTransitionRest && nextExerciseVideoUrl ? (
+            <div className="guided-rest-video-preview">
+              <video
+                src={nextExerciseVideoUrl}
+                autoPlay
+                loop
+                muted
+                playsInline
+                preload="metadata"
+                className="guided-rest-video-bg"
+              />
+              <div className="guided-rest-video-overlay">
+                <div className="guided-timer-circle">
+                  <svg viewBox="0 0 200 200" className="guided-timer-svg">
+                    <circle cx="100" cy="100" r={radius} className="guided-timer-track" />
+                    <circle
+                      cx="100" cy="100" r={radius}
+                      className="guided-timer-ring rest"
+                      strokeDasharray={circumference}
+                      strokeDashoffset={strokeDashoffset}
+                    />
+                  </svg>
+                  <div className="guided-timer-text">
+                    <span className="guided-timer-label">Rest</span>
+                    <span className="guided-timer-value">{formatTime(timer)}</span>
+                    {nextExercise && (
+                      <span className="guided-rest-upnext-label">
+                        Up Next: {nextExercise.name || nextExercise.exercise_name}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
             <div className="guided-rest-timer-bg">
               <div className="guided-timer-circle">
                 <svg viewBox="0 0 200 200" className="guided-timer-svg">
