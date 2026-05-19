@@ -2580,18 +2580,11 @@ function GuidedWorkoutModal({
   // silent so background music keeps playing between sets. The visual
   // rest countdown timer is unaffected.
 
-  // --- Timed-exercise final 5-second countdown (tick + spoken 5..1) ---
-  // Fires once per distinct `timer` value during a timed hold. The tick
-  // always plays (independent of the voice setting, matching the rep
-  // countdown); the spoken number is gated by voiceEnabled. The isPaused
-  // guard means a paused hold goes silent and resumes cleanly.
-  useEffect(() => {
-    if (phase !== 'exercise' || !info.isTimed || isPaused) return;
-    if (timer > 0 && timer <= 5) {
-      playTickSound();
-      speak(String(timer), voiceEnabled);
-    }
-  }, [timer, phase, info.isTimed, isPaused, voiceEnabled]);
+  // Timed-exercise final 5-second spoken countdown was removed: on iOS
+  // speaking "5-4-3-2-1" back-to-back keeps the speechSynthesis audio
+  // session continuously active, which permanently kills the user's
+  // background music (it never gets a clean interruption-end to resume).
+  // The large on-screen countdown number already conveys the time left.
 
   // --- Last set announcement: tell client what's next ---
   const lastSetAnnouncedRef = useRef(null); // track "exIndex-setIndex" to avoid repeat
@@ -2658,13 +2651,11 @@ function GuidedWorkoutModal({
             speak(`${nextRep} reps left`, voiceEnabled);
           } else if (nextRep === 5 && total > 8) {
             speak('5 reps left', voiceEnabled);
-          } else if (nextRep === 3) {
-            speak('3', voiceEnabled);
-          } else if (nextRep === 2) {
-            speak('2', voiceEnabled);
-          } else if (nextRep === 1) {
-            speak('1', voiceEnabled);
           }
+          // No spoken 3-2-1 rep countdown: on iOS that back-to-back
+          // speechSynthesis burst keeps the audio session active and
+          // permanently kills the user's background music. The big
+          // on-screen rep number already shows the count.
           if (nextRep <= 0) {
             setRepCountdownActive(false);
             setTimeout(() => speak('Set complete. Log your set and rest up.', voiceEnabled), 300);
