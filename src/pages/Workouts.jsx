@@ -461,7 +461,15 @@ function writeUncheckedOverrides(workoutId, dayIndex, ids) {
   } catch (e) { /* ignore */ }
 }
 
-function getCompletedFromWorkoutData(workoutData, dayIndex = 0, workoutId = null) {
+// allowDayFallback: only set when the workout was reconstructed from its log
+// (buildWorkoutFromLog), where the real day_index is unrecoverable and gets
+// hardcoded to 0. Without this, a completed timed/no-numeric-set exercise —
+// whose checked state lives ONLY in the per-(workout,day) localStorage key,
+// never in sets_data — loses its checkmark on reopen because the read key
+// (..._day0) no longer matches the key written during the live session
+// (..._day<realIndex>). The activeIds filter below already constrains any
+// recovered IDs to this day's exercises, so cross-day bleed cannot happen.
+function getCompletedFromWorkoutData(workoutData, dayIndex = 0, workoutId = null, allowDayFallback = false) {
   let exercises = [];
   if (Array.isArray(workoutData?.exercises) && workoutData.exercises.length > 0) {
     exercises = workoutData.exercises;
@@ -488,6 +496,20 @@ function getCompletedFromWorkoutData(workoutData, dayIndex = 0, workoutId = null
       const legacyKey = `completedExercises_${workoutId}`;
       if (localStorage.getItem(legacyKey)) {
         localStorage.removeItem(legacyKey);
+      }
+      // Rebuilt-from-log workouts can't know the original day_index, so the
+      // exact key above misses. Recover by merging every day bucket for this
+      // workout id; activeIds filtering below scopes it back to this day.
+      if (allowDayFallback && workoutId) {
+        const prefix = `completedExercises_${workoutId}_day`;
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (!k || k === key || !k.startsWith(prefix)) continue;
+          try {
+            const ids = JSON.parse(localStorage.getItem(k));
+            if (Array.isArray(ids)) ids.forEach(id => fromData.add(id));
+          } catch (e) { /* ignore malformed bucket */ }
+        }
       }
     } catch (e) { /* ignore */ }
   }
@@ -543,8 +565,12 @@ function getWorkoutCompletedCount(workout) {
 function getEffectiveCompletedExercises(workout, log) {
   if (!workout) return new Set();
   const dayIndex = workout.day_index ?? 0;
-  // getCompletedFromWorkoutData already subtracts overrides.
-  const combined = getCompletedFromWorkoutData(workout.workout_data, dayIndex, workout.id);
+  // getCompletedFromWorkoutData already subtracts overrides. Historical cards
+  // are rebuilt from the log with day_index forced to 0, so allow the
+  // day-bucket fallback to recover timed/no-set completion that the log can't.
+  const combined = getCompletedFromWorkoutData(
+    workout.workout_data, dayIndex, workout.id, workout.is_historical === true
+  );
   const logExercises = log?.exercises;
   if (Array.isArray(logExercises) && logExercises.length > 0) {
     const overrides = getUncheckedOverrides(workout.id, dayIndex);
