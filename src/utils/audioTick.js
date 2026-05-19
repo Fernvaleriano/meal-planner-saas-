@@ -40,6 +40,11 @@ let tickBufferCtx = null; // ctx the buffer was rendered for; rebuild on mismatc
 let lastScheduledTime = 0;
 let stateListenerAttached = false;
 let keepAliveTimer = null;
+// When the user mutes play-mode sound we want iOS to hand the audio session
+// back to their background music (YouTube/Spotify). While muted, every sound
+// entry point below no-ops AND we suspend the context + stop the keep-alive
+// so nothing keeps the AVAudioSession in an exclusive playback category.
+let audioMuted = false;
 
 const isBrowser = () => typeof window !== 'undefined';
 
@@ -205,6 +210,7 @@ const playTick = (ctx) => {
 };
 
 export const playTickSound = () => {
+  if (audioMuted) return;
   // Stand down if a coach video is playing with audio — the video owns
   // the session in that moment and the tick is intentionally suppressed.
   if (isCoachVideoAudioActive()) return;
@@ -224,6 +230,7 @@ export const playTickSound = () => {
 // background-music mixing. Pre-builds the tick buffer too so the first rep
 // doesn't pay the rendering cost.
 export const warmUpTickSound = () => {
+  if (audioMuted) return;
   const ctx = ensureCtx();
   if (!ctx) return;
   resumeCtxSync(ctx);
@@ -247,6 +254,7 @@ export const warmUpTickSound = () => {
 // session quirks documented above. Falls back silently if the context can't
 // be created.
 export const playCompleteChime = () => {
+  if (audioMuted) return;
   if (isCoachVideoAudioActive()) return;
   const ctx = ensureCtx();
   if (!ctx) return;
@@ -282,6 +290,7 @@ export const playCompleteChime = () => {
 // puts our context into 'interrupted' — the first tick after speech then
 // silently no-ops. Pinging resume() here keeps the rep tick alive.
 export const resumeAudio = () => {
+  if (audioMuted) return;
   const ctx = audioCtx || ensureCtx();
   if (!ctx) return;
   resumeCtxSync(ctx);
@@ -314,9 +323,11 @@ export const installGlobalAudioUnlock = () => {
 // schedule keeps the session warm without disturbing background music.
 // Idempotent — safe to call repeatedly.
 export const startTickKeepAlive = () => {
+  if (audioMuted) return;
   if (keepAliveTimer) return;
   if (typeof window === 'undefined') return;
   const tick = () => {
+    if (audioMuted) return;
     // Don't ping the audio session while a coach video is playing with
     // audio — let iOS give that video uncontested ownership.
     if (isCoachVideoAudioActive()) return;
@@ -343,4 +354,25 @@ export const stopTickKeepAlive = () => {
     window.clearInterval(keepAliveTimer);
   }
   keepAliveTimer = null;
+};
+
+// Mute/unmute the entire in-app sound subsystem (rep ticks, completion chime,
+// keep-alive, audio-context warmups). When muted we also stop the keep-alive
+// and suspend the AudioContext so iOS releases the exclusive audio session and
+// the user's background music (YouTube/Spotify) resumes. Wired to the play-mode
+// sound toggle. Unmuting just clears the flag — the next user gesture
+// (warmUpTickSound from a tap / "Start") re-arms the context as before.
+export const setAudioMuted = (muted) => {
+  const next = !!muted;
+  if (next === audioMuted) return;
+  audioMuted = next;
+  if (!audioMuted) return;
+  stopTickKeepAlive();
+  unlocked = false;
+  if (audioCtx && audioCtx.state === 'running') {
+    try {
+      const p = audioCtx.suspend();
+      if (p && typeof p.catch === 'function') p.catch(() => {});
+    } catch { /* ignore */ }
+  }
 };
