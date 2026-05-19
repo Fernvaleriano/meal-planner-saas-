@@ -591,10 +591,10 @@ function getWorkoutExercises(workout) {
 // imported from ../utils/workoutDuration
 
 // Helper to get completed count for a workout (from workout_data flags + localStorage)
-function getWorkoutCompletedCount(workout) {
+function getWorkoutCompletedCount(workout, clientId = null, dateStr = null) {
   const completed = getCompletedFromWorkoutData(
     workout?.workout_data, workout?.day_index || 0, workout?.id, false,
-    workout?.client_id, workout?.workout_date
+    clientId || workout?.client_id || null, dateStr || workout?.workout_date || null
   );
   return completed.size;
 }
@@ -611,15 +611,22 @@ function getWorkoutCompletedCount(workout) {
 // exercise_logs row — written by ExerciseDetailModal's auto-save the moment
 // the user opens an exercise to view the video — from auto-checking the
 // exercise on the next fetch.
-function getEffectiveCompletedExercises(workout, log) {
+// clientId/dateStr: assignment workout objects carry NO workout_date (and not
+// always client_id) — they're day-of-week templates resolved against the
+// viewed date. Callers pass the selected date + client id (same identity as
+// the per-date cache key) so the stable completion store actually keys.
+// Falls back to the workout's own fields for ad-hoc/historical cards.
+function getEffectiveCompletedExercises(workout, log, clientId = null, dateStr = null) {
   if (!workout) return new Set();
   const dayIndex = workout.day_index ?? 0;
+  const cid = clientId || workout.client_id || null;
+  const ds = dateStr || workout.workout_date || null;
   // getCompletedFromWorkoutData already subtracts overrides. Historical cards
   // are rebuilt from the log with day_index forced to 0, so allow the
   // day-bucket fallback to recover timed/no-set completion that the log can't.
   const combined = getCompletedFromWorkoutData(
     workout.workout_data, dayIndex, workout.id, workout.is_historical === true,
-    workout.client_id, workout.workout_date
+    cid, ds
   );
   const logExercises = log?.exercises;
   if (Array.isArray(logExercises) && logExercises.length > 0) {
@@ -716,7 +723,7 @@ function Workouts() {
   const [workoutStarted, setWorkoutStarted] = useState(false);
   const [completedExercises, setCompletedExercises] = useState(() =>
     cachedWorkouts?.todayWorkout
-      ? getEffectiveCompletedExercises(cachedWorkouts.todayWorkout, cachedWorkouts.workoutLog || null)
+      ? getEffectiveCompletedExercises(cachedWorkouts.todayWorkout, cachedWorkouts.workoutLog || null, clientData?.id, formatDate(new Date()))
       : new Set()
   );
   const [showReadinessCheck, setShowReadinessCheck] = useState(false);
@@ -1281,13 +1288,13 @@ function Workouts() {
               sleep: log.sleep_quality || 2
             });
           }
-          setCompletedExercises(getEffectiveCompletedExercises(active, log));
+          setCompletedExercises(getEffectiveCompletedExercises(active, log, clientData?.id, dateStr));
         } else if (!active.is_adhoc) {
           setWorkoutLog(null);
-          setCompletedExercises(getEffectiveCompletedExercises(active, null));
+          setCompletedExercises(getEffectiveCompletedExercises(active, null, clientData?.id, dateStr));
         } else {
           setWorkoutLog(null);
-          setCompletedExercises(getEffectiveCompletedExercises(active, null));
+          setCompletedExercises(getEffectiveCompletedExercises(active, null, clientData?.id, dateStr));
         }
       } else {
         setTodayWorkout(null);
@@ -1416,7 +1423,7 @@ function Workouts() {
         // ever calling setCompletedExercises).
         if (dateCache.todayWorkout) {
           setCompletedExercises(
-            getEffectiveCompletedExercises(dateCache.todayWorkout, dateCache.workoutLog || null)
+            getEffectiveCompletedExercises(dateCache.todayWorkout, dateCache.workoutLog || null, clientData?.id, dateStr)
           );
         }
         // Pre-seed the logs ref so a card switch during the cache-display
@@ -1558,15 +1565,15 @@ function Workouts() {
                 sleep: log.sleep_quality || 2
               });
             }
-            setCompletedExercises(getEffectiveCompletedExercises(first, log));
+            setCompletedExercises(getEffectiveCompletedExercises(first, log, clientData?.id, dateStr));
           } else if (!first.is_adhoc) {
             setWorkoutLog(null);
             persist({ todayWorkout: first, todayWorkouts: allWorkouts, workoutLog: null });
-            setCompletedExercises(getEffectiveCompletedExercises(first, null));
+            setCompletedExercises(getEffectiveCompletedExercises(first, null, clientData?.id, dateStr));
           } else {
             setWorkoutLog(null);
             persist({ todayWorkout: first, todayWorkouts: allWorkouts, workoutLog: null });
-            setCompletedExercises(getEffectiveCompletedExercises(first, null));
+            setCompletedExercises(getEffectiveCompletedExercises(first, null, clientData?.id, dateStr));
           }
         } else {
           setTodayWorkout(null);
@@ -2104,7 +2111,7 @@ function Workouts() {
       // drift / assignment loss on the next reopen (the per-(workout,day)
       // key above does not).
       updateDateCompletion(
-        workout?.client_id, workout?.workout_date,
+        clientDataRef.current?.id, formatDate(selectedDateRef.current || new Date()),
         wasCompleted ? { remove: [exerciseId] } : { add: [exerciseId] }
       );
       // Maintain the unchecked-overrides set so log-based auto-completion
@@ -2153,7 +2160,7 @@ function Workouts() {
       // Drop this workout's exercises from the stable client+date store too,
       // otherwise Reset all silently re-checks them on the next reopen.
       updateDateCompletion(
-        workoutForOverride?.client_id, workoutForOverride?.workout_date,
+        clientDataRef.current?.id, formatDate(selectedDateRef.current || new Date()),
         { remove: [...activeIds] }
       );
     } catch (e) { /* ignore */ }
@@ -2654,7 +2661,7 @@ function Workouts() {
         setReadinessData(null);
       }
       setShowHeroMenu(false);
-      setCompletedExercises(getEffectiveCompletedExercises(workout, matchedLog));
+      setCompletedExercises(getEffectiveCompletedExercises(workout, matchedLog, clientDataRef.current?.id, formatDate(selectedDateRef.current || new Date())));
     }
     setExpandedWorkout(true);
   }, [loading, todayWorkout?.id, todayWorkout?.instance_id, todayWorkout?.day_index]);
@@ -2813,7 +2820,7 @@ function Workouts() {
           // timed warm-ups/stretches checked after the workout finishes and
           // the assignment is rebuilt from the log on reopen.
           updateDateCompletion(
-            workout?.client_id, workout?.workout_date,
+            clientDataRef.current?.id, operationDateStr,
             { add: [updatedExercise.id] }
           );
           return next;
