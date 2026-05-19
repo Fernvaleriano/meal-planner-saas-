@@ -40,6 +40,10 @@ let tickBufferCtx = null; // ctx the buffer was rendered for; rebuild on mismatc
 let lastScheduledTime = 0;
 let stateListenerAttached = false;
 let keepAliveTimer = null;
+// When false, the audio engine is never created and any existing context is
+// suspended — this releases the iOS audio session so the user's background
+// music keeps playing. Driven by the play-mode mute toggle.
+let audioEnabled = true;
 
 const isBrowser = () => typeof window !== 'undefined';
 
@@ -70,6 +74,9 @@ const getCtxCtor = () => {
 };
 
 const ensureCtx = () => {
+  // Sound is off (play mode muted): never create/use the engine so iOS
+  // doesn't grab the audio session away from the user's music.
+  if (!audioEnabled) return null;
   if (audioCtx) return audioCtx;
   const Ctx = getCtxCtor();
   if (!Ctx) return null;
@@ -343,4 +350,19 @@ export const stopTickKeepAlive = () => {
     window.clearInterval(keepAliveTimer);
   }
   keepAliveTimer = null;
+};
+
+// Master gate for the app's audio engine. Off => no context is created and
+// any running context is suspended, which hands the iOS audio session back
+// so the user's background music resumes. On => resume so ticks/voice work.
+export const setAudioEnabled = (on) => {
+  audioEnabled = !!on;
+  if (!audioEnabled) {
+    stopTickKeepAlive();
+    if (audioCtx && audioCtx.state === 'running') {
+      try { audioCtx.suspend(); } catch { /* ignore */ }
+    }
+  } else if (audioCtx && audioCtx.state === 'suspended') {
+    try { audioCtx.resume(); } catch { /* ignore */ }
+  }
 };

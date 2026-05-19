@@ -7,7 +7,7 @@ import { apiGet, apiPost, apiPut, apiDelete, getOrCreateWorkoutLogId } from '../
 import { onAppResume } from '../../hooks/useAppLifecycle';
 import { parseDurationToSeconds } from '../../utils/workoutDuration';
 import { generateProgression, EFFORT_OPTIONS, EFFORT_TO_RIR, estimate1RM, parseSetsData, getMaxWeight, parseReps, isCompoundExercise, getWeightIncrement, convertWeight } from '../../utils/workoutProgression';
-import { playTickSound, playCompleteChime, warmUpTickSound, resumeAudio, startTickKeepAlive, stopTickKeepAlive } from '../../utils/audioTick';
+import { playTickSound, playCompleteChime, warmUpTickSound, resumeAudio, startTickKeepAlive, stopTickKeepAlive, setAudioEnabled } from '../../utils/audioTick';
 
 // --- Resume helpers ---
 const RESUME_STORAGE_KEY = 'guided_workout_resume';
@@ -342,6 +342,15 @@ function GuidedWorkoutModal({
   const [completedSets, setCompletedSets] = useState({}); // { exIndex: Set([setIndex, ...]) }
   const [totalElapsed, setTotalElapsed] = useState(0);
   const [voiceEnabled, setVoiceEnabled] = useState(true);
+
+  // Mute toggle also gates the audio ENGINE. When muted, the engine is never
+  // created and any running one is suspended, so iOS hands the audio session
+  // back and the user's background music keeps playing. Restore on unmount so
+  // audio works elsewhere / next session.
+  useEffect(() => {
+    setAudioEnabled(voiceEnabled);
+  }, [voiceEnabled]);
+  useEffect(() => () => setAudioEnabled(true), []);
   const [showVideo, setShowVideo] = useState(false);
   const [guidedVideoLoading, setGuidedVideoLoading] = useState(true);
   const [guidedVideoError, setGuidedVideoError] = useState(false);
