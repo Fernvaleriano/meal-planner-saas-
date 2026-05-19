@@ -427,6 +427,48 @@ function completionStorageKey(workoutId, dayIndex) {
   return `completedExercises_${workoutId}_day${dayIndex ?? 0}`;
 }
 
+// Stable completion store keyed by client + calendar date. The per-(workout,
+// day) key above breaks across reopen whenever the workout identity shifts:
+// a multi-day program's day_index is recomputed from the date, a finished
+// workout drops its assignment and is rebuilt from the log (assignment_id can
+// be null, day_index forced to 0), ad-hoc ids are regenerated. clientId +
+// workout_date is identical at write time and on every reload path, so
+// completion (especially timed warm-ups/stretches that have NOTHING durable
+// in sets_data) survives. It is a union across that date's workout(s); the
+// activeIds filter in getCompletedFromWorkoutData scopes it back to the
+// workout/day actually being rendered, so unrelated ids cannot bleed in.
+function dateCompletionKey(clientId, workoutDate) {
+  if (!clientId || !workoutDate) return null;
+  return `completedExercises_dt_${clientId}_${workoutDate}`;
+}
+
+function readDateCompletion(clientId, workoutDate) {
+  const key = dateCompletionKey(clientId, workoutDate);
+  if (!key) return new Set();
+  try {
+    const raw = localStorage.getItem(key);
+    if (raw) {
+      const ids = JSON.parse(raw);
+      if (Array.isArray(ids)) return new Set(ids);
+    }
+  } catch (e) { /* ignore */ }
+  return new Set();
+}
+
+// Incremental union update so a second workout on the same date can't clobber
+// the first's completion.
+function updateDateCompletion(clientId, workoutDate, { add = [], remove = [] } = {}) {
+  const key = dateCompletionKey(clientId, workoutDate);
+  if (!key) return;
+  try {
+    const cur = readDateCompletion(clientId, workoutDate);
+    add.forEach(id => cur.add(id));
+    remove.forEach(id => cur.delete(id));
+    if (cur.size === 0) localStorage.removeItem(key);
+    else localStorage.setItem(key, JSON.stringify([...cur]));
+  } catch (e) { /* ignore */ }
+}
+
 // Explicit "user unchecked these" overrides. Logged sets normally auto-check an
 // exercise; without overrides, an uncheck/Reset-all would silently revert on
 // the next load because the log entries still exist. Overrides win over the
@@ -469,7 +511,7 @@ function writeUncheckedOverrides(workoutId, dayIndex, ids) {
 // (..._day0) no longer matches the key written during the live session
 // (..._day<realIndex>). The activeIds filter below already constrains any
 // recovered IDs to this day's exercises, so cross-day bleed cannot happen.
-function getCompletedFromWorkoutData(workoutData, dayIndex = 0, workoutId = null, allowDayFallback = false) {
+function getCompletedFromWorkoutData(workoutData, dayIndex = 0, workoutId = null, allowDayFallback = false, clientId = null, workoutDate = null) {
   let exercises = [];
   if (Array.isArray(workoutData?.exercises) && workoutData.exercises.length > 0) {
     exercises = workoutData.exercises;
@@ -513,6 +555,10 @@ function getCompletedFromWorkoutData(workoutData, dayIndex = 0, workoutId = null
       }
     } catch (e) { /* ignore */ }
   }
+  // Stable client+date store — survives day_index drift, assignment loss and
+  // ad-hoc id churn. This is the durable home for timed warm-up/stretch
+  // completion, which has no per-set completed flags to fall back on.
+  readDateCompletion(clientId, workoutDate).forEach(id => fromData.add(id));
   // Drop completion IDs for exercises that no longer exist in the workout
   // (deleted or swapped), otherwise summary shows "5 of 3 completed".
   const activeIds = new Set(exercises.filter(ex => ex?.id).map(ex => ex.id));
@@ -546,7 +592,10 @@ function getWorkoutExercises(workout) {
 
 // Helper to get completed count for a workout (from workout_data flags + localStorage)
 function getWorkoutCompletedCount(workout) {
-  const completed = getCompletedFromWorkoutData(workout?.workout_data, workout?.day_index || 0, workout?.id);
+  const completed = getCompletedFromWorkoutData(
+    workout?.workout_data, workout?.day_index || 0, workout?.id, false,
+    workout?.client_id, workout?.workout_date
+  );
   return completed.size;
 }
 
@@ -569,7 +618,8 @@ function getEffectiveCompletedExercises(workout, log) {
   // are rebuilt from the log with day_index forced to 0, so allow the
   // day-bucket fallback to recover timed/no-set completion that the log can't.
   const combined = getCompletedFromWorkoutData(
-    workout.workout_data, dayIndex, workout.id, workout.is_historical === true
+    workout.workout_data, dayIndex, workout.id, workout.is_historical === true,
+    workout.client_id, workout.workout_date
   );
   const logExercises = log?.exercises;
   if (Array.isArray(logExercises) && logExercises.length > 0) {
@@ -664,7 +714,11 @@ function Workouts() {
   const openSetEditor = useCallback((config) => setSetEditorConfig(config), []);
   const closeSetEditor = useCallback(() => setSetEditorConfig(null), []);
   const [workoutStarted, setWorkoutStarted] = useState(false);
-  const [completedExercises, setCompletedExercises] = useState(new Set());
+  const [completedExercises, setCompletedExercises] = useState(() =>
+    cachedWorkouts?.todayWorkout
+      ? getEffectiveCompletedExercises(cachedWorkouts.todayWorkout, cachedWorkouts.workoutLog || null)
+      : new Set()
+  );
   const [showReadinessCheck, setShowReadinessCheck] = useState(false);
   const [readinessData, setReadinessData] = useState(null); // { energy: 1-3, soreness: 1-3, sleep: 1-3 }
   const [showWorkoutReadyConfirm, setShowWorkoutReadyConfirm] = useState(false); // Confirmation after readiness check
@@ -1356,6 +1410,15 @@ function Workouts() {
         setTodayWorkout(dateCache.todayWorkout || null);
         setTodayWorkouts(dateCache.todayWorkouts || []);
         setWorkoutLog(dateCache.workoutLog || null);
+        // Restore checkmarks from localStorage immediately. Without this they
+        // stay blank until the network fetch returns (and disappear entirely
+        // on an offline reopen, where the fetch path early-returns before
+        // ever calling setCompletedExercises).
+        if (dateCache.todayWorkout) {
+          setCompletedExercises(
+            getEffectiveCompletedExercises(dateCache.todayWorkout, dateCache.workoutLog || null)
+          );
+        }
         // Pre-seed the logs ref so a card switch during the cache-display
         // window has at least the cached log to find; the fresh fetch
         // below replaces it with the full array.
@@ -2037,6 +2100,13 @@ function Workouts() {
           }
         }
       } catch (e) { /* ignore localStorage errors */ }
+      // Mirror into the stable client+date store so this survives day_index
+      // drift / assignment loss on the next reopen (the per-(workout,day)
+      // key above does not).
+      updateDateCompletion(
+        workout?.client_id, workout?.workout_date,
+        wasCompleted ? { remove: [exerciseId] } : { add: [exerciseId] }
+      );
       // Maintain the unchecked-overrides set so log-based auto-completion
       // doesn't silently re-check what the user just unchecked. Re-checking
       // an exercise clears it from the override list.
@@ -2080,6 +2150,12 @@ function Workouts() {
     try {
       const activeIds = new Set(getWorkoutExercises(workoutForOverride).map(e => e.id));
       writeUncheckedOverrides(workoutForOverride?.id, dayIdxForOverride, activeIds);
+      // Drop this workout's exercises from the stable client+date store too,
+      // otherwise Reset all silently re-checks them on the next reopen.
+      updateDateCompletion(
+        workoutForOverride?.client_id, workoutForOverride?.workout_date,
+        { remove: [...activeIds] }
+      );
     } catch (e) { /* ignore */ }
 
     // Update workout_data to clear completed flags on all exercises
@@ -2733,6 +2809,13 @@ function Workouts() {
             const key = completionStorageKey(workout?.id, workout?.day_index);
             if (key) localStorage.setItem(key, JSON.stringify([...next]));
           } catch (e) { /* ignore */ }
+          // Stable client+date mirror — this is what keeps play-mode-completed
+          // timed warm-ups/stretches checked after the workout finishes and
+          // the assignment is rebuilt from the log on reopen.
+          updateDateCompletion(
+            workout?.client_id, workout?.workout_date,
+            { add: [updatedExercise.id] }
+          );
           return next;
         });
       }
