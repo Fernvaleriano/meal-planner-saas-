@@ -39,28 +39,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   </React.StrictMode>
 );
 
-// Register service worker for PWA support + auto-update.
-// Without this, an installed (home-screen) app stays pinned to whatever
-// code it first cached and never picks up new deploys. We reload ONCE when
-// a new service worker takes control — but only when it's safe: never the
-// first install, never mid-guided-workout, and guarded against reload loops.
+// Register service worker for PWA support
 if ('serviceWorker' in navigator) {
-  const hadController = !!navigator.serviceWorker.controller;
-  let refreshing = false;
-
-  navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (refreshing) return;
-    if (!hadController) return; // first install — nothing to refresh
-    // Never yank the page out from under an active guided workout.
-    if (document.querySelector('.guided-workout-overlay')) return;
-    refreshing = true;
-    window.location.reload();
-  });
-
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').then((reg) => {
-      // Proactively check for a newer service worker on every launch.
-      try { reg.update(); } catch { /* ignore */ }
-    }).catch(() => {});
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
   });
 }
