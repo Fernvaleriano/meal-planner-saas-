@@ -7,7 +7,7 @@ import { apiGet, apiPost, apiPut, apiDelete, getOrCreateWorkoutLogId } from '../
 import { onAppResume } from '../../hooks/useAppLifecycle';
 import { parseDurationToSeconds } from '../../utils/workoutDuration';
 import { generateProgression, EFFORT_OPTIONS, EFFORT_TO_RIR, estimate1RM, parseSetsData, getMaxWeight, parseReps, isCompoundExercise, getWeightIncrement, convertWeight } from '../../utils/workoutProgression';
-import { playTickSound, playCompleteChime, warmUpTickSound, resumeAudio, startTickKeepAlive, stopTickKeepAlive, setAudioMuted } from '../../utils/audioTick';
+import { playTickSound, playCompleteChime, warmUpTickSound, resumeAudio, startTickKeepAlive, stopTickKeepAlive } from '../../utils/audioTick';
 
 // --- Resume helpers ---
 const RESUME_STORAGE_KEY = 'guided_workout_resume';
@@ -1702,16 +1702,6 @@ function GuidedWorkoutModal({
     warmUpTickSound();
   }, []);
 
-  // The sound toggle controls the WHOLE in-app audio subsystem, not just the
-  // spoken cues. Muting it suspends our AudioContext and stops the keep-alive
-  // so iOS releases the exclusive audio session and the user's background
-  // music (YouTube/Spotify) keeps playing during play mode. Reset to unmuted
-  // on unmount so audio works normally outside play mode.
-  useEffect(() => {
-    setAudioMuted(!voiceEnabled);
-    return () => setAudioMuted(false);
-  }, [voiceEnabled]);
-
   // --- Voice announcements (TTS only, no auto-play of coach voice notes) ---
   useEffect(() => {
     const runVoice = async () => {
@@ -1735,11 +1725,8 @@ function GuidedWorkoutModal({
         }
       } else if (phase === 'exercise') {
         speak('Go!', voiceEnabled);
-      // Deliberately no spoken cue during 'rest'. On iOS each
-      // speechSynthesis call seizes the audio session and the dense
-      // rest-period speech ("Rest." + the 30s/10s/3-2-1 callouts) was
-      // permanently killing the user's background music. Rest stays
-      // silent so nothing touches the audio session between sets.
+      } else if (phase === 'rest') {
+        speak('Rest.', voiceEnabled);
       } else if (phase === 'deferred-review') {
         const count = skippedQueue.length;
         speak(`You skipped ${count} exercise${count !== 1 ? 's' : ''}. Would you like to go back?`, voiceEnabled);
@@ -2573,18 +2560,37 @@ function GuidedWorkoutModal({
     };
   }, [phase, isPaused]);
 
-  // Rest-timer voice callouts were intentionally removed: on iOS each
-  // speechSynthesis call seizes the audio session, and the dense
-  // rest-period speech ("30 seconds left" / "10 seconds" / 3-2-1) was
-  // permanently killing the user's background music. Rest now stays
-  // silent so background music keeps playing between sets. The visual
-  // rest countdown timer is unaffected.
+  // --- Rest timer voice callouts ---
+  useEffect(() => {
+    if (phase !== 'rest' || isPaused) return;
+    const maxTime = phaseMaxTimeRef.current;
 
-  // Timed-exercise final 5-second spoken countdown was removed: on iOS
-  // speaking "5-4-3-2-1" back-to-back keeps the speechSynthesis audio
-  // session continuously active, which permanently kills the user's
-  // background music (it never gets a clean interruption-end to resume).
-  // The large on-screen countdown number already conveys the time left.
+    // Announce at 30s, 10s, and final 3-2-1
+    if (timer === 30 && maxTime > 40) {
+      speak('30 seconds left', voiceEnabled);
+    } else if (timer === 10 && maxTime > 15) {
+      speak('10 seconds', voiceEnabled);
+    } else if (timer === 3) {
+      speak('3', voiceEnabled);
+    } else if (timer === 2) {
+      speak('2', voiceEnabled);
+    } else if (timer === 1) {
+      speak('1', voiceEnabled);
+    }
+  }, [timer, phase, isPaused, voiceEnabled]);
+
+  // --- Timed-exercise final 5-second countdown (tick + spoken 5..1) ---
+  // Fires once per distinct `timer` value during a timed hold. The tick
+  // always plays (independent of the voice setting, matching the rep
+  // countdown); the spoken number is gated by voiceEnabled. The isPaused
+  // guard means a paused hold goes silent and resumes cleanly.
+  useEffect(() => {
+    if (phase !== 'exercise' || !info.isTimed || isPaused) return;
+    if (timer > 0 && timer <= 5) {
+      playTickSound();
+      speak(String(timer), voiceEnabled);
+    }
+  }, [timer, phase, info.isTimed, isPaused, voiceEnabled]);
 
   // --- Last set announcement: tell client what's next ---
   const lastSetAnnouncedRef = useRef(null); // track "exIndex-setIndex" to avoid repeat
@@ -2651,11 +2657,13 @@ function GuidedWorkoutModal({
             speak(`${nextRep} reps left`, voiceEnabled);
           } else if (nextRep === 5 && total > 8) {
             speak('5 reps left', voiceEnabled);
+          } else if (nextRep === 3) {
+            speak('3', voiceEnabled);
+          } else if (nextRep === 2) {
+            speak('2', voiceEnabled);
+          } else if (nextRep === 1) {
+            speak('1', voiceEnabled);
           }
-          // No spoken 3-2-1 rep countdown: on iOS that back-to-back
-          // speechSynthesis burst keeps the audio session active and
-          // permanently kills the user's background music. The big
-          // on-screen rep number already shows the count.
           if (nextRep <= 0) {
             setRepCountdownActive(false);
             setTimeout(() => speak('Set complete. Log your set and rest up.', voiceEnabled), 300);
@@ -2969,6 +2977,9 @@ function GuidedWorkoutModal({
     return done >= numSets;
   };
 
+  // Detect "transition rest" — resting after last set before moving to next exercise
+  const isTransitionRest = phase === 'rest' && isExerciseCompleted(currentExIndex) && nextExercise;
+  const nextExerciseVideoUrl = nextExercise?.customVideoUrl || nextExercise?.video_url || nextExercise?.animation_url;
 
   // Helper to check if URL is a video format (avoid loading .mp4 as <img>)
   const isVideoUrl = (url) => {
@@ -3183,8 +3194,8 @@ function GuidedWorkoutModal({
           <button
             className={`guided-voice-toggle ${voiceEnabled ? 'on' : 'off'}`}
             onClick={() => setVoiceEnabled(!voiceEnabled)}
-            aria-label={voiceEnabled ? 'Mute all sounds (lets your music keep playing)' : 'Unmute voice and timer sounds'}
-            title={voiceEnabled ? 'Sound on — tap to mute & keep your music playing' : 'Sound off — your music can play'}
+            aria-label={voiceEnabled ? 'Mute voice cues' : 'Unmute voice cues'}
+            title={voiceEnabled ? 'Voice cues on' : 'Voice cues off'}
           >
             {voiceEnabled ? <Volume2 size={18} /> : <VolumeX size={18} />}
           </button>
@@ -3711,13 +3722,42 @@ function GuidedWorkoutModal({
         }
       }}>
         {phase === 'rest' ? (
-          /* Always the non-video rest timer. A freshly-mounted autoplaying
-             <video> here (the next-exercise preview) interrupted the user's
-             background music on iOS even when muted — and a Safari-tab
-             YouTube does not auto-resume after that interruption. The "Up
-             Next" label still tells the client what's coming, and nothing
-             on the rest screen touches the audio session now. */
-          (
+          /* Rest timer displayed in the visual area — show next exercise video behind timer on transition rest */
+          isTransitionRest && nextExerciseVideoUrl ? (
+            <div className="guided-rest-video-preview">
+              <video
+                src={nextExerciseVideoUrl}
+                autoPlay
+                loop
+                muted
+                playsInline
+                preload="metadata"
+                className="guided-rest-video-bg"
+              />
+              <div className="guided-rest-video-overlay">
+                <div className="guided-timer-circle">
+                  <svg viewBox="0 0 200 200" className="guided-timer-svg">
+                    <circle cx="100" cy="100" r={radius} className="guided-timer-track" />
+                    <circle
+                      cx="100" cy="100" r={radius}
+                      className="guided-timer-ring rest"
+                      strokeDasharray={circumference}
+                      strokeDashoffset={strokeDashoffset}
+                    />
+                  </svg>
+                  <div className="guided-timer-text">
+                    <span className="guided-timer-label">Rest</span>
+                    <span className="guided-timer-value">{formatTime(timer)}</span>
+                    {nextExercise && (
+                      <span className="guided-rest-upnext-label">
+                        Up Next: {nextExercise.name || nextExercise.exercise_name}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
             <div className="guided-rest-timer-bg">
               <div className="guided-timer-circle">
                 <svg viewBox="0 0 200 200" className="guided-timer-svg">
