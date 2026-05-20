@@ -13440,9 +13440,14 @@
             const val = isNaN(n) ? 0 : n;
             const s = ex.setsData[si];
             if (field === 'duration') {
-                s.duration = val; s.isTimeBased = true;
+                // Display may be in "min" or "sec" (see inline render). Always
+                // persist in seconds so the rest of the app (storage, client
+                // views, set summaries) keeps a single unit.
+                const unit = input.dataset.unit || 'sec';
+                const secsVal = unit === 'min' ? Math.round(val * 60) : Math.round(val);
+                s.duration = secsVal; s.isTimeBased = true;
                 ex.trackingType = 'time';
-                if (si === 0) ex.duration = val;
+                if (si === 0) ex.duration = secsVal;
             } else if (field === 'weight') {
                 // The coach types in their own display unit, so tag the set
                 // with that unit. Consumers (client app, coach views) convert
@@ -14237,7 +14242,13 @@
                                     let bodyHtml;
                                     if (acIsTimeEx) {
                                         const secs = acParseTimeSeconds((s.duration != null && s.duration !== '') ? s.duration : (ex.duration != null ? ex.duration : null)) || 0;
-                                        bodyHtml = `<input class="ac-inline-set-input" ${da} data-field="duration" type="number" min="0" inputmode="numeric" value="${secs}" style="${ip}" ${guard}><span style="margin:0 5px;color:#64748b;font-size:12px;">sec</span>`;
+                                        // Show whole-minute durations as "min" so coaches don't
+                                        // have to read "900 sec" for a 15-minute cardio block.
+                                        // acInlineCommit reads data-unit to convert back to sec.
+                                        const useMin = secs >= 60 && secs % 60 === 0;
+                                        const displayVal = useMin ? (secs / 60) : secs;
+                                        const displayUnit = useMin ? 'min' : 'sec';
+                                        bodyHtml = `<input class="ac-inline-set-input" ${da} data-field="duration" data-unit="${displayUnit}" type="number" min="0" inputmode="numeric" value="${displayVal}" style="${ip}" ${guard}><span style="margin:0 5px;color:#64748b;font-size:12px;">${displayUnit}</span>`;
                                     } else {
                                         const rv = (s.reps != null ? s.reps : 0);
                                         const wv = (s.weight != null && s.weight !== '') ? weightForCoach(s.weight, s.weightUnit) : 0;
