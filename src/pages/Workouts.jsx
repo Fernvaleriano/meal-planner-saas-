@@ -1956,19 +1956,54 @@ function Workouts() {
           const dateOverrides = workoutData.date_overrides || {};
           const override = dateOverrides[dateStr];
 
-          if (override) {
-            if (override.isRest) continue;
-            if (override.dayIndex !== undefined && days.length > 0) {
-              const dayIndex = override.dayIndex % days.length;
-              return {
-                date,
-                dateStr,
-                dayLabel: formatDisplayDate(date),
-                workoutName: days[dayIndex].name || `Day ${dayIndex + 1}`,
-                exerciseCount: (days[dayIndex].exercises || []).filter(ex => ex && ex.id).length
-              };
+          // Collect any added-workout instances from all override formats
+          // (matches the server in workout-assignments.js and weekSchedule
+          // above). Without this, a rescheduled workout — which writes the new
+          // `addedWorkouts` shape — is invisible here and "Coming Up" goes
+          // blank for the new date.
+          let skipNatural = false;
+          const addedDayIndices = [];
+          if (override && days.length > 0) {
+            if (override.isRest) skipNatural = true;
+            if (Array.isArray(override.addedWorkouts)) {
+              for (const aw of override.addedWorkouts) addedDayIndices.push(aw.day_index % days.length);
+            }
+            const legacySeenDi = new Set();
+            if (Array.isArray(override.dayIndices)) {
+              for (const idx of override.dayIndices) {
+                const di = idx % days.length;
+                if (!legacySeenDi.has(di)) { legacySeenDi.add(di); addedDayIndices.push(di); }
+              }
+              skipNatural = true;
+            }
+            if (override.dayIndex !== undefined) {
+              const di = override.dayIndex % days.length;
+              if (!legacySeenDi.has(di)) { legacySeenDi.add(di); addedDayIndices.push(di); }
+              skipNatural = true;
+            }
+            if (Array.isArray(override.addedDayIndices)) {
+              for (const idx of override.addedDayIndices) {
+                const di = idx % days.length;
+                if (!legacySeenDi.has(di)) { legacySeenDi.add(di); addedDayIndices.push(di); }
+              }
             }
           }
+
+          if (addedDayIndices.length > 0) {
+            const dayIndex = addedDayIndices[0];
+            const day = days[dayIndex];
+            return {
+              date,
+              dateStr,
+              dayLabel: formatDisplayDate(date),
+              workoutName: addedDayIndices.length > 1
+                ? `${addedDayIndices.length} Workouts`
+                : (day?.name || `Day ${dayIndex + 1}`),
+              exerciseCount: (day?.exercises || []).filter(ex => ex && ex.id).length
+            };
+          }
+
+          if (skipNatural) continue;
 
           if (selectedDays.includes(dayName) && days.length > 0) {
             // Normalize to UTC midnight so the day-count matches the server
