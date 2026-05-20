@@ -13,6 +13,10 @@
     <meta property="og:type" content="website">
     <meta property="og:image" content="/icons/logo.png">
     <link rel="manifest" href="/manifest.json" id="manifest-link">
+    <!-- The PNG at this URL MUST be opaque (no alpha channel, dark background baked in).
+         iOS does NOT add a background to apple-touch-icon — transparent areas render as
+         white, and the cream-C / teal-Z logo nearly disappears (looks like a blank white
+         tile). If you swap this URL, verify the target image has mode=RGB, not RGBA. -->
     <link rel="icon" type="image/png" href="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/icons/logo.png">
     <link rel="apple-touch-icon" href="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/icons/logo.png">
     <!-- Set data-theme BEFORE any CSS loads to prevent white flash.
