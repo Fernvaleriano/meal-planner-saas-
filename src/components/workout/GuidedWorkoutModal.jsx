@@ -942,11 +942,15 @@ function GuidedWorkoutModal({
     if (!IS_IOS) return;
     const FIRST_NUDGE_MS = 7 * 60 * 1000;
     const REPEAT_NUDGE_MS = 7 * 60 * 1000;
-    let dismissCount = 0;
     const tick = () => {
       // Don't shove a banner on top of the resume prompt or the splash.
       if (!showResumePromptRef.current && !showSoftResetSplashRef.current) {
         setShowSoftResetBanner(true);
+        // Voice nudge in case the client isn't looking at the screen
+        // (between sets, towel over phone, glancing at the gym mirror,
+        // etc.). Short and clear — gates on the same voiceEnabled flag
+        // as every other speech cue.
+        try { speak('Quick refresh recommended', voiceEnabledRef.current); } catch { /* ignore */ }
       }
     };
     const firstTimer = setTimeout(() => {
@@ -960,6 +964,11 @@ function GuidedWorkoutModal({
       if (firstTimer.intervalRef) clearInterval(firstTimer.intervalRef);
     };
   }, []);
+
+  // Ref so the banner timer reads the current voice-enabled value
+  // without re-running every time the user toggles it.
+  const voiceEnabledRef = useRef(voiceEnabled);
+  voiceEnabledRef.current = voiceEnabled;
 
   // Refs so the banner timer can check current visibility state without
   // re-running every time those bits flip.
