@@ -170,6 +170,10 @@ const playBufferNow = (ctx, buffer) => {
       if (cleanedUp) return;
       cleanedUp = true;
       try { src.disconnect(); } catch { /* ignore */ }
+      // Drop the buffer reference so WebKit can release the decoded
+      // audio data sooner — iOS in particular holds the PCM data alive
+      // until the source is GC'd, which can lag in long sessions.
+      try { src.buffer = null; } catch { /* ignore */ }
     };
     src.onended = cleanup;
     // Belt-and-suspenders: iOS WebKit doesn't always fire `onended` when the
@@ -373,6 +377,7 @@ export const startTickKeepAlive = () => {
         if (cleanedUp) return;
         cleanedUp = true;
         try { src.disconnect(); } catch { /* ignore */ }
+        try { src.buffer = null; } catch { /* ignore */ }
       };
       src.onended = cleanup;
       setTimeout(cleanup, 250);
