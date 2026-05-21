@@ -1724,6 +1724,22 @@ function GuidedWorkoutModal({
       if (clientNoteTimerRef.current) {
         clearTimeout(clientNoteTimerRef.current);
       }
+      // Release the exercise video's decoder + buffered data before the
+      // component unmounts. Matches the per-exercise teardown above so
+      // closing mid-workout doesn't leave an iOS-Safari video context
+      // hanging around for the next modal open to compete with.
+      const vid = guidedVideoElRef.current;
+      if (vid) {
+        try { vid.pause(); vid.removeAttribute('src'); vid.load(); } catch { /* ignore */ }
+      }
+      if (voiceNoteRef.current) {
+        try {
+          voiceNoteRef.current.pause();
+          voiceNoteRef.current.src = '';
+          voiceNoteRef.current.load();
+        } catch { /* ignore */ }
+        voiceNoteRef.current = null;
+      }
       // Flush pending auto-saves so a just-typed value isn't lost at unmount.
       // Skip the resume flush when the workout finished cleanly — handleFinishWorkout
       // already called clearResumeState and we don't want to resurrect it.
@@ -1900,8 +1916,29 @@ function GuidedWorkoutModal({
   // Reset state when exercise changes
   useEffect(() => {
     if (voiceNoteRef.current) {
-      voiceNoteRef.current.pause();
+      // Fully release the audio element: pause, drop the source, and
+      // load() to abort any pending fetch / free the decoder. Just
+      // pause()-ing leaves the buffered audio + decoder context in
+      // memory until GC, which iOS Safari is slow to do under load.
+      try {
+        voiceNoteRef.current.pause();
+        voiceNoteRef.current.src = '';
+        voiceNoteRef.current.load();
+      } catch { /* ignore */ }
       voiceNoteRef.current = null;
+    }
+    // Tear down the current exercise video before React swaps in the new
+    // src. Without an explicit pause + src clear + load, iOS Safari keeps
+    // the prior video's decoder buffer alive — over 30 minutes of
+    // exercise transitions that's the bulk of the memory growth that
+    // ends in a tab kill.
+    const oldVideo = guidedVideoElRef.current;
+    if (oldVideo) {
+      try {
+        oldVideo.pause();
+        oldVideo.removeAttribute('src');
+        oldVideo.load();
+      } catch { /* ignore */ }
     }
     setPlayingVoiceNote(false);
     setShowCoachNote(false);
@@ -1909,12 +1946,16 @@ function GuidedWorkoutModal({
     setVideoMuted(true);
     setGuidedVideoLoading(true);
     setGuidedVideoError(false);
-    setGuidedVideoKey(0);
+    // Bump (not reset) — forces React to unmount the prior <video>
+    // element and mount a fresh one. Resetting to 0 was a no-op for the
+    // common case where the prior key was already 0, so React just
+    // updated `src` on the same element and the old decoder lingered.
+    setGuidedVideoKey(k => k + 1);
     if (guidedVideoBlobUrl) {
       URL.revokeObjectURL(guidedVideoBlobUrl);
       setGuidedVideoBlobUrl(null);
     }
-  }, [currentExIndex]);
+  }, [currentExIndex]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-play the exercise video whenever an exercise screen appears.
   // Reps-based exercises set showVideo inline when the rep countdown arms,
@@ -3847,6 +3888,7 @@ function GuidedWorkoutModal({
           isTransitionRest && nextExerciseVideoUrl ? (
             <div className="guided-rest-video-preview">
               <video
+                key={nextExerciseVideoUrl}
                 src={nextExerciseVideoUrl}
                 autoPlay
                 loop
