@@ -810,6 +810,21 @@ function GuidedWorkoutModal({
 
           if (onSoftResetConsumed) onSoftResetConsumed();
 
+          // Immediately re-save the restored state to localStorage. The
+          // clearResumeState above wiped the snapshot — if iOS kills
+          // the tab before the next debounced autosave fires (typical
+          // 200ms+), the second crash would land with empty storage
+          // and the user would lose their workout entirely. Build the
+          // snapshot from `saved` directly (refs haven't sync'd yet on
+          // this tick) so we re-persist the same state that just
+          // restored.
+          try {
+            saveResumeState({
+              ...saved,
+              currentExIndex: safeExIndex
+            });
+          } catch { /* ignore */ }
+
           // Drop splash after the next render commits so the user lands
           // on the get-ready countdown smoothly.
           setTimeout(() => setShowSoftResetSplash(false), 500);

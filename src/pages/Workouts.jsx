@@ -3649,6 +3649,18 @@ function Workouts() {
 
   // Called when user clicks "Begin Workout" on the confirmation screen
   const handleStartGuidedWorkout = useCallback(() => {
+    // TEMPORARY: Play Mode disabled while we investigate iOS memory crashes
+    // on lower-end devices (13 Pro and older hit a WebKit native media
+    // memory ceiling around 22 min that we can't release from JS). Flip
+    // PLAY_MODE_ENABLED back to true once the 4K → 720p video transcode
+    // is done; that's the real structural fix.
+    const PLAY_MODE_ENABLED = false;
+    if (!PLAY_MODE_ENABLED) {
+      setShowWorkoutReadyConfirm(false);
+      alert('Play Mode is temporarily unavailable for maintenance. We\'re fixing an issue affecting some iPhones. Your workout is still saved — please log your sets from the workout details screen for now. Back soon!');
+      return;
+    }
+
     // Unlock WebAudio synchronously inside this click handler so the rep-tick
     // sound can play later from setInterval on iOS. useEffect-based unlocks
     // don't work here — iOS closes the user-activation window before the
