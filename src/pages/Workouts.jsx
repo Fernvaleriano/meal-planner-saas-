@@ -758,6 +758,18 @@ function Workouts() {
   const [showCreateWorkout, setShowCreateWorkout] = useState(false);
   const [showClubWorkouts, setShowClubWorkouts] = useState(false);
   const [showGuidedWorkout, setShowGuidedWorkout] = useState(false);
+
+  // Soft-reset (iOS memory escape valve): bumping softResetSession remounts
+  // GuidedWorkoutModal via its `key`. pendingSoftResume tells the fresh mount
+  // to auto-resume from localStorage instead of showing the "Resume Workout?"
+  // prompt — the user already intentionally tapped Refresh, so the extra
+  // confirmation just gets in their way.
+  const [softResetSession, setSoftResetSession] = useState(0);
+  const [pendingSoftResume, setPendingSoftResume] = useState(false);
+  const handleSoftReset = useCallback(() => {
+    setPendingSoftResume(true);
+    setSoftResetSession(n => n + 1);
+  }, []);
   const [showGymProof, setShowGymProof] = useState(false);
   const [showFinishConfirm, setShowFinishConfirm] = useState(false);
   const [showShareResults, setShowShareResults] = useState(false);
@@ -5414,6 +5426,7 @@ function Workouts() {
       {showGuidedWorkout && exercises.length > 0 && (
         <ErrorBoundary>
           <GuidedWorkoutModal
+            key={`guided-${softResetSession}`}
             exercises={exercises}
             workoutName={todayWorkout?.name || 'Workout'}
             onClose={() => setShowGuidedWorkout(false)}
@@ -5431,6 +5444,9 @@ function Workouts() {
             selectedDate={selectedDate}
             weightUnit={weightUnit}
             genderPreference={clientData?.preferred_exercise_gender || 'all'}
+            autoResumeOnMount={pendingSoftResume}
+            onSoftResetConsumed={() => setPendingSoftResume(false)}
+            onSoftResetRequest={handleSoftReset}
           />
         </ErrorBoundary>
       )}
