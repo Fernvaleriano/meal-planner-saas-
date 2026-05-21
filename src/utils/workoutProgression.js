@@ -249,10 +249,23 @@ export const generateProgression = ({ previousSessions, exercise, weightUnit, la
       reasoning = `Plateau detected — time to deload. Drop to ${recommendedWeight}${weightUnit} and rebuild.`;
     }
   } else if (effectiveEffort === 'easy') {
-    // 4+ RIR — weight is too light. Bump weight, hold reps.
+    // 4+ RIR — weight is too light. Bump weight, keep rep target open.
     recommendedWeight = lastMaxWeight + weightIncrement;
     recommendedReps = lastMaxReps;
-    reasoning = `Felt easy at ${lastMaxWeight}${weightUnit} — bumping to ${recommendedWeight}${weightUnit}. Hold ${recommendedReps} reps.`;
+
+    // Count trailing Easy sessions so we can nudge honest reporters to self-escalate.
+    let easyStreak = 1;
+    for (let i = 1; i < previousSessions.length; i++) {
+      if (getWeightedEffort(parseSetsData(previousSessions[i])) === 'easy') easyStreak++;
+      else break;
+    }
+
+    reasoning = `Felt easy at ${lastMaxWeight}${weightUnit} — bumping to ${recommendedWeight}${weightUnit}. Aim for ${recommendedReps}+ reps.`;
+    if (easyStreak >= 3) {
+      reasoning += ` ${easyStreak} easy sessions in a row — tap Adjust to skip ahead if you're ready.`;
+    } else if (easyStreak >= 2) {
+      reasoning += ` 2nd easy session in a row — tap Adjust for a bigger jump if ready.`;
+    }
   } else if (effectiveEffort === 'moderate') {
     // 2-3 RIR — steady progress
     if (lastMaxReps >= repRangeTop) {
