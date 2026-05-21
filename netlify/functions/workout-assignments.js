@@ -166,10 +166,22 @@ exports.handler = withTimeout(async (event) => {
         // or is replaced — deactivation just caps the effective window, it
         // doesn't erase history.
         if (date) {
+          // Only pull assignments that could possibly apply to this date:
+          //   - any active assignment, OR
+          //   - an inactive assignment whose deactivation (updated_at) happened
+          //     on or after the target date — older deactivations are
+          //     guaranteed to be skipped by the in-loop date-range check
+          //     (endBoundary capped at deactivation), so fetching them is
+          //     pure waste. Without this filter, a client with a long history
+          //     of replaced/ended programs forces the function to pull every
+          //     one of them (full workout_data per row) on every day-tap,
+          //     which can time the function out. See client 61 (89 rows,
+          //     6 active) for the failure that motivated this.
           const { data: activeAssignments, error: assignmentError } = await supabase
             .from('client_workout_assignments')
             .select('*')
             .eq('client_id', clientId)
+            .or(`is_active.eq.true,updated_at.gte.${date}`)
             .order('created_at', { ascending: false });
 
           if (assignmentError) {
