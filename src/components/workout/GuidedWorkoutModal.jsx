@@ -497,6 +497,7 @@ function GuidedWorkoutModal({
   const [guidedVideoKey, setGuidedVideoKey] = useState(0);
   const [guidedVideoBlobUrl, setGuidedVideoBlobUrl] = useState(null);
   const guidedVideoElRef = useRef(null);
+  const restPreviewVideoRef = useRef(null);
   const [playingVoiceNote, setPlayingVoiceNote] = useState(false);
   const [showCoachNote, setShowCoachNote] = useState(false); // For text notes popup
   const [showReferenceLinks, setShowReferenceLinks] = useState(false);
@@ -1896,6 +1897,11 @@ function GuidedWorkoutModal({
       const miniVid = miniVideoRef.current;
       if (miniVid) {
         try { miniVid.pause(); miniVid.removeAttribute('src'); miniVid.load(); } catch { /* ignore */ }
+      }
+      // And the rest-period "up next" preview video.
+      const restPrev = restPreviewVideoRef.current;
+      if (restPrev) {
+        try { restPrev.pause(); restPrev.removeAttribute('src'); restPrev.load(); } catch { /* ignore */ }
       }
       if (voiceNoteRef.current) {
         try {
@@ -4067,7 +4073,8 @@ function GuidedWorkoutModal({
           isTransitionRest && nextExerciseVideoUrl ? (
             <div className="guided-rest-video-preview">
               <video
-                key={nextExerciseVideoUrl}
+                key="guided-rest-preview"
+                ref={restPreviewVideoRef}
                 src={nextExerciseVideoUrl}
                 autoPlay
                 loop
