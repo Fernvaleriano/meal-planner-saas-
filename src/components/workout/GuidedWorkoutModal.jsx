@@ -79,11 +79,14 @@ const recordDebugError = (kind, error, context) => {
 };
 const recordDebugMount = () => {
   if (!DEBUG_RECORDER) return;
-  // Fresh recorder for this session; preserve any pre-existing error so
-  // the user can still read it on the next resume prompt.
+  // Move the previous session's events into `previousEvents` so the
+  // post-crash resume prompt can show what was happening just before
+  // the tab died. Starting fresh `events` array for this new session.
+  // Preserve any captured error so the user can still read it.
   const prior = _readDebugLog();
   const log = {
     events: [],
+    previousEvents: (prior?.events && prior.events.length) ? prior.events : (prior?.previousEvents || []),
     error: prior?.error || null,
     mountedAt: Date.now(),
     ua: (typeof navigator !== 'undefined' && navigator.userAgent) || ''
@@ -4654,7 +4657,7 @@ function GuidedWorkoutModal({
                 Start Over
               </button>
             </div>
-            {debugSnapshot && (debugSnapshot.error || (debugSnapshot.events && debugSnapshot.events.length > 0)) && (
+            {debugSnapshot && (debugSnapshot.error || (debugSnapshot.previousEvents && debugSnapshot.previousEvents.length > 0) || (debugSnapshot.events && debugSnapshot.events.length > 0)) && (
               <div style={{ marginTop: 16, padding: 10, background: 'rgba(255,255,255,0.06)', borderRadius: 8, textAlign: 'left' }}>
                 <button
                   type="button"
@@ -4678,11 +4681,21 @@ function GuidedWorkoutModal({
                         )}
                       </div>
                     )}
+                    {debugSnapshot.previousEvents && debugSnapshot.previousEvents.length > 0 && (
+                      <div style={{ marginBottom: 8 }}>
+                        <div style={{ opacity: 0.7, marginBottom: 4 }}>Events from the session that just ended ({debugSnapshot.previousEvents.length}):</div>
+                        {debugSnapshot.previousEvents.slice().reverse().map((ev, i) => (
+                          <div key={`p${i}`} style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', opacity: 0.9 }}>
+                            {new Date(ev.t).toLocaleTimeString()} [{ev.type}] {ev.msg}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                     {debugSnapshot.events && debugSnapshot.events.length > 0 && (
                       <div>
-                        <div style={{ opacity: 0.7, marginBottom: 4 }}>Last {debugSnapshot.events.length} events:</div>
+                        <div style={{ opacity: 0.5, marginBottom: 4 }}>Current session ({debugSnapshot.events.length}):</div>
                         {debugSnapshot.events.slice().reverse().map((ev, i) => (
-                          <div key={i} style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', opacity: 0.85 }}>
+                          <div key={`c${i}`} style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', opacity: 0.6 }}>
                             {new Date(ev.t).toLocaleTimeString()} [{ev.type}] {ev.msg}
                           </div>
                         ))}
