@@ -24,7 +24,82 @@ const USE_VIDEO_KEY_REMOUNT = false;
 // prefixed with [mem] so we can filter the noise in Safari Web Inspector
 // console. Safe to remove (or flip to false) once the test is done.
 const MEM_LOG = true;
-const memLog = (...args) => { if (MEM_LOG) try { console.log('[mem]', ...args); } catch { /* ignore */ } };
+
+// In-app "black box" recorder. Without device tethering we have no way to
+// read console output after a crash — so we also persist a rolling buffer
+// of events + any captured exceptions to localStorage. The Resume Workout
+// prompt surfaces this on next open so the founder can read the crash info
+// back to chat. Set DEBUG_RECORDER = false to disable entirely.
+const DEBUG_RECORDER = true;
+const DEBUG_LOG_KEY = 'guided_workout_debug_log';
+const DEBUG_EVENT_CAP = 60; // max events kept in the rolling buffer
+
+const _readDebugLog = () => {
+  if (!DEBUG_RECORDER) return null;
+  try {
+    const raw = localStorage.getItem(DEBUG_LOG_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    return data && typeof data === 'object' ? data : null;
+  } catch { return null; }
+};
+const _writeDebugLog = (log) => {
+  if (!DEBUG_RECORDER) return;
+  try { localStorage.setItem(DEBUG_LOG_KEY, JSON.stringify(log)); } catch { /* quota / private mode */ }
+};
+const clearDebugLog = () => {
+  try { localStorage.removeItem(DEBUG_LOG_KEY); } catch { /* ignore */ }
+};
+const recordDebugEvent = (type, msg) => {
+  if (!DEBUG_RECORDER) return;
+  const log = _readDebugLog() || { events: [], error: null, mountedAt: null };
+  log.events.push({ t: Date.now(), type, msg });
+  if (log.events.length > DEBUG_EVENT_CAP) {
+    log.events = log.events.slice(-DEBUG_EVENT_CAP);
+  }
+  _writeDebugLog(log);
+};
+const recordDebugError = (kind, error, context) => {
+  if (!DEBUG_RECORDER) return;
+  const log = _readDebugLog() || { events: [], error: null, mountedAt: null };
+  let msg = '';
+  let stack = '';
+  if (error) {
+    msg = error.message || String(error);
+    stack = error.stack || '';
+  }
+  log.error = {
+    at: Date.now(),
+    kind,
+    msg: msg.slice(0, 500),
+    stack: stack.slice(0, 1500),
+    context: context || null
+  };
+  _writeDebugLog(log);
+};
+const recordDebugMount = () => {
+  if (!DEBUG_RECORDER) return;
+  // Fresh recorder for this session; preserve any pre-existing error so
+  // the user can still read it on the next resume prompt.
+  const prior = _readDebugLog();
+  const log = {
+    events: [],
+    error: prior?.error || null,
+    mountedAt: Date.now(),
+    ua: (typeof navigator !== 'undefined' && navigator.userAgent) || ''
+  };
+  _writeDebugLog(log);
+};
+
+const memLog = (...args) => {
+  if (MEM_LOG) try { console.log('[mem]', ...args); } catch { /* ignore */ }
+  if (DEBUG_RECORDER) {
+    try {
+      const msg = args.map(a => (typeof a === 'string' ? a : (() => { try { return JSON.stringify(a); } catch { return String(a); } })())).join(' ');
+      recordDebugEvent('mem', msg);
+    } catch { /* ignore */ }
+  }
+};
 
 // iPhone/iPad only. iOS hands the exclusive audio session to an autoplaying
 // video the instant play mode opens, killing the user's background music.
@@ -453,6 +528,11 @@ function GuidedWorkoutModal({
   // Resume prompt state
   const [showResumePrompt, setShowResumePrompt] = useState(false);
   const [resumeData, setResumeData] = useState(null);
+  // Captured crash info from the prior session (if any). Surfaced in the
+  // resume prompt so the founder can read it back to chat without
+  // tethering the phone. Cleared on user dismiss.
+  const [debugSnapshot, setDebugSnapshot] = useState(null);
+  const [showDebugDetail, setShowDebugDetail] = useState(false);
 
   // Background playback (mini-player) state — collapses the modal into a
   // floating bubble so the workout keeps running while the user uses other tabs
@@ -607,12 +687,13 @@ function GuidedWorkoutModal({
     return validGroups;
   }, [exercises]);
 
-  // One-shot environment log so we can correlate any device-specific
-  // crash pattern (e.g. iPhone 13 Pro at ~24 min) with reported memory
-  // budget and UA. iOS Safari often doesn't expose deviceMemory but
-  // we log it anyway in case a future iOS version starts to.
+  // One-shot environment log + black-box recorder hookup so we can
+  // correlate any device-specific crash pattern (e.g. iPhone 13 Pro at
+  // ~10 min stress) with reported memory budget, UA, and a rolling
+  // event buffer that survives the modal closing. Without device
+  // tethering, this is the only signal we get after a crash.
   useEffect(() => {
-    if (!MEM_LOG) return;
+    try { recordDebugMount(); } catch { /* ignore */ }
     try {
       memLog('mount env',
         'deviceMemory:', (typeof navigator !== 'undefined' && navigator.deviceMemory) || 'n/a',
@@ -620,6 +701,37 @@ function GuidedWorkoutModal({
         '· UA:', (typeof navigator !== 'undefined' && navigator.userAgent) || 'n/a',
         '· strategy:', USE_VIDEO_KEY_REMOUNT ? 'remount' : 'persistent');
     } catch { /* ignore */ }
+
+    // Catch anything that throws while play mode is open. iOS Safari
+    // sometimes throws silently from media-pipeline APIs under rapid
+    // transition load (suspected after the stress test crash that
+    // closed the modal without killing the tab).
+    const onErr = (e) => {
+      try {
+        recordDebugError(
+          'window.error',
+          e?.error || new Error(e?.message || 'unknown error'),
+          { filename: e?.filename, lineno: e?.lineno, colno: e?.colno }
+        );
+      } catch { /* ignore */ }
+    };
+    const onRejection = (e) => {
+      try {
+        const reason = e?.reason;
+        const err = reason instanceof Error ? reason : new Error(typeof reason === 'string' ? reason : 'unhandled promise rejection');
+        recordDebugError('promise.rejection', err, null);
+      } catch { /* ignore */ }
+    };
+    if (typeof window !== 'undefined') {
+      window.addEventListener('error', onErr);
+      window.addEventListener('unhandledrejection', onRejection);
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('error', onErr);
+        window.removeEventListener('unhandledrejection', onRejection);
+      }
+    };
   }, []);
 
   // Check for resume state on mount. Strict identity match (clientId +
@@ -634,6 +746,15 @@ function GuidedWorkoutModal({
       setShowResumePrompt(true);
       setIsPaused(true); // Pause until user decides
     }
+    // Surface any captured crash info from the prior session. If there's
+    // no resume to show, we still load this so a standalone notice can
+    // render below.
+    try {
+      const snap = _readDebugLog();
+      if (snap && (snap.error || (snap.events && snap.events.length))) {
+        setDebugSnapshot(snap);
+      }
+    } catch { /* ignore */ }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Handle resume acceptance
@@ -4543,6 +4664,51 @@ function GuidedWorkoutModal({
                 Start Over
               </button>
             </div>
+            {debugSnapshot && (debugSnapshot.error || (debugSnapshot.events && debugSnapshot.events.length > 0)) && (
+              <div style={{ marginTop: 16, padding: 10, background: 'rgba(255,255,255,0.06)', borderRadius: 8, textAlign: 'left' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowDebugDetail(v => !v)}
+                  style={{ background: 'transparent', border: 'none', color: '#94a3b8', fontSize: 12, padding: 0, cursor: 'pointer' }}
+                >
+                  {showDebugDetail ? '▼' : '▶'} Debug info from last session
+                  {debugSnapshot.error ? ' (crash captured)' : ''}
+                </button>
+                {showDebugDetail && (
+                  <div style={{ marginTop: 8, fontSize: 11, color: '#cbd5e1', fontFamily: 'monospace', maxHeight: 240, overflow: 'auto', userSelect: 'text', WebkitUserSelect: 'text' }}>
+                    {debugSnapshot.error && (
+                      <div style={{ marginBottom: 8, padding: 6, background: 'rgba(239,68,68,0.12)', borderRadius: 4 }}>
+                        <div><strong>{debugSnapshot.error.kind}</strong> @ {new Date(debugSnapshot.error.at).toLocaleTimeString()}</div>
+                        <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{debugSnapshot.error.msg}</div>
+                        {debugSnapshot.error.stack && (
+                          <div style={{ marginTop: 4, opacity: 0.7, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{debugSnapshot.error.stack}</div>
+                        )}
+                        {debugSnapshot.error.context && (
+                          <div style={{ marginTop: 4, opacity: 0.7 }}>{JSON.stringify(debugSnapshot.error.context)}</div>
+                        )}
+                      </div>
+                    )}
+                    {debugSnapshot.events && debugSnapshot.events.length > 0 && (
+                      <div>
+                        <div style={{ opacity: 0.7, marginBottom: 4 }}>Last {debugSnapshot.events.length} events:</div>
+                        {debugSnapshot.events.slice().reverse().map((ev, i) => (
+                          <div key={i} style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', opacity: 0.85 }}>
+                            {new Date(ev.t).toLocaleTimeString()} [{ev.type}] {ev.msg}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => { clearDebugLog(); setDebugSnapshot(null); setShowDebugDetail(false); }}
+                      style={{ marginTop: 8, padding: '4px 10px', background: '#1e293b', color: '#cbd5e1', border: '1px solid #334155', borderRadius: 4, fontSize: 11, cursor: 'pointer' }}
+                    >
+                      Clear debug log
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}
